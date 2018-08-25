@@ -1,0 +1,51 @@
+package Datastructures.Literals;
+
+import java.util.LinkedList;
+
+/**
+ * Created by Ohlbach on 25.08.2018.
+ */
+public class LiteralIndex {
+    private int size;
+    private LinkedList<CLiteral>[] posOccurrences;
+    private LinkedList<CLiteral>[] negOccurrences;
+
+    public LiteralIndex(int size) {
+        assert size > 0;
+        posOccurrences = new LinkedList[size+1];
+        negOccurrences = new LinkedList[size+1];}
+
+    public void addLiteral(CLiteral cliteral) {
+        int literal = cliteral.getLiteral();
+        int predicate = Math.abs(literal);
+        LinkedList<CLiteral>[] list = literal > 0 ? posOccurrences : negOccurrences;
+        LinkedList<CLiteral> lits = list[predicate];
+        if(lits == null) {
+            lits = new LinkedList<CLiteral>();
+            list[predicate] = lits;}
+        lits.add(cliteral);}
+
+    public LinkedList<CLiteral> getLiterals(int literal) {
+        assert literal > 0 && Math.abs(literal) <= size;
+        return literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];}
+
+    public String toString() {
+        StringBuffer st = new StringBuffer();
+        for(int predicate = 1; predicate <= size; ++predicate) {
+            LinkedList<CLiteral> pos = posOccurrences[predicate];
+            LinkedList<CLiteral> neg = negOccurrences[predicate];
+            StringBuffer posString = null;
+            StringBuffer negString = null;
+            if(pos != null) {
+                posString = new StringBuffer();
+                for(CLiteral lit : pos) {posString.append(lit.toFullString()).append(",");}}
+            if(neg != null) {
+                negString = new StringBuffer();
+                for(CLiteral lit : neg) {negString.append(lit.toFullString()).append(",");}}
+            if(posString != null) {
+                st.append(" ").append(Integer.toString(predicate)).append(" ").append(posString).append("\n");}
+            if(negString != null)
+                st.append(Integer.toString(-predicate)).append(" ").append(negString).append("\n");}
+        return st.toString();}
+
+}

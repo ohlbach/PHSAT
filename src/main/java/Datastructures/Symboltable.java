@@ -2,26 +2,60 @@ package Datastructures;
 
 /**
  * Created by ohlbach on 25.08.2018.
+ * The symboltable maps predicates to names.
+ * A predicate is a positive integer.
+ * A literal is a positive or negative integer.
  */
+
 public class Symboltable {
+    /**
+     * size is the number of predicates
+     */
     public int size;
-    private String[] posName;
-    private String[] negName;
+
+    /**
+     * This array maps predicates to names
+     */
+    private String[] names;
 
     public Symboltable(int size) {
         this.size = size;
-        posName = new String[size+1];
-        negName = new String[size+1];
+        names = new String[size+1];
     }
 
-    public String getName(int literal) {
-        assert literal > 0;
-        return (literal > 0) ? posName[literal] : negName[literal];
+    /**
+     * @param predicate  any predicate
+     * @return  the names of the predicate
+     */
+    public String getPredicateName(int predicate) {
+        assert predicate > 0;
+        return names[predicate];
     }
 
-    public void setName(int literal, String name) {
-        assert literal > 0 && literal <= size;
-        if(literal > 0) {posName[literal] = name;}
-        else {negName[literal] = name;}
-    }
+    /**
+     * @param literal any positive or negative predicate
+     * @return  the name of the literal (e.g. -A)
+     */
+    public String getLiteralName(int literal) {
+        assert  literal != 0 && Math.abs(literal) <= size;
+        return literal > 0 ? names[literal] : "-"+names[-literal];}
+
+    /**
+     * @param predicate any predicate
+     * @param name  sets the name of the predicate
+     */
+    public void setName(int predicate, String name) {
+        assert predicate > 0 && predicate <= size;
+        names[predicate] = name;}
+
+    /**
+     * @return the contents of the symboltable
+     */
+    public String toString() {
+        StringBuilder st = new StringBuilder();
+        for(int i = 1; i <= size; ++i) {
+            st.append(i + ":" + names[i]+",");}
+        return st.toString();}
+
+
 }
