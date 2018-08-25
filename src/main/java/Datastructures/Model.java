@@ -14,11 +14,15 @@ public class Model {
         model = new int[size];
         truth = new short[size+1];}
 
-    public void pushLiteral(int literal) {
+    public short pushLiteral(int literal) {
         int predicate = Math.abs(literal);
         assert predicate <= maxSize;
-        model[actualSize++] = literal;
-        truth[predicate] = literal > 0 ? (short)1: (short)-1;}
+        short tr = truth[predicate];
+        if(tr == 0){
+            model[actualSize++] = literal;
+            truth[predicate] = literal > 0 ? (short)1: (short)-1;
+            return 0;}
+        else {return (Integer.signum(literal) == (int)tr) ? (short)1 : (short)-1;}}
 
     public void pop() {
         int literal = model[actualSize--];
