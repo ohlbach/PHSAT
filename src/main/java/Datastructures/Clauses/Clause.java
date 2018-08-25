@@ -16,11 +16,13 @@ public class Clause {
     private CLiteral[] cliterals;
 
     public Clause(int maxSize) {
+        this.maxSize = maxSize;
         cliterals = new CLiteral[maxSize];}
 
     public int getSize() {return actualSize;}
 
     public int addLiteral(CLiteral cliteral) {
+        assert actualSize <= maxSize;
         int newliteral = cliteral.getLiteral();
         for(int position = 0; position < actualSize; ++position) {
             int oldliteral = cliteral.getLiteral();
