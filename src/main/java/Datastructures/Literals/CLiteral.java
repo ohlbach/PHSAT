@@ -9,7 +9,7 @@ import Datastructures.Clauses.Clause;
  * Besides the literal, it contains a pointer to the clause and the position within the clause.
  */
 public class CLiteral {
-    private int literal;   // the literal
+    public int literal;   // the literal
     private Clause clause; // the clause
     private int position;  // the position of the literal within the clause.
 
@@ -32,11 +32,6 @@ public class CLiteral {
         this.clause = clause;
         this.position = position;}
 
-    /** return the literal
-     *
-     * @return the literal
-     */
-    public int getLiteral() {return literal;}
 
     /** return the clause or null
      *

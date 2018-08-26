@@ -11,15 +11,15 @@ import static org.junit.Assert.*;
 public class CLiteralTest {
     @Test
     public void getLiteral1() throws Exception {
-        System.out.println("getLiteral");
+        System.out.println("literal");
         CLiteral lit = new CLiteral(3);
-        assertEquals(3,lit.getLiteral());
+        assertEquals(3,lit.literal);
     }
 
     @Test
     public void getClause() throws Exception {
         System.out.println("getClause, getPosition");
-        Clause cl = new Clause(3);
+        Clause cl = new Clause(1,3);
         CLiteral lit = new CLiteral(3,cl,2);
         assertEquals(cl,lit.getClause());
         assertEquals(2,lit.getPosition());}
@@ -28,7 +28,7 @@ public class CLiteralTest {
     @Test
     public void setClause() throws Exception {
         System.out.println("setClause");
-        Clause cl = new Clause(3);
+        Clause cl = new Clause(1,3);
         CLiteral lit = new CLiteral(3);
         lit.setClause(cl,2); assertEquals(cl,lit.getClause());
         assertEquals(2,lit.getPosition());}
@@ -37,7 +37,7 @@ public class CLiteralTest {
     @Test
     public void removeClause() throws Exception {
         System.out.println("removeClause");
-        Clause cl = new Clause(3);
+        Clause cl = new Clause(1,3);
         CLiteral lit = new CLiteral(3,cl,2);
         lit.removeClause();
         assertNull(lit.getClause());
@@ -47,7 +47,7 @@ public class CLiteralTest {
     @Test
     public void getLiteral() throws Exception {
         CLiteral lit = new CLiteral(5);
-        assertEquals(5, lit.getLiteral());
+        assertEquals(5, lit.literal);
 
     }
 

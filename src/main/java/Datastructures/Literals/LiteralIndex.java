@@ -16,7 +16,7 @@ public class LiteralIndex {
         negOccurrences = new LinkedList[size+1];}
 
     public void addLiteral(CLiteral cliteral) {
-        int literal = cliteral.getLiteral();
+        int literal = cliteral.literal;
         int predicate = Math.abs(literal);
         LinkedList<CLiteral>[] list = literal > 0 ? posOccurrences : negOccurrences;
         LinkedList<CLiteral> lits = list[predicate];
