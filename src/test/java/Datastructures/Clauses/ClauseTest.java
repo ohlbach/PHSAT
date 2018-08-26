@@ -149,7 +149,7 @@ public class ClauseTest {
         CLiteral lit2 = new CLiteral(-3);
         cl.addLiteral(lit2);
         model.push(-5);
-        assertEquals("1: -3,",cl.toString(model));
+        assertEquals("  1: -3,",cl.toString(model,3));
     }
 
 }
