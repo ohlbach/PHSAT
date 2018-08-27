@@ -12,6 +12,7 @@ public class CLiteral {
     public int literal;   // the literal
     private Clause clause; // the clause
     private int position;  // the position of the literal within the clause.
+    public int timestamp = 0;
 
     /** creates a CLiteral without a clause
      *

@@ -4,7 +4,7 @@ package Datastructures;
  * Created by Ohlbach on 25.08.2018.
  */
 public class Model {
-    private int maxSize;    // the maximum number of predicates
+    public int predicates;    // the maximum number of predicates
     private int actualSize; // the current number of literals in the model
     private int[] model;    // the current model (as a stack)
     private short[] status;  // maps predicates in the model to +1 (true), -1 (false) or 0 (undefined)
@@ -15,7 +15,7 @@ public class Model {
      */
     public Model(int size) {
         assert size > 0;
-        maxSize = size;
+        predicates = size;
         model = new int[size];
         status = new short[size+1];}
 
@@ -26,8 +26,8 @@ public class Model {
      */
     public short push(int literal) {
         int predicate = Math.abs(literal);
-        assert predicate <= maxSize;
-        assert actualSize <= maxSize;
+        assert predicate <= predicates;
+        assert actualSize <= predicates;
         short tr = status[predicate];
         if(tr == 0){
             model[actualSize++] = literal;
@@ -52,7 +52,7 @@ public class Model {
      */
     public boolean isTrue(int literal) {
         int predicate = Math.abs(literal);
-        assert predicate <= maxSize;
+        assert predicate <= predicates;
         short status = this.status[predicate];
         if(status == 0) {return false;}
         return literal > 0 ? status == 1: status == -1;}
@@ -64,7 +64,7 @@ public class Model {
      */
     public boolean isFalse(int literal) {
         int predicate = Math.abs(literal);
-        assert predicate <= maxSize;
+        assert predicate <= predicates;
         short status = this.status[predicate];
         if(status == 0) {return false;}
         return literal > 0 ? status == -1: status == 1;}
@@ -76,7 +76,7 @@ public class Model {
      */
     public short status(int literal) {
         int predicate = Math.abs(literal);
-        assert predicate <= maxSize;
+        assert predicate <= predicates;
         short status = this.status[predicate];
         return (short)(literal > 0 ? status : -status);}
 
@@ -87,7 +87,7 @@ public class Model {
      */
     public boolean contains(int literal) {
         int predicate = Math.abs(literal);
-        assert predicate <= maxSize;
+        assert predicate <= predicates;
         return status[predicate] != 0;}
 
     /** returns the current size of the model.
@@ -106,7 +106,7 @@ public class Model {
      *
      * @return true if the model is empty
      */
-    public boolean isFull() {return actualSize == maxSize;}
+    public boolean isFull() {return actualSize == predicates;}
 
     /**
      * @return the model as a comma separated string.

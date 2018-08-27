@@ -16,7 +16,7 @@ public class Clause {
     public int number;
     private int maxSize;    // the maximum length of the literal array
     private int actualSize; // the current number of literals
-    private CLiteral[] cliterals;   // the literals
+    public CLiteral[] cliterals;   // the literals
 
     /** constructs a clause
      *
