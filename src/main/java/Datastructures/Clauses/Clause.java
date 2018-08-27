@@ -2,6 +2,7 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Model;
+import Datastructures.Symboltable;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -83,6 +84,10 @@ public class Clause {
         cliterals[actualSize++] = cliteral;
         return 0;}
 
+    public void resize() {
+        if(actualSize < maxSize) {
+            cliterals = Arrays.copyOfRange(cliterals,0,actualSize);}}
+
     /** removes a literal from the clause.
      *
      * @param literal the literal to be removed.
@@ -144,6 +149,18 @@ public class Clause {
             st.append(cliterals[position].toString()).append(",");}
         return st.toString();}
 
+    /** generates a string: clause-number: literals
+     *
+     * @param symboltable for mapping numbers to names
+     * @return a string: clause-number: literals
+     */
+    public String toString(Symboltable symboltable) {
+        StringBuffer st = new StringBuffer();
+        st.append(Integer.toString(number)).append(": ");
+        for(int position = 0; position < actualSize; ++position) {
+            st.append(cliterals[position].toString(symboltable)).append(",");}
+        return st.toString();}
+
 
     /** generates a string: clause-number: non-false literals
      *
@@ -151,12 +168,22 @@ public class Clause {
      * @return a string: clause-number: non-false literals
      */
     public String toString(Model model, int numberSize) {
+        return toString(model,numberSize,null);}
+
+    /** generates a string: clause-number: non-false literals
+     *
+     * @param model  a model (mapping predicates to true or false)
+     * @param numberSize the legth of the number-string
+     * @param symboltable for mapping numbers to names
+     * @return a string: clause-number: non-false literals
+     */
+    public String toString(Model model, int numberSize, Symboltable symboltable) {
         StringBuffer st = new StringBuffer();
         String n = String.format("%"+numberSize+"d",number);
         st.append(n).append(": ");
         for(int position = 0; position < actualSize; ++position) {
             CLiteral lit = cliterals[position];
-            if(!model.isFalse(lit.literal)) {st.append(cliterals[position].toString()).append(",");}}
+            if(!model.isFalse(lit.literal)) {st.append(cliterals[position].toString(symboltable)).append(",");}}
         return st.toString();}
 
 

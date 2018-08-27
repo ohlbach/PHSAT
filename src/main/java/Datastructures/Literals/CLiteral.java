@@ -1,6 +1,7 @@
 package Datastructures.Literals;
 
 import Datastructures.Clauses.Clause;
+import Datastructures.Symboltable;
 
 /**
  * Created by Ohlbach on 25.08.2018.
@@ -64,6 +65,17 @@ public class CLiteral {
 
     /** generates a String literal@clause,position
      *
+     * @param symboltable for mapping numbers to names
+     * @return a String literal@clause,position
+     */
+    public String toFullString(Symboltable symboltable) {
+        if(symboltable == null) {return toFullString();}
+        String st = symboltable.getLiteralName(literal);
+        if(clause != null) {st = st+"@"+Integer.toString(clause.number)+","+Integer.toString(position);}
+        return st;}
+
+    /** generates a String literal@clause,position
+     *
      * @return a String literal@clause,position
      */
     public String toFullString() {
@@ -77,5 +89,13 @@ public class CLiteral {
      */
     public String toString() {
         return Integer.toString(literal);}
+
+    /** returns just  name of the literal.
+     *
+     * @param symboltable for mapping numbers to names
+     * @return the literal name as a String.
+     */
+    public String toString(Symboltable symboltable) {
+        return symboltable == null ? toString() : symboltable.getLiteralName(literal);}
 
 }

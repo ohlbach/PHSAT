@@ -4,6 +4,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
 import Datastructures.Model;
 import Datastructures.Symboltable;
+import jdk.nashorn.internal.ir.Symbol;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,6 +37,7 @@ public class ClauseList {
         literalIndex = new LiteralIndex(model.predicates);}
 
     public void addClause(Clause clause) {
+        clause.resize();
         clauses.add(clause);
         number2Clause.put(clause.number,clause);
         for(CLiteral literal : clause.cliterals) {literalIndex.addLiteral(literal);}
@@ -54,13 +56,17 @@ public class ClauseList {
     public int size() {return clauses.size();}
 
     public String toString(){
+        return toString(true);}
+
+    public String toString(boolean withSymboltable){
+        Symboltable stb = withSymboltable ? symboltable : null;
         StringBuffer st = new StringBuffer();
         if(info != null) {st.append(info).append("\n");}
         if(!model.isEmpty()) {st.append("Partial Model: ").append(model.toString()).append("\n");}
         int numbersize = (""+clauses.size()).length();
         for(Clause clause : clauses) {
             if(!clause.isTrue(model)) {
-                st.append(clause.toString(model,numbersize)).append("\n");}}
+                st.append(clause.toString(model,numbersize,stb)).append("\n");}}
         return st.toString();
     }
 
