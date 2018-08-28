@@ -29,6 +29,21 @@ public class Clause {
         this.maxSize = maxSize;
         cliterals = new CLiteral[maxSize];}
 
+    /** constructs a clause from a string.
+     *  Just for test purposes!
+     *
+     * @param number the clause number
+     * @param literals the literal string.
+     */
+    public Clause(int number, String literals) {
+        this.number = number;
+        String[] lits = literals.split("\\s*,\\s*");
+        maxSize = lits.length;
+        actualSize = maxSize;
+        cliterals = new CLiteral[maxSize];
+        for(int i = 0; i < maxSize; ++i) {
+            cliterals[i] = new CLiteral(Integer.parseInt(lits[i]),this,i);}}
+
     /** return the current number of literals
      *
      * @return the current number of literals
