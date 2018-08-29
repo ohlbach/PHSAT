@@ -81,6 +81,7 @@ public class Clause {
             if(model.isTrue(cliterals[position].literal)) {return true;}}
         return false;}
 
+
     /** adds a literal to the clause.
      * The clause and the literal position within the clause are updated in the literal datastructure.
      * Double literals and tautologies are checked.
@@ -102,6 +103,10 @@ public class Clause {
     public void resize() {
         if(actualSize < maxSize) {
             cliterals = Arrays.copyOfRange(cliterals,0,actualSize);}}
+
+    public CLiteral getFirstLiteral(Model model) {
+        for(CLiteral lit : cliterals) {if(!model.isFalse(lit.literal)) {return lit;}}
+        return null;}
 
     /** removes a literal from the clause.
      *

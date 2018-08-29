@@ -75,7 +75,20 @@ public class ClauseList {
     public void removeClause(Clause clause) {
         clauses.remove(clause);
         number2Clause.remove(clause.number);
-        for(CLiteral literal : clause.cliterals) {literalIndex.removeLiteral(literal);}
+        for(CLiteral cliteral : clause.cliterals) {literalIndex.removeLiteral(cliteral);}
+    }
+
+    public int removeLiteral(CLiteral cliteral) {
+        cliteral.getClause().removeLiteral(cliteral);
+        literalIndex.removeLiteral(cliteral);
+        return clauses.size();}
+
+    public void makeTrue(Clause clause) {
+        removeClause(clause);
+    }
+
+    public int makeFalse(CLiteral literal) {
+        return removeLiteral(literal);
     }
 
     /** the actual number of clauses
