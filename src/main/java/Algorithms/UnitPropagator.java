@@ -34,5 +34,5 @@ public class UnitPropagator {
                 if(size == 1) {
                     CLiteral cnegliteral = clause.getFirstLiteral(model);
                     clauses.makeTrue(clause);
-                    unitLiterals.addLast(cnegliteral.literal);}}}}
+                    unitLiterals.addFirst(cnegliteral.literal);}}}}
 }

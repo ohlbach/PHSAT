@@ -4,7 +4,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
 import Datastructures.Model;
 import Datastructures.Symboltable;
-import jdk.nashorn.internal.ir.Symbol;
+import Datastructures.Theory.Theory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +22,9 @@ public class ClauseList {
     public int timestamp = 0;                  // for algorithms
     private HashMap<Integer,Clause> number2Clause; // maps clause numbers to clauses
     public LiteralIndex literalIndex;              // maps literals to CLiterals
+    public Theory theory;
+
+    private boolean destructiveMode = true;      // if true then changes are made destructive
 
     /** creates a clause list
      *
@@ -82,6 +85,11 @@ public class ClauseList {
         cliteral.getClause().removeLiteral(cliteral);
         literalIndex.removeLiteral(cliteral);
         return clauses.size();}
+
+    public void setDestructiveMode(boolean destructiveMode) {
+        this.destructiveMode = destructiveMode;}
+
+    public boolean inDestructiveMode() {return destructiveMode;}
 
     public void makeTrue(Clause clause) {
         removeClause(clause);
