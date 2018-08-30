@@ -11,6 +11,6 @@ public class TheoryIG extends Theory {
     public TheoryIG(ImplicationGraph implicationGraph) {
         this.implicationGraph = implicationGraph;}
 
-    public ArrayList<Integer> getContradictoryLiterals(int literal) {
-        return implicationGraph.getContradictoryLiterals(literal);}
+    public ArrayList<Integer> getImplicants(int literal) {
+        return implicationGraph.getImplicants(literal);}
 }
