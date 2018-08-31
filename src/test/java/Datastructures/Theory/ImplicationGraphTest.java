@@ -33,7 +33,7 @@ public class ImplicationGraphTest {
 
     @Test
     public void addClause3() throws Exception {
-        System.out.println("add  single sequence");
+        System.out.println("add single sequence");
         ImplicationGraph ig = new ImplicationGraph(10);
         ig.addClause(1,2);
         ig.addClause(-2,3);
@@ -80,7 +80,6 @@ public class ImplicationGraphTest {
         ImplicationGraph ig = new ImplicationGraph(10);
         assertNull(ig.addClause(1,2));
         assertEquals("[2]",ig.addClause(2,-1).toString());
-        System.out.println(ig);
         assertNull(ig.getImplicants(1));
         assertNull(ig.getImplicants(-1));
     }
@@ -91,7 +90,6 @@ public class ImplicationGraphTest {
         ImplicationGraph ig = new ImplicationGraph(10);
         assertNull(ig.addClause(1,2));
         assertEquals("[2]",ig.addClause(-1,2).toString());
-        System.out.println(ig);
         assertNull(ig.getImplicants(1));
         assertNull(ig.getImplicants(-1));
     }
@@ -104,7 +102,6 @@ public class ImplicationGraphTest {
         assertNull(ig.addClause(-2,3));
         assertNull(ig.addClause(-2,4));
         assertEquals("[-2, 1]",ig.addClause(-4,-2).toString());
-        System.out.println(ig);
         assertNull(ig.getImplicants(1));
         assertNull(ig.getImplicants(-1));
     }

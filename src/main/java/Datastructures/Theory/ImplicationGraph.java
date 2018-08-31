@@ -2,6 +2,7 @@ package Datastructures.Theory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 /**
  * Created by ohlbach on 29.08.2018.
@@ -14,7 +15,7 @@ import java.util.HashMap;
 public class ImplicationGraph {
     private final int predicates;   // number of predicates (used only in toString())
     private final HashMap<Integer,ArrayList<Integer>> implicants = new HashMap<>();  // contains for each literal the implied literals
-    private final ArrayList<Integer> units = new ArrayList<>(); // an intermediate list for storing derived unit clause
+    private final HashSet<Integer> units = new HashSet<>(); // an intermediate list for storing derived unit clause
 
     /** constructs an empty Implication Graph
      *
@@ -35,96 +36,97 @@ public class ImplicationGraph {
      *
      * @param literal1 a literal
      * @param literal2 a literal
-     * @return the derived unit clauses (if any)
+     * @return the derived unit clauses (if any), or null
      */
-    public ArrayList<Integer> addClause(int literal1, int literal2) {
-        ArrayList<Integer> units = addImplication(-literal1,literal2);
-        if(units != null && units.size()==1 && units.get(0)==literal1) {return clear(units);}
-        return clear(addImplication(-literal2,literal1));}
+    public HashSet<Integer> addClause(int literal1, int literal2) {
+        units.clear();
+        addImplication(-literal1,literal2);
+        addImplication(-literal2,literal1);
+        clear();
+        return units.isEmpty() ? null : units;}
 
-    /** adds an implication ante -> succ to the graph
+    /** adds an implication ante -> succ to the graph.
+     * Puts derived unit clauses into units.
      *
      * @param ante a literal
      * @param succ a literal
-     * @return null or the derived unit clauses.
      */
-    private ArrayList<Integer> addImplication(int ante, int succ) {
-        units.clear();
-        ArrayList<Integer> list = implicants.get(ante);
-        if(list == null) {list = new ArrayList<>(); implicants.put(ante,list);}
-        for(Integer literal :list) {            // ante -> p1,...pn,succ
-            if(literal == succ) {return null;}  // double occurrence
-            if(literal == -succ) {              // ante -> -succ,succ   -> -ante can be derived as unit literal
-                units.add(-ante);
-                ArrayList<Integer> antelist = implicants.get(-ante); // implicants of -ante become units.
-                if(antelist != null) {units.addAll(antelist);}
-                list.add(succ);  // removed in clear()
-                return units;}}
-        list.add(succ);
+    private void addImplication(int ante, int succ) {
+        ArrayList<Integer> antelist = implicants.get(ante);
+        if(antelist == null) {antelist = new ArrayList<>(); implicants.put(ante,antelist);}
+        for(Integer literal :antelist) {    // ante -> p1,...pn,succ
+            if((int)literal == succ) {return ;}  // double occurrence
+            if((int)literal == -succ) {          // ante -> -succ,succ   -> -ante can be derived as unit literal
+                addUnit(-ante);
+                break;}}        // one must continue, otherwise removeLiteral won't find all occurrences.
+        antelist.add(succ);
 
         ArrayList<Integer> succlist = implicants.get(succ);  // ante -> p1,...,pn,succ  succ->q1,...,qm
-        if(succlist != null) {
-            int unit = join(ante,list,succlist);             // ante -> succ,   succ -> -ante,   -ante can be derived
-            if(unit != 0) {units.add(unit); return units;}}
+        if(succlist != null) {join(ante,antelist,succlist);}
 
         ArrayList<Integer> neglist = implicants.get(-ante);   // x -> ante
-        if(neglist == null) {return null;}
-        for(Integer negliteral : neglist) {
-            int oldante = -negliteral;
-            int unit = join(oldante,implicants.get(oldante),list);
-            if(unit != 0) {
-                units.add(unit);
-                ArrayList<Integer> antelist = implicants.get(unit);
-                if(antelist != null) {units.addAll(antelist);}
-            }}
-        return units.isEmpty() ? null : units;}
+        if(neglist != null) {
+            for(Integer negliteral : neglist) {join(-negliteral,implicants.get(-negliteral),antelist);}}}
 
-    /** joins to lists of implied literals, e.g. p -> a1,..,q,..,a2  q -> b1...bm
+    /** joins to lists of implied literals, e.g. p -> a1,..,q,..,a2  q -> b1...bm.
+     * puts derived unit clauses into units.
      *
      * @param ante     a literal
      * @param antelist the consequences of ante
-     * @param succlist consequences of one of ante's conseqences
-     * @return 0 or -ante if a contradiction has been discovered.
+     * @param succlist consequences of one of ante's consequences
      */
-    private int join(int ante, ArrayList<Integer> antelist, ArrayList<Integer> succlist) {
+    private void join(int ante, ArrayList<Integer> antelist, ArrayList<Integer> succlist) {
         if(succlist != null) {
             for(Integer succliteral : succlist) {
-                if(succliteral == -ante) {return -ante;}
+                if(succliteral == -ante) {addUnit(-ante);}
                 boolean ignore = false;
                 for(Integer anteliteral : antelist) {
                     if(anteliteral.equals(succliteral)) {ignore = true; break;}
-                    if(anteliteral.equals(-succliteral)) {return -ante;}}
-                if(!ignore) {antelist.add(succliteral);}}}
-        return 0;}
+                    if(anteliteral.equals(-succliteral)) {addUnit(-ante);}}
+                if(!ignore) {antelist.add(succliteral);}}}}
+
+    /** adds a newly derived unit clauses together with its consequences into units.
+     *
+     * @param unit a derived unit clause
+     */
+    private void addUnit(Integer unit) {
+        units.add(unit);
+        ArrayList<Integer> consequences = implicants.get(unit);
+        if(consequences != null) {
+            units.addAll(consequences);}}
 
     /** removes the derived unit clauses from the Implication Graph
-     *
-     * @param units the derived unit clauses
-     * @return units (unchanged)
      */
-    private ArrayList<Integer> clear(ArrayList<Integer> units) {
-        if(units == null) {return null;}
+    private void clear() {
         for(Integer unit : units) {
-            ArrayList<Integer> list = implicants.get(unit);
-            if(list != null) {
-                for(Integer succ : list) {
-                    ArrayList<Integer> succlist = implicants.get(-succ);
-                    if(succlist != null) {
-                        succlist.remove(-unit);
-                        if(succlist.isEmpty()) {implicants.remove(-succ);}}}}
-            list = implicants.get(-unit);
-            if(list != null) {
-                for(Integer succ : list) {
-                    ArrayList<Integer> succlist = implicants.get(-succ);
-                    if(succlist != null) {
-                        succlist.remove(unit);
-                        if(succlist.isEmpty()) {implicants.remove(-succ);}}}}
-            System.out.println(unit);
-            System.out.println(this);
-            implicants.remove(unit);
-            implicants.remove(-unit);}
-        return units;
+            remove(unit);
+            remove(-unit);}}
+
+    /** removes a literal and its negation from the Implication Graph
+     *
+     * @param literal  a literal to be removed
+     */
+    public void removeLiteral(int literal) {
+        remove(literal);
+        remove(-literal);
     }
+
+    /** removes a literal and its consequences from the Implication Graph
+     *
+     * @param literal the literal to be removed.
+     */
+    private void remove(int literal) {
+        ArrayList<Integer> list = implicants.get(-literal);
+        if(list != null) {
+            list.remove((Integer) literal);  // when unit clauses have been derived
+            for(Integer succ : list) {  // remove the literal from all implications
+                ArrayList<Integer> succlist = implicants.get(-succ);
+                if(succlist != null) {
+                    succlist.remove((Integer)(-succ));
+                    succlist.remove((Integer)literal);
+                    if(succlist.isEmpty()) {implicants.remove(-succ);}}}}
+        implicants.remove(literal);}
+
 
     /** generates a String representation of the graph:</br>
      *  1 -&gt; ...</br>
