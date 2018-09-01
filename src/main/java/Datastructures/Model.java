@@ -35,6 +35,14 @@ public class Model {
             return 0;}
         else {return (Integer.signum(literal) == (int)tr) ? (short)1 : (short)-1;}}
 
+    /** flips the truth value of the literal
+     *
+     * @param literal a literal
+     */
+    public void flip(int literal) {
+        int predicate = Math.abs(literal);
+        status[predicate] = (short)-status[predicate];}
+
     /** pops the last literal from the model.
      *
      *  @return the popped literal, or 0 if the model is empty.
