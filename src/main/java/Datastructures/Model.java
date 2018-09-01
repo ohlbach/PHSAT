@@ -1,5 +1,9 @@
 package Datastructures;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.function.Consumer;
+
 /**
  * Created by Ohlbach on 25.08.2018.
  */
@@ -8,23 +12,56 @@ public class Model {
     private int actualSize; // the current number of literals in the model
     private int[] model;    // the current model (as a stack)
     private short[] status;  // maps predicates in the model to +1 (true), -1 (false) or 0 (undefined)
+    private ArrayList<Consumer<Integer>> pushObserver = null;
+    private ArrayList<Consumer<Integer>> finalObserver = null;
+
+    public Model() {}
 
     /** creates a model with a maximum number of predicates
      *
-     * @param size the maximum number of predicates
+     * @param predicates the maximum number of predicates
      */
-    public Model(int size) {
-        assert size > 0;
-        predicates = size;
-        model = new int[size];
-        status = new short[size+1];}
+    public Model(int predicates) {
+        assert predicates > 0;
+        this.predicates = predicates;
+        model = new int[predicates];
+        status = new short[predicates+1];}
+
+    /** creates a copy of the model.
+     *  Observers are not copied.
+     *
+     * @return a copy of the model.
+     */
+    public Model copy() {
+        Model newmodel = new Model();
+        newmodel.predicates = predicates;
+        newmodel.actualSize = actualSize;
+        newmodel.model = Arrays.copyOf(model,predicates);
+        newmodel.status = Arrays.copyOf(status,predicates+1);
+        return newmodel;}
+
+    /** adds a pushObserver, a Consumer function to be applied to a literal which just became true.
+     *
+     * @param observer a Consumer function to be applied to a literal.
+     */
+    public synchronized void addPushObserver(Consumer<Integer> observer) {
+        if(pushObserver == null) {pushObserver = new ArrayList<>();}
+        pushObserver.add(observer);}
+
+    /** adds a finalObserver, a Consumer function to be applied when all predicates became assigned.
+     *
+     * @param observer a Consumer function to be applied to the last literal.
+     */
+    public synchronized void addFinalObserver(Consumer<Integer> observer) {
+        if(finalObserver == null) {finalObserver = new ArrayList<>();}
+        finalObserver.add(observer);}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
      *
      * @param literal the literal for the model.
      * @return +1 if the literal was already in the model, -1 if the negated literal was in the model, otherwise 0.
      */
-    public short push(int literal) {
+    public synchronized short push(int literal) {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         assert actualSize <= predicates;
@@ -32,6 +69,10 @@ public class Model {
         if(tr == 0){
             model[actualSize++] = literal;
             status[predicate] = literal > 0 ? (short)1: (short)-1;
+            if(pushObserver != null) {
+                for(Consumer<Integer> observer : pushObserver) {observer.accept(literal);}}
+            if(finalObserver != null && actualSize == predicates) {
+                for(Consumer<Integer> observer : finalObserver) {observer.accept(literal);}}
             return 0;}
         else {return (Integer.signum(literal) == (int)tr) ? (short)1 : (short)-1;}}
 

@@ -86,6 +86,17 @@ public class ClauseList {
         literalIndex.removeLiteral(cliteral);
         return clauses.size();}
 
+    /** collects the clauses which are false in the given model.
+     *
+     * @param model a model
+     * @return the list of false clauses.
+     */
+    public ArrayList<Clause> falseClauses(Model model) {
+        ArrayList<Clause> falseClauses = new ArrayList<>();
+        for(Clause clause : clauses) {
+            if(!clause.isTrue(model)) {falseClauses.add(clause);}}
+        return falseClauses;}
+
     public void setDestructiveMode(boolean destructiveMode) {
         this.destructiveMode = destructiveMode;}
 

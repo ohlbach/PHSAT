@@ -1,32 +1,43 @@
 package Solver.RandomWalk;
 
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
 import Datastructures.Model;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.PriorityQueue;
+import java.util.Random;
 
 /**
  * Created by ohlbach on 01.09.2018.
  */
-public class RandomWalker {
+public class RandomWalker implements Runnable {
+    private int walker;
     private ClauseList clauseList;
+    private int maxFlips;
+    private int flipCounter = 0;
     private int seed;
     public String info;
     private LiteralIndex index ;
-    private Model model;
+    private Model globalModel;
+    private Model localModel;
     private int predicates;
     private int[] flipConsequences;
     private PriorityQueue<Integer> literalQueue;
-    private HashSet<Integer> affected = new HashSet<>();
+    private Random random;
+    private ArrayList<Clause> falseClauses;
+    private int externallyTerminated = 0;
+    private ArrayList<Integer> globalUnits = new ArrayList<>();
 
-    public RandomWalker(ClauseList clauseList, int seed) {
+    public RandomWalker(int walker, ClauseList clauseList, int maxFlips, int seed) {
+        this.walker = walker;
         this.clauseList = clauseList;
         index = clauseList.literalIndex;
-        model = clauseList.model;
-        predicates = model.predicates;
+        globalModel = clauseList.model;
+        predicates = globalModel.predicates;
         flipConsequences = new int[predicates+1];
         literalQueue = new PriorityQueue<Integer>(predicates,(
                 (l1,l2) -> {
@@ -35,26 +46,44 @@ public class RandomWalker {
                     if(f1 > f2) {return -1;}
                     return(f1 < f2) ? 1 : 0;}));
         this.seed = seed;
-        info = "Random Walker with seed " + seed;
+        random = new Random(seed);
+        this.maxFlips = maxFlips;
+        info = "Random Walker " + walker + " with seed " + seed;
+        globalModel.addFinalObserver(literal -> {externallyTerminated = literal;});
+        globalModel.addPushObserver(literal -> addGlobalUnit(literal));
     }
 
-    /** generates a candidate model for the clauses.
+    public void run() {
+        localModel = globalModel.copy();
+        initializeModel();
+        initializeFlipConsequences();
+        falseClauses = clauseList.falseClauses(localModel);
+        while (++flipCounter <= maxFlips && externallyTerminated == 0 && !falseClauses.isEmpty()) {
+            copyGlobalUnits();
+            integrateGlobalUnits();
+            flip(selectFlipPredicate());}}
+
+
+
+    /** generates a candidate localModel for the clauses.
      * A predicate becomes true if it occurs in more clauses than its negation.
      */
     private void initializeModel() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-                model.push((index.getLiterals(predicate).size() > index.getLiterals(-predicate).size()) ? predicate : -predicate);}}
+            if(!globalModel.contains(predicate)) {
+                localModel.push((index.getLiterals(predicate).size() > index.getLiterals(-predicate).size()) ? predicate : -predicate);}}}
 
     /** initializes flipConsequences and literalQueue.
      *  literalQueue contains the predicates ordered by the number
      *  of clauses made true when flipping the predicate.
-     *  The head of the queue is the prediate which makes most clauses true by flipping it.
+     *  The head of the queue is the predicate which makes most clauses true by flipping it.
      */
     private void initializeFlipConsequences() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-            flipConsequences[predicate] = flipMakesTrue(predicate);}
+            if(!globalModel.contains(predicate)) {
+                flipConsequences[predicate] = flipMakesTrue(predicate);}}
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-            literalQueue.add(predicate);}}
+            if(!globalModel.contains(predicate)) {literalQueue.add(predicate);}}}
 
 
     /** computes how many clauses more become true after flipping the predicate.
@@ -68,19 +97,22 @@ public class RandomWalker {
      */
     private int flipMakesTrue(int predicate) {
         int becomesTrue = 0;
-        for(CLiteral cliteral : index.getLiterals(predicate*model.status(predicate))) {
+        for(CLiteral cliteral : index.getLiterals(predicate* localModel.status(predicate))) {
             boolean remainstrue = false;
             for(CLiteral othercliteral : cliteral.getClause().cliterals) {
-                if(cliteral != othercliteral && model.isTrue(othercliteral.literal)) {remainstrue  = true; break;}}
+                if(cliteral != othercliteral && localModel.isTrue(othercliteral.literal)) {remainstrue  = true; break;}}
             if(!remainstrue) {--becomesTrue;}      // clause becomes false after flip.
             }
-        for(CLiteral cliteral : index.getLiterals(-predicate*model.status(predicate))) {
+        for(CLiteral cliteral : index.getLiterals(-predicate* localModel.status(predicate))) {
             boolean remainstrue = false;
             for(CLiteral othercliteral : cliteral.getClause().cliterals) {
-                if(cliteral != othercliteral && model.isTrue(othercliteral.literal)) {remainstrue  = true; break;}}
+                if(cliteral != othercliteral && localModel.isTrue(othercliteral.literal)) {remainstrue  = true; break;}}
             if(!remainstrue) {++becomesTrue;}      // clause becomes true after flip.
         }
         return becomesTrue;}
+
+
+    private HashSet<Integer> affected = new HashSet<>();
 
     /** flips the truth value of the predicate and updates the literalQueue
      *
@@ -89,10 +121,10 @@ public class RandomWalker {
     private void flip(int predicate) {
         affected.clear();
         int trueLiteral = 0;
-        for(CLiteral cliteral : index.getLiterals(predicate*model.status(predicate))) {
+        for(CLiteral cliteral : index.getLiterals(predicate* localModel.status(predicate))) {
             trueLiteral = findTrueLiteral(cliteral);}
         if(trueLiteral < 0) { // all are false
-            for(CLiteral cliteral : index.getLiterals(predicate*model.status(predicate))) {
+            for(CLiteral cliteral : index.getLiterals(predicate* localModel.status(predicate))) {
                 int pred = Math.abs(cliteral.literal);
                 ++flipConsequences[pred];
                 affected.add(pred);}}
@@ -102,7 +134,7 @@ public class RandomWalker {
                 --flipConsequences[pred];
                 affected.add(pred);}}
 
-        for(CLiteral cliteral : index.getLiterals(-predicate*model.status(predicate))) {
+        for(CLiteral cliteral : index.getLiterals(-predicate* localModel.status(predicate))) {
             trueLiteral = findTrueLiteral(cliteral);
             if(trueLiteral < 0) {
                 --flipConsequences[predicate];
@@ -116,7 +148,7 @@ public class RandomWalker {
         for(Integer pred : affected) {
             literalQueue.remove(pred);
             literalQueue.add(pred);}
-        model.flip(predicate);}
+        localModel.flip(predicate);}
 
     /** checks if all literals in the clause except the literals itself are false or at most one is true
      *
@@ -127,11 +159,45 @@ public class RandomWalker {
         boolean allFalse = true;
         int trueLiteral = 0;
         for(CLiteral otherliteral : cliteral.getClause().cliterals) {
-            if(otherliteral != cliteral && model.isTrue(otherliteral.literal)) {
+            if(otherliteral != cliteral && localModel.isTrue(otherliteral.literal)) {
                 allFalse = false;
                 if(trueLiteral != 0) {trueLiteral = 0;}
                 else {trueLiteral = otherliteral.literal;}}}
         return allFalse ? -1 : trueLiteral;}
+
+
+    private int oldPredicate = 0;
+    private int oldoldPredicate = 0;
+    private int randomFrequency = 10;
+    private int randomCounter = 0;
+
+    private int selectFlipPredicate() {
+        int predicate = 0;
+        if(++randomCounter == randomFrequency) {
+            randomCounter = 0;
+            Clause clause = falseClauses.get(random.nextInt(falseClauses.size()));
+            return Math.abs(clause.cliterals[random.nextInt(clause.cliterals.length)].literal);}
+
+        predicate = literalQueue.poll();
+        int predicate1 = 0;
+        if(predicate == oldoldPredicate || predicate == oldoldPredicate) {predicate1 = literalQueue.poll();}
+        literalQueue.add(predicate);
+        if(predicate1 != 0) {literalQueue.add(predicate1); predicate = predicate1;}
+        oldoldPredicate = oldPredicate;
+        oldPredicate = predicate;
+        return predicate;}
+
+    private synchronized void addGlobalUnit(int literal) {
+        globalUnits.add(literal);}
+
+    private Integer[] localGlobalUnits = null;
+
+    private synchronized void copyGlobalUnits() {
+        localGlobalUnits = new Integer[globalUnits.size()];
+        globalUnits.toArray(localGlobalUnits);
+        globalUnits.clear();}
+
+    private void integrateGlobalUnits() {}
 
 
 }
