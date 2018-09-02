@@ -1,9 +1,8 @@
 package Datastructures.Clauses;
 
 import Datastructures.Status;
+import Generators.StringClauseSetGenerator;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 /**
  * Created by ohlbach on 27.08.2018.

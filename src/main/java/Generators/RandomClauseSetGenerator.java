@@ -1,7 +1,11 @@
-package Datastructures.Clauses;
+package Generators;
 
+import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseList;
 import Datastructures.Model;
 import Datastructures.Status;
+import Generators.ClauseGenerator;
+import Generators.ClauseSetGenerator;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -11,7 +15,7 @@ import java.util.Random;
  *
  * This generator is for generating clause sets with randomly generated literals
  */
-public class RandomClauseSetGenerator extends ClauseSetGenerator{
+public class RandomClauseSetGenerator extends ClauseSetGenerator {
     private int seed;
     private int predicates;
     private int numberClauses;

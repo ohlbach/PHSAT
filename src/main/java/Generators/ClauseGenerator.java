@@ -1,7 +1,7 @@
-package Datastructures.Clauses;
+package Generators;
 
+import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
-import Datastructures.Literals.LiteralGenerator;
 
 import java.util.ArrayList;
 

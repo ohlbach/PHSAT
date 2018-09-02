@@ -1,10 +1,11 @@
 package Datastructures.Clauses;
 
-import Datastructures.Literals.LiteralGenerator;
+import Generators.LiteralGenerator;
 import Datastructures.Status;
+import Generators.ClauseGenerator;
+import Generators.ClauseSetGenerator;
+import Generators.RandomClauseSetGenerator;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 /**
  * Created by ohlbach on 26.08.2018.

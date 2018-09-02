@@ -1,5 +1,7 @@
-package Datastructures.Literals;
+package Generators;
 
+
+import Datastructures.Literals.CLiteral;
 
 /**
  * Created by ohlbach on 26.08.2018.

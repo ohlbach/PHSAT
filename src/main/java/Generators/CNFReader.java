@@ -1,7 +1,11 @@
-package Datastructures.Clauses;
+package Generators;
 
+import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseList;
 import Datastructures.Model;
 import Datastructures.Status;
+import Generators.ClauseGenerator;
+import Generators.ClauseSetGenerator;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -13,7 +17,7 @@ public class CNFReader extends ClauseSetGenerator {
     String filename;
     BufferedReader reader;
 
-    public CNFReader(String filename,ClauseGenerator clauseGenerator) throws FileNotFoundException {
+    public CNFReader(String filename, ClauseGenerator clauseGenerator) throws FileNotFoundException {
         this.filename = filename;
         this.clauseGenerator = clauseGenerator;
         reader = new BufferedReader(new FileReader(filename));}

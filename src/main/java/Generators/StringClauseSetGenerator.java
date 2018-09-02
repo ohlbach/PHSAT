@@ -1,9 +1,12 @@
-package Datastructures.Clauses;
+package Generators;
 
+import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Model;
 import Datastructures.Status;
 import Datastructures.Symboltable;
+import Generators.ClauseSetGenerator;
 
 import java.util.ArrayList;
 import java.util.HashMap;

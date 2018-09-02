@@ -1,10 +1,10 @@
 package Datastructures.Clauses;
 
-import Datastructures.Literals.LiteralGenerator;
+import Generators.LiteralGenerator;
+import Generators.ClauseGenerator;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import static org.junit.Assert.*;
 

@@ -1,6 +1,7 @@
 package Datastructures.Clauses;
 
 import Datastructures.Model;
+import Generators.ClauseSetGenerator;
 import org.junit.Test;
 
 import java.util.ArrayList;
