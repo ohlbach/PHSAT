@@ -1,9 +1,6 @@
 package Management;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -11,20 +8,20 @@ import java.util.Map;
 
 /**
  * Created by Ohlbach on 03.09.2018.
- *
- * This parser reads and splits grouped  key-value pairs.
- * The groups are indicated by special top-keys, for example "global", "problem", "solver".
- * Each of these  top-keys introduces a block of key-value pairs.
+ * <br/>
+ * This parser reads and splits grouped  key-value pairs.<br/>
+ * The groups are indicated by special top-keys, for example "global", "problem", "solver".<br/>
+ * Each of these  top-keys introduces a block of key-value pairs.<br/>
  * There may be arbitrary many of these blocks, arbitrarily intermixed.
- *
- * The result ist a HashMap, one entry for each top-key, an ArrayList of HashMaps.
+ *<br/><br/>
+ * The result ist a HashMap, one entry for each top-key, an ArrayList of HashMaps.<br/>
  * Each of these HashMaps contains the key-value pairs (as Strings).
- *
+ *<br/><br/>
  * Empty lines are ignored. Comments can be added after //
  * The first block can be preceded by arbitrarily many header-strings.
- *
- * The result of the parsing can be accessed by public variables: header and kvList.
- *
+ *<br/><br/>
+ * The result of the parsing can be accessed by the public variables: header and kvList.
+ *<br/><br/>
  * The class is used mainly for parsing specifications with all the control parameters for the PHSat system.
  *
  */
@@ -67,6 +64,7 @@ public class KVParser {
         currentMap.put(key,parts.length > 1 ? parts[1] : "true");}
 
     /** reads and parses the lines from an InputStream.
+     * IO-Error leads to System.exit
      *
      * @param in the stream from where the lines are to be read.
      */
@@ -75,6 +73,19 @@ public class KVParser {
         String line;
         try{while((line = reader.readLine())!= null) {addLine(line);}}
         catch (IOException e) {e.printStackTrace(); System.exit(1);}}
+
+
+    /** Parses a file.
+     * IO-Error leads to System.exit
+     *
+     * @param filename of the file to be parsed.
+     */
+    public void parseFile(String filename) {
+        try {parseStream(new FileInputStream(filename));}
+        catch (FileNotFoundException e) {
+            System.err.println("Cannot read from file " + filename);
+            e.printStackTrace();
+            System.exit(1);}}
 
     /** parses an entire string.
      *
@@ -101,7 +112,6 @@ public class KVParser {
                 st.append("\n");}}
         return st.toString();
     }
-
 
 
 
