@@ -6,8 +6,10 @@ import Datastructures.Model;
 import Datastructures.Status;
 import Generators.ClauseGenerator;
 import Generators.ClauseSetGenerator;
+import Utilities.Utilities;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Random;
 
 /**
@@ -22,17 +24,74 @@ public class RandomClauseSetGenerator extends ClauseSetGenerator {
     private int maxClauseLength;
     boolean precise;
 
-    /** constructs a ClauseSetGenerator for randomly generated clauses.
-     * Double literals and tautologies are not created.
-     * Unit clauses are put into the initial model and used to simplify the clauses (forward).
-     *
-     * @param clauseGenerator for generating clauses
-     * @param seed            for initialising the random number generator
-     * @param predicates      the number of predicates
-     * @param numberClauses   the number of clauses to be generated
-     * @param maxClauseLength the maximum number of literals in the clause
-     * @param precise         if true then clauses with double literals are filled up.
-     */
+    public static HashMap<String,Object> parseSingleParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+        HashMap<String,Object> control = new HashMap<>();
+        String value = parameters.get("seed");
+        control.put("seed",value == null ? 0 : Utilities.parseInteger("RandomClauseSetGenerator seed",value,errors));
+        value = parameters.get("predicates");
+        if(value == null) {errors.append("RandomClauseSetGenerator: no number of predicates defined.");}
+        else {control.put("seed",value == null ? 0 : Utilities.parseInteger("RandomClauseSetGenerator predicates",value,errors));}
+        value = parameters.get("clauses");
+        if(value == null) {errors.append("RandomClauseSetGenerator: no number of clauses defined.");}
+        else {control.put("clauses",value == null ? 0 : Utilities.parseInteger("RandomClauseSetGenerator clauses",value,errors));}
+        value = parameters.get("length");
+        if(value == null) {errors.append("RandomClauseSetGenerator: no number of clauses defined.");}
+        else {control.put("length",value == null ? 0 : Utilities.parseInteger("RandomClauseSetGenerator length",value,errors));}
+        value = parameters.get("precise");
+        control.put("precise",value != null);
+        return control;}
+
+
+    public static ArrayList<HashMap<String,Object>> parseSeriesParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+
+        String seed       = parameters.get("seed");
+        String predicate = parameters.get("predicates");
+        String clause    = parameters.get("clauses");
+        String length     = parameters.get("length");
+        boolean precise    = parameters.get("precise") != null;
+
+        ArrayList<Integer> seeds = null;
+        if(seed == null) {seeds = new ArrayList<>(); seeds.add(0);}
+        else {seeds = Utilities.parseRange("RandomClauseSetGenerator seed",seed,errors);}
+
+        ArrayList<Integer> predicates = null;
+        if(predicate == null) {errors.append("RandomClauseSetGenerator: no number of predicates defined.");}
+        else {predicates = Utilities.parseRange("RandomClauseSetGenerator predicate",predicate,errors);}
+
+        ArrayList<Integer> clauses = null;
+        if(clause == null) {errors.append("RandomClauseSetGenerator: no number of clauses defined.");}
+        else {clauses = Utilities.parseRange("RandomClauseSetGenerator predicate",clause,errors);}
+
+        ArrayList<Integer> lengths = null;
+        if(length == null) {errors.append("RandomClauseSetGenerator: no number of clauses defined.");}
+        else {lengths = Utilities.parseRange("RandomClauseSetGenerator length",length,errors);}
+
+        ArrayList<HashMap<String,Object>> control = new ArrayList<>();
+        for(ArrayList<Integer> values : Utilities.crossProduct(seeds,predicates,clauses,lengths)) {
+            HashMap<String,Object> cntr = new HashMap<>();
+            cntr.put("seed",cntr.get(0));
+            cntr.put("predicates",cntr.get(1));
+            cntr.put("clauses",cntr.get(2));
+            cntr.put("length",cntr.get(3));
+            cntr.put("precise", precise);
+            control.add(cntr);}
+        return control;}
+
+
+
+
+
+        /** constructs a ClauseSetGenerator for randomly generated clauses.
+         * Double literals and tautologies are not created.
+         * Unit clauses are put into the initial model and used to simplify the clauses (forward).
+         *
+         * @param clauseGenerator for generating clauses
+         * @param seed            for initialising the random number generator
+         * @param predicates      the number of predicates
+         * @param numberClauses   the number of clauses to be generated
+         * @param maxClauseLength the maximum number of literals in the clause
+         * @param precise         if true then clauses with double literals are filled up.
+         */
     public RandomClauseSetGenerator(ClauseGenerator clauseGenerator, int seed,
                                     int predicates, int numberClauses, int maxClauseLength, boolean precise) {
         this.clauseGenerator = clauseGenerator;
