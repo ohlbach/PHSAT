@@ -66,6 +66,8 @@ public class RandomClauseSetGenerator extends ClauseSetGenerator {
         if(length == null) {errors.append("RandomClauseSetGenerator: no number of clauses defined.");}
         else {lengths = Utilities.parseRange("RandomClauseSetGenerator length",length,errors);}
 
+        if(seeds == null || predicates == null || clauses == null || length == null) {return null;}
+
         ArrayList<HashMap<String,Object>> control = new ArrayList<>();
         for(ArrayList<Integer> values : Utilities.crossProduct(seeds,predicates,clauses,lengths)) {
             HashMap<String,Object> cntr = new HashMap<>();
