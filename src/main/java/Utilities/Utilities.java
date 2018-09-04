@@ -74,12 +74,12 @@ public class Utilities {
      * @param lists the list for which the cross product ist to be computed
      * @return the cross product
      */
-    public static ArrayList<ArrayList<Integer>> crossProduct(ArrayList<Integer>... lists) {
+    public static ArrayList<ArrayList<Object>> crossProduct(ArrayList<Object>... lists) {
         switch(lists.length) {
             case 0:
                 return null;
             case 1:
-                ArrayList<ArrayList<Integer>> list = new ArrayList<>();
+                ArrayList<ArrayList<Object>> list = new ArrayList<>();
                 list.add(lists[0]);
                 return list;
             case 2:
@@ -96,11 +96,11 @@ public class Utilities {
      * @param list2 a list of integers
      * @return the cross product of the lists
      */
-    private static ArrayList<ArrayList<Integer>> crossProductTwo(ArrayList<Integer> list1, ArrayList<Integer> list2 ) {
-        ArrayList<ArrayList<Integer>> list = new ArrayList<>();
-        for(Integer n1 : list1) {
-            for(Integer n2 : list2) {
-                ArrayList<Integer> product = new ArrayList<>();
+    private static ArrayList<ArrayList<Object>> crossProductTwo(ArrayList<Object> list1, ArrayList<Object> list2 ) {
+        ArrayList<ArrayList<Object>> list = new ArrayList<>();
+        for(Object n1 : list1) {
+            for(Object n2 : list2) {
+                ArrayList<Object> product = new ArrayList<>();
                 list.add(product);
                 product.add(n1);product.add(n2);}}
         return list;}
@@ -111,10 +111,10 @@ public class Utilities {
      * @param list2
      * @return the new cross product
      */
-    private static ArrayList<ArrayList<Integer>> addCrossProduct(ArrayList<ArrayList<Integer>> list1, ArrayList<Integer> list2) {
-        ArrayList<ArrayList<Integer>> list = new ArrayList<>();
-        for(Integer n : list2) {
-            ArrayList<ArrayList<Integer>> newlist = addProductElement(list1,n);
+    private static ArrayList<ArrayList<Object>> addCrossProduct(ArrayList<ArrayList<Object>> list1, ArrayList<Object> list2) {
+        ArrayList<ArrayList<Object>> list = new ArrayList<>();
+        for(Object n : list2) {
+            ArrayList<ArrayList<Object>> newlist = addProductElement(list1,n);
             list.addAll(newlist);}
         return list;}
 
@@ -124,10 +124,10 @@ public class Utilities {
      * @param n
      * @return the new cross product.
      */
-    private static ArrayList<ArrayList<Integer>> addProductElement(ArrayList<ArrayList<Integer>> list1, Integer n) {
-        ArrayList<ArrayList<Integer>> list = new ArrayList<>();
-        for(ArrayList<Integer> elements : list1) {
-            ArrayList<Integer> clones = (ArrayList<Integer>)elements.clone();
+    private static ArrayList<ArrayList<Object>> addProductElement(ArrayList<ArrayList<Object>> list1, Object n) {
+        ArrayList<ArrayList<Object>> list = new ArrayList<>();
+        for(ArrayList<Object> elements : list1) {
+            ArrayList<Object> clones = (ArrayList<Object>)elements.clone();
             clones.add(n);
             list.add(clones);}
         return list;}

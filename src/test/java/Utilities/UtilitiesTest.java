@@ -65,7 +65,7 @@ public class UtilitiesTest {
     public void crossProduct1() throws Exception {
         System.out.println("crossProduct 1");
         assertNull(Utilities.crossProduct());
-        ArrayList<Integer> list = new ArrayList<>();
+        ArrayList list = new ArrayList<>();
         list.add(1); list.add(2);
         ArrayList<ArrayList<Integer>> product = Utilities.crossProduct(list);
         assertEquals(1,product.size());
@@ -75,19 +75,19 @@ public class UtilitiesTest {
     @Test
     public void crossProduct2() throws Exception {
         System.out.println("crossProduct 2");
-        ArrayList<Integer> list1 = new ArrayList<>();
+        ArrayList list1 = new ArrayList<>();
         list1.add(1); list1.add(2);
-        ArrayList<Integer> list2 = new ArrayList<>();
+        ArrayList list2 = new ArrayList<>();
         list2.add(3); list2.add(4);
-        ArrayList<ArrayList<Integer>> product = Utilities.crossProduct(list1,list2);
+        ArrayList<ArrayList> product = Utilities.crossProduct(list1,list2);
         assertEquals("[[1, 3], [1, 4], [2, 3], [2, 4]]",product.toString());
 
-        ArrayList<Integer> list3 = new ArrayList<>();
+        ArrayList list3 = new ArrayList<>();
         list3.add(5); list3.add(6);
         product = Utilities.crossProduct(list1,list2,list3);
         assertEquals("[[1, 3, 5], [1, 4, 5], [2, 3, 5], [2, 4, 5], [1, 3, 6], [1, 4, 6], [2, 3, 6], [2, 4, 6]]",product.toString());
 
-        ArrayList<Integer> list4 = new ArrayList<>();
+        ArrayList list4 = new ArrayList<>();
         list4.add(7); list4.add(8);
         product = Utilities.crossProduct(list1,list2,list3,list4);
         assertEquals("[[1, 3, 5, 7], [1, 4, 5, 7], [2, 3, 5, 7], [2, 4, 5, 7], [1, 3, 6, 7], [1, 4, 6, 7], [2, 3, 6, 7], [2, 4, 6, 7], [1, 3, 5, 8], [1, 4, 5, 8], [2, 3, 5, 8], [2, 4, 5, 8], [1, 3, 6, 8], [1, 4, 6, 8], [2, 3, 6, 8], [2, 4, 6, 8]]",product.toString());

@@ -50,26 +50,27 @@ public class RandomClauseSetGenerator extends ClauseSetGenerator {
         String length     = parameters.get("length");
         boolean precise    = parameters.get("precise") != null;
 
-        ArrayList<Integer> seeds = null;
+        ArrayList seeds = null;
         if(seed == null) {seeds = new ArrayList<>(); seeds.add(0);}
         else {seeds = Utilities.parseRange("RandomClauseSetGenerator seed",seed,errors);}
 
-        ArrayList<Integer> predicates = null;
+        ArrayList predicates = null;
         if(predicate == null) {errors.append("RandomClauseSetGenerator: no number of predicates defined.");}
         else {predicates = Utilities.parseRange("RandomClauseSetGenerator predicate",predicate,errors);}
 
-        ArrayList<Integer> clauses = null;
+        ArrayList clauses = null;
         if(clause == null) {errors.append("RandomClauseSetGenerator: no number of clauses defined.");}
         else {clauses = Utilities.parseRange("RandomClauseSetGenerator predicate",clause,errors);}
 
-        ArrayList<Integer> lengths = null;
+        ArrayList lengths = null;
         if(length == null) {errors.append("RandomClauseSetGenerator: no number of clauses defined.");}
         else {lengths = Utilities.parseRange("RandomClauseSetGenerator length",length,errors);}
 
         if(seeds == null || predicates == null || clauses == null || length == null) {return null;}
 
         ArrayList<HashMap<String,Object>> control = new ArrayList<>();
-        for(ArrayList<Integer> values : Utilities.crossProduct(seeds,predicates,clauses,lengths)) {
+        ArrayList<ArrayList> list = Utilities.crossProduct(seeds,predicates,clauses,lengths);
+        for(ArrayList values : list) {
             HashMap<String,Object> cntr = new HashMap<>();
             cntr.put("seed",cntr.get(0));
             cntr.put("predicates",cntr.get(1));
