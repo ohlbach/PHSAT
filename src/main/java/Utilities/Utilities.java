@@ -1,8 +1,17 @@
 package Utilities;
 
+import java.io.File;
 import java.io.InputStream;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.attribute.FileAttribute;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Created by Ohlbach on 03.09.2018.
@@ -221,5 +230,27 @@ public class Utilities {
             list.add(clones);}
         return list;}
 
+    /** creates a temporary file in a temporary directory and writes the text into that file.
+     *  An existing file with that name is deleted.
+     *
+     *
+     * @param directory the name of the temporary directory
+     * @param filename  the name of the file
+     * @param text      the text to be written.
+     * @return the File object for the new file.
+     */
+    public static File writeTmpFile(String directory, String filename, String text) {
+        String tmp = System.getenv("TEMP");
+        File dirfile = Paths.get(tmp,directory).toFile();
+        try {
+            if (!dirfile.exists()) {dirfile.mkdir();}
+            File file = Paths.get(tmp,directory,filename).toFile();
+            if(file.exists()) {file.delete();}
+            PrintWriter writer = new PrintWriter(file);
+            writer.append(text);
+            writer.close();
+            return file;}
+        catch(Exception exp) {exp.printStackTrace();}
+    return null;}
 
 }

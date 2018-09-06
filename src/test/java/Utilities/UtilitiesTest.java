@@ -93,6 +93,9 @@ public class UtilitiesTest {
     }
 
 
-
-
+    @Test
+    public void writeTmpFile() throws Exception {
+        System.out.println("writeTmpFile 2");
+        Utilities.writeTmpFile("TEST", "test.cnf", "text\ntexfgdfgt");
+    }
 }

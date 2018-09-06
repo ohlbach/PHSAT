@@ -6,6 +6,9 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
+
 import Utilities.Utilities;
 
 /**
@@ -15,7 +18,7 @@ public class CNFReader {
 
     private static HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"type", "file", "directory", "rexExpr"}) {
+        for(String key : new String[]{"type", "file", "directory", "regExpr"}) {
             keys.add(key);}}
 
     public static ArrayList<HashMap<String,Object>> parseProblemParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
@@ -23,7 +26,7 @@ public class CNFReader {
             if(!keys.contains(key)) {warnings.append("RandomClauseSetGenerator: unknown key in parameters: " + key + "\n");}}
 
         String files       = parameters.get("file");
-        String directories = parameters.get("directoy");
+        String directories = parameters.get("directory");
         String regExprs    = parameters.get("regExpr");
 
         ArrayList<HashMap<String,Object>> control = new ArrayList<>();
@@ -43,7 +46,7 @@ public class CNFReader {
                     errors.append("CNFReader: unknown directory: " +directoryname+"\n");}
                 else {
                     for(File file : directory.listFiles()) {
-                        if(file.isFile()) {
+                        if(file.isFile() && file.getName().endsWith(".cnf")) {
                             HashMap<String,Object> map = new HashMap<>();
                             map.put("file",file);
                             control.add(map);}}}} }
@@ -54,16 +57,31 @@ public class CNFReader {
                 File directory = new File(directoryname);
                 if(!(directory.exists() && directory.isDirectory())) {
                     errors.append("CNFReader: unknown directory: " +directoryname+"\n");}
-                else{}}}     // weiter machen
+                else{
+                    Pattern pattern;
+                    try {pattern = Pattern.compile(regExprs);}
+                    catch(PatternSyntaxException ex) {
+                        errors.append("CNFReader: " + ex.toString());
+                        continue;}
+                    for(File file: directory.listFiles(pathname -> pattern.matcher(pathname.getName()).matches())) {
+                        HashMap<String,Object> map = new HashMap<>();
+                        map.put("file",file);
+                        control.add(map);}}}}
 
         return control;}
 
-    public String help() {
+    public static String help() {
         StringBuilder st = new StringBuilder();
+        st.append("CNFReader for reading CNF-Files.\n");
+        st.append("The parameters are:\n");
+        st.append("  file:      A single filename or a comma-sparated list of filenames.\n");
+        st.append("  directory: A single directory name or a comma-separated list of directory names.\n");
+        st.append("             All files in the directory ending with .cnf are loaded, unless regExpr is defined.\n");
+        st.append("  regExpr:   A regular expression to select files in the directory.");
         return st.toString();
     }
 
-    public Object[] generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
+    public static Object[] generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
         StringBuilder info = new StringBuilder();
         File file = (File)parameters.get("file");
         String filename = file.getName();
@@ -80,6 +98,8 @@ public class CNFReader {
         boolean disjointness = false;
         try{
         while((line = reader.readLine()) != null) {
+            line = line.trim();
+            if(line.isEmpty()) {continue;}
             if(line.startsWith("c")) {info.append(line).append("\n"); continue;}
             if(line.startsWith("p")) {
                 String[] parts = line.split("\\s+");
@@ -88,8 +108,12 @@ public class CNFReader {
                     return null;}
                 predicates = Utilities.parseInteger(place, parts[2],errors);
                 continue;}
+            if(line.startsWith("%")){break;}
             if(predicates == null) {
                 errors.append(place + " unknown number of predicates.\n");
+                return null;}
+            if(!line.endsWith(" 0")) {
+                errors.append(place + " line does not wnd with 0: " + line + "\n");
                 return null;}
             literals.clear();
             int start = 0;
@@ -98,7 +122,7 @@ public class CNFReader {
                 disjointness = true;
                 start = 1;}
             String[] parts = line.split("\\s+");
-            for(int i = start; i < parts.length; ++i) {
+            for(int i = start; i < parts.length-1; ++i) {
                 Integer lit = Utilities.parseInteger (place,parts[i],errors);
                 if(lit != null) {literals.add(lit);};}
             clauseList.add(literals);}}

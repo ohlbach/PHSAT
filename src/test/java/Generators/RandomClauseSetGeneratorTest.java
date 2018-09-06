@@ -279,7 +279,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("precise", "true");
         HashMap<String,Object> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings).get(0);
 
-        Object[] result = RandomClauseSetGenerator.generate(map);
+        Object[] result = RandomClauseSetGenerator.generate(map,errors,warnings);
         System.out.println(result[0].toString());
     }
 
@@ -295,7 +295,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("precise", "false");
         HashMap<String,Object> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings).get(0);
 
-        Object[] result = RandomClauseSetGenerator.generate(map);
+        Object[] result = RandomClauseSetGenerator.generate(map,errors,warnings);
         System.out.println(result[0].toString());
     }
 
@@ -313,7 +313,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("dLength","5");
         ArrayList<HashMap<String,Object>> maps = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
         System.out.println(errors.toString());
-        Object[] result = RandomClauseSetGenerator.generate(maps.get(0));
+        Object[] result = RandomClauseSetGenerator.generate(maps.get(0),errors,warnings);
         System.out.println(result[0].toString());
     }
 
