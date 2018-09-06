@@ -12,7 +12,7 @@ import java.util.Map;
  * Created by Ohlbach on 02.09.2018.
  */
 public class PHSat {
-    private static KVParser kvParser = new KVParser("global", "problem", "series", "solver");
+    private static KVParser kvParser = new KVParser("global", "problem", "solver");
 
     private static StringBuffer errors = new StringBuffer();
     private static StringBuffer warnings = new StringBuffer();

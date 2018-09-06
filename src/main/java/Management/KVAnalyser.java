@@ -55,8 +55,7 @@ public class KVAnalyser {
         this.kvParser = kvParser;
         try{
             analyseGlobalParameters(kvParser.kvList.get("global"));
-            analyseProblemParameters(kvParser.kvList.get("problem"),classMap);
-            analyseSeriesParameters(kvParser.kvList.get("series"),classMap);
+            analyseProblemParameters(kvParser.kvList.get("series"),classMap);
             analyseSolverParameters(kvParser.kvList.get("solver"),classMap);}
         catch(Exception ex) {  // applies to programming errors.
             ex.printStackTrace();
@@ -102,15 +101,8 @@ public class KVAnalyser {
                     default: warnings.append("Unknown global parameter: " + key);
                 }}}}
 
-    private void analyseProblemParameters(ArrayList<HashMap<String,String>> problemStrings, HashMap<String,Class> classMap) throws Exception {
-        for(HashMap<String,String> parameters :  problemStrings) {
-            String type = parameters.get("problem");
-            Class generatorClass = classMap.get(type);
-            if(generatorClass == null) {errors.append("Unknown generator type: " + type); continue;}
-            Method parser = generatorClass.getMethod("parseSingleParameters", HashMap.class, StringBuffer.class,StringBuffer.class);
-            problemParameters.add ((HashMap<String,Object>)parser.invoke(null,parameters,errors,warnings));}}
 
-    private void analyseSeriesParameters(ArrayList<HashMap<String,String>> problemStrings, HashMap<String,Class> classMap) throws Exception {
+    private void analyseProblemParameters(ArrayList<HashMap<String,String>> problemStrings, HashMap<String,Class> classMap) throws Exception {
         for(HashMap<String,String> parameters :  problemStrings) {
             String type = parameters.get("series");
             Class generatorClass = classMap.get(type);

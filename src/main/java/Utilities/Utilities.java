@@ -2,6 +2,7 @@ package Utilities;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * Created by Ohlbach on 03.09.2018.
@@ -13,12 +14,42 @@ public class Utilities {
      * @param place for error reporting
      * @param value the string to be parsed
      * @param errors for appending error messages
-     * @return the parse Integer, or null
+     * @return the parsed Integer, or null
      */
     public static Integer parseInteger(String place, String value, StringBuffer errors) {
+        if(value == null) {return null;}
         try{return Integer.parseInt(value);}
         catch(NumberFormatException ex) {errors.append(place+": " + value + " is no integer.\n");}
         return null;}
+
+    /** parses a string-representation of a float value
+     *
+     * @param place for error reporting
+     * @param value the string to be parsed
+     * @param errors for appending error messages
+     * @return the parsed Float, or null
+     */
+    public static Float parseFloat(String place, String value, StringBuffer errors) {
+        if(value == null) {return null;}
+        try{return Float.parseFloat(value);}
+        catch(NumberFormatException ex) {errors.append(place+": " + value + " is no float number.\n");}
+        return null;}
+
+
+
+    public static ArrayList<Boolean> parseBoolean(String place, String value, StringBuffer errors) {
+        ArrayList<Boolean> bools = new ArrayList<>();
+        if(value == null || value.equals("true")) {bools.add(true); return bools;}
+        if(value.equals("false")) {bools.add(false); return bools;}
+        String parts[] = value.split("\\s*,\\s*");
+        if(parts.length != 2) {errors.append(place + ": unknown boolean values: " + value+"\n"); return null;}
+        for(String part : parts) {
+            if(part.equals("true")) {bools.add(true); continue;}
+            if(part.equals("false")) {bools.add(false); continue;}
+            errors.append(place + ": unknown boolean value: " + part+"\n"); return null;}
+        return bools;}
+
+
 
     /** expands an Integer range into a list of Integers<br/>
      * The formats are: <br/>
@@ -32,7 +63,8 @@ public class Utilities {
      * @param errors for appending error messages
      * @return the expanded integer list
      */
-    public static ArrayList<Integer> parseRange(String place, String value, StringBuffer errors) {
+    public static ArrayList<Integer> parseIntRange(String place, String value, StringBuffer errors) {
+        if(value == null) {return null;}
         ArrayList<Integer> range = new ArrayList();
         try{Integer n =  Integer.parseInt(value);
             range.add(n);
@@ -62,6 +94,42 @@ public class Utilities {
                     return range;}}
             for(String part : value.split("\\s*,\\s*")) {
                 Integer n = parseInteger(place,part,errors);
+                if(n != null) {range.add(n);}
+                else {return null;}}
+            return range;}}
+
+
+    /** expands a Float  range into a list of Integers<br/>
+     * The formats are: <br/>
+     * - just an integer<br/>
+     * - a comma-separated list of integers. Ex. 3.5,5,-10.1<br/>
+     * - a range from to to step n. Ex: 3.5 to 10.2 step 2.6  The step must not be negative.
+     *
+     * @param place for error reporting
+     * @param value a string to be parsed
+     * @param errors for appending error messages
+     * @return the expanded integer list
+     */
+    public static ArrayList<Float> parseFloatRange(String place, String value, StringBuffer errors) {
+        ArrayList<Float> range = new ArrayList();
+        try{Float n =  Float.parseFloat(value);
+            range.add(n);
+            return range;}
+        catch(NumberFormatException ex) {
+            String[] parts;
+            if(value.contains("to")) {
+                parts = value.split("\\s*(to|step)\\s*",3);
+                    Float from = parseFloat(place,parts[0],errors);
+                    Float to = parseFloat(place,parts[1],errors);
+                    Float step = parseFloat(place,parts[2],errors);
+                    if(from != null && to != null && step != null) {
+                        if(step < 0) {errors.append(place+": negative step " + step); return null;}
+                        if(to < from) {errors.append(place+ "to < from: " + value); return null;}
+                        for(float n = from; n <= to; n += step) {range.add(n);}}
+                    else {return null;}
+                    return range;}
+            for(String part : value.split("\\s*,\\s*")) {
+                Float n = parseFloat(place,part,errors);
                 if(n != null) {range.add(n);}
                 else {return null;}}
             return range;}}
@@ -98,9 +166,27 @@ public class Utilities {
      */
     private static ArrayList<ArrayList<Object>> crossProductTwo(ArrayList<Object> list1, ArrayList<Object> list2 ) {
         ArrayList<ArrayList<Object>> list = new ArrayList<>();
+        ArrayList<Object> product = null;
+        if(list1 == null  || list1.isEmpty()) {
+            if(list2 == null || list2.isEmpty()) {
+                product = new ArrayList<>();
+                product.add(null); product.add(null);
+                list.add(product);
+                return list;}
+            for(Object o : list2) {
+                product = new ArrayList<>();
+                product.add(null); product.add(o);
+                list.add(product);
+                return list;}}
+        if(list2 == null || list2.isEmpty()) {
+            for(Object o : list1) {
+                product = new ArrayList<>();
+                product.add(o); product.add(null);
+                list.add(product);}
+            return list;}
         for(Object n1 : list1) {
             for(Object n2 : list2) {
-                ArrayList<Object> product = new ArrayList<>();
+                product = new ArrayList<>();
                 list.add(product);
                 product.add(n1);product.add(n2);}}
         return list;}
@@ -112,6 +198,9 @@ public class Utilities {
      * @return the new cross product
      */
     private static ArrayList<ArrayList<Object>> addCrossProduct(ArrayList<ArrayList<Object>> list1, ArrayList<Object> list2) {
+        if(list2 == null || list2.isEmpty()) {
+            for(ArrayList<Object> list : list1) {list.add(null);}
+            return list1;}
         ArrayList<ArrayList<Object>> list = new ArrayList<>();
         for(Object n : list2) {
             ArrayList<ArrayList<Object>> newlist = addProductElement(list1,n);

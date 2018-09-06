@@ -14,7 +14,7 @@ public class BasicClauseListTest {
     @Test
     public void falseClauses() throws Exception {
         System.out.println("falseClauses");
-        BasicClauseList clauses = new BasicClauseList();
+        BasicClauseList clauses = new BasicClauseList(false);
         int[] clause1 = {3,-2,1};
         int[] clause2 = {-3,1,2};
         clauses.clauses.add(clause1);

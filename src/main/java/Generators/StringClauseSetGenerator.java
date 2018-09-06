@@ -6,7 +6,6 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Model;
 import Datastructures.Status;
 import Datastructures.Symboltable;
-import Generators.ClauseSetGenerator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,7 +15,7 @@ import java.util.HashMap;
  *
  * This generator creates a clause set from literal names.
  */
-public class StringClauseSetGenerator extends ClauseSetGenerator {
+public class StringClauseSetGenerator  {
     private String clausesString;
 
     /** constructs the generator

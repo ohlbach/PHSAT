@@ -1,4 +1,4 @@
-package Datastructures.Clauses;
+package Generators;
 
 import Datastructures.Status;
 import Generators.StringClauseSetGenerator;

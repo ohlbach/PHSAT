@@ -2,7 +2,6 @@ package Utilities;
 
 import org.junit.Test;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 
 import static org.junit.Assert.*;
@@ -24,39 +23,39 @@ public class UtilitiesTest {
 
     @Test
     public void parseRange1() throws Exception {
-        System.out.println("parseRange 1: number, comma");
+        System.out.println("parseIntRange 1: number, comma");
         StringBuffer errors = new StringBuffer();
-        ArrayList<Integer> n = Utilities.parseRange("test","55",errors);
+        ArrayList<Integer> n = Utilities.parseIntRange("test","55",errors);
         assertEquals("[55]",n.toString());
 
-        n = Utilities.parseRange("test","55,66,77",errors);
+        n = Utilities.parseIntRange("test","55,66,77",errors);
         assertEquals("[55, 66, 77]",n.toString());
 
-        n = Utilities.parseRange("test","55,66a,77",errors);
+        n = Utilities.parseIntRange("test","55,66a,77",errors);
         assertNull(n);
         assertTrue(errors.length() > 0);}
 
     @Test
     public void parseRange2() throws Exception {
-        System.out.println("parseRange 2: range");
+        System.out.println("parseIntRange 2: range");
         StringBuffer errors = new StringBuffer();
-        ArrayList<Integer> n = Utilities.parseRange("test", "55 to 60", errors);
+        ArrayList<Integer> n = Utilities.parseIntRange("test", "55 to 60", errors);
         assertEquals("[55, 56, 57, 58, 59, 60]", n.toString());
-        n = Utilities.parseRange("test", "-3 to -1", errors);
+        n = Utilities.parseIntRange("test", "-3 to -1", errors);
         assertEquals("[-3, -2, -1]", n.toString());
 
-        n = Utilities.parseRange("test", "55 to 60a", errors);
+        n = Utilities.parseIntRange("test", "55 to 60a", errors);
         assertNull(n);
         assertTrue(errors.length() > 0);
 
-        n = Utilities.parseRange("test", "3  to 10 step 2",errors);
+        n = Utilities.parseIntRange("test", "3  to 10 step 2",errors);
         assertEquals("[3, 5, 7, 9]", n.toString());
 
-        n = Utilities.parseRange("test", "-10  to -5 step 2",errors);
+        n = Utilities.parseIntRange("test", "-10  to -5 step 2",errors);
         assertEquals("[-10, -8, -6]", n.toString());
 
 
-        n = Utilities.parseRange("test", "3  to 10 step 2a",errors);
+        n = Utilities.parseIntRange("test", "3  to 10 step 2a",errors);
         assertNull(n);
         assertTrue(errors.length() > 0);
     }
