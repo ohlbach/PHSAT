@@ -65,4 +65,26 @@ public class BasicClauseList {
         for(int[] clause : clauses) {
             st.append(Arrays.toString(clause)).append("\n");}
         return st.toString();}
+
+    /** generates a string representation of the clauses
+     *
+     * @return  a string representation of the clauses.
+     */
+    public String toString(boolean withSymbols) {
+        if(symboltable == null) {return toString();}
+        StringBuilder st = new StringBuilder();
+        int n = 1;
+        for(int[] clause : clauses) {
+            st.append(n++ +": ");
+            int start = withDisjointness ? 1:0;
+            if(withDisjointness && clause[0] == 1) {st.append("d: ");}
+            for(int i = start; i < clause.length; ++i) {
+                int literal = clause[i];
+                st.append(symboltable.getLiteralName(literal));
+                if(i < clause.length -1) {st.append(",");}}
+            st.append("\n");}
+        return st.toString();}
+
+
+
 }
