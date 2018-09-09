@@ -14,6 +14,8 @@ import java.util.Arrays;
  * They are used to check a candidate model against the original clause set.
  */
 public class BasicClauseList {
+    public int predicates;
+
     /** the original clauses */
     public ArrayList<int[]> clauses = new ArrayList<>();
 

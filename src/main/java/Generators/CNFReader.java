@@ -168,6 +168,7 @@ public class CNFReader {
             errors.append(place + " IOException\n");
             return null;}
         BasicClauseList bcl = new BasicClauseList(disjointness);
+        bcl.predicates = predicates;
         int[] lits = null;
         for(ArrayList clause : clauseList) {
             if(disjointness) {

@@ -184,6 +184,7 @@ public class RandomClauseSetGenerator {
         boolean withDisjointness = dBlocks != null;
 
         BasicClauseList clauseList = new BasicClauseList(withDisjointness);
+        clauseList.predicates = predicates;
 
         ArrayList<Integer> literals = new ArrayList();
         Status stat = new Status();
