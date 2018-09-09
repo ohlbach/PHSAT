@@ -171,9 +171,9 @@ public class RandomClauseSetGenerator {
     /** generates the clause set
      *
      * @param parameters for controlling the generator.
-     * @return [BasicClauseList, specification]
+     * @return  the parameters  with an additional key "clauses" with the generatied BasicClauseList
      */
-    public static Object[] generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
+    public static HashMap<String,Object> generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
         int seed            = (Integer)parameters.get("seed");
         int predicates      = (Integer)parameters.get("predicates");
         int numberClauses   = (Integer)parameters.get("clauses");
@@ -220,7 +220,8 @@ public class RandomClauseSetGenerator {
                 for(int i = 0; i < lits.length; ++i) {lits[i] = literals.get(i);}
                 clauseList.clauses.add(lits);}
             }
-        return new Object[]{clauseList,parameters,null};}}
+        parameters.put("clauses",clauseList);
+        return parameters;}}
 
 
 

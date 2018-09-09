@@ -1,6 +1,7 @@
 package Datastructures.Clauses;
 
 import Datastructures.Model;
+import Datastructures.Symboltable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +19,9 @@ public class BasicClauseList {
 
     public boolean withDisjointness = false;
 
-    public String info;
+    public String info = null;
+
+    public Symboltable symboltable = null;
 
     public BasicClauseList(boolean withDisjointness) {
         this.withDisjointness = withDisjointness;}
