@@ -23,22 +23,43 @@ public class PHSat {
 
     static HashMap<String,Class> classMap = new HashMap<>();
     static {
-        classMap.put("RandomGenerator", Generators.RandomClauseSetGenerator.class);
-        classMap.put("RandomWalk", Solver.RandomWalk.RandomWalker.class );
+        classMap.put("random", Generators.RandomClauseSetGenerator.class);
+        classMap.put("file", Generators.CNFReader.class);
+        classMap.put("pidgeonhole", Generators.PidgeonHoleGenerator.class);
+        classMap.put("walker", Solver.RandomWalk.RandomWalker.class );
     }
 
 
-
-
+    /** This method calls the help()-methods of the generators and solvers, and prints the results.
+     *
+     * @param args either empty, or [help,name] where name is the name of a generator or solver.
+     */
     private static void help(String[] args) {
-        System.out.println("HELPhhh");
-
+        try {
+        if(args.length > 1) {
+            Class clazz = classMap.get(args[1]);
+            if (clazz == null) {
+                System.out.println("Unknown class " + args[1]+". The available names are:\n");
+                for(String key : classMap.keySet()) {
+                    System.out.printf(key + ", ");}
+                System.out.println("");
+                return;}
+            else {
+                Method help = clazz.getMethod("help");
+                System.out.println((String)help.invoke(null));}
+        }
+        else {
+            for(Map.Entry<String,Class> entry : classMap.entrySet()) {
+                Method help = entry.getValue().getMethod("help");
+                System.out.println((String)help.invoke(null));
+                System.out.println("");}}
+        }
+        catch(Exception ex) {ex.printStackTrace();}
     }
 
     private static void parseCnfFile(String filename) {
 
     }
-
 
     private static  void parseInStream() {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
@@ -46,13 +67,14 @@ public class PHSat {
         try {
             line = reader.readLine();
             if (line.startsWith("help")) {
-                help(line.trim().split("(=,:, )+"));
+                help(line.trim().split("\\s*(=|:| )\\s*"));
                 return;}
             kvParser.addLine(line);
             kvParser.parseStream(System.in);}
         catch(IOException ex) {
             ex.printStackTrace();
             return;}}
+
 
     public static void  main(String[] args) {
         if(args.length > 0) {

@@ -20,7 +20,7 @@ public class PidgeonHoleGeneratorTest {
         HashMap<String,String> params = new HashMap<>();
         params.put("holes","2 to 3");
         params.put("pidgeons", "3 to 4");
-        ArrayList<HashMap<String,Object>> parameters = PidgeonHoleGenerator.parseProblemParameters(params,errors,warnings);
+        ArrayList<HashMap<String,Object>> parameters = PidgeonHoleGenerator.parseParameters(params,errors,warnings);
         System.out.println(parameters);
         assertEquals("[{pidgeons=3, holes=2}, {pidgeons=4, holes=2}, {pidgeons=3, holes=3}, {pidgeons=4, holes=3}]",parameters.toString());
     }

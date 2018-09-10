@@ -21,7 +21,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("predicates","10");
         parameters.put("clauses","30");
         parameters.put("length","3");
-        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
         //System.out.println("W\n"+warnings.toString());
         //System.out.println(map);
@@ -44,7 +44,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("predicates","100");
         parameters.put("cpRatio","4.3");
         parameters.put("length","3");
-        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
         //System.out.println("W\n"+warnings.toString());
         //System.out.println(map);
@@ -68,7 +68,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("clauses","400");
         parameters.put("length","3");
         parameters.put("precise","false");
-        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
         //System.out.println("W\n"+warnings.toString());
         //System.out.println(map);
@@ -93,7 +93,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("length","3");
         parameters.put("precise","false");
         parameters.put("dLength","10");
-        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
         //System.out.println("W\n"+warnings.toString());
         //System.out.println(map);
@@ -119,7 +119,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("precise","false");
         parameters.put("dBlocks","2");
         parameters.put("dLength","10");
-        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
         //System.out.println("W\n"+warnings.toString());
         //System.out.println(map);
@@ -142,7 +142,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("predicates","10,20");
         parameters.put("clauses","30");
         parameters.put("length","3");
-        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
         //System.out.println("W\n"+warnings.toString());
         //System.out.println(map);
@@ -173,7 +173,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("predicates","10,20");
         parameters.put("clauses","30 to 40 step 5");
         parameters.put("length","3");
-        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
         //System.out.println("W\n"+warnings.toString());
         //System.out.println(map);
@@ -207,7 +207,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("predicates","10,20");
         parameters.put("cpRatio","4 to 4.2 step 0.1");
         parameters.put("length","3");
-        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
         //System.out.println("W\n"+warnings.toString());
         //System.out.println(map);
@@ -245,7 +245,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("clauses","30");
         parameters.put("length","3");
         parameters.put("precise", "false,true");
-        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
         //System.out.println("W\n"+warnings.toString());
         //System.out.println(map);
@@ -277,7 +277,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("clauses","30");
         parameters.put("length","3");
         parameters.put("precise", "true");
-        HashMap<String,Object> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings).get(0);
+        HashMap<String,Object> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings).get(0);
 
         RandomClauseSetGenerator.generate(map,errors,warnings);
         System.out.println(map.get("clauses").toString());
@@ -293,7 +293,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("clauses","30");
         parameters.put("length","3");
         parameters.put("precise", "false");
-        HashMap<String,Object> map = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings).get(0);
+        HashMap<String,Object> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings).get(0);
 
         RandomClauseSetGenerator.generate(map,errors,warnings);
         System.out.println(map.get("clauses").toString());
@@ -311,7 +311,7 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("precise", "true");
         parameters.put("dBlocks","2");
         parameters.put("dLength","5");
-        ArrayList<HashMap<String,Object>> maps = RandomClauseSetGenerator.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> maps = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         System.out.println(errors.toString());
         RandomClauseSetGenerator.generate(maps.get(0),errors,warnings);
         System.out.println(maps.get(0).get("clauses").toString());

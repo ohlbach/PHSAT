@@ -31,7 +31,7 @@ public class PidgeonHoleGenerator {
      * @param warnings  for warnings
      * @return a list of HashMaps with "pidgeons" and "holes
      */
-    public static ArrayList<HashMap<String,Object>> parseProblemParameters(HashMap<String,String> parameters,
+    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
                                                                            StringBuffer errors, StringBuffer warnings){
         for(String key : parameters.keySet()) {
             if(!keys.contains(key)) {warnings.append("PidgeonHoleGenerator: unknown key in parameters: " + key + "\n");}}

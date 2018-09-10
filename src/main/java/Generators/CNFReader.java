@@ -46,7 +46,7 @@ public class CNFReader {
      * @param warnings    for warnings
      * @return            a list of HashMaps with key "file" and value the corresponding File object.
      */
-    public static ArrayList<HashMap<String,Object>> parseProblemParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
         for(String key : parameters.keySet()) {
             if(!keys.contains(key)) {warnings.append("RandomClauseSetGenerator: unknown key in parameters: " + key + "\n");}}
 

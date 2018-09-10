@@ -22,7 +22,7 @@ public class StringClauseSetGenerator  {
      * @param warnings  no effect
      * @return a HashMap with "clauseString"
      */
-    public static ArrayList<HashMap<String,Object>> parseProblemParameters(HashMap<String,String> parameters,
+    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
                                                                            StringBuffer errors, StringBuffer warnings){
         HashMap<String,Object> map = new HashMap<>();
         map.put("clauseString", parameters.get("clauses").trim());
@@ -66,7 +66,7 @@ public class StringClauseSetGenerator  {
         ArrayList<Clause> clauseList = new ArrayList<>();
         for(String clauseString : clausesStrings) {
             if(clauseString.isEmpty()) {continue;}
-            String[] literals = clauseString.split("\\s+");
+            String[] literals = clauseString.split("\\s*(,| )\\s*");
             boolean disjoint = literals[0].equals("disjoint");
             int start = disjoint ? 1 : 0;
             int shift = (disjointness && start == 0) ? 1 : 0;

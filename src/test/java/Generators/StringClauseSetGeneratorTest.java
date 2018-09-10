@@ -21,7 +21,7 @@ public class StringClauseSetGeneratorTest {
                 "-p,q";
         HashMap<String,String> map = new HashMap<>();
         map.put("clauses",clauses);
-        ArrayList<HashMap<String,Object>> params = StringClauseSetGenerator.parseProblemParameters(map,errors,warnings);
+        ArrayList<HashMap<String,Object>> params = StringClauseSetGenerator.parseParameters(map,errors,warnings);
         HashMap<String,Object> result = StringClauseSetGenerator.generate(params.get(0),errors,warnings);
         //System.out.println(((BasicClauseList)result.get("clauses")).toString(true));
         assertEquals("1: p,q\n" +
@@ -39,7 +39,7 @@ public class StringClauseSetGeneratorTest {
                         "disjoint p q";
         HashMap<String,String> map = new HashMap<>();
         map.put("clauses",clauses);
-        ArrayList<HashMap<String,Object>> params = StringClauseSetGenerator.parseProblemParameters(map,errors,warnings);
+        ArrayList<HashMap<String,Object>> params = StringClauseSetGenerator.parseParameters(map,errors,warnings);
         HashMap<String,Object> result = StringClauseSetGenerator.generate(params.get(0),errors,warnings);
         //System.out.println(((BasicClauseList)result.get("clauses")).toString(true));
         assertEquals("1: p,q\n" +

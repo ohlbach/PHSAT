@@ -25,7 +25,7 @@ public class CNFReaderTest {
         File file1 = Utilities.writeTmpFile("CNFReader", "test1.cnf", "test1");
         File file2 = Utilities.writeTmpFile("CNFReader", "test2.cnf", "test2");
         parameters.put("file",file1.getAbsolutePath()+","+file2.getAbsolutePath());
-        ArrayList<HashMap<String,Object>> pars = CNFReader.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals("",errors.toString());
         assertEquals(2,pars.size());
         assertEquals(file1.getAbsolutePath(),pars.get(0).get("file").toString());
@@ -42,7 +42,7 @@ public class CNFReaderTest {
         File file1 = Utilities.writeTmpFile("CNFReader", "test1.cnf", "test1");
         File file2 = Utilities.writeTmpFile("CNFReader", "test2.cnf", "test2");
         parameters.put("directory",file1.getParentFile().toString());
-        ArrayList<HashMap<String,Object>> pars = CNFReader.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals("",errors.toString());
         assertEquals(2,pars.size());
         assertEquals(file1.getAbsolutePath(),pars.get(0).get("file").toString());
@@ -61,14 +61,14 @@ public class CNFReaderTest {
         File file3 = Utilities.writeTmpFile("CNFReader", "dummy.cnf", "dummy");
         parameters.put("directory",file1.getParentFile().toString());
         parameters.put("regExpr","test.*");
-        ArrayList<HashMap<String,Object>> pars = CNFReader.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals("",errors.toString());
         assertEquals(2,pars.size());
         assertEquals(file1.getAbsolutePath(),pars.get(0).get("file").toString());
         assertEquals(file2.getAbsolutePath(),pars.get(1).get("file").toString());
 
         parameters.put("regExpr","du.*");
-        pars = CNFReader.parseProblemParameters(parameters,errors,warnings);
+        pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals("",errors.toString());
         assertEquals(1,pars.size());
         assertEquals(file3.getAbsolutePath(),pars.get(0).get("file").toString());
@@ -101,7 +101,7 @@ public class CNFReaderTest {
         HashMap<String,String> parameters = new HashMap<>();
         File file = Utilities.writeTmpFile("CNFReader", "test.cnf", cnf);
         parameters.put("file",file.getAbsolutePath());
-        ArrayList<HashMap<String,Object>> pars = CNFReader.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals(1,pars.size());
         CNFReader.generate(pars.get(0),errors,warnings);
         assertEquals("",errors.toString());
@@ -131,7 +131,7 @@ public class CNFReaderTest {
         HashMap<String,String> parameters = new HashMap<>();
         File file = Utilities.writeTmpFile("CNFReader", "test.cnf", cnf);
         parameters.put("file",file.getAbsolutePath());
-        ArrayList<HashMap<String,Object>> pars = CNFReader.parseProblemParameters(parameters,errors,warnings);
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals(1,pars.size());
         CNFReader.generate(pars.get(0),errors,warnings);
         assertEquals("",errors.toString());

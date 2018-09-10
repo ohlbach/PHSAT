@@ -16,7 +16,7 @@ import Utilities.Utilities;
  * the KVAnalyser tries to turn the value-Strings into suitable objects.
  *<br/>
  * The global parameters are treated in this class.
- * The parameters for problem, series and solver types are treated by calling corresponding methods in the generator and solver classes:
+ * The parameters for problem and solver types are treated by calling corresponding methods in the generator and solver classes:
  *<br/>
  * HashMap&lt;String,Object&gt; parseSingleParameters(HashMap&lt;String,String&gt; parameters, StringBuffer errors, StringBuffer warnings) <br/>
  *
@@ -34,8 +34,8 @@ public class KVAnalyser {
     /** the analysed solver parameters */
     public ArrayList<HashMap<String,Object>> solverParameters  = new ArrayList<>();
 
-    private StringBuffer errors;
-    private StringBuffer warnings;
+    public StringBuffer errors;
+    public StringBuffer warnings;
 
     /** created an Analyser
      *
@@ -55,8 +55,8 @@ public class KVAnalyser {
         this.kvParser = kvParser;
         try{
             analyseGlobalParameters(kvParser.kvList.get("global"));
-            analyseProblemParameters(kvParser.kvList.get("series"),classMap);
-            analyseSolverParameters(kvParser.kvList.get("solver"),classMap);}
+            analyseParameters(problemParameters,kvParser.kvList.get("problem"),classMap, "generator");
+            analyseParameters(solverParameters,kvParser.kvList.get("solver"),classMap,"solver");}
         catch(Exception ex) {  // applies to programming errors.
             ex.printStackTrace();
             System.exit(1);}}
@@ -102,21 +102,14 @@ public class KVAnalyser {
                 }}}}
 
 
-    private void analyseProblemParameters(ArrayList<HashMap<String,String>> problemStrings, HashMap<String,Class> classMap) throws Exception {
-        for(HashMap<String,String> parameters :  problemStrings) {
-            String type = parameters.get("series");
+    private void analyseParameters(ArrayList<HashMap<String,Object>> objectParameters, ArrayList<HashMap<String,String>> stringParameters, HashMap<String,Class> classMap, String type) throws Exception {
+        System.out.println("ANA");
+        for(HashMap<String,String> parameters :  stringParameters) {
             Class generatorClass = classMap.get(type);
-            if(generatorClass == null) {errors.append("Unknown generator type: " + type); continue;}
-            Method parser = generatorClass.getMethod("parseSeriesParameters", HashMap.class, StringBuffer.class,StringBuffer.class);
-            problemParameters.addAll((ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings));}}
+            if(generatorClass == null) {errors.append("Unknown generator type: " + type+"\n"); continue;}
+            Method parser = generatorClass.getMethod("parseParameters", HashMap.class, StringBuffer.class,StringBuffer.class);
+            objectParameters.addAll((ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings));}}
 
-    private void analyseSolverParameters(ArrayList<HashMap<String,String>> problemStrings, HashMap<String,Class> classMap) throws Exception {
-        for(HashMap<String,String> parameters :  problemStrings) {
-            String type = parameters.get("solver");
-            Class generatorClass = classMap.get(type);
-            if(generatorClass == null) {errors.append("Unknown solver type: " + type); continue;}
-            Method parser = generatorClass.getMethod("parseSolverParameters", HashMap.class, StringBuffer.class,StringBuffer.class);
-            solverParameters.add ((HashMap<String,Object>)parser.invoke(null,parameters,errors,warnings));}}
 
 
     /** reports the status of the analyser as a string

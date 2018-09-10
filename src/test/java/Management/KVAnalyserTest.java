@@ -15,42 +15,42 @@ import static org.junit.Assert.*;
  */
 public class KVAnalyserTest {
     static public class Generator{
-        public static HashMap<String,Object> parseSingleParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+        public static  ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+            System.out.println("CONTR " + parameters.toString());
             HashMap<String,Object> control = new HashMap<>();
             String number = parameters.get("number");
             Integer n = Utilities.parseInteger("place",number,errors);
             control.put("number",n);
-            return control;
-        }
-        public static ArrayList<HashMap<String,Object>> parseSeriesParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
-            HashMap<String,Object> control = new HashMap<>();
-            String number = parameters.get("many");
-            Integer n = Utilities.parseInteger("many",number,errors);
-            control.put("many",n);
             ArrayList<HashMap<String,Object>> list = new ArrayList<>();
             list.add(control);
             return list;
-        }
+        }}
 
-        public static HashMap<String,Object> parseSolverParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+
+    static public class Solver{
+        public static  ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+            System.out.println("SOLV "+ parameters.toString());
             HashMap<String,Object> control = new HashMap<>();
             String number = parameters.get("solvers");
             Integer n = Utilities.parseInteger("solvers",number,errors);
             control.put("solvers",n);
-            return control;
+            ArrayList<HashMap<String,Object>> list = new ArrayList<>();
+            list.add(control);
+            return list;
         }
     }
 
     static HashMap<String,Class> classMap = new HashMap<>();
-    static {classMap.put("generator",KVAnalyserTest.class.getClasses()[0]);
-        classMap.put("test",KVAnalyserTest.class.getClasses()[0]);
-        classMap.put("solv",KVAnalyserTest.class.getClasses()[0]);}
+    static {classMap.put("generator",KVAnalyserTest.class.getClasses()[1]);
+        classMap.put("solver",KVAnalyserTest.class.getClasses()[0]);
+        System.out.println(classMap);
+    }
 
 
 
     @Test
     public void analyse() throws Exception {
-        KVParser kvParser = new KVParser("global","problem", "series","solver" );
+        KVParser kvParser = new KVParser("global","problem","solver" );
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         KVAnalyser kvAnalyser = new KVAnalyser(errors,warnings);
@@ -62,13 +62,15 @@ public class KVAnalyserTest {
                         "\n" +
                         "global\n" +
                         "parallel\n" +
-                        "series test\n" +
+                        "problem generator\n" +
                         "many : 4\n" +
-                        "solver solv\n" +
+                        "solver solver\n" +
                         "solvers : 6";
         kvParser.parseString(test);
         System.out.println(kvParser);
         kvAnalyser.analyse(kvParser,classMap);
+        System.out.println("ERR " + kvAnalyser.errors);
+        System.out.println("AN " + kvAnalyser.toString());
         assertEquals(33, kvAnalyser.problemParameters.get(0).get("number"));
         assertEquals(Runtime.getRuntime().availableProcessors(), kvAnalyser.globalParameters.get("parallel"));
         assertEquals(6, kvAnalyser.solverParameters.get(0).get("solvers"));

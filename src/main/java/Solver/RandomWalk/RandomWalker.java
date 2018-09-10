@@ -53,6 +53,8 @@ public class RandomWalker implements Runnable {
         globalModel.addPushObserver(literal -> addGlobalUnit(literal));
     }
 
+    public static String help() {return "Random Walker";}
+
     public void run() {
         localModel = globalModel.copy();
         initializeModel();
