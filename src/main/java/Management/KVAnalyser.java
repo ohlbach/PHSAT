@@ -18,11 +18,7 @@ import Utilities.Utilities;
  * The global parameters are treated in this class.
  * The parameters for problem and solver types are treated by calling corresponding methods in the generator and solver classes:
  *<br/>
- * HashMap&lt;String,Object&gt; parseSingleParameters(HashMap&lt;String,String&gt; parameters, StringBuffer errors, StringBuffer warnings) <br/>
- *
- * ArrayList&lt;HashMap&lt;String,Object&gt;&gt; parseSeriesParameters(HashMap&lt;String,String&gt; parameters, StringBuffer errors, StringBuffer warnings) <br/>
- *
- * HashMap&lt;String,Object&gt; parseSolverParameters(HashMap&lt;String,String&gt; parameters, StringBuffer errors, StringBuffer warnings)
+ * HashMap&lt;String,Object&gt; parseParameters(HashMap&lt;String,String&gt; parameters, StringBuffer errors, StringBuffer warnings) <br/>
  */
 public class KVAnalyser {
     private KVParser kvParser;
@@ -37,7 +33,7 @@ public class KVAnalyser {
     public StringBuffer errors;
     public StringBuffer warnings;
 
-    /** created an Analyser
+    /** creates an Analyser
      *
      * @param errors  for error messages
      * @param warnings for warnings
@@ -55,7 +51,7 @@ public class KVAnalyser {
         this.kvParser = kvParser;
         try{
             analyseGlobalParameters(kvParser.kvList.get("global"));
-            analyseParameters(problemParameters,kvParser.kvList.get("problem"),classMap, "generator");
+            analyseParameters(problemParameters,kvParser.kvList.get("problem"),classMap, "problem");
             analyseParameters(solverParameters,kvParser.kvList.get("solver"),classMap,"solver");}
         catch(Exception ex) {  // applies to programming errors.
             ex.printStackTrace();
@@ -102,13 +98,22 @@ public class KVAnalyser {
                 }}}}
 
 
+    /** analyses the stringParameters and turns them into sequences of objectParameters
+     *
+     * @param objectParameters the list of previously parsed objectParameters. The new ones are appended to this ist
+     * @param stringParameters the parameters as parsed by the KVParser
+     * @param classMap maps types to classes
+     * @param type    either "problem" or "solver"
+     * @throws Exception if there are no parseParameters methods.
+     */
     private void analyseParameters(ArrayList<HashMap<String,Object>> objectParameters, ArrayList<HashMap<String,String>> stringParameters, HashMap<String,Class> classMap, String type) throws Exception {
-        System.out.println("ANA");
-        for(HashMap<String,String> parameters :  stringParameters) {
-            Class generatorClass = classMap.get(type);
-            if(generatorClass == null) {errors.append("Unknown generator type: " + type+"\n"); continue;}
-            Method parser = generatorClass.getMethod("parseParameters", HashMap.class, StringBuffer.class,StringBuffer.class);
-            objectParameters.addAll((ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings));}}
+       for(HashMap<String,String> parameters :  stringParameters) {
+            Class clazz = classMap.get(parameters.get(type));
+            if(clazz == null) {errors.append("Unknown generator type: " + parameters.get(type)+"\n"); continue;}
+            Method parser = clazz.getMethod("parseParameters", HashMap.class, StringBuffer.class,StringBuffer.class);
+            ArrayList<HashMap<String,Object>> list = ((ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings));
+            for(HashMap<String,Object> map :list) {map.put("class",clazz);} // for solver types.
+            objectParameters.addAll(list);}}
 
 
 

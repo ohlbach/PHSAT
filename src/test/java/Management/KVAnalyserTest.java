@@ -16,8 +16,7 @@ import static org.junit.Assert.*;
 public class KVAnalyserTest {
     static public class Generator{
         public static  ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
-            System.out.println("CONTR " + parameters.toString());
-            HashMap<String,Object> control = new HashMap<>();
+             HashMap<String,Object> control = new HashMap<>();
             String number = parameters.get("number");
             Integer n = Utilities.parseInteger("place",number,errors);
             control.put("number",n);
@@ -29,8 +28,7 @@ public class KVAnalyserTest {
 
     static public class Solver{
         public static  ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
-            System.out.println("SOLV "+ parameters.toString());
-            HashMap<String,Object> control = new HashMap<>();
+             HashMap<String,Object> control = new HashMap<>();
             String number = parameters.get("solvers");
             Integer n = Utilities.parseInteger("solvers",number,errors);
             control.put("solvers",n);
@@ -43,7 +41,6 @@ public class KVAnalyserTest {
     static HashMap<String,Class> classMap = new HashMap<>();
     static {classMap.put("generator",KVAnalyserTest.class.getClasses()[1]);
         classMap.put("solver",KVAnalyserTest.class.getClasses()[0]);
-        System.out.println(classMap);
     }
 
 
@@ -67,18 +64,16 @@ public class KVAnalyserTest {
                         "solver solver\n" +
                         "solvers : 6";
         kvParser.parseString(test);
-        System.out.println(kvParser);
+        //System.out.println(kvParser);
         kvAnalyser.analyse(kvParser,classMap);
-        System.out.println("ERR " + kvAnalyser.errors);
-        System.out.println("AN " + kvAnalyser.toString());
+        //System.out.println("ERR " + kvAnalyser.errors);
+        //System.out.println("AN " + kvAnalyser.toString());
         assertEquals(33, kvAnalyser.problemParameters.get(0).get("number"));
         assertEquals(Runtime.getRuntime().availableProcessors(), kvAnalyser.globalParameters.get("parallel"));
         assertEquals(6, kvAnalyser.solverParameters.get(0).get("solvers"));
-        System.out.println(kvAnalyser.solverParameters);
-        System.out.println("E " + errors.toString());
-        System.out.println("W "+warnings.toString());
-        System.out.println("A ");
-        System.out.println(kvAnalyser.toString());
+        //System.out.println(kvAnalyser.solverParameters);
+        //System.out.println("E " + errors.toString());
+        //System.out.println("W "+warnings.toString());
 
 
     }

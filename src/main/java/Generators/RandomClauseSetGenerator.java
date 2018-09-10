@@ -213,10 +213,11 @@ public class RandomClauseSetGenerator {
             for(int block = 0; block < dBlocks; ++block) {
                 literals.clear(); literals.add(1);
                 while(literals.size() < dLength) {
-                    int predicate = rnd.nextInt(predicates)+1;
-                    if(preds.contains(predicate)) {continue;}
-                    preds.add(predicate);
-                    literals.add(predicate);}
+                    int literal = rnd.nextInt(predicates)+1;
+                    if(preds.contains(literal)) {continue;}
+                    preds.add(literal);
+                    if(rnd.nextBoolean()) {literal = -literal;}
+                    literals.add(literal);}
                 int lits[] = new int[literals.size()];
                 for(int i = 0; i < lits.length; ++i) {lits[i] = literals.get(i);}
                 clauseList.clauses.add(lits);}

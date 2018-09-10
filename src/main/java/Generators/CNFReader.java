@@ -160,9 +160,7 @@ public class CNFReader {
             String[] parts = line.split("\\s+");
             for(int i = start; i < parts.length-1; ++i) {
                 Integer lit = Utilities.parseInteger (place,parts[i],errors);
-                if(lit != null) {
-                    if(line.startsWith("d") && lit < 0) {errors.append(place+ "only positive predicates are allowed, not " + lit+"\n");}
-                    literals.add(lit);};}
+                if(lit != null) {literals.add(lit);};}
             clauseList.add(literals);}}
         catch(IOException ex) {
             errors.append(place + " IOException\n");
