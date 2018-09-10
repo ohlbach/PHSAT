@@ -13,11 +13,14 @@ import static org.junit.Assert.*;
  * Created by ohlbach on 10.09.2018.
  */
 public class SolverControlTest {
+    static StringBuffer st = new StringBuffer();
 
     public static class TestSolver {
+        public TestSolver(Integer n) {}
+
         public static void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, Model globalModel,
                                  StringBuffer errors, StringBuffer warnings) {
-            problemControl.put("SOLVED",""+solverControl.get("ID")+problemControl.get("size"));}}
+            st.append("SOLVED "+solverControl.get("ID")+ " " +problemControl.get("size")+"\n");}}
 
 
 
@@ -43,15 +46,21 @@ public class SolverControlTest {
         for(int i = 0; i < 5; ++i) {
             HashMap<String,Object> map = new HashMap<>();
             map.put("ID",i);
+            map.put("class", TestSolver.class );
             solverParameters.add(map);}
         KVAnalyser anal = new KVAnalyser(null,null);
         anal.solverParameters = solverParameters;
         HashMap<String,Object> solverControl = new HashMap<>();
         solverControl.put("class",TestSolver.class);
         HashMap<String,Object> problemControl = new HashMap<>();
-        problemControl.put("number",5);
-        SolverControl sctr = new SolverControl(null,null);
+        problemControl.put("size",5);
+        problemControl.put("class",SolverControlTest.class.getClasses()[0]);
+        problemControl.put("predicates",10);
+        SolverController sctr = new SolverController(null,null);
+        sctr.kvAnalyser = anal;
         sctr.solveProblem(problemControl);
+        System.out.println("ST " +st.toString());
+
 
     }
 
@@ -67,8 +76,8 @@ public class SolverControlTest {
         solverControl.put("class",TestSolver.class);
         HashMap<String,Object> problemControl = new HashMap<>();
         problemControl.put("number",5);
-        SolverControl sctr = new SolverControl(null,null);
-        sctr.solve(solverControl,problemControl,null);
+        SolverController sctr = new SolverController(null,null);
+        sctr.solve(1,solverControl,problemControl,null);
         assertEquals(5,(int)(Integer)problemControl.get("SOLVED"));
     }
 

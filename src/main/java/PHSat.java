@@ -1,10 +1,9 @@
 import Management.KVAnalyser;
 import Management.KVParser;
-import Management.SolverControl;
+import Management.SolverController;
 
 import java.io.*;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,7 +18,7 @@ public class PHSat {
 
     private static KVAnalyser kvAnalyser = new KVAnalyser(errors,warnings);
 
-    private static SolverControl solverControl = new SolverControl(errors,warnings);
+    private static SolverController solverControl = new SolverController(errors,warnings);
 
     static HashMap<String,Class> classMap = new HashMap<>();
     static {

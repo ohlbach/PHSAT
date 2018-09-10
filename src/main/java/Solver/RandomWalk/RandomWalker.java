@@ -5,16 +5,14 @@ import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
 import Datastructures.Model;
+import Utilities.Utilities;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.PriorityQueue;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Created by ohlbach on 01.09.2018.
  */
-public class RandomWalker implements Runnable {
+public class RandomWalker {
     private int walker;
     private ClauseList clauseList;
     private int maxFlips;
@@ -31,6 +29,48 @@ public class RandomWalker implements Runnable {
     private ArrayList<Clause> falseClauses;
     private int externallyTerminated = 0;
     private ArrayList<Integer> globalUnits = new ArrayList<>();
+
+    private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
+    static { // these are the allowed keys in the specification.
+        for(String key : new String[]{"type", "seed", "flips"}) {
+            keys.add(key);}}
+
+    /** parses a HashMap with key-value pairs:<br/>
+     * file: a comma separated list of pathnames<br/>
+     * directory: a comma separated list of directories (all .cnf files in this directory are adressed) <br/>
+     * regExpr: a regular expression: All files in the directories matching the expression are addressed
+     *
+     * @param parameters  the parameters with the keys "file", "directory", "regExpr"
+     * @param errors      for error messages
+     * @param warnings    for warnings
+     * @return            a list of HashMaps with key "file" and value the corresponding File object.
+     */
+    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+        for(String key : parameters.keySet()) {
+            if(!keys.contains(key)) {warnings.append("RandomWalker: unknown key in parameters: " + key + "\n");}}
+        ArrayList<HashMap<String,Object>> list = new ArrayList<>();
+        String seeds = parameters.get("seed");
+        if(seeds == null) {seeds = "0";}
+        String flips = parameters.get("flips");
+        if(flips == null) {flips = Integer.toString(Integer.MAX_VALUE);}
+        String place = "Random Walker: ";
+        ArrayList seed = Utilities.parseIntRange(place+"seed: ",seeds,errors);
+        ArrayList flip = Utilities.parseIntRange(place+"flips: ",flips,errors);
+        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,flip);
+        for(ArrayList<Object> p : pars ) {
+            HashMap<String,Object> map = new HashMap<>();
+            map.put("seed",pars.get(0));
+            map.put("flips",pars.get(1));
+            list.add(map);}
+        return list;}
+
+    public static String help() {
+        return "Random Walker: parameters:\n" +
+                "seed: for the random number generator\n" +
+                "flips: for restricting the number of flips.\n";}
+
+    public RandomWalker(Integer walker) {
+        this.walker = walker;}
 
     public RandomWalker(int walker, ClauseList clauseList, int maxFlips, int seed) {
         this.walker = walker;
@@ -53,9 +93,12 @@ public class RandomWalker implements Runnable {
         globalModel.addPushObserver(literal -> addGlobalUnit(literal));
     }
 
-    public static String help() {return "Random Walker";}
 
-    public void run() {
+
+    public void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, Model globalModel,
+                      StringBuffer errors, StringBuffer warnings) {
+        seed = (Integer)solverControl.get("seed");
+        maxFlips = (Integer)solverControl.get("flips");
         localModel = globalModel.copy();
         initializeModel();
         initializeFlipConsequences();
