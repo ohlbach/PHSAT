@@ -12,6 +12,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
 
 /**
  * Created by Ohlbach on 03.09.2018.
@@ -252,5 +253,15 @@ public class Utilities {
             return file;}
         catch(Exception exp) {exp.printStackTrace();}
     return null;}
+
+    /** generates a BiConsumer which prints a message to System.out
+     *
+     * @return a BiConsumer which prints a message to System.out
+     */
+    public static BiConsumer<String,String> stdoutLogger() {
+        return ((String id, String message) -> {System.out.printf(id);
+            System.out.printf(": ");
+            System.out.println(message);});}
+
 
 }

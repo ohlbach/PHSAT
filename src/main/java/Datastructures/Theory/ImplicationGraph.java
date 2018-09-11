@@ -40,8 +40,14 @@ public class ImplicationGraph {
      */
     public HashSet<Integer> addClause(int literal1, int literal2) {
         units.clear();
-        addImplication(-literal1,literal2);
-        addImplication(-literal2,literal1);
+        addFromTo(-literal1,literal2);
+        addFromTo(-literal2,literal1);
+        clear();
+        return units.isEmpty() ? null : units;}
+
+    public HashSet<Integer> addImplication(int from, int to) {
+        units.clear();
+        addFromTo(from,to);
         clear();
         return units.isEmpty() ? null : units;}
 
@@ -51,7 +57,7 @@ public class ImplicationGraph {
      * @param ante a literal
      * @param succ a literal
      */
-    private void addImplication(int ante, int succ) {
+    private void addFromTo(int ante, int succ) {
         ArrayList<Integer> antelist = implicants.get(ante);
         if(antelist == null) {antelist = new ArrayList<>(); implicants.put(ante,antelist);}
         for(Integer literal :antelist) {    // ante -> p1,...pn,succ

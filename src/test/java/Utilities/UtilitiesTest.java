@@ -3,6 +3,7 @@ package Utilities;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.function.BiConsumer;
 
 import static org.junit.Assert.*;
 
@@ -97,5 +98,11 @@ public class UtilitiesTest {
     public void writeTmpFile() throws Exception {
         System.out.println("writeTmpFile 2");
         Utilities.writeTmpFile("TEST", "test.cnf", "text\ntexfgdfgt");
+    }
+
+    @Test
+    public void stdoutLogger() {
+        BiConsumer<String,String> logger = Utilities.stdoutLogger();
+        logger.accept("ID","Test");
     }
 }

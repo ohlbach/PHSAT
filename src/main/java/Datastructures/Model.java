@@ -2,6 +2,7 @@ package Datastructures;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -13,7 +14,8 @@ public class Model {
     private int[] model;    // the current model (as a stack)
     private short[] status;  // maps predicates in the model to +1 (true), -1 (false) or 0 (undefined)
     private ArrayList<Consumer<Integer>> pushObserver = null;
-    private ArrayList<Consumer<Integer>> finalObserver = null;
+    private ArrayList<BiConsumer<String,Integer>> satisfiableObserver = null;
+    private ArrayList<BiConsumer<String,Integer>> unsatisfiableObserver = null;
 
     public Model() {}
 
@@ -48,13 +50,23 @@ public class Model {
         if(pushObserver == null) {pushObserver = new ArrayList<>();}
         pushObserver.add(observer);}
 
-    /** adds a finalObserver, a Consumer function to be applied when all predicates became assigned.
+    /** adds a satisfiableObserver, a Consumer function to be applied either when all predicates became assigned,
+     * or when the clause list became empty.
      *
-     * @param observer a Consumer function to be applied to the last literal.
+     * @param observer a Consumer function to be applied to a string ("full" or "empty") and the last literal.
      */
-    public synchronized void addFinalObserver(Consumer<Integer> observer) {
-        if(finalObserver == null) {finalObserver = new ArrayList<>();}
-        finalObserver.add(observer);}
+    public synchronized void addSatisfiableObserver(BiConsumer<String,Integer> observer) {
+        if(satisfiableObserver == null) {satisfiableObserver = new ArrayList<>();}
+        satisfiableObserver.add(observer);}
+
+    /** adds an unsatisfiableObserver, a Consumer function to be applied when an inconsistency has been detected
+     *
+     * @param observer a Consumer function to be applied to a string ("literal" or "clause") and either an inconsistent
+     *                 literal or the empty clause number.
+     */
+    public synchronized void addUnsatisfiableObserver(BiConsumer<String,Integer> observer) {
+        if(unsatisfiableObserver == null) {unsatisfiableObserver = new ArrayList<>();}
+        unsatisfiableObserver.add(observer);}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
      *
@@ -71,8 +83,8 @@ public class Model {
             status[predicate] = literal > 0 ? (short)1: (short)-1;
             if(pushObserver != null) {
                 for(Consumer<Integer> observer : pushObserver) {observer.accept(literal);}}
-            if(finalObserver != null && actualSize == predicates) {
-                for(Consumer<Integer> observer : finalObserver) {observer.accept(literal);}}
+            if(actualSize == predicates && satisfiableObserver != null) {
+                for(BiConsumer<String,Integer> observer : satisfiableObserver) {observer.accept("full",literal);}}
             return 0;}
         else {return (Integer.signum(literal) == (int)tr) ? (short)1 : (short)-1;}}
 
@@ -157,6 +169,21 @@ public class Model {
      */
     public boolean isFull() {return actualSize == predicates;}
 
+    public void signalContradiction(int literal) {
+        if(unsatisfiableObserver != null) {
+            for(BiConsumer<String,Integer> consumer : unsatisfiableObserver) {
+                consumer.accept("literal",literal);}}}
+
+    public void signalEmptyClause(int clause) {
+        if(unsatisfiableObserver != null) {
+            for(BiConsumer<String,Integer> consumer : unsatisfiableObserver) {
+                consumer.accept("clause",clause);}}}
+
+
+    public void signalEmptyClauseList() {
+        if(satisfiableObserver != null) {
+            for(BiConsumer<String,Integer> consumer : satisfiableObserver) {
+                consumer.accept("empty",null);}}}
     /**
      * @return the model as a comma separated string.
      */

@@ -4,10 +4,12 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
 import Datastructures.Model;
 import Datastructures.Symboltable;
+import Datastructures.Theory.ImplicationGraph;
 import Datastructures.Theory.Theory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by ohlbach on 26.08.2018.
@@ -17,40 +19,38 @@ import java.util.HashMap;
 public class ClauseList {
     public String info;                        // just for information
     public final ArrayList<Clause> clauses;    // the list of clauses
-    public final Model model;                  // the model
     public final Symboltable symboltable;      // mapping literal numbers to literal names
+    int predicates;
     public int timestamp = 0;                  // for algorithms
     private HashMap<Integer,Clause> number2Clause; // maps clause numbers to clauses
     public LiteralIndex literalIndex;              // maps literals to CLiterals
     public Theory theory;
+    public ImplicationGraph implicationGraph = null;
 
     private boolean destructiveMode = true;      // if true then changes are made destructive
 
     /** creates a clause list
      *
-     * @param model       the model
      * @param symboltable the symbol table (or null)
      */
-    public ClauseList(Model model,Symboltable symboltable) {
+    public ClauseList(int predicates, Symboltable symboltable) {
+        this.predicates = predicates;
         clauses = new ArrayList<Clause>();
-        this.model = model;
         this.symboltable = symboltable;
         this.number2Clause = new HashMap<>();
-        literalIndex = new LiteralIndex(model.predicates);
+        literalIndex = new LiteralIndex(predicates);
     }
 
     /** creates a clause list. The number of clauses should be estimated
      *
      * @param size       the estimated number of clauses
-     * @param model      the model
      * @param symboltable the symbol table (or null)
      */
-    public ClauseList(int size, Model model,Symboltable symboltable) {
+    public ClauseList(int size,int predicates, Symboltable symboltable) {
         clauses = new ArrayList<Clause>(size);
-        this.model = model;
         this.symboltable = symboltable;
         this.number2Clause = new HashMap<>();
-        literalIndex = new LiteralIndex(model.predicates);}
+        literalIndex = new LiteralIndex(predicates);}
 
     /** adds a clause to the list and updates the literal index
      *
@@ -97,6 +97,29 @@ public class ClauseList {
             if(!clause.isTrue(model)) {falseClauses.add(clause);}}
         return falseClauses;}
 
+    public int getOccurrences(int literal) {
+        if(implicationGraph == null || implicationGraph.getImplicants(literal) == null) {
+            return literalIndex.getLiterals(literal).size();}
+        ++timestamp;
+        int counter = 0;
+        for(CLiteral cliteral : literalIndex.getLiterals(literal)) {
+            ++counter;
+            cliteral.getClause().timestamp = timestamp;}
+        for(Integer lit : implicationGraph.getImplicants(literal)) {
+            for(CLiteral cliteral : literalIndex.getLiterals(lit)) {
+                if(cliteral.getClause().timestamp != timestamp) {
+                    ++counter;
+                    cliteral.getClause().timestamp = timestamp;}}}
+        return counter;}
+
+    public boolean isPure(int literal) {
+        if(!literalIndex.getLiterals(-literal).isEmpty()) {return false;}
+        if(implicationGraph == null || implicationGraph.getImplicants(literal) == null) {
+            return true;}
+        for(Integer lit : implicationGraph.getImplicants(literal)) {
+            if(!literalIndex.getLiterals(-lit).isEmpty()) {return false;}}
+        return true;}
+
     public void setDestructiveMode(boolean destructiveMode) {
         this.destructiveMode = destructiveMode;}
 
@@ -116,6 +139,8 @@ public class ClauseList {
      */
     public int size() {return clauses.size();}
 
+    public boolean isEmpty() {return clauses.size() == 0;}
+
     /** generates a string with clauses
      *
      * @return a string with clauses
@@ -132,11 +157,9 @@ public class ClauseList {
         Symboltable stb = withSymboltable ? symboltable : null;
         StringBuffer st = new StringBuffer();
         if(info != null) {st.append(info).append("\n");}
-        if(!model.isEmpty()) {st.append("Partial Model: ").append(model.toString()).append("\n");}
         int numbersize = (""+clauses.size()).length();
         for(Clause clause : clauses) {
-            if(!clause.isTrue(model)) {
-                st.append(clause.toString(model,numbersize,stb)).append("\n");}}
+            st.append(clause.toString(numbersize,stb)).append("\n");}
         return st.toString();
     }
 

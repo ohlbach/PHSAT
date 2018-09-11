@@ -4,6 +4,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Model;
 import Datastructures.Symboltable;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -18,6 +19,7 @@ public class Clause {
     private int maxSize;    // the maximum length of the literal array
     private int actualSize; // the current number of literals
     public CLiteral[] cliterals;   // the literals
+    public int timestamp;
 
     /** constructs a clause
      *
@@ -43,6 +45,24 @@ public class Clause {
         cliterals = new CLiteral[maxSize];
         for(int i = 0; i < maxSize; ++i) {
             cliterals[i] = new CLiteral(Integer.parseInt(lits[i]),this,i);}}
+
+    /** constructs a clause from a string.
+     *  Just for test purposes!
+     *
+     * @param number the clause number
+     * @param literals the literal string.
+     */
+    public Clause(int number, ArrayList<CLiteral> literals) {
+        this.number = number;
+        maxSize = literals.size();
+        actualSize = maxSize;
+        cliterals = new CLiteral[maxSize];
+        for(int i = 0; i < maxSize; ++i) {
+            CLiteral literal = literals.get(i);
+            cliterals[i] = literal;
+            literal.setClause(this,i);}}
+
+
 
     /** return the current number of literals
      *
@@ -188,22 +208,21 @@ public class Clause {
      * @return a string: clause-number: non-false literals
      */
     public String toString(Model model, int numberSize) {
-        return toString(model,numberSize,null);}
+        return toString(numberSize,null);}
 
     /** generates a string: clause-number: non-false literals
      *
-     * @param model  a model (mapping predicates to true or false)
      * @param numberSize the legth of the number-string
      * @param symboltable for mapping numbers to names
      * @return a string: clause-number: non-false literals
      */
-    public String toString(Model model, int numberSize, Symboltable symboltable) {
+    public String toString(int numberSize, Symboltable symboltable) {
         StringBuffer st = new StringBuffer();
         String n = String.format("%"+numberSize+"d",number);
         st.append(n).append(": ");
         for(int position = 0; position < actualSize; ++position) {
             CLiteral lit = cliterals[position];
-            if(!model.isFalse(lit.literal)) {st.append(cliterals[position].toString(symboltable)).append(",");}}
+            st.append(cliterals[position].toString(symboltable)).append(",");}
         return st.toString();}
 
 

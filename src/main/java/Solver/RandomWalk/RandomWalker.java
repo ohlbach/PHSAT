@@ -1,23 +1,38 @@
 package Solver.RandomWalk;
 
+import Algorithms.BasicClausesAnalyser;
+import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
 import Datastructures.Model;
+import Datastructures.Theory.ImplicationGraph;
+import Datastructures.TrueLiterals;
 import Utilities.Utilities;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 
 /**
  * Created by ohlbach on 01.09.2018.
  */
 public class RandomWalker {
     private int walker;
-    private ClauseList clauseList;
+    private String id;
+    HashMap<String,Object> solverControl;
+    HashMap<String,Object> problemControl;
+    BiConsumer<String,String> logger;
+    private int seed;
     private int maxFlips;
     private int flipCounter = 0;
-    private int seed;
+    private boolean withImplications;
+    private BasicClauseList basicClauses;
+    private ClauseList clauseList;
+    private ImplicationGraph implicationGraph = null;
+    TrueLiterals trueLiterals;
+    private Thread thread = null;
+    boolean stopped = false;
     public String info;
     private LiteralIndex index ;
     private Model globalModel;
@@ -27,12 +42,10 @@ public class RandomWalker {
     private PriorityQueue<Integer> literalQueue;
     private Random random;
     private ArrayList<Clause> falseClauses;
-    private int externallyTerminated = 0;
-    private ArrayList<Integer> globalUnits = new ArrayList<>();
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"type", "seed", "flips"}) {
+        for(String key : new String[]{"class", "seed", "flips", "implications"}) {
             keys.add(key);}}
 
     /** parses a HashMap with key-value pairs:<br/>
@@ -53,62 +66,83 @@ public class RandomWalker {
         if(seeds == null) {seeds = "0";}
         String flips = parameters.get("flips");
         if(flips == null) {flips = Integer.toString(Integer.MAX_VALUE);}
+        String jumps = parameters.get("jumps");
+        if(jumps == null) {jumps = Integer.toString(10);}
+        String implications = parameters.get("implications");
+        if(implications == null) {implications = "false";}
         String place = "Random Walker: ";
         ArrayList seed = Utilities.parseIntRange(place+"seed: ",seeds,errors);
         ArrayList flip = Utilities.parseIntRange(place+"flips: ",flips,errors);
-        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,flip);
+        ArrayList jump = Utilities.parseIntRange(place+"jumps: ",jumps,errors);
+        ArrayList implication = Utilities.parseBoolean(place+"implications",implications,errors);
+        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,flip,jump,implication);
         for(ArrayList<Object> p : pars ) {
             HashMap<String,Object> map = new HashMap<>();
             map.put("seed",pars.get(0));
             map.put("flips",pars.get(1));
+            map.put("jumps",pars.get(2));
+            map.put("implications",pars.get(3));
             list.add(map);}
         return list;}
 
     public static String help() {
         return "Random Walker: parameters:\n" +
-                "seed: for the random number generator\n" +
-                "flips: for restricting the number of flips.\n";}
+                "seed:         for the random number generator           (default: 0)\n" +
+                "flips:        for restricting the number of flips       (default: Max_Integer).\n" +
+                "jumps:        frequency of random jumps                 (default: 10)\n" +
+                "implications: if true then an implication graph is used (default: false).\n";}
 
-    public RandomWalker(Integer walker) {
-        this.walker = walker;}
 
-    public RandomWalker(int walker, ClauseList clauseList, int maxFlips, int seed) {
+    public RandomWalker(Integer walker, HashMap<String,Object> solverControl, HashMap<String,Object> problemControl,
+                        Model globalModel, BiConsumer<String,String> logger) {
         this.walker = walker;
-        this.clauseList = clauseList;
-        index = clauseList.literalIndex;
-        globalModel = clauseList.model;
-        predicates = globalModel.predicates;
-        flipConsequences = new int[predicates+1];
-        literalQueue = new PriorityQueue<Integer>(predicates,(
-                (l1,l2) -> {
-                    int f1 = flipConsequences[l1];
-                    int f2 = flipConsequences[l2];
-                    if(f1 > f2) {return -1;}
-                    return(f1 < f2) ? 1 : 0;}));
-        this.seed = seed;
-        random = new Random(seed);
-        this.maxFlips = maxFlips;
-        info = "Random Walker " + walker + " with seed " + seed;
-        globalModel.addFinalObserver(literal -> {externallyTerminated = literal;});
-        globalModel.addPushObserver(literal -> addGlobalUnit(literal));
+        id = "Walker_"+walker;
+        this.solverControl  = solverControl;
+        this.problemControl = problemControl;
+        this.logger = logger;
+        this.globalModel = globalModel;
+        trueLiterals = new TrueLiterals(globalModel);
+        globalModel.addUnsatisfiableObserver((reason,item) -> {stopped = true; if(thread!=null) {thread.interrupt();}});
+        globalModel.addSatisfiableObserver((reason,item)   -> {stopped = true; if(thread!=null) {thread.interrupt();}});
+        globalModel.addPushObserver(literal ->
+            {if(!stopped && Thread.currentThread() != thread) {trueLiterals.addExternalLiteral(literal);}});
     }
 
 
-
-    public void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, Model globalModel,
-                      StringBuffer errors, StringBuffer warnings) {
-        seed = (Integer)solverControl.get("seed");
-        maxFlips = (Integer)solverControl.get("flips");
+    public void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, Model globalModel) {
+        if(stopped) {return;}
+        logger.accept(id,"starting");
+        thread = Thread.currentThread();
+        prepareData();
+        BasicClausesAnalyser bca = new BasicClausesAnalyser((literal-> new CLiteral(literal)),
+                ((Integer number,ArrayList<CLiteral> literals) -> new Clause(number,literals)),
+                clauseList,trueLiterals,globalModel);
+        if(bca.analyse(basicClauses,withImplications)) {return;}
+        implicationGraph = clauseList.implicationGraph;
         localModel = globalModel.copy();
         initializeModel();
         initializeFlipConsequences();
         falseClauses = clauseList.falseClauses(localModel);
-        while (++flipCounter <= maxFlips && externallyTerminated == 0 && !falseClauses.isEmpty()) {
-            copyGlobalUnits();
+        while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
             integrateGlobalUnits();
             flip(selectFlipPredicate());}}
 
-
+    private void prepareData() {
+        seed             = (Integer)solverControl.get("seed");
+        maxFlips         = (Integer)solverControl.get("flips");
+        randomFrequency  = (Integer)solverControl.get("jumps");
+        withImplications = (Boolean)solverControl.get("implications");
+        basicClauses     = (BasicClauseList)problemControl.get("clauses");
+        predicates       = basicClauses.predicates;
+        clauseList       = new ClauseList(predicates,basicClauses.symboltable);
+        info = "RandomWalker_" + walker + "(seed:"+seed+",flips:"+maxFlips+ (withImplications ? ",implications" : "") + ")";
+        random           = new Random(seed);
+        literalQueue     = new PriorityQueue<Integer>(predicates,(
+                (l1,l2) -> {
+                    int f1 = flipConsequences[l1];
+                    int f2 = flipConsequences[l2];
+                    if(f1 > f2) {return -1;}
+                    return(f1 < f2) ? 1 : 0;}));}
 
     /** generates a candidate localModel for the clauses.
      * A predicate becomes true if it occurs in more clauses than its negation.
@@ -116,7 +150,9 @@ public class RandomWalker {
     private void initializeModel() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(!globalModel.contains(predicate)) {
-                localModel.push((index.getLiterals(predicate).size() > index.getLiterals(-predicate).size()) ? predicate : -predicate);}}}
+                localModel.push((clauseList.getOccurrences(predicate) > clauseList.getOccurrences(-predicate)) ? predicate : -predicate);}}}
+
+
 
     /** initializes flipConsequences and literalQueue.
      *  literalQueue contains the predicates ordered by the number
@@ -213,7 +249,7 @@ public class RandomWalker {
 
     private int oldPredicate = 0;
     private int oldoldPredicate = 0;
-    private int randomFrequency = 10;
+    private int randomFrequency;
     private int randomCounter = 0;
 
     private int selectFlipPredicate() {
@@ -232,15 +268,6 @@ public class RandomWalker {
         oldPredicate = predicate;
         return predicate;}
 
-    private synchronized void addGlobalUnit(int literal) {
-        globalUnits.add(literal);}
-
-    private Integer[] localGlobalUnits = null;
-
-    private synchronized void copyGlobalUnits() {
-        localGlobalUnits = new Integer[globalUnits.size()];
-        globalUnits.toArray(localGlobalUnits);
-        globalUnits.clear();}
 
     private void integrateGlobalUnits() {}
 
