@@ -14,7 +14,7 @@ public class ClauseListTest {
     public void addClause() throws Exception {
         System.out.println("addClause");
         Model model = new Model(10);
-        ClauseList clauses = new ClauseList(model,null);
+        ClauseList clauses = new ClauseList(10,null);
         Clause c1 = new Clause(1,"1,-3");
         clauses.addClause(c1);
         Clause c2 = new Clause(2,"-1,3,5");

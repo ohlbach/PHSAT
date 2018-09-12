@@ -25,7 +25,7 @@ public class UnitPropagator {
         while(!unitLiterals.isEmpty()) {
             int literal = unitLiterals.removeFirst();
             LiteralIndex index = clauses.literalIndex;
-            Model model = clauses.model;
+            Model model = null;//clauses.model;
             model.push(literal);
             for(CLiteral clit : index.getLiterals(literal)) {clauses.makeTrue(clit.getClause());}
             for(CLiteral clit : index.getLiterals(-literal)) {
