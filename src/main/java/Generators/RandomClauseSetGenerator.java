@@ -1,7 +1,7 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Model;
+import Datastructures.LocalModel;
 import Datastructures.Status;
 import Utilities.Utilities;
 
@@ -189,7 +189,7 @@ public class RandomClauseSetGenerator {
         ArrayList<Integer> literals = new ArrayList();
         Status stat = new Status();
         stat.seed = seed;
-        Model model = new Model(predicates);
+        LocalModel model = new LocalModel(predicates);
         clauseList.info = "Randomly generated clauses with seed " + seed;
         Random rnd = new Random(seed);
         int clauseCounter = 1;

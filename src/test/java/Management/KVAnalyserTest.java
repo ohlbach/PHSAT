@@ -1,12 +1,10 @@
 package Management;
 
-import Datastructures.Clauses.Clause;
 import Utilities.Utilities;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Objects;
 
 import static org.junit.Assert.*;
 

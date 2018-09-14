@@ -1,10 +1,9 @@
 package Algorithms;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
-import Datastructures.Model;
+import Datastructures.LocalModel;
 import Datastructures.Theory.ImplicationGraph;
 import Datastructures.TrueLiterals;
 
@@ -21,14 +20,14 @@ public class BasicClausesAnalyser {
     private BiFunction<Integer,ArrayList<CLiteral>,Clause> clauseCreator;
     private ClauseList clauseList;
     TrueLiterals trueLiterals;
-    Model model;
+    LocalModel model;
     boolean withImplications;
     Thread thread;
     ImplicationGraph implicationGraph;
 
     public BasicClausesAnalyser(Function<Integer,CLiteral> literalCreator,
                                 BiFunction<Integer,ArrayList<CLiteral>,Clause> clauseCreator,
-                                ClauseList clauseList,TrueLiterals trueLiterals, Model model) {
+                                ClauseList clauseList,TrueLiterals trueLiterals, LocalModel model) {
         this.literalCreator = literalCreator;
         this.clauseCreator = clauseCreator;
         this.clauseList = clauseList;

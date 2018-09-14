@@ -1,10 +1,9 @@
 package Algorithms;
 
-import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
-import Datastructures.Model;
+import Datastructures.LocalModel;
 
 import java.util.LinkedList;
 
@@ -25,7 +24,7 @@ public class UnitPropagator {
         while(!unitLiterals.isEmpty()) {
             int literal = unitLiterals.removeFirst();
             LiteralIndex index = clauses.literalIndex;
-            Model model = null;//clauses.model;
+            LocalModel model = null;//clauses.model;
             model.push(literal);
             for(CLiteral clit : index.getLiterals(literal)) {clauses.makeTrue(clit.getClause());}
             for(CLiteral clit : index.getLiterals(-literal)) {

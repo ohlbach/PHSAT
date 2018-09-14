@@ -1,7 +1,6 @@
 package Datastructures.Clauses;
 
-import Datastructures.Literals.CLiteral;
-import Datastructures.Model;
+import Datastructures.LocalModel;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -13,7 +12,7 @@ public class ClauseListTest {
     @Test
     public void addClause() throws Exception {
         System.out.println("addClause");
-        Model model = new Model(10);
+        LocalModel model = new LocalModel(10);
         ClauseList clauses = new ClauseList(10,null);
         Clause c1 = new Clause(1,"1,-3");
         clauses.addClause(c1);

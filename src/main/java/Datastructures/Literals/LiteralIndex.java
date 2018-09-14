@@ -1,5 +1,7 @@
 package Datastructures.Literals;
 
+import Datastructures.Links.LinkBinary;
+
 import java.util.LinkedList;
 
 /**
@@ -11,6 +13,7 @@ public class LiteralIndex {
     private int predicates;   // number of predicates
     private LinkedList<CLiteral>[] posOccurrences;  // maps each positive predicate to the list of occurrences
     private LinkedList<CLiteral>[] negOccurrences;  // maps each negative predicate to the list of occurrences
+    private static LinkedList<CLiteral> emptyList = new LinkedList<>();
 
     /** constructs an index for a given number of predicates
      *
@@ -54,7 +57,8 @@ public class LiteralIndex {
      */
     public LinkedList<CLiteral> getLiterals(int literal) {
         assert literal != 0 && (Math.abs(literal) <= predicates);
-        return literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];}
+        LinkedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        return list == null ? emptyList : list;}
 
     /** comrises the index into a string
      *

@@ -1,6 +1,5 @@
 package Datastructures.Literals;
 
-import Datastructures.Clauses.Clause;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

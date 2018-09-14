@@ -1,7 +1,6 @@
 package Datastructures.Clauses;
 
 import Datastructures.Literals.CGLiteral;
-import Datastructures.Literals.CLiteral;
 
 /**
  * Created by ohlbach on 29.08.2018.

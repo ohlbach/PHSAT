@@ -1,6 +1,5 @@
 package Datastructures.Literals;
 
-import Datastructures.Clauses.AbstractClause;
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 
@@ -12,7 +11,7 @@ import Datastructures.Symboltable;
  */
 public class CLiteral {
     public int literal;   // the literal
-    private AbstractClause clause; // the clause
+    private Clause clause; // the clause
     private int position;  // the position of the literal within the clause.
     public int timestamp = 0;
 
@@ -30,7 +29,7 @@ public class CLiteral {
      * @param clause     the clause containing the literal
      * @param position   the position of the literal within the clause
      */
-    public CLiteral(int literal, AbstractClause clause, int position) {
+    public CLiteral(int literal, Clause clause, int position) {
         this.literal = literal;
         this.clause = clause;
         this.position = position;}
@@ -40,7 +39,7 @@ public class CLiteral {
      *
      * @return the clause or null
      */
-    public AbstractClause getClause() {return clause;}
+    public Clause getClause() {return clause;}
 
     /** returns the position of the literal within the clause, or -1 if there is no clause
      *
@@ -53,7 +52,7 @@ public class CLiteral {
      * @param clause    the clause
      * @param position  the position within the clause
      */
-    public void setClause(AbstractClause clause, int position) {
+    public void setClause(Clause clause, int position) {
         assert position >= 0;
         this.clause = clause;
         this.position = position;}

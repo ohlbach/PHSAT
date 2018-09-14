@@ -1,17 +1,16 @@
 package Datastructures;
 
 import java.util.LinkedList;
-import java.util.Queue;
 
 /**
  * Created by ohlbach on 11.09.2018.
  */
 public class TrueLiterals {
 
-    private Model model;
+    private LocalModel model;
     private LinkedList<Integer> literals = new LinkedList();
 
-    public TrueLiterals(Model mode) {
+    public TrueLiterals(LocalModel mode) {
         this.model = model;}
 
     public synchronized void addExternalLiteral(int literal) {

@@ -1,11 +1,11 @@
-package Coordinator;
+package Datastructures.Theory;
 
 import java.util.ArrayList;
 
 /**
  * Created by ohlbach on 12.09.2018.
  */
-public class GlobalModel {
+public class Model {
     public int predicates;    // the maximum number of predicates
     private ArrayList<Integer> model;    // the current model (as a stack)
     private short[] status;  // maps predicates in the model to +1 (true), -1 (false) or 0 (undefined)
@@ -15,7 +15,7 @@ public class GlobalModel {
      *
      * @param predicates the maximum number of predicates
      */
-    public GlobalModel(int predicates) {
+    public Model(int predicates) {
         assert predicates > 0;
         this.predicates = predicates;
         model = new ArrayList<>();

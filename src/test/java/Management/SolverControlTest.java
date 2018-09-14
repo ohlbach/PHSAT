@@ -1,6 +1,6 @@
 package Management;
 
-import Datastructures.Model;
+import Datastructures.LocalModel;
 import Utilities.Utilities;
 import org.junit.Test;
 
@@ -18,7 +18,7 @@ public class SolverControlTest {
     public static class TestSolver {
         public TestSolver(Integer n) {}
 
-        public static void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, Model globalModel,
+        public static void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, LocalModel globalModel,
                                  StringBuffer errors, StringBuffer warnings) {
             st.append("SOLVED "+solverControl.get("ID")+ " " +problemControl.get("size")+"\n");}}
 

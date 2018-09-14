@@ -1,11 +1,8 @@
 package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
-import Datastructures.Model;
-import com.sun.prism.shader.AlphaOne_RadialGradient_AlphaTest_Loader;
+import Datastructures.LocalModel;
 import org.junit.Test;
-
-import java.util.Arrays;
 
 import static org.junit.Assert.*;
 
@@ -54,7 +51,7 @@ public class ClauseTest {
     public void size() throws Exception {
         System.out.println("size, isEmpty with model");
         Clause cl = new Clause(1,3);
-        Model model = new Model(10);
+        LocalModel model = new LocalModel(10);
         CLiteral lit1 = new CLiteral(5);
         cl.addLiteral(lit1);
         CLiteral lit2 = new CLiteral(-3);
@@ -72,7 +69,7 @@ public class ClauseTest {
     public void isTrue() throws Exception {
         System.out.println("isTrue in model");
         Clause cl = new Clause(1,3);
-        Model model = new Model(10);
+        LocalModel model = new LocalModel(10);
         CLiteral lit1 = new CLiteral(5);
         cl.addLiteral(lit1);
         CLiteral lit2 = new CLiteral(-3);
@@ -99,7 +96,7 @@ public class ClauseTest {
     public void apply1() throws Exception {
         System.out.println("apply with model");
         Clause cl = new Clause(1,3);
-        Model model = new Model(10);
+        LocalModel model = new LocalModel(10);
         CLiteral lit1 = new CLiteral(5);
         cl.addLiteral(lit1);
         CLiteral lit2 = new CLiteral(-3);
@@ -127,7 +124,7 @@ public class ClauseTest {
     public void toStream1() throws Exception {
         System.out.println("toStream with model");
         Clause cl = new Clause(1,3);
-        Model model = new Model(10);
+        LocalModel model = new LocalModel(10);
         CLiteral lit1 = new CLiteral(5);
         cl.addLiteral(lit1);
         CLiteral lit2 = new CLiteral(-3);
@@ -143,7 +140,7 @@ public class ClauseTest {
     public void toStringTest() throws Exception {
         System.out.println("toString with model");
         Clause cl = new Clause(1,3);
-        Model model = new Model(10);
+        LocalModel model = new LocalModel(10);
         CLiteral lit1 = new CLiteral(5);
         cl.addLiteral(lit1);
         CLiteral lit2 = new CLiteral(-3);

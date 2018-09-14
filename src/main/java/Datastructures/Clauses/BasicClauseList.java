@@ -1,6 +1,6 @@
 package Datastructures.Clauses;
 
-import Datastructures.Model;
+import Datastructures.LocalModel;
 import Datastructures.Symboltable;
 
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ public class BasicClauseList {
      * @param model a model for the literals of the clause
      * @return null or a list of false clauses.
      */
-    public ArrayList<int[]> falseClauses(Model model) {
+    public ArrayList<int[]> falseClauses(LocalModel model) {
         ArrayList<int[]> falseClauses = new ArrayList<>();
 
         if(withDisjointness) {

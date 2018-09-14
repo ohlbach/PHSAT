@@ -2,11 +2,10 @@ package Solver.RandomWalk;
 
 import Algorithms.BasicClausesAnalyser;
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
-import Datastructures.Model;
+import Datastructures.LocalModel;
 import Datastructures.Theory.ImplicationGraph;
 import Datastructures.TrueLiterals;
 import Utilities.Utilities;
@@ -35,8 +34,8 @@ public class RandomWalker {
     boolean stopped = false;
     public String info;
     private LiteralIndex index ;
-    private Model globalModel;
-    private Model localModel;
+    private LocalModel globalModel;
+    private LocalModel localModel;
     private int predicates;
     private int[] flipConsequences;
     private PriorityQueue<Integer> literalQueue;
@@ -94,7 +93,7 @@ public class RandomWalker {
 
 
     public RandomWalker(Integer walker, HashMap<String,Object> solverControl, HashMap<String,Object> problemControl,
-                        Model globalModel, BiConsumer<String,String> logger) {
+                        LocalModel globalModel, BiConsumer<String,String> logger) {
         this.walker = walker;
         id = "Walker_"+walker;
         this.solverControl  = solverControl;
@@ -109,7 +108,7 @@ public class RandomWalker {
     }
 
 
-    public void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, Model globalModel) {
+    public void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, LocalModel globalModel) {
         if(stopped) {return;}
         logger.accept(id,"starting");
         thread = Thread.currentThread();

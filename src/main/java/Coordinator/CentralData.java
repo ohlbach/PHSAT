@@ -1,11 +1,10 @@
 package Coordinator;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
-import Datastructures.Model;
 import Datastructures.Theory.ImplicationGraph;
+import Datastructures.Theory.Model;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -18,7 +17,7 @@ public class CentralData {
     private BasicClauseList basicClauseList;
     private int predicates;
     private ClauseList clauseList;
-    private GlobalModel model;
+    private Model model;
     private ImplicationGraph implicationGraph;
     private int emptyClause = 0;
     private Incoming incoming = new Incoming();
@@ -28,7 +27,7 @@ public class CentralData {
         this.basicClauseList = basicClauseList;
         predicates = basicClauseList.predicates;
         clauseList = new ClauseList(predicates,basicClauseList.symboltable);
-        model = new GlobalModel(predicates);
+        model = new Model(predicates);
         implicationGraph = new ImplicationGraph(predicates);
     }
 

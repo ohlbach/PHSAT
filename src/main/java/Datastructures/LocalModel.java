@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 /**
  * Created by Ohlbach on 25.08.2018.
  */
-public class Model {
+public class LocalModel {
     public int predicates;    // the maximum number of predicates
     private int actualSize; // the current number of literals in the model
     private int[] model;    // the current model (as a stack)
@@ -17,13 +17,13 @@ public class Model {
     private ArrayList<BiConsumer<String,Integer>> satisfiableObserver = null;
     private ArrayList<BiConsumer<String,Integer>> unsatisfiableObserver = null;
 
-    public Model() {}
+    public LocalModel() {}
 
     /** creates a model with a maximum number of predicates
      *
      * @param predicates the maximum number of predicates
      */
-    public Model(int predicates) {
+    public LocalModel(int predicates) {
         assert predicates > 0;
         this.predicates = predicates;
         model = new int[predicates];
@@ -34,8 +34,8 @@ public class Model {
      *
      * @return a copy of the model.
      */
-    public Model copy() {
-        Model newmodel = new Model();
+    public LocalModel copy() {
+        LocalModel newmodel = new LocalModel();
         newmodel.predicates = predicates;
         newmodel.actualSize = actualSize;
         newmodel.model = Arrays.copyOf(model,predicates);

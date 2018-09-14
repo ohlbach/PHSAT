@@ -1,6 +1,6 @@
 package Datastructures.Clauses;
 
-import Datastructures.Model;
+import Datastructures.LocalModel;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -21,7 +21,7 @@ public class BasicClauseListTest {
         clauses.clauses.add(clause2);
         assertEquals("[3, -2, 1]\n[-3, 1, 2]\n",clauses.toString());
 
-        Model model = new Model(10);
+        LocalModel model = new LocalModel(10);
         model.push(-2); model.push(-1); model.push(3);
         ArrayList<int[]> falseClauses = clauses.falseClauses(model);
         assertEquals(1,falseClauses.size());
