@@ -48,10 +48,10 @@ public class Clause {
      * @param literal a literal
      * @return true if the literal is in the clause.
      */
-    public boolean contains(int literal) {
-        for(CLiteral cliteral : cliterals) {
-            if(cliteral.literal == literal) {return true;}}
-        return false;}
+    public int contains(int literal) {
+        for(int i = 0; i < cliterals.size(); ++i) {
+            if(cliterals.get(i).literal == literal) {return i;}}
+        return -1;}
 
     /** adds a cliteral to the end of the clause
      *
@@ -62,6 +62,18 @@ public class Clause {
         int literal = cliteral.literal;
         if(cliterals.contains(literal)) {return 1;}
         if(cliterals.contains(-literal)) {return -1;}
+        int position = cliterals.size();
+        cliterals.add(cliteral);
+        cliteral.setClause(this,position);
+        return 0;}
+
+    /** adds a cliteral to the end of the clause
+     *
+     * @param cliteral the literal to be added.
+     * @return +1 if the literal is already in the clause, -1 if -literal is in the clause, otherwise 0.
+     */
+    public int addCLiteralDirectly(CLiteral cliteral) {
+        int literal = cliteral.literal;
         int position = cliterals.size();
         cliterals.add(cliteral);
         cliteral.setClause(this,position);
@@ -78,6 +90,29 @@ public class Clause {
             nextliteral.setClause(this,pos);
             cliterals.set(pos,nextliteral);}
         literal.removeClause();}
+
+    /** removes a cliteral at the given position from the clause.
+     *
+     * @param position the position of the literal to be removed
+     */
+    public void removeLiteralAtPosition(int position) {
+        for(int pos = position; pos < cliterals.size()-1; ++pos) {
+            CLiteral nextliteral = cliterals.get(pos+1);
+            nextliteral.setClause(this,pos);
+            cliterals.set(pos,nextliteral);}
+        cliterals.get(position).removeClause();}
+
+
+    /** replaces a literal by its representative in an equivalence class
+     *
+     * @param cliteral       the literal to be replaced
+     * @param representative the new literal
+     * @return   true if the literal was replaced, false if it was removed.
+     */
+    public boolean replaceBy(CLiteral cliteral, int representative) {
+        if(contains(representative) >= 0) {removeLiteralAtPosition(cliteral.getPosition()); return false;}
+        cliteral.literal = representative;
+        return true;}
 
     public String id() {return Integer.toString(number);}
 

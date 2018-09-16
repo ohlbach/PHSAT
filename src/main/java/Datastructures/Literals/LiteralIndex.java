@@ -50,6 +50,16 @@ public class LiteralIndex {
         else {negOccurrences[predicate].remove(cliteral);}
     }
 
+    /** removes the literal from the index
+     *
+     * @param cliteral the literal to be removed.
+     */
+    public void removeLiteral(int literal, CLiteral cliteral) {
+        int predicate = Math.abs(literal);
+        if(literal > 0) {posOccurrences[predicate].remove(cliteral);}
+        else {negOccurrences[predicate].remove(cliteral);}
+    }
+
     /** returns the CLiterals with the given literal (integer)
      *
      * @param literal the literal (integer)

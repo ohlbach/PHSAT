@@ -79,6 +79,20 @@ public class ClauseList {
         }
     }
 
+    /** replaces a literal by its representative in an equivalence class
+     *
+     * @param cliteral       the literal to be replaced
+     * @param representative the new literal
+     * @return   true if the literal was replaced, false if it was removed.
+     */
+    public boolean replaceBy(CLiteral cliteral, int representative) {
+        int literal = cliteral.literal;
+        boolean replaced = cliteral.getClause().replaceBy(cliteral,representative);
+        if(replaced) {
+            literalIndex.removeLiteral(literal,cliteral);
+            literalIndex.addLiteral(cliteral);}
+        else {literalIndex.removeLiteral(cliteral);}
+        return replaced;}
 
     public int getOccurrences(int literal) {
         Collection list = literalIndex.getLiterals(literal);
