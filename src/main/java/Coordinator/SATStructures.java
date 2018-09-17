@@ -16,7 +16,6 @@ import java.util.*;
  */
 public class SATStructures {
     public int predicates;
-    private int number = 0;
     private ClauseList orClauses = null;
     private ClauseList disjointClauses = null;
     private ClauseList equivalences = null;
@@ -34,9 +33,9 @@ public class SATStructures {
 
 
     public Result addBasicClause(int[] basicClause) {
-        Result result = null;
+        Unsatisfiable result = null;
         units.clear();
-        switch(ClauseType.getType(basicClause[0])) {
+        switch(ClauseType.getType(basicClause[1])) {
             case OR:
                 result = addBasicORClause(basicClause);
                 break;
@@ -58,7 +57,7 @@ public class SATStructures {
         return unitConsequences(units);
     }
 
-    /** simplifies a basicClause and turns them into either units, parts of the implication graph,
+    /** simplifies a basicORClause and turns them into either units, parts of the implication graph,
      * or a Clause, added to ofClauses.
      *
      * @param basicClause a basic clause
@@ -86,8 +85,8 @@ public class SATStructures {
      * @return the new simplified clause, or null if the clause is just to be ignored.
      */
     Clause makeORClause(int[] basicClause) {
-        Clause clause = new Clause(++number,ClauseType.OR,basicClause.length);
-        for(int i = 1; i < basicClause.length;++i) {
+        Clause clause = new Clause(basicClause[0],ClauseType.OR,basicClause.length);
+        for(int i = 2; i < basicClause.length;++i) {
             int literal = replaceEquivalence(basicClause[i]);
             if(model.isTrue(literal)  || clause.cliterals.contains(-literal)) {return null;}
             if(model.isFalse(literal) || clause.cliterals.contains(literal)) {continue;}
@@ -142,11 +141,11 @@ public class SATStructures {
      */
     Clause makeDISJOINTClause(int[] basicClause) {
         int trueLiteral = 0;
-        Clause clause = new Clause(++number,ClauseType.DISJOINT,basicClause.length);
+        Clause clause = new Clause(basicClause[0],ClauseType.DISJOINT,basicClause.length);
         for(int i = 1; i < basicClause.length; ++i) {
             int literal = replaceEquivalence(basicClause[i]);
             if(model.isTrue(literal)) {
-                if(trueLiteral != 0) {return new Clause(++number,ClauseType.DISJOINT,0);}
+                if(trueLiteral != 0) {return new Clause(basicClause[0],ClauseType.DISJOINT,0);}
                 else {trueLiteral = literal;}
                 for(int j = 1; j < basicClause.length; ++j) { // one literal true: all others must be false
                     if(i != j) {units.add(replaceEquivalence(-basicClause[j]));}}
@@ -204,7 +203,7 @@ public class SATStructures {
      * @return either an Unsatisfiable object, or null.
      */
     Clause makeEQUIVClause(int[] basicClause) {
-        Clause clause = new Clause(++number,ClauseType.EQUIV,basicClause.length);
+        Clause clause = new Clause(basicClause[0],ClauseType.EQUIV,basicClause.length);
         for(int i = 1; i < basicClause.length;++i) {
             int literal = replaceEquivalence(basicClause[i]);
             if(model.isTrue(literal)) {
@@ -219,7 +218,7 @@ public class SATStructures {
 
             if(clause.contains(literal) >= 0) {continue;}
 
-            if(clause.contains(-literal) >= 0) {return new Clause(++number,ClauseType.EQUIV,0);}
+            if(clause.contains(-literal) >= 0) {return new Clause(basicClause[0],ClauseType.EQUIV,0);}
 
             CLiteral cLiteral = new CLiteral(literal);
             clause.addCLiteralDirectly(cLiteral);}
@@ -290,7 +289,8 @@ public class SATStructures {
                 case -1: return new Unsatisfiable(model,literal);}
             if(orClauses != null) {orConsequences(literal, units);}
             if(disjointClauses != null) {disjointConsequences(literal,units);}
-            if(equivalences != null) {equaivalenceConsequences(literal,units);}}
+            if(equivalences != null) {
+                equivalenceConsequences(literal,units);}}
      return null;}
 
     public void orConsequences(int literal, LinkedList<Integer> units) {
@@ -316,7 +316,7 @@ public class SATStructures {
         for(CLiteral cliteral : disjointClauses.literalIndex.getLiterals(-literal)) {
             Clause clause = cliteral.getClause();}}
 
-    public void  equaivalenceConsequences(int literal, LinkedList<Integer> units) {
+    public void equivalenceConsequences(int literal, LinkedList<Integer> units) {
         for(CLiteral cliteral : equivalences.literalIndex.getLiterals(literal)) {
             Clause clause = cliteral.getClause();
             for(CLiteral lit : clause.cliterals) {
