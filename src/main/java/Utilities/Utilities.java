@@ -1,5 +1,8 @@
 package Utilities;
 
+import Datastructures.Clauses.Clause;
+import Datastructures.Literals.CLiteral;
+
 import java.io.File;
 import java.io.InputStream;
 import java.io.PrintWriter;
@@ -263,5 +266,12 @@ public class Utilities {
             System.out.printf(": ");
             System.out.println(message);});}
 
+    public static Clause makeClause(String id, String literals) {
+        String[] lits = literals.split("\\s*(,| )\\s*");
+        Clause clause = new Clause(id,lits.length);
+        for(String lit : lits) {
+            clause.addCLiteral(new CLiteral(Integer.parseInt(lit)));}
+        return clause;
+    }
 
 }

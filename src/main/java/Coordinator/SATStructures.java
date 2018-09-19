@@ -1,5 +1,6 @@
 package Coordinator;
 
+import Algorithms.Algorithms;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Clauses.ClauseType;
@@ -10,6 +11,9 @@ import Datastructures.Theory.ImplicationGraph;
 import Datastructures.Theory.Model;
 
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by ohlbach on 14.09.2018.
@@ -23,24 +27,96 @@ public class SATStructures {
 
     private Model model;
     private ImplicationGraph implicationGraph;
-    private LinkedList<Integer> units = new LinkedList<>();
+    private PriorityQueue<Task> taskQueue = new PriorityQueue<Task>((task1,task2) -> Integer.compare(task1.priority, task2.priority));
+
+
+    abstract class Task {
+        public int priority;
+
+        Task(int priority) {this.priority = priority;}
+
+        abstract Unsatisfiable execute();}
+
+
+    class ClauseTask extends Task{
+        Clause clause;
+        Function<Clause,Unsatisfiable> function;
+
+        ClauseTask(Clause clause, int priority, Function<Clause,Unsatisfiable> function) {
+            super(priority);
+            this.clause = clause; this.function = function;}
+
+        Unsatisfiable execute() {return function.apply(clause);}
+    }
+
+    class ImplicationTask extends Task{
+        int from,to;
+        BiConsumer<Integer,Integer> consumer;
+
+        ImplicationTask(int from, int to, int priority, BiConsumer<Integer,Integer> consumer) {
+            super(priority);
+            this.from = from; this.to = to; this.consumer = consumer;}
+
+        Unsatisfiable execute() {consumer.accept(from,to); return null;}
+    }
+
+    class TrueLiteralTask extends Task{
+        int literal;
+
+        TrueLiteralTask(int literal, int priority) {
+            super(priority);
+            this.literal = literal;}
+
+        Unsatisfiable execute() {return makeTrue(literal);}
+    }
+
 
 
     public SATStructures(int predicates) {
         this.predicates = predicates;
         Model model = new Model(predicates);
-        implicationGraph = new ImplicationGraph(predicates);}
+        implicationGraph = new ImplicationGraph(predicates);
+        orClauses = new ClauseList(predicates);
+        orClauses.literalRemovalObservers.add(clause -> {taskQueue.add(makeTask(clause));});
+        implicationGraph.trueLiteralObservers.add(literal->{taskQueue.add(new TrueLiteralTask(literal,1));});
+    }
+
+    Task makeTask(Clause clause) {
+        switch(clause.size()) {
+            case 0: return new ClauseTask(clause,0,(claus -> new Unsatisfiable("Clause " + claus.id + " became empty")));
+            case 1: return new TrueLiteralTask(clause.cliterals.get(0).literal, 1);
+            case 2: return new ClauseTask(clause,2,
+                    (claus -> {implicationGraph.addClause(clause.cliterals.get(0).literal,clause.cliterals.get(1).literal); return null;}));
+            default: return new ClauseTask(clause,3,
+                    (claus -> {Algorithms.subsumesAndResolves(claus,orClauses,implicationGraph); return null;}));
+        }
+    }
+
+    private Unsatisfiable makeTrue(int literal) {
+        int status = model.add(literal);
+        if(status == -1) {return new Unsatisfiable(model,literal);}
+        if(status == 1) {return null;}
+        orClauses.makeTrue(literal);
+        implicationGraph.makeTrue(literal);
+        return null;}
+
+    private Unsatisfiable processTasks() {
+        while(!taskQueue.isEmpty()) {
+            Unsatisfiable result = taskQueue.poll().execute();
+            if(result != null) {return result;}}
+        return null;}
 
 
     public Result addBasicClause(int[] basicClause) {
         Unsatisfiable result = null;
-        units.clear();
         switch(ClauseType.getType(basicClause[1])) {
             case OR:
                 result = addBasicORClause(basicClause);
                 break;
             case AND:
-                for(int i = 1; i < basicClause.length; ++i) {units.add(basicClause[i]);}
+                for(int i = 1; i < basicClause.length; ++i) {
+                    result = makeTrue(basicClause[i]);
+                    if(result != null) {return result;}}
                 break;
             case XOR:
                 result = addBasicORClause(basicClause);
@@ -53,8 +129,8 @@ public class SATStructures {
             case EQUIV:
                  result = addBasicEQUIVClause(basicClause);
                 break;}
-        if(result != null) {return result;}
-        return unitConsequences(units);
+        if(result != null) {return processTasks();}
+        return null;
     }
 
     /** simplifies a basicORClause and turns them into either units, parts of the implication graph,
@@ -65,18 +141,19 @@ public class SATStructures {
      */
     public Unsatisfiable addBasicORClause(int[] basicClause) {
         Clause clause = makeORClause(basicClause);
-        if(clause != null) {
+        for(int i = 0; i < 2; ++i) {
+            if(clause == null) {return null;}
             switch(clause.size()) {
                 case 0: return new Unsatisfiable(model,basicClause);
-                case 1: units.add(clause.cliterals.get(0).literal); return null;
-                case 2: HashSet<Integer> literals = implicationGraph.addClause(clause.cliterals.get(0).literal,clause.cliterals.get(1).literal);
-                        if(literals != null) {units.addAll(literals);}  // Konsequensen der Implikationen
+                case 1: return makeTrue(clause.cliterals.get(0).literal);
+                case 2: implicationGraph.addClause(clause.cliterals.get(0).literal,clause.cliterals.get(1).literal);
                         return null;}
-            orClauses.addClause(clause);}
+                if(i == 0) {clause = Algorithms.subsumedAndResolved(clause,orClauses,implicationGraph);}}
+        orClauses.addClause(clause);
         return null;}
 
     /** turns a basicORClause into a clause. <br/>
-     * False literals and double literals are ignored. <br/>
+     * False literals and double literals are ignored. <br/>~
      * True literals and complementary literals indicate tautologies. <br/>
      * Literals are replaced by their representatives in an equivalence class.
      * Implied literals are removed, i.e.  p,q,r and p -&gt; r causes remove(p)
@@ -85,7 +162,7 @@ public class SATStructures {
      * @return the new simplified clause, or null if the clause is just to be ignored.
      */
     Clause makeORClause(int[] basicClause) {
-        Clause clause = new Clause(basicClause[0],ClauseType.OR,basicClause.length);
+        Clause clause = new Clause(""+basicClause[0],basicClause.length);
         for(int i = 2; i < basicClause.length;++i) {
             int literal = replaceEquivalence(basicClause[i]);
             if(model.isTrue(literal)  || clause.cliterals.contains(-literal)) {return null;}
@@ -127,7 +204,7 @@ public class SATStructures {
                     for(int i = 0; i < size; ++i) {
                         int literal = clause.cliterals.get(i).literal;
                         for(int j = i+1; j < size; ++j) {
-                            units.addAll(implicationGraph.addImplication(literal,-clause.cliterals.get(j).literal));}}}}
+                            implicationGraph.addImplication(literal,-clause.cliterals.get(j).literal);}}}}
         return null;}
 
     /** turns a basicDISJOINTClause into a clause. <br/>
@@ -141,21 +218,21 @@ public class SATStructures {
      */
     Clause makeDISJOINTClause(int[] basicClause) {
         int trueLiteral = 0;
-        Clause clause = new Clause(basicClause[0],ClauseType.DISJOINT,basicClause.length);
+        Clause clause = new Clause("D"+basicClause[0],basicClause.length);
         for(int i = 1; i < basicClause.length; ++i) {
             int literal = replaceEquivalence(basicClause[i]);
             if(model.isTrue(literal)) {
-                if(trueLiteral != 0) {return new Clause(basicClause[0],ClauseType.DISJOINT,0);}
+                if(trueLiteral != 0) {return new Clause(""+basicClause[0],0);}
                 else {trueLiteral = literal;}
                 for(int j = 1; j < basicClause.length; ++j) { // one literal true: all others must be false
-                    if(i != j) {units.add(replaceEquivalence(-basicClause[j]));}}
+                    if(i != j) {makeTrue(replaceEquivalence(-basicClause[j]));}}
                 return null;}
 
             if(model.isFalse(literal) || clause.contains(-literal) >= 0) {continue;}
 
             int position = clause.contains(literal);
             if(position >= 0) {
-                units.add(-literal);
+                makeTrue(-literal);
                 clause.removeLiteralAtPosition(position);}
 
             CLiteral cLiteral = new CLiteral(literal);
@@ -168,7 +245,7 @@ public class SATStructures {
                 for(CLiteral cLiteral2 : clause.cliterals) {
                     if(cLiteral1 != cLiteral2 && implied.contains(cLiteral2.literal)) {
                         clause.removeLiteral(cLiteral1);
-                        units.add(-cLiteral1.literal);
+                        makeTrue(-cLiteral1.literal);
                         --i;
                         break;}}}}
 
@@ -203,22 +280,22 @@ public class SATStructures {
      * @return either an Unsatisfiable object, or null.
      */
     Clause makeEQUIVClause(int[] basicClause) {
-        Clause clause = new Clause(basicClause[0],ClauseType.EQUIV,basicClause.length);
+        Clause clause = new Clause(""+basicClause[0],basicClause.length);
         for(int i = 1; i < basicClause.length;++i) {
             int literal = replaceEquivalence(basicClause[i]);
             if(model.isTrue(literal)) {
                 for(int j = 1; j < basicClause.length; ++j) {
-                    if(i != j) {units.add(replaceEquivalence(basicClause[j]));}}
+                    if(i != j) {makeTrue(replaceEquivalence(basicClause[j]));}}
                 return null;}
 
             if(model.isFalse(literal)) {
                 for(int j = 1; j < basicClause.length; ++j) {
-                    if(i != j) {units.add(-replaceEquivalence(basicClause[j]));}}
+                    if(i != j) {makeTrue(-replaceEquivalence(basicClause[j]));}}
                 return null;}
 
             if(clause.contains(literal) >= 0) {continue;}
 
-            if(clause.contains(-literal) >= 0) {return new Clause(basicClause[0],ClauseType.EQUIV,0);}
+            if(clause.contains(-literal) >= 0) {return new Clause("E"+basicClause[0],0);}
 
             CLiteral cLiteral = new CLiteral(literal);
             clause.addCLiteralDirectly(cLiteral);}
@@ -229,7 +306,7 @@ public class SATStructures {
             if(!implied.isEmpty()) {
                 for(CLiteral cLiteral2 : clause.cliterals) {
                     if(cLiteral1 != cLiteral2 && implied.contains(-cLiteral2.literal)) {
-                        for(CLiteral cl : clause.cliterals) {units.add(-cl.literal);}
+                        for(CLiteral cl : clause.cliterals) {makeTrue(-cl.literal);}
                         return null;}}}}
         return clause;}
 
@@ -260,9 +337,9 @@ public class SATStructures {
     void replaceEquivalenceOR(int representative, int literal) {
         for(CLiteral cLiteral : orClauses.literalIndex.getLiterals(literal)) {
             if(!orClauses.replaceBy(cLiteral,representative)) {
-                Clause clause = cLiteral.getClause();
+                Clause clause = cLiteral.clause;
                 switch(clause.size()) {
-                    case 1: units.add(representative); return;
+                    case 1: makeTrue(representative); return;
                     case 2: implicationGraph.addClause(clause.cliterals.get(0).literal, clause.cliterals.get(1).literal);
                 }}}}
 
@@ -270,60 +347,34 @@ public class SATStructures {
     Result replaceEquivalenceDISJOINT(int representative, int literal) {
         for(CLiteral cLiteral : disjointClauses.literalIndex.getLiterals(literal)) {
             if(!disjointClauses.replaceBy(cLiteral,representative)) {
-                return new Unsatisfiable("Disjoint Clause " + cLiteral.getClause().toString() + "" +
+                return new Unsatisfiable("Disjoint Clause " + cLiteral.clause.toString() + "" +
                         " contains the equivalent literals " + literal + " and " + representative);}}
         return null;}
 
     Result replaceEquivalenceImplication(int representative, int literal) {
-        units.addAll(implicationGraph.replaceEquivalences(representative,literal));
-        units.addAll(implicationGraph.replaceEquivalences(-representative,-literal));
+        implicationGraph.replaceEquivalences(representative,literal);
+        implicationGraph.replaceEquivalences(-representative,-literal);
         return null;}
 
 
-    public Result unitConsequences(LinkedList<Integer> units) {
-        Result result;
-        while(!units.isEmpty()) {
-            int literal = units.pollFirst();
-            switch(model.add(literal)) {
-                case 1: continue;
-                case -1: return new Unsatisfiable(model,literal);}
-            if(orClauses != null) {orConsequences(literal, units);}
-            if(disjointClauses != null) {disjointConsequences(literal,units);}
-            if(equivalences != null) {
-                equivalenceConsequences(literal,units);}}
-     return null;}
-
-    public void orConsequences(int literal, LinkedList<Integer> units) {
-        orClauses.removeClausesWithLiteral(literal);
-        for(CLiteral cliteral : orClauses.literalIndex.getLiterals(-literal)) {
-            Clause clause = cliteral.getClause();
-            switch(orClauses.removeLiteral(cliteral)) {
-                case 1:
-                    units.addLast(clause.cliterals.get(0).literal);
-                    orClauses.removeClause(clause);
-                break;
-                case 2:
-                    orClauses.removeClause(clause);
-                    HashSet<Integer> lits = implicationGraph.addClause(clause.cliterals.get(0).literal,clause.cliterals.get(1).literal);
-                    if(lits != null) {units.addAll(lits);}}}}
 
 
     public void disjointConsequences(int literal, LinkedList<Integer> units) {
         for(CLiteral cliteral : disjointClauses.literalIndex.getLiterals(literal)) {
-            Clause clause = cliteral.getClause();
+            Clause clause = cliteral.clause;
             for(CLiteral lit : clause.cliterals) {
                 if(lit.literal != literal) {units.addLast(-lit.literal);}}}
         for(CLiteral cliteral : disjointClauses.literalIndex.getLiterals(-literal)) {
-            Clause clause = cliteral.getClause();}}
+            Clause clause = cliteral.clause;}}
 
     public void equivalenceConsequences(int literal, LinkedList<Integer> units) {
         for(CLiteral cliteral : equivalences.literalIndex.getLiterals(literal)) {
-            Clause clause = cliteral.getClause();
+            Clause clause = cliteral.clause;
             for(CLiteral lit : clause.cliterals) {
                 if(lit.literal != literal) {units.addLast(lit.literal);}}
             equivalences.removeClause(clause);}
         for(CLiteral cliteral : equivalences.literalIndex.getLiterals(-literal)) {
-            Clause clause = cliteral.getClause();
+            Clause clause = cliteral.clause;
             for(CLiteral lit : clause.cliterals) {
                 if(lit.literal != literal) {units.addLast(-lit.literal);}}
             equivalences.removeClause(clause);}}

@@ -1,6 +1,7 @@
 package Algorithms;
 
 import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.LocalModel;
@@ -36,7 +37,7 @@ public class BasicClausesAnalyser {
         thread = Thread.currentThread();
 
     }
-
+/*
     public boolean analyse(BasicClauseList basicClauses, boolean withImplications) {
         this.withImplications = withImplications;
         if(withImplications) {
@@ -55,7 +56,7 @@ public class BasicClausesAnalyser {
      *
      * @param clauses an ArrayList if clauses (as int-Array).
      * @return the cleared Clauses
-     */
+
     public  boolean  clearClauses(ArrayList<int[]> clauses) {
         ArrayList<int[]> disjointnessClauses = new ArrayList<>();
         for(int c = 0; c < clauses.size(); ++c) {
@@ -151,5 +152,5 @@ public class BasicClausesAnalyser {
         clauseList.removeClause(clause);
         return false;}
 
-
+*/
 }

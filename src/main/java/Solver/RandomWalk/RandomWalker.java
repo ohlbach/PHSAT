@@ -2,6 +2,7 @@ package Solver.RandomWalk;
 
 import Algorithms.BasicClausesAnalyser;
 import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
@@ -113,15 +114,15 @@ public class RandomWalker {
         logger.accept(id,"starting");
         thread = Thread.currentThread();
         prepareData();
-        BasicClausesAnalyser bca = new BasicClausesAnalyser((literal-> new CLiteral(literal)),
-                ((Integer number,ArrayList<CLiteral> literals) -> new Clause(number,literals)),
-                clauseList,trueLiterals,globalModel);
-        if(bca.analyse(basicClauses,withImplications)) {return;}
-        implicationGraph = clauseList.implicationGraph;
+        BasicClausesAnalyser bca = null;//new BasicClausesAnalyser((literal-> new CLiteral(literal)),
+                //((Integer number,ArrayList<CLiteral> literals) -> new Clause(number,null,literals)),
+                //clauseList,trueLiterals,globalModel);
+        //if(bca.analyse(basicClauses,withImplications)) {return;}
+        implicationGraph = null; // clauseList.implicationGraph;
         localModel = globalModel.copy();
         initializeModel();
         initializeFlipConsequences();
-        falseClauses = clauseList.falseClauses(localModel);
+        falseClauses = null; //clauseList.falseClauses(localModel);
         while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
             integrateGlobalUnits();
             flip(selectFlipPredicate());}}
@@ -133,7 +134,7 @@ public class RandomWalker {
         withImplications = (Boolean)solverControl.get("implications");
         basicClauses     = (BasicClauseList)problemControl.get("clauses");
         predicates       = basicClauses.predicates;
-        clauseList       = new ClauseList(predicates,basicClauses.symboltable);
+        clauseList       = null; //new ClauseList(predicates,basicClauses.symboltable);
         info = "RandomWalker_" + walker + "(seed:"+seed+",flips:"+maxFlips+ (withImplications ? ",implications" : "") + ")";
         random           = new Random(seed);
         literalQueue     = new PriorityQueue<Integer>(predicates,(
@@ -179,13 +180,13 @@ public class RandomWalker {
         int becomesTrue = 0;
         for(CLiteral cliteral : index.getLiterals(predicate* localModel.status(predicate))) {
             boolean remainstrue = false;
-            for(CLiteral othercliteral : cliteral.getClause().cliterals) {
+            for(CLiteral othercliteral : cliteral.clause.cliterals) {
                 if(cliteral != othercliteral && localModel.isTrue(othercliteral.literal)) {remainstrue  = true; break;}}
             if(!remainstrue) {--becomesTrue;}      // clause becomes false after flip.
             }
         for(CLiteral cliteral : index.getLiterals(-predicate* localModel.status(predicate))) {
             boolean remainstrue = false;
-            for(CLiteral othercliteral : cliteral.getClause().cliterals) {
+            for(CLiteral othercliteral : cliteral.clause.cliterals) {
                 if(cliteral != othercliteral && localModel.isTrue(othercliteral.literal)) {remainstrue  = true; break;}}
             if(!remainstrue) {++becomesTrue;}      // clause becomes true after flip.
         }
@@ -238,7 +239,7 @@ public class RandomWalker {
     private int findTrueLiteral(CLiteral cliteral) {
         boolean allFalse = true;
         int trueLiteral = 0;
-        for(CLiteral otherliteral : cliteral.getClause().cliterals) {
+        for(CLiteral otherliteral : cliteral.clause.cliterals) {
             if(otherliteral != cliteral && localModel.isTrue(otherliteral.literal)) {
                 allFalse = false;
                 if(trueLiteral != 0) {trueLiteral = 0;}
@@ -256,7 +257,7 @@ public class RandomWalker {
         if(++randomCounter == randomFrequency) {
             randomCounter = 0;
             Clause clause = falseClauses.get(random.nextInt(falseClauses.size()));
-            return Math.abs(clause.cliterals[random.nextInt(clause.cliterals.length)].literal);}
+            return Math.abs(clause.cliterals.get(random.nextInt(clause.cliterals.size())).literal);}
 
         predicate = literalQueue.poll();
         int predicate1 = 0;

@@ -47,12 +47,6 @@ public class LiteralIndexTest {
         assertEquals("[]",ind.getLiterals(5).toString());
         ind.removeLiteral(l4);
         assertEquals("[-7]",ind.getLiterals(-7).toString());
-
-    }
-
-    @Test
-    public void getLiterals() throws Exception {
-
     }
 
 }

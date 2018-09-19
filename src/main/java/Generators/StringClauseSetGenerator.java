@@ -1,6 +1,7 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 
 import java.util.ArrayList;

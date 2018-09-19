@@ -3,10 +3,13 @@ package Datastructures.Clauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
 import Datastructures.Symboltable;
+import Datastructures.Theory.ImplicationGraph;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 /**
  * Created by ohlbach on 26.08.2018.
@@ -14,31 +17,25 @@ import java.util.HashMap;
  * This class is for collecting sets of clauses.
  */
 public class ClauseList {
-    int predicates;
-    public final ArrayList<Clause> clauses;    // the list of clauses
-    private HashMap<Integer,Clause> number2Clause; // maps clause numbers to clauses
-    public LiteralIndex literalIndex;              // maps literals to CLiterals
-    public int timestamp = 0;                  // for algorithms
+    public int predicates;
+    public final ArrayList<Clause> clauses;              // the list of clauses
+    private final HashMap<String,Clause> id2Clause;      // maps clause ids to clauses
+    public final LiteralIndex literalIndex;              // maps literals to CLiterals
+    public int timestamp = 0;                            // for algorithms
+    public final ArrayList<Consumer<Clause>> literalRemovalObservers = new ArrayList<Consumer<Clause>>();
+            // they are called when literals are removed.
 
-
-    /** creates a clause list
-     *
-     */
-    public ClauseList(int predicates) {
-        this.predicates = predicates;
-        clauses = new ArrayList<Clause>();
-        this.number2Clause = new HashMap<>();
-        literalIndex = new LiteralIndex(predicates);
-    }
 
     /** creates a clause list. The number of clauses should be estimated
      *
      * @param size       the estimated number of clauses
+     * @pramm predicates the number of predicates.
      */
     public ClauseList(int size,int predicates) {
-        clauses = new ArrayList<Clause>(size);
-        this.number2Clause = new HashMap<>();
-        literalIndex = new LiteralIndex(predicates);}
+        this.predicates = predicates;
+        clauses         = new ArrayList<Clause>(size);
+        id2Clause       = new HashMap<>();
+        literalIndex    = new LiteralIndex(predicates);}
 
     /** adds a clause to the list and updates the literal index
      *
@@ -46,17 +43,23 @@ public class ClauseList {
      */
     public void addClause(Clause clause) {
         clauses.add(clause);
-        number2Clause.put(clause.number,clause);
+        id2Clause.put(clause.id,clause);
         for(CLiteral literal : clause.cliterals) {literalIndex.addLiteral(literal);}
     }
 
     /** returns a clause for the given number
      *
-     * @param number the clause number
+     * @param id the clause's id
      */
-    public Clause getClause(int number) {
-        return number2Clause.get(number);
-    }
+    public Clause getClause(String id) {return id2Clause.get(id);}
+
+    /** returns the collection of literals with the given literal
+     *
+     * @param literal a literal
+     * @return a (possibly empty) collection of literals with the given literal.
+     */
+    public Collection<CLiteral> getLiterals(int literal) {
+        return literalIndex.getLiterals(literal);}
 
     /** removes a clause
      *
@@ -64,20 +67,30 @@ public class ClauseList {
      */
     public void removeClause(Clause clause) {
         clauses.remove(clause);
-        number2Clause.remove(clause.number);
+        id2Clause.remove(clause.id);
         for(CLiteral cliteral : clause.cliterals) {literalIndex.removeLiteral(cliteral);}
     }
 
-    public int removeLiteral(CLiteral cliteral) {
-        cliteral.getClause().removeLiteral(cliteral);
+    /** removes a literal from the clause.<br/>
+     * All literalRemovalObservers are called.
+     *
+     * @param cliteral the literal to be removed.
+     */
+    public void removeLiteral(CLiteral cliteral) {
+        Clause clause = cliteral.clause;
+        clause.removeLiteral(cliteral);
         literalIndex.removeLiteral(cliteral);
-        return clauses.size();}
+        for(Consumer observer : literalRemovalObservers) {observer.accept(clause);}}
 
-    public void removeClausesWithLiteral(int literal) {
-        for(CLiteral cLiteral : literalIndex.getLiterals(literal)) {
-            removeClause(cLiteral.getClause());  // ????
-        }
-    }
+    /** All clauses with the literal are removed. <br/>
+     *  All negated literals are removed from the clauses. <br/>
+     *  All literalRemovalObservers are called.
+     *
+     * @param literal a literal which is supposed to be true.
+     */
+    public void makeTrue(int literal) {
+        for(CLiteral cliteral : literalIndex.getLiterals(literal)) {removeClause(cliteral.clause);}
+        for(CLiteral cliteral : literalIndex.getLiterals(-literal)) {removeLiteral(cliteral);}}
 
     /** replaces a literal by its representative in an equivalence class
      *
@@ -87,19 +100,66 @@ public class ClauseList {
      */
     public boolean replaceBy(CLiteral cliteral, int representative) {
         int literal = cliteral.literal;
-        boolean replaced = cliteral.getClause().replaceBy(cliteral,representative);
+        boolean replaced = cliteral.clause.replaceBy(cliteral,representative);
         if(replaced) {
             literalIndex.removeLiteral(literal,cliteral);
             literalIndex.addLiteral(cliteral);}
         else {literalIndex.removeLiteral(cliteral);}
         return replaced;}
 
+    /** gets the number of cLiterals containing the given literal
+     *
+     * @param literal a literal
+     * @return the number of cLiterals containing the given literal
+     */
     public int getOccurrences(int literal) {
         Collection list = literalIndex.getLiterals(literal);
         return(list == null) ? 0 : list.size();}
 
+    /** checks whether there are no clauses with negated literals any more
+     *
+     * @param literal a literal
+     * @return true if there are no negated literals anymore.
+     */
     public boolean isPure(int literal) {
-        return getOccurrences(-literal) == 0;}
+        Collection list = literalIndex.getLiterals(-literal);
+        return(list == null) ? true : list.isEmpty();}
+
+    /** generates a stream of CLiterals which are implied by the given literal
+     *
+     * @param literal           a literal
+     * @param implicationGraph  the implication graph
+     * @return  a stream of CLiterals l such that literal implies l (including the literal itself.)
+     */
+    public Stream<CLiteral> literalImplies(int literal, ImplicationGraph implicationGraph) {
+        return  Stream.concat(
+                literalIndex.getLiterals(literal).stream(),
+                implicationGraph.getImplicants(literal).stream().flatMap(lit -> literalIndex.getLiterals(lit).stream()));}
+
+    /** generates a stream of CLiterals which contradict the given literal<br/>
+     * Example:  literal = p and p -> q: all CLiterals with -p and -q are returned.
+     *
+     * @param literal           a literal
+     * @param implicationGraph  the implication graph
+     * @return  a stream of CLiterals l such that literal implies l (including the literal itself.)
+     */
+    public Stream<CLiteral> literalContradict(int literal, ImplicationGraph implicationGraph) {
+        return  Stream.concat(
+                literalIndex.getLiterals(-literal).stream(),
+                implicationGraph.getImplicants(literal).stream().flatMap(lit -> literalIndex.getLiterals(-lit).stream()));}
+
+
+    /** generates a stream of CLiterals which  imply the given literal
+     *
+     * @param literal           a literal
+     * @param implicationGraph  the implication graph
+     * @return  a stream of CLiterals l such that l implies literal (including the literal itself.)
+     */
+    public Stream<CLiteral> literalIsImplied(int literal, ImplicationGraph implicationGraph) {
+        return  Stream.concat(
+                literalIndex.getLiterals(literal).stream(),
+                implicationGraph.getImplicants(-literal).stream().flatMap(lit -> literalIndex.getLiterals(-lit).stream()));}
+
 
     /** the actual number of clauses
      *
@@ -107,6 +167,10 @@ public class ClauseList {
      */
     public int size() {return clauses.size();}
 
+    /** checks if the clause set is empty
+     *
+     * @return true if the clause set is empty.
+     */
     public boolean isEmpty() {return clauses.size() == 0;}
 
     /** generates a string with clauses
@@ -123,9 +187,10 @@ public class ClauseList {
      */
     public String toString(Symboltable symboltable){
         StringBuffer st = new StringBuffer();
-        int numbersize = (""+clauses.size()).length();
+        int idlength = 0;
+        for(Clause clause : clauses) {idlength = Math.max(idlength,clause.id.length());}
         for(Clause clause : clauses) {
-            st.append(clause.toString(numbersize,symboltable)).append("\n");}
+            st.append(clause.toString(idlength,symboltable)).append("\n");}
         return st.toString();
     }
 

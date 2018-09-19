@@ -10,143 +10,110 @@ import static org.junit.Assert.*;
  * Created by ohlbach on 26.08.2018.
  */
 public class ClauseTest {
+    
     @Test
-    public void addLiteral() throws Exception {
-        System.out.println("addLiteral, size");
-        Clause cl = new Clause(1,3);
+    public void addCLiteral() throws Exception {
+        System.out.println("addCLiteral, size");
+        Clause cl = new Clause("1",3);
         assertEquals(0,cl.size());
         CLiteral lit = new CLiteral(5);
-        assertEquals(0,cl.addLiteral(lit));
+        assertEquals(0,cl.addCLiteral(lit));
         assertEquals(1,cl.size());
         CLiteral lit1 = new CLiteral(5);
-        assertEquals(1,cl.addLiteral(lit1));
+        assertEquals(1,cl.addCLiteral(lit1));
         assertEquals(1,cl.size());
         CLiteral lit2 = new CLiteral(-5);
-        assertEquals(-1,cl.addLiteral(lit2));
+        assertEquals(-1,cl.addCLiteral(lit2));
         assertEquals(1,cl.size());
         CLiteral lit3 = new CLiteral(-6);
-        assertEquals(0,cl.addLiteral(lit3));
+        assertEquals(0,cl.addCLiteral(lit3));
         assertEquals(2,cl.size());
-        assertEquals(cl,lit3.getClause());
-        assertEquals(1,lit3.getPosition());
+        assertEquals(cl,lit3.clause);
+        assertEquals(1,lit3.position);
     }
 
     @Test
+    public void addCLiteralDirectly() throws Exception {
+        System.out.println("addCLiteralDirectly");
+        Clause cl = new Clause("1", 3);
+        assertEquals(0, cl.size());
+        CLiteral lit = new CLiteral(5);
+        cl.addCLiteralDirectly(lit);
+        assertEquals(1, cl.size());
+        CLiteral lit1 = new CLiteral(5);
+        cl.addCLiteralDirectly(lit1);
+        assertEquals(2, cl.size());
+        CLiteral lit2 = new CLiteral(-5);
+        cl.addCLiteralDirectly(lit2);
+        assertEquals(3, cl.size());
+        assertEquals("1: (5, 5, -5)",cl.toString());
+    }
+
+        @Test
     public void removeLiteral() throws Exception {
         System.out.println("removeLiteral");
-        Clause cl = new Clause(1,3);
+        Clause cl = new Clause("1",3);
         CLiteral lit1 = new CLiteral(5);
-        assertEquals(0,cl.addLiteral(lit1));
+        assertEquals(0,cl.addCLiteral(lit1));
         CLiteral lit2 = new CLiteral(-6);
-        assertEquals(0,cl.addLiteral(lit2));
+        assertEquals(0,cl.addCLiteral(lit2));
+        assertEquals(1,lit2.position);
         cl.removeLiteral(lit1);
         assertEquals(1,cl.size());
-        assertNull(lit1.getClause());
+        assertEquals(0,lit2.position);
         cl.removeLiteral(lit2);
         assertEquals(0,cl.size());
-        assertNull(lit2.getClause());
     }
 
     @Test
-    public void size() throws Exception {
-        System.out.println("size, isEmpty with model");
-        Clause cl = new Clause(1,3);
-        LocalModel model = new LocalModel(10);
+    public void removeLiteralAtPosition() throws Exception {
+        System.out.println("removeLiteralAtPosition");
+        Clause cl = new Clause("1",3);
         CLiteral lit1 = new CLiteral(5);
-        cl.addLiteral(lit1);
-        CLiteral lit2 = new CLiteral(-3);
-        cl.addLiteral(lit2);
-        assertEquals(2,cl.size(model));
-        model.push(-5);
-        assertEquals(1,cl.size(model));
-        assertFalse(cl.isEmpty(model));
-        model.push(3);
-        assertEquals(0,cl.size(model));
-        assertTrue(cl.isEmpty(model));
+        assertEquals(0,cl.addCLiteral(lit1));
+        CLiteral lit2 = new CLiteral(-6);
+        assertEquals(0,cl.addCLiteral(lit2));
+        assertEquals(1,lit2.position);
+        cl.removeLiteralAtPosition(0);
+        assertEquals(1,cl.size());
+        assertEquals(0,lit2.position);
+        cl.removeLiteralAtPosition(0);
+        assertEquals(0,cl.size());
     }
 
     @Test
-    public void isTrue() throws Exception {
-        System.out.println("isTrue in model");
-        Clause cl = new Clause(1,3);
-        LocalModel model = new LocalModel(10);
+    public void replaceBy() throws Exception {
+        System.out.println("replaceBy");
+        Clause cl = new Clause("1",3);
         CLiteral lit1 = new CLiteral(5);
-        cl.addLiteral(lit1);
-        CLiteral lit2 = new CLiteral(-3);
-        cl.addLiteral(lit2);
-        assertFalse(cl.isTrue(model));
-        model.push(-3);
-        assertTrue(cl.isTrue(model));
+        cl.addCLiteral(lit1);
+        CLiteral lit2 = new CLiteral(-6);
+        cl.addCLiteral(lit2);
+        assertTrue(cl.replaceBy(lit2,7));
+        assertEquals(1,lit2.position);
+        assertFalse(cl.replaceBy(lit1,7));
+        assertEquals(0,lit2.position);
     }
+
 
     @Test
-    public void apply() throws Exception {
-        System.out.println("apply");
-        Clause cl = new Clause(1,3);
+    public void contains() throws Exception {
+        System.out.println("getLiteral, containts");
+        Clause cl = new Clause("1", 3);
         CLiteral lit1 = new CLiteral(5);
-        cl.addLiteral(lit1);
-        CLiteral lit2 = new CLiteral(-3);
-        cl.addLiteral(lit2);
-        StringBuffer st = new StringBuffer();
-        cl.apply(literal->{st.append(Integer.toString(literal.literal));});
-        assertEquals("5-3",st.toString());
+        cl.addCLiteral(lit1);
+        CLiteral lit2 = new CLiteral(-6);
+        cl.addCLiteral(lit2);
+        CLiteral lit3 = new CLiteral(7);
+        cl.addCLiteral(lit3);
+        assertEquals(0, cl.contains(5));
+        assertEquals(1, cl.contains(-6));
+        assertEquals(2, cl.contains(7));
+        assertEquals(-1, cl.contains(6));
+
+        assertEquals(5,cl.getLiteral(0));
+        assertEquals(-6,cl.getLiteral(1));
+        assertEquals(7,cl.getLiteral(2));
     }
 
-    @Test
-    public void apply1() throws Exception {
-        System.out.println("apply with model");
-        Clause cl = new Clause(1,3);
-        LocalModel model = new LocalModel(10);
-        CLiteral lit1 = new CLiteral(5);
-        cl.addLiteral(lit1);
-        CLiteral lit2 = new CLiteral(-3);
-        cl.addLiteral(lit2);
-        model.push(-5);
-        StringBuffer st = new StringBuffer();
-        cl.apply(model,literal->{st.append(Integer.toString(literal.literal));});
-        assertEquals("-3",st.toString());
     }
-
-    @Test
-    public void toStream() throws Exception {
-        System.out.println("toStream");
-        Clause cl = new Clause(1,2);
-        CLiteral lit1 = new CLiteral(5);
-        cl.addLiteral(lit1);
-        CLiteral lit2 = new CLiteral(-3);
-        cl.addLiteral(lit2);
-        StringBuffer st = new StringBuffer();
-        cl.toStream().peek(literal->{st.append(Integer.toString(literal.literal));}).count();
-        assertEquals("5-3",st.toString());
-    }
-
-    @Test
-    public void toStream1() throws Exception {
-        System.out.println("toStream with model");
-        Clause cl = new Clause(1,3);
-        LocalModel model = new LocalModel(10);
-        CLiteral lit1 = new CLiteral(5);
-        cl.addLiteral(lit1);
-        CLiteral lit2 = new CLiteral(-3);
-        cl.addLiteral(lit2);
-        model.push(-5);
-        StringBuffer st = new StringBuffer();
-        cl.toStream(model).peek(literal->{st.append(Integer.toString(literal.literal));}).count();
-        assertEquals("-3",st.toString());
-
-    }
-
-    @Test
-    public void toStringTest() throws Exception {
-        System.out.println("toString with model");
-        Clause cl = new Clause(1,3);
-        LocalModel model = new LocalModel(10);
-        CLiteral lit1 = new CLiteral(5);
-        cl.addLiteral(lit1);
-        CLiteral lit2 = new CLiteral(-3);
-        cl.addLiteral(lit2);
-        model.push(-5);
-        assertEquals("  1: -3,",cl.toString(model,3));
-    }
-
-}

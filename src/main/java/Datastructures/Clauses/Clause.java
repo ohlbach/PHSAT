@@ -5,17 +5,13 @@ import Datastructures.Symboltable;
 
 import java.util.ArrayList;
 
-/** An abstract clause is just a list of literals (CLiterals).
- * It may be subclassed to represent clauses as disjunctions of literals, or disjointness clauses.
+/** A clause is just a list of CLiterals.
  *
  * Created by ohlbach on 13.09.2018.
  */
 public class Clause {
-    /** for enumerating the clauses */
-    public int number;
-
-    public ClauseType type;
-
+    /** for identifying the clause */
+    public String id;
     /** the literals */
     public ArrayList<CLiteral> cliterals;
     /** a timestamp to be used by corresponding algorithms */
@@ -23,12 +19,11 @@ public class Clause {
 
     /** constructs a clause
      *
-     * @param number   the clause number
+     * @param id   the clause id
      * @param size  the estimated number of literals
      */
-    public Clause(int number, ClauseType type, int size) {
-        this.number = number;
-        this.type = type;
+    public Clause(String id, int size) {
+        this.id = id;
         cliterals = new ArrayList<CLiteral>(size);}
 
     /** return the current number of literals
@@ -43,6 +38,15 @@ public class Clause {
      */
     public boolean isEmpty() {return cliterals.isEmpty();}
 
+    /** gets the literal at the given position
+     *
+     * @param position a literal position
+     * @return the literal at that position.
+     */
+    public int getLiteral(int position) {
+        assert position >= 0 && position < cliterals.size();
+        return cliterals.get(position).literal;}
+
     /** checks if the literal is in the clause
      *
      * @param literal a literal
@@ -53,54 +57,57 @@ public class Clause {
             if(cliterals.get(i).literal == literal) {return i;}}
         return -1;}
 
-    /** adds a cliteral to the end of the clause
+    /** adds a cliteral to the end of the clause<br/>
+     * double literals and tautologies are avoided.
      *
      * @param cliteral the literal to be added.
      * @return +1 if the literal is already in the clause, -1 if -literal is in the clause, otherwise 0.
      */
     public int addCLiteral(CLiteral cliteral) {
         int literal = cliteral.literal;
-        if(cliterals.contains(literal)) {return 1;}
-        if(cliterals.contains(-literal)) {return -1;}
+        if(contains(literal) >= 0) {return 1;}
+        if(contains(-literal) >= 0) {return -1;}
         int position = cliterals.size();
         cliterals.add(cliteral);
         cliteral.setClause(this,position);
         return 0;}
 
-    /** adds a cliteral to the end of the clause
+    /** adds a cliteral to the end of the clause, without checking for double literals and tatologies.
      *
      * @param cliteral the literal to be added.
      * @return +1 if the literal is already in the clause, -1 if -literal is in the clause, otherwise 0.
      */
-    public int addCLiteralDirectly(CLiteral cliteral) {
-        int literal = cliteral.literal;
+    public void addCLiteralDirectly(CLiteral cliteral) {
         int position = cliterals.size();
         cliterals.add(cliteral);
-        cliteral.setClause(this,position);
-        return 0;}
+        cliteral.setClause(this,position);}
 
     /** removes a cliteral from the clause.
      *
      * @param literal the literal to be removed.
      */
     public void removeLiteral(CLiteral literal) {
-        int position = literal.getPosition();
-        for(int pos = position; pos < cliterals.size()-1; ++pos) {
+        int position = literal.position;
+        int size = cliterals.size();
+        assert position >= 0 && position < size;
+        for(int pos = position; pos < size-1; ++pos) {
             CLiteral nextliteral = cliterals.get(pos+1);
             nextliteral.setClause(this,pos);
-            cliterals.set(pos,nextliteral);}
-        literal.removeClause();}
+            cliterals.set(pos,nextliteral);};
+        cliterals.remove(size-1);}
 
     /** removes a cliteral at the given position from the clause.
      *
      * @param position the position of the literal to be removed
      */
     public void removeLiteralAtPosition(int position) {
-        for(int pos = position; pos < cliterals.size()-1; ++pos) {
+        int size = cliterals.size();
+        assert position >= 0 && position < size;
+        for(int pos = position; pos < size-1; ++pos) {
             CLiteral nextliteral = cliterals.get(pos+1);
             nextliteral.setClause(this,pos);
             cliterals.set(pos,nextliteral);}
-        cliterals.get(position).removeClause();}
+        cliterals.remove(size-1);}
 
 
     /** replaces a literal by its representative in an equivalence class
@@ -110,18 +117,17 @@ public class Clause {
      * @return   true if the literal was replaced, false if it was removed.
      */
     public boolean replaceBy(CLiteral cliteral, int representative) {
-        if(contains(representative) >= 0) {removeLiteralAtPosition(cliteral.getPosition()); return false;}
+        if(contains(representative) >= 0) {removeLiteralAtPosition(cliteral.position); return false;}
         cliteral.literal = representative;
         return true;}
 
-    public String id() {return Integer.toString(number);}
 
     /** generates a string: clause-number: literals
      *
      * @return a string: clause-number: literals
      */
     public String toString() {
-        return toString((""+number).length(),null);}
+        return toString(id.length(),null);}
 
     /** generates a string: clause-number: literals
      *
@@ -129,7 +135,7 @@ public class Clause {
      * @return a string: clause-number: literals
      */
     public String toString(Symboltable symboltable) {
-        return toString((""+number).length(),symboltable);
+        return toString(id.length(),symboltable);
     }
 
     /** generates a string: clause-number: non-false literals
@@ -140,13 +146,12 @@ public class Clause {
      */
     public String toString(int numberSize, Symboltable symboltable) {
         StringBuffer st = new StringBuffer();
-        String id = id();
         String n = String.format("%"+numberSize+"s",id);
-        st.append(n).append(": ").append(type.toString()).append("(");
+        st.append(n).append(": ").append("(");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append( cliterals.get(position).toString(symboltable));
-            if(position < size-1) {st.append(", ");}}
+            if(position < size-1) {st.append(",");}}
         st.append(")");
         return st.toString();}
 
