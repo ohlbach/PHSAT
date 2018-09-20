@@ -35,6 +35,17 @@ public class ImplicationGraph {
         TreeSet<Integer> implied = implicants.get(literal);
         return (implied == null) ? empty : implied;}
 
+    /** checks if from implies to
+     *
+     * @param from a literal
+     * @param to   a literal
+     * @return true if from implies to
+     */
+    public boolean implies(int from, int to) {
+        TreeSet<Integer> implied = implicants.get(from);
+        return (implied == null) ? false : implied.contains(to);}
+
+
 
     /** adds a clause to the Implication Graph
      *

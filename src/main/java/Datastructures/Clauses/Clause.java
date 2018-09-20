@@ -72,7 +72,7 @@ public class Clause {
         cliteral.setClause(this,position);
         return 0;}
 
-    /** adds a cliteral to the end of the clause, without checking for double literals and tatologies.
+    /** adds a cliteral to the end of the clause, without checking for double literals and tautologies.
      *
      * @param cliteral the literal to be added.
      * @return +1 if the literal is already in the clause, -1 if -literal is in the clause, otherwise 0.
@@ -81,6 +81,19 @@ public class Clause {
         int position = cliterals.size();
         cliterals.add(cliteral);
         cliteral.setClause(this,position);}
+
+    /** adds a cliterals to the end of the clause, without checking for double literals and tautologies.
+     *
+     * @param cLiterals the literals to be added.
+     * @return +1 if the literal is already in the clause, -1 if -literal is in the clause, otherwise 0.
+     */
+    public void addCLiteralsDirectly(CLiteral... cLiterals) {
+        for(CLiteral cliteral : cLiterals) {
+            int position = cliterals.size();
+            cliterals.add(cliteral);
+            cliteral.setClause(this,position);}}
+
+
 
     /** removes a cliteral from the clause.
      *
