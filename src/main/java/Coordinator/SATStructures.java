@@ -72,11 +72,11 @@ public class SATStructures {
 
 
 
-    public SATStructures(int predicates) {
+    public SATStructures(int size, int predicates) {
         this.predicates = predicates;
         Model model = new Model(predicates);
         implicationGraph = new ImplicationGraph(predicates);
-        orClauses = new ClauseList(predicates);
+        orClauses = new ClauseList(size,predicates);
         orClauses.literalRemovalObservers.add(clause -> {taskQueue.add(makeTask(clause));});
         implicationGraph.trueLiteralObservers.add(literal->{taskQueue.add(new TrueLiteralTask(literal,1));});
     }
@@ -335,21 +335,11 @@ public class SATStructures {
     }
 
     void replaceEquivalenceOR(int representative, int literal) {
-        for(CLiteral cLiteral : orClauses.literalIndex.getLiterals(literal)) {
-            if(!orClauses.replaceBy(cLiteral,representative)) {
-                Clause clause = cLiteral.clause;
-                switch(clause.size()) {
-                    case 1: makeTrue(representative); return;
-                    case 2: implicationGraph.addClause(clause.cliterals.get(0).literal, clause.cliterals.get(1).literal);
-                }}}}
+        orClauses.replaceBy(literal,representative);}
 
 
-    Result replaceEquivalenceDISJOINT(int representative, int literal) {
-        for(CLiteral cLiteral : disjointClauses.literalIndex.getLiterals(literal)) {
-            if(!disjointClauses.replaceBy(cLiteral,representative)) {
-                return new Unsatisfiable("Disjoint Clause " + cLiteral.clause.toString() + "" +
-                        " contains the equivalent literals " + literal + " and " + representative);}}
-        return null;}
+    void replaceEquivalenceDISJOINT(int representative, int literal) {
+        disjointClauses.replaceBy(literal,representative);}
 
     Result replaceEquivalenceImplication(int representative, int literal) {
         implicationGraph.replaceEquivalences(representative,literal);

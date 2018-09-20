@@ -8,6 +8,7 @@ import Datastructures.Theory.ImplicationGraph;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -15,6 +16,10 @@ import java.util.stream.Stream;
  * Created by ohlbach on 26.08.2018.
  *
  * This class is for collecting sets of clauses.
+ * It supports inserting clauses, removing clauses and literals, retrieving clauses and literals.
+ * A literal index is used to access literals and clauses quickly.
+ * Removing literals and replacing them with representatives in an equivalence class can be
+ * observed by corresponding consumer functions.
  */
 public class ClauseList {
     public int predicates;
@@ -24,9 +29,11 @@ public class ClauseList {
     public int timestamp = 0;                            // for algorithms
     public final ArrayList<Consumer<Clause>> literalRemovalObservers = new ArrayList<Consumer<Clause>>();
             // they are called when literals are removed.
+    public final ArrayList<Consumer<CLiteral>> literalReplacementObservers = new ArrayList<Consumer<CLiteral>>();
+    // they are called when literals are replaced by representatices in a eqzivalence class.
 
 
-    /** creates a clause list. The number of clauses should be estimated
+    /** creates a clause list. The number of clauses should be estimated.
      *
      * @param size       the estimated number of clauses
      * @pramm predicates the number of predicates.
@@ -44,8 +51,7 @@ public class ClauseList {
     public void addClause(Clause clause) {
         clauses.add(clause);
         id2Clause.put(clause.id,clause);
-        for(CLiteral literal : clause.cliterals) {literalIndex.addLiteral(literal);}
-    }
+        for(CLiteral literal : clause.cliterals) {literalIndex.addLiteral(literal);}}
 
     /** returns a clause for the given number
      *
@@ -58,10 +64,10 @@ public class ClauseList {
      * @param literal a literal
      * @return a (possibly empty) collection of literals with the given literal.
      */
-    public Collection<CLiteral> getLiterals(int literal) {
+    public LinkedList<CLiteral> getLiterals(int literal) {
         return literalIndex.getLiterals(literal);}
 
-    /** removes a clause
+    /** removes a clause (silently). The clause itself is not changed.
      *
      * @param clause the clause to be removed
      */
@@ -88,24 +94,31 @@ public class ClauseList {
      *
      * @param literal a literal which is supposed to be true.
      */
-    public void makeTrue(int literal) {
-        for(CLiteral cliteral : literalIndex.getLiterals(literal)) {removeClause(cliteral.clause);}
-        for(CLiteral cliteral : literalIndex.getLiterals(-literal)) {removeLiteral(cliteral);}}
+    public void makeTrue(int literal) { //we must avoid concurrent modification errors!
+        for(Object cliteral : literalIndex.getLiterals(literal).toArray()) {removeClause(((CLiteral)cliteral).clause);}
+        for(Object cliteral : literalIndex.getLiterals(-literal).toArray()) {removeLiteral((CLiteral)cliteral);}}
 
-    /** replaces a literal by its representative in an equivalence class
+    /** replaces a literal by its representative of an equivalence class in all clauses where ther literal and its negation occur.
+     * If the clause then contains double literals, one of the is removed.<br/>
+     * If the clause becomes a tautology, it is entirely (and silently) removed.<br/>
+     * All literalReplacementObservers and literalRemovalObservers are called.
      *
-     * @param cliteral       the literal to be replaced
+     * @param literal       the literal to be replaced
      * @param representative the new literal
-     * @return   true if the literal was replaced, false if it was removed.
      */
-    public boolean replaceBy(CLiteral cliteral, int representative) {
-        int literal = cliteral.literal;
-        boolean replaced = cliteral.clause.replaceBy(cliteral,representative);
-        if(replaced) {
-            literalIndex.removeLiteral(literal,cliteral);
-            literalIndex.addLiteral(cliteral);}
-        else {literalIndex.removeLiteral(cliteral);}
-        return replaced;}
+    public void replaceBy(int literal, int representative) {
+        for(int i = 1; i >= -1; i -= 2) {
+            literal *= i;
+            representative *= i;
+            for(Object clit : literalIndex.getLiterals(literal).toArray()) {
+                CLiteral cliteral = (CLiteral)clit;
+                if(cliteral.clause.replaceBy(cliteral,representative)) { //replaced
+                    literalIndex.removeLiteral(literal,cliteral);
+                    literalIndex.addLiteral(cliteral);
+                    if(cliteral.clause.contains(-representative) >= 0) {removeClause(cliteral.clause);}
+                    else {for(Consumer observer : literalReplacementObservers) {observer.accept(cliteral);}}}
+                else {literalIndex.removeLiteral(cliteral);  //removed
+                    for(Consumer observer : literalRemovalObservers) {observer.accept(cliteral.clause);}}}}}
 
     /** gets the number of cLiterals containing the given literal
      *
@@ -177,8 +190,7 @@ public class ClauseList {
      *
      * @return a string with clauses
      */
-    public String toString(){
-        return toString(null);}
+    public String toString(){return toString(null);}
 
     /** generates a string with clauses
      *
