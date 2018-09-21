@@ -61,6 +61,7 @@ public class DisjointnessClasses {
      * Literals occurring in several classes may cause joining of the classes.
      *
      * @param basicClause [clause-id,typenumber,literal1,...]
+     * @return the result disjointness clause or null
      */
     public Clause addDisjointnessClass(int[] basicClause) {
         assert basicClause.length > 2;

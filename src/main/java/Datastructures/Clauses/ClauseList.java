@@ -30,7 +30,7 @@ public class ClauseList {
     public final ArrayList<Consumer<Clause>> literalRemovalObservers = new ArrayList<Consumer<Clause>>();
             // they are called when literals are removed.
     public final ArrayList<Consumer<CLiteral>> literalReplacementObservers = new ArrayList<Consumer<CLiteral>>();
-    // they are called when literals are replaced by representatices in a eqzivalence class.
+    // they are called when literals are replaced by representatives in a equivalence class.
 
 
     /** creates a clause list. The number of clauses should be estimated.
