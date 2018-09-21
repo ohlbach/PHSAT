@@ -11,7 +11,18 @@ import static org.junit.Assert.*;
 public class DisjointnessClassesTest {
     @Test
     public void addDisjointnessClass() throws Exception {
-
+        System.out.println("addDisjointnessClass");
+        Model model = new Model(20);
+        ImplicationGraph ig = new ImplicationGraph(20);
+        DisjointnessClasses djc = new DisjointnessClasses(model,ig,null);
+        djc.addDisjointnessClass(new int[]{1,0,1,2,3});
+        System.out.println(djc);
+        djc.addDisjointnessClass(new int[]{2,0,3,4,5});
+        System.out.println(djc);
+        djc.addDisjointnessClass(new int[]{3,0,1,5});
+        System.out.println(djc);
+        djc.addDisjointnessClass(new int[]{4,0,1,2,4,5});
+        System.out.println(djc);
     }
 
     @Test
@@ -25,15 +36,12 @@ public class DisjointnessClassesTest {
         ig.addClause(-2,-3);
         assertTrue(djc.isEmpty());
         ig.addClause(-1,-3);
-        System.out.println(djc);
         assertEquals("Disjointenss Classes:\nD1!=3: (1,3,2)\n",djc.toString());
         ig.addClause(-3,-4);
         ig.addClause(-1,-4);
-        System.out.println(djc);
-        //assertEquals("Disjointenss Classes:\nD1!=3: (1,3,2)\n",djc.toString());
+        assertEquals("Disjointenss Classes:\nD1!=3: (1,3,2)\nD1!=4: (1,4,3)\n",djc.toString());
         ig.addClause(-2,-4);
-        System.out.println(djc);
-        //assertEquals("Disjointenss Classes:\nD1!=3: (1,3,2,4)\n",djc.toString());
+        assertEquals("Disjointenss Classes:\nD2!=4: (2,4,3,1)\n",djc.toString());
     }
 
 }

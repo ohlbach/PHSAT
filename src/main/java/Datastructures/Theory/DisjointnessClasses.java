@@ -7,7 +7,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Utilities.Utilities;
 
-import java.util.ArrayList;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -77,7 +77,10 @@ public class DisjointnessClasses {
             if(disjointeness.contains(literal) >= 0) {reportUnsatisfiable(literal,literal); return;}
             if(disjointeness.contains(-literal) >= 0) {continue;}
             disjointeness.addCLiteralDirectly(new CLiteral(literal));}
-        if(disjointeness.size() > 1) {disjointnessClasses.addClause(disjointeness);}}
+        if(disjointeness.size() > 1) {
+            disjointnessClasses.addClause(disjointeness);
+            subsume(disjointeness);
+            reportDisjointenss(joinClauses(disjointeness));}}
 
 
 
@@ -102,7 +105,8 @@ public class DisjointnessClasses {
             disjointness.addCLiteralDirectly(new CLiteral(literal2));
             for(int literal : intersections) {disjointness.addCLiteralDirectly(new CLiteral(-literal));}
             disjointnessClasses.addClause(disjointness);
-            reportDisjointenss(disjointness);}}
+            subsume(disjointness);
+            reportDisjointenss(joinClauses(disjointness));}}
 
     private boolean addToExisting(int literal1,int literal2) {
         boolean found = false;
@@ -116,8 +120,55 @@ public class DisjointnessClasses {
         for(CLiteral cLiteral : disjointness.cliterals) {
             if(!implicationGraph.implies(cLiteral.literal,-literal)) {return false;}}
         disjointness.addCLiteralDirectly(new CLiteral(literal));
+        subsume(disjointness);
         reportDisjointenss(disjointness);
         return true;}
+
+    private void subsume(Clause clause) {
+        int size = clause.size();
+        int timestamp = disjointnessClasses.timestamp;
+        disjointnessClasses.timestamp += size+1;
+        for(CLiteral cLiteral : clause.cliterals){
+            for(Object otherCLiteral : disjointnessClasses.getLiterals(cLiteral.literal).toArray()) {
+                Clause otherClause = ((CLiteral)otherCLiteral).clause;
+                if(otherClause == clause || otherClause.size() > size) {continue;}
+                if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp; continue;}
+                else {++otherClause.timestamp;}
+                if(otherClause.timestamp - timestamp == otherClause.size()-1) {disjointnessClasses.removeClause(otherClause);}}}
+            }
+
+    private Clause joinClauses(Clause clause) {
+        Object[] literals = literalUnion(clause);
+        if(literals == null) {return clause;}
+        int size = literals.length;
+        Clause joinedClause = new Clause(clause.id+"j",size);
+        for(int i = 0; i < size; ++i) {
+            boolean disjoint = true;
+            int literal = (Integer)literals[i];
+            for(int j = i+1; j < size; ++j) {
+                if(!areDisjoint(literal,(Integer)literals[j])) {disjoint = false; break;}}
+            joinedClause.addCLiteral(new CLiteral(literal));}
+        disjointnessClasses.addClause(joinedClause);
+        subsume(joinedClause);
+        return joinedClause;}
+
+    private Object[] literalUnion(Clause clause) {
+        HashSet<Integer> literals = null;
+        for(CLiteral cLiteral : clause.cliterals) {
+            for(CLiteral cLiteral1 : disjointnessClasses.getLiterals(cLiteral.literal)) {
+                if(cLiteral1.clause != clause) {
+                    for(CLiteral cLiteral2 : cLiteral.clause.cliterals) {
+                        if(literals == null) {literals = new HashSet<>();}
+                        literals.add(cLiteral2.literal);}}}}
+        return (literals == null) ? null : literals.toArray();}
+
+
+    public boolean areDisjoint(int literal1, int literal2) {
+        if(literal1 == literal2) {return false;}
+        if(literal1 == -literal2) {return true;}
+        for(CLiteral cLiteral : disjointnessClasses.getLiterals(literal1)) {
+            if(cLiteral.clause.contains(literal2) >= 0) {return true;}}
+        return false;}
 
     public boolean isEmpty() {return disjointnessClasses.isEmpty();}
 
