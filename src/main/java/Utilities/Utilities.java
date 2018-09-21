@@ -15,6 +15,7 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.BiConsumer;
 
 /**
@@ -273,5 +274,19 @@ public class Utilities {
             clause.addCLiteral(new CLiteral(Integer.parseInt(lit)));}
         return clause;
     }
+
+    /** computes the intersection of to tree sets
+     *
+     * @param set1 a TreeSet
+     * @param set2 a TreeSet
+     * @return a list of intersecting objects, or null
+     */
+    public static <T> ArrayList<T> intersection(TreeSet<T> set1, TreeSet<T> set2) {
+        ArrayList<T> intersects = null;
+        for(T i1 : set1) {
+            if(set2.contains(i1)) {
+                if(intersects == null) {intersects = new ArrayList<>();}
+                intersects.add(i1);}}
+        return intersects;}
 
 }

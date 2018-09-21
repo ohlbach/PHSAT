@@ -4,6 +4,7 @@ import Algorithms.Algorithms;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Clauses.ClauseType;
+import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
@@ -12,7 +13,6 @@ import Datastructures.Theory.Model;
 
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**

@@ -38,7 +38,7 @@ public class SolverControlTest {
         public static void generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
             parameters.put("number",10*(Integer)parameters.get("size"));}
     }
-
+/*
     @Test
     public void solveProblem() throws Exception {
         System.out.println("solveProblem");
@@ -85,5 +85,5 @@ public class SolverControlTest {
     public void solve1() throws Exception {
 
     }
-
+*/
 }
