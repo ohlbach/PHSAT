@@ -10,26 +10,29 @@ import Utilities.Utilities;
 import java.util.*;
 import java.util.function.Consumer;
 
-/**
+/** A disjointness class is a set of literals which are pairwise contradictory.
+ * Such a class may come from the input data, or be derived from implications. 
  * Created by Ohlbach on 21.09.2018.
  */
 public class DisjointnessClasses {
-    private int predicates;
-    private Model model;
-    private ImplicationGraph implicationGraph;
-    private EquivalenceClasses equivalenceClasses;
+    private int predicates;    // number of predicates
+    private Model model;       // a model
+    private ImplicationGraph implicationGraph; // an implication graph (optional)
+    private EquivalenceClasses equivalenceClasses; // optional
+    /** the list of clauses representing disjoint literals */
     public ClauseList disjointnessClasses = null;
-    /** reports true literals */
-    public ArrayList<Consumer<Clause>> disjointenessObservers = new ArrayList();
+    /** reports changed disjointnss classes */
+    public ArrayList<Consumer<Clause>> disjointnessObservers = new ArrayList();
     /** reports contradictions like p = -p */
     public ArrayList<Consumer<Unsatisfiable>> unsatisfiabilityObservers = new ArrayList();
-    /** reports new equivalences */
+    /** reports new true literals */
     public ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList();
 
     /** generates a new instance.
      *
      * @param model    a model
      * @param implicationGraph an implication graph (or null)
+     * @param equivalenceClasses  for replacing literals by their representatives.
      */
     public DisjointnessClasses(Model model, ImplicationGraph implicationGraph, EquivalenceClasses equivalenceClasses) {
         this.model = model;
@@ -47,46 +50,49 @@ public class DisjointnessClasses {
     }
 
 
-    /** turns a basicClause into an equivalence class. <br/>
-     * A true literal causes all other literals to become true <br/>
-     * A false literal causes all other literals to become false <br/>
-     * p &lt;=&gt; -p is a contradiction.<br/>
-     * A double literal p,p is ignored.<br/>
-     * p,q,r and p -&gt; not r  causes all literals to become false.<br/>
+    /** turns a basicClause into a disjointness class. <br/>
+     * A true literal causes all other literals to become false <br/>
+     * A false literal is ignored <br/>
+     * Two true literals are a contradiction <br/>
+     * p &lt;=&gt; -p is ignored.<br/>
+     * A double literal p,p is a contradiction.<br/>
      * The corresponding observers are called.
+     * New clauses which are subsets of a new clause are deleted.
+     * Literals occurring in several classes may cause joining of the classes.
      *
      * @param basicClause [clause-id,typenumber,literal1,...]
      */
-    public void addDisjointnessClass(int[] basicClause) {
+    public Clause addDisjointnessClass(int[] basicClause) {
         assert basicClause.length > 2;
-        if(basicClause.length == 3) {return;}
+        if(basicClause.length == 3) {return null;}
         initialize();
         String id = "D"+basicClause[0];
-        Clause disjointeness = new Clause(id,basicClause.length-2);
+        Clause disjointness = new Clause(id,basicClause.length-2);
         int trueLiteral = 0;
         for(int i = 2; i < basicClause.length; ++i) {
             int literal = mapToRepresentative(basicClause[i]);
             if(model.isTrue(literal)) {
-                if(trueLiteral != 0) {reportUnsatisfiable(trueLiteral,literal); return;}
+                if(trueLiteral != 0) {reportUnsatisfiable(trueLiteral,literal); return null;} // two true literals are not disjoint
                 else {trueLiteral = literal;}
                 for(int j = 2; j < basicClause.length; ++j) {
-                    if(i != j) {reportTrueLiteral(-mapToRepresentative(basicClause[j]));}}
-                return;}
+                    if(i != j) {reportTrueLiteral(-mapToRepresentative(basicClause[j]));}} // p true causes all other litrals to become false.
+                return null;}
 
-            if(model.isFalse(literal)) {continue;}
-            if(disjointeness.contains(literal) >= 0) {reportUnsatisfiable(literal,literal); return;}
-            if(disjointeness.contains(-literal) >= 0) {continue;}
-            disjointeness.addCLiteralDirectly(new CLiteral(literal));}
-        if(disjointeness.size() > 1) {
-            disjointnessClasses.addClause(disjointeness);
-            subsume(disjointeness);
-            reportDisjointenss(joinClauses(disjointeness));}}
+            if(model.isFalse(literal)) {continue;}  // false literals can be ignored
+            if(disjointness.contains(literal) >= 0) {reportUnsatisfiable(literal,literal); return null;} // p disjoint p is false
+            if(disjointness.contains(-literal) >= 0) {continue;}  // p disjoint -p is trivially true
+            disjointness.addCLiteralDirectly(new CLiteral(literal));}
+        if(disjointness.size() > 1) {
+            disjointnessClasses.addClause(disjointness);
+            subsume(disjointness);
+            disjointness = joinClauses(disjointness);
+            reportDisjointenss(disjointness);
+            return disjointness;}
+        return null;}
 
 
 
-    /** joins a new equivalence to the classes.
-     * If one of the literals is already in an equivalence class, the other literal becomes also a  member of this class,
-     * otherwise a new class is formed.
+    /** joins a new disjointness p disjoint q.
      *
      * @param literal1 a literal
      * @param literal2 a literal
@@ -108,61 +114,98 @@ public class DisjointnessClasses {
             subsume(disjointness);
             reportDisjointenss(joinClauses(disjointness));}}
 
+    /** tries to join two disjoint literals to existing disjointness classes.
+     *
+     * @param literal1
+     * @param literal2
+     * @return
+     */
     private boolean addToExisting(int literal1,int literal2) {
         boolean found = false;
         for(CLiteral cLiteral : disjointnessClasses.getLiterals(literal1)) {
-            if(cLiteral.clause.contains(literal2) >= 0) {return true;}
+            if(cLiteral.clause.contains(literal2) >= 0) {return true;} // both literals are already in a disjointness class
             found |= addToExisting(cLiteral.clause,literal2);}
         return found;}
 
-
+    /** checks whether all literals in the disjointness class are disjoint with the new literal.
+     *  If p is in the clause and r is the new literal, then p -&gt; -r must hold to ensure disjointness.<br/>
+     *  If the class is extended then it may subsume older clauses, and it may merge with older clauses.
+     *
+     * @param disjointness an existing disjointness class
+     * @param literal  a literal
+     * @return true if all literals in the class are´disjoint with the new literal.
+     */
     private boolean addToExisting(Clause disjointness, int literal) {
         for(CLiteral cLiteral : disjointness.cliterals) {
             if(!implicationGraph.implies(cLiteral.literal,-literal)) {return false;}}
         disjointness.addCLiteralDirectly(new CLiteral(literal));
         subsume(disjointness);
-        reportDisjointenss(disjointness);
+        reportDisjointenss(joinClauses(disjointness));
         return true;}
 
-    private void subsume(Clause clause) {
-        int size = clause.size();
+    /** removes all clauses wich are subsets of the given clause.
+     * I p,q,r are disjoint then p,q and p,r and q,r are also disjoint.
+     *
+     * @param disjointness a disjointness clause.
+     */
+    private void subsume(Clause disjointness) {
+        int size = disjointness.size();
         int timestamp = disjointnessClasses.timestamp;
         disjointnessClasses.timestamp += size+1;
-        for(CLiteral cLiteral : clause.cliterals){
+        for(CLiteral cLiteral : disjointness.cliterals){
             for(Object otherCLiteral : disjointnessClasses.getLiterals(cLiteral.literal).toArray()) {
                 Clause otherClause = ((CLiteral)otherCLiteral).clause;
-                if(otherClause == clause || otherClause.size() > size) {continue;}
+                if(otherClause == disjointness || otherClause.size() > size) {continue;}
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp; continue;}
                 else {++otherClause.timestamp;}
                 if(otherClause.timestamp - timestamp == otherClause.size()-1) {disjointnessClasses.removeClause(otherClause);}}}
             }
 
-    private Clause joinClauses(Clause clause) {
-        Object[] literals = literalUnion(clause);
-        if(literals == null) {return clause;}
+    /** joins disjointness classes if possible.
+     * It collects all literals in all clauses containing any of the literals in the given clause.
+     * Only those literals which are mutually disjoint are then inserted in a new clause
+     *
+     * @param disjointness a disjointness class
+     * @return the old or a new disjointness class
+     */
+    private Clause joinClauses(Clause disjointness) {
+        Object[] literals = literalUnion(disjointness);
+        if(literals == null) {return disjointness;}
         int size = literals.length;
-        Clause joinedClause = new Clause(clause.id+"j",size);
+        if(size == disjointness.size()) {return disjointness;}
+        Clause joinedClause = new Clause(disjointness.id+"j",size);
         for(int i = 0; i < size; ++i) {
             boolean disjoint = true;
             int literal = (Integer)literals[i];
             for(int j = i+1; j < size; ++j) {
                 if(!areDisjoint(literal,(Integer)literals[j])) {disjoint = false; break;}}
-            joinedClause.addCLiteral(new CLiteral(literal));}
+            if(disjoint){joinedClause.addCLiteral(new CLiteral(literal));}}
         disjointnessClasses.addClause(joinedClause);
         subsume(joinedClause);
         return joinedClause;}
 
+    /** collects all literals in all clauses containing one of the literals in the given clause.
+     *
+     * @param clause a disjointness clause
+     * @return all literals in all clauses containing one of the literals in the given clause.
+     */
     private Object[] literalUnion(Clause clause) {
         HashSet<Integer> literals = null;
         for(CLiteral cLiteral : clause.cliterals) {
             for(CLiteral cLiteral1 : disjointnessClasses.getLiterals(cLiteral.literal)) {
                 if(cLiteral1.clause != clause) {
-                    for(CLiteral cLiteral2 : cLiteral.clause.cliterals) {
+                    for(CLiteral cLiteral2 : cLiteral1.clause.cliterals) {
                         if(literals == null) {literals = new HashSet<>();}
                         literals.add(cLiteral2.literal);}}}}
         return (literals == null) ? null : literals.toArray();}
 
 
+    /** checks if two literals are disjoint
+     *
+     * @param literal1 a literal
+     * @param literal2 a literal
+     * @return true if the two literals are disjoint
+     */
     public boolean areDisjoint(int literal1, int literal2) {
         if(literal1 == literal2) {return false;}
         if(literal1 == -literal2) {return true;}
@@ -170,6 +213,10 @@ public class DisjointnessClasses {
             if(cLiteral.clause.contains(literal2) >= 0) {return true;}}
         return false;}
 
+    /** returns true if there are no disjointness classes
+     *
+     * @return true if there are no disjointness classes
+     */
     public boolean isEmpty() {return disjointnessClasses.isEmpty();}
 
 
@@ -189,12 +236,12 @@ public class DisjointnessClasses {
     private void reportTrueLiteral(int literal) {
         for(Consumer<Integer> observer : trueLiteralObservers) {observer.accept(literal);}}
 
-    /** calls all disjointenessObservers
+    /** calls all disjointnessObservers
      *
-     * @param clause a disjointeness clause
+     * @param clause a disjointness clause
      */
     private void reportDisjointenss(Clause clause) {
-        for(Consumer<Clause> observer : disjointenessObservers) {observer.accept(clause);}}
+        for(Consumer<Clause> observer : disjointnessObservers) {observer.accept(clause);}}
 
     /** calls all unsatisfiabilityObservers with an Unsatisfiable object.
      * This may be caused by an equivalence p = -p

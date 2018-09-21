@@ -4,6 +4,7 @@ import Algorithms.Algorithms;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Clauses.ClauseType;
+import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
@@ -21,8 +22,8 @@ import java.util.function.Function;
 public class SATStructures {
     public int predicates;
     private ClauseList orClauses = null;
-    private ClauseList disjointClauses = null;
     private EquivalenceClasses equivalences = null;
+    private DisjointnessClasses disjointnesses = null;
     private HashMap<Integer,Integer> replacements = new HashMap<>();
 
     private Model model;
@@ -121,10 +122,10 @@ public class SATStructures {
             case XOR:
                 result = addBasicORClause(basicClause);
                 if(result != null) {return result;}
-                result = addBasicDISJOINTClause(basicClause);
+                Clause clause = disjointnesses.addDisjointnessClass(basicClause);
                 break;
             case DISJOINT:
-                result = addBasicDISJOINTClause(basicClause);
+                clause = disjointnesses.addDisjointnessClass(basicClause);
                 break;
             case EQUIV:
                  equivalences.addEquivalenceClass(basicClause);
@@ -182,83 +183,6 @@ public class SATStructures {
         return clause;}
 
 
-    /** adds a basicDISJOINTClause to the disjointClauses. <br/>
-     * A true literal causes all other literals to become false (appended at units)<br/>
-     * Two true literals are a contradiction <br/>
-     * A false literal or p,-p are ignored<br/>
-     * A double literal p,p causes -p to become true. <br/>
-     * unitConsequences are computed, and the disjointness clauses are added to the implicationGraph.
-     *
-     * @param basicClause
-     * @return either an Unsatisfiable object, or null.
-     */
-    public Unsatisfiable addBasicDISJOINTClause(int[] basicClause) {
-        Clause clause = makeDISJOINTClause(basicClause);
-        if(clause != null) {
-            int size = clause.size();
-            switch(size) {
-                case 0: return new Unsatisfiable("Disjointness clause " + Arrays.toString(basicClause) + " became false");
-                case 1: return null;
-                default:
-                    disjointClauses.addClause(clause);
-                    for(int i = 0; i < size; ++i) {
-                        int literal = clause.cliterals.get(i).literal;
-                        for(int j = i+1; j < size; ++j) {
-                            implicationGraph.addImplication(literal,-clause.cliterals.get(j).literal);}}}}
-        return null;}
-
-    /** turns a basicDISJOINTClause into a clause. <br/>
-     * A true literal causes all other literals to become false (appended at units)<br/>
-     * Two true literals are a contradiction <br/>
-     * A false literal or p,-p are ignored <br/>
-     * A double literal p,p causes -p to become true.
-     *
-     * @param basicClause
-     * @return either an Unsatisfiable object, or the new clause.
-     */
-    Clause makeDISJOINTClause(int[] basicClause) {
-        int trueLiteral = 0;
-        Clause clause = new Clause("D"+basicClause[0],basicClause.length);
-        for(int i = 1; i < basicClause.length; ++i) {
-            int literal = basicClause[i];
-            if(model.isTrue(literal)) {
-                if(trueLiteral != 0) {return new Clause(""+basicClause[0],0);}
-                else {trueLiteral = literal;}
-                for(int j = 1; j < basicClause.length; ++j) { // one literal true: all others must be false
-                    if(i != j) {makeTrue(-basicClause[j]);}}
-                return null;}
-
-            if(model.isFalse(literal) || clause.contains(-literal) >= 0) {continue;}
-
-            int position = clause.contains(literal);
-            if(position >= 0) {
-                makeTrue(-literal);
-                clause.removeLiteralAtPosition(position);}
-
-            CLiteral cLiteral = new CLiteral(literal);
-            clause.addCLiteralDirectly(cLiteral);}
-
-        for(int i = 0; i < clause.size(); ++i) {   // p,q,r  and p -> r:  not p
-            CLiteral cLiteral1 = clause.cliterals.get(i);
-            TreeSet implied = implicationGraph.getImplicants(cLiteral1.literal);
-            if(!implied.isEmpty()) {
-                for(CLiteral cLiteral2 : clause.cliterals) {
-                    if(cLiteral1 != cLiteral2 && implied.contains(cLiteral2.literal)) {
-                        clause.removeLiteral(cLiteral1);
-                        makeTrue(-cLiteral1.literal);
-                        --i;
-                        break;}}}}
-
-        return clause;}
-
-
-    public void disjointConsequences(int literal, LinkedList<Integer> units) {
-        for(CLiteral cliteral : disjointClauses.literalIndex.getLiterals(literal)) {
-            Clause clause = cliteral.clause;
-            for(CLiteral lit : clause.cliterals) {
-                if(lit.literal != literal) {units.addLast(-lit.literal);}}}
-        for(CLiteral cliteral : disjointClauses.literalIndex.getLiterals(-literal)) {
-            Clause clause = cliteral.clause;}}
 
 
 
