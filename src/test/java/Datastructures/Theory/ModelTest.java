@@ -1,5 +1,6 @@
-package Datastructures;
+package Datastructures.Theory;
 
+import Datastructures.LocalModel;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

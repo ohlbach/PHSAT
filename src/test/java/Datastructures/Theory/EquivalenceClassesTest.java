@@ -1,4 +1,4 @@
-package Datastructures;
+package Datastructures.Theory;
 
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.ImplicationGraph;
