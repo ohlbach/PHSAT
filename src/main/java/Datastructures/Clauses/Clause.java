@@ -134,6 +134,18 @@ public class Clause {
         cliteral.literal = representative;
         return true;}
 
+    /** checks if the literals in this, except cLiteral also occur in clause2
+     *
+     * @param cLiteral a cLiteral in 'this'
+     * @param clause2 any other clause
+     * @return true if the literals in this, except cLiteral also occur in clause2
+     */
+    public boolean isSubset(CLiteral cLiteral, Clause clause2) {
+        boolean found = true;
+        for(CLiteral cl : cliterals) {
+            if(cl != cLiteral & clause2.contains(cl.literal) < 0) {found = false; break;}}
+        return found;}
+
 
     /** generates a string: clause-number: literals
      *

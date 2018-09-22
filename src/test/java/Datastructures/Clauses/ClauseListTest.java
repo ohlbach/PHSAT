@@ -135,7 +135,7 @@ public class ClauseListTest {
         clauses.literalRemovalObservers.add(cl -> str.append(cl.toString()));
         StringBuilder stp = new StringBuilder();
         clauses.literalReplacementObservers.add(cl -> stp.append(cl.toString()));
-        clauses.replaceBy(3,7);
+        clauses.replaceByRepresentative(7,3);
         assertEquals("1: (1,-7,6)\n" +
                 "2: (6,-7)\n" +
                 "3: (2,7)\n" +

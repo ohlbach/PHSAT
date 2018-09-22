@@ -1,9 +1,6 @@
 package Coordinator;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeSet;
 
 /**
  * Created by ohlbach on 12.09.2018.<br/>
@@ -13,7 +10,8 @@ import java.util.TreeSet;
  */
 public class ChangeBlock {
     private ArrayList<Integer> oneLiteralClauses = null;
-    private HashMap<Integer,TreeSet<Integer>> implications = null;
+    private ArrayList<int[]>   twoLiteralClauses = null;
+    private ArrayList<int[]>   equivalences = null;
 
     /** adds a new unit clause.
      * Previously inserted implications are reduced by the new unit clause.
@@ -23,25 +21,22 @@ public class ChangeBlock {
     public void addOneLiteralClause(int literal) {
         if(oneLiteralClauses == null) {oneLiteralClauses = new ArrayList<>();}
         assert !oneLiteralClauses.contains(literal) && !oneLiteralClauses.contains(-literal);
-        oneLiteralClauses.add(literal);
-        if(implications == null) {return;}
-            for(int sign = -1; sign <= +1; sign += 2) {
-                TreeSet<Integer> implicants = implications.get(sign*literal);
-                if(implicants != null) {implications.remove(sign*literal);}
-                for(Map.Entry<Integer,TreeSet<Integer>> map : implications.entrySet()) {
-                    map.getValue().remove(sign*literal);}}}
+        oneLiteralClauses.add(literal);}
+
+    public void addTwoLiteralClause(int literal1, int literal2) {
+        if(twoLiteralClauses == null) {twoLiteralClauses = new ArrayList<>();}
+        twoLiteralClauses.add(new int[]{literal1,literal2});}
+
+    public void addEquivalences(int representative, int literal) {
+        if(equivalences != null) {equivalences = new ArrayList<>();}
+        equivalences.add(new int[]{representative,literal});}
+
+    public boolean isEmpty() {
+        return ((oneLiteralClauses == null) | oneLiteralClauses.isEmpty()) &&
+                ((twoLiteralClauses ==null) | twoLiteralClauses.isEmpty()) &&
+                ((equivalences ==null) | equivalences.isEmpty());}
 
 
-    /** adds a new implication (premise -&gt> implicants
-     *
-     * @param premise    the premise of the implication
-     * @param implicants the implied literals
-     */
-    public void addImplication(int premise, TreeSet<Integer> implicants) {
-        if(implications == null) {implications = new HashMap<>();}
-        TreeSet<Integer> implicant = implications.get(premise);
-        if(implicant == null) {implications.put(premise,implicants);}
-        else {implicant.addAll(implicants);}}
 
     /** gets all unit clauses.
      * The list MUST NOT be changed, because it may be shared by several threads
@@ -55,7 +50,14 @@ public class ChangeBlock {
      *
      * @return the implications.
      */
-    public HashMap<Integer,TreeSet<Integer>> getImplications() {return implications;}
+    public ArrayList<int[]> getTwoLiteralClauses() {return twoLiteralClauses;}
+
+    /** gets all equivalences [representative,literal]
+      * The list MUST NOT be changed, because it may be shared by several threads
+     *
+     * @return the equaivalences.
+     */
+    public ArrayList<int[]> getEquivalences() {return equivalences;}
 
     /** generates a String representation of the block.
      *
@@ -64,9 +66,9 @@ public class ChangeBlock {
     public String toString() {
         StringBuilder st = new StringBuilder();
         if(oneLiteralClauses != null) {st.append("Units: ").append(oneLiteralClauses.toString()).append("\n");}
-        if(implications != null) {
-            for(Map.Entry<Integer,TreeSet<Integer>> entry : implications.entrySet()) {
-                st.append(entry.getKey()).append(" -> ").append(entry.getValue().toString()).append("\n");}}
+        if(twoLiteralClauses != null) {
+            for(int[] clause : twoLiteralClauses) {
+                st.append(""+clause[0]+ ","+clause[1]+"\n");}}
         return st.toString();}
 
 }

@@ -1,6 +1,5 @@
 package Solver.RandomWalk;
 
-import Algorithms.BasicClausesAnalyser;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;

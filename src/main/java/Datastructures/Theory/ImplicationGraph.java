@@ -124,7 +124,7 @@ public class ImplicationGraph {
         implicants.remove(literal);}
 
 
-    public void replaceEquivalences(int representative, int literal) {
+    public void replaceByRepresentative(int representative, int literal) {
         TreeSet rep = getImplicants(representative);
         TreeSet lit = getImplicants(literal);
         if(rep == null) {return;}

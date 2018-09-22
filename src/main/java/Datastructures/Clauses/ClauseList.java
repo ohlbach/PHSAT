@@ -106,7 +106,7 @@ public class ClauseList {
      * @param literal       the literal to be replaced
      * @param representative the new literal
      */
-    public void replaceBy(int literal, int representative) {
+    public void replaceByRepresentative(int representative, int literal) {
         for(int i = 1; i >= -1; i -= 2) {
             literal *= i;
             representative *= i;
