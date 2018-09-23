@@ -183,7 +183,7 @@ public class RandomClauseSetGenerator {
         Integer dLength     = (Integer)parameters.get("dLengths");
         boolean withDisjointness = dBlocks != null;
 
-        BasicClauseList clauseList = new BasicClauseList(withDisjointness);
+        BasicClauseList clauseList = new BasicClauseList();
         clauseList.predicates = predicates;
 
         ArrayList<Integer> literals = new ArrayList();

@@ -75,7 +75,7 @@ public class PidgeonHoleGenerator {
      * @param parameters a HashMap with keys "holes" and "pidgeons"
      * @param errors    no effect
      * @param warnings  no effect
-     * @return parameters with an extra entry: "disjunctions".
+     * @return parameters with an extra entry: "clauses".
      */
     public static HashMap<String,Object> generate(HashMap<String,Object> parameters,
                                                   StringBuffer errors, StringBuffer warnings){
@@ -88,7 +88,7 @@ public class PidgeonHoleGenerator {
                 if(hole < holes) {st.append(" ");}}
             st.append("\n");}
         for(int hole = 1; hole <= holes; ++hole) {
-            st.append("disjoint ");
+            st.append("$d ");
             for(int pidgeon = 1; pidgeon <= pidgeons; ++pidgeon) {
                 st.append("P"+pidgeon+"H"+hole);
                 if(pidgeon < pidgeons) {st.append(" ");}}
@@ -96,7 +96,7 @@ public class PidgeonHoleGenerator {
 
         parameters.put("clauseString",st.toString());
         StringClauseSetGenerator.generate(parameters,errors,warnings);
-        ((BasicClauseList)parameters.get("disjunctions")).info = "Pidgeon Hole example with " + pidgeons + " pidgeons in " + holes + " holes.";
+        ((BasicClauseList)parameters.get("clauses")).info = "Pidgeon Hole example with " + pidgeons + " pidgeons in " + holes + " holes.";
         return parameters;
     }
 

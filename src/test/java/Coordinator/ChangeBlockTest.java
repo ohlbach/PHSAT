@@ -21,7 +21,7 @@ public class ChangeBlockTest {
 
     @Test
     public void addOneLiteralClause2() throws Exception {
-        System.out.println("addOneLiteralClause 2");
+     /*   System.out.println("addOneLiteralClause 2");
         ChangeBlock block = new ChangeBlock();
         TreeSet<Integer> implicants = new TreeSet<>();
         implicants.add(3); implicants.add(4);
@@ -35,13 +35,13 @@ public class ChangeBlockTest {
         block.addOneLiteralClause(-5);
         assertEquals("Units: [-1, -5]\n" +
                 "2 -> [4]\n",block.toString());
-
+*/
     }
 
     @Test
     public void addImplication() throws Exception {
         System.out.println("addImplication");
-        ChangeBlock block = new ChangeBlock();
+        /*ChangeBlock block = new ChangeBlock();
         TreeSet<Integer> implicants = new TreeSet<>();
         implicants.add(3); implicants.add(4);
         block.addImplication(1,implicants);
@@ -50,7 +50,7 @@ public class ChangeBlockTest {
         implicants.add(4); implicants.add(-1);
         block.addImplication(1,implicants);
         assertEquals("{1=[-1, 3, 4]}",block.getImplications().toString());
-
+*/
     }
 
     @Test

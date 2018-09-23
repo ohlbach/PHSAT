@@ -109,14 +109,14 @@ public class RandomWalker {
 
 
     public void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, LocalModel globalModel) {
-        if(stopped) {return;}
+       /* if(stopped) {return;}
         logger.accept(id,"starting");
         thread = Thread.currentThread();
         prepareData();
         BasicClausesAnalyser bca = null;//new BasicClausesAnalyser((literal-> new CLiteral(literal)),
-                //((Integer number,ArrayList<CLiteral> literals) -> new Clause(number,null,literals)),
-                //clauseList,trueLiterals,globalModel);
-        //if(bca.analyse(basicClauses,withImplications)) {return;}
+                ((Integer number,ArrayList<CLiteral> literals) -> new Clause(number,null,literals)),
+                clauseList,trueLiterals,globalModel);
+        if(bca.analyse(basicClauses,withImplications)) {return;}
         implicationGraph = null; // clauseList.implicationGraph;
         localModel = globalModel.copy();
         initializeModel();
@@ -124,7 +124,9 @@ public class RandomWalker {
         falseClauses = null; //clauseList.falseClauses(localModel);
         while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
             integrateGlobalUnits();
-            flip(selectFlipPredicate());}}
+            flip(selectFlipPredicate());}
+            */
+            }
 
     private void prepareData() {
         seed             = (Integer)solverControl.get("seed");

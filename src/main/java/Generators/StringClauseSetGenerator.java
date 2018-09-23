@@ -2,6 +2,8 @@ package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseType;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 
 import java.util.ArrayList;
@@ -35,19 +37,22 @@ public class StringClauseSetGenerator  {
      * @return a help string
      */
     public static String help() {
-        return "StringClauseSetGenerator just parses a string of disjunctions.\n" +
+        return "StringClauseSetGenerator just parses a string of clauses.\n" +
                 "A clause is just a single line of literals.\n" +
-                "The literals in the disjunctions may by any strings, possibly preceded by -.\n" +
-                "A clause starting with 'disjoint' indicates a set of disjoint predicates.\n" +
-                "At most one of these predicates can be true in a model.";}
+                "The literals in the clause may by any strings, possibly preceded by -.\n" +
+                "A clause starting with '$' indicates a special meaning of the clause:\n" +
+                "$a ... means conjunctions (all literals must be true).\n" +
+                "$x ... means xor          (excactly one literal must be true).\n" +
+                "$d ... means disjointness (at most one literal can be true).\n" +
+                "$e ... means equivalence  (either all literals are true, or all literals are false).";}
 
 
     /** parses the clause string and generates a BasicClauseList object.
      *
      * @param parameters the HashMap with key "clauseString"
-     * @param errors   no effect
+     * @param errors   for error messages
      * @param warnings no effect
-     * @return a HashMap with key "disjunctions" and as value a BasicClauseList object.
+     * @return a HashMap with key "clauses" and as value a BasicClauseList object.
      */
     public static  HashMap<String,Object> generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
         String clausesString = (String)parameters.get("clauseString");
@@ -61,32 +66,41 @@ public class StringClauseSetGenerator  {
             if(clauseString.trim().startsWith("disjoint")) {disjointness = true; break;}}
 
         BasicClauseList bcl = new BasicClauseList();
-        bcl.info = "String-generated disjunctions:\n" + clausesStrings;
+        bcl.info = "String-generated clauses:\n" + clausesString;
 
         ArrayList<Clause> clauseList = new ArrayList<>();
+        int clauseNumber = 0;
         for(String clauseString : clausesStrings) {
             if(clauseString.isEmpty()) {continue;}
             String[] literals = clauseString.split("\\s*(,| )\\s*");
-            boolean disjoint = literals[0].equals("disjoint");
-            int start = disjoint ? 1 : 0;
-            int shift = (disjointness && start == 0) ? 1 : 0;
-            int length = literals.length;
-            if(disjointness && !disjoint) ++length;
+            int start = 0;
+            int length = literals.length+2;
+            ClauseType type = ClauseType.OR;
+            if(literals[0].startsWith("$")) {
+                start = 1;
+                length = literals.length+1;
+                type = ClauseType.getType(literals[0].charAt(1));
+                if(type == null) {
+                    errors.append("Illegal ClauseType: '" + literals[0] + "' in " + clausesString + ".\n"+
+                    "Should be one of a (and), x (xor), d (disjoint), e (equivalence)\n");
+                    continue;}}
             int[] lits = new int[length];
-            if(disjointness) {lits[0] = disjoint ? 1: 0;}
+            lits[0] = ++clauseNumber;
+            lits[1] = type.ordinal();
+            int n = 1;
             for(int i = start; i < literals.length; ++i) {
                 String literal = literals[i];
                 int sign = 1;
                 if(literal.startsWith("-")) {sign = -1; literal = literal.substring(1,literal.length());}
                 Integer number = name2Int.get(literal);
                 if(number == null) {number = ++predicates; name2Int.put(literal,number);}
-                lits[i+shift] = number*sign;}
-            bcl.disjunctions.add(lits);}
+                lits[++n] = number*sign;}
+            bcl.addClause(lits);}
         Symboltable symboltable = new Symboltable(predicates);
         name2Int.forEach((name,predicate) -> symboltable.setName(predicate,name));
         bcl.symboltable = symboltable;
         bcl.predicates = predicates;
-        parameters.put("disjunctions",bcl);
+        parameters.put("clauses",bcl);
         return parameters;
     }
 }

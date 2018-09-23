@@ -258,6 +258,14 @@ public class Utilities {
         catch(Exception exp) {exp.printStackTrace();}
     return null;}
 
+    public static void clearTmpDirectory(String directory) {
+        String tmp = System.getenv("TEMP");
+        File dirfile = Paths.get(tmp,directory).toFile();
+        try {
+            if (!dirfile.exists()) {return;}
+            for(File file : dirfile.listFiles()) {file.delete();}}
+        catch(Exception exp) {exp.printStackTrace();}}
+
     /** generates a BiConsumer which prints a message to System.out
      *
      * @return a BiConsumer which prints a message to System.out
