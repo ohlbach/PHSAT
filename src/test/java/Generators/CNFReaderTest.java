@@ -105,13 +105,13 @@ public class CNFReaderTest {
         assertEquals(1,pars.size());
         CNFReader.generate(pars.get(0),errors,warnings);
         assertEquals("",errors.toString());
-        //System.out.println(pars.get(0).get("clauses"));
+        //System.out.println(pars.get(0).get("disjunctions"));
         assertEquals("[1, -5, 3]\n" +
                 "[-5, 7, 1, 1]\n" +
                 "[4, 5, 6]\n" +
                 "[4]\n" +
-                "[5]\n",pars.get(0).get("clauses").toString());
-        assertEquals(" test1\n test2\n",((BasicClauseList)(pars.get(0).get("clauses"))).info);
+                "[5]\n",pars.get(0).get("disjunctions").toString());
+        assertEquals(" test1\n test2\n",((BasicClauseList)(pars.get(0).get("disjunctions"))).info);
 
     }
 
@@ -135,14 +135,14 @@ public class CNFReaderTest {
         assertEquals(1,pars.size());
         CNFReader.generate(pars.get(0),errors,warnings);
         assertEquals("",errors.toString());
-        //System.out.println(pars.get(0).get("clauses"));
+        //System.out.println(pars.get(0).get("disjunctions"));
         assertEquals("[0, 1, -5, 3]\n" +
                 "[0, -5, 7, 1, 1]\n" +
                 "[0, 4, 5, 6]\n" +
                 "[0, 4]\n" +
-                "[1, 1, 2, 3]\n",pars.get(0).get("clauses").toString());
-        assertEquals(" test1\n test2\n",((BasicClauseList)(pars.get(0).get("clauses"))).info);
-        assertTrue(((BasicClauseList)(pars.get(0).get("clauses"))).withDisjointness);
+                "[1, 1, 2, 3]\n",pars.get(0).get("disjunctions").toString());
+        assertEquals(" test1\n test2\n",((BasicClauseList)(pars.get(0).get("disjunctions"))).info);
+        assertTrue(((BasicClauseList)(pars.get(0).get("disjunctions"))).withDisjointness);
 
     }
 

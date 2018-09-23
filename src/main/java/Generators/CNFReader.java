@@ -171,10 +171,10 @@ public class CNFReader {
             literals.add(++number);
             int start = 1;
             switch(line.charAt(0)) {
-                case 'd': literals.add(ClauseType.DISJOINT.ordinal()); break;
-                case 'e': literals.add(ClauseType.EQUIV.ordinal()); break;
-                case 'x': literals.add(ClauseType.XOR.ordinal()); break;
-                case 'a': literals.add(ClauseType.AND.ordinal()); break;
+                case 'd': literals.add(ClauseType.DISJOINT.ordinal());     break;
+                case 'e': literals.add(ClauseType.EQUIV.ordinal());        break;
+                case 'x': literals.add(ClauseType.XOR.ordinal());          break;
+                case 'a': literals.add(ClauseType.AND.ordinal());          break;
                 default: literals.add(ClauseType.OR.ordinal()); start = 0; break;}
             String[] parts = line.split("\\s*( |,)\\s*");
             for(int i = start; i < parts.length-1; ++i) {
@@ -190,7 +190,7 @@ public class CNFReader {
         for(ArrayList clause : clauseList) {
             lits = new int[clause.size()];
             for(int i = 0; i< clause.size(); ++i) {lits[i] = (int)clause.get(i);}
-            bcl.clauses.add(lits);}
+            bcl.addClause(lits);}
         bcl.info = info.toString();
         parameters.put("clauses",bcl);
         return  parameters;}

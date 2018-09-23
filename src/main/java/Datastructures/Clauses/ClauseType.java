@@ -1,6 +1,5 @@
 package Datastructures.Clauses;
 
-import org.apache.commons.lang3.ClassUtils;
 
 /**
  * Created by ohlbach on 14.09.2018.

@@ -34,7 +34,7 @@ public class PidgeonHoleGeneratorTest {
         params.put("pidgeons",5);
         params.put("holes",4);
         PidgeonHoleGenerator.generate(params,errors,warnings);
-        //System.out.println(params.get("clauses"));
+        //System.out.println(params.get("disjunctions"));
         assertEquals("[0, 1, 2, 3, 4]\n" +
                 "[0, 5, 6, 7, 8]\n" +
                 "[0, 9, 10, 11, 12]\n" +
@@ -43,7 +43,7 @@ public class PidgeonHoleGeneratorTest {
                 "[1, 1, 5, 9, 13, 17]\n" +
                 "[1, 2, 6, 10, 14, 18]\n" +
                 "[1, 3, 7, 11, 15, 19]\n" +
-                "[1, 4, 8, 12, 16, 20]\n",params.get("clauses").toString());
+                "[1, 4, 8, 12, 16, 20]\n",params.get("disjunctions").toString());
 
         //System.out.println(PidgeonHoleGenerator.help());
 

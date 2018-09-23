@@ -14,26 +14,26 @@ import java.util.Random;
  * Created by ohlbach on 26.08.2018.
  *
  * This generator generates clause sets with randomly generated literals.<br/>
- * It can generate two types of clauses, ordinary clauses and disjointness clauses <br/>
+ * It can generate two types of disjunctions, ordinary disjunctions and disjointness disjunctions <br/>
  * A clause p,q,r as a disjointness clause  means that at most one of the predicates can be true in a model.
- * If disjointness clauses are generated then the representation of a clause in BasicClauseList starts with
+ * If disjointness disjunctions are generated then the representation of a clause in BasicClauseList starts with
  * 0 for ordinary clause and 1 for disjointness clause.
  */
 public class RandomClauseSetGenerator {
 
     private static HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"type", "seed","predicates","clauses","cpRatio","length","precise","dBlocks","dLength"}) {
+        for(String key : new String[]{"type", "seed","predicates","disjunctions","cpRatio","length","precise","dBlocks","dLength"}) {
             keys.add(key);}}
 
     /** The method translates the string-valued parameters in the HashMap to objects for controlling the generator.
      * The allowed parameters are: <br/>
      * predicates: an integer > 0, specifies the number of predicates in the clause set.<br/>
-     * clauses:    an integer > 0, specifies the number of normal clauses to be generated.<br/>
+     * disjunctions:    an integer > 0, specifies the number of normal disjunctions to be generated.<br/>
      * cpRatio:    a float > 0, specifies the clause/predicate ratio.<br/>
-     *             cpRatio = 4.3 means: for 100 predicates 430 clauses.<br/>
+     *             cpRatio = 4.3 means: for 100 predicates 430 disjunctions.<br/>
      * length:     an integer > 0, specifies the maximum number of literals per clause.<br/>
-     * precise:    a boolean, if true then the clauses have exactly the specified length (default true).<br/>
+     * precise:    a boolean, if true then the disjunctions have exactly the specified length (default true).<br/>
      * seed:       an integer >= 0 for starting the random number generator (default 0).<br/>
      * dBlocks (optional): an integer > 0, the number of dijointness blocks.<br/>
      * dLength (optional): an integer > 0, the number of predicates in each disjointness block.<br/>
@@ -59,7 +59,7 @@ public class RandomClauseSetGenerator {
 
         String seed      = parameters.get("seed");
         String predicate = parameters.get("predicates");
-        String clause    = parameters.get("clauses");
+        String clause    = parameters.get("disjunctions");
         String cpRatio   = parameters.get("cpRatio");
         String length    = parameters.get("length");
         String precise   = parameters.get("precise");
@@ -80,7 +80,7 @@ public class RandomClauseSetGenerator {
             cpRatios = Utilities.parseFloatRange("RandomClauseSetGenerator cpRatio",cpRatio,errors);}
 
         ArrayList clauses = null;
-        if(clause == null && cpRatios == null) {errors.append("RandomClauseSetGenerator: no number of clauses defined.\n");}
+        if(clause == null && cpRatios == null) {errors.append("RandomClauseSetGenerator: no number of disjunctions defined.\n");}
         else {clauses = Utilities.parseIntRange("RandomClauseSetGenerator predicate",clause,errors);}
 
         ArrayList lengths = null;
@@ -112,7 +112,7 @@ public class RandomClauseSetGenerator {
                 HashMap<String,Object> cntr = new HashMap<>();
                 cntr.put("seed",values.get(0));
                 cntr.put("predicates",pred);
-                cntr.put("clauses",  values.get(2));
+                cntr.put("disjunctions",  values.get(2));
                 cntr.put("length",   values.get(3));
                 cntr.put("precise",  values.get(4));
                 cntr.put("dBlocks",  dbl);
@@ -125,7 +125,7 @@ public class RandomClauseSetGenerator {
             HashMap<String,Object> cntr = new HashMap<>();
             cntr.put("seed",values.get(0));
             cntr.put("predicates",values.get(1));
-            cntr.put("clauses",Math.round((Integer)values.get(1)*(Float)values.get(2)));
+            cntr.put("disjunctions",Math.round((Integer)values.get(1)*(Float)values.get(2)));
             cntr.put("length",   values.get(3));
             cntr.put("precise",  values.get(4));
             cntr.put("dBlocks",  values.get(5));
@@ -141,15 +141,15 @@ public class RandomClauseSetGenerator {
     public static String help() {
         StringBuilder st = new StringBuilder();
         st.append("Random Clause Set Generator\n");
-        st.append("It can generate normal propositional clauses as well as \"disjointness clauses\"\n");
+        st.append("It can generate normal propositional disjunctions as well as \"disjointness disjunctions\"\n");
         st.append("A disjointenss clause \'p,q,r\' means that at most one of the literals can be true in a model.\n");
         st.append("The parameters are:\n");
         st.append("predicates: an integer > 0, specifies the number of predicates in the clause set.\n");
-        st.append("clauses:    an integer > 0, specifies the number of normal clauses to be generated.\n");
+        st.append("disjunctions:    an integer > 0, specifies the number of normal disjunctions to be generated.\n");
         st.append("cpRatio:    a float > 0, specifies the clause/predicate ratio.\n");
-        st.append("            cpRatio = 4.3 means: for 100 predicates 430 clauses.");
+        st.append("            cpRatio = 4.3 means: for 100 predicates 430 disjunctions.");
         st.append("length:     an integer > 0, specifies the maximum number of literals per clause.\n");
-        st.append("precise:    a boolean, if true then the clauses have exactly the specified length (default true).\n");
+        st.append("precise:    a boolean, if true then the disjunctions have exactly the specified length (default true).\n");
         st.append("seed:       an integer >= 0 for starting the random number generator (default 0).\n");
         st.append("dBlocks (optional): an integer > 0, the number of dijointness blocks.\n" );
         st.append("dLength (optional): an integer > 0, the number of predicates in each disjointness block.\n");
@@ -171,12 +171,12 @@ public class RandomClauseSetGenerator {
     /** generates the clause set
      *
      * @param parameters for controlling the generator.
-     * @return  the parameters  with an additional key "clauses" with the generatied BasicClauseList
+     * @return  the parameters  with an additional key "disjunctions" with the generatied BasicClauseList
      */
     public static HashMap<String,Object> generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
         int seed            = (Integer)parameters.get("seed");
         int predicates      = (Integer)parameters.get("predicates");
-        int numberClauses   = (Integer)parameters.get("clauses");
+        int numberClauses   = (Integer)parameters.get("disjunctions");
         int maxClauseLength = (Integer)parameters.get("length");
         boolean precise     = (Boolean)parameters.get("precise");
         Integer dBlocks     = (Integer)parameters.get("dBlocks");
@@ -190,10 +190,10 @@ public class RandomClauseSetGenerator {
         Status stat = new Status();
         stat.seed = seed;
         LocalModel model = new LocalModel(predicates);
-        clauseList.info = "Randomly generated clauses with seed " + seed;
+        clauseList.info = "Randomly generated disjunctions with seed " + seed;
         Random rnd = new Random(seed);
         int clauseCounter = 1;
-        while(clauseList.clauses.size() < numberClauses) {
+        while(clauseList.disjunctions.size() < numberClauses) {
             literals.clear();
             int clauseLength = precise ? maxClauseLength : rnd.nextInt(maxClauseLength)+1;
             while(literals.size() < clauseLength) {
@@ -206,7 +206,7 @@ public class RandomClauseSetGenerator {
             int start = 0;
             if(withDisjointness) {lits[0]=0; start=1;}
             for(int i = start; i < lits.length; ++i) {lits[i] = literals.get(withDisjointness ? i-1 : i);}
-            clauseList.clauses.add(lits);}
+            clauseList.disjunctions.add(lits);}
 
         if(withDisjointness) {
             HashSet<Integer> preds = new HashSet();
@@ -220,9 +220,9 @@ public class RandomClauseSetGenerator {
                     literals.add(literal);}
                 int lits[] = new int[literals.size()];
                 for(int i = 0; i < lits.length; ++i) {lits[i] = literals.get(i);}
-                clauseList.clauses.add(lits);}
+                clauseList.disjunctions.add(lits);}
             }
-        parameters.put("clauses",clauseList);
+        parameters.put("disjunctions",clauseList);
         return parameters;}}
 
 

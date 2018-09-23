@@ -15,16 +15,16 @@ import java.util.stream.Stream;
 /**
  * Created by ohlbach on 26.08.2018.
  *
- * This class is for collecting sets of clauses.
- * It supports inserting clauses, removing clauses and literals, retrieving clauses and literals.
- * A literal index is used to access literals and clauses quickly.
+ * This class is for collecting sets of disjunctions.
+ * It supports inserting disjunctions, removing disjunctions and literals, retrieving disjunctions and literals.
+ * A literal index is used to access literals and disjunctions quickly.
  * Removing literals and replacing them with representatives in an equivalence class can be
  * observed by corresponding consumer functions.
  */
 public class ClauseList {
     public int predicates;
-    public final ArrayList<Clause> clauses;              // the list of clauses
-    private final HashMap<String,Clause> id2Clause;      // maps clause ids to clauses
+    public final ArrayList<Clause> clauses;              // the list of disjunctions
+    private final HashMap<String,Clause> id2Clause;      // maps clause ids to disjunctions
     public final LiteralIndex literalIndex;              // maps literals to CLiterals
     public int timestamp = 0;                            // for algorithms
     public final ArrayList<Consumer<Clause>> literalRemovalObservers = new ArrayList<Consumer<Clause>>();
@@ -33,9 +33,9 @@ public class ClauseList {
     // they are called when literals are replaced by representatives in a equivalence class.
 
 
-    /** creates a clause list. The number of clauses should be estimated.
+    /** creates a clause list. The number of disjunctions should be estimated.
      *
-     * @param size       the estimated number of clauses
+     * @param size       the estimated number of disjunctions
      * @pramm predicates the number of predicates.
      */
     public ClauseList(int size,int predicates) {
@@ -88,8 +88,8 @@ public class ClauseList {
         literalIndex.removeLiteral(cliteral);
         for(Consumer observer : literalRemovalObservers) {observer.accept(clause);}}
 
-    /** All clauses with the literal are removed. <br/>
-     *  All negated literals are removed from the clauses. <br/>
+    /** All disjunctions with the literal are removed. <br/>
+     *  All negated literals are removed from the disjunctions. <br/>
      *  All literalRemovalObservers are called.
      *
      * @param literal a literal which is supposed to be true.
@@ -98,7 +98,7 @@ public class ClauseList {
         for(Object cliteral : literalIndex.getLiterals(literal).toArray()) {removeClause(((CLiteral)cliteral).clause);}
         for(Object cliteral : literalIndex.getLiterals(-literal).toArray()) {removeLiteral((CLiteral)cliteral);}}
 
-    /** replaces a literal by its representative of an equivalence class in all clauses where ther literal and its negation occur.
+    /** replaces a literal by its representative of an equivalence class in all disjunctions where ther literal and its negation occur.
      * If the clause then contains double literals, one of the is removed.<br/>
      * If the clause becomes a tautology, it is entirely (and silently) removed.<br/>
      * All literalReplacementObservers and literalRemovalObservers are called.
@@ -129,7 +129,7 @@ public class ClauseList {
         Collection list = literalIndex.getLiterals(literal);
         return(list == null) ? 0 : list.size();}
 
-    /** checks whether there are no clauses with negated literals any more
+    /** checks whether there are no disjunctions with negated literals any more
      *
      * @param literal a literal
      * @return true if there are no negated literals anymore.
@@ -174,9 +174,9 @@ public class ClauseList {
                 implicationGraph.getImplicants(-literal).stream().flatMap(lit -> literalIndex.getLiterals(-lit).stream()));}
 
 
-    /** the actual number of clauses
+    /** the actual number of disjunctions
      *
-     * @return the number of clauses
+     * @return the number of disjunctions
      */
     public int size() {return clauses.size();}
 
@@ -186,16 +186,16 @@ public class ClauseList {
      */
     public boolean isEmpty() {return clauses.size() == 0;}
 
-    /** generates a string with clauses
+    /** generates a string with disjunctions
      *
-     * @return a string with clauses
+     * @return a string with disjunctions
      */
     public String toString(){return toString(null);}
 
-    /** generates a string with clauses
+    /** generates a string with disjunctions
      *
      * @param symboltable for displaying the literals
-     * @return a string with clauses
+     * @return a string with disjunctions
      */
     public String toString(Symboltable symboltable){
         StringBuffer st = new StringBuffer();

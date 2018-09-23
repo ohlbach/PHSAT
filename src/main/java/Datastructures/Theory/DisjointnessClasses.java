@@ -19,7 +19,7 @@ public class DisjointnessClasses {
     private Model model;       // a model
     private ImplicationGraph implicationGraph; // an implication graph (optional)
     private EquivalenceClasses equivalenceClasses; // optional
-    /** the list of clauses representing disjoint literals */
+    /** the list of disjunctions representing disjoint literals */
     public ClauseList disjointnessClasses = null;
     /** reports changed disjointnss classes */
     public ArrayList<Consumer<Clause>> disjointnessObservers = new ArrayList();
@@ -57,7 +57,7 @@ public class DisjointnessClasses {
      * p &lt;=&gt; -p is ignored.<br/>
      * A double literal p,p is a contradiction.<br/>
      * The corresponding observers are called.
-     * New clauses which are subsets of a new clause are deleted.
+     * New disjunctions which are subsets of a new clause are deleted.
      * Literals occurring in several classes may cause joining of the classes.
      *
      * @param basicClause [clause-id,typenumber,literal1,...]
@@ -130,7 +130,7 @@ public class DisjointnessClasses {
 
     /** checks whether all literals in the disjointness class are disjoint with the new literal.
      *  If p is in the clause and r is the new literal, then p -&gt; -r must hold to ensure disjointness.<br/>
-     *  If the class is extended then it may subsume older clauses, and it may merge with older clauses.
+     *  If the class is extended then it may subsume older disjunctions, and it may merge with older disjunctions.
      *
      * @param disjointness an existing disjointness class
      * @param literal  a literal
@@ -144,7 +144,7 @@ public class DisjointnessClasses {
         reportDisjointenss(joinClauses(disjointness));
         return true;}
 
-    /** removes all clauses wich are subsets of the given clause.
+    /** removes all disjunctions wich are subsets of the given clause.
      * I p,q,r are disjoint then p,q and p,r and q,r are also disjoint.
      *
      * @param disjointness a disjointness clause.
@@ -163,7 +163,7 @@ public class DisjointnessClasses {
             }
 
     /** joins disjointness classes if possible.
-     * It collects all literals in all clauses containing any of the literals in the given clause.
+     * It collects all literals in all disjunctions containing any of the literals in the given clause.
      * Only those literals which are mutually disjoint are then inserted in a new clause
      *
      * @param disjointness a disjointness class
@@ -185,10 +185,10 @@ public class DisjointnessClasses {
         subsume(joinedClause);
         return joinedClause;}
 
-    /** collects all literals in all clauses containing one of the literals in the given clause.
+    /** collects all literals in all disjunctions containing one of the literals in the given clause.
      *
      * @param clause a disjointness clause
-     * @return all literals in all clauses containing one of the literals in the given clause.
+     * @return all literals in all disjunctions containing one of the literals in the given clause.
      */
     private Object[] literalUnion(Clause clause) {
         HashSet<Integer> literals = null;

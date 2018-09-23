@@ -15,9 +15,9 @@ import java.util.HashMap;
  */
 public class StringClauseSetGenerator  {
 
-    /** transfers the clauses (String) unchanged to the result
+    /** transfers the disjunctions (String) unchanged to the result
      *
-     * @param parameters a HashMap with key "clauses"
+     * @param parameters a HashMap with key "disjunctions"
      * @param errors    no effect
      * @param warnings  no effect
      * @return a HashMap with "clauseString"
@@ -25,7 +25,7 @@ public class StringClauseSetGenerator  {
     public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
                                                                            StringBuffer errors, StringBuffer warnings){
         HashMap<String,Object> map = new HashMap<>();
-        map.put("clauseString", parameters.get("clauses").trim());
+        map.put("clauseString", parameters.get("disjunctions").trim());
         ArrayList<HashMap<String,Object>> list = new ArrayList<>();
         list.add(map);
         return list;}
@@ -35,9 +35,9 @@ public class StringClauseSetGenerator  {
      * @return a help string
      */
     public static String help() {
-        return "StringClauseSetGenerator just parses a string of clauses.\n" +
+        return "StringClauseSetGenerator just parses a string of disjunctions.\n" +
                 "A clause is just a single line of literals.\n" +
-                "The literals in the clauses may by any strings, possibly preceded by -.\n" +
+                "The literals in the disjunctions may by any strings, possibly preceded by -.\n" +
                 "A clause starting with 'disjoint' indicates a set of disjoint predicates.\n" +
                 "At most one of these predicates can be true in a model.";}
 
@@ -47,7 +47,7 @@ public class StringClauseSetGenerator  {
      * @param parameters the HashMap with key "clauseString"
      * @param errors   no effect
      * @param warnings no effect
-     * @return a HashMap with key "clauses" and as value a BasicClauseList object.
+     * @return a HashMap with key "disjunctions" and as value a BasicClauseList object.
      */
     public static  HashMap<String,Object> generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
         String clausesString = (String)parameters.get("clauseString");
@@ -60,8 +60,8 @@ public class StringClauseSetGenerator  {
         for(String clauseString : clausesStrings) {
             if(clauseString.trim().startsWith("disjoint")) {disjointness = true; break;}}
 
-        BasicClauseList bcl = new BasicClauseList(disjointness);
-        bcl.info = "String-generated clauses:\n" + clausesStrings;
+        BasicClauseList bcl = new BasicClauseList();
+        bcl.info = "String-generated disjunctions:\n" + clausesStrings;
 
         ArrayList<Clause> clauseList = new ArrayList<>();
         for(String clauseString : clausesStrings) {
@@ -81,12 +81,12 @@ public class StringClauseSetGenerator  {
                 Integer number = name2Int.get(literal);
                 if(number == null) {number = ++predicates; name2Int.put(literal,number);}
                 lits[i+shift] = number*sign;}
-            bcl.clauses.add(lits);}
+            bcl.disjunctions.add(lits);}
         Symboltable symboltable = new Symboltable(predicates);
         name2Int.forEach((name,predicate) -> symboltable.setName(predicate,name));
         bcl.symboltable = symboltable;
         bcl.predicates = predicates;
-        parameters.put("clauses",bcl);
+        parameters.put("disjunctions",bcl);
         return parameters;
     }
 }

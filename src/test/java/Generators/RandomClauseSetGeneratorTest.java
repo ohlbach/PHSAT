@@ -19,7 +19,7 @@ public class RandomClauseSetGeneratorTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         parameters.put("predicates","10");
-        parameters.put("clauses","30");
+        parameters.put("disjunctions","30");
         parameters.put("length","3");
         ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
@@ -27,7 +27,7 @@ public class RandomClauseSetGeneratorTest {
         //System.out.println(map);
         assertEquals(1,map.size());
         assertEquals(10,map.get(0).get("predicates"));
-        assertEquals(30,map.get(0).get("clauses"));
+        assertEquals(30,map.get(0).get("disjunctions"));
         assertEquals(3,map.get(0).get("length"));
         assertTrue((Boolean)map.get(0).get("precise"));
         assertEquals(0,map.get(0).get("seed"));
@@ -50,7 +50,7 @@ public class RandomClauseSetGeneratorTest {
         //System.out.println(map);
         assertEquals(1,map.size());
         assertEquals(100,map.get(0).get("predicates"));
-        assertEquals(430,map.get(0).get("clauses"));
+        assertEquals(430,map.get(0).get("disjunctions"));
         assertEquals(3,map.get(0).get("length"));
         assertTrue((Boolean)map.get(0).get("precise"));
         assertEquals(0,map.get(0).get("seed"));
@@ -65,7 +65,7 @@ public class RandomClauseSetGeneratorTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         parameters.put("predicates","100");
-        parameters.put("clauses","400");
+        parameters.put("disjunctions","400");
         parameters.put("length","3");
         parameters.put("precise","false");
         ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
@@ -74,7 +74,7 @@ public class RandomClauseSetGeneratorTest {
         //System.out.println(map);
         assertEquals(1,map.size());
         assertEquals(100,map.get(0).get("predicates"));
-        assertEquals(400,map.get(0).get("clauses"));
+        assertEquals(400,map.get(0).get("disjunctions"));
         assertEquals(3,map.get(0).get("length"));
         assertFalse((Boolean)map.get(0).get("precise"));
         assertEquals(0,map.get(0).get("seed"));
@@ -89,7 +89,7 @@ public class RandomClauseSetGeneratorTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         parameters.put("predicates","100");
-        parameters.put("clauses","400");
+        parameters.put("disjunctions","400");
         parameters.put("length","3");
         parameters.put("precise","false");
         parameters.put("dLength","10");
@@ -99,7 +99,7 @@ public class RandomClauseSetGeneratorTest {
         //System.out.println(map);
         assertEquals(1,map.size());
         assertEquals(100,map.get(0).get("predicates"));
-        assertEquals(400,map.get(0).get("clauses"));
+        assertEquals(400,map.get(0).get("disjunctions"));
         assertEquals(3,map.get(0).get("length"));
         assertFalse((Boolean)map.get(0).get("precise"));
         assertEquals(0,map.get(0).get("seed"));
@@ -114,7 +114,7 @@ public class RandomClauseSetGeneratorTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         parameters.put("predicates","100");
-        parameters.put("clauses","400");
+        parameters.put("disjunctions","400");
         parameters.put("length","3");
         parameters.put("precise","false");
         parameters.put("dBlocks","2");
@@ -125,7 +125,7 @@ public class RandomClauseSetGeneratorTest {
         //System.out.println(map);
         assertEquals(1,map.size());
         assertEquals(100,map.get(0).get("predicates"));
-        assertEquals(400,map.get(0).get("clauses"));
+        assertEquals(400,map.get(0).get("disjunctions"));
         assertEquals(3,map.get(0).get("length"));
         assertFalse((Boolean)map.get(0).get("precise"));
         assertEquals(0,map.get(0).get("seed"));
@@ -140,7 +140,7 @@ public class RandomClauseSetGeneratorTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         parameters.put("predicates","10,20");
-        parameters.put("clauses","30");
+        parameters.put("disjunctions","30");
         parameters.put("length","3");
         ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
@@ -148,7 +148,7 @@ public class RandomClauseSetGeneratorTest {
         //System.out.println(map);
         assertEquals(2,map.size());
         assertEquals(10,map.get(0).get("predicates"));
-        assertEquals(30,map.get(0).get("clauses"));
+        assertEquals(30,map.get(0).get("disjunctions"));
         assertEquals(3,map.get(0).get("length"));
         assertTrue((Boolean)map.get(0).get("precise"));
         assertEquals(0,map.get(0).get("seed"));
@@ -156,7 +156,7 @@ public class RandomClauseSetGeneratorTest {
         assertNull(map.get(0).get("dLengths"));
 
         assertEquals(20,map.get(1).get("predicates"));
-        assertEquals(30,map.get(1).get("clauses"));
+        assertEquals(30,map.get(1).get("disjunctions"));
         assertEquals(3,map.get(1).get("length"));
         assertTrue((Boolean)map.get(1).get("precise"));
         assertEquals(0,map.get(1).get("seed"));
@@ -171,7 +171,7 @@ public class RandomClauseSetGeneratorTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         parameters.put("predicates","10,20");
-        parameters.put("clauses","30 to 40 step 5");
+        parameters.put("disjunctions","30 to 40 step 5");
         parameters.put("length","3");
         ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         //System.out.println("E\n"+errors.toString());
@@ -179,7 +179,7 @@ public class RandomClauseSetGeneratorTest {
         //System.out.println(map);
         assertEquals(6,map.size());
         assertEquals(10,map.get(0).get("predicates"));
-        assertEquals(30,map.get(0).get("clauses"));
+        assertEquals(30,map.get(0).get("disjunctions"));
         assertEquals(3,map.get(0).get("length"));
         assertTrue((Boolean)map.get(0).get("precise"));
         assertEquals(0,map.get(0).get("seed"));
@@ -187,7 +187,7 @@ public class RandomClauseSetGeneratorTest {
         assertNull(map.get(0).get("dLengths"));
 
         assertEquals(20,map.get(1).get("predicates"));
-        assertEquals(30,map.get(1).get("clauses"));
+        assertEquals(30,map.get(1).get("disjunctions"));
         assertEquals(3,map.get(1).get("length"));
         assertTrue((Boolean)map.get(1).get("precise"));
         assertEquals(0,map.get(1).get("seed"));
@@ -195,7 +195,7 @@ public class RandomClauseSetGeneratorTest {
         assertNull(map.get(1).get("dLengths"));
 
         assertEquals(20,map.get(5).get("predicates"));
-        assertEquals(40,map.get(5).get("clauses"));
+        assertEquals(40,map.get(5).get("disjunctions"));
     }
 
     @Test
@@ -213,7 +213,7 @@ public class RandomClauseSetGeneratorTest {
         //System.out.println(map);
         assertEquals(6,map.size());
         assertEquals(10,map.get(0).get("predicates"));
-        assertEquals(40,map.get(0).get("clauses"));
+        assertEquals(40,map.get(0).get("disjunctions"));
         assertEquals(3,map.get(0).get("length"));
         assertTrue((Boolean)map.get(0).get("precise"));
         assertEquals(0,map.get(0).get("seed"));
@@ -221,7 +221,7 @@ public class RandomClauseSetGeneratorTest {
         assertNull(map.get(0).get("dLengths"));
 
         assertEquals(20,map.get(1).get("predicates"));
-        assertEquals(80,map.get(1).get("clauses"));
+        assertEquals(80,map.get(1).get("disjunctions"));
         assertEquals(3,map.get(1).get("length"));
         assertTrue((Boolean)map.get(1).get("precise"));
         assertEquals(0,map.get(1).get("seed"));
@@ -229,10 +229,10 @@ public class RandomClauseSetGeneratorTest {
         assertNull(map.get(1).get("dLengths"));
 
         assertEquals(10,map.get(2).get("predicates"));
-        assertEquals(41,map.get(2).get("clauses"));
+        assertEquals(41,map.get(2).get("disjunctions"));
 
         assertEquals(20,map.get(5).get("predicates"));
-        assertEquals(84,map.get(5).get("clauses"));
+        assertEquals(84,map.get(5).get("disjunctions"));
     }
 
     @Test
@@ -242,7 +242,7 @@ public class RandomClauseSetGeneratorTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         parameters.put("predicates","10");
-        parameters.put("clauses","30");
+        parameters.put("disjunctions","30");
         parameters.put("length","3");
         parameters.put("precise", "false,true");
         ArrayList<HashMap<String,Object>> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
@@ -251,7 +251,7 @@ public class RandomClauseSetGeneratorTest {
         //System.out.println(map);
         assertEquals(2,map.size());
         assertEquals(10,map.get(0).get("predicates"));
-        assertEquals(30,map.get(0).get("clauses"));
+        assertEquals(30,map.get(0).get("disjunctions"));
         assertEquals(3,map.get(0).get("length"));
         assertFalse((Boolean)map.get(0).get("precise"));
         assertEquals(0,map.get(0).get("seed"));
@@ -259,7 +259,7 @@ public class RandomClauseSetGeneratorTest {
         assertNull(map.get(0).get("dLengths"));
 
         assertEquals(10,map.get(1).get("predicates"));
-        assertEquals(30,map.get(1).get("clauses"));
+        assertEquals(30,map.get(1).get("disjunctions"));
         assertEquals(3,map.get(1).get("length"));
         assertTrue((Boolean)map.get(1).get("precise"));
         assertEquals(0,map.get(1).get("seed"));
@@ -274,13 +274,13 @@ public class RandomClauseSetGeneratorTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         parameters.put("predicates","10");
-        parameters.put("clauses","30");
+        parameters.put("disjunctions","30");
         parameters.put("length","3");
         parameters.put("precise", "true");
         HashMap<String,Object> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings).get(0);
 
         RandomClauseSetGenerator.generate(map,errors,warnings);
-        System.out.println(map.get("clauses").toString());
+        System.out.println(map.get("disjunctions").toString());
     }
 
     @Test
@@ -290,13 +290,13 @@ public class RandomClauseSetGeneratorTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         parameters.put("predicates","10");
-        parameters.put("clauses","30");
+        parameters.put("disjunctions","30");
         parameters.put("length","3");
         parameters.put("precise", "false");
         HashMap<String,Object> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings).get(0);
 
         RandomClauseSetGenerator.generate(map,errors,warnings);
-        System.out.println(map.get("clauses").toString());
+        System.out.println(map.get("disjunctions").toString());
     }
 
     @Test
@@ -306,7 +306,7 @@ public class RandomClauseSetGeneratorTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         parameters.put("predicates","10");
-        parameters.put("clauses","30");
+        parameters.put("disjunctions","30");
         parameters.put("length","3");
         parameters.put("precise", "true");
         parameters.put("dBlocks","2");
@@ -314,7 +314,7 @@ public class RandomClauseSetGeneratorTest {
         ArrayList<HashMap<String,Object>> maps = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         System.out.println(errors.toString());
         RandomClauseSetGenerator.generate(maps.get(0),errors,warnings);
-        System.out.println(maps.get(0).get("clauses").toString());
+        System.out.println(maps.get(0).get("disjunctions").toString());
     }
 
 }

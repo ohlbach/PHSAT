@@ -17,8 +17,8 @@ public class BasicClauseListTest {
         BasicClauseList clauses = new BasicClauseList(false);
         int[] clause1 = {3,-2,1};
         int[] clause2 = {-3,1,2};
-        clauses.clauses.add(clause1);
-        clauses.clauses.add(clause2);
+        clauses.disjunctions.add(clause1);
+        clauses.disjunctions.add(clause2);
         assertEquals("[3, -2, 1]\n[-3, 1, 2]\n",clauses.toString());
 
         LocalModel model = new LocalModel(10);
@@ -26,7 +26,7 @@ public class BasicClauseListTest {
         ArrayList<int[]> falseClauses = clauses.falseClauses(model);
         assertEquals(1,falseClauses.size());
         assertEquals(clause2,falseClauses.get(0));
-       // System.out.println(clauses.toString());
+       // System.out.println(disjunctions.toString());
     }
 
 }

@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-/** This class manages equivalence classes. The equivalence classes may come from basic clauses,
+/** This class manages equivalence classes. The equivalence classes may come from basic disjunctions,
  * or from implications p -&gt; q and q -&gt; p.
  *
  * Created by ohlbach on 20.09.2018.

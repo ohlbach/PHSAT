@@ -7,10 +7,10 @@ import java.util.function.Consumer;
 /**
  * Created by ohlbach on 29.08.2018.
  *
- * The Implication Graph is a representation of two-literal clauses.
+ * The Implication Graph is a representation of two-literal disjunctions.
  * A clause p,q is equivalent to the two implications -p -> q and -q -> p.
  * The Implication Graph represents for each literal all the consequences with can be derived
- * from the two-literal clauses.
+ * from the two-literal disjunctions.
  */
 public class ImplicationGraph {
     private final int predicates;   // number of predicates (used only in toString())
@@ -51,7 +51,7 @@ public class ImplicationGraph {
      *
      * @param literal1 a literal
      * @param literal2 a literal
-     * @return the derived unit clauses (if any), or null
+     * @return the derived unit disjunctions (if any), or null
      */
     public void addClause(int literal1, int literal2) {
         addImplication(-literal1,literal2);
@@ -60,7 +60,7 @@ public class ImplicationGraph {
 
 
     /** adds an implication ante -> succ to the graph.
-     * Puts derived unit clauses into units.
+     * Puts derived unit disjunctions into units.
      *
      * @param ante a literal
      * @param succ a literal
@@ -81,7 +81,7 @@ public class ImplicationGraph {
             for(Integer negliteral : neglist) {join(-negliteral,implicants.get(-negliteral),antelist);}}}
 
     /** joins to lists of implied literals, e.g. p -> a1,..,q,..,a2  q -> b1...bm.
-     * puts derived unit clauses into units.
+     * puts derived unit disjunctions into units.
      *
      * @param ante     a literal
      * @param antelist the consequences of ante
@@ -114,7 +114,7 @@ public class ImplicationGraph {
     private void remove(int literal) {
         TreeSet<Integer> list = implicants.get(-literal);
         if(list != null) {
-            list.remove((Integer) literal);  // when unit clauses have been derived
+            list.remove((Integer) literal);  // when unit disjunctions have been derived
             for(Integer succ : list) {  // remove the literal from all implications
                 TreeSet<Integer> succlist = implicants.get(-succ);
                 if(succlist != null) {

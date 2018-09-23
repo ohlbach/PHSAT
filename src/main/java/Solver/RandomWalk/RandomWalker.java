@@ -131,7 +131,7 @@ public class RandomWalker {
         maxFlips         = (Integer)solverControl.get("flips");
         randomFrequency  = (Integer)solverControl.get("jumps");
         withImplications = (Boolean)solverControl.get("implications");
-        basicClauses     = (BasicClauseList)problemControl.get("clauses");
+        basicClauses     = (BasicClauseList)problemControl.get("disjunctions");
         predicates       = basicClauses.predicates;
         clauseList       = null; //new ClauseList(predicates,basicClauses.symboltable);
         info = "RandomWalker_" + walker + "(seed:"+seed+",flips:"+maxFlips+ (withImplications ? ",implications" : "") + ")";
@@ -143,8 +143,8 @@ public class RandomWalker {
                     if(f1 > f2) {return -1;}
                     return(f1 < f2) ? 1 : 0;}));}
 
-    /** generates a candidate localModel for the clauses.
-     * A predicate becomes true if it occurs in more clauses than its negation.
+    /** generates a candidate localModel for the disjunctions.
+     * A predicate becomes true if it occurs in more disjunctions than its negation.
      */
     private void initializeModel() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
@@ -155,8 +155,8 @@ public class RandomWalker {
 
     /** initializes flipConsequences and literalQueue.
      *  literalQueue contains the predicates ordered by the number
-     *  of clauses made true when flipping the predicate.
-     *  The head of the queue is the predicate which makes most clauses true by flipping it.
+     *  of disjunctions made true when flipping the predicate.
+     *  The head of the queue is the predicate which makes most disjunctions true by flipping it.
      */
     private void initializeFlipConsequences() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
@@ -166,14 +166,14 @@ public class RandomWalker {
             if(!globalModel.contains(predicate)) {literalQueue.add(predicate);}}}
 
 
-    /** computes how many clauses more become true after flipping the predicate.
+    /** computes how many disjunctions more become true after flipping the predicate.
      * Example: p is true. </br>
-     * All clauses with -p where all literals are false become true</br>
-     * All clauses with p where all other literals are false become false</br>
+     * All disjunctions with -p where all literals are false become true</br>
+     * All disjunctions with p where all other literals are false become false</br>
      * The result is then the difference between these numbers.
      *
      * @param predicate the predicate to be checked
-     * @return how many clauses more become true after flipping the predicate.
+     * @return how many disjunctions more become true after flipping the predicate.
      */
     private int flipMakesTrue(int predicate) {
         int becomesTrue = 0;

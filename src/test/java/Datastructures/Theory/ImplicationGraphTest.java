@@ -23,7 +23,7 @@ public class ImplicationGraphTest {
     }
     @Test
     public void addClause2() throws Exception {
-        System.out.println("add two clauses");
+        System.out.println("add two disjunctions");
         ImplicationGraph ig = new ImplicationGraph(1000);
         ig.addClause(200, 300);
         ig.addClause(200, 5);

@@ -63,19 +63,19 @@ public class PidgeonHoleGenerator {
         return params;}
 
     public static String help() {
-        return "Pidgeon Hole clauses with keys:\n" +
+        return "Pidgeon Hole disjunctions with keys:\n" +
                 "pidgeons:  range of pidgeons\n" +
                 "holes:     range of holes.\n" +
                 "The pidgeons and holes may be ranges like '4,5,6' or '5 to 10' or '5 to 11 step 2'.";
     }
 
 
-    /** genereartes for a given number of pidgeons and a number of holes the corresponding pidgeon hole clauses.
+    /** genereartes for a given number of pidgeons and a number of holes the corresponding pidgeon hole disjunctions.
      *
      * @param parameters a HashMap with keys "holes" and "pidgeons"
      * @param errors    no effect
      * @param warnings  no effect
-     * @return parameters with an extra entry: "clauses".
+     * @return parameters with an extra entry: "disjunctions".
      */
     public static HashMap<String,Object> generate(HashMap<String,Object> parameters,
                                                   StringBuffer errors, StringBuffer warnings){
@@ -96,7 +96,7 @@ public class PidgeonHoleGenerator {
 
         parameters.put("clauseString",st.toString());
         StringClauseSetGenerator.generate(parameters,errors,warnings);
-        ((BasicClauseList)parameters.get("clauses")).info = "Pidgeon Hole example with " + pidgeons + " pidgeons in " + holes + " holes.";
+        ((BasicClauseList)parameters.get("disjunctions")).info = "Pidgeon Hole example with " + pidgeons + " pidgeons in " + holes + " holes.";
         return parameters;
     }
 
