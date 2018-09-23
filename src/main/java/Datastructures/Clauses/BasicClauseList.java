@@ -5,6 +5,7 @@ import Datastructures.Symboltable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.InputMismatchException;
 
 /**
  * Created by Ohlbach on 03.09.2018.<br/>
@@ -19,14 +20,10 @@ public class BasicClauseList {
     /** the original clauses */
     public ArrayList<int[]> clauses = new ArrayList<>();
 
-    public boolean withDisjointness = false;
-
     public String info = null;
 
     public Symboltable symboltable = null;
 
-    public BasicClauseList(boolean withDisjointness) {
-        this.withDisjointness = withDisjointness;}
 
     /** computes a list of clauses which are false in the model
      *
@@ -36,7 +33,7 @@ public class BasicClauseList {
     public ArrayList<int[]> falseClauses(LocalModel model) {
         ArrayList<int[]> falseClauses = new ArrayList<>();
 
-        if(withDisjointness) {
+        if(false ) {//withDisjointness) {
             for(int[] clause : clauses) {
                 int trueLiteral = 0;
                 if(clause[0] == 0) {
@@ -61,26 +58,23 @@ public class BasicClauseList {
      * @return  a string representation of the clauses.
      */
     public String toString() {
-        StringBuilder st = new StringBuilder();
-        for(int[] clause : clauses) {
-            st.append(Arrays.toString(clause)).append("\n");}
-        return st.toString();}
+        return toString(null);}
 
     /** generates a string representation of the clauses
      *
      * @return  a string representation of the clauses.
      */
-    public String toString(boolean withSymbols) {
+    public String toString(Symboltable symboltable) {
         if(symboltable == null) {return toString();}
         StringBuilder st = new StringBuilder();
-        int n = 1;
+        int length = (""+clauses.size()).length();
         for(int[] clause : clauses) {
-            st.append(n++ +": ");
-            int start = withDisjointness ? 1:0;
-            if(withDisjointness && clause[0] == 1) {st.append("d: ");}
-            for(int i = start; i < clause.length; ++i) {
+            st.append(String.format("%"+length+"d ",clause[0]));
+            st.append(ClauseType.getType(clause[1]).abbreviation).append(": ");
+            for(int i = 2; i < clause.length; ++i) {
                 int literal = clause[i];
-                st.append(symboltable.getLiteralName(literal));
+                if(symboltable != null) {st.append(symboltable.getLiteralName(literal));}
+                else {st.append(Integer.toString(literal));}
                 if(i < clause.length -1) {st.append(",");}}
             st.append("\n");}
         return st.toString();}

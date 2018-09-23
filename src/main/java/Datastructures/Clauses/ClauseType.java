@@ -1,10 +1,17 @@
 package Datastructures.Clauses;
 
+import org.apache.commons.lang3.ClassUtils;
+
 /**
  * Created by ohlbach on 14.09.2018.
  */
 public enum ClauseType {
-    OR, AND, XOR, DISJOINT, EQUIV;
+    OR('o'), AND('a'), XOR('x'), DISJOINT('d'), EQUIV('e');
+
+    public char abbreviation;
+
+    ClauseType(char abbreviation) {
+        this.abbreviation = abbreviation;}
 
     public static ClauseType getType(int n) {
         assert n >= 0 && n < 5;
@@ -17,4 +24,17 @@ public enum ClauseType {
         }
         return null;
     }
+
+    public static ClauseType getType(char n) {
+        switch(n) {
+            case 'o': return OR;
+            case 'a': return AND;
+            case 'x': return XOR;
+            case 'd': return DISJOINT;
+            case 'e': return EQUIV;
+        }
+        return null;
+    }
+
+
 }

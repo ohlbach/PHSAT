@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import Datastructures.Clauses.ClauseType;
 import Utilities.Utilities;
 
 /**
@@ -22,12 +23,13 @@ import Utilities.Utilities;
  * clause1 0 <br/>
  * clause2 0 <br/>
  * ...<br/>
- * A clause is a blank-separated list of literals (positive or negative numbers /= 0).
+ * A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0).
  * <br/>
- * An extension of this format may contain clauses beginning with 0.<br/>
- * 0 1 3 5 <br/>
- * for example means that the predicates 1,3 and 5 are disjoint. At most one of them can be true in a model.
- *
+ * An extension of this format may contain clauses beginning with special characters:.<br/>
+ * 'd': means disjunction:  'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).<br/>
+ * 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br/>
+ * 'x': means exclusive-or: 'x 3 4 5' means 3 xor 4 xor 5 (exactly one of them must be true).<br/>
+ * 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.<br/>
  */
 public class CNFReader {
 
@@ -106,7 +108,21 @@ public class CNFReader {
         st.append("  file:      A single filename or a comma-sparated list of filenames.\n");
         st.append("  directory: A single directory name or a comma-separated list of directory names.\n");
         st.append("             All files in the directory ending with .cnf are loaded, unless regExpr is defined.\n");
-        st.append("  regExpr:   A regular expression to select files in the directory.");
+        st.append("  regExpr:   A regular expression to select files in the directory.\n\n");
+        st.append("A standard cnf-file has the following structure:\n" +
+                " c comment\n" +
+                " c comment\n" +
+                " p cnf predicates clauses\n" +
+                " clause1 0\n" +
+                " clause2 0\n" +
+                " ...\n" +
+                " A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0).\n" +
+                " \n" +
+                " An extension of this format may contain clauses beginning with special characters:.\n" +
+                " 'd': means disjunction:  'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).\n" +
+                " 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.\n" +
+                " 'x': means exclusive-or: 'x 3 4 5' means 3 xor 4 xor 5 (exactly one of them must be true).\n" +
+                " 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.\n");
         return st.toString();
     }
 
@@ -131,8 +147,8 @@ public class CNFReader {
             return null;}
         String line;
         Integer predicates = null,clauses = null;
-        boolean disjointness = false;
         try{
+            int number = 0;
         while((line = reader.readLine()) != null) {
             line = line.trim();
             if(line.isEmpty()) {continue;}
@@ -152,12 +168,15 @@ public class CNFReader {
                 errors.append(place + " line does not end with 0: " + line + "\n");
                 return null;}
             literals = new ArrayList();
-            int start = 0;
-            if(line.startsWith("d")) {
-                literals.add(0);
-                disjointness = true;
-                start = 1;}
-            String[] parts = line.split("\\s+");
+            literals.add(++number);
+            int start = 1;
+            switch(line.charAt(0)) {
+                case 'd': literals.add(ClauseType.DISJOINT.ordinal()); break;
+                case 'e': literals.add(ClauseType.EQUIV.ordinal()); break;
+                case 'x': literals.add(ClauseType.XOR.ordinal()); break;
+                case 'a': literals.add(ClauseType.AND.ordinal()); break;
+                default: literals.add(ClauseType.OR.ordinal()); start = 0; break;}
+            String[] parts = line.split("\\s*( |,)\\s*");
             for(int i = start; i < parts.length-1; ++i) {
                 Integer lit = Utilities.parseInteger (place,parts[i],errors);
                 if(lit != null) {literals.add(lit);};}
@@ -165,22 +184,12 @@ public class CNFReader {
         catch(IOException ex) {
             errors.append(place + " IOException\n");
             return null;}
-        BasicClauseList bcl = new BasicClauseList(disjointness);
+        BasicClauseList bcl = new BasicClauseList();
         bcl.predicates = predicates;
         int[] lits = null;
         for(ArrayList clause : clauseList) {
-            if(disjointness) {
-                if((int)clause.get(0) == 0) { // disjointness clause
-                    lits = new int[clause.size()];
-                    lits[0] = 1;
-                    for(int i = 1; i< clause.size(); ++i) {lits[i] = (int)clause.get(i);}}
-                else{lits = new int[clause.size()+1];
-                    lits[0] = 0;  // normal clause
-                    for(int i = 1; i<= clause.size(); ++i) {lits[i] = (int)clause.get(i-1);}}}
-            else{
-                lits = new int[clause.size()];
-                for(int i = 0; i< clause.size(); ++i) {lits[i] = (int)clause.get(i);}}
-
+            lits = new int[clause.size()];
+            for(int i = 0; i< clause.size(); ++i) {lits[i] = (int)clause.get(i);}
             bcl.clauses.add(lits);}
         bcl.info = info.toString();
         parameters.put("clauses",bcl);
