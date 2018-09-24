@@ -19,7 +19,8 @@ public class Disjunctions {
     private Model model;
     public ClauseList disjunctions;
     private ImplicationGraph implicationGraph = null;
-    private EquivalenceClasses equivalences = null;/** reports true literals */
+    private EquivalenceClasses equivalences = null;
+    /** reports true literals */
     public ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList();
     public ArrayList<Consumer<Unsatisfiable>> unsatisfiabilityObservers = new ArrayList();
 
@@ -36,6 +37,9 @@ public class Disjunctions {
 
     public void addLiteralReplacementObserver(Consumer<CLiteral> observer) {
         disjunctions.literalReplacementObservers.add(observer);}
+
+    public void addPurityObserver(Consumer<Integer> observer) {
+        disjunctions.addPurityObserver(observer);}
 
     /** simplifies a basicORClause and turns them into either units, parts of the implication graph,
      * or a Clause, added to ofClauses.
@@ -55,7 +59,7 @@ public class Disjunctions {
             if(i == 0) {clause = Algorithms.subsumedAndResolved(clause,disjunctions,implicationGraph);}}
         disjunctions.addClause(clause);}
 
-    /** turns a basicORClause into a clause. <br/>
+    /** turns a basicClause into a clause. <br/>
      * False literals and double literals are ignored. <br/>~
      * True literals and complementary literals indicate tautologies. <br/>
      * Literals are replaced by their representatives in an equivalence class.
@@ -87,6 +91,14 @@ public class Disjunctions {
 
     public void makeTrue(int literal) {
         disjunctions.makeTrue(literal);}
+
+    public void removeLiteral(int literal) {
+        disjunctions.removeLiteral(literal);
+    }
+
+    public boolean isEmpty() {
+        return disjunctions.isEmpty();
+    }
 
 
     /** processes the consequences of a two-literal clause p,q.
@@ -126,6 +138,9 @@ public class Disjunctions {
 
     public void replaceByRepresentative(int representative, int literal) {
         disjunctions.replaceByRepresentative(representative,literal);}
+
+    public ArrayList<Integer> pureLiterals() {
+        return disjunctions.pureLiterals();}
 
     /** calls all trueLiteralObservers
      *

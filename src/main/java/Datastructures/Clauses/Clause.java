@@ -97,10 +97,10 @@ public class Clause {
 
     /** removes a cliteral from the clause.
      *
-     * @param literal the literal to be removed.
+     * @param cLiteral the literal to be removed.
      */
-    public void removeLiteral(CLiteral literal) {
-        int position = literal.position;
+    public void removeLiteral(CLiteral cLiteral) {
+        int position = cLiteral.position;
         int size = cliterals.size();
         assert position >= 0 && position < size;
         for(int pos = position; pos < size-1; ++pos) {
@@ -146,6 +146,18 @@ public class Clause {
             if(cl != cLiteral & clause2.contains(cl.literal) < 0) {found = false; break;}}
         return found;}
 
+    /** clones the given clause
+     *
+     * @return a copy of the clause.
+     */
+    public Clause clone() {
+        int size = cliterals.size();
+        Clause newClause = new Clause(id,size);
+        ArrayList<CLiteral> newCliterals = new ArrayList<>(size);
+        for(CLiteral cLiteral : cliterals) {
+            newCliterals.add(new CLiteral(cLiteral.literal,newClause,cLiteral.position));}
+        newClause.cliterals = newCliterals;
+        return newClause;}
 
     /** generates a string: clause-number: literals
      *

@@ -1,8 +1,11 @@
 package Datastructures.Literals;
 
+import Coordinator.Incoming;
 import Datastructures.Links.LinkBinary;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.function.Consumer;
 
 /**
  * Created by Ohlbach on 25.08.2018.
@@ -14,6 +17,7 @@ public class LiteralIndex {
     private LinkedList<CLiteral>[] posOccurrences;  // maps each positive predicate to the list of occurrences
     private LinkedList<CLiteral>[] negOccurrences;  // maps each negative predicate to the list of occurrences
     private static LinkedList<CLiteral> emptyList = new LinkedList<>();
+    public ArrayList<Consumer<Integer>> purityObservers = new ArrayList<>();
 
     /** constructs an index for a given number of predicates
      *
@@ -45,10 +49,10 @@ public class LiteralIndex {
      */
     public void removeLiteral(CLiteral cliteral) {
         int literal = cliteral.literal;
-        int predicate = Math.abs(literal);
-        if(literal > 0) {posOccurrences[predicate].remove(cliteral);}
-        else {negOccurrences[predicate].remove(cliteral);}
-    }
+        LinkedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        if(list == null) {return;}
+        list.remove(cliteral);
+        if(list.isEmpty()) {for(Consumer<Integer> observer : purityObservers) {observer.accept(-literal);}}}
 
     /** removes the literal from the index
      *
@@ -70,7 +74,28 @@ public class LiteralIndex {
         LinkedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null ? emptyList : list;}
 
-    /** comrises the index into a string
+    /** checks if the literal is pure, i.e. there are no complementary literals
+     *
+     * @param literal a literal
+     * @return true if the literal is pure, i.e. there are no complementary literals.
+     */
+    public boolean isPure(int literal) {
+        LinkedList<CLiteral> occurrence = (literal > 0) ? negOccurrences[literal] : posOccurrences[-literal];
+        return occurrence == null || occurrence.isEmpty();}
+
+
+    /** returns all pure literals
+     *
+     * @return all pure literals.
+     */
+    public ArrayList<Integer> pureLiterals() {
+        ArrayList<Integer> pure = new ArrayList<>();
+        for(int predicate = 1; predicate < predicates; ++predicate) {
+            if(isPure(predicate)) {pure.add(predicate);}
+            else {if(isPure(-predicate)) {pure.add(-predicate);}}}
+        return pure;}
+
+    /** comprises the index into a string
      *
      * @return the entire index as string.
      */

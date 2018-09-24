@@ -111,7 +111,7 @@ public class ImplicationGraph {
      *
      * @param literal the literal to be removed.
      */
-    private void remove(int literal) {
+    public void remove(int literal) {
         TreeSet<Integer> list = implicants.get(-literal);
         if(list != null) {
             list.remove((Integer) literal);  // when unit disjunctions have been derived
@@ -135,6 +135,33 @@ public class ImplicationGraph {
             mr.remove(literal);
             mr.add(representative);
             reportImplication(-r,representative);}}
+
+    /** assigns missing truth values to the predicates
+     *
+     * @param model a possibly incomplete model
+     * @return 0 in case of success, otherwise the literal whose assigment failed.
+     */
+    public int completeModel(Model model) {
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            if(model.status(predicate) != 0) {continue;}
+            if(implicants.get(predicate) != null && !implicants.get(predicate).isEmpty()) {
+                model.add(predicate);
+                for(Integer literal : implicants.get(predicate)) {
+                    if(model.add(literal) < 0) {return literal;}}
+                for(Integer literal : implicants.get(-predicate)) {
+                    if(model.add(-literal) < 0) {return -literal;}}
+                continue;}
+            if(implicants.get(-predicate) != null && !implicants.get(-predicate).isEmpty()) {
+                model.add(-predicate);
+                for(Integer literal : implicants.get(-predicate)) {
+                    if(model.add(-literal) < 0) {return -literal;}}
+                for(Integer literal : implicants.get(predicate)) {
+                    if(model.add(literal) < 0) {return literal;}}
+                continue;}
+            if(model.add(predicate) < 0) {return predicate;}
+            }
+        return 0;}
+
 
     private void reportTrueLiteral(int literal) {
         for(Consumer<Integer> observer : trueLiteralObservers) {observer.accept(literal);}}

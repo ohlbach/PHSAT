@@ -5,10 +5,7 @@ import Datastructures.Literals.LiteralIndex;
 import Datastructures.Symboltable;
 import Datastructures.Theory.ImplicationGraph;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -43,6 +40,28 @@ public class ClauseList {
         clauses         = new ArrayList<Clause>(size);
         id2Clause       = new HashMap<>();
         literalIndex    = new LiteralIndex(predicates);}
+
+    /** clones the entire clause list
+     *
+     * @return a clone of the clause list (without observers)
+     */
+    public ClauseList clone() {
+        ClauseList newClauseList = new ClauseList(clauses.size(),predicates);
+        for(Clause clause : clauses) {
+            Clause newClause = clause.clone();
+            newClauseList.clauses.add(clause);
+            for(CLiteral cLiteral : newClause.cliterals) {
+                newClauseList.literalIndex.addLiteral(cLiteral);}
+            newClauseList.id2Clause.put(clause.id,newClause);}
+        return newClauseList;}
+
+
+    /** adds a purity observer
+     *
+     * @param observer a purity observer
+     */
+    public void addPurityObserver(Consumer<Integer> observer) {
+        literalIndex.purityObservers.add(observer);}
 
     /** adds a clause to the list and updates the literal index
      *
@@ -87,6 +106,14 @@ public class ClauseList {
         clause.removeLiteral(cliteral);
         literalIndex.removeLiteral(cliteral);
         for(Consumer observer : literalRemovalObservers) {observer.accept(clause);}}
+
+    /** removes all clauses with the given (pure) literal
+     *
+     * @param literal a pure literal
+     */
+    public void removeLiteral(int literal) {
+        for(Object cLiteral : literalIndex.getLiterals(literal).toArray()) {
+            removeClause(((CLiteral)cLiteral).clause);}}
 
     /** All disjunctions with the literal are removed. <br/>
      *  All negated literals are removed from the disjunctions. <br/>
@@ -185,6 +212,14 @@ public class ClauseList {
      * @return true if the clause set is empty.
      */
     public boolean isEmpty() {return clauses.size() == 0;}
+
+
+    /** returns all pure literals
+     *
+     * @return all pure literals.
+     */
+    public ArrayList<Integer> pureLiterals() {
+        return literalIndex.pureLiterals();}
 
     /** generates a string with disjunctions
      *

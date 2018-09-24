@@ -1,12 +1,15 @@
 package Coordinator;
 
 import Algorithms.Algorithms;
+import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Theory.*;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 
+import javax.swing.plaf.basic.BasicLabelUI;
 import java.util.*;
 
 /**
@@ -14,8 +17,11 @@ import java.util.*;
  */
 public class CentralDataHolder {
     public int predicates;
+    BasicClauseList basicClauseList;
     Incoming incoming;
     Outgoing outgoing;
+    HashMap<String,Object> problemControl;
+    ArrayList<Integer> pureLiterals = null;
     private Model model;
     private ImplicationGraph implicationGraph;
     private EquivalenceClasses equivalences = null;
@@ -86,15 +92,17 @@ public class CentralDataHolder {
     }
 
 
-    public CentralDataHolder(int size, int predicates, Incoming incoming, Outgoing outgoing) {
-        this.predicates = predicates;
+    public CentralDataHolder(HashMap<String,Object> problemControl,
+            int size, Incoming incoming, Outgoing outgoing) {
+        basicClauseList = (BasicClauseList)problemControl.get("clauses");
+        this.predicates = basicClauseList.predicates;
         this.incoming   = incoming;
         this.outgoing   = outgoing;
         Model model       = new Model(predicates);
         implicationGraph  = new ImplicationGraph(predicates);
         equivalences      = new EquivalenceClasses(model,implicationGraph);
         disjointnesses    = new DisjointnessClasses(model,implicationGraph,equivalences);
-        disjunctions      = new Disjunctions(size,model,implicationGraph,equivalences);
+        disjunctions      = new Disjunctions(basicClauseList.disjunctions.size(),model,implicationGraph,equivalences);
         disjunctions.disjunctions.literalRemovalObservers.add(clause -> taskQueue.add(makeShortenedClauseTask(clause)));
         implicationGraph.trueLiteralObservers.add(           literal -> taskQueue.add(new OneLiteralTask(literal)));
         implicationGraph.implicationObservers.add(         (from,to) -> taskQueue.add(new TwoLiteralTask(-from,to)));
@@ -120,29 +128,54 @@ public class CentralDataHolder {
             task.execute(changeBlock);}
         return null;}
 
+    public Result addDisjunction(int[] basicClause) {
+        disjunctions.addBasicDisjunction(basicClause);
+        return processTasks(null);}
 
-    public Result addBasicClause(int[] basicClause) {
-        Unsatisfiable result = null;
-        switch(ClauseType.getType(basicClause[1])) {
-            case OR:
-                disjunctions.addBasicDisjunction(basicClause);
-                break;
-            case AND:
-                for(int i = 1; i < basicClause.length; ++i) {
-                    if(makeTrue(basicClause[i])) {break;}}
-                break;
-            case XOR:
-                disjunctions.addBasicDisjunction(basicClause);
-                if(result != null) {return result;}
-            case DISJOINT:
-                addBasicDISJOINTClause(basicClause);
-                break;
-            case EQUIV:
-                 equivalences.addEquivalenceClass(basicClause);
-                break;}
-        if(result != null) {return processTasks(null);}
-        return null;
-    }
+    public Result addConjunction(int[] basicClause) {
+        for(int i = 1; i < basicClause.length; ++i) {
+            if(makeTrue(basicClause[i])) {return processTasks(null);}}
+        return null;}
+
+    public Result addXor(int[] basicClause) {
+         addDisjunction(basicClause);
+         addDisjoint(basicClause);
+        return processTasks(null);}
+
+
+    public Result addDisjoint(int[] basicClause) {
+        Clause clause = disjointnesses.addDisjointnessClass(basicClause);
+        if(clause != null) {
+            int size = clause.size();
+            for(int i = 0; i < size; ++i) {
+                int literal = clause.getLiteral(i);
+                for (int j = i+1; j < size; ++j) {
+                    implicationGraph.addImplication(literal,clause.getLiteral(j));}}}
+        return processTasks(null);}
+
+    public Result addEquivalence(int[] basicClause) {
+        equivalences.addEquivalenceClass(basicClause);
+        return processTasks(null);}
+
+
+    public Result transferBasicClauses() {
+        Result result;
+        for(int[] basicClause: basicClauseList.disjunctions) {
+            result = addDisjunction(basicClause);
+            if(result != null) {return result;}}
+        for(int[] basicClause: basicClauseList.conjunctions) {
+            result = addConjunction(basicClause);
+            if(result != null) {return result;}}
+        for(int[] basicClause: basicClauseList.xor) {
+            result = addXor(basicClause);
+            if(result != null) {return result;}}
+        for(int[] basicClause: basicClauseList.disjoints) {
+            result = addDisjoint(basicClause);
+            if(result != null) {return result;}}
+        for(int[] basicClause: basicClauseList.equivalences) {
+            result = addEquivalence(basicClause);
+            if(result != null) {return result;}}
+        return purityCheck();}
 
     private boolean makeTrue(int literal) {
         int status = model.add(literal);
@@ -161,20 +194,20 @@ public class CentralDataHolder {
     }
 
 
-    private void addBasicDISJOINTClause(int[] basicClause) {
-        Clause clause = disjointnesses.addDisjointnessClass(basicClause);
-        if(clause != null) {
-            int size = clause.size();
-            for(int i = 0; i < size; ++i) {
-                int literal = clause.getLiteral(i);
-                for (int j = i+1; j < size; ++j) {
-                    implicationGraph.addImplication(literal,clause.getLiteral(j));}}}
-        }
-
-    public Result inputFinished() {
-        // purity
-        return null;
-    }
+    public Result purityCheck() {
+        pureLiterals = disjunctions.pureLiterals();
+        disjunctions.addPurityObserver(literal -> pureLiterals.add(literal));
+        for(int i = 0; i < pureLiterals.size(); ++i) {
+            Integer literal = pureLiterals.get(i);
+            if(implicationGraph.getImplicants(literal).isEmpty()) {
+                model.add(literal);
+                disjunctions.removeLiteral(literal);
+                implicationGraph.remove(-literal);}}
+        pureLiterals.clear();
+        if(disjunctions.isEmpty()) {
+            implicationGraph.completeModel(model);
+            return new Satisfiable();}
+        return null;}
 
     public Result processIncomingData() {
         Object[] changes = null;
