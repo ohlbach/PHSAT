@@ -29,33 +29,36 @@ public class Algorithms {
         clauseList.timestamp += size;
         assert size > 1;
         CLiteral cLiteral = clause.cliterals.get(0);
-        clauseList.literalIsImplied(clause.cliterals.get(0).literal,implicationGraph).
+        synchronized (implicationGraph) {
+            clauseList.literalIsImplied(clause.cliterals.get(0).literal,implicationGraph).
                 forEach(clit -> {
                     Clause otherClause = clit.clause;
-                    if(otherClause != clause && otherClause.size() <= size) {otherClause.timestamp = timestamp;}});
+                    if(otherClause != clause && otherClause.size() <= size) {otherClause.timestamp = timestamp;}});}
 
 
         int size1 = size-1;
         for(int i = 1; i < size; ++i) {
             int j = i;
-            if(clauseList.literalIsImplied(clause.cliterals.get(i).literal,implicationGraph).
+            synchronized (implicationGraph) {
+                if(clauseList.literalIsImplied(clause.cliterals.get(i).literal,implicationGraph).
                     anyMatch(clit -> {
                         Clause otherClause = clit.clause;
                         if(otherClause.timestamp - j == timestamp) {
                             if(j == size1) {return true;}   // subsumed
                             otherClause.timestamp = timestamp + j;}
                         return false;})) {
-                return null;}}
+                return null;}}}
 
 
         for(int i = 0; i < clause.size(); ++i) {
             int j = i;
-            if(clauseList.literalIsImplied(clause.cliterals.get(i).literal,implicationGraph).
+            synchronized (implicationGraph) {
+                if(clauseList.literalIsImplied(clause.cliterals.get(i).literal,implicationGraph).
                     anyMatch(clit -> {
                         Clause otherClause = clit.clause;
                         return otherClause.timestamp - timestamp == otherClause.size()-2;}))
                 clause.removeLiteralAtPosition(i);
-                --i;}
+                --i;}}
 
         return clause;}
 
@@ -72,21 +75,23 @@ public class Algorithms {
         clauseList.timestamp += size;
         assert size > 1;
         CLiteral cLiteral = clause.cliterals.get(0);
-        clauseList.literalImplies(clause.cliterals.get(0).literal,implicationGraph).
+        synchronized (implicationGraph) {
+            clauseList.literalImplies(clause.cliterals.get(0).literal,implicationGraph).
                 forEach(clit -> {
                     Clause otherClause = clit.clause;
-                    if(otherClause != clause && otherClause.size() >= size) {otherClause.timestamp = timestamp;}});
+                    if(otherClause != clause && otherClause.size() >= size) {otherClause.timestamp = timestamp;}});}
 
         ArrayList<Clause> subsumed = new ArrayList<>();
         int size1 = size-1;
         for(int i = 1; i < size; ++i) {
             int j = i;
-            clauseList.literalImplies(clause.cliterals.get(i).literal,implicationGraph).
+            synchronized (implicationGraph) {
+                clauseList.literalImplies(clause.cliterals.get(i).literal,implicationGraph).
                     forEach(clit -> {
                         Clause otherClause = clit.clause;
                         if(otherClause.timestamp - j == timestamp) {
                             if(j == size1) {subsumed.add(otherClause);}   // subsumed
-                            else{otherClause.timestamp = timestamp + j;}}});}
+                            else{otherClause.timestamp = timestamp + j;}}});}}
 
 
         for(Clause subs : subsumed) {clauseList.removeClause(clause);}
@@ -95,11 +100,12 @@ public class Algorithms {
         int size2 = size - 2;
         for(int i = 0; i < size; ++i) {
             int j = i;
-            clauseList.literalContradict(clause.cliterals.get(i).literal,implicationGraph).
+            synchronized (implicationGraph) {
+                clauseList.literalContradict(clause.cliterals.get(i).literal,implicationGraph).
                     forEach(clit -> {
                         Clause otherClause = clit.clause;
                         if(otherClause != clause && otherClause.timestamp - timestamp == size2) {
-                            resolved.add(clit);}});}
+                            resolved.add(clit);}});}}
 
         for(CLiteral cliteral : resolved) {
             clauseList.removeLiteral(cliteral);}

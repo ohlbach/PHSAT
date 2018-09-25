@@ -3,13 +3,11 @@ package Coordinator;
 import Algorithms.Algorithms;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Theory.*;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 
-import javax.swing.plaf.basic.BasicLabelUI;
 import java.util.*;
 
 /**
@@ -22,11 +20,11 @@ public class CentralDataHolder {
     Outgoing outgoing;
     HashMap<String,Object> problemControl;
     ArrayList<Integer> pureLiterals = null;
-    private Model model;
-    private ImplicationGraph implicationGraph;
-    private EquivalenceClasses equivalences = null;
-    private DisjointnessClasses disjointnesses = null;
-    private Disjunctions disjunctions = null;
+    public Model model;
+    public Disjunctions disjunctions = null;
+    public ImplicationGraph implicationGraph;
+    public EquivalenceClasses equivalences = null;
+    public DisjointnessClasses disjointnesses = null;
 
     private PriorityQueue<Task> taskQueue = new PriorityQueue<Task>((task1,task2) -> Integer.compare(task1.priority, task2.priority));
 
@@ -92,8 +90,7 @@ public class CentralDataHolder {
     }
 
 
-    public CentralDataHolder(HashMap<String,Object> problemControl,
-            int size, Incoming incoming, Outgoing outgoing) {
+    public CentralDataHolder(HashMap<String,Object> globalParameters, HashMap<String,Object> problemControl) {
         basicClauseList = (BasicClauseList)problemControl.get("clauses");
         this.predicates = basicClauseList.predicates;
         this.incoming   = incoming;
