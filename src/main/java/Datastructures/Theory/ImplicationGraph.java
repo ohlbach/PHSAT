@@ -48,11 +48,11 @@ public class ImplicationGraph {
             return (implied == null) ? empty : implied;}
         finally {readLock.unlock();}}
 
-    /** checks if from implies to
+    /** checks if from downNodes to
      *
      * @param from a literal
      * @param to   a literal
-     * @return true if from implies to
+     * @return true if from downNodes to
      */
     public boolean implies(int from, int to) {
         readLock.lock();

@@ -160,10 +160,12 @@ public class RandomWalker {
     private void initializeModel() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(rwModel.status[predicate] == 0) {
-                rwModel.status[predicate] = (short)((clauseList.getOccurrences(predicate) > clauseList.getOccurrences(-predicate)) ? 1 : -1);}}}
+                int status = (clauseList.getOccurrences(predicate) > clauseList.getOccurrences(-predicate) ? 1 : -1);
 
-    /** initializes the falseClauses array with all clauses which are false in the current rwModel.
-     */
+                rwModel.status[predicate] = (short)status;}}}
+
+                /** initializes the falseClauses array with all clauses which are false in the current rwModel.
+                 */
     private void initializeFalseClauses() {
         falseClauses = new ArrayList<>();
         for(Clause clause : clauseList.clauses) {
