@@ -3,6 +3,7 @@ package Datastructures.Theory;
 import Datastructures.Symboltable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 /** This class represents the nodes in an ImplicationDAG. <br/>
  * A node contains a literal and the 'downNodes' and 'upNodes'. <br/>
@@ -40,6 +41,38 @@ public class ImplicationNode implements Comparable<ImplicationNode> {
         if(upNodes == null) {upNodes = new ArrayList<>(); downNode.upNodes = upNodes;}
         upNodes.add(this);
         return 0;}
+
+    /** joins a list of ImplicationNodes to the node's upNodes list.
+     * The downNodes of the new upNodes get 'this' added.
+     *
+     * @param ups a list of new upNodes.
+     */
+    public void joinUps(Collection<ImplicationNode> ups) {
+        if(ups.isEmpty()) {return;}
+        if(upNodes == null) {upNodes = new ArrayList<>();}
+        for(ImplicationNode node : ups) {
+            if(upNodes.contains(node)) {continue;}
+            upNodes.add(node);
+            if(node.downNodes == null) {node.downNodes = new ArrayList<>();}
+            if(!node.downNodes.contains(this)) {node.downNodes.add(this);}}}
+
+    /** joins a list of ImplicationNodes to the node's downNodes list.
+     * The upNodes of the new downNodes get 'this' added.
+     *
+     * @param downs a list of new downNodes.
+     */
+    public void joinDowns(Collection<ImplicationNode> downs) {
+        if(downs.isEmpty()) {return;}
+        if(downNodes == null) {downNodes = new ArrayList<>();}
+        for(ImplicationNode node : downs) {
+            if(downNodes.contains(node)) {continue;}
+            downNodes.add(node);
+            if(node.upNodes == null) {node.upNodes = new ArrayList<>();}
+            if(!node.upNodes.contains(this)) {node.upNodes.add(this);}}}
+
+
+
+
 
     /** disconnects the node from its upNodes and downNodes.
      */
