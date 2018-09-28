@@ -5,7 +5,7 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
-import Datastructures.Theory.ImplicationGraph;
+import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
 import Utilities.Utilities;
 
@@ -92,6 +92,7 @@ public class RandomWalker {
     private Model globalModel;
     private RWModel rwModel;
     private ArrayList<Integer> newTrueLiterals = new ArrayList<>();
+    private int timestamp = 0;
 
     /** constructs a new solver of type RandomWalker.
      * The constructor is called serially. Therefore there are no race conditions.
@@ -116,7 +117,7 @@ public class RandomWalker {
 
     public String info;
     private int predicates;
-    private ImplicationGraph implicationGraph;
+    private ImplicationDAG implicationDAG;
     private BiConsumer<String,String> logger;
     private Random random;
     private LiteralIndex index ;
@@ -133,7 +134,7 @@ public class RandomWalker {
         randomFrequency  = (Integer)solverControl.get("jumps");
         predicates       = centralData.predicates;
         globalModel      = centralData.model;
-        implicationGraph = centralData.implicationGraph;
+        implicationDAG = centralData.implicationGraph;
         index            = clauseList.literalIndex;
         int seed         = (Integer)solverControl.get("seed");
         random           = new Random(seed);
@@ -158,11 +159,32 @@ public class RandomWalker {
      * A predicate becomes true if it occurs in more clauses than its negation.
      */
     private void initializeModel() {
+        implicationDAG.applyToRoots(literal -> {
+            literal = getOccurrences(literal) > getOccurrences(-literal) ? literal : -literal;
+            implicationDAG.apply(literal,true,(lit-> {
+                rwModel.status[ Math.abs(lit)] = (short)(lit > 0 ? 1 : -1);}));});
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(rwModel.status[predicate] == 0) {
-                int status = (clauseList.getOccurrences(predicate) > clauseList.getOccurrences(-predicate) ? 1 : -1);
+                rwModel.status[predicate] = (short)(getOccurrences(predicate) > getOccurrences(-predicate) ? 1 : -1);}}}
 
-                rwModel.status[predicate] = (short)status;}}}
+
+    private int[] counter = new int[]{0};
+
+    /** counts the clauses containing the literal and its implied literals
+     *
+     * @param literal a literal
+     * @return the number of clauses containing the literal and its implied literals.
+     */
+    private int getOccurrences(int literal) {
+        ++timestamp;
+        counter[0] = 0;
+        implicationDAG.apply(literal,true,(lit-> {
+            for(CLiteral cLiteral : clauseList.getLiterals(lit)){
+                Clause clause = cLiteral.clause;
+                if(clause.timestamp != timestamp) {
+                    clause.timestamp = timestamp;
+                    ++counter[0];}}}));
+        return counter[0];}
 
                 /** initializes the falseClauses array with all clauses which are false in the current rwModel.
                  */
@@ -255,20 +277,18 @@ public class RandomWalker {
             literalQueue.add(pred);}
         rwModel.flip(predicate);}
 
-    /** checks if all literals in the clause except the literals itself are false or at most one is true
+    /** checks if all literals in the clause except the literal itself are false or at most one is true
      *
      * @param cliteral the literal to be checked
      * @return -1 if all other literals are false, 0 if there is more than one true literal, otherwise the true literal.
      */
     private int findTrueLiteral(CLiteral cliteral) {
-        boolean allFalse = true;
         int trueLiteral = 0;
         for(CLiteral otherliteral : cliteral.clause.cliterals) {
             if(otherliteral != cliteral && rwModel.isTrue(otherliteral.literal)) {
-                allFalse = false;
-                if(trueLiteral != 0) {trueLiteral = 0;}
+                if(trueLiteral != 0) {return 0;}
                 else {trueLiteral = otherliteral.literal;}}}
-        return allFalse ? -1 : trueLiteral;}
+        return trueLiteral;}
 
 
     private int oldPredicate = 0;
@@ -299,7 +319,8 @@ public class RandomWalker {
         synchronized (globalModel) {
             if(newTrueLiterals.isEmpty()) {return;} // newTrueLiterals may be changed by another thread
             trueLiterals = new Integer[newTrueLiterals.size()];
-            newTrueLiterals.toArray(trueLiterals);}
+            newTrueLiterals.toArray(trueLiterals);
+            newTrueLiterals.clear();}
         for(Integer literal : trueLiterals) {makeGloballyTrue(literal);}}
 
     private void makeGloballyTrue(int literal) {
