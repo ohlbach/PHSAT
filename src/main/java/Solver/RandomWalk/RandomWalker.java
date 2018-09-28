@@ -121,7 +121,7 @@ public class RandomWalker {
     private BiConsumer<String,String> logger;
     private Random random;
     private LiteralIndex index ;
-    private int[] flipConsequences;
+    private int[] flipScore;
     private PriorityQueue<Integer> literalQueue;
     private ArrayList<Clause> falseClauses;
     int flipCounter  = 0;
@@ -141,8 +141,8 @@ public class RandomWalker {
         info = id + "(seed:"+seed+",flips:"+maxFlips + ")";
         literalQueue     = new PriorityQueue<Integer>(predicates,(
                 (l1,l2) -> {
-                    int f1 = flipConsequences[l1];
-                    int f2 = flipConsequences[l2];
+                    int f1 = flipScore[l1];
+                    int f2 = flipScore[l2];
                     if(f1 > f2) {return -1;}
                     return(f1 < f2) ? 1 : 0;}));
         integrateNewTrueLiterals();
@@ -197,7 +197,7 @@ public class RandomWalker {
             if(isFalse) {falseClauses.add(clause);}}}
 
 
-    /** initializes flipConsequences and literalQueue.
+    /** initializes flipScore and literalQueue.
      *  literalQueue contains the predicates ordered by the number
      *  of disjunctions made true when flipping the predicate.
      *  The head of the queue is the predicate which makes most disjunctions true by flipping it.
@@ -207,36 +207,12 @@ public class RandomWalker {
         try{
             for(int predicate = 1; predicate <= predicates; ++predicate) {
                 if(!globalModel.contains(predicate)) {
-                    flipConsequences[predicate] = flipMakesTrue(predicate);}}
+                    flipScore[predicate] = flipScore(predicate);}}
             for(int predicate = 1; predicate <= predicates; ++predicate) {
                 if(!globalModel.contains(predicate)) {literalQueue.add(predicate);}}}
         finally{globalModel.readUnLock();}}
 
 
-    /** computes how many disjunctions more become true after flipping the predicate.
-     * Example: p is true. </br>
-     * All disjunctions with -p where all literals are false become true</br>
-     * All disjunctions with p where all other literals are false become false</br>
-     * The result is then the difference between these numbers.
-     *
-     * @param predicate the predicate to be checked
-     * @return how many disjunctions more become true after flipping the predicate.
-     */
-    private int flipMakesTrue(int predicate) {
-        int becomesTrue = 0;
-        for(CLiteral cliteral : index.getLiterals(predicate* rwModel.status[predicate])) {
-            boolean remainstrue = false;
-            for(CLiteral othercliteral : cliteral.clause.cliterals) {
-                if(cliteral != othercliteral && rwModel.isTrue(othercliteral.literal)) {remainstrue  = true; break;}}
-            if(!remainstrue) {--becomesTrue;}      // clause becomes false after flip.
-            }
-        for(CLiteral cliteral : index.getLiterals(-predicate* rwModel.status[predicate])) {
-            boolean remainstrue = false;
-            for(CLiteral othercliteral : cliteral.clause.cliterals) {
-                if(cliteral != othercliteral && rwModel.isTrue(othercliteral.literal)) {remainstrue  = true; break;}}
-            if(!remainstrue) {++becomesTrue;}      // clause becomes true after flip.
-        }
-        return becomesTrue;}
 
 
     private HashSet<Integer> affected = new HashSet<>();
@@ -253,23 +229,23 @@ public class RandomWalker {
         if(trueLiteral < 0) { // all are false
             for(CLiteral cliteral : index.getLiterals(predicate* rwModel.status[predicate])) {
                 int pred = Math.abs(cliteral.literal);
-                ++flipConsequences[pred];
+                ++flipScore[pred];
                 affected.add(pred);}}
         else {
             if(trueLiteral != 0) {
                 int pred = Math.abs(trueLiteral);
-                --flipConsequences[pred];
+                --flipScore[pred];
                 affected.add(pred);}}
 
         for(CLiteral cliteral : index.getLiterals(-predicate* rwModel.status[predicate])) {
             trueLiteral = findTrueLiteral(cliteral);
             if(trueLiteral < 0) {
-                --flipConsequences[predicate];
+                --flipScore[predicate];
                 affected.add(predicate);}
             else {
             if(trueLiteral > 0) {
                 int pred = Math.abs(trueLiteral);
-                ++flipConsequences[pred];
+                ++flipScore[pred];
                 affected.add(pred);}}}
 
         for(Integer pred : affected) {
@@ -277,18 +253,6 @@ public class RandomWalker {
             literalQueue.add(pred);}
         rwModel.flip(predicate);}
 
-    /** checks if all literals in the clause except the literal itself are false or at most one is true
-     *
-     * @param cliteral the literal to be checked
-     * @return -1 if all other literals are false, 0 if there is more than one true literal, otherwise the true literal.
-     */
-    private int findTrueLiteral(CLiteral cliteral) {
-        int trueLiteral = 0;
-        for(CLiteral otherliteral : cliteral.clause.cliterals) {
-            if(otherliteral != cliteral && rwModel.isTrue(otherliteral.literal)) {
-                if(trueLiteral != 0) {return 0;}
-                else {trueLiteral = otherliteral.literal;}}}
-        return trueLiteral;}
 
 
     private int oldPredicate = 0;
@@ -326,6 +290,78 @@ public class RandomWalker {
     private void makeGloballyTrue(int literal) {
 
     }
+
+    private boolean falseBut(CLiteral cLiteral) {
+        for(CLiteral cLit : cLiteral.clause.cliterals) {
+            if(cLit != cLiteral) {
+                if(rwModel.isTrue(cLit.literal)) {return false;}}}
+        return true;
+    }
+
+    private boolean isFalse(Clause clause) {
+        for(CLiteral cLit : clause.cliterals) {
+                if(rwModel.isTrue(cLit.literal)) {return false;}}
+        return true;}
+
+
+    int flipScore(int literal) {
+        return becomeTrue(literal) - becomeFalse(literal);}
+
+    /** counts the number of clauses which are false and become true when the literal is flipped.
+     *
+     * @param literal a literal
+     * @return the number of clauses which are false and become true when the literal is flipped.
+     */
+    private int becomeTrue(int literal) {
+        ++timestamp;
+        counter[0] = 0;
+        if(rwModel.isTrue(literal)) {
+            implicationDAG.apply(-literal,true,(lit->{  // all literals implied by -literal become true
+                for(CLiteral cLiteral : index.getLiterals(lit)) {
+                    Clause clause = cLiteral.clause;
+                    if(clause.timestamp != timestamp) {
+                        clause.timestamp = timestamp;
+                        if(isFalse(clause)) {++counter[0];}}}}));}
+        else {
+            implicationDAG.apply(literal,true,(lit->{  // all literals implied by literal become true
+                for(CLiteral cLiteral : index.getLiterals(lit)) {
+                    Clause clause = cLiteral.clause;
+                    if(clause.timestamp != timestamp) {
+                        clause.timestamp = timestamp;
+                        if(isFalse(clause)) {++counter[0];}}}}));}
+        return counter[0];}
+
+    /** counts the number of clauses which are true and become false when the literal is flipped.
+     *
+     * @param literal a literal
+     * @return the number of clauses which are true and become false when the literal is flipped.
+     */
+    private int becomeFalse(int literal) { // the clauses must have exactly one true literal, which becomes false
+        ++timestamp;
+        counter[0] = 0;
+        if(rwModel.isTrue(literal)) { // and becomes false
+            for(CLiteral cLiteral : index.getLiterals(literal)) {if(falseBut(cLiteral)) {++counter[0];}}
+            implicationDAG.apply(-literal,true,(lit->{   // literals implied by -literal may have any truth value.
+                if(lit != literal && rwModel.isFalse(lit)){    // the false ones become true. Their negation is true and becomes false.
+                    for(CLiteral cLiteral : index.getLiterals(-lit)) {
+                        Clause clause = cLiteral.clause;
+                        if(clause.timestamp != timestamp) {
+                            clause.timestamp = timestamp;
+                            if(falseBut(cLiteral)) {++counter[0];}}}}}));}
+        else { // literal is false and becomes true. Its negation is true and becomes false
+            for(CLiteral cLiteral : index.getLiterals(-literal)) {if(falseBut(cLiteral)) {++counter[0];}}
+            implicationDAG.apply(literal,true,(lit->{  // literals implied by literal may have any truth value.
+                if(lit != literal && rwModel.isFalse(lit)){ // the false ones become true. Their negation is true and becomes false.
+                    for(CLiteral cLiteral : index.getLiterals(-lit)) {
+                        Clause clause = cLiteral.clause;
+                        if(clause.timestamp != timestamp) {
+                            clause.timestamp = timestamp;
+                            if(falseBut(cLiteral)) {++counter[0];}}}}}));}
+        return counter[0];}
+
+
+    }
+
 
 
 
