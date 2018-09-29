@@ -9,6 +9,7 @@ import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
 import Utilities.Utilities;
 
+import java.io.InputStream;
 import java.util.*;
 import java.util.function.BiConsumer;
 
@@ -92,6 +93,8 @@ public class RandomWalker {
     private Model globalModel;
     private RWModel rwModel;
     private ArrayList<Integer> newTrueLiterals = new ArrayList<>();
+    private ArrayList<int[]> newImplications = new ArrayList<>();
+    private ArrayList<int[]> newEquivalences = new ArrayList<>();
     private int timestamp = 0;
 
     /** constructs a new solver of type RandomWalker.
@@ -111,8 +114,10 @@ public class RandomWalker {
         this.globalParameters = globalParameters;
         globalModel = centralData.model;
         rwModel = new RWModel(globalModel);
-        globalModel.addNewTruthObserver(literal -> newTrueLiterals.add(literal));
         clauseList = centralData.disjunctions.disjunctions.clone(); // now centralDataHolder may change its clauses
+        globalModel.addNewTruthObserver(literal         -> newTrueLiterals.add(literal));
+        implicationDAG.addImplicationObserver((from,to) -> {newImplications.add(new int[]{from,to});});
+        implicationDAG.addEquivalenceObserver(eqv       -> {newEquivalences.add(eqv);});
     }
 
     public String info;
@@ -145,13 +150,13 @@ public class RandomWalker {
                     int f2 = flipScore[l2];
                     if(f1 > f2) {return -1;}
                     return(f1 < f2) ? 1 : 0;}));
-        integrateNewTrueLiterals();
+        integrateNewFacts();
         initializeModel();
         initializeFlipConsequences();
         initializeFalseClauses();
         Thread thread = Thread.currentThread();
         while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
-            integrateNewTrueLiterals();
+            integrateNewFacts();
             flip(selectFlipPredicate());}
             }
 
@@ -222,37 +227,18 @@ public class RandomWalker {
      * @param predicate
      */
     private void flip(int predicate) {
-        affected.clear();
-        int trueLiteral = 0;
-        for(CLiteral cliteral : index.getLiterals(predicate* rwModel.status[predicate])) {
-            trueLiteral = findTrueLiteral(cliteral);}
-        if(trueLiteral < 0) { // all are false
-            for(CLiteral cliteral : index.getLiterals(predicate* rwModel.status[predicate])) {
-                int pred = Math.abs(cliteral.literal);
-                ++flipScore[pred];
-                affected.add(pred);}}
-        else {
-            if(trueLiteral != 0) {
-                int pred = Math.abs(trueLiteral);
-                --flipScore[pred];
-                affected.add(pred);}}
+        updateFalseLiterals(predicate);
+        rwModel.flip(predicate);
+        updateConsequences(predicate);}
 
-        for(CLiteral cliteral : index.getLiterals(-predicate* rwModel.status[predicate])) {
-            trueLiteral = findTrueLiteral(cliteral);
-            if(trueLiteral < 0) {
-                --flipScore[predicate];
-                affected.add(predicate);}
-            else {
-            if(trueLiteral > 0) {
-                int pred = Math.abs(trueLiteral);
-                ++flipScore[pred];
-                affected.add(pred);}}}
 
-        for(Integer pred : affected) {
-            literalQueue.remove(pred);
-            literalQueue.add(pred);}
-        rwModel.flip(predicate);}
+    void updateFalseLiterals(int predicate) {
+        updateBecomesFalse(predicate);
+        updateBecomesTrue(predicate);}
 
+    void updateConsequences(int predicate) {
+
+    }
 
 
     private int oldPredicate = 0;
@@ -278,18 +264,49 @@ public class RandomWalker {
 
     /** integrates the consequences of new true literals found out by centralDataHolder.
      */
-    private void integrateNewTrueLiterals() {
+    private void integrateNewFacts() {
         Integer[] trueLiterals = null;
-        synchronized (globalModel) {
-            if(newTrueLiterals.isEmpty()) {return;} // newTrueLiterals may be changed by another thread
-            trueLiterals = new Integer[newTrueLiterals.size()];
-            newTrueLiterals.toArray(trueLiterals);
-            newTrueLiterals.clear();}
-        for(Integer literal : trueLiterals) {makeGloballyTrue(literal);}}
+        globalModel.readLock();
+        try {
+            if(!newTrueLiterals.isEmpty()) { // newTrueLiterals may be changed by another thread
+                trueLiterals = new Integer[newTrueLiterals.size()];
+                newTrueLiterals.toArray(trueLiterals);
+                newTrueLiterals.clear();}}
+        finally{globalModel.readUnLock();}
+        if(trueLiterals != null) {for(Integer literal : trueLiterals) {integrateTrueLiteral(literal);}}
 
-    private void makeGloballyTrue(int literal) {
+        int[][] implications = null;
+        int[][] equivalences = null;
+        implicationDAG.readLock();
+        try {
+            if(!newImplications.isEmpty()) {
+                implications = new int[newImplications.size()][];
+                newImplications.toArray(implications);
+                newImplications.clear();}
+            if(!newEquivalences.isEmpty()) {
+                equivalences = new int[newEquivalences.size()][];
+                newEquivalences.toArray(equivalences);
+                newEquivalences.clear();}}
+        finally{implicationDAG.readUnlock();}
+        if(equivalences != null) {for(int[] eqv : equivalences) {integrateEquivalence(eqv);}}
+        for(int[] implication : implications) {integrateImplication(implication);}}
 
+
+    private void integrateTrueLiteral(int literal) {
+        clauseList.makeTrue(literal);
+// weiter
     }
+
+    private void integrateEquivalence(int[] equivalence) {
+// weiter
+    }
+
+    private void integrateImplication(int[] implication) {
+// weiter
+    }
+
+
+
 
     private boolean falseBut(CLiteral cLiteral) {
         for(CLiteral cLit : cLiteral.clause.cliterals) {
@@ -331,6 +348,30 @@ public class RandomWalker {
                         if(isFalse(clause)) {++counter[0];}}}}));}
         return counter[0];}
 
+    /** counts the number of clauses which are false and become true when the literal is flipped.
+     *
+     * @param literal a literal
+     * @return the number of clauses which are false and become true when the literal is flipped.
+     */
+    private void updateBecomesTrue(int literal) {
+        ++timestamp;
+        counter[0] = 0;
+        if(rwModel.isTrue(literal)) {
+            implicationDAG.apply(-literal,true,(lit->{  // all literals implied by -literal become true
+                for(CLiteral cLiteral : index.getLiterals(lit)) {
+                    Clause clause = cLiteral.clause;
+                    if(clause.timestamp != timestamp) {
+                        clause.timestamp = timestamp;
+                        if(isFalse(clause)) {falseClauses.remove(clause);}}}}));}
+        else {
+            implicationDAG.apply(literal,true,(lit->{  // all literals implied by literal become true
+                for(CLiteral cLiteral : index.getLiterals(lit)) {
+                    Clause clause = cLiteral.clause;
+                    if(clause.timestamp != timestamp) {
+                        clause.timestamp = timestamp;
+                        if(isFalse(clause)) {falseClauses.remove(clause);}}}}));}
+        }
+
     /** counts the number of clauses which are true and become false when the literal is flipped.
      *
      * @param literal a literal
@@ -358,6 +399,28 @@ public class RandomWalker {
                             clause.timestamp = timestamp;
                             if(falseBut(cLiteral)) {++counter[0];}}}}}));}
         return counter[0];}
+
+    private void updateBecomesFalse(int literal) { // the clauses must have exactly one true literal, which becomes false
+        ++timestamp;
+        counter[0] = 0;
+        if(rwModel.isTrue(literal)) { // and becomes false
+            for(CLiteral cLiteral : index.getLiterals(literal)) {if(falseBut(cLiteral)) {++counter[0];}}
+            implicationDAG.apply(-literal,true,(lit->{   // literals implied by -literal may have any truth value.
+                if(lit != literal && rwModel.isFalse(lit)){    // the false ones become true. Their negation is true and becomes false.
+                    for(CLiteral cLiteral : index.getLiterals(-lit)) {
+                        Clause clause = cLiteral.clause;
+                        if(clause.timestamp != timestamp) {
+                            clause.timestamp = timestamp;
+                            if(falseBut(cLiteral)) {falseClauses.add(clause);}}}}}));}
+        else { // literal is false and becomes true. Its negation is true and becomes false
+            for(CLiteral cLiteral : index.getLiterals(-literal)) {if(falseBut(cLiteral)) {++counter[0];}}
+            implicationDAG.apply(literal,true,(lit->{  // literals implied by literal may have any truth value.
+                if(lit != literal && rwModel.isFalse(lit)){ // the false ones become true. Their negation is true and becomes false.
+                    for(CLiteral cLiteral : index.getLiterals(-lit)) {
+                        Clause clause = cLiteral.clause;
+                        if(clause.timestamp != timestamp) {
+                            clause.timestamp = timestamp;
+                            if(falseBut(cLiteral)) {falseClauses.add(clause);}}}}}));}}
 
 
     }
