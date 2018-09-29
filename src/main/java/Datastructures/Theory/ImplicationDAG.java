@@ -35,6 +35,9 @@ public class ImplicationDAG {
     /** adds an observer for equivalence classes. observer */
     public synchronized void addEquivalenceObserver(Consumer<int[]> observer) {equivalenceObservers.add(observer);}
 
+    public void readLock() {readLock.lock();}
+    public void readUnLock() {readLock.unlock();}
+
     /** checks if there are no root nodes. */
     public boolean isEmpty() {return roots.isEmpty();}
 

@@ -22,7 +22,7 @@ public class CentralDataHolder {
     ArrayList<Integer> pureLiterals = null;
     public Model model;
     public Disjunctions disjunctions = null;
-    public ImplicationGraph implicationGraph;
+    public ImplicationDAG implicationDAG;
     public EquivalenceClasses equivalences = null;
     public DisjointnessClasses disjointnesses = null;
 
@@ -86,7 +86,7 @@ public class CentralDataHolder {
             super(4);
             this.clause = clause;}
 
-        void execute(ChangeBlock changeBlock) {Algorithms.subsumesAndResolves(clause,disjunctions.disjunctions,implicationGraph);}
+        void execute(ChangeBlock changeBlock) {Algorithms.subsumesAndResolves(clause,disjunctions.disjunctions, implicationDAG);}
     }
 
 
@@ -96,13 +96,13 @@ public class CentralDataHolder {
         this.incoming   = incoming;
         this.outgoing   = outgoing;
         Model model       = new Model(predicates);
-        implicationGraph  = new ImplicationGraph(predicates);
-        equivalences      = new EquivalenceClasses(model,implicationGraph);
-        disjointnesses    = new DisjointnessClasses(model,implicationGraph,equivalences);
-        disjunctions      = new Disjunctions(basicClauseList.disjunctions.size(),model,implicationGraph,equivalences);
+        implicationDAG = new ImplicationDAG();
+        equivalences      = new EquivalenceClasses(model, implicationDAG);
+        disjointnesses    = new DisjointnessClasses(model, implicationDAG,equivalences);
+        disjunctions      = new Disjunctions(basicClauseList.disjunctions.size(),model, implicationDAG,equivalences);
         disjunctions.disjunctions.literalRemovalObservers.add(clause -> taskQueue.add(makeShortenedClauseTask(clause)));
-        implicationGraph.trueLiteralObservers.add(           literal -> taskQueue.add(new OneLiteralTask(literal)));
-        implicationGraph.implicationObservers.add(         (from,to) -> taskQueue.add(new TwoLiteralTask(-from,to)));
+        implicationDAG.trueLiteralObservers.add(literal -> taskQueue.add(new OneLiteralTask(literal)));
+        implicationDAG.implicationObservers.add(         (from, to) -> taskQueue.add(new TwoLiteralTask(-from,to)));
         equivalences.trueLiteralObservers.add(               literal -> taskQueue.add(new OneLiteralTask(literal)));
         equivalences.unsatisfiabilityObservers.add(            unsat -> taskQueue.add(new UnsatisfiabilityTask(unsat)));
         disjointnesses.unsatisfiabilityObservers.add(          unsat -> taskQueue.add(new UnsatisfiabilityTask(unsat)));
@@ -147,7 +147,7 @@ public class CentralDataHolder {
             for(int i = 0; i < size; ++i) {
                 int literal = clause.getLiteral(i);
                 for (int j = i+1; j < size; ++j) {
-                    implicationGraph.addImplication(literal,clause.getLiteral(j));}}}
+                    implicationDAG.addImplication(literal,clause.getLiteral(j));}}}
         return processTasks(null);}
 
     public Result addEquivalence(int[] basicClause) {
@@ -179,7 +179,7 @@ public class CentralDataHolder {
         if(status == -1) {taskQueue.add(new UnsatisfiabilityTask(new Unsatisfiable(model,literal))); return true;}
         if(status == 1) {return false;}
         disjunctions.makeTrue(literal);
-        implicationGraph.makeTrue(literal);
+        implicationDAG.makeTrue(literal);
         return false;}
 
     private void processTwoLiteralClause(int literal1, int literal2){
@@ -187,7 +187,7 @@ public class CentralDataHolder {
 
     private void replaceByRepresentative(int representative, int literal) {
         disjunctions.replaceByRepresentative(representative,literal);
-        implicationGraph.replaceByRepresentative(representative,literal);
+        implicationDAG.replaceByRepresentative(representative,literal);
     }
 
 
@@ -196,13 +196,13 @@ public class CentralDataHolder {
         disjunctions.addPurityObserver(literal -> pureLiterals.add(literal));
         for(int i = 0; i < pureLiterals.size(); ++i) {
             Integer literal = pureLiterals.get(i);
-            if(implicationGraph.getImplicants(literal).isEmpty()) {
+            if(implicationDAG.getImplicants(literal).isEmpty()) {
                 model.add(literal);
                 disjunctions.removeLiteral(literal);
-                implicationGraph.remove(-literal);}}
+                implicationDAG.remove(-literal);}}
         pureLiterals.clear();
         if(disjunctions.isEmpty()) {
-            implicationGraph.completeModel(model);
+            implicationDAG.completeModel(model);
             return new Satisfiable();}
         return null;}
 
