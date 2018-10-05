@@ -91,7 +91,7 @@ public class EquivalenceClassesTest {
 
     @Test
     public void implicationGraph() throws Exception {
-        System.out.println("implicationGraph");
+        System.out.println("implicationDAG");
         Model model = new Model(10);
         ImplicationGraph ig = new ImplicationGraph(10);
         EquivalenceClasses ec = new EquivalenceClasses(model, ig);

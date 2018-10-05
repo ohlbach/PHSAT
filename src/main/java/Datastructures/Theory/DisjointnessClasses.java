@@ -17,7 +17,7 @@ import java.util.function.Consumer;
 public class DisjointnessClasses {
     private int predicates;    // number of predicates
     private Model model;       // a model
-    private ImplicationGraph implicationGraph; // an implication graph (optional)
+    private ImplicationDAG implicationDAG; // an implication graph (optional)
     private EquivalenceClasses equivalenceClasses; // optional
     /** the list of disjunctions representing disjoint literals */
     public ClauseList disjointnessClasses = null;
@@ -31,16 +31,16 @@ public class DisjointnessClasses {
     /** generates a new instance.
      *
      * @param model    a model
-     * @param implicationGraph an implication graph (or null)
+     * @param implicationDAG an implication graph (or null)
      * @param equivalenceClasses  for replacing literals by their representatives.
      */
-    public DisjointnessClasses(Model model, ImplicationGraph implicationGraph, EquivalenceClasses equivalenceClasses) {
+    public DisjointnessClasses(Model model, ImplicationDAG implicationDAG, EquivalenceClasses equivalenceClasses) {
         this.model = model;
-        this.implicationGraph = implicationGraph;
+        this.implicationDAG = implicationDAG;
         this.equivalenceClasses = equivalenceClasses;
         this.predicates = model.predicates;
-        if(implicationGraph != null) {
-            implicationGraph.implicationObservers.add((from,to) -> addDisjointness(from,-to));}
+        if(implicationDAG != null) {
+            implicationDAG.addImplicationObserver((from,to) -> addDisjointness(from,-to));}
     };
 
     /** initialises the classes at first usage.*/
@@ -105,7 +105,7 @@ public class DisjointnessClasses {
         if(literal1 == -literal2) {return;}  // they are disjoint anyway
         if(literal1 == literal2) {reportUnsatisfiable(literal1,literal2); return;} // p cannot be disjoint to p
         if(addToExisting(literal1,literal2) | addToExisting(literal2,literal1)) {return;}
-        ArrayList<Integer> intersections = Utilities.intersection(implicationGraph.getImplicants(literal1),implicationGraph.getImplicants(literal2));
+        ArrayList<Integer> intersections = Utilities.intersection(implicationDAG.getImplicants(literal1), implicationDAG.getImplicants(literal2));
         if(intersections != null) {
             Clause disjointness = new Clause("D"+literal1+"!="+literal2,intersections.size()+2);
             disjointness.addCLiteralDirectly(new CLiteral(literal1));
@@ -138,7 +138,7 @@ public class DisjointnessClasses {
      */
     private boolean addToExisting(Clause disjointness, int literal) {
         for(CLiteral cLiteral : disjointness.cliterals) {
-            if(!implicationGraph.implies(cLiteral.literal,-literal)) {return false;}}
+            if(!implicationDAG.implies(cLiteral.literal,-literal)) {return false;}}
         disjointness.addCLiteralDirectly(new CLiteral(literal));
         subsume(disjointness);
         reportDisjointenss(joinClauses(disjointness));

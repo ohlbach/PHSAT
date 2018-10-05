@@ -18,16 +18,16 @@ public class Disjunctions {
     private int predicates;
     private Model model;
     public ClauseList disjunctions;
-    private ImplicationGraph implicationGraph = null;
+    private ImplicationDAG implicationDAG = null;
     private EquivalenceClasses equivalences = null;
     /** reports true literals */
     public ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList();
     public ArrayList<Consumer<Unsatisfiable>> unsatisfiabilityObservers = new ArrayList();
 
-    public Disjunctions(int size, Model model, ImplicationGraph implicationGraph, EquivalenceClasses equivalences) {
+    public Disjunctions(int size, Model model, ImplicationDAG implicationDAG, EquivalenceClasses equivalences) {
         predicates = model.predicates;
         this.model = model;
-        this.implicationGraph = implicationGraph;
+        this.implicationDAG = implicationDAG;
         this.equivalences = equivalences;
         disjunctions = new ClauseList(size,predicates);
     }
@@ -54,9 +54,9 @@ public class Disjunctions {
             switch(clause.size()) {
                 case 0: reportUnsatisfiable(model,basicClause); return;
                 case 1: reportTrueLiteral(clause.getLiteral(0)); return;
-                case 2: implicationGraph.addClause(clause.getLiteral(0),clause.getLiteral(1));
+                case 2: implicationDAG.addClause(clause.getLiteral(0),clause.getLiteral(1));
                     return;}
-            if(i == 0) {clause = Algorithms.subsumedAndResolved(clause,disjunctions,implicationGraph);}}
+            if(i == 0) {clause = Algorithms.subsumedAndResolved(clause,disjunctions, implicationDAG);}}
         disjunctions.addClause(clause);}
 
     /** turns a basicClause into a clause. <br/>
@@ -79,7 +79,7 @@ public class Disjunctions {
 
         for(int i = 0; i < clause.size(); ++i) {   // p,q,r  and p -> r: remove p
             CLiteral cLiteral1 = clause.cliterals.get(i);
-            TreeSet implied = implicationGraph.getImplicants(cLiteral1.literal);
+            TreeSet implied = implicationDAG.getImplicants(cLiteral1.literal);
             if(!implied.isEmpty()) {
                 for(CLiteral cLiteral2 : clause.cliterals) {
                     if(cLiteral1 != cLiteral2 && implied.contains(cLiteral2.literal)) {

@@ -18,7 +18,7 @@ import java.util.function.Consumer;
 public class EquivalenceClasses {
     private int predicates;
     private Model model;
-    private ImplicationGraph implicationGraph;
+    private ImplicationDAG implicationDAG;
     private ClauseList equivalenceClasses = null;
     private HashMap<Integer,Integer> replacements = null;
     /** reports true literals */
@@ -31,15 +31,15 @@ public class EquivalenceClasses {
     /** generates a new instance.
      *
      * @param model    a model
-     * @param implicationGraph an implication graph (or null)
+     * @param implicationDAG an implication graph (or null)
      */
-    public EquivalenceClasses(Model model, ImplicationGraph implicationGraph) {
+    public EquivalenceClasses(Model model, ImplicationDAG implicationDAG) {
         this.model = model;
-        this.implicationGraph = implicationGraph;
+        this.implicationDAG = implicationDAG;
         this.predicates = model.predicates;
-        if(implicationGraph != null) {
-            implicationGraph.implicationObservers.add((from,to) -> {
-                if(implicationGraph.implies(to,from)) {addEquivalence("E"+from+"="+to, from,to);}});}
+        if(implicationDAG != null) {
+            implicationDAG.addImplicationObserver((from,to) -> {
+                if(implicationDAG.implies(to,from)) {addEquivalence("E"+from+"="+to, from,to);}});}
         };
 
     /** initialises the classes at first usage.*/
@@ -111,9 +111,9 @@ public class EquivalenceClasses {
                 equivalenceClasses.addClause(eqClass);}}
 
         eqClass.addCLiteralDirectly(new CLiteral(literal));
-        if(implicationGraph != null) {
+        if(implicationDAG != null) {
             for(CLiteral cLiteral : eqClass.cliterals) {
-                if(implicationGraph.implies(cLiteral.literal,-literal)) {makeClassFalse(eqClass); return;}}}
+                if(implicationDAG.implies(cLiteral.literal,-literal)) {makeClassFalse(eqClass); return;}}}
         addReplacement(literal,representative);
         for(BiConsumer<Integer,Integer> observer : equivalenceObservers) {observer.accept(representative,literal);}
     }
