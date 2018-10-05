@@ -3,6 +3,7 @@ package Datastructures.Clauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
 import Datastructures.Symboltable;
+import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.ImplicationGraph;
 
 import java.util.*;
@@ -199,6 +200,37 @@ public class ClauseList {
         return  Stream.concat(
                 literalIndex.getLiterals(literal).stream(),
                 implicationGraph.getImplicants(-literal).stream().flatMap(lit -> literalIndex.getLiterals(-lit).stream()));}
+
+
+    /** applies a consumer to all CLiterals which are implied by the given literal (including the literal itself)
+     *
+     * @param literal        a literal
+     * @param implicationDAG the implications
+     * @param consumer       a function to be applied to a CLiteral
+     */
+    public void applyDown(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {
+        implicationDAG.apply(literal,true, (lit -> {
+            for(CLiteral cLiteral : literalIndex.getLiterals(lit)) {cLiteral.clause.applyToCLiteral(consumer);}}));}
+
+    /** applies a consumer to all CLiterals which imply the given literal (including the literal itself)
+     *
+     * @param literal        a literal
+     * @param implicationDAG the implications
+     * @param consumer       a function to be applied to a CLiteral
+     */
+    public void applyUp(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {
+        implicationDAG.apply(literal,false, (lit -> {
+            for(CLiteral cLiteral : literalIndex.getLiterals(lit)) {cLiteral.clause.applyToCLiteral(consumer);}}));}
+
+    /** applies a consumer to all CLiterals which contradict the given literal (including the -literal itself)
+     *
+     * @param literal        a literal
+     * @param implicationDAG the implications
+     * @param consumer       a function to be applied to a CLiteral
+     */
+    public void applyToContradicting(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {
+        implicationDAG.apply(-literal,false, (lit -> {
+            for(CLiteral cLiteral : literalIndex.getLiterals(-lit)) {cLiteral.clause.applyToCLiteral(consumer);}}));}
 
 
     /** the actual number of disjunctions

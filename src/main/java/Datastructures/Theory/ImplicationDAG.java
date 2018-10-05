@@ -38,6 +38,9 @@ public class ImplicationDAG {
     /** checks if there are no root nodes. */
     public boolean isEmpty() {return roots.isEmpty();}
 
+    public void readLock() {readLock.lock();}
+    public void readUnlock() {readLock.unlock();}
+
     /** checks if 'from -&gt; to' is a consequence of the implications in the DAG
      *
      * @param from a literal

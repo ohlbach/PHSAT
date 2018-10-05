@@ -3,6 +3,7 @@ package Algorithms;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.ImplicationGraph;
 
 import java.util.ArrayList;
@@ -58,6 +59,52 @@ public class Algorithms {
                         Clause otherClause = clit.clause;
                         return otherClause.timestamp - timestamp == otherClause.size()-2;}))
                 clause.removeLiteralAtPosition(i);
+                --i;}}
+
+        return clause;}
+
+    /** checks if the given clause is subsumed (possibly via the implication graph). <br/>
+     * If not, all literals which can be resolved away (possibly via the implication graph) are removed.<br/>
+     * The clause must not yet be integrated in the clause list.
+     *
+     * @param clause      the clause to be checked
+     * @param clauseList  the other clauses
+     * @param implicationDAG the implication graph
+     * @return  null if the clause is subsumed, otherwise the possibly simplified clause
+     */
+    public static Clause subsumedAndResolved(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
+        int size = clause.size();
+        int timestamp = clauseList.timestamp;
+        clauseList.timestamp += size;
+        assert size > 1;
+        CLiteral cLiteral = clause.cliterals.get(0);
+        clauseList.applyUp(cLiteral.literal,implicationDAG,(clit-> {
+                        Clause otherClause = clit.clause;
+                        if(otherClause != clause && otherClause.size() <= size) {otherClause.timestamp = timestamp;}}));
+
+
+        int size1 = size-1;
+        for(int i = 1; i < size; ++i) {
+            int j = i;
+            synchronized (implicationDAG) {
+                if(clauseList.literalIsImplied(clause.cliterals.get(i).literal,implicationDAG).
+                        anyMatch(clit -> {
+                            Clause otherClause = clit.clause;
+                            if(otherClause.timestamp - j == timestamp) {
+                                if(j == size1) {return true;}   // subsumed
+                                otherClause.timestamp = timestamp + j;}
+                            return false;})) {
+                    return null;}}}
+
+
+        for(int i = 0; i < clause.size(); ++i) {
+            int j = i;
+            synchronized (implicationDAG) {
+                if(clauseList.literalIsImplied(clause.cliterals.get(i).literal,implicationDAG).
+                        anyMatch(clit -> {
+                            Clause otherClause = clit.clause;
+                            return otherClause.timestamp - timestamp == otherClause.size()-2;}))
+                    clause.removeLiteralAtPosition(i);
                 --i;}}
 
         return clause;}

@@ -4,6 +4,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 
 import java.util.ArrayList;
+import java.util.function.Consumer;
 
 /** A clause is just a list of CLiterals.
  *
@@ -158,6 +159,20 @@ public class Clause {
             newCliterals.add(new CLiteral(cLiteral.literal,newClause,cLiteral.position));}
         newClause.cliterals = newCliterals;
         return newClause;}
+
+    /** applies the consumer to all cLiterals
+     *
+     * @param consumer to be applied to a CLiteral
+     */
+    public void applyToCLiteral(Consumer<CLiteral> consumer) {
+        for(CLiteral cLiteral : cliterals) {consumer.accept(cLiteral);}}
+
+    /** applies the consumer to all literals
+     *
+     * @param consumer to be applied to a literal
+     */
+    public void applyToLiteral(Consumer<Integer> consumer) {
+        for(CLiteral cLiteral : cliterals) {consumer.accept(cLiteral.literal);}}
 
     /** generates a string: clause-number: literals
      *
