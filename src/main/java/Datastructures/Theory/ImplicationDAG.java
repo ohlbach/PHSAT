@@ -41,8 +41,13 @@ public class ImplicationDAG {
     /** checks if there are no root nodes. */
     public boolean isEmpty() {return roots.isEmpty();}
 
-    public void readLock() {readLock.lock();}
-    public void readUnlock() {readLock.unlock();}
+    /** returns true if no implied literals have been registered
+     *
+     * @param literal a literal
+     * @return true if no implied literals have been registered.
+     */
+    public boolean isEmpty(Integer literal) {
+        return nodesMap.get(literal) == null;}
 
     /** checks if 'from -&gt; to' is a consequence of the implications in the DAG
      *
@@ -170,6 +175,8 @@ public class ImplicationDAG {
                 if(upNode.downNodes.size() == 1) {roots.remove(upNode);}}}
         node.disconnect();}
 
+
+
     /** removes a cycle from the DAG.
      *
      * @param upNode    the upper entrance to the cycle
@@ -290,7 +297,7 @@ public class ImplicationDAG {
      *
      * @param falseLiteral a literal
      */
-    private void removeFalseLiteral(Integer falseLiteral) {
+    public void removeFalseLiteral(Integer falseLiteral) {
         ImplicationNode falseNode = nodesMap.get(falseLiteral);
         if(falseNode == null) {return;}
         nodesMap.remove(falseNode.literal);

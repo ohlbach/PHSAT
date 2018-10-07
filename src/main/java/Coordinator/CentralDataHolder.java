@@ -101,8 +101,8 @@ public class CentralDataHolder {
         disjointnesses    = new DisjointnessClasses(model, implicationDAG,equivalences);
         disjunctions      = new Disjunctions(basicClauseList.disjunctions.size(),model, implicationDAG,equivalences);
         disjunctions.disjunctions.literalRemovalObservers.add(clause -> taskQueue.add(makeShortenedClauseTask(clause)));
-        implicationDAG.trueLiteralObservers.add(literal -> taskQueue.add(new OneLiteralTask(literal)));
-        implicationDAG.implicationObservers.add(         (from, to) -> taskQueue.add(new TwoLiteralTask(-from,to)));
+        implicationDAG.addTrueLiteralObserver(literal -> taskQueue.add(new OneLiteralTask(literal)));
+        implicationDAG.addImplicationObserver(         (from, to) -> taskQueue.add(new TwoLiteralTask(-from,to)));
         equivalences.trueLiteralObservers.add(               literal -> taskQueue.add(new OneLiteralTask(literal)));
         equivalences.unsatisfiabilityObservers.add(            unsat -> taskQueue.add(new UnsatisfiabilityTask(unsat)));
         disjointnesses.unsatisfiabilityObservers.add(          unsat -> taskQueue.add(new UnsatisfiabilityTask(unsat)));
@@ -179,7 +179,7 @@ public class CentralDataHolder {
         if(status == -1) {taskQueue.add(new UnsatisfiabilityTask(new Unsatisfiable(model,literal))); return true;}
         if(status == 1) {return false;}
         disjunctions.makeTrue(literal);
-        implicationDAG.makeTrue(literal);
+        implicationDAG.newTrueLiteral(literal);
         return false;}
 
     private void processTwoLiteralClause(int literal1, int literal2){
@@ -187,7 +187,6 @@ public class CentralDataHolder {
 
     private void replaceByRepresentative(int representative, int literal) {
         disjunctions.replaceByRepresentative(representative,literal);
-        implicationDAG.replaceByRepresentative(representative,literal);
     }
 
 
@@ -196,13 +195,13 @@ public class CentralDataHolder {
         disjunctions.addPurityObserver(literal -> pureLiterals.add(literal));
         for(int i = 0; i < pureLiterals.size(); ++i) {
             Integer literal = pureLiterals.get(i);
-            if(implicationDAG.getImplicants(literal).isEmpty()) {
+            if(implicationDAG.isEmpty(literal)) {
                 model.add(literal);
                 disjunctions.removeLiteral(literal);
-                implicationDAG.remove(-literal);}}
+                implicationDAG.removeFalseLiteral(-literal);}}
         pureLiterals.clear();
         if(disjunctions.isEmpty()) {
-            implicationDAG.completeModel(model);
+            //implicationDAG.completeModel(model);  ????
             return new Satisfiable();}
         return null;}
 

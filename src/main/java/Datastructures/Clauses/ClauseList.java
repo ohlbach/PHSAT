@@ -169,37 +169,44 @@ public class ClauseList {
     /** generates a stream of CLiterals which are implied by the given literal
      *
      * @param literal           a literal
-     * @param implicationGraph  the implication graph
+     * @param implicationDAG  the implication DAG
      * @return  a stream of CLiterals l such that literal implies l (including the literal itself.)
      */
-    public Stream<CLiteral> literalImplies(int literal, ImplicationGraph implicationGraph) {
-        return  Stream.concat(
-                literalIndex.getLiterals(literal).stream(),
-                implicationGraph.getImplicants(literal).stream().flatMap(lit -> literalIndex.getLiterals(lit).stream()));}
+    public Stream<CLiteral> literalDown(int literal, ImplicationDAG implicationDAG) {
+        Stream<CLiteral>[] stream = new Stream[]{null};
+        implicationDAG.apply(literal,true, (lit -> {
+                if(stream[0] == null) {stream[0] =  literalIndex.getLiterals(lit).stream();}
+                else {stream[0] = Stream.concat(stream[0], literalIndex.getLiterals(lit).stream());}}));
+        return stream[0];}
+
+    /** generates a stream of CLiterals which imply the given literal
+     *
+     * @param literal           a literal
+     * @param implicationDAG  the implication DAG
+     * @return  a stream of CLiterals l such that l implies literal (including the literal itself.)
+     */
+    public Stream<CLiteral> literalUp(int literal, ImplicationDAG implicationDAG) {
+        Stream<CLiteral>[] stream = new Stream[]{null};
+        implicationDAG.apply(literal,false, (lit -> {
+            if(stream[0] == null) {stream[0] =  literalIndex.getLiterals(lit).stream();}
+            else {stream[0] = Stream.concat(stream[0], literalIndex.getLiterals(lit).stream());}}));
+        return stream[0];}
 
     /** generates a stream of CLiterals which contradict the given literal<br/>
      * Example:  literal = p and p -> q: all CLiterals with -p and -q are returned.
      *
      * @param literal           a literal
-     * @param implicationGraph  the implication graph
+     * @param implicationDAG  the implication DAG
      * @return  a stream of CLiterals l such that literal implies l (including the literal itself.)
      */
-    public Stream<CLiteral> literalContradict(int literal, ImplicationGraph implicationGraph) {
-        return  Stream.concat(
-                literalIndex.getLiterals(-literal).stream(),
-                implicationGraph.getImplicants(literal).stream().flatMap(lit -> literalIndex.getLiterals(-lit).stream()));}
+    public Stream<CLiteral> literalContradicting(int literal, ImplicationDAG implicationDAG) {
+        Stream<CLiteral>[] stream = new Stream[]{null};
+        implicationDAG.apply(-literal,false, (lit -> {
+            if(stream[0] == null) {stream[0] =  literalIndex.getLiterals(-lit).stream();}
+            else {stream[0] = Stream.concat(stream[0], literalIndex.getLiterals(-lit).stream());}}));
+        return stream[0];}
 
 
-    /** generates a stream of CLiterals which  imply the given literal
-     *
-     * @param literal           a literal
-     * @param implicationGraph  the implication graph
-     * @return  a stream of CLiterals l such that l implies literal (including the literal itself.)
-     */
-    public Stream<CLiteral> literalIsImplied(int literal, ImplicationGraph implicationGraph) {
-        return  Stream.concat(
-                literalIndex.getLiterals(literal).stream(),
-                implicationGraph.getImplicants(-literal).stream().flatMap(lit -> literalIndex.getLiterals(-lit).stream()));}
 
 
     /** applies a consumer to all CLiterals which are implied by the given literal (including the literal itself)
@@ -228,7 +235,7 @@ public class ClauseList {
      * @param implicationDAG the implications
      * @param consumer       a function to be applied to a CLiteral
      */
-    public void applyToContradicting(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {
+    public void applyContradicting(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {
         implicationDAG.apply(-literal,false, (lit -> {
             for(CLiteral cLiteral : literalIndex.getLiterals(-lit)) {cLiteral.clause.applyToCLiteral(consumer);}}));}
 

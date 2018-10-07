@@ -147,19 +147,20 @@ public class RandomWalker {
         info = id + "(seed:"+seed+",flips:"+maxFlips + ")";
         predicateQueue = new PriorityQueue<Integer>(predicates,(
                 (l1,l2) -> {
-                    int f1 = flipScore[l1];
-                    int f2 = flipScore[l2];
+                    int f1 = combinedScore(l1);
+                    int f2 = combinedScore(l2);
                     if(f1 > f2) {return -1;}
                     return(f1 < f2) ? 1 : 0;}));
         integrateNewFacts();
         initializeModel();
-        initializeFlipConsequences();
-        initializeFalseClauses();
+        initializeQueue();
         Thread thread = Thread.currentThread();
         while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
             integrateNewFacts();
             flip(selectFlipPredicate());}
             }
+
+
 
     /** generates a candidate rwModel for the clauses.
      * A predicate becomes true if it occurs in more clauses than its negation.
@@ -172,6 +173,49 @@ public class RandomWalker {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(rwModel.status[predicate] == 0) {
                 rwModel.status[predicate] = (short)(getOccurrences(predicate) > getOccurrences(-predicate) ? 1 : -1);}}}
+
+    /** adds (change = 1) or removes (change = -1) a clause.
+     * Updates flipScore and falseClauses
+     *
+     * @param clause a clause
+     * @param change +1 for adding the clause, -1 for removing the clause.
+     */
+    private void checkClause(Clause clause, int change) {
+        CLiteral trueLiteral = null;
+        for(CLiteral cLiteral : clause.cliterals) {
+            if(rwModel.isTrue(cLiteral.literal)) {
+                if(trueLiteral != null) {return;}  // at least two true literals. Flips don't change the status
+                else{trueLiteral = cLiteral;}}}
+        if(trueLiteral == null) {
+            if(change > 0) {falseClauses.add(clause);} else {falseClauses.remove(clause);}
+            clause.applyToLiteral(literal -> changeScore(Math.abs(literal), change));} // flipping a literal increases the number of true literals
+        else {changeScore(Math.abs(trueLiteral.literal),-change); }} // flipping this literal destroys a true literal.
+
+
+    /** removes a literal from a clause and updates the score and falseClauses
+     *
+     * @param cLiteral the literal to be removed.
+     */
+    private void removeLiteral(CLiteral cLiteral) {
+        Clause clause = cLiteral.clause;
+        clauseList.removeLiteral(cLiteral);
+        CLiteral trueLiteral = null;
+        for(CLiteral cLit : clause.cliterals) {
+            if(rwModel.isTrue(cLit.literal)) {
+                if(trueLiteral == null) {trueLiteral = cLit; continue;}
+                return;}} // two true literals in the remaining clause; nothing changes.
+
+        boolean wasTrue = rwModel.isTrue(cLiteral.literal);
+        if(trueLiteral == null) {
+            if(wasTrue) { // the only true literal was removed.
+                clause.applyToLiteral(literal -> changeScore(Math.abs(literal),1));
+                falseClauses.add(clause);}
+            return;} // all literals are false. Nothing changes
+        if(wasTrue) { // trueLiteral is now the only true literal.
+            changeScore(trueLiteral.literal,-1);}}
+
+
+
 
 
     private int[] counter = new int[]{0};
@@ -194,32 +238,19 @@ public class RandomWalker {
 
                 /** initializes the falseClauses array with all clauses which are false in the current rwModel.
                  */
-    private void initializeFalseClauses() {
+    private void initializeQueue() {
         falseClauses = new ArrayList<>();
-        for(Clause clause : clauseList.clauses) {
-            boolean isFalse = true;
-            for(CLiteral cLiteral : clause.cliterals) {
-                if(rwModel.isTrue(cLiteral.literal)) {isFalse = false; break;}}
-            if(isFalse) {falseClauses.add(clause);}}}
+        for(Clause clause : clauseList.clauses) {checkClause(clause,1);}
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            if(globalModel.status(predicate) == 0) {predicateQueue.add(predicate);}}}
 
-
-    /** initializes flipScore and predicateQueue.
-     *  predicateQueue contains the predicates ordered by the number
-     *  of disjunctions made true when flipping the predicate.
-     *  The head of the queue is the predicate which makes most disjunctions true by flipping it.
-     */
-    private void initializeFlipConsequences() {
-        globalModel.readLock();
-        try{
-            for(int predicate = 1; predicate <= predicates; ++predicate) {
-                if(!globalModel.contains(predicate)) {
-                    flipScore[predicate] = flipScore(predicate);}}
-            for(int predicate = 1; predicate <= predicates; ++predicate) {
-                if(!globalModel.contains(predicate)) {
-                    predicateQueue.add(predicate);}}}
-        finally{globalModel.readUnLock();}}
-
-
+    private int[] score = new int[]{0};
+    private int combinedScore(int predicate) {
+        score[0] = 0;
+        int literal = rwModel.isTrue(predicate) ? -predicate : predicate;
+        implicationDAG.apply(literal,true,
+                (lit -> {if(rwModel.isFalse(lit)) {score[0] += flipScore[Math.abs(lit)];}}));
+        return score[0];}
 
 
     private HashSet<Integer> affected = new HashSet<>();

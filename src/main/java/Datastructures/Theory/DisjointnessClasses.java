@@ -104,8 +104,10 @@ public class DisjointnessClasses {
         literal2 = mapToRepresentative(literal2);
         if(literal1 == -literal2) {return;}  // they are disjoint anyway
         if(literal1 == literal2) {reportUnsatisfiable(literal1,literal2); return;} // p cannot be disjoint to p
-        if(addToExisting(literal1,literal2) | addToExisting(literal2,literal1)) {return;}
-        ArrayList<Integer> intersections = Utilities.intersection(implicationDAG.getImplicants(literal1), implicationDAG.getImplicants(literal2));
+        if(addToExisting(literal1,literal2) || addToExisting(literal2,literal1)) {return;}
+        ArrayList<Integer> intersections = new ArrayList<>();
+        Integer lit2 = literal2;
+        implicationDAG.apply(literal1,true,(lit1->{if(implicationDAG.implies(lit2,lit1)){intersections.add(lit1);}}));
         if(intersections != null) {
             Clause disjointness = new Clause("D"+literal1+"!="+literal2,intersections.size()+2);
             disjointness.addCLiteralDirectly(new CLiteral(literal1));

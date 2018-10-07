@@ -8,7 +8,6 @@ import Datastructures.Results.Unsatisfiable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.TreeSet;
 import java.util.function.Consumer;
 
 /**
@@ -79,10 +78,10 @@ public class Disjunctions {
 
         for(int i = 0; i < clause.size(); ++i) {   // p,q,r  and p -> r: remove p
             CLiteral cLiteral1 = clause.cliterals.get(i);
-            TreeSet implied = implicationDAG.getImplicants(cLiteral1.literal);
-            if(!implied.isEmpty()) {
+            Integer literal1 = cLiteral1.literal;
+            if(!implicationDAG.isEmpty(literal1)) {
                 for(CLiteral cLiteral2 : clause.cliterals) {
-                    if(cLiteral1 != cLiteral2 && implied.contains(cLiteral2.literal)) {
+                    if(cLiteral1 != cLiteral2 && implicationDAG.implies(literal1,cLiteral2.literal)) {
                         clause.removeLiteral(cLiteral1);
                         --i;
                         break;}}}}
