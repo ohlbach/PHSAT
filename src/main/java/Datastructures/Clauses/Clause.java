@@ -124,17 +124,6 @@ public class Clause {
         cliterals.remove(size-1);}
 
 
-    /** replaces a literal by its representative in an equivalence class
-     *
-     * @param cliteral       the literal to be replaced
-     * @param representative the new literal
-     * @return   true if the literal was replaced, false if it was removed.
-     */
-    public boolean replaceBy(CLiteral cliteral, int representative) {
-        if(contains(representative) >= 0) {removeLiteralAtPosition(cliteral.position); return false;}
-        cliteral.literal = representative;
-        return true;}
-
     /** checks if the literals in this, except cLiteral also occur in clause2
      *
      * @param cLiteral a cLiteral in 'this'

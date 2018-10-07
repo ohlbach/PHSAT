@@ -31,11 +31,8 @@ public class Disjunctions {
         disjunctions = new ClauseList(size,predicates);
     }
 
-    public void addLiteralRemovalObservers(Consumer<Clause> observer) {
-        disjunctions.literalRemovalObservers.add(observer);}
-
-    public void addLiteralReplacementObserver(Consumer<CLiteral> observer) {
-        disjunctions.literalReplacementObservers.add(observer);}
+    public void addLiteralRemovalObservers(Consumer<CLiteral> observer) {
+        disjunctions.addLiteralRemovalObserver(observer);}
 
     public void addPurityObserver(Consumer<Integer> observer) {
         disjunctions.addPurityObserver(observer);}

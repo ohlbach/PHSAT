@@ -4,11 +4,8 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Theory.ImplicationDAG;
-import Datastructures.Theory.ImplicationGraph;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeSet;
 
 /**
  * Created by ohlbach on 18.09.2018.
@@ -31,7 +28,7 @@ public class Algorithms {
         assert size > 1;
         CLiteral cLiteral = clause.cliterals.get(0);
         synchronized (implicationDAG) {
-            clauseList.literalUp(clause.cliterals.get(0).literal,implicationDAG).
+            clauseList.stream(clause.cliterals.get(0).literal,implicationDAG,false).
                 forEach(clit -> {
                     Clause otherClause = clit.clause;
                     if(otherClause != clause && otherClause.size() <= size) {otherClause.timestamp = timestamp;}});}
@@ -41,7 +38,7 @@ public class Algorithms {
         for(int i = 1; i < size; ++i) {
             int j = i;
             synchronized (implicationDAG) {
-                if(clauseList.literalUp(clause.cliterals.get(i).literal,implicationDAG).
+                if(clauseList.stream(clause.cliterals.get(i).literal,implicationDAG,false).
                     anyMatch(clit -> {
                         Clause otherClause = clit.clause;
                         if(otherClause.timestamp - j == timestamp) {
@@ -54,7 +51,7 @@ public class Algorithms {
         for(int i = 0; i < clause.size(); ++i) {
             int j = i;
             synchronized (implicationDAG) {
-                if(clauseList.literalUp(clause.cliterals.get(i).literal,implicationDAG).
+                if(clauseList.stream(clause.cliterals.get(i).literal,implicationDAG,false).
                     anyMatch(clit -> {
                         Clause otherClause = clit.clause;
                         return otherClause.timestamp - timestamp == otherClause.size()-2;}))
@@ -79,7 +76,7 @@ public class Algorithms {
         assert size > 1;
         CLiteral cLiteral = clause.cliterals.get(0);
         synchronized (implicationDAG) {
-            clauseList.literalDown(clause.cliterals.get(0).literal,implicationDAG).
+            clauseList.stream(clause.cliterals.get(0).literal,implicationDAG,true).
                 forEach(clit -> {
                     Clause otherClause = clit.clause;
                     if(otherClause != clause && otherClause.size() >= size) {otherClause.timestamp = timestamp;}});}
@@ -89,7 +86,7 @@ public class Algorithms {
         for(int i = 1; i < size; ++i) {
             int j = i;
             synchronized (implicationDAG) {
-                clauseList.literalDown(clause.cliterals.get(i).literal,implicationDAG).
+                clauseList.stream(clause.cliterals.get(i).literal,implicationDAG,true). // ???
                     forEach(clit -> {
                         Clause otherClause = clit.clause;
                         if(otherClause.timestamp - j == timestamp) {
@@ -104,7 +101,7 @@ public class Algorithms {
         for(int i = 0; i < size; ++i) {
             int j = i;
             synchronized (implicationDAG) {
-                clauseList.literalContradicting(clause.cliterals.get(i).literal,implicationDAG).
+                clauseList.streamContradicting(clause.cliterals.get(i).literal,implicationDAG).
                     forEach(clit -> {
                         Clause otherClause = clit.clause;
                         if(otherClause != clause && otherClause.timestamp - timestamp == size2) {

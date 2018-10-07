@@ -140,7 +140,7 @@ public class RandomWalker {
         predicates       = centralData.predicates;
         flipScore        = new int[predicates];
         globalModel      = centralData.model;
-        implicationDAG = centralData.implicationDAG; // clonen
+        implicationDAG   = centralData.implicationDAG; // clonen
         index            = clauseList.literalIndex;
         int seed         = (Integer)solverControl.get("seed");
         random           = new Random(seed);
@@ -160,6 +160,11 @@ public class RandomWalker {
             flip(selectFlipPredicate());}
             }
 
+    private void addObservers() {
+        clauseList.addClauseRemovalObserver(clause -> updateClause(clause,-1));
+        clauseList.addLiteralRemovalObserver(cLiteral -> updateLiteralRemoval(cLiteral));
+        clauseList.addLiteralReplacementObserver((cLiteral,before) -> updateClause(cLiteral.clause,before ? -1 : 1));
+    }
 
 
     /** generates a candidate rwModel for the clauses.
@@ -180,7 +185,7 @@ public class RandomWalker {
      * @param clause a clause
      * @param change +1 for adding the clause, -1 for removing the clause.
      */
-    private void checkClause(Clause clause, int change) {
+    private void updateClause(Clause clause, int change) {
         CLiteral trueLiteral = null;
         for(CLiteral cLiteral : clause.cliterals) {
             if(rwModel.isTrue(cLiteral.literal)) {
@@ -191,14 +196,8 @@ public class RandomWalker {
             clause.applyToLiteral(literal -> changeScore(Math.abs(literal), change));} // flipping a literal increases the number of true literals
         else {changeScore(Math.abs(trueLiteral.literal),-change); }} // flipping this literal destroys a true literal.
 
-
-    /** removes a literal from a clause and updates the score and falseClauses
-     *
-     * @param cLiteral the literal to be removed.
-     */
-    private void removeLiteral(CLiteral cLiteral) {
+    private void updateLiteralRemoval(CLiteral cLiteral) {
         Clause clause = cLiteral.clause;
-        clauseList.removeLiteral(cLiteral);
         CLiteral trueLiteral = null;
         for(CLiteral cLit : clause.cliterals) {
             if(rwModel.isTrue(cLit.literal)) {
@@ -212,11 +211,8 @@ public class RandomWalker {
                 falseClauses.add(clause);}
             return;} // all literals are false. Nothing changes
         if(wasTrue) { // trueLiteral is now the only true literal.
-            changeScore(trueLiteral.literal,-1);}}
-
-
-
-
+            changeScore(trueLiteral.literal,-1);}
+    }
 
     private int[] counter = new int[]{0};
 
@@ -240,7 +236,8 @@ public class RandomWalker {
                  */
     private void initializeQueue() {
         falseClauses = new ArrayList<>();
-        for(Clause clause : clauseList.clauses) {checkClause(clause,1);}
+        for(Clause clause : clauseList.clauses) {
+            updateClause(clause,1);}
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(globalModel.status(predicate) == 0) {predicateQueue.add(predicate);}}}
 
@@ -304,7 +301,7 @@ public class RandomWalker {
                 newTrueLiterals.toArray(trueLiterals);
                 newTrueLiterals.clear();}}
         finally{globalModel.readUnLock();}
-        if(trueLiterals != null) {for(Integer literal : trueLiterals) {integrateTrueLiteral(literal);}}
+        if(trueLiterals != null) {for(Integer literal : trueLiterals) {clauseList.makeTrue(literal);}}
 
         int[][] implications = null;
         int[][] equivalences = null;
@@ -323,17 +320,33 @@ public class RandomWalker {
         for(int[] implication : implications) {integrateImplication(implication);}}
 
 
-    private void integrateTrueLiteral(int literal) {
-        clauseList.makeTrue(literal);
-// weiter
-    }
+
 
     private void integrateEquivalence(int[] equivalence) {
-// weiter
+        int representative = equivalence[0];
+        for (int i = 1; i < equivalence.length; ++i) {clauseList.replaceByRepresentative(representative,equivalence[i]);}
     }
 
+    private ArrayList<Object> toBeRemoved = new ArrayList<>();
     private void integrateImplication(int[] implication) {
-// weiter
+        int timestamp = ++clauseList.timestamp;
+        int from = implication[0];
+        int to   = implication[1];
+        toBeRemoved.clear();
+        for(CLiteral cLiteral : clauseList.literalIndex.getLiterals(-from)) {
+            cLiteral.clause.timestamp = timestamp;}
+        for(CLiteral cLiteral : clauseList.literalIndex.getLiterals(to)) {
+            if(cLiteral.clause.timestamp == timestamp) {toBeRemoved.add(cLiteral.clause);}
+            else{cLiteral.clause.timestamp = timestamp;}}
+        for(Object object : toBeRemoved) {clauseList.removeClause((Clause)object);}
+        toBeRemoved.clear();
+        for(CLiteral cLiteral : clauseList.literalIndex.getLiterals(-to)) {
+            if(cLiteral.clause.timestamp == timestamp) {toBeRemoved.add(cLiteral);}}
+        for(Object object : toBeRemoved) {clauseList.removeLiteral((CLiteral) object);}
+        toBeRemoved.clear();
+        for(CLiteral cLiteral : clauseList.literalIndex.getLiterals(from)) {
+            if(cLiteral.clause.timestamp == timestamp) {toBeRemoved.add(cLiteral);}}
+        for(Object object : toBeRemoved) {clauseList.removeLiteral((CLiteral) object);}
     }
 
 
@@ -342,15 +355,6 @@ public class RandomWalker {
             if(rwModel.isTrue(cLit.literal)) {return false;}}
         return true;}
 
-    /** checks if all literals but the given one are false
-     *
-     * @param cLiteral a CLiteral
-     * @return true if all literals except the given one are false.
-     */
-    private boolean isFalseBut(CLiteral cLiteral) {
-        for(CLiteral cLit : cLiteral.clause.cliterals) {
-            if(cLit != cLiteral && rwModel.isTrue(cLit.literal)) {return false;}}
-        return true;}
 
     /** searches for the only other true literal besides the given one
      *

@@ -28,6 +28,28 @@ public class ImplicationDAG {
     private final Lock readLock = rwl.readLock();
     private final Lock writeLock = rwl.writeLock();
 
+    /** clones the entire DAG
+     *
+     * @return the cloned DAG
+     */
+    public ImplicationDAG clone() {
+        ImplicationDAG newDag = new ImplicationDAG();
+        for(Map.Entry<Integer,ImplicationNode>  entry : nodesMap.entrySet() ) {
+            newDag.nodesMap.put(entry.getKey(),new ImplicationNode(entry.getKey()));}
+        for(ImplicationNode root : roots) {newDag.roots.add(newDag.getNode(root.literal));}
+        for(Map.Entry<Integer,ImplicationNode>  entry : nodesMap.entrySet() ) {
+            ImplicationNode oldNode = entry.getValue();
+            ImplicationNode newNode = newDag.getNode(entry.getKey());
+            if(oldNode.upNodes != null) {
+                ArrayList<ImplicationNode> upNodes = new ArrayList<>();
+                for(ImplicationNode oldUp :oldNode.upNodes) {upNodes.add(newDag.getNode(oldUp.literal));}
+                newNode.upNodes = upNodes;}
+            if(oldNode.downNodes != null) {
+                ArrayList<ImplicationNode> downNodes = new ArrayList<>();
+                for(ImplicationNode oldDown :oldNode.downNodes) {downNodes.add(newDag.getNode(oldDown.literal));}
+                newNode.downNodes = downNodes;}}
+        return newDag;}
+
     /** adds a true literal observer */
     public synchronized void addTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.add(observer);}
     /** adds an implication observer */

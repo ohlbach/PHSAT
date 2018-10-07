@@ -100,7 +100,7 @@ public class CentralDataHolder {
         equivalences      = new EquivalenceClasses(model, implicationDAG);
         disjointnesses    = new DisjointnessClasses(model, implicationDAG,equivalences);
         disjunctions      = new Disjunctions(basicClauseList.disjunctions.size(),model, implicationDAG,equivalences);
-        disjunctions.disjunctions.literalRemovalObservers.add(clause -> taskQueue.add(makeShortenedClauseTask(clause)));
+        disjunctions.disjunctions.addLiteralRemovalObserver(cLiteral -> taskQueue.add(makeShortenedClauseTask(cLiteral.clause)));
         implicationDAG.addTrueLiteralObserver(literal -> taskQueue.add(new OneLiteralTask(literal)));
         implicationDAG.addImplicationObserver(         (from, to) -> taskQueue.add(new TwoLiteralTask(-from,to)));
         equivalences.trueLiteralObservers.add(               literal -> taskQueue.add(new OneLiteralTask(literal)));

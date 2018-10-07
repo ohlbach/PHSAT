@@ -1,6 +1,7 @@
 package Datastructures.Theory;
 
 import org.junit.Test;
+import org.omg.CORBA.IMP_LIMIT;
 
 import java.util.Arrays;
 
@@ -275,5 +276,19 @@ public class ImplicationDAGTest {
         id.addClause(-8, 4);
         assertEquals("[1, 2, 8]",id.rootLiterals(6).toString());
 
+    }
+    @Test
+    public void cloneTest() throws Exception {
+        System.out.println("clone");
+        ImplicationDAG id = new ImplicationDAG();
+        id.addClause(-1, 3);
+        id.addClause(-2, 3);
+        id.addClause(-3, 4);
+        id.addClause(-4, 5);
+        id.addClause(-5, 6);
+        id.addClause(-5, 7);
+        id.addClause(-8, 4);
+        ImplicationDAG id1 = id.clone();
+        assertEquals(id.toString(),id1.toString());
     }
 }

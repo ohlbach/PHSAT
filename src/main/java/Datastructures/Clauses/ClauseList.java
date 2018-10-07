@@ -4,9 +4,9 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
 import Datastructures.Symboltable;
 import Datastructures.Theory.ImplicationDAG;
-import Datastructures.Theory.ImplicationGraph;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -25,10 +25,12 @@ public class ClauseList {
     private final HashMap<String,Clause> id2Clause;      // maps clause ids to disjunctions
     public final LiteralIndex literalIndex;              // maps literals to CLiterals
     public int timestamp = 0;                            // for algorithms
-    public final ArrayList<Consumer<Clause>> literalRemovalObservers = new ArrayList<Consumer<Clause>>();
-            // they are called when literals are removed.
-    public final ArrayList<Consumer<CLiteral>> literalReplacementObservers = new ArrayList<Consumer<CLiteral>>();
+    private final ArrayList<Consumer<CLiteral>> literalRemovalObservers = new ArrayList<>();
+    // they are called when literals are removed.
+    private final ArrayList<BiConsumer<CLiteral,Boolean>> literalReplacementObservers = new ArrayList<>();
     // they are called when literals are replaced by representatives in a equivalence class.
+    private final ArrayList<Consumer<Clause>> clauseRemovalObservers = new ArrayList<>();
+    // they are called when clauses are removed.
 
 
     /** creates a clause list. The number of disjunctions should be estimated.
@@ -42,7 +44,7 @@ public class ClauseList {
         id2Clause       = new HashMap<>();
         literalIndex    = new LiteralIndex(predicates);}
 
-    /** clones the entire clause list
+    /** clones the entire clause list, except the observers.
      *
      * @return a clone of the clause list (without observers)
      */
@@ -63,6 +65,29 @@ public class ClauseList {
      */
     public void addPurityObserver(Consumer<Integer> observer) {
         literalIndex.purityObservers.add(observer);}
+
+    /** adds an observer which is called when a literal is removed from a clause
+     *
+     * @param observer a consumer function to be applied to a CLiteral
+     */
+    public void addLiteralRemovalObserver(Consumer<CLiteral> observer) {
+        literalRemovalObservers.add(observer);}
+
+    /** adds an observer which is called after a literal is replaced by another one (a representative in an equivalence class).
+     * It is called for the new CLiteral and the old literal (Integer).
+     *
+     * @param observer a consumer function to be applied to a CLiteral
+     */
+    public void addLiteralReplacementObserver(BiConsumer<CLiteral,Boolean> observer) {
+        literalReplacementObservers.add(observer);}
+
+
+    /** adds an observer which is called when a clause is removed
+     *
+     * @param observer a consumer function to be applied to a removed clause
+     */
+    public void addClauseRemovalObserver(Consumer<Clause> observer) {
+        clauseRemovalObservers.add(observer);}
 
     /** adds a clause to the list and updates the literal index
      *
@@ -87,7 +112,7 @@ public class ClauseList {
     public LinkedList<CLiteral> getLiterals(int literal) {
         return literalIndex.getLiterals(literal);}
 
-    /** removes a clause (silently). The clause itself is not changed.
+    /** removes a clause and calls the clauseRemovalObservers. The clause itself is not changed.
      *
      * @param clause the clause to be removed
      */
@@ -95,6 +120,7 @@ public class ClauseList {
         clauses.remove(clause);
         id2Clause.remove(clause.id);
         for(CLiteral cliteral : clause.cliterals) {literalIndex.removeLiteral(cliteral);}
+        for(Consumer<Clause> observer : clauseRemovalObservers) {observer.accept(clause);}
     }
 
     /** removes a literal from the clause.<br/>
@@ -106,7 +132,7 @@ public class ClauseList {
         Clause clause = cliteral.clause;
         clause.removeLiteral(cliteral);
         literalIndex.removeLiteral(cliteral);
-        for(Consumer observer : literalRemovalObservers) {observer.accept(clause);}}
+        for(Consumer observer : literalRemovalObservers) {observer.accept(cliteral);}}
 
     /** removes all clauses with the given (pure) literal
      *
@@ -126,10 +152,12 @@ public class ClauseList {
         for(Object cliteral : literalIndex.getLiterals(literal).toArray()) {removeClause(((CLiteral)cliteral).clause);}
         for(Object cliteral : literalIndex.getLiterals(-literal).toArray()) {removeLiteral((CLiteral)cliteral);}}
 
-    /** replaces a literal by its representative of an equivalence class in all disjunctions where ther literal and its negation occur.
+    /** replaces a literal by its representative in an equivalence class in all clauses containing the literal and its negation.
      * If the clause then contains double literals, one of the is removed.<br/>
-     * If the clause becomes a tautology, it is entirely (and silently) removed.<br/>
-     * All literalReplacementObservers and literalRemovalObservers are called.
+     * If the clause becomes a tautology, it is entirely removed.<br/>
+     * The corresponding observers are called.<br/>
+     * LiteralReplacementObservers are called before the replacement (with parameter true) <br/>
+     * and after the replacement (with parameter false)
      *
      * @param literal       the literal to be replaced
      * @param representative the new literal
@@ -140,13 +168,14 @@ public class ClauseList {
             representative *= i;
             for(Object clit : literalIndex.getLiterals(literal).toArray()) {
                 CLiteral cliteral = (CLiteral)clit;
-                if(cliteral.clause.replaceBy(cliteral,representative)) { //replaced
-                    literalIndex.removeLiteral(literal,cliteral);
-                    literalIndex.addLiteral(cliteral);
-                    if(cliteral.clause.contains(-representative) >= 0) {removeClause(cliteral.clause);}
-                    else {for(Consumer observer : literalReplacementObservers) {observer.accept(cliteral);}}}
-                else {literalIndex.removeLiteral(cliteral);  //removed
-                    for(Consumer observer : literalRemovalObservers) {observer.accept(cliteral.clause);}}}}}
+                Clause clause = cliteral.clause;
+                if(clause.contains(-representative) >= 0) {removeClause(clause); continue;}    // tautology
+                if(clause.contains(representative) >= 0)  {removeLiteral(cliteral); continue;} // double literals
+                for(BiConsumer observer : literalReplacementObservers) {observer.accept(cliteral, true);}
+                literalIndex.removeLiteral(cliteral);
+                cliteral.literal = representative;
+                literalIndex.addLiteral(cliteral);
+                for(BiConsumer observer : literalReplacementObservers) {observer.accept(cliteral, false);}}}}
 
     /** gets the number of cLiterals containing the given literal
      *
@@ -172,25 +201,13 @@ public class ClauseList {
      * @param implicationDAG  the implication DAG
      * @return  a stream of CLiterals l such that literal implies l (including the literal itself.)
      */
-    public Stream<CLiteral> literalDown(int literal, ImplicationDAG implicationDAG) {
+    public Stream<CLiteral> stream(int literal, ImplicationDAG implicationDAG, boolean down) {
         Stream<CLiteral>[] stream = new Stream[]{null};
-        implicationDAG.apply(literal,true, (lit -> {
+        implicationDAG.apply(literal,down, (lit -> {
                 if(stream[0] == null) {stream[0] =  literalIndex.getLiterals(lit).stream();}
                 else {stream[0] = Stream.concat(stream[0], literalIndex.getLiterals(lit).stream());}}));
         return stream[0];}
 
-    /** generates a stream of CLiterals which imply the given literal
-     *
-     * @param literal           a literal
-     * @param implicationDAG  the implication DAG
-     * @return  a stream of CLiterals l such that l implies literal (including the literal itself.)
-     */
-    public Stream<CLiteral> literalUp(int literal, ImplicationDAG implicationDAG) {
-        Stream<CLiteral>[] stream = new Stream[]{null};
-        implicationDAG.apply(literal,false, (lit -> {
-            if(stream[0] == null) {stream[0] =  literalIndex.getLiterals(lit).stream();}
-            else {stream[0] = Stream.concat(stream[0], literalIndex.getLiterals(lit).stream());}}));
-        return stream[0];}
 
     /** generates a stream of CLiterals which contradict the given literal<br/>
      * Example:  literal = p and p -> q: all CLiterals with -p and -q are returned.
@@ -199,11 +216,11 @@ public class ClauseList {
      * @param implicationDAG  the implication DAG
      * @return  a stream of CLiterals l such that literal implies l (including the literal itself.)
      */
-    public Stream<CLiteral> literalContradicting(int literal, ImplicationDAG implicationDAG) {
+    public Stream<CLiteral> streamContradicting(int literal, ImplicationDAG implicationDAG) {
         Stream<CLiteral>[] stream = new Stream[]{null};
         implicationDAG.apply(-literal,false, (lit -> {
-            if(stream[0] == null) {stream[0] =  literalIndex.getLiterals(-lit).stream();}
-            else {stream[0] = Stream.concat(stream[0], literalIndex.getLiterals(-lit).stream());}}));
+            if(stream[0] == null) {stream[0] =  literalIndex.getLiterals(lit).stream();}
+            else {stream[0] = Stream.concat(stream[0], literalIndex.getLiterals(lit).stream());}}));
         return stream[0];}
 
 
@@ -213,21 +230,13 @@ public class ClauseList {
      *
      * @param literal        a literal
      * @param implicationDAG the implications
+     * @param down           if true then the ImplicationDAG is followed downwards, otherwise upwards.
      * @param consumer       a function to be applied to a CLiteral
      */
-    public void applyDown(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {
-        implicationDAG.apply(literal,true, (lit -> {
-            for(CLiteral cLiteral : literalIndex.getLiterals(lit)) {cLiteral.clause.applyToCLiteral(consumer);}}));}
+    public void apply(int literal, ImplicationDAG implicationDAG, boolean down, Consumer<CLiteral> consumer) {
+        implicationDAG.apply(literal,down, (lit -> {
+            for(CLiteral cLiteral : literalIndex.getLiterals(lit)) {consumer.accept(cLiteral);}}));}
 
-    /** applies a consumer to all CLiterals which imply the given literal (including the literal itself)
-     *
-     * @param literal        a literal
-     * @param implicationDAG the implications
-     * @param consumer       a function to be applied to a CLiteral
-     */
-    public void applyUp(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {
-        implicationDAG.apply(literal,false, (lit -> {
-            for(CLiteral cLiteral : literalIndex.getLiterals(lit)) {cLiteral.clause.applyToCLiteral(consumer);}}));}
 
     /** applies a consumer to all CLiterals which contradict the given literal (including the -literal itself)
      *
@@ -237,7 +246,7 @@ public class ClauseList {
      */
     public void applyContradicting(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {
         implicationDAG.apply(-literal,false, (lit -> {
-            for(CLiteral cLiteral : literalIndex.getLiterals(-lit)) {cLiteral.clause.applyToCLiteral(consumer);}}));}
+            for(CLiteral cLiteral : literalIndex.getLiterals(lit)) {consumer.accept(cLiteral);}}));}
 
 
     /** the actual number of disjunctions

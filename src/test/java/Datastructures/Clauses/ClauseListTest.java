@@ -1,6 +1,8 @@
 package Datastructures.Clauses;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.ImplicationGraph;
+import Datastructures.Theory.ImplicationNode;
 import Utilities.Utilities;
 import com.sun.istack.internal.Pool;
 import org.junit.Test;
@@ -89,7 +91,7 @@ public class ClauseListTest {
         clauses.addClause(c12);
         CLiteral lit1 = c11.cliterals.get(0);
         StringBuilder st = new StringBuilder();
-        clauses.literalRemovalObservers.add(cl -> st.append(cl.toString()));
+        clauses.addLiteralRemovalObserver(cl -> st.append(cl.clause.toString()));
         clauses.removeLiteral(lit1);
         assertEquals("1: (-3,6)",st.toString());
     }
@@ -109,7 +111,7 @@ public class ClauseListTest {
         Clause c5 = Utilities.makeClause("5", "3,8,-7");
         clauses.addClause(c5);
         StringBuilder st = new StringBuilder();
-        clauses.literalRemovalObservers.add(cl -> st.append(cl.toString()));
+        clauses.addLiteralRemovalObserver(cl -> st.append(cl.clause.toString()));
         clauses.makeTrue(3);
         assertEquals("1: (1,6)\n" +
                 "2: (6,-7)\n" +
@@ -118,8 +120,8 @@ public class ClauseListTest {
     }
 
     @Test
-    public void replaceBy() throws Exception {
-        System.out.println("replaceBy");
+    public void getOccurrences() throws Exception {
+        System.out.println("getOccurrences");
         ClauseList clauses = new ClauseList(10, 10);
         Clause c1 = Utilities.makeClause("1", "1,-3,6");
         clauses.addClause(c1);
@@ -131,22 +133,15 @@ public class ClauseListTest {
         clauses.addClause(c4);
         Clause c5 = Utilities.makeClause("5", "3,8,-7");
         clauses.addClause(c5);
-        StringBuilder str = new StringBuilder();
-        clauses.literalRemovalObservers.add(cl -> str.append(cl.toString()));
-        StringBuilder stp = new StringBuilder();
-        clauses.literalReplacementObservers.add(cl -> stp.append(cl.toString()));
-        clauses.replaceByRepresentative(7,3);
-        assertEquals("1: (1,-7,6)\n" +
-                "2: (6,-7)\n" +
-                "3: (2,7)\n" +
-                "4: (4,6,-7)\n",clauses.toString());
-        assertEquals("3: (2,7)2: (6,-7)",str.toString());
-        assertEquals("-7",stp.toString());
+        assertEquals(1,clauses.getOccurrences(1));
+        assertEquals(0,clauses.getOccurrences(-1));
+        assertEquals(2,clauses.getOccurrences(3));
+        assertEquals(2,clauses.getOccurrences(-3));
     }
 
     @Test
-    public void literalImplies() throws Exception {
-        System.out.println("literalImplies");
+    public void isPure() throws Exception {
+        System.out.println("isPure");
         ClauseList clauses = new ClauseList(10, 10);
         Clause c1 = Utilities.makeClause("1", "1,-3,6");
         clauses.addClause(c1);
@@ -156,23 +151,170 @@ public class ClauseListTest {
         clauses.addClause(c3);
         Clause c4 = Utilities.makeClause("4", "4,6,-7");
         clauses.addClause(c4);
+        Clause c5 = Utilities.makeClause("5", "3,8,-7");
+        clauses.addClause(c5);
+        assertTrue(clauses.isPure(1));
+        assertFalse(clauses.isPure(-1));
+        assertTrue(clauses.isPure(6));
+        assertFalse(clauses.isPure(7));
+    }
+
+    @Test
+    public void replaceByRepresentative() throws Exception {
+        System.out.println("replaceByRepresentative");
+        ClauseList clauses = new ClauseList(10, 10);
+        Clause c1 = Utilities.makeClause("1", "1,-3,6");
+        clauses.addClause(c1);
+        Clause c2 = Utilities.makeClause("2", "3,6,-7");
+        clauses.addClause(c2);
+        Clause c3 = Utilities.makeClause("3", "2,3,7");
+        clauses.addClause(c3);
+        Clause c4 = Utilities.makeClause("4", "4,6,-7");
+        clauses.addClause(c4);
         Clause c5 = Utilities.makeClause("5", "3,8,7");
         clauses.addClause(c5);
-
-        ImplicationGraph ig = new ImplicationGraph(10);
-        ig.addClause(-1,3);
         StringBuilder st1 = new StringBuilder();
-        clauses.literalImplies(1,ig).forEach(lit-> st1.append(lit.toFullString()+". "));
-        assertEquals("1@1,0. 3@3,1. 3@5,0. ",st1.toString());
-
-        ig.addClause(-7,1);
         StringBuilder st2 = new StringBuilder();
-        clauses.literalIsImplied(1,ig).forEach(lit-> st2.append(lit.toFullString()+". "));
-        assertEquals("1@1,0. 7@3,2. 7@5,2. ",st2.toString());
-
         StringBuilder st3 = new StringBuilder();
-        clauses.literalContradict(-3,ig).forEach(lit-> st3.append(lit.toFullString()+". "));
-        assertEquals("3@3,1. 3@5,0. 7@3,2. 7@5,2. 1@1,0. ",st3.toString());
+        clauses.addLiteralRemovalObserver(lit-> st1.append("LR " +lit.clause.toString()+"\n"));
+        clauses.addClauseRemovalObserver(cls-> st2.append("CR " +cls.toString()+"\n"));
+        clauses.addLiteralReplacementObserver((lit,state) -> st3.append("RP " + lit.clause.toString()+ " " + state + "\n"));
+        clauses.replaceByRepresentative(6,3);
+        assertEquals("LR 2: (6,-7)\n",st1.toString());
+        assertEquals("CR 1: (1,-3,6)\n",st2.toString());
+        assertEquals("RP 3: (2,3,7) true\n" +
+                "RP 3: (2,6,7) false\n" +
+                "RP 5: (3,8,7) true\n" +
+                "RP 5: (6,8,7) false\n",st3.toString());
 
     }
-}
+
+    @Test
+    public void applyTest() throws Exception {
+        System.out.println("apply");
+        ClauseList clauses = new ClauseList(10, 10);
+        Clause c1 = Utilities.makeClause("1", "1,-3,6");
+        clauses.addClause(c1);
+        Clause c2 = Utilities.makeClause("2", "3,6,-7");
+        clauses.addClause(c2);
+        Clause c3 = Utilities.makeClause("3", "2,3,7");
+        clauses.addClause(c3);
+        Clause c4 = Utilities.makeClause("4", "4,6,-7");
+        clauses.addClause(c4);
+        Clause c5 = Utilities.makeClause("5", "3,8,7");
+        clauses.addClause(c5);
+        ImplicationDAG id = new ImplicationDAG();
+        StringBuilder st = new StringBuilder();
+        clauses.apply(1,id,true, (lit -> st.append(lit.clause.toString()+"\n")));
+        assertEquals("1: (1,-3,6)\n",st.toString());
+        clauses.apply(3,id,true, (lit -> st.append(lit.clause.toString()+"\n")));
+        assertEquals("1: (1,-3,6)\n" +
+                "2: (3,6,-7)\n" +
+                "3: (2,3,7)\n" +
+                "5: (3,8,7)\n",st.toString());
+
+        id.addClause(-1,3);
+        id.addClause(-3,4);
+        StringBuilder st2 = new StringBuilder();
+        clauses.apply(1,id,true, (lit -> st2.append(lit.clause.toString()+"\n")));
+        assertEquals("1: (1,-3,6)\n" +
+                "2: (3,6,-7)\n" +
+                "3: (2,3,7)\n" +
+                "5: (3,8,7)\n" +
+                "4: (4,6,-7)\n",st2.toString());
+        StringBuilder st3 = new StringBuilder();
+        clauses.apply(4,id,false, (lit -> st3.append(lit.clause.toString()+"\n")));
+        assertEquals("4: (4,6,-7)\n" +
+                "2: (3,6,-7)\n" +
+                "3: (2,3,7)\n" +
+                "5: (3,8,7)\n" +
+                "1: (1,-3,6)\n",st3.toString());
+    }
+
+    @Test
+    public void applyContradicting() throws Exception {
+        System.out.println("applyContradiciting");
+        ClauseList clauses = new ClauseList(10, 10);
+        Clause c1 = Utilities.makeClause("1", "1,-3,6");
+        clauses.addClause(c1);
+        Clause c2 = Utilities.makeClause("2", "3,6,-7");
+        clauses.addClause(c2);
+        Clause c3 = Utilities.makeClause("3", "2,3,7");
+        clauses.addClause(c3);
+        Clause c4 = Utilities.makeClause("4", "4,6,-7");
+        clauses.addClause(c4);
+        Clause c5 = Utilities.makeClause("5", "-2,8,7");
+        clauses.addClause(c5);
+        ImplicationDAG id = new ImplicationDAG();
+        StringBuilder st = new StringBuilder();
+        clauses.applyContradicting(3, id, (lit -> st.append(lit.clause.toString() + "\n")));
+        assertEquals("1: (1,-3,6)\n", st.toString());
+
+        id.addClause(-2,-3);
+        StringBuilder st1 = new StringBuilder();
+        clauses.applyContradicting(2, id, (lit -> st1.append(lit.clause.toString() + "\n")));
+        assertEquals("5: (-2,8,7)\n" +
+                "2: (3,6,-7)\n" +
+                "3: (2,3,7)\n",st1.toString());
+    }
+
+    @Test
+    public void streamTest() throws Exception {
+        System.out.println("stream");
+        ClauseList clauses = new ClauseList(10, 10);
+        Clause c1 = Utilities.makeClause("1", "1,-3,5");
+        clauses.addClause(c1);
+        Clause c2 = Utilities.makeClause("2", "3,6,-7");
+        clauses.addClause(c2);
+        Clause c3 = Utilities.makeClause("3", "2,3,7");
+        clauses.addClause(c3);
+        Clause c4 = Utilities.makeClause("4", "4,6,-7");
+        clauses.addClause(c4);
+        Clause c5 = Utilities.makeClause("5", "3,8,7");
+        clauses.addClause(c5);
+        ImplicationDAG id = new ImplicationDAG();
+        StringBuilder st = new StringBuilder();
+        clauses.stream(3,id,true).forEach(lit->st.append(lit.clause.toString()+"\n"));
+        assertEquals("2: (3,6,-7)\n" +
+                "3: (2,3,7)\n" +
+                "5: (3,8,7)\n",st.toString());
+
+        id.addClause(-1,6);
+        StringBuilder st1 = new StringBuilder();
+        clauses.stream(1,id,true).forEach(lit->st1.append(lit.clause.toString()+"\n"));
+        assertEquals("1: (1,-3,5)\n" +
+                "2: (3,6,-7)\n" +
+                "4: (4,6,-7)\n",st1.toString());
+        StringBuilder st2 = new StringBuilder();
+        clauses.stream(6,id,false).forEach(lit->st2.append(lit.clause.toString()+"\n"));
+        assertEquals("2: (3,6,-7)\n" +
+                "4: (4,6,-7)\n" +
+                "1: (1,-3,5)\n",st2.toString());
+    }
+
+    @Test
+    public void streamContradicting() throws Exception {
+        System.out.println("streamContradicting");
+        ClauseList clauses = new ClauseList(10, 10);
+        Clause c1 = Utilities.makeClause("1", "1,-3,5");
+        clauses.addClause(c1);
+        Clause c2 = Utilities.makeClause("2", "3,6,-7");
+        clauses.addClause(c2);
+        Clause c3 = Utilities.makeClause("3", "2,3,7");
+        clauses.addClause(c3);
+        Clause c4 = Utilities.makeClause("4", "4,6,-7");
+        clauses.addClause(c4);
+        Clause c5 = Utilities.makeClause("5", "3,8,7");
+        clauses.addClause(c5);
+        ImplicationDAG id = new ImplicationDAG();
+        StringBuilder st = new StringBuilder();
+        clauses.streamContradicting(3, id).forEach(lit -> st.append(lit.clause.toString() + "\n"));
+        assertEquals("1: (1,-3,5)\n",st.toString());
+
+        id.addClause(-1,-6);
+        StringBuilder st1 = new StringBuilder();
+        clauses.streamContradicting(1, id).forEach(lit -> st1.append(lit.clause.toString() + "\n"));
+        assertEquals("2: (3,6,-7)\n" +
+                "4: (4,6,-7)\n",st1.toString());
+    }
+    }

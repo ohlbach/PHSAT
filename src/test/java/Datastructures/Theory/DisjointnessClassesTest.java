@@ -9,6 +9,8 @@ import static org.junit.Assert.*;
  * Created by Ohlbach on 21.09.2018.
  */
 public class DisjointnessClassesTest {
+
+    /*
     @Test
     public void addDisjointnessClass() throws Exception {
         System.out.println("addDisjointnessClass");
@@ -69,5 +71,5 @@ public class DisjointnessClassesTest {
         ig.addClause(-2,-4);
         assertEquals("Disjointenss Classes:\nD2!=4: (2,4,3,1)\n",djc.toString());
     }
-
+*/
 }
