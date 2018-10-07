@@ -253,50 +253,21 @@ public class RandomWalker {
         return score[0];}
 
 
-    private HashSet<Integer> affected = new HashSet<>();
-
     /** flips the truth value of the predicate and updates the predicateQueue
      *
      * @param predicate
      */
     private void flip(int predicate) {
-        if(rwModel.isTrue(predicate)) {
-            for(CLiteral cLiteral : index.getLiterals(predicate)) {
-                Clause clause = cLiteral.clause;
-                if(isFalseBut(cLiteral)) { // all other literals are false
-                    falseClauses.add(clause);
-                    for(CLiteral cLiteral1 : clause.cliterals) {
-                        if(cLiteral1 != cLiteral1) {changeScore(cLiteral1.literal,1);}}}
-                else {CLiteral otherTrueLiteral = findOtherTrueLiteral(cLiteral);
-                    if(otherTrueLiteral != null) {changeScore(otherTrueLiteral.literal,-1);}}}
-            implicationDAG.apply(-predicate,true,(p -> {
-                if(rwModel.isFalse(p)) {
-                    for(CLiteral cLiteral : index.getLiterals(p)) {
-                        if(isFalse(cLiteral.clause)) {
-                            falseClauses.remove(cLiteral.clause);
-                            for(CLiteral cLit : cLiteral.clause.cliterals) {changeScore(cLit.literal,-1);}}
-                        else {CLiteral otherTrueLiteral = findOtherTrueLiteral(cLiteral);
-                            if(otherTrueLiteral != null) {changeScore(otherTrueLiteral.literal,1);}}}}}));
-            }
-            else {
-            implicationDAG.apply(predicate,true,(p->{
-                if(rwModel.isFalse(p)) {
-                    for(CLiteral cLiteral : index.getLiterals(p)) {
-                        if(isFalse(cLiteral.clause)) {
-                            falseClauses.remove(cLiteral.clause);
-                            for(CLiteral cLiteral1 : cLiteral.clause.cliterals) {changeScore(cLiteral.literal,-1);}}
-                        else {CLiteral otherTrueLiteral = findOtherTrueLiteral(cLiteral);
-                            if(otherTrueLiteral!= null) {changeScore(otherTrueLiteral.literal,1);}}}}}));
-            for(CLiteral cLiteral : index.getLiterals(-predicate)) {
-                if(isFalseBut(cLiteral)) {
-                    falseClauses.add(cLiteral.clause);
-                    for(CLiteral cLiteral1 : cLiteral.clause.cliterals) {
-                        if(cLiteral != cLiteral) {changeScore(cLiteral1.literal,+1);}}}
-                    else {
-                    CLiteral otherTrueLiteral = findOtherTrueLiteral(cLiteral);
-                    if(otherTrueLiteral != null) {changeScore(otherTrueLiteral.literal,-1);}}}}
-
-        rwModel.flip(predicate);}
+        implicationDAG.apply(-rwModel.status[predicate]*predicate,true,(p -> {
+            if(rwModel.isFalse(p)) {
+                for(CLiteral cLiteral : index.getLiterals(p)) {
+                    Clause clause = cLiteral.clause;
+                    if(isFalse(clause)) {
+                        falseClauses.remove(clause);
+                        clause.applyToLiteral(literal->changeScore(literal,-1));}
+                    else {CLiteral otherTrueLiteral = findOtherTrueLiteral(cLiteral);
+                        if(otherTrueLiteral != null) {changeScore(otherTrueLiteral.literal,1);}}}};
+                rwModel.flip(p);}));}
 
 
 
@@ -394,6 +365,7 @@ public class RandomWalker {
                 trueLiteral = cLit;}}
         return trueLiteral;}
 
+    private TreeMap<Integer,Integer> affected = new TreeMap();
     /** changes the flipScore of the given literal and updates the predicateQueue
      *
      * @param literal    an literal
@@ -401,114 +373,36 @@ public class RandomWalker {
      */
     private void changeScore(int literal, int difference) {
         int predicate = Math.abs(literal);
-        predicateQueue.remove(predicate);
-        flipScore[predicate] += difference;
-        predicateQueue.add(predicate);}
+        Integer score = affected.get(predicate);
+        if(score == null) {score = difference;}
+        else {score += difference;}
+        affected.put(predicate,score);}
 
-
-    int flipScore(int literal) {
-        return becomeTrue(literal) - becomeFalse(literal);}
-
-    /** counts the number of clauses which are false and become true when the literal is flipped.
-     *
-     * @param literal a literal
-     * @return the number of clauses which are false and become true when the literal is flipped.
+    /** updates the flip scores and the predicate queue.
+     * Since the order in the queue may depend on several predicates,
+     * one must first remove all affected predicates from the queue, then update the scores and then add the
+     * predicate to the queue.
      */
-    private int becomeTrue(int literal) {
-        ++timestamp;
-        counter[0] = 0;
-        if(rwModel.isTrue(literal)) {
-            implicationDAG.apply(-literal,true,(lit->{  // all literals implied by -literal become true
-                for(CLiteral cLiteral : index.getLiterals(lit)) {
-                    Clause clause = cLiteral.clause;
-                    if(clause.timestamp != timestamp) {
-                        clause.timestamp = timestamp;
-                        if(isFalse(clause)) {++counter[0];}}}}));}
-        else {
-            implicationDAG.apply(literal,true,(lit->{  // all literals implied by literal become true
-                for(CLiteral cLiteral : index.getLiterals(lit)) {
-                    Clause clause = cLiteral.clause;
-                    if(clause.timestamp != timestamp) {
-                        clause.timestamp = timestamp;
-                        if(isFalse(clause)) {++counter[0];}}}}));}
-        return counter[0];}
+    private void updateScores() {
+        for(Map.Entry<Integer,Integer> entry : affected.entrySet()) {
+            Integer predicate = entry.getKey();
+            Integer value = entry.getValue();
+            if(value != 0) {
+                implicationDAG.apply(predicate,false,(p->predicateQueue.remove(Math.abs(p))));}}
+        for(Map.Entry<Integer,Integer> entry : affected.entrySet()) {
+            Integer predicate = entry.getKey();
+            Integer value = entry.getValue();
+            if(value != 0) {flipScore[predicate] = value;}}
+        for(Map.Entry<Integer,Integer> entry : affected.entrySet()) {
+            Integer predicate = entry.getKey();
+            Integer value = entry.getValue();
+            if(value != 0) {
+                implicationDAG.apply(predicate,false,(p->predicateQueue.add(Math.abs(p))));}}
+        affected.clear();}
 
-    /** counts the number of clauses which are false and become true when the literal is flipped.
-     *
-     * @param literal a literal
-     * @return the number of clauses which are false and become true when the literal is flipped.
-     */
-    private void updateBecomesTrue(int literal) {
-        ++timestamp;
-        counter[0] = 0;
-        if(rwModel.isTrue(literal)) {
-            implicationDAG.apply(-literal,true,(lit->{  // all literals implied by -literal become true
-                for(CLiteral cLiteral : index.getLiterals(lit)) {
-                    Clause clause = cLiteral.clause;
-                    if(clause.timestamp != timestamp) {
-                        clause.timestamp = timestamp;
-                        if(isFalse(clause)) {falseClauses.remove(clause);}}}}));}
-        else {
-            implicationDAG.apply(literal,true,(lit->{  // all literals implied by literal become true
-                for(CLiteral cLiteral : index.getLiterals(lit)) {
-                    Clause clause = cLiteral.clause;
-                    if(clause.timestamp != timestamp) {
-                        clause.timestamp = timestamp;
-                        if(isFalse(clause)) {falseClauses.remove(clause);}}}}));}
-        }
-
-    /** counts the number of clauses which are true and become false when the literal is flipped.
-     *
-     * @param literal a literal
-     * @return the number of clauses which are true and become false when the literal is flipped.
-     */
-    private int becomeFalse(int literal) { // the clauses must have exactly one true literal, which becomes false
-        ++timestamp;
-        counter[0] = 0;
-        if(rwModel.isTrue(literal)) { // and becomes false
-            for(CLiteral cLiteral : index.getLiterals(literal)) {if(isFalseBut(cLiteral)) {++counter[0];}}
-            implicationDAG.apply(-literal,true,(lit->{   // literals implied by -literal may have any truth value.
-                if(lit != literal && rwModel.isFalse(lit)){    // the false ones become true. Their negation is true and becomes false.
-                    for(CLiteral cLiteral : index.getLiterals(-lit)) {
-                        Clause clause = cLiteral.clause;
-                        if(clause.timestamp != timestamp) {
-                            clause.timestamp = timestamp;
-                            if(isFalseBut(cLiteral)) {++counter[0];}}}}}));}
-        else { // literal is false and becomes true. Its negation is true and becomes false
-            for(CLiteral cLiteral : index.getLiterals(-literal)) {if(isFalseBut(cLiteral)) {++counter[0];}}
-            implicationDAG.apply(literal,true,(lit->{  // literals implied by literal may have any truth value.
-                if(lit != literal && rwModel.isFalse(lit)){ // the false ones become true. Their negation is true and becomes false.
-                    for(CLiteral cLiteral : index.getLiterals(-lit)) {
-                        Clause clause = cLiteral.clause;
-                        if(clause.timestamp != timestamp) {
-                            clause.timestamp = timestamp;
-                            if(isFalseBut(cLiteral)) {++counter[0];}}}}}));}
-        return counter[0];}
-
-    private void updateBecomesFalse(int literal) { // the clauses must have exactly one true literal, which becomes false
-        ++timestamp;
-        counter[0] = 0;
-        if(rwModel.isTrue(literal)) { // and becomes false
-            for(CLiteral cLiteral : index.getLiterals(literal)) {if(isFalseBut(cLiteral)) {++counter[0];}}
-            implicationDAG.apply(-literal,true,(lit->{   // literals implied by -literal may have any truth value.
-                if(lit != literal && rwModel.isFalse(lit)){    // the false ones become true. Their negation is true and becomes false.
-                    for(CLiteral cLiteral : index.getLiterals(-lit)) {
-                        Clause clause = cLiteral.clause;
-                        if(clause.timestamp != timestamp) {
-                            clause.timestamp = timestamp;
-                            if(isFalseBut(cLiteral)) {falseClauses.add(clause);}}}}}));}
-        else { // literal is false and becomes true. Its negation is true and becomes false
-            for(CLiteral cLiteral : index.getLiterals(-literal)) {if(isFalseBut(cLiteral)) {++counter[0];}}
-            implicationDAG.apply(literal,true,(lit->{  // literals implied by literal may have any truth value.
-                if(lit != literal && rwModel.isFalse(lit)){ // the false ones become true. Their negation is true and becomes false.
-                    for(CLiteral cLiteral : index.getLiterals(-lit)) {
-                        Clause clause = cLiteral.clause;
-                        if(clause.timestamp != timestamp) {
-                            clause.timestamp = timestamp;
-                            if(isFalseBut(cLiteral)) {falseClauses.add(clause);}}}}}));}}
+}
 
 
-    }
 
 
 
