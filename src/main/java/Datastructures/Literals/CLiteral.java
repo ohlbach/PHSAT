@@ -14,6 +14,7 @@ public class CLiteral {
     public int literal;          // the literal
     public Clause clause = null; // the clause
     public int position = -1;    // the position of the literal within the clause.
+    public int timestamp = 0;
     /** creates a CLiteral without a clause
      *
      * @param literal the literal

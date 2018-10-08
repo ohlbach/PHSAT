@@ -86,7 +86,7 @@ public class CentralDataHolder {
             super(4);
             this.clause = clause;}
 
-        void execute(ChangeBlock changeBlock) {Algorithms.subsumes(clause,disjunctions.disjunctions, implicationDAG);}
+        void execute(ChangeBlock changeBlock) {Algorithms.subsumeAndResolve(clause,disjunctions.disjunctions, implicationDAG);}
     }
 
 
