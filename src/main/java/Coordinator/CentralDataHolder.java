@@ -86,7 +86,7 @@ public class CentralDataHolder {
             super(4);
             this.clause = clause;}
 
-        void execute(ChangeBlock changeBlock) {Algorithms.subsumesAndResolves(clause,disjunctions.disjunctions, implicationDAG);}
+        void execute(ChangeBlock changeBlock) {Algorithms.subsumes(clause,disjunctions.disjunctions, implicationDAG);}
     }
 
 
@@ -101,12 +101,12 @@ public class CentralDataHolder {
         disjointnesses    = new DisjointnessClasses(model, implicationDAG,equivalences);
         disjunctions      = new Disjunctions(basicClauseList.disjunctions.size(),model, implicationDAG,equivalences);
         disjunctions.disjunctions.addLiteralRemovalObserver(cLiteral -> taskQueue.add(makeShortenedClauseTask(cLiteral.clause)));
-        implicationDAG.addTrueLiteralObserver(literal -> taskQueue.add(new OneLiteralTask(literal)));
-        implicationDAG.addImplicationObserver(         (from, to) -> taskQueue.add(new TwoLiteralTask(-from,to)));
-        equivalences.trueLiteralObservers.add(               literal -> taskQueue.add(new OneLiteralTask(literal)));
-        equivalences.unsatisfiabilityObservers.add(            unsat -> taskQueue.add(new UnsatisfiabilityTask(unsat)));
-        disjointnesses.unsatisfiabilityObservers.add(          unsat -> taskQueue.add(new UnsatisfiabilityTask(unsat)));
-        disjointnesses.trueLiteralObservers.add(             literal -> taskQueue.add(new OneLiteralTask(literal)));
+        implicationDAG.addTrueLiteralObserver(    literal -> taskQueue.add(new OneLiteralTask(literal)));
+        implicationDAG.addImplicationObserver( (from, to) -> taskQueue.add(new TwoLiteralTask(-from,to)));
+        equivalences.trueLiteralObservers.add(    literal -> taskQueue.add(new OneLiteralTask(literal)));
+        equivalences.unsatisfiabilityObservers.add( unsat -> taskQueue.add(new UnsatisfiabilityTask(unsat)));
+        disjointnesses.unsatisfiabilityObservers.add(unsat -> taskQueue.add(new UnsatisfiabilityTask(unsat)));
+        disjointnesses.trueLiteralObservers.add(   literal -> taskQueue.add(new OneLiteralTask(literal)));
     }
 
     Task makeShortenedClauseTask(Clause clause) {

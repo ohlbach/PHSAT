@@ -291,4 +291,34 @@ public class ImplicationDAGTest {
         ImplicationDAG id1 = id.clone();
         assertEquals(id.toString(),id1.toString());
     }
-}
+    @Test
+    public void completeModel() throws Exception {
+        System.out.println("completeModel");
+        ImplicationDAG id = new ImplicationDAG();
+        id.addClause(-1, 3);
+        id.addClause(-2, 3);
+        id.addClause(-3, 4);
+        id.addClause(-4, 5);
+        id.addClause(-5, 6);
+        id.addClause(-5, 7);
+        id.addClause(-8, 4);
+        Model model = new Model(10);
+        id.completeModel(model);
+        assertEquals("[4, 5, 6, 7, 3]",model.toString());
+    }
+
+    @Test
+    public void completeModel1() throws Exception {
+        System.out.println("completeModel1");
+        ImplicationDAG id = new ImplicationDAG();
+        id.addClause(-1, 3);
+        id.addClause(-2, 5);
+        id.addClause(-3, 4);
+        id.addClause(-4, 5);
+        id.addClause(-5, 6);
+        id.addClause(-5, 7);
+        id.addClause(-8, 4);
+        Model model = new Model(10);
+        id.completeModel(model);
+        assertEquals("[4, 5, 6, 7, 3]",model.toString());}
+    }

@@ -1,6 +1,7 @@
 package Datastructures.Theory;
 
 import Datastructures.Symboltable;
+import com.sun.javafx.sg.prism.NGShape;
 
 import java.util.*;
 import java.util.concurrent.locks.Lock;
@@ -172,12 +173,12 @@ public class ImplicationDAG {
      */
     public void newTrueLiteral(Integer trueLiteral) {
         writeLock.lock();
-        try{++timestamp;
+        try{++timestamp; timestamp += 2;
             ImplicationNode node = nodesMap.get(trueLiteral);
             if (node == null) {reportTrueLiteral(trueLiteral); removeFalseLiteral(-trueLiteral); return;}
             else {newTrueLiteral(node);}}
         finally{writeLock.unlock();}}
-
+//[8, 4, 5, 6, 7, 2, 3]
 
     private void newTrueLiteral(ImplicationNode trueNode) {
         if(trueNode.timestamp == timestamp) {return;}
@@ -326,9 +327,29 @@ public class ImplicationDAG {
         disconnect(falseNode);
         ArrayList<ImplicationNode> downNodes = falseNode.downNodes;
         if(downNodes != null) {
-            for(ImplicationNode node :downNodes) {if(node.upNodes == null) {roots.add(node);}}}
+            for(ImplicationNode node :downNodes) {
+                if(node.upNodes == null) {
+                    if(node.downNodes == null) {nodesMap.remove(node.literal);}
+                    else                       {roots.add(node);}}}}
         roots.remove(falseNode);
     }
+
+    /** completes the model such that all implications in the DAG become true.
+     * Not all literals need to be assigned truth values.
+     * It is, however, not clear whether the model is minimal.
+     * The DAG becomes empty by this operation.
+     * The trueLiteralObservers are overwritten.
+     *
+     * @param model a partial model.
+     */
+    public void completeModel(Model model) {
+        writeLock.lock();
+        try{trueLiteralObservers.clear();
+            trueLiteralObservers.add(literal-> {model.add(literal);});
+            while(!roots.isEmpty()) {
+                for(Object node : roots.last().downNodes.toArray()) { // this guarantees that the implication: 'root -> node' is true.
+                    ++timestamp; newTrueLiteral((ImplicationNode)node);}}}
+        finally{writeLock.unlock();}}
 
     /** calls all trueLiteralObservers
      *
