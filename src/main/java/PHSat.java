@@ -1,5 +1,6 @@
 import Management.KVAnalyser;
 import Management.KVParser;
+import Solvers.RandomWalker;
 //import Management.SolverController;
 
 import java.io.*;
@@ -25,7 +26,7 @@ public class PHSat {
         classMap.put("random", Generators.RandomClauseSetGenerator.class);
         classMap.put("file", Generators.CNFReader.class);
         classMap.put("pidgeonhole", Generators.PidgeonHoleGenerator.class);
-        classMap.put("walker", Solver.RandomWalk.RandomWalker.class );
+        classMap.put("walker", RandomWalker.class );
     }
 
 
