@@ -23,6 +23,16 @@ public final class SourceType {
 
     public static String[] generators = new String[]{"random","file","pidgeonhole","string"};
 
+
+    /** checks if the name is a generator name
+     *
+     * @param name  a string
+     * @return true if the name is the name of a generator.
+     */
+    public static boolean isGenerator(String name) {
+        for(String solver : generators) {if(name.equals(solver)) {return true;}}
+        return false;}
+
     /** maps the generator names to the generator classes
      *
      * @param name a generator name

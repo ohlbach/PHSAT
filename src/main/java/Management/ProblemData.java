@@ -19,10 +19,16 @@ public class ProblemData {
     Status status = Status.waiting;
     String sourceType;
     BasicClauseList basicClauseList;
-    HashMap<String,Objects> globalParameters;
-    HashMap<String,Object> problemParameters;
+    public HashMap<String,Object> problemParameters;
+    public ArrayList<HashMap<String,Object>> solverParameters;
     Preprocessor preprocessor;
     ArrayList<SolverData> solverData;
+
+    public ProblemData(HashMap<String,Object> problemParameters,
+            ArrayList<HashMap<String,Object>> solverParameters) {
+        this.problemParameters = problemParameters;
+        this.solverParameters = solverParameters;}
+
 
 
 

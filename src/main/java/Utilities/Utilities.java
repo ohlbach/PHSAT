@@ -12,10 +12,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileAttribute;
 import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
-import java.util.ArrayList;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.function.BiConsumer;
 
 /**
@@ -297,4 +294,8 @@ public class Utilities {
                 intersects.add(i1);}}
         return intersects;}
 
+    public static void  main(String[] args) {
+        for(Map.Entry  entry : System.getProperties().entrySet()) {
+            System.out.println(entry.getKey() + " = "+ entry.getValue());}
+    }
 }

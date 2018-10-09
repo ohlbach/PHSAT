@@ -23,6 +23,15 @@ public class SolverType {
             case "walker":      return Solvers.RandomWalker.class;
             default: return null;}}
 
+    /** checks if the name is a solver name
+     *
+     * @param name  a string
+     * @return true if the name is the name of a solver.
+     */
+    public static boolean isSolver(String name) {
+        for(String solver : solvers) {if(name.equals(solver)) {return true;}}
+        return false;}
+
     /** collects all the help-strings for all generator classes
      *
      * @return the collected help string for all generator classes

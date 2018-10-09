@@ -43,6 +43,16 @@ public class KVParser {
             topKeys.add(key);
             kvList.put(key,new ArrayList<>());}}
 
+    /** returns the entry of one of the top-keys
+     *
+     * @param key a top.key
+     * @return the entries for the top-key.
+     */
+    public ArrayList<HashMap<String,String>> get(String key) {
+        return kvList.get(key);}
+
+    public void set(String key, ArrayList<HashMap<String,String>> parameters) {
+        kvList.put(key,parameters);}
 
     private boolean inHeader = true;
     private HashMap<String,String> currentMap = null;
@@ -52,7 +62,7 @@ public class KVParser {
      * @param line the line to be parsed.
      */
     public void addLine(String line) {
-        String[] parts = line.trim().split("\\s*//",2)[0].split("[=,:, ]+",2);
+        String[] parts = line.trim().split("\\s*//",2)[0].split("\\s*[=,:, ]+\\s*",2);
         String key = parts[0];
         if(topKeys.contains(key)){inHeader = false;}
         if(inHeader) {header.append(line+"\n"); return;}
@@ -80,12 +90,13 @@ public class KVParser {
      *
      * @param filename of the file to be parsed.
      */
-    public void parseFile(String filename) {
+    public boolean parseFile(String filename) {
         try {parseStream(new FileInputStream(filename));}
         catch (FileNotFoundException e) {
             System.err.println("Cannot read from file " + filename);
             e.printStackTrace();
-            System.exit(1);}}
+            System.exit(1);}
+        return true;}
 
     /** parses an entire string.
      *
