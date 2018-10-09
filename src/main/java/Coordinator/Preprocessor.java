@@ -13,7 +13,7 @@ import java.util.*;
 /**
  * Created by ohlbach on 14.09.2018.
  */
-public class CentralDataHolder {
+public class Preprocessor {
     public int predicates;
     BasicClauseList basicClauseList;
     Incoming incoming;
@@ -90,7 +90,7 @@ public class CentralDataHolder {
     }
 
 
-    public CentralDataHolder(HashMap<String,Object> globalParameters, HashMap<String,Object> problemControl) {
+    public Preprocessor(HashMap<String,Object> globalParameters, HashMap<String,Object> problemControl) {
         basicClauseList = (BasicClauseList)problemControl.get("clauses");
         this.predicates = basicClauseList.predicates;
         this.incoming   = incoming;

@@ -3,6 +3,9 @@ package Datastructures.Literals;
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 
+import java.util.IdentityHashMap;
+import java.util.InputMismatchException;
+
 /**
  * Created by Ohlbach on 25.08.2018.<br/>
  *
@@ -10,7 +13,7 @@ import Datastructures.Symboltable;
  * Besides the literal, it contains a pointer to the clause and the position within the clause.
  * A CLiteral can be subclassed to carry more information.
  */
-public class CLiteral {
+public class CLiteral  implements Comparable<CLiteral>{
     public int literal;          // the literal
     public Clause clause = null; // the clause
     public int position = -1;    // the position of the literal within the clause.
@@ -80,5 +83,16 @@ public class CLiteral {
      */
     public String toString(Symboltable symboltable) {
         return symboltable == null ? toString() : symboltable.getLiteralName(literal);}
+
+    /** compares two literals.
+     * If they belong to different clauses then the clause id are compared.
+     * If they belong to the same clause, then the literals are compared
+     *
+     * @param cLiteral another CLiteral.
+     * @return -1,0,1 according to the order
+     */
+    public int compareTo(CLiteral cLiteral) {
+        if(clause != cLiteral.clause) {return String.CASE_INSENSITIVE_ORDER.compare(clause.id,cLiteral.clause.id);}
+        return Integer.compare(literal,cLiteral.literal);}
 
 }

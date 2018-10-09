@@ -4,8 +4,11 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Theory.ImplicationDAG;
+import org.omg.CORBA.TIMEOUT;
 
 import java.util.ArrayList;
+import java.util.TreeSet;
+import java.util.stream.Stream;
 
 /**
  * Created by ohlbach on 18.09.2018.
@@ -64,12 +67,12 @@ public class Algorithms {
      * @param implicationDAG the implication graph
      * @return the number of deleted clauses.
      */
-    public static int[] subsumeAndResolve(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
+    public static int subsume(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
         int size = clause.size();
         int size1 = size-1;
         int timestamp = clauseList.timestamp+1;
         clauseList.timestamp += size+1;
-        ArrayList<Object> toBeDeleted = new ArrayList<>();
+        ArrayList<Clause> toBeDeleted = new ArrayList<>();
         for(int i = 0; i < size; ++i) {
             int j = i;
             clauseList.stream(clause.cliterals.get(i).literal,implicationDAG,true).
@@ -83,19 +86,84 @@ public class Algorithms {
                                 otherClause.timestamp = 0;}
                             return;}
                         if(otherClause.timestamp == timestamp+j-1) {otherClause.timestamp = timestamp+j;}});}
-        for(Object cl : toBeDeleted) {clauseList.removeClause((Clause)cl);}
-        int subsumed = toBeDeleted.size();
-
-        toBeDeleted.clear();
-        for(CLiteral cLiteral : clause.cliterals) {
-            clauseList.streamContradicting(cLiteral.literal,implicationDAG).
-                    forEach(clit -> {
-                        if(clit.clause.timestamp == timestamp + size1) {toBeDeleted.add(clit);}});}
-        for(Object cl : toBeDeleted) {clauseList.removeLiteral((CLiteral) cl);}
-        int deleted = toBeDeleted.size();
-        return (subsumed + deleted > 0) ? new int[]{subsumed,deleted} : null;}
+        for(Clause cl : toBeDeleted) {clauseList.removeClause(cl);}
+        return toBeDeleted.size();
     }
 
+
+    /** deletes all clauses which are subsumed by the given clause(with the implication graph).<br/>
+     *
+     * @param clause           the clause which operates on the other clauses
+     * @param clauseList       the clause list with the clause
+     * @param implicationDAG the implication graph
+     * @return the number of deleted clauses.
+     */
+    public static int resolve(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
+        int size = clause.size();
+        int size1 = size-1;
+        int ts = clauseList.timestamp+1;
+        clauseList.timestamp += size*size+1;
+        ArrayList<CLiteral> toBeDeleted = new ArrayList<>();
+        for(int i = 0; i < size; ++i) {
+            CLiteral cliteral = clause.cliterals.get(i);
+            int timestamp = ts+i*size;
+            clauseList.streamContradicting(cliteral.literal,implicationDAG).forEach(cLit->cLit.timestamp = timestamp);
+            for(int k = 0; k < size; ++k) {
+                int j = k;
+                Stream<CLiteral> stream = i == k ?
+                        clauseList.streamContradicting(cliteral.literal,implicationDAG) :
+                        clauseList.stream(clause.cliterals.get(k).literal,implicationDAG,true);
+                if(k == 0) {stream.forEach(cLit -> {if(cLit.clause.size() >= size) {cLit.clause.timestamp = timestamp;}});
+                            continue;}
+                if(k == size1) {
+                    stream.forEach(cLit ->{
+                        Clause otherClause = cLit.clause;
+                        if(otherClause.timestamp == timestamp+j-1) {
+                            for(CLiteral clit : otherClause.cliterals) {
+                                if(clit.timestamp == timestamp) {
+                                    clit.timestamp = 0;
+                                    toBeDeleted.add(clit);}}}});}
+                else {stream.forEach(cLit ->{
+                        Clause otherClause = cLit.clause;
+                        if(otherClause.timestamp == timestamp+j-1) {otherClause.timestamp = timestamp+j;}});}}}
+        for(CLiteral clit : toBeDeleted) {clauseList.removeLiteral(clit);}
+        return toBeDeleted.size();}
+
+
+    public static void subsumeAndResolve(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
+
+    }
+
+
+    /** performs all subsumptions and resolutions with an implication p -&gt; g, and its consequences in the implicatinoDAG
+     *
+     * @param from       the antecednet of the implication
+     * @param to         the succedent or the implication
+     * @param clauseList  a clause list
+     * @param implicationDAG  the implication DAG
+     * @return  null or [number of subsumption, number of resolutions}
+     */
+    public static int[] simplifyWithImplication(int from, int to, ClauseList clauseList, ImplicationDAG implicationDAG) {
+        ArrayList<Clause> toBeDeleted = new ArrayList<>();
+        TreeSet<CLiteral> toBeRemoved = new TreeSet<>();
+        int[] timestamp = new int[]{clauseList.timestamp};
+        implicationDAG.apply(to,true, (q -> {
+            ++timestamp[0];
+            for(CLiteral clit : clauseList.literalIndex.getLiterals(q)) {clit.clause.timestamp = timestamp[0];}
+            implicationDAG.apply(from,false,(p-> {
+                for(CLiteral clit : clauseList.literalIndex.getLiterals(-p)) {
+                    Clause clause = clit.clause;
+                    if(clause.timestamp == timestamp[0]) {
+                        toBeDeleted.add(clause);
+                        clause.timestamp = 0;}};
+                for(CLiteral clit : clauseList.literalIndex.getLiterals(p)) {
+                    Clause clause = clit.clause;
+                    if(clause.timestamp == timestamp[0]) {toBeRemoved.add(clit);}}}));}));
+        clauseList.timestamp = timestamp[0]+1;
+        for(Clause clause : toBeDeleted) {clauseList.removeClause(clause);}
+        for(CLiteral cLiteral : toBeRemoved) {clauseList.removeLiteral(cLiteral);}
+        return(!toBeDeleted.isEmpty() || !toBeRemoved.isEmpty()) ? new int[]{toBeDeleted.size(),toBeRemoved.size()} : null;}
+}
 
 
 

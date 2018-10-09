@@ -131,7 +131,7 @@ public class KVAnalyser {
         for(HashMap<String,Object> map : problemParameters) {
             st.append(map.toString()).append("\n\n");}
 
-        st.append("\n\nSolver Parameters\n");
+        st.append("\n\nSolvers Parameters\n");
         for(HashMap<String,Object> map : solverParameters) {
             st.append(map.toString()).append("\n\n");}
         return st.toString();

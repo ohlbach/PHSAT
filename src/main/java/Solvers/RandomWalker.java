@@ -1,6 +1,6 @@
-package Solver.RandomWalk;
+package Solvers;
 
-import Coordinator.CentralDataHolder;
+import Coordinator.Preprocessor;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
@@ -87,7 +87,7 @@ public class RandomWalker {
     private String id;
     private HashMap<String,Object> solverControl;
     private HashMap<String,Object> globalParameters;
-    CentralDataHolder centralData;
+    Preprocessor centralData;
     private ClauseList clauseList;
     private Model globalModel;
     private RWModel rwModel;
@@ -107,7 +107,7 @@ public class RandomWalker {
      * @param centralData       contains the result of parsing and initializing the problem data.
      */
     public RandomWalker(Integer walker,  HashMap<String,Object> solverControl, HashMap<String,Object> globalParameters,
-                        CentralDataHolder centralData) {
+                        Preprocessor centralData) {
         id = "Walker_"+walker;
         this.solverControl  = solverControl;
         this.globalParameters = globalParameters;

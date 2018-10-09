@@ -6,7 +6,6 @@ import Datastructures.Theory.ImplicationDAG;
 import Utilities.Utilities;
 import org.junit.Test;
 
-import java.lang.reflect.Array;
 import java.util.Arrays;
 
 import static org.junit.Assert.*;
@@ -125,7 +124,7 @@ public class AlgorithmsTest {
 
     @Test
     public void subsumes() throws Exception {
-        System.out.println("subsumes");
+        System.out.println("subsume");
         ClauseList clauses = new ClauseList(10, 10);
         ImplicationDAG id = new ImplicationDAG();
         Clause c1 = Utilities.makeClause("1", "1,2,3");
@@ -136,13 +135,13 @@ public class AlgorithmsTest {
         clauses.addClause(c3);
 
         Clause cs = Utilities.makeClause("s", "1,2,3");
-        assertEquals("[2, 0]", Arrays.toString(Algorithms.subsumeAndResolve(cs,clauses,id)));
+        assertEquals(2, Algorithms.subsume(cs,clauses,id));
         assertEquals("3: (1,3,5)\n",clauses.toString());
     }
 
     @Test
     public void subsumesID() throws Exception {
-        System.out.println("subsumes with Implication DAG");
+        System.out.println("subsume with Implication DAG");
         ClauseList clauses = new ClauseList(10, 10);
         ImplicationDAG id = new ImplicationDAG();
         id.addClause(-1,2);
@@ -156,8 +155,25 @@ public class AlgorithmsTest {
         clauses.addClause(c3);
 
         Clause cs = Utilities.makeClause("s", "1,3,5");
-        assertEquals("[2, 0]",Arrays.toString(Algorithms.subsumeAndResolve(cs,clauses,id)));
+        assertEquals(2,Algorithms.subsume(cs,clauses,id));
         assertEquals("2: (3,6,7,8)\n",clauses.toString());
+    }
+
+    @Test
+    public void subsumes2() throws Exception {
+        System.out.println("subsumes2 with Implication DAG");
+        ClauseList clauses = new ClauseList(10, 10);
+        ImplicationDAG id = new ImplicationDAG();
+        id.addClause(-1,-4);
+        id.addClause(-2,5);
+        id.addClause(-2,6);
+        id.addClause(-3,5);
+        id.addClause(-3,8);
+
+        Clause c1 = Utilities.makeClause("1", "4,5,6,7,8");
+        clauses.addClause(c1);
+        Clause cs = Utilities.makeClause("s", "1,2,3");
+        assertEquals(0, Algorithms.subsume(cs, clauses, id));
     }
 
     @Test
@@ -170,7 +186,7 @@ public class AlgorithmsTest {
         Clause c2 = Utilities.makeClause("2", "1,-3,6,5");
         clauses.addClause(c2);
         Clause cs = Utilities.makeClause("s", "1,3,5");
-        assertEquals("[0, 2]", Arrays.toString(Algorithms.subsumeAndResolve(cs, clauses, id)));
+        assertEquals(2, Algorithms.resolve(cs, clauses, id));
         assertEquals("1: (5,3)\n" +
                 "2: (1,6,5)\n",clauses.toString());
     }
@@ -188,10 +204,10 @@ public class AlgorithmsTest {
 
         Clause c1 = Utilities.makeClause("1", "6,7,5,8");
         clauses.addClause(c1);
-        Clause c2 = Utilities.makeClause("2", "6,4,9");
+        Clause c2 = Utilities.makeClause("2", "6,5,9");
         clauses.addClause(c2);
         Clause cs = Utilities.makeClause("s", "1,2,3");
-        assertEquals("[0, 2]", Arrays.toString(Algorithms.subsumeAndResolve(cs, clauses, id)));
+        assertEquals(2, Algorithms.resolve(cs, clauses, id));
         assertEquals("1: (6,7,8)\n" +
                 "2: (6,9)\n",clauses.toString());
     }
@@ -210,9 +226,78 @@ public class AlgorithmsTest {
         Clause c1 = Utilities.makeClause("1", "4,5,6,7,8");
         clauses.addClause(c1);
         Clause cs = Utilities.makeClause("s", "1,2,3");
-        assertEquals("[0, 1]", Arrays.toString(Algorithms.subsumeAndResolve(cs, clauses, id)));
-        assertEquals("1: (6,7,8)\n",clauses.toString());
+        assertEquals(1, Algorithms.resolve(cs, clauses, id));
+        assertEquals("1: (5,6,7,8)\n",clauses.toString());
     }
+    @Test
+    public void resolveFWID2() throws Exception {
+        System.out.println("forward resolution2 multiple deletions");
+        ClauseList clauses = new ClauseList(10, 10);
+        ImplicationDAG id = new ImplicationDAG();
+        id.addClause(-2,-5);
+        id.addClause(-2,-6);
+        id.addClause(-2,-7);
+        id.addClause(-3,8);
+
+        Clause c1 = Utilities.makeClause("1", "3,5,6,7,1,8");
+        clauses.addClause(c1);
+        Clause cs = Utilities.makeClause("s", "1,2,3");
+        assertEquals(3, Algorithms.resolve(cs, clauses, id));
+        assertEquals("1: (3,1,8)\n",clauses.toString());
+    }
+
+    @Test
+    public void simplifyWithImplication() throws Exception {
+        System.out.println("simplify with implication");
+        ClauseList clauses = new ClauseList(10, 10);
+        ImplicationDAG id = new ImplicationDAG();
+        Clause c1 = Utilities.makeClause("1", "1,2,3");
+        clauses.addClause(c1);
+        Clause c2 = Utilities.makeClause("2", "1,-2,3");
+        clauses.addClause(c2);
+        assertEquals("[1, 1]", Arrays.toString(Algorithms.simplifyWithImplication(2, 3, clauses, id)));
+    }
+
+    @Test
+    public void simplifyWithImplication1() throws Exception {
+        System.out.println("simplify with implication1");
+        ClauseList clauses = new ClauseList(10, 10);
+        ImplicationDAG id = new ImplicationDAG();
+        id.addClause(-1,2);
+        id.addClause(-2,3);
+        id.addClause(-4,5);
+        id.addClause(-5,6);
+        Clause c1 = Utilities.makeClause("1", "1,5,7");
+        clauses.addClause(c1);
+        Clause c2 = Utilities.makeClause("2", "7,2,6");
+        clauses.addClause(c2);
+        Clause c3 = Utilities.makeClause("3", "-1,5,9");
+        clauses.addClause(c3);
+        Clause c4 = Utilities.makeClause("4", "7,-2,9,6");
+        clauses.addClause(c4);
+        assertEquals("[2, 2]", Arrays.toString(Algorithms.simplifyWithImplication(3, 4, clauses, id)));
+    }
+
+    @Test
+    public void simplifyWithImplication2() throws Exception {
+        System.out.println("simplify with implication2");
+        ClauseList clauses = new ClauseList(10, 10);
+        ImplicationDAG id = new ImplicationDAG();
+        id.addClause(-1,2);
+        id.addClause(-2,3);
+        id.addClause(-4,5);
+        id.addClause(-5,6);
+        Clause c1 = Utilities.makeClause("1", "4,3,5,2,6,1");
+        clauses.addClause(c1);
+        Clause c2 = Utilities.makeClause("2", "3,2,1,4,5");
+        clauses.addClause(c2);
+        Clause c3 = Utilities.makeClause("3", "6,-1,7,8");
+        clauses.addClause(c3);
+        assertEquals("[1, 6]", Arrays.toString(Algorithms.simplifyWithImplication(3, 4, clauses, id)));
+        System.out.println(clauses);
+    }
+
+
 
 
     }
