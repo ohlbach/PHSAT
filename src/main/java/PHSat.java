@@ -1,7 +1,7 @@
-import Generators.SourceType;
+import Generators.Generator;
 import Management.Controller;
 import Management.KVParser;
-import Solvers.SolverType;
+import Solvers.Solver;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -49,15 +49,15 @@ public class PHSat {
         if(args.length > 1) {
             String name = args[1];
             if(name.equals("global"))        {System.out.println(Controller.help());     return;}
-            if(SourceType.isGenerator(name)) {System.out.println(SourceType.help(name)); return;}
-            if(SolverType.isSolver(name))    {System.out.println(SolverType.help(name)); return;}
+            if(Generator.isGenerator(name)) {System.out.println(Generator.help(name)); return;}
+            if(Solver.isSolver(name))    {System.out.println(Solver.help(name)); return;}
             System.out.println("Unknown name '"+ name + "'. The available names are:");
-            System.out.println("Generators: " + Arrays.toString(SourceType.generators));
-            System.out.println("Solvers:    " + Arrays.toString(SolverType.solvers));
+            System.out.println("Generators: " + Arrays.toString(Generator.generators));
+            System.out.println("Solvers:    " + Arrays.toString(Solver.solvers));
             return;}
         System.out.println(Controller.help());
-        System.out.println(SourceType.help());
-        System.out.println(SolverType.help());}
+        System.out.println(Generator.help());
+        System.out.println(Solver.help());}
 
 
     /** The specification of a problem source as .cnf file is added to the kvParser

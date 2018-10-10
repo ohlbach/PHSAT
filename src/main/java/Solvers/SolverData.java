@@ -1,6 +1,6 @@
 package Solvers;
 
-import Management.ProblemData;
+import Management.ProblemSupervisor;
 
 import java.util.HashMap;
 
@@ -9,7 +9,7 @@ import java.util.HashMap;
  */
 public class SolverData {
     String solverType;
-    ProblemData problemData;
+    ProblemSupervisor problemData;
     HashMap<String,Object> solverParameters;
     Thread thread;
 

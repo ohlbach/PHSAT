@@ -31,7 +31,7 @@ import Utilities.Utilities;
  * 'x': means exclusive-or: 'x 3 4 5' means 3 xor 4 xor 5 (exactly one of them must be true).<br/>
  * 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.<br/>
  */
-public class CNFReader {
+public final class CNFReader {
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
@@ -131,9 +131,9 @@ public class CNFReader {
      * @param parameters a HashMap with key "file"
      * @param errors    for error massages
      * @param warnings  for warnings
-     * @return  the modified HashMap parameters with the new key "clauses".
+     * @return  the new clauses
      */
-    public static HashMap<String,Object> generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
+    public static BasicClauseList generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
         StringBuilder info = new StringBuilder();
         File file = (File)parameters.get("file");
         String filename = file.getName();
@@ -192,7 +192,6 @@ public class CNFReader {
             for(int i = 0; i< clause.size(); ++i) {lits[i] = (int)clause.get(i);}
             bcl.addClause(lits);}
         bcl.info = info.toString();
-        parameters.put("clauses",bcl);
-        return  parameters;}
+        return  bcl;}
 
 }

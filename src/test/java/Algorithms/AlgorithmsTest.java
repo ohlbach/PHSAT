@@ -297,7 +297,19 @@ public class AlgorithmsTest {
         System.out.println(clauses);
     }
 
+    @Test
+    public void simplifyClause() throws Exception {
+        System.out.println("simplify clause");
+        ImplicationDAG id = new ImplicationDAG();
+        id.addClause(-1, 2);
+        id.addClause(-2, 3);
+        id.addClause(-4, 5);
+        id.addClause(-5, 6);
+        Clause c1 = Utilities.makeClause("1", "4,3,5,2,6,1");
+        int removals = Algorithms.simplifyClause(c1, id);
+        assertEquals(4,removals);
+        assertEquals("1: (3,6)",c1.toString());
 
-
+    }
 
     }

@@ -3,7 +3,6 @@ package Generators;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
-import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 
 import java.util.ArrayList;
@@ -15,7 +14,7 @@ import java.util.HashMap;
  * This generator creates a clause set from literal names.
  * This is basically for test purposes.
  */
-public class StringClauseSetGenerator  {
+public final class StringClauseSetGenerator  {
 
     /** transfers the disjunctions (String) unchanged to the result
      *
@@ -52,9 +51,9 @@ public class StringClauseSetGenerator  {
      * @param parameters the HashMap with key "clauseString"
      * @param errors   for error messages
      * @param warnings no effect
-     * @return a HashMap with key "clauses" and as value a BasicClauseList object.
+     * @return  the new BasicClauseList object.
      */
-    public static  HashMap<String,Object> generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
+    public static  BasicClauseList generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
         String clausesString = (String)parameters.get("clauseString");
         HashMap<String,Integer> name2Int = new HashMap<>();
         String[] clausesStrings = clausesString.split("\\s*\\n\\s*");
@@ -100,7 +99,6 @@ public class StringClauseSetGenerator  {
         name2Int.forEach((name,predicate) -> symboltable.setName(predicate,name));
         bcl.symboltable = symboltable;
         bcl.predicates = predicates;
-        parameters.put("clauses",bcl);
-        return parameters;
+        return bcl;
     }
 }

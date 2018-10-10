@@ -1,9 +1,6 @@
 package Generators;
 
-import Coordinator.Incoming;
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseList;
 import Datastructures.Clauses.ClauseType;
 import Datastructures.LocalModel;
 import Datastructures.Status;
@@ -24,7 +21,7 @@ import java.util.Random;
  * - disjointness clauses (at most one of the literals may be true<br/>
  * - equivalence clauses (either all of its literals are true or all are false) <br/>
  */
-public class RandomClauseSetGenerator {
+public final class RandomClauseSetGenerator {
 
     private static HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
@@ -230,9 +227,9 @@ public class RandomClauseSetGenerator {
     /** generates the clause set
      *
      * @param parameters for controlling the generator.
-     * @return  the parameters  with an additional key "disjunctions" with the generatied BasicClauseList
+     * @return  the generated BasicClauseList
      */
-    public static HashMap<String,Object> generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
+    public static BasicClauseList generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
         int seed            = (Integer)parameters.get("seed");
         int predicates      = (Integer)parameters.get("predicates");
         int numberClauses   = (Integer)parameters.get("disjunctions");
@@ -278,8 +275,7 @@ public class RandomClauseSetGenerator {
         if(eBlocks != null) {
             clauseCounter = addClauses(predicates,ClauseType.EQUIV,   clauseList,clauseCounter,eBlocks,eLength,rnd);}
 
-        parameters.put("clauses",clauseList);
-        return parameters;}
+        return clauseList;}
 
     private static int addClauses(int predicates, ClauseType type, BasicClauseList clauseList,
                                   int clauseCounter, int blocks, int length, Random rnd) {

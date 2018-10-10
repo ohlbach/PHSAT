@@ -1,5 +1,6 @@
 package Generators;
 
+import Datastructures.Clauses.BasicClauseList;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -284,8 +285,8 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("precise", "true");
         HashMap<String,Object> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings).get(0);
 
-        RandomClauseSetGenerator.generate(map,errors,warnings);
-        System.out.println(map.get("clauses").toString());
+        BasicClauseList bcl = RandomClauseSetGenerator.generate(map,errors,warnings);
+        System.out.println(bcl.toString());
     }
 
     @Test
@@ -300,8 +301,8 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("precise", "false");
         HashMap<String,Object> map = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings).get(0);
 
-        RandomClauseSetGenerator.generate(map,errors,warnings);
-        System.out.println(map.get("clauses").toString());
+        BasicClauseList bcl = RandomClauseSetGenerator.generate(map,errors,warnings);
+        System.out.println(bcl.toString());
     }
 
     @Test
@@ -322,8 +323,8 @@ public class RandomClauseSetGeneratorTest {
         parameters.put("eLength","5");
         ArrayList<HashMap<String,Object>> maps = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         System.out.println(errors.toString());
-        RandomClauseSetGenerator.generate(maps.get(0),errors,warnings);
-        System.out.println(maps.get(0).get("clauses").toString());
+        BasicClauseList bcl = RandomClauseSetGenerator.generate(maps.get(0),errors,warnings);
+        System.out.println(bcl.toString());
     }
 
 }

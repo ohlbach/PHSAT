@@ -1,5 +1,6 @@
 package Generators;
 
+import Datastructures.Clauses.BasicClauseList;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -38,7 +39,7 @@ public class PidgeonHoleGeneratorTest {
         HashMap<String,Object> params = new HashMap<>();
         params.put("pidgeons",5);
         params.put("holes",4);
-        PidgeonHoleGenerator.generate(params,errors,warnings);
+        BasicClauseList bcl = PidgeonHoleGenerator.generate(params,errors,warnings);
         //System.out.println(params.get("disjunctions"));
         assertEquals("Pidgeon Hole example with 5 pidgeons in 4 holes.\n" +
                 "Disjunctions:\n" +
@@ -51,7 +52,7 @@ public class PidgeonHoleGeneratorTest {
                 "6 d: P1H1,P2H1,P3H1,P4H1,P5H1\n" +
                 "7 d: P1H2,P2H2,P3H2,P4H2,P5H2\n" +
                 "8 d: P1H3,P2H3,P3H3,P4H3,P5H3\n" +
-                "9 d: P1H4,P2H4,P3H4,P4H4,P5H4\n",params.get("clauses").toString());
+                "9 d: P1H4,P2H4,P3H4,P4H4,P5H4\n",bcl.toString());
 
     }
 

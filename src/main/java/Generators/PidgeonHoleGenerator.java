@@ -13,7 +13,7 @@ import java.util.HashSet;
  * This class is for generating pidgeon hole problems of arbitrary size.
  *
  */
-public class PidgeonHoleGenerator {
+public final class PidgeonHoleGenerator {
 
     private static HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
@@ -75,9 +75,9 @@ public class PidgeonHoleGenerator {
      * @param parameters a HashMap with keys "holes" and "pidgeons"
      * @param errors    no effect
      * @param warnings  no effect
-     * @return parameters with an extra entry: "clauses".
+     * @return the new clauses
      */
-    public static HashMap<String,Object> generate(HashMap<String,Object> parameters,
+    public static BasicClauseList generate(HashMap<String,Object> parameters,
                                                   StringBuffer errors, StringBuffer warnings){
         int holes = (Integer)parameters.get("holes");
         int pidgeons = (Integer)parameters.get("pidgeons");
@@ -95,9 +95,9 @@ public class PidgeonHoleGenerator {
             st.append("\n");}
 
         parameters.put("clauseString",st.toString());
-        StringClauseSetGenerator.generate(parameters,errors,warnings);
-        ((BasicClauseList)parameters.get("clauses")).info = "Pidgeon Hole example with " + pidgeons + " pidgeons in " + holes + " holes.";
-        return parameters;
+        BasicClauseList bcl = StringClauseSetGenerator.generate(parameters,errors,warnings);
+        bcl.info = "Pidgeon Hole example with " + pidgeons + " pidgeons in " + holes + " holes.";
+        return bcl;
     }
 
 

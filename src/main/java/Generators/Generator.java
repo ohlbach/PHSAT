@@ -1,5 +1,7 @@
 package Generators;
 
+import Datastructures.Clauses.BasicClauseList;
+
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -19,7 +21,7 @@ import java.util.HashMap;
  * The class has only static methods" <br/>
  * Created by ohlbach on 09.10.2018.
  */
-public final class SourceType {
+public abstract class Generator {
 
     public static String[] generators = new String[]{"random","file","pidgeonhole","string"};
 
@@ -96,15 +98,15 @@ public final class SourceType {
      * @param parameters  the parameters for the generator
      * @param errors      for collecting error messages
      * @param warnings    for collecting warning messages
-     * @return            the parameters map with a new key "clauses".
+     * @return            the new BasicClauseList
      */
-    public static HashMap<String,Object> generate(String name, HashMap<String,Object> parameters,
-                                                                    StringBuffer errors, StringBuffer warnings) {
+    public static BasicClauseList generate(String name, HashMap<String,Object> parameters,
+                                           StringBuffer errors, StringBuffer warnings) {
         Class clazz = generatorClass(name);
         if(clazz == null) {errors.append("Unknown generator class: " + name+"\n"); return null;}
         try{
-            Method parser = clazz.getMethod("generate",HashMap.class,StringBuffer.class, StringBuffer.class);
-            return (HashMap<String,Object>)parser.invoke(null,parameters,errors,warnings);}
+            Method generator = clazz.getMethod("generate",HashMap.class,StringBuffer.class, StringBuffer.class);
+            return (BasicClauseList) generator.invoke(null,parameters,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
 

@@ -1,6 +1,8 @@
 package Solvers;
 
+import Coordinator.CentralProcessor;
 import Coordinator.Preprocessor;
+import Datastructures.Results.Result;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -10,7 +12,7 @@ import java.util.HashMap;
 /**
  * Created by ohlbach on 09.10.2018.
  */
-public class SolverType {
+public abstract class Solver {
     public static String[] solvers = new String[]{"walker","recursive","resolution","connectionGraph","PHresolution"};
 
     /** maps the generator names to the generator classes
@@ -82,14 +84,18 @@ public class SolverType {
      * @param solverParameters a key-value map with parameters as strings
      * @return           a list of key-value maps where the values are objects.
      */
-    public static Object construct(String name, Integer id, HashMap<String,Object> solverParameters,
-                                   HashMap<String,Object> globalParameters, Preprocessor centralData) {
+    public static Solver construct(String name, Integer id, HashMap<String,Object> globalParameters,
+                                   HashMap<String,Object> solverParameters, CentralProcessor centralProcessor) {
         Class clazz = solverClass(name);
         try{
             Constructor constructor = clazz.getConstructor(Integer.class,HashMap.class,HashMap.class, Preprocessor.class);
-            return constructor.newInstance(id,solverParameters,globalParameters,centralData);}
+            return (Solver)constructor.newInstance(id,solverParameters,globalParameters,centralProcessor);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
+
+    public abstract Result solve(StringBuffer errors, StringBuffer warnings);
+
+
 
 
 

@@ -28,14 +28,14 @@ public class StringClauseSetGeneratorTest {
         HashMap<String,String> map = new HashMap<>();
         map.put("disjunctions",clauses);
         ArrayList<HashMap<String,Object>> params = StringClauseSetGenerator.parseParameters(map,errors,warnings);
-        HashMap<String,Object> result = StringClauseSetGenerator.generate(params.get(0),errors,warnings);
+        BasicClauseList bcl = StringClauseSetGenerator.generate(params.get(0),errors,warnings);
         //System.out.println(((BasicClauseList)result.get("disjunctions")).toString(true));
         assertEquals("String-generated clauses:\n" +
                 "p,q\n" +
                 "-p,q\n" +
                 "Disjunctions:\n" +
                 "1 o: p,q\n" +
-                "2 o: -p,q\n", ((BasicClauseList)result.get("clauses")).toString(true));
+                "2 o: -p,q\n", bcl.toString(true));
     }
 
     @Test
@@ -51,7 +51,7 @@ public class StringClauseSetGeneratorTest {
         HashMap<String,String> map = new HashMap<>();
         map.put("disjunctions",clauses);
         ArrayList<HashMap<String,Object>> params = StringClauseSetGenerator.parseParameters(map,errors,warnings);
-        HashMap<String,Object> result = StringClauseSetGenerator.generate(params.get(0),errors,warnings);
+        BasicClauseList result = StringClauseSetGenerator.generate(params.get(0),errors,warnings);
         assertEquals("String-generated clauses:\n" +
                 "p q\n" +
                 "-p q\n" +
@@ -69,7 +69,7 @@ public class StringClauseSetGeneratorTest {
                 "Disjoints:\n" +
                 "6 d: q,a\n" +
                 "Equivalences:\n" +
-                "5 e: p,s\n", ((BasicClauseList)result.get("clauses")).toString(true));
+                "5 e: p,s\n", result.toString(true));
 
     }
 

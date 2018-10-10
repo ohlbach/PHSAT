@@ -1,10 +1,11 @@
 package Solvers;
 
-import Coordinator.Preprocessor;
+import Coordinator.CentralProcessor;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
+import Datastructures.Results.Result;
 import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
 import Utilities.Utilities;
@@ -15,7 +16,7 @@ import java.util.function.BiConsumer;
 /**
  * Created by ohlbach on 01.09.2018.
  */
-public class RandomWalker {
+public class RandomWalker extends Solver {
 
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
@@ -87,7 +88,7 @@ public class RandomWalker {
     private String id;
     private HashMap<String,Object> solverControl;
     private HashMap<String,Object> globalParameters;
-    Preprocessor centralData;
+    CentralProcessor centralProcessor;
     private ClauseList clauseList;
     private Model globalModel;
     private RWModel rwModel;
@@ -98,23 +99,23 @@ public class RandomWalker {
 
     /** constructs a new solver of type RandomWalker.
      * The constructor is called serially. Therefore there are no race conditions.
-     * globalParameters and centralData are shared between different threads.
+     * globalParameters and centralProcessor are shared between different threads.
      * The walker is passive in the sense that it does not send data to the CentralDataHolder.
      *
      * @param walker            counts the constructed walker
      * @param solverControl     contains the parameters for controlling the solger
      * @param globalParameters  contains the global control parameters
-     * @param centralData       contains the result of parsing and initializing the problem data.
+     * @param centralProcessor       contains the result of parsing and initializing the problem data.
      */
     public RandomWalker(Integer walker,  HashMap<String,Object> solverControl, HashMap<String,Object> globalParameters,
-                        Preprocessor centralData) {
+                        CentralProcessor centralProcessor) {
         id = "Walker_"+walker;
         this.solverControl  = solverControl;
         this.globalParameters = globalParameters;
-        this.centralData = centralData;
-        globalModel = centralData.model;
+        this.centralProcessor = centralProcessor;
+        globalModel = centralProcessor.model;
         rwModel = new RWModel(globalModel);
-        clauseList = centralData.disjunctions.disjunctions.clone(); // now centralDataHolder may change its clauses
+        clauseList = centralProcessor.clauses.clone(); // now centralDataHolder may change its clauses
         globalModel.addNewTruthObserver(literal         -> newTrueLiterals.add(literal));
         implicationDAG.addImplicationObserver((from,to) -> newImplications.add(new int[]{from,to}));
         implicationDAG.addEquivalenceObserver(eqv       -> newEquivalences.add(eqv));
@@ -131,16 +132,16 @@ public class RandomWalker {
     private ArrayList<Clause> falseClauses;
     int flipCounter  = 0;
 
-    public void solve(StringBuffer errors, StringBuffer warnings) {
+    public Result solve(StringBuffer errors, StringBuffer warnings) {
         logger = (BiConsumer<String,String>)globalParameters.get("logger");
         logger.accept(id,"starting");
         random = new Random((Integer)solverControl.get("seed"));
         int maxFlips     = (Integer)solverControl.get("flips");
         randomFrequency  = (Integer)solverControl.get("jumps");
-        predicates       = centralData.predicates;
+        predicates       = centralProcessor.predicates;
         flipScore        = new int[predicates];
-        globalModel      = centralData.model;
-        implicationDAG   = centralData.implicationDAG; // clonen
+        globalModel      = centralProcessor.model;
+        implicationDAG   = centralProcessor.implicationDAG; // clonen
         index            = clauseList.literalIndex;
         int seed         = (Integer)solverControl.get("seed");
         random           = new Random(seed);
@@ -158,6 +159,7 @@ public class RandomWalker {
         while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
             integrateNewFacts();
             flip(selectFlipPredicate());}
+        return null;
             }
 
     private void addObservers() {

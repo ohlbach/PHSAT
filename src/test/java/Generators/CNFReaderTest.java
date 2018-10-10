@@ -103,7 +103,7 @@ public class CNFReaderTest {
         parameters.put("file",file.getAbsolutePath());
         ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals(1,pars.size());
-        CNFReader.generate(pars.get(0),errors,warnings);
+        BasicClauseList bcl = CNFReader.generate(pars.get(0),errors,warnings);
         System.out.println(file.delete());
         assertEquals("",errors.toString());
         assertEquals(" test1\n" +
@@ -114,8 +114,8 @@ public class CNFReaderTest {
                 "2 o: -5,7,1,1\n" +
                 "3 o: 4,5,6\n" +
                 "4 o: 4\n" +
-                "5 o: 5\n",pars.get(0).get("clauses").toString());
-        assertEquals(" test1\n test2\n",((BasicClauseList)(pars.get(0).get("clauses"))).info);
+                "5 o: 5\n",bcl.toString());
+        assertEquals(" test1\n test2\n",bcl.info);
 
     }
 
@@ -138,7 +138,7 @@ public class CNFReaderTest {
         parameters.put("file",file.getAbsolutePath());
         ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals(1,pars.size());
-        CNFReader.generate(pars.get(0),errors,warnings);
+        BasicClauseList bcl =  CNFReader.generate(pars.get(0),errors,warnings);
         file.delete();
         assertEquals("",errors.toString());
         //System.out.println(pars.get(0).get("disjunctions"));
@@ -155,8 +155,8 @@ public class CNFReaderTest {
                 "Disjoints:\n" +
                 "5 d: 1,2,3\n" +
                 "Equivalences:\n" +
-                "6 e: 1,2,3\n",pars.get(0).get("clauses").toString());
-        assertEquals(" test1\n test2\n",((BasicClauseList)(pars.get(0).get("clauses"))).info);
+                "6 e: 1,2,3\n",bcl.toString());
+        assertEquals(" test1\n test2\n",bcl.info);
 
     }
 
