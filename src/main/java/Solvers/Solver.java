@@ -1,7 +1,7 @@
 package Solvers;
 
 import Coordinator.CentralProcessor;
-import Coordinator.Preprocessor;
+import Coordinator.PreProcessor;
 import Datastructures.Results.Result;
 
 import java.lang.reflect.Constructor;
@@ -88,7 +88,7 @@ public abstract class Solver {
                                    HashMap<String,Object> solverParameters, CentralProcessor centralProcessor) {
         Class clazz = solverClass(name);
         try{
-            Constructor constructor = clazz.getConstructor(Integer.class,HashMap.class,HashMap.class, Preprocessor.class);
+            Constructor constructor = clazz.getConstructor(Integer.class,HashMap.class,HashMap.class, PreProcessor.class);
             return (Solver)constructor.newInstance(id,solverParameters,globalParameters,centralProcessor);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}

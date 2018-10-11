@@ -28,7 +28,7 @@ import Utilities.Utilities;
  * An extension of this format may contain clauses beginning with special characters:.<br/>
  * 'd': means disjunction:  'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).<br/>
  * 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br/>
- * 'x': means exclusive-or: 'x 3 4 5' means 3 xor 4 xor 5 (exactly one of them must be true).<br/>
+ * 'x': means exclusive-or: 'x 3 4 5' means 3 xors 4 xors 5 (exactly one of them must be true).<br/>
  * 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.<br/>
  */
 public final class CNFReader {
@@ -121,7 +121,7 @@ public final class CNFReader {
                 " An extension of this format may contain clauses beginning with special characters:.\n" +
                 " 'd': means disjunction:  'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).\n" +
                 " 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.\n" +
-                " 'x': means exclusive-or: 'x 3 4 5' means 3 xor 4 xor 5 (exactly one of them must be true).\n" +
+                " 'x': means exclusive-or: 'x 3 4 5' means 3 xors 4 xors 5 (exactly one of them must be true).\n" +
                 " 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.\n");
         return st.toString();
     }

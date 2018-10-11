@@ -8,6 +8,7 @@ import Datastructures.Literals.LiteralIndex;
 import Datastructures.Results.Result;
 import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
+import Management.ProblemSupervisor;
 import Utilities.Utilities;
 
 import java.util.*;
@@ -44,7 +45,7 @@ public class RandomWalker extends Solver {
         if(flips == null) {flips = Integer.toString(Integer.MAX_VALUE);}
         String jumps = parameters.get("jumps");
         if(jumps == null) {jumps = Integer.toString(10);}
-        String implications = parameters.get("implications");
+        String implications = parameters.get("ID_Implications");
         if(implications == null) {implications = "false";}
         String place = "Random Walker: ";
         ArrayList seed = Utilities.parseIntRange(place+"seed: ",seeds,errors);
@@ -85,6 +86,7 @@ public class RandomWalker extends Solver {
         }
     }
 
+    private int walker;
     private String id;
     private HashMap<String,Object> solverControl;
     private HashMap<String,Object> globalParameters;
@@ -109,6 +111,7 @@ public class RandomWalker extends Solver {
      */
     public RandomWalker(Integer walker,  HashMap<String,Object> solverControl, HashMap<String,Object> globalParameters,
                         CentralProcessor centralProcessor) {
+        this.walker = walker;
         id = "Walker_"+walker;
         this.solverControl  = solverControl;
         this.globalParameters = globalParameters;
@@ -159,6 +162,7 @@ public class RandomWalker extends Solver {
         while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
             integrateNewFacts();
             flip(selectFlipPredicate());}
+        if(!falseClauses.isEmpty()) {((ProblemSupervisor)globalParameters.get("supervisor")).aborted(walker);}
         return null;
             }
 

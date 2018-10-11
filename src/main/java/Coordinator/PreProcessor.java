@@ -5,6 +5,7 @@ import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Statistics.PreProcessorStatistics;
 import Datastructures.Theory.*;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
@@ -14,47 +15,52 @@ import java.util.*;
 /**
  * Created by ohlbach on 14.09.2018.
  */
-public class Preprocessor extends Processor {
-    private PreprocessingStatistics preprocessingStatistics = new PreprocessingStatistics();
+public class PreProcessor extends Processor {
+    public PreProcessorStatistics statistics;
 
-    public Preprocessor(HashMap<String,Object> globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
+    public PreProcessor(HashMap<String,Object> globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
         super(globalParameters,problemParameters,basicClauseList);
         model          = new Model(predicates);
         clauses        = new ClauseList(basicClauseList.disjunctions.size(),predicates);
         implicationDAG = new ImplicationDAG();
         equivalences   = new EquivalenceClasses(model, implicationDAG);
         disjointnesses = new DisjointnessClasses(model, implicationDAG,equivalences);
+        statistics     = new PreProcessorStatistics(this);
+        statistics.addStatisticsObservers();
     }
 
     public Result prepareClauses() {
-        Result result;
-        ArrayList<int[]> clauses;
-        clauses = basicClauseList.conjunctions;
-        if(clauses != null) {
-            for(int[] basicClause: clauses) {
-                result = addConjunction(basicClause);
-                if(result != null) {return result;}}}
-        if(clauses != null) {
-            for(int[] basicClause: clauses) {
-                result = addEquivalence(basicClause);
-                if(result != null) {return result;}}}
-        clauses = basicClauseList.xor;
-        if(clauses != null) {
-            for(int[] basicClause: clauses) {
-                result = addXor(basicClause);
-                if(result != null) {return result;}}}
-        clauses = basicClauseList.disjoints;
-        if(clauses != null) {
-            for(int[] basicClause: clauses) {
-                result = addDisjoint(basicClause);
-                if(result != null) {return result;}}}
-        clauses = basicClauseList.disjunctions;
-        if(clauses != null) {
-            clauses.sort(Comparator.comparingInt(c->c.length));
-            for(int[] basicClause: clauses) {
-                result = addDisjunction(basicClause);
-                if(result != null) {return result;}}}
-        return purityCheck();}
+        try{
+            Result result;
+            ArrayList<int[]> clauses;
+            clauses = basicClauseList.conjunctions;
+            if(clauses != null) {
+                for(int[] basicClause: clauses) {
+                    result = addConjunction(basicClause);
+                    if(result != null) {return result;}}}
+            clauses = basicClauseList.equivalences;
+            if(clauses != null) {
+                for(int[] basicClause: clauses) {
+                    result = addEquivalence(basicClause);
+                    if(result != null) {return result;}}}
+            clauses = basicClauseList.xors;
+            if(clauses != null) {
+                for(int[] basicClause: clauses) {
+                    result = addXor(basicClause);
+                    if(result != null) {return result;}}}
+            clauses = basicClauseList.disjoints;
+            if(clauses != null) {
+                for(int[] basicClause: clauses) {
+                    result = addDisjoint(basicClause);
+                    if(result != null) {return result;}}}
+            clauses = basicClauseList.disjunctions;
+            if(clauses != null) {
+                clauses.sort(Comparator.comparingInt(c->c.length));
+                for(int[] basicClause: clauses) {
+                    result = addDisjunction(basicClause);
+                    if(result != null) {return result;}}}
+            return purityCheck();}
+        finally{statistics.removeStatisticsObservers();}}
 
 
     /** This method adds a conjunction to the model.
@@ -98,21 +104,14 @@ public class Preprocessor extends Processor {
     Clause makeDisjunction(int[] basicClause) {
         Clause clause = new Clause(""+basicClause[0],basicClause.length);
         for(int i = 2; i < basicClause.length;++i) {
-            int lit = basicClause[i];
-            int literal = equivalences.mapToRepresentative(lit);
-            if(literal != lit) {preprocessingStatistics.addEquivalenceReplacements(1);}
-            if(model.isTrue(literal)  || clause.cliterals.contains(-literal)) {
-                preprocessingStatistics.addTrueClauses(1);
-                return null;}
-            if(model.isFalse(literal) || clause.cliterals.contains(literal)) {
-                preprocessingStatistics.addFalseLiterals(1);
-                continue;}
-            CLiteral cLiteral = new CLiteral(literal);
-            int result = clause.addCLiteral(cLiteral);
-            if(result == 1) {preprocessingStatistics.addDoubleLiterals(1); continue;}
-            if(result == 1) {preprocessingStatistics.addtautologies(1); return null;}}
+            int literal = equivalences.mapToRepresentative(basicClause[i]);
+            if(model.isTrue(literal)) {clause = null; break;}
+            if(model.isFalse(literal)) {continue;}
+            if(clause.addCLiteral(new CLiteral(literal)) == -1) {clause = null; break;}}
+        if(clause == null) {return null;}
         int removals = Algorithms.simplifyClause(clause,implicationDAG);
-        if(removals != 0) {preprocessingStatistics.addImplicationResolutions(removals);}
+        if(removals != 0) {
+            statistics.addImplicationResolutions(removals);}
         return clause;}
 
 
@@ -132,11 +131,14 @@ public class Preprocessor extends Processor {
                     implicationDAG.addImplication(literal,clause.getLiteral(j));}}}
         return processTasks();}
 
-    protected Result processTasks() {
+    private Result processTasks() {
         while(!taskQueue.isEmpty()) {
             Task task = taskQueue.poll();
             Result result = task.execute();
             if(result != null) {return result;}}
         return null;}
+
+
+
 
 }

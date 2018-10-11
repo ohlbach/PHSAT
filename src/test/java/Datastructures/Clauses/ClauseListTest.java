@@ -1,10 +1,7 @@
 package Datastructures.Clauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Theory.ImplicationDAG;
-import Datastructures.Theory.ImplicationGraph;
-import Datastructures.Theory.ImplicationNode;
 import Utilities.Utilities;
-import com.sun.istack.internal.Pool;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

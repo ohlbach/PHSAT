@@ -14,6 +14,7 @@ import java.nio.file.attribute.PosixFilePermission;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 /**
  * Created by Ohlbach on 03.09.2018.
@@ -293,6 +294,51 @@ public class Utilities {
                 if(intersects == null) {intersects = new ArrayList<>();}
                 intersects.add(i1);}}
         return intersects;}
+
+
+    /** yields the length  of the largest string
+     *
+     * @param strings some strings
+     * @return the length of the largest string
+     */
+    public static int maxLength(String... strings) {
+        int length = 0;
+        for(String st : strings) {length = Math.max(length,st.length());}
+        return length;}
+
+    /** yields the length  of the largest decimal representation of the integers
+     *
+     * @param ints some integers
+     * @return the length of the largest decimal representation of the integers.
+     */
+    public static int maxLength(int... ints) {
+        int length = 0;
+        for(int i : ints) {length = Math.max(length,Integer.toString(i).length());}
+        return length;}
+
+    /** yields the length  of the largest string representation of the objects
+     *
+     * @param toString a function mapping the objects to strings
+     * @param objects some objects
+     * @return the length of the largest string representation of the objects.
+     */
+    public static int maxLength(Function<Object,String> toString, Object... objects) {
+        int length = 0;
+        for(Object o : objects) {length = Math.max(length,toString.apply(o).length());}
+        return length;}
+
+    /** yields the length  of the largest decimal representation of the objects
+     *
+     * @param toInteger a function mapping the objects to integers
+     * @param objects some objects
+     * @return the length of the largest decimal representation of the objects.
+     */
+    public static int maxSize(Function<Object,Integer> toInteger, Object... objects) {
+        int length = 0;
+        for(Object o : objects) {length = Math.max(length,Integer.toString(toInteger.apply(o)).length());}
+        return length;}
+
+
 
     public static void  main(String[] args) {
         for(Map.Entry  entry : System.getProperties().entrySet()) {

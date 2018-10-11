@@ -1,12 +1,5 @@
 package Datastructures.Theory;
 
-import Datastructures.Theory.EquivalenceClasses;
-import Datastructures.Theory.ImplicationGraph;
-import Datastructures.Theory.Model;
-import org.junit.Test;
-
-import static org.junit.Assert.*;
-
 /**
  * Created by Ohlbach on 21.09.2018.
  */

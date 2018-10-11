@@ -5,7 +5,6 @@ import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Results.Result;
-import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
@@ -24,11 +23,11 @@ public class Processor {
     public int predicates;
     protected HashMap<String,Object> globalParameters;
     protected HashMap<String,Object> problemParameters;
-    protected BasicClauseList basicClauseList;
-    public ClauseList clauses;
-    public Model model;
-    public ImplicationDAG implicationDAG;
-    public EquivalenceClasses equivalences = null;
+    protected BasicClauseList basicClauseList = null;
+    public ClauseList clauses = null;
+    public Model      model   = null;
+    public ImplicationDAG      implicationDAG = null;
+    public EquivalenceClasses  equivalences   = null;
     public DisjointnessClasses disjointnesses = null;
 
 
@@ -42,22 +41,19 @@ public class Processor {
         clauses.addLiteralRemovalObserver(       cLiteral -> addTask(makeShortenedClauseTask(cLiteral.clause)));
         implicationDAG.addTrueLiteralObserver(    literal -> addTask(new Task.OneLiteral(literal,this)));
         implicationDAG.addImplicationObserver( (from, to) -> addTask(new Task.TwoLiteral(-from,to,this)));
-        equivalences.trueLiteralObservers.add(    literal -> addTask(new Task.OneLiteral(literal,this)));
-        equivalences.unsatisfiabilityObservers.add( unsat -> addTask(new Task.Unsatisfiability(unsat,this)));
-        disjointnesses.unsatisfiabilityObservers.add(unsat -> addTask(new Task.Unsatisfiability(unsat,this)));
-        disjointnesses.trueLiteralObservers.add(   literal -> addTask(new Task.OneLiteral(literal,this)));
+        implicationDAG.addEquivalenceObserver(equivalence -> addTask(new Task.Equivalence(equivalence,this)));
+        equivalences.addTrueLiteralObserver(      literal -> addTask(new Task.OneLiteral(literal,this)));
+        equivalences.addUnsatisfiabilityObserver(   unsat -> addTask(new Task.Unsatisfiability(unsat,this)));
+        disjointnesses.addUnsatisfiabilityObserver( unsat -> addTask(new Task.Unsatisfiability(unsat,this)));
+        disjointnesses.addTrueLiteralObserver(    literal -> addTask(new Task.OneLiteral(literal,this)));
     }
 
     protected PriorityQueue<Task> taskQueue = new PriorityQueue<Task>(Comparator.comparingInt(task->task.priority));
 
 
-    protected synchronized void addTask(Task task) {taskQueue.add(task); notify();}
+    protected void addTask(Task task) {taskQueue.add(task);}
 
-    private synchronized Task getTask() {
-        while(taskQueue.isEmpty()) {
-            try {wait();} catch (InterruptedException e) {continue;}
-            return taskQueue.poll();}
-        return null;}
+
 
     public Result processOneLiteralClause(int literal) {
         int status = model.add(literal);
@@ -80,14 +76,15 @@ public class Processor {
         Algorithms.resolve(clause,clauses,implicationDAG);
         return null;}
 
-    public Result processEquivalence(int[] equivalence) {
-        return null;
-    }
+    public Result processEquivalence(int[] equivalents) {
+        Clause eqClass = equivalences.addEquivalence(equivalents);
+        if(eqClass == null) {return null;}
+        int representative = eqClass.getLiteral(0);
+        int start = representative == equivalents[0] ? 1: 0;
+        for(int i = start; i < equivalents.length; ++i) {
+            clauses.replaceByRepresentative(representative,equivalents[i]);}
+        return null;}
 
-
-    protected void replaceByRepresentative(int representative, int literal) {
-        clauses.replaceByRepresentative(representative,literal);
-    }
 
     Task makeShortenedClauseTask(Clause clause) {
         switch(clause.size()) {
@@ -99,14 +96,6 @@ public class Processor {
             default: return new Task.ShortenedClause(clause,this);}
     }
 
-    /** This method waits for new tasks and executes them until the execution returns a result (unsatisfiable or satisfiable)
-     *
-     * @return the result (unsatisfiable or satisfiable)
-     */
-    public Result processTasks() {
-        Result result;
-        while((result = getTask().execute()) != null) {}
-        return result;}
 
     private ArrayList<Integer> pureLiterals = null;
     public Result purityCheck() {
@@ -121,6 +110,6 @@ public class Processor {
         pureLiterals.clear();
         if(clauses.isEmpty()) {
             implicationDAG.completeModel(model);
-            return new Satisfiable();}
+            return Result.makeResult(model,basicClauseList);}
         return null;}
 }

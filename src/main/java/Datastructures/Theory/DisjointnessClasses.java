@@ -8,10 +8,11 @@ import Datastructures.Symboltable;
 import Utilities.Utilities;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** A disjointness class is a set of literals which are pairwise contradictory.
- * Such a class may come from the input data, or be derived from implications. 
+ * Such a class may come from the input data, or be derived from ID_Implications.
  * Created by Ohlbach on 21.09.2018.
  */
 public class DisjointnessClasses {
@@ -22,11 +23,25 @@ public class DisjointnessClasses {
     /** the list of disjunctions representing disjoint literals */
     public ClauseList disjointnessClasses = null;
     /** reports changed disjointnss classes */
-    public ArrayList<Consumer<Clause>> disjointnessObservers = new ArrayList();
+    private ArrayList<Consumer<Clause>> disjointnessObservers = new ArrayList();
     /** reports contradictions like p = -p */
-    public ArrayList<Consumer<Unsatisfiable>> unsatisfiabilityObservers = new ArrayList();
+    private ArrayList<Consumer<Unsatisfiable>> unsatisfiabilityObservers = new ArrayList();
     /** reports new true literals */
-    public ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList();
+    private ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList();
+
+    /** adds a true literal observer */
+    public synchronized void addTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.add(observer);}
+    /** adds an unsatisfiability observer */
+    public synchronized void addUnsatisfiabilityObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.add(observer);}
+    /** adds an observer for disjointnesses. */
+    public synchronized void addDisjointnessObserver(Consumer<Clause> observer) {disjointnessObservers.add(observer);}
+
+    /** removes a true literal observer */
+    public synchronized void removeTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.remove(observer);}
+    /** removes an unsatisfiability observer */
+    public synchronized void removeImplicationObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.remove(observer);}
+    /** removes an observer for disjointnesses. */
+    public synchronized void removeDisjointnessObserver(Consumer<Clause> observer) {disjointnessObservers.remove(observer);}
 
     /** generates a new instance.
      *

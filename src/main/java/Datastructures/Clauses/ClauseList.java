@@ -66,12 +66,22 @@ public class ClauseList {
     public void addPurityObserver(Consumer<Integer> observer) {
         literalIndex.purityObservers.add(observer);}
 
+    /** removes a purity observer */
+    public void removePurityObserver(Consumer<Integer> observer) {
+        literalIndex.purityObservers.remove(observer);}
+
+
     /** adds an observer which is called when a literal is removed from a clause
      *
      * @param observer a consumer function to be applied to a CLiteral
      */
     public void addLiteralRemovalObserver(Consumer<CLiteral> observer) {
         literalRemovalObservers.add(observer);}
+
+    /** removes a literal removal observer */
+    public void removeLiteralRemovalObserver(Consumer<CLiteral> observer) {
+        literalRemovalObservers.remove(observer);}
+
 
     /** adds an observer which is called after a literal is replaced by another one (a representative in an equivalence class).
      * It is called for the new CLiteral and the old literal (Integer).
@@ -81,6 +91,10 @@ public class ClauseList {
     public void addLiteralReplacementObserver(BiConsumer<CLiteral,Boolean> observer) {
         literalReplacementObservers.add(observer);}
 
+    /** removes a literal replacement observer */
+    public void removeLiteralReplacementObserver(BiConsumer<CLiteral,Boolean> observer) {
+        literalReplacementObservers.remove(observer);}
+
 
     /** adds an observer which is called when a clause is removed
      *
@@ -88,6 +102,11 @@ public class ClauseList {
      */
     public void addClauseRemovalObserver(Consumer<Clause> observer) {
         clauseRemovalObservers.add(observer);}
+
+    /** removes a ClauseRemovalObserver*/
+    public void removeClauseRemovalObserver(Consumer<Clause> observer) {
+        clauseRemovalObservers.remove(observer);}
+
 
     /** adds a clause to the list and updates the literal index
      *
@@ -229,7 +248,7 @@ public class ClauseList {
     /** applies a consumer to all CLiterals which are implied by the given literal (including the literal itself)
      *
      * @param literal        a literal
-     * @param implicationDAG the implications
+     * @param implicationDAG the ID_Implications
      * @param down           if true then the ImplicationDAG is followed downwards, otherwise upwards.
      * @param consumer       a function to be applied to a CLiteral
      */
@@ -241,7 +260,7 @@ public class ClauseList {
     /** applies a consumer to all CLiterals which contradict the given literal (including the -literal itself)
      *
      * @param literal        a literal
-     * @param implicationDAG the implications
+     * @param implicationDAG the ID_Implications
      * @param consumer       a function to be applied to a CLiteral
      */
     public void applyContradicting(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {

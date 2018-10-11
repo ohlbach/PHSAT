@@ -40,8 +40,8 @@ public final class RandomClauseSetGenerator {
      * seed:       an integer >= 0 for starting the random number generator (default 0).<br/>
      * dBlocks (optional): an integer &gt; 0, the number of disjointness blocks.<br/>
      * dLength (optional): an integer &gt;  0, the number of predicates in each disjointness block.<br/>
-     * xBlocks (optional): an integer &gt;  0, the number of xor blocks.<br/>
-     * xLength (optional): an integer &gt;  0, the number of predicates in each xor block.<br/>
+     * xBlocks (optional): an integer &gt;  0, the number of xors blocks.<br/>
+     * xLength (optional): an integer &gt;  0, the number of predicates in each xors block.<br/>
      * eBlocks (optional): an integer &gt;  0, the number of equivalence blocks.<br/>
      * eLength (optional): an integer &gt;  0, the number of predicates in each equivalence block.<br/>
      *
@@ -143,7 +143,7 @@ public final class RandomClauseSetGenerator {
                             dbl + "*" + dle + " > " + pred +".\n ");
                     continue;}
                 if(xbl != null && xle != null && xbl * xle > pred) {
-                    errors.append("RandomClauseSetGenerator: number of xor predicates exceeds number of predicates: " +
+                    errors.append("RandomClauseSetGenerator: number of xors predicates exceeds number of predicates: " +
                             xbl + "*" + xle + " > " + pred +".\n ");
                     continue;}
                 if(ebl != null && ele != null && ebl * ele > pred) {
@@ -205,8 +205,8 @@ public final class RandomClauseSetGenerator {
         st.append("seed:       an integer >= 0 for starting the random number generator (default 0).\n");
         st.append("dBlocks (optional): an integer > 0, the number of disjointness blocks.\n" );
         st.append("dLength (optional): an integer > 0, the number of predicates in each disjointness block.\n");
-        st.append("xBlocks (optional): an integer > 0, the number of xor blocks.\n" );
-        st.append("xLength (optional): an integer > 0, the number of predicates in each xor block.\n");
+        st.append("xBlocks (optional): an integer > 0, the number of xors blocks.\n" );
+        st.append("xLength (optional): an integer > 0, the number of predicates in each xors block.\n");
         st.append("eBlocks (optional): an integer > 0, the number of equivalence blocks.\n" );
         st.append("eLength (optional): an integer > 0, the number of predicates in each equivalence block.\n");
         st.append("\n");

@@ -1,6 +1,7 @@
 
 package Datastructures.Clauses;
 
+import Datastructures.Statistics.ProblemStatistics;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 
@@ -16,7 +17,7 @@ import java.util.ArrayList;
  * The clause types are: <br/>
  * '0': means disjunction:  '0 1 3 5'  means 1 or 3 or 5<br/>
  * '1': means and:          '1 3 4 5'  stands for 3 and 4 and 5.<br/>
- * '2': means exclusive-or: '2 3 4 5'  means 3 xor 4 xor 5 (exactly one of them must be true).<br/>
+ * '2': means exclusive-or: '2 3 4 5'  means 3 xors 4 xors 5 (exactly one of them must be true).<br/>
  * '3': means disjoints   : '3 4 5 -6' means 4,5,-6 are disjoint literals (at most one of them can be true).<br/>
  * '4': means equivalences: '4 4 5 -6' means that these three literals are equivalent.
  */
@@ -27,8 +28,8 @@ public class BasicClauseList {
     public ArrayList<int[]> disjunctions  = new ArrayList<>();
     /** the original conjunctions */
     public ArrayList<int[]> conjunctions  = new ArrayList<>();
-    /** the original xor */
-    public ArrayList<int[]> xor           = new ArrayList<>();
+    /** the original xors */
+    public ArrayList<int[]> xors          = new ArrayList<>();
     /** the original disjoints */
     public ArrayList<int[]> disjoints     = new ArrayList<>();
     /** the original equivalences */
@@ -48,14 +49,10 @@ public class BasicClauseList {
         switch(ClauseType.getType(clause[1])) {
             case OR:       disjunctions.add(clause); break;
             case AND:      conjunctions.add(clause); break;
-            case XOR:      xor.add(clause);          break;
+            case XOR:      xors.add(clause);         break;
             case DISJOINT: disjoints.add(clause);    break;
             case EQUIV:    equivalences.add(clause); break;}
     }
-
-    /** sorts the disjunctions according to their length */
-    public void sortDisjunctions() {
-        disjunctions.sort((clause1,clause2) -> Integer.compare(clause1.length,clause2.length));}
 
     /** checks if a disjunction is true in a model
      *
@@ -79,9 +76,9 @@ public class BasicClauseList {
         for(int i = 2; i < clause.length; ++i) {if(!model.isTrue(clause[i])) {return false;}}
         return true;}
 
-    /** checks if a xor-clause is true in a model
+    /** checks if a xors-clause is true in a model
      *
-     * @param clause a xor clause
+     * @param clause a xors clause
      * @param model a model
      * @return true if exactly one of the literals is true in the model.
      */
@@ -136,11 +133,22 @@ public class BasicClauseList {
         ArrayList<int[]> falseClauses = new ArrayList<>();
         for(int[] clause : disjunctions) {if(!disjunctionIsTrue(clause,model)) {falseClauses.add(clause);}}
         for(int[] clause : conjunctions) {if(!conjunctionIsTrue(clause,model)) {falseClauses.add(clause);}}
-        for(int[] clause : xor)          {if(!xorIsTrue(clause,model))         {falseClauses.add(clause);}}
+        for(int[] clause : xors)         {if(!xorIsTrue(clause,model))         {falseClauses.add(clause);}}
         for(int[] clause : disjoints)    {if(!disjointIsTrue(clause,model))    {falseClauses.add(clause);}}
         for(int[] clause : equivalences) {if(!equivalenceIsTrue(clause,model)) {falseClauses.add(clause);}}
         return falseClauses.isEmpty() ? null : falseClauses;}
 
+    /** adds some parameters to the statistics
+     *
+     * @param statistics the ProblemStatistics
+     */
+    public void addStatistics(ProblemStatistics statistics) {
+        statistics.disjoints    = disjoints.size();
+        statistics.disjunctions = disjunctions.size();
+        statistics.conjunctions = conjunctions.size();
+        statistics.xors         = xors.size();
+        statistics.equivalences = equivalences.size();
+    }
 
     /** turns a clause into a string.
      *
@@ -149,7 +157,7 @@ public class BasicClauseList {
      * @param symboltable a symboltable or null
      * @return the clause as string
      */
-    public String clauseToString(int size, int[] clause, Symboltable symboltable) {
+    public static String clauseToString(int size, int[] clause, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append(String.format("%"+size+"d ",clause[0]));
         st.append(ClauseType.getType(clause[1]).abbreviation).append(": ");
@@ -178,16 +186,16 @@ public class BasicClauseList {
         Symboltable symboltable = withSymbols ? this.symboltable : null;
         StringBuilder st = new StringBuilder();
         if(info != null) {st.append(info).append("\n");}
-        int size = (""+(disjunctions.size() + conjunctions.size() + xor.size() + disjoints.size()+equivalences.size())).length();
+        int size = (""+(disjunctions.size() + conjunctions.size() + xors.size() + disjoints.size()+equivalences.size())).length();
         if(!disjunctions.isEmpty()) {
             st.append("Disjunctions:\n");
             for(int[] clause : disjunctions) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
         if(!conjunctions.isEmpty()) {
             st.append("Conjunctions:\n");
             for(int[] clause : conjunctions) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(!xor.isEmpty()) {
+        if(!xors.isEmpty()) {
             st.append("Xor:\n");
-            for(int[] clause : xor)          {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+            for(int[] clause : xors)          {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
         if(!disjoints.isEmpty()) {
             st.append("Disjoints:\n");
             for(int[] clause : disjoints)    {st.append(clauseToString(size,clause,symboltable)).append("\n");}}

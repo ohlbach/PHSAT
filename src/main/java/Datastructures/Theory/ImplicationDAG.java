@@ -9,7 +9,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-/** This class represents propositional logic implications 'p -&gt; q' as a DAG (directed acyclic graph).
+/** This class represents propositional logic ID_Implications 'p -&gt; q' as a DAG (directed acyclic graph).
  *  For an implication 'p -&gt; q' the converse '-q -&gt; -q' is also automatically inserted.
  *  The DAG avoids cycles and inconsistencies.
  *  For example, 'p -&gt; q' and '-p -&gt; q' yields 'q' as a new derived literal.
@@ -21,9 +21,9 @@ import java.util.function.Consumer;
 public class ImplicationDAG {
     private TreeSet<ImplicationNode> roots = new TreeSet<>();            // top literals in the implication hierarchy
     private TreeMap<Integer,ImplicationNode> nodesMap = new TreeMap<>(); // maps literals to ImplicationNodes
-    private ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList<>(); // is applied when a true literal is derived
+    private ArrayList<Consumer<Integer>>           trueLiteralObservers = new ArrayList<>(); // is applied when a true literal is derived
     private ArrayList<BiConsumer<Integer,Integer>> implicationObservers = new ArrayList<>(); // is applied when a new implication is derived
-    private ArrayList<Consumer<int[]>> equivalenceObservers = new ArrayList<>(); // is applied when a new equivalence class is derived
+    private ArrayList<Consumer<int[]>>             equivalenceObservers = new ArrayList<>(); // is applied when a new equivalence class is derived
     private int timestamp = 0;
     private final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
     private final Lock readLock = rwl.readLock();
@@ -55,8 +55,17 @@ public class ImplicationDAG {
     public synchronized void addTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.add(observer);}
     /** adds an implication observer */
     public synchronized void addImplicationObserver(BiConsumer<Integer,Integer> observer) {implicationObservers.add(observer);}
-    /** adds an observer for equivalence classes. observer */
+    /** adds an observer for equivalence classes. */
     public synchronized void addEquivalenceObserver(Consumer<int[]> observer) {equivalenceObservers.add(observer);}
+
+    /** removes a true literal observer */
+    public synchronized void removeTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.remove(observer);}
+    /** removes an implication observer */
+    public synchronized void removeImplicationObserver(BiConsumer<Integer,Integer> observer) {implicationObservers.remove(observer);}
+    /** removes an observer for equivalence classes. */
+    public synchronized void removeEquivalenceObserver(Consumer<int[]> observer) {equivalenceObservers.remove(observer);}
+
+
 
     public void readLock() {readLock.lock();}
     public void readUnLock() {readLock.unlock();}
@@ -72,11 +81,11 @@ public class ImplicationDAG {
     public boolean isEmpty(Integer literal) {
         return nodesMap.get(literal) == null;}
 
-    /** checks if 'from -&gt; to' is a consequence of the implications in the DAG
+    /** checks if 'from -&gt; to' is a consequence of the ID_Implications in the DAG
      *
      * @param from a literal
      * @param to   a literal
-     * @return true if 'from -&gt; to' is a consequence of the implications in the DAG
+     * @return true if 'from -&gt; to' is a consequence of the ID_Implications in the DAG
      */
     public boolean implies(Integer from, Integer to) {
         if(from.equals(to)) {return true;}
@@ -89,11 +98,11 @@ public class ImplicationDAG {
             return implies(fromNode,toNode);}
         finally{readLock.unlock();}}
 
-    /** checks if 'from -&gt; to' is a consequence of the implications in the DAG
+    /** checks if 'from -&gt; to' is a consequence of the ID_Implications in the DAG
      *
      * @param from a literal
      * @param to   a literal
-     * @return true if 'from -&gt; to' is a consequence of the implications in the DAG
+     * @return true if 'from -&gt; to' is a consequence of the ID_Implications in the DAG
      */
     private boolean implies(ImplicationNode from, ImplicationNode to) { // depth-first search
         if(from == to) {return true;}
@@ -131,7 +140,7 @@ public class ImplicationDAG {
 
 
     /** adds a clause to the DAG.
-     * For a clause p,q the two implications '-p -&gt; q' and '-q -&gt; p' are added.
+     * For a clause p,q the two ID_Implications '-p -&gt; q' and '-q -&gt; p' are added.
      *
      * @param literal1 a literal
      * @param literal2 a literal
@@ -334,7 +343,7 @@ public class ImplicationDAG {
         roots.remove(falseNode);
     }
 
-    /** completes the model such that all implications in the DAG become true.
+    /** completes the model such that all ID_Implications in the DAG become true.
      * Not all literals need to be assigned truth values.
      * It is, however, not clear whether the model is minimal.
      * The DAG becomes empty by this operation.

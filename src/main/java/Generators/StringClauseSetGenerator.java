@@ -41,7 +41,7 @@ public final class StringClauseSetGenerator  {
                 "The literals in the clause may by any strings, possibly preceded by -.\n" +
                 "A clause starting with '$' indicates a special meaning of the clause:\n" +
                 "$a ... means conjunctions (all literals must be true).\n" +
-                "$x ... means xor          (excactly one literal must be true).\n" +
+                "$x ... means xors          (excactly one literal must be true).\n" +
                 "$d ... means disjointness (at most one literal can be true).\n" +
                 "$e ... means equivalence  (either all literals are true, or all literals are false).";}
 
@@ -81,7 +81,7 @@ public final class StringClauseSetGenerator  {
                 type = ClauseType.getType(literals[0].charAt(1));
                 if(type == null) {
                     errors.append("Illegal ClauseType: '" + literals[0] + "' in " + clausesString + ".\n"+
-                    "Should be one of a (and), x (xor), d (disjoint), e (equivalence)\n");
+                    "Should be one of a (and), x (xors), d (disjoint), e (equivalence)\n");
                     continue;}}
             int[] lits = new int[length];
             lits[0] = ++clauseNumber;

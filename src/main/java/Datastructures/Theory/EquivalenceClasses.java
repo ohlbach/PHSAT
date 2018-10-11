@@ -11,7 +11,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** This class manages equivalence classes. The equivalence classes may come from basic disjunctions,
- * or from implications p -&gt; q and q -&gt; p.
+ * or from ID_Implications p -&gt; q and q -&gt; p.
  *
  * Created by ohlbach on 20.09.2018.
  */
@@ -21,12 +21,27 @@ public class EquivalenceClasses {
     private ImplicationDAG implicationDAG;
     private ClauseList equivalenceClasses = null;
     private HashMap<Integer,Integer> replacements = null;
+
     /** reports true literals */
-    public ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList();
+    private ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList();
     /** reports contradictions like p = -p */
-    public ArrayList<Consumer<Unsatisfiable>> unsatisfiabilityObservers = new ArrayList();
+    private ArrayList<Consumer<Unsatisfiable>> unsatisfiabilityObservers = new ArrayList();
     /** reports new equivalences */
-    public ArrayList<BiConsumer<Integer,Integer>> equivalenceObservers = new ArrayList();
+    private ArrayList<BiConsumer<Integer,Integer>> equivalenceObservers = new ArrayList();
+
+    /** adds a true literal observer */
+    public synchronized void addTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.add(observer);}
+    /** adds an unsatisfiability observer */
+    public synchronized void addUnsatisfiabilityObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.add(observer);}
+    /** adds an observer for equivalences. */
+    public synchronized void addEquivalenceObserver(BiConsumer<Integer,Integer> observer) {equivalenceObservers.add(observer);}
+
+    /** removes a true literal observer */
+    public synchronized void removeTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.remove(observer);}
+    /** removes an unsatisfiability observer */
+    public synchronized void removeImplicationObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.remove(observer);}
+    /** removes an observer for equivalences. */
+    public synchronized void removeEquivalenceObserver(BiConsumer<Integer,Integer> observer) {equivalenceObservers.remove(observer);}
 
     /** generates a new instance.
      *
@@ -89,12 +104,12 @@ public class EquivalenceClasses {
      * @param literal1 a literal
      * @param literal2 a literal
      */
-    public void addEquivalence(String id, int literal1, int literal2) {
+    public Clause addEquivalence(String id, int literal1, int literal2) {
         initialize();
         literal1 = mapToRepresentative(literal1);
         literal2 = mapToRepresentative(literal2);
-        if(literal1 == literal2) {return;}
-        if(literal1 == -literal2) {reportUnsatisfiable(literal1,literal2); return;}
+        if(literal1 == literal2) {return null;}
+        if(literal1 == -literal2) {reportUnsatisfiable(literal1,literal2); return null;}
 
         Clause eqClass = null;
         int representative = literal1;
@@ -113,10 +128,27 @@ public class EquivalenceClasses {
         eqClass.addCLiteralDirectly(new CLiteral(literal));
         if(implicationDAG != null) {
             for(CLiteral cLiteral : eqClass.cliterals) {
-                if(implicationDAG.implies(cLiteral.literal,-literal)) {makeClassFalse(eqClass); return;}}}
+                if(implicationDAG.implies(cLiteral.literal,-literal)) {makeClassFalse(eqClass); return null;}}}
         addReplacement(literal,representative);
         for(BiConsumer<Integer,Integer> observer : equivalenceObservers) {observer.accept(representative,literal);}
+        return eqClass;
     }
+
+    /** This method is used to add an equivalence class which has been derived in the Implication DAG.
+     *  None of the literals is supposed to be true or false.
+     *  One of the literals, however, may already be in another equivalence class.
+     *
+     * @param equivalents equivalent literals
+     * @return a new equivalence clause.
+     */
+    public Clause addEquivalence(int[] equivalents) {
+        int representative = equivalents[0];
+        String id = "E"+representative;
+        Clause eqClass = null;
+        for(int i = 1; i < equivalents.length;++i) {
+            eqClass = addEquivalence(id,representative,equivalents[i]);}
+        return eqClass;}
+
 
 
     /** updates the replacements hash table

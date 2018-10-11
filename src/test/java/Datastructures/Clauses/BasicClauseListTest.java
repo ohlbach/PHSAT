@@ -53,7 +53,7 @@ public class BasicClauseListTest {
 
     @Test
     public void xor() throws Exception {
-        System.out.println("xor");
+        System.out.println("xors");
         BasicClauseList clauses = new BasicClauseList();
         int[] clause1 = {1,2, 3,-2,1};
         int[] clause2 = {2,2, 4,1,3};
@@ -147,42 +147,6 @@ public class BasicClauseListTest {
                 "8 d: 4,5,6\n" +
                 "Equivalences:\n" +
                 "9 e: 7,8,9\n",clauses.toString());
-
-    }
-
-    @Test
-    public void sort() throws Exception {
-        System.out.println("sort");
-        BasicClauseList clauses = new BasicClauseList();
-        int[] clause1 = {1,0, 1,2,3,21,22,23,24};
-        int[] clause2 = {2,0, 4,5,6,18,18,20};
-        int[] clause3 = {3,0, 7,8,9,15,16,17};
-        int[] clause4 = {4,0, 1,2,3,13,14};
-        int[] clause5 = {5,0, 4,5,6,11,12};
-        int[] clause6 = {6,0, 7,8,9,10};
-        int[] clause7 = {7,0, 1,2,3};
-        int[] clause8 = {8,0, 4,5};
-        int[] clause9 = {9,0, 7};
-        clauses.addClause(clause1);
-        clauses.addClause(clause2);
-        clauses.addClause(clause3);
-        clauses.addClause(clause4);
-        clauses.addClause(clause5);
-        clauses.addClause(clause6);
-        clauses.addClause(clause7);
-        clauses.addClause(clause8);
-        clauses.addClause(clause9);
-        clauses.sortDisjunctions();
-        assertEquals("Disjunctions:\n" +
-                "9 o: 7\n" +
-                "8 o: 4,5\n" +
-                "7 o: 1,2,3\n" +
-                "6 o: 7,8,9,10\n" +
-                "4 o: 1,2,3,13,14\n" +
-                "5 o: 4,5,6,11,12\n" +
-                "2 o: 4,5,6,18,18,20\n" +
-                "3 o: 7,8,9,15,16,17\n" +
-                "1 o: 1,2,3,21,22,23,24\n",clauses.toString());
 
     }
 
