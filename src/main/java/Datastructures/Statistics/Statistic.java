@@ -29,4 +29,23 @@ public abstract class Statistic {
             return st.toString();}
     catch(Exception e) {e.printStackTrace();System.exit(1);}
     return null;}
+
+
+    /** combines several statistics of the same type.
+     *
+     * @param statistics of the same type
+     * @return a list of triples [name, accumulated values, average value]
+     */
+    public static ArrayList<Object[]>  combineStatistics(Statistic[] statistics) {
+        int size = statistics.length;
+        ArrayList<Object[]> combinedStatistics = new ArrayList<>();
+        try{
+            for(Field f : statistics[0].getClass().getFields()) {
+                String name = f.getName();
+                Double accumulator = 0.0;
+                for(Statistic statistic : statistics){accumulator += ((Number)f.get(statistic)).doubleValue();}
+                if(accumulator != 0.0) {combinedStatistics.add(new Object[]{name,accumulator,accumulator/size});}}
+            return combinedStatistics;}
+        catch(Exception e) {e.printStackTrace();System.exit(1);}
+        return null;}
 }

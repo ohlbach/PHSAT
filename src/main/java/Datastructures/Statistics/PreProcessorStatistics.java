@@ -4,6 +4,7 @@ import Coordinator.PreProcessor;
 import Coordinator.Task;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Results.Unsatisfiable;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -13,68 +14,65 @@ import java.util.function.Consumer;
  */
 public class PreProcessorStatistics extends Statistic {
     private PreProcessor preProcessor = null;
-    public int tautologies  = 0;
-    public int literalDeletions = 0;
-    public int clauseDeletions = 0;
-    public int forwardSubsumptions  = 0;
-    public int backwardSubsumptions  = 0;
-    public int purities         = 0;
-    public int implicationResolutions = 0;
-    public int doubleLiterals = 0;
-    public int equivalenceReplacements = 0;
-    public int falseLiterals = 0;
-    public int trueClauses = 0;
-    public int replacementResolutions = 0;
-    public int ID_TrueLiterals = 0;
-    public int ID_Implications = 0;
-    public int ID_DerivedEquivalences = 0;
+    public int BCL_RedundantClauses       = 0;
+    public int BCL_RedundantLiterals      = 0;
+    public int BCL_ReplacementResolutions = 0;
+    public int CLS_LiteralRemovals        = 0;
+    public int CLS_LiteralReplacements    = 0;
+    public int CLS_ClauseRemovals         = 0;
+    public int CLS_Purities               = 0;
+    public int IDG_TrueLiterals           = 0;
+    public int IDG_Implications           = 0;
+    public int IDG_Equivalences           = 0;
+    public int DIS_TrueLiterals           = 0;
+    public int DIS_Unsatisifiablities     = 0;
+    public int DIS_Disjointnesses         = 0;
+    public int EQV_TrueLiterals           = 0;
+    public int EQV_Unsatisfiabilities     = 0;
 
     public PreProcessorStatistics(PreProcessor preProcessor) {
         this.preProcessor = preProcessor;}
 
-    public void addtautologies(int n) {tautologies += n;}
-    public void addLiteralDeletions(int n) {literalDeletions += n;}
-    public void addClauseDeletions(int n) {literalDeletions += n;}
-    public void addPurities(int n) {purities += n;}
-    public void addImplicationResolutions(int n) {implicationResolutions += n;}
-    public void addDoubleLiterals(int n) {doubleLiterals += n;}
-    public void addEquivalenceReplacements(int n) {equivalenceReplacements += n;}
-    public void addFalseLiterals(int n) {falseLiterals += n;}
-    public void addTrueClauses(int n) {trueClauses += n;}
-    public void addBackwardSubsumptions(int n) {backwardSubsumptions += n;}
-    public void addForwardSubsumptions(int n) {forwardSubsumptions += n;}
-    public void addReplacementResolutions(int n) {replacementResolutions += n;}
-
-
-    private Consumer<CLiteral> literalRemovalObserver = (cLiteral -> ++literalDeletions);
-    private BiConsumer<CLiteral,Boolean> literalReplacementObserver = ((cLiteral, b) -> ++equivalenceReplacements);
-    private Consumer<Clause> clauseRemovalObserver = (cLiteral -> ++clauseDeletions);
-    private Consumer<Integer> trueLiteralObserver = (cLiteral -> ++ID_TrueLiterals);
-    private BiConsumer<Integer,Integer> implicationObserver = ((from,to) -> ++ID_Implications);
-    private Consumer<int[]> derivedEquivalenceObserver = (eqv -> ID_DerivedEquivalences += eqv.length);
+    private Consumer<CLiteral> CLS_literalRemovalObserver               = (cLiteral -> ++CLS_LiteralRemovals);
+    private BiConsumer<CLiteral,Boolean> CLS_literalReplacementObserver = ((cLiteral, b) -> ++CLS_LiteralReplacements);
+    private Consumer<Clause>  CLS_clauseRemovalObserver                 = (cLiteral -> ++CLS_ClauseRemovals);
+    private Consumer<Integer> IDG_trueLiteralObserver                   = (cLiteral -> ++IDG_TrueLiterals);
+    private BiConsumer<Integer,Integer> IDG_implicationObserver         = ((from,to) -> ++IDG_Implications);
+    private Consumer<int[]>   IDG_equivalenceObserver                   = (eqv -> IDG_Equivalences += eqv.length);
+    private Consumer<Integer> DIS_TrueLiteralObserver                   = (literal -> ++DIS_TrueLiterals);
+    private Consumer<Unsatisfiable> DIS_UnsatisfiabilityObserver        = (literal -> ++DIS_Unsatisifiablities);
+    private Consumer<Clause>  DIS_DisjointnessObserver                  = (literal -> ++DIS_Disjointnesses);
+    private Consumer<Unsatisfiable> EQV_UnsatisfiabilityObserver        = (literal -> ++EQV_Unsatisfiabilities);
+    private Consumer<Integer> EQV_TrueLiteralObserver                   = (literal -> ++EQV_TrueLiterals);
 
     public void addStatisticsObservers() {
-        preProcessor.clauses.addLiteralRemovalObserver(literalRemovalObserver);
-        preProcessor.clauses.addLiteralReplacementObserver(literalReplacementObserver);
-        preProcessor.clauses.addClauseRemovalObserver(clauseRemovalObserver);
-        preProcessor.implicationDAG.addTrueLiteralObserver(trueLiteralObserver);
-        preProcessor.implicationDAG.addImplicationObserver(implicationObserver);
-        preProcessor.implicationDAG.addEquivalenceObserver(derivedEquivalenceObserver);
-        /*
-        preProcessor.equivalences.addTrueLiteralObserver(literal -> addTask(new Task.OneLiteral(literal,this)));
-        preProcessor.equivalences.addUnsatisfiabilityObserver(unsat -> addTask(new Task.Unsatisfiability(unsat,this)));
-        preProcessor.disjointnesses.addUnsatisfiabilityObserver(unsat -> addTask(new Task.Unsatisfiability(unsat,this)));
-        preProcessor.disjointnesses.addTrueLiteralObserver(literal -> addTask(new Task.OneLiteral(literal,this)));
-*/
+        preProcessor.clauses.addLiteralRemovalObserver       (CLS_literalRemovalObserver);
+        preProcessor.clauses.addLiteralReplacementObserver   (CLS_literalReplacementObserver);
+        preProcessor.clauses.addClauseRemovalObserver        (CLS_clauseRemovalObserver);
+        preProcessor.implicationDAG.addTrueLiteralObserver   (IDG_trueLiteralObserver);
+        preProcessor.implicationDAG.addImplicationObserver   (IDG_implicationObserver);
+        preProcessor.implicationDAG.addEquivalenceObserver   (IDG_equivalenceObserver);
+        preProcessor.disjointnesses.addTrueLiteralObserver   (DIS_TrueLiteralObserver);
+        preProcessor.disjointnesses.addUnsatisfiabilityObserver(DIS_UnsatisfiabilityObserver);
+        preProcessor.disjointnesses.addDisjointnessObserver  (DIS_DisjointnessObserver);
+        preProcessor.equivalences.addUnsatisfiabilityObserver(EQV_UnsatisfiabilityObserver);
+        preProcessor.equivalences.addTrueLiteralObserver     (EQV_TrueLiteralObserver);
+
     }
 
     public void removeStatisticsObservers() {
-        preProcessor.clauses.removeLiteralRemovalObserver(literalRemovalObserver);
-        preProcessor.clauses.removeLiteralReplacementObserver(literalReplacementObserver);
-        preProcessor.clauses.removeClauseRemovalObserver(clauseRemovalObserver);
-        preProcessor.implicationDAG.removeTrueLiteralObserver(trueLiteralObserver);
-        preProcessor.implicationDAG.removeImplicationObserver(implicationObserver);
-        preProcessor.implicationDAG.removeEquivalenceObserver(derivedEquivalenceObserver);
+        preProcessor.clauses.removeLiteralRemovalObserver       (CLS_literalRemovalObserver);
+        preProcessor.clauses.removeLiteralReplacementObserver   (CLS_literalReplacementObserver);
+        preProcessor.clauses.removeClauseRemovalObserver        (CLS_clauseRemovalObserver);
+        preProcessor.implicationDAG.removeTrueLiteralObserver   (IDG_trueLiteralObserver);
+        preProcessor.implicationDAG.removeImplicationObserver   (IDG_implicationObserver);
+        preProcessor.implicationDAG.removeEquivalenceObserver   (IDG_equivalenceObserver);
+        preProcessor.disjointnesses.removeTrueLiteralObserver   (DIS_TrueLiteralObserver);
+        preProcessor.disjointnesses.removeUnsatisfiabilityObserver(DIS_UnsatisfiabilityObserver);
+        preProcessor.disjointnesses.removeDisjointnessObserver  (DIS_DisjointnessObserver);
+        preProcessor.equivalences.removeUnsatisfiabilityObserver(EQV_UnsatisfiabilityObserver);
+        preProcessor.equivalences.removeTrueLiteralObserver     (EQV_TrueLiteralObserver);
+
     }
 
     public String toString() {
@@ -83,10 +81,5 @@ public class PreProcessorStatistics extends Statistic {
     public String toString(int size) {
         return Statistic.toString(size,this);}
 
-    public static void main (String[] args) throws Exception {
-        PreProcessorStatistics s = new PreProcessorStatistics(null);
-        s.replacementResolutions = 50;
-        System.out.println(s.toString());
-    }
 
 }

@@ -11,17 +11,17 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
+import Management.Monitor;
+import Management.ProblemSupervisor;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.PriorityQueue;
+import java.util.*;
 
 /**
  * Created by ohlbach on 10.10.2018.
  */
 public class Processor {
     public int predicates;
+    protected ProblemSupervisor supervisor;
     protected GlobalParameters globalParameters;
     protected HashMap<String,Object> problemParameters;
     protected BasicClauseList basicClauseList = null;
@@ -30,15 +30,23 @@ public class Processor {
     public ImplicationDAG      implicationDAG = null;
     public EquivalenceClasses  equivalences   = null;
     public DisjointnessClasses disjointnesses = null;
+    public Monitor monitor;
+    protected boolean monitoring;
+    protected String monitorId = null;
 
 
     public Processor(){}
 
-    public Processor(GlobalParameters globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
+    public Processor(ProblemSupervisor supervisor, GlobalParameters globalParameters, HashMap<String,Object> problemParameters,
+                     BasicClauseList basicClauseList, String monitorId) {
         this.predicates = basicClauseList.predicates;
+        this.supervisor = supervisor;
         this.globalParameters = globalParameters;
         this.problemParameters = problemParameters;
         this.basicClauseList = basicClauseList;
+        monitor = globalParameters.monitor;
+        monitoring = monitor.monitoring();
+        this.monitorId = monitorId;
         clauses.addLiteralRemovalObserver(       cLiteral -> addTask(makeShortenedClauseTask(cLiteral.clause)));
         implicationDAG.addTrueLiteralObserver(    literal -> addTask(new Task.OneLiteral(literal,this)));
         implicationDAG.addImplicationObserver( (from, to) -> addTask(new Task.TwoLiteral(-from,to,this)));
@@ -47,6 +55,26 @@ public class Processor {
         equivalences.addUnsatisfiabilityObserver(   unsat -> addTask(new Task.Unsatisfiability(unsat,this)));
         disjointnesses.addUnsatisfiabilityObserver( unsat -> addTask(new Task.Unsatisfiability(unsat,this)));
         disjointnesses.addTrueLiteralObserver(    literal -> addTask(new Task.OneLiteral(literal,this)));
+        if(monitoring) {addMonitors();}
+    }
+
+    private void addMonitors() {
+        clauses.addLiteralRemovalObserver(       cLiteral ->
+                monitor.print(monitorId,"Literal " + cLiteral.literal + " removed from clause " + cLiteral.clause.id));
+        implicationDAG.addTrueLiteralObserver(    literal ->
+                monitor.print(monitorId,"Literal " + literal + " became true."));
+        implicationDAG.addImplicationObserver( (from, to) ->
+                monitor.print(monitorId,"New implication " + from + " -> " + to + " derived."));
+        implicationDAG.addEquivalenceObserver(equivalence ->
+                monitor.print(monitorId,"Equivalent literals " + Arrays.toString(equivalence) + " derived."));
+        equivalences.addTrueLiteralObserver(      literal ->
+                monitor.print(monitorId,"True literal " + literal + " in equivalences derived."));
+        equivalences.addUnsatisfiabilityObserver(   unsat ->
+                monitor.print(monitorId,"Unsatisfiability in equivalences detected."));
+        disjointnesses.addUnsatisfiabilityObserver( unsat ->
+                monitor.print(monitorId,"Unsatisfiability in disjointnesses detected."));
+        disjointnesses.addTrueLiteralObserver(    literal ->
+                monitor.print(monitorId,"True literal " + literal + " in disjointnesses derived."));
     }
 
     protected PriorityQueue<Task> taskQueue = new PriorityQueue<Task>(Comparator.comparingInt(task->task.priority));
@@ -98,19 +126,5 @@ public class Processor {
     }
 
 
-    private ArrayList<Integer> pureLiterals = null;
-    public Result purityCheck() {
-        pureLiterals = clauses.pureLiterals();
-        clauses.addPurityObserver(literal -> pureLiterals.add(literal));
-        for(int i = 0; i < pureLiterals.size(); ++i) {
-            Integer literal = pureLiterals.get(i);
-            if(implicationDAG.isEmpty(literal)) {
-                model.add(literal);
-                clauses.removeLiteral(literal);
-                implicationDAG.removeFalseLiteral(-literal);}}
-        pureLiterals.clear();
-        if(clauses.isEmpty()) {
-            implicationDAG.completeModel(model);
-            return Result.makeResult(model,basicClauseList);}
-        return null;}
+    protected ArrayList<Integer> pureLiterals = null;
 }

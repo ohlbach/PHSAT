@@ -59,7 +59,7 @@ public class Monitor {
     public synchronized void addThread(String id, String info) {
         if(monitoring && separated) {
             ArrayList<String> buffer = new ArrayList<>();
-            buffer.add(info);
+            if(info != null) {buffer.add(info);}
             buffers.put(id,buffer);}}
 
     /** either prints or collects the message

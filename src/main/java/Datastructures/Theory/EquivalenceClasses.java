@@ -39,7 +39,7 @@ public class EquivalenceClasses {
     /** removes a true literal observer */
     public synchronized void removeTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.remove(observer);}
     /** removes an unsatisfiability observer */
-    public synchronized void removeImplicationObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.remove(observer);}
+    public synchronized void removeUnsatisfiabilityObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.remove(observer);}
     /** removes an observer for equivalences. */
     public synchronized void removeEquivalenceObserver(BiConsumer<Integer,Integer> observer) {equivalenceObservers.remove(observer);}
 

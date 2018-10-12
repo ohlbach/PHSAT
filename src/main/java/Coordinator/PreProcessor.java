@@ -10,6 +10,7 @@ import Datastructures.Theory.*;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Management.GlobalParameters;
+import Management.ProblemSupervisor;
 
 import java.util.*;
 
@@ -19,19 +20,19 @@ import java.util.*;
 public class PreProcessor extends Processor {
     public PreProcessorStatistics statistics;
 
-    public PreProcessor(GlobalParameters globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
-        super(globalParameters,problemParameters,basicClauseList);
+    public PreProcessor(ProblemSupervisor supervisor, GlobalParameters globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
+        super(supervisor,globalParameters,problemParameters,basicClauseList,supervisor.problemId+"_Pre");
         model          = new Model(predicates);
         clauses        = new ClauseList(basicClauseList.disjunctions.size(),predicates);
         implicationDAG = new ImplicationDAG();
         equivalences   = new EquivalenceClasses(model, implicationDAG);
         disjointnesses = new DisjointnessClasses(model, implicationDAG,equivalences);
         statistics     = new PreProcessorStatistics(this);
-        statistics.addStatisticsObservers();
+        if(monitoring) {monitor.addThread(monitorId,null);}
     }
 
     public Result prepareClauses() {
-        try{
+        try{statistics.addStatisticsObservers();
             Result result;
             ArrayList<int[]> clauses;
             clauses = basicClauseList.conjunctions;
@@ -109,10 +110,16 @@ public class PreProcessor extends Processor {
             if(model.isTrue(literal)) {clause = null; break;}
             if(model.isFalse(literal)) {continue;}
             if(clause.addCLiteral(new CLiteral(literal)) == -1) {clause = null; break;}}
-        if(clause == null) {return null;}
+        if(clause == null) {
+            ++statistics.BCL_RedundantClauses;
+            return null;}
+        if(clause.size() < basicClause.length-2) {
+            statistics.BCL_RedundantLiterals += basicClause.length-2-clause.size();
+            if(monitoring) {monitor.print(monitorId,"Clause " + Arrays.toString(basicClause) + " shortened to " + clause.toString());}}
         int removals = Algorithms.simplifyClause(clause,implicationDAG);
         if(removals != 0) {
-            statistics.addImplicationResolutions(removals);}
+            statistics.BCL_ReplacementResolutions += removals;
+            if(monitoring) {monitor.print(monitorId,"Replacement Resolution removed " + removals + " from clause " + clause.toString());}}
         return clause;}
 
 
@@ -140,6 +147,21 @@ public class PreProcessor extends Processor {
         return null;}
 
 
+    private Result purityCheck() {
+        pureLiterals = clauses.pureLiterals();
+        clauses.addPurityObserver(literal -> pureLiterals.add(literal));
+        for(int i = 0; i < pureLiterals.size(); ++i) {
+            Integer literal = pureLiterals.get(i);
+            if(implicationDAG.isEmpty(literal)) {
+                model.add(literal);
+                clauses.removeLiteral(literal);
+                implicationDAG.removeFalseLiteral(-literal);}}
+                ++statistics.CLS_Purities;
+        pureLiterals.clear();
+        if(clauses.isEmpty()) {
+            implicationDAG.completeModel(model);
+            return Result.makeResult(model,basicClauseList);}
+        return null;}
 
 
 }

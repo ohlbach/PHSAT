@@ -39,7 +39,7 @@ public class DisjointnessClasses {
     /** removes a true literal observer */
     public synchronized void removeTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.remove(observer);}
     /** removes an unsatisfiability observer */
-    public synchronized void removeImplicationObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.remove(observer);}
+    public synchronized void removeUnsatisfiabilityObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.remove(observer);}
     /** removes an observer for disjointnesses. */
     public synchronized void removeDisjointnessObserver(Consumer<Clause> observer) {disjointnessObservers.remove(observer);}
 
@@ -161,7 +161,7 @@ public class DisjointnessClasses {
         reportDisjointenss(joinClauses(disjointness));
         return true;}
 
-    /** removes all disjunctions wich are subsets of the given clause.
+    /** removes all disjunctions which are subsets of the given clause.
      * I p,q,r are disjoint then p,q and p,r and q,r are also disjoint.
      *
      * @param disjointness a disjointness clause.

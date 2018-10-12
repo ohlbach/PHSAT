@@ -57,7 +57,7 @@ public class ProblemSupervisor {
     public Result preprocessProblem() {
         globalParameters.log("Preprocessor starts for problem " + problemId);
         basicClauseList.addStatistics(statistics);
-        preProcessor = new PreProcessor(globalParameters,problemParameters,basicClauseList);
+        preProcessor = new PreProcessor(this,globalParameters,problemParameters,basicClauseList);
         result = preProcessor.prepareClauses();
         globalParameters.log("Preprocessor finished for problem " + problemId);
         return result;}
