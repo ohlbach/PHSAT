@@ -85,7 +85,7 @@ public class CLiteral  implements Comparable<CLiteral>{
         return symboltable == null ? toString() : symboltable.getLiteralName(literal);}
 
     /** compares two literals.
-     * If they belong to different clauses then the clause id are compared.
+     * If they belong to different clauses then the clause problemId are compared.
      * If they belong to the same clause, then the literals are compared
      *
      * @param cLiteral another CLiteral.

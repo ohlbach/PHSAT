@@ -73,7 +73,7 @@ public class EquivalenceClasses {
      * p,q,r and p -&gt; not r  causes all literals to become false.<br/>
      * The corresponding observers are called.
      *
-     * @param basicClause [clause-id,typenumber,literal1,...]
+     * @param basicClause [clause-problemId,typenumber,literal1,...]
      */
     public void addEquivalenceClass(int[] basicClause) {
         assert basicClause.length > 2;

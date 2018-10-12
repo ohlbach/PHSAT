@@ -9,6 +9,7 @@ import Datastructures.Statistics.PreProcessorStatistics;
 import Datastructures.Theory.*;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
+import Management.GlobalParameters;
 
 import java.util.*;
 
@@ -18,7 +19,7 @@ import java.util.*;
 public class PreProcessor extends Processor {
     public PreProcessorStatistics statistics;
 
-    public PreProcessor(HashMap<String,Object> globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
+    public PreProcessor(GlobalParameters globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
         super(globalParameters,problemParameters,basicClauseList);
         model          = new Model(predicates);
         clauses        = new ClauseList(basicClauseList.disjunctions.size(),predicates);

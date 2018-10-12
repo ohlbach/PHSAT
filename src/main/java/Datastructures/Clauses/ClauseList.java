@@ -119,7 +119,7 @@ public class ClauseList {
 
     /** returns a clause for the given number
      *
-     * @param id the clause's id
+     * @param id the clause's problemId
      */
     public Clause getClause(String id) {return id2Clause.get(id);}
 

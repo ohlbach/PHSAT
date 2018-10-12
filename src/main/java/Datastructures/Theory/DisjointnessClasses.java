@@ -75,7 +75,7 @@ public class DisjointnessClasses {
      * New disjunctions which are subsets of a new clause are deleted.
      * Literals occurring in several classes may cause joining of the classes.
      *
-     * @param basicClause [clause-id,typenumber,literal1,...]
+     * @param basicClause [clause-problemId,typenumber,literal1,...]
      * @return the result disjointness clause or null
      */
     public Clause addDisjointnessClass(int[] basicClause) {

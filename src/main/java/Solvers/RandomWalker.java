@@ -8,7 +8,7 @@ import Datastructures.Literals.LiteralIndex;
 import Datastructures.Results.Result;
 import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
-import Management.ProblemSupervisor;
+import Management.GlobalParameters;
 import Utilities.Utilities;
 
 import java.util.*;
@@ -89,7 +89,7 @@ public class RandomWalker extends Solver {
     private int walker;
     private String id;
     private HashMap<String,Object> solverControl;
-    private HashMap<String,Object> globalParameters;
+    private GlobalParameters globalParameters;
     CentralProcessor centralProcessor;
     private ClauseList clauseList;
     private Model globalModel;
@@ -109,7 +109,7 @@ public class RandomWalker extends Solver {
      * @param globalParameters  contains the global control parameters
      * @param centralProcessor       contains the result of parsing and initializing the problem data.
      */
-    public RandomWalker(Integer walker,  HashMap<String,Object> solverControl, HashMap<String,Object> globalParameters,
+    public RandomWalker(Integer walker,  HashMap<String,Object> solverControl, GlobalParameters globalParameters,
                         CentralProcessor centralProcessor) {
         this.walker = walker;
         id = "Walker_"+walker;
@@ -135,9 +135,8 @@ public class RandomWalker extends Solver {
     private ArrayList<Clause> falseClauses;
     int flipCounter  = 0;
 
-    public Result solve(StringBuffer errors, StringBuffer warnings) {
-        logger = (BiConsumer<String,String>)globalParameters.get("logger");
-        logger.accept(id,"starting");
+    public Result solve() {
+        globalParameters.log("Random Walker " + id + " starting at problem " + globalParameters.supervisor.problemId);
         random = new Random((Integer)solverControl.get("seed"));
         int maxFlips     = (Integer)solverControl.get("flips");
         randomFrequency  = (Integer)solverControl.get("jumps");
@@ -162,7 +161,7 @@ public class RandomWalker extends Solver {
         while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
             integrateNewFacts();
             flip(selectFlipPredicate());}
-        if(!falseClauses.isEmpty()) {((ProblemSupervisor)globalParameters.get("supervisor")).aborted(walker);}
+        if(!falseClauses.isEmpty()) {globalParameters.supervisor.aborted(id);}
         return null;
             }
 

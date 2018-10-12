@@ -70,14 +70,14 @@ public class SolverControlTest {
     }
 
     @Test
-    public void solve() throws Exception {
-        System.out.println("solve");
+    public void distributeProblems() throws Exception {
+        System.out.println("distributeProblems");
         HashMap<String,Object> solverControl = new HashMap<>();
         solverControl.put("class",TestSolver.class);
         HashMap<String,Object> problemControl = new HashMap<>();
         problemControl.put("number",5);
         SolverController sctr = new SolverController(null,null);
-        sctr.solve(1,solverControl,problemControl,null);
+        sctr.distributeProblems(1,solverControl,problemControl,null);
         assertEquals(5,(int)(Integer)problemControl.get("SOLVED"));
     }
 

@@ -20,7 +20,7 @@ public class Clause {
 
     /** constructs a clause
      *
-     * @param id   the clause id
+     * @param id   the clause problemId
      * @param size  the estimated number of literals
      */
     public Clause(String id, int size) {

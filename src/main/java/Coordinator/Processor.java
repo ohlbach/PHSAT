@@ -10,6 +10,7 @@ import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
+import Management.GlobalParameters;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -21,7 +22,7 @@ import java.util.PriorityQueue;
  */
 public class Processor {
     public int predicates;
-    protected HashMap<String,Object> globalParameters;
+    protected GlobalParameters globalParameters;
     protected HashMap<String,Object> problemParameters;
     protected BasicClauseList basicClauseList = null;
     public ClauseList clauses = null;
@@ -33,7 +34,7 @@ public class Processor {
 
     public Processor(){}
 
-    public Processor(HashMap<String,Object> globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
+    public Processor(GlobalParameters globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
         this.predicates = basicClauseList.predicates;
         this.globalParameters = globalParameters;
         this.problemParameters = problemParameters;

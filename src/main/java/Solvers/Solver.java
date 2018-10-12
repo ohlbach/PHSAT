@@ -3,6 +3,7 @@ package Solvers;
 import Coordinator.CentralProcessor;
 import Coordinator.PreProcessor;
 import Datastructures.Results.Result;
+import Management.GlobalParameters;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -84,7 +85,7 @@ public abstract class Solver {
      * @param solverParameters a key-value map with parameters as strings
      * @return           a list of key-value maps where the values are objects.
      */
-    public static Solver construct(String name, Integer id, HashMap<String,Object> globalParameters,
+    public static Solver construct(String name, Integer id, GlobalParameters globalParameters,
                                    HashMap<String,Object> solverParameters, CentralProcessor centralProcessor) {
         Class clazz = solverClass(name);
         try{
@@ -93,7 +94,7 @@ public abstract class Solver {
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
 
-    public abstract Result solve(StringBuffer errors, StringBuffer warnings);
+    public abstract Result solve();
 
 
 

@@ -3,9 +3,7 @@ package Utilities;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -255,6 +253,27 @@ public class Utilities {
             return file;}
         catch(Exception exp) {exp.printStackTrace();}
     return null;}
+
+    public static String tempFile(String directory, String filename) {
+        String tmp = System.getenv("TEMP");
+        File dirfile = Paths.get(tmp,directory).toFile();
+        try {
+            if (!dirfile.exists()) {dirfile.mkdir();}
+            File file = Paths.get(tmp,directory,filename).toFile();
+            if(file.exists()) {file.delete();}
+            return file.getAbsolutePath();}
+        catch(Exception exp) {exp.printStackTrace();}
+        return null;}
+
+    public static String readFile(String filename) {
+        try {BufferedReader in = new BufferedReader(new FileReader(new File(filename)));
+            StringBuilder st = new StringBuilder();
+            String line;
+            while((line = in.readLine()) != null) {st.append(line).append("\n");}
+            in.close();
+            return st.toString();}
+    catch(Exception ex) {return null;}}
+
 
     public static void clearTmpDirectory(String directory) {
         String tmp = System.getenv("TEMP");

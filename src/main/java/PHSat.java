@@ -1,16 +1,20 @@
 import Generators.Generator;
 import Management.Controller;
+import Management.GlobalParameters;
 import Management.KVParser;
 import Solvers.Solver;
 
 import java.io.*;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 /** This is the class with the main method for the PHSat system. <br/>
  * Created by Ohlbach on 02.09.2018.
  */
 public class PHSat {
+    static Controller controller;
 
     /** This is a file with default parameters for 'global' and 'solver'. */
     private static File DefaultFile = Paths.get(System.getProperties().get("user.dir").toString(),
@@ -38,7 +42,15 @@ public class PHSat {
         else {goon = parseInStream(kvParser);}
         if(goon) {
             readDefaults(kvParser);
-            Controller.start(kvParser);}
+            ArrayList<HashMap<String,String>> globalParameters = kvParser.get("global");
+            if(globalParameters != null && globalParameters.size()> 1) {
+                System.out.println("There should be only one set of global parameters.");}
+            HashMap<String,String> global = globalParameters != null ? globalParameters.get(0) : null;
+            controller = new Controller(global,kvParser.get("problem"), kvParser.get("solver"));
+            if(controller.analyseParameters()) {
+                controller.solve();
+                controller.collectStatistics();
+                controller.close();}}
     }
 
     /** This method calls the help()-methods of the generators and solvers, and prints the results.
@@ -48,14 +60,14 @@ public class PHSat {
     private static void help(String[] args) {
         if(args.length > 1) {
             String name = args[1];
-            if(name.equals("global"))        {System.out.println(Controller.help());     return;}
+            if(name.equals("global"))       {System.out.println(GlobalParameters.help());     return;}
             if(Generator.isGenerator(name)) {System.out.println(Generator.help(name)); return;}
-            if(Solver.isSolver(name))    {System.out.println(Solver.help(name)); return;}
+            if(Solver.isSolver(name))       {System.out.println(Solver.help(name)); return;}
             System.out.println("Unknown name '"+ name + "'. The available names are:");
             System.out.println("Generators: " + Arrays.toString(Generator.generators));
             System.out.println("Solvers:    " + Arrays.toString(Solver.solvers));
             return;}
-        System.out.println(Controller.help());
+        System.out.println(GlobalParameters.help());
         System.out.println(Generator.help());
         System.out.println(Solver.help());}
 
