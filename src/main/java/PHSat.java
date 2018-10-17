@@ -49,7 +49,7 @@ public class PHSat {
             controller = new Controller(global,kvParser.get("problem"), kvParser.get("solver"));
             if(controller.analyseParameters()) {
                 controller.solve();
-                controller.collectStatistics();
+                controller.printStatistics();
                 controller.close();}}
     }
 

@@ -3,6 +3,7 @@ package Solvers;
 import Coordinator.CentralProcessor;
 import Coordinator.PreProcessor;
 import Datastructures.Results.Result;
+import Datastructures.Statistics.Statistic;
 import Management.GlobalParameters;
 
 import java.lang.reflect.Constructor;
@@ -14,7 +15,9 @@ import java.util.HashMap;
  * Created by ohlbach on 09.10.2018.
  */
 public abstract class Solver {
+    public String id;
     public static String[] solvers = new String[]{"walker","recursive","resolution","connectionGraph","PHresolution"};
+    public Statistic statistics;
 
     /** maps the generator names to the generator classes
      *

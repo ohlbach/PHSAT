@@ -27,7 +27,7 @@ public class PreProcessor extends Processor {
         implicationDAG = new ImplicationDAG();
         equivalences   = new EquivalenceClasses(model, implicationDAG);
         disjointnesses = new DisjointnessClasses(model, implicationDAG,equivalences);
-        statistics     = new PreProcessorStatistics(this);
+        statistics     = new PreProcessorStatistics((String)problemParameters.get("name"), this);
         if(monitoring) {monitor.addThread(monitorId,null);}
     }
 

@@ -18,15 +18,13 @@ public class ProblemStatistics extends Statistic {
     public void incAborted() {++aborted;}
     public void incErraneous() {++erraneous;}
 
-    public String toString() {
-        return Statistic.toString(0,this);}
+    public ProblemStatistics(String id) {
+        super(id);}
 
-    public String toString(int size) {
-        return Statistic.toString(size,this);}
 
 
     public static void main (String[] args) throws Exception {
-        ProblemStatistics s = new ProblemStatistics();
+        ProblemStatistics s = new ProblemStatistics("test");
         s.disjunctions = 10;
         s.aborted = 2;
         System.out.println(s.toString());

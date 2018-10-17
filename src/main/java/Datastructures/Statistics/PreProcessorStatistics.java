@@ -30,7 +30,8 @@ public class PreProcessorStatistics extends Statistic {
     public int EQV_TrueLiterals           = 0;
     public int EQV_Unsatisfiabilities     = 0;
 
-    public PreProcessorStatistics(PreProcessor preProcessor) {
+    public PreProcessorStatistics(String id,PreProcessor preProcessor) {
+        super(id);
         this.preProcessor = preProcessor;}
 
     private Consumer<CLiteral> CLS_literalRemovalObserver               = (cLiteral -> ++CLS_LiteralRemovals);
@@ -74,12 +75,6 @@ public class PreProcessorStatistics extends Statistic {
         preProcessor.equivalences.removeTrueLiteralObserver     (EQV_TrueLiteralObserver);
 
     }
-
-    public String toString() {
-        return Statistic.toString(0,this);}
-
-    public String toString(int size) {
-        return Statistic.toString(size,this);}
 
 
 }

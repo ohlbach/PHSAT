@@ -5,6 +5,7 @@ import Coordinator.PreProcessor;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.ProblemStatistics;
+import Datastructures.Statistics.Statistic;
 import Generators.Generator;
 import Generators.StringClauseSetGenerator;
 import Solvers.Solver;
@@ -29,7 +30,7 @@ public class ProblemSupervisor {
     Thread[] threads;
     Solver[] solvers;
     Result[] results;
-    ProblemStatistics statistics  = new ProblemStatistics();
+    ProblemStatistics statistics  = new ProblemStatistics(problemId);
 
     public ProblemSupervisor(int problemNumber,GlobalParameters globalParameters,
                              HashMap<String,Object> problemParameters,
@@ -86,6 +87,15 @@ public class ProblemSupervisor {
         public synchronized void aborted(String  solverId) {
             globalParameters.log("Solver " + solverId + " gave up on problem " + problemId);
             ++statistics.aborted;
+    }
+
+    public Statistic[] collectStatistics() {
+        Statistic[] statistics = new Statistic[3+solvers.length];
+        statistics[0] = this.statistics;
+        statistics[1] = preProcessor.statistics;
+        statistics[2] = centralProcessor.statistics;
+        for(int i = 0; i < solvers.length; ++i) {statistics[i+3] = solvers[i].statistics;}
+        return statistics;
     }
 
 
