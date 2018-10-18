@@ -44,6 +44,11 @@ public class Processor {
         this.globalParameters = globalParameters;
         this.problemParameters = problemParameters;
         this.basicClauseList = basicClauseList;
+        model          = new Model(predicates);
+        clauses        = new ClauseList(basicClauseList.disjunctions.size(),predicates);
+        implicationDAG = new ImplicationDAG();
+        equivalences   = new EquivalenceClasses(model, implicationDAG);
+        disjointnesses = new DisjointnessClasses(model, implicationDAG,equivalences);
         monitor = globalParameters.monitor;
         monitoring = monitor.monitoring();
         this.monitorId = monitorId;
@@ -97,6 +102,7 @@ public class Processor {
 
     public Result processTwoLiteralClause(int literal1, int literal2){
         Algorithms.simplifyWithImplication(-literal1,literal2,clauses,implicationDAG);
+        implicationDAG.addClause(literal1,literal2);
         return null;}
 
 

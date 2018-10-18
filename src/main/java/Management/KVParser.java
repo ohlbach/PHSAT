@@ -62,11 +62,12 @@ public class KVParser {
      * @param line the line to be parsed.
      */
     public void addLine(String line) {
-        String[] parts = line.trim().split("\\s*//",2)[0].split("\\s*[=,:, ]+\\s*",2);
+        line = line.trim();
+        if(line.isEmpty() || line.startsWith("%")) {return;}
+        String[] parts = line.split("\\s*//",2)[0].split("\\s*[=,:, ]+\\s*",2);
         String key = parts[0];
         if(topKeys.contains(key)){inHeader = false;}
         if(inHeader) {header.append(line+"\n"); return;}
-        if(line.trim().isEmpty()) {return;}
 
         if(topKeys.contains(key)) {
             currentMap = new HashMap<>();

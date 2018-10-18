@@ -1,2 +1,4 @@
-general
- parallel = true
+global
+ parallel = 0
+ monitor separated
+ logging

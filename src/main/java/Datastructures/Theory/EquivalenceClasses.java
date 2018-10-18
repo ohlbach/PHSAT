@@ -20,7 +20,7 @@ public class EquivalenceClasses {
     private Model model;
     private ImplicationDAG implicationDAG;
     private ClauseList equivalenceClasses = null;
-    private HashMap<Integer,Integer> replacements = null;
+    private HashMap<Integer,Integer> replacements = new HashMap<>();
 
     /** reports true literals */
     private ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList();

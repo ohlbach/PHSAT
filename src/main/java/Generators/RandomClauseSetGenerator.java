@@ -25,7 +25,7 @@ public final class RandomClauseSetGenerator {
 
     private static HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"type", "seed","predicates","disjunctions","cpRatio","length","precise",
+        for(String key : new String[]{"problem","type", "seed","predicates","disjunctions","cpRatio","length","precise",
                 "dBlocks","dLength","xBlocks", "xLength","eBlocks","eLength"}) {
             keys.add(key);}}
 

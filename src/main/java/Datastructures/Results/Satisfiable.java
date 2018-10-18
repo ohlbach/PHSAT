@@ -15,6 +15,6 @@ public class Satisfiable extends Result {
     public boolean isOkay() {return false;}
 
     public String toString() {
-        return model.toString();}
+        return "Satisfiable with model: "+ model.toString();}
 
 }

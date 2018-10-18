@@ -14,24 +14,32 @@ import Management.ProblemSupervisor;
 
 import java.util.*;
 
-/**
+/** The preprocessor reads analyses the basic clauses and transfers them to the Clause-datastructure.
  * Created by ohlbach on 14.09.2018.
  */
 public class PreProcessor extends Processor {
+    /** collects the statics information for the preprocessor */
     public PreProcessorStatistics statistics;
 
+    /** Constructs the preprocessor
+     *
+     * @param supervisor        which manages the problem processing
+     * @param globalParameters  some global paramters
+     * @param problemParameters for specifying the problem
+     * @param basicClauseList   the clauses [number,type,literal1,...]
+     */
     public PreProcessor(ProblemSupervisor supervisor, GlobalParameters globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
         super(supervisor,globalParameters,problemParameters,basicClauseList,supervisor.problemId+"_Pre");
-        model          = new Model(predicates);
-        clauses        = new ClauseList(basicClauseList.disjunctions.size(),predicates);
-        implicationDAG = new ImplicationDAG();
-        equivalences   = new EquivalenceClasses(model, implicationDAG);
-        disjointnesses = new DisjointnessClasses(model, implicationDAG,equivalences);
         statistics     = new PreProcessorStatistics((String)problemParameters.get("name"), this);
         if(monitoring) {monitor.addThread(monitorId,null);}
     }
 
+    /** turns the basic clauses into Clause datastructure. Initial simplifctions on the clause itself are performed
+     *
+     * @return Unsatisfiable if a contradiction has detected, otherwise null.
+     */
     public Result prepareClauses() {
+        long start = System.currentTimeMillis();
         try{statistics.addStatisticsObservers();
             Result result;
             ArrayList<int[]> clauses;
@@ -62,11 +70,12 @@ public class PreProcessor extends Processor {
                     result = addDisjunction(basicClause);
                     if(result != null) {return result;}}}
             return purityCheck();}
-        finally{statistics.removeStatisticsObservers();}}
+        finally{statistics.removeStatisticsObservers();
+            long end = System.currentTimeMillis();
+            statistics.elapsedTime = end-start;}}
 
 
     /** This method adds a conjunction to the model.
-     * It is assumed that no longer clauses are already in the model.
      *
      * @param basicClause a conjunctive clause
      * @return Unsatisfiable if a contradiction has detected, otherwise null.
@@ -74,10 +83,15 @@ public class PreProcessor extends Processor {
     private Result addConjunction(int[] basicClause) {
         for(int i = 2; i < basicClause.length; ++i) {
             int literal = basicClause[i];
-            if(model.add(literal) < 0) {return new Unsatisfiable(model,literal);}}
+            if(model.add(literal) < 0) {
+                return new Unsatisfiable(model,literal);}}
         return null;}
 
-
+    /** adds an equivalence class to the clauses
+     *
+     * @param basicClause  an equivalence class
+     * @return Unsatisfiable if a contradiction has detected, otherwise null.
+     */
     private Result addEquivalence(int[] basicClause) {
         equivalences.addEquivalenceClass(basicClause);
         return processTasks();}
@@ -86,12 +100,13 @@ public class PreProcessor extends Processor {
      * All possible simplifications on the clause itself and on the other clauses are performed.
      *
      * @param basicClause a disjunction
-     * @return null or Unsatisfiable
+     * @return Unsatisfiable if a contradiction has detected, otherwise null.
      */
     public Result addDisjunction(int[] basicClause) {
         Clause clause = makeDisjunction(basicClause);
         if(clause == null) {return null;}
         taskQueue.add(makeShortenedClauseTask(clause));
+        clauses.addClause(clause);
         return processTasks();}
 
     /** turns a basicClause into a clause. <br/>
@@ -116,6 +131,7 @@ public class PreProcessor extends Processor {
         if(clause.size() < basicClause.length-2) {
             statistics.BCL_RedundantLiterals += basicClause.length-2-clause.size();
             if(monitoring) {monitor.print(monitorId,"Clause " + Arrays.toString(basicClause) + " shortened to " + clause.toString());}}
+        if(clause.isEmpty()) {return clause;}
         int removals = Algorithms.simplifyClause(clause,implicationDAG);
         if(removals != 0) {
             statistics.BCL_ReplacementResolutions += removals;
@@ -123,12 +139,23 @@ public class PreProcessor extends Processor {
         return clause;}
 
 
+    /** adds an Xor clause
+     *
+     * @param basicClause the basic Xor clause
+     * @return Unsatisfiable if a contradiction has detected, otherwise null.
+     */
     public Result addXor(int[] basicClause) {
         Result result = addDisjunction(basicClause);
         if(result != null) {return result;}
         return addDisjoint(basicClause);}
 
 
+    /** adds a disjointness clause to the clauses.
+     *  All derivable implications are also added to the clause
+     *
+     * @param basicClause the basic disjointenss clause.
+     * @return Unsatisfiable if a contradiction has detected, otherwise null.
+     */
     public Result addDisjoint(int[] basicClause) {
         Clause clause = disjointnesses.addDisjointnessClass(basicClause);
         if(clause != null) {
@@ -139,6 +166,10 @@ public class PreProcessor extends Processor {
                     implicationDAG.addImplication(literal,clause.getLiteral(j));}}}
         return processTasks();}
 
+    /** processes all task until a result is obtained or the queue becomes empty
+     *
+     * @return  Unsatisfiable if a contradiction has detected, otherwise null.
+     */
     private Result processTasks() {
         while(!taskQueue.isEmpty()) {
             Task task = taskQueue.poll();
@@ -147,6 +178,12 @@ public class PreProcessor extends Processor {
         return null;}
 
 
+    /** checks the final clause list for purities.
+     *  A literal -l is pure if -l does not occur any more in the clauses and
+     *  and there are no literals implied by l in the implication DAG.
+     *
+     * @return null or Satisfiable if the clause set became empty.
+     */
     private Result purityCheck() {
         pureLiterals = clauses.pureLiterals();
         clauses.addPurityObserver(literal -> pureLiterals.add(literal));

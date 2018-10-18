@@ -12,14 +12,14 @@ import java.util.Map;
  * Created by ohlbach on 12.10.2018.
  */
 public class Monitor {
-    private boolean monitoring = true;
-    private boolean separated  = true;
+    private boolean monitoring = false;
+    private boolean separated  = false;
     private File file          = null;
     private PrintStream out   = System.out;
     private HashMap<String,ArrayList<String>> buffers = new HashMap<>();
 
     /** creates a monitor which does nothing at all*/
-    public Monitor() {monitoring = false;}
+    public Monitor() {}
 
     /** creates a monitor according to the specification.
      *  The specification may be:<br/>
@@ -33,6 +33,8 @@ public class Monitor {
      * @param warnings for warnings.
      */
     public Monitor(String specification, StringBuffer errors, StringBuffer warnings) {
+        monitoring = true;
+        if(specification.equals("true")) {return;}
         String[] parts = specification.split("\\s*(,| )\\s*");
         if(parts[0].equals("separated")) {separated = true;}
         else {if(parts[0].equals("mixed")) {separated = false;}
@@ -77,15 +79,17 @@ public class Monitor {
     public synchronized void flush() {
         if(monitoring) {
             if(separated) {
-                PrintStream out = System.out;
+                out = System.out;
                 if(file != null) {
                     try{out = new PrintStream(file);}
                     catch(FileNotFoundException ex) {
                         out.println("File not found " + file.getAbsolutePath());}}
+                out.println("\n\nMonitor");
+                out.println("*******");
                 for(Map.Entry<String,ArrayList<String>> entry : buffers.entrySet()) {
                     out.println(entry.getKey()+":");
                     for(String st : entry.getValue()) {out.println(st);}}}
-            out.close();}}
+            if(out != System.out){out.close();}}}
 
     /** returns some information about the monitor
      *

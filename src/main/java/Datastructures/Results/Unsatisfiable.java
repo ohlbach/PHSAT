@@ -42,5 +42,5 @@ public class Unsatisfiable extends Result {
      *
      * @return the reason for the unsatisfiability
      */
-    public String toString() {return reason;}
+    public String toString() {return "Unsatisfiable: " + reason;}
 }

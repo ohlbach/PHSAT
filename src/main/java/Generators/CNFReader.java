@@ -35,7 +35,7 @@ public final class CNFReader {
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"type", "file", "directory", "regExpr"}) {
+        for(String key : new String[]{"problem", "type", "file", "directory", "regExpr"}) {
             keys.add(key);}}
 
     /** parses a HashMap with key-value pairs:<br/>
@@ -50,20 +50,22 @@ public final class CNFReader {
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
         for(String key : parameters.keySet()) {
-            if(!keys.contains(key)) {warnings.append("RandomClauseSetGenerator: unknown key in parameters: " + key + "\n");}}
+            if(!keys.contains(key)) {warnings.append("CNFReader: unknown key in parameters: " + key + "\n");}}
 
         String files       = parameters.get("file");
         String directories = parameters.get("directory");
         String regExprs    = parameters.get("regExpr");
 
+
         ArrayList<HashMap<String,Object>> control = new ArrayList<>();
 
         if(files != null) {
-            for(String filename : files.split("\\s*,\\s*")) {
+            for(String filename : files.split("\\s*[, ]\\s*")) {
                 File file = new File(filename);
                 if(!file.exists()) {errors.append("CNFReader: unknown file: " +filename+"\n");}
                 else {HashMap<String,Object> map = new HashMap<>();
                       map.put("file",file);
+                      map.put("name",file.getName());
                       control.add(map);}}}
 
         if(directories != null && regExprs == null) {
@@ -76,6 +78,7 @@ public final class CNFReader {
                         if(file.isFile() && file.getName().endsWith(".cnf")) {
                             HashMap<String,Object> map = new HashMap<>();
                             map.put("file",file);
+                            map.put("name",file.getName());
                             control.add(map);}}}} }
 
         if(regExprs != null) {
@@ -93,6 +96,7 @@ public final class CNFReader {
                     for(File file: directory.listFiles(pathname -> pattern.matcher(pathname.getName()).matches())) {
                         HashMap<String,Object> map = new HashMap<>();
                         map.put("file",file);
+                        map.put("name",file.getName());
                         control.add(map);}}}}
 
         return control;}
@@ -105,7 +109,7 @@ public final class CNFReader {
         StringBuilder st = new StringBuilder();
         st.append("CNFReader for reading CNF-Files.\n");
         st.append("The parameters are:\n");
-        st.append("  file:      A single filename or a comma-sparated list of filenames.\n");
+        st.append("  file:      A single filename or a comma-separated list of filenames.\n");
         st.append("  directory: A single directory name or a comma-separated list of directory names.\n");
         st.append("             All files in the directory ending with .cnf are loaded, unless regExpr is defined.\n");
         st.append("  regExpr:   A regular expression to select files in the directory.\n\n");
@@ -119,7 +123,7 @@ public final class CNFReader {
                 " A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0).\n" +
                 " \n" +
                 " An extension of this format may contain clauses beginning with special characters:.\n" +
-                " 'd': means disjunction:  'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).\n" +
+                " 'd': means disjoint:     'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).\n" +
                 " 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.\n" +
                 " 'x': means exclusive-or: 'x 3 4 5' means 3 xors 4 xors 5 (exactly one of them must be true).\n" +
                 " 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.\n");
@@ -160,7 +164,7 @@ public final class CNFReader {
                     return null;}
                 predicates = Utilities.parseInteger(place, parts[2],errors);
                 continue;}
-            if(line.startsWith("%")){break;}
+            if(line.startsWith("%")){continue;}
             if(predicates == null) {
                 errors.append(place + " unknown number of predicates.\n");
                 return null;}
@@ -192,6 +196,7 @@ public final class CNFReader {
             for(int i = 0; i< clause.size(); ++i) {lits[i] = (int)clause.get(i);}
             bcl.addClause(lits);}
         bcl.info = info.toString();
+        System.out.println("BCL " + bcl.toString());
         return  bcl;}
 
 }

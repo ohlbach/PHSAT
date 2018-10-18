@@ -14,7 +14,8 @@ import java.util.HashMap;
  * Created by Ohlbach on 02.09.2018.
  */
 public class PHSat {
-    static Controller controller;
+    /** for controlling the execution of the problem processing */
+    private static Controller controller;
 
     /** This is a file with default parameters for 'global' and 'solver'. */
     private static File DefaultFile = Paths.get(System.getProperties().get("user.dir").toString(),
@@ -32,6 +33,9 @@ public class PHSat {
      * @param args
      */
     public static void  main(String[] args) {
+        long start = System.currentTimeMillis();
+        args = new String[]{"C:\\Users\\ohlbach\\IdeaProjects\\PHSAT\\src\\main\\resources\\Purity.cnf"};
+        //args = new String[]{"help","global"};
         KVParser kvParser = new KVParser("global", "problem", "solver");
         boolean goon = false;
         if(args.length > 0) {
@@ -45,12 +49,13 @@ public class PHSat {
             ArrayList<HashMap<String,String>> globalParameters = kvParser.get("global");
             if(globalParameters != null && globalParameters.size()> 1) {
                 System.out.println("There should be only one set of global parameters.");}
-            HashMap<String,String> global = globalParameters != null ? globalParameters.get(0) : null;
+            HashMap<String,String> global = !globalParameters.isEmpty() ? globalParameters.get(0) : null;
             controller = new Controller(global,kvParser.get("problem"), kvParser.get("solver"));
             if(controller.analyseParameters()) {
-                controller.solve();
-                controller.printStatistics();
+                if(controller.solve()) {controller.printStatistics();}
                 controller.close();}}
+        long end = System.currentTimeMillis();
+        System.out.println("Total Time: " + (end-start) + " ms");
     }
 
     /** This method calls the help()-methods of the generators and solvers, and prints the results.
@@ -85,7 +90,7 @@ public class PHSat {
         kvParser.addLine("file = " + filename);
         return true;}
 
-    /** The method reads the specification from System.in and parses ti with the kvParser.
+    /** The method reads the specification from System.in and parses it with the kvParser.
      * An IOException causes the system to stop.
      *
      * @param kvParser for parsing the specification
@@ -114,11 +119,11 @@ public class PHSat {
      * @param kvParser the parser with possibly missing 'global' and 'solver' parameters.
      */
     private static void readDefaults(KVParser kvParser) {
-        if(kvParser.get("global") != null &&  kvParser.get("solver") != null) {return;}
+        if(!kvParser.get("global").isEmpty() &&  !kvParser.get("solver").isEmpty()) {return;}
         KVParser defaultParser = new KVParser("global", "problem", "solver");
         defaultParser.parseFile(DefaultFile.getAbsolutePath());
-        if(kvParser.get("global") == null) {kvParser.set("global",defaultParser.get("global"));}
-        if(kvParser.get("solver") == null) {kvParser.set("solver",defaultParser.get("solver"));}}
+        if(kvParser.get("global").isEmpty()) {kvParser.set("global",defaultParser.get("global"));}
+        if(kvParser.get("solver").isEmpty()) {kvParser.set("solver",defaultParser.get("solver"));}}
 
 
 

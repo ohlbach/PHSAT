@@ -441,11 +441,5 @@ public class Utilities {
 
 
     public static void  main(String[] args) {
-        ArrayList<String[]> ar = new ArrayList<>();
-        String[] a = new String[]{"a","b","c"};
-        ar.add(a);
-        String[] b = new String[]{"1","2","3"};
-        ar.add(b);
-        String[] c = extract(ar,1);
-        System.out.println(b[0]);
+        printProperties();
 }}

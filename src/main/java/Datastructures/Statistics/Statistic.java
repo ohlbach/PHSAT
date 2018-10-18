@@ -15,6 +15,7 @@ public class Statistic {
 
     public String id;
     public Statistic(String id) {this.id = id;}
+    public long elapsedTime = 0;
 
 
     /** This method extracts the statistics fields from the Statistic object and collects them in an array
@@ -35,18 +36,24 @@ public class Statistic {
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return values;}
 
+
+
+
     public static String statisticToString(String id, ArrayList<Object[]> values) {
+        if(values.isEmpty()) {return "";}
         StringBuilder st = new StringBuilder();
         String format = "%-"+Utilities.maxLength(values,(a -> (String)((Object[])a)[0])) + "s %"+
-        Math.max(id.length(),Utilities.maxLength(values,(a -> ((Object[])a)[1].toString()))) + "s\n";
+        Math.max(id.length(),Utilities.maxLength(values,(a -> (a != null) ?
+                Utilities.numberString((((Object[])a)[1]).toString()) : ""))) + "s\n";
         st.append(String.format(format," ",id));
-        for(Object[] value : values) {st.append(String.format(format,(String)value[0], value[1].toString()));}
+        for(Object[] value : values) {st.append(String.format(format,(String)value[0], Utilities.numberString(value[1].toString())));}
         return st.toString();}
 
     public static String statisticToCSV(String id, String separator, ArrayList<Object[]> values) {
+        if(values.isEmpty()) {return "";}
         StringBuilder st = new StringBuilder();
         st.append(separator).append(id).append("\n");
-        for(Object[] value : values) {st.append((String)value[0]).append(separator).append(value[1].toString()).append("\n");}
+        for(Object[] value : values) {st.append((String)value[0]).append(separator).append(Utilities.numberString(value[1].toString())).append("\n");}
         return st.toString();}
 
 

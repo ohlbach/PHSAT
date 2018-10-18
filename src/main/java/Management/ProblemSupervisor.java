@@ -10,6 +10,9 @@ import Generators.Generator;
 import Generators.StringClauseSetGenerator;
 import Solvers.Solver;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -30,18 +33,19 @@ public class ProblemSupervisor {
     Thread[] threads;
     Solver[] solvers;
     Result[] results;
-    ProblemStatistics statistics  = new ProblemStatistics(problemId);
+    ProblemStatistics statistics = null;
 
     public ProblemSupervisor(int problemNumber,GlobalParameters globalParameters,
                              HashMap<String,Object> problemParameters,
                              ArrayList<HashMap<String,Object>> solverParameters) {
         this.problemNumber    = problemNumber;
-        Object name = problemParameters.get("problem");
+        Object name = problemParameters.get("name");
         this.problemId = (name == null) ? "P"+problemNumber : (String)name;
         this.globalParameters = globalParameters;
         this.problemParameters = problemParameters;
         this.solverParameters = solverParameters;
         globalParameters.supervisor = this;
+        statistics  = new ProblemStatistics(problemId);
     }
 
     /** reads or generates the SAT-clauses
@@ -90,13 +94,24 @@ public class ProblemSupervisor {
     }
 
     public Statistic[] collectStatistics() {
-        Statistic[] statistics = new Statistic[3+solvers.length];
+        int solvLength = 0;
+        if(solvers != null) {solvLength = solvLength;}
+        Statistic[] statistics = new Statistic[(centralProcessor == null ? 2 : 3)+solvLength];
         statistics[0] = this.statistics;
         statistics[1] = preProcessor.statistics;
-        statistics[2] = centralProcessor.statistics;
-        for(int i = 0; i < solvers.length; ++i) {statistics[i+3] = solvers[i].statistics;}
+        if(centralProcessor != null) {statistics[2] = centralProcessor.statistics;}
+        for(int i = 0; i < solvLength; ++i) {statistics[i+3] = solvers[i].statistics;}
         return statistics;
     }
+
+    /** prints the result to the PrintStream
+     *
+     * @param out a PrintStream
+     */
+    public void reportResult(PrintStream out) {
+        out.println("Result for problem " + problemId + ":");
+        if(result == null) {out.println("   no result");}
+        else {out.println("  "+result.toString());}}
 
 
 
