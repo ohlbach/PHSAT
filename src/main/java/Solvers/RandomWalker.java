@@ -25,15 +25,12 @@ public class RandomWalker extends Solver {
         for(String key : new String[]{"class", "seed", "flips"}) {
             keys.add(key);}}
 
-    /** parses a HashMap with key-value pairs:<br/>
-     * file: a comma separated list of pathnames<br/>
-     * directory: a comma separated list of directories (all .cnf files in this directory are adressed) <br/>
-     * regExpr: a regular expression: All files in the directories matching the expression are addressed
+    /** parses a HashMap with key-value pairs<br/>
      *
-     * @param parameters  the parameters with the keys "file", "directory", "regExpr"
+     * @param parameters  the parameters with the keys "seed", "flips", "jumps"
      * @param errors      for error messages
      * @param warnings    for warnings
-     * @return            a list of HashMaps with key "file" and value the corresponding File object.
+     * @return            a list of HashMaps with these keys.
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
         for(String key : parameters.keySet()) {
@@ -52,11 +49,13 @@ public class RandomWalker extends Solver {
         ArrayList flip = Utilities.parseIntRange(place+"flips: ",flips,errors);
         ArrayList jump = Utilities.parseIntRange(place+"jumps: ",jumps,errors);
         ArrayList<ArrayList> pars = Utilities.crossProduct(seed,flip,jump);
+        int counter = 0;
         for(ArrayList<Object> p : pars ) {
             HashMap<String,Object> map = new HashMap<>();
             map.put("seed",pars.get(0));
             map.put("flips",pars.get(1));
             map.put("jumps",pars.get(2));
+            map.put("name","walker_" + ++counter);
             list.add(map);}
         return list;}
 
@@ -111,12 +110,9 @@ public class RandomWalker extends Solver {
      */
     public RandomWalker(Integer walker,  HashMap<String,Object> solverControl, GlobalParameters globalParameters,
                         CentralProcessor centralProcessor) {
+
+        super("Walker_"+walker,solverControl,globalParameters,centralProcessor);
         this.walker = walker;
-        id = "Walker_"+walker;
-        this.solverControl  = solverControl;
-        this.globalParameters = globalParameters;
-        this.centralProcessor = centralProcessor;
-        globalModel = centralProcessor.model;
         rwModel = new RWModel(globalModel);
         clauseList = centralProcessor.clauses.clone(); // now centralDataHolder may change its clauses
         globalModel.addNewTruthObserver(literal         -> newTrueLiterals.add(literal));

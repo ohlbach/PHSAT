@@ -4,6 +4,7 @@ import Coordinator.CentralProcessor;
 import Coordinator.PreProcessor;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
+import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 
 import java.lang.reflect.Constructor;
@@ -16,8 +17,21 @@ import java.util.HashMap;
  */
 public abstract class Solver {
     public String id;
-    public static String[] solvers = new String[]{"walker","recursive","resolution","connectionGraph","PHresolution"};
+    public static String[] solvers = new String[]{"walker","resolution"};
     public Statistic statistics;
+
+    protected HashMap<String,Object> solverControl;
+    protected GlobalParameters globalParameters;
+    protected CentralProcessor centralProcessor;
+    protected Model globalModel;
+
+    public Solver(String id, HashMap<String,Object> solverControl, GlobalParameters globalParameters, CentralProcessor centralProcessor) {
+        this.id = id;
+        this.solverControl = solverControl;
+        this.globalParameters = globalParameters;
+        this.centralProcessor = centralProcessor;
+        this.globalModel = centralProcessor.model;
+    }
 
     /** maps the generator names to the generator classes
      *
@@ -27,6 +41,7 @@ public abstract class Solver {
     public static Class solverClass(String name) {
         switch (name) {
             case "walker":      return Solvers.RandomWalker.class;
+            case "resolution":  return Solvers.Resolution.class;
             default: return null;}}
 
     /** checks if the name is a solver name
