@@ -2,6 +2,7 @@ package Utilities;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Theory.ImplicationDAG;
 
 import java.io.*;
 import java.lang.reflect.Array;
@@ -438,6 +439,8 @@ public class Utilities {
             if(list == null){list =  (T[])Array.newInstance(item[0].getClass(),collection.size());}
             list[i++] = item[n];}
         return list;}
+
+
 
 
     public static void  main(String[] args) {

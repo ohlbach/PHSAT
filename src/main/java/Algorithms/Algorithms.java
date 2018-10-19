@@ -184,6 +184,33 @@ public class Algorithms {
         for(Clause clause : toBeDeleted) {clauseList.removeClause(clause);}
         for(CLiteral cLiteral : toBeRemoved) {clauseList.removeLiteral(cLiteral);}
         return(!toBeDeleted.isEmpty() || !toBeRemoved.isEmpty()) ? new int[]{toBeDeleted.size(),toBeRemoved.size()} : null;}
+
+
+    /** resolves the two clauses at the given literals.
+     * All simplifications which are possible by the implicationDAG are performed
+     *
+     * @param literal1      a literal
+     * @param literal2      a literal
+     * @param implicationDAG the implication DAG
+     * @return  the resolvent, or null if it would be a tautology or subsumed by the imlication DAG
+     */
+    public static Clause resolve(CLiteral literal1, CLiteral literal2, ImplicationDAG implicationDAG) {
+        ArrayList<CLiteral> resolvent = new ArrayList<>();
+        ArrayList<CLiteral> literals1 = literal1.clause.cliterals;
+        for(CLiteral lit1 : literals1) {
+            if(lit1 != literal1) {resolvent.add(lit1.clone());}}
+        for(CLiteral lit2 : literal2.clause.cliterals) {
+            if(lit2 != literal2) {
+                boolean ignore = false;
+                for(CLiteral lit1 : literals1) {
+                    if(lit1 != literal1) {
+                        if(implicationDAG.implies(-lit1.literal, lit2.literal)) {return null;}
+                        if(implicationDAG.implies(lit2.literal,lit1.literal)) {ignore = true; break;}
+                        if(implicationDAG.implies(lit1.literal,lit2.literal)) {
+                            resolvent.removeIf(cliteral->cliteral.literal == lit1.literal);}}}
+                if(!ignore) {resolvent.add(lit2.clone());}}}
+        return new Clause(literal1.clause.id+"+"+literal2.clause.id, resolvent);
+    }
 }
 
 

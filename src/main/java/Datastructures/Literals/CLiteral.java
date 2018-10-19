@@ -47,6 +47,13 @@ public class CLiteral  implements Comparable<CLiteral>{
         this.clause = clause;
         this.position = position;}
 
+    /** constructs a new CLiteral independent of a clause.
+     *
+     * @return the clone.
+     */
+    public CLiteral clone() {
+        return new CLiteral(literal);}
+
 
     /** generates a String literal@clause,position
      *

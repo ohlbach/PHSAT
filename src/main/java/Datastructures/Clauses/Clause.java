@@ -27,6 +27,17 @@ public class Clause {
         this.id = id;
         cliterals = new ArrayList<CLiteral>(size);}
 
+    /** constructs a new clause with given literals
+     *
+     * @param id        the id of the new clause
+     * @param cLiterals the list of CLiterals
+     */
+    public Clause(String id, ArrayList<CLiteral> cLiterals) {
+        this.id = id;
+        for(int i = 0; i < cLiterals.size(); ++i) {
+            cLiterals.get(i).setClause(this,i);}
+        cliterals = cLiterals;}
+
     /** return the current number of literals
      *
      * @return the current number of literals
