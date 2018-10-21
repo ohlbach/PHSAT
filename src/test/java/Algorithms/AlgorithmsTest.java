@@ -209,8 +209,8 @@ public class AlgorithmsTest {
         clauses.addClause(c2);
         Clause cs = Utilities.makeClause("s", "1,2,3");
         assertEquals(2, Algorithms.resolve(cs, clauses, id));
-        assertEquals("1: (6,7,8)\n" +
-                "2: (6,9)\n",clauses.toString());
+        assertEquals("2: (6,9)\n" +
+                "1: (6,7,8)\n",clauses.toString());
     }
 
     @Test

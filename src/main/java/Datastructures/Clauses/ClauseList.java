@@ -21,7 +21,7 @@ import java.util.stream.Stream;
  */
 public class ClauseList {
     public int predicates;
-    public final ArrayList<Clause> clauses;              // the list of disjunctions
+    public final PriorityQueue<Clause> clauses;              // the list of disjunctions
     private final HashMap<String,Clause> id2Clause;      // maps clause ids to disjunctions
     public final LiteralIndex literalIndex;              // maps literals to CLiterals
     public int timestamp = 0;                            // for algorithms
@@ -40,9 +40,22 @@ public class ClauseList {
      */
     public ClauseList(int size,int predicates) {
         this.predicates = predicates;
-        clauses         = new ArrayList<Clause>(size);
+        clauses         = new PriorityQueue<Clause>(size,Comparator.comparingInt(cl->cl.size()));
         id2Clause       = new HashMap<>();
         literalIndex    = new LiteralIndex(predicates);}
+
+    /** creates a clause list. The number of disjunctions should be estimated.
+     *
+     * @param size       the estimated number of disjunctions
+     * @pramm predicates the number of predicates.
+     */
+    public ClauseList(int size,int predicates,Comparator comparator) {
+        this.predicates = predicates;
+        clauses         = new PriorityQueue<Clause>(size,comparator);
+        id2Clause       = new HashMap<>();
+        literalIndex    = new LiteralIndex(predicates);}
+
+
 
     /** clones the entire clause list, except the observers.
      *
