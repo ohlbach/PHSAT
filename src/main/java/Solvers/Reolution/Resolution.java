@@ -1,14 +1,20 @@
-package Solvers;
+package Solvers.Reolution;
 
+import Algorithms.Algorithms;
 import Coordinator.CentralProcessor;
+import Coordinator.Task;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Management.GlobalParameters;
+import Solvers.Solver;
 import Utilities.Utilities;
+import sun.util.resources.cldr.de.CalendarData_de_LU;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
+import java.util.function.Consumer;
 
 /**
  * Created by ohlbach on 18.10.2018.
@@ -56,7 +62,14 @@ public class Resolution extends Solver {
                 "sos:    percentage of clauses in the set of support. (default 50)";}
 
     int resolver = 0;
-    private ClauseList clauseList;
+    int seed = (Integer)solverControl.get("seed");
+    private ClauseList clauses;
+    private Random random = new Random();
+    protected PriorityQueue<Task> taskQueue = new PriorityQueue<Task>(Comparator.comparingInt(task->task.priority));
+
+
+    protected void addTask(Task task) {taskQueue.add(task);}
+
 
     /** constructs a new solver of type RandomWalker.
      * The constructor is called serially. Therefore there are no race conditions.
@@ -70,19 +83,44 @@ public class Resolution extends Solver {
      */
     public Resolution(Integer resolver,  HashMap<String,Object> solverControl, GlobalParameters globalParameters,
                         CentralProcessor centralProcessor) {
-        super("Resolution_"+resolver,solverControl,globalParameters,centralProcessor);
+        super("Resolution_" + resolver, solverControl, globalParameters, centralProcessor);
         this.resolver = resolver;
-        clauseList = centralProcessor.clauses.clone(); // now centralDataHolder may change its clauses
+        copyClauses();
+        addObservers();
 
-     /*   rwModel = new RandomWalker.RWModel(globalModel);
-        clauseList = centralProcessor.clauses.clone(); // now centralDataHolder may change its clauses
-        globalModel.addNewTruthObserver(literal         -> newTrueLiterals.add(literal));
-        implicationDAG.addImplicationObserver((from,to) -> newImplications.add(new int[]{from,to}));
-        implicationDAG.addEquivalenceObserver(eqv       -> newEquivalences.add(eqv)); */
+    }
+
+    private Consumer<Integer> oneLiteralObserver = (literal-> addTask(new Task.OneLiteral(literal,this)));
+    private void addObservers() {
+        globalModel.addNewTruthObserver(oneLiteralObserver);
+        //clauses.addLiteralRemovalObserver(cLiteral -> addTask(makeShortenedClauseTask(cLiteral.clause)));
+
+    }
+
+
+    private void copyClauses() {
+        ClauseList centralClauses = centralProcessor.clauses;
+        int size = centralClauses.size();
+        clauses = new ClauseList(centralClauses.size(),predicates,(Comparator.comparingInt(clause->((RClause)clause).priority)));
+        for(Clause clause  : centralClauses.clauses) {
+            clauses.addClause(new RClause(clause,random.nextInt(size)*clause.size()));}
     }
 
     public Result solve() {
-        return null;
+        CLiteral[] parentLiterals = new CLiteral[2];
+        while(!clauses.isEmpty()) {
+            selectParentLiterals(parentLiterals);
+            Clause resolvent = Algorithms.resolve(parentLiterals[0],parentLiterals[1],implicationDAG);
+            if(resolvent != null) {
+                Algorithms.subsumeAndResolve(resolvent,clauses,implicationDAG);}
+                Result result = processTasks();
+                if(result != null) {return result;}}
+        return Result.makeResult(model,basicClauseList);}
+
+    private void selectParentLiterals(CLiteral[] parentLiterals) {
+        Clause parentClause1 = clauses.clauses.poll();
+        CLiteral parentLiteral1 = parentClause1.cliterals.get(random.nextInt(parentClause1.size()));
+
     }
 
 }

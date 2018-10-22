@@ -22,7 +22,7 @@ public abstract class Task {
      * @param priority   of the task
      * @param processor  the processor which executes the task
      */
-    Task(int priority, Processor processor) {
+    public Task(int priority, Processor processor) {
         this.priority = priority;
         this.processor = processor;}
 
@@ -68,7 +68,7 @@ public abstract class Task {
      */
     public static class OneLiteral extends Task {
         int literal;
-        OneLiteral(int literal, Processor processor) {
+        public OneLiteral(int literal, Processor processor) {
             super(1, processor);
             this.literal = literal;}
 

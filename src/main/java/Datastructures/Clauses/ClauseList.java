@@ -162,7 +162,9 @@ public class ClauseList {
      */
     public void removeLiteral(CLiteral cliteral) {
         Clause clause = cliteral.clause;
+        clauses.remove(clause);
         clause.removeLiteral(cliteral);
+        clauses.add(clause);
         literalIndex.removeLiteral(cliteral);
         for(Consumer observer : literalRemovalObservers) {observer.accept(cliteral);}}
 

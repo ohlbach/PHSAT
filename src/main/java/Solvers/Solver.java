@@ -2,10 +2,13 @@ package Solvers;
 
 import Coordinator.CentralProcessor;
 import Coordinator.PreProcessor;
+import Coordinator.Processor;
+import Coordinator.Task;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
+import Solvers.Reolution.Resolution;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -15,8 +18,9 @@ import java.util.HashMap;
 /**
  * Created by ohlbach on 09.10.2018.
  */
-public abstract class Solver {
+public abstract class Solver extends Processor {
     public String id;
+    public int predicates;
     public static String[] solvers = new String[]{"walker","resolution"};
     public Statistic statistics;
 
@@ -31,6 +35,7 @@ public abstract class Solver {
         this.globalParameters = globalParameters;
         this.centralProcessor = centralProcessor;
         this.globalModel = centralProcessor.model;
+        this.predicates = globalModel.predicates;
     }
 
     /** maps the generator names to the generator classes
@@ -41,7 +46,7 @@ public abstract class Solver {
     public static Class solverClass(String name) {
         switch (name) {
             case "walker":      return Solvers.RandomWalker.class;
-            case "resolution":  return Solvers.Resolution.class;
+            case "resolution":  return Resolution.class;
             default: return null;}}
 
     /** checks if the name is a solver name
@@ -113,6 +118,22 @@ public abstract class Solver {
         return null;}
 
     public abstract Result solve();
+
+
+    /** This method waits for new tasks and executes them until the execution returns a result (unsatisfiable or satisfiable)
+     *
+     * @return the result (unsatisfiable or satisfiable)
+     */
+    public Result processTasks() {
+        Result result;
+        while((result = getTask().execute()) != null) {}
+        return result;}
+
+    private synchronized Task getTask() {
+        while(taskQueue.isEmpty()) {
+            try {wait();} catch (InterruptedException e) {continue;}
+            return taskQueue.poll();}
+        return null;}
 
 
 
