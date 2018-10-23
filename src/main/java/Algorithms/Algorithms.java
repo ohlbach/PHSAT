@@ -8,6 +8,7 @@ import org.omg.CORBA.TIMEOUT;
 
 import java.util.ArrayList;
 import java.util.TreeSet;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 /**
@@ -194,7 +195,8 @@ public class Algorithms {
      * @param implicationDAG the implication DAG
      * @return  the resolvent, or null if it would be a tautology or subsumed by the imlication DAG
      */
-    public static Clause resolve(CLiteral literal1, CLiteral literal2, ImplicationDAG implicationDAG) {
+    public static Clause resolve(CLiteral literal1, CLiteral literal2, ImplicationDAG implicationDAG,
+                                 BiFunction<String,ArrayList,Clause> clauseConstructor) {
         ArrayList<CLiteral> resolvent = new ArrayList<>();
         ArrayList<CLiteral> literals1 = literal1.clause.cliterals;
         for(CLiteral lit1 : literals1) {
@@ -209,7 +211,7 @@ public class Algorithms {
                         if(implicationDAG.implies(lit1.literal,lit2.literal)) {
                             resolvent.removeIf(cliteral->cliteral.literal == lit1.literal);}}}
                 if(!ignore) {resolvent.add(lit2.clone());}}}
-        return new Clause(literal1.clause.id+"+"+literal2.clause.id, resolvent);
+        return clauseConstructor.apply(literal1.clause.id+"+"+literal2.clause.id, resolvent);
     }
 }
 

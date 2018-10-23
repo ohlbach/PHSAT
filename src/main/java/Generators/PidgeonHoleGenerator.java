@@ -59,6 +59,7 @@ public final class PidgeonHoleGenerator {
             HashMap<String,Object> spec = new HashMap<>();
             spec.put("holes",p.get(0));
             spec.put("pidgeons",p.get(1));
+            spec.put("name","PH"+p.get(1)+p.get(0));
             params.add(spec);}
         return params;}
 

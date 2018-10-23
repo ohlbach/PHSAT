@@ -114,13 +114,13 @@ public class EquivalenceClasses {
         Clause eqClass = null;
         int representative = literal1;
         int literal = literal2;
-        LinkedList<CLiteral> classes = equivalenceClasses.getLiterals(literal1);
-        if(!classes.isEmpty()) {eqClass = classes.getFirst().clause;}
+        PriorityQueue<CLiteral> classes = equivalenceClasses.getLiterals(literal1);
+        if(!classes.isEmpty()) {eqClass = classes.peek().clause;}
         else {
             classes = equivalenceClasses.getLiterals(literal2);
             if(!classes.isEmpty()) {
                 representative = literal2; literal = literal1;
-                eqClass = classes.getFirst().clause;}
+                eqClass = classes.peek().clause;}
             else {eqClass = new Clause(id,2);
                 eqClass.addCLiteralDirectly(new CLiteral(representative));
                 equivalenceClasses.addClause(eqClass);}}

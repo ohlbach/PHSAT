@@ -2,19 +2,15 @@ package Solvers.Reolution;
 
 import Algorithms.Algorithms;
 import Coordinator.CentralProcessor;
-import Coordinator.Task;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
-import Datastructures.Results.Satisfiable;
 import Management.GlobalParameters;
 import Solvers.Solver;
 import Utilities.Utilities;
-import sun.util.resources.cldr.de.CalendarData_de_LU;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 /**
  * Created by ohlbach on 18.10.2018.
@@ -25,7 +21,7 @@ public class Resolution extends Solver {
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"class", "seed", "sos"}) {
+        for(String key : new String[]{"name", "seed", "sos"}) {
             keys.add(key);}}
 
     /** parses a HashMap with key-value pairs:<br/>
@@ -49,10 +45,12 @@ public class Resolution extends Solver {
         ArrayList<ArrayList> pars = Utilities.crossProduct(seed,sos);
         int counter = 0;
         for(ArrayList<Object> p : pars ) {
+            Integer sospar = (Integer)p.get(1);
+            if(sospar < 0 || sospar > 100) {errors.append("Resolution: sos must be a percentage between 0 and 100, not"+sospar);}
             HashMap<String,Object> map = new HashMap<>();
-            map.put("seed",pars.get(0));
-            map.put("sos",pars.get(1));
-            map.put("name","walker_" + ++counter);
+            map.put("seed",p.get(0));
+            map.put("sos",sospar);
+            map.put("name","R" + ++counter);
             list.add(map);}
         return list;}
 
@@ -61,14 +59,9 @@ public class Resolution extends Solver {
                 "seed:   for the random number generator              (default: 0)\n" +
                 "sos:    percentage of clauses in the set of support. (default 50)";}
 
-    int resolver = 0;
-    int seed = (Integer)solverControl.get("seed");
-    private ClauseList clauses;
+    int seed = (Integer) applicationParameters.get("seed");
     private Random random = new Random();
-    protected PriorityQueue<Task> taskQueue = new PriorityQueue<Task>(Comparator.comparingInt(task->task.priority));
 
-
-    protected void addTask(Task task) {taskQueue.add(task);}
 
 
     /** constructs a new solver of type RandomWalker.
@@ -76,51 +69,77 @@ public class Resolution extends Solver {
      * globalParameters and centralProcessor are shared between different threads.
      * The walker is passive in the sense that it does not send data to the CentralDataHolder.
      *
-     * @param resolver          counts the constructed solver
-     * @param solverControl     contains the parameters for controlling the solger
+     * @param solverControl     contains the parameters for controlling the solver
      * @param globalParameters  contains the global control parameters
-     * @param centralProcessor       contains the result of parsing and initializing the problem data.
+     * @param centralProcessor  contains the result of parsing and initializing the problem data.
      */
-    public Resolution(Integer resolver,  HashMap<String,Object> solverControl, GlobalParameters globalParameters,
+    public Resolution(HashMap<String,Object> solverControl, GlobalParameters globalParameters,
                         CentralProcessor centralProcessor) {
-        super("Resolution_" + resolver, solverControl, globalParameters, centralProcessor);
-        this.resolver = resolver;
-        copyClauses();
+        super(solverControl, globalParameters, centralProcessor);
+        initializeData();
         addObservers();
-
     }
 
-    private Consumer<Integer> oneLiteralObserver = (literal-> addTask(new Task.OneLiteral(literal,this)));
-    private void addObservers() {
-        globalModel.addNewTruthObserver(oneLiteralObserver);
-        //clauses.addLiteralRemovalObserver(cLiteral -> addTask(makeShortenedClauseTask(cLiteral.clause)));
+    protected void initializeData() {
+        model = centralProcessor.model.clone();
+        implicationDAG = centralProcessor.implicationDAG.clone();
+        copyClauses();}
 
-    }
-
+    int size;
+    final int normal = 0;
+    final int sos = 1;
 
     private void copyClauses() {
         ClauseList centralClauses = centralProcessor.clauses;
-        int size = centralClauses.size();
-        clauses = new ClauseList(centralClauses.size(),predicates,(Comparator.comparingInt(clause->((RClause)clause).priority)));
-        for(Clause clause  : centralClauses.clauses) {
-            clauses.addClause(new RClause(clause,random.nextInt(size)*clause.size()));}
-    }
+        size = centralClauses.size();
+        clauses = new ClauseList(predicates,Clause.sizeComparator, RClause.priorityComparator); // sos
+        int sosSize =(Integer) applicationParameters.get("sos");
+        for(Clause clause  : centralClauses.getClauses(0)) {
+            RClause rClause = new RClause(clause,random.nextInt(size)*clause.size(),true);
+            clauses.addClause(rClause, random.nextInt(100) <= sosSize ? sos : normal);}}
 
     public Result solve() {
         CLiteral[] parentLiterals = new CLiteral[2];
-        while(!clauses.isEmpty()) {
-            selectParentLiterals(parentLiterals);
-            Clause resolvent = Algorithms.resolve(parentLiterals[0],parentLiterals[1],implicationDAG);
-            if(resolvent != null) {
-                Algorithms.subsumeAndResolve(resolvent,clauses,implicationDAG);}
-                Result result = processTasks();
-                if(result != null) {return result;}}
-        return Result.makeResult(model,basicClauseList);}
+        try{
+            while(!clauses.isEmpty()) {
+                selectParentLiterals(parentLiterals);
+                RClause resolvent = (RClause)Algorithms.resolve(parentLiterals[0],parentLiterals[1],implicationDAG,
+                        ((id,literals) -> new RClause(id,literals,random.nextInt(size)*literals.size(),false)));
+                if(resolvent != null) {
+                    clauses.addClause(resolvent,sos);
+                    taskQueue.add(makeShortenedClauseTask(resolvent));
+                    Result result = processTasks();
+                    if(result != null) {return result;}}}
+            return Result.makeResult(this.model,basicClauseList);}
+        finally{removeObservers();}}
 
     private void selectParentLiterals(CLiteral[] parentLiterals) {
-        Clause parentClause1 = clauses.clauses.poll();
-        CLiteral parentLiteral1 = parentClause1.cliterals.get(random.nextInt(parentClause1.size()));
+        Clause parentClause1 = clauses.getClauses(sos).poll();
+        CLiteral parentLiteral1 = null;
+        int purity = Integer.MAX_VALUE;
+        for(CLiteral clit : parentClause1.cliterals) {   // choose the literal which is most likely to get pure
+            int size = clauses.literalIndex.size(clit.literal);
+            if(size < purity) {parentLiteral1 = clit; purity = size;}}
+        parentLiterals[0] = parentLiteral1;
+        int[] minSize = new int[]{Integer.MAX_VALUE};
+        clauses.streamContradicting(parentLiteral1.literal,implicationDAG).anyMatch(clit->{ // find the smallest clause
+            int size = clit.clause.size();
+            if(size == 3) {parentLiterals[1] = clit; return true;}
+            if(size < minSize[0]) {minSize[0] = size; parentLiterals[1] = clit;}
+            return false;});
+    }
 
+
+
+    public static void main(String[] args) {
+        Random rnd = new Random();
+        PriorityQueue<String> q  = new PriorityQueue<>(Comparator.comparingInt(s->s.length()));
+        q.add("ab"); q.add("def");
+        //q.remove("abcde");
+        q.add("eh");
+        System.out.println(q);
+        q.poll();
+        System.out.println(q);
     }
 
 }

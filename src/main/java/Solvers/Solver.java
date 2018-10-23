@@ -4,39 +4,34 @@ import Coordinator.CentralProcessor;
 import Coordinator.PreProcessor;
 import Coordinator.Processor;
 import Coordinator.Task;
+import Datastructures.Clauses.Clause;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
-import Datastructures.Statistics.Statistic;
+import Datastructures.Results.Satisfiable;
+import Datastructures.Results.Unsatisfiable;
+import Datastructures.Statistics.CentralProcessorStatistic;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
+import Solvers.Reolution.RClause;
 import Solvers.Reolution.Resolution;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Created by ohlbach on 09.10.2018.
  */
 public abstract class Solver extends Processor {
-    public String id;
-    public int predicates;
     public static String[] solvers = new String[]{"walker","resolution"};
-    public Statistic statistics;
-
-    protected HashMap<String,Object> solverControl;
-    protected GlobalParameters globalParameters;
     protected CentralProcessor centralProcessor;
-    protected Model globalModel;
 
-    public Solver(String id, HashMap<String,Object> solverControl, GlobalParameters globalParameters, CentralProcessor centralProcessor) {
-        this.id = id;
-        this.solverControl = solverControl;
-        this.globalParameters = globalParameters;
-        this.centralProcessor = centralProcessor;
-        this.globalModel = centralProcessor.model;
-        this.predicates = globalModel.predicates;
-    }
+    public Solver(HashMap<String,Object> solverControl, GlobalParameters globalParameters, CentralProcessor centralProcessor) {
+        super(centralProcessor.supervisor,globalParameters,solverControl,centralProcessor.basicClauseList);
+        this.centralProcessor = centralProcessor;}
 
     /** maps the generator names to the generator classes
      *
@@ -117,23 +112,54 @@ public abstract class Solver extends Processor {
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
 
+    protected Consumer<Integer>  oneLiteralObserverBoth =
+            literal ->          {addTask(new Task.OneLiteral(literal,this));
+                centralProcessor.addTask(new Task.OneLiteral(literal,centralProcessor));
+                ((CentralProcessorStatistic)centralProcessor.statistics).CP_UnitClausesReceived++;};
+
+    protected BiConsumer<Integer,Integer> implicationObserverBoth =
+            (from, to) ->       {addTask(new Task.TwoLiteral(-from,to,this));
+                centralProcessor.addTask(new Task.TwoLiteral(-from,to,centralProcessor));
+                ((CentralProcessorStatistic)centralProcessor.statistics).CP_ImplicationsReceived++;};
+
+    protected Consumer<CLiteral> longClauseObserverBoth =
+            cLiteral    -> {
+                Clause clause = cLiteral.clause;
+                addTask(makeShortenedClauseTask(clause));
+                if(clause instanceof RClause && ((RClause)clause).input)
+                    centralProcessor.addTask(makeShortenedClauseTask(clause,centralProcessor));
+                ((CentralProcessorStatistic)centralProcessor.statistics).CP_LongClausesReceived++;};
+
+    protected Consumer<Unsatisfiable> unsatisfiabilityObserverBoth =
+            unsat ->            {addTask(new Task.Unsatisfiability(unsat,this));
+                centralProcessor.addTask(new Task.Unsatisfiability(unsat,centralProcessor));};
+
+    protected Consumer<Satisfiable> satisfiabilityObserverBoth =
+            sat ->              {addTask(new Task.Satisfiability(sat,this));
+                centralProcessor.addTask(new Task.Satisfiability(sat,centralProcessor));};
+
+    protected void addObservers() {
+        centralProcessor.model.addNewTruthObserver(oneLiteralObserver);
+        centralProcessor.implicationDAG.addImplicationObserver(implicationObserver);
+        centralProcessor.implicationDAG.addEquivalenceObserver(equivalenceObserver);
+
+        clauses.addLiteralRemovalObserver(longClauseObserverBoth);
+        clauses.addPurityObserver(purityObserver);
+        implicationDAG.addTrueLiteralObserver(oneLiteralObserverBoth);
+        implicationDAG.addImplicationObserver(implicationObserverBoth);
+        implicationDAG.addEquivalenceObserver(equivalenceObserver);}
+
+    protected void removeObservers() {
+        centralProcessor.model.removeNewTruthObserver(oneLiteralObserver);
+        centralProcessor.implicationDAG.removeImplicationObserver(implicationObserver);
+        centralProcessor.implicationDAG.removeEquivalenceObserver(equivalenceObserver);
+    }
+
+
     public abstract Result solve();
 
 
-    /** This method waits for new tasks and executes them until the execution returns a result (unsatisfiable or satisfiable)
-     *
-     * @return the result (unsatisfiable or satisfiable)
-     */
-    public Result processTasks() {
-        Result result;
-        while((result = getTask().execute()) != null) {}
-        return result;}
 
-    private synchronized Task getTask() {
-        while(taskQueue.isEmpty()) {
-            try {wait();} catch (InterruptedException e) {continue;}
-            return taskQueue.poll();}
-        return null;}
 
 
 

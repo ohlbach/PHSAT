@@ -12,12 +12,14 @@ import java.util.function.Consumer;
  * Created by ohlbach on 12.09.2018.
  */
 public class Model {
-    public final int predicates;    // the maximum number of predicates
-    private final ArrayList<Integer> model;    // the current model (as a stack)
-    private final short[] status;  // maps predicates in the model to +1 (true), -1 (false) or 0 (undefined)
+    public int predicates = 0;    // the maximum number of predicates
+    private ArrayList<Integer> model = null;    // the current model (as a stack)
+    private short[] status = null;  // maps predicates in the model to +1 (true), -1 (false) or 0 (undefined)
     private final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
     private final Lock readLock = rwl.readLock();
     private final Lock writeLock = rwl.writeLock();
+
+    public Model() {}
 
     /** creates a model with a maximum number of predicates
      *
@@ -36,6 +38,10 @@ public class Model {
 
     public synchronized void addNewTruthObserver(Consumer<Integer> observer) {
         newTruthObserver.add(observer);}
+
+    public synchronized void removeNewTruthObserver(Consumer<Integer> observer) {
+        newTruthObserver.remove(observer);}
+
 
     private void reportNewTruth(int literal) {
         for(Consumer<Integer> observer : newTruthObserver) {observer.accept(literal);}}
@@ -110,9 +116,21 @@ public class Model {
             return (short)(literal > 0 ? status : -status);}
         finally{readLock.unlock();}}
 
-    /** returns the current size of the model.
+
+    /** clones the model (without observer)
      *
-     * @return the current size of the model
+     * @return a clone of the model
+     */
+    public Model clone() {
+        Model newModel = new Model();
+        newModel.predicates = predicates;
+        newModel.status = status.clone();
+        newModel.model = (ArrayList<Integer>)model.clone();
+        return new Model();}
+
+    /** returns the current status of the model.
+     *
+     * @return the current status of the model
      */
     public short[] cloneStatus() {
         readLock.lock();

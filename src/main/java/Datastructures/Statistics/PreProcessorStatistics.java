@@ -13,7 +13,6 @@ import java.util.function.Consumer;
  * Created by ohlbach on 10.10.2018.
  */
 public class PreProcessorStatistics extends Statistic {
-    private PreProcessor preProcessor = null;
     public int BCL_RedundantClauses       = 0;
     public int BCL_RedundantLiterals      = 0;
     public int BCL_ReplacementResolutions = 0;
@@ -30,9 +29,8 @@ public class PreProcessorStatistics extends Statistic {
     public int EQV_TrueLiterals           = 0;
     public int EQV_Unsatisfiabilities     = 0;
 
-    public PreProcessorStatistics(String id,PreProcessor preProcessor) {
-        super(id);
-        this.preProcessor = preProcessor;}
+    public PreProcessorStatistics(PreProcessor preProcessor) {
+        super(preProcessor);}
 
     private Consumer<CLiteral> CLS_literalRemovalObserver               = (cLiteral -> ++CLS_LiteralRemovals);
     private BiConsumer<CLiteral,Boolean> CLS_literalReplacementObserver = ((cLiteral, b) -> ++CLS_LiteralReplacements);
@@ -47,32 +45,32 @@ public class PreProcessorStatistics extends Statistic {
     private Consumer<Integer> EQV_TrueLiteralObserver                   = (literal -> ++EQV_TrueLiterals);
 
     public void addStatisticsObservers() {
-        preProcessor.clauses.addLiteralRemovalObserver       (CLS_literalRemovalObserver);
-        preProcessor.clauses.addLiteralReplacementObserver   (CLS_literalReplacementObserver);
-        preProcessor.clauses.addClauseRemovalObserver        (CLS_clauseRemovalObserver);
-        preProcessor.implicationDAG.addTrueLiteralObserver   (IDG_trueLiteralObserver);
-        preProcessor.implicationDAG.addImplicationObserver   (IDG_implicationObserver);
-        preProcessor.implicationDAG.addEquivalenceObserver   (IDG_equivalenceObserver);
-        preProcessor.disjointnesses.addTrueLiteralObserver   (DIS_TrueLiteralObserver);
-        preProcessor.disjointnesses.addUnsatisfiabilityObserver(DIS_UnsatisfiabilityObserver);
-        preProcessor.disjointnesses.addDisjointnessObserver  (DIS_DisjointnessObserver);
-        preProcessor.equivalences.addUnsatisfiabilityObserver(EQV_UnsatisfiabilityObserver);
-        preProcessor.equivalences.addTrueLiteralObserver     (EQV_TrueLiteralObserver);
+        processor.clauses.addLiteralRemovalObserver       (CLS_literalRemovalObserver);
+        processor.clauses.addLiteralReplacementObserver   (CLS_literalReplacementObserver);
+        processor.clauses.addClauseRemovalObserver        (CLS_clauseRemovalObserver);
+        processor.implicationDAG.addTrueLiteralObserver   (IDG_trueLiteralObserver);
+        processor.implicationDAG.addImplicationObserver   (IDG_implicationObserver);
+        processor.implicationDAG.addEquivalenceObserver   (IDG_equivalenceObserver);
+        processor.disjointnesses.addTrueLiteralObserver   (DIS_TrueLiteralObserver);
+        processor.disjointnesses.addUnsatisfiabilityObserver(DIS_UnsatisfiabilityObserver);
+        processor.disjointnesses.addDisjointnessObserver  (DIS_DisjointnessObserver);
+        processor.equivalences.addUnsatisfiabilityObserver(EQV_UnsatisfiabilityObserver);
+        processor.equivalences.addTrueLiteralObserver     (EQV_TrueLiteralObserver);
 
     }
 
     public void removeStatisticsObservers() {
-        preProcessor.clauses.removeLiteralRemovalObserver       (CLS_literalRemovalObserver);
-        preProcessor.clauses.removeLiteralReplacementObserver   (CLS_literalReplacementObserver);
-        preProcessor.clauses.removeClauseRemovalObserver        (CLS_clauseRemovalObserver);
-        preProcessor.implicationDAG.removeTrueLiteralObserver   (IDG_trueLiteralObserver);
-        preProcessor.implicationDAG.removeImplicationObserver   (IDG_implicationObserver);
-        preProcessor.implicationDAG.removeEquivalenceObserver   (IDG_equivalenceObserver);
-        preProcessor.disjointnesses.removeTrueLiteralObserver   (DIS_TrueLiteralObserver);
-        preProcessor.disjointnesses.removeUnsatisfiabilityObserver(DIS_UnsatisfiabilityObserver);
-        preProcessor.disjointnesses.removeDisjointnessObserver  (DIS_DisjointnessObserver);
-        preProcessor.equivalences.removeUnsatisfiabilityObserver(EQV_UnsatisfiabilityObserver);
-        preProcessor.equivalences.removeTrueLiteralObserver     (EQV_TrueLiteralObserver);
+        processor.clauses.removeLiteralRemovalObserver       (CLS_literalRemovalObserver);
+        processor.clauses.removeLiteralReplacementObserver   (CLS_literalReplacementObserver);
+        processor.clauses.removeClauseRemovalObserver        (CLS_clauseRemovalObserver);
+        processor.implicationDAG.removeTrueLiteralObserver   (IDG_trueLiteralObserver);
+        processor.implicationDAG.removeImplicationObserver   (IDG_implicationObserver);
+        processor.implicationDAG.removeEquivalenceObserver   (IDG_equivalenceObserver);
+        processor.disjointnesses.removeTrueLiteralObserver   (DIS_TrueLiteralObserver);
+        processor.disjointnesses.removeUnsatisfiabilityObserver(DIS_UnsatisfiabilityObserver);
+        processor.disjointnesses.removeDisjointnessObserver  (DIS_DisjointnessObserver);
+        processor.equivalences.removeUnsatisfiabilityObserver(EQV_UnsatisfiabilityObserver);
+        processor.equivalences.removeTrueLiteralObserver     (EQV_TrueLiteralObserver);
 
     }
 

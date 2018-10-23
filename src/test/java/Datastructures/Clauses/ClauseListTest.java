@@ -60,7 +60,7 @@ public class ClauseListTest {
         assertEquals("[6, 6]",clauses.getLiterals(6).toString());
         clauses.removeClause(c11);
         assertEquals("[6]",clauses.getLiterals(6).toString());
-        assertEquals(c12,clauses.getLiterals(6).get(0).clause);
+        assertEquals(c12,clauses.getLiterals(6).peek().clause);
         assertEquals(0,clauses.getLiterals(1).size());
     }
 

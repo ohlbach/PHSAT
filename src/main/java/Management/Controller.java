@@ -68,7 +68,7 @@ public class Controller {
 
 
 
-    /** analyses the problemParameters and turns them into sequences of objectParameters
+    /** analyses the applicationParameters and turns them into sequences of objectParameters
      *
      * @return the parsed problem parameters
      */

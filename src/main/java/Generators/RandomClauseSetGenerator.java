@@ -164,6 +164,7 @@ public final class RandomClauseSetGenerator {
                 cntr.put("xLengths", xle);
                 cntr.put("eBlocks",  ebl);
                 cntr.put("eLengths", ele);
+                cntr.put("name","RD"+values.get(0)+values.get(1)+values.get(1));
                 control.add(cntr);}
             return control;}
 
@@ -171,9 +172,10 @@ public final class RandomClauseSetGenerator {
                 dBlockss,dLengths,xBlockss,xLengths,eBlockss,eLengths);
         for(ArrayList values : list) {
             HashMap<String,Object> cntr = new HashMap<>();
+            int nClauses = Math.round((Integer)values.get(1)*(Float)values.get(2));
             cntr.put("seed",values.get(0));
             cntr.put("predicates",values.get(1));
-            cntr.put("disjunctions",Math.round((Integer)values.get(1)*(Float)values.get(2)));
+            cntr.put("disjunctions",nClauses);
             cntr.put("length",   values.get(3));
             cntr.put("precise",  values.get(4));
             cntr.put("dBlocks",  values.get(5));
@@ -182,6 +184,7 @@ public final class RandomClauseSetGenerator {
             cntr.put("xLengths", values.get(8));
             cntr.put("eBlocks",  values.get(9));
             cntr.put("eLengths", values.get(10));
+            cntr.put("name","RD"+values.get(0)+values.get(1)+nClauses);
             control.add(cntr);}
         return control;}
 
@@ -291,7 +294,6 @@ public final class RandomClauseSetGenerator {
                 if(rnd.nextBoolean()) {literal = -literal;}
                 lits[i+2] = literal;}
             clauseList.addClause(lits);}
-        System.out.println("CC " + clauseCounter);
         return clauseCounter;
     }}
 

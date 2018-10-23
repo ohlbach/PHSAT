@@ -6,9 +6,12 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Statistics.PreProcessorStatistics;
-import Datastructures.Theory.*;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Theory.DisjointnessClasses;
+import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.ImplicationDAG;
+import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.ProblemSupervisor;
 
@@ -29,10 +32,30 @@ public class PreProcessor extends Processor {
      * @param basicClauseList   the clauses [number,type,literal1,...]
      */
     public PreProcessor(ProblemSupervisor supervisor, GlobalParameters globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
-        super(supervisor,globalParameters,problemParameters,basicClauseList,supervisor.problemId+"_Pre");
-        statistics     = new PreProcessorStatistics((String)problemParameters.get("name"), this);
-        if(monitoring) {monitor.addThread(monitorId,null);}
+        super(supervisor,globalParameters,problemParameters,basicClauseList);
+        initializeData();
+        addObservers();}
+
+    private void initializeData() {
+        model          = new Model(predicates);
+        clauses        = new ClauseList(basicClauseList.disjunctions.size(),predicates);
+        implicationDAG = new ImplicationDAG();
+        equivalences   = new EquivalenceClasses(model, implicationDAG);
+        disjointnesses = new DisjointnessClasses(model, implicationDAG,equivalences);
+        statistics     = new PreProcessorStatistics(this);
     }
+
+    protected void addObservers() {
+        clauses.addLiteralRemovalObserver(longClauseObserver);
+        implicationDAG.addTrueLiteralObserver(oneLiteralObserver);
+        implicationDAG.addImplicationObserver(implicationObserver);
+        implicationDAG.addEquivalenceObserver(equivalenceObserver);
+        equivalences.addTrueLiteralObserver(oneLiteralObserver);
+        equivalences.addUnsatisfiabilityObserver(unsatisfiabilityObserver);
+        disjointnesses.addTrueLiteralObserver(oneLiteralObserver);
+        disjointnesses.addUnsatisfiabilityObserver(unsatisfiabilityObserver);
+    }
+
 
     /** turns the basic clauses into Clause datastructure. Initial simplifctions on the clause itself are performed
      *
@@ -130,12 +153,12 @@ public class PreProcessor extends Processor {
             return null;}
         if(clause.size() < basicClause.length-2) {
             statistics.BCL_RedundantLiterals += basicClause.length-2-clause.size();
-            if(monitoring) {monitor.print(monitorId,"Clause " + Arrays.toString(basicClause) + " shortened to " + clause.toString());}}
+            if(monitoring) {monitor.print(id,"Clause " + Arrays.toString(basicClause) + " shortened to " + clause.toString());}}
         if(clause.isEmpty()) {return clause;}
         int removals = Algorithms.simplifyClause(clause,implicationDAG);
         if(removals != 0) {
             statistics.BCL_ReplacementResolutions += removals;
-            if(monitoring) {monitor.print(monitorId,"Replacement Resolution removed " + removals + " from clause " + clause.toString());}}
+            if(monitoring) {monitor.print(id,"Replacement Resolution removed " + removals + " from clause " + clause.toString());}}
         return clause;}
 
 
@@ -170,7 +193,7 @@ public class PreProcessor extends Processor {
      *
      * @return  Unsatisfiable if a contradiction has detected, otherwise null.
      */
-    private Result processTasks() {
+    public Result processTasks() {
         while(!taskQueue.isEmpty()) {
             Task task = taskQueue.poll();
             Result result = task.execute();
@@ -185,19 +208,9 @@ public class PreProcessor extends Processor {
      * @return null or Satisfiable if the clause set became empty.
      */
     private Result purityCheck() {
-        pureLiterals = clauses.pureLiterals();
-        clauses.addPurityObserver(literal -> pureLiterals.add(literal));
-        for(int i = 0; i < pureLiterals.size(); ++i) {
-            Integer literal = pureLiterals.get(i);
-            if(implicationDAG.isEmpty(literal)) {
-                model.add(literal);
-                clauses.removeLiteral(literal);
-                implicationDAG.removeFalseLiteral(-literal);}}
-                ++statistics.CLS_Purities;
-        pureLiterals.clear();
-        if(clauses.isEmpty()) {
-            implicationDAG.completeModel(model);
-            return Result.makeResult(model,basicClauseList);}
+        clauses.addPurityObserver(purityObserver);
+        for(Integer literal : clauses.pureLiterals()) {
+            taskQueue.add(new Task.Purity(literal,this));}
         return null;}
 
 

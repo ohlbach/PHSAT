@@ -13,17 +13,21 @@ import java.util.stream.Stream;
 /**
  * Created by ohlbach on 26.08.2018.
  *
- * This class is for collecting sets of disjunctions.
- * It supports inserting disjunctions, removing disjunctions and literals, retrieving disjunctions and literals.
- * A literal index is used to access literals and disjunctions quickly.
+ * This class is for collecting sets of clauses in different groups.
+ * It supports inserting clauses, removing clauses and literals, retrieving clauses and literals.
+ * A literal index is used to access literals and clauses quickly.
  * Removing literals and replacing them with representatives in an equivalence class can be
  * observed by corresponding consumer functions.
+ * <br/>
+ * The clauses are sorted according to a comparator (default: clause length) <br/>
+ * The literals in the literal index are also sorted (default: clause length)
  */
 public class ClauseList {
     public int predicates;
-    public final PriorityQueue<Clause> clauses;              // the list of disjunctions
+    private final PriorityQueue<Clause>[] clauses;        // the list of clauses
     private final HashMap<String,Clause> id2Clause;      // maps clause ids to disjunctions
     public final LiteralIndex literalIndex;              // maps literals to CLiterals
+    public int groups = 1;                               // the total number of clause groups
     public int timestamp = 0;                            // for algorithms
     private final ArrayList<Consumer<CLiteral>> literalRemovalObservers = new ArrayList<>();
     // they are called when literals are removed.
@@ -36,40 +40,35 @@ public class ClauseList {
     /** creates a clause list. The number of disjunctions should be estimated.
      *
      * @param size       the estimated number of disjunctions
-     * @pramm predicates the number of predicates.
+     * @param predicates the number of predicates.
      */
     public ClauseList(int size,int predicates) {
         this.predicates = predicates;
-        clauses         = new PriorityQueue<Clause>(size,Comparator.comparingInt(cl->cl.size()));
+        clauses         = new PriorityQueue[]{new PriorityQueue<Clause>(size,Comparator.comparingInt(cl->cl.size()))};
         id2Clause       = new HashMap<>();
         literalIndex    = new LiteralIndex(predicates);}
 
     /** creates a clause list. The number of disjunctions should be estimated.
      *
-     * @param size       the estimated number of disjunctions
-     * @pramm predicates the number of predicates.
+     * @param comparator the list of comparators.
+     * @param predicates the number of predicates.
      */
-    public ClauseList(int size,int predicates,Comparator comparator) {
+    public ClauseList(int predicates,Comparator<Clause>... comparator ) {
         this.predicates = predicates;
-        clauses         = new PriorityQueue<Clause>(size,comparator);
         id2Clause       = new HashMap<>();
-        literalIndex    = new LiteralIndex(predicates);}
+        literalIndex    = new LiteralIndex(predicates);
+        groups          = comparator.length;
+        clauses = new PriorityQueue[groups];
+        for(int i = 0; i < groups; ++i) {clauses[i] =  new PriorityQueue<Clause>(comparator[i]);}
+    }
 
 
-
-    /** clones the entire clause list, except the observers.
+    /** returns the clauses of the given group
      *
-     * @return a clone of the clause list (without observers)
+     * @param group a clause group
+     * @return the clauses of this group
      */
-    public ClauseList clone() {
-        ClauseList newClauseList = new ClauseList(clauses.size(),predicates);
-        for(Clause clause : clauses) {
-            Clause newClause = clause.clone();
-            newClauseList.clauses.add(clause);
-            for(CLiteral cLiteral : newClause.cliterals) {
-                newClauseList.literalIndex.addLiteral(cLiteral);}
-            newClauseList.id2Clause.put(clause.id,newClause);}
-        return newClauseList;}
+    public PriorityQueue<Clause> getClauses(int group) {return clauses[group];}
 
 
     /** adds a purity observer
@@ -126,9 +125,27 @@ public class ClauseList {
      * @param clause to be added
      */
     public void addClause(Clause clause) {
-        clauses.add(clause);
+        clauses[0].add(clause);
+        integrateClause(clause);}
+
+    /** adds a clause to the list and updates the literal index
+     *
+     * @param clause to be added
+     * @param group the clause group where the clause is to be added
+     */
+    public void addClause(Clause clause, int group) {
+        clauses[group].add(clause);
+        integrateClause(clause);}
+
+
+    /** integrates the clause in the literal indices and the id-map.
+     *
+      * @param clause the clause to be integrated.
+     */
+    protected void integrateClause(Clause clause) {
         id2Clause.put(clause.id,clause);
         for(CLiteral literal : clause.cliterals) {literalIndex.addLiteral(literal);}}
+
 
     /** returns a clause for the given number
      *
@@ -141,7 +158,7 @@ public class ClauseList {
      * @param literal a literal
      * @return a (possibly empty) collection of literals with the given literal.
      */
-    public LinkedList<CLiteral> getLiterals(int literal) {
+    public PriorityQueue<CLiteral> getLiterals(int literal) {
         return literalIndex.getLiterals(literal);}
 
     /** removes a clause and calls the clauseRemovalObservers. The clause itself is not changed.
@@ -149,11 +166,27 @@ public class ClauseList {
      * @param clause the clause to be removed
      */
     public void removeClause(Clause clause) {
-        clauses.remove(clause);
+        for(int group = 0; group < groups; ++ group) clauses[group].remove(clause);
+        clause.removed = true;
         id2Clause.remove(clause.id);
         for(CLiteral cliteral : clause.cliterals) {literalIndex.removeLiteral(cliteral);}
         for(Consumer<Clause> observer : clauseRemovalObservers) {observer.accept(clause);}
     }
+
+    /** removes a clause and calls the clauseRemovalObservers. The clause itself is not changed.
+     *
+     * @param clause the clause to be removed
+     * @param group the clause group where the clause is
+     */
+    public void removeClause(Clause clause, int group) {
+        clauses[group].remove(clause);
+        clause.removed = true;
+        id2Clause.remove(clause.id);
+        for(CLiteral cliteral : clause.cliterals) {literalIndex.removeLiteral(cliteral);}
+        for(Consumer<Clause> observer : clauseRemovalObservers) {observer.accept(clause);}
+    }
+
+
 
     /** removes a literal from the clause.<br/>
      * All literalRemovalObservers are called.
@@ -162,10 +195,16 @@ public class ClauseList {
      */
     public void removeLiteral(CLiteral cliteral) {
         Clause clause = cliteral.clause;
-        clauses.remove(clause);
+        int group = 0;
+        if(groups > 1) {
+            boolean found = false;
+            for(; group < groups; ++group) {if(clauses[group].contains(clause)) {found = true; break;}}
+            if(!found) {return;}}
+        clauses[group].remove(clause);
+        for(CLiteral clit : clause.cliterals) {literalIndex.removeLiteral(clit);}
         clause.removeLiteral(cliteral);
-        clauses.add(clause);
-        literalIndex.removeLiteral(cliteral);
+        clauses[group].add(clause);
+        for(CLiteral clit : clause.cliterals) {literalIndex.addLiteral(clit);}
         for(Consumer observer : literalRemovalObservers) {observer.accept(cliteral);}}
 
     /** removes all clauses with the given (pure) literal
@@ -283,17 +322,31 @@ public class ClauseList {
             for(CLiteral cLiteral : literalIndex.getLiterals(lit)) {consumer.accept(cLiteral);}}));}
 
 
-    /** the actual number of disjunctions
+    /** the actual number of clauses
      *
-     * @return the number of disjunctions
+     * @return the number of clauses
      */
-    public int size() {return clauses.size();}
+    public int size() {
+        int size = 0;
+        for(int group = 0; group < groups; ++group) {size += clauses[group].size();}
+        return size;}
+
+    /** the number of clauses in the group
+     *
+     * @param group a clause group
+     * @return the number of clauses in the group
+     */
+    public int size(int group) {
+        return clauses[group].size();}
 
     /** checks if the clause set is empty
      *
      * @return true if the clause set is empty.
      */
-    public boolean isEmpty() {return clauses.size() == 0;}
+    public boolean isEmpty() {
+        for(int group = 0; group < groups; ++group) {
+            if(clauses[group].size() > 0) {return false;}}
+        return true;}
 
 
     /** returns all pure literals
@@ -315,16 +368,16 @@ public class ClauseList {
      * @return a string with disjunctions
      */
     public String toString(Symboltable symboltable){
-        StringBuffer st = new StringBuffer();
-        int idlength = 0;
-        for(Clause clause : clauses) {idlength = Math.max(idlength,clause.id.length());}
-        for(Clause clause : clauses) {
-            st.append(clause.toString(idlength,symboltable)).append("\n");}
+        StringBuilder st = new StringBuilder();
+        int[] idlength = new int[]{0};
+        for(int group = 0; group < groups; ++group) {
+            for(Clause clause : clauses[group]) {idlength[0] = Math.max(idlength[0],clause.id.length());}}
+
+        for(int group = 0; group < groups; ++group) {
+            if(groups > 1) {st.append("Clause group " + group+"\n");}
+            clauses[group].stream().sorted(clauses[group].comparator()).forEach(clause->
+                st.append(clause.toString(idlength[0],symboltable)).append("\n"));}
+        if(groups > 1) {st.append("\n");}
         return st.toString();
     }
-
-
-
-
-
 }

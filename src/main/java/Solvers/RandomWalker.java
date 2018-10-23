@@ -52,9 +52,9 @@ public class RandomWalker extends Solver {
         int counter = 0;
         for(ArrayList<Object> p : pars ) {
             HashMap<String,Object> map = new HashMap<>();
-            map.put("seed",pars.get(0));
-            map.put("flips",pars.get(1));
-            map.put("jumps",pars.get(2));
+            map.put("seed",p.get(0));
+            map.put("flips",p.get(1));
+            map.put("jumps",p.get(2));
             map.put("name","walker_" + ++counter);
             list.add(map);}
         return list;}
@@ -85,8 +85,6 @@ public class RandomWalker extends Solver {
         }
     }
 
-    private int walker;
-    private String id;
     private HashMap<String,Object> solverControl;
     private GlobalParameters globalParameters;
     CentralProcessor centralProcessor;
@@ -111,10 +109,9 @@ public class RandomWalker extends Solver {
     public RandomWalker(Integer walker,  HashMap<String,Object> solverControl, GlobalParameters globalParameters,
                         CentralProcessor centralProcessor) {
 
-        super("Walker_"+walker,solverControl,globalParameters,centralProcessor);
-        this.walker = walker;
+        super(solverControl,globalParameters,centralProcessor);
         rwModel = new RWModel(globalModel);
-        clauseList = centralProcessor.clauses.clone(); // now centralDataHolder may change its clauses
+        clauseList = centralProcessor.clauses;//.clone(); // now centralDataHolder may change its clauses
         globalModel.addNewTruthObserver(literal         -> newTrueLiterals.add(literal));
         implicationDAG.addImplicationObserver((from,to) -> newImplications.add(new int[]{from,to}));
         implicationDAG.addEquivalenceObserver(eqv       -> newEquivalences.add(eqv));
@@ -161,7 +158,7 @@ public class RandomWalker extends Solver {
         return null;
             }
 
-    private void addObservers() {
+    protected void addObservers() {
         clauseList.addClauseRemovalObserver(clause -> updateClause(clause,-1));
         clauseList.addLiteralRemovalObserver(cLiteral -> updateLiteralRemoval(cLiteral));
         clauseList.addLiteralReplacementObserver((cLiteral,before) -> updateClause(cLiteral.clause,before ? -1 : 1));
@@ -237,7 +234,7 @@ public class RandomWalker extends Solver {
                  */
     private void initializeQueue() {
         falseClauses = new ArrayList<>();
-        for(Clause clause : clauseList.clauses) {
+        for(Clause clause : clauseList.getClauses(0)) {
             updateClause(clause,1);}
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(globalModel.status(predicate) == 0) {predicateQueue.add(predicate);}}}

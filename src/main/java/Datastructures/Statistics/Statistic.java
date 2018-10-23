@@ -1,5 +1,6 @@
 package Datastructures.Statistics;
 
+import Coordinator.Processor;
 import Utilities.Utilities;
 
 import java.lang.reflect.Field;
@@ -12,9 +13,8 @@ import java.util.Objects;
  * Created by ohlbach on 11.10.2018.
  */
 public class Statistic {
-
-    public String id;
-    public Statistic(String id) {this.id = id;}
+    public Processor processor;
+    public Statistic(Processor processor) {this.processor = processor;}
     public long elapsedTime = 0;
 
 
@@ -67,7 +67,7 @@ public class Statistic {
         int size = statistics.length;
         ArrayList<Object[]> combinedStatistics = new ArrayList<>();
         Object[] ids = new Object[size];
-        for(int i = 0; i < size; ++i) {ids[i] = statistics[i].id;}
+        for(int i = 0; i < size; ++i) {ids[i] = statistics[i].processor.id;}
         combinedStatistics.add(ids);
         try{
             for(Field f : statistics[0].getClass().getFields()) {
@@ -104,7 +104,7 @@ public class Statistic {
                 if(!names.contains(name)) {names.add(name);}}}
         ArrayList<Object[]> combinedStatistics = new ArrayList<>();
         Object[] ids = new Object[size];
-        for(int i = 0; i < size; ++i) {ids[i] = statistics[i].id;}
+        for(int i = 0; i < size; ++i) {ids[i] = statistics[i].processor.id;}
         combinedStatistics.add(ids);
         try{
             for(String name : names) {
@@ -188,9 +188,9 @@ public class Statistic {
     }
 
     public String toString(boolean zeros) {
-        return Statistic.statisticToString(id,Statistic.extractStatistic(this,zeros));}
+        return Statistic.statisticToString(processor.id,Statistic.extractStatistic(this,zeros));}
 
     public String toString() {
-        return Statistic.statisticToString(id,Statistic.extractStatistic(this,false));}
+        return Statistic.statisticToString(processor.id,Statistic.extractStatistic(this,false));}
 
 }

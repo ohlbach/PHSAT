@@ -4,6 +4,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.function.Consumer;
 
 /** A clause is just a list of CLiterals.
@@ -17,6 +18,10 @@ public class Clause {
     public ArrayList<CLiteral> cliterals;
     /** a timestamp to be used by corresponding algorithms */
     public int timestamp = 0;
+
+    public boolean removed = false;
+
+    public static Comparator<Clause> sizeComparator = Comparator.comparingInt(clause->clause.size());
 
     /** constructs a clause
      *

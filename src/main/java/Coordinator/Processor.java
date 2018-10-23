@@ -4,8 +4,11 @@ import Algorithms.Algorithms;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.ImplicationDAG;
@@ -15,79 +18,93 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Created by ohlbach on 10.10.2018.
  */
-public class Processor {
+public abstract class Processor {
+    public String id;
     public int predicates;
-    protected ProblemSupervisor supervisor;
-    protected GlobalParameters globalParameters;
-    protected HashMap<String,Object> problemParameters;
-    protected BasicClauseList basicClauseList = null;
+    public ProblemSupervisor supervisor;
+    public GlobalParameters globalParameters;
+    public HashMap<String,Object> applicationParameters;
+    public BasicClauseList basicClauseList = null;
     public ClauseList clauses = null;
-    public Model      model   = null;
+    public Model model = null;
     public ImplicationDAG      implicationDAG = null;
     public EquivalenceClasses  equivalences   = null;
     public DisjointnessClasses disjointnesses = null;
-    public Monitor monitor;
-    protected boolean monitoring;
-    protected String monitorId = null;
+    public Monitor monitor = null;
+    public boolean monitoring = false;
+    public Statistic statistics = null;
 
 
     public Processor(){}
 
-    public Processor(ProblemSupervisor supervisor, GlobalParameters globalParameters, HashMap<String,Object> problemParameters,
-                     BasicClauseList basicClauseList, String monitorId) {
-        this.predicates = basicClauseList.predicates;
-        this.supervisor = supervisor;
-        this.globalParameters = globalParameters;
-        this.problemParameters = problemParameters;
-        this.basicClauseList = basicClauseList;
-        model          = new Model(predicates);
-        clauses        = new ClauseList(basicClauseList.disjunctions.size(),predicates);
-        implicationDAG = new ImplicationDAG();
-        equivalences   = new EquivalenceClasses(model, implicationDAG);
-        disjointnesses = new DisjointnessClasses(model, implicationDAG,equivalences);
-        monitor = globalParameters.monitor;
-        monitoring = monitor.monitoring();
-        this.monitorId = monitorId;
-        clauses.addLiteralRemovalObserver(       cLiteral -> addTask(makeShortenedClauseTask(cLiteral.clause)));
-        implicationDAG.addTrueLiteralObserver(    literal -> addTask(new Task.OneLiteral(literal,this)));
-        implicationDAG.addImplicationObserver( (from, to) -> addTask(new Task.TwoLiteral(-from,to,this)));
-        implicationDAG.addEquivalenceObserver(equivalence -> addTask(new Task.Equivalence(equivalence,this)));
-        equivalences.addTrueLiteralObserver(      literal -> addTask(new Task.OneLiteral(literal,this)));
-        equivalences.addUnsatisfiabilityObserver(   unsat -> addTask(new Task.Unsatisfiability(unsat,this)));
-        disjointnesses.addUnsatisfiabilityObserver( unsat -> addTask(new Task.Unsatisfiability(unsat,this)));
-        disjointnesses.addTrueLiteralObserver(    literal -> addTask(new Task.OneLiteral(literal,this)));
-        if(monitoring) {addMonitors();}
-    }
+    public Processor(ProblemSupervisor supervisor, GlobalParameters globalParameters, HashMap<String,Object> applicationParameters,
+                     BasicClauseList basicClauseList) {
+        id = (String)applicationParameters.get("name");
+        this.predicates            = basicClauseList.predicates;
+        this.supervisor            = supervisor;
+        this.globalParameters      = globalParameters;
+        this.applicationParameters = applicationParameters;
+        this.basicClauseList       = basicClauseList;
+        monitor                    = globalParameters.monitor;
+        monitoring                 = monitor.monitoring();
+        if(monitoring) {monitor.addThread(id,null);}}
+
+
+    protected Consumer<CLiteral>            longClauseObserver = cLiteral    -> addTask(makeShortenedClauseTask(cLiteral.clause));
+    protected Consumer<Integer>             oneLiteralObserver = literal     -> addTask(new Task.OneLiteral(literal,this));
+    protected BiConsumer<Integer,Integer>  implicationObserver = (from,to)   -> addTask(new Task.TwoLiteral(-from,to,this));
+    protected Consumer<int[]>              equivalenceObserver = equivalence -> addTask(new Task.Equivalence(equivalence,this));
+    protected Consumer<Unsatisfiable> unsatisfiabilityObserver = unsat       -> addTask(new Task.Unsatisfiability(unsat,this));
+    protected Consumer<Satisfiable>     satisfiabilityObserver = sat         -> addTask(new Task.Satisfiability(sat,this));
+
 
     private void addMonitors() {
         clauses.addLiteralRemovalObserver(       cLiteral ->
-                monitor.print(monitorId,"Literal " + cLiteral.literal + " removed from clause " + cLiteral.clause.id));
+                monitor.print(id,"Literal " + cLiteral.literal + " removed from clause " + cLiteral.clause.id));
         implicationDAG.addTrueLiteralObserver(    literal ->
-                monitor.print(monitorId,"Literal " + literal + " became true."));
+                monitor.print(id,"Literal " + literal + " became true."));
         implicationDAG.addImplicationObserver( (from, to) ->
-                monitor.print(monitorId,"New implication " + from + " -> " + to + " derived."));
+                monitor.print(id,"New implication " + from + " -> " + to + " derived."));
         implicationDAG.addEquivalenceObserver(equivalence ->
-                monitor.print(monitorId,"Equivalent literals " + Arrays.toString(equivalence) + " derived."));
+                monitor.print(id,"Equivalent literals " + Arrays.toString(equivalence) + " derived."));
         equivalences.addTrueLiteralObserver(      literal ->
-                monitor.print(monitorId,"True literal " + literal + " in equivalences derived."));
+                monitor.print(id,"True literal " + literal + " in equivalences derived."));
         equivalences.addUnsatisfiabilityObserver(   unsat ->
-                monitor.print(monitorId,"Unsatisfiability in equivalences detected."));
+                monitor.print(id,"Unsatisfiability in equivalences detected."));
         disjointnesses.addUnsatisfiabilityObserver( unsat ->
-                monitor.print(monitorId,"Unsatisfiability in disjointnesses detected."));
+                monitor.print(id,"Unsatisfiability in disjointnesses detected."));
         disjointnesses.addTrueLiteralObserver(    literal ->
-                monitor.print(monitorId,"True literal " + literal + " in disjointnesses derived."));
+                monitor.print(id,"True literal " + literal + " in disjointnesses derived."));
     }
 
     protected PriorityQueue<Task> taskQueue = new PriorityQueue<Task>(Comparator.comparingInt(task->task.priority));
 
 
-    protected void addTask(Task task) {taskQueue.add(task);}
+    public void addTask(Task task) {taskQueue.add(task);}
 
+    /** This method waits for new tasks and executes them until the execution returns a result (unsatisfiable or satisfiable)
+     *
+     * @return the result (unsatisfiable or satisfiable)
+     */
+    public Result processTasks() {
+        Result result;
+        while((result = getTask().execute()) != null) {}
+        return result;}
 
+    private synchronized Task getTask() {
+        while(taskQueue.isEmpty()) {
+            try {wait();} catch (InterruptedException e) {continue;}
+            return taskQueue.poll();}
+        return null;}
+
+    protected Consumer<Integer> purityObserver = literal -> {
+        if(implicationDAG.isEmpty(literal)) {taskQueue.add(new Task.Purity(literal,this));}};
 
     public Result processOneLiteralClause(int literal) {
         int status = model.add(literal);
@@ -120,17 +137,25 @@ public class Processor {
             clauses.replaceByRepresentative(representative,equivalents[i]);}
         return null;}
 
+    public Result processPurity(int literal) {
+        model.add(literal);
+        clauses.removeLiteral(literal);
+        implicationDAG.newTrueLiteral(literal);
+        if(clauses.isEmpty()) {return Result.makeResult(model,basicClauseList);}
+        return null;}
 
-    Task makeShortenedClauseTask(Clause clause) {
+
+    protected Task makeShortenedClauseTask(Clause clause) {
+        return makeShortenedClauseTask(clause,this);}
+
+    protected Task makeShortenedClauseTask(Clause clause, Processor processor) {
         switch(clause.size()) {
-            case 0:  return new Task.Unsatisfiability(new Unsatisfiable("Clause " + clause.id + " became empty"),this);
+            case 0:  return new Task.Unsatisfiability(new Unsatisfiable("Clause " + clause.id + " became empty"),processor);
             case 1: clauses.removeClause(clause);
-                return new Task.OneLiteral(clause.getLiteral(0),this);
+                return new Task.OneLiteral(clause.getLiteral(0),processor);
             case 2: clauses.removeClause(clause);
-                return new Task.TwoLiteral(clause.getLiteral(0),clause.getLiteral(1),this);
-            default: return new Task.ShortenedClause(clause,this);}
+                return new Task.TwoLiteral(clause.getLiteral(0),clause.getLiteral(1),processor);
+            default: return new Task.ShortenedClause(clause,processor);}
     }
 
-
-    protected ArrayList<Integer> pureLiterals = null;
 }

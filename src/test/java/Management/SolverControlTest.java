@@ -50,8 +50,8 @@ public class SolverControlTest {
             solverParameters.add(map);}
         KVAnalyser anal = new KVAnalyser(null,null);
         anal.solverParameters = solverParameters;
-        HashMap<String,Object> solverControl = new HashMap<>();
-        solverControl.put("class",TestSolver.class);
+        HashMap<String,Object> applicationParameters = new HashMap<>();
+        applicationParameters.put("class",TestSolver.class);
         HashMap<String,Object> problemControl = new HashMap<>();
         problemControl.put("size",5);
         problemControl.put("class",SolverControlTest.class.getClasses()[0]);
@@ -72,12 +72,12 @@ public class SolverControlTest {
     @Test
     public void distributeProblems() throws Exception {
         System.out.println("distributeProblems");
-        HashMap<String,Object> solverControl = new HashMap<>();
-        solverControl.put("class",TestSolver.class);
+        HashMap<String,Object> applicationParameters = new HashMap<>();
+        applicationParameters.put("class",TestSolver.class);
         HashMap<String,Object> problemControl = new HashMap<>();
         problemControl.put("number",5);
         SolverController sctr = new SolverController(null,null);
-        sctr.distributeProblems(1,solverControl,problemControl,null);
+        sctr.distributeProblems(1,applicationParameters,problemControl,null);
         assertEquals(5,(int)(Integer)problemControl.get("SOLVED"));
     }
 

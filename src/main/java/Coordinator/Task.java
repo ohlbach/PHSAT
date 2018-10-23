@@ -38,7 +38,7 @@ public abstract class Task {
     public static class Unsatisfiability extends Task {
         Unsatisfiable unsatisfiable;
 
-        Unsatisfiability(Unsatisfiable unsatisfiable, Processor processor) {
+        public Unsatisfiability(Unsatisfiable unsatisfiable, Processor processor) {
             super(0, processor);
             this.unsatisfiable = unsatisfiable;}
 
@@ -53,7 +53,7 @@ public abstract class Task {
     public static class Satisfiability extends Task {
         Satisfiable satisfiable;
 
-        Satisfiability(Satisfiable satisfiable, Processor processor) {
+        public Satisfiability(Satisfiable satisfiable, Processor processor) {
             super(0, processor);
             this.satisfiable = satisfiable;}
 
@@ -82,8 +82,8 @@ public abstract class Task {
     public static class Equivalence extends Task {
         int[] equivalences;
 
-        Equivalence(int[] equivalences, Processor processor) {
-            super(2, processor);
+        public Equivalence(int[] equivalences, Processor processor) {
+            super(3, processor);
             this.equivalences = equivalences;}
 
         public Result execute() {return processor.processEquivalence(equivalences);}
@@ -96,8 +96,8 @@ public abstract class Task {
      */
     public static class TwoLiteral extends Task {
         int literal1,literal2;
-        TwoLiteral(int literal1, int literal2, Processor processor) {
-            super(3, processor);
+        public TwoLiteral(int literal1, int literal2, Processor processor) {
+            super(4, processor);
             this.literal1 = literal1;
             this.literal2 = literal2;}
 
@@ -112,8 +112,8 @@ public abstract class Task {
     public static class ShortenedClause extends Task {
         Clause clause;
 
-        ShortenedClause(Clause clause, Processor processor) {
-            super(4, processor);
+        public ShortenedClause(Clause clause, Processor processor) {
+            super(5, processor);
             this.clause = clause;}
 
         public Result execute() {return processor.processLongerClause(clause);}
@@ -121,5 +121,21 @@ public abstract class Task {
         public String toString() {
             return "Task: Longer Clause " + clause.toString();}
 }
+
+    /** It removes pure clauses
+     */
+    public static class Purity extends Task {
+        int literal;
+
+        public Purity(int literal, Processor processor) {
+            super(2, processor);}
+
+        public Result execute() {return processor.processPurity(literal);}
+
+        public String toString() {
+            return "Task: Pure literal: " + literal;}
+    }
+
+
 
 }
