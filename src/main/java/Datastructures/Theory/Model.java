@@ -5,9 +5,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 
-/** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br/>
- * The access is synchronized with read- and write-locks. <br/>
- * A writer blocks all readers, but several readers may read in parallel. <br/>
+/** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
+ * The access is synchronized with read- and write-locks. <br>
+ * A writer blocks all readers, but several readers may read in parallel. <br>
  *
  * Created by ohlbach on 12.09.2018.
  */

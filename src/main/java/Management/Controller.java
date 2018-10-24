@@ -15,14 +15,14 @@ import java.util.Arrays;
 import java.util.HashMap;
 
 /**
- * Created by Ohlbach on 03.09.2018.<br/>
+ * Created by Ohlbach on 03.09.2018.<br>
  *
- * This class controls the processing of the problems. <br/>
- * It <br/>
- * - analyses the input parameters <br/>
- * - reads or generates the SAT-problems<br/>
- * - distributes them ovrer several threads <br/>
- * - activates the solvers <br/>
+ * This class controls the processing of the problems. <br>
+ * It <br>
+ * - analyses the input parameters <br>
+ * - reads or generates the SAT-problems<br>
+ * - distributes them ovrer several threads <br>
+ * - activates the solvers <br>
  * - collects the results and statistics
  */
 public class Controller {
@@ -68,10 +68,7 @@ public class Controller {
 
 
 
-    /** analyses the applicationParameters and turns them into sequences of objectParameters
-     *
-     * @return the parsed problem parameters
-     */
+    /** analyses the applicationParameters and turns them into sequences of objectParameters*/
     private void analyseProblemParameters() {
         problemParameters = new ArrayList<>();
         for(HashMap<String,String> parameters : problemInputParameters) {
@@ -81,10 +78,7 @@ public class Controller {
             if(pars != null) {for(HashMap<String,Object> map :pars) {map.put("type",type);}
                 problemParameters.addAll(pars);}}}
 
-    /** analyses the solverParameters and turns them into sequences of objectParameters
-     *
-     * @return the parsed solver parameters
-     */
+    /** analyses the solverParameters and turns them into sequences of objectParameters*/
     private void analyseSolverParameters() {
         solverParameters = new ArrayList<>();
         for(HashMap<String,String> parameters : solverInputParameters) {
@@ -136,6 +130,7 @@ public class Controller {
      * A ProblemSupervisor is generated for each problem.
      * It takes care of invoking the solvers
      *
+     * @return true if the problem was solved
      */
     public boolean solve() {
         problemSupervisors = new ArrayList<>();

@@ -8,20 +8,20 @@ import java.util.Map;
 
 /**
  * Created by Ohlbach on 03.09.2018.
- * <br/>
- * This parser reads and splits grouped  key-value pairs.<br/>
- * The groups are indicated by special top-keys, for example "global", "problem", "solver".<br/>
- * Each of these  top-keys introduces a block of key-value pairs.<br/>
+ * <br>
+ * This parser reads and splits grouped  key-value pairs.<br>
+ * The groups are indicated by special top-keys, for example "global", "problem", "solver".<br>
+ * Each of these  top-keys introduces a block of key-value pairs.<br>
  * There may be arbitrary many of these blocks, arbitrarily intermixed.
- *<br/><br/>
- * The result ist a HashMap, one entry for each top-key, an ArrayList of HashMaps.<br/>
+ *<br><br>
+ * The result ist a HashMap, one entry for each top-key, an ArrayList of HashMaps.<br>
  * Each of these HashMaps contains the key-value pairs (as Strings).
- *<br/><br/>
+ *<br><br>
  * Empty lines are ignored. Comments can be added after //
  * The first block can be preceded by arbitrarily many header-strings.
- *<br/><br/>
+ *<br><br>
  * The result of the parsing can be accessed by the public variables: header and kvList.
- *<br/><br/>
+ *<br><br>
  * The class is used mainly for parsing specifications with all the control parameters for the PHSat system.
  *
  */
@@ -90,6 +90,7 @@ public class KVParser {
      * IO-Error leads to System.exit
      *
      * @param filename of the file to be parsed.
+     * @return true
      */
     public boolean parseFile(String filename) {
         try {parseStream(new FileInputStream(filename));}

@@ -14,22 +14,22 @@ import Utilities.Utilities;
 
 /**
  * Created by ohlbach on 26.08.2018.
- * <br/>
- * This class is for reading cnf-files. <br/>
- * A standard cnf-file has the following structure:<br/>
- * c comment<br/>
- * c comment<br/>
- * p cnf predicates clauses <br/>
- * clause1 0 <br/>
- * clause2 0 <br/>
- * ...<br/>
+ * <p>
+ * This class is for reading cnf-files. <br>
+ * A standard cnf-file has the following structure:<br>
+ * c comment<br>
+ * c comment<br>
+ * p cnf predicates clauses <br>
+ * clause1 0 <br>
+ * clause2 0 <br>
+ * ...<br>
  * A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0).
- * <br/>
- * An extension of this format may contain clauses beginning with special characters:.<br/>
- * 'd': means disjunction:  'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).<br/>
- * 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br/>
- * 'x': means exclusive-or: 'x 3 4 5' means 3 xors 4 xors 5 (exactly one of them must be true).<br/>
- * 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.<br/>
+ * <br>
+ * An extension of this format may contain clauses beginning with special characters:.<br>
+ * 'd': means disjunction:  'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).<br>
+ * 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br>
+ * 'x': means exclusive-or: 'x 3 4 5' means 3 xors 4 xors 5 (exactly one of them must be true).<br>
+ * 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.<br>
  */
 public final class CNFReader {
 
@@ -38,9 +38,9 @@ public final class CNFReader {
         for(String key : new String[]{"problem", "type", "file", "directory", "regExpr"}) {
             keys.add(key);}}
 
-    /** parses a HashMap with key-value pairs:<br/>
-     * file: a comma separated list of pathnames<br/>
-     * directory: a comma separated list of directories (all .cnf files in this directory are adressed) <br/>
+    /** parses a HashMap with key-value pairs:<br>
+     * file: a comma separated list of pathnames<br>
+     * directory: a comma separated list of directories (all .cnf files in this directory are adressed) <br>
      * regExpr: a regular expression: All files in the directories matching the expression are addressed
      *
      * @param parameters  the parameters with the keys "file", "directory", "regExpr"

@@ -65,12 +65,12 @@ public class DisjointnessClasses {
     }
 
 
-    /** turns a basicClause into a disjointness class. <br/>
-     * A true literal causes all other literals to become false <br/>
-     * A false literal is ignored <br/>
-     * Two true literals are a contradiction <br/>
-     * p &lt;=&gt; -p is ignored.<br/>
-     * A double literal p,p is a contradiction.<br/>
+    /** turns a basicClause into a disjointness class. <br>
+     * A true literal causes all other literals to become false <br>
+     * A false literal is ignored <br>
+     * Two true literals are a contradiction <br>
+     * p &lt;=&gt; -p is ignored.<br>
+     * A double literal p,p is a contradiction.<br>
      * The corresponding observers are called.
      * New disjunctions which are subsets of a new clause are deleted.
      * Literals occurring in several classes may cause joining of the classes.
@@ -146,7 +146,7 @@ public class DisjointnessClasses {
         return found;}
 
     /** checks whether all literals in the disjointness class are disjoint with the new literal.
-     *  If p is in the clause and r is the new literal, then p -&gt; -r must hold to ensure disjointness.<br/>
+     *  If p is in the clause and r is the new literal, then p -&gt; -r must hold to ensure disjointness.<br>
      *  If the class is extended then it may subsume older disjunctions, and it may merge with older disjunctions.
      *
      * @param disjointness an existing disjointness class

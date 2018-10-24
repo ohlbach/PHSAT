@@ -1,5 +1,6 @@
 package Datastructures.Statistics;
 
+import Coordinator.PreProcessor;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -15,11 +16,11 @@ public class StatisticTest {
 
     @Test
     public void combineSameStatistics() throws Exception {
-        PreProcessorStatistics p1 = new PreProcessorStatistics("Prob 1",null);
+        PreProcessorStatistics p1 = new PreProcessorStatistics(null);
         p1.DIS_TrueLiterals = 10;
         p1.CLS_Purities = 100;
 
-        PreProcessorStatistics p2 = new PreProcessorStatistics("Prob 2",null);
+        PreProcessorStatistics p2 = new PreProcessorStatistics(null);
         p2.DIS_TrueLiterals = 200;
         p2.CLS_Purities = 10;
         p2.BCL_RedundantClauses = 100;
@@ -33,11 +34,11 @@ public class StatisticTest {
     @Test
     public void combineDifferentStatistics() throws Exception {
         System.out.println("Combine different strategies");
-        PreProcessorStatistics p1 = new PreProcessorStatistics("Prob 1",null);
+        PreProcessorStatistics p1 = new PreProcessorStatistics(null);
         p1.DIS_TrueLiterals = 10;
         p1.CLS_Purities = 100;
 
-        PreProcessorStatistics p2 = new PreProcessorStatistics("Probe 2",null);
+        PreProcessorStatistics p2 = new PreProcessorStatistics(null);
         p2.DIS_TrueLiterals = 200;
         p2.CLS_Purities = 10;
         p2.BCL_RedundantClauses = 100;
@@ -79,12 +80,12 @@ public class StatisticTest {
     @Test
     public void singleToString() throws Exception {
         System.out.println("toString single");
-        PreProcessorStatistics p1 = new PreProcessorStatistics("Prob 1",null);
+        PreProcessorStatistics p1 = new PreProcessorStatistics(null);
         p1.DIS_TrueLiterals = 10;
         p1.CLS_Purities = 100;
-        System.out.println(Statistic.statisticToString("Prob1", Statistic.extractStatistic(p1,false)));
+        System.out.println(Statistic.statisticToString("Prob1", p1.extractStatistic(false)));
 
-        System.out.println(Statistic.statisticToCSV("Prob1"," ; ", Statistic.extractStatistic(p1,true)));
+        System.out.println(Statistic.statisticToCSV("Prob1"," ; ", p1.extractStatistic(true)));
 
         System.out.println(p1.toString());
 

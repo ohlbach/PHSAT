@@ -9,10 +9,8 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
-import Datastructures.Statistics.CentralProcessorStatistic;
-import Datastructures.Theory.Model;
+import Datastructures.Statistics.CentralProcessorStatistics;
 import Management.GlobalParameters;
-import Solvers.Reolution.RClause;
 import Solvers.Reolution.Resolution;
 
 import java.lang.reflect.Constructor;
@@ -99,8 +97,11 @@ public abstract class Solver extends Processor {
 
     /** parses the string-type parameters into sequences of objects
      *
-     * @param name       the generator name
+     * @param name       the solver type
+     * @param id         the id of the solver
      * @param solverParameters a key-value map with parameters as strings
+     * @param globalParameters the global parameters
+     * @param centralProcessor the central processor
      * @return           a list of key-value maps where the values are objects.
      */
     public static Solver construct(String name, Integer id, GlobalParameters globalParameters,
@@ -115,20 +116,20 @@ public abstract class Solver extends Processor {
     protected Consumer<Integer>  oneLiteralObserverBoth =
             literal ->          {addTask(new Task.OneLiteral(literal,this));
                 centralProcessor.addTask(new Task.OneLiteral(literal,centralProcessor));
-                ((CentralProcessorStatistic)centralProcessor.statistics).CP_UnitClausesReceived++;};
+                ((CentralProcessorStatistics)centralProcessor.statistics).CP_UnitClausesReceived++;};
 
     protected BiConsumer<Integer,Integer> implicationObserverBoth =
             (from, to) ->       {addTask(new Task.TwoLiteral(-from,to,this));
                 centralProcessor.addTask(new Task.TwoLiteral(-from,to,centralProcessor));
-                ((CentralProcessorStatistic)centralProcessor.statistics).CP_ImplicationsReceived++;};
+                ((CentralProcessorStatistics)centralProcessor.statistics).CP_ImplicationsReceived++;};
 
     protected Consumer<CLiteral> longClauseObserverBoth =
             cLiteral    -> {
                 Clause clause = cLiteral.clause;
                 addTask(makeShortenedClauseTask(clause));
-                if(clause instanceof RClause && ((RClause)clause).input)
+                if(clause.input)
                     centralProcessor.addTask(makeShortenedClauseTask(clause,centralProcessor));
-                ((CentralProcessorStatistic)centralProcessor.statistics).CP_LongClausesReceived++;};
+                ((CentralProcessorStatistics)centralProcessor.statistics).CP_ShortenedClausesReceived++;};
 
     protected Consumer<Unsatisfiable> unsatisfiabilityObserverBoth =
             unsat ->            {addTask(new Task.Unsatisfiability(unsat,this));

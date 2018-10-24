@@ -18,8 +18,8 @@ import java.util.stream.Stream;
  * A literal index is used to access literals and clauses quickly.
  * Removing literals and replacing them with representatives in an equivalence class can be
  * observed by corresponding consumer functions.
- * <br/>
- * The clauses are sorted according to a comparator (default: clause length) <br/>
+ * <br>
+ * The clauses are sorted according to a comparator (default: clause length) <br>
  * The literals in the literal index are also sorted (default: clause length)
  */
 public class ClauseList {
@@ -78,7 +78,9 @@ public class ClauseList {
     public void addPurityObserver(Consumer<Integer> observer) {
         literalIndex.purityObservers.add(observer);}
 
-    /** removes a purity observer */
+    /** removes a purity observer
+     *
+     * @param observer a purity observer*/
     public void removePurityObserver(Consumer<Integer> observer) {
         literalIndex.purityObservers.remove(observer);}
 
@@ -90,7 +92,9 @@ public class ClauseList {
     public void addLiteralRemovalObserver(Consumer<CLiteral> observer) {
         literalRemovalObservers.add(observer);}
 
-    /** removes a literal removal observer */
+    /** removes a literal removal observer
+     *
+     * @param observer an observer*/
     public void removeLiteralRemovalObserver(Consumer<CLiteral> observer) {
         literalRemovalObservers.remove(observer);}
 
@@ -103,7 +107,9 @@ public class ClauseList {
     public void addLiteralReplacementObserver(BiConsumer<CLiteral,Boolean> observer) {
         literalReplacementObservers.add(observer);}
 
-    /** removes a literal replacement observer */
+    /** removes a literal replacement observer
+     *
+     * @param observer an observer*/
     public void removeLiteralReplacementObserver(BiConsumer<CLiteral,Boolean> observer) {
         literalReplacementObservers.remove(observer);}
 
@@ -115,7 +121,9 @@ public class ClauseList {
     public void addClauseRemovalObserver(Consumer<Clause> observer) {
         clauseRemovalObservers.add(observer);}
 
-    /** removes a ClauseRemovalObserver*/
+    /** removes a ClauseRemovalObserver
+     *
+     * @param observer an observer*/
     public void removeClauseRemovalObserver(Consumer<Clause> observer) {
         clauseRemovalObservers.remove(observer);}
 
@@ -149,7 +157,8 @@ public class ClauseList {
 
     /** returns a clause for the given number
      *
-     * @param id the clause's problemId
+     * @param id the clause's id
+     * @return the clause or null
      */
     public Clause getClause(String id) {return id2Clause.get(id);}
 
@@ -188,7 +197,7 @@ public class ClauseList {
 
 
 
-    /** removes a literal from the clause.<br/>
+    /** removes a literal from the clause.<br>
      * All literalRemovalObservers are called.
      *
      * @param cliteral the literal to be removed.
@@ -215,8 +224,8 @@ public class ClauseList {
         for(Object cLiteral : literalIndex.getLiterals(literal).toArray()) {
             removeClause(((CLiteral)cLiteral).clause);}}
 
-    /** All disjunctions with the literal are removed. <br/>
-     *  All negated literals are removed from the disjunctions. <br/>
+    /** All disjunctions with the literal are removed. <br>
+     *  All negated literals are removed from the disjunctions. <br>
      *  All literalRemovalObservers are called.
      *
      * @param literal a literal which is supposed to be true.
@@ -226,10 +235,10 @@ public class ClauseList {
         for(Object cliteral : literalIndex.getLiterals(-literal).toArray()) {removeLiteral((CLiteral)cliteral);}}
 
     /** replaces a literal by its representative in an equivalence class in all clauses containing the literal and its negation.
-     * If the clause then contains double literals, one of the is removed.<br/>
-     * If the clause becomes a tautology, it is entirely removed.<br/>
-     * The corresponding observers are called.<br/>
-     * LiteralReplacementObservers are called before the replacement (with parameter true) <br/>
+     * If the clause then contains double literals, one of the is removed.<br>
+     * If the clause becomes a tautology, it is entirely removed.<br>
+     * The corresponding observers are called.<br>
+     * LiteralReplacementObservers are called before the replacement (with parameter true) <br>
      * and after the replacement (with parameter false)
      *
      * @param literal       the literal to be replaced
@@ -272,6 +281,7 @@ public class ClauseList {
      *
      * @param literal           a literal
      * @param implicationDAG  the implication DAG
+     * @param down             if true then the DAG is traversed downwards, otherwise upwards
      * @return  a stream of CLiterals l such that literal implies l (including the literal itself.)
      */
     public Stream<CLiteral> stream(int literal, ImplicationDAG implicationDAG, boolean down) {
@@ -282,8 +292,8 @@ public class ClauseList {
         return stream[0];}
 
 
-    /** generates a stream of CLiterals which contradict the given literal<br/>
-     * Example:  literal = p and p -> q: all CLiterals with -p and -q are returned.
+    /** generates a stream of CLiterals which contradict the given literal<br>
+     * Example:  literal = p and p -&gt; q: all CLiterals with -p and -q are returned.
      *
      * @param literal           a literal
      * @param implicationDAG  the implication DAG

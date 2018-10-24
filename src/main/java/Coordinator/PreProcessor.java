@@ -34,7 +34,8 @@ public class PreProcessor extends Processor {
     public PreProcessor(ProblemSupervisor supervisor, GlobalParameters globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
         super(supervisor,globalParameters,problemParameters,basicClauseList);
         initializeData();
-        addObservers();}
+        addObservers();
+        addMonitors("Preprocessor");}
 
     private void initializeData() {
         model          = new Model(predicates);
@@ -57,7 +58,7 @@ public class PreProcessor extends Processor {
     }
 
 
-    /** turns the basic clauses into Clause datastructure. Initial simplifctions on the clause itself are performed
+    /** turns the basic clauses into Clause datastructure. Initial simplifications on the clause itself are performed
      *
      * @return Unsatisfiable if a contradiction has detected, otherwise null.
      */
@@ -119,7 +120,7 @@ public class PreProcessor extends Processor {
         equivalences.addEquivalenceClass(basicClause);
         return processTasks();}
 
-    /** adds a disjunctive clause.<br/>
+    /** adds a disjunctive clause.<br>
      * All possible simplifications on the clause itself and on the other clauses are performed.
      *
      * @param basicClause a disjunction
@@ -132,13 +133,13 @@ public class PreProcessor extends Processor {
         clauses.addClause(clause);
         return processTasks();}
 
-    /** turns a basicClause into a clause. <br/>
-     * False literals and double literals are ignored. <br/>~
-     * True literals and complementary literals indicate tautologies. <br/>
+    /** turns a basicClause into a clause. <br>
+     * False literals and double literals are ignored. <br>~
+     * True literals and complementary literals indicate tautologies. <br>
      * Literals are replaced by their representatives in an equivalence class.
      * Implied literals are removed, i.e.  p,q,r and p -&gt; r causes remove(p)
      *
-     * @param basicClause
+     * @param basicClause the input clauses
      * @return the new simplified clause, or null if the clause is just to be ignored.
      */
     Clause makeDisjunction(int[] basicClause) {
@@ -189,16 +190,7 @@ public class PreProcessor extends Processor {
                     implicationDAG.addImplication(literal,clause.getLiteral(j));}}}
         return processTasks();}
 
-    /** processes all task until a result is obtained or the queue becomes empty
-     *
-     * @return  Unsatisfiable if a contradiction has detected, otherwise null.
-     */
-    public Result processTasks() {
-        while(!taskQueue.isEmpty()) {
-            Task task = taskQueue.poll();
-            Result result = task.execute();
-            if(result != null) {return result;}}
-        return null;}
+
 
 
     /** checks the final clause list for purities.
@@ -211,7 +203,7 @@ public class PreProcessor extends Processor {
         clauses.addPurityObserver(purityObserver);
         for(Integer literal : clauses.pureLiterals()) {
             taskQueue.add(new Task.Purity(literal,this));}
-        return null;}
+        return processTasks();}
 
 
 }

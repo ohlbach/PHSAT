@@ -5,10 +5,10 @@ import Datastructures.Symboltable;
 import java.util.ArrayList;
 import java.util.Collection;
 
-/** This class represents the nodes in an ImplicationDAG. <br/>
- * A node contains a literal and the 'downNodes' and 'upNodes'. <br/>
- * The downNodes are the literals which are implied by the node's literal.<br/>
- * The upNodes imply the node's literal. <br/>
+/** This class represents the nodes in an ImplicationDAG. <br>
+ * A node contains a literal and the 'downNodes' and 'upNodes'. <br>
+ * The downNodes are the literals which are implied by the node's literal.<br>
+ * The upNodes imply the node's literal. <br>
  * Thus, if p -&gt; q and q -&gt; r the q's node has p in its upNodes and r in its downNodes.
  *
  * Created by ohlbach on 26.09.2018.

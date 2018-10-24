@@ -25,7 +25,7 @@ public class RandomWalker extends Solver {
         for(String key : new String[]{"class", "seed", "flips"}) {
             keys.add(key);}}
 
-    /** parses a HashMap with key-value pairs<br/>
+    /** parses a HashMap with key-value pairs<br>
      *
      * @param parameters  the parameters with the keys "seed", "flips", "jumps"
      * @param errors      for error messages

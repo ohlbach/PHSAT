@@ -73,7 +73,8 @@ public class LiteralIndex {
 
     /** removes the literal from the index
      *
-     * @param cliteral the literal to be removed.
+     * @param literal the literal to be removed.
+     * @param cliteral the cLiteral to be removed.
      */
     public void removeLiteral(int literal, CLiteral cliteral) {
         int predicate = Math.abs(literal);

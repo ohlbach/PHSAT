@@ -7,18 +7,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 /** This is the interface to the generator classes.
- * The generator classes generate SAT-Problems from different sources. <br/>
+ * The generator classes generate SAT-Problems from different sources. <br>
  * Each generator class should provide the following static methods: <br>
- *  - public static help()  for producing a help text<br/>
- *  - public static ArrayList&lt;HashMap&lt;String,Object&gt;&gt; parseParameters(HashMap&lt;String,String&gt; parameters, StringBuffer errors, StringBuffer warnings) <br/>
- *  - public static HashMap&lt;String,Object&gt generate(HashMap&lt;String,Object&gt; parameters, StringBuffer errors, StringBuffer warnings) <br/>
- * <br/>
- * The parseParameters method turns parameters as strings into sequences of parameters as objects <br/>
+ *  - public static help()  for producing a help text<br>
+ *  - public static ArrayList&lt;HashMap&lt;String,Object&gt;&gt; parseParameters(HashMap&lt;String,String&gt; parameters, StringBuffer errors, StringBuffer warnings) <br>
+ *  - public static HashMap&lt;String,Object&gt; generate(HashMap&lt;String,Object&gt; parameters, StringBuffer errors, StringBuffer warnings) <br>
+ * <br>
+ * The parseParameters method turns parameters as strings into sequences of parameters as objects <br>
  * The generate method generates a BasicClauseList and puts it as parameter "clauses" into the parameters map.
- * <br/>
+ * <br>
  * One can add a new generator class by extending the variable 'generators' and the method 'generatorClass'.
- * <br/>
- * The class has only static methods" <br/>
+ * <br>
+ * The class has only static methods" <br>
  * Created by ohlbach on 09.10.2018.
  */
 public abstract class Generator {

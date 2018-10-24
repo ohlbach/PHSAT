@@ -8,17 +8,17 @@ import Datastructures.Theory.Model;
 import java.util.ArrayList;
 
 /**
- * Created by Ohlbach on 03.09.2018.<br/>
+ * Created by Ohlbach on 03.09.2018.<br>
  *
- * This class contains just the absolutely essential information about clauses.<br/>
- * The clauses should be the original clauses from the clause source and must not be changed.<br/>
- * They are used to check a candidate model against the original clause set.<br/>
- * A clause is an integer-array [clause-number,clause-type,literal1,...]<br/>
- * The clause types are: <br/>
- * '0': means disjunction:  '0 1 3 5'  means 1 or 3 or 5<br/>
- * '1': means and:          '1 3 4 5'  stands for 3 and 4 and 5.<br/>
- * '2': means exclusive-or: '2 3 4 5'  means 3 xors 4 xors 5 (exactly one of them must be true).<br/>
- * '3': means disjoints   : '3 4 5 -6' means 4,5,-6 are disjoint literals (at most one of them can be true).<br/>
+ * This class contains just the absolutely essential information about clauses.<br>
+ * The clauses should be the original clauses from the clause source and must not be changed.<br>
+ * They are used to check a candidate model against the original clause set.<br>
+ * A clause is an integer-array [clause-number,clause-type,literal1,...]<br>
+ * The clause types are: <br>
+ * '0': means disjunction:  '0 1 3 5'  means 1 or 3 or 5<br>
+ * '1': means and:          '1 3 4 5'  stands for 3 and 4 and 5.<br>
+ * '2': means exclusive-or: '2 3 4 5'  means 3 xors 4 xors 5 (exactly one of them must be true).<br>
+ * '3': means disjoints   : '3 4 5 -6' means 4,5,-6 are disjoint literals (at most one of them can be true).<br>
  * '4': means equivalences: '4 4 5 -6' means that these three literals are equivalent.
  */
 public class BasicClauseList {

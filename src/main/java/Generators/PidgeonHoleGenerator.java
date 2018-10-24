@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 /**
- * Created by ohlbach on 09.09.2018.<br/>
+ * Created by ohlbach on 09.09.2018.<br>
  *
  * This class is for generating pidgeon hole problems of arbitrary size.
  *

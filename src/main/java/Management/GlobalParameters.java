@@ -34,7 +34,7 @@ public class GlobalParameters {
 
 
 
-    /** returns a help-string which describes the parameters */
+    /** @return a help-string which describes the parameters */
     public static String help() {
         return "Global Parameters:\n" +
                 " - directory  (default home) relative to the homedirectory\n"+
@@ -52,7 +52,12 @@ public class GlobalParameters {
     /** generates the default parameters */
     public GlobalParameters() {}
 
-    /** parses the parameters and generates the internal data */
+    /** parses the parameters and generates the internal data
+     *
+     * @param parameters the raw parameters (as strings)
+     * @param errors    for error messages
+     * @param warnings  for warnings
+     */
     public GlobalParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings) {
         for(Map.Entry<String,String> entry : parameters.entrySet()) {
             String key = entry.getKey();
@@ -104,7 +109,9 @@ public class GlobalParameters {
                 default: warnings.append("Unknown global parameter: " + key);
             }}}
 
-    /** prints a message to the logstream */
+    /** prints a message to the logstream
+     *
+     * @param message a string*/
     public void log(String message) {
         if(logstream != null) logstream.println(message);}
 

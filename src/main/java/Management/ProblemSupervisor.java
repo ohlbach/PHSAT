@@ -33,7 +33,7 @@ public class ProblemSupervisor {
     Thread[] threads;
     Solver[] solvers;
     Result[] results;
-    ProblemStatistics statistics = null;
+    public ProblemStatistics statistics = null;
 
     public ProblemSupervisor(int problemNumber,GlobalParameters globalParameters,
                              HashMap<String,Object> problemParameters,

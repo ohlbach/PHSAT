@@ -5,6 +5,7 @@ import Coordinator.CentralProcessor;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
 import Management.GlobalParameters;
 import Solvers.Solver;
@@ -21,10 +22,10 @@ public class Resolution extends Solver {
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"name", "seed", "sos"}) {
+        for(String key : new String[]{"name", "seed", "sos", "limit"}) {
             keys.add(key);}}
 
-    /** parses a HashMap with key-value pairs:<br/>
+    /** parses a HashMap with key-value pairs:<br>
      *
      * @param parameters  the parameters with the keys "seed", "sos"
      * @param errors      for error messages
@@ -39,17 +40,23 @@ public class Resolution extends Solver {
         if(seeds == null) {seeds = "0";}
         String soss = parameters.get("sos");
         if(soss == null) {soss = "50";}
+        String limits = parameters.get("limit");
+        if(limits == null) {limits = Integer.toString(Integer.MAX_VALUE);}
         String place = "Resolution: ";
         ArrayList seed = Utilities.parseIntRange(place+"seed: ",seeds,errors);
         ArrayList sos = Utilities.parseIntRange(place+"sos: ",soss,errors);
-        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,sos);
+        ArrayList limit = Utilities.parseIntRange(place+"limit: ",limits,errors);
+        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,sos,limit);
         int counter = 0;
         for(ArrayList<Object> p : pars ) {
             Integer sospar = (Integer)p.get(1);
             if(sospar < 0 || sospar > 100) {errors.append("Resolution: sos must be a percentage between 0 and 100, not"+sospar);}
+            Integer limitpar = (Integer)p.get(2);
+            if(limitpar < 0) {errors.append("Resolution: limit must be positive: " + limitpar);}
             HashMap<String,Object> map = new HashMap<>();
             map.put("seed",p.get(0));
             map.put("sos",sospar);
+            map.put("limit",limitpar);
             map.put("name","R" + ++counter);
             list.add(map);}
         return list;}
@@ -57,12 +64,10 @@ public class Resolution extends Solver {
     public static String help() {
         return "Resolution (Set of Support): parameters:\n" +
                 "seed:   for the random number generator              (default: 0)\n" +
-                "sos:    percentage of clauses in the set of support. (default 50)";}
+                "sos:    percentage of clauses in the set of support. (default 50)\n" +
+                "limit:  maximal number of resolvents = limit*clauses (default unlimited) ";}
 
-    int seed = (Integer) applicationParameters.get("seed");
-    private Random random = new Random();
-
-
+    private Random random;
 
     /** constructs a new solver of type RandomWalker.
      * The constructor is called serially. Therefore there are no race conditions.
@@ -78,40 +83,60 @@ public class Resolution extends Solver {
         super(solverControl, globalParameters, centralProcessor);
         initializeData();
         addObservers();
+        addMonitors("Resolution");
+        statistics = new ResolutionStatistics(this);
+        statistics.addStatisticsObservers();
     }
 
     protected void initializeData() {
+        random = new Random((Integer)applicationParameters.get("seed"));
         model = centralProcessor.model.clone();
         implicationDAG = centralProcessor.implicationDAG.clone();
         copyClauses();}
 
-    int size;
-    final int normal = 0;
-    final int sos = 1;
+    private final int normal = 0;
+    private final int sos = 1;
 
     private void copyClauses() {
         ClauseList centralClauses = centralProcessor.clauses;
-        size = centralClauses.size();
-        clauses = new ClauseList(predicates,Clause.sizeComparator, RClause.priorityComparator); // sos
+        int size = centralClauses.size();
+        clauses = new ClauseList(predicates,Clause.sizeComparator, Clause.priorityComparator); // sos
         int sosSize =(Integer) applicationParameters.get("sos");
         for(Clause clause  : centralClauses.getClauses(0)) {
-            RClause rClause = new RClause(clause,random.nextInt(size)*clause.size(),true);
+            Clause rClause = new Clause(clause,random.nextInt(size)*clause.size(),true);
             clauses.addClause(rClause, random.nextInt(100) <= sosSize ? sos : normal);}}
 
     public Result solve() {
+        globalParameters.log("Resolution " + id + " for problem " + problemId + " started");
+        long time = System.currentTimeMillis();
+        int size = centralProcessor.clauses.size();
+        int limit = (Integer)applicationParameters.get("limit");
+        limit = (limit == Integer.MAX_VALUE) ? limit : limit * size;
         CLiteral[] parentLiterals = new CLiteral[2];
+        int resolventCounter = -1;
+        Result result = null;
         try{
             while(!clauses.isEmpty()) {
                 selectParentLiterals(parentLiterals);
-                RClause resolvent = (RClause)Algorithms.resolve(parentLiterals[0],parentLiterals[1],implicationDAG,
-                        ((id,literals) -> new RClause(id,literals,random.nextInt(size)*literals.size(),false)));
-                if(resolvent != null) {
+                ArrayList<CLiteral> resolventLiterals = Algorithms.resolve(parentLiterals[0],parentLiterals[1],implicationDAG);
+                if(resolventLiterals != null) {
+                    String id = parentLiterals[0].clause.id+"+"+parentLiterals[1].clause.id;
+                    Clause resolvent =  new Clause(id,resolventLiterals,random.nextInt(size)*resolventLiterals.size(),false);
+                    reportResolvent(resolvent);
                     clauses.addClause(resolvent,sos);
                     taskQueue.add(makeShortenedClauseTask(resolvent));
-                    Result result = processTasks();
-                    if(result != null) {return result;}}}
-            return Result.makeResult(this.model,basicClauseList);}
-        finally{removeObservers();}}
+                    result = processTasks();
+                    if(result != null) {return result;}}
+                if(++resolventCounter == limit) {
+                    reportAbortion(limit);
+                    return null;}}
+            result = Result.makeResult(this.model,basicClauseList);
+            return result;}
+        finally{
+            statistics.elapsedTime = System.currentTimeMillis() - time;
+            removeObservers();
+            removeMonitors();
+            reportFinished(result,resolventCounter);}}
 
     private void selectParentLiterals(CLiteral[] parentLiterals) {
         Clause parentClause1 = clauses.getClauses(sos).poll();
@@ -129,6 +154,18 @@ public class Resolution extends Solver {
             return false;});
     }
 
+    private void reportResolvent(Clause resolvent) {
+        if(monitoring) {monitor.print(id,"Resolution: " + resolvent.toString());}
+        ((ResolutionStatistics)statistics).resolvents++;}
+
+    private void reportAbortion(int limit) {
+        globalParameters.log("Resolution " + id + " for problem " + problemId +" stopped after " + limit + " resolvents");
+        supervisor.statistics.incAborted();}
+
+    private void reportFinished(Result result, int resolvents) {
+        globalParameters.log("Resolution " + id + " for problem " + problemId +" finished after " + resolvents + " resolvents.\n" +
+                "Result: " + result.toString());
+        if(result instanceof Erraneous) {supervisor.statistics.incErraneous();}}
 
 
     public static void main(String[] args) {

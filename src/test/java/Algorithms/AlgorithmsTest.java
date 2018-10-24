@@ -2,6 +2,7 @@ package Algorithms;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Theory.ImplicationDAG;
 import Utilities.Utilities;
 import org.junit.Test;
@@ -315,18 +316,17 @@ public class AlgorithmsTest {
 
     }
 
-    BiFunction<String,ArrayList,Clause> constructor = ((id,literals)->new Clause(id,literals));
     @Test
     public void resolve1() throws Exception {
         System.out.println("resolve without DAG");
         ImplicationDAG id = new ImplicationDAG();
         Clause c1 = Utilities.makeClause("1", "1,2,3");
         Clause c2 = Utilities.makeClause("2", "1,-2,3,4");
-        Clause r1 = Algorithms.resolve(c1.cliterals.get(1), c2.cliterals.get(1), id,constructor);
-        assertEquals("1+2: (1,3,4)",r1.toString());
+        ArrayList<CLiteral> r1 = Algorithms.resolve(c1.cliterals.get(1), c2.cliterals.get(1), id);
+        assertEquals("[1, 3, 4]",r1.toString());
 
         Clause c3 = Utilities.makeClause("2", "1,-2,-3,4");
-        assertNull(Algorithms.resolve(c1.cliterals.get(1), c3.cliterals.get(1),id,constructor));
+        assertNull(Algorithms.resolve(c1.cliterals.get(1), c3.cliterals.get(1),id));
     }
 
     @Test
@@ -336,14 +336,14 @@ public class AlgorithmsTest {
         id.addClause(1,-4);
         Clause c1 = Utilities.makeClause("1", "1,2,3");
         Clause c2 = Utilities.makeClause("2", "1,-2,3,4");
-        Clause r1 = Algorithms.resolve(c1.cliterals.get(1), c2.cliterals.get(1), id,constructor);
-        assertEquals("1+2: (1,3)",r1.toString());
+        ArrayList<CLiteral> r1 = Algorithms.resolve(c1.cliterals.get(1), c2.cliterals.get(1), id);
+        assertEquals("[1, 3]",r1.toString());
 
         Clause c3 = Utilities.makeClause("3", "-1,2,3");
         Clause c4 = Utilities.makeClause("4", "-2,3,-4");
-        Clause r2 = Algorithms.resolve(c3.cliterals.get(1), c4.cliterals.get(0), id,constructor);
-        assertEquals("3+4: (3,-4)",r2.toString());
-        assertNull(Algorithms.resolve(c1.cliterals.get(1), c4.cliterals.get(0),id,constructor));
+        ArrayList<CLiteral> r2 = Algorithms.resolve(c3.cliterals.get(1), c4.cliterals.get(0), id);
+        assertEquals("[3, -4]",r2.toString());
+        assertNull(Algorithms.resolve(c1.cliterals.get(1), c4.cliterals.get(0),id));
     }
 
 

@@ -7,9 +7,9 @@ import java.util.IdentityHashMap;
 import java.util.InputMismatchException;
 
 /**
- * Created by Ohlbach on 25.08.2018.<br/>
+ * Created by Ohlbach on 25.08.2018.<br>
  *
- * A CLiteral is a literal within a clause.<br/>
+ * A CLiteral is a literal within a clause.<br>
  * Besides the literal, it contains a pointer to the clause and the position within the clause.
  * A CLiteral can be subclassed to carry more information.
  */

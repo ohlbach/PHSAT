@@ -20,6 +20,7 @@ public class Erraneous extends Result {
      *
      * @param model        a model
      * @param falseClauses a list of false clauses
+     * @param symboltable  a symbol table (optional)
      */
     public Erraneous(Model model, ArrayList<int[]> falseClauses, Symboltable symboltable) {
         this.model = model;

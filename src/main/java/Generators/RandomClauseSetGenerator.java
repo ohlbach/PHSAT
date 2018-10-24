@@ -14,12 +14,12 @@ import java.util.Random;
 /**
  * Created by ohlbach on 26.08.2018.
  *
- * This generator generates clause sets with randomly generated literals.<br/>
- * It can generate the following types of clauses:<br/>
- * - disjunctions <br/>
- * - Xor clauses (exactly one of the literals must be true)<br/>
- * - disjointness clauses (at most one of the literals may be true<br/>
- * - equivalence clauses (either all of its literals are true or all are false) <br/>
+ * This generator generates clause sets with randomly generated literals.<br>
+ * It can generate the following types of clauses:<br>
+ * - disjunctions <br>
+ * - Xor clauses (exactly one of the literals must be true)<br>
+ * - disjointness clauses (at most one of the literals may be true<br>
+ * - equivalence clauses (either all of its literals are true or all are false) <br>
  */
 public final class RandomClauseSetGenerator {
 
@@ -30,29 +30,29 @@ public final class RandomClauseSetGenerator {
             keys.add(key);}}
 
     /** The method translates the string-valued parameters in the HashMap to objects for controlling the generator.
-     * The allowed parameters are: <br/>
-     * predicates: an integer > 0, specifies the number of predicates in the clause set.<br/>
-     * disjunctions:    an integer > 0, specifies the number of normal disjunctions to be generated.<br/>
-     * cpRatio:    a float > 0, specifies the clause/predicate ratio.<br/>
-     *             cpRatio = 4.3 means: for 100 predicates 430 disjunctions.<br/>
-     * length:     an integer > 0, specifies the maximum number of literals per clause.<br/>
-     * precise:    a boolean, if true then the disjunctions have exactly the specified length (default true).<br/>
-     * seed:       an integer >= 0 for starting the random number generator (default 0).<br/>
-     * dBlocks (optional): an integer &gt; 0, the number of disjointness blocks.<br/>
-     * dLength (optional): an integer &gt;  0, the number of predicates in each disjointness block.<br/>
-     * xBlocks (optional): an integer &gt;  0, the number of xors blocks.<br/>
-     * xLength (optional): an integer &gt;  0, the number of predicates in each xors block.<br/>
-     * eBlocks (optional): an integer &gt;  0, the number of equivalence blocks.<br/>
-     * eLength (optional): an integer &gt;  0, the number of predicates in each equivalence block.<br/>
+     * The allowed parameters are: <br>
+     * predicates: an integer &gt; 0, specifies the number of predicates in the clause set.<br>
+     * disjunctions:    an integer &gt; 0, specifies the number of normal disjunctions to be generated.<br>
+     * cpRatio:    a float &gt; 0, specifies the clause/predicate ratio.<br>
+     *             cpRatio = 4.3 means: for 100 predicates 430 disjunctions.<br>
+     * length:     an integer &gt; 0, specifies the maximum number of literals per clause.<br>
+     * precise:    a boolean, if true then the disjunctions have exactly the specified length (default true).<br>
+     * seed:       an integer &ge; 0 for starting the random number generator (default 0).<br>
+     * dBlocks (optional): an integer &gt; 0, the number of disjointness blocks.<br>
+     * dLength (optional): an integer &gt;  0, the number of predicates in each disjointness block.<br>
+     * xBlocks (optional): an integer &gt;  0, the number of xors blocks.<br>
+     * xLength (optional): an integer &gt;  0, the number of predicates in each xors block.<br>
+     * eBlocks (optional): an integer &gt;  0, the number of equivalence blocks.<br>
+     * eLength (optional): an integer &gt;  0, the number of predicates in each equivalence block.<br>
      *
-     * The integer values can be specified as \'ranges\', with the following syntactic possibilities:<br/>
-     *   List:       3,6,7\n<br/>
-     *   Range:      3 to 10\n<br/>
-     *   With steps: 3 to 10 step 2\n<br/>
-     * Float values can be specified;\n<br/>
-     *   List:       4.6,7.8<br/>
-     *  With steps: 3.5 to 5.6 step 0.1<br/>
-     * Boolean values are for example \'true\', \'false\' of both \'true,false\'.<br/>
+     * The integer values can be specified as \'ranges\', with the following syntactic possibilities:<br>
+     *   List:       3,6,7\n<br>
+     *   Range:      3 to 10\n<br>
+     *   With steps: 3 to 10 step 2\n<br>
+     * Float values can be specified;\n<br>
+     *   List:       4.6,7.8<br>
+     *  With steps: 3.5 to 5.6 step 0.1<br>
+     * Boolean values are for example \'true\', \'false\' of both \'true,false\'.<br>
      *
      *
      * @param parameters the input parameters
@@ -230,6 +230,8 @@ public final class RandomClauseSetGenerator {
     /** generates the clause set
      *
      * @param parameters for controlling the generator.
+     * @param errors for error messages
+     * @param warnings for warnings
      * @return  the generated BasicClauseList
      */
     public static BasicClauseList generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {

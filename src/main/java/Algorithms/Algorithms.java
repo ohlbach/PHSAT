@@ -21,8 +21,8 @@ public class Algorithms {
         return true;}
 
 
-    /** checks if the given clause is subsumed (possibly via the implication DAG). <br/>
-     * If not, all literals which can be resolveBackwardLiterals away (possibly via the implication DAG) are removed.<br/>
+    /** checks if the given clause is subsumed (possibly via the implication DAG). <br>
+     * If not, all literals which can be resolveBackwardLiterals away (possibly via the implication DAG) are removed.<br>
      * The clause must not yet be integrated in the clause list.
      *
      * @param clause      the clause to be checked
@@ -61,7 +61,7 @@ public class Algorithms {
 
 
 
-    /** deletes all clauses which are subsumed by the given clause(with the implication graph).<br/>
+    /** deletes all clauses which are subsumed by the given clause(with the implication graph).<br>
      *
      * @param clause           the clause which operates on the other clauses
      * @param clauseList       the clause list with the clause
@@ -92,7 +92,7 @@ public class Algorithms {
     }
 
 
-    /** deletes all clauses which are subsumed by the given clause(with the implication graph).<br/>
+    /** deletes all clauses which are subsumed by the given clause(with the implication graph).<br>
      *
      * @param clause           the clause which operates on the other clauses
      * @param clauseList       the clause list with the clause
@@ -135,7 +135,7 @@ public class Algorithms {
 
     }
 
-    /** simplifies a clause by means of the implication DAG.<br/>
+    /** simplifies a clause by means of the implication DAG.<br>
      * Example: p,q,r  and p -&gt; r: remove p
      *
      * @param clause         the clause to be simplified
@@ -193,10 +193,9 @@ public class Algorithms {
      * @param literal1      a literal
      * @param literal2      a literal
      * @param implicationDAG the implication DAG
-     * @return  the resolvent, or null if it would be a tautology or subsumed by the imlication DAG
+     * @return  the resolvent, or null if it would be a tautology or subsumed by the implication DAG
      */
-    public static Clause resolve(CLiteral literal1, CLiteral literal2, ImplicationDAG implicationDAG,
-                                 BiFunction<String,ArrayList,Clause> clauseConstructor) {
+    public static ArrayList<CLiteral> resolve(CLiteral literal1, CLiteral literal2, ImplicationDAG implicationDAG) {
         ArrayList<CLiteral> resolvent = new ArrayList<>();
         ArrayList<CLiteral> literals1 = literal1.clause.cliterals;
         for(CLiteral lit1 : literals1) {
@@ -211,8 +210,8 @@ public class Algorithms {
                         if(implicationDAG.implies(lit1.literal,lit2.literal)) {
                             resolvent.removeIf(cliteral->cliteral.literal == lit1.literal);}}}
                 if(!ignore) {resolvent.add(lit2.clone());}}}
-        return clauseConstructor.apply(literal1.clause.id+"+"+literal2.clause.id, resolvent);
-    }
+        return resolvent;}
+
 }
 
 

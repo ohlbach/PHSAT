@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-/** This is the class with the main method for the PHSat system. <br/>
+/** This is the class with the main method for the PHSat system. <br>
  * Created by Ohlbach on 02.09.2018.
  */
 public class PHSat {
@@ -22,15 +22,15 @@ public class PHSat {
             "src","main","resources","DefaultParameters.phs").toFile();
 
 
-    /** The main method can be called with or without arguments. </br>
-     * If it is called without arguments, the input is read from System.in.</br>
-     * The arguments can be: <br/>
-     * - help (all help-texts are printed to System.out)<br/>
-     * - help name (the help-text for a problem generator or a problem solver with this name is printed) <br/>
-     * - the name of a .cnf file (it is processed with default values)<br/>
+    /** The main method can be called with or without arguments. <br>
+     * If it is called without arguments, the input is read from System.in.<br>
+     * The arguments can be: <br>
+     * - help (all help-texts are printed to System.out)<br>
+     * - help name (the help-text for a problem generator or a problem solver with this name is printed) <br>
+     * - the name of a .cnf file (it is processed with default values)<br>
      * - the name of a parameter specification file (it contains the problem- and solver specifications.
      *
-     * @param args
+     * @param args for the commands
      */
     public static void  main(String[] args) {
         long start = System.currentTimeMillis();

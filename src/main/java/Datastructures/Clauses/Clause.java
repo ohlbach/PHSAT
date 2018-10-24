@@ -19,9 +19,12 @@ public class Clause {
     /** a timestamp to be used by corresponding algorithms */
     public int timestamp = 0;
 
+    public boolean input = true;
     public boolean removed = false;
+    public int priority = 0;
 
     public static Comparator<Clause> sizeComparator = Comparator.comparingInt(clause->clause.size());
+    public static Comparator<Clause> priorityComparator = Comparator.comparingInt(clause->clause.priority);
 
     /** constructs a clause
      *
@@ -43,10 +46,41 @@ public class Clause {
             cLiterals.get(i).setClause(this,i);}
         cliterals = cLiterals;}
 
-    /** return the current number of literals
+    /** constructs a new clause as a copy of a given one.
      *
-     * @return the current number of literals
+     * @param clause   the clause to be copied
+     * @param priority the new priority
+     * @param input    signals if the clause is an input clause or not
      */
+    public Clause(Clause clause, int priority, boolean input) {
+        this.id = clause.id;
+        cliterals = new ArrayList<CLiteral>(clause.size());
+        for(int i = 0; i < clause.size(); ++i) {
+            CLiteral clit = clause.cliterals.get(i);
+            cliterals.add(new CLiteral(clit.literal,this,i));}
+        this.priority = priority;
+        this.input = input;}
+
+    /** constructs a clause from a set of literals
+     *
+     * @param id        the new id
+     * @param cliterals the literals
+     * @param priority  its prioroty
+     * @param input     signals if the clause is an input clause or not
+     */
+    public Clause(String id, ArrayList<CLiteral> cliterals, int priority, boolean input) {
+        this.id = id;
+        this.priority = priority;
+        this.input = input;
+        this.cliterals = cliterals;
+        for(int i = 0; i < cliterals.size(); ++i) {
+            cliterals.get(i).setClause(this,i);}}
+
+
+        /** return the current number of literals
+         *
+         * @return the current number of literals
+         */
     public int size() {return cliterals.size();}
 
     /** checks if the clause is empty
@@ -74,7 +108,7 @@ public class Clause {
             if(cliterals.get(i).literal == literal) {return i;}}
         return -1;}
 
-    /** adds a cliteral to the end of the clause<br/>
+    /** adds a cliteral to the end of the clause<br>
      * double literals and tautologies are avoided.
      *
      * @param cliteral the literal to be added.
@@ -92,7 +126,6 @@ public class Clause {
     /** adds a cliteral to the end of the clause, without checking for double literals and tautologies.
      *
      * @param cliteral the literal to be added.
-     * @return +1 if the literal is already in the clause, -1 if -literal is in the clause, otherwise 0.
      */
     public void addCLiteralDirectly(CLiteral cliteral) {
         int position = cliterals.size();
@@ -102,7 +135,6 @@ public class Clause {
     /** adds a cliterals to the end of the clause, without checking for double literals and tautologies.
      *
      * @param cLiterals the literals to be added.
-     * @return +1 if the literal is already in the clause, -1 if -literal is in the clause, otherwise 0.
      */
     public void addCLiteralsDirectly(CLiteral... cLiterals) {
         for(CLiteral cliteral : cLiterals) {

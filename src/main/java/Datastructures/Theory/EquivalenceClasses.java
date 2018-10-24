@@ -11,7 +11,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** This class manages equivalence classes. The equivalence classes may come from basic disjunctions,
- * or from ID_Implications p -&gt; q and q -&gt; p.
+ * or from pmplications p -&gt; q and q -&gt; p.
  *
  * Created by ohlbach on 20.09.2018.
  */
@@ -65,12 +65,12 @@ public class EquivalenceClasses {
     }
 
 
-    /** turns a basicClause into an equivalence class. <br/>
-     * A true literal causes all other literals to become true <br/>
-     * A false literal causes all other literals to become false <br/>
-     * p &lt;=&gt; -p is a contradiction.<br/>
-     * A double literal p,p is ignored.<br/>
-     * p,q,r and p -&gt; not r  causes all literals to become false.<br/>
+    /** turns a basicClause into an equivalence class. <br>
+     * A true literal causes all other literals to become true <br>
+     * A false literal causes all other literals to become false <br>
+     * p &lt;=&gt; -p is a contradiction.<br>
+     * A double literal p,p is ignored.<br>
+     * p,q,r and p -&gt; not r  causes all literals to become false.<br>
      * The corresponding observers are called.
      *
      * @param basicClause [clause-problemId,typenumber,literal1,...]
@@ -96,7 +96,7 @@ public class EquivalenceClasses {
         for(int i = 3; i < basicClause.length; ++i) {addEquivalence(id,representative,basicClause[i]);}}
 
 
-    /** joins a new equivalence to the classes.
+    /** joins a new equivalence to the classes.<br>
      * If one of the literals is already in an equivalence class, the other literal becomes also a  member of this class,
      * otherwise a new class is formed.
      *
@@ -134,7 +134,7 @@ public class EquivalenceClasses {
         return eqClass;
     }
 
-    /** This method is used to add an equivalence class which has been derived in the Implication DAG.
+    /** This method is used to add an equivalence class which has been derived in the Implication DAG.<br>
      *  None of the literals is supposed to be true or false.
      *  One of the literals, however, may already be in another equivalence class.
      *

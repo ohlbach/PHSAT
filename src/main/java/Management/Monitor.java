@@ -22,10 +22,10 @@ public class Monitor {
     public Monitor() {}
 
     /** creates a monitor according to the specification.
-     *  The specification may be:<br/>
-     *  - separated [filename]<br/>
-     *  - mixed     [filename]<br/>
-     * 'separated' causes the messages to be collected and printed separately for each thread. <br/>
+     *  The specification may be:<br>
+     *  - separated [filename]<br>
+     *  - mixed     [filename]<br>
+     * 'separated' causes the messages to be collected and printed separately for each thread. <br>
      * If the filename is not given or cannot be opened then the messages are printed to System.out.
      *
      * @param specification

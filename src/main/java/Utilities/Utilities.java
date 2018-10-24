@@ -63,11 +63,11 @@ public class Utilities {
 
 
 
-    /** expands an Integer range into a list of Integers<br/>
-     * The formats are: <br/>
-     * - just an integer<br/>
-     * - a comma-separated list of integers. Ex. 3,5,-10<br/>
-     * - a range from to to. Ex. 3 to 10<br/>
+    /** expands an Integer range into a list of Integers<br>
+     * The formats are: <br>
+     * - just an integer<br>
+     * - a comma-separated list of integers. Ex. 3,5,-10<br>
+     * - a range from to to. Ex. 3 to 10<br>
      * - a range from to to step n. Ex: 3 to 10 step 2  The step must not be negative.
      *
      * @param place for error reporting
@@ -111,10 +111,10 @@ public class Utilities {
             return range;}}
 
 
-    /** expands a Float  range into a list of Integers<br/>
-     * The formats are: <br/>
-     * - just an integer<br/>
-     * - a comma-separated list of integers. Ex. 3.5,5,-10.1<br/>
+    /** expands a Float  range into a list of Integers<br>
+     * The formats are: <br>
+     * - just an integer<br>
+     * - a comma-separated list of integers. Ex. 3.5,5,-10.1<br>
      * - a range from to to step n. Ex: 3.5 to 10.2 step 2.6  The step must not be negative.
      *
      * @param place for error reporting
@@ -146,8 +146,8 @@ public class Utilities {
                 else {return null;}}
             return range;}}
 
-    /** computes the cross product of the given list.<br/>
-     * Example: [1,2] x [3,4] x {5,6] yields <br/>
+    /** computes the cross product of the given list.<br>
+     * Example: [1,2] x [3,4] x {5,6] yields <br>
      * [[1, 3, 5], [1, 4, 5], [2, 3, 5], [2, 4, 5], [1, 3, 6], [1, 4, 6], [2, 3, 6], [2, 4, 6]]
      *
      *
@@ -205,8 +205,8 @@ public class Utilities {
 
     /** adds a new list to an already computed cross product
      *
-     * @param list1
-     * @param list2
+     * @param list1 a list
+     * @param list2 a list
      * @return the new cross product
      */
     private static ArrayList<ArrayList<Object>> addCrossProduct(ArrayList<ArrayList<Object>> list1, ArrayList<Object> list2) {
@@ -221,8 +221,8 @@ public class Utilities {
 
     /** adds a single element to an already computed cross product.
      *
-     * @param list1
-     * @param n
+     * @param list1 a list
+     * @param n     an object
      * @return the new cross product.
      */
     private static ArrayList<ArrayList<Object>> addProductElement(ArrayList<ArrayList<Object>> list1, Object n) {
@@ -304,6 +304,7 @@ public class Utilities {
 
     /** computes the intersection of to tree sets
      *
+     * @param <T> a class
      * @param set1 a TreeSet
      * @param set2 a TreeSet
      * @return a list of intersecting objects, or null
@@ -439,6 +440,16 @@ public class Utilities {
             if(list == null){list =  (T[])Array.newInstance(item[0].getClass(),collection.size());}
             list[i++] = item[n];}
         return list;}
+
+    /** checks if the array contains the item
+     *
+     * @param array an int-array
+     * @param item an integer
+     * @return the position of the item in the array, or -1
+     */
+    public static int contains(int[] array, int item) {
+        for(int i = 0; i < array.length; ++i) {if(array[i] == item) {return i;}}
+        return -1;}
 
 
 

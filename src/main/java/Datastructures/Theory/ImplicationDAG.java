@@ -13,7 +13,7 @@ import java.util.function.Consumer;
  *  For an implication 'p -&gt; q' the converse '-q -&gt; -q' is also automatically inserted.
  *  The DAG avoids cycles and inconsistencies.
  *  For example, 'p -&gt; q' and '-p -&gt; q' yields 'q' as a new derived literal.
- *  <br/>
+ *  <br>
  *  The methods are synchronised with read-write locks.
  *
  * Created by ohlbach on 26.09.2018.

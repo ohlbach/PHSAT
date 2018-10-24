@@ -21,6 +21,7 @@ public class Unsatisfiable extends Result {
      *
      * @param model   a model
      * @param clause a false clause in the model
+     * @param symboltable  a symbol table (optional)
      */
     public Unsatisfiable(Model model, int[] clause, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
