@@ -227,9 +227,14 @@ public abstract class Processor {
         if(status == 1) {return null;}
         clauses.makeTrue(literal);
         implicationDAG.newTrueLiteral(literal);
-        return processQueue(literal);}
+        return trueLiteralInQueue(literal);}
 
-    private Result processQueue(int literal) {
+    /** This method traverses the task queue to implement the consequences of a true literal on the remaining tasks
+     *
+     * @param literal a true literal
+     * @return Unsatisfiable or null
+     */
+    private Result trueLiteralInQueue(int literal) {
         ArrayList<Task> tasks = new ArrayList<>();
         for(Task task : taskQueue) {if(task.makeTrue(literal,tasks)) {return new Unsatisfiable(model,literal);}}
         for(Task task : tasks) {taskQueue.add(task);}
@@ -245,12 +250,6 @@ public abstract class Processor {
      * @return null
      */
     public Result processTwoLiteralClause(int literal1, int literal2){
-        int status = model.status(literal1);
-        if(status == 1) {return null;}  // is already true
-        if(status == -1) {taskQueue.add(new Task.OneLiteral(literal2,this)); return null;}
-        status = model.status(literal2);
-        if(status == 1) {return null;}  // is already true
-        if(status == -1) {taskQueue.add(new Task.OneLiteral(literal1,this)); return null;}
         Algorithms.simplifyWithImplication(-literal1,literal2,clauses,implicationDAG);
         implicationDAG.addClause(literal1,literal2);
         return null;}
@@ -286,20 +285,17 @@ public abstract class Processor {
         return null;}
 
     /** makes pure literals true and removes them from the clauses and the implicationDAG.
+     * A literal which seemed to be pure may in fact not be pure if an equivalence has been detected
+     * and removed from the implicationDAG. This has to be checked anew.
      *
      * @param literal a pure literal
      * @return null or Satisfiable
      */
     public Result processPurity(int literal) {
-        int status = model.add(literal);
-        if(status == -1) {
-            Unsatisfiable result = new Unsatisfiable(model,literal);
-            taskQueue.add(new Task.Unsatisfiability(result,this));
-            return result;}
-        if(status == 1) {return null;}
-        clauses.removeLiteral(literal);
-        implicationDAG.newTrueLiteral(literal);
-        if(clauses.isEmpty()) {return Result.makeResult(model,basicClauseList);}
+        if(clauses.isPure(literal) && implicationDAG.isEmpty(-literal)) {
+            clauses.removeLiteral(literal);
+            implicationDAG.newTrueLiteral(literal);
+            if(clauses.isEmpty()) {return Result.makeResult(model,basicClauseList);}}
         return null;}
 
 

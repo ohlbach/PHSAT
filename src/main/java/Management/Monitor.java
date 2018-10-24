@@ -28,7 +28,7 @@ public class Monitor {
      * 'separated' causes the messages to be collected and printed separately for each thread. <br>
      * If the filename is not given or cannot be opened then the messages are printed to System.out.
      *
-     * @param specification
+     * @param specification 'separated' or 'mixed'
      * @param errors for error messages.
      * @param warnings for warnings.
      */

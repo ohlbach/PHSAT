@@ -250,7 +250,7 @@ public class RandomWalker extends Solver {
 
     /** flips the truth value of the predicate and updates the predicateQueue
      *
-     * @param predicate
+     * @param predicate to be flipped
      */
     private void flip(int predicate) {
         implicationDAG.apply(-rwModel.status[predicate]*predicate,true,(p -> {

@@ -29,18 +29,30 @@ public class EquivalenceClasses {
     /** reports new equivalences */
     private ArrayList<BiConsumer<Integer,Integer>> equivalenceObservers = new ArrayList();
 
-    /** adds a true literal observer */
+    /** adds a true literal observer
+     *
+     * @param observer to be added*/
     public synchronized void addTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.add(observer);}
-    /** adds an unsatisfiability observer */
+    /** adds an unsatisfiability observer
+     *
+     * @param observer to be added*/
     public synchronized void addUnsatisfiabilityObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.add(observer);}
-    /** adds an observer for equivalences. */
+    /** adds an observer for equivalences.
+     *
+     * @param observer to be added*/
     public synchronized void addEquivalenceObserver(BiConsumer<Integer,Integer> observer) {equivalenceObservers.add(observer);}
 
-    /** removes a true literal observer */
+    /** removes a true literal observer
+     *
+     * @param observer to be added*/
     public synchronized void removeTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.remove(observer);}
-    /** removes an unsatisfiability observer */
+    /** removes an unsatisfiability observer
+     *
+     * @param observer to be added*/
     public synchronized void removeUnsatisfiabilityObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.remove(observer);}
-    /** removes an observer for equivalences. */
+    /** removes an observer for equivalences.
+     *
+     * @param observer to be added*/
     public synchronized void removeEquivalenceObserver(BiConsumer<Integer,Integer> observer) {equivalenceObservers.remove(observer);}
 
     /** generates a new instance.
@@ -103,6 +115,7 @@ public class EquivalenceClasses {
      * @param id       for identifying a new class
      * @param literal1 a literal
      * @param literal2 a literal
+     * @return an equivalence class or null
      */
     public Clause addEquivalence(String id, int literal1, int literal2) {
         initialize();

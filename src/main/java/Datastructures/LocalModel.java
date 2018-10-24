@@ -143,7 +143,7 @@ public class LocalModel {
 
     /** checks if the literal is in the model.
      *
-     * @param literal
+     * @param literal a literal
      * @return true if the model contains the literal.
      */
     public boolean contains(int literal) {

@@ -1,7 +1,6 @@
 package Datastructures.Theory;
 
 import Datastructures.Symboltable;
-import com.sun.javafx.sg.prism.NGShape;
 
 import java.util.*;
 import java.util.concurrent.locks.Lock;
@@ -51,18 +50,30 @@ public class ImplicationDAG {
                 newNode.downNodes = downNodes;}}
         return newDag;}
 
-    /** adds a true literal observer */
+    /** adds a true literal observer
+     *
+     * @param observer to be added*/
     public synchronized void addTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.add(observer);}
-    /** adds an implication observer */
+    /** adds an implication observer
+     *
+     * @param observer to be added*/
     public synchronized void addImplicationObserver(BiConsumer<Integer,Integer> observer) {implicationObservers.add(observer);}
-    /** adds an observer for equivalence classes. */
+    /** adds an observer for equivalence classes.
+     *
+     * @param observer to be added*/
     public synchronized void addEquivalenceObserver(Consumer<int[]> observer) {equivalenceObservers.add(observer);}
 
-    /** removes a true literal observer */
+    /** removes a true literal observer
+     *
+     * @param observer to be added*/
     public synchronized void removeTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.remove(observer);}
-    /** removes an implication observer */
+    /** removes an implication observer
+     *
+     * @param observer to be added*/
     public synchronized void removeImplicationObserver(BiConsumer<Integer,Integer> observer) {implicationObservers.remove(observer);}
-    /** removes an observer for equivalence classes. */
+    /** removes an observer for equivalence classes.
+     *
+     * @param observer to be added*/
     public synchronized void removeEquivalenceObserver(Consumer<int[]> observer) {equivalenceObservers.remove(observer);}
 
 
@@ -70,7 +81,9 @@ public class ImplicationDAG {
     public void readLock() {readLock.lock();}
     public void readUnLock() {readLock.unlock();}
 
-    /** checks if there are no root nodes. */
+    /** checks if there are no root nodes.
+     *
+     * @return true if the DAG is empty*/
     public boolean isEmpty() {return roots.isEmpty();}
 
     /** returns true if no implied literals have been registered
@@ -200,7 +213,9 @@ public class ImplicationDAG {
         disconnect(trueNode);
         removeFalseLiteral(-trueNode.literal);}
 
-    /** disconnects the node form the DAG */
+    /** disconnects the node form the DAG
+     *
+     * @param node the node to be disconnected*/
     private void disconnect(ImplicationNode node) {
         if(node.upNodes != null) {
             for(ImplicationNode upNode : node.upNodes) {

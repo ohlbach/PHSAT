@@ -29,18 +29,31 @@ public class DisjointnessClasses {
     /** reports new true literals */
     private ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList();
 
-    /** adds a true literal observer */
+
+    /**  adds a true literal observer
+     *
+     * @param observer to be added*/
     public synchronized void addTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.add(observer);}
-    /** adds an unsatisfiability observer */
+    /** adds an unsatisfiability observer
+     *
+     * @param observer to be added*/
     public synchronized void addUnsatisfiabilityObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.add(observer);}
-    /** adds an observer for disjointnesses. */
+    /** adds an observer for disjointnesses.
+     *
+     * @param observer to be added*/
     public synchronized void addDisjointnessObserver(Consumer<Clause> observer) {disjointnessObservers.add(observer);}
 
-    /** removes a true literal observer */
+    /** removes a true literal observer
+     *
+     * @param observer to be added*/
     public synchronized void removeTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.remove(observer);}
-    /** removes an unsatisfiability observer */
+    /** removes an unsatisfiability observer
+     *
+     * @param observer to be added*/
     public synchronized void removeUnsatisfiabilityObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.remove(observer);}
-    /** removes an observer for disjointnesses. */
+    /** removes an observer for disjointnesses.
+     *
+     * @param observer to be added*/
     public synchronized void removeDisjointnessObserver(Consumer<Clause> observer) {disjointnessObservers.remove(observer);}
 
     /** generates a new instance.
@@ -134,9 +147,9 @@ public class DisjointnessClasses {
 
     /** tries to join two disjoint literals to existing disjointness classes.
      *
-     * @param literal1
-     * @param literal2
-     * @return
+     * @param literal1 a literal
+     * @param literal2 a literal
+     * @return true if a class has been found.
      */
     private boolean addToExisting(int literal1,int literal2) {
         boolean found = false;

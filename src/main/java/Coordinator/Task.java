@@ -6,13 +6,12 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Utilities.Utilities;
 
-import javax.rmi.CORBA.Util;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-/** The purpose of this class and its subclasses is to fill a Priority Chain with prioritizes task to be executed.
+/** The purpose of this class and its subclasses is to fill a Priority Chain with prioritizes tasks to be executed.
  * The smaller the priority the earlier the tasks are executed.
+ * <br>
  * Created by ohlbach on 10.10.2018.
  */
 public abstract class Task {
@@ -20,7 +19,7 @@ public abstract class Task {
     public int priority;
     /** the processor which executes the task */
     public Processor processor;
-
+    /** a task may become obsolete. Then ignore should become true */
     public boolean ignore = false;
 
     /** constructs a task
@@ -50,12 +49,21 @@ public abstract class Task {
      * Because of priority 0 it is moved to the front of the task queue
      */
     public static class Unsatisfiability extends Task {
-        Unsatisfiable unsatisfiable;
+        private Unsatisfiable unsatisfiable;
 
+        /** creates a task signalling an unsatisfiability.
+         * It gets priority 0 and is therefore moved to the front of the priority queue.
+         *
+         * @param unsatisfiable an Unsatisfiability object
+         * @param processor      which generated the unsatisfiability
+         */
         public Unsatisfiability(Unsatisfiable unsatisfiable, Processor processor) {
             super(0, processor);
             this.unsatisfiable = unsatisfiable;}
 
+        /**
+         * @return the Unsatisfiable object
+         */
         public Result execute(){return unsatisfiable;}
 
         public String toString() {
@@ -65,12 +73,21 @@ public abstract class Task {
      * Because of priority 0 it is moved to the front of the task queue
      */
     public static class Satisfiability extends Task {
-        Satisfiable satisfiable;
+        private Satisfiable satisfiable;
 
+        /** creates a task signalling a satisfiability.
+         * It gets priority 0 and is therefore moved to the front of the priority queue.
+         *
+         * @param satisfiable a Satisfiability object
+         * @param processor   which generated the unsatisfiability
+         */
         public Satisfiability(Satisfiable satisfiable, Processor processor) {
             super(0, processor);
             this.satisfiable = satisfiable;}
 
+        /**
+         * @return the Satisfiable object
+         */
         public Result execute(){return satisfiable;}
 
         public String toString() {
@@ -81,16 +98,34 @@ public abstract class Task {
     /** It contains a newly derived unit literal.
      */
     public static class OneLiteral extends Task {
-        int literal;
+        /** the unit literal */
+        private int literal;
+
+        /** constructs a unit-literal task.
+         * It gets priority 1
+         *
+         * @param literal   the unit literal
+         * @param processor which generated the unit literal
+         */
         public OneLiteral(int literal, Processor processor) {
             super(1, processor);
             this.literal = literal;}
 
+        /** the unit literal may have become true or false in the meantime
+         *
+         * @param trueLiteral a true literal
+         * @param tasks   for adding new tasks
+         * @return true if a contradiction was detected
+         */
         public boolean makeTrue(int trueLiteral, ArrayList<Task> tasks) {
             if(literal == trueLiteral) {ignore = true; return false;}
             if(literal == -trueLiteral) {return true;}
             return false;}
 
+        /** calls the processor's processOneLiteralClause method
+         *
+         * @return Un/Satisfiable if this has ben detected, otherwise null
+         */
         public Result  execute() {return processor.processOneLiteralClause(literal);}
 
         public String toString() {
@@ -99,12 +134,25 @@ public abstract class Task {
     /** It contains a newly derived equivalence class
      */
     public static class Equivalence extends Task {
-        int[] equivalences;
+        /** the equivalence class. The first literal servs as representative */
+        private int[] equivalences;
 
+        /** constructs an Equivalence Task
+         *
+         * @param equivalences  an equivalence class
+         * @param processor which execute the equivalence processing
+         */
         public Equivalence(int[] equivalences, Processor processor) {
             super(3, processor);
             this.equivalences = equivalences;}
 
+        /** Some of the literals in the equivalence class may have become true or false in the meantime.
+         * In this case the other literals in the class become also true/false.
+         *
+         * @param trueLiteral    a true literal
+         * @param tasks   for adding new tasks
+         * @return false
+         */
             public boolean makeTrue(int trueLiteral, ArrayList<Task> tasks) {
                     int position = Utilities.contains(equivalences,trueLiteral);
                 if(position >= 0) {
@@ -120,6 +168,10 @@ public abstract class Task {
                     return false;}
                 return false;}
 
+        /** asks the processor to deal with the equivalence
+         *
+         * @return Un/Satisfiable if this has been detected, otherwise null
+         */
         public Result execute() {return processor.processEquivalence(equivalences);}
 
         public String toString() {
@@ -129,12 +181,27 @@ public abstract class Task {
     /** It contains a newly derived two-literal clause
      */
     public static class TwoLiteral extends Task {
-        int literal1,literal2;
+        /** the two literals of the clause */
+        private  int literal1,literal2;
+
+        /** constructs a two-literal task
+         *
+         * @param literal1 a literal
+         * @param literal2 a literal
+         * @param processor which has to process the task
+         */
         public TwoLiteral(int literal1, int literal2, Processor processor) {
             super(4, processor);
             this.literal1 = literal1;
             this.literal2 = literal2;}
 
+        /** one or both literals may have become true/false in the meantime.
+         * In this case one-literal task are generated.
+         *
+         * @param trueLiteral a true literal
+         * @param tasks   for adding new tasks
+         * @return false
+         */
         public boolean makeTrue(int trueLiteral, ArrayList<Task> tasks) {
             if(trueLiteral == literal1 || trueLiteral == literal2) {ignore = true; return false;}
             if(trueLiteral == -literal1) {
@@ -147,6 +214,10 @@ public abstract class Task {
                 return false;}
             return false;}
 
+        /** calls the processor to process the two-literal clause
+         *
+         * @return  Un/Satisfiable if this has been detected, otherwise null
+         */
         public Result execute() {return processor.processTwoLiteralClause(literal1,literal2);}
 
         public String toString() {
@@ -156,16 +227,33 @@ public abstract class Task {
     /** It contains a newly shortened clause with at least 3 literals.
      */
     public static class ShortenedClause extends Task {
-        Clause clause;
+        /** a clause which may trigger further simplifications */
+        private  Clause clause;
 
+        /** constructs a task for using the clause to simplify other clauses
+         *
+         * @param clause    a clause with at least 3 literals
+         * @param processor which must process the clause
+         */
         public ShortenedClause(Clause clause, Processor processor) {
             super(5, processor);
             this.clause = clause;}
 
+        /** If a literal in the clause became true or false, it has already been changed.
+         *  If the clause has been removed, the task becomes obsolete.
+         *
+         * @param trueLiteral  ignored
+         * @param tasks   for adding new tasks
+         * @return false
+         */
         public boolean makeTrue(int trueLiteral, ArrayList<Task> tasks) {
             if(clause.removed) {ignore = true;}
             return false;}
 
+        /** calls the processor to use the clause for further simplifications
+         *
+         * @return  Un/Satisfiable if this has been detected, otherwise null
+         */
         public Result execute() {return processor.processLongerClause(clause);}
 
         public String toString() {
@@ -175,16 +263,35 @@ public abstract class Task {
     /** It removes pure clauses
      */
     public static class Purity extends Task {
-        int literal;
+        /** a pure literal */
+        private int literal;
 
+        /** constructs a task for purity removal
+         *
+         * @param literal a pure literal
+         * @param processor which must process the purity removal
+         */
         public Purity(int literal, Processor processor) {
             super(2, processor);}
 
+        /** The pure literal may already have become true or false.
+         * A pure literal may become true, but there may also be models where the literal is false.
+         * Therefore a pure literal which has become false is not a contradiction.
+         * Nevertheless if the literal has become true/false, the task becomes obsolete.
+         *
+         * @param trueLiteral  a true literal
+         * @param tasks   for adding new tasks
+         * @return false
+         */
         public boolean makeTrue(int trueLiteral, ArrayList<Task> tasks) {
             if(literal == trueLiteral || literal == -trueLiteral ) {ignore = true;}
             return false;}
 
-            public Result execute() {return processor.processPurity(literal);}
+        /** calls the processor to to purity removal.
+         *
+          * @return  Un/Satisfiable if this has been detected, otherwise null
+         */
+        public Result execute() {return processor.processPurity(literal);}
 
         public String toString() {
             return "Task: Pure literal: " + literal;}
