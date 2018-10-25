@@ -19,7 +19,6 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 
 import java.util.*;
-import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -98,9 +97,9 @@ public abstract class Processor {
         monitoring                 = monitor.monitoring();}
 
 
-    protected Consumer<CLiteral>            longClauseObserver = cLiteral    -> addTask(makeShortenedClauseTask(cLiteral.clause));
-    protected Consumer<Integer>             oneLiteralObserver = literal     -> addTask(new Task.OneLiteral(literal,this));
-    protected BiConsumer<Integer,Integer>  implicationObserver = (from,to)   -> addTask(new Task.TwoLiteral(-from,to,this));
+    protected Consumer<CLiteral>            longClauseObserver = cLiteral    -> addTask(makeShortenedClauseTask(cLiteral.clause,this));
+    protected Consumer<Integer>            trueLiteralObserver = literal     -> addTask(new Task.TrueLiteral(literal,this));
+    protected BiConsumer<Integer,Integer>  implicationObserver = (from,to)   -> addTask(new Task.BinaryClause(-from,to,this));
     protected Consumer<int[]>              equivalenceObserver = equivalence -> addTask(new Task.Equivalence(equivalence,this));
     protected Consumer<Unsatisfiable> unsatisfiabilityObserver = unsat       -> addTask(new Task.Unsatisfiability(unsat,this));
     protected Consumer<Satisfiable>     satisfiabilityObserver = sat         -> addTask(new Task.Satisfiability(sat,this));
@@ -158,22 +157,15 @@ public abstract class Processor {
 
 
     /** The taskQueue maintains the tasks according to their priority */
-    protected PriorityBlockingQueue<Task> taskQueue =
-            new PriorityBlockingQueue<Task>(10,Comparator.comparingInt(task->task.priority));
+    protected PriorityQueue<Task> taskQueue =
+            new PriorityQueue<Task>(10,Comparator.comparingInt(task->task.priority));
 
-    /** adds a task to the task queue
+    /** adds a task to the task queue.
+     * It notifies a getTask-method in the central processor, which might be waiting for new tasks
      *
      * @param task the task to be added
      */
-    public void addTask(Task task) {taskQueue.add(task);}
-
-    /** generates a task according to the clause's length (empty clauses, unit clauses, binary clauses and longer ones).<br>
-     *
-     * @param clause a clause (maybe empty)
-     * @return  the corresponding task to be added to the task queue
-     */
-    protected Task makeShortenedClauseTask(Clause clause) {
-        return makeShortenedClauseTask(clause,this);}
+    public synchronized void addTask(Task task) {taskQueue.add(task); notify();}
 
     /** generates a task according to the clause's length (empty clauses, unit clauses, binary clauses and longer ones).<br>
      *
@@ -185,9 +177,9 @@ public abstract class Processor {
         switch(clause.size()) {
             case 0:  return new Task.Unsatisfiability(new Unsatisfiable("Clause " + clause.id + " became empty"),processor);
             case 1: clauses.removeClause(clause);
-                return new Task.OneLiteral(clause.getLiteral(0),processor);
+                return new Task.TrueLiteral(clause.getLiteral(0),processor);
             case 2: clauses.removeClause(clause);
-                return new Task.TwoLiteral(clause.getLiteral(0),clause.getLiteral(1),processor);
+                return new Task.BinaryClause(clause.getLiteral(0),clause.getLiteral(1),processor);
             default: return new Task.ShortenedClause(clause,processor);}
     }
 
@@ -270,23 +262,27 @@ public abstract class Processor {
         ((DataStatistics)statistics).TSK_resolved += resolved;
         return null;}
 
-    /**
+    /** The method replaces all members of the equivalence class by their representative.
+     * If equivalences is defined then the new equivalence class is first merged with the older ones.
      *
      * @param equivalents  an equivalence class [representative, literal_1,...]
      * @return null
      */
     public Result processEquivalence(int[] equivalents) {
-        Clause eqClass = equivalences.addEquivalence(equivalents);
-        if(eqClass == null) {return null;}
-        int representative = eqClass.getLiteral(0);
-        int start = representative == equivalents[0] ? 1: 0;
+        int start = 1;
+        int representative = equivalents[0];
+        if(equivalences != null) {
+            Clause eqClass = equivalences.addEquivalence(equivalents);
+            if(eqClass == null) {return null;}  // nothing new
+            representative = eqClass.getLiteral(0);
+            start = (representative == equivalents[0]) ? 1: 0;}
         for(int i = start; i < equivalents.length; ++i) {
             clauses.replaceByRepresentative(representative,equivalents[i]);}
         return null;}
 
-    /** makes pure literals true and removes them from the clauses and the implicationDAG.
+    /** makes pure literals true and removes them from the clauses and the implicationDAG.<br>
      * A literal which seemed to be pure may in fact not be pure if an equivalence has been detected
-     * and removed from the implicationDAG. This has to be checked anew.
+     * and removed from the implicationDAG, but is still in the taskQueue This has to be checked anew.
      *
      * @param literal a pure literal
      * @return null or Satisfiable
@@ -298,6 +294,18 @@ public abstract class Processor {
             if(clauses.isEmpty()) {return Result.makeResult(model,basicClauseList);}}
         return null;}
 
-
+    /** This method removes a literal from a clause if one of the solvers has discovered that the literal can be removed
+     *
+     * @param clauseId  if the clause containing the literal
+     * @param literal   the literal to be removed
+     * @return null
+     */
+    public Result processLiteralRemoval(String clauseId, int literal) {
+        Clause clause = clauses.getClause(clauseId);
+        if(clause == null) {return null;}
+        int position = clause.contains(literal);
+        if(position < 0) {return null;}
+        clauses.removeLiteral(clause.getLiteral(position));
+        return null;}
 
 }

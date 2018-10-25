@@ -17,14 +17,14 @@ import java.util.stream.Stream;
  * It supports inserting clauses, removing clauses and literals, retrieving clauses and literals.
  * A literal index is used to access literals and clauses quickly.
  * Removing literals and replacing them with representatives in an equivalence class can be
- * observed by corresponding consumer functions.
+ * observed by corresponding obseerver functions.
  * <br>
  * The clauses are sorted according to a comparator (default: clause length) <br>
  * The literals in the literal index are also sorted (default: clause length)
  */
 public class ClauseList {
     public int predicates;
-    private final PriorityQueue<Clause>[] clauses;        // the list of clauses
+    private PriorityQueue<Clause>[] clauses;        // the list of clauses
     private final HashMap<String,Clause> id2Clause;      // maps clause ids to disjunctions
     public final LiteralIndex literalIndex;              // maps literals to CLiterals
     public int groups = 1;                               // the total number of clause groups
@@ -39,7 +39,7 @@ public class ClauseList {
 
     /** creates a clause list. The number of disjunctions should be estimated.
      *
-     * @param size       the estimated number of disjunctions
+     * @param size       the estimated number of clauses
      * @param predicates the number of predicates.
      */
     public ClauseList(int size,int predicates) {
@@ -62,6 +62,21 @@ public class ClauseList {
         for(int i = 0; i < groups; ++i) {clauses[i] =  new PriorityQueue<Clause>(comparator[i]);}
     }
 
+    /** clones the entire clause list (without observers)
+     *
+     * @return a clone of the clause list (without observers)
+     */
+    public ClauseList clone() {
+        ClauseList list = new ClauseList(predicates,size());
+        list.groups = groups;
+        list.clauses = new PriorityQueue[clauses.length];
+        for(int group = 0; group < groups; ++group) {
+            list.clauses[group] = new PriorityQueue<>(clauses[group].size(),clauses[group].comparator());}
+        for(int group = 0; group < groups; ++group) {
+            for(Clause clause : clauses[group]) {
+            list.addClause(clause.clone(),group);}}
+        return list;}
+
 
     /** returns the clauses of the given group
      *
@@ -75,13 +90,13 @@ public class ClauseList {
      *
      * @param observer a purity observer
      */
-    public void addPurityObserver(Consumer<Integer> observer) {
+    public synchronized void addPurityObserver(Consumer<Integer> observer) {
         literalIndex.purityObservers.add(observer);}
 
     /** removes a purity observer
      *
      * @param observer a purity observer*/
-    public void removePurityObserver(Consumer<Integer> observer) {
+    public synchronized void removePurityObserver(Consumer<Integer> observer) {
         literalIndex.purityObservers.remove(observer);}
 
 
@@ -89,13 +104,13 @@ public class ClauseList {
      *
      * @param observer a consumer function to be applied to a CLiteral
      */
-    public void addLiteralRemovalObserver(Consumer<CLiteral> observer) {
+    public synchronized void addLiteralRemovalObserver(Consumer<CLiteral> observer) {
         literalRemovalObservers.add(observer);}
 
     /** removes a literal removal observer
      *
      * @param observer an observer*/
-    public void removeLiteralRemovalObserver(Consumer<CLiteral> observer) {
+    public synchronized void removeLiteralRemovalObserver(Consumer<CLiteral> observer) {
         literalRemovalObservers.remove(observer);}
 
 
@@ -104,13 +119,13 @@ public class ClauseList {
      *
      * @param observer a consumer function to be applied to a CLiteral
      */
-    public void addLiteralReplacementObserver(BiConsumer<CLiteral,Boolean> observer) {
+    public synchronized void addLiteralReplacementObserver(BiConsumer<CLiteral,Boolean> observer) {
         literalReplacementObservers.add(observer);}
 
     /** removes a literal replacement observer
      *
      * @param observer an observer*/
-    public void removeLiteralReplacementObserver(BiConsumer<CLiteral,Boolean> observer) {
+    public synchronized void removeLiteralReplacementObserver(BiConsumer<CLiteral,Boolean> observer) {
         literalReplacementObservers.remove(observer);}
 
 
@@ -118,13 +133,13 @@ public class ClauseList {
      *
      * @param observer a consumer function to be applied to a removed clause
      */
-    public void addClauseRemovalObserver(Consumer<Clause> observer) {
+    public synchronized void addClauseRemovalObserver(Consumer<Clause> observer) {
         clauseRemovalObservers.add(observer);}
 
     /** removes a ClauseRemovalObserver
      *
      * @param observer an observer*/
-    public void removeClauseRemovalObserver(Consumer<Clause> observer) {
+    public synchronized void removeClauseRemovalObserver(Consumer<Clause> observer) {
         clauseRemovalObservers.remove(observer);}
 
 
@@ -355,8 +370,16 @@ public class ClauseList {
      */
     public boolean isEmpty() {
         for(int group = 0; group < groups; ++group) {
-            if(clauses[group].size() > 0) {return false;}}
+            if(!clauses[group].isEmpty()) {return false;}}
         return true;}
+
+
+    /** checks if the clause group is empty
+     *
+     * @param group a clause group
+     * @return true if the clause group is empty.
+     */
+    public boolean isEmpty(int group) {return clauses[group].isEmpty();}
 
 
     /** returns all pure literals

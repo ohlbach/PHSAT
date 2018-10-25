@@ -375,6 +375,8 @@ public class ImplicationDAG {
                     ++timestamp; newTrueLiteral((ImplicationNode)node);}}}
         finally{writeLock.unlock();}}
 
+
+
     /** calls all trueLiteralObservers
      *
      * @param trueLiteral a true literal

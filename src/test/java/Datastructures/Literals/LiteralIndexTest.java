@@ -25,7 +25,7 @@ public class LiteralIndexTest {
         assertEquals("[5]",ind.getLiterals(5).toString());
         assertEquals("[-5]",ind.getLiterals(-5).toString());
         assertEquals("[-7, -7]",ind.getLiterals(-7).toString());
-        System.out.println(ind);
+        //System.out.println(ind);
     }
 
     @Test
@@ -49,4 +49,25 @@ public class LiteralIndexTest {
         assertEquals("[-7]",ind.getLiterals(-7).toString());
     }
 
+    @Test
+    public void purity() throws Exception {
+        System.out.println("purity");
+        LiteralIndex ind = new LiteralIndex(10);
+        CLiteral l1 = new CLiteral(5);
+        CLiteral l2 = new CLiteral(-5);
+        CLiteral l3 = new CLiteral(6);
+        CLiteral l4 = new CLiteral(-7);
+        CLiteral l5 = new CLiteral(-7);
+        ind.addLiteral(l1);
+        ind.addLiteral(l2);
+        ind.addLiteral(l3);
+        ind.addLiteral(l4);
+        ind.addLiteral(l5);
+        assertTrue(ind.isPure(6));
+        assertFalse(ind.isPure(5));
+        assertFalse(ind.isPure(-6));
+        assertFalse(ind.isPure(8));
+        assertEquals("[6, -7]",ind.pureLiterals().toString());
+
+    }
 }

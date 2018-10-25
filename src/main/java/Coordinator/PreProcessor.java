@@ -21,13 +21,11 @@ import java.util.*;
  * Created by ohlbach on 14.09.2018.
  */
 public class PreProcessor extends Processor {
-    /** collects the statics information for the preprocessor */
-    public PreProcessorStatistics statistics;
 
     /** Constructs the preprocessor
      *
      * @param supervisor        which manages the problem processing
-     * @param globalParameters  some global paramters
+     * @param globalParameters  some global parameters
      * @param problemParameters for specifying the problem
      * @param basicClauseList   the clauses [number,type,literal1,...]
      */
@@ -48,12 +46,12 @@ public class PreProcessor extends Processor {
 
     protected void addObservers() {
         clauses.addLiteralRemovalObserver(longClauseObserver);
-        implicationDAG.addTrueLiteralObserver(oneLiteralObserver);
+        implicationDAG.addTrueLiteralObserver(trueLiteralObserver);
         implicationDAG.addImplicationObserver(implicationObserver);
         implicationDAG.addEquivalenceObserver(equivalenceObserver);
-        equivalences.addTrueLiteralObserver(oneLiteralObserver);
+        equivalences.addTrueLiteralObserver(trueLiteralObserver);
         equivalences.addUnsatisfiabilityObserver(unsatisfiabilityObserver);
-        disjointnesses.addTrueLiteralObserver(oneLiteralObserver);
+        disjointnesses.addTrueLiteralObserver(trueLiteralObserver);
         disjointnesses.addUnsatisfiabilityObserver(unsatisfiabilityObserver);
     }
 
@@ -129,7 +127,7 @@ public class PreProcessor extends Processor {
     public Result addDisjunction(int[] basicClause) {
         Clause clause = makeDisjunction(basicClause);
         if(clause == null) {return null;}
-        taskQueue.add(makeShortenedClauseTask(clause));
+        taskQueue.add(makeShortenedClauseTask(clause,this));
         clauses.addClause(clause);
         return processTasks();}
 
@@ -150,15 +148,15 @@ public class PreProcessor extends Processor {
             if(model.isFalse(literal)) {continue;}
             if(clause.addCLiteral(new CLiteral(literal)) == -1) {clause = null; break;}}
         if(clause == null) {
-            ++statistics.BCL_RedundantClauses;
+            ++((PreProcessorStatistics)statistics).BCL_RedundantClauses;
             return null;}
         if(clause.size() < basicClause.length-2) {
-            statistics.BCL_RedundantLiterals += basicClause.length-2-clause.size();
+            ((PreProcessorStatistics)statistics).BCL_RedundantLiterals += basicClause.length-2-clause.size();
             if(monitoring) {monitor.print(id,"Clause " + Arrays.toString(basicClause) + " shortened to " + clause.toString());}}
         if(clause.isEmpty()) {return clause;}
         int removals = Algorithms.simplifyClause(clause,implicationDAG);
         if(removals != 0) {
-            statistics.BCL_ReplacementResolutions += removals;
+            ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions += removals;
             if(monitoring) {monitor.print(id,"Replacement Resolution removed " + removals + " from clause " + clause.toString());}}
         return clause;}
 

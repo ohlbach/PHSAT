@@ -7,11 +7,9 @@ import Coordinator.Task;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
-import Datastructures.Results.Satisfiable;
-import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.CentralProcessorStatistics;
 import Management.GlobalParameters;
-import Solvers.Reolution.Resolution;
+import Solvers.RandomWalker.Walker;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -20,27 +18,16 @@ import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-/**
+/** This is the superclass of all solver classes.
  * Created by ohlbach on 09.10.2018.
  */
 public abstract class Solver extends Processor {
+
+    /* Static data and methods
+       *********************** */
+
+    /** the list of all solver types */
     public static String[] solvers = new String[]{"walker","resolution"};
-    protected CentralProcessor centralProcessor;
-
-    public Solver(HashMap<String,Object> solverControl, GlobalParameters globalParameters, CentralProcessor centralProcessor) {
-        super(centralProcessor.supervisor,globalParameters,solverControl,centralProcessor.basicClauseList);
-        this.centralProcessor = centralProcessor;}
-
-    /** maps the generator names to the generator classes
-     *
-     * @param name a generator name
-     * @return the generator class, or null
-     */
-    public static Class solverClass(String name) {
-        switch (name) {
-            case "walker":      return Solvers.RandomWalker.class;
-            case "resolution":  return Resolution.class;
-            default: return null;}}
 
     /** checks if the name is a solver name
      *
@@ -51,9 +38,22 @@ public abstract class Solver extends Processor {
         for(String solver : solvers) {if(name.equals(solver)) {return true;}}
         return false;}
 
-    /** collects all the help-strings for all generator classes
+
+    /** maps the solver names to the solver classes.
+     * This method must be extended when a new solver class is added.
      *
-     * @return the collected help string for all generator classes
+     * @param name a solver name
+     * @return the solver class, or null
+     */
+    public static Class solverClass(String name) {
+        switch (name) {
+            case "walker":      return Walker.class;
+            case "resolution":  return Solvers.Resolution.Resolution.class;
+            default: return null;}}
+
+    /** collects all the help-strings for all solver classes
+     *
+     * @return the collected help string for all solver classes
      */
     public static String help() {
         StringBuilder st = new StringBuilder();
@@ -66,7 +66,7 @@ public abstract class Solver extends Processor {
     /** returns the help-string for the generator with the given name
      *
      * @param name a generator name
-     * @return its hel-string
+     * @return its help-string
      */
     public static String help(String name) {
         Class clazz = solverClass(name);
@@ -76,6 +76,7 @@ public abstract class Solver extends Processor {
             return (String)helper.invoke(null);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
+
 
     /** parses the string-type parameters into sequences of objects
      *
@@ -95,68 +96,107 @@ public abstract class Solver extends Processor {
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
 
-    /** parses the string-type parameters into sequences of objects
+    /** constructs a new solver of the given type
      *
-     * @param name       the solver type
+     * @param type       the solver type
      * @param id         the id of the solver
      * @param solverParameters a key-value map with parameters as strings
      * @param globalParameters the global parameters
      * @param centralProcessor the central processor
-     * @return           a list of key-value maps where the values are objects.
+     * @return           a new solver
      */
-    public static Solver construct(String name, Integer id, GlobalParameters globalParameters,
+    public static Solver construct(String type, Integer id, GlobalParameters globalParameters,
                                    HashMap<String,Object> solverParameters, CentralProcessor centralProcessor) {
-        Class clazz = solverClass(name);
+        Class clazz = solverClass(type);
         try{
             Constructor constructor = clazz.getConstructor(Integer.class,HashMap.class,HashMap.class, PreProcessor.class);
             return (Solver)constructor.newInstance(id,solverParameters,globalParameters,centralProcessor);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
 
-    protected Consumer<Integer>  oneLiteralObserverBoth =
-            literal ->          {addTask(new Task.OneLiteral(literal,this));
-                centralProcessor.addTask(new Task.OneLiteral(literal,centralProcessor));
+
+    /* Instance data and methods
+       *************************  */
+
+    /** all solvers can report intermediate results to the centralProcess, and observe new results there.*/
+    protected CentralProcessor centralProcessor;
+
+    /** constructs a solver as an instance of the Processor class.
+     *
+     * @param solverControl    the control parameters for the solver
+     * @param globalParameters the global control parameters
+     * @param centralProcessor the central processor.
+     */
+    public Solver(HashMap<String,Object> solverControl, GlobalParameters globalParameters, CentralProcessor centralProcessor) {
+        super(centralProcessor.supervisor,globalParameters,solverControl,centralProcessor.basicClauseList);
+        this.centralProcessor = centralProcessor;}
+
+
+    /** This observer is called when a literal has become true.
+     * It inserts a TrueLiteral task into centralProcessor's task queue.
+     */
+    protected Consumer<Integer> trueLiteralObserverToCentral =
+            literal -> {centralProcessor.addTask(new Task.TrueLiteral(literal,centralProcessor));
                 ((CentralProcessorStatistics)centralProcessor.statistics).CP_UnitClausesReceived++;};
 
+    /** This observer is called when a new implication is inserted into the implicationDAG
+     *  It inserts BinaryClause tasks locally and in the centralProcessor's task queue.
+     */
     protected BiConsumer<Integer,Integer> implicationObserverBoth =
-            (from, to) ->       {addTask(new Task.TwoLiteral(-from,to,this));
-                centralProcessor.addTask(new Task.TwoLiteral(-from,to,centralProcessor));
+            (from, to) -> {addTask(new Task.BinaryClause(-from,to,this));
+                centralProcessor.addTask(new Task.BinaryClause(-from,to,centralProcessor));
                 ((CentralProcessorStatistics)centralProcessor.statistics).CP_ImplicationsReceived++;};
 
-    protected Consumer<CLiteral> longClauseObserverBoth =
+    /** This observer is called when a new equivalence class is derived in the implicationDAG
+     *  It inserts Equivalence tasks locally and in the centralProcessor's task queue.
+     */
+    protected Consumer<int[]> equivalenceObserverBoth =
+            equivalence -> {addTask(new Task.Equivalence(equivalence,this));
+                centralProcessor.addTask(new Task.Equivalence(equivalence,centralProcessor));
+                ((CentralProcessorStatistics)centralProcessor.statistics).CP_EquivalencesReceived++;};
+
+    /** This observer is called when a literal is removed from a clause.
+     *  It inserts a task locally and a LiteralRemoval task in the centralProcessor's task queue.
+     */
+    protected Consumer<CLiteral> literalRemovalObserverBoth =
             cLiteral    -> {
                 Clause clause = cLiteral.clause;
-                addTask(makeShortenedClauseTask(clause));
+                addTask(makeShortenedClauseTask(clause,this));
                 if(clause.input)
-                    centralProcessor.addTask(makeShortenedClauseTask(clause,centralProcessor));
-                ((CentralProcessorStatistics)centralProcessor.statistics).CP_ShortenedClausesReceived++;};
+                    centralProcessor.addTask(new Task.LiteralRemoval(clause.id,cLiteral.literal,centralProcessor));
+                    ((CentralProcessorStatistics)centralProcessor.statistics).CP_ShortenedClausesReceived++;};
 
-    protected Consumer<Unsatisfiable> unsatisfiabilityObserverBoth =
-            unsat ->            {addTask(new Task.Unsatisfiability(unsat,this));
-                centralProcessor.addTask(new Task.Unsatisfiability(unsat,centralProcessor));};
-
-    protected Consumer<Satisfiable> satisfiabilityObserverBoth =
-            sat ->              {addTask(new Task.Satisfiability(sat,this));
-                centralProcessor.addTask(new Task.Satisfiability(sat,centralProcessor));};
-
+    /** This method adds observers to the local process and the centralProcessor.
+     * The centralProcessor is observed and may insert tasks in the local task queue
+     */
     protected void addObservers() {
-        centralProcessor.model.addNewTruthObserver(oneLiteralObserver);
+        // these observers cause local tasks to be generated
+        centralProcessor.model.addTrueLiteralObserver(trueLiteralObserver);
         centralProcessor.implicationDAG.addImplicationObserver(implicationObserver);
         centralProcessor.implicationDAG.addEquivalenceObserver(equivalenceObserver);
 
-        clauses.addLiteralRemovalObserver(longClauseObserverBoth);
+        model.addTrueLiteralObserver(trueLiteralObserverToCentral);
+        clauses.addLiteralRemovalObserver(literalRemovalObserverBoth);
         clauses.addPurityObserver(purityObserver);
-        implicationDAG.addTrueLiteralObserver(oneLiteralObserverBoth);
+        implicationDAG.addTrueLiteralObserver(trueLiteralObserver);
         implicationDAG.addImplicationObserver(implicationObserverBoth);
-        implicationDAG.addEquivalenceObserver(equivalenceObserver);}
+        implicationDAG.addEquivalenceObserver(equivalenceObserverBoth);}
 
+    /** This method removes the observers from the centralProcessor.
+     *  The local observer automatically become garbage at the end.
+     */
     protected void removeObservers() {
-        centralProcessor.model.removeNewTruthObserver(oneLiteralObserver);
+        centralProcessor.model.removeTrueLiteralObserver(trueLiteralObserver);
         centralProcessor.implicationDAG.removeImplicationObserver(implicationObserver);
         centralProcessor.implicationDAG.removeEquivalenceObserver(equivalenceObserver);
     }
 
 
+    /** The key method, which has to be implemented by the solvers.
+     * It is supposed to find a model or a contradiction in the clauses.
+     *
+     * @return Un/Satisfiable or null
+     */
     public abstract Result solve();
 
 

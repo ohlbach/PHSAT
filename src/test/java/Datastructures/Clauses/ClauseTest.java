@@ -1,7 +1,6 @@
 package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
-import Datastructures.LocalModel;
 import Datastructures.Symboltable;
 import org.junit.Test;
 

@@ -1,13 +1,10 @@
 package Management;
 
-import Datastructures.LocalModel;
+import Datastructures.Theory.Model;
 import Utilities.Utilities;
-import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-
-import static org.junit.Assert.*;
 
 /**
  * Created by ohlbach on 10.09.2018.
@@ -18,7 +15,7 @@ public class SolverControlTest {
     public static class TestSolver {
         public TestSolver(Integer n) {}
 
-        public static void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, LocalModel globalModel,
+        public static void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, Model globalModel,
                                  StringBuffer errors, StringBuffer warnings) {
             st.append("SOLVED "+solverControl.get("ID")+ " " +problemControl.get("size")+"\n");}}
 

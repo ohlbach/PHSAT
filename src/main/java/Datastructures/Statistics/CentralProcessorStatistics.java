@@ -22,6 +22,12 @@ public class CentralProcessorStatistics extends DataStatistics {
     @Description("number of shortened input clauses received by the central processor")
     public int CP_ShortenedClausesReceived = 0;
 
+    @Description("number of tasks to be executed")
+    public int CP_Tasks = 0;
+
+    @Description("number of equivalences received")
+    public int CP_EquivalencesReceived = 0;
+
     /** creates a new CentralProcessorStatistics object
      *
      * @param processor for which the statistics is collected.

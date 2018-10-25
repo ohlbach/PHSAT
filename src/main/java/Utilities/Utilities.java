@@ -451,6 +451,13 @@ public class Utilities {
         for(int i = 0; i < array.length; ++i) {if(array[i] == item) {return i;}}
         return -1;}
 
+    /** maps a filename to the entire path in IntelliJ's resources directory
+     *
+     * @param filename a filename
+     * @return the entire path to the file.
+     */
+    public static String resourceFile(String filename) {
+        return Paths.get(System.getProperty("user.dir"),"src", "main", "resources", filename).toString();}
 
 
 

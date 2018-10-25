@@ -1,4 +1,4 @@
-package Solvers.Reolution;
+package Solvers.Resolution;
 
 import Coordinator.Processor;
 import Datastructures.Statistics.DataStatistics;

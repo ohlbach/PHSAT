@@ -18,12 +18,16 @@ public class Clause {
     public ArrayList<CLiteral> cliterals;
     /** a timestamp to be used by corresponding algorithms */
     public int timestamp = 0;
-
+    /** indicates if the clause is an input clause or not */
     public boolean input = true;
+    /** indicates that the clause has been removed */
     public boolean removed = false;
+    /** for sorting clauses, for example in a priority queue */
     public int priority = 0;
 
+    /** compares clauses according to their length */
     public static Comparator<Clause> sizeComparator = Comparator.comparingInt(clause->clause.size());
+    /** compares clauses accoding to their priority */
     public static Comparator<Clause> priorityComparator = Comparator.comparingInt(clause->clause.priority);
 
     /** constructs a clause
@@ -65,7 +69,7 @@ public class Clause {
      *
      * @param id        the new id
      * @param cliterals the literals
-     * @param priority  its prioroty
+     * @param priority  its priority
      * @param input     signals if the clause is an input clause or not
      */
     public Clause(String id, ArrayList<CLiteral> cliterals, int priority, boolean input) {
@@ -101,7 +105,7 @@ public class Clause {
     /** checks if the literal is in the clause
      *
      * @param literal a literal
-     * @return true if the literal is in the clause.
+     * @return the literal's position in the clause, or -1
      */
     public int contains(int literal) {
         for(int i = 0; i < cliterals.size(); ++i) {
@@ -132,31 +136,12 @@ public class Clause {
         cliterals.add(cliteral);
         cliteral.setClause(this,position);}
 
-    /** adds a cliterals to the end of the clause, without checking for double literals and tautologies.
-     *
-     * @param cLiterals the literals to be added.
-     */
-    public void addCLiteralsDirectly(CLiteral... cLiterals) {
-        for(CLiteral cliteral : cLiterals) {
-            int position = cliterals.size();
-            cliterals.add(cliteral);
-            cliteral.setClause(this,position);}}
-
-
-
     /** removes a cliteral from the clause.
      *
      * @param cLiteral the literal to be removed.
      */
     public void removeLiteral(CLiteral cLiteral) {
-        int position = cLiteral.position;
-        int size = cliterals.size();
-        assert position >= 0 && position < size;
-        for(int pos = position; pos < size-1; ++pos) {
-            CLiteral nextliteral = cliterals.get(pos+1);
-            nextliteral.setClause(this,pos);
-            cliterals.set(pos,nextliteral);};
-        cliterals.remove(size-1);}
+        removeLiteralAtPosition(cLiteral.position);}
 
     /** removes a cliteral at the given position from the clause.
      *
@@ -167,7 +152,7 @@ public class Clause {
         assert position >= 0 && position < size;
         for(int pos = position; pos < size-1; ++pos) {
             CLiteral nextliteral = cliterals.get(pos+1);
-            nextliteral.setClause(this,pos);
+            nextliteral.position = pos;
             cliterals.set(pos,nextliteral);}
         cliterals.remove(size-1);}
 

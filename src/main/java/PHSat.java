@@ -3,6 +3,7 @@ import Management.Controller;
 import Management.GlobalParameters;
 import Management.KVParser;
 import Solvers.Solver;
+import Utilities.Utilities;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -34,8 +35,8 @@ public class PHSat {
      */
     public static void  main(String[] args) {
         long start = System.currentTimeMillis();
-        args = new String[]{"C:\\Users\\ohlbach\\IdeaProjects\\PHSAT\\src\\main\\resources\\Purity.cnf"};
         //args = new String[]{"help","global"};
+        args = new String[]{Utilities.resourceFile("Purity.cnf")};
         KVParser kvParser = new KVParser("global", "problem", "solver");
         boolean goon = false;
         if(args.length > 0) {

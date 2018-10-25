@@ -101,12 +101,15 @@ public class LiteralIndex {
         PriorityQueue<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null ? 0 : list.size();}
 
-    /** checks if the literal is pure, i.e. there are no complementary literals
+    /** checks if the literal is pure, i.e. there are no complementary literals.
+     *  If the literal is not at all in the index, it is not considered pure.
      *
      * @param literal a literal
      * @return true if the literal is pure, i.e. there are no complementary literals.
      */
     public boolean isPure(int literal) {
+        int predicate = Math.abs(literal);
+        if(posOccurrences[predicate] == null && negOccurrences[predicate] == null) {return false;}
         PriorityQueue<CLiteral> occurrence = (literal > 0) ? negOccurrences[literal] : posOccurrences[-literal];
         return occurrence == null || occurrence.isEmpty();}
 
