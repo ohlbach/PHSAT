@@ -455,28 +455,70 @@ public class Utilities {
     public static String resourceFile(String filename) {
         return Paths.get(System.getProperty("user.dir"),"src", "main", "resources", filename).toString();}
 
-    public static void allSubsets(int n, Predicate<int[]> consumer) {
+    /** This method applies the predicate to all subsets of [0,...,n-1] (e.g. index sets for arrays).
+     * The method goes from larger subsets to smaller subsets.
+     * As soon as a predicate returns true for a particular index set, no further subsets of this index set are tested.
+     * Therefore only the largest subsets for which the predicate returns true are tested.
+     *
+     * @param n         the size of the index set
+     * @param predicate the predicate to be applied to the subsets.
+     */
+    public static void allSubsets(int n, Predicate<int[]> predicate) {
+        HashSet<String> tuples = new HashSet<>();
         int[] indices = new int[n];
         for(int i = 0;  i < n; ++i) {indices[i] = i;}
-        if(consumer.test(indices)) {return;}
-        allSubsetsRec(indices,consumer);
-    }
-    private static void allSubsetsRec(int[] indices, Predicate<int[]> consumer) {
+        if(predicate.test(indices)) {return;}
+        allSubsetsRec(indices,predicate, tuples);}
+
+    /** This is the recursive part of the allSubsets method
+     *
+     * @param indices    the current index set to be tested (with all its subsets)
+     * @param predicate  the predicate to be applied
+     * @param tuples     stores blocked index sets
+     */
+    private static void allSubsetsRec(int[] indices, Predicate<int[]> predicate, HashSet<String> tuples) {
         int n = indices.length;
         if(n == 1) {return;}
         int[] newIndices = new int[n-1];
         for(int i = 1; i < n; ++i) {newIndices[i-1] = indices[i];}
-        if(consumer.test(newIndices)) {return;}
-        for(int i = 0; i < n-1; ++i) {
+        String st = Arrays.toString(newIndices);
+        if(tuples.contains(st)){return;}
+        tuples.add(st);
+        if(predicate.test(newIndices)) {blockSubsets(newIndices,tuples); return;}
+        for(int i = 0; i < n-1; ++i) {  // breadth first
             newIndices[i] = indices[i];
-            if(consumer.test(newIndices)) {return;}}
+            st = Arrays.toString(newIndices);
+            if(tuples.contains(st)){continue;}
+            tuples.add(st);
+            if(predicate.test(newIndices)) {blockSubsets(newIndices,tuples); continue;}}
         for(int i = 1; i < n; ++i) {newIndices[i-1] = indices[i];}
         for(int i = 0; i < n-1; ++i) {
             newIndices[i] = indices[i];
-            allSubsetsRec(newIndices,consumer);}}
+            allSubsetsRec(newIndices,predicate, tuples);}}
+
+    /** blocks all subset of the given index set
+     *
+     * @param indices  the current index to be blocked, with all its subsets
+     * @param tuples   all subsets are put into this set.
+     */
+    private static void blockSubsets(int[] indices, HashSet<String> tuples) {
+        int n = indices.length;
+        if(n == 1) {return;}
+        String st = Arrays.toString(indices);
+        tuples.add(st);
+        int[] newIndices = new int[n-1];
+        for(int i = 1; i < n; ++i) {newIndices[i-1] = indices[i];}
+        tuples.add(Arrays.toString(newIndices));
+        for(int i = 0; i < n-1; ++i) {
+            newIndices[i] = indices[i];
+            tuples.add(Arrays.toString(newIndices));
+            blockSubsets(newIndices,tuples);}}
+
 
 
     public static void  main(String[] args) {
-        allSubsets(5,(i -> {System.out.println(Arrays.toString(i)); return false;}));}
+        allSubsets(6,(i -> {System.out.println(Arrays.toString(i));
+            return Utilities.contains(i,2) < 0 ||  Utilities.contains(i,3) < 0;}));
+        }
 }
 
