@@ -1,16 +1,22 @@
 package Datastructures.Theory;
 
+import org.junit.Test;
+import org.omg.PortableServer.IMPLICIT_ACTIVATION_POLICY_ID;
+
+import java.util.Arrays;
+
+import static org.junit.Assert.*;
 /**
  * Created by Ohlbach on 21.09.2018.
  */
 public class EquivalenceClassesTest {
 
-/*
+
     @Test
     public void addEquivalence1() throws Exception {
         System.out.println("addEquivalence no observers");
         Model model = new Model(10);
-        ImplicationGraph ig = new ImplicationGraph(10);
+        ImplicationDAG ig = new ImplicationDAG();
         EquivalenceClasses ec = new EquivalenceClasses(model,ig);
         ec.addEquivalence("ec1",1,2);
         assertEquals(1,ec.mapToRepresentative(2));
@@ -26,10 +32,10 @@ public class EquivalenceClassesTest {
     public void addEquivalence2() throws Exception {
         System.out.println("addEquivalence with observers");
         Model model = new Model(10);
-        ImplicationGraph ig = new ImplicationGraph(10);
+        ImplicationDAG ig = new ImplicationDAG();
         EquivalenceClasses ec = new EquivalenceClasses(model,ig);
         StringBuffer st = new StringBuffer();
-        ec.equivalenceObservers.add((lit1,lit2)->st.append(lit1+"="+lit2+"  "));
+        ec.addEquivalenceObserver((lit1,lit2)->st.append(lit1+"="+lit2+"  "));
         ec.addEquivalence("ec1",1,2);
         assertEquals(1,ec.mapToRepresentative(2));
         assertEquals(1,ec.mapToRepresentative(1));
@@ -45,7 +51,7 @@ public class EquivalenceClassesTest {
     public void addEquivalenceClass1() throws Exception {
         System.out.println("addEquivalenceClass no observers");
         Model model = new Model(10);
-        ImplicationGraph ig = new ImplicationGraph(10);
+        ImplicationDAG ig = new ImplicationDAG();
         EquivalenceClasses ec = new EquivalenceClasses(model,ig);
         ec.addEquivalenceClass(new int[]{11,0,1,2,3});
         assertEquals(1,ec.mapToRepresentative(2));
@@ -61,11 +67,11 @@ public class EquivalenceClassesTest {
     public void addEquivalenceClass2() throws Exception {
         System.out.println("addEquivalenceClass with observers");
         Model model = new Model(20);
-        ImplicationGraph ig = new ImplicationGraph(20);
+        ImplicationDAG ig = new ImplicationDAG();
         EquivalenceClasses ec = new EquivalenceClasses(model,ig);
         StringBuffer st = new StringBuffer();
-        ec.trueLiteralObservers.add(lit->st.append("T "+lit + "  "));
-        ec.unsatisfiabilityObservers.add(us -> st.append(us.getClass().getName()+"  "));
+        ec.addTrueLiteralObserver(lit->st.append("T "+lit + "  "));
+        ec.addUnsatisfiabilityObserver(us -> st.append(us.getClass().getName()+"  "));
         ec.addEquivalenceClass(new int[]{11,0,1,2,3});
         assertEquals(1,ec.mapToRepresentative(2));
         assertEquals(1,ec.mapToRepresentative(3));
@@ -86,11 +92,11 @@ public class EquivalenceClassesTest {
     public void implicationGraph() throws Exception {
         System.out.println("implicationDAG");
         Model model = new Model(10);
-        ImplicationGraph ig = new ImplicationGraph(10);
+        ImplicationDAG ig = new ImplicationDAG();
         EquivalenceClasses ec = new EquivalenceClasses(model, ig);
-        ig.addImplication(1,2);
-        ig.addImplication(2,1);
-        assertEquals(2,ec.mapToRepresentative(1));
+        ig.addClause(1,2);
+        ig.addClause(-2,-1);
+        assertEquals(-1,ec.mapToRepresentative(2));
     }
-    */
+    
 }

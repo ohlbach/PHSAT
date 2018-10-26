@@ -3,8 +3,6 @@ package Datastructures.Theory;
 import Datastructures.Symboltable;
 
 import java.util.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -12,8 +10,6 @@ import java.util.function.Consumer;
  *  For an implication 'p -&gt; q' the converse '-q -&gt; -q' is also automatically inserted.
  *  The DAG avoids cycles and inconsistencies.
  *  For example, 'p -&gt; q' and '-p -&gt; q' yields 'q' as a new derived literal.
- *  <br>
- *  The methods are synchronised with read-write locks.
  *
  * Created by ohlbach on 26.09.2018.
  */
@@ -24,9 +20,6 @@ public class ImplicationDAG {
     private ArrayList<BiConsumer<Integer,Integer>> implicationObservers = new ArrayList<>(); // is applied when a new implication is derived
     private ArrayList<Consumer<int[]>>             equivalenceObservers = new ArrayList<>(); // is applied when a new equivalence class is derived
     private int timestamp = 0;
-    private final ReentrantReadWriteLock rwl = new ReentrantReadWriteLock();
-    private final Lock readLock = rwl.readLock();
-    private final Lock writeLock = rwl.writeLock();
 
     /** clones the entire DAG
      *
@@ -77,10 +70,6 @@ public class ImplicationDAG {
     public synchronized void removeEquivalenceObserver(Consumer<int[]> observer) {equivalenceObservers.remove(observer);}
 
 
-
-    public void readLock() {readLock.lock();}
-    public void readUnLock() {readLock.unlock();}
-
     /** checks if there are no root nodes.
      *
      * @return true if the DAG is empty*/
@@ -102,14 +91,12 @@ public class ImplicationDAG {
      */
     public boolean implies(Integer from, Integer to) {
         if(from.equals(to)) {return true;}
-        readLock.lock();
-        try{ImplicationNode fromNode = nodesMap.get(from);
-            if(fromNode == null) {return false;}
-            ImplicationNode toNode = nodesMap.get(to);
-            if(toNode == null) {return false;}
-            ++timestamp;
-            return implies(fromNode,toNode);}
-        finally{readLock.unlock();}}
+        ImplicationNode fromNode = nodesMap.get(from);
+        if(fromNode == null) {return false;}
+        ImplicationNode toNode = nodesMap.get(to);
+        if(toNode == null) {return false;}
+        ++timestamp;
+        return implies(fromNode,toNode);}
 
     /** checks if 'from -&gt; to' is a consequence of the ID_Implications in the DAG
      *
@@ -132,13 +119,11 @@ public class ImplicationDAG {
      * @return all root literals above the literal, or null if the literal is not in the DAG.
      */
     public TreeSet<Integer> rootLiterals(Integer literal) {
-        readLock.lock();
-        try{ImplicationNode node = nodesMap.get(literal);
-            if(node == null) {return null;}
-            TreeSet<Integer> rootLiterals = new TreeSet<>();
-            apply(node, false, (lit -> {if(nodesMap.get(lit).upNodes == null) {rootLiterals.add(lit);}}));
-            return rootLiterals;}
-        finally{readLock.unlock();}}
+        ImplicationNode node = nodesMap.get(literal);
+        if(node == null) {return null;}
+        TreeSet<Integer> rootLiterals = new TreeSet<>();
+        apply(node, false, (lit -> {if(nodesMap.get(lit).upNodes == null) {rootLiterals.add(lit);}}));
+        return rootLiterals;}
 
     /** returns for a literal its ImplicationNode.
      * If there is none yet, a new one is created.
@@ -159,10 +144,8 @@ public class ImplicationDAG {
      * @param literal2 a literal
      */
     public void addClause(Integer literal1, Integer literal2) {
-        writeLock.lock();
-        try{boolean unit = addImplication(-literal1,literal2);
-            if(!unit) {addImplication(-literal2,literal1);}}
-        finally{writeLock.unlock();}}
+        boolean unit = addImplication(-literal1,literal2);
+        if(!unit) {addImplication(-literal2,literal1);}}
 
     /** adds a single implication 'p -&gt; q' to the DAG
      *
@@ -171,36 +154,31 @@ public class ImplicationDAG {
      * @return true if the implication was not added (because it was already there, or a contradiction or a cycle was generated.
      */
     public boolean addImplication(Integer from, Integer to) {
-        writeLock.lock();
-        try{ImplicationNode fromNode = getNode(from);
-            ImplicationNode toNode   = getNode(to);
-            ++timestamp;
-            if(implies(fromNode,toNode)) {return false;}
-            ++timestamp;
-            if(implies(toNode,fromNode)) {newEquivalence(toNode,fromNode); return true;}
-            int status = fromNode.addDownNode(toNode);
-            if(status == 1) {return false;}
-            if(status == -1) {newTrueLiteral(-from); return true;}
-            if(implies(-from,to)) {++timestamp; newTrueLiteral(toNode); return true;}
-            if(toNode.upNodes != null && toNode.upNodes.size() == 1) {roots.remove(toNode);}
-            reportImplication(from,to);
-            if(fromNode.upNodes == null) {roots.add(fromNode);}
-            return false;}
-        finally{writeLock.unlock();}
-    }
+        ImplicationNode fromNode = getNode(from);
+        ImplicationNode toNode   = getNode(to);
+        ++timestamp;
+        if(implies(fromNode,toNode)) {return false;}
+        ++timestamp;
+        if(implies(toNode,fromNode)) {newEquivalence(toNode,fromNode); return true;}
+        int status = fromNode.addDownNode(toNode);
+        if(status == 1) {return false;}
+        if(status == -1) {newTrueLiteral(-from); return true;}
+        if(implies(-from,to)) {++timestamp; newTrueLiteral(toNode); return true;}
+        if(toNode.upNodes != null && toNode.upNodes.size() == 1) {roots.remove(toNode);}
+        reportImplication(from,to);
+        if(fromNode.upNodes == null) {roots.add(fromNode);}
+        return false;}
+
 
     /** clears the DAG by a literal which is supposed to be true.
      *
      * @param trueLiteral a literal
      */
     public void newTrueLiteral(Integer trueLiteral) {
-        writeLock.lock();
-        try{++timestamp; timestamp += 2;
-            ImplicationNode node = nodesMap.get(trueLiteral);
-            if (node == null) {reportTrueLiteral(trueLiteral); removeFalseLiteral(-trueLiteral); return;}
-            else {newTrueLiteral(node);}}
-        finally{writeLock.unlock();}}
-//[8, 4, 5, 6, 7, 2, 3]
+        ++timestamp; timestamp += 2;
+        ImplicationNode node = nodesMap.get(trueLiteral);
+        if (node == null) {reportTrueLiteral(trueLiteral); removeFalseLiteral(-trueLiteral); return;}
+        else {newTrueLiteral(node);}}
 
     private void newTrueLiteral(ImplicationNode trueNode) {
         if(trueNode.timestamp == timestamp) {return;}
@@ -312,11 +290,9 @@ public class ImplicationDAG {
      * @param consumer  a consumer function to be applied to literals
      */
     public void apply(Integer literal, boolean down, Consumer<Integer> consumer) {
-        writeLock.lock();
-        try{ImplicationNode node = nodesMap.get(literal);
-            if(node != null) {apply(node,down,consumer);}
-            else {consumer.accept(literal);}}
-        finally{writeLock.unlock();}}
+        ImplicationNode node = nodesMap.get(literal);
+        if(node != null) {apply(node,down,consumer);}
+        else {consumer.accept(literal);}}
 
     private void apply(ImplicationNode node, boolean down, Consumer<Integer> consumer) {
         consumer.accept(node.literal);
@@ -329,16 +305,13 @@ public class ImplicationDAG {
      * @param consumer to be applied to all root literals
      */
     public void applyToRoots(Consumer<Integer>consumer){
-        readLock.lock();
-        try{for(ImplicationNode root : roots) {consumer.accept(root.literal);}}
-        finally{readLock.unlock();}}
+        for(ImplicationNode root : roots) {consumer.accept(root.literal);}}
 
     public void applyToImplications(Integer from, Integer to, BiConsumer<Integer,Integer> consumer) {
-        readLock.lock();
-        try {ImplicationNode fromNode = getNode(from);
-             ImplicationNode toNode = getNode(to);
-             apply(fromNode,false,(upLiteral -> apply(toNode,true,(downLiteral -> consumer.accept(upLiteral,downLiteral)))));}
-        finally{readLock.unlock();}}
+        ImplicationNode fromNode = getNode(from);
+        ImplicationNode toNode = getNode(to);
+        apply(fromNode,false,(upLiteral -> apply(toNode,true,(downLiteral -> consumer.accept(upLiteral,downLiteral)))));}
+
 
     /** removes a literal which is supposed to be false
      *
@@ -367,13 +340,11 @@ public class ImplicationDAG {
      * @param model a partial model.
      */
     public void completeModel(Model model) {
-        writeLock.lock();
-        try{trueLiteralObservers.clear();
-            trueLiteralObservers.add(literal-> {model.add(literal);});
-            while(!roots.isEmpty()) {
-                for(Object node : roots.last().downNodes.toArray()) { // this guarantees that the implication: 'root -> node' is true.
-                    ++timestamp; newTrueLiteral((ImplicationNode)node);}}}
-        finally{writeLock.unlock();}}
+        trueLiteralObservers.clear();
+        trueLiteralObservers.add(literal-> {model.add(literal);});
+        while(!roots.isEmpty()) {
+            for(Object node : roots.last().downNodes.toArray()) { // this guarantees that the implication: 'root -> node' is true.
+                ++timestamp; newTrueLiteral((ImplicationNode)node);}}}
 
 
 
@@ -405,12 +376,10 @@ public class ImplicationDAG {
      * @return the entire DAG as a String.
      */
     public String toString(Symboltable symboltable) {
-        readLock.lock();
-        try{StringBuilder st = new StringBuilder();
-            for(ImplicationNode node : roots) {
-                toString(node,symboltable,0,st);}
+        StringBuilder st = new StringBuilder();
+        for(ImplicationNode node : roots) {
+            toString(node,symboltable,0,st);}
         return st.toString();}
-        finally{readLock.unlock();}}
 
     private void toString(ImplicationNode node, Symboltable symboltable, int indent, StringBuilder st) {
         if(node.downNodes == null) {return;}

@@ -54,13 +54,21 @@ public class BasicClauseList {
             case EQUIV:    equivalences.add(clause); break;}
     }
 
+    /** adds the clauses to the corresponding lists
+     *
+     * @param clauses a clause
+     */
+    public void addClauses(int[]... clauses) {
+        for(int[] clause : clauses) {addClause(clause);}}
+
+
     /** checks if a disjunction is true in a model
      *
      * @param clause a disjunctive clause
      * @param model a model
      * @return true if at least one of the literals is true in the model.
      */
-    public boolean disjunctionIsTrue(int[] clause, Model model) {
+    public static boolean disjunctionIsTrue(int[] clause, Model model) {
         assert ClauseType.getType(clause[1]) == ClauseType.OR;
         for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return true;}}
         return false;}
@@ -71,7 +79,7 @@ public class BasicClauseList {
      * @param model a model
      * @return true if all literals are true in the model.
      */
-    public boolean conjunctionIsTrue(int[] clause, Model model) {
+    public static boolean conjunctionIsTrue(int[] clause, Model model) {
         assert ClauseType.getType(clause[1]) == ClauseType.AND;
         for(int i = 2; i < clause.length; ++i) {if(!model.isTrue(clause[i])) {return false;}}
         return true;}
@@ -82,7 +90,7 @@ public class BasicClauseList {
      * @param model a model
      * @return true if exactly one of the literals is true in the model.
      */
-    public boolean xorIsTrue(int[] clause, Model model) {
+    public static boolean xorIsTrue(int[] clause, Model model) {
         assert ClauseType.getType(clause[1]) == ClauseType.XOR;
         int trueLiteral = 0;
         for(int i = 2; i < clause.length; ++i) {
@@ -97,14 +105,13 @@ public class BasicClauseList {
      * @param model a model
      * @return true if at most one of the literals is true in the model.
      */
-    public boolean disjointIsTrue(int[] clause, Model model) {
+    public static boolean disjointIsTrue(int[] clause, Model model) {
         assert ClauseType.getType(clause[1]) == ClauseType.DISJOINT;
         int trueLiteral = 0;
         for(int i = 2; i < clause.length; ++i) {
             if(model.isTrue(clause[i])) {
                 if(trueLiteral != 0) {return false;}
-                trueLiteral = clause[i];}
-            else {if(!model.isFalse(clause[i])) {return false;}}}
+                trueLiteral = clause[i];}}
         return true;}
 
     /** checks if an equivalence is true in a model
@@ -113,7 +120,7 @@ public class BasicClauseList {
      * @param model a model
      * @return true if either all literals are true or all literals are false in the model.
      */
-    public boolean equivalenceIsTrue(int[] clause, Model model) {
+    public static boolean equivalenceIsTrue(int[] clause, Model model) {
         assert ClauseType.getType(clause[1]) == ClauseType.EQUIV;
         int status = model.status(clause[2]);
         if(status == 0) {return false;}
@@ -142,7 +149,7 @@ public class BasicClauseList {
      *
      * @param statistics the ProblemStatistics
      */
-    public void addStatistics(ProblemStatistics statistics) {
+    public void addToStatistics(ProblemStatistics statistics) {
         statistics.disjoints    = disjoints.size();
         statistics.disjunctions = disjunctions.size();
         statistics.conjunctions = conjunctions.size();

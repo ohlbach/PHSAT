@@ -10,12 +10,12 @@ import static org.junit.Assert.*;
  */
 public class DisjointnessClassesTest {
 
-    /*
+    
     @Test
     public void addDisjointnessClass() throws Exception {
         System.out.println("addDisjointnessClass");
         Model model = new Model(20);
-        ImplicationGraph ig = new ImplicationGraph(20);
+        ImplicationDAG ig = new ImplicationDAG();
         DisjointnessClasses djc = new DisjointnessClasses(model,ig,null);
         djc.addDisjointnessClass(new int[]{1,0,1,2,3});
         djc.addDisjointnessClass(new int[]{2,0,3,4,5});
@@ -24,9 +24,9 @@ public class DisjointnessClassesTest {
                 "D2: (3,4,5)\n",djc.toString());
         djc.addDisjointnessClass(new int[]{3,0,1,5});
         assertEquals("Disjointenss Classes:\n" +
-                " D1: (1,2,3)\n" +
                 " D3: (1,5)\n" +
-                "D3j: (3,4,5)\n",djc.toString());
+                "D3j: (3,4,5)\n" +
+                " D1: (1,2,3)\n",djc.toString());
         djc.addDisjointnessClass(new int[]{4,0,1,2,4,5});
         assertEquals("Disjointenss Classes:\n" +
                 "D4j: (1,2,3,4,5)\n",djc.toString());
@@ -36,14 +36,14 @@ public class DisjointnessClassesTest {
     public void addDisjointness1Class() throws Exception {
         System.out.println("addDisjointnessClass with observers");
         Model model = new Model(20);
-        ImplicationGraph ig = new ImplicationGraph(20);
+        ImplicationDAG ig = new ImplicationDAG();
         DisjointnessClasses djc = new DisjointnessClasses(model, ig, null);
         StringBuilder stt = new StringBuilder();
         StringBuilder std = new StringBuilder();
         StringBuilder stu = new StringBuilder();
-        djc.trueLiteralObservers.add(lit -> stt.append("T " + lit + "  "));
-        djc.disjointnessObservers.add(cl -> std.append("C " + cl.toString() + "  "));
-        djc.unsatisfiabilityObservers.add(u -> stu.append(u.getClass().getName()));
+        djc.addTrueLiteralObserver(lit -> stt.append("T " + lit + "  "));
+        djc.addDisjointnessObserver(cl -> std.append("C " + cl.toString() + "  "));
+        djc.addUnsatisfiabilityObserver(u -> stu.append(u.getClass().getName()));
         model.add(2);
         djc.addDisjointnessClass(new int[]{1, 0, 1, 2, 3});
         assertEquals("T -1  T -3  ",stt.toString());
@@ -57,7 +57,7 @@ public class DisjointnessClassesTest {
     public void addDisjointness() throws Exception {
         System.out.println("addDisjointness");
         Model model = new Model(20);
-        ImplicationGraph ig = new ImplicationGraph(20);
+        ImplicationDAG ig = new ImplicationDAG();
         DisjointnessClasses djc = new DisjointnessClasses(model,ig,null);
         ig.addClause(-1,-2);
         assertTrue(djc.isEmpty());
@@ -71,5 +71,5 @@ public class DisjointnessClassesTest {
         ig.addClause(-2,-4);
         assertEquals("Disjointenss Classes:\nD2!=4: (2,4,3,1)\n",djc.toString());
     }
-*/
+
 }

@@ -7,11 +7,8 @@ import Datastructures.Results.Result;
 import Datastructures.Statistics.ProblemStatistics;
 import Datastructures.Statistics.Statistic;
 import Generators.Generator;
-import Generators.StringClauseSetGenerator;
 import Solvers.Solver;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -61,7 +58,7 @@ public class ProblemSupervisor {
 
     public Result preprocessProblem() {
         globalParameters.log("Preprocessor starts for problem " + problemId);
-        basicClauseList.addStatistics(statistics);
+        basicClauseList.addToStatistics(statistics);
         preProcessor = new PreProcessor(this,globalParameters,problemParameters,basicClauseList);
         result = preProcessor.prepareClauses();
         globalParameters.log("Preprocessor finished for problem " + problemId);
@@ -75,7 +72,7 @@ public class ProblemSupervisor {
         statistics.solvers = numberOfSolvers;
         for(int i = 0; i < numberOfSolvers; ++i) {
             HashMap<String,Object> solverParameter = solverParameters.get(i);
-            solvers[i] = Solver.construct((String)solverParameter.get("type"),i,globalParameters,solverParameter,centralProcessor);}
+            solvers[i] = Solver.construct((String)solverParameter.get("type"),globalParameters,solverParameter,centralProcessor);}
         threads = new Thread[numberOfSolvers];
         for(int i = 0; i < numberOfSolvers; ++i) {
             int j = i;

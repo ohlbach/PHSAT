@@ -314,4 +314,27 @@ public class ClauseListTest {
         assertEquals("2: (3,6,-7)\n" +
                 "4: (4,6,-7)\n",st1.toString());
     }
+
+
+    @Test
+    public void groups() throws Exception {
+        System.out.println("groups");
+        ClauseList clauses = new ClauseList(10, Clause.sizeComparator,Clause.priorityComparator);
+        Clause c1 = Utilities.makeClause("1", "1,-3,5");
+        Clause c2 = Utilities.makeClause("2", "-5,6");
+        clauses.addClause(c1,0);
+        clauses.addClause(c2,0);
+        Clause c3 = Utilities.makeClause("3", "5,6"); c3.priority = 5;
+        Clause c4 = Utilities.makeClause("4", "6,7,8"); c4.priority = 0;
+        clauses.addClause(c3,1);
+        clauses.addClause(c4,1);
+        assertEquals("Clause group 0\n" +
+                "2: (-5,6)\n" +
+                "1: (1,-3,5)\n" +
+                "Clause group 1\n" +
+                "4: (6,7,8)\n" +
+                "3: (5,6)\n\n",clauses.toString());
+        assertEquals("[4: (6,7,8), 3: (5,6)]",clauses.getClauses(1).toString());
+        assertEquals("[5, 5]",clauses.getLiterals(5).toString());
+    }
     }

@@ -2,19 +2,15 @@ package Utilities;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
-import Datastructures.Theory.ImplicationDAG;
 
 import java.io.*;
 import java.lang.reflect.Array;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * Created by Ohlbach on 03.09.2018.
@@ -459,8 +455,28 @@ public class Utilities {
     public static String resourceFile(String filename) {
         return Paths.get(System.getProperty("user.dir"),"src", "main", "resources", filename).toString();}
 
+    public static void allSubsets(int n, Predicate<int[]> consumer) {
+        int[] indices = new int[n];
+        for(int i = 0;  i < n; ++i) {indices[i] = i;}
+        if(consumer.test(indices)) {return;}
+        allSubsetsRec(indices,consumer);
+    }
+    private static void allSubsetsRec(int[] indices, Predicate<int[]> consumer) {
+        int n = indices.length;
+        if(n == 1) {return;}
+        int[] newIndices = new int[n-1];
+        for(int i = 1; i < n; ++i) {newIndices[i-1] = indices[i];}
+        if(consumer.test(newIndices)) {return;}
+        for(int i = 0; i < n-1; ++i) {
+            newIndices[i] = indices[i];
+            if(consumer.test(newIndices)) {return;}}
+        for(int i = 1; i < n; ++i) {newIndices[i-1] = indices[i];}
+        for(int i = 0; i < n-1; ++i) {
+            newIndices[i] = indices[i];
+            allSubsetsRec(newIndices,consumer);}}
 
 
     public static void  main(String[] args) {
-        printProperties();
-}}
+        allSubsets(5,(i -> {System.out.println(Arrays.toString(i)); return false;}));}
+}
+

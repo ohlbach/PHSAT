@@ -2,6 +2,9 @@ package Datastructures.Theory;
 
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.function.Consumer;
+
 import static org.junit.Assert.*;
 
 /**
@@ -18,22 +21,9 @@ public class ModelTest {
         assertEquals(0,mod.add(-2));
         assertEquals(-1,mod.add(2));
         assertEquals(1,mod.add(-2));
-        System.out.println(mod.toString());}
+        //System.out.println(mod.toString());
+        }
 
-    @Test
-    public void pop() throws Exception {
-        System.out.println("pop");
-        Model mod = new Model(5);
-        assertEquals(0,mod.size());
-        mod.add(3);
-        assertEquals(1,mod.size());
-        assertEquals(1,mod.status(3));
-        assertEquals(-1,mod.status(-3));
-        mod.add(-2);
-        assertEquals(-1,mod.status(2));
-        assertEquals(1,mod.status(-2));
-        assertEquals(2,mod.size());
-    }
 
     @Test
     public void isTrueFalse() throws Exception {
@@ -68,7 +58,6 @@ public class ModelTest {
         mod.add(3);
         assertTrue(mod.contains(3));
         assertTrue(mod.contains(-3));
-
     }
 
     @Test
@@ -82,7 +71,41 @@ public class ModelTest {
         assertFalse(mod.isFull());
         mod.add(2);
         assertTrue(mod.isFull());
-
     }
 
+    @Test
+    public void cloneStatus() throws Exception {
+        System.out.println("cloneStatus");
+        Model mod = new Model(5);
+        mod.add(3);
+        mod.add(-5);
+        short[] st = mod.cloneStatus();
+        assertEquals("[0, 0, 0, 1, 0, -1]",Arrays.toString(st));
+    }
+
+    @Test
+    public void cloneModel() throws Exception {
+        System.out.println("cloneModel");
+        Model mod = new Model(5);
+        mod.add(3);
+        mod.add(-5);
+        Model mod1 = mod.clone();
+        assertEquals("[3, -5]",mod1.toString());
+        assertTrue(mod1.isTrue(3));
+    }
+
+    @Test
+    public void observer() throws Exception {
+        System.out.println("observer");
+        Model mod = new Model(5);
+        StringBuilder st = new StringBuilder();
+        Consumer<Integer> obs = lit->st.append(lit + " ");
+        mod.addTrueLiteralObserver(obs);
+        mod.add(3);
+        mod.add(-5);
+        assertEquals("3 -5 ",st.toString());
+        mod.removeTrueLiteralObserver(obs);
+        mod.add(2);
+        assertEquals("3 -5 ",st.toString());
+    }
 }

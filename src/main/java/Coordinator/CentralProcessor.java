@@ -13,7 +13,7 @@ import Datastructures.Statistics.CentralProcessorStatistics;
 public class CentralProcessor extends Processor {
 
     public CentralProcessor(PreProcessor preProcessor) {
-        super(preProcessor.supervisor,preProcessor.globalParameters,preProcessor.applicationParameters,preProcessor.basicClauseList);
+        super("CP",preProcessor.supervisor,preProcessor.globalParameters,preProcessor.applicationParameters,preProcessor.basicClauseList);
         clauses        = preProcessor.clauses;
         model          = preProcessor.model;
         implicationDAG = preProcessor.implicationDAG;
@@ -29,11 +29,14 @@ public class CentralProcessor extends Processor {
      */
     public Result processTasks() {
         Task task = null;
-        while((task = getTask()) != null) {
-            if(task.ignore) {continue;}
-            ++((CentralProcessorStatistics)statistics).CP_Tasks;
-            Result result = task.execute();
-            if(result != null) {return result;}}
+        long start = System.currentTimeMillis();
+        try{
+            while((task = getTask()) != null) {
+                if(task.ignore) {continue;}
+                ++((CentralProcessorStatistics)statistics).CP_Tasks;
+                Result result = task.execute();
+                if(result != null) {return result;}}}
+        finally{statistics.elapsedTime = System.currentTimeMillis()-start;}
         return null;}
 
     /** waits for a new task to be processed.

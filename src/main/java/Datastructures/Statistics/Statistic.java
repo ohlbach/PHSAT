@@ -21,6 +21,7 @@ public class Statistic {
     public Processor processor;
 
     public static ArrayList<Class> statisticsClasses = new ArrayList<>();
+    static{statisticsClasses.add(Statistic.class);}
 
     /** constructs a Statistics instance for a particular processor
      *
@@ -36,7 +37,7 @@ public class Statistic {
      */
     public Statistic(String id) {this.id = id;}
 
-    /** the processor's elapsed time in microseconds */
+    @Description("processor's elapsed time in microseconds")
     public long elapsedTime = 0;
 
     /** the subclasses may overwrite this method to add some observers */

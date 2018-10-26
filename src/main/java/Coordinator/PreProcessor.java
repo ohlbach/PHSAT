@@ -30,7 +30,7 @@ public class PreProcessor extends Processor {
      * @param basicClauseList   the clauses [number,type,literal1,...]
      */
     public PreProcessor(ProblemSupervisor supervisor, GlobalParameters globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
-        super(supervisor,globalParameters,problemParameters,basicClauseList);
+        super("PP", supervisor,globalParameters,problemParameters,basicClauseList);
         initializeData();
         addObservers();
         addMonitors("Preprocessor");}

@@ -11,7 +11,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** This class manages equivalence classes. The equivalence classes may come from basic disjunctions,
- * or from pmplications p -&gt; q and q -&gt; p.
+ * or from the implication graph.
  *
  * Created by ohlbach on 20.09.2018.
  */
@@ -64,10 +64,8 @@ public class EquivalenceClasses {
         this.model = model;
         this.implicationDAG = implicationDAG;
         this.predicates = model.predicates;
-        if(implicationDAG != null) {
-            implicationDAG.addImplicationObserver((from,to) -> {
-                if(implicationDAG.implies(to,from)) {addEquivalence("E"+from+"="+to, from,to);}});}
-        };
+        if(implicationDAG != null) {implicationDAG.addEquivalenceObserver(equivalence -> addEquivalence(equivalence));}}
+
 
     /** initialises the classes at first usage.*/
     private void initialize() {
@@ -224,7 +222,17 @@ public class EquivalenceClasses {
      * @return all equivalence classes as string
      */
     public String toString(Symboltable symboltable) {
-        return "Equivalence Classes:\n" + equivalenceClasses.toString(symboltable);
-    }
+        StringBuilder st = new StringBuilder();
+        if(equivalenceClasses != null) {
+            st.append("Equivalence Classes:\n" + equivalenceClasses.toString(symboltable)).append("\n");}
+        if(!replacements.isEmpty()) {
+            st.append("Replacements:\n");
+            for(Map.Entry entry : replacements.entrySet()) {
+                Integer from = (Integer)entry.getKey();
+                Integer to = (Integer)entry.getValue();
+                if(symboltable != null) {
+                    st.append(symboltable.getLiteralName(from)).append(" -> ").append(symboltable.getLiteralName(to)).append("\n");}
+                else{st.append(from).append(" -> ").append(to).append("\n");}}}
+        return st.toString();}
 
 }

@@ -190,7 +190,14 @@ public class ClauseList {
      * @param clause the clause to be removed
      */
     public void removeClause(Clause clause) {
-        for(int group = 0; group < groups; ++ group) clauses[group].remove(clause);
+        for(int group = 0; group < groups; ++group) clauses[group].remove(clause);
+        updateRemoval(clause);}
+
+    /** removes the clause from the id-map and from the literal index, and calls the observers
+     *
+     * @param clause the removed clause.
+     */
+    private void updateRemoval(Clause clause) {
         clause.removed = true;
         id2Clause.remove(clause.id);
         for(CLiteral cliteral : clause.cliterals) {literalIndex.removeLiteral(cliteral);}
@@ -204,11 +211,7 @@ public class ClauseList {
      */
     public void removeClause(Clause clause, int group) {
         clauses[group].remove(clause);
-        clause.removed = true;
-        id2Clause.remove(clause.id);
-        for(CLiteral cliteral : clause.cliterals) {literalIndex.removeLiteral(cliteral);}
-        for(Consumer<Clause> observer : clauseRemovalObservers) {observer.accept(clause);}
-    }
+        updateRemoval(clause);}
 
 
 

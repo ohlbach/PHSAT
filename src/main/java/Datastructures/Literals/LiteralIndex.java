@@ -69,18 +69,11 @@ public class LiteralIndex {
         PriorityQueue<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         if(list == null) {return;}
         list.remove(cliteral);
-        if(list.isEmpty()) {for(Consumer<Integer> observer : purityObservers) {observer.accept(-literal);}}}
+        if(list.isEmpty()) {
+            if(literal > 0) {posOccurrences[literal] = null;}
+            else            {negOccurrences[-literal] = null;}
+            for(Consumer<Integer> observer : purityObservers) {observer.accept(-literal);}}}
 
-    /** removes the literal from the index
-     *
-     * @param literal the literal to be removed.
-     * @param cliteral the cLiteral to be removed.
-     */
-    public void removeLiteral(int literal, CLiteral cliteral) {
-        int predicate = Math.abs(literal);
-        if(literal > 0) {posOccurrences[predicate].remove(cliteral);}
-        else {negOccurrences[predicate].remove(cliteral);}
-    }
 
     /** returns the CLiterals with the given literal (integer)
      *

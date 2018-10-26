@@ -46,10 +46,12 @@ import java.util.function.Consumer;
  * Created by ohlbach on 10.10.2018.
  */
 public abstract class Processor {
-    /** the processor id */
+    /** the combined id of processor and problem*/
     public String id;
     /** the problemId, mainly for printing information */
     public String problemId;
+    /** the processor id */
+    public String processorId;
     /** the number of predicates in the system */
     public int predicates;
     /** the supervisor for the problem */
@@ -79,15 +81,17 @@ public abstract class Processor {
 
     /** constructs a processor and initializes the common fields
      *
+     * @param processorId         the processor's identifier
      * @param supervisor          which manages the problem
      * @param globalParameters    for overall management
      * @param applicationParameters either the problemParameters or the solverParameters
      * @param basicClauseList     the input clauses (n particular for checking a candidate model)
      */
-    public Processor(ProblemSupervisor supervisor, GlobalParameters globalParameters,
+    public Processor(String processorId,ProblemSupervisor supervisor, GlobalParameters globalParameters,
                      HashMap<String,Object> applicationParameters,BasicClauseList basicClauseList) {
-        id = (String)applicationParameters.get("name");
+        this.processorId = processorId;
         problemId = supervisor.problemId;
+        id = processorId+"@"+problemId;
         this.predicates            = basicClauseList.predicates;
         this.supervisor            = supervisor;
         this.globalParameters      = globalParameters;
