@@ -55,7 +55,7 @@ public class DisjointnessClassesTest {
 
     @Test
     public void addDisjointness() throws Exception {
-        System.out.println("addDisjointness");
+        System.out.println("checkDisjointness");
         Model model = new Model(20);
         ImplicationDAG ig = new ImplicationDAG();
         DisjointnessClasses djc = new DisjointnessClasses(model,ig,null);

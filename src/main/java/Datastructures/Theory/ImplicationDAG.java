@@ -136,6 +136,10 @@ public class ImplicationDAG {
         if(node == null) {node = new ImplicationNode(literal); nodesMap.put(literal,node);}
         return node;}
 
+    public ArrayList<ImplicationNode> getSubnodes(Integer literal) {
+        ImplicationNode node = nodesMap.get(literal);
+        return node.downNodes;}
+
 
     /** adds a clause to the DAG.
      * For a clause p,q the two ID_Implications '-p -&gt; q' and '-q -&gt; p' are added.

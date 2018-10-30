@@ -2,6 +2,8 @@ package Utilities;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Symboltable;
+import sun.awt.image.ImageWatched;
 
 import java.io.*;
 import java.lang.reflect.Array;
@@ -455,70 +457,166 @@ public class Utilities {
     public static String resourceFile(String filename) {
         return Paths.get(System.getProperty("user.dir"),"src", "main", "resources", filename).toString();}
 
-    /** This method applies the predicate to all subsets of [0,...,n-1] (e.g. index sets for arrays).
-     * The method goes from larger subsets to smaller subsets.
-     * As soon as a predicate returns true for a particular index set, no further subsets of this index set are tested.
-     * Therefore only the largest subsets for which the predicate returns true are tested.
-     *
-     * @param n         the size of the index set
-     * @param predicate the predicate to be applied to the subsets.
-     */
-    public static void allSubsets(int n, Predicate<int[]> predicate) {
-        HashSet<String> blockings = new HashSet<>();
-        int[] indices = new int[n];
-        for(int i = 0;  i < n; ++i) {indices[i] = i;}
-        if(predicate.test(indices)) {return;}
-        allSubsetsRec(indices,predicate, blockings);}
 
-    /** This is the recursive part of the allSubsets method
-     *
-     * @param indices    the current index set to be tested (with all its subsets)
-     * @param predicate  the predicate to be applied
-     * @param blockings     stores blocked index sets
-     */
-    private static void allSubsetsRec(int[] indices, Predicate<int[]> predicate, HashSet<String> blockings) {
-        int n = indices.length;
-        if(n == 1) {return;}
-        int[] newIndices = new int[n-1];
-        for(int i = 1; i < n; ++i) {newIndices[i-1] = indices[i];}
-        String st = Arrays.toString(newIndices);
-        if(blockings.contains(st)){return;}
-        blockings.add(st);
-        if(predicate.test(newIndices)) {blockSubsets(newIndices,blockings); return;}
-        for(int i = 0; i < n-1; ++i) {  // breadth first
-            newIndices[i] = indices[i];
-            st = Arrays.toString(newIndices);
-            if(blockings.contains(st)){continue;}
-            blockings.add(st);
-            if(predicate.test(newIndices)) {blockSubsets(newIndices,blockings); continue;}}
-        for(int i = 1; i < n; ++i) {newIndices[i-1] = indices[i];}
-        for(int i = 0; i < n-1; ++i) {
-            newIndices[i] = indices[i];
-            allSubsetsRec(newIndices,predicate, blockings);}}
 
-    /** blocks all subset of the given index set
-     *
-     * @param indices  the current index to be blocked, with all its subsets
-     * @param blockings   all subsets are put into this set.
-     */
-    private static void blockSubsets(int[] indices, HashSet<String> blockings) {
-        int n = indices.length;
-        if(n == 1) {return;}
-        String st = Arrays.toString(indices);
-        blockings.add(st);
-        int[] newIndices = new int[n-1];
-        for(int i = 1; i < n; ++i) {newIndices[i-1] = indices[i];}
-        blockings.add(Arrays.toString(newIndices));
-        for(int i = 0; i < n-1; ++i) {
-            newIndices[i] = indices[i];
-            blockings.add(Arrays.toString(newIndices));
-            blockSubsets(newIndices,blockings);}}
 
+    /** generates the largest subsets of 0...n-1 which satisfy the predicate.
+     * The subsets are coded as int-values.
+     *
+     * @param n           the limit
+     * @param predicate   to be applied to an int-integer
+     * @return            a list of subsets of 0...n-1, coded as long, which satisfy the predicate.
+     */
+    public static ArrayList<Integer> largestSubsetsInt(int n, Predicate<Integer> predicate) {
+        ArrayList<Integer> list = new ArrayList<>();
+        TreeSet<Integer> candidates = new TreeSet<>();
+        for(int i = 0; i < n; ++i) {
+            for(int j = i+1; j < n; ++j) {
+                int pair = (1 << i) | (1 << j) ;
+                if(predicate.test(pair)) {candidates.add(pair);}}}
+        if(candidates.isEmpty()) {return list;}
+        TreeSet<Integer> nextCandidates = new TreeSet<>();
+        for(int i = 2; i < n; ++i) {
+            for(Integer j : candidates) {
+                if(insertOneOfInt(n,j,predicate,nextCandidates) // && !isSubsetInt(j,nextCandidates)
+                ) {list.add(j);}}
+            candidates = nextCandidates;
+            nextCandidates = new TreeSet<>();}
+        list.addAll(candidates);
+        return list;
+    }
+
+    /** inserts in the subset, coded be tuple, one new bit.
+     *
+     * @param n      the limit
+     * @param tuple  the set, coded as int
+     * @param predicate to be applied to a int-value
+     * @param tuples  the already checked subsets
+     * @return        true if tuple is the maximal subset satisfying the predicate.
+     */
+    private static boolean insertOneOfInt(int n, int tuple, Predicate<Integer> predicate, TreeSet<Integer> tuples) {
+        boolean someSubsumed = false;
+        boolean someNew = false;
+        for(int i = 0; i < n; ++i) {
+            int mask = 1 << i;
+            if((tuple & mask) == 0) {
+                int j = tuple | mask;
+                if(tuples.contains(j)) {someSubsumed = true; continue;}
+
+                if(predicate.test(j)) {someNew = true; tuples.add(j);}}}
+        return !someSubsumed && !someNew;}
+
+    /** generates the largest subsets of 0...n-1 which satisfy the predicate.
+     * The subsets are coded as long-values.
+     *
+     * @param n           the limit
+     * @param predicate   to be applied to a long-integer
+     * @return            a list of subsets of 0...n-1, coded as long, which satisfy the predicate.
+     */
+    public static ArrayList<Long> largestSubsetsLong(int n, Predicate<Long> predicate) {
+        ArrayList<Long> list = new ArrayList<>();
+        TreeSet<Long> candidates = new TreeSet<>();
+        for(int i = 0; i < n; ++i) {
+            for(int j = i+1; j < n; ++j) {
+                long pair = (1 << i) | (1 << j) ;
+                if(predicate.test(pair)) {candidates.add(pair);}}}
+        if(candidates.isEmpty()) {return list;}
+        TreeSet<Long> nextCandidates = new TreeSet<>();
+        for(int i = 2; i < n; ++i) {
+            for(Long j : candidates) {
+                if(insertOneOfLong(n,j,predicate,nextCandidates) // && !isSubsetInt(j,nextCandidates)
+                        ) {list.add(j);}}
+            candidates = nextCandidates;
+            nextCandidates = new TreeSet<>();}
+        list.addAll(candidates);
+        return list;
+    }
+
+    /** inserts in the subset, coded be tuple, one new bit.
+     *
+     * @param n      the limit
+     * @param tuple  the set, coded as long
+     * @param predicate to be applied to a long-value
+     * @param tuples  the already checked subsets
+     * @return        true if tuple is the maximal subset satisfying the predicate.
+     */
+    private static boolean insertOneOfLong(int n, long tuple, Predicate<Long> predicate, TreeSet<Long> tuples) {
+        boolean someSubsumed = false;
+        boolean someNew = false;
+        for(int i = 0; i < n; ++i) {
+            int mask = 1 << i;
+            if((tuple & mask) == 0) {
+                long j = tuple | mask;
+                if(tuples.contains(j)) {someSubsumed = true; continue;}
+                if(predicate.test(j)) {someNew = true; tuples.add(j);}}}
+        return !someSubsumed && !someNew;}
+
+
+    /** This method turns an array of ints < Integer.MAX_VALUE into an int.
+     * Each number in the array determines the 1 in the bitarray of the result.
+     *
+     * @param array an array of ints < INTEGER.MAX_VALUE
+     * @return the corresponding int.
+     */
+    public static int toInt(int[] array) {
+        int result = 0;
+        int mask = 1;
+        for(int i : array) {result |= mask << i;}
+        return result;}
+
+
+
+    /** This method turns a an int as bitarray into an array of ints.
+     * Each 1 in the int causes its position to be inserted into the array.
+     *
+     * @param list an int as bitlist
+     * @return the corresponding int-array
+     */
+    public static int[] toArray(int list) {
+        int i = list;
+        int mask = 1;
+        int length = 0;
+        while (i != 0) {
+            if((i & mask) != 0) {++length; i &= ~mask;}
+            mask <<= 1;}
+        int[] result = new int[length];
+        mask = 1;
+        int k = -1;
+        int j = 0;
+        while (list != 0) {
+            if((list & mask) != 0) {list &= ~mask; result[++k] = j;}
+            ++j;
+            mask <<= 1;}
+        return result;}
+
+    private static void pl(String s,Collection<Integer> list) {
+        System.out.println(s);
+        for(int l : list) {System.out.println(Arrays.toString(toArray(l)));}}
+
+    private static void pll(String s,Collection<Long> list) {
+        System.out.println(s);
+        for(long l : list) {System.out.println(Arrays.toString(toArray((int)l)));}}
 
 
     public static void  main(String[] args) {
-        allSubsets(10,(i -> {System.out.println(Arrays.toString(i));
-            return Utilities.contains(i,2) < 0 ||  Utilities.contains(i,3) < 0;}));
-        }
+        int a = toInt(new int[]{0,4});
+        int b = toInt(new int[]{1,3});
+        int n = 15;
+        long t = System.currentTimeMillis();
+        ArrayList<Integer> list = largestSubsetsInt(n,(l-> ((a & l) == a) && ((b & l) != b)));
+        System.out.println((System.currentTimeMillis()-t)+" ms");
+
+        t = System.nanoTime();
+        ArrayList<Integer> list2 = largestSubsetsInt(n,(l-> ((a & l) == a) && ((b & l) != b)));
+        System.out.println((System.nanoTime()-t)+" ns");
+
+        t = System.nanoTime();
+        ArrayList<Long> list1 = largestSubsetsLong(n,(l-> ((a & l) == a) && ((b & l) != b)));
+        System.out.println((System.nanoTime()-t)+" ns");
+
+        pll("L",list1);
+    }
+
+
 }
 

@@ -8,7 +8,6 @@ import Datastructures.Symboltable;
 import Utilities.Utilities;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** A disjointness class is a set of literals which are pairwise contradictory.
@@ -68,7 +67,7 @@ public class DisjointnessClasses {
         this.equivalenceClasses = equivalenceClasses;
         this.predicates = model.predicates;
         if(implicationDAG != null) {
-            implicationDAG.addImplicationObserver((from,to) -> addDisjointness(from,-to));}
+            implicationDAG.addImplicationObserver((from,to) -> checkDisjointness(from));}
     };
 
     /** initialises the classes at first usage.*/
@@ -123,27 +122,65 @@ public class DisjointnessClasses {
 
     /** joins a new disjointness p disjoint q.
      *
-     * @param literal1 a literal
-     * @param literal2 a literal
+     * @param literal a literal
      */
-    public void addDisjointness(int literal1, int literal2) {
-        initialize();
-        literal1 = mapToRepresentative(literal1);
-        literal2 = mapToRepresentative(literal2);
-        if(literal1 == -literal2) {return;}  // they are disjoint anyway
-        if(literal1 == literal2) {reportUnsatisfiable(literal1,literal2); return;} // p cannot be disjoint to p
-        if(addToExisting(literal1,literal2) || addToExisting(literal2,literal1)) {return;}
-        ArrayList<Integer> intersections = new ArrayList<>();
-        Integer lit2 = literal2;
-        implicationDAG.apply(literal1,true,(lit1->{if(implicationDAG.implies(lit2,lit1)){intersections.add(lit1);}}));
-        if(intersections != null) {
-            Clause disjointness = new Clause("D"+literal1+"!="+literal2,intersections.size()+2);
-            disjointness.addCLiteralDirectly(new CLiteral(literal1));
-            disjointness.addCLiteralDirectly(new CLiteral(literal2));
-            for(int literal : intersections) {disjointness.addCLiteralDirectly(new CLiteral(-literal));}
-            disjointnessClasses.addClause(disjointness);
-            subsume(disjointness);
-            reportDisjointenss(joinClauses(disjointness));}}
+    public void checkDisjointness(int literal) {
+        ArrayList<ImplicationNode> subnodes = implicationDAG.getSubnodes(literal);
+        if(subnodes == null || subnodes.size() < 2) {return;}
+        ArrayList<Integer> literals = new ArrayList<>();
+        for(ImplicationNode node : subnodes) {literals.add(-node.literal);}
+        ArrayList<TreeSet<Integer>> list = new ArrayList<>();
+        int length = 0;
+        for(ImplicationNode node : subnodes) {
+            TreeSet<Integer> supernodes = null;
+            for(ImplicationNode supernode : node.upNodes) {
+                if(literals.contains(supernode.literal)) {
+                    if(supernodes == null) {supernodes = new TreeSet<>();}
+                    supernodes.add(supernode.literal);}}
+            if(supernodes != null) {
+                supernodes.add(-node.literal);
+                length = Math.max(length,supernodes.size());
+                list.add(supernodes);}}
+        if(length < 2) {return;}
+        for(Integer index : Utilities.largestSubsetsInt(length,(i->allSame(i,list)))) {
+        //    addDisjointnessClass(index,list);
+        }}
+
+    /** checks if all elements in the list which are indexed bitwise by the number i, are equal
+     *
+     * @param i      an index as bitarry
+     * @param lists  a list of TreeSets
+     * @return       true if all elements in the list which are indexed by i, are equal.
+     */
+    private static boolean allSame(int i, ArrayList<TreeSet<Integer>> lists) {
+        int mask = 1;
+        int index = 0;
+        TreeSet<Integer> firstList = null;
+        while(i != 0) {
+            if((i & mask) != 0) {
+                TreeSet<Integer> list = lists.get(index);
+                if(firstList == null) {firstList = list;}
+                else {if(!list.equals(firstList)) {return false;}}}
+            i &= ~mask;
+            ++index; mask <<= 1;}
+        return true;}
+
+
+
+    public static void main(String[] args) {
+        TreeSet<Integer> a = new TreeSet();
+        TreeSet<Integer> b = new TreeSet();
+        TreeSet<Integer> c = new TreeSet();
+        a.add(1); a.add(2);
+        b.add(2); b.add(3);
+        c.add(1); c.add(2);
+        ArrayList<TreeSet<Integer>> lists = new ArrayList<>();
+        lists.add(a); lists.add(b); lists.add(c);
+        System.out.println(allSame(7,lists));
+
+    }
+
+
 
     /** tries to join two disjoint literals to existing disjointness classes.
      *
