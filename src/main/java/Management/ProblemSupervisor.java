@@ -35,14 +35,13 @@ public class ProblemSupervisor {
     public ProblemSupervisor(int problemNumber,GlobalParameters globalParameters,
                              HashMap<String,Object> problemParameters,
                              ArrayList<HashMap<String,Object>> solverParameters) {
-        this.problemNumber    = problemNumber;
-        Object name = problemParameters.get("name");
-        this.problemId = (name == null) ? "P"+problemNumber : (String)name;
-        this.globalParameters = globalParameters;
-        this.problemParameters = problemParameters;
-        this.solverParameters = solverParameters;
-        globalParameters.supervisor = this;
-        statistics  = new ProblemStatistics(problemId);
+        this.problemNumber          = problemNumber;
+        Object name                 = problemParameters.get("name");
+        this.problemId              = (name == null) ? "P"+problemNumber : (String)name;
+        this.globalParameters       = globalParameters;
+        this.problemParameters      = problemParameters;
+        this.solverParameters       = solverParameters;
+        statistics                  = new ProblemStatistics(problemId);
     }
 
     /** reads or generates the SAT-clauses
@@ -59,7 +58,7 @@ public class ProblemSupervisor {
     public Result preprocessProblem() {
         globalParameters.log("Preprocessor starts for problem " + problemId);
         basicClauseList.addToStatistics(statistics);
-        preProcessor = new PreProcessor(this,globalParameters,problemParameters,basicClauseList);
+        preProcessor = new PreProcessor(this,problemParameters,basicClauseList);
         result = preProcessor.prepareClauses();
         globalParameters.log("Preprocessor finished for problem " + problemId);
         return result;}
@@ -72,7 +71,7 @@ public class ProblemSupervisor {
         statistics.solvers = numberOfSolvers;
         for(int i = 0; i < numberOfSolvers; ++i) {
             HashMap<String,Object> solverParameter = solverParameters.get(i);
-            solvers[i] = Solver.construct((String)solverParameter.get("type"),globalParameters,solverParameter,centralProcessor);}
+            solvers[i] = Solver.construct((String)solverParameter.get("type"),solverParameter,centralProcessor);}
         threads = new Thread[numberOfSolvers];
         for(int i = 0; i < numberOfSolvers; ++i) {
             int j = i;

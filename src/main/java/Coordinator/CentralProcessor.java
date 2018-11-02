@@ -13,7 +13,7 @@ import Datastructures.Statistics.CentralProcessorStatistics;
 public class CentralProcessor extends Processor {
 
     public CentralProcessor(PreProcessor preProcessor) {
-        super("CP",preProcessor.supervisor,preProcessor.globalParameters,preProcessor.applicationParameters,preProcessor.basicClauseList);
+        super("CP",preProcessor.supervisor,preProcessor.applicationParameters,preProcessor.basicClauseList);
         clauses        = preProcessor.clauses;
         model          = preProcessor.model;
         implicationDAG = preProcessor.implicationDAG;

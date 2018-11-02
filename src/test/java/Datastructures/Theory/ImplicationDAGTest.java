@@ -16,24 +16,24 @@ public class ImplicationDAGTest {
     public void addImplication() throws Exception {
         System.out.println("addImplication");
         ImplicationDAG id = new ImplicationDAG();
-        id.addImplication(1,2);
+        id.addImplication(1,2,false);
         assertEquals("1 -> 2\n",id.toString());
-        id.addImplication(1,3);
+        id.addImplication(1,3,false);
         assertEquals("1 -> 2,3\n",id.toString());
-        id.addImplication(2,4);
+        id.addImplication(2,4,false);
         assertEquals("1 -> 2,3\n" +
                 "     2 -> 4\n",id.toString());
-        id.addImplication(3,4);
+        id.addImplication(3,4,false);
         assertEquals("1 -> 2,3\n" +
                 "     2 -> 4\n" +
                 "     3 -> 4\n",id.toString());
-        id.addImplication(4,5);
+        id.addImplication(4,5,false);
         assertEquals("1 -> 2,3\n" +
                 "     2 -> 4\n" +
                 "          4 -> 5\n" +
                 "     3 -> 4\n" +
                 "          4 -> 5\n",id.toString());
-        id.addImplication(1,5);
+        id.addImplication(1,5,false);
         assertEquals("1 -> 2,3\n" +
                 "     2 -> 4\n" +
                 "          4 -> 5\n" +

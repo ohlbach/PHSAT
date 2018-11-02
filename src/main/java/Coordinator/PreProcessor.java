@@ -12,7 +12,6 @@ import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
-import Management.GlobalParameters;
 import Management.ProblemSupervisor;
 
 import java.util.*;
@@ -25,12 +24,11 @@ public class PreProcessor extends Processor {
     /** Constructs the preprocessor
      *
      * @param supervisor        which manages the problem processing
-     * @param globalParameters  some global parameters
      * @param problemParameters for specifying the problem
      * @param basicClauseList   the clauses [number,type,literal1,...]
      */
-    public PreProcessor(ProblemSupervisor supervisor, GlobalParameters globalParameters, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
-        super("PP", supervisor,globalParameters,problemParameters,basicClauseList);
+    public PreProcessor(ProblemSupervisor supervisor, HashMap<String,Object> problemParameters, BasicClauseList basicClauseList) {
+        super("PP", supervisor,problemParameters,basicClauseList);
         initializeData();
         addObservers();
         addMonitors("Preprocessor");}
@@ -40,8 +38,9 @@ public class PreProcessor extends Processor {
         clauses        = new ClauseList(basicClauseList.disjunctions.size(),predicates);
         implicationDAG = new ImplicationDAG();
         equivalences   = new EquivalenceClasses(model, implicationDAG);
-        disjointnesses = new DisjointnessClasses(model, implicationDAG,equivalences);
         statistics     = new PreProcessorStatistics(this);
+        if(globalParameters.disjointnessesNeeded) {
+            disjointnesses = new DisjointnessClasses(model, implicationDAG);}
     }
 
     protected void addObservers() {
@@ -51,8 +50,9 @@ public class PreProcessor extends Processor {
         implicationDAG.addEquivalenceObserver(equivalenceObserver);
         equivalences.addTrueLiteralObserver(trueLiteralObserver);
         equivalences.addUnsatisfiabilityObserver(unsatisfiabilityObserver);
-        disjointnesses.addTrueLiteralObserver(trueLiteralObserver);
-        disjointnesses.addUnsatisfiabilityObserver(unsatisfiabilityObserver);
+        if(disjointnesses != null) {
+            disjointnesses.addTrueLiteralObserver(trueLiteralObserver);
+            disjointnesses.addUnsatisfiabilityObserver(unsatisfiabilityObserver);}
     }
 
 
@@ -80,16 +80,16 @@ public class PreProcessor extends Processor {
                 for(int[] basicClause: clauses) {
                     result = addXor(basicClause);
                     if(result != null) {return result;}}}
-            clauses = basicClauseList.disjoints;
-            if(clauses != null) {
-                for(int[] basicClause: clauses) {
-                    result = addDisjoint(basicClause);
-                    if(result != null) {return result;}}}
             clauses = basicClauseList.disjunctions;
             if(clauses != null) {
                 clauses.sort(Comparator.comparingInt(c->c.length));
                 for(int[] basicClause: clauses) {
                     result = addDisjunction(basicClause);
+                    if(result != null) {return result;}}}
+            clauses = basicClauseList.disjoints;
+            if(clauses != null) {
+                for(int[] basicClause: clauses) {
+                    result = addDisjoint(basicClause);
                     if(result != null) {return result;}}}
             return purityCheck();}
         finally{statistics.removeStatisticsObservers();
@@ -102,7 +102,7 @@ public class PreProcessor extends Processor {
      * @param basicClause a conjunctive clause
      * @return Unsatisfiable if a contradiction has detected, otherwise null.
      */
-    private Result addConjunction(int[] basicClause) {
+    Result addConjunction(int[] basicClause) {
         for(int i = 2; i < basicClause.length; ++i) {
             int literal = basicClause[i];
             if(model.add(literal) < 0) {
@@ -114,7 +114,7 @@ public class PreProcessor extends Processor {
      * @param basicClause  an equivalence class
      * @return Unsatisfiable if a contradiction has detected, otherwise null.
      */
-    private Result addEquivalence(int[] basicClause) {
+    Result addEquivalence(int[] basicClause) {
         equivalences.addEquivalenceClass(basicClause);
         return processTasks();}
 
@@ -124,7 +124,7 @@ public class PreProcessor extends Processor {
      * @param basicClause a disjunction
      * @return Unsatisfiable if a contradiction has detected, otherwise null.
      */
-    public Result addDisjunction(int[] basicClause) {
+    Result addDisjunction(int[] basicClause) {
         Clause clause = makeDisjunction(basicClause);
         if(clause == null) {return null;}
         taskQueue.add(makeShortenedClauseTask(clause,this));
@@ -140,7 +140,7 @@ public class PreProcessor extends Processor {
      * @param basicClause the input clauses
      * @return the new simplified clause, or null if the clause is just to be ignored.
      */
-    Clause makeDisjunction(int[] basicClause) {
+    private Clause makeDisjunction(int[] basicClause) {
         Clause clause = new Clause(""+basicClause[0],basicClause.length);
         for(int i = 2; i < basicClause.length;++i) {
             int literal = equivalences.mapToRepresentative(basicClause[i]);
@@ -166,7 +166,7 @@ public class PreProcessor extends Processor {
      * @param basicClause the basic Xor clause
      * @return Unsatisfiable if a contradiction has detected, otherwise null.
      */
-    public Result addXor(int[] basicClause) {
+    Result addXor(int[] basicClause) {
         Result result = addDisjunction(basicClause);
         if(result != null) {return result;}
         return addDisjoint(basicClause);}
@@ -178,14 +178,14 @@ public class PreProcessor extends Processor {
      * @param basicClause the basic disjointenss clause.
      * @return Unsatisfiable if a contradiction has detected, otherwise null.
      */
-    public Result addDisjoint(int[] basicClause) {
-        Clause clause = disjointnesses.addDisjointnessClass(basicClause);
-        if(clause != null) {
-            int size = clause.size();
-            for(int i = 0; i < size; ++i) {
-                int literal = clause.getLiteral(i);
-                for (int j = i+1; j < size; ++j) {
-                    implicationDAG.addImplication(literal,clause.getLiteral(j));}}}
+    Result addDisjoint(int[] basicClause) {
+        if(globalParameters.disjointnessesNeeded) {
+            disjointnesses.addDisjointnessClass(basicClause);}
+        int size = basicClause.length;
+        for(int i = 2; i < size; ++i) {
+            int literal = basicClause[i];
+            for (int j = i+1; j < size; ++j) {
+                implicationDAG.addImplication(literal,basicClause[j],true);}}
         return processTasks();}
 
 
@@ -197,7 +197,7 @@ public class PreProcessor extends Processor {
      *
      * @return null or Satisfiable if the clause set became empty.
      */
-    private Result purityCheck() {
+    Result purityCheck() {
         clauses.addPurityObserver(purityObserver);
         for(Integer literal : clauses.pureLiterals()) {
             taskQueue.add(new Task.Purity(literal,this));}

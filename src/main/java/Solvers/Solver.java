@@ -8,6 +8,7 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.CentralProcessorStatistics;
+import Datastructures.Theory.ImplicationNode;
 import Management.GlobalParameters;
 import Solvers.RandomWalker.Walker;
 
@@ -100,16 +101,14 @@ public abstract class Solver extends Processor {
      *
      * @param type             the solver type
      * @param solverParameters a key-value map with parameters as strings
-     * @param globalParameters the global parameters
      * @param centralProcessor the central processor
      * @return           a new solver
      */
-    public static Solver construct(String type, GlobalParameters globalParameters,
-                                   HashMap<String,Object> solverParameters, CentralProcessor centralProcessor) {
+    public static Solver construct(String type,HashMap<String,Object> solverParameters, CentralProcessor centralProcessor) {
         Class clazz = solverClass(type);
         try{
-            Constructor constructor = clazz.getConstructor(String.class,HashMap.class,HashMap.class, PreProcessor.class);
-            return (Solver)constructor.newInstance(solverParameters,globalParameters,centralProcessor);}
+            Constructor constructor = clazz.getConstructor(HashMap.class,CentralProcessor.class);
+            return (Solver)constructor.newInstance(solverParameters,centralProcessor);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
 
@@ -123,11 +122,10 @@ public abstract class Solver extends Processor {
     /** constructs a solver as an instance of the Processor class.
      *
      * @param solverParameters    the control parameters for the solver
-     * @param globalParameters the global control parameters
      * @param centralProcessor the central processor.
      */
-    public Solver(HashMap<String,Object> solverParameters, GlobalParameters globalParameters, CentralProcessor centralProcessor) {
-        super((String)solverParameters.get("name"),centralProcessor.supervisor,globalParameters,solverParameters,centralProcessor.basicClauseList);
+    public Solver(HashMap<String,Object> solverParameters, CentralProcessor centralProcessor) {
+        super((String)solverParameters.get("name"),centralProcessor.supervisor,solverParameters,centralProcessor.basicClauseList);
         this.centralProcessor = centralProcessor;}
 
 
@@ -141,9 +139,9 @@ public abstract class Solver extends Processor {
     /** This observer is called when a new implication is inserted into the implicationDAG
      *  It inserts BinaryClause tasks locally and in the centralProcessor's task queue.
      */
-    protected BiConsumer<Integer,Integer> implicationObserverBoth =
-            (from, to) -> {addTask(new Task.BinaryClause(-from,to,this));
-                centralProcessor.addTask(new Task.BinaryClause(-from,to,centralProcessor));
+    protected BiConsumer<ImplicationNode,ImplicationNode> implicationObserverBoth =
+            (from, to) -> {addTask(new Task.BinaryClause(-from.literal,to.literal,this));
+                centralProcessor.addTask(new Task.BinaryClause(-from.literal,to.literal,centralProcessor));
                 ((CentralProcessorStatistics)centralProcessor.statistics).CP_ImplicationsReceived++;};
 
     /** This observer is called when a new equivalence class is derived in the implicationDAG

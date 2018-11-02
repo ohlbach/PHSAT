@@ -44,7 +44,7 @@ public class ClauseList {
      */
     public ClauseList(int size,int predicates) {
         this.predicates = predicates;
-        clauses         = new PriorityQueue[]{new PriorityQueue<Clause>(size,Comparator.comparingInt(cl->cl.size()))};
+        clauses         = new PriorityQueue[]{new PriorityQueue<Clause>(Math.max(size,1),Comparator.comparingInt(cl->cl.size()))};
         id2Clause       = new HashMap<>();
         literalIndex    = new LiteralIndex(predicates);}
 

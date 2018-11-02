@@ -76,12 +76,11 @@ public class Resolution extends Solver {
      * The walker is passive in the sense that it does not send data to the CentralDataHolder.
      *
      * @param solverControl     contains the parameters for controlling the solver
-     * @param globalParameters  contains the global control parameters
      * @param centralProcessor  contains the result of parsing and initializing the problem data.
      */
-    public Resolution(HashMap<String,Object> solverControl, GlobalParameters globalParameters,
+    public Resolution(HashMap<String,Object> solverControl,
                         CentralProcessor centralProcessor) {
-        super(solverControl, globalParameters, centralProcessor);
+        super(solverControl, centralProcessor);
         initializeData();
         addObservers();
         addMonitors("Resolution");
@@ -215,7 +214,7 @@ public class Resolution extends Solver {
     private void reportAbortion(int limit) {
         globalParameters.log("Resolution " + id + " for problem " + problemId +" stopped after " + limit + " resolvents");
         supervisor.statistics.incAborted();
-        globalParameters.supervisor.aborted(id);}
+        supervisor.aborted(id);}
 
     /** reports that the resolution has been finished
      *

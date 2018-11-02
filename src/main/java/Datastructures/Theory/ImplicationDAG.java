@@ -17,7 +17,7 @@ public class ImplicationDAG {
     private TreeSet<ImplicationNode> roots = new TreeSet<>();            // top literals in the implication hierarchy
     private TreeMap<Integer,ImplicationNode> nodesMap = new TreeMap<>(); // maps literals to ImplicationNodes
     private ArrayList<Consumer<Integer>>           trueLiteralObservers = new ArrayList<>(); // is applied when a true literal is derived
-    private ArrayList<BiConsumer<Integer,Integer>> implicationObservers = new ArrayList<>(); // is applied when a new implication is derived
+    private ArrayList<BiConsumer<ImplicationNode,ImplicationNode>> implicationObservers = new ArrayList<>(); // is applied when a new implication is derived
     private ArrayList<Consumer<int[]>>             equivalenceObservers = new ArrayList<>(); // is applied when a new equivalence class is derived
     private int timestamp = 0;
 
@@ -50,7 +50,7 @@ public class ImplicationDAG {
     /** adds an implication observer
      *
      * @param observer to be added*/
-    public synchronized void addImplicationObserver(BiConsumer<Integer,Integer> observer) {implicationObservers.add(observer);}
+    public synchronized void addImplicationObserver(BiConsumer<ImplicationNode,ImplicationNode> observer) {implicationObservers.add(observer);}
     /** adds an observer for equivalence classes.
      *
      * @param observer to be added*/
@@ -63,7 +63,7 @@ public class ImplicationDAG {
     /** removes an implication observer
      *
      * @param observer to be added*/
-    public synchronized void removeImplicationObserver(BiConsumer<Integer,Integer> observer) {implicationObservers.remove(observer);}
+    public synchronized void removeImplicationObserver(BiConsumer<ImplicationNode,ImplicationNode> observer) {implicationObservers.remove(observer);}
     /** removes an observer for equivalence classes.
      *
      * @param observer to be added*/
@@ -148,8 +148,8 @@ public class ImplicationDAG {
      * @param literal2 a literal
      */
     public void addClause(Integer literal1, Integer literal2) {
-        boolean unit = addImplication(-literal1,literal2);
-        if(!unit) {addImplication(-literal2,literal1);}}
+        boolean unit = addImplication(-literal1,literal2,false);
+        if(!unit) {addImplication(-literal2,literal1,true);}}
 
     /** adds a single implication 'p -&gt; q' to the DAG
      *
@@ -157,7 +157,7 @@ public class ImplicationDAG {
      * @param to the succedent
      * @return true if the implication was not added (because it was already there, or a contradiction or a cycle was generated.
      */
-    public boolean addImplication(Integer from, Integer to) {
+    public boolean addImplication(Integer from, Integer to, boolean report) {
         ImplicationNode fromNode = getNode(from);
         ImplicationNode toNode   = getNode(to);
         ++timestamp;
@@ -169,7 +169,7 @@ public class ImplicationDAG {
         if(status == -1) {newTrueLiteral(-from); return true;}
         if(implies(-from,to)) {++timestamp; newTrueLiteral(toNode); return true;}
         if(toNode.upNodes != null && toNode.upNodes.size() == 1) {roots.remove(toNode);}
-        reportImplication(from,to);
+        if(report){reportImplication(fromNode,toNode);}
         if(fromNode.upNodes == null) {roots.add(fromNode);}
         return false;}
 
@@ -361,11 +361,11 @@ public class ImplicationDAG {
 
     /** calls all implicationObservers
      *
-     * @param from  a literal
-     * @param to    a literal
+     * @param from  a literal node
+     * @param to  a literal node
      */
-    private void reportImplication(Integer from, Integer to) {
-        for(BiConsumer<Integer,Integer> observer : implicationObservers) {observer.accept(from,to);}}
+    private void reportImplication(ImplicationNode from, ImplicationNode to) {
+        for(BiConsumer<ImplicationNode,ImplicationNode> observer : implicationObservers) {observer.accept(from,to);}}
 
 
     /** turns the entire DAG into a String

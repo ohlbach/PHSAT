@@ -16,7 +16,7 @@ public class DisjointnessClassesTest {
         System.out.println("addDisjointnessClass");
         Model model = new Model(20);
         ImplicationDAG ig = new ImplicationDAG();
-        DisjointnessClasses djc = new DisjointnessClasses(model,ig,null);
+        DisjointnessClasses djc = new DisjointnessClasses(model,ig);
         djc.addDisjointnessClass(new int[]{1,0,1,2,3});
         djc.addDisjointnessClass(new int[]{2,0,3,4,5});
         assertEquals("Disjointenss Classes:\n" +
@@ -37,7 +37,7 @@ public class DisjointnessClassesTest {
         System.out.println("addDisjointnessClass with observers");
         Model model = new Model(20);
         ImplicationDAG ig = new ImplicationDAG();
-        DisjointnessClasses djc = new DisjointnessClasses(model, ig, null);
+        DisjointnessClasses djc = new DisjointnessClasses(model, ig);
         StringBuilder stt = new StringBuilder();
         StringBuilder std = new StringBuilder();
         StringBuilder stu = new StringBuilder();
@@ -58,18 +58,21 @@ public class DisjointnessClassesTest {
         System.out.println("checkDisjointness");
         Model model = new Model(20);
         ImplicationDAG ig = new ImplicationDAG();
-        DisjointnessClasses djc = new DisjointnessClasses(model,ig,null);
+        DisjointnessClasses djc = new DisjointnessClasses(model,ig);
         ig.addClause(-1,-2);
         assertTrue(djc.isEmpty());
         ig.addClause(-2,-3);
         assertTrue(djc.isEmpty());
         ig.addClause(-1,-3);
-        assertEquals("Disjointenss Classes:\nD1!=3: (1,3,2)\n",djc.toString());
+        assertEquals("Disjointenss Classes:\nD321: (3,2,1)\n",djc.toString());
         ig.addClause(-3,-4);
         ig.addClause(-1,-4);
-        assertEquals("Disjointenss Classes:\nD1!=3: (1,3,2)\nD1!=4: (1,4,3)\n",djc.toString());
+        assertEquals("Disjointenss Classes:\n" +
+                "D321: (3,2,1)\n" +
+                "D431: (4,3,1)\n",djc.toString());
         ig.addClause(-2,-4);
-        assertEquals("Disjointenss Classes:\nD2!=4: (2,4,3,1)\n",djc.toString());
+        assertEquals("Disjointenss Classes:\n" +
+                "D4312: (4,3,1,2)\n",djc.toString());
     }
 
 }

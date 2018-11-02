@@ -112,12 +112,12 @@ public class Controller {
 
     /** prints all results to the resultfile.*/
     private void reportResults() {
-        String filename = globalParameters.resultFile;
+        File file = globalParameters.resultFile;
         PrintStream stream = System.out;
-        if(filename != null) {
-            try {stream = new PrintStream(new File(globalParameters.resultFile));}
+        if(file != null) {
+            try {stream = new PrintStream(file);}
             catch(FileNotFoundException ex) {
-                System.out.println("Resultfile "+ filename + " cannot be opened. Printing to System.out");}}
+                System.out.println("Resultfile "+ file.getAbsolutePath() + " cannot be opened. Printing to System.out");}}
         try{
             stream.println("\n\nResults");
             stream.println("*******");
@@ -186,10 +186,9 @@ public class Controller {
         for(ProblemSupervisor supervisor : problemSupervisors) {statistics.add(supervisor.collectStatistics());}
         PrintStream textStream = null;
         if(globalParameters.statisticsTextFile != null) {
-            File file = Paths.get(globalParameters.directory.getAbsolutePath(),globalParameters.statisticsTextFile).toFile();
-            try{textStream = new PrintStream(file);}
+            try{textStream = new PrintStream(globalParameters.statisticsTextFile);}
             catch(Exception ex) {
-                System.out.println("Statistics file " + file.getAbsolutePath() + " cannot be openend.\nUsing System.out instead");
+                System.out.println("Statistics file " + globalParameters.statisticsTextFile.getAbsolutePath() + " cannot be openend.\nUsing System.out instead");
                 textStream = System.out;}}
         if(textStream == null && globalParameters.statisticsText) {textStream = System.out;}
         if(textStream != null) {

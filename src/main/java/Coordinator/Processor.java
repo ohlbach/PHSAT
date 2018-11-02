@@ -10,10 +10,7 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.DataStatistics;
 import Datastructures.Statistics.Statistic;
-import Datastructures.Theory.DisjointnessClasses;
-import Datastructures.Theory.EquivalenceClasses;
-import Datastructures.Theory.ImplicationDAG;
-import Datastructures.Theory.Model;
+import Datastructures.Theory.*;
 import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
@@ -83,18 +80,17 @@ public abstract class Processor {
      *
      * @param processorId         the processor's identifier
      * @param supervisor          which manages the problem
-     * @param globalParameters    for overall management
      * @param applicationParameters either the problemParameters or the solverParameters
      * @param basicClauseList     the input clauses (n particular for checking a candidate model)
      */
-    public Processor(String processorId,ProblemSupervisor supervisor, GlobalParameters globalParameters,
+    public Processor(String processorId,ProblemSupervisor supervisor,
                      HashMap<String,Object> applicationParameters,BasicClauseList basicClauseList) {
         this.processorId = processorId;
         problemId = supervisor.problemId;
         id = processorId+"@"+problemId;
         this.predicates            = basicClauseList.predicates;
         this.supervisor            = supervisor;
-        this.globalParameters      = globalParameters;
+        this.globalParameters      = supervisor.globalParameters;
         this.applicationParameters = applicationParameters;
         this.basicClauseList       = basicClauseList;
         monitor                    = globalParameters.monitor;
@@ -103,7 +99,7 @@ public abstract class Processor {
 
     protected Consumer<CLiteral>            longClauseObserver = cLiteral    -> addTask(makeShortenedClauseTask(cLiteral.clause,this));
     protected Consumer<Integer>            trueLiteralObserver = literal     -> addTask(new Task.TrueLiteral(literal,this));
-    protected BiConsumer<Integer,Integer>  implicationObserver = (from,to)   -> addTask(new Task.BinaryClause(-from,to,this));
+    protected BiConsumer<ImplicationNode,ImplicationNode>  implicationObserver = (from,to)   -> addTask(new Task.BinaryClause(-from.literal,to.literal,this));
     protected Consumer<int[]>              equivalenceObserver = equivalence -> addTask(new Task.Equivalence(equivalence,this));
     protected Consumer<Unsatisfiable> unsatisfiabilityObserver = unsat       -> addTask(new Task.Unsatisfiability(unsat,this));
     protected Consumer<Satisfiable>     satisfiabilityObserver = sat         -> addTask(new Task.Satisfiability(sat,this));
@@ -112,8 +108,8 @@ public abstract class Processor {
             monitor.print(id,"Literal " + cLiteral.literal + " removed from clause " + cLiteral.clause.id);
     protected Consumer<Integer> trueLiteralMonitorDAG =  literal ->
             monitor.print(id,"Literal " + literal + " became true in the implication DAG.");
-    protected BiConsumer<Integer,Integer> implicationMonitor =  (from, to) ->
-            monitor.print(id,"New implication " + from + " -> " + to + " derived.");
+    protected BiConsumer<ImplicationNode,ImplicationNode> implicationMonitor =  (from, to) ->
+            monitor.print(id,"New implication " + from.literal + " -> " + to.literal + " derived.");
     protected Consumer<int[]> equivalenceMonitor = equivalence ->
             monitor.print(id,"Equivalent literals " + Arrays.toString(equivalence) + " derived.");
     protected Consumer<Integer> trueLiteralMonitorEQV =  literal ->

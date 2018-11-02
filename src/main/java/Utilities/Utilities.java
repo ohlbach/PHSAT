@@ -589,6 +589,40 @@ public class Utilities {
             mask <<= 1;}
         return result;}
 
+    /** This method takes the integer i as bitmap and applies the predicate to the position of the 1's in the bitmap.
+     * As soon as the predicate returns true, it stopps
+     *
+     * @param i           a bitmap
+     * @param predicate   to be applied to the positions of the 1's in the bitmap
+     * @return            true as soon as the first application of the predicate returns true.
+     */
+    public static boolean forSome(int i, Predicate<Integer> predicate) {
+        int index = 0;
+        int mask = 1;
+        while(i != 0) {
+            if((i & mask) != 0) {if(predicate.test(index)) {return true;}}
+            i &= ~mask;
+            ++index;
+            mask <<= 1;}
+        return false;}
+
+    /** This method takes the long integer i as bitmap and applies the predicate to the position of the 1's in the bitmap.
+     * As soon as the predicate returns true, it stopps
+     *
+     * @param i           a bitmap
+     * @param predicate   to be applied to the positions of the 1's in the bitmap
+     * @return            true as soon as the first application of the predicate returns true.
+     */
+    public static boolean forSome(long i, Predicate<Integer> predicate) {
+        int index = 0;
+        long mask = 1;
+        while(i != 0) {
+            if((i & mask) != 0) {if(predicate.test(index)) {return true;}}
+            i &= ~mask;
+            ++index;
+            mask <<= 1;}
+        return false;}
+
     private static void pl(String s,Collection<Integer> list) {
         System.out.println(s);
         for(int l : list) {System.out.println(Arrays.toString(toArray(l)));}}
@@ -597,8 +631,11 @@ public class Utilities {
         System.out.println(s);
         for(long l : list) {System.out.println(Arrays.toString(toArray((int)l)));}}
 
-
     public static void  main(String[] args) {
+        forSome(Integer.MIN_VALUE+1,(i-> {System.out.println(i); return false;}));
+    }
+
+    public static void  mainA(String[] args) {
         int a = toInt(new int[]{0,4});
         int b = toInt(new int[]{1,3});
         int n = 15;

@@ -17,11 +17,10 @@ import java.util.function.Consumer;
 public class DisjointnessClasses {
     private int predicates;    // number of predicates
     private Model model;       // a model
-    private ImplicationDAG implicationDAG; // an implication graph (optional)
-    private EquivalenceClasses equivalenceClasses; // optional
+    private ImplicationDAG implicationDAG; // an implication graph
     /** the list of disjunctions representing disjoint literals */
     public ClauseList disjointnessClasses = null;
-    /** reports changed disjointnss classes */
+    /** reports changed disjointness classes */
     private ArrayList<Consumer<Clause>> disjointnessObservers = new ArrayList();
     /** reports contradictions like p = -p */
     private ArrayList<Consumer<Unsatisfiable>> unsatisfiabilityObservers = new ArrayList();
@@ -59,12 +58,10 @@ public class DisjointnessClasses {
      *
      * @param model    a model
      * @param implicationDAG an implication graph (or null)
-     * @param equivalenceClasses  for replacing literals by their representatives.
      */
-    public DisjointnessClasses(Model model, ImplicationDAG implicationDAG, EquivalenceClasses equivalenceClasses) {
+    public DisjointnessClasses(Model model, ImplicationDAG implicationDAG) {
         this.model = model;
         this.implicationDAG = implicationDAG;
-        this.equivalenceClasses = equivalenceClasses;
         this.predicates = model.predicates;
         if(implicationDAG != null) {
             implicationDAG.addImplicationObserver((from,to) -> checkDisjointness(from));}
@@ -93,90 +90,155 @@ public class DisjointnessClasses {
     public Clause addDisjointnessClass(int[] basicClause) {
         assert basicClause.length > 2;
         if(basicClause.length == 3) {return null;}
-        initialize();
         String id = "D"+basicClause[0];
         Clause disjointness = new Clause(id,basicClause.length-2);
         int trueLiteral = 0;
         for(int i = 2; i < basicClause.length; ++i) {
-            int literal = mapToRepresentative(basicClause[i]);
+            int literal = basicClause[i];
             if(model.isTrue(literal)) {
                 if(trueLiteral != 0) {reportUnsatisfiable(trueLiteral,literal); return null;} // two true literals are not disjoint
                 else {trueLiteral = literal;}
                 for(int j = 2; j < basicClause.length; ++j) {
-                    if(i != j) {reportTrueLiteral(-mapToRepresentative(basicClause[j]));}} // p true causes all other litrals to become false.
+                    if(i != j) {reportTrueLiteral(-basicClause[j]);}} // p true causes all other literals to become false.
                 return null;}
 
             if(model.isFalse(literal)) {continue;}  // false literals can be ignored
             if(disjointness.contains(literal) >= 0) {reportUnsatisfiable(literal,literal); return null;} // p disjoint p is false
             if(disjointness.contains(-literal) >= 0) {continue;}  // p disjoint -p is trivially true
             disjointness.addCLiteralDirectly(new CLiteral(literal));}
-        if(disjointness.size() > 1) {
-            disjointnessClasses.addClause(disjointness);
-            subsume(disjointness);
-            disjointness = joinClauses(disjointness);
-            reportDisjointenss(disjointness);
-            return disjointness;}
+        if(disjointness.size() > 1) {return insertClause(disjointness);}
         return null;}
 
-
-
-    /** joins a new disjointness p disjoint q.
+    /** inserts a new clause into the disjointness list.
+     * If the clause can be integrated into existing ones, it is done
      *
-     * @param literal a literal
+     * @param disjointness a new clause
+     * @return either the clause itself or another one into which it is inserted.
      */
-    public void checkDisjointness(int literal) {
-        ArrayList<ImplicationNode> subnodes = implicationDAG.getSubnodes(literal);
-        if(subnodes == null || subnodes.size() < 2) {return;}
-        ArrayList<Integer> literals = new ArrayList<>();
-        for(ImplicationNode node : subnodes) {literals.add(-node.literal);}
-        ArrayList<TreeSet<Integer>> list = new ArrayList<>();
-        int length = 0;
-        for(ImplicationNode node : subnodes) {
-            TreeSet<Integer> supernodes = null;
-            for(ImplicationNode supernode : node.upNodes) {
-                if(literals.contains(supernode.literal)) {
-                    if(supernodes == null) {supernodes = new TreeSet<>();}
-                    supernodes.add(supernode.literal);}}
-            if(supernodes != null) {
-                supernodes.add(-node.literal);
-                length = Math.max(length,supernodes.size());
-                list.add(supernodes);}}
-        if(length < 2) {return;}
-        for(Integer index : Utilities.largestSubsetsInt(length,(i->allSame(i,list)))) {
-        //    addDisjointnessClass(index,list);
-        }}
+    private Clause insertClause(Clause disjointness) {
+        initialize();
+        disjointnessClasses.addClause(disjointness);
+        subsume(disjointness);
+        disjointness = joinClauses(disjointness);
+        reportDisjointenss(disjointness);
+        return disjointness;}
 
-    /** checks if all elements in the list which are indexed bitwise by the number i, are equal
+
+    /** This method is called when a new implication is inserted in the implicationDAG.
+     * It checks if the implication causes the disjointness of several literals.
      *
-     * @param i      an index as bitarry
-     * @param lists  a list of TreeSets
-     * @return       true if all elements in the list which are indexed by i, are equal.
+     * @param literalNode a literal node int the implication DAG
      */
-    private static boolean allSame(int i, ArrayList<TreeSet<Integer>> lists) {
-        int mask = 1;
-        int index = 0;
-        TreeSet<Integer> firstList = null;
-        while(i != 0) {
-            if((i & mask) != 0) {
-                TreeSet<Integer> list = lists.get(index);
-                if(firstList == null) {firstList = list;}
-                else {if(!list.equals(firstList)) {return false;}}}
-            i &= ~mask;
-            ++index; mask <<= 1;}
-        return true;}
+    public void checkDisjointness(ImplicationNode literalNode) {
+        ArrayList<ImplicationNode> subnodes = literalNode.downNodes;
+        int size = subnodes.size();
+        if(size < 2) {return;}
+        if(size < 32) checkDisjointnessInt(literalNode.literal,subnodes);
+        if(size < 64) checkDisjointnessLong(literalNode.literal,subnodes);
+        else {
+            ArrayList<ImplicationNode> subs = new ArrayList<>();
+            for(int i = 0; i < 64; ++i) {subs.add(subnodes.get(i));}
+            checkDisjointnessLong(literalNode.literal,subs);}}
 
+    /** It checks if the implication causes the disjointness of less than 32 literals.
+     * Example:
+     *    p     q     r
+     *    \     /\    /
+     *      -r     -p
+     * @param literal  a literal which got new subnodes in the implication dag
+     * @param subnodes its subnodes
+     */
+    private void checkDisjointnessInt(int literal, ArrayList<ImplicationNode> subnodes) {
+        int size = subnodes.size();
+        int[] list = new int[size];
+        for(int i = 0; i < size; ++i) {
+            ImplicationNode node = subnodes.get(i);
+            int mask = 1 << i;
+            for(ImplicationNode supernode :  node.upNodes) {
+                int position = getPosition(supernode.literal,subnodes);
+                if(position >= 0) {mask |= 1 << position;}}
+            list[i] =  mask;}
+        for(int bitmap : Utilities.largestSubsetsInt(size,
+                (mask->!Utilities.forSome(mask, j -> (mask & list[j]) != mask)))) {
+             addDisjointnessClass(bitmap,literal,subnodes);}}
+
+    /** It checks if the implication causes the disjointness of less than 64 literals.
+     * Example:
+     *    p     q     r
+     *    \     /\    /
+     *      -r     -p
+     * @param literal  a literal which got new subnodes in the implication dag
+     * @param subnodes its subnodes
+     */
+    private void checkDisjointnessLong(int literal, ArrayList<ImplicationNode> subnodes) {
+        int size = subnodes.size();
+        long[] list = new long[size];
+        for(int i = 0; i < size; ++i) {
+            ImplicationNode node = subnodes.get(i);
+            long mask = 1 << i;
+            for(ImplicationNode supernode :  node.upNodes) {
+                int position = getPosition(supernode.literal,subnodes);
+                if(position >= 0) { mask |= ((long)1) << position;}}
+            list[i] =  mask;}
+        for(long bitmap : Utilities.largestSubsetsLong(size,
+                (mask->!Utilities.forSome(mask, j -> (mask & list[j]) != mask)))) {
+            addDisjointnessClass(bitmap,literal,subnodes);}}
+
+    /** searches -literal in the nodes and returns its position
+     *
+     * @param literal  a literal
+     * @param nodes a list of ImplicationNodes
+     * @return the position of -literal in the nodes, or -1
+     */
+    private int getPosition(int literal, ArrayList<ImplicationNode> nodes) {
+        for(int i = 0; i < nodes.size(); ++i) {
+            if(-literal == nodes.get(i).literal) {return i;}}
+        return -1;}
+
+    /** adds a new disjointness class determined by the literal and the negated literals in the nodes,
+     *  which are indicated by the 1's in the bitmap
+     *
+     * @param bitmap    a bitmap
+     * @param literal  a literal
+     * @param nodes a list of ImplicationNodes
+     */
+    private void addDisjointnessClass(int bitmap, int literal, ArrayList<ImplicationNode> nodes) {
+        ArrayList<CLiteral> literals = new ArrayList<>();
+        StringBuilder st = new StringBuilder();
+        st.append("D"+literal);
+        literals.add(new CLiteral(literal));
+        Utilities.forSome(bitmap,i->{
+            int lit = -nodes.get(i).literal;
+            st.append(""+lit);
+            literals.add(new CLiteral(lit));
+            return false;});
+        Clause disjointness = new Clause(st.toString(),literals);
+        insertClause(disjointness);
+    }
+
+    /** adds a new disjointness class determined by the literal and the negated literals in the nodes,
+     *  which are indicated by the 1's in the bitmap
+     *
+     * @param bitmap    a bitmap
+     * @param literal  a literal
+     * @param nodes a list of ImplicationNodes
+     */
+    private void addDisjointnessClass(long bitmap, int literal, ArrayList<ImplicationNode> nodes) {
+        ArrayList<CLiteral> literals = new ArrayList<>();
+        StringBuilder st = new StringBuilder();
+        st.append("D"+literal);
+        literals.add(new CLiteral(literal));
+        Utilities.forSome(bitmap,i->{
+            int lit = -nodes.get(i).literal;
+            st.append(""+lit);
+            literals.add(new CLiteral(lit));
+            return false;});
+        Clause disjointness = new Clause(st.toString(),literals);
+        insertClause(disjointness);
+    }
 
 
     public static void main(String[] args) {
-        TreeSet<Integer> a = new TreeSet();
-        TreeSet<Integer> b = new TreeSet();
-        TreeSet<Integer> c = new TreeSet();
-        a.add(1); a.add(2);
-        b.add(2); b.add(3);
-        c.add(1); c.add(2);
-        ArrayList<TreeSet<Integer>> lists = new ArrayList<>();
-        lists.add(a); lists.add(b); lists.add(c);
-        System.out.println(allSame(7,lists));
 
     }
 
@@ -230,7 +292,7 @@ public class DisjointnessClasses {
             }
 
     /** joins disjointness classes if possible.
-     * It collects all literals in all disjunctions containing any of the literals in the given clause.
+     * It collects all literals in all clauses containing any of the literals in the given clause.
      * Only those literals which are mutually disjoint are then inserted in a new clause
      *
      * @param disjointness a disjointness class
@@ -252,7 +314,7 @@ public class DisjointnessClasses {
         subsume(joinedClause);
         return joinedClause;}
 
-    /** collects all literals in all disjunctions containing one of the literals in the given clause.
+    /** collects all literals in all clauses containing one of the literals in the given clause.
      *
      * @param clause a disjointness clause
      * @return all literals in all disjunctions containing one of the literals in the given clause.
@@ -285,17 +347,8 @@ public class DisjointnessClasses {
      *
      * @return true if there are no disjointness classes
      */
-    public boolean isEmpty() {return disjointnessClasses.isEmpty();}
+    public boolean isEmpty() {return disjointnessClasses == null || disjointnessClasses.isEmpty();}
 
-
-    /** maps literals to their representative in the equivalence class.
-     *
-     * @param literal the literal
-     * @return either the literal itself, or its representative.
-     */
-    public int mapToRepresentative(int literal) {
-        if(equivalenceClasses == null) {return literal;}
-        return equivalenceClasses.mapToRepresentative(literal);}
 
     /** calls all trueLiteralObservers
      *
@@ -333,6 +386,7 @@ public class DisjointnessClasses {
      * @return all equivalence classes as string
      */
     public String toString(Symboltable symboltable) {
+        if(disjointnessClasses == null) {return "";}
         return "Disjointenss Classes:\n" + disjointnessClasses.toString(symboltable);}
     }
 

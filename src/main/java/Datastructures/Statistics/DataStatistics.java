@@ -4,6 +4,7 @@ import Coordinator.Processor;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Theory.ImplicationNode;
 import com.sun.org.glassfish.gmbal.Description;
 
 import java.util.function.BiConsumer;
@@ -62,7 +63,7 @@ public class DataStatistics extends Statistic {
     private BiConsumer<CLiteral,Boolean> CLS_literalReplacementObserver = ((cLiteral, b) -> ++CLS_LiteralReplacements);
     private Consumer<Clause>                  CLS_clauseRemovalObserver = (cLiteral -> ++CLS_ClauseRemovals);
     private Consumer<Integer>                   IDG_trueLiteralObserver = (cLiteral -> ++IDG_TrueLiterals);
-    private BiConsumer<Integer,Integer>         IDG_implicationObserver = ((from,to) -> ++IDG_Implications);
+    private BiConsumer<ImplicationNode,ImplicationNode>         IDG_implicationObserver = ((from, to) -> ++IDG_Implications);
     private Consumer<int[]>                     IDG_equivalenceObserver = (eqv -> IDG_Equivalences += eqv.length);
     private Consumer<Integer>                   DIS_TrueLiteralObserver = (literal -> ++DIS_TrueLiterals);
     private Consumer<Unsatisfiable>        DIS_UnsatisfiabilityObserver = (literal -> ++DIS_Unsatisfiabilities);

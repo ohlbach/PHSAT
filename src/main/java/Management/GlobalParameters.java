@@ -23,14 +23,15 @@ public class GlobalParameters {
     /** just for the toString method */
     private String logFile = "";
     /** for printing the results of the solvers */
-    public String statisticsTextFile = null;
-    public String statisticsCSVFile = null;
+    public File statisticsTextFile = null;
+    public File statisticsCSVFile = null;
     public boolean statisticsText = true;
-    public String resultFile = null;
+    public File resultFile = null;
     /** for monitoring the actions of the solvers */
-    public Monitor monitor          = new Monitor();
-    /** supervises the solution of the problem */
-    public ProblemSupervisor supervisor = null;
+    public Monitor monitor        = new Monitor();
+
+    /** if treu then the implicationDAG is observed for disjointnesses */
+    public boolean disjointnessesNeeded = true;
 
 
 
@@ -67,7 +68,7 @@ public class GlobalParameters {
                 case "directory" :
                     directory = Paths.get(home,value).toFile();
                     if(!directory.isDirectory()) {
-                        if(directory.exists()) {errors.append("Directory " + value + " is not a directory");}
+                        if(directory.exists()) {errors.append("GlobalParameters: Directory " + value + " is not a directory");}
                         else {directory.mkdirs();}}
                     break;
                 case "parallel":
@@ -78,35 +79,45 @@ public class GlobalParameters {
                 case "logging":
                     logFile = value;
                     if(value.equals("true")) {logstream = System.out; logFile = "System.out"; break;}
-                    try {logstream = new PrintStream(new File(value));}
+                    try {Path path = Paths.get(directory.getAbsolutePath(),value);
+                        logFile =  path.toFile().toString();
+                        logstream = new PrintStream(path.toFile());}
                     catch(FileNotFoundException ex) {
-                        warnings.append("Logfile "+ value + " cannot be opened.\n");
+                        warnings.append("GlobalParameters: Logfile "+ value + " cannot be opened.\n");
                         warnings.append("Printing to System.out instead.");
                         logFile = "System.out";
                         logstream = System.out;}
                     break;
                 case "monitor":
-                    monitor = new Monitor(value,errors,warnings);
+                    monitor = new Monitor(directory,value,errors,warnings);
                     break;
                 case "results":
-                    resultFile = value;
+                    resultFile =  Paths.get(directory.getAbsolutePath(),value).toFile();
                     break;
                 case "statistics":
                     if(!value.equals("true")) { // otherwise System.out
                         String[] parts = value.split("\\s*[=, ]\\s*");
                         int length = parts.length;
-                        int start = 0;
-                        while(start < length) {
-                        if (parts[start].equals("text")) {
+                        if(length == 1) {
                             statisticsText = true;
-                            if(length > 1 && !parts[1].equals("csv")) {
-                                statisticsTextFile = parts[start+1]; start += 2;}}
-                        if(parts[start].equals("csv")) {
-                            if(length > start) {statisticsCSVFile = parts[start+1]; start += 2;}
-                            else {errors.append("No csv-File for the statistics defined"); break;}}
-                        }}
+                            statisticsTextFile = Paths.get(directory.getAbsolutePath(), parts[0]).toFile();
+                            break;}
+
+                        int start = 0;
+
+                        while(start < length) {
+                            if(parts[start].equals("csv")) {
+                                if(length > start) {statisticsCSVFile = Paths.get(directory.getAbsolutePath(), parts[start+1]).toFile(); start += 2;}
+                                else {errors.append("GlobalParameters: No csv-File for the statistics defined"); break;}}
+                            if (parts[start].equals("text")) {
+                                statisticsText = true;
+                                if(length > start) {statisticsTextFile = Paths.get(directory.getAbsolutePath(), parts[start+1]).toFile(); start += 2;}
+                                else {errors.append("GlobalParameters: No text-File for the statistics defined"); break;}}
+                            else {
+                                errors.append("GlobalParameters: statistics specification should be 'text/csv file', not " + value);
+                                break;}}}
                     break;
-                default: warnings.append("Unknown global parameter: " + key);
+                default: warnings.append("GlobalParameters: Unknown parameter: " + key);
             }}}
 
     /** prints a message to the logstream
@@ -126,7 +137,7 @@ public class GlobalParameters {
                 "  directory:          " + directory.getAbsolutePath()+"\n"+
                 "  parallel threads:   " + Integer.toString(parallel)+"\n" +
                 "  logFile:            " + logFile +"\n" +
-                "  resultFile:         " + resultFile +"\n" +
+                "  resultFile:         " + ((resultFile == null) ? "System.out" :resultFile.getAbsolutePath()) +"\n" +
                 "  monitor:            " + monitor.toString() + "\n" +
                 "  statisticsText:     " + Boolean.toString(statisticsText) +"\n";
         if(statisticsTextFile != null) {result +=

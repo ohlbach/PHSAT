@@ -14,7 +14,7 @@ import java.util.Collection;
  * Created by ohlbach on 26.09.2018.
  */
 public class ImplicationNode implements Comparable<ImplicationNode> {
-    Integer literal;
+    public Integer literal;
     ArrayList<ImplicationNode> downNodes = null;
     ArrayList<ImplicationNode> upNodes = null;
     int timestamp = 0;

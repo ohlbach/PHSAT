@@ -3,6 +3,7 @@ package Management;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +33,7 @@ public class Monitor {
      * @param errors for error messages.
      * @param warnings for warnings.
      */
-    public Monitor(String specification, StringBuffer errors, StringBuffer warnings) {
+    public Monitor(File directory,String specification, StringBuffer errors, StringBuffer warnings) {
         monitoring = true;
         if(specification.equals("true")) {return;}
         String[] parts = specification.split("\\s*(,| )\\s*");
@@ -40,7 +41,7 @@ public class Monitor {
         else {if(parts[0].equals("mixed")) {separated = false;}
             else {monitoring = false; errors.append("Monitoring '" + parts[0] + "' is unknown. Use 'separated' or 'mixed'.\n");}}
         if(parts.length > 1) {
-            file = new File(parts[1]);
+            file = (directory == null) ? new File(parts[1]) : Paths.get(directory.getAbsolutePath(),parts[1]).toFile();
             if(!separated){
                 try{out = new PrintStream(file);}
                 catch(Exception ex) {
@@ -84,7 +85,7 @@ public class Monitor {
                     try{out = new PrintStream(file);}
                     catch(FileNotFoundException ex) {
                         out.println("File not found " + file.getAbsolutePath());}}
-                out.println("\n\nMonitor");
+                out.println("Monitor");
                 out.println("*******");
                 for(Map.Entry<String,ArrayList<String>> entry : buffers.entrySet()) {
                     out.println(entry.getKey()+":");
@@ -99,11 +100,11 @@ public class Monitor {
         if(!monitoring) {return "Monitoring deactivated.";}
         if(separated) {
             StringBuilder st = new StringBuilder();
-            st.append("Separated printing for threads ");
+            st.append("Separated printing for threads");
             for(Map.Entry<String,ArrayList<String>> entry : buffers.entrySet()) {
                 st.append(entry.getKey()+",");}
             st.append(" to ");
-            st.append((file == null) ? "System.out" : file.getName());
+            st.append((file == null) ? "System.out" : file.getAbsolutePath());
             return st.toString();}
         else {return "Immediate printing to " + ((file == null) ? "System.out" : file.getAbsolutePath());}}
 
