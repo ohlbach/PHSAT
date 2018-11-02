@@ -43,7 +43,10 @@ public abstract class Task {
      *
      * @return the result of execution
      */
-    public abstract Result execute();
+    public Result execute() {
+        if(processor.monitoring) {
+            processor.monitor.print(processor.id,toString());}
+        return null;}
 
     /** It contains an Unsatisfiable object.
      * Because of priority 0 it is moved to the front of the task queue
@@ -64,7 +67,7 @@ public abstract class Task {
         /**
          * @return the Unsatisfiable object
          */
-        public Result execute(){return unsatisfiable;}
+        public Result execute(){super.execute();  return unsatisfiable;}
 
         public String toString() {
             return "Task: Unsatisfiable " + unsatisfiable.toString();}}
@@ -88,7 +91,7 @@ public abstract class Task {
         /**
          * @return the Satisfiable object
          */
-        public Result execute(){return satisfiable;}
+        public Result execute(){super.execute();  return satisfiable;}
 
         public String toString() {
             return "Task: Satisfiable " + satisfiable.toString();}
@@ -126,7 +129,7 @@ public abstract class Task {
          *
          * @return Un/Satisfiable if this has ben detected, otherwise null
          */
-        public Result  execute() {return processor.processOneLiteralClause(literal);}
+        public Result  execute() {super.execute();  return processor.processOneLiteralClause(literal);}
 
         public String toString() {
             return "Task: One Literal " + literal;}}
@@ -172,7 +175,7 @@ public abstract class Task {
          *
          * @return Un/Satisfiable if this has been detected, otherwise null
          */
-        public Result execute() {return processor.processEquivalence(equivalences);}
+        public Result execute() {super.execute();  return processor.processEquivalence(equivalences);}
 
         public String toString() {
             return "Task: Equivalences " + Arrays.toString(equivalences);}
@@ -218,7 +221,7 @@ public abstract class Task {
          *
          * @return  Un/Satisfiable if this has been detected, otherwise null
          */
-        public Result execute() {return processor.processTwoLiteralClause(literal1,literal2);}
+        public Result execute() {super.execute();  return processor.processTwoLiteralClause(literal1,literal2);}
 
         public String toString() {
             return "Task: Binary Clause " + literal1 + "," + literal2;}
@@ -254,7 +257,7 @@ public abstract class Task {
          *
          * @return  Un/Satisfiable if this has been detected, otherwise null
          */
-        public Result execute() {return processor.processLongerClause(clause);}
+        public Result execute() {super.execute();  return processor.processLongerClause(clause);}
 
         public String toString() {
             return "Task: Longer Clause " + clause.toString();}
@@ -291,7 +294,7 @@ public abstract class Task {
          *
           * @return  Un/Satisfiable if this has been detected, otherwise null
          */
-        public Result execute() {return processor.processPurity(literal);}
+        public Result execute() {super.execute();  return processor.processPurity(literal);}
 
         public String toString() {
             return "Task: Pure literal: " + literal;}
@@ -320,6 +323,7 @@ public abstract class Task {
          * @return the result of the processLiteralRemoval method
          */
         public Result execute() {
+            super.execute();
             return processor.processLiteralRemoval(clauseId,literal);}
 
         /** If the literal has become true/false already, nothing has to be done

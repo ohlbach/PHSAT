@@ -79,6 +79,7 @@ public class Algorithms {
             clauseList.stream(clause.cliterals.get(i).literal,implicationDAG,true).
                     forEach(clit -> {
                         Clause otherClause = clit.clause;
+                        if(otherClause == clause) {return;}
                         if(otherClause.size() < size) {return;}
                         if(j == 0) {otherClause.timestamp = timestamp; return;}
                         if(j == size1) {
@@ -108,10 +109,11 @@ public class Algorithms {
         for(int i = 0; i < size; ++i) {
             CLiteral cliteral = clause.cliterals.get(i);
             int timestamp = ts+i*size;
+            // mark the potential resolution literals
             clauseList.streamContradicting(cliteral.literal,implicationDAG).forEach(cLit->cLit.timestamp = timestamp);
             for(int k = 0; k < size; ++k) {
                 int j = k;
-                Stream<CLiteral> stream = i == k ?
+                Stream<CLiteral> stream = (i == k) ?
                         clauseList.streamContradicting(cliteral.literal,implicationDAG) :
                         clauseList.stream(clause.cliterals.get(k).literal,implicationDAG,true);
                 if(k == 0) {stream.forEach(cLit -> {if(cLit.clause.size() >= size) {cLit.clause.timestamp = timestamp;}});
@@ -130,10 +132,6 @@ public class Algorithms {
         for(CLiteral clit : toBeDeleted) {clauseList.removeLiteral(clit);}
         return toBeDeleted.size();}
 
-
-    public static void subsumeAndResolve(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
-
-    }
 
     /** simplifies a clause by means of the implication DAG.<br>
      * Example: p,q,r  and p -&gt; r: remove p

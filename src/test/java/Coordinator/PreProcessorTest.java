@@ -16,6 +16,24 @@ import static org.junit.Assert.*;
  * Created by ohlbach on 02.11.2018.
  */
 public class PreProcessorTest {
+    static HashMap<String, String> pars = new HashMap<>();
+    static StringBuffer errors = new StringBuffer();
+    static StringBuffer warnings = new StringBuffer();
+    static GlobalParameters glb;
+    static HashMap<String,Object> probPars = new HashMap<>();
+    static BasicClauseList bcl = new BasicClauseList();
+    static ProblemSupervisor psu;
+    static PreProcessor prep;
+
+    static void initialize() {
+        pars.put("monitor","true");
+        glb = new GlobalParameters(pars,errors,warnings);
+        probPars.put("name","test");
+        bcl.predicates = 10;
+        psu = new ProblemSupervisor(1,glb,probPars,null);
+        prep = new PreProcessor(psu,probPars,bcl);
+    }
+
     @Test
     public void prepareClauses() throws Exception {
 
@@ -24,15 +42,7 @@ public class PreProcessorTest {
     @Test
     public void addConjunction() throws Exception {
         System.out.println("addConjunction");
-        HashMap<String, String> pars = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
-        GlobalParameters glb = new GlobalParameters(pars,errors,warnings);
-        HashMap<String,Object> probPars = new HashMap<>();
-        probPars.put("name","test");
-        BasicClauseList bcl = new BasicClauseList(); bcl.predicates = 10;
-        ProblemSupervisor psu = new ProblemSupervisor(1,glb,probPars,null);
-        PreProcessor prep = new PreProcessor(psu,probPars,bcl);
+        initialize();
         Result result = prep.addConjunction(new int[]{1,ClauseType.AND.ordinal(),1,2,-3});
         assertNull(result);
         assertEquals("[1, 2, -3]",prep.model.toString());
@@ -51,6 +61,21 @@ public class PreProcessorTest {
 
     @Test
     public void addDisjunction() throws Exception {
+        System.out.println("addDisjunction");
+        initialize();
+        Result result = prep.addDisjunction(new int[]{1,ClauseType.OR.ordinal(),1,2,-3});
+        assertNull(result);
+        assertEquals("1: (1,2,-3)\n",prep.clauses.toString());
+        result = prep.addDisjunction(new int[]{2,ClauseType.OR.ordinal(),1,2,3,4});
+        assertNull(result);
+        assertEquals("1: (1,2,-3)\n" +
+                "2: (1,2,4)\n",prep.clauses.toString());
+        result = prep.addDisjunction(new int[]{3,ClauseType.OR.ordinal(),1,2,4,5});
+        assertNull(result);
+
+        System.out.println("CL\n"+prep.clauses.toString());
+        System.out.println(prep.statistics.toString());
+
 
     }
 

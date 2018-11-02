@@ -298,7 +298,7 @@ public class AlgorithmsTest {
         Clause c3 = Utilities.makeClause("3", "6,-1,7,8");
         clauses.addClause(c3);
         assertEquals("[1, 6]", Arrays.toString(Algorithms.simplifyWithImplication(3, 4, clauses, id)));
-        System.out.println(clauses);
+        //System.out.println(clauses);
     }
 
     @Test

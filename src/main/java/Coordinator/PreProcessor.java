@@ -105,8 +105,7 @@ public class PreProcessor extends Processor {
     Result addConjunction(int[] basicClause) {
         for(int i = 2; i < basicClause.length; ++i) {
             int literal = basicClause[i];
-            if(model.add(literal) < 0) {
-                return new Unsatisfiable(model,literal);}}
+            if(model.add(literal) < 0) {return new Unsatisfiable(model,literal);}}
         return null;}
 
     /** adds an equivalence class to the clauses
@@ -127,8 +126,8 @@ public class PreProcessor extends Processor {
     Result addDisjunction(int[] basicClause) {
         Clause clause = makeDisjunction(basicClause);
         if(clause == null) {return null;}
-        taskQueue.add(makeShortenedClauseTask(clause,this));
         clauses.addClause(clause);
+        taskQueue.add(makeShortenedClauseTask(clause,this));
         return processTasks();}
 
     /** turns a basicClause into a clause. <br>
@@ -154,6 +153,11 @@ public class PreProcessor extends Processor {
             ((PreProcessorStatistics)statistics).BCL_RedundantLiterals += basicClause.length-2-clause.size();
             if(monitoring) {monitor.print(id,"Clause " + Arrays.toString(basicClause) + " shortened to " + clause.toString());}}
         if(clause.isEmpty()) {return clause;}
+        clause = Algorithms.subsumedAndResolved(clause,clauses,implicationDAG);
+        if(clause == null) {
+            ((PreProcessorStatistics)statistics).CLS_ClauseRemovals++;
+            if(monitoring) {monitor.print(id,"clause subsumed: " + basicClauseList.clauseToString(basicClause));}
+            return null;}
         int removals = Algorithms.simplifyClause(clause,implicationDAG);
         if(removals != 0) {
             ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions += removals;

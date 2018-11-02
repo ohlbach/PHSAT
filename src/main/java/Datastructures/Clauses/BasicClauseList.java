@@ -159,6 +159,13 @@ public class BasicClauseList {
 
     /** turns a clause into a string.
      *
+     * @param clause     the clause
+     * @return the clause as string
+     */
+    public String clauseToString(int[] clause) {
+        return clauseToString((""+clause[0]).length(),clause,symboltable);}
+    /** turns a clause into a string.
+     *
      * @param size       the length for the number string
      * @param clause     the clause
      * @param symboltable a symboltable or null
