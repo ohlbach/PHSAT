@@ -106,6 +106,8 @@ public abstract class Processor {
 
     protected Consumer<CLiteral> literalRemovalMonitor = cLiteral ->
             monitor.print(id,"Literal " + cLiteral.literal + " removed from clause " + cLiteral.clause.id);
+    protected Consumer<Clause> clauseRemovalMonitor = clause ->
+            monitor.print(id,"Clause " + clause.toString() + " removed");
     protected Consumer<Integer> trueLiteralMonitorDAG =  literal ->
             monitor.print(id,"Literal " + literal + " became true in the implication DAG.");
     protected BiConsumer<ImplicationNode,ImplicationNode> implicationMonitor =  (from, to) ->
@@ -130,6 +132,7 @@ public abstract class Processor {
         if(!monitoring) {return;}
         monitor.addThread(id,info);
         clauses.addLiteralRemovalObserver(literalRemovalMonitor);
+        clauses.addClauseRemovalObserver(clauseRemovalMonitor);
         implicationDAG.addTrueLiteralObserver(trueLiteralMonitorDAG);
         implicationDAG.addImplicationObserver(implicationMonitor);
         implicationDAG.addEquivalenceObserver(equivalenceMonitor);
@@ -145,6 +148,7 @@ public abstract class Processor {
     protected void removeMonitors() {
         if(!monitoring) {return;}
         clauses.removeLiteralRemovalObserver(literalRemovalMonitor);
+        clauses.removeClauseRemovalObserver(clauseRemovalMonitor);
         implicationDAG.removeTrueLiteralObserver(trueLiteralMonitorDAG);
         implicationDAG.removeImplicationObserver(implicationMonitor);
         implicationDAG.removeEquivalenceObserver(equivalenceMonitor);

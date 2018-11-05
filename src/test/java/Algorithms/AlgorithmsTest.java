@@ -6,11 +6,9 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Theory.ImplicationDAG;
 import Utilities.Utilities;
 import org.junit.Test;
-import sun.util.resources.cldr.de.CalendarData_de_LU;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.function.BiFunction;
 
 import static org.junit.Assert.*;
 
@@ -310,7 +308,7 @@ public class AlgorithmsTest {
         id.addClause(-4, 5);
         id.addClause(-5, 6);
         Clause c1 = Utilities.makeClause("1", "4,3,5,2,6,1");
-        int removals = Algorithms.simplifyClause(c1, id);
+        int removals = Algorithms.replacementResolutionWithID(c1, id);
         assertEquals(4,removals);
         assertEquals("1: (3,6)",c1.toString());
 

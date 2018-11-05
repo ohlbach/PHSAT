@@ -133,6 +133,23 @@ public class Algorithms {
         return toBeDeleted.size();}
 
 
+    /** checks if the clause is subsumed by the implication DAG
+     * Example: p,q,r  and -p -&gt; r: subsumed
+     *
+     * @param clause         the clause to be simplified
+     * @param implicationDAG the implication DAG
+     * @return               true if the clause is subsumed by the implication DAG
+     */
+    public static boolean subsumedByID(Clause clause, ImplicationDAG implicationDAG) {
+        for(int i = 0; i < clause.size(); ++i) {
+            CLiteral cLiteral1 = clause.cliterals.get(i);
+            Integer literal1 = -cLiteral1.literal;
+            if(!implicationDAG.isEmpty(literal1)) {
+                for(CLiteral cLiteral2 : clause.cliterals) {
+                    if(cLiteral1 != cLiteral2 && implicationDAG.implies(literal1,cLiteral2.literal)) {
+                        return true;}}}}
+        return false;}
+
     /** simplifies a clause by means of the implication DAG.<br>
      * Example: p,q,r  and p -&gt; r: remove p
      *
@@ -140,7 +157,7 @@ public class Algorithms {
      * @param implicationDAG the implication DAG
      * @return               the number of literal removals.
      */
-    public static int simplifyClause(Clause clause, ImplicationDAG implicationDAG) {
+    public static int replacementResolutionWithID(Clause clause, ImplicationDAG implicationDAG) {
         int removals = 0;
         for(int i = 0; i < clause.size(); ++i) {   // p,q,r  and p -> r: remove p
             CLiteral cLiteral1 = clause.cliterals.get(i);

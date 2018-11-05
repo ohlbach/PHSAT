@@ -151,17 +151,34 @@ public class PreProcessor extends Processor {
             return null;}
         if(clause.size() < basicClause.length-2) {
             ((PreProcessorStatistics)statistics).BCL_RedundantLiterals += basicClause.length-2-clause.size();
-            if(monitoring) {monitor.print(id,"Clause " + Arrays.toString(basicClause) + " shortened to " + clause.toString());}}
+            if(monitoring) {monitor.print(id,"Clause " + basicClauseList.clauseToString(basicClause) + " shortened to " + clause.toString());}}
         if(clause.isEmpty()) {return clause;}
+
+        if(Algorithms.subsumedByID(clause,implicationDAG)) {
+            if(monitoring) {
+                monitor.print(id, "Clause " + basicClauseList.clauseToString(basicClause) + " is subsumed by the implication DAG.");}
+            ((PreProcessorStatistics)statistics).BCL_RedundantClauses++;
+            return null;}
+
+        int removals = Algorithms.replacementResolutionWithID(clause,implicationDAG);
+        if(removals != 0) {
+            ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions += removals;
+            if(monitoring) {
+                monitor.print(id,"Replacement Resolution removed " + removals + " literal from clause " +
+                        basicClauseList.clauseToString(basicClause) + ".\n         Shortened clause: " +
+                        clause.toString());}}
+
         clause = Algorithms.subsumedAndResolved(clause,clauses,implicationDAG);
         if(clause == null) {
             ((PreProcessorStatistics)statistics).CLS_ClauseRemovals++;
             if(monitoring) {monitor.print(id,"clause subsumed: " + basicClauseList.clauseToString(basicClause));}
             return null;}
-        int removals = Algorithms.simplifyClause(clause,implicationDAG);
-        if(removals != 0) {
-            ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions += removals;
-            if(monitoring) {monitor.print(id,"Replacement Resolution removed " + removals + " from clause " + clause.toString());}}
+        if(clause.size() < basicClause.length-2) {
+            ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions++;
+            if(monitoring) {
+                monitor.print(id,"Replacement Resolution shortened clause " +
+                        basicClauseList.clauseToString(basicClause) + " to " +
+                        clause.toString());}}
         return clause;}
 
 
