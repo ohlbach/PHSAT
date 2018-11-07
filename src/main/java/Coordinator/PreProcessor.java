@@ -5,6 +5,7 @@ import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Statistics.PreProcessorStatistics;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
@@ -46,7 +47,7 @@ public class PreProcessor extends Processor {
     protected void addObservers() {
         clauses.addLiteralRemovalObserver(longClauseObserver);
         implicationDAG.addTrueLiteralObserver(trueLiteralObserver);
-        implicationDAG.addImplicationObserver(implicationObserver);
+       // implicationDAG.addImplicationObserver(implicationObserver);
         implicationDAG.addEquivalenceObserver(equivalenceObserver);
         equivalences.addTrueLiteralObserver(trueLiteralObserver);
         equivalences.addUnsatisfiabilityObserver(unsatisfiabilityObserver);
@@ -85,16 +86,26 @@ public class PreProcessor extends Processor {
                 clauses.sort(Comparator.comparingInt(c->c.length));
                 for(int[] basicClause: clauses) {
                     result = addDisjunction(basicClause);
+                    System.out.println(toString());
                     if(result != null) {return result;}}}
             clauses = basicClauseList.disjoints;
             if(clauses != null) {
                 for(int[] basicClause: clauses) {
                     result = addDisjoint(basicClause);
                     if(result != null) {return result;}}}
+            if(this.clauses.isEmpty()) {
+                System.out.println("EMPTY " + implicationDAG.toString());
+                implicationDAG.completeModel(model);
+                equivalences.completeModel();
+                System.out.println("MO " + model.toString());
+                return Result.makeResult(model,basicClauseList);}
             return purityCheck();}
         finally{statistics.removeStatisticsObservers();
             long end = System.currentTimeMillis();
-            statistics.elapsedTime = end-start;}}
+            statistics.elapsedTime = end-start;
+            System.out.println("Time "+ (end-start));
+            System.out.println(toString());
+        }}
 
 
     /** This method adds a conjunction to the model.

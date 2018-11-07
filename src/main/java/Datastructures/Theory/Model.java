@@ -111,6 +111,19 @@ public class Model {
         short status = this.status[predicate];
         return literal > 0 ? status : -status;}
 
+    /** sets the logical status of the literal.
+     *
+     * @param literal a literal
+     * @param status +1 (for true) and -1 (for false)
+     */
+    public void setStatus(int literal, int status) {
+        if(literal < 0) {literal = -literal; status = (short)-status;}
+        assert this.status[literal] == 0 || this.status[literal] == status;
+        if(this.status[literal] == 0) {
+            this.status[literal] = (short)status;
+            model.add(status > 0 ? literal : -literal);}}
+
+
 
     /** clones the model (without observers)
      *

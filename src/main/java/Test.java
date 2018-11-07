@@ -1,6 +1,8 @@
 import com.sun.org.glassfish.gmbal.Description;
 
+import javax.swing.plaf.basic.BasicIconFactory;
 import java.lang.reflect.Field;
+import java.util.BitSet;
 import java.util.function.Function;
 
 /**
@@ -18,8 +20,17 @@ public class Test {
     public Function<Integer,Integer> plus  = m -> m + n;
 
     public static void main(String[] args) throws Exception {
-        Test b = new Test();
-        System.out.println(b.getClass().getField("m").getAnnotation(Description.class).value());
+        BitSet b = new BitSet(10000000);
+        b.set(0,true);
+        b.set(9999999,true);
+        System.out.println(b.size());
+        System.out.println(b.length());
+        int x = 0;
+        long time =System.nanoTime();
+        for(int i = 1; i < 10000; ++i) {
+            x = b.nextSetBit(1);}
+        System.out.println(System.nanoTime()-time);
+        System.out.println(x);
     }
 
 }

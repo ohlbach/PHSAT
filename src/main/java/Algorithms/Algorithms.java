@@ -53,7 +53,7 @@ public class Algorithms {
                     anyMatch(clit -> {
                         clit.timestamp = timestamp;
                         Clause otherClause = clit.clause;
-                        return otherClause.timestamp - timestamp >= otherClause.size()-2 && allMarked(otherClause,timestamp);})) {
+                        return clause.size() >= otherClause.size() && otherClause.timestamp - timestamp >= otherClause.size()-2 && allMarked(otherClause,timestamp);})) {
                 clause.removeLiteralAtPosition(i);
                 --i;
                 --length;}}
@@ -93,12 +93,12 @@ public class Algorithms {
     }
 
 
-    /** deletes all clauses which are subsumed by the given clause(with the implication graph).<br>
+    /** deletes all literals by replacement resolution with the given clause(with the implication graph).<br>
      *
      * @param clause           the clause which operates on the other clauses
      * @param clauseList       the clause list with the clause
      * @param implicationDAG the implication graph
-     * @return the number of deleted clauses.
+     * @return the number of deleted literals.
      */
     public static int resolve(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
         int size = clause.size();
@@ -110,7 +110,8 @@ public class Algorithms {
             CLiteral cliteral = clause.cliterals.get(i);
             int timestamp = ts+i*size;
             // mark the potential resolution literals
-            clauseList.streamContradicting(cliteral.literal,implicationDAG).forEach(cLit->cLit.timestamp = timestamp);
+            clauseList.streamContradicting(cliteral.literal,implicationDAG).
+                    forEach(cLit->{if(cLit.clause != clause && cLit.clause.size() >= clause.size()){cLit.timestamp = timestamp;}});
             for(int k = 0; k < size; ++k) {
                 int j = k;
                 Stream<CLiteral> stream = (i == k) ?
@@ -121,7 +122,7 @@ public class Algorithms {
                 if(k == size1) {
                     stream.forEach(cLit ->{
                         Clause otherClause = cLit.clause;
-                        if(otherClause.timestamp == timestamp+j-1) {
+                        if(otherClause != clause && otherClause.timestamp == timestamp+j-1) {
                             for(CLiteral clit : otherClause.cliterals) {
                                 if(clit.timestamp == timestamp) {
                                     clit.timestamp = 0;
@@ -129,7 +130,8 @@ public class Algorithms {
                 else {stream.forEach(cLit ->{
                         Clause otherClause = cLit.clause;
                         if(otherClause.timestamp == timestamp+j-1) {otherClause.timestamp = timestamp+j;}});}}}
-        for(CLiteral clit : toBeDeleted) {clauseList.removeLiteral(clit);}
+        for(CLiteral clit : toBeDeleted) {
+            clauseList.removeLiteral(clit);}
         return toBeDeleted.size();}
 
 

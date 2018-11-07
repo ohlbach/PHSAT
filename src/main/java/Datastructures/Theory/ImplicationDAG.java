@@ -1,6 +1,7 @@
 package Datastructures.Theory;
 
 import Datastructures.Symboltable;
+import com.sun.istack.internal.Pool;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -81,7 +82,8 @@ public class ImplicationDAG {
      * @return true if no implied literals have been registered.
      */
     public boolean isEmpty(Integer literal) {
-        return nodesMap.get(literal) == null;}
+        ImplicationNode node = nodesMap.get(literal);
+        return node == null || node.downNodes == null || node.downNodes.isEmpty();}
 
     /** checks if 'from -&gt; to' is a consequence of the ID_Implications in the DAG
      *
@@ -166,8 +168,8 @@ public class ImplicationDAG {
         if(implies(toNode,fromNode)) {newEquivalence(toNode,fromNode); return true;}
         int status = fromNode.addDownNode(toNode);
         if(status == 1) {return false;}
-        if(status == -1) {newTrueLiteral(-from); return true;}
-        if(implies(-from,to)) {++timestamp; newTrueLiteral(toNode); return true;}
+        if(status == -1) {newTrueLiteral(-from,report); return true;}
+        if(implies(-from,to)) {++timestamp; newTrueLiteral(toNode,report); return true;}
         if(toNode.upNodes != null && toNode.upNodes.size() == 1) {roots.remove(toNode);}
         if(report){reportImplication(fromNode,toNode);}
         if(fromNode.upNodes == null) {roots.add(fromNode);}
@@ -178,20 +180,22 @@ public class ImplicationDAG {
      *
      * @param trueLiteral a literal
      */
-    public void newTrueLiteral(Integer trueLiteral) {
+    public void newTrueLiteral(Integer trueLiteral, boolean report) {
         ++timestamp; timestamp += 2;
         ImplicationNode node = nodesMap.get(trueLiteral);
-        if (node == null) {reportTrueLiteral(trueLiteral); removeFalseLiteral(-trueLiteral); return;}
-        else {newTrueLiteral(node);}}
+        if (node == null) {
+            if(report){reportTrueLiteral(trueLiteral);}
+            removeFalseLiteral(-trueLiteral); return;}
+        else {newTrueLiteral(node,report);}}
 
-    private void newTrueLiteral(ImplicationNode trueNode) {
+    private void newTrueLiteral(ImplicationNode trueNode, boolean report) {
         if(trueNode.timestamp == timestamp) {return;}
         trueNode.timestamp = timestamp;
-        reportTrueLiteral(trueNode.literal);
+        if(report){reportTrueLiteral(trueNode.literal);}
         roots.remove(trueNode);
         nodesMap.remove(trueNode.literal);
         ArrayList<ImplicationNode> downNodes = trueNode.downNodes;
-        if(downNodes != null) {for(Object downNode : downNodes.toArray()) {newTrueLiteral((ImplicationNode)downNode);}}
+        if(downNodes != null) {for(Object downNode : downNodes.toArray()) {newTrueLiteral((ImplicationNode)downNode,report);}}
         disconnect(trueNode);
         removeFalseLiteral(-trueNode.literal);}
 
@@ -347,8 +351,9 @@ public class ImplicationDAG {
         trueLiteralObservers.clear();
         trueLiteralObservers.add(literal-> {model.add(literal);});
         while(!roots.isEmpty()) {
-            for(Object node : roots.last().downNodes.toArray()) { // this guarantees that the implication: 'root -> node' is true.
-                ++timestamp; newTrueLiteral((ImplicationNode)node);}}}
+            for(Object node : roots.toArray()) { // this guarantees that the implication: 'root -> node' is true.
+                ++timestamp;
+                newTrueLiteral((ImplicationNode)node,true);}}}
 
 
 

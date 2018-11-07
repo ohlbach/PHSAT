@@ -32,6 +32,21 @@ public class AlgorithmsTest {
     }
 
     @Test
+    public void subsumedResolved() throws Exception {
+        System.out.println("subsumedResolved");
+        ClauseList clauses = new ClauseList(10, 10);
+        ImplicationDAG id = new ImplicationDAG();
+        Clause c1 = Utilities.makeClause("1","1,2,3");
+        clauses.addClause(c1);
+        Clause c2 = Utilities.makeClause("2","1,-2,-3");
+        clauses.addClause(c2);
+        Clause c3 = Utilities.makeClause("3","1,2,-3");
+       assertEquals("3: (1,-3)",Algorithms.subsumedAndResolved(c3,clauses,id).toString());
+    }
+
+
+
+    @Test
     public void subsumedID() throws Exception {
         System.out.println("subsumed with Implication DAG");
         ClauseList clauses = new ClauseList(10, 10);

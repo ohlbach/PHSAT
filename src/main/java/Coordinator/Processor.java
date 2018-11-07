@@ -76,6 +76,27 @@ public abstract class Processor {
     /** the statistics for the processor*/
     public Statistic statistics = null;
 
+    /** turns the current state of the data into a string
+     *
+     * @return the current state of the data.
+     */
+    public String toString() {
+        StringBuilder st = new StringBuilder();
+        if(model != null && !model.isEmpty()) {
+            st.append("Model: ").append(model.toString()).append("\n");}
+        if(clauses != null && !clauses.isEmpty()) {
+            st.append("Clauses:\n").append(clauses.toString()).append("\n");}
+        if(implicationDAG != null && !implicationDAG.isEmpty()) {
+            st.append("Implication DAG:\n").append(implicationDAG.toString()).append("\n");}
+        if(equivalences != null && !equivalences.isEmpty()) {
+            st.append(equivalences.toString()).append("\n");}
+        if(disjointnesses != null && !disjointnesses.isEmpty()) {
+            st.append(disjointnesses.toString());}
+        if(statistics != null) {
+            st.append(statistics.toString());}
+        return st.toString();}
+
+
     /** constructs a processor and initializes the common fields
      *
      * @param processorId         the processor's identifier
@@ -222,7 +243,7 @@ public abstract class Processor {
             taskQueue.add(new Task.Unsatisfiability(result,this)); return result;}
         if(status == 1) {return null;}
         clauses.makeTrue(literal);
-        implicationDAG.newTrueLiteral(literal);
+        implicationDAG.newTrueLiteral(literal,false);
         return trueLiteralInQueue(literal);}
 
     /** This method traverses the task queue to implement the consequences of a true literal on the remaining tasks
@@ -289,13 +310,14 @@ public abstract class Processor {
      * and removed from the implicationDAG, but is still in the taskQueue This has to be checked anew.
      *
      * @param literal a pure literal
-     * @return null or Satisfiable
+     * @return null
      */
     public Result processPurity(int literal) {
-        if(clauses.isPure(literal) && implicationDAG.isEmpty(-literal)) {
+        if(clauses.isPure(literal) && implicationDAG.isEmpty(literal)) {
+            ((DataStatistics)statistics).CLS_Purities++;
+            model.add(literal);
             clauses.removeLiteral(literal);
-            implicationDAG.newTrueLiteral(literal);
-            if(clauses.isEmpty()) {return Result.makeResult(model,basicClauseList);}}
+            implicationDAG.newTrueLiteral(literal,true);}
         return null;}
 
     /** This method removes a literal from a clause if one of the solvers has discovered that the literal can be removed
@@ -311,5 +333,6 @@ public abstract class Processor {
         if(position < 0) {return null;}
         clauses.removeLiteral(clause.getLiteral(position));
         return null;}
+
 
 }

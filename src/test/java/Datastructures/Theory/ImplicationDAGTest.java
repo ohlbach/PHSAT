@@ -198,7 +198,7 @@ public class ImplicationDAGTest {
         id.addClause(-5, 6);
         id.addClause(-5, 7);
         id.addClause(-8, 4);
-        id.newTrueLiteral(5);
+        id.newTrueLiteral(5,false);
         assertEquals("-4 -> -3,-8\n" +
                 "     -3 -> -1,-2\n" +
                 "1 -> 3\n" +

@@ -5,10 +5,7 @@ import Datastructures.Clauses.ClauseType;
 import Datastructures.Status;
 import Utilities.Utilities;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Created by ohlbach on 26.08.2018.
@@ -150,6 +147,9 @@ public final class RandomClauseSetGenerator {
                             ebl + "*" + ele + " > " + pred +".\n ");
                     continue;}
 
+                if(pred < (Integer)values.get(3)){
+                    errors.append("RandomClauseSetGenerator: there can't be less predicates than literals in a clause:\n").
+                            append("predicates: " + predicates + " clause length: " + values.get(3)+"\n");}
 
                 HashMap<String,Object> cntr = new HashMap<>();
                 cntr.put("seed",values.get(0));
@@ -170,6 +170,9 @@ public final class RandomClauseSetGenerator {
         ArrayList<ArrayList> list = Utilities.crossProduct(seeds,predicates,cpRatios,lengths, precises,
                 dBlockss,dLengths,xBlockss,xLengths,eBlockss,eLengths);
         for(ArrayList values : list) {
+            if((Integer)values.get(1) < (Integer)values.get(3)){
+                errors.append("RandomClauseSetGenerator: there can't be less predicates than literals in a clause:\n").
+                        append("predicates: " + values.get(1) + " clause length: " + values.get(3)+"\n");}
             HashMap<String,Object> cntr = new HashMap<>();
             int nClauses = Math.round((Integer)values.get(1)*(Float)values.get(2));
             cntr.put("seed",values.get(0));
@@ -201,7 +204,7 @@ public final class RandomClauseSetGenerator {
         st.append("predicates: an integer > 0, specifies the number of predicates in the clause set.\n");
         st.append("disjunctions:    an integer > 0, specifies the number of normal disjunctions to be generated.\n");
         st.append("cpRatio:    a float > 0, specifies the clause/predicate ratio.\n");
-        st.append("            cpRatio = 4.3 means: for 100 predicates 430 disjunctions.");
+        st.append("            cpRatio = 4.3 means: for 100 predicates 430 disjunctions.\n");
         st.append("length:     an integer > 0, specifies the maximum number of literals per clause.\n");
         st.append("precise:    a boolean, if true then the disjunctions have exactly the specified length (default true).\n");
         st.append("seed:       an integer >= 0 for starting the random number generator (default 0).\n");
@@ -245,6 +248,11 @@ public final class RandomClauseSetGenerator {
         Integer xLength     = (Integer)parameters.get("xLengths");
         Integer eBlocks     = (Integer)parameters.get("eBlocks");
         Integer eLength     = (Integer)parameters.get("eLengths");
+
+        if(predicates < maxClauseLength) {
+            errors.append("RandomClauseSetGenerator: More literals in a clause than predicates.\n").
+                    append("predicates: " + predicates + " literals " + maxClauseLength +"\n");
+            return null;}
 
         BasicClauseList clauseList = new BasicClauseList();
         clauseList.predicates = predicates;

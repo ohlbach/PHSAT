@@ -70,7 +70,7 @@ public abstract class Task {
         public Result execute(){super.execute();  return unsatisfiable;}
 
         public String toString() {
-            return "Task: Unsatisfiable " + unsatisfiable.toString();}}
+            return "Task: " + unsatisfiable.toString();}}
 
     /** It contains a Satisfiable object.
      * Because of priority 0 it is moved to the front of the task queue
@@ -275,7 +275,8 @@ public abstract class Task {
          * @param processor which must process the purity removal
          */
         public Purity(int literal, Processor processor) {
-            super(2, processor);}
+            super(2, processor);
+            this.literal = literal;}
 
         /** The pure literal may already have become true or false.
          * A pure literal may become true, but there may also be models where the literal is false.

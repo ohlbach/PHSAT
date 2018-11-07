@@ -74,6 +74,13 @@ public class EquivalenceClasses {
             replacements = new HashMap<>();}
     }
 
+    /** checks if there are equivalence classes
+     *
+     * @return true if there are no equivalence classes
+     */
+    public boolean isEmpty() {
+        return equivalenceClasses == null || equivalenceClasses.isEmpty();}
+
 
     /** turns a basicClause into an equivalence class. <br>
      * A true literal causes all other literals to become true <br>
@@ -192,6 +199,19 @@ public class EquivalenceClasses {
             replacements.remove(cLiteral.literal);
             replacements.remove(-cLiteral.literal);}
         equivalenceClasses.removeClause(eqClass);}
+
+    /** completes a model by the equivalence classes.
+     *
+     */
+    public void completeModel() {
+        int status;
+        for(Clause eqClass : equivalenceClasses.getClauses(0)) {
+            for(CLiteral clit : eqClass.cliterals) {
+                status = model.status(clit.literal);
+                if(status != 0) {
+                    for(CLiteral clit1 : eqClass.cliterals) {model.setStatus(clit1.literal,status);}}
+                    break;}}}
+
 
     /** calls all trueLiteralObservers
      *
