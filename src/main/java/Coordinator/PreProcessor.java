@@ -94,10 +94,8 @@ public class PreProcessor extends Processor {
                     result = addDisjoint(basicClause);
                     if(result != null) {return result;}}}
             if(this.clauses.isEmpty()) {
-                System.out.println("EMPTY " + implicationDAG.toString());
                 implicationDAG.completeModel(model);
                 equivalences.completeModel();
-                System.out.println("MO " + model.toString());
                 return Result.makeResult(model,basicClauseList);}
             return purityCheck();}
         finally{statistics.removeStatisticsObservers();
@@ -175,9 +173,10 @@ public class PreProcessor extends Processor {
         if(removals != 0) {
             ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions += removals;
             if(monitoring) {
-                monitor.print(id,"Replacement Resolution removed " + removals + " literal from clause " +
+                monitor.print(id,"Replacement Resolution removed " + removals + " literals from clause " +
                         basicClauseList.clauseToString(basicClause) + ".\n         Shortened clause: " +
-                        clause.toString());}}
+                        clause.toString());}
+            if(clause.size() < 3) {return clause;}}
 
         clause = Algorithms.subsumedAndResolved(clause,clauses,implicationDAG);
         if(clause == null) {

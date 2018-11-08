@@ -204,13 +204,21 @@ public class EquivalenceClasses {
      *
      */
     public void completeModel() {
+        if(equivalenceClasses == null) {return;}
         int status;
         for(Clause eqClass : equivalenceClasses.getClauses(0)) {
+            boolean allUndefined = true;
             for(CLiteral clit : eqClass.cliterals) {
-                status = model.status(clit.literal);
-                if(status != 0) {
-                    for(CLiteral clit1 : eqClass.cliterals) {model.setStatus(clit1.literal,status);}}
-                    break;}}}
+                if(model.status(clit.literal) != 0) {allUndefined = false; break;}}
+            if(allUndefined) {
+                for(CLiteral clit : eqClass.cliterals) {
+                    model.add(clit.literal);}}
+            else {
+                for(CLiteral clit : eqClass.cliterals) {
+                    status = model.status(clit.literal);
+                    if(status != 0) {
+                        for(CLiteral clit1 : eqClass.cliterals) {model.setStatus(clit1.literal,status);}}
+                        break;}}}}
 
 
     /** calls all trueLiteralObservers

@@ -84,6 +84,7 @@ public abstract class Processor {
         StringBuilder st = new StringBuilder();
         if(model != null && !model.isEmpty()) {
             st.append("Model: ").append(model.toString()).append("\n");}
+        if(clauses == null || clauses.isEmpty()) {st.append("Clauses: EMPTY\n");}
         if(clauses != null && !clauses.isEmpty()) {
             st.append("Clauses:\n").append(clauses.toString()).append("\n");}
         if(implicationDAG != null && !implicationDAG.isEmpty()) {
@@ -313,6 +314,10 @@ public abstract class Processor {
      * @return null
      */
     public Result processPurity(int literal) {
+        if(clauses.isEmpty()) {
+            implicationDAG.completeModel(model);
+            equivalences.completeModel();
+            return Result.makeResult(model,basicClauseList);}
         if(clauses.isPure(literal) && implicationDAG.isEmpty(literal)) {
             ((DataStatistics)statistics).CLS_Purities++;
             model.add(literal);

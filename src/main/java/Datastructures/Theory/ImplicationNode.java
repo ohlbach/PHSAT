@@ -80,14 +80,16 @@ public class ImplicationNode implements Comparable<ImplicationNode> {
         if(upNodes != null) {
             for(ImplicationNode upNode : upNodes) {
                 ArrayList nodes = upNode.downNodes;
+                if(nodes == null) {continue;}
                 nodes.remove(this);
-                if(nodes.isEmpty()) {upNode.downNodes = null;}}
+                if(nodes.isEmpty()) {upNode.downNodes = null;}}}
         if(downNodes != null) {
             for(ImplicationNode downNode : downNodes) {
                 ArrayList nodes = downNode.upNodes;
+                if(nodes == null) {continue;}
                 nodes.remove(this);
                 if(nodes.isEmpty()) {downNode.upNodes = null;}}
-        }}}
+        }}
 
     private boolean contains(ArrayList<ImplicationNode> nodes, Integer literal) {
         for(ImplicationNode node : nodes) {if(node.literal == literal) {return true;}}

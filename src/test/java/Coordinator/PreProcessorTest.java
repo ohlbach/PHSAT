@@ -2,6 +2,7 @@ package Coordinator;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.ClauseType;
+import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Generators.RandomClauseSetGenerator;
@@ -26,28 +27,33 @@ public class PreProcessorTest {
     @Test
     public void prepareClauses() throws Exception {
         System.out.println("prepare Clauses");
-        HashMap<String, String> pars = new HashMap<>();
-        if(monitoring){pars.put("monitor","true");}
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
-        GlobalParameters glb = new GlobalParameters(pars,errors,warnings);
-        pars.put("seed","5");
-        pars.put("predicates","3");
-        pars.put("disjunctions","5");
-        pars.put("length","3");
-        pars.put("precise","true");
-        ArrayList<HashMap<String,Object>> rpars =  RandomClauseSetGenerator.parseParameters(pars,errors,warnings);
-        System.out.println(errors.toString());
-        BasicClauseList bClauses = RandomClauseSetGenerator.generate(rpars.get(0),errors,warnings);
-        HashMap<String,Object> probPars = new HashMap<>();
-        probPars.put("name","test");
-        ProblemSupervisor psu = new ProblemSupervisor(1,glb,probPars,null);
-        PreProcessor prep = new PreProcessor(psu,probPars,bClauses);
-        System.out.println(bClauses.toString());
-        Result result = prep.prepareClauses();
-        System.out.println("Result");
-        System.out.println(result);
-        System.out.println(prep.toString());
+        //for(int seed = 12; seed < 100; ++seed) {
+        for(int seed = 24; seed < 25; ++seed) {
+            System.out.println("SEED " + seed);
+            HashMap<String, String> pars = new HashMap<>();
+            if(monitoring){pars.put("monitor","true");}
+            StringBuffer errors = new StringBuffer();
+            StringBuffer warnings = new StringBuffer();
+            GlobalParameters glb = new GlobalParameters(pars,errors,warnings);
+            pars.put("seed",""+seed);
+            pars.put("predicates","4");
+            pars.put("disjunctions","8");
+            pars.put("length","3");
+            pars.put("precise","true");
+            ArrayList<HashMap<String,Object>> rpars =  RandomClauseSetGenerator.parseParameters(pars,errors,warnings);
+            System.out.println(errors.toString());
+            BasicClauseList bClauses = RandomClauseSetGenerator.generate(rpars.get(0),errors,warnings);
+            HashMap<String,Object> probPars = new HashMap<>();
+            probPars.put("name","test");
+            ProblemSupervisor psu = new ProblemSupervisor(1,glb,probPars,null);
+            PreProcessor prep = new PreProcessor(psu,probPars,bClauses);
+            System.out.println(bClauses.toString());
+            Result result = prep.prepareClauses();
+            if(result != null && result instanceof Erraneous) {
+                System.out.println("Result SEED " + seed);
+                System.out.println(result);
+                System.out.println(prep.toString());
+            break;}}
 
 
         //System.out.println(bClauses.toString());

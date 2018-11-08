@@ -205,7 +205,7 @@ public class ImplicationDAG {
     private void disconnect(ImplicationNode node) {
         if(node.upNodes != null) {
             for(ImplicationNode upNode : node.upNodes) {
-                if(upNode.downNodes.size() == 1) {roots.remove(upNode);}}}
+                if(upNode.downNodes != null && upNode.downNodes.size() == 1) {roots.remove(upNode);}}}
         node.disconnect();}
 
 
@@ -218,12 +218,13 @@ public class ImplicationDAG {
     private void newEquivalence(ImplicationNode upNode, ImplicationNode downNode) {
         TreeSet<ImplicationNode> equivalences = new TreeSet<>();
         newEquivalence(upNode, downNode, equivalences);
-        mergeEquivalences(upNode, equivalences);
+        TreeSet<Integer> trueLiterals = new TreeSet<>();
+        mergeEquivalences(upNode, equivalences,trueLiterals);
         disconnectTopNode(upNode,equivalences);
         ImplicationNode negUpNode = getNode(-upNode.literal);
         TreeSet<ImplicationNode> negEquivalences = new TreeSet<>();
         for(ImplicationNode node : equivalences) {negEquivalences.add(nodesMap.get(-node.literal));}
-        mergeEquivalences(negUpNode,negEquivalences);
+        mergeEquivalences(negUpNode,negEquivalences,trueLiterals);
         disconnectTopNode(negUpNode,negEquivalences);
         int[] equivs = new int[equivalences.size()+1];
         equivs[0] = upNode.literal;
@@ -233,6 +234,7 @@ public class ImplicationDAG {
             roots.remove(getNode(-node.literal));
             equivs[++i] = node.literal;}
         for(Consumer<int[]> observer : equivalenceObservers) {observer.accept(equivs);}
+        for(Integer literal : trueLiterals) {reportTrueLiteral(literal);}
     }
 
     /** disconnects the representative of a cycle from the rest of the cycle.
@@ -275,7 +277,7 @@ public class ImplicationDAG {
      * @param upNode       the representative of the equivalence class
      * @param equivalences the other nodes of the equivalence class
      */
-    private void mergeEquivalences(ImplicationNode upNode, TreeSet<ImplicationNode> equivalences) {
+    private void mergeEquivalences(ImplicationNode upNode, TreeSet<ImplicationNode> equivalences, TreeSet<Integer> trueLiterals) {
         TreeSet<ImplicationNode> upNodes = new TreeSet<>();
         TreeSet<ImplicationNode> downNodes = new TreeSet<>();
         for(ImplicationNode node : equivalences) {
@@ -283,6 +285,7 @@ public class ImplicationDAG {
             ArrayList<ImplicationNode> ups = node.upNodes;
             if(downs != null) {for(ImplicationNode down : downs) {if(down != upNode && !equivalences.contains(down)){downNodes.add(down);}}}
             if(ups   != null) {for(ImplicationNode   up : ups)   {if(up   != upNode && !equivalences.contains(up))  {upNodes.add(up);}}}}
+        findTrueLiterals(upNode,upNodes,downNodes,trueLiterals);
         upNode.joinUps(upNodes);
         upNode.joinDowns(downNodes);
         for(ImplicationNode node : equivalences) {
@@ -290,6 +293,40 @@ public class ImplicationDAG {
             node.upNodes = null;
             node.downNodes = null;}
     }
+
+    /** checks if the upNodes and downNodes have contradictory literals.
+     *  the down-literals become true literals
+     *
+     * @param upNode    the upper entrance to a cycle
+     * @param upNodes   the nodes leading into the cycle
+     * @param downNodes  the nodes from the cycle
+     * @param trueLiterals for inserting contradictory literals as true literals.
+     */
+    private void findTrueLiterals(ImplicationNode upNode,  TreeSet<ImplicationNode> upNodes,  TreeSet<ImplicationNode> downNodes, TreeSet<Integer> trueLiterals) {
+        if(upNode.upNodes != null) {
+            for(ImplicationNode up : upNode.upNodes) {
+                if(containsLiteral(-up.literal,downNodes)) {trueLiterals.add(-up.literal);}}}
+        if(upNode.downNodes != null) {
+            for(ImplicationNode down : upNode.downNodes) {
+                if(containsLiteral(-down.literal,upNodes)) {trueLiterals.add(down.literal);}}}
+        for(ImplicationNode up : upNodes) {
+            if(containsLiteral(-up.literal,downNodes)) {trueLiterals.add(-up.literal);}}}
+
+    /** checks if literal occurs in nodes
+     * The literal is removed from nodes.
+     *
+     * @param literal a literal
+     * @param nodes a list of nodes
+     * @return true if the literal occurs in nodes.
+     */
+    private boolean containsLiteral(int literal, TreeSet<ImplicationNode> nodes) {
+        for(ImplicationNode node : nodes) {
+            if(node.literal == literal) {
+                nodes.remove(node);
+                return true;}}
+        return false;}
+
+
 
     /** applies the consumer to all nodes below/above the given literal
      *
