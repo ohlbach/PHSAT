@@ -27,8 +27,9 @@ public class PreProcessorTest {
     @Test
     public void prepareClauses() throws Exception {
         System.out.println("prepare Clauses");
-        //for(int seed = 12; seed < 100; ++seed) {
-        for(int seed = 24; seed < 25; ++seed) {
+        int from = 52;
+        int to = 52;
+        for(int seed = from; seed <= to; ++seed) {
             System.out.println("SEED " + seed);
             HashMap<String, String> pars = new HashMap<>();
             if(monitoring){pars.put("monitor","true");}

@@ -30,7 +30,7 @@ public class Algorithms {
      * @param implicationDAG the implication graph
      * @return  null if the clause is subsumed, otherwise the possibly simplified clause
      */
-    public static Clause subsumedAndResolved(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
+    public static Clause subsumedAndResolvedOld(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
         int size = clause.size();
         int timestamp = ++clauseList.timestamp;
         clauseList.timestamp += size+1;
@@ -46,20 +46,84 @@ public class Algorithms {
                             return true;}
                         return false;})){
                 return null;}}
-
+        System.out.println("SUB " + clause.toString());
         int length = clause.size();   // now we try resolution.
         for(int i = 0; i < length; ++i) {
             if(clauseList.streamContradicting(clause.cliterals.get(i).literal,implicationDAG).
                     anyMatch(clit -> {
                         clit.timestamp = timestamp;
                         Clause otherClause = clit.clause;
+                        System.out.println("OC " + otherClause + " " + clit.toFullString());
                         return clause.size() >= otherClause.size() && otherClause.timestamp - timestamp >= otherClause.size()-2 && allMarked(otherClause,timestamp);})) {
                 clause.removeLiteralAtPosition(i);
+                System.out.println("LI " + i);
                 --i;
                 --length;}}
         return clause;}
 
+    public static Clause subsumedAndResolved(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
+        if(subsumed(clause,clauseList,implicationDAG) != null) {return null;}
+        return resolved(clause,clauseList,implicationDAG);
+    }
 
+    /** checks if the clause can be subsumed.
+     *
+     * @param clause      the clause to be checked
+     * @param clauseList  the other clauses
+     * @param implicationDAG the implication DAG
+     * @return             a subsumer clause or null
+     */
+    public static Clause subsumed(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
+        int size = clause.size();
+        int timestamp = ++clauseList.timestamp;
+        clauseList.timestamp += size+1;
+        Clause[] subsumer = new Clause[]{null};
+        for(CLiteral cliteral : clause.cliterals) {
+            clauseList.stream(cliteral.literal,implicationDAG,false).
+                    anyMatch(clit -> {
+                        Clause otherClause = clit.clause;
+                        if(otherClause.size() > size) {return false;}
+                        clit.timestamp = timestamp;
+                        if(otherClause.timestamp >= timestamp) {++otherClause.timestamp;}
+                        else                                   {otherClause.timestamp = timestamp;}
+                        if(otherClause.timestamp - timestamp >= otherClause.size()-1 && allMarked(otherClause,timestamp)) {
+                            subsumer[0] = otherClause;
+                            return true;}
+                        return false;});}
+        return subsumer[0];}
+
+    /** performs replacement resolution at the clause, by using the implicationDAG
+     *
+     * @param clause      the clause to be checked
+     * @param clauseList  the other clauses
+     * @param implicationDAG the implication DAG
+     * @return            the possibly shortened clause
+     */
+    public static Clause resolved(Clause clause, ClauseList clauseList, ImplicationDAG implicationDAG) {
+        int size = clause.size();
+        int length = clause.size();
+        for(int i = 0; i < length; ++i) {
+            int timestamp = ++clauseList.timestamp;
+            clauseList.timestamp += size+1;
+            for(int j = 0; j < length; ++j) {
+                if(i == j) {continue;}
+                clauseList.stream(clause.cliterals.get(j).literal,implicationDAG,false).
+                        forEach(clit -> {
+                            Clause otherClause = clit.clause;
+                            if(otherClause.size() > size) {return;}
+                            clit.timestamp = timestamp;
+                            if(otherClause.timestamp >= timestamp) {++otherClause.timestamp;}
+                            else                                   {otherClause.timestamp = timestamp;}});}
+
+            if(clauseList.streamContradicting(clause.cliterals.get(i).literal,implicationDAG).
+                    anyMatch(clit -> {
+                        clit.timestamp = timestamp;
+                        Clause otherClause = clit.clause;
+                        return otherClause.timestamp - timestamp >= otherClause.size()-2 && allMarked(otherClause,timestamp);})) {
+                clause.removeLiteralAtPosition(i);
+                --i;
+                --length;}}
+        return clause;}
 
     /** deletes all clauses which are subsumed by the given clause(with the implication graph).<br>
      *
@@ -176,7 +240,7 @@ public class Algorithms {
 
     /** performs all subsumptions and resolutions with an implication p -&gt; g, and its consequences in the implicatinoDAG
      *
-     * @param from       the antecednet of the implication
+     * @param from       the antecedent of the implication
      * @param to         the succedent or the implication
      * @param clauseList  a clause list
      * @param implicationDAG  the implication DAG

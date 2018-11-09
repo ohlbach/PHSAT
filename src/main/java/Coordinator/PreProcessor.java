@@ -178,11 +178,13 @@ public class PreProcessor extends Processor {
                         clause.toString());}
             if(clause.size() < 3) {return clause;}}
 
-        clause = Algorithms.subsumedAndResolved(clause,clauses,implicationDAG);
-        if(clause == null) {
-            ((PreProcessorStatistics)statistics).CLS_ClauseRemovals++;
-            if(monitoring) {monitor.print(id,"clause subsumed: " + basicClauseList.clauseToString(basicClause));}
+        Clause subsumer = Algorithms.subsumed(clause,clauses,implicationDAG);
+        if(subsumer != null) {
+            if(monitoring) {monitor.print(id,"clause subsumed: " + basicClauseList.clauseToString(basicClause) +
+                    " by " + subsumer.toString());}
+            ((PreProcessorStatistics)statistics).BCL_RedundantClauses++;
             return null;}
+        clause = Algorithms.resolved(clause,clauses,implicationDAG);
         if(clause.size() < basicClause.length-2) {
             ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions++;
             if(monitoring) {
