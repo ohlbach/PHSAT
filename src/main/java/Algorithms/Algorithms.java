@@ -178,7 +178,7 @@ public class Algorithms {
                 Stream<CLiteral> stream = (i == k) ?
                         clauseList.streamContradicting(cliteral.literal,implicationDAG) :
                         clauseList.stream(clause.cliterals.get(k).literal,implicationDAG,true);
-                if(k == 0) {stream.forEach(cLit -> {if(cLit.clause.size() >= size) {cLit.clause.timestamp = timestamp;}});
+                if(k == 0) {stream.forEach(cLit -> {if(cLit.clause.size() >= size && cLit.timestamp != timestamp) {cLit.clause.timestamp = timestamp;}});
                             continue;}
                 if(k == size1) {
                     stream.forEach(cLit ->{
@@ -187,7 +187,7 @@ public class Algorithms {
                             for(CLiteral clit : otherClause.cliterals) {
                                 if(clit.timestamp == timestamp) {
                                     clit.timestamp = 0;
-                                    toBeDeleted.add(cliteral);}}}});}
+                                    toBeDeleted.add(clit);}}}});}
                 else {stream.forEach(cLit ->{
                         Clause otherClause = cLit.clause;
                         if(otherClause.timestamp == timestamp+j-1) {otherClause.timestamp = timestamp+j;}});}}}

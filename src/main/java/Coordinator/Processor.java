@@ -39,7 +39,7 @@ import java.util.function.Consumer;
  *         - simplifying longer clauses (subsumption and replacement resolution) <br>
  *         - processing pure literals <br>
  *         - reporting results (satisfiability, unsatisfiablity, errors)
- * <p>
+ * Created by ohlbach on 10.10.2018.
  * Created by ohlbach on 10.10.2018.
  */
 public abstract class Processor {
@@ -224,7 +224,8 @@ public abstract class Processor {
 
     /** generates a task for processing pure literals */
     protected Consumer<Integer> purityObserver = literal -> {
-        if(implicationDAG.isEmpty(literal)) {taskQueue.add(new Task.Purity(literal,this));}};
+        if(implicationDAG.isEmpty(literal) && model.status(literal) == 0) {
+            taskQueue.add(new Task.Purity(literal,this));}};
 
     /* Here we have the process-methods
        ******************************** */
@@ -314,6 +315,7 @@ public abstract class Processor {
      * @return null
      */
     public Result processPurity(int literal) {
+        if(model.status(literal) != 0) {return null;}
         if(clauses.isEmpty()) {
             implicationDAG.completeModel(model);
             equivalences.completeModel();
