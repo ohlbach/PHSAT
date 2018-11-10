@@ -26,9 +26,9 @@ public class PreProcessorTest {
     static boolean monitoring = true;
     @Test
     public void prepareClauses() throws Exception {
-        System.out.println("prepare Clauses");
-        int from = 52;
-        int to = 52;
+        System.out.println("disjoints 3SAT");
+        int from = 0;
+        int to = 100;
         for(int seed = from; seed <= to; ++seed) {
             System.out.println("SEED " + seed);
             HashMap<String, String> pars = new HashMap<>();
@@ -55,13 +55,39 @@ public class PreProcessorTest {
                 System.out.println(result);
                 System.out.println(prep.toString());
             break;}}
+    }
 
-
-        //System.out.println(bClauses.toString());
-        //System.out.println(RandomClauseSetGenerator.help());
-
-
-
+    @Test
+    public void binaryClauses() throws Exception {
+        System.out.println("disjoints 2SAT");
+        int from = 0;
+        int to = 100;
+        for(int seed = from; seed <= to; ++seed) {
+            System.out.println("SEED " + seed);
+            HashMap<String, String> pars = new HashMap<>();
+            if(monitoring){pars.put("monitor","true");}
+            StringBuffer errors = new StringBuffer();
+            StringBuffer warnings = new StringBuffer();
+            GlobalParameters glb = new GlobalParameters(pars,errors,warnings);
+            pars.put("seed",""+seed);
+            pars.put("predicates","4");
+            pars.put("disjunctions","8");
+            pars.put("length","2");
+            pars.put("precise","true");
+            ArrayList<HashMap<String,Object>> rpars =  RandomClauseSetGenerator.parseParameters(pars,errors,warnings);
+            System.out.println(errors.toString());
+            BasicClauseList bClauses = RandomClauseSetGenerator.generate(rpars.get(0),errors,warnings);
+            HashMap<String,Object> probPars = new HashMap<>();
+            probPars.put("name","test");
+            ProblemSupervisor psu = new ProblemSupervisor(1,glb,probPars,null);
+            PreProcessor prep = new PreProcessor(psu,probPars,bClauses);
+            System.out.println(bClauses.toString());
+            Result result = prep.prepareClauses();
+            if(result != null && result instanceof Erraneous) {
+                System.out.println("Result SEED " + seed);
+                System.out.println(result);
+                System.out.println(prep.toString());
+                break;}}
     }
 
     @Test

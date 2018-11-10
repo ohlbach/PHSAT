@@ -63,8 +63,7 @@ public class EquivalenceClasses {
     public EquivalenceClasses(Model model, ImplicationDAG implicationDAG) {
         this.model = model;
         this.implicationDAG = implicationDAG;
-        this.predicates = model.predicates;
-        if(implicationDAG != null) {implicationDAG.addEquivalenceObserver(equivalence -> addEquivalence(equivalence));}}
+        this.predicates = model.predicates;}
 
 
     /** initialises the classes at first usage.*/

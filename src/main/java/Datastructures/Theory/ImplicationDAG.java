@@ -253,16 +253,15 @@ public class ImplicationDAG {
         ++timestamp; timestamp += 2;
         ImplicationNode node = nodesMap.get(trueLiteral);
         if (node == null) {
-            if(report){reportTrueLiteral(trueLiteral);}
+            reportTrueLiteral(trueLiteral);
             removeFalseLiteral(-trueLiteral); return;}
         else {newTrueLiteral(node,report);}}
 
     private void newTrueLiteral(ImplicationNode trueNode, boolean report) {
         if(trueNode.timestamp == timestamp) {return;}
         trueNode.timestamp = timestamp;
-        if(report){reportTrueLiteral(trueNode.literal);}
+        reportTrueLiteral(trueNode.literal);
         roots.remove(trueNode);
-        nodesMap.remove(trueNode.literal);
         ArrayList<ImplicationNode> downNodes = trueNode.downNodes;
         if(downNodes != null) {for(Object downNode : downNodes.toArray()) {newTrueLiteral((ImplicationNode)downNode,report);}}
         disconnect(trueNode);
@@ -285,6 +284,7 @@ public class ImplicationDAG {
      * @param downNode  the lower entrance to the cycle
      */
     private void newEquivalence(ImplicationNode upNode, ImplicationNode downNode) {
+        System.out.println(toString());
         TreeSet<ImplicationNode> equivalences = new TreeSet<>();
         newEquivalence(upNode, downNode, equivalences);
         TreeSet<Integer> trueLiterals = new TreeSet<>();
@@ -437,14 +437,12 @@ public class ImplicationDAG {
     public void removeFalseLiteral(Integer falseLiteral) {
         ImplicationNode falseNode = nodesMap.get(falseLiteral);
         if(falseNode == null) {return;}
-        nodesMap.remove(falseNode.literal);
         disconnect(falseNode);
         ArrayList<ImplicationNode> downNodes = falseNode.downNodes;
         if(downNodes != null) {
             for(ImplicationNode node :downNodes) {
                 if(node.upNodes == null) {
-                    if(node.downNodes == null) {nodesMap.remove(node.literal);}
-                    else                       {roots.add(node);}}}}
+                    if(node.downNodes != null) {roots.add(node);}}}}
         roots.remove(falseNode);
     }
 

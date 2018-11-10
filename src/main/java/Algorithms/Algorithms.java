@@ -190,7 +190,7 @@ public class Algorithms {
                             for(CLiteral clit : otherClause.cliterals) {
                                 if(clit.timestamp == timestamp) {
                                     clit.timestamp = 0;
-                                    toBeDeleted.add(clit);}}}});}
+                                    toBeDeleted.add(cliteral);}}}});}
                 else {stream.forEach(cLit ->{
                         Clause otherClause = cLit.clause;
                         if(otherClause.timestamp == timestamp+j-1) {otherClause.timestamp = timestamp+j;}});}}}
