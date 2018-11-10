@@ -86,7 +86,7 @@ public class PreProcessor extends Processor {
                 clauses.sort(Comparator.comparingInt(c->c.length));
                 for(int[] basicClause: clauses) {
                     result = addDisjunction(basicClause);
-                    System.out.println(toString());
+                    if(monitoring) System.out.println(toString());
                     if(result != null) {return result;}}}
             clauses = basicClauseList.disjoints;
             if(clauses != null) {
@@ -99,10 +99,11 @@ public class PreProcessor extends Processor {
                 return Result.makeResult(model,basicClauseList);}
             return purityCheck();}
         finally{statistics.removeStatisticsObservers();
+        if(monitoring) {
             long end = System.currentTimeMillis();
             statistics.elapsedTime = end-start;
             System.out.println("Time "+ (end-start));
-            System.out.println(toString());
+            System.out.println(toString());}
         }}
 
 

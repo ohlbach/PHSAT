@@ -265,6 +265,8 @@ public class ImplicationDAG {
         ArrayList<ImplicationNode> downNodes = trueNode.downNodes;
         if(downNodes != null) {for(Object downNode : downNodes.toArray()) {newTrueLiteral((ImplicationNode)downNode,report);}}
         disconnect(trueNode);
+        trueNode.upNodes = null;
+        trueNode.downNodes = null;
         removeFalseLiteral(-trueNode.literal);}
 
     /** disconnects the node form the DAG
@@ -284,7 +286,6 @@ public class ImplicationDAG {
      * @param downNode  the lower entrance to the cycle
      */
     private void newEquivalence(ImplicationNode upNode, ImplicationNode downNode) {
-        System.out.println(toString());
         TreeSet<ImplicationNode> equivalences = new TreeSet<>();
         newEquivalence(upNode, downNode, equivalences);
         TreeSet<Integer> trueLiterals = new TreeSet<>();
@@ -444,6 +445,8 @@ public class ImplicationDAG {
                 if(node.upNodes == null) {
                     if(node.downNodes != null) {roots.add(node);}}}}
         roots.remove(falseNode);
+        falseNode.downNodes = null;
+        falseNode.upNodes = null;
     }
 
     /** completes the model such that all ID_Implications in the DAG become true.

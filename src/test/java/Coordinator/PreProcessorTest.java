@@ -4,6 +4,7 @@ import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Generators.RandomClauseSetGenerator;
 import Management.GlobalParameters;
@@ -23,7 +24,7 @@ import static org.junit.Assert.*;
  */
 public class PreProcessorTest {
 
-    static boolean monitoring = true;
+    static boolean monitoring = false;
     @Test
     public void prepareClauses() throws Exception {
         System.out.println("disjoints 3SAT");
@@ -62,8 +63,12 @@ public class PreProcessorTest {
         System.out.println("disjoints 2SAT");
         int from = 0;
         int to = 100;
+        int unsolved = 0;
+        int satisfied = 0;
+        int unsatisfied = 0;
+        int erraneous = 0;
         for(int seed = from; seed <= to; ++seed) {
-            System.out.println("SEED " + seed);
+            if(monitoring) System.out.println("SEED " + seed);
             HashMap<String, String> pars = new HashMap<>();
             if(monitoring){pars.put("monitor","true");}
             StringBuffer errors = new StringBuffer();
@@ -75,19 +80,76 @@ public class PreProcessorTest {
             pars.put("length","2");
             pars.put("precise","true");
             ArrayList<HashMap<String,Object>> rpars =  RandomClauseSetGenerator.parseParameters(pars,errors,warnings);
-            System.out.println(errors.toString());
+            //System.out.println(errors.toString());
             BasicClauseList bClauses = RandomClauseSetGenerator.generate(rpars.get(0),errors,warnings);
             HashMap<String,Object> probPars = new HashMap<>();
             probPars.put("name","test");
             ProblemSupervisor psu = new ProblemSupervisor(1,glb,probPars,null);
             PreProcessor prep = new PreProcessor(psu,probPars,bClauses);
-            System.out.println(bClauses.toString());
+            if(monitoring) System.out.println(bClauses.toString());
             Result result = prep.prepareClauses();
+            if(result == null) {++unsolved;}
+            else{
+                if(result instanceof Satisfiable) ++satisfied;
+                if(result instanceof Unsatisfiable) ++unsatisfied;
+                if(result instanceof Erraneous) ++erraneous;
+            }
             if(result != null && result instanceof Erraneous) {
                 System.out.println("Result SEED " + seed);
                 System.out.println(result);
                 System.out.println(prep.toString());
                 break;}}
+        assertEquals(82,satisfied);
+        assertEquals(19,unsatisfied);
+        assertEquals(0,erraneous);
+        assertEquals(0,unsolved);
+    }
+    @Test
+    public void binaryClausesUnits() throws Exception {
+        System.out.println("disjoints 2SAT with Units");
+        int from = 0;
+        int to = 100;
+        int unsolved = 0;
+        int satisfied = 0;
+        int unsatisfied = 0;
+        int erraneous = 0;
+        for(int seed = from; seed <= to; ++seed) {
+            if(monitoring) System.out.println("SEED " + seed);
+            HashMap<String, String> pars = new HashMap<>();
+            if(monitoring){pars.put("monitor","true");}
+            StringBuffer errors = new StringBuffer();
+            StringBuffer warnings = new StringBuffer();
+            GlobalParameters glb = new GlobalParameters(pars,errors,warnings);
+            pars.put("seed",""+seed);
+            pars.put("predicates","4");
+            pars.put("disjunctions","8");
+            pars.put("length","2");
+            pars.put("precise","false");
+            ArrayList<HashMap<String,Object>> rpars =  RandomClauseSetGenerator.parseParameters(pars,errors,warnings);
+            //System.out.println(errors.toString());
+            BasicClauseList bClauses = RandomClauseSetGenerator.generate(rpars.get(0),errors,warnings);
+            HashMap<String,Object> probPars = new HashMap<>();
+            probPars.put("name","test");
+            ProblemSupervisor psu = new ProblemSupervisor(1,glb,probPars,null);
+            PreProcessor prep = new PreProcessor(psu,probPars,bClauses);
+            if(monitoring) System.out.println(bClauses.toString());
+            Result result = prep.prepareClauses();
+            if(result == null) {++unsolved;}
+            else{
+                if(result instanceof Satisfiable) ++satisfied;
+                if(result instanceof Unsatisfiable) ++unsatisfied;
+                if(result instanceof Erraneous) ++erraneous;
+            }
+            if(result != null && result instanceof Erraneous) {
+                System.out.println("Result SEED " + seed);
+                System.out.println(result);
+                System.out.println(prep.toString());
+                break;}}
+        //System.out.println(satisfied + " " + unsatisfied + " " + erraneous + " " + unsolved);
+        assertEquals(40,satisfied);
+        assertEquals(61,unsatisfied);
+        assertEquals(0,erraneous);
+        assertEquals(0,unsolved);
     }
 
     @Test
@@ -120,6 +182,7 @@ public class PreProcessorTest {
         //System.out.println(result);
         //System.out.println(prep.model.toString());
     }
+
 
     @Test
     public void addDisjunctionNoIDLong() throws Exception {

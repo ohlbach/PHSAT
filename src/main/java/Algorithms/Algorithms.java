@@ -46,17 +46,14 @@ public class Algorithms {
                             return true;}
                         return false;})){
                 return null;}}
-        System.out.println("SUB " + clause.toString());
         int length = clause.size();   // now we try resolution.
         for(int i = 0; i < length; ++i) {
             if(clauseList.streamContradicting(clause.cliterals.get(i).literal,implicationDAG).
                     anyMatch(clit -> {
                         clit.timestamp = timestamp;
                         Clause otherClause = clit.clause;
-                        System.out.println("OC " + otherClause + " " + clit.toFullString());
                         return clause.size() >= otherClause.size() && otherClause.timestamp - timestamp >= otherClause.size()-2 && allMarked(otherClause,timestamp);})) {
                 clause.removeLiteralAtPosition(i);
-                System.out.println("LI " + i);
                 --i;
                 --length;}}
         return clause;}
