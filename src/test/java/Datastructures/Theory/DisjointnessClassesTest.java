@@ -16,7 +16,8 @@ public class DisjointnessClassesTest {
         System.out.println("addDisjointnessClass");
         Model model = new Model(20);
         ImplicationDAG ig = new ImplicationDAG();
-        DisjointnessClasses djc = new DisjointnessClasses(model,ig);
+        EquivalenceClasses eqc = new EquivalenceClasses(model,ig);
+        DisjointnessClasses djc = new DisjointnessClasses(model,ig,eqc);
         djc.addDisjointnessClass(new int[]{1,0,1,2,3});
         djc.addDisjointnessClass(new int[]{2,0,3,4,5});
         assertEquals("Disjointenss Classes:\n" +
@@ -37,7 +38,8 @@ public class DisjointnessClassesTest {
         System.out.println("addDisjointnessClass with observers");
         Model model = new Model(20);
         ImplicationDAG ig = new ImplicationDAG();
-        DisjointnessClasses djc = new DisjointnessClasses(model, ig);
+        EquivalenceClasses eqc = new EquivalenceClasses(model,ig);
+        DisjointnessClasses djc = new DisjointnessClasses(model, ig,eqc);
         StringBuilder stt = new StringBuilder();
         StringBuilder std = new StringBuilder();
         StringBuilder stu = new StringBuilder();
@@ -58,7 +60,8 @@ public class DisjointnessClassesTest {
         System.out.println("checkDisjointness");
         Model model = new Model(20);
         ImplicationDAG ig = new ImplicationDAG();
-        DisjointnessClasses djc = new DisjointnessClasses(model,ig);
+        EquivalenceClasses eqc = new EquivalenceClasses(model,ig);
+        DisjointnessClasses djc = new DisjointnessClasses(model,ig,eqc);
         ig.addClause(-1,-2);
         assertTrue(djc.isEmpty());
         ig.addClause(-2,-3);

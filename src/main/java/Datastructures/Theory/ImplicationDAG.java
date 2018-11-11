@@ -172,7 +172,7 @@ public class ImplicationDAG {
         int status = fromNode.addDownNode(toNode);
         if(status == 1) {return false;}
         if(status == -1) {newTrueLiteral(-from,report); return true;}
-        if(implies(-from,to)) {++timestamp; newTrueLiteral(toNode,report); return true;}
+        if(implies(-from,to)) {++timestamp; newTrueLiteral(toNode); return true;}
         if(toNode.upNodes != null && toNode.upNodes.size() == 1) {roots.remove(toNode);}
         if(report){reportImplication(fromNode,toNode);}
         if(fromNode.upNodes == null) {roots.add(fromNode);}
@@ -192,7 +192,7 @@ public class ImplicationDAG {
         ArrayList<ImplicationNode> trueLiterals = new ArrayList<>();
         collectMarkedLiterals(toNode,timestamp, trueLiterals);
         for(ImplicationNode literal : trueLiterals) {
-            ++timestamp; newTrueLiteral(literal,true);}
+            ++timestamp; newTrueLiteral(literal);}
     }
 
     /** marks the supernodes of fromNode with the timestamp
@@ -255,19 +255,20 @@ public class ImplicationDAG {
         if (node == null) {
             reportTrueLiteral(trueLiteral);
             removeFalseLiteral(-trueLiteral); return;}
-        else {newTrueLiteral(node,report);}}
+        else {newTrueLiteral(node);}}
 
-    private void newTrueLiteral(ImplicationNode trueNode, boolean report) {
+    private void newTrueLiteral(ImplicationNode trueNode) {
         if(trueNode.timestamp == timestamp) {return;}
         trueNode.timestamp = timestamp;
         reportTrueLiteral(trueNode.literal);
         roots.remove(trueNode);
         ArrayList<ImplicationNode> downNodes = trueNode.downNodes;
-        if(downNodes != null) {for(Object downNode : downNodes.toArray()) {newTrueLiteral((ImplicationNode)downNode,report);}}
+        if(downNodes != null) {for(Object downNode : downNodes.toArray()) {newTrueLiteral((ImplicationNode)downNode);}}
         disconnect(trueNode);
         trueNode.upNodes = null;
         trueNode.downNodes = null;
-        removeFalseLiteral(-trueNode.literal);}
+        removeFalseLiteral(-trueNode.literal);
+    }
 
     /** disconnects the node form the DAG
      *
@@ -463,7 +464,7 @@ public class ImplicationDAG {
         while(!roots.isEmpty()) {
             for(Object node : roots.toArray()) { // this guarantees that the implication: 'root -> node' is true.
                 ++timestamp;
-                newTrueLiteral((ImplicationNode)node,true);}}}
+                newTrueLiteral((ImplicationNode)node);}}}
 
 
 

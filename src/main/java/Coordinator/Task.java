@@ -221,7 +221,9 @@ public abstract class Task {
          *
          * @return  Un/Satisfiable if this has been detected, otherwise null
          */
-        public Result execute() {super.execute();  return processor.processTwoLiteralClause(literal1,literal2);}
+        public Result execute() {
+            super.execute();
+            return processor.processTwoLiteralClause(literal1,literal2);}
 
         public String toString() {
             return "Task: Binary Clause " + literal1 + "," + literal2;}

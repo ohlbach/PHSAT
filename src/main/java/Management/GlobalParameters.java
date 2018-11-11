@@ -30,6 +30,9 @@ public class GlobalParameters {
     /** for monitoring the actions of the solvers */
     public Monitor monitor        = new Monitor();
 
+    /** for controlling debugging output */
+    public boolean debug = false;
+
     /** if treu then the implicationDAG is observed for disjointnesses */
     public boolean disjointnessesNeeded = true;
 

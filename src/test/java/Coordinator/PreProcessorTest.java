@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
  */
 public class PreProcessorTest {
 
-    static boolean monitoring = false;
+    static boolean monitoring = true;
 
     @Test
     public void prepareClauses() throws Exception {
@@ -650,8 +650,97 @@ public class PreProcessorTest {
 
     @Test
     public void addXor() throws Exception {
+        System.out.println("addXor");
+        HashMap<String, String> pars = new HashMap<>();
+        if(monitoring){pars.put("monitor","true");}
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        GlobalParameters glb = new GlobalParameters(pars,errors,warnings);
+        HashMap<String,Object> probPars = new HashMap<>();
+        probPars.put("name","test");
+        BasicClauseList bcl = new BasicClauseList();
+        bcl.predicates = 10;
+        ProblemSupervisor psu = new ProblemSupervisor(1,glb,probPars,null);
+        PreProcessor prep = new PreProcessor(psu,probPars,bcl);
 
+        Result result = prep.addXor(new int[]{1,ClauseType.XOR.ordinal(),1,2,-3});
+        assertNull(result);
+        assertEquals("1: (1,2,-3)\n",prep.clauses.toString());
+        assertEquals("-3 -> -1,-2\n" +
+                "1 -> -2,3\n" +
+                "2 -> -1,3\n",prep.implicationDAG.toString());
+        assertEquals("Disjointenss Classes:\nD-312: (-3,1,2)\n",prep.disjointnesses.toString());
+        //System.out.println(prep.toString());
+        //System.out.println("NEXT");
+        result = prep.addXor(new int[]{2,ClauseType.XOR.ordinal(),-3,2});
+        //System.out.println(prep.toString());
+        assertNull(result);
+        assertTrue(prep.clauses.isEmpty());
+        assertEquals("[-1]",prep.model.toString());
+        assertTrue(prep.implicationDAG.isEmpty());
+        assertTrue(prep.disjointnesses.isEmpty());
+        assertEquals("Equivalence Classes:\n" +
+                "E2: (2,3)\n" +
+                "\n" +
+                "Replacements:\n" +
+                "-3 -> -2\n" +
+                "3 -> 2\n", prep.equivalences.toString());
+        //System.out.println(prep.toString());
+
+        //System.out.println("NEXTT");
+        result = prep.addXor(new int[]{3,ClauseType.XOR.ordinal(),2,-3,4});
+        assertNull(result);
+        assertTrue(prep.disjointnesses.isEmpty());
+        assertTrue(prep.implicationDAG.isEmpty());
+        //System.out.println(prep.toString());
     }
+
+    @Test
+    public void addXorLonger() throws Exception {
+        System.out.println("addXor longer");
+        HashMap<String, String> pars = new HashMap<>();
+        if(monitoring){pars.put("monitor","true");}
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        GlobalParameters glb = new GlobalParameters(pars,errors,warnings);
+        glb.debug = true;
+        HashMap<String,Object> probPars = new HashMap<>();
+        probPars.put("name","test");
+        BasicClauseList bcl = new BasicClauseList();
+        bcl.predicates = 20;
+        ProblemSupervisor psu = new ProblemSupervisor(1,glb,probPars,null);
+        PreProcessor prep = new PreProcessor(psu,probPars,bcl);
+
+        Result result = prep.addXor(new int[]{1,ClauseType.XOR.ordinal(),1,2,3,4,5});
+        assertNull(result);
+        assertEquals("1 -> -2,-3,-4,-5\n" +
+                "2 -> -1,-3,-4,-5\n" +
+                "3 -> -1,-2,-4,-5\n" +
+                "4 -> -1,-2,-3,-5\n" +
+                "5 -> -1,-2,-3,-4\n",prep.implicationDAG.toString());
+        assertEquals("Disjointenss Classes:\n" +
+                "D51234: (5,1,2,3,4)\n",prep.disjointnesses.toString());
+        System.out.println(prep.toString());
+
+        result = prep.addXor(new int[]{2,ClauseType.XOR.ordinal(),4,5,6,7,8});
+        assertNull(result);
+        assertEquals("1 -> -2,-3,-4,-5\n" +
+                "2 -> -1,-3,-4,-5\n" +
+                "3 -> -1,-2,-4,-5\n" +
+                "4 -> -1,-2,-3,-5,-6,-7,-8\n" +
+                "5 -> -1,-2,-3,-4,-6,-7,-8\n" +
+                "6 -> -4,-5,-7,-8\n" +
+                "7 -> -4,-5,-6,-8\n" +
+                "8 -> -4,-5,-6,-7\n",prep.implicationDAG.toString());
+        System.out.println(prep.toString());
+
+        result = prep.addXor(new int[]{3,ClauseType.XOR.ordinal(),1,2,-4,7,8});
+        assertNull(result);
+        //assertEquals("",prep.implicationDAG.toString());
+        System.out.println(prep.toString());
+    }
+
+
 
     @Test
     public void addDisjoint() throws Exception {

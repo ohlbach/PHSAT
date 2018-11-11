@@ -41,7 +41,7 @@ public class PreProcessor extends Processor {
         equivalences   = new EquivalenceClasses(model, implicationDAG);
         statistics     = new PreProcessorStatistics(this);
         if(globalParameters.disjointnessesNeeded) {
-            disjointnesses = new DisjointnessClasses(model, implicationDAG);}
+            disjointnesses = new DisjointnessClasses(model, implicationDAG, equivalences);}
     }
 
     protected void addObservers() {
@@ -140,6 +140,7 @@ public class PreProcessor extends Processor {
         taskQueue.add(makeShortenedClauseTask(clause,this));
         return processTasks();}
 
+
     /** turns a basicClause into a clause. <br>
      * False literals and double literals are ignored. <br>~
      * True literals and complementary literals indicate tautologies. <br>
@@ -201,25 +202,26 @@ public class PreProcessor extends Processor {
      * @return Unsatisfiable if a contradiction has detected, otherwise null.
      */
     Result addXor(int[] basicClause) {
-        Result result = addDisjunction(basicClause);
+        Result result = addDisjoint(basicClause);
         if(result != null) {return result;}
-        return addDisjoint(basicClause);}
+        return addDisjunction(basicClause);}
+
+
 
 
     /** adds a disjointness clause to the clauses.
      *  All derivable implications are also added to the clause
      *
-     * @param basicClause the basic disjointenss clause.
+     * @param basicClause the basic disjointness clause.
      * @return Unsatisfiable if a contradiction has detected, otherwise null.
      */
     Result addDisjoint(int[] basicClause) {
-        if(globalParameters.disjointnessesNeeded) {
-            disjointnesses.addDisjointnessClass(basicClause);}
-        int size = basicClause.length;
-        for(int i = 2; i < size; ++i) {
-            int literal = basicClause[i];
-            for (int j = i+1; j < size; ++j) {
-                implicationDAG.addImplication(literal,basicClause[j],true);}}
+        Clause clause = disjointnesses.addDisjointnessClass(basicClause);
+        if(clause == null) {return null;}
+        int size = clause.size();
+        for(int i = 0; i < size; ++i) {
+            int literal = clause.getLiteral(i);
+            for (int j = i+1; j < size; ++j) {implicationDAG.addClause(-literal,-clause.getLiteral(j));}}
         return processTasks();}
 
 

@@ -160,6 +160,9 @@ public class EquivalenceClasses {
      */
     public Clause addEquivalence(int[] equivalents) {
         int representative = equivalents[0];
+        if(representative < 0) {
+            representative *= -1;
+            for(int i = 0; i < equivalents.length; ++i) {equivalents[i] *= -1;}}
         String id = "E"+representative;
         Clause eqClass = null;
         for(int i = 1; i < equivalents.length;++i) {

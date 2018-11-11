@@ -8,6 +8,7 @@ import Datastructures.Symboltable;
 import Utilities.Utilities;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** A disjointness class is a set of literals which are pairwise contradictory.
@@ -18,6 +19,7 @@ public class DisjointnessClasses {
     private int predicates;    // number of predicates
     private Model model;       // a model
     private ImplicationDAG implicationDAG; // an implication graph
+    private EquivalenceClasses equivalences = null; // the equivalence classes
     /** the list of disjunctions representing disjoint literals */
     public ClauseList disjointnessClasses = null;
     /** reports changed disjointness classes */
@@ -59,10 +61,11 @@ public class DisjointnessClasses {
      * @param model    a model
      * @param implicationDAG an implication graph (or null)
      */
-    public DisjointnessClasses(Model model, ImplicationDAG implicationDAG) {
+    public DisjointnessClasses(Model model, ImplicationDAG implicationDAG, EquivalenceClasses equivalences) {
         this.model = model;
         this.implicationDAG = implicationDAG;
         this.predicates = model.predicates;
+        this.equivalences = equivalences;
         if(implicationDAG != null) {
             implicationDAG.addImplicationObserver((from,to) -> checkDisjointness(from));}
     };
@@ -94,7 +97,7 @@ public class DisjointnessClasses {
         Clause disjointness = new Clause(id,basicClause.length-2);
         int trueLiteral = 0;
         for(int i = 2; i < basicClause.length; ++i) {
-            int literal = basicClause[i];
+            int literal = equivalences.mapToRepresentative(basicClause[i]);
             if(model.isTrue(literal)) {
                 if(trueLiteral != 0) {reportUnsatisfiable(trueLiteral,literal); return null;} // two true literals are not disjoint
                 else {trueLiteral = literal;}
@@ -106,7 +109,7 @@ public class DisjointnessClasses {
             if(disjointness.contains(literal) >= 0) {reportUnsatisfiable(literal,literal); return null;} // p disjoint p is false
             if(disjointness.contains(-literal) >= 0) {continue;}  // p disjoint -p is trivially true
             disjointness.addCLiteralDirectly(new CLiteral(literal));}
-        if(disjointness.size() > 1) {return insertClause(disjointness);}
+        if(disjointness.size() > 2) {return insertClause(disjointness);}
         return null;}
 
     /** inserts a new clause into the disjointness list.
@@ -342,6 +345,41 @@ public class DisjointnessClasses {
         for(CLiteral cLiteral : disjointnessClasses.getLiterals(literal1)) {
             if(cLiteral.clause.contains(literal2) >= 0) {return true;}}
         return false;}
+
+    /** removes a true literal from the disjointness classes.
+     * Classes with positive occurrences cause the other literals to become false.
+     * In classes with negative occurrences, the literal is just removed.
+     *
+     * @param literal the true literal.
+     */
+    public void newTrueLiteral(int literal) {
+        for(Object clitObject : disjointnessClasses.getLiterals(literal).toArray()) {
+            CLiteral clit = (CLiteral)clitObject;
+            for(CLiteral clit1 : clit.clause.cliterals) {
+                if(clit != clit1) {reportTrueLiteral(-clit1.literal);}}
+            disjointnessClasses.removeClause(clit.clause);}
+        for(Object clitObject : disjointnessClasses.getLiterals(-literal).toArray()) {
+            CLiteral clit = (CLiteral)clitObject;
+            if(clit.clause.size() == 2) {disjointnessClasses.removeClause(clit.clause);}
+            else {disjointnessClasses.removeLiteral(clit);}}
+    }
+
+    public void replaceByRepresentative(int representative, int literal) {
+        for(int i = 1; i >= -1; i -= 2) {
+            literal *= i;
+            representative *= i;
+            for(Object clit : disjointnessClasses.literalIndex.getLiterals(literal).toArray()) {
+                CLiteral cliteral = (CLiteral)clit;
+                Clause clause = cliteral.clause;
+                if(clause.contains(-representative) >= 0) {
+                    if(clause.size() == 2) {disjointnessClasses.removeClause(clause);}
+                    else{disjointnessClasses.removeLiteral(cliteral);}
+                    continue;} // p & -p are disjoint
+                if(clause.contains(representative) >= 0)  {
+                    reportUnsatisfiable(literal,representative); return;} // p & p cannot be disjoint.
+                disjointnessClasses.literalIndex.removeLiteral(cliteral);
+                cliteral.literal = representative;
+                disjointnessClasses.literalIndex.addLiteral(cliteral);}}}
 
     /** returns true if there are no disjointness classes
      *

@@ -191,7 +191,21 @@ public abstract class Processor {
      *
      * @param task the task to be added
      */
-    public synchronized void addTask(Task task) {taskQueue.add(task); notify();}
+    public synchronized void addTask(Task task) {
+        if(globalParameters.debug) {
+            System.out.println("TASK Added");
+            System.out.println(task.toString());
+            System.out.println("TASKS");
+            System.out.println(tasksString());
+            System.out.println("TASKS-END");}
+        taskQueue.add(task);
+        notify();}
+
+    /** turns the entire taskQueue into a string */
+    public String tasksString() {
+        StringBuilder st = new StringBuilder();
+        taskQueue.stream().sorted(Comparator.comparingInt(t->t.priority)).filter(task->!task.ignore).forEach(task->st.append(task.toString()).append("\n"));
+        return st.toString();}
 
     /** generates a task according to the clause's length (empty clauses, unit clauses, binary clauses and longer ones).<br>
      *
@@ -225,7 +239,7 @@ public abstract class Processor {
     /** generates a task for processing pure literals */
     protected Consumer<Integer> purityObserver = literal -> {
         if(implicationDAG.isEmpty(literal) && model.status(literal) == 0) {
-            taskQueue.add(new Task.Purity(literal,this));}};
+            addTask(new Task.Purity(literal,this));}};
 
     /* Here we have the process-methods
        ******************************** */
@@ -242,10 +256,11 @@ public abstract class Processor {
         int status = model.add(literal);
         if(status == -1) {
             Unsatisfiable result = new Unsatisfiable(model,literal);
-            taskQueue.add(new Task.Unsatisfiability(result,this)); return result;}
+            addTask(new Task.Unsatisfiability(result,this)); return result;}
         if(status == 1) {return null;}
         clauses.makeTrue(literal);
         implicationDAG.newTrueLiteral(literal,false);
+        disjointnesses.newTrueLiteral(literal);
         return trueLiteralInQueue(literal);}
 
     /** This method traverses the task queue to implement the consequences of a true literal on the remaining tasks
@@ -256,7 +271,7 @@ public abstract class Processor {
     private Result trueLiteralInQueue(int literal) {
         ArrayList<Task> tasks = new ArrayList<>();
         for(Task task : taskQueue) {if(task.makeTrue(literal,tasks)) {return new Unsatisfiable(model,literal);}}
-        for(Task task : tasks) {taskQueue.add(task);}
+        for(Task task : tasks) {addTask(task);}
         return null;}
 
 
@@ -269,6 +284,10 @@ public abstract class Processor {
      * @return null
      */
     public Result processTwoLiteralClause(int literal1, int literal2){
+        literal1 = equivalences.mapToRepresentative(literal1);
+        literal2 = equivalences.mapToRepresentative(literal2);
+        if(literal1 == -literal2) {return null;}
+        if(literal1 == literal2) {addTask(new Task.TrueLiteral(literal1,this)); return null;}
         Algorithms.simplifyWithImplication(-literal1,literal2,clauses,implicationDAG);
         implicationDAG.addClause(literal1,literal2);
         return null;}
@@ -283,6 +302,7 @@ public abstract class Processor {
      */
     public Result processLongerClause(Clause clause){
         if(clause.removed) {return null;}
+        if(clause.size() < 3) {return null;}
         int subsumed = Algorithms.subsume(clause,clauses,implicationDAG);
         int resolved = Algorithms.resolve(clause,clauses,implicationDAG);
         ((DataStatistics)statistics).TSK_subsumed += subsumed;
@@ -304,7 +324,8 @@ public abstract class Processor {
             representative = eqClass.getLiteral(0);
             start = (representative == equivalents[0]) ? 1: 0;}
         for(int i = start; i < equivalents.length; ++i) {
-            clauses.replaceByRepresentative(representative,equivalents[i]);}
+            clauses.replaceByRepresentative(representative,equivalents[i]);
+            if(disjointnesses != null) {disjointnesses.replaceByRepresentative(representative,equivalents[i]);}}
         return null;}
 
     /** makes pure literals true and removes them from the clauses and the implicationDAG.<br>
@@ -324,7 +345,8 @@ public abstract class Processor {
             ((DataStatistics)statistics).CLS_Purities++;
             model.add(literal);
             clauses.removeLiteral(literal);
-            implicationDAG.newTrueLiteral(literal,true);}
+            implicationDAG.newTrueLiteral(literal,true);
+            disjointnesses.newTrueLiteral(literal);}
         return null;}
 
     /** This method removes a literal from a clause if one of the solvers has discovered that the literal can be removed
