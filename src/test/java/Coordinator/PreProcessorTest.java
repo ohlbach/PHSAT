@@ -24,7 +24,7 @@ import static org.junit.Assert.*;
  */
 public class PreProcessorTest {
 
-    static boolean monitoring = true;
+    static boolean monitoring = false;
 
     @Test
     public void prepareClauses() throws Exception {
@@ -68,10 +68,10 @@ public class PreProcessorTest {
                 if(result instanceof Erraneous) ++erraneous;
         }}
         System.out.println(satisfied + " " + unsatisfied + " " + erraneous + " " + unsolved);
-        assertEquals(50,satisfied);
+        assertEquals(49,satisfied);
         assertEquals(0,unsatisfied);
         assertEquals(0,erraneous);
-        assertEquals(51,unsolved);
+        assertEquals(52,unsolved);
     }
 
     @Test

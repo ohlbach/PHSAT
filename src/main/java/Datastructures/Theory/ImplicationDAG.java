@@ -21,6 +21,7 @@ public class ImplicationDAG {
     private ArrayList<BiConsumer<ImplicationNode,ImplicationNode>> implicationObservers = new ArrayList<>(); // is applied when a new implication is derived
     private ArrayList<Consumer<int[]>>             equivalenceObservers = new ArrayList<>(); // is applied when a new equivalence class is derived
     private int timestamp = 0;
+    public boolean checkConsistency = true;
 
     /** clones the entire DAG
      *
@@ -151,7 +152,8 @@ public class ImplicationDAG {
      */
     public void addClause(Integer literal1, Integer literal2) {
         boolean unit = addImplication(-literal1,literal2,false);
-        if(!unit) {addImplication(-literal2,literal1,true);}}
+        if(!unit) {addImplication(-literal2,literal1,true);}
+        if(checkConsistency) {checkConsistency();}}
 
     /** adds a single implication 'p -&gt; q' to the DAG
      *
@@ -169,6 +171,7 @@ public class ImplicationDAG {
         findCommonSupernodes(fromNode,toNode);
         disconnectTransitive(fromNode,toNode);
         disconnectUp(fromNode,toNode);
+        disconnectDown(fromNode,toNode);
         int status = fromNode.addDownNode(toNode);
         if(status == 1) {return false;}
         if(status == -1) {newTrueLiteral(-from,report); return true;}
@@ -220,20 +223,41 @@ public class ImplicationDAG {
 
 
 
-    /** The method searches searchNode upwards and removes all subnodes which are implied by toNode
+    /** The method searches searchNode upwards and removes toNode from its subnodes.
      *
      * @param toNode a node to be removed
      * @param searchNode a node
      */
-    private void disconnectUp(ImplicationNode searchNode, ImplicationNode toNode) {
+      private void disconnectUp(ImplicationNode searchNode, ImplicationNode toNode) {
         if(searchNode.downNodes != null) {
             searchNode.downNodes.removeIf(node->{
-                ++timestamp;
-                if(implies(toNode,node)) {node.upNodes.remove(toNode); return true;}
+                if(node == toNode) {
+                    toNode.upNodes.remove(searchNode);
+                    if(toNode.upNodes.isEmpty()) {toNode.upNodes = null;}
+                    return true;}
                 return false;});
             if(searchNode.downNodes.isEmpty()) {searchNode.downNodes = null;}}
         if(searchNode.upNodes != null) {
             for(ImplicationNode node : searchNode.upNodes) {disconnectUp(node,toNode);}}}
+
+    /** The method searches searchNode downwards and removes fromNode from its upNodes.
+     *
+     * @param fromNode a node to be removed
+     * @param searchNode a node
+     */
+    private void disconnectDown(ImplicationNode fromNode, ImplicationNode searchNode) {
+        if(searchNode.upNodes != null) {
+            searchNode.upNodes.removeIf(node->{
+                if(node == fromNode) {
+                    if(fromNode.downNodes != null) {
+                        fromNode.downNodes.remove(searchNode);
+                        if(fromNode.downNodes.isEmpty()) {fromNode.downNodes = null;}}
+                    return true;}
+                return false;});
+            if(searchNode.upNodes.isEmpty()) {searchNode.upNodes = null;}}
+        if(searchNode.downNodes != null) {
+            for(ImplicationNode node : searchNode.downNodes) {disconnectDown(fromNode,node);}}}
+
 
     /** disconnects the sub-nodes of fromNode, which are already sub-nodes of toNode.
      *
@@ -482,6 +506,41 @@ public class ImplicationDAG {
      */
     private void reportImplication(ImplicationNode from, ImplicationNode to) {
         for(BiConsumer<ImplicationNode,ImplicationNode> observer : implicationObservers) {observer.accept(from,to);}}
+
+
+    /** checks the consistency of the DAG.
+     * System.exit if it is inconsistent.
+     */
+    private void checkConsistency() {
+        for(ImplicationNode node : nodesMap.values()) {
+            if(node.upNodes != null) {
+                for(ImplicationNode upNode : node.upNodes) {
+                    if(upNode.downNodes == null || upNode.downNodes.isEmpty()) {
+                        System.out.println("DAG Inconsistency: Node " + node.toString() + " has upNode " + upNode +", but this has no downNodes");
+                        System.out.println(toString());
+                        System.exit(1);}
+                    if(!upNode.downNodes.contains(node)) {
+                        System.out.println("DAG Inconsistency: Node " + node.toString() + " has upNode " + upNode +", but does not contain it in its downNodes");
+                        System.out.println(toString());
+                        System.exit(1);}}}
+
+            if(node.downNodes != null) {
+                for(ImplicationNode downNode : node.downNodes) {
+                    if(downNode.upNodes == null || downNode.upNodes.isEmpty()) {
+                        System.out.println("DAG Inconsistency: Node " + node.toString() + " has downNode " + downNode +", but this has no upNodes");
+                        System.out.println(toString());
+                        System.exit(1);}
+                    if(!downNode.upNodes.contains(node)) {
+                        System.out.println("DAG Inconsistency: Node " + node.toString() + " has downNode " + downNode +", but does not contain it in its upNodes");
+                        System.out.println(toString());
+                        System.exit(1);}}}}
+
+        for(ImplicationNode node :roots) {
+            if(node.upNodes != null && !node.upNodes.isEmpty()) {
+                System.out.println("DAG Inconsistency: Root " + node.toString() + " has upNodes " + node.upNodes);}
+        }
+
+    }
 
 
     /** turns the entire DAG into a String

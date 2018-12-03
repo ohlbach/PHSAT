@@ -353,18 +353,24 @@ public class DisjointnessClasses {
      * @param literal the true literal.
      */
     public void newTrueLiteral(int literal) {
-        for(Object clitObject : disjointnessClasses.getLiterals(literal).toArray()) {
-            CLiteral clit = (CLiteral)clitObject;
-            for(CLiteral clit1 : clit.clause.cliterals) {
-                if(clit != clit1) {reportTrueLiteral(-clit1.literal);}}
-            disjointnessClasses.removeClause(clit.clause);}
-        for(Object clitObject : disjointnessClasses.getLiterals(-literal).toArray()) {
-            CLiteral clit = (CLiteral)clitObject;
-            if(clit.clause.size() == 2) {disjointnessClasses.removeClause(clit.clause);}
-            else {disjointnessClasses.removeLiteral(clit);}}
+        if(disjointnessClasses == null) {return;}
+        Collection<CLiteral>  lits = disjointnessClasses.getLiterals(literal);
+        if(lits != null){
+            for(Object clitObject : lits.toArray()) {
+                CLiteral clit = (CLiteral)clitObject;
+                for(CLiteral clit1 : clit.clause.cliterals) {
+                    if(clit != clit1) {reportTrueLiteral(-clit1.literal);}}
+                disjointnessClasses.removeClause(clit.clause);}}
+        lits = disjointnessClasses.getLiterals(-literal);
+        if(lits != null){
+            for(Object clitObject : lits.toArray()) {
+                CLiteral clit = (CLiteral)clitObject;
+                if(clit.clause.size() == 2) {disjointnessClasses.removeClause(clit.clause);}
+                else {disjointnessClasses.removeLiteral(clit);}}}
     }
 
     public void replaceByRepresentative(int representative, int literal) {
+        if(disjointnessClasses == null) {return;}
         for(int i = 1; i >= -1; i -= 2) {
             literal *= i;
             representative *= i;

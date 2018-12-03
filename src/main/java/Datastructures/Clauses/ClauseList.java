@@ -17,7 +17,7 @@ import java.util.stream.Stream;
  * It supports inserting clauses, removing clauses and literals, retrieving clauses and literals.
  * A literal index is used to access literals and clauses quickly.
  * Removing literals and replacing them with representatives in an equivalence class can be
- * observed by corresponding obseerver functions.
+ * observed by corresponding observer functions.
  * <br>
  * The clauses are sorted according to a comparator (default: clause length) <br>
  * The literals in the literal index are also sorted (default: clause length)
@@ -29,6 +29,10 @@ public class ClauseList {
     public final LiteralIndex literalIndex;              // maps literals to CLiterals
     public int groups = 1;                               // the total number of clause groups
     public int timestamp = 0;                            // for algorithms
+    public int positiveClauses = 0;
+    public int negativeClauses = 0;
+    public int mixedClauses = 0;
+    public ClauseStructure structure = ClauseStructure.MIXED;
     private final ArrayList<Consumer<CLiteral>> literalRemovalObservers = new ArrayList<>();
     // they are called when literals are removed.
     private final ArrayList<BiConsumer<CLiteral,Boolean>> literalReplacementObservers = new ArrayList<>();
@@ -75,6 +79,10 @@ public class ClauseList {
         for(int group = 0; group < groups; ++group) {
             for(Clause clause : clauses[group]) {
             list.addClause(clause.clone(),group);}}
+        list.positiveClauses = positiveClauses;
+        list.negativeClauses = negativeClauses;
+        list.mixedClauses = mixedClauses;
+        list.structure = structure;
         return list;}
 
 
@@ -167,7 +175,14 @@ public class ClauseList {
      */
     protected void integrateClause(Clause clause) {
         id2Clause.put(clause.id,clause);
-        for(CLiteral literal : clause.cliterals) {literalIndex.addLiteral(literal);}}
+        for(CLiteral literal : clause.cliterals) {literalIndex.addLiteral(literal);}
+        switch(clause.structure) {
+            case MIXED:    ++mixedClauses; break;
+            case NEGATIVE: ++negativeClauses; break;
+            case POSITIVE: ++positiveClauses;}
+        structure = ClauseStructure.MIXED;
+        if(negativeClauses == 0) {structure = ClauseStructure.POSITIVE;}
+        else {if(positiveClauses == 0) {structure = ClauseStructure.NEGATIVE;}}}
 
 
     /** returns a clause for the given number
@@ -201,6 +216,13 @@ public class ClauseList {
         clause.removed = true;
         id2Clause.remove(clause.id);
         for(CLiteral cliteral : clause.cliterals) {literalIndex.removeLiteral(cliteral);}
+        switch(clause.structure) {
+            case MIXED:    --mixedClauses; break;
+            case NEGATIVE: --negativeClauses; break;
+            case POSITIVE: --positiveClauses;}
+        structure = ClauseStructure.MIXED;
+        if(negativeClauses == 0) {structure = ClauseStructure.POSITIVE;}
+        else {if(positiveClauses == 0) {structure = ClauseStructure.NEGATIVE;}}
         for(Consumer<Clause> observer : clauseRemovalObservers) {observer.accept(clause);}
     }
 
@@ -227,11 +249,22 @@ public class ClauseList {
             boolean found = false;
             for(; group < groups; ++group) {if(clauses[group].contains(clause)) {found = true; break;}}
             if(!found) {return;}}
+        switch(clause.structure) {
+            case MIXED:    --mixedClauses; break;
+            case NEGATIVE: --negativeClauses; break;
+            case POSITIVE: --positiveClauses;}
         clauses[group].remove(clause);
         for(CLiteral clit : clause.cliterals) {literalIndex.removeLiteral(clit);}
         clause.removeLiteral(cliteral);
         clauses[group].add(clause);
         for(CLiteral clit : clause.cliterals) {literalIndex.addLiteral(clit);}
+        switch(clause.structure) {
+            case MIXED:    ++mixedClauses; break;
+            case NEGATIVE: ++negativeClauses; break;
+            case POSITIVE: ++positiveClauses;}
+        structure = ClauseStructure.MIXED;
+        if(negativeClauses == 0) {structure = ClauseStructure.POSITIVE;}
+        else {if(positiveClauses == 0) {structure = ClauseStructure.NEGATIVE;}}
         for(Consumer observer : literalRemovalObservers) {observer.accept(cliteral);}}
 
     /** removes all clauses with the given (pure) literal

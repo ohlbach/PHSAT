@@ -2,6 +2,7 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
+import com.sun.xml.internal.org.jvnet.mimepull.MIMEConfig;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -24,6 +25,8 @@ public class Clause {
     public boolean removed = false;
     /** for sorting clauses, for example in a priority queue */
     public int priority = 0;
+    /** positive, negative or mixed */
+    public ClauseStructure structure;
 
     /** compares clauses according to their length */
     public static Comparator<Clause> sizeComparator = Comparator.comparingInt(clause->clause.size());
@@ -37,7 +40,8 @@ public class Clause {
      */
     public Clause(String id, int size) {
         this.id = id;
-        cliterals = new ArrayList<CLiteral>(size);}
+        cliterals = new ArrayList<CLiteral>(size);
+        setStructure();}
 
     /** constructs a new clause with given literals
      *
@@ -48,7 +52,8 @@ public class Clause {
         this.id = id;
         for(int i = 0; i < cLiterals.size(); ++i) {
             cLiterals.get(i).setClause(this,i);}
-        cliterals = cLiterals;}
+        cliterals = cLiterals;
+        setStructure();}
 
     /** constructs a new clause as a copy of a given one.
      *
@@ -63,7 +68,8 @@ public class Clause {
             CLiteral clit = clause.cliterals.get(i);
             cliterals.add(new CLiteral(clit.literal,this,i));}
         this.priority = priority;
-        this.input = input;}
+        this.input = input;
+        setStructure();}
 
     /** constructs a clause from a set of literals
      *
@@ -78,7 +84,20 @@ public class Clause {
         this.input = input;
         this.cliterals = cliterals;
         for(int i = 0; i < cliterals.size(); ++i) {
-            cliterals.get(i).setClause(this,i);}}
+            cliterals.get(i).setClause(this,i);}
+        setStructure();}
+
+
+    /** checks if the clause is positive, negative or mixed and set the corresponding value for the structure.
+     */
+    private void setStructure() {
+        int positive = 0;
+        int negative = 0;
+        for(CLiteral cLiteral : cliterals) {
+            if(cLiteral.literal > 0) {++positive;} else {++negative;}}
+        structure = ClauseStructure.MIXED;
+        if(positive == 0) {structure = ClauseStructure.NEGATIVE;}
+        else {if(negative == 0) {structure = ClauseStructure.POSITIVE;}}}
 
 
         /** return the current number of literals
@@ -125,6 +144,7 @@ public class Clause {
         int position = cliterals.size();
         cliterals.add(cliteral);
         cliteral.setClause(this,position);
+        setStructure();
         return 0;}
 
     /** adds a cliteral to the end of the clause, without checking for double literals and tautologies.
@@ -134,14 +154,16 @@ public class Clause {
     public void addCLiteralDirectly(CLiteral cliteral) {
         int position = cliterals.size();
         cliterals.add(cliteral);
-        cliteral.setClause(this,position);}
+        cliteral.setClause(this,position);
+        setStructure();}
 
     /** removes a cliteral from the clause.
      *
      * @param cLiteral the literal to be removed.
      */
     public void removeLiteral(CLiteral cLiteral) {
-        removeLiteralAtPosition(cLiteral.position);}
+        removeLiteralAtPosition(cLiteral.position);
+        setStructure();}
 
     /** removes a cliteral at the given position from the clause.
      *
@@ -154,7 +176,8 @@ public class Clause {
             CLiteral nextliteral = cliterals.get(pos+1);
             nextliteral.position = pos;
             cliterals.set(pos,nextliteral);}
-        cliterals.remove(size-1);}
+        cliterals.remove(size-1);
+        setStructure();}
 
 
     /** checks if the literals in this, except cLiteral also occur in clause2
@@ -180,6 +203,7 @@ public class Clause {
         for(CLiteral cLiteral : cliterals) {
             newCliterals.add(new CLiteral(cLiteral.literal,newClause,cLiteral.position));}
         newClause.cliterals = newCliterals;
+        newClause.structure = structure;
         return newClause;}
 
     /** applies the consumer to all cLiterals

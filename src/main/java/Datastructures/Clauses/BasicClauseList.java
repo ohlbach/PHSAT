@@ -201,19 +201,19 @@ public class BasicClauseList {
         StringBuilder st = new StringBuilder();
         if(info != null) {st.append(info).append("\n");}
         int size = (""+(disjunctions.size() + conjunctions.size() + xors.size() + disjoints.size()+equivalences.size())).length();
-        if(!disjunctions.isEmpty()) {
+        if(disjunctions != null && !disjunctions.isEmpty()) {
             st.append("Disjunctions:\n");
             for(int[] clause : disjunctions) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(!conjunctions.isEmpty()) {
+        if(conjunctions != null && !conjunctions.isEmpty()) {
             st.append("Conjunctions:\n");
             for(int[] clause : conjunctions) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(!xors.isEmpty()) {
+        if(xors != null && !xors.isEmpty()) {
             st.append("Xor:\n");
             for(int[] clause : xors)          {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(!disjoints.isEmpty()) {
+        if(disjoints != null && !disjoints.isEmpty()) {
             st.append("Disjoints:\n");
             for(int[] clause : disjoints)    {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(!equivalences.isEmpty()) {
+        if(equivalences != null && !equivalences.isEmpty()) {
             st.append("Equivalences:\n");
             for(int[] clause : equivalences) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
 
