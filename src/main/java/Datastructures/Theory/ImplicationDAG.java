@@ -474,6 +474,46 @@ public class ImplicationDAG {
         falseNode.upNodes = null;
     }
 
+    /** checks if there is an implication -p -&gt; q, which is a positive clause
+     *
+     * @return true if there is a positive clause.
+     */
+    public boolean hasPositiveClause() {
+        for(ImplicationNode node : roots) {if(hasPositiveClause(node)) {return true;}}
+        return false;}
+
+    /** checks recursively if there is a positive clause
+     *
+     * @param node the node to be checked
+     * @return true if there is a positive clause.
+     */
+    public boolean hasPositiveClause(ImplicationNode node) {
+        if(node.downNodes == null || node.downNodes.isEmpty()) {return false;}
+        int literal = node.literal;
+        for(ImplicationNode down : node.downNodes) {
+            if((literal < 0 && down.literal > 0) || hasPositiveClause(down)) {return true;}}
+        return false;}
+
+    /** checks if there is an implication p -&gt; -q, which is a negative clause
+     *
+     * @return true if there is a positive clause.
+     */
+    public boolean hasNegativeClause() {
+        for(ImplicationNode node : roots) {if(hasNegativeClause(node)) {return true;}}
+        return false;}
+
+    /** checks recursively if there is a negative clause
+     *
+     * @param node the node to be checked
+     * @return true if there is a positive clause.
+     */
+    public boolean hasNegativeClause(ImplicationNode node) {
+        if(node.downNodes == null || node.downNodes.isEmpty()) {return false;}
+        int literal = node.literal;
+        for(ImplicationNode down : node.downNodes) {
+            if((literal > 0 && down.literal < 0) || hasNegativeClause(down)) {return true;}}
+        return false;}
+
     /** completes the model such that all ID_Implications in the DAG become true.
      * Not all literals need to be assigned truth values.
      * It is, however, not clear whether the model is minimal.

@@ -1,6 +1,7 @@
 package Coordinator;
 
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
@@ -280,6 +281,11 @@ public abstract class Task {
             super(2, processor);
             this.literal = literal;}
 
+        public Result execute() {super.execute();  return processor.processPurity(literal);}
+
+        public String toString() {
+            return "Task Purity: " + literal;}
+
         /** The pure literal may already have become true or false.
          * A pure literal may become true, but there may also be models where the literal is false.
          * Therefore a pure literal which has become false is not a contradiction.
@@ -291,16 +297,35 @@ public abstract class Task {
          */
         public boolean makeTrue(int trueLiteral, ArrayList<Task> tasks) {
             if(literal == trueLiteral || literal == -trueLiteral ) {ignore = true;}
-            return false;}
+            return false;}}
 
-        /** calls the processor to to purity removal.
+
+    /** A clause set which has either only positive clauses and mixed clauses or only negative clauses and mixed clauses
+     *  is satisfiable. The task causes a model to be generated.
+     *
+     */
+    public static class Structure extends Task {
+        /** POSITIVE or NEGATIVE */
+        private ClauseStructure structure;
+
+
+        /** constructs a task for processing positive or negative clause sets
+         *
+         * @param structure POSITIVE or NEGATIVE
+         * @param processor which discovered the structure.
+         */
+        public Structure(ClauseStructure structure, Processor processor) {
+                super(0, processor);
+                this.structure = structure;}
+
+        /** calls the processor to construct a model
          *
           * @return  Un/Satisfiable if this has been detected, otherwise null
          */
-        public Result execute() {super.execute();  return processor.processPurity(literal);}
+        public Result execute() {super.execute();  return processor.processStructure(structure);}
 
         public String toString() {
-            return "Task: Pure literal: " + literal;}
+            return "Task: Structure: " + structure;}
     }
 
     /** It removes a literal from a clause

@@ -68,10 +68,10 @@ public class PreProcessorTest {
                 if(result instanceof Erraneous) ++erraneous;
         }}
         System.out.println(satisfied + " " + unsatisfied + " " + erraneous + " " + unsolved);
-        assertEquals(49,satisfied);
+        assertEquals(76,satisfied);
         assertEquals(0,unsatisfied);
         assertEquals(0,erraneous);
-        assertEquals(52,unsolved);
+        assertEquals(21,unsolved);
     }
 
     @Test
@@ -116,10 +116,10 @@ public class PreProcessorTest {
                 if(result instanceof Erraneous) ++erraneous;
             }}
         System.out.println(satisfied + " " + unsatisfied + " " + erraneous + " " + unsolved);
-        assertEquals(72,satisfied);
+        assertEquals(77,satisfied);
         assertEquals(22,unsatisfied);
         assertEquals(0,erraneous);
-        assertEquals(7,unsolved);
+        assertEquals(2,unsolved);
     }
 
     @Test
@@ -401,10 +401,10 @@ public class PreProcessorTest {
                 if(result instanceof Erraneous) ++erraneous;
             }}
         System.out.println(satisfied + " " + unsatisfied + " " + erraneous + " " + unsolved);
-        assertEquals(35,satisfied);
+        assertEquals(101,satisfied);
         assertEquals(0,unsatisfied);
         assertEquals(0,erraneous);
-        assertEquals(66,unsolved);
+        assertEquals(0,unsolved);
     }
 
     @Test

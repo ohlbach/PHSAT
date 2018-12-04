@@ -4,6 +4,7 @@ import Algorithms.Algorithms;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
+import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Statistics.PreProcessorStatistics;
@@ -14,6 +15,7 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
 import Management.ProblemSupervisor;
+import org.apache.commons.lang3.ClassUtils;
 
 import java.util.*;
 
@@ -97,7 +99,10 @@ public class PreProcessor extends Processor {
                 implicationDAG.completeModel(model);
                 equivalences.completeModel();
                 return Result.makeResult(model,basicClauseList);}
-            return purityCheck();}
+
+            result =  purityCheck();
+            if(result != null) {return result;}
+            return structureCheck();}
         finally{statistics.removeStatisticsObservers();
         if(monitoring) {
             long end = System.currentTimeMillis();
@@ -236,8 +241,24 @@ public class PreProcessor extends Processor {
     Result purityCheck() {
         clauses.addPurityObserver(purityObserver);
         for(Integer literal : clauses.pureLiterals()) {
-            taskQueue.add(new Task.Purity(literal,this));}
-        return processTasks();}
+            taskQueue.add(new Task.Purity(literal,this));
+            Result result = processTasks();
+            if(result != null) {return result;}}
+        return null;}
 
+    /** checks if the initial clause set is postive or negative, and creates a model in theses cases
+     *
+     * @return null or Satisfiable
+     */
+    Result structureCheck() {
+        ClauseStructure st = null;
+        if(clauses.structure == ClauseStructure.BOTH) {
+            if(!implicationDAG.hasNegativeClause())       {st = ClauseStructure.POSITIVE;}
+            else {if(!implicationDAG.hasPositiveClause()) {st = ClauseStructure.NEGATIVE;}}}
+        else {
+            if(((clauses.structure == ClauseStructure.POSITIVE) && !implicationDAG.hasNegativeClause()) ||
+                    (clauses.structure == ClauseStructure.NEGATIVE) && !implicationDAG.hasPositiveClause())  {st = clauses.structure;}}
+        if(st != null) {return processStructure(st);}
+        return null;}
 
 }
