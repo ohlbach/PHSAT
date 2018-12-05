@@ -30,18 +30,12 @@ public class ClauseList {
     public final LiteralIndex literalIndex;              // maps literals to CLiterals
     public int groups = 1;                               // the total number of clause groups
     public int timestamp = 0;                            // for algorithms
-    public int positiveClauses = 0;
-    public int negativeClauses = 0;
-    public int mixedClauses = 0;
-    public ClauseStructure structure = ClauseStructure.MIXED;
     private final ArrayList<Consumer<CLiteral>> literalRemovalObservers = new ArrayList<>();
     // they are called when literals are removed.
     private final ArrayList<BiConsumer<CLiteral,Boolean>> literalReplacementObservers = new ArrayList<>();
     // they are called when literals are replaced by representatives in a equivalence class.
     private final ArrayList<Consumer<Clause>> clauseRemovalObservers = new ArrayList<>();
     // they are called when clauses are removed.
-    private final ArrayList<Consumer<ClauseStructure>> clauseStructureObservers = new ArrayList<>();
-    // they are called when the clause structure becomes POSITIVE or NEGATIVE are removed.
 
 
     /** creates a clause list. The number of disjunctions should be estimated.
@@ -82,10 +76,6 @@ public class ClauseList {
         for(int group = 0; group < groups; ++group) {
             for(Clause clause : clauses[group]) {
             list.addClause(clause.clone(),group);}}
-        list.positiveClauses = positiveClauses;
-        list.negativeClauses = negativeClauses;
-        list.mixedClauses = mixedClauses;
-        list.structure = structure;
         return list;}
 
 
@@ -96,15 +86,6 @@ public class ClauseList {
      */
     public PriorityQueue<Clause> getClauses(int group) {return clauses[group];}
 
-    /** gets the first clause of the first non-empty group.
-     *
-     * @return the first clause of the first non-empty group.
-     */
-    public Clause getFirstClause() {
-        for(int group = 0; group < groups; ++group) {
-            PriorityQueue<Clause> clauseGroup = clauses[group];
-            if(clauseGroup != null && !clauseGroup.isEmpty()) {return clauseGroup.peek();}}
-        return null;}
 
 
 
@@ -112,13 +93,13 @@ public class ClauseList {
      *
      * @param observer a purity observer
      */
-    public synchronized void addPurityObserver(Consumer<Integer> observer) {
+    public synchronized void addPurityObserver(BiConsumer<Integer,ClauseStructure> observer) {
         literalIndex.purityObservers.add(observer);}
 
     /** removes a purity observer
      *
      * @param observer a purity observer*/
-    public synchronized void removePurityObserver(Consumer<Integer> observer) {
+    public synchronized void removePurityObserver(BiConsumer<Integer,ClauseStructure> observer) {
         literalIndex.purityObservers.remove(observer);}
 
     /** removes all purity observer
@@ -168,24 +149,6 @@ public class ClauseList {
     public synchronized void removeClauseRemovalObserver(Consumer<Clause> observer) {
         clauseRemovalObservers.remove(observer);}
 
-    /** adds an observer which is called when the clauseStructure becomes POSITIVE or NEGATIVE
-     *
-     * @param observer a consumer function to be applied to a removed clause
-     */
-    public synchronized void addClauseStructureObserver(Consumer<ClauseStructure> observer) {
-        clauseStructureObservers.add(observer);}
-
-    /** removes a ClauseStructureObserver
-     *
-     * @param observer an observer*/
-    public synchronized void removeClauseStructureObserver(Consumer<ClauseStructure> observer) {
-        clauseStructureObservers.remove(observer);}
-
-    /** removes all ClauseStructureObserver
-     */
-    public synchronized void removeClauseStructureObservers() {
-        clauseStructureObservers.clear();}
-
 
     /** adds a clause to the list and updates the literal index
      *
@@ -211,23 +174,7 @@ public class ClauseList {
      */
     protected void integrateClause(Clause clause) {
         id2Clause.put(clause.id,clause);
-        for(CLiteral literal : clause.cliterals) {literalIndex.addLiteral(literal);}
-        ClauseStructure oldStructure = structure;
-        switch(clause.structure) {
-            case MIXED:    ++mixedClauses; break;
-            case NEGATIVE: ++negativeClauses; break;
-            case POSITIVE: ++positiveClauses;}
-        determineStructure();
-        if(oldStructure == ClauseStructure.MIXED && structure != ClauseStructure.MIXED) {
-            for(Consumer<ClauseStructure> observer: clauseStructureObservers) {observer.accept(structure);}}
-        }
-
-    /** sets the structure feature */
-    private void determineStructure() {
-        if(positiveClauses == 0 && negativeClauses == 0) {structure =  ClauseStructure.BOTH; return;}
-        structure = ClauseStructure.MIXED;
-        if(negativeClauses == 0) {structure = ClauseStructure.POSITIVE;}
-        else {if(positiveClauses == 0) {structure = ClauseStructure.NEGATIVE;}}}
+        for(CLiteral literal : clause.cliterals) {literalIndex.addLiteral(literal);}}
 
 
     /** returns a clause for the given number
@@ -258,17 +205,9 @@ public class ClauseList {
      * @param clause the removed clause.
      */
     private void updateRemoval(Clause clause) {
-        ClauseStructure oldStructure = structure;
         clause.removed = true;
         id2Clause.remove(clause.id);
         for(CLiteral cliteral : clause.cliterals) {literalIndex.removeLiteral(cliteral);}
-        switch(clause.structure) {
-            case MIXED:    --mixedClauses; break;
-            case NEGATIVE: --negativeClauses; break;
-            case POSITIVE: --positiveClauses;}
-        determineStructure();
-        if(oldStructure == ClauseStructure.MIXED && structure != ClauseStructure.MIXED) {
-            for(Consumer<ClauseStructure> observer: clauseStructureObservers) {observer.accept(structure);}}
         for(Consumer<Clause> observer : clauseRemovalObservers) {observer.accept(clause);}
     }
 
@@ -289,29 +228,17 @@ public class ClauseList {
      * @param cliteral the literal to be removed.
      */
     public void removeLiteral(CLiteral cliteral) {
-        ClauseStructure oldStructure = structure;
         Clause clause = cliteral.clause;
         int group = 0;
         if(groups > 1) {
             boolean found = false;
             for(; group < groups; ++group) {if(clauses[group].contains(clause)) {found = true; break;}}
             if(!found) {return;}}
-        switch(clause.structure) {
-            case MIXED:    --mixedClauses; break;
-            case NEGATIVE: --negativeClauses; break;
-            case POSITIVE: --positiveClauses;}
         clauses[group].remove(clause);
         for(CLiteral clit : clause.cliterals) {literalIndex.removeLiteral(clit);}
         clause.removeLiteral(cliteral);
         clauses[group].add(clause);
         for(CLiteral clit : clause.cliterals) {literalIndex.addLiteral(clit);}
-        switch(clause.structure) {
-            case MIXED:    ++mixedClauses; break;
-            case NEGATIVE: ++negativeClauses; break;
-            case POSITIVE: ++positiveClauses;}
-        determineStructure();
-        if(oldStructure == ClauseStructure.MIXED && structure != ClauseStructure.MIXED) {
-            for(Consumer<ClauseStructure> observer: clauseStructureObservers) {observer.accept(structure);}}
         for(Consumer observer : literalRemovalObservers) {observer.accept(cliteral);}}
 
     /** removes all clauses with the given (pure) literal
@@ -343,7 +270,6 @@ public class ClauseList {
      * @param representative the new literal
      */
     public void replaceByRepresentative(int representative, int literal) {
-        ClauseStructure oldStructure = structure;
         for(int i = 1; i >= -1; i -= 2) {
             literal *= i;
             representative *= i;
@@ -356,9 +282,14 @@ public class ClauseList {
                 literalIndex.removeLiteral(cliteral);
                 cliteral.literal = representative;
                 literalIndex.addLiteral(cliteral);
-                for(BiConsumer observer : literalReplacementObservers) {observer.accept(cliteral, false);}}}
-        if(oldStructure == ClauseStructure.MIXED && structure != ClauseStructure.MIXED) {
-            for(Consumer<ClauseStructure> observer: clauseStructureObservers) {observer.accept(structure);}}}
+                for(BiConsumer observer : literalReplacementObservers) {observer.accept(cliteral, false);}}}}
+
+
+    public void allClausesOnBoard() {
+        literalIndex.initializeOccurrenceCounters();
+        for(int group = 0; group < groups; ++group) {
+            for(Clause clause : clauses[group]) {
+                for(CLiteral cLiteral : clause.cliterals) {literalIndex.addLiteralOccurrence(cLiteral);}}}}
 
     /** gets the number of cLiterals containing the given literal
      *
@@ -468,11 +399,11 @@ public class ClauseList {
     public boolean isEmpty(int group) {return clauses[group].isEmpty();}
 
 
-    /** returns all pure literals
+    /** returns all pure predicates [predicate,ClauseStructure]
      *
-     * @return all pure literals.
+     * @return all pure predicates.
      */
-    public ArrayList<Integer> pureLiterals() {
+    public ArrayList<Object[]> pureLiterals() {
         return literalIndex.pureLiterals();}
 
     /** generates a string with disjunctions
@@ -497,8 +428,6 @@ public class ClauseList {
             clauses[group].stream().sorted(clauses[group].comparator()).forEach(clause->
                 st.append(clause.toString(idlength[0],symboltable)).append("\n"));}
         if(groups > 1) {st.append("\n");}
-        st.append("Clause Structure: " + structure);
-        st.append(" posititives: " + positiveClauses + ", negatives " + negativeClauses + ", mixed " + mixedClauses + "\n");
         return st.toString();
     }
 }

@@ -1,10 +1,12 @@
 package Datastructures.Literals;
 
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseStructure;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.PriorityQueue;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -16,8 +18,10 @@ public class LiteralIndex {
     private int predicates;   // number of predicates
     private PriorityQueue<CLiteral>[] posOccurrences;  // maps each positive predicate to the list of occurrences
     private PriorityQueue<CLiteral>[] negOccurrences;  // maps each negative predicate to the list of occurrences
+    private int[][] posOccurrenceCounters = null;
+    private int[][] negOccurrenceCounters = null;
     private static PriorityQueue<CLiteral> emptyList = new PriorityQueue<>();
-    public ArrayList<Consumer<Integer>> purityObservers = new ArrayList<>();
+    public ArrayList<BiConsumer<Integer,ClauseStructure>> purityObservers = new ArrayList<>();
     private Comparator<CLiteral> comparator = Comparator.comparingInt(clit->{
         Clause clause = clit.clause;
         return clause == null ? 0 : clause.size();});
@@ -45,6 +49,28 @@ public class LiteralIndex {
         negOccurrences = new PriorityQueue[predicates+1];}
 
 
+    /** initializes all OccurrenceCounters
+     * The OccurrenceCounter for positive literals counts [posOccurrences,mixedOccurrences]<br>
+     * The OccurrenceCounter for negative literals counts [negOccurrences,mixedOccurrences]<br>
+     * posOccurrences counts how often the literal occurrs in positive clauses,
+     * the others are analogous.
+     */
+    public void initializeOccurrenceCounters() {
+        posOccurrenceCounters = new int[predicates+1][];
+        negOccurrenceCounters = new int[predicates+1][];
+        for(int predicate = 1; predicate < predicates; ++predicate) {
+            posOccurrenceCounters[predicate] = new int[]{0,0};
+            negOccurrenceCounters[predicate] = new int[]{0,0};}}
+
+    /** updates the Occurrence counters
+     *
+     * @param cliteral the literal for which the counter is to be updated.
+     */
+    public void addLiteralOccurrence(CLiteral cliteral) {
+        int literal = cliteral.literal;
+        if(literal > 0) {++posOccurrenceCounters[literal][cliteral.clause.structure == ClauseStructure.POSITIVE ? 0:1];}
+        else {++negOccurrenceCounters[literal][cliteral.clause.structure == ClauseStructure.NEGATIVE ? 0:1];}}
+
 
     /** adds a literal to the index
      *
@@ -58,7 +84,10 @@ public class LiteralIndex {
         if(lits == null) {
             lits = new PriorityQueue<CLiteral>(comparator);
             list[predicate] = lits;}
-        lits.add(cliteral);}
+        lits.add(cliteral);
+        if(posOccurrenceCounters != null && cliteral.clause != null) {addLiteralOccurrence(cliteral);}}
+
+
 
     /** removes the literal from the index
      *
@@ -71,8 +100,15 @@ public class LiteralIndex {
         list.remove(cliteral);
         if(list.isEmpty()) {
             if(literal > 0) {posOccurrences[literal] = null;}
-            else            {negOccurrences[-literal] = null;}
-            for(Consumer<Integer> observer : purityObservers) {observer.accept(-literal);}}}
+            else            {negOccurrences[-literal] = null;}}
+        if(posOccurrenceCounters != null && cliteral.clause != null) {
+            if(literal > 0) {--posOccurrenceCounters[literal][cliteral.clause.structure == ClauseStructure.POSITIVE ? 0:1];}
+            else {--negOccurrenceCounters[literal][cliteral.clause.structure == ClauseStructure.NEGATIVE ? 0:1];}
+            int predicate = Math.abs(literal);
+            ClauseStructure st = purityStatus(predicate);
+            if(st != null) {for(BiConsumer<Integer,ClauseStructure> observer : purityObservers) {observer.accept(predicate,st);}}}
+        }
+
 
 
     /** returns the CLiterals with the given literal (integer)
@@ -94,28 +130,45 @@ public class LiteralIndex {
         PriorityQueue<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null ? 0 : list.size();}
 
-    /** checks if the literal is pure, i.e. there are no complementary literals.
-     *  If the literal is not at all in the index, it is not considered pure.
-     *
-     * @param literal a literal
-     * @return true if the literal is pure, i.e. there are no complementary literals.
-     */
-    public boolean isPure(int literal) {
-        int predicate = Math.abs(literal);
-        if(posOccurrences[predicate] == null && negOccurrences[predicate] == null) {return false;}
-        PriorityQueue<CLiteral> occurrence = (literal > 0) ? negOccurrences[literal] : posOccurrences[-literal];
-        return occurrence == null || occurrence.isEmpty();}
 
-
-    /** returns all pure literals
+    /** checks if the predicate is pure within the indexed clauses.
+     * A positive literal is pure if its negation does not occur in the negative clauses.
+     * A negative literal is pure if its negation does not occur in the positive clauses.
+     * If a predicate occurs only in the mixed clauses then it is positive pure and negative pure.
+     * The actual purity status, however, depends also on the ImplicationGraph.
      *
-     * @return all pure literals.
+     * @param predicate a predicate
+     * @return POSTITIVE or NEGATIVE or BOTH
      */
-    public ArrayList<Integer> pureLiterals() {
-        ArrayList<Integer> pure = new ArrayList<>();
+    public ClauseStructure purityStatus(int predicate) {
+        assert predicate > 0;
+        int posPos = posOccurrenceCounters[predicate][0];
+        int negNeg = negOccurrenceCounters[predicate][0];
+        if(posPos == 0 && negNeg == 0) {return ClauseStructure.BOTH;}
+        if(posPos == 0) {return ClauseStructure.NEGATIVE;}
+        if(negNeg == 0) {return ClauseStructure.POSITIVE;}
+        return null;}
+
+    /** Determines if the positive predicate or its negation should be considered pure.
+     * The predicate must be both positive and negative pure (it occurs only in the mixed clauses).
+     * In this case the version which shortens most clauses should be chosen.
+     *
+     * @param predicate a predicate
+     * @return +predicate or -predicate, the version which shortens most clauses.
+     */
+    public int preferredPurityStatus(int predicate) {
+        assert predicate > 0;
+        return  posOccurrenceCounters[predicate][1] >  negOccurrenceCounters[predicate][1] ? -predicate : predicate;}
+
+    /** returns for all pure predicate [predicate,ClauseStructure]
+     *
+     * @return all pure predicates.
+     */
+    public ArrayList<Object[]> pureLiterals() {
+        ArrayList<Object[]> pure = new ArrayList<>();
         for(int predicate = 1; predicate < predicates; ++predicate) {
-            if(isPure(predicate)) {pure.add(predicate);}
-            else {if(isPure(-predicate)) {pure.add(-predicate);}}}
+            ClauseStructure st = purityStatus(predicate);
+            if(st != null) {pure.add(new Object[]{predicate,st});}}
         return pure;}
 
     /** comprises the index into a string
