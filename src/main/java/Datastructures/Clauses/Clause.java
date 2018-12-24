@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 
 /** A clause is just a list of CLiterals.
  *
- * Created by ohlbach on 13.09.2018.
+ * Created by Ohlbach on 13.09.2018.
  */
 public class Clause {
     /** for identifying the clause */

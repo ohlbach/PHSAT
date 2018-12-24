@@ -305,7 +305,7 @@ public abstract class Task {
      *
      */
     public static class Structure extends Task {
-        /** POSITIVE or NEGATIVE */
+        /** POSITIVE or NEGATIVE   */
         private ClauseStructure structure;
 
 
