@@ -40,8 +40,7 @@ import java.util.function.Consumer;
  *         - simplifying longer clauses (subsumption and replacement resolution) <br>
  *         - processing pure literals <br>
  *         - reporting results (satisfiability, unsatisfiablity, errors)
- * Created by ohlbach on 10.10.2018.
- * Created by ohlbach on 10.10.2018.
+ * Created by Ohlbach on 10.10.2018.
  */
 public abstract class Processor {
     /** the combined id of processor and problem*/

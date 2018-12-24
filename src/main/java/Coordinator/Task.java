@@ -13,7 +13,7 @@ import java.util.Arrays;
 /** The purpose of this class and its subclasses is to fill a Priority Chain with prioritizes tasks to be executed.
  * The smaller the priority the earlier the tasks are executed.
  * <br>
- * Created by ohlbach on 10.10.2018.
+ * Created by Ohlbach on 10.10.2018.
  */
 public abstract class Task {
     /** the task's priority */

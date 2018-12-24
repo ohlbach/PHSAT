@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
- * Created by ohlbach on 26.08.2018.
+ * Created by Ohlbach on 26.08.2018.
  *
  * This class is for collecting sets of clauses in different groups.
  * It supports inserting clauses, removing clauses and literals, retrieving clauses and literals.
