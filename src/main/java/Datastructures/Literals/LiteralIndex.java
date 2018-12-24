@@ -10,7 +10,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
- * Created by Ohlbach on 25.08.2018.
+ * Created by  Ohlbach on 25.08.2018.
  *
  * This index maps literals (integers) to their CLiterals (clause occurrences)
  */

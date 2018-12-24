@@ -12,7 +12,7 @@ import java.util.function.Consumer;
  *  The DAG avoids cycles and inconsistencies.
  *  For example, 'p -&gt; q' and '-p -&gt; q' yields 'q' as a new derived literal.
  *
- * Created by ohlbach on 26.09.2018.
+ * Created by Ohlbach on 26.09.2018.
  */
 public class ImplicationDAG {
     private TreeSet<ImplicationNode> roots = new TreeSet<>();            // top literals in the implication hierarchy
