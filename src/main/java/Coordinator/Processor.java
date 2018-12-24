@@ -125,15 +125,6 @@ public abstract class Processor {
     protected Consumer<int[]>              equivalenceObserver = equivalence -> addTask(new Task.Equivalence(equivalence,this));
     protected Consumer<Unsatisfiable> unsatisfiabilityObserver = unsat       -> addTask(new Task.Unsatisfiability(unsat,this));
     protected Consumer<Satisfiable>     satisfiabilityObserver = sat         -> addTask(new Task.Satisfiability(sat,this));
-    protected Consumer<ClauseStructure> structureObserver = structure -> {
-        ClauseStructure st = null;
-        if(structure == ClauseStructure.BOTH) {
-            if(!implicationDAG.hasNegativeClause())       {st = ClauseStructure.POSITIVE;}
-            else {if(!implicationDAG.hasPositiveClause()) {st = ClauseStructure.NEGATIVE;}}}
-        else {
-            if(((structure == ClauseStructure.POSITIVE) && !implicationDAG.hasNegativeClause()) ||
-                (structure == ClauseStructure.NEGATIVE) && !implicationDAG.hasPositiveClause())  {st = structure;}}
-        if(st != null) {addTask(new Task.Structure(st,this));}};
 
     protected Consumer<CLiteral> literalRemovalMonitor = cLiteral ->
             monitor.print(id,"Literal " + cLiteral.literal + " removed from clause " + cLiteral.clause.id);
@@ -246,9 +237,20 @@ public abstract class Processor {
         return null;}
 
     /** generates a task for processing pure literals */
-    protected Consumer<Integer> purityObserver = literal -> {
-        if(implicationDAG.isEmpty(literal) && model.status(literal) == 0) {
-            addTask(new Task.Purity(literal,this));}};
+    protected BiConsumer<Integer,ClauseStructure> purityObserver = (predicate,version) -> {
+        int literal = isReallyPure(predicate,version);
+        if(literal  != 0) {addTask(new Task.Purity(literal,this));}};
+
+    protected int isReallyPure(int predicate,ClauseStructure version) {
+        int literal = 0;
+        switch(version) {
+            case POSITIVE: if(implicationDAG.positiveMixed(predicate)) {literal = predicate;} break;
+            case NEGATIVE: if(implicationDAG.negativeMixed(predicate)) {literal = -predicate;} break;
+            case BOTH: if(!implicationDAG.contains(predicate)) {
+                literal = clauses.literalIndex.preferredPurityStatus(predicate);}
+            else {if(implicationDAG.positiveMixed(predicate)) {literal = predicate;}
+            else {if(implicationDAG.negativeMixed(predicate)) {literal = -predicate;}}}}
+        return literal;}
 
     /* Here we have the process-methods
        ******************************** */
@@ -372,33 +374,6 @@ public abstract class Processor {
         clauses.removeLiteral(clause.getLiteral(position));
         return null;}
 
-    /** If a clause set becomes positive (only positive and mixed clauses) or negative (only negative or mixed clauses) a model can be constructed.
-     * This method constructs the model
-     *
-     * @param structure POSITIVE or NEGATIVE
-     * @return Satisfiable or Erraneous.
-     */
-    public Result processStructure(ClauseStructure structure) {
-        if(monitoring) {monitor.print(id, "Clause set became " + structure);}
-        clauses.removeClauseStructureObservers();
-        clauses.removePurityObservers();
-        Clause clause = null;
-        while((clause = clauses.getFirstClause()) != null) {
-            int literal = 0;
-            if(clause.structure == structure) {
-                literal = clause.getLiteral(0);}
-            else {
-                for(CLiteral clit : clause.cliterals) {
-                    if((structure == ClauseStructure.POSITIVE && clit.literal > 0) ||
-                            (structure == ClauseStructure.NEGATIVE && clit.literal < 0)) {literal = clit.literal; break;}}}
-            model.add(literal);
-            clauses.removeLiteral(literal);
-            implicationDAG.newTrueLiteral(literal,true);
-            processTasks();}
-
-        implicationDAG.completeModel(model);
-        equivalences.completeModel();
-        return Result.makeResult(model,basicClauseList);}
 
 
 }
