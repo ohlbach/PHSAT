@@ -12,7 +12,7 @@ import java.util.function.Consumer;
  *  The DAG avoids cycles and inconsistencies.
  *  For example, 'p -&gt; q' and '-p -&gt; q' yields 'q' as a new derived literal.
  *
- * Created by ohlbach on 26.09.2018.
+ * Created by Ohlbach on 26.09.2018.
  */
 public class ImplicationDAG {
     private TreeSet<ImplicationNode> roots = new TreeSet<>();            // top literals in the implication hierarchy
@@ -474,45 +474,44 @@ public class ImplicationDAG {
         falseNode.upNodes = null;
     }
 
-    /** checks if there is an implication -p -&gt; q, which is a positive clause
+    /** checks if the predicate occurs only in positive or mixed two-literal clauses.
      *
-     * @return true if there is a positive clause.
+     * @return true if the predicate occurs only in positive of mixed two-literal clauses.
      */
-    public boolean hasPositiveClause() {
-        for(ImplicationNode node : roots) {if(hasPositiveClause(node)) {return true;}}
-        return false;}
+    public boolean positiveMixed(int predicate) {
+        ImplicationNode node = getNode(predicate);
+        if(node == null) {return true;}
+        ArrayList<ImplicationNode> down = node.downNodes;
+        if(down != null) {for(ImplicationNode downNode : down) {if(downNode.literal < 0) {return false;}}}
+        node = getNode(-predicate);
+        if(node == null) {return true;}
+        ArrayList<ImplicationNode> up = node.upNodes;
+        if(up != null) {for(ImplicationNode upNode : up) {if(upNode.literal > 0) {return false;}}}
+        return true;}
 
-    /** checks recursively if there is a positive clause
+    /** checks if the predicate occurs only in positive or mixed two-literal clauses.
      *
-     * @param node the node to be checked
-     * @return true if there is a positive clause.
+     * @return true if the predicate occurs only in positive of mixed two-literal clauses.
      */
-    public boolean hasPositiveClause(ImplicationNode node) {
-        if(node.downNodes == null || node.downNodes.isEmpty()) {return false;}
-        int literal = node.literal;
-        for(ImplicationNode down : node.downNodes) {
-            if((literal < 0 && down.literal > 0) || hasPositiveClause(down)) {return true;}}
-        return false;}
+    public boolean negativeMixed(int predicate) {
+        ImplicationNode node = getNode(-predicate);
+        if(node == null) {return true;}
+        ArrayList<ImplicationNode> down = node.downNodes;
+        if(down != null) {for(ImplicationNode downNode : down) {if(downNode.literal > 0) {return false;}}}
+        node = getNode(predicate);
+        if(node == null) {return true;}
+        ArrayList<ImplicationNode> up = node.upNodes;
+        if(up != null) {for(ImplicationNode upNode : up) {if(upNode.literal < 0) {return false;}}}
+        return true;}
 
-    /** checks if there is an implication p -&gt; -q, which is a negative clause
+    /** tests ir the predicate is in the DAG
      *
-     * @return true if there is a positive clause.
+     * @param predicate a predicate
+     * @return true if it is in the DAG
      */
-    public boolean hasNegativeClause() {
-        for(ImplicationNode node : roots) {if(hasNegativeClause(node)) {return true;}}
-        return false;}
+    public boolean contains(int predicate) {
+        return getNode(predicate) != null;}
 
-    /** checks recursively if there is a negative clause
-     *
-     * @param node the node to be checked
-     * @return true if there is a positive clause.
-     */
-    public boolean hasNegativeClause(ImplicationNode node) {
-        if(node.downNodes == null || node.downNodes.isEmpty()) {return false;}
-        int literal = node.literal;
-        for(ImplicationNode down : node.downNodes) {
-            if((literal > 0 && down.literal < 0) || hasNegativeClause(down)) {return true;}}
-        return false;}
 
     /** completes the model such that all ID_Implications in the DAG become true.
      * Not all literals need to be assigned truth values.

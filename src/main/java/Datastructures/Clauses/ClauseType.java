@@ -2,7 +2,7 @@ package Datastructures.Clauses;
 
 
 /**
- * Created by ohlbach on 14.09.2018.
+ * Created by Ohlbach on 14.09.2018.
  */
 public enum ClauseType {
     OR('o'), AND('a'), XOR('x'), DISJOINT('d'), EQUIV('e');
