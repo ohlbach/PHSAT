@@ -20,7 +20,7 @@ import org.apache.commons.lang3.ClassUtils;
 import java.util.*;
 
 /** The preprocessor reads analyses the basic clauses and transfers them to the Clause-datastructure.
- * Created by ohlbach on 14.09.2018.
+ * Created by Ohlbach on 14.09.2018.
  */
 public class PreProcessor extends Processor {
 
