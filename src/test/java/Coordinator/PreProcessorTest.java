@@ -9,13 +9,10 @@ import Datastructures.Results.Unsatisfiable;
 import Generators.RandomClauseSetGenerator;
 import Management.GlobalParameters;
 import Management.ProblemSupervisor;
-import Utilities.Utilities;
-import javafx.scene.control.RadioMenuItem;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Random;
 
 import static org.junit.Assert.*;
 
