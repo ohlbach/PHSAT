@@ -148,15 +148,15 @@ public final class SingleModelGenerator {
             if(signs[predicate] == 0) {clauseList.info += "-";}
             clauseList.info += ""+predicate+",";}
 
-        int type = ClauseType.DISJOINT.ordinal();
+        int type = ClauseType.OR.ordinal();
         int clauseCounter = 0;
         while(clauseCounter < numberClauses) {
             literals.clear();
             int clauseLength = precise ? maxClauseLength : rnd.nextInt(maxClauseLength)+1;
             int truePredicate =  rnd.nextInt(predicates)+1;
             int trueLiteral = truePredicate;
-            if(signs[trueLiteral] == 0) {trueLiteral = -trueLiteral;}
-            int position = rnd.nextInt(maxClauseLength);
+            if(signs[truePredicate] == 0) {trueLiteral = -trueLiteral;}
+            int position = rnd.nextInt(clauseLength);
             int[] lits = new int[clauseLength+2];
             lits[0] = ++clauseCounter;
             lits[1] = type;
@@ -169,7 +169,7 @@ public final class SingleModelGenerator {
                     if(lit == truePredicate) {again = true; continue;}
                     for(int j = 0; j < i; ++j) {if(Math.abs(lits[j+2]) == lit) {again = true; break;}}
                     if(again) {continue;}
-                    if(rnd.nextInt(2)==0) {lit = -lit;}
+                    if(signs[lit] == 1) {lit = -lit;}
                     lits[i+2] = lit;}}
             clauseList.addClause(lits);}
 

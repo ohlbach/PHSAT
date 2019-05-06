@@ -47,7 +47,7 @@ public class BasicClauseList {
      */
     public void addClause(int[] clause) {
         switch(ClauseType.getType(clause[1])) {
-            case OR:       disjunctions.add(clause); break;
+            case OR:       disjunctions.add(clause);break;
             case AND:      conjunctions.add(clause); break;
             case XOR:      xors.add(clause);         break;
             case DISJOINT: disjoints.add(clause);    break;
