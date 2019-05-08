@@ -68,21 +68,6 @@ public class Walker extends Solver {
                 "jumps:  frequency of random jumps                 (default: 10)\n";}
 
 
-
-    class RWModel {
-        /** status of a predicate: -1: false, +1: true, */
-        short[] status = null;
-
-        RWModel(Model model) {status = model.cloneStatus();}
-
-        boolean isTrue(int literal) {
-            short status = this.status[Math.abs(literal)];
-            return literal > 0 ? status == 1: status == -1;}
-
-        boolean isFalse(int literal) {return !isTrue(literal);}
-
-        void flip(int literal) {status[Math.abs(literal)] *= -1;}
-    }
     
     private RWModel rwModel;
     private int timestamp = 0;
@@ -187,10 +172,10 @@ public class Walker extends Solver {
         implicationDAG.applyToRoots(literal -> {
             literal = getOccurrences(literal) > getOccurrences(-literal) ? literal : -literal;
             implicationDAG.apply(literal,true,(lit-> {
-                rwModel.status[ Math.abs(lit)] = (short)(lit > 0 ? 1 : -1);}));});
+                rwModel.status[ Math.abs(lit)] = (byte)(lit > 0 ? 1 : -1);}));});
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(rwModel.status[predicate] == 0) {
-                rwModel.status[predicate] = (short)(getOccurrences(predicate) > getOccurrences(-predicate) ? 1 : -1);}}}
+                rwModel.status[predicate] = (byte)(getOccurrences(predicate) > getOccurrences(-predicate) ? 1 : -1);}}}
 
     /** adds (change = 1) or removes (change = -1) a clause.
      * Updates flipScore and falseClauses

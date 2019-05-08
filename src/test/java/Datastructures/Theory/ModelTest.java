@@ -79,7 +79,7 @@ public class ModelTest {
         Model mod = new Model(5);
         mod.add(3);
         mod.add(-5);
-        short[] st = mod.cloneStatus();
+        byte[] st = mod.cloneStatus();
         assertEquals("[0, 0, 0, 1, 0, -1]",Arrays.toString(st));
     }
 

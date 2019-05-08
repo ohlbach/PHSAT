@@ -13,7 +13,7 @@ public class Model {
     /** the current model */
     private ArrayList<Integer> model = null;
     /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined) */
-    private short[] status = null;
+    private byte[] status = null;
 
     /** creates a model with a maximum number of predicates
      *
@@ -23,7 +23,7 @@ public class Model {
         assert predicates > 0;
         this.predicates = predicates;
         model = new ArrayList<>();
-        status = new short[predicates+1];}
+        status = new byte[predicates+1];}
 
     /* Observers
        ********* */
@@ -64,7 +64,7 @@ public class Model {
         short tr = status[predicate];
         if(tr == 0){
             model.add(literal);
-            status[predicate] = literal > 0 ? (short)1: (short)-1;
+            status[predicate] = literal > 0 ? (byte)1: (byte)-1;
             reportNewTruth(literal);
             return 0;}
         else {return (Integer.signum(literal) == (int)tr) ? 1 : -1;}}
@@ -117,10 +117,10 @@ public class Model {
      * @param status +1 (for true) and -1 (for false)
      */
     public void setStatus(int literal, int status) {
-        if(literal < 0) {literal = -literal; status = (short)-status;}
+        if(literal < 0) {literal = -literal; status = (byte)-status;}
         assert this.status[literal] == 0 || this.status[literal] == status;
         if(this.status[literal] == 0) {
-            this.status[literal] = (short)status;
+            this.status[literal] = (byte)status;
             model.add(status > 0 ? literal : -literal);}}
 
 
@@ -139,7 +139,7 @@ public class Model {
      *
      * @return a clone of the current status of the model
      */
-    public short[] cloneStatus() {return status.clone();}
+    public byte[] cloneStatus() {return status.clone();}
 
     /** checks if the literal is in the model.
      *
