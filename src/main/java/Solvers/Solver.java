@@ -1,7 +1,6 @@
 package Solvers;
 
 import Coordinator.CentralProcessor;
-import Coordinator.PreProcessor;
 import Coordinator.Processor;
 import Coordinator.Task;
 import Datastructures.Clauses.Clause;
@@ -9,8 +8,8 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.CentralProcessorStatistics;
 import Datastructures.Theory.ImplicationNode;
-import Management.GlobalParameters;
-import Solvers.RandomWalker.Walker;
+import Solvers.RandomWalker.WalkerCommunicative;
+import Solvers.RandomWalker.WalkerIsolated;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -28,7 +27,7 @@ public abstract class Solver extends Processor {
        *********************** */
 
     /** the list of all solver types */
-    public static String[] solvers = new String[]{"walker","resolution"};
+    public static String[] solvers = new String[]{"walker isolated", "walker communicative","resolution"};
 
     /** checks if the name is a solver name
      *
@@ -48,8 +47,9 @@ public abstract class Solver extends Processor {
      */
     public static Class solverClass(String name) {
         switch (name) {
-            case "walker":      return Walker.class;
-            case "resolution":  return Solvers.Resolution.Resolution.class;
+            case "walker isolated":      return WalkerIsolated.class;
+            case "walker communicative": return WalkerCommunicative.class;
+            case "resolution":           return Solvers.Resolution.Resolution.class;
             default: return null;}}
 
     /** collects all the help-strings for all solver classes

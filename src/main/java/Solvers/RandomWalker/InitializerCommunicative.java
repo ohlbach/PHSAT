@@ -1,14 +1,18 @@
-package Datastructures.Clauses;
+package Solvers.RandomWalker;
 
+import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Theory.ImplicationDAG;
-import Solvers.RandomWalker.RWModel;
+
+import java.util.ArrayList;
+import java.util.HashSet;
 
 /** This class is for initializing a model by taking into account the implication dag.
  * A predicate becomes true if it itself together with its implied literals occur more often in the clauses than its negation.
  * Created by ohlbach on 07.05.2019.
  */
-public class IDModelInitializer {
+public class InitializerCommunicative {
 
     private ClauseList clauses;
     private ImplicationDAG implicationDAG;
@@ -19,7 +23,7 @@ public class IDModelInitializer {
      * @param clauses        the clauses
      * @param implicationDAG the implication dag
      */
-    public IDModelInitializer(ClauseList clauses, ImplicationDAG implicationDAG) {
+    public InitializerCommunicative(ClauseList clauses, ImplicationDAG implicationDAG) {
         this.clauses = clauses;
         this.implicationDAG = implicationDAG;}
 
@@ -66,4 +70,40 @@ public class IDModelInitializer {
                     clause.timestamp = timestamp;
                     ++counter[0];}}}));
         return counter[0];}
+
+        private HashSet<Integer> preds = new HashSet<>();
+
+    /** initializes the flipScores, the false Clauses and the affected predicates
+     * A flipScore for a predicate, say 5, is a number n if flipping its truth value makes n clauses more true than false
+     *
+     * @param rwModel       the current model
+     * @param flipScores    an array with 0-entries
+     * @param falseClauses  an empty array. It becomes the list of clauses which are false in the model
+     * @param affectedPredicates the predicates in the false clauses.
+     */
+    public void initializeScores(RWModel rwModel, int[] flipScores, ArrayList<Clause> falseClauses, HashSet<Integer> affectedPredicates) {
+        for(Clause clause : clauses.getClauses(0)) {
+            int trueLiteral = 0;
+            boolean remainsTrue = false;
+            for(CLiteral lit : clause.cliterals) {
+                int literal = lit.literal;
+                if(rwModel.isTrue(literal)) {
+                    if(trueLiteral != 0) {remainsTrue = true; break;} // at least two true literals: flipping changes nothing.
+                    trueLiteral = literal;}}
+            if(remainsTrue) {continue;}
+            if(trueLiteral == 0) { // clause is false
+                falseClauses.add(clause);
+                preds.clear();
+                for(CLiteral lit : clause.cliterals) {
+                    implicationDAG.apply(-lit.literal,true,(literal->{
+                        literal = -literal;
+                        if(rwModel.isFalse(literal)){
+                            int predicate = Math.abs(literal);
+                            if(!preds.contains(predicate)){
+                                preds.add(predicate);
+                                ++flipScores[predicate];
+                                affectedPredicates.add(predicate);}}
+                }));}}
+            else {  // clause is true and becomes false
+                --flipScores[Math.abs(trueLiteral)];}}}
 }

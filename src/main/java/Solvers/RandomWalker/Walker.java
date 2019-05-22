@@ -3,24 +3,33 @@ package Solvers.RandomWalker;
 import Coordinator.CentralProcessor;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
-import Datastructures.Literals.LiteralIndex;
+import Datastructures.Results.Aborted;
 import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
-import Datastructures.Theory.ImplicationNode;
 import Datastructures.Theory.Model;
-import Management.GlobalParameters;
 import Solvers.Solver;
 import Utilities.Utilities;
 
 import java.util.*;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
-/**
- * Created by Ohlbach on 01.09.2018.
+/** This is the abstract superclass of Random Walker classes.
+ * It contains the data and methods common to all subclasses.
+ * The idea of Random Walk is as follows:
+ * A candidate model is heuristically generated.
+ * As long as there are false clauses in this model, a predicate is selected and its truth value is flipped.
+ * If the clause set has a model it might eventually be found.
+ * If it is unsatisfiable, the process does not terminate.
+ * Therefore the loop is aborted after a maximum number of flips.
+ * <br>
+ * Important data structures are: <br>
+ * - rWModel, the local model <br>
+ * - flipScores[1..predicates]:  flipScores[5] = 3 means: flipping predicate 5 causes 3 more clauses to become true. <br>
+ * - predicateQueue: keeps the predicates sorted according to their flipScores. <br>
+ *   predicates whose flip causes most clauses to become true came to the front of the queue.
+ *
+ * Created by ohlbach on 16.05.2019.
  */
-public class Walker extends Solver {
-
+public abstract class Walker extends Solver {
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
@@ -29,7 +38,7 @@ public class Walker extends Solver {
 
     /** parses a HashMap with key-value pairs<br>
      *
-     * @param parameters  the parameters with the keys "seed", "flips", "jumps"
+     * @param parameters  the parameters with the keys "seed", "flips", "jumpFrequency"
      * @param errors      for error messages
      * @param warnings    for warnings
      * @return            a list of HashMaps with these keys.
@@ -46,6 +55,8 @@ public class Walker extends Solver {
         if(jumps == null) {jumps = Integer.toString(10);}
         String implications = parameters.get("ID_Implications");
         if(implications == null) {implications = "false";}
+        String isolated = parameters.get("isolated");
+        if(isolated == null) {isolated = "true";}
         String place = "Random Walker: ";
         ArrayList seed = Utilities.parseIntRange(place+"seed: ",seeds,errors);
         ArrayList flip = Utilities.parseIntRange(place+"flips: ",flips,errors);
@@ -63,190 +74,156 @@ public class Walker extends Solver {
 
     public static String help() {
         return "Random Walker: parameters:\n" +
-                "seed:   for the random number generator           (default: 0)\n" +
-                "flips:  for restricting the number of flips       (default: Max_Integer).\n" +
-                "jumps:  frequency of random jumps                 (default: 10)\n";}
+                "seed:   for the random number generator      (default: 0)\n" +
+                "flips:  for restricting the number of flips  (default: Max_Integer).\n" +
+                "jumps:  frequency of random jumps            (default: 10)\n";}
 
 
-    
-    private RWModel rwModel;
-    private int timestamp = 0;
+    /** the number of predicates in the problem */
+    protected int predicates;
+    /** the maximum allowed number of flips */
+    protected int maxFlips;
+    /** the number of flips between two random jumpFrequency */
+    protected int jumpFrequency;
+    /** a random number generator */
+    protected Random random;
+    /** a the local model. It is modified until all clauses become true */
+    protected RWModel rwModel;
+    /** stores for each predicate the net number of clauses which become true after flipping this predicate */
+    protected int[] flipScores;
+    /** a list of clauses which are false under the current version of rwModel. */
+    protected ArrayList<Clause> falseClauses = new ArrayList<>();
+    /** sorts the predicates according to the flipScore. predicates whose flip makes more clauses true come to the front.*/
+    protected PriorityQueue<Integer> predicateQueue;
 
-    /** constructs a new solver of type RandomWalker.
-     * The constructor is called serially. Therefore there are no race conditions.
-     * globalParameters and centralProcessor are shared between different threads.
-     * The walker is passive in the sense that it does not send data to the CentralDataHolder.
+    /** constructs a Walker and initializes some parameters.
      *
-     * @param applicationParameters     contains the parameters for controlling the solver
-     * @param centralProcessor       contains the result of parsing and initializing the problem data.
+     * @param applicationParameters maps keywords to values
+     * @param centralProcessor  controls the processing
      */
     public Walker(HashMap<String,Object> applicationParameters, CentralProcessor centralProcessor) {
         super(applicationParameters,centralProcessor);
-        initializeData();
-        addObservers();
-    }
-    
-    private void initializeData() {
-        rwModel = new RWModel(centralProcessor.model);
-        clauses = centralProcessor.clauses.clone(); // now centralProcessor may change its clauses
-        statistics = new WalkerStatistics(this);
-        initializeModel();
-        initializeQueue();
-    }
-
-    private Random random;
-    private LiteralIndex index ;
-    private int[] flipScore;
-    private PriorityQueue<Integer> predicateQueue;
-    private ArrayList<Clause> falseClauses;
-    int flipCounter  = 0;
-    int randomFrequency = 0;
-
-    public Result solve() {
-        globalParameters.log("Random Walker " + id + " starting at problem " + problemId);
-        long start = System.currentTimeMillis();
-        int maxFlips     = (Integer)applicationParameters.get("flips");
-        randomFrequency  = (Integer)applicationParameters.get("jumps");
-        flipScore        = new int[predicates];
-        index            = clauses.literalIndex;
-        int seed         = (Integer)applicationParameters.get("seed");
-        random           = new Random(seed);
+        this.centralProcessor = centralProcessor;
+        predicates    = centralProcessor.predicates;
+        maxFlips      = (Integer)applicationParameters.get("flips");
+        jumpFrequency = (Integer)applicationParameters.get("jumps");
+        random        = new Random((Integer)applicationParameters.get("seed"));
+        rwModel       = new RWModel(centralProcessor.model);
+        clauses       = centralProcessor.clauses.clone();
+        statistics    = new WalkerStatistics(this);
+        flipScores    = new int[predicates+1];
         predicateQueue = new PriorityQueue<Integer>(predicates,(
                 (l1,l2) -> {
-                    int f1 = combinedScore(l1);
-                    int f2 = combinedScore(l2);
+                    int f1 = flipScores[l1];
+                    int f2 = flipScores[l2];
                     if(f1 > f2) {return -1;}
-                    return(f1 < f2) ? 1 : 0;}));
-        Thread thread = Thread.currentThread();
+                    return(f1 < f2) ? 1 : 0;}));}
+
+    /** initializes the flipScores, the false Clauses and the affected predicates
+     * A flipScore for a predicate, say 5, is a number n if flipping its truth value makes n clauses more true than false
+     */
+    public void initializeScores() {
+        for(Clause clause : clauses.getClauses(0)) {
+            updateClauseScore(clause,1);}}
+
+    /** adds the given score to the predicate's score and updates the predicateQueue
+     *
+     * @param predicate
+     * @param score
+     */
+    public void changeScore(int predicate, int score) {
+        predicateQueue.remove(predicate);
+        flipScores[predicate] += score;
+        predicateQueue.add(predicate);}
+
+
+    /** searches for a satisfying model.
+     * The search stops by either: model found, maximum number of flips reached, or thread interrupted.
+     *
+     * @return the Result, either Satisfiable, Aborted or Erraneous.
+     */
+    public Result solve() {
+        centralProcessor.globalParameters.log(getClass().getName() + " " + id + " starting at problem " + problemId);
+        long start = System.currentTimeMillis();
+        Result result = null;
         try{
+            Thread thread = Thread.currentThread();
+            initializeModel();
+            initializeScores();
+            if(falseClauses.isEmpty()) {
+                result = Result.makeResult(transferModel(),centralProcessor.basicClauseList);
+                reportFinished(result,0,thread);
+                return result;}
+            int flipCounter = 0;
             while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
                 integrateNewFacts();
                 flip(selectFlipPredicate());
-                updateScores();}
-            if(falseClauses.isEmpty()) {
-                Result result = Result.makeResult(transferModel(rwModel),basicClauseList);
-                reportFinished(result,flipCounter,thread);
-                return result;}
-            else {reportAbortion(maxFlips);}}
-        finally{statistics.elapsedTime = System.currentTimeMillis()-start;}
-        return null;}
-
-    private ArrayList<Integer> trueLiterals = new ArrayList<>();
-    private synchronized void addTrueLiteral(int literal) {trueLiterals.add(literal);}
-    private Consumer<Integer> trueLiteralObserver = literal-> addTrueLiteral(literal);
-
-    private ArrayList<Integer> implications = new ArrayList<>();
-    private synchronized void addImplication(int from, int to) {implications.add(from); implications.add(to);}
-    private BiConsumer<ImplicationNode,ImplicationNode> implicationObserver = (from, to) -> addImplication(from.literal,to.literal);
+                if(falseClauses.isEmpty()) {
+                    result = Result.makeResult(transferModel(),basicClauseList);
+                    reportFinished(result,flipCounter,thread);
+                    return result;}}
+            if(flipCounter >= maxFlips) {
+                reportAbortion();
+                result = new Aborted("Maximum number of flips: " + maxFlips + " reached.");}}
+        finally{
+            statistics.elapsedTime = System.currentTimeMillis()-start;
+            centralProcessor.globalParameters.log(getClass().getName() + " " + id + " finished problem " + problemId);}
+        return result;}
 
 
-    protected void addObservers() {
-        centralProcessor.model.addTrueLiteralObserver(trueLiteralObserver);
-        centralProcessor.implicationDAG.addImplicationObserver(implicationObserver);
-        implicationDAG.addTrueLiteralObserver(trueLiteralObserver);
-    }
-
-    protected void removeObservers() {
-        centralProcessor.model.removeTrueLiteralObserver(trueLiteralObserver);
-        centralProcessor.implicationDAG.removeImplicationObserver(implicationObserver);}
-
-    private synchronized void integrateNewFacts() {
-        for(int i = 0; i < implications.size(); i += 2) {
-            int from = implications.get(i);
-            int to   = implications.get(i+1);
-            if(rwModel.isTrue(from) && rwModel.isFalse(to)) {flip(to);}
-            implicationDAG.addClause(-from,to);} // this may generate new true literals
-        implications.clear();
-
-        for(int literal : trueLiterals) {
-            int predicate = Math.abs(literal);
-            if(rwModel.isFalse(literal)) {flip(predicate);}
-            predicateQueue.remove(predicate);}
-        trueLiterals.clear();}
 
 
-    /** generates a candidate rwModel for the clauses.
-     * A predicate becomes true if it occurs in more clauses than its negation.
+    /** initializes a model by making a predicate p true if p occurs more often than -p.
+     * A global model is transferred unchanged to the new model.
      */
-    private void initializeModel() {
-        implicationDAG.applyToRoots(literal -> {
-            literal = getOccurrences(literal) > getOccurrences(-literal) ? literal : -literal;
-            implicationDAG.apply(literal,true,(lit-> {
-                rwModel.status[ Math.abs(lit)] = (byte)(lit > 0 ? 1 : -1);}));});
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            if(rwModel.status[predicate] == 0) {
-                rwModel.status[predicate] = (byte)(getOccurrences(predicate) > getOccurrences(-predicate) ? 1 : -1);}}}
+    public abstract void initializeModel();
 
-    /** adds (change = 1) or removes (change = -1) a clause.
-     * Updates flipScore and falseClauses
-     *
-     * @param clause a clause
-     * @param change +1 for adding the clause, -1 for removing the clause.
+    /** integrates new facts coming from the coordinator.
      */
-    void updateClause(Clause clause, int change) {
-        CLiteral trueLiteral = null;
-        for(CLiteral cLiteral : clause.cliterals) {
-            if(rwModel.isTrue(cLiteral.literal)) {
-                if(trueLiteral != null) {return;}  // at least two true literals. Flips don't change the status
-                else{trueLiteral = cLiteral;}}}
-        if(trueLiteral == null) {
-            if(change > 0) {falseClauses.add(clause);} else {falseClauses.remove(clause);}
-            clause.applyToLiteral(literal -> changeScore(Math.abs(literal), change));} // flipping a literal increases the number of true literals
-        else {changeScore(Math.abs(trueLiteral.literal),-change); }} // flipping this literal destroys a true literal.
+    public void integrateNewFacts() {}
 
-
-    private int[] counter = new int[]{0};
-
-    /** counts the clauses containing the literal and its implied literals
-     *
-     * @param literal a literal
-     * @return the number of clauses containing the literal and its implied literals.
-     */
-    int getOccurrences(int literal) {
-        ++timestamp;
-        counter[0] = 0;
-        implicationDAG.apply(literal,true,(lit-> {
-            for(CLiteral cLiteral : clauses.getLiterals(lit)){
-                Clause clause = cLiteral.clause;
-                if(clause.timestamp != timestamp) {
-                    clause.timestamp = timestamp;
-                    ++counter[0];}}}));
-        return counter[0];}
-
-                /** initializes the falseClauses array with all clauses which are false in the current rwModel.
-                 */
-    private void initializeQueue() {
-        falseClauses = new ArrayList<>();
-        for(Clause clause : clauses.getClauses(0)) {
-            updateClause(clause,1);}
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            if(centralProcessor.model.status(predicate) == 0) {predicateQueue.add(predicate);}}}
-
-    private int[] score = new int[]{0};
-    int combinedScore(int predicate) {
-        score[0] = 0;
-        int literal = rwModel.isTrue(predicate) ? -predicate : predicate;
-        implicationDAG.apply(literal,true,
-                (lit -> {if(rwModel.isFalse(lit)) {score[0] += flipScore[Math.abs(lit)];}}));
-        return score[0];}
-
-
-    /** flips the truth value of the predicate and updates the predicateQueue
+    /** flips the truth value of the predicate and updates the predicateQueue and the falseClauses list
      *
      * @param predicate to be flipped
      */
-    void flip(int predicate) {
-        ++((WalkerStatistics)statistics).RW_flips;
-        implicationDAG.apply(-rwModel.status[predicate]*predicate,true,(literal -> {
-            if(rwModel.isFalse(literal)) {
-                for(CLiteral cLiteral : index.getLiterals(literal)) {
-                    Clause clause = cLiteral.clause;
-                    if(isFalse(clause)) {
-                        falseClauses.remove(clause); // flipping the other literals does not change the status for the clause
-                        clause.applyToLiteral(lit->changeScore(lit,-1));}
-                    else {CLiteral otherTrueLiteral = findOtherTrueLiteral(cLiteral);
-                        if(otherTrueLiteral != null) {changeScore(otherTrueLiteral.literal,1);}}}};
-                rwModel.flip(literal);}));}
+    abstract public void flip(int predicate);
+
+
+    /** flips the truth value of the predicate and updates the predicateQueue and the falseClauses list
+     *
+     * @param predicate to be flipped
+     */
+    public void flipPredicate(int predicate) {
+        for(CLiteral cliteral : clauses.literalIndex.getLiterals(predicate)) {
+            updateClauseScore(cliteral.clause,-1);}
+        for(CLiteral cliteral : clauses.literalIndex.getLiterals(-predicate)) {
+            updateClauseScore(cliteral.clause,-1);}
+        rwModel.flip(predicate);
+        for(CLiteral cliteral : clauses.literalIndex.getLiterals(predicate)) {
+            updateClauseScore(cliteral.clause,1);}
+        for(CLiteral cliteral : clauses.literalIndex.getLiterals(-predicate)) {
+            updateClauseScore(cliteral.clause,1);}}
+
+
+    /** updates the flipScore for a given clause.
+     *
+     * @param clause  the clause
+     * @param change  +1 if the clause is to be added, -1 if it is to be removed.
+     */
+    public abstract void updateClauseScore(Clause clause, int change);
+
+    /** transfers an rwModel to a Model.
+     *  This is called on success, just to get a model in standard form.
+     *
+     * @return the new Model
+     */
+    public Model transferModel() {
+        int predicates = rwModel.predicates();
+        Model model = new Model(predicates);
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            model.add(predicate*rwModel.status[predicate]);}
+        return model;}
+
 
     private int oldPredicate = 0;
     private int oldoldPredicate = 0;
@@ -254,7 +231,7 @@ public class Walker extends Solver {
 
     int selectFlipPredicate() {
         int predicate = 0;
-        if(++randomCounter == randomFrequency) {
+        if(++randomCounter == jumpFrequency) {
             randomCounter = 0;
             Clause clause = falseClauses.get(random.nextInt(falseClauses.size()));
             return Math.abs(clause.cliterals.get(random.nextInt(clause.cliterals.size())).literal);}
@@ -270,97 +247,29 @@ public class Walker extends Solver {
         return predicate;}
 
 
-    boolean isFalse(Clause clause) {
-        for(CLiteral cLit : clause.cliterals) {
-            if(rwModel.isTrue(cLit.literal)) {return false;}}
-        return true;}
-
-
-    /** searches for the only other true literal besides the given one
-     *
-     * @param cLiteral a CLiteral
-     * @return a true literal where all others except the given one are false, null if no such literal exists.
-     */
-     CLiteral findOtherTrueLiteral(CLiteral cLiteral) {
-        CLiteral trueLiteral = null;
-        for(CLiteral cLit : cLiteral.clause.cliterals) {
-            if(cLit != cLiteral && rwModel.isTrue(cLit.literal)) {
-                if(trueLiteral != null) {return null;}
-                trueLiteral = cLit;}}
-        return trueLiteral;}
-
-    private TreeMap<Integer,Integer> affected = new TreeMap();
-    /** changes the flipScore of the given literal and updates the predicateQueue
-     *
-     * @param literal    an literal
-     * @param difference the change to the score
-     */
-    void changeScore(int literal, int difference) {
-        int predicate = Math.abs(literal);
-        Integer score = affected.get(predicate);
-        if(score == null) {score = difference;}
-        else {score += difference;}
-        affected.put(predicate,score);}
-
-    /** updates the flip scores and the predicate queue.
-     * Since the order in the queue may depend on several predicates,
-     * one must first remove all affected predicates from the queue, then update the scores and then add the
-     * predicate to the queue.
-     */
-     void updateScores() {
-        for(Map.Entry<Integer,Integer> entry : affected.entrySet()) {
-            Integer predicate = entry.getKey();
-            Integer value = entry.getValue();
-            if(value != 0) {implicationDAG.apply(predicate,false,(p->predicateQueue.remove(Math.abs(p))));}}
-        for(Map.Entry<Integer,Integer> entry : affected.entrySet()) {
-            Integer predicate = entry.getKey();
-            Integer value = entry.getValue();
-            if(value != 0) {flipScore[predicate] += value;}}
-        for(Map.Entry<Integer,Integer> entry : affected.entrySet()) {
-            Integer predicate = entry.getKey();
-            Integer value = entry.getValue();
-            if(value != 0) {implicationDAG.apply(predicate,false,(p->predicateQueue.add(Math.abs(p))));}}
-        affected.clear();}
-
-    /** transfers an rwModel to a Model.
-     *  This is called on success, just to get a model in standard form.
-     *
-     * @param rwModel  the rwModel
-     * @return the new Model
-     */
-    private Model transferModel(RWModel rwModel) {
-        model = new Model(predicates);
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            model.add(predicate*rwModel.status[predicate]);}
-        return model;}
-
-    /** reports that the resolution has been aborted
-     *
-     * @param limit the maximum number of flips
-     */
-    private void reportAbortion(int limit) {
-        globalParameters.log("Random Walker " + id + " for problem " + problemId +" stopped after " + limit + " flips");
-        supervisor.statistics.incAborted();
-        supervisor.aborted(id);}
-
     /** reports that the resolution has been finished
      *
      * @param result     the result of the random walker
      * @param flips      the number of flips.
      * @param thread     which executed the solver
      */
-    private void reportFinished(Result result, int flips, Thread thread) {
+    public void reportFinished(Result result, int flips, Thread thread) {
         if(thread.isInterrupted()) {
-            globalParameters.log("Random Walker " + id + " for problem " + problemId +" interrupted after " + flips + " flips.\n");}
+            globalParameters.log(getClass().getName() + " " + id + " for problem " + problemId +" interrupted after " + flips + " flips.\n");}
         else {
-            globalParameters.log("Random Walker " + id + " for problem " + problemId +" finished after " + flips + " flips.\n" +
+            globalParameters.log(getClass().getName() + " " + id + " for problem " + problemId +" finished after " + flips + " flips.\n" +
                     "Result: " + result.toString());
             if(result instanceof Erraneous) {supervisor.statistics.incErraneous();}}}
+
+    /** reports that the search has been aborted
+     */
+    private void reportAbortion() {
+        globalParameters.log(getClass().getName()+ " " + id + " for problem " + problemId +" stopped after " + maxFlips + " flips");
+        supervisor.statistics.incAborted();
+        supervisor.aborted(id);}
+
+
+
+
+
 }
-
-
-
-
-
-
-
