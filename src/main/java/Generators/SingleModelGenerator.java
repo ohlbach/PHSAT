@@ -5,10 +5,8 @@ import Datastructures.Clauses.ClauseType;
 import Datastructures.Status;
 import Utilities.Utilities;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Random;
+import java.lang.reflect.Array;
+import java.util.*;
 
 /** The generator generates clause sets with exactly one model.
  * Created by ohlbach on 05.05.2019.
@@ -136,7 +134,7 @@ public final class SingleModelGenerator {
         short[] signs = new short[predicates+1];
         Random rnd = new Random(seed);
         for(int pred = 1; pred <= predicates; ++pred) {signs[pred] = (short)rnd.nextInt(2);}
-
+        System.out.println("P " + Arrays.toString(signs));
         BasicClauseList clauseList = new BasicClauseList();
         clauseList.predicates = predicates;
 

@@ -119,6 +119,8 @@ public abstract class Processor {
         monitor                    = globalParameters.monitor;
         monitoring                 = monitor.monitoring();}
 
+    public Processor() {}
+
 
     protected Consumer<CLiteral>            longClauseObserver = cLiteral    -> addTask(makeShortenedClauseTask(cLiteral.clause,this));
     protected Consumer<Integer>            trueLiteralObserver = literal     -> addTask(new Task.TrueLiteral(literal,this));

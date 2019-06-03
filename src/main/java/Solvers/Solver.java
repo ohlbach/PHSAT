@@ -128,6 +128,9 @@ public abstract class Solver extends Processor {
         super((String)solverParameters.get("name"),centralProcessor.supervisor,solverParameters,centralProcessor.basicClauseList);
         this.centralProcessor = centralProcessor;}
 
+    public Solver() {
+        super();}
+
 
     /** This observer is called when a literal has become true.
      * It inserts a TrueLiteral task into centralProcessor's task queue.

@@ -1,7 +1,9 @@
 package Solvers.RandomWalker;
 
 import Coordinator.CentralProcessor;
+import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Erraneous;
@@ -10,6 +12,7 @@ import Datastructures.Theory.Model;
 import Solvers.Solver;
 import Utilities.Utilities;
 
+import java.lang.reflect.Array;
 import java.util.*;
 
 /** This is the abstract superclass of Random Walker classes.
@@ -84,7 +87,7 @@ public abstract class Walker extends Solver {
     /** the maximum allowed number of flips */
     protected int maxFlips;
     /** the number of flips between two random jumpFrequency */
-    protected int jumpFrequency;
+    protected int jumpFrequency = 10;
     /** a random number generator */
     protected Random random;
     /** a the local model. It is modified until all clauses become true */
@@ -104,12 +107,21 @@ public abstract class Walker extends Solver {
     public Walker(HashMap<String,Object> applicationParameters, CentralProcessor centralProcessor) {
         super(applicationParameters,centralProcessor);
         this.centralProcessor = centralProcessor;
-        predicates    = centralProcessor.predicates;
+        initializeWalker(centralProcessor.predicates,applicationParameters,centralProcessor.model,centralProcessor.clauses.clone());}
+
+    public Walker(int predicates, HashMap<String,Object> applicationParameters, Model model, ClauseList clauses) {
+        super();
+        this.applicationParameters = applicationParameters;
+        initializeWalker(predicates, applicationParameters, model, clauses);}
+
+
+    private void initializeWalker(int predicates, HashMap<String,Object> applicationParameters, Model model, ClauseList clauses) {
+        this.predicates = predicates;
         maxFlips      = (Integer)applicationParameters.get("flips");
         jumpFrequency = (Integer)applicationParameters.get("jumps");
         random        = new Random((Integer)applicationParameters.get("seed"));
-        rwModel       = new RWModel(centralProcessor.model);
-        clauses       = centralProcessor.clauses.clone();
+        rwModel       = new RWModel(model);
+        this.clauses  = clauses;
         statistics    = new WalkerStatistics(this);
         flipScores    = new int[predicates+1];
         predicateQueue = new PriorityQueue<Integer>(predicates,(
@@ -117,7 +129,8 @@ public abstract class Walker extends Solver {
                     int f1 = flipScores[l1];
                     int f2 = flipScores[l2];
                     if(f1 > f2) {return -1;}
-                    return(f1 < f2) ? 1 : 0;}));}
+                    return(f1 < f2) ? 1 : 0;}));
+    }
 
     /** initializes the flipScores, the false Clauses and the affected predicates
      * A flipScore for a predicate, say 5, is a number n if flipping its truth value makes n clauses more true than false
@@ -136,6 +149,7 @@ public abstract class Walker extends Solver {
         flipScores[predicate] += score;
         predicateQueue.add(predicate);}
 
+    int flipCounter = 0;
 
     /** searches for a satisfying model.
      * The search stops by either: model found, maximum number of flips reached, or thread interrupted.
@@ -143,7 +157,8 @@ public abstract class Walker extends Solver {
      * @return the Result, either Satisfiable, Aborted or Erraneous.
      */
     public Result solve() {
-        centralProcessor.globalParameters.log(getClass().getName() + " " + id + " starting at problem " + problemId);
+        if(centralProcessor != null) {
+            centralProcessor.globalParameters.log(getClass().getName() + " " + id + " starting at problem " + problemId);}
         long start = System.currentTimeMillis();
         Result result = null;
         try{
@@ -151,10 +166,9 @@ public abstract class Walker extends Solver {
             initializeModel();
             initializeScores();
             if(falseClauses.isEmpty()) {
-                result = Result.makeResult(transferModel(),centralProcessor.basicClauseList);
+                result = Result.makeResult(transferModel(),basicClauseList);
                 reportFinished(result,0,thread);
                 return result;}
-            int flipCounter = 0;
             while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
                 integrateNewFacts();
                 flip(selectFlipPredicate());
@@ -167,7 +181,8 @@ public abstract class Walker extends Solver {
                 result = new Aborted("Maximum number of flips: " + maxFlips + " reached.");}}
         finally{
             statistics.elapsedTime = System.currentTimeMillis()-start;
-            centralProcessor.globalParameters.log(getClass().getName() + " " + id + " finished problem " + problemId);}
+            if(centralProcessor != null) {
+                centralProcessor.globalParameters.log(getClass().getName() + " " + id + " finished problem " + problemId);}}
         return result;}
 
 
@@ -227,12 +242,20 @@ public abstract class Walker extends Solver {
 
     private int oldPredicate = 0;
     private int oldoldPredicate = 0;
-    private int randomCounter = 0;
 
+    /** selects the next flip predicate.
+     * Normally the next flip predicate is the top of the predicateQueue.
+     * Only if the same flip predicate has been selected the last or second but last time,
+     * it is the second flip predicate in the predicateQueue.
+     *
+     * If the flipCounter has reached a multiple of the jumpFrequency, then a random predicate is chosen
+     * from one of the false clauses.
+     *
+     * @return the next flip predicate.
+     */
     int selectFlipPredicate() {
         int predicate = 0;
-        if(++randomCounter == jumpFrequency) {
-            randomCounter = 0;
+        if(flipCounter % jumpFrequency == 0) {
             Clause clause = falseClauses.get(random.nextInt(falseClauses.size()));
             return Math.abs(clause.cliterals.get(random.nextInt(clause.cliterals.size())).literal);}
 
@@ -255,21 +278,42 @@ public abstract class Walker extends Solver {
      */
     public void reportFinished(Result result, int flips, Thread thread) {
         if(thread.isInterrupted()) {
-            globalParameters.log(getClass().getName() + " " + id + " for problem " + problemId +" interrupted after " + flips + " flips.\n");}
+            if(globalParameters != null) {
+                globalParameters.log(getClass().getName() + " " + id + " for problem " + problemId +" interrupted after " + flips + " flips.\n");}}
         else {
-            globalParameters.log(getClass().getName() + " " + id + " for problem " + problemId +" finished after " + flips + " flips.\n" +
-                    "Result: " + result.toString());
-            if(result instanceof Erraneous) {supervisor.statistics.incErraneous();}}}
+            if(globalParameters != null) {
+                globalParameters.log(getClass().getName() + " " + id + " for problem " + problemId +" finished after " + flips + " flips.\n" +
+                        "Result: " + result.toString());}
+            if(result instanceof Erraneous && supervisor != null) {supervisor.statistics.incErraneous();}}}
 
     /** reports that the search has been aborted
      */
     private void reportAbortion() {
-        globalParameters.log(getClass().getName()+ " " + id + " for problem " + problemId +" stopped after " + maxFlips + " flips");
-        supervisor.statistics.incAborted();
-        supervisor.aborted(id);}
+        if(globalParameters != null) {
+            globalParameters.log(getClass().getName()+ " " + id + " for problem " + problemId +" stopped after " + maxFlips + " flips");}
+        if(supervisor != null) {
+            supervisor.statistics.incAborted();
+            supervisor.aborted(id);}}
 
 
+    public String toString() {
+        StringBuilder st = new StringBuilder();
+        st.append("Solver ").append(getClass().getName()).append(" ").append(id).append( " on Problem ").append(problemId).append("\n");
+        st.append("Parameters:\n");
+        st.append("  seed:   ").append(applicationParameters.get("seed")).append("\n");
+        st.append("  flips:  ").append(Integer.toString(flipCounter)).append(" of ").append(Integer.toString(maxFlips)).append("\n");
+        st.append("  jump frequency: ").append(Integer.toString(jumpFrequency)).append("\n\n");
+        st.append("Current model: ").append(rwModel.toString()).append("\n");
+        st.append("False Clauses:\n");
+        for(Clause clause : falseClauses) {st.append(clause.toString());}
+        st.append("\nScores:\n");
+        for(int pred = 1; pred < predicates; ++pred) {
+            if(flipScores[pred] != 0) {
+            st.append(Integer.toString(pred)).append(":").append(Integer.toString(flipScores[pred])).append("; ");}}
+        st.append("\n");
+        return st.toString();
 
+    }
 
 
 }

@@ -4,6 +4,7 @@ package Datastructures.Clauses;
 import Datastructures.Statistics.ProblemStatistics;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import Utilities.Utilities;
 
 import java.util.ArrayList;
 
@@ -220,5 +221,16 @@ public class BasicClauseList {
         return st.toString();}
 
 
-
+     public String testString(String var) {
+         StringBuilder st = new StringBuilder();
+         st.append(info);
+         int counter = 0;
+         for(int[] clause : disjunctions) {
+             st.append(var);
+             st.append(".addClause(Utilities.makeClause(\"").append(Integer.toString(++counter)).append("\",\"");
+             for(int i = 2; i < clause.length; ++i) {
+                 st.append(Integer.toString(clause[i]));
+                 if(i < clause.length-1) st.append(",");}
+             st.append("\"));\n");}
+        return st.toString();}
 }

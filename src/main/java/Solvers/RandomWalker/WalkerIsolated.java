@@ -2,7 +2,10 @@ package Solvers.RandomWalker;
 
 import Coordinator.CentralProcessor;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Theory.ImplicationDAG;
+import Datastructures.Theory.Model;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -33,12 +36,18 @@ public class WalkerIsolated extends Walker{
         addImplications(); // now centralProcessor may change its clauses
     }
 
+    public WalkerIsolated(int predicates, HashMap<String,Object> applicationParameters, Model model, ClauseList clauses, ImplicationDAG implicationDAG) {
+        super(predicates, applicationParameters,model,clauses);
+        this.implicationDAG = implicationDAG;
+        addImplications();}
+
 
         /** turns the implications in the implication dag back to two-literal clauses.
          * From now on WalkerIsolated works without further communication with the rest.
          */
 
     void addImplications() {
+        if(implicationDAG == null || implicationDAG.isEmpty()) {return;}
         TreeSet<Pair<Integer,Integer>> pairs = new TreeSet<Pair<Integer,Integer>>();
         implicationDAG.applyToRoots((literal1 -> {
             implicationDAG.apply(literal1,true,
@@ -79,6 +88,11 @@ public class WalkerIsolated extends Walker{
         ++((WalkerStatistics)statistics).RW_flips;
         flipPredicate(predicate);}
 
+    /** adds (change = +1) or removes (change = -1) a clause to the clause score and the falseClauses list.
+     *
+     * @param clause  the clause
+     * @param change  +1 if the clause is to be added, -1 if it is to be removed.
+     */
     public void updateClauseScore(Clause clause, int change) {
         int trueLiteral = 0;
         for(CLiteral lit : clause.cliterals) {

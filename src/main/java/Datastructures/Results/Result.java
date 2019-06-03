@@ -14,8 +14,8 @@ public class Result {
     public boolean isOkay() {return true;}
 
     public static Result makeResult(Model model, BasicClauseList clauses) {
+        if(clauses == null) {return null;}
         ArrayList<int[]> falseClauses = clauses.falseClauses(model);
         return (falseClauses == null) ? new Satisfiable(model) : new Erraneous(model,falseClauses,clauses.symboltable);
-
     }
 }
