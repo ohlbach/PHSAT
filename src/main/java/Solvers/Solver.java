@@ -119,6 +119,8 @@ public abstract class Solver extends Processor {
     /** all solvers can report intermediate results to the centralProcess, and observe new results there.*/
     protected CentralProcessor centralProcessor;
 
+    protected boolean debug = true;
+
     /** constructs a solver as an instance of the Processor class.
      *
      * @param solverParameters    the control parameters for the solver

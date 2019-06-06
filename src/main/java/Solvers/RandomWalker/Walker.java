@@ -36,7 +36,7 @@ public abstract class Walker extends Solver {
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"name", "seed", "flips", "jumps"}) {
+        for(String key : new String[]{"name", "seed", "flips", "jumps", "type", "solver"}) {
             keys.add(key);}}
 
     /** parses a HashMap with key-value pairs<br>
@@ -107,11 +107,13 @@ public abstract class Walker extends Solver {
     public Walker(HashMap<String,Object> applicationParameters, CentralProcessor centralProcessor) {
         super(applicationParameters,centralProcessor);
         this.centralProcessor = centralProcessor;
+        implicationDAG = centralProcessor.implicationDAG;
         initializeWalker(centralProcessor.predicates,applicationParameters,centralProcessor.model,centralProcessor.clauses.clone());}
 
     public Walker(int predicates, HashMap<String,Object> applicationParameters, Model model, ClauseList clauses) {
         super();
         this.applicationParameters = applicationParameters;
+        implicationDAG = centralProcessor.implicationDAG;
         initializeWalker(predicates, applicationParameters, model, clauses);}
 
 
@@ -161,6 +163,7 @@ public abstract class Walker extends Solver {
             centralProcessor.globalParameters.log(getClass().getName() + " " + id + " starting at problem " + problemId);}
         long start = System.currentTimeMillis();
         Result result = null;
+        if(debug) {System.out.println(clauses.toString());}
         try{
             Thread thread = Thread.currentThread();
             initializeModel();
@@ -171,11 +174,20 @@ public abstract class Walker extends Solver {
                 return result;}
             while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
                 integrateNewFacts();
-                flip(selectFlipPredicate());
+                int predicate = selectFlipPredicate();
+                if(debug) {System.out.println("Flipping " + predicate);}
+                flip(predicate);
                 if(falseClauses.isEmpty()) {
                     result = Result.makeResult(transferModel(),basicClauseList);
                     reportFinished(result,flipCounter,thread);
-                    return result;}}
+                    return result;}
+                else {
+                    if(debug) {
+                        System.out.printf("Current Model: ");
+                        System.out.println(rwModel.toString());
+                        System.out.println("False Clauses:");
+                        for(Clause clause : falseClauses) {System.out.println(clause.toString());}}}
+            }
             if(flipCounter >= maxFlips) {
                 reportAbortion();
                 result = new Aborted("Maximum number of flips: " + maxFlips + " reached.");}}
@@ -300,8 +312,8 @@ public abstract class Walker extends Solver {
         StringBuilder st = new StringBuilder();
         st.append("Solver ").append(getClass().getName()).append(" ").append(id).append( " on Problem ").append(problemId).append("\n");
         st.append("Parameters:\n");
-        st.append("  seed:   ").append(applicationParameters.get("seed")).append("\n");
-        st.append("  flips:  ").append(Integer.toString(flipCounter)).append(" of ").append(Integer.toString(maxFlips)).append("\n");
+        st.append("  seed:           ").append(applicationParameters.get("seed")).append("\n");
+        st.append("  flips:          ").append(Integer.toString(flipCounter)).append(" of ").append(Integer.toString(maxFlips)).append("\n");
         st.append("  jump frequency: ").append(Integer.toString(jumpFrequency)).append("\n\n");
         st.append("Current model: ").append(rwModel.toString()).append("\n");
         st.append("False Clauses:\n");
@@ -311,6 +323,8 @@ public abstract class Walker extends Solver {
             if(flipScores[pred] != 0) {
             st.append(Integer.toString(pred)).append(":").append(Integer.toString(flipScores[pred])).append("; ");}}
         st.append("\n");
+        st.append("Queue:\n");
+        st.append(predicateQueue.toString()).append("\n");
         return st.toString();
 
     }

@@ -1,0 +1,11 @@
+problem
+    type = random
+    predicates = 10
+    cpRatio = 4
+    length = 3
+    precise = true
+    seed = 6
+
+solver
+   type = walker isolated
+   flips = 1000

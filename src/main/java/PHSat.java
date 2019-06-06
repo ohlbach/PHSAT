@@ -29,14 +29,14 @@ public class PHSat {
      * - help (all help-texts are printed to System.out)<br>
      * - help name (the help-text for a problem generator or a problem solver with this name is printed) <br>
      * - the name of a .cnf file (it is processed with default values)<br>
-     * - the name of a parameter specification file (it contains the problem- and solver specifications.
+     * - the name of a parameter specification file (it contains the problem- and solver specifications).
      *
      * @param args for the commands
      */
     public static void  main(String[] args) {
         long start = System.currentTimeMillis();
         //args = new String[]{"help","global"};
-        args = new String[]{Utilities.resourceFile("Purity.cnf")};
+        //args = new String[]{Utilities.resourceFile("Purity.cnf")};
         KVParser kvParser = new KVParser("global", "problem", "solver");
         boolean goon = false;
         if(args.length > 0) {

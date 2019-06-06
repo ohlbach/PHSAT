@@ -73,6 +73,7 @@ public class ProblemSupervisor {
             HashMap<String,Object> solverParameter = solverParameters.get(i);
             solvers[i] = Solver.construct((String)solverParameter.get("type"),solverParameter,centralProcessor);}
         threads = new Thread[numberOfSolvers];
+        results = new Result[numberOfSolvers];
         for(int i = 0; i < numberOfSolvers; ++i) {
             int j = i;
             threads[i] = new Thread(() -> {results[j] = solvers[j].solve();});}

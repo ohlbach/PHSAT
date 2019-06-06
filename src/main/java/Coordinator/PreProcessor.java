@@ -88,7 +88,7 @@ public class PreProcessor extends Processor {
                 clauses.sort(Comparator.comparingInt(c->c.length));
                 for(int[] basicClause: clauses) {
                     result = addDisjunction(basicClause);
-                    if(monitoring) System.out.println(toString());
+                    if(monitoring) {System.out.println(toString());}
                     if(result != null) {return result;}}}
             clauses = basicClauseList.disjoints;
             if(clauses != null) {
