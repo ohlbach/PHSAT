@@ -45,7 +45,7 @@ public class CentralProcessor extends Processor {
      */
     private synchronized Task getTask() {
         while(taskQueue.isEmpty()) {
-            try {wait();} catch (InterruptedException e) {continue;}}
+            try {wait();} catch (InterruptedException e) {return null;}}
         return taskQueue.poll();}
 
 }

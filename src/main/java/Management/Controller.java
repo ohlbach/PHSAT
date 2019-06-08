@@ -203,7 +203,7 @@ public class Controller {
      * @param statistics with entries: statistics of [problem,preprocessor,central processor, solvers ...]
      */
      private void printIndividualTextStatistics(PrintStream out, ArrayList<Statistic[]> statistics) {
-         out.println("\n\nIndividual Problem Statisics");
+         out.println("\n\nIndividual Problem Statistics");
          out.println("****************************");
          int indent = 3;
          for(int i = 0; i < problemSupervisors.size(); ++i) {

@@ -7,6 +7,8 @@ import com.sun.org.glassfish.gmbal.Description;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Objects;
 
 /** This is the superclass of all Statistics classes.
  * It provides some top-level parameters and some static methods for accumulating and printing statistics.
@@ -192,8 +194,8 @@ public class Statistic {
      * @return           the formatted string
      */
     public static String statisticToString(ArrayList<Object[]> statistics) {
-        Object[] ids = statistics.get(0);
-        int size = statistics.get(1).length;
+        Object[] ids = statistics.get(1);
+        int size = statistics.get(0).length;
         if(size == 2) {return statisticToString((String)ids[0],statistics);}
         StringBuilder st = new StringBuilder();
         int[] formats = new int[size];

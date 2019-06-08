@@ -1,4 +1,4 @@
 global
- parallel = 0
+ parallel = 5
  //monitor separated
  logging

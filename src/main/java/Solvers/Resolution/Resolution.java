@@ -22,12 +22,12 @@ public class Resolution extends Solver {
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"name", "seed", "sos", "limit"}) {
+        for(String key : new String[]{"name", "seed", "strategy", "percentage", "limit", "type", "solver"}) {
             keys.add(key);}}
 
     /** parses a HashMap with key-value pairs:<br>
      *
-     * @param parameters  the parameters with the keys "seed", "sos", "limit"
+     * @param parameters  the parameters with the keys "seed", "strategy", "percentage", "limit"
      * @param errors      for error messages
      * @param warnings    for warnings
      * @return            a list of HashMaps with keys "seed" and "sos", "limit".
@@ -38,37 +38,41 @@ public class Resolution extends Solver {
         ArrayList<HashMap<String,Object>> list = new ArrayList<>();
         String seeds = parameters.get("seed");
         if(seeds == null) {seeds = "0";}
-        String soss = parameters.get("sos");
-        if(soss == null) {soss = "50";}
+        String strategiess = parameters.get("strategy");
+        if(strategiess == null) {strategiess = "INPUT";}
+        String percentages = parameters.get("percentage");
+        if(percentages == null) {percentages = "50";}
         String limits = parameters.get("limit");
         if(limits == null) {limits = Integer.toString(Integer.MAX_VALUE);}
-        String place = "Resolution: ";
-        ArrayList seed = Utilities.parseIntRange(place+"seed: ",seeds,errors);
-        ArrayList sos = Utilities.parseIntRange(place+"sos: ",soss,errors);
+        String place           = "Resolution: ";
+        ArrayList seed         = Utilities.parseIntRange(place+"seed: ",seeds,errors);
+        ArrayList percentage   = Utilities.parseIntRange(place+"percentage: ",percentages,errors);
         ArrayList limit = Utilities.parseIntRange(place+"limit: ",limits,errors);
-        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,sos,limit);
+        ArrayList strategies   = Strategy.parseStrategies(strategiess,place, warnings,errors);
+        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,strategies,percentage,limit);
         int counter = 0;
         for(ArrayList<Object> p : pars ) {
-            Integer sospar = (Integer)p.get(1);
-            if(sospar < 0 || sospar > 100) {errors.append("Resolution: sos must be a percentage between 0 and 100, not"+sospar);}
-            Integer limitpar = (Integer)p.get(2);
+            Integer perc = (Integer)p.get(2);
+            if(perc < 0 || perc > 100) {errors.append("Resolution: sos must be a percentage between 0 and 100, not"+perc);}
+            Integer limitpar = (Integer)p.get(3);
             if(limitpar < 0) {errors.append("Resolution: limit must be positive: " + limitpar);}
             HashMap<String,Object> map = new HashMap<>();
-            map.put("seed",p.get(0));
-            map.put("sos",sospar);
-            map.put("limit",limitpar);
+            map.put("seed",     p.get(0));
+            map.put("strategy", p.get(1));
+            map.put("percentage",perc);
+            map.put("limit",    limitpar);
             map.put("name","R" + ++counter);
             list.add(map);}
         return list;}
 
     public static String help() {
-        return "Resolution (Set of Support): parameters:\n" +
-                "seed:   for the random number generator              (default: 0)\n" +
-                "sos:    percentage of clauses in the set of support. (default 50)\n" +
-                "limit:  maximal number of resolvents = limit*clauses (default unlimited) ";}
+        return "Resolution parameters:\n" +  Strategy.help() +
+                "  seed:       for the random number generator              (default: 0)\n" +
+                "  percentage: percentage of clauses in the set of support. (default 50)\n" +
+                "  limit:      maximal number of resolvents = limit*clauses (default unlimited) ";}
 
     private Random random;
-    private boolean strategySOS = true;
+    private Strategy strategy;
 
     /** constructs a new solver of type RandomWalker.
      * The constructor is called serially. Therefore there are no race conditions.
@@ -88,16 +92,14 @@ public class Resolution extends Solver {
         statistics.addStatisticsObservers();
     }
 
+    int sos; int normal;
+
     protected void initializeData() {
+        strategy = (Strategy)applicationParameters.get("strategy");
         int seed = (Integer)applicationParameters.get("seed");
         random = new Random(seed);
         model = centralProcessor.model.clone();
-        implicationDAG = centralProcessor.implicationDAG.clone();
-        strategySOS = seed < 100;
-        if(strategySOS) copyClausesSOS(); else copyClausesInput();}
-
-    private final int normal = 0;
-    private final int sos = 1;
+        implicationDAG = centralProcessor.implicationDAG.clone();}
 
     private void copyClausesSOS() {
         ClauseList centralClauses = centralProcessor.clauses;
@@ -128,7 +130,7 @@ public class Resolution extends Solver {
         CLiteral parentLiteral2 = null;
         int resolventCounter = -1;
         Result result = null;
-        int clauseGroup = strategySOS ? sos : normal;
+        int clauseGroup = 0; //strategySOS ? sos : normal;
         Thread thread = Thread.currentThread();
         try{
             while(!clauses.isEmpty(clauseGroup) && !thread.isInterrupted() ) {
@@ -145,7 +147,7 @@ public class Resolution extends Solver {
                     result = processTasks();
                     if(result != null) {return result;}}
                 if(++resolventCounter == limit) {
-                    reportAbortion(limit);
+                    //reportAbortion(limit);
                     return null;}}
             result = Result.makeResult(model,basicClauseList);
             return result;}
@@ -207,14 +209,7 @@ public class Resolution extends Solver {
         if(monitoring) {monitor.print(id,"Resolution: " + resolvent.toString());}
         ((ResolutionStatistics)statistics).resolvents++;}
 
-    /** reports that the resolution has been aborted
-     *
-     * @param limit the maximum number of resolvents
-     */
-    private void reportAbortion(int limit) {
-        globalParameters.log("Resolution " + id + " for problem " + problemId +" stopped after " + limit + " resolvents");
-        supervisor.statistics.incAborted();
-        supervisor.aborted(id);}
+
 
     /** reports that the resolution has been finished
      *

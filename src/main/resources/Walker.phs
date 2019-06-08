@@ -1,11 +1,13 @@
 problem
     type = random
-    predicates = 10
+    predicates = 100
     cpRatio = 4
     length = 3
     precise = true
-    seed = 6
+    seed = 1
 
 solver
    type = walker isolated
-   flips = 1000
+   flips = 50000
+   debug = 0
+   seed = 1

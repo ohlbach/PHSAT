@@ -36,7 +36,7 @@ public abstract class Walker extends Solver {
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"name", "seed", "flips", "jumps", "type", "solver"}) {
+        for(String key : new String[]{"name", "seed", "flips", "jumps", "debug", "type", "solver"}) {
             keys.add(key);}}
 
     /** parses a HashMap with key-value pairs<br>
@@ -60,17 +60,21 @@ public abstract class Walker extends Solver {
         if(implications == null) {implications = "false";}
         String isolated = parameters.get("isolated");
         if(isolated == null) {isolated = "true";}
+        String debugs = parameters.get("debug");
+        if(debugs == null) {debugs = "0";}
         String place = "Random Walker: ";
         ArrayList seed = Utilities.parseIntRange(place+"seed: ",seeds,errors);
         ArrayList flip = Utilities.parseIntRange(place+"flips: ",flips,errors);
         ArrayList jump = Utilities.parseIntRange(place+"jumps: ",jumps,errors);
-        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,flip,jump);
+        ArrayList debug = Utilities.parseIntRange(place+"debug: ",debugs,errors);
+        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,flip,jump,debug);
         int counter = 0;
         for(ArrayList<Object> p : pars ) {
             HashMap<String,Object> map = new HashMap<>();
             map.put("seed",p.get(0));
             map.put("flips",p.get(1));
             map.put("jumps",p.get(2));
+            map.put("debug",p.get(3));
             map.put("name","W" + ++counter);
             list.add(map);}
         return list;}
@@ -79,7 +83,8 @@ public abstract class Walker extends Solver {
         return "Random Walker: parameters:\n" +
                 "seed:   for the random number generator      (default: 0)\n" +
                 "flips:  for restricting the number of flips  (default: Max_Integer).\n" +
-                "jumps:  frequency of random jumps            (default: 10)\n";}
+                "jumps:  frequency of random jumps            (default: 10)\n"+
+                "debug:  0: none, 1: print flips, 2: print false clauses  (default: 0)\n";}
 
 
     /** the number of predicates in the problem */
@@ -122,6 +127,9 @@ public abstract class Walker extends Solver {
         maxFlips      = (Integer)applicationParameters.get("flips");
         jumpFrequency = (Integer)applicationParameters.get("jumps");
         random        = new Random((Integer)applicationParameters.get("seed"));
+        int debug     = (Integer)applicationParameters.get("debug");
+        if(debug >= 1) {debug1 = true;}
+        if(debug >= 2) {debug2 = true;}
         rwModel       = new RWModel(model);
         this.clauses  = clauses;
         statistics    = new WalkerStatistics(this);
@@ -160,41 +168,41 @@ public abstract class Walker extends Solver {
      */
     public Result solve() {
         if(centralProcessor != null) {
-            centralProcessor.globalParameters.log(getClass().getName() + " " + id + " starting at problem " + problemId);}
+            centralProcessor.globalParameters.log(getClass().getSimpleName() + " " + id + " starting at problem " + problemId);}
         long start = System.currentTimeMillis();
         Result result = null;
-        if(debug) {System.out.println(clauses.toString());}
+        String message = null;
+        if(debug1) {System.out.println(clauses.toString());}
         try{
             Thread thread = Thread.currentThread();
             initializeModel();
             initializeScores();
             if(falseClauses.isEmpty()) {
                 result = Result.makeResult(transferModel(),basicClauseList);
-                reportFinished(result,0,thread);
+                message = "Model " + rwModel.toString() + "\ninitially proposed.";
                 return result;}
             while (++flipCounter <= maxFlips && !thread.isInterrupted() && !falseClauses.isEmpty()) {
                 integrateNewFacts();
                 int predicate = selectFlipPredicate();
-                if(debug) {System.out.println("Flipping " + predicate);}
+                if(debug1) {System.out.println(id + ":  " + flipCounter +  ". flip of predicate " + predicate);}
                 flip(predicate);
                 if(falseClauses.isEmpty()) {
                     result = Result.makeResult(transferModel(),basicClauseList);
-                    reportFinished(result,flipCounter,thread);
-                    return result;}
+                    message = "Model " + rwModel.toString() + "\nproposed after " + flipCounter  + " flips.";
+                    break;}
                 else {
-                    if(debug) {
+                    if(debug2) {
                         System.out.printf("Current Model: ");
                         System.out.println(rwModel.toString());
                         System.out.println("False Clauses:");
                         for(Clause clause : falseClauses) {System.out.println(clause.toString());}}}
             }
             if(flipCounter >= maxFlips) {
-                reportAbortion();
-                result = new Aborted("Maximum number of flips: " + maxFlips + " reached.");}}
+                message = "Maximum number of flips " + maxFlips + " reached.";
+                result = new Aborted(message);}}
         finally{
-            statistics.elapsedTime = System.currentTimeMillis()-start;
-            if(centralProcessor != null) {
-                centralProcessor.globalParameters.log(getClass().getName() + " " + id + " finished problem " + problemId);}}
+            supervisor.finished(result, id, problemId, message);
+            statistics.elapsedTime = System.currentTimeMillis()-start;}
         return result;}
 
 
@@ -282,30 +290,6 @@ public abstract class Walker extends Solver {
         return predicate;}
 
 
-    /** reports that the resolution has been finished
-     *
-     * @param result     the result of the random walker
-     * @param flips      the number of flips.
-     * @param thread     which executed the solver
-     */
-    public void reportFinished(Result result, int flips, Thread thread) {
-        if(thread.isInterrupted()) {
-            if(globalParameters != null) {
-                globalParameters.log(getClass().getName() + " " + id + " for problem " + problemId +" interrupted after " + flips + " flips.\n");}}
-        else {
-            if(globalParameters != null) {
-                globalParameters.log(getClass().getName() + " " + id + " for problem " + problemId +" finished after " + flips + " flips.\n" +
-                        "Result: " + result.toString());}
-            if(result instanceof Erraneous && supervisor != null) {supervisor.statistics.incErraneous();}}}
-
-    /** reports that the search has been aborted
-     */
-    private void reportAbortion() {
-        if(globalParameters != null) {
-            globalParameters.log(getClass().getName()+ " " + id + " for problem " + problemId +" stopped after " + maxFlips + " flips");}
-        if(supervisor != null) {
-            supervisor.statistics.incAborted();
-            supervisor.aborted(id);}}
 
 
     public String toString() {

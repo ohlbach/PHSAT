@@ -4,13 +4,17 @@ import Coordinator.CentralProcessor;
 import Coordinator.PreProcessor;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Results.Result;
+import Datastructures.Statistics.DataStatistics;
 import Datastructures.Statistics.ProblemStatistics;
 import Datastructures.Statistics.Statistic;
+import Datastructures.Results.*;
 import Generators.Generator;
 import Solvers.Solver;
 
 import java.io.PrintStream;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 
 /**
@@ -26,10 +30,14 @@ public class ProblemSupervisor {
     public ArrayList<HashMap<String,Object>> solverParameters;
     PreProcessor preProcessor;
     CentralProcessor centralProcessor;
+    Thread centralThread;
     Result result;
     Thread[] threads;
     Solver[] solvers;
     Result[] results;
+    int numberOfSolvers;
+    int activeSolvers;
+
     public ProblemStatistics statistics = null;
 
     public ProblemSupervisor(int problemNumber,GlobalParameters globalParameters,
@@ -66,7 +74,8 @@ public class ProblemSupervisor {
 
     public void solveProblem() {
         centralProcessor = new CentralProcessor(preProcessor);
-        int numberOfSolvers = solverParameters.size();
+        numberOfSolvers = solverParameters.size();
+        activeSolvers = numberOfSolvers;
         solvers = new Solver[numberOfSolvers];
         statistics.solvers = numberOfSolvers;
         for(int i = 0; i < numberOfSolvers; ++i) {
@@ -77,22 +86,51 @@ public class ProblemSupervisor {
         for(int i = 0; i < numberOfSolvers; ++i) {
             int j = i;
             threads[i] = new Thread(() -> {results[j] = solvers[j].solve();});}
-        Thread centralThread = new Thread(()->centralProcessor.processTasks());
+        centralThread = new Thread(()->centralProcessor.processTasks());
         centralThread.start();
         for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
-        try {centralThread.join();} catch (InterruptedException e) {}
-        for(int i = 0; i < numberOfSolvers; ++i) {threads[i].interrupt();}
+        try {centralThread.join();
+            for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
+        catch (InterruptedException e) {}
         globalParameters.log("Processors finished for problem " + problemId);
         }
 
-        public synchronized void aborted(String  solverId) {
-            globalParameters.log("Solver " + solverId + " gave up on problem " + problemId);
-            ++statistics.aborted;
-    }
+    /** This method is called by the solvers to indicate that they have done their job.
+     * If the solver succeeded (satisfiable or unsatisfiable) then the centralProcessor and all other solvers are interrupted. <br>
+     * If the solver gave up, or caused an error, then the activeSolver counter is decreased. <br>
+     * As soon as it reached zero the centralProcessor is interrupted. <br>
+     * Some messages are logged.
+     *
+     * @param result    the result of the solver's work
+     * @param solverId  the solver who called the method
+     * @param problemId the problem the solver tackled
+     * @param message   an extra message to explain the result.
+     */
+    public synchronized void finished(Result result, String solverId, String problemId, String message) {
+        this.result = result;
+        globalParameters.log("Solver " + solverId + " finished  work at problem " + problemId);
+        if(message != null && !message.isEmpty()) {globalParameters.log(message);}
+        --activeSolvers;
+        if(result instanceof Satisfiable || result instanceof Unsatisfiable) {
+            centralThread.interrupt();
+            for(int i = 0; i < numberOfSolvers; ++i) {threads[i].interrupt();}
+            return;}
+        if(result instanceof Aborted)    {statistics.incAborted();}
+        if(result instanceof Erraneous ) {statistics.incErraneous();}
+        if(activeSolvers == 0) {centralThread.interrupt();}}
 
+
+    /** The method collects the individual solver statistics into an array of Statistic-objects:
+     * statistics[0]    = supervisor statistics <br>
+     * statistics[1]    = preprocessor statistics <br>
+     * statistics[2]    = central processor statistics <br>
+     * statistics[3...] = solver statistics
+     *
+     * @return the array of Statistics objects.
+     */
     public Statistic[] collectStatistics() {
         int solvLength = 0;
-        if(solvers != null) {solvLength = solvLength;}
+        if(solvers != null) {solvLength = solvers.length;}
         Statistic[] statistics = new Statistic[(centralProcessor == null ? 2 : 3)+solvLength];
         statistics[0] = this.statistics;
         statistics[1] = preProcessor.statistics;
