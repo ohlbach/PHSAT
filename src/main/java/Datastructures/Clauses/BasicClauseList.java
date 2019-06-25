@@ -4,7 +4,6 @@ package Datastructures.Clauses;
 import Datastructures.Statistics.ProblemStatistics;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
-import Utilities.Utilities;
 
 import java.util.ArrayList;
 

@@ -28,7 +28,7 @@ public class BucketSortedTest {
     @Test
     public void add() throws Exception {
         System.out.println("add");
-        BucketSorted bck = new BucketSorted(getSize,getPosition,setPosition);
+        Utilities.BucketSortedList bck = new Utilities.BucketSortedList(getSize,getPosition,setPosition);
         Item i1 = new Item(3);
         bck.add(i1);
         Item i2 = new Item(3);
@@ -43,7 +43,7 @@ public class BucketSortedTest {
     @Test
     public void remove() throws Exception {
         System.out.println("remove");
-        BucketSorted bck = new BucketSorted(getSize,getPosition,setPosition);
+        Utilities.BucketSortedList bck = new Utilities.BucketSortedList(getSize,getPosition,setPosition);
         Item i1 = new Item(3);
         bck.add(i1);
         Item i2 = new Item(3);
@@ -65,7 +65,7 @@ public class BucketSortedTest {
     @Test
     public void getRandom() throws Exception {
         System.out.println("getRandom");
-        BucketSorted<Item> bck = new BucketSorted(getSize,getPosition,setPosition);
+        Utilities.BucketSortedList<Item> bck = new Utilities.BucketSortedList(getSize,getPosition,setPosition);
         Random rnd = new Random(2);
         assertNull(bck.getRandom(rnd));
         Item i1 = new Item(3);

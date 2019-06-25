@@ -1,78 +1,33 @@
 package Datastructures.Literals;
 
-import Datastructures.Clauses.Clause;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.PriorityQueue;
+import java.util.*;
 import java.util.function.Consumer;
 
-/**
+/** This is the abstract superclass for mapping literals to their occurrences in the clauses.
+ * Subclasses may differ in the representation of these lists, for example sorted according to the size of the clauses.
  * Created by Ohlbach on 25.08.2018.
- *
- * This index maps literals (integers) to their CLiterals (clause occurrences)
  */
-public class LiteralIndex {
-    private int predicates;   // number of predicates
-    private PriorityQueue<CLiteral>[] posOccurrences;  // maps each positive predicate to the list of occurrences
-    private PriorityQueue<CLiteral>[] negOccurrences;  // maps each negative predicate to the list of occurrences
-    private static PriorityQueue<CLiteral> emptyList = new PriorityQueue<>();
-    public ArrayList<Consumer<Integer>> purityObservers = new ArrayList<>();
-    private Comparator<CLiteral> comparator = Comparator.comparingInt(clit->{
-        Clause clause = clit.clause;
-        return clause == null ? 0 : clause.size();});
+public abstract class LiteralIndex<Clause> {
+    public int predicates;   // number of predicates
+    protected ArrayList<Consumer<Integer>> purityObservers = null;
+    public int timestamp = 0;
 
-    /** constructs an index for a given number of predicates
-     *
-     * @param predicates the number of predicates
-     */
+
     public LiteralIndex(int predicates) {
         assert predicates > 0;
-        this.predicates = predicates;
-        posOccurrences = new PriorityQueue[predicates+1];
-        negOccurrences = new PriorityQueue[predicates+1];}
-
-    /** constructs an index for a given number of predicates
-     *
-     * @param predicates the number of predicates
-     * @param comparator for comparing two CLiterals.
-     */
-    public LiteralIndex(int predicates, Comparator<CLiteral> comparator) {
-        assert predicates > 0;
-        this.predicates = predicates;
-        this.comparator = comparator;
-        posOccurrences = new PriorityQueue[predicates+1];
-        negOccurrences = new PriorityQueue[predicates+1];}
-
-
+        this.predicates = predicates;}
 
     /** adds a literal to the index
      *
      * @param cliteral the literal to be added
      */
-    public void addLiteral(CLiteral cliteral) {
-        int literal = cliteral.literal;
-        int predicate = Math.abs(literal);
-        PriorityQueue<CLiteral>[] list = literal > 0 ? posOccurrences : negOccurrences;
-        PriorityQueue<CLiteral> lits = list[predicate];
-        if(lits == null) {
-            lits = new PriorityQueue<CLiteral>(comparator);
-            list[predicate] = lits;}
-        lits.add(cliteral);}
+    public abstract void addLiteral(CLiteral<Clause> cliteral);
 
-    /** removes the literal from the index
+    /** removes the literal from the index (in constant time)
      *
      * @param cliteral the literal to be removed.
      */
-    public void removeLiteral(CLiteral cliteral) {
-        int literal = cliteral.literal;
-        PriorityQueue<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
-        if(list == null) {return;}
-        list.remove(cliteral);
-        if(list.isEmpty()) {
-            if(literal > 0) {posOccurrences[literal] = null;}
-            else            {negOccurrences[-literal] = null;}
-            for(Consumer<Integer> observer : purityObservers) {observer.accept(-literal);}}}
+    public abstract void removeLiteral(CLiteral<Clause> cliteral);
 
 
     /** returns the CLiterals with the given literal (integer)
@@ -80,19 +35,15 @@ public class LiteralIndex {
      * @param literal the literal (integer)
      * @return the list of occurrences (CLiterals)
      */
-    public PriorityQueue<CLiteral> getLiterals(int literal) {
-        assert literal != 0 && (Math.abs(literal) <= predicates);
-        PriorityQueue<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
-        return list == null ? emptyList : list;}
-
+    public abstract AbstractCollection<CLiteral<Clause>> getLiterals(int literal);
     /** returns the number of cLiterals indexed by this literal
      *
      * @param literal a literal
      * @return the number of cLiterals indexed by this literal
      */
-    public int size(int literal) {
-        PriorityQueue<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
-        return list == null ? 0 : list.size();}
+    public abstract int size(int literal);
+
+    public abstract boolean isEmpty(int literal);
 
     /** checks if the literal is pure, i.e. there are no complementary literals.
      *  If the literal is not at all in the index, it is not considered pure.
@@ -101,11 +52,7 @@ public class LiteralIndex {
      * @return true if the literal is pure, i.e. there are no complementary literals.
      */
     public boolean isPure(int literal) {
-        int predicate = Math.abs(literal);
-        if(posOccurrences[predicate] == null && negOccurrences[predicate] == null) {return false;}
-        PriorityQueue<CLiteral> occurrence = (literal > 0) ? negOccurrences[literal] : posOccurrences[-literal];
-        return occurrence == null || occurrence.isEmpty();}
-
+        return isEmpty(-literal);}
 
     /** returns all pure literals
      *
@@ -118,6 +65,40 @@ public class LiteralIndex {
             else {if(isPure(-predicate)) {pure.add(-predicate);}}}
         return pure;}
 
+    /** adds a purity observer
+     *
+     * @param observer a function to be called when a literal became pure
+     */
+    public void purityObserverAdd(Consumer<Integer> observer) {
+        if(purityObservers == null) {purityObservers = new ArrayList<>();}
+        purityObservers.add(observer);}
+
+    /** removes a purity observer
+     *
+     * @param observer a previously added purity observer
+     */
+    public void purityObserverRemove(Consumer<Integer> observer) {
+        purityObservers.remove(observer);}
+
+    /** removes all purity observer
+     */
+    public void purityObserverClear() {
+        purityObservers.clear();}
+
+    protected void signalPurity(int literal) {
+        if(purityObservers != null) {
+            for(Consumer<Integer> observer : purityObservers) {observer.accept(literal);}}}
+
+
+    /** returns an iterator over the list of occurrences of the given literal.
+     *
+     * @param literal a literal
+     * @return an iterator over all CLiterals (occurrences of the literal in the clauses).
+     */
+    public abstract Iterator<CLiteral<Clause>> iterator(int literal);
+
+
+
     /** comprises the index into a string
      *
      * @return the entire index as string.
@@ -125,16 +106,20 @@ public class LiteralIndex {
     public String toString() {
         StringBuilder st = new StringBuilder();
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-            PriorityQueue<CLiteral> pos = posOccurrences[predicate];
-            PriorityQueue<CLiteral> neg = negOccurrences[predicate];
             StringBuilder posString = null;
             StringBuilder negString = null;
-            if(pos != null) {
+            Iterator<CLiteral<Clause>> it = iterator(predicate);
+            if(!isEmpty(predicate)) {
                 posString = new StringBuilder();
-                for(CLiteral lit : pos) {posString.append(lit.toFullString()).append(",");}}
-            if(neg != null) {
+                while(it.hasNext()) {
+                    CLiteral<Clause> lit = it.next();
+                    posString.append(lit.toString()).append("@"+lit.clausePosition).append(",");}}
+            if(!isEmpty(-predicate)) {
                 negString = new StringBuilder();
-                for(CLiteral lit : neg) {negString.append(lit.toFullString()).append(",");}}
+                it = iterator(-predicate);
+                while(it.hasNext()) {
+                    CLiteral<Clause> lit = it.next();
+                    posString.append(lit.toString()).append("@"+lit.clausePosition).append(",");}}
             if(posString != null) {
                 st.append(" ").append(Integer.toString(predicate)).append(": ").append(posString).append("\n");}
             if(negString != null)

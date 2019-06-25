@@ -161,7 +161,7 @@ public abstract class Solver extends Processor {
     /** This observer is called when a literal is removed from a clause.
      *  It inserts a task locally and a LiteralRemoval task in the centralProcessor's task queue.
      */
-    protected Consumer<CLiteral> literalRemovalObserverBoth =
+    protected Consumer<CLiteral<Clause>> literalRemovalObserverBoth =
             cLiteral    -> {
                 Clause clause = cLiteral.clause;
                 addTask(makeShortenedClauseTask(clause,this));
@@ -193,6 +193,8 @@ public abstract class Solver extends Processor {
         centralProcessor.implicationDAG.removeImplicationObserver(implicationObserver);
         centralProcessor.implicationDAG.removeEquivalenceObserver(equivalenceObserver);
     }
+
+    public abstract Task nextTask();
 
 
     /** The key method, which has to be implemented by the solvers.

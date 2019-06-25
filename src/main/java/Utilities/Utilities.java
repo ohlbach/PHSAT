@@ -443,7 +443,7 @@ public class Utilities {
      *
      * @param array an int-array
      * @param item an integer
-     * @return the position of the item in the array, or -1
+     * @return the clausePosition of the item in the array, or -1
      */
     public static int contains(int[] array, int item) {
         for(int i = 0; i < array.length; ++i) {if(array[i] == item) {return i;}}
@@ -567,7 +567,7 @@ public class Utilities {
 
 
     /** This method turns a an int as bitarray into an array of ints.
-     * Each 1 in the int causes its position to be inserted into the array.
+     * Each 1 in the int causes its clausePosition to be inserted into the array.
      *
      * @param list an int as bitlist
      * @return the corresponding int-array
@@ -589,7 +589,7 @@ public class Utilities {
             mask <<= 1;}
         return result;}
 
-    /** This method takes the integer i as bitmap and applies the predicate to the position of the 1's in the bitmap.
+    /** This method takes the integer i as bitmap and applies the predicate to the clausePosition of the 1's in the bitmap.
      * As soon as the predicate returns true, it stopps
      *
      * @param i           a bitmap
@@ -606,7 +606,7 @@ public class Utilities {
             mask <<= 1;}
         return false;}
 
-    /** This method takes the long integer i as bitmap and applies the predicate to the position of the 1's in the bitmap.
+    /** This method takes the long integer i as bitmap and applies the predicate to the clausePosition of the 1's in the bitmap.
      * As soon as the predicate returns true, it stopps
      *
      * @param i           a bitmap

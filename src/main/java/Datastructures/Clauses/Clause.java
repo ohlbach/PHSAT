@@ -2,36 +2,33 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
-import com.sun.xml.internal.org.jvnet.mimepull.MIMEConfig;
+import Utilities.Positioned;
+import Utilities.Sizable;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Iterator;
 import java.util.function.Consumer;
 
 /** A clause is just a list of CLiterals.
  *
  * Created by ohlbach on 13.09.2018.
  */
-public class Clause {
+public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** for identifying the clause */
     public String id;
     /** the literals */
-    public ArrayList<CLiteral> cliterals;
+    private ArrayList<CLiteral<Clause>> cliterals;
     /** a timestamp to be used by corresponding algorithms */
     public int timestamp = 0;
     /** indicates if the clause is an input clause or not */
     public boolean input = true;
     /** indicates that the clause has been removed */
     public boolean removed = false;
-    /** for sorting clauses, for example in a priority queue */
-    public int priority = 0;
+    /** for sorting clauses, for example in a listPosition queue */
+    public int listPosition = 0;
     /** positive, negative or mixed */
     public ClauseStructure structure;
 
-    /** compares clauses according to their length */
-    public static Comparator<Clause> sizeComparator = Comparator.comparingInt(clause->clause.size());
-    /** compares clauses accoding to their priority */
-    public static Comparator<Clause> priorityComparator = Comparator.comparingInt(clause->clause.priority);
 
     /** constructs a clause
      *
@@ -40,7 +37,7 @@ public class Clause {
      */
     public Clause(String id, int size) {
         this.id = id;
-        cliterals = new ArrayList<CLiteral>(size);
+        cliterals = new ArrayList<CLiteral<Clause>>(size);
         setStructure();}
 
     /** constructs a new clause with given literals
@@ -48,7 +45,7 @@ public class Clause {
      * @param id        the id of the new clause
      * @param cLiterals the list of CLiterals
      */
-    public Clause(String id, ArrayList<CLiteral> cLiterals) {
+    public Clause(String id, ArrayList<CLiteral<Clause>> cLiterals) {
         this.id = id;
         for(int i = 0; i < cLiterals.size(); ++i) {
             cLiterals.get(i).setClause(this,i);}
@@ -58,16 +55,16 @@ public class Clause {
     /** constructs a new clause as a copy of a given one.
      *
      * @param clause   the clause to be copied
-     * @param priority the new priority
+     * @param listPosition the new listPosition
      * @param input    signals if the clause is an input clause or not
      */
-    public Clause(Clause clause, int priority, boolean input) {
+    public Clause(Clause clause, int listPosition, boolean input) {
         this.id = clause.id;
-        cliterals = new ArrayList<CLiteral>(clause.size());
+        cliterals = new ArrayList<>(clause.size());
         for(int i = 0; i < clause.size(); ++i) {
             CLiteral clit = clause.cliterals.get(i);
             cliterals.add(new CLiteral(clit.literal,this,i));}
-        this.priority = priority;
+        this.listPosition = listPosition;
         this.input = input;
         setStructure();}
 
@@ -75,12 +72,12 @@ public class Clause {
      *
      * @param id        the new id
      * @param cliterals the literals
-     * @param priority  its priority
+     * @param listPosition  its listPosition
      * @param input     signals if the clause is an input clause or not
      */
-    public Clause(String id, ArrayList<CLiteral> cliterals, int priority, boolean input) {
+    public Clause(String id, ArrayList<CLiteral<Clause>> cliterals, int listPosition, boolean input) {
         this.id = id;
-        this.priority = priority;
+        this.listPosition = listPosition;
         this.input = input;
         this.cliterals = cliterals;
         for(int i = 0; i < cliterals.size(); ++i) {
@@ -99,6 +96,14 @@ public class Clause {
         if(positive == 0) {structure = ClauseStructure.NEGATIVE;}
         else {if(negative == 0) {structure = ClauseStructure.POSITIVE;}}}
 
+    public int getPosition() {return listPosition;}
+
+    public void setPosition(int position) {listPosition = position;}
+
+    public void delete() {
+
+    }
+
 
         /** return the current number of literals
          *
@@ -112,10 +117,10 @@ public class Clause {
      */
     public boolean isEmpty() {return cliterals.isEmpty();}
 
-    /** gets the literal at the given position
+    /** gets the literal at the given clausePosition
      *
-     * @param position a literal position
-     * @return the literal at that position.
+     * @param position a literal clausePosition
+     * @return the literal at that clausePosition.
      */
     public int getLiteral(int position) {
         assert position >= 0 && position < cliterals.size();
@@ -124,7 +129,7 @@ public class Clause {
     /** checks if the literal is in the clause
      *
      * @param literal a literal
-     * @return the literal's position in the clause, or -1
+     * @return the literal's clausePosition in the clause, or -1
      */
     public int contains(int literal) {
         for(int i = 0; i < cliterals.size(); ++i) {
@@ -162,19 +167,19 @@ public class Clause {
      * @param cLiteral the literal to be removed.
      */
     public void removeLiteral(CLiteral cLiteral) {
-        removeLiteralAtPosition(cLiteral.position);
+        removeLiteralAtPosition(cLiteral.clausePosition);
         setStructure();}
 
-    /** removes a cliteral at the given position from the clause.
+    /** removes a cliteral at the given clausePosition from the clause.
      *
-     * @param position the position of the literal to be removed
+     * @param position the clausePosition of the literal to be removed
      */
     public void removeLiteralAtPosition(int position) {
         int size = cliterals.size();
         assert position >= 0 && position < size;
         for(int pos = position; pos < size-1; ++pos) {
             CLiteral nextliteral = cliterals.get(pos+1);
-            nextliteral.position = pos;
+            nextliteral.clausePosition = pos;
             cliterals.set(pos,nextliteral);}
         cliterals.remove(size-1);
         setStructure();}
@@ -199,11 +204,12 @@ public class Clause {
     public Clause clone() {
         int size = cliterals.size();
         Clause newClause = new Clause(id,size);
-        ArrayList<CLiteral> newCliterals = new ArrayList<>(size);
+        ArrayList<CLiteral<Clause>> newCliterals = new ArrayList<>(size);
         for(CLiteral cLiteral : cliterals) {
-            newCliterals.add(new CLiteral(cLiteral.literal,newClause,cLiteral.position));}
+            newCliterals.add(new CLiteral(cLiteral.literal,newClause,cLiteral.clausePosition));}
         newClause.cliterals = newCliterals;
         newClause.structure = structure;
+        newClause.listPosition = listPosition;
         return newClause;}
 
     /** applies the consumer to all cLiterals
@@ -253,4 +259,7 @@ public class Clause {
         st.append(")");
         return st.toString();}
 
+    @Override
+    public Iterator iterator() {
+        return cliterals.iterator();}
 }

@@ -324,8 +324,8 @@ public class ClauseListTest {
         Clause c2 = Utilities.makeClause("2", "-5,6");
         clauses.addClause(c1,0);
         clauses.addClause(c2,0);
-        Clause c3 = Utilities.makeClause("3", "5,6"); c3.priority = 5;
-        Clause c4 = Utilities.makeClause("4", "6,7,8"); c4.priority = 0;
+        Clause c3 = Utilities.makeClause("3", "5,6"); c3.listPosition = 5;
+        Clause c4 = Utilities.makeClause("4", "6,7,8"); c4.listPosition = 0;
         clauses.addClause(c3,1);
         clauses.addClause(c4,1);
         assertEquals("Clause group 0\n" +

@@ -6,6 +6,7 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Literals.LiteralIndex;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
@@ -33,7 +34,7 @@ import java.util.function.Consumer;
  * They are constructed by the PreProcessor and maintained by the CentralProcessor.
  * <p>
  *     An important component is the <strong>taskQueue</strong>.
- *     It keeps tasks in a priority list.<br>
+ *     It keeps tasks in a listPosition list.<br>
  *     Tasks are: <br>
  *         - processing unit clauses<br>
  *         - processing binary clauses <br>
@@ -122,7 +123,7 @@ public abstract class Processor {
     public Processor() {}
 
 
-    protected Consumer<CLiteral>            longClauseObserver = cLiteral    -> addTask(makeShortenedClauseTask(cLiteral.clause,this));
+    protected Consumer<CLiteral<Clause>>            longClauseObserver = cLiteral    -> addTask(makeShortenedClauseTask(cLiteral.clause,this));
     protected Consumer<Integer>            trueLiteralObserver = literal     -> addTask(new Task.TrueLiteral(literal,this));
     protected BiConsumer<ImplicationNode,ImplicationNode>  implicationObserver = (from,to)   -> addTask(new Task.BinaryClause(-from.literal,to.literal,this));
     protected Consumer<int[]>              equivalenceObserver = equivalence -> addTask(new Task.Equivalence(equivalence,this));
@@ -138,7 +139,7 @@ public abstract class Processor {
                 (structure == ClauseStructure.NEGATIVE) && !implicationDAG.hasPositiveClause())  {st = structure;}}
         if(st != null) {addTask(new Task.Structure(st,this));}};
 
-    protected Consumer<CLiteral> literalRemovalMonitor = cLiteral ->
+    protected Consumer<CLiteral<Clause>> literalRemovalMonitor = cLiteral ->
             monitor.print(id,"Literal " + cLiteral.literal + " removed from clause " + cLiteral.clause.id);
     protected Consumer<Clause> clauseRemovalMonitor = clause ->
             monitor.print(id,"Clause " + clause.toString() + " removed");
@@ -194,7 +195,7 @@ public abstract class Processor {
             disjointnesses.removeTrueLiteralObserver(trueLiteralMonitorDIS);}}
 
 
-    /** The taskQueue maintains the tasks according to their priority */
+    /** The taskQueue maintains the tasks according to their listPosition */
     protected PriorityQueue<Task> taskQueue =
             new PriorityQueue<Task>(10,Comparator.comparingInt(task->task.priority));
 
@@ -315,8 +316,9 @@ public abstract class Processor {
     public Result processLongerClause(Clause clause){
         if(clause.removed) {return null;}
         if(clause.size() < 3) {return null;}
-        int subsumed = Algorithms.subsume(clause,clauses,implicationDAG);
-        int resolved = Algorithms.resolve(clause,clauses,implicationDAG);
+        LiteralIndex<Clause> literalIndex = clauses.literalIndex;
+        int subsumed = Algorithms.subsume(clause,literalIndex,implicationDAG);
+        int resolved = Algorithms.resolve(clause,literalIndex,implicationDAG);
         ((DataStatistics)statistics).TSK_subsumed += subsumed;
         ((DataStatistics)statistics).TSK_resolved += resolved;
         return null;}
@@ -391,7 +393,7 @@ public abstract class Processor {
             if(clause.structure == structure) {
                 literal = clause.getLiteral(0);}
             else {
-                for(CLiteral clit : clause.cliterals) {
+                for(CLiteral<Clause> clit : clause) {
                     if((structure == ClauseStructure.POSITIVE && clit.literal > 0) ||
                             (structure == ClauseStructure.NEGATIVE && clit.literal < 0)) {literal = clit.literal; break;}}}
             model.add(literal);

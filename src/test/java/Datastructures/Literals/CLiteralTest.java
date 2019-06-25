@@ -24,7 +24,7 @@ public class CLiteralTest {
         Clause cl = new Clause("a",3);
         CLiteral lit = new CLiteral(3,cl,2);
         assertEquals(cl,lit.clause);
-        assertEquals(2,lit.position);}
+        assertEquals(2,lit.clausePosition);}
 
 
     @Test
@@ -33,7 +33,7 @@ public class CLiteralTest {
         Clause cl = new Clause("a",3);
         CLiteral lit = new CLiteral(3);
         lit.setClause(cl,2); assertEquals(cl,lit.clause);
-        assertEquals(2,lit.position);}
+        assertEquals(2,lit.clausePosition);}
 
     @Test
     public void symboltable() throws Exception {
@@ -46,7 +46,6 @@ public class CLiteralTest {
         CLiteral lit = new CLiteral(1, cl, 1);
         assertEquals("1",lit.toString());
         assertEquals("A",lit.toString(stb));
-        assertEquals("A@c1,1",lit.toFullString(stb));
 
     }
 

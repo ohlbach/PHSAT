@@ -25,23 +25,21 @@ import java.util.stream.Stream;
  */
 public class ClauseList {
     public int predicates;
-    private PriorityQueue<Clause>[] clauses;             // the list of clause groups
+    public ArrayList<Clause> clauses;                   // the list of clauses
     private final HashMap<String,Clause> id2Clause;      // maps clause ids to disjunctions
     public final LiteralIndex literalIndex;              // maps literals to CLiterals
-    public int groups = 1;                               // the total number of clause groups
     public int timestamp = 0;                            // for algorithms
     public int positiveClauses = 0;
     public int negativeClauses = 0;
     public int mixedClauses = 0;
     public ClauseStructure structure = ClauseStructure.MIXED;
-    private final ArrayList<Consumer<CLiteral>> literalRemovalObservers = new ArrayList<>();
     // they are called when literals are removed.
     private final ArrayList<BiConsumer<CLiteral,Boolean>> literalReplacementObservers = new ArrayList<>();
     // they are called when literals are replaced by representatives in a equivalence class.
     private final ArrayList<Consumer<Clause>> clauseRemovalObservers = new ArrayList<>();
     // they are called when clauses are removed.
     private final ArrayList<Consumer<ClauseStructure>> clauseStructureObservers = new ArrayList<>();
-    // they are called when the clause structure becomes POSITIVE or NEGATIVE are removed.
+    // they are called when the clause structure becomes POSITIVE or NEGATIVE.
 
 
     /** creates a clause list. The number of disjunctions should be estimated.
@@ -51,23 +49,10 @@ public class ClauseList {
      */
     public ClauseList(int size,int predicates) {
         this.predicates = predicates;
-        clauses         = new PriorityQueue[]{new PriorityQueue<Clause>(Math.max(size,1),Comparator.comparingInt(cl->cl.size()))};
+        clauses         = new ArrayList<>();
         id2Clause       = new HashMap<>();
         literalIndex    = new LiteralIndex(predicates);}
 
-    /** creates a clause list. The number of disjunctions should be estimated.
-     *
-     * @param comparator the list of comparators.
-     * @param predicates the number of predicates.
-     */
-    public ClauseList(int predicates,Comparator<Clause>... comparator ) {
-        this.predicates = predicates;
-        id2Clause       = new HashMap<>();
-        literalIndex    = new LiteralIndex(predicates);
-        groups          = comparator.length;
-        clauses = new PriorityQueue[groups];
-        for(int i = 0; i < groups; ++i) {clauses[i] =  new PriorityQueue<Clause>(comparator[i]);}
-    }
 
     /** clones the entire clause list (without observers)
      *
@@ -75,69 +60,13 @@ public class ClauseList {
      */
     public ClauseList clone() {
         ClauseList list = new ClauseList(predicates,size());
-        list.groups = groups;
-        list.clauses = new PriorityQueue[clauses.length];
-        for(int group = 0; group < groups; ++group) {
-            list.clauses[group] = new PriorityQueue<>(clauses[group].size(),clauses[group].comparator());}
-        for(int group = 0; group < groups; ++group) {
-            for(Clause clause : clauses[group]) {
-            list.addClause(clause.clone(),group);}}
+        list.clauses = new ArrayList<>(clauses.size());
+        for(Clause clause : clauses) {list.addClause(clause.clone());}
         list.positiveClauses = positiveClauses;
         list.negativeClauses = negativeClauses;
         list.mixedClauses = mixedClauses;
         list.structure = structure;
         return list;}
-
-
-    /** returns the clauses of the given group
-     *
-     * @param group a clause group
-     * @return the clauses of this group
-     */
-    public PriorityQueue<Clause> getClauses(int group) {return clauses[group];}
-
-    /** gets the first clause of the first non-empty group.
-     *
-     * @return the first clause of the first non-empty group.
-     */
-    public Clause getFirstClause() {
-        for(int group = 0; group < groups; ++group) {
-            PriorityQueue<Clause> clauseGroup = clauses[group];
-            if(clauseGroup != null && !clauseGroup.isEmpty()) {return clauseGroup.peek();}}
-        return null;}
-
-
-
-    /** adds a purity observer
-     *
-     * @param observer a purity observer
-     */
-    public synchronized void addPurityObserver(Consumer<Integer> observer) {
-        literalIndex.purityObservers.add(observer);}
-
-    /** removes a purity observer
-     *
-     * @param observer a purity observer*/
-    public synchronized void removePurityObserver(Consumer<Integer> observer) {
-        literalIndex.purityObservers.remove(observer);}
-
-    /** removes all purity observer
-     */
-    public synchronized void removePurityObservers() {
-        literalIndex.purityObservers.clear();}
-
-    /** adds an observer which is called when a literal is removed from a clause
-     *
-     * @param observer a consumer function to be applied to a CLiteral
-     */
-    public synchronized void addLiteralRemovalObserver(Consumer<CLiteral> observer) {
-        literalRemovalObservers.add(observer);}
-
-    /** removes a literal removal observer
-     *
-     * @param observer an observer*/
-    public synchronized void removeLiteralRemovalObserver(Consumer<CLiteral> observer) {
-        literalRemovalObservers.remove(observer);}
 
 
     /** adds an observer which is called after a literal is replaced by another one (a representative in an equivalence class).
@@ -192,16 +121,8 @@ public class ClauseList {
      * @param clause to be added
      */
     public void addClause(Clause clause) {
-        clauses[0].add(clause);
-        integrateClause(clause);}
-
-    /** adds a clause to the list and updates the literal index
-     *
-     * @param clause to be added
-     * @param group the clause group where the clause is to be added
-     */
-    public void addClause(Clause clause, int group) {
-        clauses[group].add(clause);
+        clause.listPosition = clauses.size();
+        clauses.add(clause);
         integrateClause(clause);}
 
 
@@ -211,7 +132,7 @@ public class ClauseList {
      */
     protected void integrateClause(Clause clause) {
         id2Clause.put(clause.id,clause);
-        for(CLiteral literal : clause.cliterals) {literalIndex.addLiteral(literal);}
+        for(CLiteral<Clause> literal : clause) {literalIndex.addLiteral(literal);}
         ClauseStructure oldStructure = structure;
         switch(clause.structure) {
             case MIXED:    ++mixedClauses; break;
@@ -237,20 +158,13 @@ public class ClauseList {
      */
     public Clause getClause(String id) {return id2Clause.get(id);}
 
-    /** returns the collection of literals with the given literal
-     *
-     * @param literal a literal
-     * @return a (possibly empty) collection of literals with the given literal.
-     */
-    public PriorityQueue<CLiteral> getLiterals(int literal) {
-        return literalIndex.getLiterals(literal);}
 
     /** removes a clause and calls the clauseRemovalObservers. The clause itself is not changed.
      *
      * @param clause the clause to be removed
      */
     public void removeClause(Clause clause) {
-        for(int group = 0; group < groups; ++group) clauses[group].remove(clause);
+        clauses.remove(clause);
         updateRemoval(clause);}
 
     /** removes the clause from the id-map and from the literal index, and calls the observers
@@ -261,7 +175,7 @@ public class ClauseList {
         ClauseStructure oldStructure = structure;
         clause.removed = true;
         id2Clause.remove(clause.id);
-        for(CLiteral cliteral : clause.cliterals) {literalIndex.removeLiteral(cliteral);}
+        for(CLiteral<Clause> cliteral : clause) {literalIndex.removeLiteral(cliteral);}
         switch(clause.structure) {
             case MIXED:    --mixedClauses; break;
             case NEGATIVE: --negativeClauses; break;
@@ -272,14 +186,6 @@ public class ClauseList {
         for(Consumer<Clause> observer : clauseRemovalObservers) {observer.accept(clause);}
     }
 
-    /** removes a clause and calls the clauseRemovalObservers. The clause itself is not changed.
-     *
-     * @param clause the clause to be removed
-     * @param group the clause group where the clause is
-     */
-    public void removeClause(Clause clause, int group) {
-        clauses[group].remove(clause);
-        updateRemoval(clause);}
 
 
 
@@ -288,7 +194,7 @@ public class ClauseList {
      *
      * @param cliteral the literal to be removed.
      */
-    public void removeLiteral(CLiteral cliteral) {
+    public void removeLiteral(CLiteral<Clause> cliteral) {
         ClauseStructure oldStructure = structure;
         Clause clause = cliteral.clause;
         int group = 0;
@@ -301,26 +207,25 @@ public class ClauseList {
             case NEGATIVE: --negativeClauses; break;
             case POSITIVE: --positiveClauses;}
         clauses[group].remove(clause);
-        for(CLiteral clit : clause.cliterals) {literalIndex.removeLiteral(clit);}
+        for(CLiteral<Clause> clit : clause) {literalIndex.removeLiteral(clit);}
         clause.removeLiteral(cliteral);
         clauses[group].add(clause);
-        for(CLiteral clit : clause.cliterals) {literalIndex.addLiteral(clit);}
+        for(CLiteral<Clause> clit : clause) {literalIndex.addLiteral(clit);}
         switch(clause.structure) {
             case MIXED:    ++mixedClauses; break;
             case NEGATIVE: ++negativeClauses; break;
             case POSITIVE: ++positiveClauses;}
         determineStructure();
         if(oldStructure == ClauseStructure.MIXED && structure != ClauseStructure.MIXED) {
-            for(Consumer<ClauseStructure> observer: clauseStructureObservers) {observer.accept(structure);}}
-        for(Consumer observer : literalRemovalObservers) {observer.accept(cliteral);}}
+            for(Consumer<ClauseStructure> observer: clauseStructureObservers) {observer.accept(structure);}}}
 
     /** removes all clauses with the given (pure) literal
      *
      * @param literal a pure literal
      */
     public void removeLiteral(int literal) {
-        for(Object cLiteral : literalIndex.getLiterals(literal).toArray()) {
-            removeClause(((CLiteral)cLiteral).clause);}}
+        for(Object cLiteral : literalIndex.getLiterals(literal)) {
+            removeClause(((CLiteral<Clause>)cLiteral).clause);}}
 
     /** All disjunctions with the literal are removed. <br>
      *  All negated literals are removed from the disjunctions. <br>
@@ -329,7 +234,7 @@ public class ClauseList {
      * @param literal a literal which is supposed to be true.
      */
     public void makeTrue(int literal) { //we must avoid concurrent modification errors!
-        for(Object cliteral : literalIndex.getLiterals(literal).toArray()) {removeClause(((CLiteral)cliteral).clause);}
+        for(Object cliteral : literalIndex.getLiterals(literal).toArray()) {removeClause(((CLiteral<Clause>)cliteral).clause);}
         for(Object cliteral : literalIndex.getLiterals(-literal).toArray()) {removeLiteral((CLiteral)cliteral);}}
 
     /** replaces a literal by its representative in an equivalence class in all clauses containing the literal and its negation.
@@ -348,7 +253,7 @@ public class ClauseList {
             literal *= i;
             representative *= i;
             for(Object clit : literalIndex.getLiterals(literal).toArray()) {
-                CLiteral cliteral = (CLiteral)clit;
+                CLiteral<Clause> cliteral = (CLiteral)clit;
                 Clause clause = cliteral.clause;
                 if(clause.contains(-representative) >= 0) {removeClause(clause); continue;}    // tautology
                 if(clause.contains(representative) >= 0)  {removeLiteral(cliteral); continue;} // double literals
@@ -417,9 +322,9 @@ public class ClauseList {
      * @param down           if true then the ImplicationDAG is followed downwards, otherwise upwards.
      * @param consumer       a function to be applied to a CLiteral
      */
-    public void apply(int literal, ImplicationDAG implicationDAG, boolean down, Consumer<CLiteral> consumer) {
+    public void apply(int literal, ImplicationDAG implicationDAG, boolean down, Consumer<CLiteral<Clause>> consumer) {
         implicationDAG.apply(literal,down, (lit -> {
-            for(CLiteral cLiteral : literalIndex.getLiterals(lit)) {consumer.accept(cLiteral);}}));}
+            for(Object cLiteral : literalIndex.getLiterals(lit)) {consumer.accept((CLiteral<Clause>)cLiteral);}}));}
 
 
     /** applies a consumer to all CLiterals which contradict the given literal (including the -literal itself)
@@ -428,9 +333,9 @@ public class ClauseList {
      * @param implicationDAG the ID_Implications
      * @param consumer       a function to be applied to a CLiteral
      */
-    public void applyContradicting(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {
+    public void applyContradicting(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral<Clause>> consumer) {
         implicationDAG.apply(-literal,false, (lit -> {
-            for(CLiteral cLiteral : literalIndex.getLiterals(lit)) {consumer.accept(cLiteral);}}));}
+            for(Object  cLiteral : literalIndex.getLiterals(lit)) {consumer.accept((CLiteral<Clause>)cLiteral);}}));}
 
 
     /** the actual number of clauses

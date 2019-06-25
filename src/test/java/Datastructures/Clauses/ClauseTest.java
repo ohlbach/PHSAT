@@ -29,7 +29,7 @@ public class ClauseTest {
         assertEquals(0,cl.addCLiteral(lit3));
         assertEquals(2,cl.size());
         assertEquals(cl,lit3.clause);
-        assertEquals(1,lit3.position);
+        assertEquals(1,lit3.clausePosition);
     }
 
     @Test
@@ -57,10 +57,10 @@ public class ClauseTest {
         assertEquals(0,cl.addCLiteral(lit1));
         CLiteral lit2 = new CLiteral(-6);
         assertEquals(0,cl.addCLiteral(lit2));
-        assertEquals(1,lit2.position);
+        assertEquals(1,lit2.clausePosition);
         cl.removeLiteral(lit1);
         assertEquals(1,cl.size());
-        assertEquals(0,lit2.position);
+        assertEquals(0,lit2.clausePosition);
         cl.removeLiteral(lit2);
         assertEquals(0,cl.size());
     }
@@ -73,10 +73,10 @@ public class ClauseTest {
         assertEquals(0,cl.addCLiteral(lit1));
         CLiteral lit2 = new CLiteral(-6);
         assertEquals(0,cl.addCLiteral(lit2));
-        assertEquals(1,lit2.position);
+        assertEquals(1,lit2.clausePosition);
         cl.removeLiteralAtPosition(0);
         assertEquals(1,cl.size());
-        assertEquals(0,lit2.position);
+        assertEquals(0,lit2.clausePosition);
         cl.removeLiteralAtPosition(0);
         assertEquals(0,cl.size());
     }

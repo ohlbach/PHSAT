@@ -187,11 +187,11 @@ public class DisjointnessClasses {
                 (mask->!Utilities.forSome(mask, j -> (mask & list[j]) != mask)))) {
             addDisjointnessClass(bitmap,literal,subnodes);}}
 
-    /** searches -literal in the nodes and returns its position
+    /** searches -literal in the nodes and returns its clausePosition
      *
      * @param literal  a literal
      * @param nodes a list of ImplicationNodes
-     * @return the position of -literal in the nodes, or -1
+     * @return the clausePosition of -literal in the nodes, or -1
      */
     private int getPosition(int literal, ArrayList<ImplicationNode> nodes) {
         for(int i = 0; i < nodes.size(); ++i) {
@@ -255,7 +255,7 @@ public class DisjointnessClasses {
      */
     private boolean addToExisting(int literal1,int literal2) {
         boolean found = false;
-        for(CLiteral cLiteral : disjointnessClasses.getLiterals(literal1)) {
+        for(CLiteral<Clause> cLiteral : disjointnessClasses.getLiterals(literal1)) {
             if(cLiteral.clause.contains(literal2) >= 0) {return true;} // both literals are already in a disjointness class
             found |= addToExisting(cLiteral.clause,literal2);}
         return found;}
@@ -269,7 +269,7 @@ public class DisjointnessClasses {
      * @return true if all literals in the class are´disjoint with the new literal.
      */
     private boolean addToExisting(Clause disjointness, int literal) {
-        for(CLiteral cLiteral : disjointness.cliterals) {
+        for(CLiteral<Clause> cLiteral : disjointness) {
             if(!implicationDAG.implies(cLiteral.literal,-literal)) {return false;}}
         disjointness.addCLiteralDirectly(new CLiteral(literal));
         subsume(disjointness);
@@ -285,9 +285,9 @@ public class DisjointnessClasses {
         int size = disjointness.size();
         int timestamp = disjointnessClasses.timestamp;
         disjointnessClasses.timestamp += size+1;
-        for(CLiteral cLiteral : disjointness.cliterals){
+        for(CLiteral<Clause> cLiteral : disjointness.cliterals){
             for(Object otherCLiteral : disjointnessClasses.getLiterals(cLiteral.literal).toArray()) {
-                Clause otherClause = ((CLiteral)otherCLiteral).clause;
+                Clause otherClause = ((CLiteral<Clause>)otherCLiteral).clause;
                 if(otherClause == disjointness || otherClause.size() > size) {continue;}
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp; continue;}
                 else {++otherClause.timestamp;}
@@ -324,7 +324,7 @@ public class DisjointnessClasses {
      */
     private Object[] literalUnion(Clause clause) {
         HashSet<Integer> literals = null;
-        for(CLiteral cLiteral : clause.cliterals) {
+        for(CLiteral<Clause> cLiteral : clause) {
             for(CLiteral cLiteral1 : disjointnessClasses.getLiterals(cLiteral.literal)) {
                 if(cLiteral1.clause != clause) {
                     for(CLiteral cLiteral2 : cLiteral1.clause.cliterals) {
@@ -357,7 +357,7 @@ public class DisjointnessClasses {
         Collection<CLiteral>  lits = disjointnessClasses.getLiterals(literal);
         if(lits != null){
             for(Object clitObject : lits.toArray()) {
-                CLiteral clit = (CLiteral)clitObject;
+                CLiteral<Clause> clit = (CLiteral)clitObject;
                 for(CLiteral clit1 : clit.clause.cliterals) {
                     if(clit != clit1) {reportTrueLiteral(-clit1.literal);}}
                 disjointnessClasses.removeClause(clit.clause);}}
@@ -375,7 +375,7 @@ public class DisjointnessClasses {
             literal *= i;
             representative *= i;
             for(Object clit : disjointnessClasses.literalIndex.getLiterals(literal).toArray()) {
-                CLiteral cliteral = (CLiteral)clit;
+                CLiteral<Clause> cliteral = (CLiteral)clit;
                 Clause clause = cliteral.clause;
                 if(clause.contains(-representative) >= 0) {
                     if(clause.size() == 2) {disjointnessClasses.removeClause(clause);}

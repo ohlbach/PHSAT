@@ -6,6 +6,7 @@ import com.sun.istack.internal.Pool;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /** This class represents propositional logic ID_Implications 'p -&gt; q' as a DAG (directed acyclic graph).
  *  For an implication 'p -&gt; q' the converse '-q -&gt; -q' is also automatically inserted.
@@ -442,6 +443,28 @@ public class ImplicationDAG {
         ArrayList<ImplicationNode> nodes = down ? node.downNodes : node.upNodes;
         if(nodes != null) {
             for(ImplicationNode nextNode : nodes) {apply(nextNode,down,consumer);}}}
+
+    /** searches through the DAG (up/down) to find the first item where the function returns nut null
+     *
+     * @param literal  a literal
+     * @param down     true for down, false for up
+     * @param function to be applied to a literal
+     * @return         the first object for which the function returns not null
+     */
+    public Object find(Integer literal, boolean down, Function<Integer,Object> function) {
+        ImplicationNode node = nodesMap.get(literal);
+        if(node != null) {return find(node,down,function);}
+        else {return function.apply(literal);}}
+
+    private Object find(ImplicationNode node, boolean down, Function<Integer,Object> function) {
+        Object result = function.apply(node.literal);
+        if(result != null) {return result;}
+        ArrayList<ImplicationNode> nodes = down ? node.downNodes : node.upNodes;
+        if(nodes != null) {
+            for(ImplicationNode nextNode : nodes) {
+                result = find(nextNode,down,function);
+                if(result != null) {return result;}}}
+        return null;}
 
     /** applies the consumer to all root literals
      *

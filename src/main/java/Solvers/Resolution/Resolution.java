@@ -2,14 +2,21 @@ package Solvers.Resolution;
 
 import Algorithms.Algorithms;
 import Coordinator.CentralProcessor;
+import Coordinator.Task;
+import Coordinator.TaskQueueThread;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
+import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Literals.LiteralIndex;
+import Datastructures.Literals.LiteralIndexSorted;
 import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
 import Management.GlobalParameters;
 import Solvers.Solver;
 import Utilities.Utilities;
+import Utilities.BucketSortedList;
+import Utilities.SingleList;
 
 import java.util.*;
 
@@ -17,8 +24,6 @@ import java.util.*;
  * Created by ohlbach on 18.10.2018.
  */
 public class Resolution extends Solver {
-
-
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
@@ -73,6 +78,12 @@ public class Resolution extends Solver {
 
     private Random random;
     private Strategy strategy;
+    private ClauseLists clauseLists;
+    private int predicates;
+    private BucketSortedList<Clause> primaryClauses;
+    private SingleList<Clause> secondaryClauses;
+    public LiteralIndexSorted literalIndex;
+    TaskQueueThread taskQueue;
 
     /** constructs a new solver of type RandomWalker.
      * The constructor is called serially. Therefore there are no race conditions.
@@ -85,6 +96,7 @@ public class Resolution extends Solver {
     public Resolution(HashMap<String,Object> solverControl,
                         CentralProcessor centralProcessor) {
         super(solverControl, centralProcessor);
+        predicates = centralProcessor.predicates;
         initializeData();
         addObservers();
         addMonitors("Resolution");
@@ -92,62 +104,73 @@ public class Resolution extends Solver {
         statistics.addStatisticsObservers();
     }
 
-    int sos; int normal;
+    public Task nextTask() {return new ResolutionTask(this);}
 
     protected void initializeData() {
         strategy = (Strategy)applicationParameters.get("strategy");
-        int seed = (Integer)applicationParameters.get("seed");
-        random = new Random(seed);
+        random = new Random((Integer)applicationParameters.get("seed"));
         model = centralProcessor.model.clone();
-        implicationDAG = centralProcessor.implicationDAG.clone();}
-
-    private void copyClausesSOS() {
+        implicationDAG = centralProcessor.implicationDAG.clone();
+        clauseLists = new ClauseLists(predicates);
         ClauseList centralClauses = centralProcessor.clauses;
         int size = centralClauses.size();
-        clauses = new ClauseList(predicates,Clause.sizeComparator, Clause.priorityComparator); // sos
-        int sosSize =(Integer) applicationParameters.get("sos");
-        for(Clause clause  : centralClauses.getClauses(0)) {
-            Clause rClause = new Clause(clause,random.nextInt(size)*clause.size(),true);
-            clauses.addClause(rClause, random.nextInt(100) <= sosSize ? sos : normal);}}
-
-
-    private void copyClausesInput() {
-        ClauseList centralClauses = centralProcessor.clauses;
-        int size = centralClauses.size();
-        clauses = new ClauseList(predicates,Clause.priorityComparator, Clause.sizeComparator);
-        for(Clause clause  : centralClauses.getClauses(0)) {
-            Clause rClause = new Clause(clause,random.nextInt(size)*clause.size(),true);
-            clauses.addClause(rClause, normal);}}
+        for(Clause clause  : centralClauses.getClauses()) {
+            Clause rClause = new Clause(clause, 0, true);
+            int percentage = (Integer)applicationParameters.get("percentage");
+            switch(strategy) {
+                case INPUT: clauseLists.addClause1(rClause); break;
+                case NEGATIVE:
+                    if(rClause.structure == ClauseStructure.NEGATIVE) {clauseLists.addClause1(rClause);}
+                    else                                              {clauseLists.addClause2(rClause);}
+                    break;
+                case POSITIVE:
+                    if(rClause.structure == ClauseStructure.POSITIVE) {clauseLists.addClause1(rClause);}
+                    else                                              {clauseLists.addClause2(rClause);}
+                    break;
+                case SOS:
+                    if(random.nextInt(101) <= percentage) {clauseLists.addClause1(rClause);}
+                    else                                     {clauseLists.addClause2(rClause);}
+                    break;}}}
 
 
     public Result solve() {
         globalParameters.log("Resolution " + id + " for problem " + problemId + " started");
         long time = System.currentTimeMillis();
-        int size = centralProcessor.clauses.size();
+        int size = clauseLists.size();
         int limit = (Integer)applicationParameters.get("limit");
         limit = (limit == Integer.MAX_VALUE) ? limit : limit * size;
         CLiteral parentLiteral1 = null;
         CLiteral parentLiteral2 = null;
         int resolventCounter = -1;
         Result result = null;
-        int clauseGroup = 0; //strategySOS ? sos : normal;
         Thread thread = Thread.currentThread();
+        CLiteral[] parentLiterals = new CLiteral[2];
+        String message = null;
         try{
-            while(!clauses.isEmpty(clauseGroup) && !thread.isInterrupted() ) {
-                Clause parentClause1 = selectParentClause1(clauseGroup);
-                parentLiteral1 = selectParentLiteral1(parentClause1);
-                parentLiteral2 = selectParentLiteral2(parentLiteral1);
-                ArrayList<CLiteral> resolventLiterals = Algorithms.resolve(parentLiteral1,parentLiteral2,implicationDAG);
+            while(!clauseLists.isEmpty1() && !thread.isInterrupted()) {
+                selectParentLiterals(parentLiterals);
+                ArrayList<CLiteral> resolventLiterals = Algorithms.resolve(parentLiterals[0],parentLiterals[1],implicationDAG);
                 if(resolventLiterals != null) {
                     String id = parentLiteral1.clause.id+"+"+parentLiteral2.clause.id;
-                    Clause resolvent =  new Clause(id,resolventLiterals,random.nextInt(size)*resolventLiterals.size(),false);
+                    Clause resolvent =  new Clause(id,resolventLiterals,0,false);
                     reportResolvent(resolvent);
-                    clauses.addClause(resolvent,sos);
+                    switch(strategy) {
+                        case INPUT: clauseLists.addClause2(resolvent); break;
+                        case POSITIVE:
+                            if(resolvent.structure == ClauseStructure.POSITIVE) {clauseLists.addClause1(resolvent);}
+                            else {clauseLists.addClause2(resolvent);}
+                            break;
+                        case NEGATIVE:
+                            if(resolvent.structure == ClauseStructure.NEGATIVE) {clauseLists.addClause1(resolvent);}
+                            else {clauseLists.addClause2(resolvent);}
+                            break;
+                        case SOS:
+                            clauseLists.addClause1(resolvent); break;}
                     taskQueue.add(makeShortenedClauseTask(resolvent,this));
                     result = processTasks();
                     if(result != null) {return result;}}
                 if(++resolventCounter == limit) {
-                    //reportAbortion(limit);
+                    message = "Maximum number of resolvents " + limit + " reached.";
                     return null;}}
             result = Result.makeResult(model,basicClauseList);
             return result;}
@@ -155,50 +178,68 @@ public class Resolution extends Solver {
             statistics.elapsedTime = System.currentTimeMillis() - time;
             removeObservers();
             removeMonitors();
-            reportFinished(result,resolventCounter, thread);}}
+            supervisor.finished(result, id, problemId, message);}}
 
-    /** selects the first parent clause for the resolution.
-     * The clause is again inserted in the priority chain, but with different priority,
-     * such that next time another clause will be chosen.
-     *
-     * @param group a clause group
-     * @return the first parent clause
-     */
-    private Clause selectParentClause1(int group) {
-        Clause clause = clauses.getClauses(group).poll();
-        clause.priority = random.nextInt(clauses.size()*clause.size());
-        clauses.addClause(clause,group);
-        return clause;}
+    int retry = 3;
+    int timestamp = 0;
 
-    /** chooses a resolution literal in the first parent clause.
-     *  It chooses the literal which is most likely to get pure.
-     *
-     * @param parentClause1 the first parent clause
-     * @return a literal in this clause
-     */
-    private CLiteral selectParentLiteral1(Clause parentClause1) {
-        CLiteral parentLiteral1 = null;
-        int purity = Integer.MAX_VALUE;
-        for(CLiteral clit : parentClause1.cliterals) {   // choose the literal which is most likely to get pure
-            int size = clauses.literalIndex.size(clit.literal);
-            if(size < purity) {parentLiteral1 = clit; purity = size;}}
-        return parentLiteral1;}
+    void selectParentLiterals(CLiteral[] parentLiterals) {
+        int trial = 0;
+        LiteralIndex literalIndex = clauseLists.literalIndex;
+        while(++trial <= retry) {
+            parentLiterals[1] = null;
+            Clause parentClause1 = clauseLists.getRandom(random);
+            for(CLiteral parentLiteral1 : parentClause1) {
+                if(parentLiterals[1] != null) {break;}
+                ++timestamp;
+                parentLiterals[0] = parentLiteral1;
+                implicationDAG.apply(parentLiteral1.literal,true,
+                        (literal->{for(CLiteral clit : literalIndex.getLiterals(-literal)) {
+                            clit.timestamp = timestamp;
+                            clit.clause.timestamp = timestamp;}})); // all potential resolution partners are stamped.
 
-    /** chooses the second parent literal for the resolution.
-     *  It selects the literal in the smallest clause
-     *
-     * @param parentLiteral1 the first parent literal
-     * @return the second parent literal
-     */
-    private CLiteral selectParentLiteral2(CLiteral parentLiteral1) {
-        CLiteral[] parentLiteral2 = new CLiteral[1];
-        int[] minSize = new int[]{Integer.MAX_VALUE};
-        clauses.streamContradicting(parentLiteral1.literal,implicationDAG).anyMatch(clit->{ // find the smallest clause
-            int size = clit.clause.size();
-            if(size == 3) {parentLiteral2[0] = clit; return true;}
-            if(size < minSize[0]) {minSize[0] = size; parentLiteral2[0] = clit;}
-            return false;});
-        return parentLiteral2[0];}
+                for(CLiteral cLiteral : parentClause1.cliterals) {  // now we search for merges.
+                    if(parentLiterals[1] != null) {break;}
+                    if(parentLiteral1 != cLiteral) {
+                        parentLiterals[1] = (CLiteral)
+                            implicationDAG.find(cLiteral.literal,true,
+                                (literal->{
+                                    for(CLiteral clit : literalIndex.getLiterals(literal)) {
+                                        if(clit.clause.timestamp == timestamp) {
+                                            for(CLiteral parentLiteral2 : clit.clause.cliterals) {
+                                                if(parentLiteral2.timestamp == timestamp) {
+                                                    return parentLiteral2;}}}}
+                                    return null;}));}}}}
+            if(parentLiterals[1] == null) { // no merge possibility found
+                parentLiterals[1] = (CLiteral)
+                    implicationDAG.find(parentLiterals[0].literal,true,
+                        (literal->{
+                            for(CLiteral clit : literalIndex.getLiterals(-literal)) {return clit;}
+                            return null;}));}}  // null should not happen.
+
+    CLiteral<Clause>[] parentLiterals = new CLiteral[2];
+
+    public Result execute() {
+        ArrayList<CLiteral<Clause>> literals;
+        while (true) {
+            selectParentLiterals(parentLiterals);
+            if (parentLiterals[0] == null) {
+                return null;
+            } // satisfiable
+            literals = Algorithms.resolve(parentLiterals[0], parentLiterals[1], resolver.implicationDAG);
+            if (literals == null) {
+                continue;
+            }  // tautology or subsumed by implication dag
+            if (literals.size() == 2) {
+                resolver.taskQueue.addTask(new Task.BinaryClause(literals.get(0).literal, literals.get(1).literal, processor));
+            }
+            if (Algorithms.subsumed(literals, resolver.literalIndex, resolver.implicationDAG) != null) {
+                break;
+            }
+        }
+    }
+
+
 
 
     /** reports the resolvent via the monitor and updates the statistics

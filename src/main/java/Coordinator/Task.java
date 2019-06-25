@@ -11,12 +11,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /** The purpose of this class and its subclasses is to fill a Priority Chain with prioritizes tasks to be executed.
- * The smaller the priority the earlier the tasks are executed.
+ * The smaller the listPosition the earlier the tasks are executed.
  * <br>
  * Created by ohlbach on 10.10.2018.
  */
 public abstract class Task {
-    /** the task's priority */
+    /** the task's listPosition */
     public int priority;
     /** the processor which executes the task */
     public Processor processor;
@@ -49,14 +49,16 @@ public abstract class Task {
             processor.monitor.print(processor.id,toString());}
         return null;}
 
+    public int trueLiteral() {return 0;}
+
     /** It contains an Unsatisfiable object.
-     * Because of priority 0 it is moved to the front of the task queue
+     * Because of listPosition 0 it is moved to the front of the task queue
      */
     public static class Unsatisfiability extends Task {
         private Unsatisfiable unsatisfiable;
 
         /** creates a task signalling an unsatisfiability.
-         * It gets priority 0 and is therefore moved to the front of the priority queue.
+         * It gets listPosition 0 and is therefore moved to the front of the listPosition queue.
          *
          * @param unsatisfiable an Unsatisfiability object
          * @param processor      which generated the unsatisfiability
@@ -74,13 +76,13 @@ public abstract class Task {
             return "Task: " + unsatisfiable.toString();}}
 
     /** It contains a Satisfiable object.
-     * Because of priority 0 it is moved to the front of the task queue
+     * Because of listPosition 0 it is moved to the front of the task queue
      */
     public static class Satisfiability extends Task {
         private Satisfiable satisfiable;
 
         /** creates a task signalling a satisfiability.
-         * It gets priority 0 and is therefore moved to the front of the priority queue.
+         * It gets listPosition 0 and is therefore moved to the front of the listPosition queue.
          *
          * @param satisfiable a Satisfiability object
          * @param processor   which generated the unsatisfiability
@@ -106,7 +108,7 @@ public abstract class Task {
         private int literal;
 
         /** constructs a unit-literal task.
-         * It gets priority 1
+         * It gets listPosition 1
          *
          * @param literal   the unit literal
          * @param processor which generated the unit literal
@@ -114,6 +116,8 @@ public abstract class Task {
         public TrueLiteral(int literal, Processor processor) {
             super(1, processor);
             this.literal = literal;}
+
+        public int trueLiteral() {return literal;}
 
         /** the unit literal may have become true or false in the meantime
          *
