@@ -17,7 +17,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** for identifying the clause */
     public String id;
     /** the literals */
-    private ArrayList<CLiteral<Clause>> cliterals;
+    public ArrayList<CLiteral<Clause>> cliterals;
     /** a timestamp to be used by corresponding algorithms */
     public int timestamp = 0;
     /** indicates if the clause is an input clause or not */

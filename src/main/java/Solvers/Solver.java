@@ -2,7 +2,7 @@ package Solvers;
 
 import Coordinator.CentralProcessor;
 import Coordinator.Processor;
-import Coordinator.Task;
+import Coordinator.Tasks.Task;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;

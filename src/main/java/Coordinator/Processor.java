@@ -1,6 +1,7 @@
 package Coordinator;
 
 import Algorithms.Algorithms;
+import Coordinator.Tasks.Task;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;

@@ -1,14 +1,7 @@
 package Datastructures.Statistics;
 
 import Coordinator.PreProcessor;
-import Coordinator.Task;
-import Datastructures.Clauses.Clause;
-import Datastructures.Literals.CLiteral;
-import Datastructures.Results.Unsatisfiable;
 import com.sun.org.glassfish.gmbal.Description;
-
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /**
  * Created by ohlbach on 10.10.2018.

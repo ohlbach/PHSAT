@@ -18,6 +18,8 @@ public class GlobalParameters {
     public File directory = new File(home);
     /** number of parallel threads for solving several problems. 0 (default) means sequential processing. */
     public int parallel             = 0;
+    /** length of clauses to be exchanged */
+    public int exchange = 1;
     /** for printing information about the working of the system */
     public PrintStream logstream    = null;
     /** just for the toString method */
@@ -44,6 +46,7 @@ public class GlobalParameters {
                 " - directory  (default home) relative to the homedirectory\n"+
                 " - parallel   (default: 0)  controls how many problems are processed in parallel threads\n" +
                 "                            'true' means to use the number of available processors\n" +
+                " - exchange   (0,1,2) length of clauses to be exchanged between processors (default: 1).\n " +
                 " - logging    filename (default: System.out) for logging the actions\n" +
                 " - monitor   'separated file': collect them for all threads separated, \n" +
                 "             'mixed file':     just print out as the messages come\n" +
@@ -78,6 +81,13 @@ public class GlobalParameters {
                     if(value.equals("true")) {parallel = Runtime.getRuntime().availableProcessors(); break;}
                     Integer par = Utilities.parseInteger("GlobalParameter parallel", value,errors);
                     if(par != null) {parallel = par;}
+                    break;
+                case "exchange" :
+                    Integer exc = Utilities.parseInteger("GlobalParameter exchange", value,errors);
+                    if(exc != null) {exchange = exc;}
+                    if(exchange < 0 || exchange > 2) {
+                        warnings.append("GlobalParameters exchange must be 0,1 or 2, not " + exchange + " default 1 is used.\n");
+                        exchange = 1;}
                     break;
                 case "logging":
                     logFile = value;

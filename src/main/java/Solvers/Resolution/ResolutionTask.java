@@ -1,6 +1,6 @@
 package Solvers.Resolution;
 
-import Coordinator.Task;
+import Coordinator.Tasks.Task;
 import Datastructures.Results.Result;
 
 /**
@@ -17,7 +17,7 @@ public class ResolutionTask extends Task {
 
     public Result execute() {
         super.execute();
-        return ((Resolution)processor).execute();}
+        return ((Resolution)processor).resolve();}
 
     public String toString() {
         return "Task: Resolution";}

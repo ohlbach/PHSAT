@@ -1,12 +1,12 @@
 package Coordinator;
 
 import Algorithms.Algorithms;
+import Coordinator.Tasks.Task;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Literals.CLiteral;
-import Datastructures.Results.Satisfiable;
 import Datastructures.Statistics.PreProcessorStatistics;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
@@ -15,7 +15,6 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
 import Management.ProblemSupervisor;
-import org.apache.commons.lang3.ClassUtils;
 
 import java.util.*;
 
@@ -170,13 +169,13 @@ public class PreProcessor extends Processor {
             if(monitoring) {monitor.print(id,"Clause " + basicClauseList.clauseToString(basicClause) + " shortened to " + clause.toString());}}
         if(clause.isEmpty()) {return clause;}
 
-        if(Algorithms.subsumedByID(clause,implicationDAG)) {
+        if(Algorithms.subsumedByID(clause.cliterals,implicationDAG)) {
             if(monitoring) {
                 monitor.print(id, "Clause " + basicClauseList.clauseToString(basicClause) + " is subsumed by the implication DAG.");}
             ((PreProcessorStatistics)statistics).BCL_RedundantClauses++;
             return null;}
 
-        int removals = Algorithms.replacementResolutionWithID(clause,implicationDAG);
+        int removals = Algorithms.replacementResolutionWithID(clause.cliterals,implicationDAG);
         if(removals != 0) {
             ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions += removals;
             if(monitoring) {
@@ -185,13 +184,13 @@ public class PreProcessor extends Processor {
                         clause.toString());}
             if(clause.size() < 3) {return clause;}}
 
-        Clause subsumer = Algorithms.subsumed(clause,clauses,implicationDAG);
+        Clause subsumer = Algorithms.subsumed(clause.cliterals,clauses,implicationDAG);
         if(subsumer != null) {
             if(monitoring) {monitor.print(id,"clause subsumed: " + basicClauseList.clauseToString(basicClause) +
                     " by " + subsumer.toString());}
             ((PreProcessorStatistics)statistics).BCL_RedundantClauses++;
             return null;}
-        clause = Algorithms.resolved(clause,clauses,implicationDAG);
+        clause = Algorithms.resolved(clause.cliterals,clauses,implicationDAG);
         if(clause.size() < basicClause.length-2) {
             ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions++;
             if(monitoring) {

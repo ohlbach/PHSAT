@@ -1,7 +1,9 @@
 package Coordinator;
 
+import Coordinator.Tasks.Task;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.CentralProcessorStatistics;
+import Solvers.Solver;
 
 /** The CentralProcessor coordinates the work of several solvers.
  *  It waits for tasks to be executed, and executes them.
@@ -11,6 +13,7 @@ import Datastructures.Statistics.CentralProcessorStatistics;
  * Created by ohlbach on 10.10.2018.
  */
 public class CentralProcessor extends Processor {
+    public Solver[] solvers;
 
     public CentralProcessor(PreProcessor preProcessor) {
         super("CP",preProcessor.supervisor,preProcessor.applicationParameters,preProcessor.basicClauseList);
@@ -47,5 +50,38 @@ public class CentralProcessor extends Processor {
         while(taskQueue.isEmpty()) {
             try {wait();} catch (InterruptedException e) {return null;}}
         return taskQueue.poll();}
+
+
+
+    public synchronized void signalUnaryClause(int literal, Solver solver) {
+        if(model.isTrue(literal)) {return;}
+        if(model.isFalse(literal)) {signalContradiction(literal,solver);}
+        model.add(literal);
+        taskQueue.add(new Task.TrueLiteral(literal,this));}
+
+    public synchronized void signalBinaryClause(int literal1, int literal2, Solver solver) {
+        if(model.isTrue(literal1) || model.isTrue(literal2)) {return;}
+        if(model.isFalse(literal1) && model.isFalse(literal2)) {signalContradiction(literal1,literal2,solver);}
+        if(model.isFalse(literal1)) {
+            model.add(literal2);
+            taskQueue.add(new Task.TrueLiteral(literal2,this));
+            return;}
+        if(model.isFalse(literal2)) {
+            model.add(literal1);
+            taskQueue.add(new Task.TrueLiteral(literal1,this));
+            return;}
+        taskQueue.add(new Task.BinaryClause(literal1,literal2,this));}
+
+    public Result processOneLiteralClause(int literal) {
+
+    }
+
+    public synchronized void signalContradiction(int literal, Solver solver) {
+
+    }
+
+    public synchronized void signalContradiction(int literal1, int literal2, Solver solver) {
+
+    }
 
 }

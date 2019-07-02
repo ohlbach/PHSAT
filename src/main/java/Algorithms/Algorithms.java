@@ -148,7 +148,7 @@ public class Algorithms {
      * @param implicationDAG the implication DAG
      * @return               true if the clause is subsumed by the implication DAG
      */
-    public static boolean subsumedByID(Clause clause, ImplicationDAG implicationDAG) {
+    public static boolean subsumedByID(ArrayList<CLiteral<Clause>> clause, ImplicationDAG implicationDAG) {
         for(CLiteral<Clause> clit1 : clause) {
             for(CLiteral<Clause> clit2 : clause) {
                 return clit1 != clit2 && implicationDAG.implies(-clit1.literal,clit2.literal);}}
@@ -163,7 +163,7 @@ public class Algorithms {
      * @param implicationDAG the implication DAG
      * @return               the number of literal removals.
      */
-    public static int replacementResolutionWithID(Clause clause, ImplicationDAG implicationDAG) {
+    public static int replacementResolutionWithID(ArrayList<CLiteral<Clause>> clause, ImplicationDAG implicationDAG) {
         int removals = 0;
         boolean again = true;
         while(again) {
@@ -171,7 +171,7 @@ public class Algorithms {
             for(CLiteral<Clause> clit1 : clause) {
                 for(CLiteral<Clause> clit2 : clause) {
                     if(clit1 != clit2 && implicationDAG.implies(clit1.literal,clit2.literal)) {
-                        clause.removeLiteral(clit1);
+                        clause.remove(clit1);
                         ++removals;
                         again = true;
                         break;}}
@@ -210,28 +210,7 @@ public class Algorithms {
         return(!subsumed.isEmpty() || !toBeResolved.isEmpty()) ? new Object[]{subsumed,toBeResolved} : null;}
 
 
-    /** resolves the two clauses at the given literals.
-     * All simplifications which are possible by the implicationDAG are performed
-     *
-     * @param literal1      a literal
-     * @param literal2      a literal
-     * @param implicationDAG the implication DAG
-     * @return  the resolvent, or null if it would be a tautology or subsumed by the implication DAG
-     */
-    public static ArrayList<CLiteral<Clause>> resolve(CLiteral<Clause> literal1, CLiteral<Clause> literal2, ImplicationDAG implicationDAG) {
-        ArrayList<CLiteral<Clause>> resolvent = new ArrayList<>();
-        for(CLiteral<Clause> lit1 : literal1.clause) {if(lit1 != literal1) {resolvent.add(lit1.clone());}}
-        for(CLiteral<Clause> lit2 : literal2.clause)
-            if(lit2 != literal2) {
-                boolean ignore = false;
-                for(CLiteral lit1 : literal1.clause) {
-                    if(lit1 != literal1) {
-                        if(implicationDAG.implies(-lit1.literal, lit2.literal)) {return null;}
-                        if(implicationDAG.implies(lit2.literal,lit1.literal)) {ignore = true; break;}
-                        if(implicationDAG.implies(lit1.literal,lit2.literal)) {
-                            resolvent.removeIf(cliteral->cliteral.literal == lit1.literal);}}}
-                if(!ignore) {resolvent.add(lit2.clone());}}
-        return resolvent;}
+
 
 }
 
