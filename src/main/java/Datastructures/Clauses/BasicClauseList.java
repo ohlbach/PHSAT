@@ -173,13 +173,21 @@ public class BasicClauseList {
      */
     public static String clauseToString(int size, int[] clause, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
+        if(size == 0) {size = Integer.toString(clause[0]).length();}
         st.append(String.format("%"+size+"d ",clause[0]));
-        st.append(ClauseType.getType(clause[1]).abbreviation).append(": ");
+        String separator = ",";
+        switch(ClauseType.getType(clause[1])) {
+            case OR:       separator = " | "; break;
+            case AND:      separator = " & "; break;
+            case XOR:      separator = " x "; break;
+            case EQUIV:    separator = " = "; break;
+            case DISJOINT: separator = " /= "; break;}
+        st.append(": ");
         int length = clause.length;
         for(int i = 2; i < length-1; ++i) {
             if(symboltable != null) {st.append(symboltable.getLiteralName(clause[i]));}
             else                    {st.append(Integer.toString(clause[i]));}
-            st.append(",");}
+            st.append(separator);}
         if(symboltable != null) {st.append(symboltable.getLiteralName(clause[length-1]));}
         else                    {st.append(Integer.toString(clause[length-1]));}
         return st.toString();}

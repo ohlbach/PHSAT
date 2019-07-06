@@ -1,12 +1,16 @@
 package Coordinator;
 
 import Algorithms.Algorithms;
+import Coordinator.Tasks.BinaryClause;
+import Coordinator.Tasks.GeneralClause;
 import Coordinator.Tasks.Task;
+import Coordinator.Tasks.TrueLiteral;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Statistics.PreProcessorStatistics;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
@@ -34,6 +38,8 @@ public class PreProcessor extends Processor {
         initializeData();
         addObservers();
         addMonitors("Preprocessor");}
+
+    private PreProcessorStatistics statistics;
 
     private void initializeData() {
         model          = new Model(predicates);
@@ -155,48 +161,46 @@ public class PreProcessor extends Processor {
      * @return the new simplified clause, or null if the clause is just to be ignored.
      */
     private Clause makeDisjunction(int[] basicClause) {
-        Clause clause = new Clause(""+basicClause[0],basicClause.length);
+        //Clause clause = new Clause(""+basicClause[0],basicClause.length);
+        ArrayList<CLiteral<Clause>> literals = new ArrayList<>(basicClause.length-2);
         for(int i = 2; i < basicClause.length;++i) {
             int literal = equivalences.mapToRepresentative(basicClause[i]);
-            if(model.isTrue(literal)) {clause = null; break;}
-            if(model.isFalse(literal)) {continue;}
-            if(clause.addCLiteral(new CLiteral(literal)) == -1) {clause = null; break;}}
-        if(clause == null) {
-            ++((PreProcessorStatistics)statistics).BCL_RedundantClauses;
-            return null;}
-        if(clause.size() < basicClause.length-2) {
-            ((PreProcessorStatistics)statistics).BCL_RedundantLiterals += basicClause.length-2-clause.size();
-            if(monitoring) {monitor.print(id,"Clause " + basicClauseList.clauseToString(basicClause) + " shortened to " + clause.toString());}}
-        if(clause.isEmpty()) {return clause;}
-
-        if(Algorithms.subsumedByID(clause.cliterals,implicationDAG)) {
+            literals = LitAlgorithms.addLiteral(literals,literal,model,(lit -> new CLiteral<Clause>(lit)));}
+        if(literals == null) {
+            ++statistics.BCL_RedundantClauses;
             if(monitoring) {
-                monitor.print(id, "Clause " + basicClauseList.clauseToString(basicClause) + " is subsumed by the implication DAG.");}
-            ((PreProcessorStatistics)statistics).BCL_RedundantClauses++;
+                monitor.print(id,BasicClauseList.clauseToString(0,basicClause,basicClauseList.symboltable) +
+                        " is a tautology or subsumed.");}
             return null;}
+        String clauseId = Integer.toString(basicClause[0]);
 
-        int removals = Algorithms.replacementResolutionWithID(clause.cliterals,implicationDAG);
-        if(removals != 0) {
-            ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions += removals;
-            if(monitoring) {
-                monitor.print(id,"Replacement Resolution removed " + removals + " literals from clause " +
-                        basicClauseList.clauseToString(basicClause) + ".\n         Shortened clause: " +
-                        clause.toString());}
-            if(clause.size() < 3) {return clause;}}
+        literals = LitAlgorithms.simplifyClause(literals,clauses.literalIndex, implicationDAG,monitor,id,
+                clauseId,
+                (()->++statistics.BCL_RedundantClauses),
+                ((removals) -> statistics.BCL_ReplacementResolutions += removals),
+                () -> ++statistics.BCL_ReplacementResolutions);
+        if(literals == null) {return null;}
 
-        Clause subsumer = Algorithms.subsumed(clause.cliterals,clauses,implicationDAG);
-        if(subsumer != null) {
-            if(monitoring) {monitor.print(id,"clause subsumed: " + basicClauseList.clauseToString(basicClause) +
-                    " by " + subsumer.toString());}
-            ((PreProcessorStatistics)statistics).BCL_RedundantClauses++;
-            return null;}
-        clause = Algorithms.resolved(clause.cliterals,clauses,implicationDAG);
-        if(clause.size() < basicClause.length-2) {
-            ((PreProcessorStatistics)statistics).BCL_ReplacementResolutions++;
-            if(monitoring) {
-                monitor.print(id,"Replacement Resolution shortened clause " +
-                        basicClauseList.clauseToString(basicClause) + " to " +
-                        clause.toString());}}
+        switch(literals.size()) {
+            case 1: taskQueue.add(new TrueLiteral(literals.get(0).literal,monitor,id,
+                                                    (literal->processOneLiteralClause(literal))));
+                return null;
+            case 2: if(implicationDAG != null) {
+                        taskQueue.add(new BinaryClause(literals.get(0).literal,literals.get(1).literal,
+                                monitor,id,
+                                ((literal1,literal2) -> processTwoLiteralClause(literal1,literal2)),
+                                (literal -> TrueLiteral(literal,monitor,id,
+                                        (liter->processOneLiteralClause(liter))))));
+                        return null;}}
+
+        Clause clause = new Clause(clauseId,literals);
+        for(int i = 0; i < literals.size(); ++i) {
+            CLiteral<Clause> clit = literals.get(i);
+            clit.setClause(clause,i);
+            clauses.literalIndex.addLiteral(clit);}
+        taskQueue.add(new GeneralClause<>(clause,monitor,id,
+                                            (claus-> processLongerClause(claus)),
+                                            (claus-> claus.removed)));
         return clause;}
 
 

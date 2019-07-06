@@ -2,6 +2,7 @@ package Coordinator;
 
 import Algorithms.Algorithms;
 import Coordinator.Tasks.Task;
+import Coordinator.Tasks.Unsatisfiability;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
@@ -268,9 +269,7 @@ public abstract class Processor {
      */
     public Result processOneLiteralClause(int literal) {
         int status = model.add(literal);
-        if(status == -1) {
-            Unsatisfiable result = new Unsatisfiable(model,literal);
-            addTask(new Task.Unsatisfiability(result,this)); return result;}
+        if(status == -1) {return new Unsatisfiable(model,literal);}
         if(status == 1) {return null;}
         clauses.makeTrue(literal);
         implicationDAG.newTrueLiteral(literal,false);

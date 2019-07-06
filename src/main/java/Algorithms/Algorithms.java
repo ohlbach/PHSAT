@@ -25,16 +25,16 @@ public class Algorithms {
 
     /** checks if the clause can be subsumed.
      *
-     * @param clause         the clause to be checked
+     * @param literals       the clause to be checked
      * @param literalIndex   the literal index
      * @param implicationDAG the implication DAG
      * @return               a subsumer clause or null
      */
-    public static Clause subsumed(ArrayList<CLiteral<Clause>> clause, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
-        int size = clause.size();
+    public static Clause subsumed(ArrayList<CLiteral<Clause>> literals, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
+        int size = literals.size();
         int timestamp = literalIndex.timestamp + 1;
         literalIndex.timestamp += size+2;
-        for(CLiteral<Clause> cliteral : clause) {
+        for(CLiteral<Clause> cliteral : literals) {
             Clause subsumer = (Clause)
                 implicationDAG.find(cliteral.literal,false,
                     (literal -> {

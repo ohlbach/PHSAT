@@ -36,6 +36,8 @@ public class TaskQueue extends Thread {
     /** The final result when the run-method has stopped. */
     public Result result = null;
 
+    private boolean stopped = false;
+
     /** constructs a new TaskQueue threads
      *
      * @param taskSupplier which provides the nextTask method
@@ -57,6 +59,7 @@ public class TaskQueue extends Thread {
             if(monitor) {
                 System.out.println("TASK to be executed:");
                 System.out.println(task.toString());}
+            if(task == stopTask) {return;}
 
             int trueLiteral = task.trueLiteral();
             if(trueLiteral != 0) { // a true literal may change the previously inserted tasks.
@@ -74,18 +77,44 @@ public class TaskQueue extends Thread {
      */
     private synchronized Task getTask() {
         if(taskQueue.isEmpty()) {
-            Task task = taskSupplier.get();
-            return (task == null) ? null : task;}
+            if(taskSupplier == null) {
+                while(taskQueue.isEmpty()) {
+                    try {wait();}
+                    catch (InterruptedException e) {return null;}}}
+        else {return taskSupplier.get();}}
         return taskQueue.poll();}
 
     /** adds a task to the task queue.
-     * It notifies a getTask-method in the central processor, which might be waiting for new tasks
      *
      * @param task the task to be added
      */
     public synchronized void addTask(Task task) {
+        if(stopped) {return;}
         if(monitor) {
             System.out.println("TASK Added");
             System.out.println(task.toString());}
-        taskQueue.add(task);}
+        taskQueue.add(task);
+        if(taskSupplier == null) {notify();}}
+
+    private static Task stopTask = new Stop();
+
+    /** This method adds a Stop-task to the end of the queue.
+     * It causes all other task to be finished, and then to stop.
+     * The method waits until the task queue is worked off.
+     * An interrupt causes all tasks to be deleted and to stop the execution.
+     */
+    public synchronized void finish() {
+        taskQueue.add(stopTask);
+        stopped = true;
+        if(monitor) {System.out.println("Task Queue stopped");}
+        try {join();}
+        catch (InterruptedException e) {
+            taskQueue.clear();
+            taskQueue.add(stopTask);}}
+
+
+    private static class Stop extends Task {
+        public Stop() {
+            super(Integer.MAX_VALUE,null,"stop");}
+    }
 }
