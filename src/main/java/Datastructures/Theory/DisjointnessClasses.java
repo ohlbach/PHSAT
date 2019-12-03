@@ -206,7 +206,7 @@ public class DisjointnessClasses {
      * @param nodes a list of ImplicationNodes
      */
     private void addDisjointnessClass(int bitmap, int literal, ArrayList<ImplicationNode> nodes) {
-        ArrayList<CLiteral> literals = new ArrayList<>();
+        ArrayList<CLiteral<Clause>> literals = new ArrayList<>();
         StringBuilder st = new StringBuilder();
         st.append("D"+literal);
         literals.add(new CLiteral(literal));
@@ -227,7 +227,7 @@ public class DisjointnessClasses {
      * @param nodes a list of ImplicationNodes
      */
     private void addDisjointnessClass(long bitmap, int literal, ArrayList<ImplicationNode> nodes) {
-        ArrayList<CLiteral> literals = new ArrayList<>();
+        ArrayList<CLiteral<Clause>> literals = new ArrayList<>();
         StringBuilder st = new StringBuilder();
         st.append("D"+literal);
         literals.add(new CLiteral(literal));
@@ -325,9 +325,9 @@ public class DisjointnessClasses {
     private Object[] literalUnion(Clause clause) {
         HashSet<Integer> literals = null;
         for(CLiteral<Clause> cLiteral : clause) {
-            for(CLiteral cLiteral1 : disjointnessClasses.getLiterals(cLiteral.literal)) {
+            for(CLiteral<Clause> cLiteral1 : disjointnessClasses.getLiterals(cLiteral.literal)) {
                 if(cLiteral1.clause != clause) {
-                    for(CLiteral cLiteral2 : cLiteral1.clause.cliterals) {
+                    for(CLiteral<Clause> cLiteral2 : cLiteral1.clause) {
                         if(literals == null) {literals = new HashSet<>();}
                         literals.add(cLiteral2.literal);}}}}
         return (literals == null) ? null : literals.toArray();}
@@ -342,7 +342,7 @@ public class DisjointnessClasses {
     public boolean areDisjoint(int literal1, int literal2) {
         if(literal1 == literal2) {return false;}
         if(literal1 == -literal2) {return true;}
-        for(CLiteral cLiteral : disjointnessClasses.getLiterals(literal1)) {
+        for(CLiteral<Clause> cLiteral : disjointnessClasses.getLiterals(literal1)) {
             if(cLiteral.clause.contains(literal2) >= 0) {return true;}}
         return false;}
 
@@ -354,7 +354,7 @@ public class DisjointnessClasses {
      */
     public void newTrueLiteral(int literal) {
         if(disjointnessClasses == null) {return;}
-        Collection<CLiteral>  lits = disjointnessClasses.getLiterals(literal);
+        Collection<CLiteral<Clause>>  lits = disjointnessClasses.getLiterals(literal);
         if(lits != null){
             for(Object clitObject : lits.toArray()) {
                 CLiteral<Clause> clit = (CLiteral)clitObject;
@@ -364,7 +364,7 @@ public class DisjointnessClasses {
         lits = disjointnessClasses.getLiterals(-literal);
         if(lits != null){
             for(Object clitObject : lits.toArray()) {
-                CLiteral clit = (CLiteral)clitObject;
+                CLiteral<Clause> clit = (CLiteral)clitObject;
                 if(clit.clause.size() == 2) {disjointnessClasses.removeClause(clit.clause);}
                 else {disjointnessClasses.removeLiteral(clit);}}}
     }

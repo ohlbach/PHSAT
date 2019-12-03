@@ -15,8 +15,6 @@ import java.util.HashMap;
  * Created by Ohlbach on 02.09.2018.
  */
 public class PHSat {
-    /** for controlling the execution of the problem processing */
-    private static Controller controller;
 
     /** This is a file with default parameters for 'global' and 'solver'. */
     private static File DefaultFile = Paths.get(System.getProperties().get("user.dir").toString(),
@@ -51,7 +49,7 @@ public class PHSat {
             if(globalParameters != null && globalParameters.size()> 1) {
                 System.out.println("There should be only one set of global parameters.");}
             HashMap<String,String> global = !globalParameters.isEmpty() ? globalParameters.get(0) : null;
-            controller = new Controller(global,kvParser.get("problem"), kvParser.get("solver"));
+            Controller controller = new Controller(global,kvParser.get("problem"), kvParser.get("solver"));
             if(controller.analyseParameters()) {
                 if(controller.solve()) {controller.printStatistics();}
                 controller.close();}}

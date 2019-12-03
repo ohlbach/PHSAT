@@ -1,18 +1,14 @@
 package Solvers.RandomWalker;
 
-import Coordinator.CentralProcessor;
-import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Aborted;
-import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
 import Datastructures.Theory.Model;
 import Solvers.Solver;
 import Utilities.Utilities;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 /** This is the abstract superclass of Random Walker classes.

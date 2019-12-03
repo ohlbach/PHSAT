@@ -1,7 +1,5 @@
 package Solvers.RandomWalker;
 
-import Coordinator.Processor;
-import Datastructures.Statistics.DataStatistics;
 import Datastructures.Statistics.Statistic;
 import com.sun.org.glassfish.gmbal.Description;
 

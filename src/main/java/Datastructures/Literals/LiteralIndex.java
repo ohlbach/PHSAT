@@ -3,14 +3,12 @@ package Datastructures.Literals;
 import java.util.*;
 import java.util.function.Consumer;
 
-/** This is the abstract superclass for mapping literals to their occurrences in the clauses.
+/** This is the abstract superclass for mapping predicates to their occurrences in the clauses.
  * Subclasses may differ in the representation of these lists, for example sorted according to the size of the clauses.
  * Created by Ohlbach on 25.08.2018.
  */
 public abstract class LiteralIndex<Clause> {
     public int predicates;   // number of predicates
-    protected ArrayList<Consumer<Integer>> purityObservers = null;
-    public int timestamp = 0;
 
 
     public LiteralIndex(int predicates) {
@@ -65,30 +63,6 @@ public abstract class LiteralIndex<Clause> {
             else {if(isPure(-predicate)) {pure.add(-predicate);}}}
         return pure;}
 
-    /** adds a purity observer
-     *
-     * @param observer a function to be called when a literal became pure
-     */
-    public void purityObserverAdd(Consumer<Integer> observer) {
-        if(purityObservers == null) {purityObservers = new ArrayList<>();}
-        purityObservers.add(observer);}
-
-    /** removes a purity observer
-     *
-     * @param observer a previously added purity observer
-     */
-    public void purityObserverRemove(Consumer<Integer> observer) {
-        purityObservers.remove(observer);}
-
-    /** removes all purity observer
-     */
-    public void purityObserverClear() {
-        purityObservers.clear();}
-
-    protected void signalPurity(int literal) {
-        if(purityObservers != null) {
-            for(Consumer<Integer> observer : purityObservers) {observer.accept(literal);}}}
-
 
     /** returns an iterator over the list of occurrences of the given literal.
      *
@@ -96,7 +70,6 @@ public abstract class LiteralIndex<Clause> {
      * @return an iterator over all CLiterals (occurrences of the literal in the clauses).
      */
     public abstract Iterator<CLiteral<Clause>> iterator(int literal);
-
 
 
     /** comprises the index into a string

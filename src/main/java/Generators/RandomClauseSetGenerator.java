@@ -2,7 +2,6 @@ package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.ClauseType;
-import Datastructures.Status;
 import Utilities.Utilities;
 
 import java.util.*;
@@ -258,8 +257,6 @@ public final class RandomClauseSetGenerator {
         clauseList.predicates = predicates;
 
         ArrayList<Integer> literals = new ArrayList();
-        Status stat = new Status();
-        stat.seed = seed;
         clauseList.info = "Randomly generated clauses with seed " + seed;
         Random rnd = new Random(seed);
         int clauseCounter = 0;

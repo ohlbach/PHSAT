@@ -1,6 +1,7 @@
 package Datastructures.Results;
 
 import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 
@@ -13,7 +14,8 @@ import java.util.ArrayList;
  */
 public class Erraneous extends Result {
     public Model model;
-    public ArrayList<int[]> falseClauses;
+    public ArrayList<int[]> falseClauses = null;
+    public Clause falseClause = null;
     public Symboltable symboltable;
 
     /** creates an Erraneous object with a model and a list of false clauses
@@ -27,16 +29,29 @@ public class Erraneous extends Result {
         this.falseClauses = falseClauses;
         this.symboltable = symboltable;}
 
+    /** creates an Erraneous object with a model and a list of false clauses
+     *
+     * @param model        a model
+     * @param falseClause a list of false clauses
+     * @param symboltable  a symbol table (optional)
+     */
+    public Erraneous(Model model, Clause falseClause, Symboltable symboltable) {
+        this.model = model;
+        this.falseClause = falseClause;
+        this.symboltable = symboltable;}
+
+
     /** describes the false clauses and the model
      *
      * @return a description of the false clauses and the model.
      */
     public String toString() {
         StringBuilder st = new StringBuilder();
-        int size = 0;
-        for(int[] clause :falseClauses) {size = Math.max(size, (""+clause[0]).length());}
-        st.append("SAT Error: the following clauses are false in the model:\n");
-        for(int[] clause :falseClauses) {st.append(BasicClauseList.clauseToString(size,clause,symboltable)).append("\n");}
+        st.append("SAT Error: the following clauses are not true in the model:\n");
+        if(falseClause != null) {st.append(falseClause.toString(symboltable)).append("\n");}
+        else{int size = 0;
+            for(int[] clause :falseClauses) {size = Math.max(size, (""+clause[0]).length());}
+            for(int[] clause :falseClauses) {st.append(BasicClauseList.clauseToString(size,clause,symboltable)).append("\n");}}
         st.append("Model:\n").append(model.toString());
         return st.toString();}
 

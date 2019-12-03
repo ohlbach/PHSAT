@@ -1,14 +1,11 @@
 package Datastructures.Statistics;
 
-import Coordinator.Processor;
-import Datastructures.Clauses.Clause;
+import Solvers.Solver;
 import Utilities.Utilities;
 import com.sun.org.glassfish.gmbal.Description;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Objects;
 
 /** This is the superclass of all Statistics classes.
  * It provides some top-level parameters and some static methods for accumulating and printing statistics.
@@ -20,18 +17,18 @@ public class Statistic {
     /** An identifier for the statistics */
     public String id = "";
     /** The processor which generated the statistics */
-    public Processor processor;
+    public Solver solver;
 
     public static ArrayList<Class> statisticsClasses = new ArrayList<>();
     static{statisticsClasses.add(Statistic.class);}
 
     /** constructs a Statistics instance for a particular processor
      *
-     * @param processor The processor for which the statistics values are collected
+     * @param solver The solver for which the statistics values are collected
      */
-    public Statistic(Processor processor) {
-        this.processor = processor;
-        if(processor != null)  id = processor.id;}
+    public Statistic(Solver solver) {
+        this.solver = solver;
+        if(solver != null)  id = solver.solverId;}
 
     /** This constructs a statistics instance which is independent of a processor
      *

@@ -13,10 +13,10 @@ import java.util.Map;
  * Created by ohlbach on 12.10.2018.
  */
 public class Monitor {
-    private boolean monitoring = false;
+    public boolean monitoring  = false;
     private boolean separated  = false;
     private File file          = null;
-    private PrintStream out   = System.out;
+    private PrintStream out    = System.out;
     private HashMap<String,ArrayList<String>> buffers = new HashMap<>();
 
     /** creates a monitor which does nothing at all*/
@@ -49,10 +49,6 @@ public class Monitor {
                     warnings.append("Monitorfile '"+ parts[1] + "' cannot be opened. Printing to System.out\n");}}}}
 
 
-    /**
-     * @return true if monitoring is activated.
-     */
-    public boolean monitoring() {return monitoring;}
 
     /** adds a thread for separated printing of messages
      *

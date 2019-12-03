@@ -1,6 +1,7 @@
 package Utilities;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Random;
 import java.util.function.Function;
 
@@ -10,8 +11,13 @@ import java.util.function.Function;
  * For each bucket a separate ArrayList is created. The items with this bucket are stored (unsorted) in this list.
  * In order to guarantee adding and removing items in constant time, the items must
  * implement the Positioned interface.
+ *
+ * Example for the application of this class: <br>
+ *     Literal occurrences contained in clauses are sorted according to the clause length.
+ *     Literal occurrences in shorter clauses come before their occurrence in longer clauses.
+ *
  */
-public class BucketSortedList<T extends Positioned> {
+public class BucketSortedList<T extends Positioned> implements Iterable<T> {
     private ArrayList<ArrayList<T>> buckets;
     private Function<T,Integer> getBucket;
 
@@ -29,8 +35,8 @@ public class BucketSortedList<T extends Positioned> {
      */
     public void add(T item) {
         int position = getBucket.apply(item);
-        if(position >= buckets.size()) {
-            for(int i = buckets.size(); i <= position; ++i) {buckets.add(new ArrayList<T>());}}
+        buckets.ensureCapacity(position+1);
+        for(int i = buckets.size(); i <= position; ++i) {buckets.add(new ArrayList<T>());}
         ArrayList<T> bucket = buckets.get(position);
         item.setPosition(bucket.size());
         bucket.add(item);}
@@ -49,7 +55,8 @@ public class BucketSortedList<T extends Positioned> {
         return item == bucket.get(position);}
 
     /** removes the item from the bucket (in constant time).
-     *  The last item in the item's bucket is moved to the item's current clausePosition.
+     *  The last item in the item's bucket is moved to the item's current itemPosition.
+     *  Trailing empty buckets are removed.
      *
      * @param item the item to be removed
      */
@@ -71,6 +78,8 @@ public class BucketSortedList<T extends Positioned> {
         for(int i = buckets.size()-1; i >= 0; --i) { // garbage collection
             if(buckets.get(i).isEmpty()) {buckets.remove(i);}
             else {break;}}}
+
+
 
     /** returns a randomly chosen item.
      *  items in smaller buckets are chosen more likely (quadratic) than items in larger buckets.
@@ -100,6 +109,15 @@ public class BucketSortedList<T extends Positioned> {
         if(size == 1) {return bucket.get(0);}
         return bucket.get(random.nextInt(size));}
 
+    /** joins all items in a new list.
+     *
+     * @return the joined list of all items.
+     */
+    public ArrayList<T> getAllItems() {
+        ArrayList<T> list = new ArrayList<T>(size());
+        for(ArrayList<T> items : buckets) {list.addAll(list);}
+        return list;}
+
     /** checks if the buckets are empty
      *
      * @return true if there are no items in the bucket
@@ -124,6 +142,14 @@ public class BucketSortedList<T extends Positioned> {
         if(bucket <0 || bucket >= buckets.size()) {return 0;}
         return buckets.get(bucket).size();}
 
+    /** empties the bucket with the given index
+     *
+     * @param bucket an index for a bucket.
+     */
+    public void clearBucket(int bucket) {
+        if(bucket <0 || bucket >= buckets.size()) {return;}
+        buckets.get(bucket).clear();}
+
     /** lists the entire list as string.
      *
      * @return the entire list as string.
@@ -132,8 +158,68 @@ public class BucketSortedList<T extends Positioned> {
         StringBuilder st = new StringBuilder();
         for(int i = 0; i < buckets.size(); ++i) {
             ArrayList<T> bucket = buckets.get(i);
-            if(bucket.isEmpty()) {continue;}
+            if(bucket == null || bucket.isEmpty()) {continue;}
             st.append("Bucket " + i + "\n");
             for(T item : bucket) {st.append("  ").append(item.toString()).append("\n");}}
         return st.toString();}
+
+    /** This method generates an iterator which iterates over the items in the bucket.
+     *
+     * @return an iterator for iterating over the items in the buckets.
+     */
+    public Iterator<T> iterator() {
+        return new BucketIterator();}
+
+    /** This method generates an iterator which iterates over the items in the bucket starting with bucket[position]
+     *
+     * @return an iterator for iterating over the items in the buckets.
+     */
+    public Iterator<T> iteratorFrom(int position) {
+        return new BucketIterator(position, true);}
+
+    /** This method generates an iterator which iterates over the items in the bucket ending with bucket[position]
+     *
+     * @return an iterator for iterating over the items in the buckets.
+     */
+    public Iterator<T> iteratorTo(int position) {
+        return new BucketIterator(position, false);}
+
+    /** constructs a new BucketIterator
+     *
+     */
+    public class BucketIterator implements Iterator<T> {
+        int index1 = 0;
+        int index2 = -1;
+        int to = 0;
+        boolean from = true;
+
+        public BucketIterator() {}
+
+        public BucketIterator(int position, boolean from) {
+            this.from = from;
+            if(from) {index1 = position;} else {to = position;}
+            index1 = position;}
+
+        /** checks if there es a next item in the buckets.
+         *  The indices are moved to the next item in the buckets
+         *
+         * @return true if there is another item in the buckets
+         */
+        public boolean hasNext() {
+            int size1 = from ? buckets.size(): to+1;
+            if(index1 >= size1) {return false;}
+            for(; index1 < size1; ++index1) {
+                ArrayList<T> indexedList = buckets.get(index1);
+                if(index2 == indexedList.size()-1) {index2 = -1; continue;}
+                ++index2;
+                return true;}
+            return false;}
+
+        /** yields the next item in the buckets.
+         *
+         * @return the next item in the buckets.
+         */
+        public T next() {
+            return buckets.get(index1).get(index2);}
+    }
 }

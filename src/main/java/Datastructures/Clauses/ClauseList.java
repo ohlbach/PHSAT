@@ -2,14 +2,16 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
+import Datastructures.Literals.LiteralIndexSorted;
 import Datastructures.Symboltable;
 import Datastructures.Theory.ImplicationDAG;
-import org.apache.commons.lang3.ClassUtils;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
+
+/** Muss noch verändert werden */
 
 /**
  * Created by ohlbach on 26.08.2018.
@@ -41,7 +43,6 @@ public class ClauseList {
     private final ArrayList<Consumer<ClauseStructure>> clauseStructureObservers = new ArrayList<>();
     // they are called when the clause structure becomes POSITIVE or NEGATIVE.
 
-
     /** creates a clause list. The number of disjunctions should be estimated.
      *
      * @param size       the estimated number of clauses
@@ -51,7 +52,7 @@ public class ClauseList {
         this.predicates = predicates;
         clauses         = new ArrayList<>();
         id2Clause       = new HashMap<>();
-        literalIndex    = new LiteralIndex(predicates);}
+        literalIndex    = new LiteralIndexSorted(predicates);}
 
 
     /** clones the entire clause list (without observers)
@@ -68,6 +69,7 @@ public class ClauseList {
         list.structure = structure;
         return list;}
 
+        public ArrayList<CLiteral<Clause>> getLiterals(int literal) {return null;}
 
     /** adds an observer which is called after a literal is replaced by another one (a representative in an equivalence class).
      * It is called for the new CLiteral and the old literal (Integer).
@@ -145,10 +147,12 @@ public class ClauseList {
 
     /** sets the structure feature */
     private void determineStructure() {
+        /*
         if(positiveClauses == 0 && negativeClauses == 0) {structure =  ClauseStructure.BOTH; return;}
         structure = ClauseStructure.MIXED;
         if(negativeClauses == 0) {structure = ClauseStructure.POSITIVE;}
-        else {if(positiveClauses == 0) {structure = ClauseStructure.NEGATIVE;}}}
+        else {if(positiveClauses == 0) {structure = ClauseStructure.NEGATIVE;}}
+        */}
 
 
     /** returns a clause for the given number
@@ -195,6 +199,7 @@ public class ClauseList {
      * @param cliteral the literal to be removed.
      */
     public void removeLiteral(CLiteral<Clause> cliteral) {
+        /*
         ClauseStructure oldStructure = structure;
         Clause clause = cliteral.clause;
         int group = 0;
@@ -217,7 +222,8 @@ public class ClauseList {
             case POSITIVE: ++positiveClauses;}
         determineStructure();
         if(oldStructure == ClauseStructure.MIXED && structure != ClauseStructure.MIXED) {
-            for(Consumer<ClauseStructure> observer: clauseStructureObservers) {observer.accept(structure);}}}
+            for(Consumer<ClauseStructure> observer: clauseStructureObservers) {observer.accept(structure);}}
+            */}
 
     /** removes all clauses with the given (pure) literal
      *
@@ -342,10 +348,11 @@ public class ClauseList {
      *
      * @return the number of clauses
      */
-    public int size() {
+    public int size() {/*
         int size = 0;
         for(int group = 0; group < groups; ++group) {size += clauses[group].size();}
-        return size;}
+        return size;*/
+        return 0;}
 
     /** the number of clauses in the group
      *
@@ -353,15 +360,16 @@ public class ClauseList {
      * @return the number of clauses in the group
      */
     public int size(int group) {
-        return clauses[group].size();}
+        /*return clauses[group].size();*/
+        return 0;}
 
     /** checks if the clause set is empty
      *
      * @return true if the clause set is empty.
      */
-    public boolean isEmpty() {
+    public boolean isEmpty() {/*
         for(int group = 0; group < groups; ++group) {
-            if(!clauses[group].isEmpty()) {return false;}}
+            if(!clauses[group].isEmpty()) {return false;}}*/
         return true;}
 
 
@@ -370,7 +378,9 @@ public class ClauseList {
      * @param group a clause group
      * @return true if the clause group is empty.
      */
-    public boolean isEmpty(int group) {return clauses[group].isEmpty();}
+    public boolean isEmpty(int group) {
+        /*return clauses[group].isEmpty();*/
+        return false;}
 
 
     /** returns all pure literals
@@ -392,6 +402,7 @@ public class ClauseList {
      * @return a string with disjunctions
      */
     public String toString(Symboltable symboltable){
+        /*
         StringBuilder st = new StringBuilder();
         int[] idlength = new int[]{0};
         for(int group = 0; group < groups; ++group) {
@@ -405,5 +416,7 @@ public class ClauseList {
         st.append("Clause Structure: " + structure);
         st.append(" posititives: " + positiveClauses + ", negatives " + negativeClauses + ", mixed " + mixedClauses + "\n");
         return st.toString();
+        */
+        return "";
     }
 }

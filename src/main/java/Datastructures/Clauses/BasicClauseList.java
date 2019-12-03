@@ -1,7 +1,7 @@
 
 package Datastructures.Clauses;
 
-import Datastructures.Statistics.ProblemStatistics;
+import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 
@@ -41,11 +41,14 @@ public class BasicClauseList {
     /** a symboltable, or null */
     public Symboltable symboltable = null;
 
+    public int maxClauseLength = 0;
+
     /** adds a clause to the corresponding lists
      *
      * @param clause a clause
      */
     public void addClause(int[] clause) {
+        maxClauseLength = Math.max(maxClauseLength,clause.length-2);
         switch(ClauseType.getType(clause[1])) {
             case OR:       disjunctions.add(clause);break;
             case AND:      conjunctions.add(clause); break;
@@ -147,15 +150,17 @@ public class BasicClauseList {
 
     /** adds some parameters to the statistics
      *
-     * @param statistics the ProblemStatistics
+     * @param problemId the problem identifier
+     * @returns the BasicClauseStatistics
      */
-    public void addToStatistics(ProblemStatistics statistics) {
+    public Statistic getStatistics(String problemId) {
+        BasicClauseStatistics statistics = new BasicClauseStatistics(problemId);
         statistics.disjoints    = disjoints.size();
         statistics.disjunctions = disjunctions.size();
         statistics.conjunctions = conjunctions.size();
         statistics.xors         = xors.size();
         statistics.equivalences = equivalences.size();
-    }
+        return statistics;}
 
     /** turns a clause into a string.
      *

@@ -1,6 +1,5 @@
 package Solvers.RandomWalker;
 
-import Coordinator.CentralProcessor;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseList;
 import Datastructures.Literals.CLiteral;

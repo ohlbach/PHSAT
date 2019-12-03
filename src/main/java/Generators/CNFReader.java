@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
 import Utilities.Utilities;
 
@@ -171,7 +172,7 @@ public final class CNFReader {
             if(!line.endsWith(" 0")) {
                 errors.append(place + " line does not end with 0: " + line + "\n");
                 return null;}
-            literals = new ArrayList();
+            literals.clear();
             literals.add(++number);
             int start = 1;
             switch(line.charAt(0)) {
@@ -184,6 +185,8 @@ public final class CNFReader {
             for(int i = start; i < parts.length-1; ++i) {
                 Integer lit = Utilities.parseInteger (place,parts[i],errors);
                 if(lit != null) {literals.add(lit);};}
+            if (literals.get(1) != ClauseType.OR.ordinal()) {
+                checkClause(literals,errors);}
             clauseList.add(literals);}}
         catch(IOException ex) {
             errors.append(place + " IOException\n");
@@ -198,5 +201,36 @@ public final class CNFReader {
         bcl.info = info.toString();
         System.out.println("BCL " + bcl.toString());
         return  bcl;}
+
+    /** This method checks a clause for double literals or complementary literals.
+     * It should be no disjunction. Double literals or complementary literals in disjunctions are treated in the solvers.
+     * Double literals or complementary literals in all other clause types have complex consequences,
+     * but they are usually caused by typos or other error sources.
+     *
+     * @param literals  a clause to be checked (number, type, literal1, ...)
+     * @param errors    for appending error messages.
+     */
+    private static void checkClause(ArrayList<Integer> literals, StringBuffer errors) {
+        int size = literals.size();
+        for(int i = 2; i < size-1; ++i) {
+            int lit1 = literals.get(i);
+            for(int j = i+1; i < size; ++j) {
+                int lit2 = literals.get(j);
+                if(lit1 == lit2) {errors.append("Clause " + clauseToString(literals)+" contains double literals, maybe a typo.\n"); return;}
+                if(lit1 == -lit2) {errors.append("Clause " + clauseToString(literals)+" contains complementary literals, maybe a typo.\n"); return;}}}}
+
+    /** Turns a clause (number, type, literal1, ...) into a string
+     *
+     * @param literals a clause to be transformed (number, type, literal1, ...)
+     * @return the clause a string "number: type literal1,..."
+     */
+    private static String clauseToString(ArrayList<Integer> literals) {
+        StringBuffer st = new StringBuffer();
+        st.append(literals.get(0)).append(":" ).append(ClauseType.getType(literals.get(1)).toString()).append(" ");
+        for(int i = 2; i < literals.size()-1; ++i) {
+            st.append(literals.get(i)).append(",");}
+        st.append(literals.get(literals.size()-1));
+        return st.toString();
+    }
 
 }

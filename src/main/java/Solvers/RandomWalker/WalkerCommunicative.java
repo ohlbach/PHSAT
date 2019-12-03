@@ -1,16 +1,9 @@
 package Solvers.RandomWalker;
 
-import Coordinator.CentralProcessor;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LiteralIndex;
-import Datastructures.Results.Erraneous;
-import Datastructures.Results.Result;
 import Datastructures.Theory.ImplicationNode;
-import Datastructures.Theory.Model;
-import Management.GlobalParameters;
-import Solvers.Solver;
-import Utilities.Utilities;
 
 import java.util.*;
 import java.util.function.BiConsumer;

@@ -35,7 +35,7 @@ public class GlobalParameters {
     /** for controlling debugging output */
     public boolean debug = false;
 
-    /** if treu then the implicationDAG is observed for disjointnesses */
+    /** if true then the implicationDAG is observed for disjointnesses */
     public boolean disjointnessesNeeded = true;
 
 
@@ -44,7 +44,7 @@ public class GlobalParameters {
     public static String help() {
         return "Global Parameters:\n" +
                 " - directory  (default home) relative to the homedirectory\n"+
-                " - parallel   (default: 0)  controls how many problems are processed in parallel threads\n" +
+                " - parallel   (default: 1)  controls how many problems are processed in parallel threads\n" +
                 "                            'true' means to use the number of available processors\n" +
                 " - exchange   (0,1,2) length of clauses to be exchanged between processors (default: 1).\n " +
                 " - logging    filename (default: System.out) for logging the actions\n" +

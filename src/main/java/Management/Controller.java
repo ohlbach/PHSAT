@@ -21,7 +21,7 @@ import java.util.HashMap;
  * It <br>
  * - analyses the input parameters <br>
  * - reads or generates the SAT-problems<br>
- * - distributes them ovrer several threads <br>
+ * - distributes them over several threads <br>
  * - activates the solvers <br>
  * - collects the results and statistics
  */
@@ -68,24 +68,31 @@ public class Controller {
 
 
 
-    /** analyses the applicationParameters and turns them into sequences of objectParameters*/
+    /** analyses the problemParameters and turns them into sequences of objectParameters.
+     * Since the input parameters may specify ranges, each single input parameter may expand to a sequence of parsed parameters*/
     private void analyseProblemParameters() {
         problemParameters = new ArrayList<>();
         for(HashMap<String,String> parameters : problemInputParameters) {
             String type = parameters.get("type");
             if(type == null) {errors.append("No problem type specified.\n"); return;}
             ArrayList<HashMap<String,Object>> pars = Generator.parseParameters(type,parameters,errors,warnings);
-            if(pars != null) {for(HashMap<String,Object> map :pars) {map.put("type",type);}
+            if(pars != null) {
+                for(HashMap<String,Object> map :pars) {map.put("type",type);}
                 problemParameters.addAll(pars);}}}
 
-    /** analyses the solverParameters and turns them into sequences of objectParameters*/
+    /** analyses the solverParameters and turns them into sequences of objectParameters.
+     * Since the input parameters may specify ranges, each single input parameter may expand to a sequence of parsed parameters*/
     private void analyseSolverParameters() {
         solverParameters = new ArrayList<>();
         for(HashMap<String,String> parameters : solverInputParameters) {
             String type = parameters.get("type");
             if(type == null) {errors.append("No solver type specified.\n"); return;}
             ArrayList<HashMap<String,Object>> pars = Solver.parseParameters(type,parameters,errors,warnings);
-            if(pars != null) {for(HashMap<String,Object> map :pars) {map.put("type",type);}
+            if(pars != null) {
+                for(HashMap<String,Object> map :pars) {map.put("type",type);}
+                if(pars.size() > 1) {
+                    for(int i = 0; i < pars.size(); ++i) {pars.get(i).put("solverId",type+"_"+i);}}
+                else {pars.get(0).put("solverId",type);}
                 solverParameters.addAll(pars);}}}
 
 
@@ -136,9 +143,9 @@ public class Controller {
         problemSupervisors = new ArrayList<>();
         for(int i = 0; i < problemParameters.size(); ++i) {
             HashMap<String,Object> parameters = problemParameters.get(i);
-            problemSupervisors.add(new ProblemSupervisor(i,globalParameters, parameters,solverParameters));}
+            problemSupervisors.add(new ProblemSupervisor(this,globalParameters, parameters,solverParameters));}
         distributeProblems();
-        if(globalParameters.monitor.monitoring()) {globalParameters.monitor.flush();}
+        if(globalParameters.monitor.monitoring) {globalParameters.monitor.flush();}
         if(reportErrors()) {reportResults(); return true;}
         return false;}
 
@@ -146,38 +153,36 @@ public class Controller {
     /** distributes the problems to different threads.
      */
     private void distributeProblems() {
-        int parallel = globalParameters.parallel;
-        if(parallel == 0) {
-            solveProblems(0,problemSupervisors.size());
+        int nthreads = globalParameters.parallel; // parallel = 5 means: 5 threads are work on 5 problems in parallel
+        if(nthreads <= 1) {
+            solveProblems("T0",0,problemSupervisors.size()); // sequential processing
             return;}
         int nproblems = problemSupervisors.size();
-        int nthreads = nproblems / parallel;
-        if(nproblems % parallel != 0) {++nthreads;}
+        int groupSize = nproblems / nthreads;
+        if(nproblems % nthreads != 0) {++groupSize;}
+        int groupsize = groupSize;
         threads = new Thread[nthreads];
-        int threadCounter = -1;
-        for(int n = 0; n < nproblems; ++n) {
-            if((n % parallel) == 0) {
-                ++threadCounter;
-                int m = n;
-                threads[threadCounter] = new Thread(()->solveProblems(m,parallel));}}
+        int group = -1;
+        for(int thread = 0; thread < nthreads; ++thread) {
+            int start = group++*groupsize;
+            String threadId = "T"+thread;
+            threads[thread] = new Thread(()->solveProblems(threadId,start,groupsize));}
         for(int n = 0; n < nthreads; ++n) {threads[n].start();}
         for(int n = 0; n < nthreads; ++n) {
-            try {threads[n].join();} catch (InterruptedException e) {}
-        }}
+            try {threads[n].join();} catch (InterruptedException e) {}}}
 
 
     /** solves a group of problems
      *
-     * @param n        the prepareClauses index of the problems to be solved
+     * @param start the index of the first problem to be solved.
      * @param size the number of problems to be solved sequentially
      */
-     private void solveProblems(int n, int size) {
-        for(int i = n; i < n+size; ++i) {
+     private void solveProblems(String threadId, int start, int size) {
+        for(int i = start; i < start+size; ++i) {
             if(i < problemSupervisors.size())  {
                 ProblemSupervisor supervisor = problemSupervisors.get(i);
-                if(supervisor.generateProblem(errors,warnings)) {
-                    Result result = supervisor.preprocessProblem();
-                    if(result == null) {supervisor.solveProblem();}}}}}
+                if(supervisor.generateProblem()) {
+                    supervisor.solveProblem(threadId);}}}}
 
     /** collects and prints all statistics
      */
@@ -213,17 +218,7 @@ public class Controller {
              out.println("Problem:");
              Utilities.printIndented(out,indent,statistic[0].toString(false));
              out.println("\n\nPreprocessor");
-             Utilities.printIndented(out,indent,statistic[1].toString(false));
-             if(supervisor.centralProcessor != null) {
-                out.println("\n\nCentral Central Processor");
-                Utilities.printIndented(out,indent,statistic[2].toString(false));
-                if(statistic.length == 4) {
-                    out.println("\n\nSolver " +statistic[3].id);}
-                else {
-                    out.println("\n\nSolvers");
-                    Utilities.printIndented(out,indent,
-                        Statistic.statisticToString(Statistic.combineDifferentStatistics(
-                            Arrays.copyOfRange(statistic,3,statistic.length),false)));}}}}
+             Utilities.printIndented(out,indent,statistic[1].toString(false));}}
 
     /** combines the processor statistics and prints them
      *
@@ -252,4 +247,18 @@ public class Controller {
 
     public void close() {
          globalParameters.close();}
+
+    public synchronized void addError(String error) {
+        errors.append(error).append("\n");}
+
+    public synchronized void addWarning(String warning) {
+        warnings.append(warning).append("\n");
+    }
+
+    public synchronized void addError(StringBuffer error) {
+        errors.append(error);}
+
+    public synchronized void addWarning(StringBuffer warning) {
+        warnings.append(warning);
+    }
 }

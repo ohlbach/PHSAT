@@ -6,7 +6,7 @@ problem
     precise = true
     seed = 1
 
-taskSupplier
+solver
    type = walker isolated
    flips = 50000
    monitor = 0

@@ -2,7 +2,6 @@ package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.ClauseType;
-import Datastructures.Status;
 import Utilities.Utilities;
 
 import java.lang.reflect.Array;
@@ -139,8 +138,6 @@ public final class SingleModelGenerator {
         clauseList.predicates = predicates;
 
         ArrayList<Integer> literals = new ArrayList();
-        Status stat = new Status();
-        stat.seed = seed;
         clauseList.info = "Single model clause set with seed " + seed + " and model\n";
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(signs[predicate] == 0) {clauseList.info += "-";}

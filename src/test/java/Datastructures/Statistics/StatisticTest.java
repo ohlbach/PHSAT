@@ -1,12 +1,8 @@
 package Datastructures.Statistics;
 
-import Coordinator.PreProcessor;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Objects;
-
-import static org.junit.Assert.*;
 
 /**
  * Created by ohlbach on 16.10.2018.

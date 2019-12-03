@@ -1,185 +1,107 @@
 package Datastructures.Theory;
 
-import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseList;
-import Datastructures.Literals.CLiteral;
-import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-/** This class manages equivalence classes. The equivalence classes may come from basic disjunctions,
- * or from the implication graph.
+/** This class manages equivalence classes of literals.
  *
  * Created by ohlbach on 20.09.2018.
  */
 public class EquivalenceClasses {
-    private int predicates;
-    private Model model;
-    private ImplicationDAG implicationDAG;
-    private ClauseList equivalenceClasses = null;
-    private HashMap<Integer,Integer> replacements = new HashMap<>();
+    /** the list of equivalence classes */
+    private ArrayList<ArrayList<Integer>> equivalenceClasses = null;
+    /** maps literals to their representatives in an equivalence class */
+    private HashMap<Integer,Integer> replacements = null;
+    /**  a function to be called when adding the new equivalence class causes a contradiction p equiv -p */
+    private BiConsumer<int[],Integer> contradictionHandler = null;
 
-    /** reports true literals */
-    private ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList();
-    /** reports contradictions like p = -p */
-    private ArrayList<Consumer<Unsatisfiable>> unsatisfiabilityObservers = new ArrayList();
-    /** reports new equivalences */
-    private ArrayList<BiConsumer<Integer,Integer>> equivalenceObservers = new ArrayList();
-
-    /** adds a true literal observer
-     *
-     * @param observer to be added*/
-    public synchronized void addTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.add(observer);}
-    /** adds an unsatisfiability observer
-     *
-     * @param observer to be added*/
-    public synchronized void addUnsatisfiabilityObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.add(observer);}
-    /** adds an observer for equivalences.
-     *
-     * @param observer to be added*/
-    public synchronized void addEquivalenceObserver(BiConsumer<Integer,Integer> observer) {equivalenceObservers.add(observer);}
-
-    /** removes a true literal observer
-     *
-     * @param observer to be added*/
-    public synchronized void removeTrueLiteralObserver(Consumer<Integer> observer) {trueLiteralObservers.remove(observer);}
-    /** removes an unsatisfiability observer
-     *
-     * @param observer to be added*/
-    public synchronized void removeUnsatisfiabilityObserver(Consumer<Unsatisfiable> observer) {unsatisfiabilityObservers.remove(observer);}
-    /** removes an observer for equivalences.
-     *
-     * @param observer to be added*/
-    public synchronized void removeEquivalenceObserver(BiConsumer<Integer,Integer> observer) {equivalenceObservers.remove(observer);}
-
-    /** generates a new instance.
-     *
-     * @param model    a model
-     * @param implicationDAG an implication graph (or null)
-     */
-    public EquivalenceClasses(Model model, ImplicationDAG implicationDAG) {
-        this.model = model;
-        this.implicationDAG = implicationDAG;
-        this.predicates = model.predicates;}
-
-
-    /** initialises the classes at first usage.*/
-    private void initialize() {
-        if(equivalenceClasses == null) {
-            equivalenceClasses = new ClauseList(5,predicates);
-            replacements = new HashMap<>();}
-    }
+    public EquivalenceClasses(BiConsumer<int[],Integer> contradictionHandler) {
+        this.contradictionHandler = contradictionHandler;}
 
     /** checks if there are equivalence classes
      *
      * @return true if there are no equivalence classes
      */
     public boolean isEmpty() {
-        return equivalenceClasses == null || equivalenceClasses.isEmpty();}
+        return equivalenceClasses == null;}
 
 
-    /** turns a basicClause into an equivalence class. <br>
-     * A true literal causes all other literals to become true <br>
-     * A false literal causes all other literals to become false <br>
-     * p &lt;=&gt; -p is a contradiction.<br>
-     * A double literal p,p is ignored.<br>
-     * p,q,r and p -&gt; not r  causes all literals to become false.<br>
-     * The corresponding observers are called.
+    /** is used to sort literals according to their absolute value */
+    private static Comparator<Integer> absComparator = (lit1,lit2)-> Integer.compare(Math.abs(lit1),Math.abs(lit2));
+
+    /** turns a basicClause into an equivalence class.
+     * Overlapping classes are joined.
+     * The classes are sorted according to the absolute value of the literals.
+     * The smallest predicate number becomes the representative of the class.
      *
      * @param basicClause [clause-problemId,typenumber,literal1,...]
      */
-    public void addEquivalenceClass(int[] basicClause) {
+    public boolean addEquivalenceClass(int[] basicClause) {
         assert basicClause.length > 2;
-        if(basicClause.length == 3) {return;}
-        initialize();
-        String id = "E"+basicClause[0];
-        for(int i = 2; i < basicClause.length; ++i) {
-            int literal = mapToRepresentative(basicClause[i]);
-            if(model.isTrue(literal)) {
-                for(int j = 2; j < basicClause.length; ++j) {
-                    if(i != j) {reportTrueLiteral(mapToRepresentative(basicClause[j]));}}
-                return;}
+        if(basicClause.length == 3) {return true;}
+        if(equivalenceClasses == null) {
+            equivalenceClasses = new ArrayList<ArrayList<Integer>>();
+            replacements = new HashMap<>();}
+        ArrayList<Integer> eqClass  = new ArrayList<Integer>(basicClause.length-2);
+        for(int i = 2; i < basicClause.length; ++i) {eqClass.add(basicClause[i]);}
+        eqClass.sort(absComparator);
+        ArrayList<Integer> oldClass = eqClass;
+        eqClass = joined(eqClass,basicClause);
+        if(eqClass == null) {return false;}
+        if(eqClass == oldClass) {equivalenceClasses.add(eqClass);}
+        int representative = eqClass.get(0);
+        for(int i = 1; i < eqClass.size(); ++i) {
+            replacements.put(eqClass.get(i),representative);
+            replacements.put(-eqClass.get(i),-representative);}
+        return true;}
 
-            if(model.isFalse(literal)) {
-                for(int j = 2; j < basicClause.length; ++j) {
-                    if(i != j) {reportTrueLiteral(-mapToRepresentative(basicClause[j]));}}
-                return;}}
-
-        int representative = basicClause[2];
-        for(int i = 3; i < basicClause.length; ++i) {addEquivalence(id,representative,basicClause[i]);}}
-
-
-    /** joins a new equivalence to the classes.<br>
-     * If one of the literals is already in an equivalence class, the other literal becomes also a  member of this class,
-     * otherwise a new class is formed.
+    /** joins overlapping classes if necessary
      *
-     * @param id       for identifying a new class
-     * @param literal1 a literal
-     * @param literal2 a literal
-     * @return an equivalence class or null
+     * @param eqClass a new equivalence class
+     * @return either eqClass, or the class to which the class has been joined.
      */
-    public Clause addEquivalence(String id, int literal1, int literal2) {
-        initialize();
-        literal1 = mapToRepresentative(literal1);
-        literal2 = mapToRepresentative(literal2);
-        if(literal1 == literal2) {return null;}
-        if(literal1 == -literal2) {reportUnsatisfiable(literal1,literal2); return null;}
-
-        Clause eqClass = null;
-        int representative = literal1;
-        int literal = literal2;
-        PriorityQueue<CLiteral> classes = equivalenceClasses.getLiterals(literal1);
-        if(!classes.isEmpty()) {eqClass = classes.peek().clause;}
-        else {
-            classes = equivalenceClasses.getLiterals(literal2);
-            if(!classes.isEmpty()) {
-                representative = literal2; literal = literal1;
-                eqClass = classes.peek().clause;}
-            else {eqClass = new Clause(id,2);
-                eqClass.addCLiteralDirectly(new CLiteral(representative));
-                equivalenceClasses.addClause(eqClass);}}
-
-        eqClass.addCLiteralDirectly(new CLiteral(literal));
-        if(implicationDAG != null) {
-            for(CLiteral cLiteral : eqClass.cliterals) {
-                if(implicationDAG.implies(cLiteral.literal,-literal)) {makeClassFalse(eqClass); return null;}}}
-        addReplacement(literal,representative);
-        for(BiConsumer<Integer,Integer> observer : equivalenceObservers) {observer.accept(representative,literal);}
-        return eqClass;
-    }
-
-    /** This method is used to add an equivalence class which has been derived in the Implication DAG.<br>
-     *  None of the literals is supposed to be true or false.
-     *  One of the literals, however, may already be in another equivalence class.
-     *
-     * @param equivalents equivalent literals
-     * @return a new equivalence clause.
-     */
-    public Clause addEquivalence(int[] equivalents) {
-        int representative = equivalents[0];
-        if(representative < 0) {
-            representative *= -1;
-            for(int i = 0; i < equivalents.length; ++i) {equivalents[i] *= -1;}}
-        String id = "E"+representative;
-        Clause eqClass = null;
-        for(int i = 1; i < equivalents.length;++i) {
-            eqClass = addEquivalence(id,representative,equivalents[i]);}
+    private ArrayList<Integer> joined(ArrayList<Integer> eqClass,int[] basicClause) {
+        for(int literal : eqClass) {
+            for(ArrayList<Integer> otherClass : equivalenceClasses) {
+                for(int otherLiteral : otherClass) {
+                    if(literal == otherLiteral) {
+                        int contradicts = joinClass(otherClass,eqClass,true);
+                        if(contradicts != 0) {
+                            contradictionHandler.accept(basicClause,contradicts);
+                            return null;}
+                        return otherClass;}
+                    if(literal == -otherLiteral) {
+                        int contradicts = joinClass(otherClass,eqClass,false);
+                        if(contradicts != 0) {
+                            contradictionHandler.accept(basicClause,contradicts);
+                            return null;}
+                        return otherClass;}}}}
         return eqClass;}
 
-
-
-    /** updates the replacements hash table
+    /** joins two overlapping classes
      *
-     * @param literal        any class memeber
-     * @param representative its representative in the class
+     * @param otherClass  a previously inserted class
+     * @param eqClass     the new class
+     * @param positive    if true then the two classes joined a literal directly, otherwise they joined complementary literals
+     * @return            0 or a predicate p with p equivalent -p
      */
-    private void addReplacement(int literal, int representative) {
-        replacements.put(literal,representative);
-        replacements.put(-literal,-representative);
-    }
+    private int joinClass(ArrayList<Integer> otherClass, ArrayList<Integer> eqClass, boolean positive) {
+        int oldRepresentative = otherClass.get(0);
+        if(positive) {
+            for(Integer literal : eqClass) {
+                if(!otherClass.contains(literal)) {otherClass.add(literal);}}}
+        else  {
+            for(Integer literal : eqClass) {
+                if(!otherClass.contains(-literal)) {otherClass.add(-literal);}}}
+        otherClass.sort(absComparator);
+        for(int i = 0; i < otherClass.size()-1; ++i) {
+            if((int)otherClass.get(i) == -(int)otherClass.get(i+1)) {return Math.abs(otherClass.get(i));}}
+        return 0;}
+
+
 
     /** maps literals to their representative in the equivalence class.
      *
@@ -187,82 +109,51 @@ public class EquivalenceClasses {
      * @return either the literal itself, or its representative.
      */
     public int mapToRepresentative(int literal) {
+        if(replacements == null) {return literal;}
         Integer replaced = replacements.get(literal);
         return (replaced == null) ? literal : replaced;}
 
-    /** all members of the class become false literals.
-     * The trueLiteralObservers are called.
-     *
-     * @param eqClass an equivalence class
-     */
-    private void makeClassFalse(Clause eqClass) {
-        for(CLiteral cLiteral: eqClass.cliterals) {
-            reportTrueLiteral(-cLiteral.literal);
-            replacements.remove(cLiteral.literal);
-            replacements.remove(-cLiteral.literal);}
-        equivalenceClasses.removeClause(eqClass);}
 
     /** completes a model by the equivalence classes.
-     *
+     * If the representative of a class has a truth value then all other literals get the same value.
      */
-    public void completeModel() {
-        if(equivalenceClasses == null) {return;}
-        int status;
-        for(Clause eqClass : equivalenceClasses.getClauses(0)) {
-            boolean allUndefined = true;
-            for(CLiteral clit : eqClass.cliterals) {
-                if(model.status(clit.literal) != 0) {allUndefined = false; break;}}
-            if(allUndefined) {
-                for(CLiteral clit : eqClass.cliterals) {
-                    model.add(clit.literal);}}
-            else {
-                for(CLiteral clit : eqClass.cliterals) {
-                    status = model.status(clit.literal);
-                    if(status != 0) {
-                        for(CLiteral clit1 : eqClass.cliterals) {model.setStatus(clit1.literal,status);}}
-                        break;}}}}
+    public void completeModel(Model model) {
+        for(ArrayList<Integer> eqClass : equivalenceClasses) {
+            int representative = eqClass.get(0);
+            int status = model.status(representative);
+            if(status == 0) {continue;}
+            for(int literal : eqClass) {model.setStatus(literal,status);}}}
 
-
-    /** calls all trueLiteralObservers
+    /** maps a literal to a string, possibly via a symboltable
      *
-     * @param literal a true literal
+     * @param literal     a literal
+     * @param symboltable a symboltable or null
+     * @return the literal as string
      */
-    private void reportTrueLiteral(int literal) {
-        for(Consumer<Integer> observer : trueLiteralObservers) {observer.accept(literal);}}
+    private String toStringSt(Integer literal, Symboltable symboltable) {
+        if(symboltable == null) {return literal.toString();}
+        return symboltable.getLiteralName(literal);}
 
-    /** calls all unsatisfiabilityObservers with an Unsatisfiable object.
-     * This may be caused by an equivalence p = -p
-     *
-     * @param literal1 a literal
-     * @param literal2 its negation.
-     */
-    private void reportUnsatisfiable(int literal1 , int literal2) {
-        for(Consumer<Unsatisfiable> observer : unsatisfiabilityObservers) {
-            observer.accept(new Unsatisfiable("Equivalence " + literal1 + " = " +literal2 + " is false."));}}
 
-    /** lists all equivalence classes
-     *
-     * @return all equivalence classes as string
-     */
-    public String toString() {return toString(null);}
-
-    /** lists all equivalence classes
+    /** lists all equivalence classes and the replacements
      *
      * @param symboltable a symboltable
      * @return all equivalence classes as string
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        if(equivalenceClasses != null) {
-            st.append("Equivalence Classes:\n" + equivalenceClasses.toString(symboltable)).append("\n");}
-        if(!replacements.isEmpty()) {
-            st.append("Replacements:\n");
+        if(equivalenceClasses.isEmpty()) {return "";}
+        st.append("Equivalence Classes:\n");
+        for(ArrayList<Integer> eqClass : equivalenceClasses) {
+            st.append(toStringSt(eqClass.get(0),symboltable)).append (" = ");
+            for(int i = 1; i < eqClass.size()-1; ++i) {st.append(toStringSt(eqClass.get(i),symboltable)).append(" = ");}
+            st.append(toStringSt(eqClass.get(eqClass.size()-1),symboltable)).append("\n");}
+        st.append("Replacements:\n");
             for(Map.Entry entry : replacements.entrySet()) {
-                Integer from = (Integer)entry.getKey();
-                Integer to = (Integer)entry.getValue();
-                if(symboltable != null) {
-                    st.append(symboltable.getLiteralName(from)).append(" -> ").append(symboltable.getLiteralName(to)).append("\n");}
-                else{st.append(from).append(" -> ").append(to).append("\n");}}}
+                st.append(toStringSt((Integer)entry.getKey(),symboltable)).
+                        append(" -> ").
+                        append(toStringSt((Integer)entry.getValue(),symboltable)).
+                        append("\n");}
         return st.toString();}
 
 }

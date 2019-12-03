@@ -1,13 +1,15 @@
 package Solvers;
 
-import Coordinator.CentralProcessor;
-import Coordinator.Processor;
-import Coordinator.Tasks.Task;
+import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
-import Datastructures.Statistics.CentralProcessorStatistics;
-import Datastructures.Theory.ImplicationNode;
+import Datastructures.Statistics.Statistic;
+import Datastructures.Symboltable;
+import Datastructures.Theory.Model;
+import Management.GlobalParameters;
+import Management.Monitor;
+import Management.ProblemSupervisor;
 import Solvers.RandomWalker.WalkerCommunicative;
 import Solvers.RandomWalker.WalkerIsolated;
 
@@ -15,13 +17,15 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /** This is the superclass of all solver classes.
+ * Its static methods maintain information about all solver classes
+ *
+ * Its instance methods proved the interface to the ProblemSupevisor.
+ *
  * Created by ohlbach on 09.10.2018.
  */
-public abstract class Solver extends Processor {
+public abstract class Solver {
 
     /* Static data and methods
        *********************** */
@@ -42,11 +46,11 @@ public abstract class Solver extends Processor {
     /** maps the solver names to the solver classes.
      * This method must be extended when a new solver class is added.
      *
-     * @param name a solver name
+     * @param solverName a solver name
      * @return the solver class, or null
      */
-    public static Class solverClass(String name) {
-        switch (name) {
+    public static Class solverClass(String solverName) {
+        switch (solverName) {
             case "walker isolated":      return WalkerIsolated.class;
             case "walker communicative": return WalkerCommunicative.class;
             case "resolution":           return Solvers.Resolution.Resolution.class;
@@ -66,12 +70,12 @@ public abstract class Solver extends Processor {
 
     /** returns the help-string for the generator with the given name
      *
-     * @param name a generator name
+     * @param solverName a solver name
      * @return its help-string
      */
-    public static String help(String name) {
-        Class clazz = solverClass(name);
-        if(clazz == null) {return "Unknown Solver Class: " +name;}
+    public static String help(String solverName) {
+        Class clazz = solverClass(solverName);
+        if(clazz == null) {return "Unknown Solver Class: " +solverName;}
         try{
             Method helper = clazz.getMethod("help");
             return (String)helper.invoke(null);}
@@ -81,16 +85,16 @@ public abstract class Solver extends Processor {
 
     /** parses the string-type parameters into sequences of objects
      *
-     * @param name       the generator name
+     * @param solverName       the solver name
      * @param parameters a key-value map with parameters as strings
      * @param errors     for collecting error messages
      * @param warnings   for collecting warning messages
      * @return           a list of key-value maps where the values are objects.
      */
-    public static ArrayList<HashMap<String,Object>> parseParameters(String name, HashMap<String,String> parameters,
+    public static ArrayList<HashMap<String,Object>> parseParameters(String solverName, HashMap<String,String> parameters,
                                                                     StringBuffer errors, StringBuffer warnings) {
-        Class clazz = solverClass(name);
-        if(clazz == null) {errors.append("Unknown solver class: " + name+"\n"); return null;}
+        Class clazz = solverClass(solverName);
+        if(clazz == null) {errors.append("Unknown solver class: " + solverName+"\n"); return null;}
         try{
             Method parser = clazz.getMethod("parseParameters",HashMap.class,StringBuffer.class, StringBuffer.class);
             return (ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings);}
@@ -99,102 +103,87 @@ public abstract class Solver extends Processor {
 
     /** constructs a new solver of the given type
      *
-     * @param type             the solver type
+     * @param solverName       the solver name
      * @param solverParameters a key-value map with parameters as strings
-     * @param centralProcessor the central processor
+     * @param problemSupervisor the central processor
      * @return           a new solver
      */
-    public static Solver construct(String type,HashMap<String,Object> solverParameters, CentralProcessor centralProcessor) {
-        Class clazz = solverClass(type);
+    public static Solver construct(String solverName, int solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
+        Class clazz = solverClass(solverName);
         try{
-            Constructor constructor = clazz.getConstructor(HashMap.class,CentralProcessor.class);
-            return (Solver)constructor.newInstance(solverParameters,centralProcessor);}
+            Constructor constructor = clazz.getConstructor(Integer.class,HashMap.class,ProblemSupervisor.class);
+            return (Solver)constructor.newInstance(solverNumber,solverParameters,problemSupervisor);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
 
 
-    /* Instance data and methods
+    /** Instance data and methods
        *************************  */
 
-    /** all solvers can report intermediate results to the centralProcess, and observe new results there.*/
-    protected CentralProcessor centralProcessor;
+    public String solverId;
 
-    protected boolean debug1 = false;
-    protected boolean debug2 = false;
+    public String problemId;
+
+    public String combinedId;
+
+    public Monitor monitor;
+    protected boolean monitoring;
+
+    /** the supervisor which coordinates the work of all solvers or a given problem */
+    protected final ProblemSupervisor problemSupervisor;
+
+    protected GlobalParameters globalParameters;
+
+    /** all control parameters for the solvers */
+    protected final HashMap<String,Object> solverParameters;
+
+    protected final BasicClauseList basicClauseList;
+
+    protected final int predicates;
+
+    protected Model model;
+
+    protected final Symboltable symboltable;
+
+
+
 
     /** constructs a solver as an instance of the Processor class.
      *
-     * @param solverParameters    the control parameters for the solver
-     * @param centralProcessor the central processor.
+     * @param solverNumber       to distinguish different solvers of the same type, but different parameters,
+     * @param solverParameters   the control parameters for the solver
+     * @param problemSupervisor the central processor.
      */
-    public Solver(HashMap<String,Object> solverParameters, CentralProcessor centralProcessor) {
-        super((String)solverParameters.get("name"),centralProcessor.supervisor,solverParameters,centralProcessor.basicClauseList);
-        this.centralProcessor = centralProcessor;}
+    public Solver(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
+        this.solverParameters = solverParameters;
+        this.problemSupervisor = problemSupervisor;
+        solverId = (String)solverParameters.get("solverId");
+        problemId = problemSupervisor.problemId;
+        combinedId = problemId+"@"+solverId + ":" + solverNumber;
+        globalParameters = problemSupervisor.globalParameters;
+        basicClauseList = problemSupervisor.basicClauseList;
+        predicates = basicClauseList.predicates;
+        symboltable = basicClauseList.symboltable;
+        monitor = globalParameters.monitor;
+        monitoring = monitor.monitoring;
+        if(monitoring) {
+            monitor.addThread(combinedId,"Monitor for problem " + problemId + " and solver " + solverId);}}
 
-    public Solver() {
-        super();}
 
-
-    /** This observer is called when a literal has become true.
-     * It inserts a TrueLiteral task into centralProcessor's task queue.
+    /** This method is called when another solver found a new true literal.
+     *  It should be overwritten in the solver classes, because otherwise this important information is lost.
+     *
+     * @param literal a new true literal
      */
-    protected Consumer<Integer> trueLiteralObserverToCentral =
-            literal -> {centralProcessor.addTask(new Task.TrueLiteral(literal,centralProcessor));
-                ((CentralProcessorStatistics)centralProcessor.statistics).CP_UnitClausesReceived++;};
+    public void newTrueLiteral(int literal) {}
 
-    /** This observer is called when a new implication is inserted into the implicationDAG
-     *  It inserts BinaryClause tasks locally and in the centralProcessor's task queue.
+    /** This method is called when another solver found a new binary clause.
+     * It need be overwritten in the solver class when it uses implication DAGs.
+     *
+     * @param literal1 the first literal of the clause
+     * @param literal2 the second literal of the clause
      */
-    protected BiConsumer<ImplicationNode,ImplicationNode> implicationObserverBoth =
-            (from, to) -> {addTask(new Task.BinaryClause(-from.literal,to.literal,this));
-                centralProcessor.addTask(new Task.BinaryClause(-from.literal,to.literal,centralProcessor));
-                ((CentralProcessorStatistics)centralProcessor.statistics).CP_ImplicationsReceived++;};
-
-    /** This observer is called when a new equivalence class is derived in the implicationDAG
-     *  It inserts Equivalence tasks locally and in the centralProcessor's task queue.
-     */
-    protected Consumer<int[]> equivalenceObserverBoth =
-            equivalence -> {addTask(new Task.Equivalence(equivalence,this));
-                centralProcessor.addTask(new Task.Equivalence(equivalence,centralProcessor));
-                ((CentralProcessorStatistics)centralProcessor.statistics).CP_EquivalencesReceived++;};
-
-    /** This observer is called when a literal is removed from a clause.
-     *  It inserts a task locally and a LiteralRemoval task in the centralProcessor's task queue.
-     */
-    protected Consumer<CLiteral<Clause>> literalRemovalObserverBoth =
-            cLiteral    -> {
-                Clause clause = cLiteral.clause;
-                addTask(makeShortenedClauseTask(clause,this));
-                if(clause.input)
-                    centralProcessor.addTask(new Task.LiteralRemoval(clause.id,cLiteral.literal,centralProcessor));
-                    ((CentralProcessorStatistics)centralProcessor.statistics).CP_ShortenedClausesReceived++;};
-
-    /** This method adds observers to the local process and the centralProcessor.
-     * The centralProcessor is observed and may insert tasks in the local task queue
-     */
-    protected void addObservers() {
-        // these observers cause local tasks to be generated
-        centralProcessor.model.addTrueLiteralObserver(trueLiteralObserver);
-        centralProcessor.implicationDAG.addImplicationObserver(implicationObserver);
-        centralProcessor.implicationDAG.addEquivalenceObserver(equivalenceObserver);
-
-        model.addTrueLiteralObserver(trueLiteralObserverToCentral);
-        clauses.addLiteralRemovalObserver(literalRemovalObserverBoth);
-        clauses.addPurityObserver(purityObserver);
-        implicationDAG.addTrueLiteralObserver(trueLiteralObserver);
-        implicationDAG.addImplicationObserver(implicationObserverBoth);
-        implicationDAG.addEquivalenceObserver(equivalenceObserverBoth);}
-
-    /** This method removes the observers from the centralProcessor.
-     *  The local observer automatically become garbage at the end.
-     */
-    protected void removeObservers() {
-        centralProcessor.model.removeTrueLiteralObserver(trueLiteralObserver);
-        centralProcessor.implicationDAG.removeImplicationObserver(implicationObserver);
-        centralProcessor.implicationDAG.removeEquivalenceObserver(equivalenceObserver);
-    }
-
-    public abstract Task nextTask();
+    public void newBinaryClause(int literal1, int literal2) {}
 
 
     /** The key method, which has to be implemented by the solvers.
@@ -204,6 +193,26 @@ public abstract class Solver extends Processor {
      */
     public abstract Result solve();
 
+    public abstract Statistic getStatistics();
+
+
+    /** This method checks if all literals are true or all literals are false in a model
+     *
+     * @param clause  a clause
+     * @param model   a model
+     * @return +1 if all literals are true, -1 if all literals are false, otherwise 0.
+     */
+    public int statusInModel(Clause clause, Model model) {
+        int trueLiterals = 0;
+        int falseLiterals = 0;
+        for(CLiteral cliteral : clause) {
+            int status = model.status(cliteral.literal);
+            if(status == 1) {++trueLiterals; continue;}
+            if(status == 0) {++falseLiterals;}}
+        int size = clause.size();
+        if(trueLiterals == size) {return 1;}
+        if(falseLiterals == size) {return -1;}
+        return 0;}
 
 
 
