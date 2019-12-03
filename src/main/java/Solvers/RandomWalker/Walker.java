@@ -28,7 +28,7 @@ import java.util.*;
  *
  * Created by ohlbach on 16.05.2019.
  */
-public abstract class Walker extends Solver {
+public abstract class Walker  {
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
@@ -103,23 +103,23 @@ public abstract class Walker extends Solver {
     /** constructs a Walker and initializes some parameters.
      *
      * @param applicationParameters maps keywords to values
-     * @param centralProcessor  controls the processing
      */
-    public Walker(HashMap<String,Object> applicationParameters, CentralProcessor centralProcessor) {
+    /*public Walker(HashMap<String,Object> applicationParameters, CentralProcessor centralProcessor) {
         super(applicationParameters,centralProcessor);
         this.centralProcessor = centralProcessor;
         implicationDAG = centralProcessor.implicationDAG;
         initializeWalker(centralProcessor.predicates,applicationParameters,centralProcessor.model,centralProcessor.clauses.clone());}
-
+*/
+/*
     public Walker(int predicates, HashMap<String,Object> applicationParameters, Model model, ClauseList clauses) {
         super();
         this.applicationParameters = applicationParameters;
         implicationDAG = centralProcessor.implicationDAG;
-        initializeWalker(predicates, applicationParameters, model, clauses);}
+        initializeWalker(predicates, applicationParameters, model, clauses);}*/
 
 
     private void initializeWalker(int predicates, HashMap<String,Object> applicationParameters, Model model, ClauseList clauses) {
-        this.predicates = predicates;
+      /*  this.predicates = predicates;
         maxFlips      = (Integer)applicationParameters.get("flips");
         jumpFrequency = (Integer)applicationParameters.get("jumps");
         random        = new Random((Integer)applicationParameters.get("seed"));
@@ -135,15 +135,16 @@ public abstract class Walker extends Solver {
                     int f1 = flipScores[l1];
                     int f2 = flipScores[l2];
                     if(f1 > f2) {return -1;}
-                    return(f1 < f2) ? 1 : 0;}));
+                    return(f1 < f2) ? 1 : 0;}));*/
     }
 
     /** initializes the flipScores, the false Clauses and the affected predicates
      * A flipScore for a predicate, say 5, is a number n if flipping its truth value makes n clauses more true than false
      */
-    public void initializeScores() {
+    public void initializeScores() {/*
         for(Clause clause : clauses.getClauses(0)) {
-            updateClauseScore(clause,1);}}
+            updateClauseScore(clause,1);}*/
+    }
 
     /** adds the given score to the predicate's score and updates the predicateQueue
      *
@@ -162,7 +163,7 @@ public abstract class Walker extends Solver {
      *
      * @return the Result, either Satisfiable, Aborted or Erraneous.
      */
-    public Result solve() {
+    public Result solve() {/*
         if(centralProcessor != null) {
             centralProcessor.globalParameters.log(getClass().getSimpleName() + " " + id + " starting at problem " + problemId);}
         long start = System.currentTimeMillis();
@@ -199,7 +200,9 @@ public abstract class Walker extends Solver {
         finally{
             supervisor.finished(result, id, problemId, message);
             statistics.elapsedTime = System.currentTimeMillis()-start;}
-        return result;}
+        return result;
+        */
+    return null;}
 
 
 
@@ -224,7 +227,7 @@ public abstract class Walker extends Solver {
      *
      * @param predicate to be flipped
      */
-    public void flipPredicate(int predicate) {
+    public void flipPredicate(int predicate) {/*
         for(CLiteral cliteral : clauses.literalIndex.getLiterals(predicate)) {
             updateClauseScore(cliteral.clause,-1);}
         for(CLiteral cliteral : clauses.literalIndex.getLiterals(-predicate)) {
@@ -233,7 +236,8 @@ public abstract class Walker extends Solver {
         for(CLiteral cliteral : clauses.literalIndex.getLiterals(predicate)) {
             updateClauseScore(cliteral.clause,1);}
         for(CLiteral cliteral : clauses.literalIndex.getLiterals(-predicate)) {
-            updateClauseScore(cliteral.clause,1);}}
+            updateClauseScore(cliteral.clause,1);}
+    */}
 
 
     /** updates the flipScore for a given clause.
@@ -286,7 +290,7 @@ public abstract class Walker extends Solver {
         return predicate;}
 
 
-
+/*
 
     public String toString() {
         StringBuilder st = new StringBuilder();
@@ -308,6 +312,7 @@ public abstract class Walker extends Solver {
         return st.toString();
 
     }
+    */
 
 
 }

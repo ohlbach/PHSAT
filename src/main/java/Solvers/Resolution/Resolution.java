@@ -188,7 +188,7 @@ public class Resolution extends Solver {
             simplifyForward(resolvent);
             insertClause(resolvent,isPrimary(resolvent,false));
             result = taskQueue.run();
-            if(result != null){return result;}
+            if(result != null){return result;}}
         return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");}
 
     void selectParentLiterals(CLiteral[] parentLiterals) {

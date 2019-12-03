@@ -17,12 +17,12 @@ import java.util.stream.Stream;
  */
 public class Algorithms {
 
-
+/*
     public static ArrayList<CLiteral<Clause>> subsumedAndResolved(ArrayList<CLiteral<Clause>> clause, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
         if(subsumed(clause,literalIndex,implicationDAG) != null) {return null;}
         return resolved(clause,literalIndex,implicationDAG);
     }
-
+*/
     /** checks if the clause can be subsumed.
      *
      * @param literals       the clause to be checked
@@ -30,7 +30,7 @@ public class Algorithms {
      * @param implicationDAG the implication DAG
      * @return               a subsumer clause or null
      */
-    public static Clause subsumed(ArrayList<CLiteral<Clause>> literals, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
+  /*  public static Clause subsumed(ArrayList<CLiteral<Clause>> literals, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
         int size = literals.size();
         int timestamp = literalIndex.timestamp + 1;
         literalIndex.timestamp += size+2;
@@ -49,7 +49,7 @@ public class Algorithms {
                                 return otherClause;}}
                             return null;}));
             if(subsumer != null) {return subsumer;}}
-        return null;}
+        return null;} */
 
     private static int[] dummy = new int[]{0};
 
@@ -62,7 +62,7 @@ public class Algorithms {
      * @param implicationDAG the implication DAG
      * @return               the possibly shortened clause
      */
-    public static ArrayList<CLiteral<Clause>> resolved(ArrayList<CLiteral<Clause>> clause, LiteralIndex<Clause> literalIndex,  ImplicationDAG implicationDAG) {
+   /* public static ArrayList<CLiteral<Clause>> resolved(ArrayList<CLiteral<Clause>> clause, LiteralIndex<Clause> literalIndex,  ImplicationDAG implicationDAG) {
         int timestamp = literalIndex.timestamp+1;
         int[] maxTimestamp = new int[]{timestamp};
         for(CLiteral<Clause> clit1 : clause) {
@@ -84,7 +84,7 @@ public class Algorithms {
                 clause.remove(clit1);
                 literalIndex.timestamp = maxTimestamp[0]+1;
                 return clause.size() > 1 ? resolved(clause,literalIndex,implicationDAG) : clause;}}
-        return clause;}
+        return clause;}*/
 
     /** finds all clauses which are subsumed by the given clause(with the implication graph).<br>
      *
@@ -93,7 +93,7 @@ public class Algorithms {
      * @param implicationDAG   the implication graph
      * @return the list of subsumed clauses, or null, if there are none of them.
      */
-    public static ArrayList<Clause> subsume(Clause clause, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
+  /*  public static ArrayList<Clause> subsume(Clause clause, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
         int size = clause.size();
         int timestamp = literalIndex.timestamp+1;
         literalIndex.timestamp += size+1;
@@ -110,7 +110,7 @@ public class Algorithms {
                         subsumed.add(otherClause);
                         otherClause.timestamp = 0;}
                     else {++otherClause.timestamp;}}}));}
-        return subsumed.isEmpty() ? null : subsumed;}
+        return subsumed.isEmpty() ? null : subsumed;}*/
 
 
     /** finds all literals for replacement resolution with the given clause(with the implication graph).<br>
@@ -120,7 +120,7 @@ public class Algorithms {
      * @param implicationDAG the implication graph
      * @return the literals to be resolved, or null if there are none.
      */
-    public static ArrayList<CLiteral<Clause>> resolve(Clause clause, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
+    /*public static ArrayList<CLiteral<Clause>> resolve(Clause clause, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
         int size = clause.size();
         int size1 = size-1;
         int timestamp = literalIndex.timestamp+1;
@@ -138,7 +138,7 @@ public class Algorithms {
                 for(CLiteral<Clause> clit2 : literalIndex.getLiterals(-literal2)) {
                     if(clit2.timestamp < timestamp && clit2.clause.timestamp -timestamp == size - 2) {
                         toBeResolved.add(clit2);}}}));}
-        return toBeResolved.isEmpty() ? null : toBeResolved;}
+        return toBeResolved.isEmpty() ? null : toBeResolved;}*/
 
 
     /** checks if the clause is subsumed by the implication DAG
@@ -187,7 +187,7 @@ public class Algorithms {
      * @param implicationDAG  the implication DAG
      * @return  null or [subsumption clauses (ArrayList, resolution literals (TreeSet)}
      */
-    public static Object[] simplifyWithImplication(int from, int to, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
+    /*public static Object[] simplifyWithImplication(int from, int to, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
         ArrayList<Clause> subsumed = new ArrayList<>();
         int timestamp = literalIndex.timestamp;
         ++literalIndex.timestamp;
@@ -209,7 +209,7 @@ public class Algorithms {
                 if(lit.clause.timestamp == timestamp) {toBeResolved.add(lit);}}}));
         return(!subsumed.isEmpty() || !toBeResolved.isEmpty()) ? new Object[]{subsumed,toBeResolved} : null;}
 
-
+*/
 
 
 }

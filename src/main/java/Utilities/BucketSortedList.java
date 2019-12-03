@@ -5,7 +5,7 @@ import java.util.Iterator;
 import java.util.Random;
 import java.util.function.Function;
 
-/** This class can store items according to an attribute 'bucket' (&ge; 0).
+/** This class can store items according to an integer attribute 'bucket' (&ge; 0).
  * Created by ohlbach on 08.06.2019.
  *
  * For each bucket a separate ArrayList is created. The items with this bucket are stored (unsorted) in this list.
@@ -13,8 +13,8 @@ import java.util.function.Function;
  * implement the Positioned interface.
  *
  * Example for the application of this class: <br>
- *     Literal occurrences contained in clauses are sorted according to the clause length.
- *     Literal occurrences in shorter clauses come before their occurrence in longer clauses.
+ *     - Literal occurrences contained in clauses are sorted according to the clause length. <br>
+ *     - Literal occurrences in shorter clauses come before their occurrence in longer clauses.
  *
  */
 public class BucketSortedList<T extends Positioned> implements Iterable<T> {
@@ -123,7 +123,7 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      * @return true if there are no items in the bucket
      */
     public boolean isEmpty() {
-        return buckets.isEmpty();}
+        return size() == 0;}
 
     /** counts the number of items in the buckets
      *

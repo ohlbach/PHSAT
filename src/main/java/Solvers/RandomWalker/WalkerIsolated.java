@@ -15,7 +15,7 @@ import java.util.TreeSet;
 /**
  * Created by ohlbach on 16.05.2019.
  */
-public class WalkerIsolated extends Walker{
+public class WalkerIsolated {
 
     /** parses a HashMap with key-value pairs<br>
      *
@@ -30,7 +30,7 @@ public class WalkerIsolated extends Walker{
     public static String help() {
         return Walker.help();}
 
-    public WalkerIsolated(HashMap<String,Object> applicationParameters, CentralProcessor centralProcessor) {
+   /* public WalkerIsolated(HashMap<String,Object> applicationParameters, CentralProcessor centralProcessor) {
         super(applicationParameters,centralProcessor);
         addImplications(); // now centralProcessor may change its clauses
     }
@@ -40,13 +40,13 @@ public class WalkerIsolated extends Walker{
         this.implicationDAG = implicationDAG;
         addImplications();}
 
-
+*/
         /** turns the implications in the implication dag back to two-literal clauses.
          * From now on WalkerIsolated works without further communication with the rest.
          */
 
     void addImplications() {
-        if(implicationDAG == null || implicationDAG.isEmpty()) {return;}
+       /* if(implicationDAG == null || implicationDAG.isEmpty()) {return;}
         TreeSet<Pair<Integer,Integer>> pairs = new TreeSet<Pair<Integer,Integer>>();
         implicationDAG.applyToRoots((literal1 -> {
             implicationDAG.apply(literal1,true,
@@ -61,7 +61,7 @@ public class WalkerIsolated extends Walker{
             Clause clause = new Clause("P_"+counter++,2);
             clause.addCLiteralDirectly(new CLiteral(pair.getLeft()));
             clause.addCLiteralDirectly(new CLiteral(pair.getRight()));
-            clauses.addClause(clause);}}
+            clauses.addClause(clause);}*/}
 
 
 
@@ -71,28 +71,28 @@ public class WalkerIsolated extends Walker{
      * A predicate becomes true if it occurs in more (&ge;) clauses than its negation.
      */
     public void initializeModel() {
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
+        /*for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(rwModel.status[predicate] == 0) {
                 int sizep = clauses.getLiterals(predicate).size();
                 int sizen = clauses.getLiterals(-predicate).size();
                 if(sizep == 0 && sizen == 0) {continue;}
-                rwModel.status[predicate] = (byte)(sizep >= sizen ? 1 : -1);}}}
+                rwModel.status[predicate] = (byte)(sizep >= sizen ? 1 : -1);}}*/}
 
 
     /** flips the truth value of the predicate and updates the predicateQueue and the falseClauses list
      *
      * @param predicate to be flipped
      */
-    public void flip(int predicate) {
+    public void flip(int predicate) {/*
         ++((WalkerStatistics)statistics).RW_flips;
-        flipPredicate(predicate);}
+        flipPredicate(predicate);*/}
 
     /** adds (change = +1) or removes (change = -1) a clause to the clause score and the falseClauses list.
      *
      * @param clause  the clause
      * @param change  +1 if the clause is to be added, -1 if it is to be removed.
      */
-    public void updateClauseScore(Clause clause, int change) {
+    public void updateClauseScore(Clause clause, int change) {/*
         int trueLiteral = 0;
         for(CLiteral lit : clause.cliterals) {
             int literal = lit.literal;
@@ -105,7 +105,7 @@ public class WalkerIsolated extends Walker{
             for(CLiteral lit : clause.cliterals) {
                 changeScore(Math.abs(lit.literal),change);}}
         else {  // clause is true and becomes false
-            changeScore(Math.abs(trueLiteral),-change);}}
+            changeScore(Math.abs(trueLiteral),-change);}*/}
 
 
 

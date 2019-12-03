@@ -64,7 +64,7 @@ public class InitializerCommunicative {
         ++timestamp;
         counter[0] = 0;
         implicationDAG.apply(literal,true,(lit-> {
-            for(CLiteral cLiteral : clauses.getLiterals(lit)){
+            for(CLiteral<Clause> cLiteral : clauses.getLiterals(lit)){
                 Clause clause = cLiteral.clause;
                 if(clause.timestamp != timestamp) {
                     clause.timestamp = timestamp;
@@ -82,7 +82,7 @@ public class InitializerCommunicative {
      * @param affectedPredicates the predicates in the false clauses.
      */
     public void initializeScores(RWModel rwModel, int[] flipScores, ArrayList<Clause> falseClauses, HashSet<Integer> affectedPredicates) {
-        for(Clause clause : clauses.getClauses(0)) {
+        /*for(Clause clause : clauses.getClauses(0)) {
             int trueLiteral = 0;
             boolean remainsTrue = false;
             for(CLiteral lit : clause.cliterals) {
@@ -105,5 +105,6 @@ public class InitializerCommunicative {
                                 affectedPredicates.add(predicate);}}
                 }));}}
             else {  // clause is true and becomes false
-                --flipScores[Math.abs(trueLiteral)];}}}
+                --flipScores[Math.abs(trueLiteral)];}}*/
+                }
 }

@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 /**
  * Created by Ohlbach on 01.09.2018.
  */
-public class WalkerCommunicative extends Walker {
+public class WalkerCommunicative {
 
 
     LiteralIndex index;
@@ -39,10 +39,10 @@ public class WalkerCommunicative extends Walker {
      * @param applicationParameters     contains the parameters for controlling the solver
      * @param centralProcessor       contains the result of parsing and initializing the problem data.
      */
-    public WalkerCommunicative(HashMap<String,Object> applicationParameters, CentralProcessor centralProcessor) {
+    /*public WalkerCommunicative(HashMap<String,Object> applicationParameters, CentralProcessor centralProcessor) {
         super(applicationParameters,centralProcessor);
         addObservers();}
-
+*/
     /** for optimizing some algorithms */
     protected int timestamp = 0;
 
@@ -56,12 +56,14 @@ public class WalkerCommunicative extends Walker {
 
 
     protected void addObservers() {
+        /*
         centralProcessor.model.addTrueLiteralObserver(trueLiteralObserver);
         centralProcessor.implicationDAG.addImplicationObserver(implicationObserver);
-        implicationDAG.addTrueLiteralObserver(trueLiteralObserver);
+        implicationDAG.addTrueLiteralObserver(trueLiteralObserver);*/
     }
 
     protected void removeObservers() {
+        /*
         centralProcessor.model.removeTrueLiteralObserver(trueLiteralObserver);
         centralProcessor.implicationDAG.removeImplicationObserver(implicationObserver);}
 
@@ -78,13 +80,13 @@ public class WalkerCommunicative extends Walker {
             if(rwModel.isFalse(literal)) {flip(predicate);}
             predicateQueue.remove(predicate);}
         trueLiterals.clear();}
-
+*/
 
     /** generates a candidate rwModel for the clauses.
      * A predicate becomes true if it occurs in more clauses than its negation.
      * The implications in the implicationDAG are taken into account.
      */
-    public void initializeModel() {
+    /*public void initializeModel() {
         implicationDAG.applyToRoots(literal -> {
             if(rwModel.status[Math.abs(literal)] == 0) {
                 int sizep = getOccurrences(literal);
@@ -98,18 +100,19 @@ public class WalkerCommunicative extends Walker {
                 int sizep = getOccurrences(predicate);
                 int sizen =  getOccurrences(-predicate);
                 if(sizep == 0 && sizen == 0) {continue;}
-                rwModel.status[predicate] = (byte)(sizep >= sizen ? 1 : -1);}}}
+                rwModel.status[predicate] = (byte)(sizep >= sizen ? 1 : -1);}}*/}
 
 
     /** flips the truth value of the given predicate together with implied predicates, if necessary.
      *
      * @param predicate to be flipped
      */
-    public void flip(int predicate) {
+    public void flip(int predicate) {/*
         ++((WalkerStatistics)statistics).RW_flips;
         if(rwModel.isTrue(predicate)) {predicate *=-1;}
         implicationDAG.apply(predicate,true,(literal -> {
-            if(rwModel.isFalse(literal)) {flipPredicate(Math.abs(literal));}}));}
+            if(rwModel.isFalse(literal)) {flipPredicate(Math.abs(literal));}}));
+            */}
 
 
 
@@ -119,7 +122,7 @@ public class WalkerCommunicative extends Walker {
      * @param clause a clause
      * @param change +1 for adding the clause, -1 for removing the clause.
      */
-    public void updateClauseScore(Clause clause, int change) {
+    public void updateClauseScore(Clause clause, int change) {/*
         int trueLiteral = 0;
         for(CLiteral lit : clause.cliterals) {
             int literal = lit.literal;
@@ -133,7 +136,7 @@ public class WalkerCommunicative extends Walker {
                 implicationDAG.apply(lit.literal,false,
                         (literal -> {if(rwModel.isFalse(literal)) {changeScore(Math.abs(literal),change);}}));}}
         else {  // clause is true and becomes false
-            changeScore(Math.abs(trueLiteral),-change);}}
+            changeScore(Math.abs(trueLiteral),-change);})*/}
 
     private int[] counter = new int[]{0};
 
@@ -143,14 +146,14 @@ public class WalkerCommunicative extends Walker {
      * @return the number of clauses containing the literal and its implied literals.
      */
     int getOccurrences(int literal) {
-        ++timestamp;
+        ++timestamp;/*
         counter[0] = 0;
         implicationDAG.apply(literal,true,(lit-> {
             for(CLiteral cLiteral : clauses.getLiterals(lit)){
                 Clause clause = cLiteral.clause;
                 if(clause.timestamp != timestamp) {
                     clause.timestamp = timestamp;
-                    ++counter[0];}}}));
+                    ++counter[0];}}}));*/
         return counter[0];}
 
 

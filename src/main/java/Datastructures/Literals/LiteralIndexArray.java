@@ -49,8 +49,7 @@ public class LiteralIndexArray<Clause> extends LiteralIndex<Clause>  {
         int size = list.size()-1;
         if(size == 0) {
             if(literal > 0) {posOccurrences[literal] = null;}
-            else            {negOccurrences[-literal] = null;}
-            signalPurity(-literal);}
+            else            {negOccurrences[-literal] = null;}}
         else {
             int position = cliteral.indexPosition;
             CLiteral<Clause> lastLiteral = list.get(size);
