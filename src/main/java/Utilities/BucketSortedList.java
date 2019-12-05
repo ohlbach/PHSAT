@@ -18,7 +18,9 @@ import java.util.function.Function;
  *
  */
 public class BucketSortedList<T extends Positioned> implements Iterable<T> {
+    /** contains the items, ordered according to the bucket index */
     private ArrayList<ArrayList<T>> buckets;
+    /** supplied by the Items class */
     private Function<T,Integer> getBucket;
 
     /** Constructs a new BucketSorted object
@@ -29,29 +31,31 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
         this.getBucket = getBucket;
         buckets = new ArrayList<ArrayList<T>>();}
 
-    /** adds a new item to the buckets
+    /** adds a new item to the end of the bucket which s determined by the getBucket method.
      *
      * @param item the item to be added
      */
     public void add(T item) {
-        int position = getBucket.apply(item);
-        buckets.ensureCapacity(position+1);
-        for(int i = buckets.size(); i <= position; ++i) {buckets.add(new ArrayList<T>());}
-        ArrayList<T> bucket = buckets.get(position);
+        int bucketIndex = getBucket.apply(item);
+        int size = buckets.size();
+        if(size <= bucketIndex) {
+            buckets.ensureCapacity(bucketIndex+1);
+            for(int i = size; i <= bucketIndex; ++i) {buckets.add(new ArrayList<T>());}}
+        ArrayList<T> bucket = buckets.get(bucketIndex);
         item.setPosition(bucket.size());
         bucket.add(item);}
 
     /** checks if the item is contained in the buckets
      *
      * @param item an item to be checked
-     * @return true if the item is contains in the buckets.
+     * @return true if the item is contained in the buckets.
      */
     public boolean contains(T item) {
-        int index = getBucket.apply(item);
-        if(index < 0 || index >= buckets.size()) {return false;}
-        ArrayList<T> bucket = buckets.get(index);
+        int bucketIndex = getBucket.apply(item);
+        if(bucketIndex < 0 || bucketIndex >= buckets.size()) {return false;}
+        ArrayList<T> bucket = buckets.get(bucketIndex);
         int position = item.getPosition();
-        if(position < 0 || position >= buckets.size()) {return false;}
+        if(position < 0 || position >= bucket.size()) {return false;}
         return item == bucket.get(position);}
 
     /** removes the item from the bucket (in constant time).
@@ -61,9 +65,9 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      * @param item the item to be removed
      */
     public void remove(T item) {
-        int bucketPosition = getBucket.apply(item);
-        if(bucketPosition  < 0 || bucketPosition >= buckets.size()) {return;}
-        ArrayList<T> bucket = buckets.get(bucketPosition);
+        int bucketIndex = getBucket.apply(item);
+        if(bucketIndex  < 0 || bucketIndex >= buckets.size()) {return;}
+        ArrayList<T> bucket = buckets.get(bucketIndex);
         int size = bucket.size();
         int itemPosition =  item.getPosition();
         if(itemPosition < 0 || itemPosition >= size || bucket.get(itemPosition) != item) {return;}
@@ -115,7 +119,7 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      */
     public ArrayList<T> getAllItems() {
         ArrayList<T> list = new ArrayList<T>(size());
-        for(ArrayList<T> items : buckets) {list.addAll(list);}
+        for(ArrayList<T> items : buckets) {list.addAll(items);}
         return list;}
 
     /** checks if the buckets are empty
@@ -139,7 +143,7 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      * @return the number of items in buckets(bucket)
      */
     public int size(int bucket) {
-        if(bucket <0 || bucket >= buckets.size()) {return 0;}
+        if(bucket < 0 || bucket >= buckets.size()) {return 0;}
         return buckets.get(bucket).size();}
 
     /** empties the bucket with the given index
@@ -168,50 +172,52 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      * @return an iterator for iterating over the items in the buckets.
      */
     public Iterator<T> iterator() {
-        return new BucketIterator();}
+        return new BucketIterator(0,buckets.size());}
 
-    /** This method generates an iterator which iterates over the items in the bucket starting with bucket[position]
+    /** This method generates an iterator which iterates over the items in the bucket starting with buckets[bucket]
      *
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> iteratorFrom(int position) {
-        return new BucketIterator(position, true);}
+    public Iterator<T> iteratorFrom(int bucket) {
+        return new BucketIterator(bucket, buckets.size());}
 
-    /** This method generates an iterator which iterates over the items in the bucket ending with bucket[position]
+    /** This method generates an iterator which iterates over the items in the bucket ending with buckets[bucket]
      *
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> iteratorTo(int position) {
-        return new BucketIterator(position, false);}
+    public Iterator<T> iteratorTo(int bucket) {
+        return new BucketIterator(0, bucket+1);}
 
     /** constructs a new BucketIterator
      *
      */
     public class BucketIterator implements Iterator<T> {
-        int index1 = 0;
-        int index2 = -1;
-        int to = 0;
-        boolean from = true;
+        int bucketIndex   = 0;    // iterates through the buckets
+        int positionIndex = -1;   // iterates through a single bucket
+        int bucketStart   = 0;    // the index of the first bucket
+        int bucketEnd     = 0;    // the index +1 of the last bucket
 
-        public BucketIterator() {}
+        /** generates an iterator which iterates over buckets[bucketStart] until buckets[bucketEnd-1]
+         *
+         * @param bucketStart    the index of the first bucket
+         * @param bucketEnd      the index + 1 of the last bucket
+         */
+        public BucketIterator(int bucketStart, int bucketEnd) {
+            this.bucketStart = bucketStart;
+            this.bucketEnd   = bucketEnd;
+            bucketIndex      = bucketStart;}
 
-        public BucketIterator(int position, boolean from) {
-            this.from = from;
-            if(from) {index1 = position;} else {to = position;}
-            index1 = position;}
-
-        /** checks if there es a next item in the buckets.
+        /** checks if there is a next item in the buckets.
          *  The indices are moved to the next item in the buckets
          *
          * @return true if there is another item in the buckets
          */
         public boolean hasNext() {
-            int size1 = from ? buckets.size(): to+1;
-            if(index1 >= size1) {return false;}
-            for(; index1 < size1; ++index1) {
-                ArrayList<T> indexedList = buckets.get(index1);
-                if(index2 == indexedList.size()-1) {index2 = -1; continue;}
-                ++index2;
+            if(bucketIndex >= bucketEnd) {return false;}
+            for(; bucketIndex < bucketEnd; ++bucketIndex) {
+                ArrayList<T> bucket = buckets.get(bucketIndex);
+                if(positionIndex == bucket.size()-1) {positionIndex = -1; continue;}
+                ++positionIndex;
                 return true;}
             return false;}
 
@@ -220,6 +226,6 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
          * @return the next item in the buckets.
          */
         public T next() {
-            return buckets.get(index1).get(index2);}
+            return buckets.get(bucketIndex).get(positionIndex);}
     }
 }

@@ -14,6 +14,7 @@ import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;
 import Utilities.BucketSortedList;
+import Utilities.BucketSortedIndex;
 
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -124,7 +125,7 @@ public class Resolution extends Solver {
 
     private BucketSortedList<Clause> primaryClauses;
     private BucketSortedList<Clause> secondaryClauses;
-    public LiteralIndexSorted<Clause> literalIndex;
+    public BucketSortedIndex<CLiteral<Clause>> literalIndex;
 
     private int percentageOfSOSClauses = 0;
     private int resolutionLimit = 0;
@@ -136,7 +137,9 @@ public class Resolution extends Solver {
         percentageOfSOSClauses = (Integer)solverParameters.get("percentage");
         primaryClauses   = new BucketSortedList<Clause>(clause->clause.size());
         secondaryClauses = new BucketSortedList<Clause>(clause->clause.size());
-        literalIndex = new LiteralIndexSorted(predicates);}
+        literalIndex = new BucketSortedIndex<CLiteral<Clause>>(predicates,
+                (cLiteral->cLiteral.literal),
+                (cLiteral->cLiteral.clause.size()));}
 
     private EquivalenceClasses equivalenceClasses = null;
     private BiConsumer<int[],Integer> contradictionHandler;
@@ -258,7 +261,7 @@ public class Resolution extends Solver {
                 monitor.print(combinedId,
                         "Literal " + cLiteral.literal + " in clause " + clause.toString() + " resolved away by clause "
                         + ((Clause)replacements[1]).toString());}
-            literalIndex.removeLiteral(cLiteral);
+            literalIndex.remove(cLiteral);
             if(removeLiteral(cLiteral)) {
                 replacements = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,++timestamp);}}
 
@@ -320,7 +323,7 @@ public class Resolution extends Solver {
             Clause clause = cLiteral.clause;
             removeLiteral(cLiteral);
             if(primaryClauses.isEmpty()) {return completeModel();}}
-        literalIndex.clearPredicate(Math.abs(literal));
+        literalIndex.clearBoth(Math.abs(literal));
         return null;}
 
     /** completes a model after resolution has finished.
@@ -376,7 +379,7 @@ public class Resolution extends Solver {
             return;}
         ++clauseCounter;
         (primary ? primaryClauses : secondaryClauses).add(clause);
-        for(CLiteral<Clause> cLiteral : clause) {literalIndex.addLiteral(cLiteral);}}
+        for(CLiteral<Clause> cLiteral : clause) {literalIndex.add(cLiteral);}}
 
 
     private void removeClause(Clause clause, int ignoreLiteral) {
@@ -385,13 +388,13 @@ public class Resolution extends Solver {
         if(primaryClauses.contains(clause)) {primaryClauses.remove(clause);}
         else {secondaryClauses.remove(clause);}
         for(CLiteral<Clause> cLiteral : clause) {
-            if(cLiteral.literal != ignoreLiteral) {literalIndex.removeLiteral(cLiteral);}}
+            if(cLiteral.literal != ignoreLiteral) {literalIndex.remove(cLiteral);}}
         clause.removed = true;}
 
     private void replaceClause(Clause primaryClause, Clause secondaryClause) {
         primaryClauses.remove(primaryClause);
         primaryClause.removed = true;
-        for(CLiteral<Clause> cLiteral : primaryClause) {literalIndex.removeLiteral(cLiteral);}
+        for(CLiteral<Clause> cLiteral : primaryClause) {literalIndex.remove(cLiteral);}
         secondaryClauses.remove(secondaryClause);
         primaryClauses.add(secondaryClause);}
 

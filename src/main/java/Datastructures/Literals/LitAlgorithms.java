@@ -6,6 +6,7 @@ import Datastructures.Theory.ImplicationDAG;
 import Datastructures.Theory.Model;
 import Management.Monitor;
 import Utilities.Applier;
+import Utilities.BucketSortedIndex;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -49,7 +50,7 @@ public class LitAlgorithms {
      * @param timestamp     an incremented timestamp
      * @return              either a subsumer, or null
      */
-    public static Clause isSubsumed(Clause clause, LiteralIndexSorted literalIndex, int timestamp) {
+    public static Clause isSubsumed(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
         int size = clause.size();
         for(CLiteral cliteral : clause) {
             Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorTo(cliteral.literal,size);
@@ -69,7 +70,7 @@ public class LitAlgorithms {
      * @param timestamp    an incremented timestamp
      * @param subsumed     collects all subsumed clauses
      */
-    public static void subsumes(Clause clause, LiteralIndexSorted literalIndex, int timestamp, ArrayList<Clause> subsumed) {
+    public static void subsumes(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp, ArrayList<Clause> subsumed) {
         int size = clause.size();
         int difference = size-2;
         for(CLiteral cliteral : clause) {
@@ -92,7 +93,7 @@ public class LitAlgorithms {
      * @param timestamp     an incremented timestamp
      * @return              [cLiteral,otherClause], or null
      */
-    public static Object[] replacementResolutionBackwards(Clause clause, LiteralIndexSorted literalIndex, int timestamp) {
+    public static Object[] replacementResolutionBackwards(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
         int size = clause.size();
         for(CLiteral cliteral : clause) {
             Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorTo(cliteral.literal,size);
@@ -118,7 +119,7 @@ public class LitAlgorithms {
      * @param timestamp     an incremented timestamp
      * @param resolvents    a list of cLiterals to be removed.
      */
-    public static void replacementResolutionForward(Clause clause, LiteralIndexSorted literalIndex, int timestamp,
+    public static void replacementResolutionForward(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp,
                                                         ArrayList<CLiteral<Clause>> resolvents) {
         int size = clause.size();
         int difference = size-2;
