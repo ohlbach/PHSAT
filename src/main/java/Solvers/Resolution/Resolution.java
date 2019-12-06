@@ -408,7 +408,7 @@ public class Resolution extends Solver {
     private boolean removeLiteral(CLiteral<Clause> cLiteral) {
         Clause clause = cLiteral.clause;
         if(clause.removed) {return false;}
-        clause.removeLiteral(cLiteral);
+        clause.remove(cLiteral);
         if(clause.size() == 1) {
             addTrueLiteralTask( clause.getLiteral(0));
             removeClause(clause,0);

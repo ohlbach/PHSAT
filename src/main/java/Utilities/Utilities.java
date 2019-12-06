@@ -296,7 +296,7 @@ public class Utilities {
         String[] lits = literals.split("\\s*(,| )\\s*");
         Clause clause = new Clause(id,lits.length);
         for(String lit : lits) {
-            clause.addCLiteral(new CLiteral(Integer.parseInt(lit)));}
+            clause.add(new CLiteral(Integer.parseInt(lit)));}
         return clause;
     }
 

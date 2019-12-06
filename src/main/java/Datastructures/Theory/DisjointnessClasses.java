@@ -108,7 +108,7 @@ public class DisjointnessClasses {
             if(model.isFalse(literal)) {continue;}  // false literals can be ignored
             if(disjointness.contains(literal) >= 0) {reportUnsatisfiable(literal,literal); return null;} // p disjoint p is false
             if(disjointness.contains(-literal) >= 0) {continue;}  // p disjoint -p is trivially true
-            disjointness.addCLiteralDirectly(new CLiteral(literal));}
+            disjointness.add(new CLiteral(literal));}
         if(disjointness.size() > 2) {return insertClause(disjointness);}
         return null;}
 
@@ -271,7 +271,7 @@ public class DisjointnessClasses {
     private boolean addToExisting(Clause disjointness, int literal) {
         for(CLiteral<Clause> cLiteral : disjointness) {
             if(!implicationDAG.implies(cLiteral.literal,-literal)) {return false;}}
-        disjointness.addCLiteralDirectly(new CLiteral(literal));
+        disjointness.add(new CLiteral(literal));
         subsume(disjointness);
         reportDisjointenss(joinClauses(disjointness));
         return true;}
@@ -312,7 +312,7 @@ public class DisjointnessClasses {
             int literal = (Integer)literals[i];
             for(int j = i+1; j < size; ++j) {
                 if(!areDisjoint(literal,(Integer)literals[j])) {disjoint = false; break;}}
-            if(disjoint){joinedClause.addCLiteral(new CLiteral(literal));}}
+            if(disjoint){joinedClause.add(new CLiteral(literal));}}
         disjointnessClasses.addClause(joinedClause);
         subsume(joinedClause);
         return joinedClause;}

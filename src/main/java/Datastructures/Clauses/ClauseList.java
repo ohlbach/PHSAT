@@ -55,19 +55,7 @@ public class ClauseList {
         literalIndex    = new LiteralIndexSorted(predicates);}
 
 
-    /** clones the entire clause list (without observers)
-     *
-     * @return a clone of the clause list (without observers)
-     */
-    public ClauseList clone() {
-        ClauseList list = new ClauseList(predicates,size());
-        list.clauses = new ArrayList<>(clauses.size());
-        for(Clause clause : clauses) {list.addClause(clause.clone());}
-        list.positiveClauses = positiveClauses;
-        list.negativeClauses = negativeClauses;
-        list.mixedClauses = mixedClauses;
-        list.structure = structure;
-        return list;}
+
 
         public ArrayList<CLiteral<Clause>> getLiterals(int literal) {return null;}
 

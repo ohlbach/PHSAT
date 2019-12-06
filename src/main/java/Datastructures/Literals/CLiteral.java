@@ -11,8 +11,8 @@ import Utilities.Positioned;
  * A CLiteral can be subclassed to carry more information.
  */
 public class CLiteral<Clause> implements Positioned {
-    public int literal;          // the literal
-    public Clause clause = null; // the clause
+    public int literal;                // the literal
+    public Clause clause = null;       // the clause
     public int clausePosition = -1;    // the clausePosition of the literal within the clause.
     public int indexPosition = -1;     // the position in a literal index.
     public int timestamp = 0;

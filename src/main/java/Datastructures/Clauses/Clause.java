@@ -7,13 +7,13 @@ import Utilities.Sizable;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.function.Consumer;
 
 /** A clause is just a list of CLiterals.
+ * It may represent disjunctions, conjunctions or any other logical list structure.
  *
  * Created by ohlbach on 13.09.2018.
  */
-public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
+public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
     /** for identifying the clause */
     public String id;
     /** the literals */
@@ -49,20 +49,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         cliterals = cLiterals;
         setStructure();}
 
-    /** constructs a new clause as a copy of a given one.
-     *
-     * @param clause   the clause to be copied
-     * @param listPosition the new listPosition
-     */
-    public Clause(Clause clause, int listPosition) {
-        this.id = clause.id;
-        cliterals = new ArrayList<>(clause.size());
-        for(int i = 0; i < clause.size(); ++i) {
-            CLiteral clit = clause.cliterals.get(i);
-            cliterals.add(new CLiteral(clit.literal,this,i));}
-        this.listPosition = listPosition;
-        this.structure = clause.structure;}
-
     /** generates a clause from a basicClause (which should be a disjunction)
      * double literals are removed
      * complementary literals cause the structure to be TAUTOLOGY
@@ -76,29 +62,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         cliterals = new ArrayList<>(length-2);
         for(int i = 2; i < length; ++i) {
             int literal = basicClause[i];
-            boolean doubled = false;
-            for(int j = 2; j < i; ++j) {
-                int previousLiteral = basicClause[j];
-                if(literal == -previousLiteral) {                  // tautology
-                    structure = ClauseStructure.TAUTOLOGY; break;} // the literals are nevertheless inserted
-                if(literal == previousLiteral) {
-                    doubled = true; break;}}
-            if(!doubled) {cliterals.add(new CLiteral<Clause>(literal,this,cliterals.size()));}}
-        if(structure != null) {setStructure();}}
-
-    /** constructs a clause from a set of literals
-     *
-     * @param id        the new id
-     * @param cliterals the literals
-     * @param listPosition  its listPosition
-     */
-    public Clause(String id, ArrayList<CLiteral<Clause>> cliterals, int listPosition) {
-        this.id = id;
-        this.listPosition = listPosition;
-        this.cliterals = cliterals;
-        for(int i = 0; i < cliterals.size(); ++i) {
-            cliterals.get(i).setClause(this,i);}
+            cliterals.add(new CLiteral<Clause>(literal,this,cliterals.size()));}
         setStructure();}
+
 
 
     /** checks if the clause is positive, negative or mixed and sets the corresponding value for the structure.
@@ -141,9 +107,26 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public boolean isEmpty() {return cliterals.isEmpty();}
 
+    /** checks if the clause has only positive literals
+     *
+     * @return true if the clause has only positive literals
+     */
     public boolean isPositive() {return structure == ClauseStructure.POSITIVE;}
 
+    /** checks if the clause has only negative literals
+     *
+     * @return true if the clause has only negative literals.
+     */
     public boolean isNegative() {return structure == ClauseStructure.NEGATIVE;}
+
+    /** gets the literal at the given clausePosition
+     *
+     * @param position a literal clausePosition
+     * @return the cliteral at that clausePosition.
+     */
+    public CLiteral<Clause> getCLiteral(int position) {
+        assert position >= 0 && position < cliterals.size();
+        return cliterals.get(position);}
 
     /** gets the literal at the given clausePosition
      *
@@ -164,27 +147,12 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(cliterals.get(i).literal == literal) {return i;}}
         return -1;}
 
-    /** adds a cliteral to the end of the clause<br>
-     * double literals and tautologies are avoided.
-     *
-     * @param cliteral the literal to be added.
-     * @return +1 if the literal is already in the clause, -1 if -literal is in the clause, otherwise 0.
-     */
-    public int addCLiteral(CLiteral cliteral) {
-        int literal = cliteral.literal;
-        if(contains(literal) >= 0) {return 1;}
-        if(contains(-literal) >= 0) {return -1;}
-        int position = cliterals.size();
-        cliterals.add(cliteral);
-        cliteral.setClause(this,position);
-        setStructure();
-        return 0;}
 
     /** adds a cliteral to the end of the clause, without checking for double literals and tautologies.
      *
      * @param cliteral the literal to be added.
      */
-    public void addCLiteralDirectly(CLiteral cliteral) {
+    public void add(CLiteral cliteral) {
         int position = cliterals.size();
         cliterals.add(cliteral);
         cliteral.setClause(this,position);
@@ -194,15 +162,14 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      *
      * @param cLiteral the literal to be removed.
      */
-    public void removeLiteral(CLiteral cLiteral) {
-        removeLiteralAtPosition(cLiteral.clausePosition);
-        setStructure();}
+    public void remove(CLiteral cLiteral) {
+        removeAtPosition(cLiteral.clausePosition);}
 
     /** removes a cliteral at the given clausePosition from the clause.
      *
      * @param position the clausePosition of the literal to be removed
      */
-    public void removeLiteralAtPosition(int position) {
+    public void removeAtPosition(int position) {
         int size = cliterals.size();
         assert position >= 0 && position < size;
         for(int pos = position; pos < size-1; ++pos) {
@@ -225,34 +192,45 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(cl != cLiteral & clause2.contains(cl.literal) < 0) {found = false; break;}}
         return found;}
 
-    /** clones the given clause
+    /** checks if the clause has double literals
      *
-     * @return a copy of the clause.
+     * @return true if the clause has double literals.
      */
-    public Clause clone() {
+    public boolean hasDoubles() {
         int size = cliterals.size();
-        Clause newClause = new Clause(id,size);
-        ArrayList<CLiteral<Clause>> newCliterals = new ArrayList<>(size);
-        for(CLiteral cLiteral : cliterals) {
-            newCliterals.add(new CLiteral(cLiteral.literal,newClause,cLiteral.clausePosition));}
-        newClause.cliterals = newCliterals;
-        newClause.structure = structure;
-        newClause.listPosition = listPosition;
-        return newClause;}
+        for(int i = 0; i < size-1; ++i) {
+            int literal = cliterals.get(i).literal;
+            for(int j = i+1; j < size; ++j) {
+                if(literal == cliterals.get(j).literal) {return true;}}}
+        return false;}
 
-    /** applies the consumer to all cLiterals
+    /** checks if the clause has complementary literals, e.g. p and -p
      *
-     * @param consumer to be applied to a CLiteral
+     * @return true if the clause has complementary literals.
      */
-    public void applyToCLiteral(Consumer<CLiteral> consumer) {
-        for(CLiteral cLiteral : cliterals) {consumer.accept(cLiteral);}}
+    public boolean hasComplementaries() {
+        int size = cliterals.size();
+        for(int i = 0; i < size-1; ++i) {
+            int literal = cliterals.get(i).literal;
+            for(int j = i+1; j < size; ++j) {
+                if(literal == -cliterals.get(j).literal) {return true;}}}
+        return false;}
 
-    /** applies the consumer to all literals
+    /** removes multiple occurrences of literals
      *
-     * @param consumer to be applied to a literal
+     * @return true if there were multiple occurrences of literals
      */
-    public void applyToLiteral(Consumer<Integer> consumer) {
-        for(CLiteral cLiteral : cliterals) {consumer.accept(cLiteral.literal);}}
+    public boolean removeDoubles() {
+        boolean doubles = false;
+        for(int i = 0; i < cliterals.size()-1; ++i) {
+            int literal = cliterals.get(i).literal;
+            for(int j = i+1; j < cliterals.size(); ++j) {
+                CLiteral<Clause> cliteral = cliterals.get(j);
+                if(literal == cliteral.literal) {
+                    removeAtPosition(j--);
+                    doubles = true;}}}
+        setStructure();
+        return doubles;}
 
     /** generates a string: clause-number: literals
      *
@@ -279,19 +257,19 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public String toString(int numberSize, Symboltable symboltable) {
         StringBuffer st = new StringBuffer();
         String n = String.format("%"+numberSize+"s",id);
-        st.append(n).append(": ").append("(");
+        st.append(n).append(":").append("(");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append( cliterals.get(position).toString(symboltable));
-            if(position < size-1) {st.append(",");}}
-        st.append(") ").append(structure.toString());
+            if(position < size-1) {st.append(",");}};
+        st.append(")");
         return st.toString();}
 
-    /**
+    /** gets an iterator over the literals
      *
      * @return the iterator over the literals
      */
     @Override
-    public Iterator iterator() {
+    public Iterator<CLiteral<Clause>> iterator() {
         return cliterals.iterator();}
 }
