@@ -18,29 +18,6 @@ import java.util.function.IntConsumer;
  */
 public class LitAlgorithms {
 
-    /** adds a new literal to the list of literals.
-     * Double literals are avoided.
-     * Tautologies are detected.
-     * A true literal indicates a tautology
-     * A false literal is ignored.
-     *
-     * @param literals a list of literals
-     * @param literal  a new literal
-     * @param model a model
-     * @param constructor for constructing a new literal
-     * @return null or the list of literals.
-     */
-    public static ArrayList<CLiteral<Clause>> addLiteral(ArrayList<CLiteral<Clause>> literals, int literal, Model model, Function<Integer,CLiteral<Clause>> constructor) {
-        if(model != null) {
-            if(model.isTrue(literal)) {return null;}
-            if(model.isFalse(literal)) {return literals;}}
-        for(CLiteral clit : literals) {
-            int lit = clit.literal;
-            if(lit == literal) {continue;}
-            if(lit == -literal) {return null;}}
-        literals.add(constructor.apply(literal));
-        return literals;}
-
 
 
     /** This method checks if the given clause is subsumed by some other clause in the literal index

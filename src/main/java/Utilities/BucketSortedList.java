@@ -186,7 +186,7 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      * @return an iterator for iterating over the items in the buckets.
      */
     public Iterator<T> iteratorTo(int bucket) {
-        return new BucketIterator(0, bucket+1);}
+        return new BucketIterator(0, bucket);}
 
     /** constructs a new BucketIterator
      *
@@ -213,8 +213,9 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
          * @return true if there is another item in the buckets
          */
         public boolean hasNext() {
-            if(bucketIndex >= bucketEnd) {return false;}
-            for(; bucketIndex < bucketEnd; ++bucketIndex) {
+            int size = Math.min(buckets.size(),bucketEnd);
+            if(bucketIndex >= size) {return false;}
+            for(; bucketIndex < size; ++bucketIndex) {
                 ArrayList<T> bucket = buckets.get(bucketIndex);
                 if(positionIndex == bucket.size()-1) {positionIndex = -1; continue;}
                 ++positionIndex;
