@@ -104,17 +104,17 @@ public class CNFReaderTest {
         ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals(1,pars.size());
         BasicClauseList bcl = CNFReader.generate(pars.get(0),errors,warnings);
-        System.out.println(file.delete());
+        file.delete();
         assertEquals("",errors.toString());
         assertEquals(" test1\n" +
                 " test2\n" +
                 "\n" +
                 "Disjunctions:\n" +
-                "1 o: 1,-5,3\n" +
-                "2 o: -5,7,1,1\n" +
-                "3 o: 4,5,6\n" +
-                "4 o: 4\n" +
-                "5 o: 5\n",bcl.toString());
+                "1 : 1 | -5 | 3\n" +
+                "2 : -5 | 7 | 1 | 1\n" +
+                "3 : 4 | 5 | 6\n" +
+                "4 : 4\n" +
+                "5 : 5\n",bcl.toString());
         assertEquals(" test1\n test2\n",bcl.info);
 
     }
@@ -146,16 +146,16 @@ public class CNFReaderTest {
                 " test2\n" +
                 "\n" +
                 "Disjunctions:\n" +
-                "1 o: 1,-5,3\n" +
-                "2 o: -5,7,1,1\n" +
+                "1 : 1 | -5 | 3\n" +
+                "2 : -5 | 7 | 1 | 1\n" +
                 "Conjunctions:\n" +
-                "3 a: 4,5,6\n" +
+                "3 : 4 & 5 & 6\n" +
                 "Xor:\n" +
-                "4 x: 4\n" +
+                "4 : 4\n" +
                 "Disjoints:\n" +
-                "5 d: 1,2,3\n" +
+                "5 : 1 /= 2 /= 3\n" +
                 "Equivalences:\n" +
-                "6 e: 1,2,3\n",bcl.toString());
+                "6 : 1 = 2 = 3\n",bcl.toString());
         assertEquals(" test1\n test2\n",bcl.info);
 
     }

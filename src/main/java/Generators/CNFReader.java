@@ -4,6 +4,7 @@ import Datastructures.Clauses.BasicClauseList;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.regex.Pattern;
@@ -31,6 +32,8 @@ import Utilities.Utilities;
  * 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br>
  * 'x': means exclusive-or: 'x 3 4 5' means 3 xors 4 xors 5 (exactly one of them must be true).<br>
  * 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.<br>
+ * 'o': means or:           'o 3 4 5' stands for 3 or 4 or 5.<br>
+ * The 'o' may be omitted.
  */
 public final class CNFReader {
 
@@ -127,7 +130,9 @@ public final class CNFReader {
                 " 'd': means disjoint:     'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).\n" +
                 " 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.\n" +
                 " 'x': means exclusive-or: 'x 3 4 5' means 3 xors 4 xors 5 (exactly one of them must be true).\n" +
-                " 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.\n");
+                " 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.\n" +
+                " 'o': means and:          'o 3 4 5' stands for 3 or 4 or 5.\n" +
+                "  The 'o' may be omitted");
         return st.toString();
     }
 
@@ -151,12 +156,14 @@ public final class CNFReader {
             errors.append(place + " not found");
             return null;}
         String line;
-        Integer predicates = null,clauses = null;
+        BasicClauseList bcl = new BasicClauseList();
+        Integer predicates = null;
         try{
             int number = 0;
         while((line = reader.readLine()) != null) {
             line = line.trim();
             if(line.isEmpty()) {continue;}
+            if(line.startsWith("%")){continue;}
             if(line.startsWith("c")) {info.append(line.substring(1)).append("\n"); continue;}
             if(line.startsWith("p")) {
                 String[] parts = line.split("\\s+");
@@ -164,73 +171,36 @@ public final class CNFReader {
                     errors.append(place + " illegal format of line " + line+"\n");
                     return null;}
                 predicates = Utilities.parseInteger(place, parts[2],errors);
+                if(predicates != null) {bcl.predicates = predicates;}
+                else {errors.append(place + " unknown number of predicates.\n");
+                      return null;}
                 continue;}
-            if(line.startsWith("%")){continue;}
-            if(predicates == null) {
-                errors.append(place + " unknown number of predicates.\n");
-                return null;}
             if(!line.endsWith(" 0")) {
                 errors.append(place + " line does not end with 0: " + line + "\n");
                 return null;}
-            literals.clear();
-            literals.add(++number);
+            String[] parts = line.split("\\s*( |,)\\s*");
+            int shift = Utilities.isInteger(parts[0]) ? 1 : 0;
+            int[] lits = new int[parts.length+shift];
+            lits[0] = ++number;
             int start = 1;
             switch(line.charAt(0)) {
-                case 'd': literals.add(ClauseType.DISJOINT.ordinal());     break;
-                case 'e': literals.add(ClauseType.EQUIV.ordinal());        break;
-                case 'x': literals.add(ClauseType.XOR.ordinal());          break;
-                case 'a': literals.add(ClauseType.AND.ordinal());          break;
-                default: literals.add(ClauseType.OR.ordinal()); start = 0; break;}
-            String[] parts = line.split("\\s*( |,)\\s*");
+                case 'd': lits[1] = ClauseType.DISJOINT.ordinal();     break;
+                case 'e': lits[1] = ClauseType.EQUIV.ordinal();        break;
+                case 'x': lits[1] = ClauseType.XOR.ordinal();          break;
+                case 'a': lits[1] = ClauseType.AND.ordinal();          break;
+                case 'o': lits[1] = ClauseType.OR.ordinal();           break;
+                default: lits[1] = ClauseType.OR.ordinal(); start = 0; break;}
+            int j = 1;
             for(int i = start; i < parts.length-1; ++i) {
                 Integer lit = Utilities.parseInteger (place,parts[i],errors);
-                if(lit != null) {literals.add(lit);};}
-            if (literals.get(1) != ClauseType.OR.ordinal()) {
-                checkClause(literals,errors);}
-            clauseList.add(literals);}}
+                if(lit != null) {lits[++j] = lit;}
+                else {j = 0; break;}}
+            bcl.addClause(lits);}
+        bcl.info = info.toString();}
         catch(IOException ex) {
             errors.append(place + " IOException\n");
             return null;}
-        BasicClauseList bcl = new BasicClauseList();
-        bcl.predicates = predicates;
-        int[] lits = null;
-        for(ArrayList clause : clauseList) {
-            lits = new int[clause.size()];
-            for(int i = 0; i< clause.size(); ++i) {lits[i] = (int)clause.get(i);}
-            bcl.addClause(lits);}
-        bcl.info = info.toString();
-        System.out.println("BCL " + bcl.toString());
         return  bcl;}
 
-    /** This method checks a clause for double literals or complementary literals.
-     * It should be no disjunction. Double literals or complementary literals in disjunctions are treated in the solvers.
-     * Double literals or complementary literals in all other clause types have complex consequences,
-     * but they are usually caused by typos or other error sources.
-     *
-     * @param literals  a clause to be checked (number, type, literal1, ...)
-     * @param errors    for appending error messages.
-     */
-    private static void checkClause(ArrayList<Integer> literals, StringBuffer errors) {
-        int size = literals.size();
-        for(int i = 2; i < size-1; ++i) {
-            int lit1 = literals.get(i);
-            for(int j = i+1; i < size; ++j) {
-                int lit2 = literals.get(j);
-                if(lit1 == lit2) {errors.append("Clause " + clauseToString(literals)+" contains double literals, maybe a typo.\n"); return;}
-                if(lit1 == -lit2) {errors.append("Clause " + clauseToString(literals)+" contains complementary literals, maybe a typo.\n"); return;}}}}
-
-    /** Turns a clause (number, type, literal1, ...) into a string
-     *
-     * @param literals a clause to be transformed (number, type, literal1, ...)
-     * @return the clause a string "number: type literal1,..."
-     */
-    private static String clauseToString(ArrayList<Integer> literals) {
-        StringBuffer st = new StringBuffer();
-        st.append(literals.get(0)).append(":" ).append(ClauseType.getType(literals.get(1)).toString()).append(" ");
-        for(int i = 2; i < literals.size()-1; ++i) {
-            st.append(literals.get(i)).append(",");}
-        st.append(literals.get(literals.size()-1));
-        return st.toString();
-    }
 
 }

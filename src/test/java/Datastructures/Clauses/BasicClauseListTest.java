@@ -21,8 +21,8 @@ public class BasicClauseListTest {
         clauses.addClause(clause1);
         clauses.addClause(clause2);
         assertEquals("Disjunctions:\n" +
-                "1 o: 3,-2,1\n" +
-                "2 o: -3,1,2\n",clauses.toString());
+                "1 : 3 | -2 | 1\n" +
+                "2 : -3 | 1 | 2\n",clauses.toString());
 
         Model model = new Model(10);
         model.add(-2); model.add(-1); model.add(3);
@@ -40,8 +40,8 @@ public class BasicClauseListTest {
         clauses.addClause(clause1);
         clauses.addClause(clause2);
         assertEquals("Conjunctions:\n" +
-                "1 a: 3,-2,1\n" +
-                "2 a: 4,1,3\n",clauses.toString());
+                "1 : 3 & -2 & 1\n" +
+        "2 : 4 & 1 & 3\n",clauses.toString());
 
         Model model = new Model(10);
         model.add(-2); model.add(1); model.add(3);
@@ -59,8 +59,8 @@ public class BasicClauseListTest {
         clauses.addClause(clause1);
         clauses.addClause(clause2);
         assertEquals("Xor:\n" +
-                "1 x: 3,-2,1\n" +
-                "2 x: 4,1,3\n",clauses.toString());
+                "1 : 3 x -2 x 1\n" +
+                "2 : 4 x 1 x 3\n",clauses.toString());
 
         Model model = new Model(10);
         model.add(-2);
@@ -78,8 +78,8 @@ public class BasicClauseListTest {
         clauses.addClause(clause1);
         clauses.addClause(clause2);
         assertEquals("Disjoints:\n" +
-                "1 d: 3,-2,1\n" +
-                "2 d: 4,5,3\n",clauses.toString());
+                "1 : 3 /= -2 /= 1\n" +
+                "2 : 4 /= 5 /= 3\n",clauses.toString());
 
         Model model = new Model(10);
         model.add(-3); model.add(-2);model.add(-1);model.add(4);model.add(5);
@@ -99,9 +99,9 @@ public class BasicClauseListTest {
         clauses.addClause(clause2);
         clauses.addClause(clause3);
         assertEquals("Equivalences:\n" +
-                "1 e: 1,2,3\n" +
-                "2 e: 4,5,6\n" +
-                "3 e: 7,8,9\n",clauses.toString());
+                "1 : 1 = 2 = 3\n" +
+                "2 : 4 = 5 = 6\n" +
+                "3 : 7 = 8 = 9\n",clauses.toString());
 
         Model model = new Model(10);
         model.add(1); model.add(2);model.add(3);model.add(-4);model.add(-5);model.add(-6);model.add(7);model.add(-8);model.add(9);
@@ -133,19 +133,19 @@ public class BasicClauseListTest {
         clauses.addClause(clause8);
         clauses.addClause(clause9);
         assertEquals("Disjunctions:\n" +
-                "1 o: 1,2,3\n" +
-                "2 o: 4,5,6\n" +
+                "1 : 1 | 2 | 3\n" +
+                "2 : 4 | 5 | 6\n" +
                 "Conjunctions:\n" +
-                "3 a: 7,8,9\n" +
-                "4 a: 1,2,3\n" +
+                "3 : 7 & 8 & 9\n" +
+                "4 : 1 & 2 & 3\n" +
                 "Xor:\n" +
-                "5 x: 4,5,6\n" +
-                "6 x: 7,8,9\n" +
+                "5 : 4 x 5 x 6\n" +
+                "6 : 7 x 8 x 9\n" +
                 "Disjoints:\n" +
-                "7 d: 1,2,3\n" +
-                "8 d: 4,5,6\n" +
+                "7 : 1 /= 2 /= 3\n" +
+                "8 : 4 /= 5 /= 6\n" +
                 "Equivalences:\n" +
-                "9 e: 7,8,9\n",clauses.toString());
+                "9 : 7 = 8 = 9\n",clauses.toString());
 
     }
 
@@ -165,8 +165,8 @@ public class BasicClauseListTest {
         clauses.symboltable = symboltable;
 
         assertEquals("Disjunctions:\n" +
-                "1 o: a,b\n" +
-                "2 o: c,-d\n",clauses.toString(true));
+                "1 : a | b\n" +
+                "2 : c | -d\n",clauses.toString(true));
 
     }
     @Test
@@ -256,11 +256,11 @@ public class BasicClauseListTest {
         assertFalse(clauses.conjunctionIsTrue(clause3,m1));
         StringBuilder st = new StringBuilder();
         for(int[] clause : clauses.falseClauses(m1)) {st.append(BasicClauseList.clauseToString(2,clause,null));}
-        assertEquals(" 2 o: 4,5,6 3 a: 7,8,9 4 a: 1,2,3 5 x: 4,5,6 6 x: 7,8,9 9 e: 7,8,9",st.toString());
+        assertEquals(" 2 : 4 | 5 | 6 3 : 7 & 8 & 9 4 : 1 & 2 & 3 5 : 4 x 5 x 6 6 : 7 x 8 x 9 9 : 7 = 8 = 9",st.toString());
         m1.add(7); m1.add(8);m1.add(9);
         st = new StringBuilder();
         for(int[] clause : clauses.falseClauses(m1)) {st.append(BasicClauseList.clauseToString(2,clause,null));}
-        assertEquals(" 2 o: 4,5,6 4 a: 1,2,3 5 x: 4,5,6 6 x: 7,8,9",st.toString());
+        assertEquals(" 2 : 4 | 5 | 6 4 : 1 & 2 & 3 5 : 4 x 5 x 6 6 : 7 x 8 x 9",st.toString());
 
 
 

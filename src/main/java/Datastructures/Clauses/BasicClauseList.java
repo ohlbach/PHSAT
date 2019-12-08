@@ -20,6 +20,8 @@ import java.util.ArrayList;
  * '2': means exclusive-or: '2 3 4 5'  means 3 xors 4 xors 5 (exactly one of them must be true).<br>
  * '3': means disjoints   : '3 4 5 -6' means 4,5,-6 are disjoint literals (at most one of them can be true).<br>
  * '4': means equivalences: '4 4 5 -6' means that these three literals are equivalent.
+ * <br>
+ *  Clauses are not checked for internal double literals or complementary literals.
  */
 public class BasicClauseList {
     public int predicates;
@@ -66,6 +68,7 @@ public class BasicClauseList {
 
 
     /** checks if a disjunction is true in a model
+     * It does not check for tautologies.
      *
      * @param clause a disjunctive clause
      * @param model a model

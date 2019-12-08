@@ -635,6 +635,11 @@ public class Utilities {
         forSome(Integer.MIN_VALUE+1,(i-> {System.out.println(i); return false;}));
     }
 
+    public static boolean isInteger(String s) {
+        try{Integer.parseInt(s);}
+        catch(NumberFormatException ex) {return false;}
+        return true;}
+
     public static void  mainA(String[] args) {
         int a = toInt(new int[]{0,4});
         int b = toInt(new int[]{1,3});
