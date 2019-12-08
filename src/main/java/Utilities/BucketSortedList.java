@@ -194,7 +194,6 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
     public class BucketIterator implements Iterator<T> {
         int bucketIndex   = 0;    // iterates through the buckets
         int positionIndex = -1;   // iterates through a single bucket
-        int bucketStart   = 0;    // the index of the first bucket
         int bucketEnd     = 0;    // the index +1 of the last bucket
 
         /** generates an iterator which iterates over buckets[bucketStart] until buckets[bucketEnd-1]
@@ -203,8 +202,7 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
          * @param bucketEnd      the index + 1 of the last bucket
          */
         public BucketIterator(int bucketStart, int bucketEnd) {
-            this.bucketStart = bucketStart;
-            this.bucketEnd   = bucketEnd;
+            this.bucketEnd   = Math.min(buckets.size(),bucketEnd);
             bucketIndex      = bucketStart;}
 
         /** checks if there is a next item in the buckets.
@@ -213,9 +211,8 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
          * @return true if there is another item in the buckets
          */
         public boolean hasNext() {
-            int size = Math.min(buckets.size(),bucketEnd);
-            if(bucketIndex >= size) {return false;}
-            for(; bucketIndex < size; ++bucketIndex) {
+            if(bucketIndex >= bucketEnd) {return false;}
+            for(; bucketIndex < bucketEnd; ++bucketIndex) {
                 ArrayList<T> bucket = buckets.get(bucketIndex);
                 if(positionIndex == bucket.size()-1) {positionIndex = -1; continue;}
                 ++positionIndex;

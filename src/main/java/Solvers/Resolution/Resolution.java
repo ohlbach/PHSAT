@@ -137,7 +137,7 @@ public class Resolution extends Solver {
         percentageOfSOSClauses = (Integer)solverParameters.get("percentage");
         primaryClauses   = new BucketSortedList<Clause>(clause->clause.size());
         secondaryClauses = new BucketSortedList<Clause>(clause->clause.size());
-        literalIndex = new BucketSortedIndex<CLiteral<Clause>>(predicates,
+        literalIndex = new BucketSortedIndex<CLiteral<Clause>>(predicates+1,
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));}
 
@@ -220,7 +220,7 @@ public class Resolution extends Solver {
 
     private boolean initializing = true;
 
-    private int timestamp = 0;
+    private int timestamp = 1;
 
     /** checks if the clause is subsumed or some of its literals can be resolved away by replacement resolution.
      * If the clause is subsumed, it is removed from the clause lists and the literal index <br>
@@ -408,11 +408,13 @@ public class Resolution extends Solver {
     private boolean removeLiteral(CLiteral<Clause> cLiteral) {
         Clause clause = cLiteral.clause;
         if(clause.removed) {return false;}
+        for(CLiteral<Clause> cliteral : clause) {literalIndex.remove(cliteral);}
         clause.remove(cLiteral);
         if(clause.size() == 1) {
             addTrueLiteralTask( clause.getLiteral(0));
             removeClause(clause,0);
             return false;}
+        for(CLiteral<Clause> cliteral : clause) {literalIndex.add(cliteral);}
         return true;}
 
     /** checks if some of the literals in the clause became pure, i.e. there are no more literals of this polarity in the index.

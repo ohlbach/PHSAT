@@ -1,17 +1,10 @@
 package Datastructures.Literals;
 
-import Algorithms.Algorithms;
 import Datastructures.Clauses.Clause;
-import Datastructures.Theory.ImplicationDAG;
-import Datastructures.Theory.Model;
-import Management.Monitor;
-import Utilities.Applier;
 import Utilities.BucketSortedIndex;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.function.Function;
-import java.util.function.IntConsumer;
 
 /**
  * Created by ohlbach on 03.07.2019.
@@ -28,7 +21,7 @@ public class LitAlgorithms {
      * @return              either a subsumer, or null
      */
     public static Clause isSubsumed(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
-        int size = clause.size();
+        int size = clause.size()+1;
         for(CLiteral cliteral : clause) {
             Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorTo(cliteral.literal,size);
             while(iterator.hasNext()) {
@@ -49,7 +42,7 @@ public class LitAlgorithms {
      */
     public static void subsumes(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp, ArrayList<Clause> subsumed) {
         int size = clause.size();
-        int difference = size-2;
+        int difference = size - 2;
         for(CLiteral cliteral : clause) {
             Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorFrom(cliteral.literal,size);
             while(iterator.hasNext()) {
@@ -109,7 +102,7 @@ public class LitAlgorithms {
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp;}
                 else {++otherClause.timestamp;}}}
         for(CLiteral cliteral : clause) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorTo(-cliteral.literal,size);
+            Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorFrom(-cliteral.literal,size);
             while(iterator.hasNext()) {
                 CLiteral<Clause> otherLiteral = iterator.next();
                 Clause otherClause = otherLiteral.clause;
@@ -118,7 +111,7 @@ public class LitAlgorithms {
                     resolvents.add(otherLiteral);
                     otherClause.timestamp = 0;}}}}
 
-    /** The method checks if the given literal or its negation are in the litrals
+    /** The method checks if the given literal or its negation are in the literals
      *
      * @param cLiterals a list of CLiterals
      * @param literal   a literal
@@ -132,7 +125,7 @@ public class LitAlgorithms {
         return 0;}
 
     /** This method generates a resolvent with the given resolution literals.
-     *  Double literals are avoided. A tautology is not generated
+     *  Double literals are avoided. A tautology is not generated.
      *
      * @param literal1 the first parent literal
      * @param literal2 the second parent literal
