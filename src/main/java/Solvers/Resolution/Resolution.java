@@ -5,7 +5,6 @@ import Coordinator.Tasks.TaskQueue;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
-import Datastructures.Literals.LiteralIndexSorted;
 import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.EquivalenceClasses;
@@ -146,7 +145,8 @@ public class Resolution extends Solver {
     private Consumer<Clause> insertHandler = (
             clause -> {insertClause(clause,isPrimary(clause,true));
                 taskQueue.add(new Task(basicClauseList.maxClauseLength-clause.size()+2, // longer clauses should be
-                        (()-> {simplifyBackward(clause); return null;}),    // checked first for subsumption and replacement resolution
+                        (()-> {
+                            simplifyBackwards(clause); return null;}),    // checked first for subsumption and replacement resolution
                         (()-> "Simplify initial clause " + clause.toString())));});
 
     public Result initializeClauses() throws InterruptedException {
@@ -186,7 +186,7 @@ public class Resolution extends Solver {
                 "@"+parentLiterals[0].literal + " and " + parentLiterals[1].clause.toString() +
                         "@"+parentLiterals[1].literal + " yields\n"+resolvent.toString());}
             ++resolvents;
-            simplifyBackward(resolvent);
+            simplifyBackwards(resolvent);
             if(resolvent.removed) {continue;}
             simplifyForward(resolvent);
             insertClause(resolvent,isPrimary(resolvent,false));
@@ -241,7 +241,7 @@ public class Resolution extends Solver {
      *
      * @param clause
      */
-    private void simplifyBackward(Clause clause) {
+    private void simplifyBackwards(Clause clause) {
         if(clause.removed) {return;}
         Clause subsumer = LitAlgorithms.isSubsumed(clause,literalIndex,++timestamp);
         if(subsumer != null) {
@@ -366,7 +366,7 @@ public class Resolution extends Solver {
 
     /** inserts the clause into the local data structures.
      * - If the clause is a unit clause, it generates a trueLiteralTask<br>
-     * - If it is an initial clause, ti generates a simplifyBackward task.<br>
+     * - If it is an initial clause, ti generates a simplifyBackwards task.<br>
      *   These tasks are sorted such that longer clauses are simplified first (subsumption and replacement resolution).
      *
      * @param clause  the clause to be inserted.

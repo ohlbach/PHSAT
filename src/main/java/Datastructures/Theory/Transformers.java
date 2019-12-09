@@ -76,7 +76,7 @@ public class Transformers {
     public static void prepareXors(BasicClauseList basicClauseList, EquivalenceClasses equivalenceClasses, Consumer<Clause> handler) {
         for(int[] basicClause : basicClauseList.xors) {
             prepareDisjunction(basicClause,"X",equivalenceClasses,handler);
-            prepareDisjoint(basicClause,null,handler);}}
+            prepareDisjoint(basicClause,equivalenceClasses,handler);}}
 
     /** transforms all disjoint clauses in the basicClauseList into normal clauses and applies the handler to them.
      * Disjoints are like XORs, except that all literals may be false.
@@ -108,7 +108,7 @@ public class Transformers {
         for(int i = 2; i < size-1;++i) {
             int literal1 = -basicClause[i];
             if(equivalenceClasses != null) {literal1 = equivalenceClasses.mapToRepresentative(literal1);}
-            for(int j = i+1; i < size; ++j) {
+            for(int j = i+1; j < size; ++j) {
                 int literal2 = -basicClause[j];
                 if(equivalenceClasses != null) {literal2 = equivalenceClasses.mapToRepresentative(literal2);}
                 if(literal1 == -literal2) {continue;}

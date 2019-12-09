@@ -134,6 +134,8 @@ public class EquivalenceClasses {
         if(symboltable == null) {return literal.toString();}
         return symboltable.getLiteralName(literal);}
 
+    public String toString() {
+        return toString(null);}
 
     /** lists all equivalence classes and the replacements
      *
