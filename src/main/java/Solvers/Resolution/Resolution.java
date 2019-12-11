@@ -53,6 +53,7 @@ public class Resolution extends Solver {
         ArrayList percentage   = Utilities.parseIntRange(place+"percentageOfSOSClauses: ",percentages,errors);
         ArrayList limit = Utilities.parseIntRange(place+"limit: ",limits,errors);
         ArrayList strategies   = ResolutionStrategy.parseStrategies(strategiess,place, warnings,errors);
+        if(seed == null || percentage == null || limit == null || strategies == null) {return null;}
         ArrayList<ArrayList> pars = Utilities.crossProduct(seed,strategies,percentage,limit);
         int counter = 0;
         for(ArrayList<Object> p : pars ) {
@@ -65,15 +66,22 @@ public class Resolution extends Solver {
             map.put("strategy", p.get(1));
             map.put("percentageOfSOSClauses",perc);
             map.put("limit",    limitpar);
-            map.put("name","R" + ++counter);
+            map.put("name","Resolution_" + ++counter);
             list.add(map);}
         return list;}
 
+    /** gives a string with descriptions of the available parameters.
+     *
+     * @return a description of the available parameters.
+     */
     public static String help() {
         return "Resolution parameters:\n" +  ResolutionStrategy.help() +
                 "  seed:       for the random number generator              (default: 0)\n" +
                 "  percentageOfSOSClauses: percentageOfSOSClauses of clauses in the set of support. (default 50)\n" +
-                "  limit:      maximal number of resolvents = limit*clauses (default unlimited) ";}
+                "  limit:      maximal number of resolvents = limit*clauses (default unlimited)\n"+
+                "The format of seed, percentage of SOSClauses and limit is\n"+
+                "Integer, or list of Integers (comma or blank separated), or a range: 'Integer to Integer.\n"+
+                "Each combination of parameters causes a separate thread to work at the given problem.";}
 
 
     private Random random;
@@ -109,6 +117,7 @@ public class Resolution extends Solver {
      * @return the result of the resolution sequence.
      */
     public Result solve() {
+        super.initialize();
         globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.currentTimeMillis();
         taskQueue = new TaskQueue(combinedId,monitor);
@@ -129,16 +138,16 @@ public class Resolution extends Solver {
     private int percentageOfSOSClauses = 0;
     private int resolutionLimit = 0;
 
-    protected void initializeData() {
-        strategy = (ResolutionStrategy)solverParameters.get("strategy");
-        statistics = new ResolutionStatistics(combinedId);
-        random = new Random((Integer)solverParameters.get("seed"));
+    private void initializeData() {
+        strategy               = (ResolutionStrategy)solverParameters.get("strategy");
+        statistics             = new ResolutionStatistics(combinedId);
+        random                 = new Random((Integer)solverParameters.get("seed"));
         percentageOfSOSClauses = (Integer)solverParameters.get("percentage");
-        primaryClauses   = new BucketSortedList<Clause>(clause->clause.size());
-        secondaryClauses = new BucketSortedList<Clause>(clause->clause.size());
-        literalIndex = new BucketSortedIndex<CLiteral<Clause>>(predicates+1,
-                (cLiteral->cLiteral.literal),
-                (cLiteral->cLiteral.clause.size()));}
+        primaryClauses         = new BucketSortedList<Clause>(clause->clause.size());
+        secondaryClauses       = new BucketSortedList<Clause>(clause->clause.size());
+        literalIndex           = new BucketSortedIndex<CLiteral<Clause>>(predicates+1,
+                                    (cLiteral->cLiteral.literal),
+                                    (cLiteral->cLiteral.clause.size()));}
 
     private EquivalenceClasses equivalenceClasses = null;
     private BiConsumer<int[],Integer> contradictionHandler;
@@ -149,7 +158,7 @@ public class Resolution extends Solver {
                             simplifyBackwards(clause); return null;}),    // checked first for subsumption and replacement resolution
                         (()-> "Simplify initial clause " + clause.toString())));});
 
-    public Result initializeClauses() throws InterruptedException {
+    private Result initializeClauses() throws InterruptedException {
         if(basicClauseList.equivalences != null) {
             equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler);
             if(equivalenceClasses == null) {return null;}}
@@ -171,7 +180,7 @@ public class Resolution extends Solver {
 
     int resolvents = 0;
 
-    public Result resolve()  throws InterruptedException {
+    private Result resolve()  throws InterruptedException {
         Result result = taskQueue.run();
         if(result != null){return result;}
         CLiteral[] parentLiterals = new CLiteral[2];
@@ -194,7 +203,7 @@ public class Resolution extends Solver {
             if(result != null){return result;}}
         return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");}
 
-    void selectParentLiterals(CLiteral[] parentLiterals) {
+    private void selectParentLiterals(CLiteral[] parentLiterals) {
         Clause parent1 = primaryClauses.getRandom(random);
         int size1 = parent1.size();
         for(CLiteral literal1 : parent1) {
@@ -209,6 +218,19 @@ public class Resolution extends Solver {
                     if(parent1.contains(lit2.literal) == 1) {parentLiterals[1] = literal2; return;}}}}
     }
 
+    /** checks if the clause ought to be a primary clause or a secondary clause.
+     *  It depends on the strategy and the situation (processing input clauses or resolvents)<br>
+     *      Strategy: <br>
+     *          INPUT:    all input clauses are primary, the resolvents are secondary<br>
+     *          POSITVE:  positive clauses are primary, all others are secondary<br>
+     *          NEGATIVE: negative clauses are primary, all others are secondary<br>
+     *          SOS:      input = true: a randomly chosen percentage (percentageOfSOSClauses) is primary <br>
+     *                    all resolvents are primary.
+     *
+     * @param clause a clause to be checked
+     * @param input   true if the clause is one of the input clauses
+     * @return        true if the clause is to be inserted into the primary clauses.
+     */
     private boolean isPrimary(Clause clause, boolean input) {
         switch(strategy) {
             case INPUT:    return input;
@@ -275,7 +297,7 @@ public class Resolution extends Solver {
     private ArrayList<Clause> clauseList = new ArrayList<>();
     private ArrayList<CLiteral<Clause>> literalList = new ArrayList<>();
 
-    public void simplifyForward(Clause clause) {
+    private void simplifyForward(Clause clause) {
         if(clause.removed) {return;}
         clauseList.clear();
         LitAlgorithms.subsumes(clause,literalIndex,++timestamp,clauseList);
@@ -299,7 +321,7 @@ public class Resolution extends Solver {
      *
      * @param literal a unit literal.
      */
-    public void addTrueLiteralTask(int literal) {
+    private void addTrueLiteralTask(int literal) {
         taskQueue.add(new Task(trueLiteralPriority,
                 (()->processTrueLiteral(literal)),
                 (()->"New true literal derived: " + literal)));
@@ -343,15 +365,13 @@ public class Resolution extends Solver {
             case INPUT:
             case SOS:       // there should be no clauses any more.
                 for(Clause clause : secondaryClauses) {
-                    if(statusInModel(clause,model) != 1) {
+                    if(!trueInModel(clause,model)) {
                         return new Erraneous(model,clause,symboltable);}}
                 break;
             case NEGATIVE: isPositive = false;
             case POSITIVE:
                 for(Clause clause : secondaryClauses) {
-                    switch(statusInModel(clause,model)) {
-                        case 1: continue;
-                        case -1: return new Erraneous(model,clause,symboltable);}
+                    if(trueInModel(clause,model)) {continue;}
                     boolean found = false;
                     for(CLiteral cliteral : clause) {
                         int literal = cliteral.literal;
@@ -374,7 +394,6 @@ public class Resolution extends Solver {
      */
     private void insertClause(Clause clause, boolean primary) {
         if(clause.size() == 1) {
-            ++statistics.unitClauses;
             addTrueLiteralTask(clause.getLiteral(0));
             return;}
         ++clauseCounter;
@@ -382,6 +401,11 @@ public class Resolution extends Solver {
         for(CLiteral<Clause> cLiteral : clause) {literalIndex.add(cLiteral);}}
 
 
+    /** removes a clause from primary/secondary clauses and from the literal index (except ignoreLiteral)
+     *
+     * @param clause        the clause to be removed
+     * @param ignoreLiteral the literal not to remove from the index
+     */
     private void removeClause(Clause clause, int ignoreLiteral) {
         if(clause.removed) {return;}
         --clauseCounter;
@@ -391,6 +415,11 @@ public class Resolution extends Solver {
             if(cLiteral.literal != ignoreLiteral) {literalIndex.remove(cLiteral);}}
         clause.removed = true;}
 
+    /** This method is called when secondary clause subsumes a primary clause.
+     * In this case the subsumer must be moved to the primary clauses.
+     * @param primaryClause   a primary clause
+     * @param secondaryClause a secondary clause which subsumes a primary clause.
+     */
     private void replaceClause(Clause primaryClause, Clause secondaryClause) {
         primaryClauses.remove(primaryClause);
         primaryClause.removed = true;
@@ -398,23 +427,26 @@ public class Resolution extends Solver {
         secondaryClauses.remove(secondaryClause);
         primaryClauses.add(secondaryClause);}
 
-    /** removes the literal from its clause .
+    /** removes the literal from its clause and the literal index.
      * - If the clause is already marked 'removed' nothing happens. <br>
      * - If the shortened clause is a unit clause, it generates a trueLiteralTask, and is removed.
      *
-     * @param cLiteral
+     * @param cLiteral the literal to be removed
      * @return true if the clause is still there.
      */
     private boolean removeLiteral(CLiteral<Clause> cLiteral) {
         Clause clause = cLiteral.clause;
         if(clause.removed) {return false;}
-        for(CLiteral<Clause> cliteral : clause) {literalIndex.remove(cliteral);}
+        boolean inPrimary = primaryClauses.contains(clause);
+        (inPrimary ? primaryClauses : secondaryClauses).remove(clause);
+        for(CLiteral<Clause> cliteral : clause) literalIndex.remove(cliteral);
         clause.remove(cLiteral);
         if(clause.size() == 1) {
             addTrueLiteralTask( clause.getLiteral(0));
             removeClause(clause,0);
             return false;}
-        for(CLiteral<Clause> cliteral : clause) {literalIndex.add(cliteral);}
+        (inPrimary ? primaryClauses : secondaryClauses).add(clause);
+        for(CLiteral<Clause> cliteral : clause) literalIndex.add(cliteral); // literals are inserted into different buckets
         return true;}
 
     /** checks if some of the literals in the clause became pure, i.e. there are no more literals of this polarity in the index.
@@ -431,7 +463,7 @@ public class Resolution extends Solver {
 
     /** return the entire statistics information
      *
-     * @return the entire statistice information for the resolution solver.
+     * @return the entire statistics information for the resolution solver.
      */
     public Statistic getStatistics() {return statistics;}
 }

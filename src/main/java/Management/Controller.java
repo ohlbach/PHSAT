@@ -1,6 +1,5 @@
 package Management;
 
-import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Generators.Generator;
 import Solvers.Solver;
@@ -9,9 +8,7 @@ import Utilities.Utilities;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 /**

@@ -51,8 +51,12 @@ public class TaskQueue {
      * @param task the task to be added
      */
     public void add(Task task) {
-        if(monitor.monitoring) {monitor.print(id,task.toString());}
+        if(monitor != null) {monitor.print(id,task.toString());}
         taskQueue.add(task);}
+
+    public String toString() {
+        return taskQueue.toString();
+    }
 
 
 }

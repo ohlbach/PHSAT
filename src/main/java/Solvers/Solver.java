@@ -127,25 +127,25 @@ public abstract class Solver {
     public String combinedId;
 
     public Monitor monitor;
-    protected boolean monitoring;
+    protected boolean monitoring = false;
 
     /** the supervisor which coordinates the work of all solvers or a given problem */
     protected final ProblemSupervisor problemSupervisor;
 
-    protected GlobalParameters globalParameters;
+    protected  GlobalParameters globalParameters;
 
     /** all control parameters for the solvers */
-    protected final HashMap<String,Object> solverParameters;
+    protected  HashMap<String,Object> solverParameters;
 
-    protected final BasicClauseList basicClauseList;
+    protected  BasicClauseList basicClauseList;
 
-    protected final int predicates;
+    protected  int predicates;
 
     protected Model model;
 
-    protected final Symboltable symboltable;
+    protected  Symboltable symboltable;
 
-
+    protected Integer solverNumber;
 
 
     /** constructs a solver as an instance of the Processor class.
@@ -155,17 +155,20 @@ public abstract class Solver {
      * @param problemSupervisor the central processor.
      */
     public Solver(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
-        this.solverParameters = solverParameters;
-        this.problemSupervisor = problemSupervisor;
-        solverId = (String)solverParameters.get("solverId");
-        problemId = problemSupervisor.problemId;
-        combinedId = problemId+"@"+solverId + ":" + solverNumber;
-        globalParameters = problemSupervisor.globalParameters;
-        basicClauseList = problemSupervisor.basicClauseList;
-        predicates = basicClauseList.predicates;
-        symboltable = basicClauseList.symboltable;
-        monitor = globalParameters.monitor;
-        monitoring = monitor.monitoring;
+        this.solverNumber = solverNumber;
+        this.solverParameters   = solverParameters;
+        this.problemSupervisor  = problemSupervisor;}
+
+    protected void initialize() {
+        solverId                = (String)solverParameters.get("solverId");
+        problemId               = problemSupervisor.problemId;
+        combinedId              = problemId+"@"+solverId + ":" + solverNumber;
+        globalParameters        = problemSupervisor.globalParameters;
+        basicClauseList         = problemSupervisor.basicClauseList;
+        predicates              = basicClauseList.predicates;
+        symboltable             = basicClauseList.symboltable;
+        monitor                 = globalParameters.monitor;
+        monitoring              = monitor.monitoring;
         if(monitoring) {
             monitor.addThread(combinedId,"Monitor for problem " + problemId + " and solver " + solverId);}}
 
@@ -214,7 +217,16 @@ public abstract class Solver {
         if(falseLiterals == size) {return -1;}
         return 0;}
 
-
+    /** This method checks if some literals are true or all literals are false in a model
+     *
+     * @param clause  a clause
+     * @param model   a model
+     * @return true if the clause is true in the model
+     */
+    public boolean trueInModel(Clause clause, Model model) {
+        for(CLiteral cliteral : clause) {
+            if(model.isTrue(cliteral.literal)) {return true;} }
+        return false;}
 
 
 

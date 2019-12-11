@@ -101,12 +101,15 @@ public class Utilities {
                         if(to < from) {errors.append(place+ "to < from: " + value); return null;}
                         for(int n = from; n <= to; n += step) {range.add(n);}}
                     else {return null;}
-                    return range;}}
-            for(String part : value.split("\\s*,\\s*")) {
+                    return range;}}}
+            for(String part : value.split("(\\s+|\\s*,\\s*)")) {
                 Integer n = parseInteger(place,part,errors);
                 if(n != null) {range.add(n);}
-                else {return null;}}
-            return range;}}
+                else {
+                    errors.append(place + " The format should be: integer or comma separated integer or 'intger to integer'." );
+                    return null;
+                    }}
+            return range;}
 
 
     /** expands a Float  range into a list of Integers<br>
