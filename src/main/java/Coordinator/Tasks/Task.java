@@ -28,7 +28,7 @@ public class Task {
         this.toString = toString;}
 
     public String toString() {
-        return "Task: "+ toString.get();}
+        return "P" + priority + ": " + toString.get();}
 
 
 

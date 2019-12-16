@@ -3,7 +3,9 @@ package Solvers.Resolution;
 import Coordinator.Tasks.TaskQueue;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
+import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import Management.Controller;
 import Management.ProblemSupervisor;
@@ -176,14 +178,14 @@ public class ResolutionTest {
         Field taskQueue = getField("taskQueue");
         taskQueue.set(res,new TaskQueue("test",null));
 
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class);
+        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
 
         Clause c1 = make(1, 2, 3);
         Clause c2 = make(-1, -2, -3);
         Clause c3 = make(4, -5, 6);
-        insertClause.invoke(res,c1,true);
-        insertClause.invoke(res,c2,false);
-        insertClause.invoke(res,c3,false);
+        insertClause.invoke(res,c1,true,"initial");
+        insertClause.invoke(res,c2,false,"initial");
+        insertClause.invoke(res,c3,false,"initial");
         assertEquals("Bucket 3\n" +
                 "  1:(1,2,3)\n",primaryClauses.get(res).toString());
         assertEquals("Bucket 3\n" +
@@ -202,9 +204,9 @@ public class ResolutionTest {
         assertEquals(3,clauseCounter.get(res));
 
         Clause c4 = make(7);
-        insertClause.invoke(res,c4,true);
+        insertClause.invoke(res,c4,true,"initial");
         Clause c5 = make(-7);
-        insertClause.invoke(res,c5,true);
+        insertClause.invoke(res,c5,true,"initial");
         assertEquals("[Task: New true literal derived: 7, Task: New true literal derived: -7]",taskQueue.get(res).toString());
         assertEquals(2,((ResolutionStatistics)statistics.get(res)).unitClauses);
     }
@@ -231,14 +233,14 @@ public class ResolutionTest {
         Field taskQueue = getField("taskQueue");
         taskQueue.set(res, new TaskQueue("test", null));
 
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class);
+        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
 
         Clause c1 = make(1, 2, 3);
         Clause c2 = make(-4, -5, -6);
         Clause c3 = make(7, -5, 6);
-        insertClause.invoke(res, c1, true);
-        insertClause.invoke(res, c2, false);
-        insertClause.invoke(res, c3, false);
+        insertClause.invoke(res, c1, true,"initial");
+        insertClause.invoke(res, c2, false,"initial");
+        insertClause.invoke(res, c3, false,"initial");
         assertEquals(" 1: 1,\n" +
                 " 2: 2,\n" +
                 " 3: 3,\n" +
@@ -291,14 +293,14 @@ public class ResolutionTest {
         Field taskQueue = getField("taskQueue");
         taskQueue.set(res, new TaskQueue("test", null));
 
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class);
+        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
 
         Clause c1 = make(1, 2, 3);
         Clause c2 = make(-4, -5, -6);
         Clause c3 = make(7, -5, 6);
-        insertClause.invoke(res, c1, true);
-        insertClause.invoke(res, c2, false);
-        insertClause.invoke(res, c3, false);
+        insertClause.invoke(res, c1, true,"initial");
+        insertClause.invoke(res, c2, false,"initial");
+        insertClause.invoke(res, c3, false,"initial");
 
         Method removeLiteral = getMethod("removeLiteral", CLiteral.class);
 
@@ -355,14 +357,14 @@ public class ResolutionTest {
         Field taskQueue = getField("taskQueue");
         taskQueue.set(res, new TaskQueue("test", null));
 
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class);
+        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
 
         Clause c1 = make(1, 2, 3);
         Clause c2 = make(-4, -5, -6);
         Clause c3 = make(1,3);
-        insertClause.invoke(res, c1, true);
-        insertClause.invoke(res, c2, false);
-        insertClause.invoke(res, c3, false);
+        insertClause.invoke(res, c1, true,"initial");
+        insertClause.invoke(res, c2, false,"initial");
+        insertClause.invoke(res, c3, false,"initial");
 
         Method replaceClause = getMethod("replaceClause", Clause.class, Clause.class);
         replaceClause.invoke(res,c1,c3);
@@ -394,14 +396,14 @@ public class ResolutionTest {
         Field taskQueue = getField("taskQueue");
         taskQueue.set(res, new TaskQueue("test", null));
 
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class);
+        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
 
         Clause c1 = make(1, 2, 3);
         Clause c2 = make(-4, -5, -6);
         Clause c3 = make(1, 3);
         //insertClause.invoke(res, c1, true);
-        insertClause.invoke(res, c2, false);
-        insertClause.invoke(res, c3, false);
+        insertClause.invoke(res, c2, false,"initial","initial");
+        insertClause.invoke(res, c3, false,"initial","initial");
 
         Method checkPurity = getMethod("checkPurity", Clause.class);
         checkPurity.invoke(res,c1);
@@ -432,7 +434,7 @@ public class ResolutionTest {
 
         Field strategy = getField("strategy");
         strategy.set(res,ResolutionStrategy.NEGATIVE);
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class);
+        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
 
         Field predicates = getSField("predicates");
         predicates.setInt(res,10);
@@ -457,6 +459,126 @@ public class ResolutionTest {
         assertEquals("Satisfiable with model: [-5, -1]",completeModel.invoke(res).toString());
 
 
+    }
+
+    @Test
+    public void processTrueLiteral1() throws Exception {
+        counter = 1;
+        System.out.println("processTrueLiteral, no propagation");
+        Controller cntr = new Controller(null, null, null);
+        HashMap<String, Object> problemParameters = new HashMap<>();
+        problemParameters.put("name", "test");
+        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
+        Resolution res = new Resolution(1, null, sup);
+        Field statistics = getField("statistics");
+        statistics.set(res, new ResolutionStatistics("test"));
+        Field primaryClauses = getField("primaryClauses");
+        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
+        Field secondaryClauses = getField("secondaryClauses");
+        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
+        Field literalIndex = getField("literalIndex");
+        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+                (cLiteral -> cLiteral.literal),
+                (cLiteral -> cLiteral.clause.size())));
+        Field taskQueue = getField("taskQueue");
+        taskQueue.set(res, new TaskQueue("test", null));
+
+        Method insertClause = getMethod("insertClause", Clause.class, boolean.class, String.class);
+
+        Field predicates = getSField("predicates");
+        predicates.setInt(res,10);
+        Field symboltable = getSField("symboltable");
+        Symboltable stb = new Symboltable(10);
+        symboltable.set(res,stb);
+
+        Clause c1 = make(1, 2);    insertClause.invoke(res,c1,true,"initial");
+        Clause c2 = make(-2,1,3);  insertClause.invoke(res,c2,false,"initial");
+        Clause c3 = make(3,4);     insertClause.invoke(res,c3,true,"initial");
+        Clause c4 = make(2, -1,4); insertClause.invoke(res,c4,true,"initial");
+        Clause c5 = make(-2,-1,3); insertClause.invoke(res,c5,false,"initial");
+        Clause c6 = make(5,-6);    insertClause.invoke(res,c6,true,"initial");
+
+        Field model = getSField("model");
+        model.set(res, new Model(10));
+
+        Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
+        Result result = (Result)processTrueLiteral.invoke(res,1);
+
+        stb.setName(1,"p");
+        stb.setName(4,"q");
+        //System.out.println(res.toString(stb));
+        assertEquals("Resolution:\n" +
+                "Primary Clauses:\n" +
+                "Bucket 2\n" +
+                "  6:(5,-6)\n" +
+                "  3:(3,q)\n" +
+                "  4:(2,q)\n" +
+                "\n" +
+                "Secondary Clauses:\n" +
+                "Bucket 2\n" +
+                "  5:(-2,3)\n" +
+                "\n" +
+                "Model:\n" +
+                "p\n" +
+                "\n" +
+                "Literal Index:\n" +
+                " 2: 2@4,\n" +
+                "-2: -2@5,\n" +
+                " 3: 3@3,3@5,\n" +
+                " 4: q@3,q@4,\n" +
+                " 5: 5@6,\n" +
+                "-6: -6@6,\n",res.toString(stb));
+    }
+
+
+
+    @Test
+    public void processTrueLiteral2() throws Exception {
+        counter = 1;
+        System.out.println("processTrueLiteral, with propagation");
+        Controller cntr = new Controller(null, null, null);
+        HashMap<String, Object> problemParameters = new HashMap<>();
+        problemParameters.put("name", "test");
+        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
+        Resolution res = new Resolution(1, null, sup);
+        Field statistics = getField("statistics");
+        statistics.set(res, new ResolutionStatistics("test"));
+        Field primaryClauses = getField("primaryClauses");
+        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
+        Field secondaryClauses = getField("secondaryClauses");
+        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
+        Field literalIndex = getField("literalIndex");
+        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+                (cLiteral -> cLiteral.literal),
+                (cLiteral -> cLiteral.clause.size())));
+        Field taskQueue = getField("taskQueue");
+        taskQueue.set(res, new TaskQueue("test", null));
+
+        Method insertClause = getMethod("insertClause", Clause.class, boolean.class, String.class);
+
+        Field predicates = getSField("predicates");
+        predicates.setInt(res,10);
+        Field symboltable = getSField("symboltable");
+        Symboltable stb = new Symboltable(10);
+        symboltable.set(res,stb);
+
+        Clause c1 = make(1, 2);    insertClause.invoke(res,c1,true,"initial");
+        Clause c2 = make(-2,1,3);  insertClause.invoke(res,c2,false,"initial");
+        Clause c3 = make(-3,4);     insertClause.invoke(res,c3,true,"initial");
+        Clause c4 = make(2, -1); insertClause.invoke(res,c4,true,"initial");
+        Clause c5 = make(-2,-1,-3); insertClause.invoke(res,c5,false,"initial");
+        Clause c6 = make(-1,-6);    insertClause.invoke(res,c6,true,"initial");
+
+        Field model = getSField("model");
+        model.set(res, new Model(10));
+
+        Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
+        Result result = (Result)processTrueLiteral.invoke(res,1);
+
+        stb.setName(1,"p");
+        stb.setName(4,"q");
+        System.out.println(res.toString(stb));
+        assertEquals("",res.toString(stb));
     }
 
         @Test

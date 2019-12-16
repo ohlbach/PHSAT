@@ -1,5 +1,7 @@
 package Datastructures.Theory;
 
+import Datastructures.Symboltable;
+
 import java.util.ArrayList;
 import java.util.function.Consumer;
 
@@ -174,4 +176,19 @@ public class Model {
      * @return the model as a comma separated string.
      */
     public String toString() {return model.toString();}
+
+    /** returns the model as a comma separated string of names
+     *
+     * @param symboltable a symboltable
+     * @return the model as a comma separated string of names
+     */
+    public String toString(Symboltable symboltable) {
+        if(symboltable == null) {return model.toString();}
+        StringBuilder st = new StringBuilder();
+        for(int i = 0; i < model.size()-1; ++i) {
+            st.append(symboltable.getLiteralName(model.get(i))).append(",");}
+        st.append(symboltable.getLiteralName(model.get(model.size()-1)));
+        return st.toString();}
+
+
 }

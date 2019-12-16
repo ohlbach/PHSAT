@@ -2,6 +2,7 @@ package Datastructures.Literals;
 
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /** This is the abstract superclass for mapping predicates to their occurrences in the clauses.
  * Subclasses may differ in the representation of these lists, for example sorted according to the size of the clauses.
@@ -71,12 +72,19 @@ public abstract class LiteralIndex<Clause> {
      */
     public abstract Iterator<CLiteral<Clause>> iterator(int literal);
 
-
     /** comprises the index into a string
      *
      * @return the entire index as string.
      */
     public String toString() {
+        return toString((cLiteral -> cLiteral.toString()));}
+
+    /** comprises the index into a string
+     *
+     * @param literalString a function for mapping cLiterals to strings
+     * @return the entire index as string.
+     */
+    public String toString(Function<CLiteral<Clause>,String> literalString) {
         StringBuilder st = new StringBuilder();
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             StringBuilder posString = null;
@@ -86,13 +94,13 @@ public abstract class LiteralIndex<Clause> {
                 posString = new StringBuilder();
                 while(it.hasNext()) {
                     CLiteral<Clause> lit = it.next();
-                    posString.append(lit.toString()).append("@"+lit.clausePosition).append(",");}}
+                    posString.append(literalString.apply(lit)).append("@"+lit.clausePosition).append(",");}}
             if(!isEmpty(-predicate)) {
                 negString = new StringBuilder();
                 it = iterator(-predicate);
                 while(it.hasNext()) {
                     CLiteral<Clause> lit = it.next();
-                    posString.append(lit.toString()).append("@"+lit.clausePosition).append(",");}}
+                    posString.append(literalString.apply(lit)).append("@"+lit.clausePosition).append(",");}}
             if(posString != null) {
                 st.append(" ").append(Integer.toString(predicate)).append(": ").append(posString).append("\n");}
             if(negString != null)

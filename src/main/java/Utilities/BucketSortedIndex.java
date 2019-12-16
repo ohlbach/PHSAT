@@ -81,7 +81,7 @@ public class BucketSortedIndex<T extends Positioned> {
      */
     public void clearBoth(int itemIndex) {
         posOccurrences[itemIndex]  = null;
-        negOccurrences[-itemIndex] = null;}
+        negOccurrences[itemIndex] = null;}
 
     /** returns the items with the given itemIndex (integer)
      *

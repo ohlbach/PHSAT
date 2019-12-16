@@ -38,7 +38,12 @@ public class Symboltable {
      */
     public String getLiteralName(int literal) {
         assert  literal != 0 && Math.abs(literal) <= size;
-        return literal > 0 ? names[literal] : "-"+names[-literal];}
+        String name;
+        if(literal > 0) {
+            name = names[literal];
+            return name == null ? Integer.toString(literal) : name;}
+        name = names[-literal];
+        return name == null ? Integer.toString(literal) : "-"+name;}
 
     /**
      * @param predicate any predicate

@@ -3,6 +3,7 @@ package Coordinator.Tasks;
 import Datastructures.Results.Result;
 import Management.Monitor;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
@@ -54,8 +55,25 @@ public class TaskQueue {
         if(monitor != null) {monitor.print(id,task.toString());}
         taskQueue.add(task);}
 
+    /** returns true if the task queue is empty
+     *
+     * @return true if the task queue is empty
+     */
+    public boolean isEmpty() {
+        return taskQueue.isEmpty();}
+
+    /** turns the task queue into a string, a line for each task
+     *
+     * @return the task queue as a string.
+     */
     public String toString() {
-        return taskQueue.toString();
+        StringBuilder st = new StringBuilder();
+        Task[] array = new Task[taskQueue.size()];
+        taskQueue.toArray(array);
+        Arrays.sort(array,Comparator.comparingInt(task->task.priority));
+        int i = 0;
+        for(Task task : array) {st.append(""+ ++i+". ").append(task.toString()).append("\n");}
+        return st.toString();
     }
 
 

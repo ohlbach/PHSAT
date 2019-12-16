@@ -7,6 +7,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
+import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Transformers;
 import Management.ProblemSupervisor;
@@ -18,6 +19,7 @@ import Utilities.BucketSortedIndex;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Created by ohlbach on 18.10.2018.
@@ -152,7 +154,7 @@ public class Resolution extends Solver {
     private EquivalenceClasses equivalenceClasses = null;
     private BiConsumer<int[],Integer> contradictionHandler;
     private Consumer<Clause> insertHandler = (
-            clause -> {insertClause(clause,isPrimary(clause,true));
+            clause -> {insertClause(clause,isPrimary(clause,true),"Initial clause: ");
                 taskQueue.add(new Task(basicClauseList.maxClauseLength-clause.size()+2, // longer clauses should be
                         (()-> {
                             simplifyBackwards(clause); return null;}),    // checked first for subsumption and replacement resolution
@@ -164,7 +166,7 @@ public class Resolution extends Solver {
             if(equivalenceClasses == null) {return null;}}
 
         Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
-                (literal-> addTrueLiteralTask(literal)));
+                (literal-> addTrueLiteralTask(literal, "Initial Conjunction: ")));
         if(Thread.interrupted()) {throw new InterruptedException();}
         Transformers.prepareDisjunctions(basicClauseList,equivalenceClasses,insertHandler);
         Transformers.prepareXors     (basicClauseList,equivalenceClasses,insertHandler);
@@ -198,7 +200,7 @@ public class Resolution extends Solver {
             simplifyBackwards(resolvent);
             if(resolvent.removed) {continue;}
             simplifyForward(resolvent);
-            insertClause(resolvent,isPrimary(resolvent,false));
+            insertClause(resolvent,isPrimary(resolvent,false), "Resolvent: ");
             result = taskQueue.run();
             if(result != null){return result;}}
         return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");}
@@ -319,15 +321,26 @@ public class Resolution extends Solver {
     /** turns the literal into a trueLiteralTask.
      * If it is a unit resolvent then it is forwarded to the problem supervisor.
      *
+     * @reason  for monitoring the tasks
      * @param literal a unit literal.
      */
-    private void addTrueLiteralTask(int literal) {
+    private void addTrueLiteralTask(int literal, String reason) {
         taskQueue.add(new Task(trueLiteralPriority,
                 (()->processTrueLiteral(literal)),
-                (()->"New true literal derived: " + literal)));
+                (()->reason + (symboltable == null ? literal : symboltable.getLiteralName(literal)))));
         ++statistics.unitClauses;
         if(!initializing) problemSupervisor.forwardTrueLiteral(this,literal);}
 
+    /** computes the consequences of a new true literal
+     * - all clauses with this literal are removed <br>
+     * - pure literals cause new true literals <br>
+     * - all occurrences of the negated literal are removed<br>
+     * - for each shortened clause which became a unit clause, a new task is created.<br>
+     * - if the primary clauses became empty, the model is completed
+     *
+     * @param literal a new true literal
+     * @return the result of a model completion
+     */
     private Result processTrueLiteral(int literal) {
         switch(model.status(literal)) {
             case -1: return new Unsatisfiable(model,literal);
@@ -339,13 +352,11 @@ public class Resolution extends Solver {
             removeClause(clause,literal);
             if(primaryClauses.isEmpty()) {return completeModel();}
             checkPurity(clause);}
-        iterator = literalIndex.iterator(-literal);
-        while(iterator.hasNext()) {
-            CLiteral<Clause> cLiteral = iterator.next();
-            Clause clause = cLiteral.clause;
-            removeLiteral(cLiteral);
-            if(primaryClauses.isEmpty()) {return completeModel();}}
+
+        for(CLiteral<Clause> cLiteral : literalIndex.getAllItems(-literal)) {
+            removeLiteral(cLiteral);}
         literalIndex.clearBoth(Math.abs(literal));
+        if(primaryClauses.isEmpty()) {return completeModel();}
         return null;}
 
     /** completes a model after resolution has finished.
@@ -392,9 +403,9 @@ public class Resolution extends Solver {
      * @param clause  the clause to be inserted.
      * @param primary determines whether the clause is inserted into primaryClauses or secondaryClauses.
      */
-    private void insertClause(Clause clause, boolean primary) {
+    private void insertClause(Clause clause, boolean primary, String reason) {
         if(clause.size() == 1) {
-            addTrueLiteralTask(clause.getLiteral(0));
+            addTrueLiteralTask(clause.getLiteral(0),reason);
             return;}
         ++clauseCounter;
         (primary ? primaryClauses : secondaryClauses).add(clause);
@@ -442,7 +453,7 @@ public class Resolution extends Solver {
         for(CLiteral<Clause> cliteral : clause) literalIndex.remove(cliteral);
         clause.remove(cLiteral);
         if(clause.size() == 1) {
-            addTrueLiteralTask( clause.getLiteral(0));
+            addTrueLiteralTask( clause.getLiteral(0),"New true literal derived: ");
             removeClause(clause,0);
             return false;}
         (inPrimary ? primaryClauses : secondaryClauses).add(clause);
@@ -458,7 +469,7 @@ public class Resolution extends Solver {
     private void checkPurity(Clause clause) {
         for(CLiteral cliteral : clause) {
             if(literalIndex.isEmpty(cliteral.literal)) {
-                addTrueLiteralTask(-cliteral.literal);}}}
+                addTrueLiteralTask(-cliteral.literal, "Pure literal: ");}}}
 
 
     /** return the entire statistics information
@@ -466,4 +477,31 @@ public class Resolution extends Solver {
      * @return the entire statistics information for the resolution solver.
      */
     public Statistic getStatistics() {return statistics;}
+
+    /** lists the clauses and the literal index as a string.
+     *
+     * @return the clauses and the literal index as a string.
+     */
+    public String toString() {return toString(null);}
+
+    /** lists the clauses and the literal index as a string.
+     *
+     * @param symboltable a symboltable or null
+     * @return the clauses and the literal index as a string.
+     */
+    public String toString(Symboltable symboltable) {
+        Function<Clause,String> clauseString = (clause->clause.toString(symboltable));
+        Function<CLiteral<Clause>,String> literalString = (cliteral->cliteral.toString(symboltable)+"@"+cliteral.clause.id);
+        StringBuilder st = new StringBuilder();
+        st.append("Resolution:\n");
+        if(!primaryClauses.isEmpty()) {
+            st.append("Primary Clauses:\n").append(primaryClauses.toString(clauseString)).append("\n");}
+        if(!secondaryClauses.isEmpty()) {
+            st.append("Secondary Clauses:\n").append(secondaryClauses.toString(clauseString)).append("\n");}
+        if(!model.isEmpty()) {
+            st.append("Model:\n").append(model.toString(symboltable)).append("\n\n");}
+        st.append("Literal Index:\n").append(literalIndex.toString(literalString));
+        if(!taskQueue.isEmpty()) {
+            st.append("\nTask Queue:\n").append(taskQueue.toString());}
+        return st.toString();}
 }

@@ -156,15 +156,22 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
 
     /** lists the entire list as string.
      *
-     * @return the entire list as string.
      */
     public String toString() {
+        return toString((item-> item.toString()));}
+
+    /** lists the entire list as string.
+     *
+     * @param itemString a function for mapping an item to a string
+     * @return the entire list as string.
+     */
+    public String toString(Function<T,String> itemString) {
         StringBuilder st = new StringBuilder();
         for(int i = 0; i < buckets.size(); ++i) {
             ArrayList<T> bucket = buckets.get(i);
             if(bucket == null || bucket.isEmpty()) {continue;}
             st.append("Bucket " + i + "\n");
-            for(T item : bucket) {st.append("  ").append(item.toString()).append("\n");}}
+            for(T item : bucket) {st.append("  ").append(itemString.apply(item)).append("\n");}}
         return st.toString();}
 
     /** This method generates an iterator which iterates over the items in the bucket.
