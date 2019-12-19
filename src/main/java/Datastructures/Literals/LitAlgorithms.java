@@ -41,7 +41,7 @@ public class LitAlgorithms {
      * @param subsumed     collects all subsumed clauses
      */
     public static void subsumes(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp, ArrayList<Clause> subsumed) {
-        int size = clause.size();
+         int size = clause.size();
         int difference = size - 2;
         for(CLiteral cliteral : clause) {
             Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorFrom(cliteral.literal,size);

@@ -2,6 +2,7 @@ package Solvers.Resolution;
 
 import Coordinator.Tasks.Task;
 import Coordinator.Tasks.TaskQueue;
+import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
@@ -21,8 +22,23 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-/**
+/** The class implements a SAT-Solver with the resolution principle.
  * Created by ohlbach on 18.10.2018.
+ *
+ * Resolution is combined with various simplification techniques: <br>
+ *     - Propagation of unit clauses <br>
+ *     - forward and backward subsumption<br>
+ *     - forward and backward replacement resolution<br>
+ *        <br>
+ * Four different strategies are available: <br>
+ *     - INPUT:    only resolvents with input clauses are allowed (complete only for Horn clauses)
+ *     - SOS:      a percentage of the input clauses make up the Set of Support (SOS)<br>
+ *                 resolvents are put into the SOS<br>
+ *     - POSITIVE: one parent clause must be a positive clause<br>
+ *     - NEGATIVE: one parent clause must be a negative clause. <br>
+ *  <br>
+ *  Unit clauses are exchanged between different solvers. <br>
+ *  Therefore various resolution solvers can operate in parallel and exchange unit clauses as intermediate results.
  */
 public class Resolution extends Solver {
 
@@ -43,7 +59,6 @@ public class Resolution extends Solver {
             if(!keys.contains(key)) {warnings.append("Resolution: unknown key in parameters: " + key + "\n");}}
         ArrayList<HashMap<String,Object>> list = new ArrayList<>();
         String seeds = parameters.get("seed");
-        if(seeds == null) {seeds = "0";}
         String strategiess = parameters.get("strategy");
         if(strategiess == null) {strategiess = "INPUT";}
         String percentages = parameters.get("percentageOfSOSClauses");
@@ -51,11 +66,13 @@ public class Resolution extends Solver {
         String limits = parameters.get("limit");
         if(limits == null) {limits = Integer.toString(Integer.MAX_VALUE);}
         String place           = "Resolution: ";
-        ArrayList seed         = Utilities.parseIntRange(place+"seed: ",seeds,errors);
+        ArrayList seed;
+        if(seeds != null) {seed = Utilities.parseIntRange(place+"seed: ",seeds,errors);}
+        else              {seed = new ArrayList(); seed.add(null);}
         ArrayList percentage   = Utilities.parseIntRange(place+"percentageOfSOSClauses: ",percentages,errors);
         ArrayList limit = Utilities.parseIntRange(place+"limit: ",limits,errors);
         ArrayList strategies   = ResolutionStrategy.parseStrategies(strategiess,place, warnings,errors);
-        if(seed == null || percentage == null || limit == null || strategies == null) {return null;}
+        if(percentage == null || limit == null || strategies == null) {return null;}
         ArrayList<ArrayList> pars = Utilities.crossProduct(seed,strategies,percentage,limit);
         int counter = 0;
         for(ArrayList<Object> p : pars ) {
@@ -78,7 +95,8 @@ public class Resolution extends Solver {
      */
     public static String help() {
         return "Resolution parameters:\n" +  ResolutionStrategy.help() +
-                "  seed:       for the random number generator              (default: 0)\n" +
+                "  seed:       for the random number generator \n" +
+                "              default: the generator starts each time with a new seed.\n" +
                 "  percentageOfSOSClauses: percentageOfSOSClauses of clauses in the set of support. (default 50)\n" +
                 "  limit:      maximal number of resolvents = limit*clauses (default unlimited)\n"+
                 "The format of seed, percentage of SOSClauses and limit is\n"+
@@ -86,13 +104,16 @@ public class Resolution extends Solver {
                 "Each combination of parameters causes a separate thread to work at the given problem.";}
 
 
+    /** a random number generator, used for selecting the next resolution literas */
     private Random random;
+
+    /** INPUT,SOS,POSITIVE or NEGATIVE */
     private ResolutionStrategy strategy;
-    private TaskQueue taskQueue;
 
-    private final int newClausePriority = 5;
-    private final int trueLiteralPriority = 1;
+    /** maintains the tasks to be executed */
+    private TaskQueue taskQueue = null;
 
+    /** collects statistical information */
     public ResolutionStatistics statistics;
 
     /** constructs a new Resolution solver.
@@ -110,7 +131,7 @@ public class Resolution extends Solver {
      *    Equivalences are turned to equivalence classes <br>
      *    All literals are mapped to the representatives in their classes.<br>
      * 3. The initial causes are put into the task queue for simplifications.<br>
-     * 4. Resolution ans simplification is started until <br>
+     * 4. Resolution and simplification is started until <br>
      *     - a contradiction is formed or <br>
      *     - the primaryClauses became empty or<br>
      *     - the resolution limit is exceeded or <br>
@@ -122,7 +143,6 @@ public class Resolution extends Solver {
         super.initialize();
         globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.currentTimeMillis();
-        taskQueue = new TaskQueue(combinedId,monitor);
         initializeData();
         Result result = null;
         try{result = initializeClauses();
@@ -133,40 +153,82 @@ public class Resolution extends Solver {
         statistics.elapsedTime = System.currentTimeMillis() - time;
         return result;}
 
+    /** one resolution parent is always chosen from this list */
     private BucketSortedList<Clause> primaryClauses;
+
+    /** the other resolution parent is chosen from both lists */
     private BucketSortedList<Clause> secondaryClauses;
+
+    /** maps literals (numbers) to their occurrences in clauses */
     public BucketSortedIndex<CLiteral<Clause>> literalIndex;
 
+    /** If the strategy is SOS, then this number determines how many randomly chosen clauses are put into the primaryClauses list */
     private int percentageOfSOSClauses = 0;
+
+    /** The search is stopped after the number of resolvent reaches this limit */
     private int resolutionLimit = 0;
 
+    /** is set false after all initial clauses are integrated */
+    private boolean initializing = true;
+
+    /** for optimizing subsumption and replacement resolution operations */
+    private int timestamp = 1;
+
+    private int maxClauseLength = 2;
+
+
+    /** initializes resolution specific data structures*/
     private void initializeData() {
+        Object seed            = solverParameters.get("seed");
         strategy               = (ResolutionStrategy)solverParameters.get("strategy");
         statistics             = new ResolutionStatistics(combinedId);
-        random                 = new Random((Integer)solverParameters.get("seed"));
-        percentageOfSOSClauses = (Integer)solverParameters.get("percentage");
+        random                 = (seed != null) ? new Random((Integer)seed) : new Random();
+        Object percent         = solverParameters.get("percentage");
+        percentageOfSOSClauses = (percent != null) ? (Integer)percent : 0;
         primaryClauses         = new BucketSortedList<Clause>(clause->clause.size());
         secondaryClauses       = new BucketSortedList<Clause>(clause->clause.size());
         literalIndex           = new BucketSortedIndex<CLiteral<Clause>>(predicates+1,
                                     (cLiteral->cLiteral.literal),
-                                    (cLiteral->cLiteral.clause.size()));}
+                                    (cLiteral->cLiteral.clause.size()));
+        taskQueue = new TaskQueue(combinedId,monitor);}
 
+    /** EquivalenceClasses manage equivalent literals.
+     *  In each equivalence class the literals are mapped to their representatives,
+     *  which is always the predicate with the smallest number.
+     */
     private EquivalenceClasses equivalenceClasses = null;
-    private BiConsumer<int[],Integer> contradictionHandler;
-    private Consumer<Clause> insertHandler = (
-            clause -> {insertClause(clause,isPrimary(clause,true),"Initial clause: ");
-                taskQueue.add(new Task(basicClauseList.maxClauseLength-clause.size()+2, // longer clauses should be
-                        (()-> {
-                            simplifyBackwards(clause); return null;}),    // checked first for subsumption and replacement resolution
-                        (()-> "Simplify initial clause " + clause.toString())));});
 
+    /** If an equivalence p = -p occurs or can eb derived, this function is called.
+     *  It adds an Unsatisfiable task to the task queue.
+     */
+    private BiConsumer<int[],Integer> contradictionHandler = ((clause,literal)->{
+        String clauseString = BasicClauseList.clauseToString((""+clause[0]).length(),clause,symboltable);
+        String reason = ""+literal +" == -" + literal + " in clause " + clauseString;
+        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason)), (()->reason)));});
+
+    /** This function is called when a new disjunction is to be inserted.
+     *  It generates a simplifyBackwards task.
+     */
+    private Consumer<Clause> insertHandler = (
+            clause -> {insertClause(clause,isPrimary(clause,true),"Initial clause");
+                if(clause.size() > 1) {
+                    taskQueue.add(new Task(basicClauseList.maxClauseLength-clause.size()+2, // longer clauses should be
+                        (()-> {simplifyBackwards(clause); return null;}),    // checked first for subsumption and replacement resolution
+                        (()-> "Simplify initial clause " + clause.toString())));}});
+
+    /** This method translates all basic clauses into Clause data structures.
+     *  Equivalent literals are replaced by their representatives.
+     *
+     * @return possibly Unsatisfiable
+     * @throws InterruptedException
+     */
     private Result initializeClauses() throws InterruptedException {
         if(basicClauseList.equivalences != null) {
             equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler);
-            if(equivalenceClasses == null) {return null;}}
+            if(!taskQueue.isEmpty()) {Result result = taskQueue.run(); if(result != null) {return result;}}}
 
         Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
-                (literal-> addTrueLiteralTask(literal, "Initial Conjunction: ")));
+                (literal-> addTrueLiteralTask(literal, "Initial Conjunction")));
         if(Thread.interrupted()) {throw new InterruptedException();}
         Transformers.prepareDisjunctions(basicClauseList,equivalenceClasses,insertHandler);
         Transformers.prepareXors     (basicClauseList,equivalenceClasses,insertHandler);
@@ -179,9 +241,20 @@ public class Resolution extends Solver {
 
 
 
+    /** counts the resolvents */
+    private int resolvents = 0;
 
-    int resolvents = 0;
-
+    /** performs the resolution search until a solution is found, or the number of resolvents exceeds the limit.
+     * - two parent literals are chosen. <br>
+     * - the resolvent is generated <br>
+     * - the resolvent itself is simplified.<br>
+     * - if it survives it causes forward subsumption and replacement resolution<br>
+     * - further simplifications are put into the task queue.<br>
+     * - the task queue is worked off.
+     *
+     * @return the result of the search
+     * @throws InterruptedException
+     */
     private Result resolve()  throws InterruptedException {
         Result result = taskQueue.run();
         if(result != null){return result;}
@@ -205,12 +278,23 @@ public class Resolution extends Solver {
             if(result != null){return result;}}
         return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");}
 
+    /** The method chooses two parent literals for the next resolution step.
+     * The first parent clauses is chosen randomly from the primary clauses.<br>
+     * Shorter clauses are preferred (quadratically in size) <br>
+     *     <br>
+     * For the second parent clause the literals of the first parent clauses are searched for:
+     *  - a shorter second parent clause <br>
+     *  - a parent clause with a literal that merges with a literal in the first clause <br>
+     *  - if none such clause is found, the first one complementary to the last literal in the clause is chosen.
+     *
+     * @param parentLiterals to store the parent literals.
+     */
     private void selectParentLiterals(CLiteral[] parentLiterals) {
         Clause parent1 = primaryClauses.getRandom(random);
         int size1 = parent1.size();
         for(CLiteral literal1 : parent1) {
             parentLiterals[0] = literal1;
-            boolean first = false;
+            boolean first = true;
             Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(-literal1.literal);
             while(iterator.hasNext()) {
                 CLiteral<Clause> literal2 = iterator.next();
@@ -242,9 +326,6 @@ public class Resolution extends Solver {
         return true;}
 
 
-    private boolean initializing = true;
-
-    private int timestamp = 1;
 
     /** checks if the clause is subsumed or some of its literals can be resolved away by replacement resolution.
      * If the clause is subsumed, it is removed from the clause lists and the literal index <br>
@@ -267,7 +348,8 @@ public class Resolution extends Solver {
      */
     private void simplifyBackwards(Clause clause) {
         if(clause.removed) {return;}
-        Clause subsumer = LitAlgorithms.isSubsumed(clause,literalIndex,++timestamp);
+        timestamp += maxClauseLength +1;
+        Clause subsumer = LitAlgorithms.isSubsumed(clause,literalIndex,timestamp);
         if(subsumer != null) {
             ++statistics.backwardSubsumptions;
             if(primaryClauses.contains(clause) && !primaryClauses.contains(subsumer)) {replaceClause(clause,subsumer);}
@@ -277,7 +359,8 @@ public class Resolution extends Solver {
             if(subsumer.size() < clause.size()) {checkPurity(clause);}
             return;}
 
-        Object[] replacements = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,++timestamp);
+        timestamp += maxClauseLength +1;
+        Object[] replacements = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
         while(replacements != null) { // several literals may become resolved away
              CLiteral<Clause> cLiteral = (CLiteral<Clause>)replacements[0];
             ++statistics.backwardReplacementResolutions;
@@ -287,7 +370,8 @@ public class Resolution extends Solver {
                         + ((Clause)replacements[1]).toString());}
             literalIndex.remove(cLiteral);
             if(removeLiteral(cLiteral)) {
-                replacements = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,++timestamp);}}
+                timestamp += maxClauseLength +1;
+                replacements = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);}}
 
         if(!clause.removed) {
             taskQueue.add(new Task(clause.size()+2,
@@ -296,20 +380,28 @@ public class Resolution extends Solver {
 
 
 
+    /** just used in simplifyForward */
     private ArrayList<Clause> clauseList = new ArrayList<>();
+    /** just used in simplifyForward */
     private ArrayList<CLiteral<Clause>> literalList = new ArrayList<>();
 
+    /** does forward subsumption and replacement resolution
+     *
+     * @param clause
+     */
     private void simplifyForward(Clause clause) {
         if(clause.removed) {return;}
         clauseList.clear();
-        LitAlgorithms.subsumes(clause,literalIndex,++timestamp,clauseList);
+        timestamp += maxClauseLength +1;
+        LitAlgorithms.subsumes(clause,literalIndex,timestamp,clauseList);
         for(Clause subsumedClause : clauseList) {
             ++statistics.forwardSubsumptions;
             if(monitoring) {monitor.print(combinedId,"Resolvent subsumes " + subsumedClause.toString());}
             removeClause(subsumedClause,0);}
 
         literalList.clear();
-        LitAlgorithms.replacementResolutionForward(clause,literalIndex,++timestamp,literalList);
+        timestamp += maxClauseLength +1;
+        LitAlgorithms.replacementResolutionForward(clause,literalIndex,timestamp,literalList);
         for(CLiteral<Clause> cLiteral : literalList) {
             ++statistics.forwardReplacementResolutions;
             if(monitoring) {
@@ -325,9 +417,9 @@ public class Resolution extends Solver {
      * @param literal a unit literal.
      */
     private void addTrueLiteralTask(int literal, String reason) {
-        taskQueue.add(new Task(trueLiteralPriority,
+        taskQueue.add(new Task(1,
                 (()->processTrueLiteral(literal)),
-                (()->reason + (symboltable == null ? literal : symboltable.getLiteralName(literal)))));
+                (()->reason + ": " + (symboltable == null ? literal : symboltable.getLiteralName(literal)))));
         ++statistics.unitClauses;
         if(!initializing) problemSupervisor.forwardTrueLiteral(this,literal);}
 
@@ -339,7 +431,7 @@ public class Resolution extends Solver {
      * - if the primary clauses became empty, the model is completed
      *
      * @param literal a new true literal
-     * @return the result of a model completion
+     * @return the result of a model completion or null
      */
     private Result processTrueLiteral(int literal) {
         switch(model.status(literal)) {
@@ -408,6 +500,7 @@ public class Resolution extends Solver {
             addTrueLiteralTask(clause.getLiteral(0),reason);
             return;}
         ++clauseCounter;
+        maxClauseLength = Math.max(maxClauseLength,clause.size());
         (primary ? primaryClauses : secondaryClauses).add(clause);
         for(CLiteral<Clause> cLiteral : clause) {literalIndex.add(cLiteral);}}
 
@@ -453,7 +546,7 @@ public class Resolution extends Solver {
         for(CLiteral<Clause> cliteral : clause) literalIndex.remove(cliteral);
         clause.remove(cLiteral);
         if(clause.size() == 1) {
-            addTrueLiteralTask( clause.getLiteral(0),"New true literal derived: ");
+            addTrueLiteralTask( clause.getLiteral(0),"New true literal derived");
             removeClause(clause,0);
             return false;}
         (inPrimary ? primaryClauses : secondaryClauses).add(clause);
@@ -469,7 +562,7 @@ public class Resolution extends Solver {
     private void checkPurity(Clause clause) {
         for(CLiteral cliteral : clause) {
             if(literalIndex.isEmpty(cliteral.literal)) {
-                addTrueLiteralTask(-cliteral.literal, "Pure literal: ");}}}
+                addTrueLiteralTask(-cliteral.literal, "Pure literal");}}}
 
 
     /** return the entire statistics information
@@ -498,10 +591,27 @@ public class Resolution extends Solver {
             st.append("Primary Clauses:\n").append(primaryClauses.toString(clauseString)).append("\n");}
         if(!secondaryClauses.isEmpty()) {
             st.append("Secondary Clauses:\n").append(secondaryClauses.toString(clauseString)).append("\n");}
-        if(!model.isEmpty()) {
+        if(model != null && !model.isEmpty()) {
             st.append("Model:\n").append(model.toString(symboltable)).append("\n\n");}
         st.append("Literal Index:\n").append(literalIndex.toString(literalString));
         if(!taskQueue.isEmpty()) {
             st.append("\nTask Queue:\n").append(taskQueue.toString());}
         return st.toString();}
+
+    /** collects information about the control parameters
+     *
+     * @return a string with information about the control parameters.
+     */
+    public String parameters() {
+        StringBuilder st = new StringBuilder();
+        Object seed = solverParameters.get("seed");
+        st.append("Resolution        " + combinedId + "\n");
+        st.append("Strategy:         " + strategy.toString()).append("\n");
+        st.append("Resolution Limit: " +  resolutionLimit).append("\n");
+        if(seed != null) {
+            st.append("Seed:             " + seed.toString()).append("\n");}
+        if(strategy == ResolutionStrategy.SOS){
+            st.append("SOS percentage:   " + percentageOfSOSClauses).append("\n");}
+        return st.toString();
+    }
 }

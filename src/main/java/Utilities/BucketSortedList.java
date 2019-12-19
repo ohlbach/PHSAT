@@ -104,10 +104,10 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
             while(true) {
                 ++i;
                 if(bucketNumber - i >= 0) {
-                    bucket = buckets.get(i);
+                    bucket = buckets.get(bucketNumber - i);
                     if(!bucket.isEmpty()) {break;}}
                 if(bucketNumber + i < size) {
-                    bucket = buckets.get(i);
+                    bucket = buckets.get(bucketNumber + i);
                     if(!bucket.isEmpty()) {break;}}}}
         size = bucket.size();
         if(size == 1) {return bucket.get(0);}

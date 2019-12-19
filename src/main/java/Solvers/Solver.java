@@ -120,13 +120,13 @@ public abstract class Solver {
     /** Instance data and methods
        *************************  */
 
-    public String solverId;
+    public String solverId = "solverId";
 
-    public String problemId;
+    public String problemId = "problemId";
 
-    public String combinedId;
+    public String combinedId = "combinedId";
 
-    public Monitor monitor;
+    public Monitor monitor = null;
     protected boolean monitoring = false;
 
     /** the supervisor which coordinates the work of all solvers or a given problem */

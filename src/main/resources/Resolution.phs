@@ -1,0 +1,13 @@
+problem
+    type = random
+    predicates = 10
+    cpRatio = 4
+    length = 3
+    precise = true
+    seed = 1
+
+solver
+   type = resolution
+   strategy = POSITIVE
+   limit = 10
+   seed = 0

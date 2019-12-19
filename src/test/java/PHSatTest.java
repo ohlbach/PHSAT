@@ -9,7 +9,7 @@ import static org.junit.Assert.*;
 public class PHSatTest {
     @Test
     public void main() throws Exception {
-        String[] args = new String[]{Utilities.resourceFile("Walker.phs")};
+        String[] args = new String[]{Utilities.resourceFile("Resolution.phs")};
         //args = new String[]{"help"};
         PHSat.main(args);
 

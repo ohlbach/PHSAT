@@ -148,8 +148,6 @@ public final class CNFReader {
         File file = (File)parameters.get("file");
         String filename = file.getName();
         String place = "CNFReader: file " + filename+": ";
-        ArrayList<Integer> literals = new ArrayList();
-        ArrayList<ArrayList<Integer>> clauseList = new ArrayList<>();
         BufferedReader reader = null;
         try {reader = new BufferedReader(new FileReader(file));}
         catch (FileNotFoundException e) {

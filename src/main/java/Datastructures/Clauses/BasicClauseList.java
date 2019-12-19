@@ -40,10 +40,10 @@ public class BasicClauseList {
     /** an info-string about the origin of the clauses */
     public String info = null;
 
-    /** a symboltable, or null */
-    public Symboltable symboltable = null;
-
     public int maxClauseLength = 0;
+
+    /** is set in the generators */
+    public Symboltable symboltable = null;
 
     /** adds a clause to the corresponding lists
      *
@@ -171,7 +171,9 @@ public class BasicClauseList {
      * @return the clause as string
      */
     public String clauseToString(int[] clause) {
-        return clauseToString((""+clause[0]).length(),clause,symboltable);}
+        return clauseToString((""+clause[0]).length(),clause,null);}
+
+
     /** turns a clause into a string.
      *
      * @param size       the length for the number string
@@ -209,11 +211,11 @@ public class BasicClauseList {
 
     /** generates a string representation of the clause
      *
-     * @param withSymbols if true then a symboltable is used to map the numbers to a string.
+     * @param withSymboltable if the symboltable is to be used
      * @return  a string representation of the disjunctions.
      */
-    public String toString(boolean withSymbols) {
-        Symboltable symboltable = withSymbols ? this.symboltable : null;
+    public String toString(boolean withSymboltable) {
+        Symboltable symboltable1 = withSymboltable ? this.symboltable : null;
         StringBuilder st = new StringBuilder();
         if(info != null) {st.append(info).append("\n");}
         int size = (""+(disjunctions.size() + conjunctions.size() + xors.size() + disjoints.size()+equivalences.size())).length();
