@@ -69,14 +69,19 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
 
     /** checks if the clause is positive, negative or mixed and sets the corresponding value for the structure.
      */
-    private void setStructure() {
+    public ClauseStructure getStructure() {
         int positive = 0;
         int negative = 0;
         for(CLiteral cLiteral : cliterals) {
             if(cLiteral.literal > 0) {++positive;} else {++negative;}}
-        structure = ClauseStructure.MIXED;
-        if(positive == 0) {structure = ClauseStructure.NEGATIVE;}
-        else {if(negative == 0) {structure = ClauseStructure.POSITIVE;}}}
+        ClauseStructure structure = ClauseStructure.MIXED;
+        if(positive == 0) {structure =  ClauseStructure.NEGATIVE;}
+        else {if(negative == 0) {structure =  ClauseStructure.POSITIVE;}}
+        return structure;}
+
+    public void setStructure() {
+        structure = getStructure();}
+
 
     /** returns the list position, or -1
      *
@@ -155,8 +160,7 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
     public void add(CLiteral cliteral) {
         int position = cliterals.size();
         cliterals.add(cliteral);
-        cliteral.setClause(this,position);
-        setStructure();}
+        cliteral.setClause(this,position);}
 
     /** removes a cliteral from the clause.
      *
@@ -229,7 +233,6 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
                 if(literal == cliteral.literal) {
                     removeAtPosition(j--);
                     doubles = true;}}}
-        setStructure();
         return doubles;}
 
     /** generates a string: clause-number: literals
@@ -237,32 +240,23 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
      * @return a string: clause-number: literals
      */
     public String toString() {
-        return toString(id.length(),null);}
+        return toString(null);}
 
-    /** generates a string: clause-number: literals
-     *
-     * @param symboltable for mapping numbers to names
-     * @return a string: clause-number: literals
-     */
-    public String toString(Symboltable symboltable) {
-        return toString(id.length(),symboltable);
-    }
+
 
     /** generates a string: clause-number: non-false literals
      *
-     * @param numberSize the length of the number-string
      * @param symboltable for mapping numbers to names
      * @return a string: clause-number: non-false literals
      */
-    public String toString(int numberSize, Symboltable symboltable) {
+    public String toString(Symboltable symboltable) {
         StringBuffer st = new StringBuffer();
-        String n = String.format("%"+numberSize+"s",id);
-        st.append(n).append(":").append("(");
+        st.append("(");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
-            st.append( cliterals.get(position).toString(symboltable));
+            st.append( ""+cliterals.get(position).literal);
             if(position < size-1) {st.append(",");}};
-        st.append(")");
+        st.append("):").append(id);
         return st.toString();}
 
     /** gets an iterator over the literals
@@ -272,4 +266,36 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
     @Override
     public Iterator<CLiteral<Clause>> iterator() {
         return cliterals.iterator();}
+
+
+    /** checks the clause and its literals for consistency.
+     * If an inconsistency is detected then an error message is printed and the entire system stops.
+     */
+    public void check() {
+        if(removed) {return;}
+        for(int i = 0; i < cliterals.size(); ++i) {
+            CLiteral<Clause> cliteral = cliterals.get(i);
+            Clause clause = cliteral.clause;
+            if(clause == null) {
+                System.out.println("Error in Clause.check: clause" + id + ", literal " +
+                        cliteral.literal + " has no clause");
+                System.exit(1);}
+            if(clause != this) {
+                System.out.println("Error in Clause.check: clause" + id + ", literal " +
+                        cliteral.literal + " has a different clause " + clause.id);
+                System.exit(1);}
+            if(cliteral.clausePosition != i) {
+                System.out.println("Error in Clause.check: clause" + id + ", literal " +
+                        cliteral.literal + " has wrong position " + cliteral.clausePosition);
+                System.exit(1);}}
+
+        if(structure == null) {
+            System.out.println("Error in Clause.check: clause" + id + " has no structure");
+            System.exit(1);}
+
+        if(structure != getStructure()) {
+            System.out.println("Error in Clause.check: clause" + id + " has wrong structure: " + structure.toString());
+            System.exit(1);}
+        }
+
 }

@@ -83,35 +83,26 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
             if(buckets.get(i).isEmpty()) {buckets.remove(i);}
             else {break;}}}
 
-
+    public int getRandomIndex(Random random) {
+        int size = size();
+        if(size == 0) {return 0;}
+        return random.nextInt(random.nextInt(size)+1);}
 
     /** returns a randomly chosen item.
      *  items in smaller buckets are chosen more likely (quadratic) than items in larger buckets.
      *
-     * @param random the random number generator
-     * @return a randomly chosen item.
+     * @param index the index in the aggregated lists.
+     * @return the item with this index
      */
-    public T getRandom(Random random) {
-        int size = buckets.size();
-        if(size == 0) {return null;}
-        int bucketNumber = 0;
-        if(size > 1) {
-            bucketNumber = random.nextInt(size);
-            if(bucketNumber > 0) {bucketNumber = random.nextInt(bucketNumber+1);}}
-        ArrayList<T> bucket = buckets.get(bucketNumber);
-        if(bucket.isEmpty()) {
-            int i = 0;
-            while(true) {
-                ++i;
-                if(bucketNumber - i >= 0) {
-                    bucket = buckets.get(bucketNumber - i);
-                    if(!bucket.isEmpty()) {break;}}
-                if(bucketNumber + i < size) {
-                    bucket = buckets.get(bucketNumber + i);
-                    if(!bucket.isEmpty()) {break;}}}}
-        size = bucket.size();
-        if(size == 1) {return bucket.get(0);}
-        return bucket.get(random.nextInt(size));}
+    public T getItem(int index) {
+        int size = size();
+        int accumulator = 0;
+        for(ArrayList<T> bucket : buckets) {
+            int bucketSize = bucket.size();
+            int rest = index - accumulator;
+            if(rest < bucketSize) {return bucket.get(rest);}
+            accumulator += bucketSize;}
+        return null;}
 
     /** joins all items in a new list.
      *
@@ -174,6 +165,26 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
             for(T item : bucket) {st.append("  ").append(itemString.apply(item)).append("\n");}}
         return st.toString();}
 
+    /** checks if all items are in the correct position.
+     * If an error is detected, a message is printed and the system stops.
+     *
+     * @param name of the list
+     */
+    public void check(String name) {
+        for(int i = 0; i < buckets.size(); ++i) {
+            ArrayList<T> bucket = buckets.get(i);
+            if(bucket == null) {continue;}
+            for(int j = 0; j < bucket.size(); ++j) {
+                T item = bucket.get(j);
+                if(getBucket.apply(item) != i) {
+                    System.out.println("Error in BucketSortedList " + name + ": item " + item.toString() +
+                            " with bucket " + getBucket.apply(item) + " is in the wrong bucket " + i);
+                    System.exit(1);}
+                if(item.getPosition() != j) {
+                    System.out.println("Error in BucketSortedList " + name + ": item " + item.toString() +
+                            " in bucket " + i + " is not in position " + item.getPosition() + ", but in " + j);
+                    System.exit(1);}}}}
+
     /** This method generates an iterator which iterates over the items in the bucket.
      *
      * @return an iterator for iterating over the items in the buckets.
@@ -199,38 +210,51 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      *
      */
     public class BucketIterator implements Iterator<T> {
-        int bucketIndex   = 0;    // iterates through the buckets
+        int bucketIndex = 0;    // iterates through the buckets
         int positionIndex = -1;   // iterates through a single bucket
-        int bucketEnd     = 0;    // the index +1 of the last bucket
+        int bucketEnd = 0;    // the index +1 of the last bucket
 
-        /** generates an iterator which iterates over buckets[bucketStart] until buckets[bucketEnd-1]
+        /**
+         * generates an iterator which iterates over buckets[bucketStart] until buckets[bucketEnd-1]
          *
-         * @param bucketStart    the index of the first bucket
-         * @param bucketEnd      the index + 1 of the last bucket
+         * @param bucketStart the index of the first bucket
+         * @param bucketEnd   the index + 1 of the last bucket
          */
         public BucketIterator(int bucketStart, int bucketEnd) {
-            this.bucketEnd   = Math.min(buckets.size(),bucketEnd);
-            bucketIndex      = bucketStart;}
+            this.bucketEnd = Math.min(buckets.size(), bucketEnd);
+            bucketIndex = bucketStart;
+        }
 
-        /** checks if there is a next item in the buckets.
-         *  The indices are moved to the next item in the buckets
+        /**
+         * checks if there is a next item in the buckets.
+         * The indices are moved to the next item in the buckets
          *
          * @return true if there is another item in the buckets
          */
         public boolean hasNext() {
-            if(bucketIndex >= bucketEnd) {return false;}
-            for(; bucketIndex < bucketEnd; ++bucketIndex) {
+            if (bucketIndex >= bucketEnd) {
+                return false;
+            }
+            for (; bucketIndex < bucketEnd; ++bucketIndex) {
                 ArrayList<T> bucket = buckets.get(bucketIndex);
-                if(positionIndex == bucket.size()-1) {positionIndex = -1; continue;}
+                if (positionIndex == bucket.size() - 1) {
+                    positionIndex = -1;
+                    continue;
+                }
                 ++positionIndex;
-                return true;}
-            return false;}
+                return true;
+            }
+            return false;
+        }
 
-        /** yields the next item in the buckets.
+        /**
+         * yields the next item in the buckets.
          *
          * @return the next item in the buckets.
          */
         public T next() {
-            return buckets.get(bucketIndex).get(positionIndex);}
+            return buckets.get(bucketIndex).get(positionIndex);
+        }
+
     }
 }

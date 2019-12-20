@@ -45,6 +45,7 @@ public class Transformers {
             if(equivalenceClasses != null) literal = equivalenceClasses.mapToRepresentative(literal);
             clause.add(new CLiteral(literal,clause,i-2));}
         clause.removeDoubles();
+        clause.setStructure();
         if(!clause.hasComplementaries()) {handler.accept(clause);}}
 
     /** The handler is applied to all conjuncts in the basicClauseList.
@@ -115,6 +116,7 @@ public class Transformers {
                 Clause clause = new Clause("D"+basicClause[0] + "_" + ++counter, 2);
                 clause.add(new CLiteral<Clause>(literal1,clause,0));
                 if(literal1 != literal2) {clause.add(new CLiteral<Clause>(literal2,clause,1));}
+                clause.setStructure();
                 handler.accept(clause);}}}
 
 

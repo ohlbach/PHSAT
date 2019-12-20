@@ -3,6 +3,8 @@ package Datastructures.Literals;
 import Datastructures.Symboltable;
 import Utilities.Positioned;
 
+import java.util.function.Function;
+
 /**
  * Created by Ohlbach on 25.08.2018.<br>
  *
@@ -71,7 +73,6 @@ public class CLiteral<Clause> implements Positioned {
      */
     public int getPosition() {return indexPosition;}
 
-
     /** returns just the literal.
      *
      * @return the literal as a String.
@@ -79,13 +80,20 @@ public class CLiteral<Clause> implements Positioned {
     public String toString() {
         return Integer.toString(literal);}
 
+    /** returns just the literal.
+     *
+     * @return the literal as a String.
+     */
+    public String toString(Function<Clause,String> clauseString) {
+        return Integer.toString(literal) + "@" + clauseString.apply(clause);}
+
     /** returns just  name of the literal.
      *
      * @param symboltable for mapping numbers to names
      * @return the literal name as a String.
      */
-    public String toString(Symboltable symboltable) {
-        return (symboltable == null) ? toString() : symboltable.getLiteralName(literal);}
+    public String toString(Symboltable symboltable, Function<Clause,String> clauseString) {
+        return ((symboltable == null) ? toString() : symboltable.getLiteralName(literal)) +"@" + clauseString.apply(clause);}
 
 
 }

@@ -151,7 +151,6 @@ public class ClauseTest {
         st.setName(6, "six");
         st.setName(7, "seven");
         assertEquals("CL1:(five,-six,seven)", cl1.toString(st));
-        assertEquals("       CL1:(five,-six,seven)", cl1.toString(10,st));
     }
 
     @Test

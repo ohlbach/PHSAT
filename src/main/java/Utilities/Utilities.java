@@ -300,6 +300,7 @@ public class Utilities {
         Clause clause = new Clause(id,lits.length);
         for(String lit : lits) {
             clause.add(new CLiteral(Integer.parseInt(lit)));}
+        clause.setStructure();
         return clause;
     }
 

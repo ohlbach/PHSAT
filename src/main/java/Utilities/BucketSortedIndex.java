@@ -178,4 +178,30 @@ public class BucketSortedIndex<T extends Positioned> {
             if(negString != null)
                 st.append(Integer.toString(-index)).append(": ").append(negString).append("\n");}
         return st.toString();}
+
+    /** checks the index for consistency.
+     * If an inconsistency occurs then an error message is printed and the system stops.
+     *
+     * @param name of the index
+     */
+    public void check(String name) {
+            int size = posOccurrences.length;
+            for(int i = 0; i < size; ++i) {
+                BucketSortedList<T> list = posOccurrences[i];
+                if(list != null) {
+                    list.check("+"+name);
+                    for(T item : list) {
+                        if(getItemIndex.apply(item) != i) {
+                            System.out.println("Error on BucketSortedIndex " + name + ": item " + item.toString() + "" +
+                                    " is in index list " + i + " and not in " + getItemIndex.apply(item));
+                            System.exit(1);}}}
+
+                list = negOccurrences[i];
+                if(list != null) {
+                    list.check("-"+name);
+                    for(T item : list) {
+                        if(getItemIndex.apply(item) != -i) {
+                            System.out.println("Error on BucketSortedIndex " + name + ": item " + item.toString() + "" +
+                                    " is in index list " + -i + " and not in " + -getItemIndex.apply(item));
+                            System.exit(1);}}}}}
 }

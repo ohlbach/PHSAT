@@ -21,6 +21,7 @@ public class LitAlgorithmsTest {
             CLiteral lit = new CLiteral(l,cl,++i);
             cl.add(lit);}
         for(CLiteral<Clause> lit : cl) {literalIndex.add(lit);}
+        cl.setStructure();
         return cl;}
 
         private BucketSortedIndex<CLiteral<Clause>> makeIndex(int predicates) {
