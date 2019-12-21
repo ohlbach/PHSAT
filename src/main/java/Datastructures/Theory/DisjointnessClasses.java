@@ -93,7 +93,7 @@ public class DisjointnessClasses {
     public Clause addDisjointnessClass(int[] basicClause) {
         assert basicClause.length > 2;
         if(basicClause.length == 3) {return null;}
-        String id = "D"+basicClause[0];
+        int id = basicClause[0];
         Clause disjointness = new Clause(id,basicClause.length-2);
         int trueLiteral = 0;
         for(int i = 2; i < basicClause.length; ++i) {
@@ -215,7 +215,7 @@ public class DisjointnessClasses {
             st.append(""+lit);
             literals.add(new CLiteral(lit));
             return false;});
-        Clause disjointness = new Clause(st.toString(),literals);
+        Clause disjointness = new Clause(literal,literals);
         insertClause(disjointness);
     }
 
@@ -236,7 +236,7 @@ public class DisjointnessClasses {
             st.append(""+lit);
             literals.add(new CLiteral(lit));
             return false;});
-        Clause disjointness = new Clause(st.toString(),literals);
+        Clause disjointness = new Clause(literal,literals);
         insertClause(disjointness);
     }
 
@@ -306,7 +306,7 @@ public class DisjointnessClasses {
         if(literals == null) {return disjointness;}
         int size = literals.length;
         if(size == disjointness.size()) {return disjointness;}
-        Clause joinedClause = new Clause(disjointness.id+"j",size);
+        Clause joinedClause = new Clause(disjointness.id,size);
         for(int i = 0; i < size; ++i) {
             boolean disjoint = true;
             int literal = (Integer)literals[i];

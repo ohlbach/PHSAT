@@ -15,13 +15,13 @@ import java.util.Iterator;
  */
 public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
     /** for identifying the clause */
-    public String id;
+    public int id;
     /** the literals */
     public ArrayList<CLiteral<Clause>> cliterals;
     /** indicates that the clause has been removed */
     public boolean removed = false;
     /** for sorting clauses, for example in a listPosition queue */
-    public int listPosition = 0;
+    public int listPosition = -1;
     /** positive, negative or mixed */
     public ClauseStructure structure = null;
     /** a timestamp to be used by corresponding algorithms */
@@ -33,7 +33,7 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
      * @param id   the clause problemId
      * @param size  the estimated number of literals
      */
-    public Clause(String id, int size) {
+    public Clause(int id, int size) {
         this.id = id;
         cliterals = new ArrayList<CLiteral<Clause>>(size);}
 
@@ -42,7 +42,7 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
      * @param id        the id of the new clause
      * @param cLiterals the list of CLiterals
      */
-    public Clause(String id, ArrayList<CLiteral<Clause>> cLiterals) {
+    public Clause(int id, ArrayList<CLiteral<Clause>> cLiterals) {
         this.id = id;
         for(int i = 0; i < cLiterals.size(); ++i) {
             cLiterals.get(i).setClause(this,i);}
@@ -56,7 +56,7 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
      * @param id           the name of the clause
      * @param basicClause  a basic clause [number,type,literal1,...]
      */
-    public Clause(String id, int[] basicClause) {
+    public Clause(int id, int[] basicClause) {
         this.id = id;
         int length = basicClause.length;
         cliterals = new ArrayList<>(length-2);
@@ -251,12 +251,13 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
      */
     public String toString(Symboltable symboltable) {
         StringBuffer st = new StringBuffer();
-        st.append("(");
+        st.append(Integer.toString(id));
+        st.append(":(");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append( ""+cliterals.get(position).literal);
             if(position < size-1) {st.append(",");}};
-        st.append("):").append(id);
+        st.append(")");
         return st.toString();}
 
     /** gets an iterator over the literals

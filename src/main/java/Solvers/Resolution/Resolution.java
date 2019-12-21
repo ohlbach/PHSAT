@@ -120,6 +120,9 @@ public class Resolution extends Solver {
     /** collects statistical information */
     public ResolutionStatistics statistics;
 
+    /** for forming the ids of the new clauses */
+    private int[] id = new int[]{0};
+
     /** constructs a new Resolution solver.
      *
      * @param solverNumber         for distinguishing different solvers of the same type, but different parameters
@@ -220,6 +223,7 @@ public class Resolution extends Solver {
                         (()-> {simplifyBackwards(clause); return null;}),    // checked first for subsumption and replacement resolution
                         (()-> "Simplify initial clause " + clause.toString())));}});
 
+    private int maxInputId = 0;
     /** This method translates all basic clauses into Clause data structures.
      *  Equivalent literals are replaced by their representatives.
      *
@@ -234,14 +238,15 @@ public class Resolution extends Solver {
         Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
                 (literal-> addTrueLiteralTask(literal, "Initial Conjunction")));
         if(Thread.interrupted()) {throw new InterruptedException();}
-        Transformers.prepareDisjunctions(basicClauseList,equivalenceClasses,insertHandler);
-        Transformers.prepareXors     (basicClauseList,equivalenceClasses,insertHandler);
-        Transformers.prepareDisjoints(basicClauseList,equivalenceClasses,insertHandler);
+        Transformers.prepareDisjunctions(basicClauseList,id,equivalenceClasses,insertHandler);
+        Transformers.prepareXors     (basicClauseList,id,equivalenceClasses,insertHandler);
+        Transformers.prepareDisjoints(basicClauseList,id,equivalenceClasses,insertHandler);
         int limit = (int)solverParameters.get("limit");
         resolutionLimit = (limit == Integer.MAX_VALUE) ? limit : limit * clauseCounter;
         initializing = false;
         if(Thread.interrupted()) {throw new InterruptedException();}
         if(checkConsistency) {check();}
+        maxInputId = id[0];
         return null;}
 
 
@@ -265,12 +270,13 @@ public class Resolution extends Solver {
     private Result resolve()  throws InterruptedException {
         Result result = taskQueue.run();
         if(result != null){return result;}
-        CLiteral[] parentLiterals = new CLiteral[2];
+        CLiteral<Clause>[] parentLiterals = new CLiteral[2];
         while(resolvents <= resolutionLimit) {
             if(Thread.interrupted()) {throw new InterruptedException();}
             selectParentLiterals(parentLiterals);
             System.out.printf("\n");
-            Clause resolvent = LitAlgorithms.resolve(parentLiterals[0],parentLiterals[1]);
+            clauseNames.add(Integer.toString(parentLiterals[0].clause.id)+Integer.toString(parentLiterals[1].clause.id));
+            Clause resolvent = LitAlgorithms.resolve(id,parentLiterals[0],parentLiterals[1]);
             ++statistics.resolvents;
             if(resolvent == null) {continue;}
             if(monitoring) {
@@ -283,6 +289,10 @@ public class Resolution extends Solver {
             simplifyForward(resolvent);
             insertClause(resolvent,isPrimary(resolvent,false), "Resolvent: ");
             result = taskQueue.run();
+            System.out.println("PRIM");
+            System.out.println(primaryClauses.toString());
+            System.out.println("SEC");
+            System.out.println(secondaryClauses.toString());
             if(result != null){return result;}}
         return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");}
 
@@ -299,8 +309,6 @@ public class Resolution extends Solver {
      * @param parentLiterals to store the parent literals.
      */
     private void selectParentLiterals(CLiteral[] parentLiterals) {
-        System.out.println("PS " + primaryClauses.size());
-        System.out.println(primaryClauses.toString());
         indices.clear();
         int i = 0;
         while(++i < 100) {
@@ -310,7 +318,7 @@ public class Resolution extends Solver {
             Clause parent1 = primaryClauses.getItem(index);
             System.out.printf(" T " +parent1.id);
             int size1 = parent1.size();
-            String id1 = parent1.id;
+            String id1 = Integer.toString(parent1.id);
             for(CLiteral literal1 : parent1) {
                 parentLiterals[0] = literal1;
                 boolean first = true;
@@ -318,8 +326,8 @@ public class Resolution extends Solver {
                 while(iterator.hasNext()) {
                     CLiteral<Clause> literal2 = iterator.next();
                     Clause parent2 = literal2.clause;
-                    String id2 = parent2.id;
-                    if(clauseNames.contains(id1+"+"+id2) || clauseNames.contains(id2+"+"+id1)) {continue;}
+                    String id2 = Integer.toString(parent2.id);
+                    if(clauseNames.contains(id1+id2) || clauseNames.contains(id2+id1)) {continue;}
                     if(first) {parentLiterals[1] = literal2; first = false;}
                     if(literal2.clause.size() < size1) {parentLiterals[1] = literal2; return;}
                     for(CLiteral<Clause> lit2 : literal2.clause) {
@@ -391,7 +399,6 @@ public class Resolution extends Solver {
                         "Literal " + cLiteral.literal + " in clause \n  " + clause.toString() + " resolved away by clause \n  "
                         + ((Clause)replacements[1]).toString());}
             if(removeLiteral(cLiteral)) {
-                clause.id += "+"+((Clause)replacements[1]).id;
                 timestamp += maxClauseLength +1;
                 replacements = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);}}}
 
@@ -427,7 +434,6 @@ public class Resolution extends Solver {
             removeLiteral(cLiteral);
             Clause otherClause = cLiteral.clause;
             if(!otherClause.removed) {
-                otherClause.id += "+"+clause.id;
                 taskQueue.add(new Task(otherClause.size()+2,
                         (()->{simplifyForward(otherClause);return null;}),
                         (()->"Forward Simplification for shortened clause " + otherClause.toString())));}}}
@@ -469,8 +475,7 @@ public class Resolution extends Solver {
             checkPurity(clause);}
 
         for(CLiteral<Clause> cLiteral : literalIndex.getAllItems(-literal)) {
-            removeLiteral(cLiteral);
-            cLiteral.clause.id += "+L"+literal;}
+            removeLiteral(cLiteral);}
         literalIndex.clearBoth(Math.abs(literal));
         if(primaryClauses.isEmpty()) {return completeModel();}
         return null;}
@@ -523,7 +528,6 @@ public class Resolution extends Solver {
         if(clause.size() == 1) {
             addTrueLiteralTask(clause.getLiteral(0),reason);
             return;}
-        clauseNames.add(clause.id);
         ++clauseCounter;
         maxClauseLength = Math.max(maxClauseLength,clause.size());
         (primary ? primaryClauses : secondaryClauses).add(clause);
@@ -569,8 +573,9 @@ public class Resolution extends Solver {
     private boolean removeLiteral(CLiteral<Clause> cLiteral) {
         Clause clause = cLiteral.clause;
         if(clause.removed) {return false;}
-        boolean isOld = clause.getPosition() != 0;
+        boolean isOld = clause.getPosition() >= 0;
         boolean inPrimary = false;
+        System.out.println(secondaryClauses.toString());
         if(isOld) {
             inPrimary = primaryClauses.contains(clause);
             (inPrimary ? primaryClauses : secondaryClauses).remove(clause);
@@ -582,7 +587,7 @@ public class Resolution extends Solver {
             return false;}
         if(isOld) {
             for(CLiteral<Clause> cliteral : clause) literalIndex.add(cliteral); // literals are inserted into different buckets
-            inPrimary = isPrimary(clause,!clause.id.contains("+"));
+            inPrimary = isPrimary(clause,clause.id <= maxInputId);
             switch(strategy) {
                 case INPUT:
                 case SOS: (inPrimary ? primaryClauses : secondaryClauses).add(clause); break;
@@ -622,7 +627,7 @@ public class Resolution extends Solver {
      */
     public String toString(Symboltable symboltable) {
         Function<Clause,String> clauseString = (clause->clause.toString(symboltable));
-        Function<CLiteral<Clause>,String> literalString = (cliteral->cliteral.toString(symboltable,clause->clause.id));
+        Function<CLiteral<Clause>,String> literalString = (cliteral->cliteral.toString(symboltable,clause->Integer.toString(clause.id)));
         StringBuilder st = new StringBuilder();
         st.append("Resolution:\n");
         if(!primaryClauses.isEmpty()) {

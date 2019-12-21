@@ -169,6 +169,7 @@ public abstract class Solver {
         symboltable             = basicClauseList.symboltable;
         monitor                 = globalParameters.monitor;
         monitoring              = monitor.monitoring;
+        model                   = new Model(predicates);
         if(monitoring) {
             monitor.addThread(combinedId,"Monitor for problem " + problemId + " and solver " + solverId);}}
 

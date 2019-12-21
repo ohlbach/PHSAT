@@ -16,7 +16,7 @@ public class ClauseTest {
     private static int counter = 1;
 
     private Clause make(int... literals) {
-        Clause cl = new Clause(Integer.toString(counter++),literals.length);
+        Clause cl = new Clause(counter++,literals.length);
         int i = -1;
         for(int l:literals) {
             cl.add(new CLiteral(l,cl,++i));}
@@ -25,7 +25,7 @@ public class ClauseTest {
     @Test
     public void addCLiteral() throws Exception {
         System.out.println("add");
-        Clause cl = new Clause("1", 3);
+        Clause cl = new Clause(1, 3);
         assertEquals(0, cl.size());
         CLiteral lit = new CLiteral(5);
         cl.add(lit);
@@ -50,8 +50,8 @@ public class ClauseTest {
         ArrayList<CLiteral<Clause>> lits = new ArrayList<>();
         lits.add(new CLiteral<Clause>(1));
         lits.add(new CLiteral<Clause>(2));
-        Clause cl = new Clause("id",lits);
-        assertEquals("id:(1,2)",cl.toString());
+        Clause cl = new Clause(1,lits);
+        assertEquals("1:(1,2)",cl.toString());
     }
     @Test
     public void make() throws Exception {
@@ -121,7 +121,7 @@ public class ClauseTest {
         System.out.println("isSubset");
         counter = 1;
         Clause cll = make(5, -6, 7);
-        Clause cl2 = new Clause("2",3);
+        Clause cl2 = new Clause(2,3);
         CLiteral lit10 = new CLiteral(10);
         cl2.add(lit10);
         assertTrue(cl2.isSubset(lit10, cll));
@@ -139,7 +139,7 @@ public class ClauseTest {
     @Test
     public void symboltable() throws Exception {
         System.out.println("symboltable");
-        Clause cl1 = new Clause("CL1", 3);
+        Clause cl1 = new Clause(1, 3);
         CLiteral lit1 = new CLiteral(5);
         cl1.add(lit1);
         CLiteral lit2 = new CLiteral(-6);
@@ -150,7 +150,7 @@ public class ClauseTest {
         st.setName(5, "five");
         st.setName(6, "six");
         st.setName(7, "seven");
-        assertEquals("CL1:(five,-six,seven)", cl1.toString(st));
+        assertEquals("1:(five,-six,seven)", cl1.toString(st));
     }
 
     @Test

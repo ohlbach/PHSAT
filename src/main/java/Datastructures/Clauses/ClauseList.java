@@ -28,7 +28,7 @@ import java.util.stream.Stream;
 public class ClauseList {
     public int predicates;
     public ArrayList<Clause> clauses;                   // the list of clauses
-    private final HashMap<String,Clause> id2Clause;      // maps clause ids to disjunctions
+    private final HashMap<Integer,Clause> id2Clause;      // maps clause ids to disjunctions
     public final LiteralIndex literalIndex;              // maps literals to CLiterals
     public int timestamp = 0;                            // for algorithms
     public int positiveClauses = 0;

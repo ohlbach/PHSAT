@@ -295,7 +295,7 @@ public class Utilities {
             System.out.printf(": ");
             System.out.println(message);});}
 
-    public static Clause makeClause(String id, String literals) {
+    public static Clause makeClause(int id, String literals) {
         String[] lits = literals.split("\\s*(,| )\\s*");
         Clause clause = new Clause(id,lits.length);
         for(String lit : lits) {

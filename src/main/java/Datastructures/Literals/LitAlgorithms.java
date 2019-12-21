@@ -131,10 +131,10 @@ public class LitAlgorithms {
      * @param literal2 the second parent literal
      * @return the new resolvent, or null if it would be a tautology
      */
-    public static Clause resolve(CLiteral<Clause> literal1, CLiteral<Clause> literal2) {
+    public static Clause resolve(int[] id, CLiteral<Clause> literal1, CLiteral<Clause> literal2) {
         Clause parent1 = literal1.clause; Clause parent2 = literal2.clause;
         int size = parent1.size()+parent2.size()-2;
-        Clause resolvent = new Clause(parent1.id+"+"+parent2.id,size);
+        Clause resolvent = new Clause(++id[0],size);
         for(CLiteral<Clause> lit1 : parent1) {if(lit1 != literal1) {resolvent.add(new CLiteral<Clause>(lit1.literal));}}
         for(CLiteral<Clause> lit2 : parent2) {
             if(lit2 != literal2 && resolvent.contains(lit2.literal) < 0) {

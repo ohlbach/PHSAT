@@ -69,7 +69,7 @@ public class ResolutionTest {
     private static int counter = 1;
 
     private Clause make(int... literals) {
-        Clause cl = new Clause(Integer.toString(counter++),literals.length);
+        Clause cl = new Clause(counter++,literals.length);
         int i = -1;
         for(int l:literals) {
             cl.add(new CLiteral(l,cl,++i));}

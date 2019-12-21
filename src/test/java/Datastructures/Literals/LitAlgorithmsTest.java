@@ -15,7 +15,7 @@ public class LitAlgorithmsTest {
 
 
     private Clause make(int id,BucketSortedIndex<CLiteral<Clause>> literalIndex,int... literals) {
-        Clause cl = new Clause(Integer.toString(id),literals.length);
+        Clause cl = new Clause(id,literals.length);
         int i = -1;
         for(int l:literals) {
             CLiteral lit = new CLiteral(l,cl,++i);
@@ -133,9 +133,10 @@ public class LitAlgorithmsTest {
         Clause c1 = make(1,index, 10,-20,30);
         Clause c2 = make(2,index, 10,20,30);
         Clause c3 = make(3,index, -10,20,30);
-        Clause res = LitAlgorithms.resolve(c1.getCLiteral(1),c2.getCLiteral(2));
+        int[] id = new int[]{3};
+        Clause res = LitAlgorithms.resolve(id,c1.getCLiteral(1),c2.getCLiteral(2));
         assertEquals("1+2:(10,30,20)", res.toString());
-        res = LitAlgorithms.resolve(c1.getCLiteral(1),c3.getCLiteral(2));
+        res = LitAlgorithms.resolve(id,c1.getCLiteral(1),c3.getCLiteral(2));
         assertNull(res);
 
 

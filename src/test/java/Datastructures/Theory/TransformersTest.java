@@ -32,7 +32,8 @@ public class TransformersTest {
         bcl.addClause(c2);
         bcl.addClause(c3);
         bcl.addClause(c4);
-        Transformers.prepareDisjunctions(bcl,null,(clause->clauses.add(clause)));
+        int[] id = new int[]{0};
+        Transformers.prepareDisjunctions(bcl,id,null,(clause->clauses.add(clause)));
         assertEquals("[1:(1,2,3), 2:(3,4,5), 4:(3,4)]",clauses.toString());
     }
     @Test
@@ -49,7 +50,8 @@ public class TransformersTest {
         bcl.addClause(c4);
         EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
         eq.addEquivalenceClass(c1);
-        Transformers.prepareDisjunctions(bcl,eq,(clause->clauses.add(clause)));
+        int[] id = new int[]{0};
+        Transformers.prepareDisjunctions(bcl,id,eq,(clause->clauses.add(clause)));
         assertEquals("[2:(1,4,5), 4:(1,4)]",clauses.toString());
     }
 
@@ -96,7 +98,8 @@ public class TransformersTest {
         ArrayList<Clause> clauses = new ArrayList<>();
         int[] c1 = new int[]{1,2,1,2,3};
         bcl.addClause(c1);
-        Transformers.prepareXors(bcl,null,(clause->clauses.add(clause)));
+        int[] id = new int[]{0};
+        Transformers.prepareXors(bcl,id,null,(clause->clauses.add(clause)));
         assertEquals("[X1:(1,2,3), D1_1:(-1,-2), D1_2:(-1,-3), D1_3:(-2,-3)]",clauses.toString());
     }
 
@@ -110,7 +113,8 @@ public class TransformersTest {
         int[] c2 = new int[]{1,4,1,2};
         EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
         eq.addEquivalenceClass(c2);
-        Transformers.prepareXors(bcl,eq,(clause->clauses.add(clause)));
+        int[] id = new int[]{0};
+        Transformers.prepareXors(bcl,id,eq,(clause->clauses.add(clause)));
         assertEquals("[X1:(1,3), D1_1:(-1), D1_2:(-1,-3), D1_3:(-1,-3)]",clauses.toString());
     }
 
@@ -121,7 +125,8 @@ public class TransformersTest {
         ArrayList<Clause> clauses = new ArrayList<>();
         int[] c1 = new int[]{1,3,1,2,3};
         bcl.addClause(c1);
-        Transformers.prepareDisjoints(bcl,null,(clause->clauses.add(clause)));
+        int[] id = new int[]{0};
+        Transformers.prepareDisjoints(bcl,id,null,(clause->clauses.add(clause)));
         assertEquals("[D1_1:(-1,-2), D1_2:(-1,-3), D1_3:(-2,-3)]",clauses.toString());
     }
 
@@ -135,7 +140,8 @@ public class TransformersTest {
         int[] c2 = new int[]{1,4,1,2};
         EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
         eq.addEquivalenceClass(c2);
-        Transformers.prepareDisjoints(bcl,eq,(clause->clauses.add(clause)));
+        int[] id = new int[]{0};
+        Transformers.prepareDisjoints(bcl,id,eq,(clause->clauses.add(clause)));
         assertEquals("[D1_1:(-1), D1_2:(-1,-3), D1_3:(-1,-3)]",clauses.toString());
     }
     @Test

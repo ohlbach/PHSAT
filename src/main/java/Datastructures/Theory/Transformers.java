@@ -22,10 +22,10 @@ public class Transformers {
      * @param equivalenceClasses null or a set of equivalence classes of literals
      * @param handler            for dealing with the new clause.
      */
-    public static void prepareDisjunctions(BasicClauseList basicClauseList, EquivalenceClasses equivalenceClasses,
+    public static void prepareDisjunctions(BasicClauseList basicClauseList, int[] id, EquivalenceClasses equivalenceClasses,
                                            Consumer<Clause> handler) {
         for(int[] basicClause : basicClauseList.disjunctions) {
-            prepareDisjunction(basicClause,"",equivalenceClasses,handler);}}
+            prepareDisjunction(basicClause,id,equivalenceClasses,handler);}}
 
     /** turns a single basic clause into a Clause datastructure and applies the handler to it.
      * Literals are replaced by their representative in the equivalence classes.<br>
@@ -33,13 +33,13 @@ public class Transformers {
      * Tautologies are ignored.
      *
      * @param basicClause [id,type,lit1,...] (the type is ignored)
-     * @param prefix      for forming the name of the new clause
+     * @param id      for specifying the id of the new clause
      * @param equivalenceClasses  null or equivalence classes of literals
      * @param handler     for treating the new clause
      */
-    private static void prepareDisjunction(int[] basicClause, String prefix, EquivalenceClasses equivalenceClasses,
+    private static void prepareDisjunction(int[] basicClause, int[] id, EquivalenceClasses equivalenceClasses,
                                            Consumer<Clause> handler) {
-        Clause clause = new Clause(prefix+basicClause[0],basicClause.length-2);
+        Clause clause = new Clause(++id[0],basicClause.length-2);
         for(int i = 2; i < basicClause.length;++i) {
             int literal =  basicClause[i];
             if(equivalenceClasses != null) literal = equivalenceClasses.mapToRepresentative(literal);
@@ -74,10 +74,10 @@ public class Transformers {
      * @param equivalenceClasses null or some equivalence classes of literals
      * @param handler            for dealing with the resulting clauses
      */
-    public static void prepareXors(BasicClauseList basicClauseList, EquivalenceClasses equivalenceClasses, Consumer<Clause> handler) {
+    public static void prepareXors(BasicClauseList basicClauseList, int[] id, EquivalenceClasses equivalenceClasses, Consumer<Clause> handler) {
         for(int[] basicClause : basicClauseList.xors) {
-            prepareDisjunction(basicClause,"X",equivalenceClasses,handler);
-            prepareDisjoint(basicClause,equivalenceClasses,handler);}}
+            prepareDisjunction(basicClause,id,equivalenceClasses,handler);
+            prepareDisjoint(basicClause,id,equivalenceClasses,handler);}}
 
     /** transforms all disjoint clauses in the basicClauseList into normal clauses and applies the handler to them.
      * Disjoints are like XORs, except that all literals may be false.
@@ -86,9 +86,9 @@ public class Transformers {
      * @param equivalenceClasses null or some equivalence classes of literals
      * @param handler            for dealing with the resulting clauses
      */
-    public static void prepareDisjoints(BasicClauseList basicClauseList, EquivalenceClasses equivalenceClasses, Consumer<Clause> handler) {
+    public static void prepareDisjoints(BasicClauseList basicClauseList, int[] id, EquivalenceClasses equivalenceClasses, Consumer<Clause> handler) {
         for(int[] basicClause : basicClauseList.disjoints) {
-            prepareDisjoint(basicClause, equivalenceClasses, handler);}}
+            prepareDisjoint(basicClause, id, equivalenceClasses, handler);}}
 
     /** This method generates the disjointness clauses for XORs and Disjoints.
      * Example: p disjoint q disjoint r <br>
@@ -103,7 +103,7 @@ public class Transformers {
      * @param equivalenceClasses  null or some equivalence classes
      * @param handler            for dealing with the resulting clauses.
      */
-    private static void prepareDisjoint(int[] basicClause, EquivalenceClasses equivalenceClasses, Consumer<Clause> handler) {
+    private static void prepareDisjoint(int[] basicClause, int[] id, EquivalenceClasses equivalenceClasses, Consumer<Clause> handler) {
         int size = basicClause.length;
         int counter = 0;
         for(int i = 2; i < size-1;++i) {
@@ -113,7 +113,7 @@ public class Transformers {
                 int literal2 = -basicClause[j];
                 if(equivalenceClasses != null) {literal2 = equivalenceClasses.mapToRepresentative(literal2);}
                 if(literal1 == -literal2) {continue;}
-                Clause clause = new Clause("D"+basicClause[0] + "_" + ++counter, 2);
+                Clause clause = new Clause(++id[0], 2);
                 clause.add(new CLiteral<Clause>(literal1,clause,0));
                 if(literal1 != literal2) {clause.add(new CLiteral<Clause>(literal2,clause,1));}
                 clause.setStructure();
