@@ -40,7 +40,7 @@ public class TaskQueue {
     public Result run() throws InterruptedException {
         Task task;
         while((task = taskQueue.poll()) != null) {
-            if(monitor != null) {monitor.print(id,task.toString());}
+            if(monitor != null) {monitor.print(id,"Executing "+ task.toString());}
             if(Thread.interrupted()) {throw new InterruptedException();}
             Result result = task.handler.get();
             if(result != null) {return result;}}
@@ -52,7 +52,7 @@ public class TaskQueue {
      * @param task the task to be added
      */
     public void add(Task task) {
-        if(monitor != null) {monitor.print(id,task.toString());}
+        if(monitor != null) {monitor.print(id,"Inserted  "+task.toString());}
         taskQueue.add(task);}
 
     /** returns true if the task queue is empty

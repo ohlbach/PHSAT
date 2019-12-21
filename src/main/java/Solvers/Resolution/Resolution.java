@@ -44,7 +44,7 @@ import java.util.function.Function;
  */
 public class Resolution extends Solver {
 
-    boolean checkConsistency = true;
+    boolean checkConsistency = false;
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
@@ -158,6 +158,7 @@ public class Resolution extends Solver {
             globalParameters.log("Resolution " + combinedId + " interrupted after " + resolvents + " resolvents.\n");
             result = new Aborted("Resolution aborted after " + resolvents + " resolvents");}
         statistics.elapsedTime = System.currentTimeMillis() - time;
+        System.out.println("RESULT " + result.toString());
         return result;}
 
     /** one resolution parent is always chosen from this list */
@@ -289,10 +290,10 @@ public class Resolution extends Solver {
             simplifyForward(resolvent);
             insertClause(resolvent,isPrimary(resolvent,false), "Resolvent: ");
             result = taskQueue.run();
-            System.out.println("PRIM");
+            /*System.out.println("PRIM");
             System.out.println(primaryClauses.toString());
             System.out.println("SEC");
-            System.out.println(secondaryClauses.toString());
+            System.out.println(secondaryClauses.toString());*/
             if(result != null){return result;}}
         return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");}
 
@@ -575,7 +576,6 @@ public class Resolution extends Solver {
         if(clause.removed) {return false;}
         boolean isOld = clause.getPosition() >= 0;
         boolean inPrimary = false;
-        System.out.println(secondaryClauses.toString());
         if(isOld) {
             inPrimary = primaryClauses.contains(clause);
             (inPrimary ? primaryClauses : secondaryClauses).remove(clause);

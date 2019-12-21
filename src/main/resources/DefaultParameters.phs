@@ -1,4 +1,4 @@
 global
  parallel = 1
- monitor
+ //monitor
  logging

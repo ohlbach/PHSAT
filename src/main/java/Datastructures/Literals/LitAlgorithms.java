@@ -137,7 +137,9 @@ public class LitAlgorithms {
         Clause resolvent = new Clause(++id[0],size);
         for(CLiteral<Clause> lit1 : parent1) {if(lit1 != literal1) {resolvent.add(new CLiteral<Clause>(lit1.literal));}}
         for(CLiteral<Clause> lit2 : parent2) {
-            if(lit2 != literal2 && resolvent.contains(lit2.literal) < 0) {
+            if(lit2 == literal2) {continue;}
+            if(resolvent.contains(-lit2.literal) >= 0) {return null;} // tautology
+            if(resolvent.contains(lit2.literal) < 0) {
                     resolvent.add(new CLiteral<Clause>(lit2.literal));}}
         resolvent.setStructure();
         return resolvent;}
