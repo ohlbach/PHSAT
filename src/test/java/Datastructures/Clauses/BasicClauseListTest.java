@@ -181,6 +181,24 @@ public class BasicClauseListTest {
         int[] clause2 = {1, 0, -1, -2, -3}; // or
         assertFalse(BasicClauseList.disjunctionIsTrue(clause2, m1));
     }
+
+    @Test
+    public void disjunctionIsFalse() throws Exception {
+        System.out.println("disjunctionIsFalse");
+        Model m1 = new Model(10);
+        int[] clause1 = {1, 0, 1, 2, 3}; // or
+        assertFalse(BasicClauseList.disjunctionIsFalse(clause1, m1));
+        m1.add(-2);
+        assertFalse(BasicClauseList.disjunctionIsFalse(clause1, m1));
+        m1.add(-1);
+        assertFalse(BasicClauseList.disjunctionIsFalse(clause1, m1));
+        m1.add(-3);
+        assertTrue(BasicClauseList.disjunctionIsFalse(clause1, m1));
+        int[] clause2 = {1, 0, 10, 11, -10}; // or
+        assertFalse(BasicClauseList.disjunctionIsFalse(clause2, m1));
+    }
+
+
     @Test
     public void conjunction() throws Exception {
         System.out.println("conjunction");
@@ -192,6 +210,21 @@ public class BasicClauseListTest {
         m1.add(1);
         assertTrue(BasicClauseList.conjunctionIsTrue(clause1, m1));
     }
+
+    @Test
+    public void conjunctionIsFalse() throws Exception {
+        System.out.println("conjunctionIsFalse");
+        Model m1 = new Model(30);
+        int[] clause1 = {1, 1, 1, 2, 3}; // and
+        assertFalse(BasicClauseList.conjunctionIsFalse(clause1, m1));
+        m1.add(2);m1.add(3);
+        assertFalse(BasicClauseList.conjunctionIsFalse(clause1, m1));
+        m1.add(-1);
+        assertTrue(BasicClauseList.conjunctionIsFalse(clause1, m1));
+        int[] clause2 = {1, 1, 10, 11, -10}; // and
+        assertTrue(BasicClauseList.conjunctionIsFalse(clause2, m1));
+    }
+
 
     @Test
     public void xorTest() throws Exception {
@@ -206,6 +239,26 @@ public class BasicClauseListTest {
     }
 
     @Test
+    public void xorIsFalse() throws Exception {
+        System.out.println("xorIsFalse");
+        Model m1 = new Model(30);
+        int[] clause1 = {1, 2, 1, 2, 3}; // xor
+        assertFalse(BasicClauseList.xorIsFalse(clause1, m1));
+        m1.add(2);
+        assertFalse(BasicClauseList.xorIsFalse(clause1, m1));
+        m1.add(1);
+        assertTrue(BasicClauseList.xorIsFalse(clause1, m1));
+        int[] clause2 = {1, 2, 10, 11, -10,12}; // and
+        assertFalse(BasicClauseList.xorIsFalse(clause2, m1));
+        m1.add(11);
+        m1.add(12);
+        assertTrue(BasicClauseList.xorIsFalse(clause2, m1));
+
+    }
+
+
+
+    @Test
     public void disjointTest() throws Exception {
         System.out.println("disjoint");
         Model m1 = new Model(10);
@@ -216,6 +269,25 @@ public class BasicClauseListTest {
         m1.add(1);
         assertFalse(BasicClauseList.disjointIsTrue(clause1, m1));
     }
+    @Test
+    public void disjointIsFalse() throws Exception {
+        System.out.println("disjointIsFalse");
+        Model m1 = new Model(30);
+        int[] clause1 = {1, 3, 1, 2, 3}; // disjoint
+        assertFalse(BasicClauseList.disjointIsFalse(clause1, m1));
+        m1.add(2);
+        assertFalse(BasicClauseList.disjointIsFalse(clause1, m1));
+        m1.add(1);
+        assertTrue(BasicClauseList.disjointIsFalse(clause1, m1));
+        int[] clause2 = {1, 3, 10, 11, -10,12}; // disjoint
+        assertFalse(BasicClauseList.disjointIsFalse(clause2, m1));
+        m1.add(11);
+        m1.add(12);
+        assertTrue(BasicClauseList.disjointIsFalse(clause2, m1));
+
+    }
+
+
     @Test
     public void equivalenceTest() throws Exception {
         System.out.println("equivalence");
@@ -231,6 +303,28 @@ public class BasicClauseListTest {
         m1.add(-1); m1.add(-2); m1.add(-3);
         assertTrue(BasicClauseList.equivalenceIsTrue(clause1, m1));
     }
+
+    @Test
+    public void equivalenceIsFalse() throws Exception {
+        System.out.println("equivalenceIsFalse");
+        Model m1 = new Model(10);
+        int[] clause1 = {1, 4, 1, 2, 3}; // equivalence
+        assertFalse(BasicClauseList.equivalenceIsFalse(clause1, m1));
+        m1.add(2);
+        assertFalse(BasicClauseList.equivalenceIsFalse(clause1, m1));
+        m1.add(1);m1.add(3);
+        assertFalse(BasicClauseList.equivalenceIsFalse(clause1, m1));
+
+        m1 = new Model(20);
+        m1.add(1); m1.add(2); m1.add(-3);
+        assertTrue(BasicClauseList.equivalenceIsFalse(clause1, m1));
+
+        int[] clause2 = {1, 4, 10, 11, -10}; // equivalence
+        assertTrue(BasicClauseList.equivalenceIsFalse(clause2, m1));
+
+    }
+
+
 
 
 

@@ -44,7 +44,7 @@ import java.util.function.Function;
  */
 public class Resolution extends Solver {
 
-    boolean checkConsistency = false;
+    boolean checkConsistency = true;
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
@@ -87,7 +87,7 @@ public class Resolution extends Solver {
             HashMap<String,Object> map = new HashMap<>();
             map.put("seed",     p.get(0));
             map.put("strategy", p.get(1));
-            map.put("percentageOfSOSClauses",perc);
+            map.put("percentage",perc);
             map.put("limit",    limitpar);
             map.put("name","Resolution_" + ++counter);
             list.add(map);}
@@ -290,12 +290,20 @@ public class Resolution extends Solver {
             simplifyForward(resolvent);
             insertClause(resolvent,isPrimary(resolvent,false), "Resolvent: ");
             result = taskQueue.run();
-            /*System.out.println("PRIM");
+            if(result != null) {break;}
+            if(primaryClauses.isEmpty()) {result =  completeModel(); break;}
+            System.out.println("PRIM");
             System.out.println(primaryClauses.toString());
             System.out.println("SEC");
-            System.out.println(secondaryClauses.toString());*/
-            if(result != null){return result;}}
-        return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");}
+            System.out.println(secondaryClauses.toString());}
+        if(result == null) {
+            return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");}
+        if(result.getClass() == Satisfiable.class) {
+            ArrayList<int[]> falseClauses = basicClauseList.falseClauses(((Satisfiable)result).model);
+            if(falseClauses == null) {return result;}
+            System.out.println(toString());
+            return new Erraneous(((Satisfiable)result).model,falseClauses,symboltable);}
+        return result;}
 
     private HashSet<Integer> indices = new HashSet<>();
     /** The method chooses two parent literals for the next resolution step.
@@ -317,6 +325,11 @@ public class Resolution extends Solver {
             if(indices.contains(index)) {continue;}
             indices.add(index);
             Clause parent1 = primaryClauses.getItem(index);
+            if(parent1 == null) {
+                System.out.println("Error: no parent clause found");
+                System.out.println(toString());
+                System.exit(1);
+            }
             System.out.printf(" T " +parent1.id);
             int size1 = parent1.size();
             String id1 = Integer.toString(parent1.id);
@@ -468,17 +481,23 @@ public class Resolution extends Solver {
             case -1: return new Unsatisfiable(model,literal);
             case +1: return null;}
         model.add(literal);
+        if(false) {
+            ArrayList<int[]> falseClauses = basicClauseList.falseClausesInPartial(model);
+            if(falseClauses != null) {
+                System.out.println("ErrorCheck: the following basic clauses are false in the model");
+                System.out.println(model.toString());
+                for(int[] clause : falseClauses) {
+                    System.out.println(basicClauseList.clauseToString(clause));}
+                System.exit(1);}}
         Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(literal);
         while(iterator.hasNext()) {
             Clause clause = iterator.next().clause;
             removeClause(clause,literal);
-            if(primaryClauses.isEmpty()) {return completeModel();}
             checkPurity(clause);}
 
         for(CLiteral<Clause> cLiteral : literalIndex.getAllItems(-literal)) {
             removeLiteral(cLiteral);}
         literalIndex.clearBoth(Math.abs(literal));
-        if(primaryClauses.isEmpty()) {return completeModel();}
         return null;}
 
     /** completes a model after resolution has finished.
@@ -492,6 +511,7 @@ public class Resolution extends Solver {
      * @return Satisfiable or Erraneous (if something went wrong).
      */
     private Result completeModel() {
+        System.out.println("Completing Model\n"+toString());
         if(model.size() == predicates) {return new Satisfiable(model);}
         boolean isPositive = true;
         switch(strategy) {
@@ -582,7 +602,7 @@ public class Resolution extends Solver {
             for(CLiteral<Clause> cliteral : clause) literalIndex.remove(cliteral);}
         clause.remove(cLiteral);
         if(clause.size() == 1) {
-            addTrueLiteralTask( clause.getLiteral(0),"New true literal derived");
+            addTrueLiteralTask( clause.getLiteral(0),"New true literal derived from clause " + clause.toString());
             removeClause(clause,0);
             return false;}
         if(isOld) {

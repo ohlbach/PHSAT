@@ -48,11 +48,11 @@ public class Erraneous extends Result {
     public String toString() {
         StringBuilder st = new StringBuilder();
         st.append("SAT Error: the following clauses are not true in the model:\n");
+        st.append("Model:\n").append(model.toString()).append("\nClauses:\n");
         if(falseClause != null) {st.append(falseClause.toString(symboltable)).append("\n");}
         else{int size = 0;
             for(int[] clause :falseClauses) {size = Math.max(size, (""+clause[0]).length());}
             for(int[] clause :falseClauses) {st.append(BasicClauseList.clauseToString(size,clause,symboltable)).append("\n");}}
-        st.append("Model:\n").append(model.toString());
         return st.toString();}
 
 }

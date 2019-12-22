@@ -79,6 +79,23 @@ public class BasicClauseList {
         for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return true;}}
         return false;}
 
+    /** checks if a disjunction is entirely false in a model
+     *
+     * @param clause a disjunctive clause
+     * @param model a possibly partial model
+     * @return true if all literals are false in the model.
+     */
+    public static boolean disjunctionIsFalse(int[] clause, Model model) {
+        assert ClauseType.getType(clause[1]) == ClauseType.OR;
+        int size = clause.length;
+        for(int i = 2; i < size; ++i) {
+            int lit1 = clause[i];
+            for(int j = i+1; j < size; ++j) {if(lit1 == -clause[j]) {return false;}}}
+        for(int i = 2; i < size; ++i) {if(!model.isFalse(clause[i])) {return false;}}
+        return true;}
+
+
+
     /** checks if a conjunction is true in a model
      *
      * @param clause a conjunctive clause
@@ -89,6 +106,21 @@ public class BasicClauseList {
         assert ClauseType.getType(clause[1]) == ClauseType.AND;
         for(int i = 2; i < clause.length; ++i) {if(!model.isTrue(clause[i])) {return false;}}
         return true;}
+
+    /** checks if a conjunction is entirely false in a model
+     *
+     * @param clause a conjunctive clause
+     * @param model a possibly partial model
+     * @return true if all literals are true in the model.
+     */
+    public static boolean conjunctionIsFalse(int[] clause, Model model) {
+        assert ClauseType.getType(clause[1]) == ClauseType.AND;
+        int size = clause.length;
+        for(int i = 2; i < size; ++i) {
+            int lit1 = clause[i];
+            for(int j = i+1; j < size; ++j) {if(lit1 == -clause[j]) {return true;}}}
+        for(int i = 2; i < size; ++i) {if(model.isFalse(clause[i])) {return true;}}
+        return false;}
 
     /** checks if a xors-clause is true in a model
      *
@@ -105,6 +137,26 @@ public class BasicClauseList {
                 trueLiteral = clause[i];}}
         return trueLiteral != 0;}
 
+    /** checks if a xors-clause is false in a model
+     *
+     * @param clause a xors clause
+     * @param model a possibly partial model
+     * @return true if not exactly one of the literals is true in the model.
+     */
+    public static boolean xorIsFalse(int[] clause, Model model) {
+        assert ClauseType.getType(clause[1]) == ClauseType.XOR;
+        int size = clause.length;
+        int trueLiteral = 0;
+        for(int i = 2; i < size; ++i) {
+            int lit1 = clause[i];
+            boolean found = false;
+            for(int j = i+1; j < size; ++j) {if(lit1 == -clause[j]) {found = true; break;}}
+            if(found){continue;}
+            if(model.isTrue(lit1)) {
+                if(trueLiteral != 0) {return true;}
+                trueLiteral = clause[i];}}
+        return false;}
+
     /** checks if a disjoint clause is true in a model
      *
      * @param clause a disjoint clause
@@ -120,6 +172,26 @@ public class BasicClauseList {
                 trueLiteral = clause[i];}}
         return true;}
 
+    /** checks if a disjoint clause is true in a model
+     *
+     * @param clause a disjoint clause
+     * @param model a model
+     * @return true if at most one of the literals is true in the model.
+     */
+    public static boolean disjointIsFalse(int[] clause, Model model) {
+        assert ClauseType.getType(clause[1]) == ClauseType.DISJOINT;
+        int size = clause.length;
+        int trueLiteral = 0;
+        for(int i = 2; i < clause.length; ++i) {
+            int lit1 = clause[i];
+            boolean found = false;
+            for(int j = i+1; j < size; ++j) {if(lit1 == -clause[j]) {found = true; break;}}
+            if(found) {continue;}
+            if(model.isTrue(clause[i])) {
+                if(trueLiteral != 0) {return true;}
+                trueLiteral = clause[i];}}
+        return false;}
+
     /** checks if an equivalence is true in a model
      *
      * @param clause an equivalence clause
@@ -133,6 +205,26 @@ public class BasicClauseList {
         for(int i = 3; i < clause.length; ++i) {
             if(model.status(clause[i]) != status) {return false;}}
         return true;}
+
+    /** checks if an equivalence is false in a model
+     *
+     * @param clause an equivalence clause
+     * @param model a possibly partial model
+     * @return true if either all literals are true or all literals are false in the model.
+     */
+    public static boolean equivalenceIsFalse(int[] clause, Model model) {
+        assert ClauseType.getType(clause[1]) == ClauseType.EQUIV;
+        int size = clause.length;
+        int status = 0;
+        for(int i = 2; i < clause.length; ++i) {
+            int lit1 = clause[i];
+            for(int j = i+1; j < size; ++j) {if(lit1 == -clause[j]) {return true;}}
+
+            int stat = model.status(clause[i]);
+            if(stat == 0) {continue;}
+            if(status != 0 && status != stat) {return true;}
+            status = stat;}
+        return false;}
 
 
 
@@ -150,6 +242,22 @@ public class BasicClauseList {
         for(int[] clause : disjoints)    {if(!disjointIsTrue(clause,model))    {falseClauses.add(clause);}}
         for(int[] clause : equivalences) {if(!equivalenceIsTrue(clause,model)) {falseClauses.add(clause);}}
         return falseClauses.isEmpty() ? null : falseClauses;}
+
+    /** computes a list of clauses which are false in the model
+     *
+     * @param model a model for the literals of the clause
+     * @return null or a list of false clauses.
+     */
+    public ArrayList<int[]> falseClausesInPartial(Model model) {
+        ArrayList<int[]> falseClauses = new ArrayList<>();
+        for(int[] clause : disjunctions) {if(disjunctionIsFalse(clause,model)) {falseClauses.add(clause);}}
+        for(int[] clause : conjunctions) {if(conjunctionIsFalse(clause,model)) {falseClauses.add(clause);}}
+        for(int[] clause : xors)         {if(xorIsFalse(clause,model))         {falseClauses.add(clause);}}
+        for(int[] clause : disjoints)    {if(disjointIsFalse(clause,model))    {falseClauses.add(clause);}}
+        for(int[] clause : equivalences) {if(equivalenceIsFalse(clause,model)) {falseClauses.add(clause);}}
+        return falseClauses.isEmpty() ? null : falseClauses;}
+
+
 
     /** adds some parameters to the statistics
      *
