@@ -248,7 +248,8 @@ public class Resolution extends Solver {
         if(Thread.interrupted()) {throw new InterruptedException();}
         if(checkConsistency) {check();}
         maxInputId = id[0];
-        return null;}
+        for(int predicate = 1; predicate <= predicates; ++predicate) {checkPurity(predicate);}
+        return taskQueue.run();}
 
 
 
@@ -269,13 +270,20 @@ public class Resolution extends Solver {
      * @throws InterruptedException
      */
     private Result resolve()  throws InterruptedException {
-        Result result = taskQueue.run();
-        if(result != null){return result;}
+        Result result = null;
         CLiteral<Clause>[] parentLiterals = new CLiteral[2];
         while(resolvents <= resolutionLimit) {
             if(Thread.interrupted()) {throw new InterruptedException();}
+            result = taskQueue.run();
+            if(result != null){return result;}
             selectParentLiterals(parentLiterals);
             System.out.printf("\n");
+            if(checkConsistency) {
+                if(parentLiterals[0].literal != -parentLiterals[1].literal) {
+                    System.out.println("Error when selecting parent literals");
+                    System.out.println("   "+parentLiterals[0].clause+"@"+parentLiterals[0].literal + " and");
+                    System.out.println("   "+parentLiterals[1].clause+"@"+parentLiterals[1].literal );
+                    System.exit(1);}}
             clauseNames.add(Integer.toString(parentLiterals[0].clause.id)+Integer.toString(parentLiterals[1].clause.id));
             Clause resolvent = LitAlgorithms.resolve(id,parentLiterals[0],parentLiterals[1]);
             ++statistics.resolvents;
@@ -288,7 +296,7 @@ public class Resolution extends Solver {
             simplifyBackwards(resolvent);
             if(resolvent.removed) {continue;}
             simplifyForward(resolvent);
-            insertClause(resolvent,isPrimary(resolvent,false), "Resolvent: ");
+            insertClause(resolvent,isPrimary(resolvent,false), "Resolvent");
             result = taskQueue.run();
             if(result != null) {break;}
             if(primaryClauses.isEmpty()) {result =  completeModel(); break;}
@@ -330,7 +338,7 @@ public class Resolution extends Solver {
                 System.out.println(toString());
                 System.exit(1);
             }
-            System.out.printf(" T " +parent1.id);
+            System.out.printf(" T" +parent1.id);
             int size1 = parent1.size();
             String id1 = Integer.toString(parent1.id);
             for(CLiteral literal1 : parent1) {
@@ -338,14 +346,15 @@ public class Resolution extends Solver {
                 boolean first = true;
                 Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(-literal1.literal);
                 while(iterator.hasNext()) {
-                    CLiteral<Clause> literal2 = iterator.next();
+                    CLiteral<Clause> literal2 = iterator.next();parentLiterals[1] = literal2;
                     Clause parent2 = literal2.clause;
                     String id2 = Integer.toString(parent2.id);
                     if(clauseNames.contains(id1+id2) || clauseNames.contains(id2+id1)) {continue;}
                     if(first) {parentLiterals[1] = literal2; first = false;}
                     if(literal2.clause.size() < size1) {parentLiterals[1] = literal2; return;}
                     for(CLiteral<Clause> lit2 : literal2.clause) {
-                        if(parent1.contains(lit2.literal) == 1) {parentLiterals[1] = literal2; return;}}}}}}
+                        if(parent1.contains(lit2.literal) == 1) {parentLiterals[1] = literal2; return;}}}}}
+        System.out.println("\nNothing found");}
 
     /** checks if the clause ought to be a primary clause or a secondary clause.
      *  It depends on the strategy and the situation (processing input clauses or resolvents)<br>
@@ -435,7 +444,8 @@ public class Resolution extends Solver {
         for(Clause subsumedClause : clauseList) {
             ++statistics.forwardSubsumptions;
             if(monitoring) {monitor.print(combinedId,"Clause \n  " + clause.toString() + "  subsumes \n  " + subsumedClause.toString());}
-            removeClause(subsumedClause,0);}
+            removeClause(subsumedClause,0);
+            checkPurity(subsumedClause);}
 
         literalList.clear();
         timestamp += maxClauseLength +1;
@@ -595,10 +605,8 @@ public class Resolution extends Solver {
         Clause clause = cLiteral.clause;
         if(clause.removed) {return false;}
         boolean isOld = clause.getPosition() >= 0;
-        boolean inPrimary = false;
         if(isOld) {
-            inPrimary = primaryClauses.contains(clause);
-            (inPrimary ? primaryClauses : secondaryClauses).remove(clause);
+            (primaryClauses.contains(clause) ? primaryClauses : secondaryClauses).remove(clause);
             for(CLiteral<Clause> cliteral : clause) literalIndex.remove(cliteral);}
         clause.remove(cLiteral);
         if(clause.size() == 1) {
@@ -607,13 +615,13 @@ public class Resolution extends Solver {
             return false;}
         if(isOld) {
             for(CLiteral<Clause> cliteral : clause) literalIndex.add(cliteral); // literals are inserted into different buckets
-            inPrimary = isPrimary(clause,clause.id <= maxInputId);
             switch(strategy) {
                 case INPUT:
-                case SOS: (inPrimary ? primaryClauses : secondaryClauses).add(clause); break;
+                case SOS:      primaryClauses.add(clause); break;
                 case POSITIVE: (clause.isPositive() ? primaryClauses : secondaryClauses).add(clause); break;
                 case NEGATIVE: (clause.isNegative() ? primaryClauses : secondaryClauses).add(clause); break;}}
         if(checkConsistency) {check();}
+        checkPurity(cLiteral.literal);
         return true;}
 
     /** checks if some of the literals in the clause became pure, i.e. there are no more literals of this polarity in the index.
@@ -626,6 +634,20 @@ public class Resolution extends Solver {
         for(CLiteral cliteral : clause) {
             if(literalIndex.isEmpty(cliteral.literal)) {
                 addTrueLiteralTask(-cliteral.literal, "Pure literal");}}}
+
+    /** checks if the predicate or its negation are pure.
+     * In this case a task is inserted.
+     *
+     * @param predicate to be checked
+     */
+    private void checkPurity(int predicate) {
+        if(literalIndex.isEmpty(predicate)) {
+            addTrueLiteralTask(-predicate, "Pure literal");}
+        if(literalIndex.isEmpty(-predicate)) {
+            addTrueLiteralTask(predicate, "Pure literal");}}
+
+
+
 
 
     /** return the entire statistics information
