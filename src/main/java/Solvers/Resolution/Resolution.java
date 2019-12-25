@@ -621,6 +621,7 @@ public class Resolution extends Solver {
                 case POSITIVE: (clause.isPositive() ? primaryClauses : secondaryClauses).add(clause); break;
                 case NEGATIVE: (clause.isNegative() ? primaryClauses : secondaryClauses).add(clause); break;}}
         if(checkConsistency) {check();}
+        clause.id = ++id[0];
         checkPurity(cLiteral.literal);
         return true;}
 
