@@ -4,8 +4,6 @@ import Coordinator.Tasks.Task;
 import Coordinator.Tasks.TaskQueue;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseStructure;
-import Datastructures.Clauses.ClauseType;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
@@ -220,7 +218,7 @@ public class Resolution extends Solver {
     private Consumer<Clause> insertHandler = (
             clause -> {insertClause(clause,isPrimary(clause,true),"Initial clause");
                 if(clause.size() > 1) {
-                    taskQueue.add(new Task(basicClauseList.maxClauseLength-clause.size()+2, // longer clauses should be
+                    taskQueue.add(new Task(basicClauseList.maxClauseLength-clause.size()+3, // longer clauses should be
                         (()-> {simplifyBackwards(clause); return null;}),    // checked first for subsumption and replacement resolution
                         (()-> "Simplify initial clause " + clause.toString())));}});
 
@@ -296,7 +294,9 @@ public class Resolution extends Solver {
             simplifyBackwards(resolvent);
             if(resolvent.removed) {continue;}
             simplifyForward(resolvent);
-            insertClause(resolvent,isPrimary(resolvent,false), "Resolvent");
+            boolean isPrimary = (resolvent.cliterals.size() < parentLiterals[0].clause.cliterals.size() +
+                    parentLiterals[1].clause.cliterals.size() -2) || isPrimary(resolvent,false)   ;
+            insertClause(resolvent,isPrimary, "Resolvent");
             result = taskQueue.run();
             if(result != null) {break;}
             if(primaryClauses.isEmpty()) {result =  completeModel(); break;}
@@ -349,12 +349,15 @@ public class Resolution extends Solver {
                     CLiteral<Clause> literal2 = iterator.next();parentLiterals[1] = literal2;
                     Clause parent2 = literal2.clause;
                     String id2 = Integer.toString(parent2.id);
-                    if(clauseNames.contains(id1+id2) || clauseNames.contains(id2+id1)) {continue;}
+                    if(clauseNames.contains(id1+id2) || clauseNames.contains(id2+id1)) {
+                        System.out.println(" A " + id1+"+"+id2);continue;}
                     if(first) {parentLiterals[1] = literal2; first = false;}
                     if(literal2.clause.size() < size1) {parentLiterals[1] = literal2; return;}
                     for(CLiteral<Clause> lit2 : literal2.clause) {
                         if(parent1.contains(lit2.literal) == 1) {parentLiterals[1] = literal2; return;}}}}}
-        System.out.println("\nNothing found");}
+        System.out.println("\nNothing found");
+        System.out.println(toString());
+        System.out.println("PL "+parentLiterals[0] + "  " + parentLiterals[1]);}
 
     /** checks if the clause ought to be a primary clause or a secondary clause.
      *  It depends on the strategy and the situation (processing input clauses or resolvents)<br>
@@ -458,7 +461,7 @@ public class Resolution extends Solver {
             removeLiteral(cLiteral);
             Clause otherClause = cLiteral.clause;
             if(!otherClause.removed) {
-                taskQueue.add(new Task(otherClause.size()+2,
+                taskQueue.add(new Task(otherClause.size()+3,
                         (()->{simplifyForward(otherClause);return null;}),
                         (()->"Forward Simplification for shortened clause " + otherClause.toString())));}}}
 
@@ -487,6 +490,8 @@ public class Resolution extends Solver {
      * @return the result of a model completion or null
      */
     private Result processTrueLiteral(int literal) {
+        System.out.println("PL START " + literal);
+        System.out.println(toString());
         switch(model.status(literal)) {
             case -1: return new Unsatisfiable(model,literal);
             case +1: return null;}
@@ -508,7 +513,47 @@ public class Resolution extends Solver {
         for(CLiteral<Clause> cLiteral : literalIndex.getAllItems(-literal)) {
             removeLiteral(cLiteral);}
         literalIndex.clearBoth(Math.abs(literal));
+        System.out.println("PL END " + literal);
+        System.out.println(toString());
         return null;}
+
+
+    public void processElimination(int eliminateLiteral) {
+        System.out.println("Start Elimination " + eliminateLiteral );
+        System.out.println(toString());
+        if(literalIndex.size(eliminateLiteral) != 1) {return;}
+        Clause clause  = literalIndex.getAllItems(eliminateLiteral).get(0).clause;
+        System.out.println("CLAUSE " + clause.toString());
+        ArrayList<CLiteral<Clause>> literals = clause.cliterals;
+        boolean inPrimary = primaryClauses.contains(clause);
+        for(CLiteral<Clause> otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) {
+            boolean tautology = false;
+            Clause otherClause = otherCliteral.clause;
+            Clause newClause = new Clause(++id[0]);
+            ArrayList<CLiteral<Clause>> newLiterals = new ArrayList<>();
+            for(CLiteral<Clause> literal : literals) {
+                if(literal.literal != eliminateLiteral) {newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size()));}}
+            for(CLiteral<Clause> literal : otherClause.cliterals) {
+                if(literal.literal == -eliminateLiteral) {continue;}
+                int contained = LitAlgorithms.contains(newLiterals,literal.literal);
+                if(contained > 0) {continue;}
+                if(contained < 0) {tautology = true; break;}
+                newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size()));}
+            if(tautology) {continue;}
+            newClause.cliterals = newLiterals;
+            newClause.setStructure();
+            System.out.println("OLD CLAUSE " + otherClause.toString());
+            System.out.println("NEW CLAUSE " + newClause.toString());
+            System.out.println(toString());
+            boolean inp = inPrimary || primaryClauses.contains(otherClause);
+            removeClause(otherClause,0);
+            insertClause(newClause,inp,"Literal " + eliminateLiteral + " eliminated");}
+        removeClause(clause,0);
+        literalIndex.clearBoth(eliminateLiteral);
+        if(checkConsistency) {check();}
+        System.out.println("End Elimination " + eliminateLiteral + "@" + clause.toString());
+        System.out.println(toString());
+    }
 
     /** completes a model after resolution has finished.
      * Strategy INPUT or SOS: all remaining clauses should be true <br>
@@ -577,7 +622,8 @@ public class Resolution extends Solver {
         if(primaryClauses.contains(clause)) {primaryClauses.remove(clause);}
         else {secondaryClauses.remove(clause);}
         for(CLiteral<Clause> cLiteral : clause) {
-            if(cLiteral.literal != ignoreLiteral) {literalIndex.remove(cLiteral);}}
+            if(cLiteral.literal != ignoreLiteral) {
+                literalIndex.remove(cLiteral);}}
         clause.removed = true;
         if(checkConsistency) {check();}}
 
@@ -632,9 +678,11 @@ public class Resolution extends Solver {
      * @param clause a clause which has been removed from the index.
      */
     private void checkPurity(Clause clause) {
-        for(CLiteral cliteral : clause) {
-            if(literalIndex.isEmpty(cliteral.literal)) {
-                addTrueLiteralTask(-cliteral.literal, "Pure literal");}}}
+        for(CLiteral<Clause> cliteral : clause) {
+            switch(literalIndex.size(cliteral.literal)) {
+                case 0: addTrueLiteralTask(-cliteral.literal, "Pure literal"); break;
+                case 1: taskQueue.add(new Task(2, (()->{processElimination(cliteral.literal); return null;}),
+                        () -> "Elimination of single literal " + cliteral.literal));}}}
 
     /** checks if the predicate or its negation are pure.
      * In this case a task is inserted.
@@ -705,5 +753,14 @@ public class Resolution extends Solver {
         primaryClauses.check("'primary clauses'");
         secondaryClauses.check("'secondary clauses'");
         literalIndex.check("'literal index'");
+
+        for(Clause clause : primaryClauses) {
+            for(CLiteral cLiteral : clause) {
+                if(!literalIndex.contains(cLiteral)) {
+                    System.out.println("Error: literal " + cLiteral.literal + " in clause " + clause.toString() + " is not in the index.");}}}
+        for(Clause clause : secondaryClauses) {
+            for(CLiteral cLiteral : clause) {
+                if(!literalIndex.contains(cLiteral)) {
+                    System.out.println("Error: literal " + cLiteral.literal + " in clause " + clause.toString() + " is not in the index.");}}}
     }
 }

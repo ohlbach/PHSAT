@@ -61,11 +61,12 @@ public class BucketSortedIndex<T extends Positioned> {
         int itemIndex = getItemIndex.apply(item);
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
         if(list == null) {return;}
-        int size = list.size()-1;
+        boolean removed = list.remove(item);
+        if(removed) {
+        int size = list.size();
         if(size == 0) {
             if(itemIndex > 0) {posOccurrences[itemIndex] = null;}
-            else              {negOccurrences[-itemIndex] = null;}}
-        else {list.remove(item);}}
+            else              {negOccurrences[-itemIndex] = null;}}}}
 
     /** removes all entries for the given itemIndex
      *
@@ -109,6 +110,21 @@ public class BucketSortedIndex<T extends Positioned> {
     public boolean isEmpty(int itemIndex) {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
         return list == null || list.isEmpty();}
+
+    /** checks if the item is in the index
+     *
+     * @param item the item to be checked
+     * @return true ir the item is in the index
+     */
+    public boolean contains(T item) {
+        int itemIndex    = getItemIndex.apply(item);
+        int itemIndexAbs = Math.abs(itemIndex);
+        BucketSortedList<T>[] list = itemIndex > 0 ? posOccurrences : negOccurrences;
+        if(itemIndexAbs >= list.length) {return false;}
+        BucketSortedList<T> items = list[itemIndexAbs];
+        if(items == null) {return false;}
+        return items.contains(item);}
+
 
     /** This method generates an iterator which iterates over the items in the index
      *

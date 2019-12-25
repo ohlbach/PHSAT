@@ -9,6 +9,6 @@ problem
 solver
    type = resolution
    strategy = SOS
-   limit = 10
+   limit = 5
    seed = 0
    percentageOfSOSClauses = 80

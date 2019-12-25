@@ -27,6 +27,8 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
     /** a timestamp to be used by corresponding algorithms */
     public int timestamp = 0;
 
+    public Clause(int id) {
+        this.id = id;}
 
     /** constructs a clause
      *

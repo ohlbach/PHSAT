@@ -143,4 +143,7 @@ public class LitAlgorithms {
                     resolvent.add(new CLiteral<Clause>(lit2.literal));}}
         resolvent.setStructure();
         return resolvent;}
+
+
+
 }

@@ -63,25 +63,27 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      *  Trailing empty buckets are removed.
      *
      * @param item the item to be removed
+     * @return true if the item was actually removed
      */
-    public void remove(T item) {
+    public boolean remove(T item) {
         int bucketIndex = getBucket.apply(item);
-        if(bucketIndex  < 0 || bucketIndex >= buckets.size()) {return;}
+        if(bucketIndex  < 0 || bucketIndex >= buckets.size()) {return false;}
         ArrayList<T> bucket = buckets.get(bucketIndex);
         int size = bucket.size();
         int itemPosition =  item.getPosition();
-        if(itemPosition < 0 || itemPosition >= size || bucket.get(itemPosition) != item) {return;}
+        if(itemPosition < 0 || itemPosition >= size || bucket.get(itemPosition) != item) {return false;}
         item.setPosition(-1);
         if(size == 1) {
             assert 0 == itemPosition;
-            bucket.clear(); return;}
+            bucket.clear(); return true;}
         T lastItem = bucket.get(--size);
         bucket.set(itemPosition,lastItem);
         lastItem.setPosition(itemPosition);
         bucket.remove(size);
         for(int i = buckets.size()-1; i >= 0; --i) { // garbage collection
             if(buckets.get(i).isEmpty()) {buckets.remove(i);}
-            else {break;}}}
+            else {break;}}
+        return true;}
 
     public int getRandomIndex(Random random) {
         int size = size();
