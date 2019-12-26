@@ -229,10 +229,14 @@ public abstract class Solver {
             if(model.isTrue(cliteral.literal)) {return true;} }
         return false;}
 
-
-
-
-
+    public void checkModel() {
+        System.out.println("Checking model\n" + model.toString());
+        ArrayList<int[]> falseClauses = basicClauseList.falseClauses(model);
+        if(falseClauses == null) {System.out.println("The model is correct:\n");}
+        else {
+            System.out.println("The following basic clauses are false in the model\n" + model.toString());
+            for(int[] clause : falseClauses) {
+                System.out.println(basicClauseList.clauseToString(clause));}}}
 
 
 

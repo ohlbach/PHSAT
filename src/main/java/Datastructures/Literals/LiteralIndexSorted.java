@@ -94,6 +94,8 @@ public class LiteralIndexSorted<Clause extends Sizable> extends LiteralIndex<Cla
         BucketSortedList<CLiteral<Clause>> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null ? emptyList : list.getAllItems();}
 
+
+
     /** returns the number of cLiterals indexed by this literal
      *
      * @param literal a literal
@@ -102,6 +104,8 @@ public class LiteralIndexSorted<Clause extends Sizable> extends LiteralIndex<Cla
     public int size(int literal) {
         BucketSortedList<CLiteral<Clause>> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null ? 0 : list.size();}
+
+
 
     public boolean isEmpty(int literal) {
         BucketSortedList<CLiteral<Clause>> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];

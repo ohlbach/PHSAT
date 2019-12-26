@@ -102,6 +102,15 @@ public class BucketSortedIndex<T extends Positioned> {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
         return list == null ? 0 : list.size();}
 
+    /** returns the number of cLiterals indexed by this literal
+     *
+     * @param literal a literal
+     * @return the number of cLiterals indexed by this literal
+     */
+    public int size01(int literal) {
+        BucketSortedList<T> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        return list == null ? 0 : list.size01();}
+
     /** checks if the list with the given index is empty
      *
      * @param itemIndex an item index
@@ -125,6 +134,28 @@ public class BucketSortedIndex<T extends Positioned> {
         if(items == null) {return false;}
         return items.contains(item);}
 
+    /** checks for all predicates the purity and elimination status.
+     * For a predicate p <br>
+     *     if size(p) == 0 and size(-p) > 0 then p is pure and inserted into zeros. <br>
+     *     if size(-p) == 0 and size(p) > 0 then -p is pure and inserted into zeros. <br>
+     *     if size(p) == 1 and size(-p) > 0 then p can be eliminated and is inserted into ones. <br>
+     *     if size(-p) == 0 and size(p) > 0 then -p can be eliminated and is inserted into zeros.
+     *
+     * @param zeros for inserting the pure literals
+     * @param ones  for inserting the elimination literals
+     * @return true if a pure or elimination literal is found.
+     */
+    public boolean size01(int predicates, ArrayList<Integer> zeros, ArrayList<Integer> ones) {
+        zeros.clear(); ones.clear();
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            int size01p = size01(predicate);
+            int size01n = size01(-predicate);
+            if(size01p == 0 && size01n != 0) {zeros.add(-predicate);  continue;}
+            if(size01n == 0 && size01p != 0) {zeros.add(predicate); continue;}
+            if(size01p == 1 && size01n != 0) {ones.add(predicate); continue;}
+            if(size01n == 1 && size01p != 0) {ones.add(-predicate); continue;}
+        }
+        return !zeros.isEmpty() || !ones.isEmpty();}
 
     /** This method generates an iterator which iterates over the items in the index
      *

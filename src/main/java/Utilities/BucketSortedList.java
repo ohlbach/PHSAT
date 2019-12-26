@@ -120,7 +120,8 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      * @return true if there are no items in the bucket
      */
     public boolean isEmpty() {
-        return size() == 0;}
+        for(ArrayList<T> bucket : buckets) {if(!bucket.isEmpty()) {return false;}}
+        return true;}
 
     /** counts the number of items in the buckets
      *
@@ -129,6 +130,17 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
     public int size() {
         int size = 0;
         for(ArrayList<T> bucket : buckets) {size += bucket.size();}
+        return size;}
+
+    /** checks if the size of the buckets is 0 or 1
+     *
+     * @return -1 if the size is > 1, otherwise the size.
+     */
+    public int size01() {
+        int size = 0;
+        for(ArrayList<T> bucket : buckets) {
+            size += bucket.size();
+            if(size > 1) {return -1;}}
         return size;}
 
     /** returns the number of items in the corresponding bucket
