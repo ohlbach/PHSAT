@@ -586,7 +586,8 @@ public class Resolution extends Solver {
                             model.add(literal); found = true; break;}}
                     if(!found) return new Erraneous(model,clause,symboltable);}}
         completeEliminations();
-        checkModel();
+        Result result = checkModel();
+        if(result != null) {return result;}
         return new Satisfiable(model);}
 
     private void completeEliminations() {

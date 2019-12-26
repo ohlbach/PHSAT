@@ -3,6 +3,7 @@ package Solvers;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
@@ -229,14 +230,14 @@ public abstract class Solver {
             if(model.isTrue(cliteral.literal)) {return true;} }
         return false;}
 
-    public void checkModel() {
-        System.out.println("Checking model\n" + model.toString());
+    /** The method checks if the model satisfies the basic clauses.
+     *
+     * @return null or an Erraneous Result
+     */
+    public Result checkModel() {
         ArrayList<int[]> falseClauses = basicClauseList.falseClauses(model);
-        if(falseClauses == null) {System.out.println("The model is correct:\n");}
-        else {
-            System.out.println("The following basic clauses are false in the model\n" + model.toString());
-            for(int[] clause : falseClauses) {
-                System.out.println(basicClauseList.clauseToString(clause));}}}
+        if(falseClauses != null) {return new Erraneous(model,falseClauses,symboltable);}
+        else {return null;}}
 
 
 

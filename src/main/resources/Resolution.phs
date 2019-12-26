@@ -1,14 +1,14 @@
 problem
     type = random
     predicates = 10
-    cpRatio = 3.5
+    cpRatio = 4
     length = 3
     precise = true
     seed = 2
 
 solver
    type = resolution
-   strategy = SOS
-   limit = 5
+   strategy = INPUT
+   limit = 10
    seed = 0
    percentageOfSOSClauses = 80
