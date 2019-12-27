@@ -37,6 +37,11 @@ public class ResolutionStatistics extends Statistic {
     @Description("number of generated resolvents.")
     public int resolvents = 0;
 
+    @Description("number of equivalences.")
+    public int equivalences = 0;
+
+
+
 
 
 }

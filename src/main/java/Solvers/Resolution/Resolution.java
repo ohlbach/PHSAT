@@ -246,7 +246,7 @@ public class Resolution extends Solver {
         if(Thread.interrupted()) {throw new InterruptedException();}
         if(checkConsistency) {check("initializeClauses");}
         maxInputId = id[0];
-        check01();
+        purityAndElimination();
         return taskQueue.run();}
 
 
@@ -272,7 +272,7 @@ public class Resolution extends Solver {
         CLiteral<Clause>[] parentLiterals = new CLiteral[2];
         while(resolvents <= resolutionLimit) {
             if(Thread.interrupted()) {throw new InterruptedException();}
-            check01();
+            purityAndElimination();
             result = taskQueue.run();
             if(result != null){return result;}
             if(primaryClauses.isEmpty()) {return completeModel();}
@@ -586,6 +586,7 @@ public class Resolution extends Solver {
                             model.add(literal); found = true; break;}}
                     if(!found) return new Erraneous(model,clause,symboltable);}}
         completeEliminations();
+        equivalenceClasses.completeModel(model);
         Result result = checkModel();
         if(result != null) {return result;}
         return new Satisfiable(model);}
@@ -601,6 +602,7 @@ public class Resolution extends Solver {
                 int lit = cliteral.literal;
                 if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
             model.add(satisfied ? -literal : literal);}}
+
 
     /** counts the number of clauses in the resolution solver */
     private int clauseCounter = 0;
@@ -688,15 +690,92 @@ public class Resolution extends Solver {
     private ArrayList<Integer> zeros = new ArrayList<>();
     private ArrayList<Integer> ones = new ArrayList<>();
 
-    private void check01() {
+    /** This method checks all predicates for purity and elimination.
+     * A literal p is pure if there are no clauses with p any more. <br>
+     * In this case -p can be made true. <br>
+     * A literal p can be eliminated if it occurs only once in the clauses, say in clause C.
+     * In this case all clauses with -p can be replaced with their resolvent with C.
+     */
+    private void purityAndElimination() {
         while(literalIndex.size01(predicates,zeros,ones)) {
             for(int literal : zeros) {
-                int sizep = literalIndex.size01(-literal);
+                int sizep = literalIndex.size01(literal);
                 if(sizep == 0) {
-                    System.out.println("Pure literal " + literal);
-                    processTrueLiteral(literal);}}
-            for(int literal : ones)  {processElimination(literal);}}
-    }
+                    if(monitoring) {monitor.print(combinedId, "Eliminating pure literal " + -literal);}
+                    processTrueLiteral(-literal);}}
+            for(int literal : ones)  {processElimination(literal);}}}
+
+    /** checks if the clause is part of an equivalence like (p,q) and (-p,-q)
+     *
+     * @param clause a clause to be checked (p,q)
+     * @return true if there is another clause (-p,-q)
+     */
+    private boolean isEquivalence(Clause clause) {
+        if(clause.size() != 2) {return false;}
+        ArrayList<CLiteral<Clause>> clits1 = literalIndex.getItems(-clause.getCLiteral(0).literal,2);
+        ArrayList<CLiteral<Clause>> clits2 = literalIndex.getItems(-clause.getCLiteral(1).literal,2);
+        if(clits1 == null || clits2 == null) {return false;}
+        timestamp += maxClauseLength +1;
+        for(CLiteral<Clause> clit : clits1) {clit.clause.timestamp = timestamp;}
+        for(CLiteral<Clause> clit : clits2) {if(clit.clause.timestamp == timestamp) {return true;}}
+        return false;}
+
+    /** This method checks if the clause is part of an equivalence (p,q) (-p,-q)
+     * If this is the case: <br>
+     *     - -p == q is inserted into the equivalence classes <br>
+     *     - a processEquivalence task is generated
+     *
+     * @param clause the clause to be checked
+     * @return true if an equivalence has been found.
+     */
+    private boolean findEquivalence(Clause clause) {
+        if(!isEquivalence(clause)) {return false;}
+        int literal1 = -clause.getCLiteral(0).literal;
+        int literal2 =  clause.getCLiteral(1).literal;
+        if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
+        int fromliteral = literal1; int toliteral = literal2;
+        equivalenceClasses.addEquivalence(fromliteral,toliteral);
+        taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
+                (()-> "Replacing equivalent literal: literal1 -> literal2")));
+        ++statistics.equivalences;
+        return true;}
+
+    private ArrayList<Clause> replacedClauses = new ArrayList<>();
+
+    /** This method replaces all occurrences of fromLiteral by toLiteral.
+     *  Generated tautologies are ignored.<br>
+     *  Double literals are avoided. <br>
+     *  The new clauses are backwards simplified.
+     *
+     * @param fromLiteral antecedent
+     * @param toLiteral   succedent
+     * @return            null
+     */
+    private Result processEquivalence(int fromLiteral, int toLiteral) {
+        replacedClauses.clear();
+        for(CLiteral<Clause> cliteral : literalIndex.getAllItems(fromLiteral)) {
+            Clause clause = cliteral.clause;
+            Clause newClause = new Clause(++id[0],clause.size());
+            boolean tautology = false;
+            for(CLiteral cLiteral : clause.cliterals) {
+                int literal = cLiteral.literal;
+                if(literal == toLiteral) {continue;}
+                if(literal == -toLiteral) {tautology = true; break;}
+                if(literal == fromLiteral) {literal = toLiteral;}
+                else {if(literal == -fromLiteral) {literal = -toLiteral;}}
+                newClause.add(new CLiteral(literal));}
+            removeClause(clause,0);
+            if(!tautology) {replacedClauses.add(clause);}}
+        literalIndex.clearBoth(fromLiteral);
+        for(Clause clause : replacedClauses) {
+            simplifyBackwards(clause);
+            if(!clause.removed) {
+                insertClause(clause,isPrimary(clause,false),"Literal " + fromLiteral + " -> " + toLiteral);}}
+        for(Clause clause : replacedClauses) {if(!clause.removed) {simplifyForward(clause);}}
+        return null;}
+
+
+
 
     /** return the entire statistics information
      *

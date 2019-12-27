@@ -58,6 +58,10 @@ public class EquivalenceClasses {
             replacements.put(-eqClass.get(i),-representative);}
         return true;}
 
+    public void addEquivalence(int literal1, int literal2) {
+
+    }
+
     /** joins overlapping classes if necessary
      *
      * @param eqClass a new equivalence class

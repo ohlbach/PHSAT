@@ -115,6 +115,15 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
         for(ArrayList<T> items : buckets) {list.addAll(items);}
         return list;}
 
+
+    /** returns the buckset with this index
+     *
+     * @param bucketIndex the index of the bucket
+     * @return the bucket with this index.
+     */
+    public ArrayList<T> getBucket(int bucketIndex) {
+        return buckets.get(bucketIndex);}
+
     /** checks if the buckets are empty
      *
      * @return true if there are no items in the bucket

@@ -93,6 +93,17 @@ public class BucketSortedIndex<T extends Positioned> {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
         return list == null ? emptyList : list.getAllItems();}
 
+    /** For the application as literal index, it returns the cLiterals for a given literal and a given clause size
+     *
+     * @param itemIndex    for example, the literal
+     * @param bucketIndex  for example, the clause size
+     * @return             for example, the cLiterals with the given literal and the given clause size.
+     */
+    public ArrayList<T> getItems(int itemIndex, int bucketIndex) {
+        BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
+        return  list == null ? emptyList : list.getBucket(bucketIndex);}
+
+
     /** returns the number of items indexed by this itemIndex
      *
      * @param itemIndex a itemIndex
@@ -150,8 +161,8 @@ public class BucketSortedIndex<T extends Positioned> {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             int size01p = size01(predicate);
             int size01n = size01(-predicate);
-            if(size01p == 0 && size01n != 0) {zeros.add(-predicate);  continue;}
-            if(size01n == 0 && size01p != 0) {zeros.add(predicate); continue;}
+            if(size01p == 0 && size01n != 0) {zeros.add(predicate);  continue;}
+            if(size01n == 0 && size01p != 0) {zeros.add(-predicate); continue;}
             if(size01p == 1 && size01n != 0) {ones.add(predicate); continue;}
             if(size01n == 1 && size01p != 0) {ones.add(-predicate); continue;}
         }
