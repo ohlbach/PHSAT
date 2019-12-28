@@ -4,6 +4,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import static org.junit.Assert.*;
 
@@ -12,13 +13,11 @@ import static org.junit.Assert.*;
  */
 public class EquivalenceClassesTest {
 
-    static BiConsumer<int[],Integer> contradictionHandler = ((clause,literal) -> {
-        System.out.println("CL "+ Arrays.toString(clause));
-        System.out.println("LI "+ literal);});
+    static Consumer<String> contradictionHandler = (reason -> System.out.println("CL "+ reason));
     @Test
     public void addEquivalenceClass() throws Exception {
         System.out.println("add, no joins");
-        EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
+        EquivalenceClasses eq = new EquivalenceClasses(null,null);
         int[] clause = new int[]{0,0,4,1,2,3};
         eq.addEquivalenceClass(clause);
         //System.out.println(eq.toString());
@@ -29,7 +28,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addJoins() throws Exception {
         System.out.println("add, with joins");
-        EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
+        EquivalenceClasses eq = new EquivalenceClasses(null,null);
         int[] clause = new int[]{0,0,4,1,2,3};
         eq.addEquivalenceClass(clause);
         clause = new int[]{0,0,2,3,5};
@@ -42,21 +41,21 @@ public class EquivalenceClassesTest {
     @Test
     public void addContradictions() throws Exception {
         System.out.println("add, with contradiction");
-        Object[] contr = new Object[2];
-        BiConsumer<int[],Integer> contradictionHandler = ((clause,literal) -> {contr[0] = clause; contr[1] = literal;});
-        EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
+        String[] reason = new String[1];
+        EquivalenceClasses eq = new EquivalenceClasses(null,(r->reason[0] = r));
         int[] clause = new int[]{0,0,4,1,2,3};
         eq.addEquivalenceClass(clause);
         clause = new int[]{0,0,2,3,-4};
         eq.addEquivalenceClass(clause);
-        assertEquals(clause, contr[0]);
-        assertEquals(4, contr[1]);
+        //System.out.println(reason[0]);
+        assertEquals("Equivalence 2 = -4 contradicts existing equivalences: \n" +
+                "1 = 2 = 3 = 4",reason[0]);
     }
 
     @Test
     public void completeModel() throws Exception {
         System.out.println("complete model");
-        EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
+        EquivalenceClasses eq = new EquivalenceClasses(null,contradictionHandler);
         int[] clause = new int[]{0,0,4,1,2,3};
         eq.addEquivalenceClass(clause);
         clause = new int[]{0,0,2,3,5};

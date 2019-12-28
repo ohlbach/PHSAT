@@ -113,6 +113,19 @@ public class Model {
         short status = this.status[predicate];
         return literal > 0 ? status : -status;}
 
+    /** turns the status value into a string
+     *
+     * @param status -1,0,+1
+     * @return the corresponding name
+     */
+    public String toString(int status) {
+        switch(status) {
+            case -1 : return "false";
+            case  0:  return "unknown";
+            case +1 : return "true";}
+        return "error";}
+
+
     /** sets the logical status of the literal.
      *
      * @param literal a literal

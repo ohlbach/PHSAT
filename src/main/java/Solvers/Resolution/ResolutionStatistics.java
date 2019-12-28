@@ -19,8 +19,11 @@ public class ResolutionStatistics extends Statistic {
         super(id);}
 
 
-    @Description("number of unit clauses generated")
-    public int unitClauses = 0;
+    @Description("number of derived unit clauses")
+    public int derivedUnitClauses = 0;
+
+    @Description("number of imported unit clauses")
+    public int importedUnitClauses = 0;
 
     @Description("number of backward subsumptions")
     public int backwardSubsumptions = 0;

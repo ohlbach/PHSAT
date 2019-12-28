@@ -204,12 +204,10 @@ public class Resolution extends Solver {
      */
     private EquivalenceClasses equivalenceClasses = null;
 
-    /** If an equivalence p = -p occurs or can eb derived, this function is called.
+    /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.
      */
-    private BiConsumer<int[],Integer> contradictionHandler = ((clause,literal)->{
-        String clauseString = BasicClauseList.clauseToString((""+clause[0]).length(),clause,symboltable);
-        String reason = ""+literal +" == -" + literal + " in clause " + clauseString;
+    private Consumer<String> contradictionHandler = ((reason)->{
         taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason)), (()->reason)));});
 
     /** This function is called when a new disjunction is to be inserted.
@@ -231,7 +229,7 @@ public class Resolution extends Solver {
      */
     private Result initializeClauses() throws InterruptedException {
         if(basicClauseList.equivalences != null) {
-            equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler);
+            equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler,symboltable);
             if(!taskQueue.isEmpty()) {Result result = taskQueue.run(); if(result != null) {return result;}}}
 
         Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
@@ -462,6 +460,16 @@ public class Resolution extends Solver {
                         (()->{simplifyForward(otherClause);return null;}),
                         (()->"Forward Simplification for shortened clause " + otherClause.toString())));}}}
 
+    /** This method is called be the problemSupervisor, when another solver derives a true literal.
+     * It generates a trueLiteral task.
+     *
+     * @param literal a new true literal
+     */
+    public void newTrueLiteral(int literal) {
+        ++statistics.importedUnitClauses;
+        --statistics.derivedUnitClauses;
+        addTrueLiteralTask(literal,"Imported from another solver");}
+
 
     /** turns the literal into a trueLiteralTask.
      * If it is a unit resolvent then it is forwarded to the problem supervisor.
@@ -473,7 +481,7 @@ public class Resolution extends Solver {
         taskQueue.add(new Task(1,
                 (()->processTrueLiteral(literal)),
                 (()->reason + ": " + (symboltable == null ? literal : symboltable.getLiteralName(literal)))));
-        ++statistics.unitClauses;
+        ++statistics.derivedUnitClauses;
         if(!initializing) problemSupervisor.forwardTrueLiteral(this,literal);}
 
     /** computes the consequences of a new true literal
@@ -586,8 +594,9 @@ public class Resolution extends Solver {
                             model.add(literal); found = true; break;}}
                     if(!found) return new Erraneous(model,clause,symboltable);}}
         completeEliminations();
-        equivalenceClasses.completeModel(model);
-        Result result = checkModel();
+        Result result = equivalenceClasses.completeModel(model);
+        if(result != null) {return result;}
+        result = checkModel();
         if(result != null) {return result;}
         return new Satisfiable(model);}
 
@@ -616,9 +625,9 @@ public class Resolution extends Solver {
      * @param primary determines whether the clause is inserted into primaryClauses or secondaryClauses.
      */
     private void insertClause(Clause clause, boolean primary, String reason) {
-        if(clause.size() == 1) {
-            addTrueLiteralTask(clause.getLiteral(0),reason);
-            return;}
+        switch(clause.size()) {
+            case 1: addTrueLiteralTask(clause.getLiteral(0),reason); return;
+            case 2: findEquivalence(clause);}
         ++clauseCounter;
         maxClauseLength = Math.max(maxClauseLength,clause.size());
         (primary ? primaryClauses : secondaryClauses).add(clause);
@@ -736,7 +745,7 @@ public class Resolution extends Solver {
         int fromliteral = literal1; int toliteral = literal2;
         equivalenceClasses.addEquivalence(fromliteral,toliteral);
         taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
-                (()-> "Replacing equivalent literal: literal1 -> literal2")));
+                (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
         ++statistics.equivalences;
         return true;}
 
@@ -752,6 +761,18 @@ public class Resolution extends Solver {
      * @return            null
      */
     private Result processEquivalence(int fromLiteral, int toLiteral) {
+        int fromStatus = model.status(fromLiteral);
+        int toStatus   = model.status(toLiteral);
+        if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
+            return new Unsatisfiable(model,toLiteral);}
+        if(fromStatus != 0) {
+            addTrueLiteralTask((fromStatus == 1 ? toLiteral : -toLiteral),
+                    "equivalent literals " + fromLiteral + " " + toLiteral);
+            return null;}
+        if(toStatus != 0) {
+            addTrueLiteralTask((toStatus == 1 ? fromLiteral : -fromLiteral),
+                    "equivalent literals " + fromLiteral + " " + toLiteral);
+            return null;}
         replacedClauses.clear();
         for(CLiteral<Clause> cliteral : literalIndex.getAllItems(fromLiteral)) {
             Clause clause = cliteral.clause;

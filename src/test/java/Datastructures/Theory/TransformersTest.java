@@ -48,7 +48,7 @@ public class TransformersTest {
         bcl.addClause(c2);
         bcl.addClause(c3);
         bcl.addClause(c4);
-        EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
+        EquivalenceClasses eq = new EquivalenceClasses(null,null);
         eq.addEquivalenceClass(c1);
         int[] id = new int[]{0};
         Transformers.prepareDisjunctions(bcl,id,eq,(clause->clauses.add(clause)));
@@ -85,7 +85,7 @@ public class TransformersTest {
         bcl.addClause(c3);
         bcl.addClause(c4);
         int[] e1 = new int[]{1,4,1,2,3};
-        EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
+        EquivalenceClasses eq = new EquivalenceClasses(null,null);
         eq.addEquivalenceClass(e1);
         Transformers.prepareConjunctions(bcl,eq,(clause->clauses.add(clause)));
         assertEquals("[1, 1, 1, 1, 4, 5, 1, 4, -1, 1, 4, 1]",clauses.toString());}
@@ -111,7 +111,7 @@ public class TransformersTest {
         int[] c1 = new int[]{1,2,1,2,3};
         bcl.addClause(c1);
         int[] c2 = new int[]{1,4,1,2};
-        EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
+        EquivalenceClasses eq = new EquivalenceClasses(null,null);
         eq.addEquivalenceClass(c2);
         int[] id = new int[]{0};
         Transformers.prepareXors(bcl,id,eq,(clause->clauses.add(clause)));
@@ -138,7 +138,7 @@ public class TransformersTest {
         int[] c1 = new int[]{1,3,1,2,3};
         bcl.addClause(c1);
         int[] c2 = new int[]{1,4,1,2};
-        EquivalenceClasses eq = new EquivalenceClasses(contradictionHandler);
+        EquivalenceClasses eq = new EquivalenceClasses(null,null);
         eq.addEquivalenceClass(c2);
         int[] id = new int[]{0};
         Transformers.prepareDisjoints(bcl,id,eq,(clause->clauses.add(clause)));
@@ -152,7 +152,7 @@ public class TransformersTest {
         int[] c2 = new int[]{1,4,3,4,-5};
         bcl.addClause(c1);
         bcl.addClause(c2);
-        EquivalenceClasses eq = Transformers.prepareEquivalences(bcl,contradictionHandler);
+        EquivalenceClasses eq = Transformers.prepareEquivalences(bcl,null,null);
         assertEquals("Equivalence Classes:\n" +
                 "1 = 2 = 3 = 4 = -5\n" +
                 "Replacements:\n" +

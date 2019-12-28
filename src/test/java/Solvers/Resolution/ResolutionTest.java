@@ -210,7 +210,7 @@ public class ResolutionTest {
         insertClause.invoke(res,c5,true,"initial");
         assertEquals("1. P1: initial: 7\n" +
                 "2. P1: initial: -7\n",taskQueue.get(res).toString());
-        assertEquals(2,((ResolutionStatistics)statistics.get(res)).unitClauses);
+        assertEquals(2,((ResolutionStatistics)statistics.get(res)).derivedUnitClauses);
     }
 
     @Test
@@ -328,7 +328,7 @@ public class ResolutionTest {
                 " 7: 7,\n",literalIndex.get(res).toString());
         assertFalse((boolean)removeLiteral.invoke(res,c2.getCLiteral(1)));
         assertEquals("1. P1: New true literal derived: -4\n",taskQueue.get(res).toString());
-        assertEquals(1,((ResolutionStatistics)statistics.get(res)).unitClauses);
+        assertEquals(1,((ResolutionStatistics)statistics.get(res)).derivedUnitClauses);
 
         assertEquals("Bucket 2\n" +
                 "  1:(1,3)\n",primaryClauses.get(res).toString());
