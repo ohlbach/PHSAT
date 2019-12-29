@@ -1,7 +1,7 @@
 problem
     type = random
-    predicates = 10
-    cpRatio = 4
+    predicates = 20
+    cpRatio = 4.3
     length = 3
     precise = true
     seed = 2

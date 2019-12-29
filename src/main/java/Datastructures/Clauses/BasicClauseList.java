@@ -77,6 +77,9 @@ public class BasicClauseList {
     public static boolean disjunctionIsTrue(int[] clause, Model model) {
         assert ClauseType.getType(clause[1]) == ClauseType.OR;
         for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return true;}}
+        for(int i = 2; i < clause.length; ++i) {
+            int literal = clause[i];
+            if(model.status(literal) == 0) {model.setStatus(literal,1); return true;}}
         return false;}
 
     /** checks if a disjunction is entirely false in a model

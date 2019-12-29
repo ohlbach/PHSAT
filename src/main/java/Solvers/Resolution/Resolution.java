@@ -2,7 +2,6 @@ package Solvers.Resolution;
 
 import Coordinator.Tasks.Task;
 import Coordinator.Tasks.TaskQueue;
-import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
@@ -18,7 +17,6 @@ import Utilities.BucketSortedList;
 import Utilities.BucketSortedIndex;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -299,10 +297,11 @@ public class Resolution extends Solver {
             insertClause(resolvent,isPrimary, "Resolvent");
             result = taskQueue.run();
             if(result != null) {break;}
-            System.out.println("PRIM");
+            /*System.out.println("PRIM");
             System.out.println(primaryClauses.toString());
             System.out.println("SEC");
-            System.out.println(secondaryClauses.toString());}
+            System.out.println(secondaryClauses.toString());*/
+        }
         if(result == null) {
             return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");}
         if(result.getClass() == Satisfiable.class) {
@@ -495,8 +494,8 @@ public class Resolution extends Solver {
      * @return the result of a model completion or null
      */
     private Result processTrueLiteral(int literal) {
-        System.out.println("PL START " + literal);
-        System.out.println(toString());
+        //System.out.println("PL START " + literal);
+        //System.out.println(toString());
         switch(model.status(literal)) {
             case -1: return new Unsatisfiable(model,literal);
             case +1: return null;}
@@ -517,8 +516,8 @@ public class Resolution extends Solver {
         for(CLiteral<Clause> cLiteral : literalIndex.getAllItems(-literal)) {
             removeLiteral(cLiteral);}
         literalIndex.clearBoth(Math.abs(literal));
-        System.out.println("PL END " + literal);
-        System.out.println(toString());
+        //System.out.println("PL END " + literal);
+        //System.out.println(toString());
         return null;}
 
 
@@ -528,8 +527,8 @@ public class Resolution extends Solver {
         int size01p = literalIndex.size01(eliminateLiteral);
         int size01n = literalIndex.size01(-eliminateLiteral);
         if(size01p != 1 || size01n == 0) {return;}
-        System.out.println("Start Elimination " + eliminateLiteral );
-        System.out.println(toString());
+        //System.out.println("Start Elimination " + eliminateLiteral );
+        //System.out.println(toString());
         Clause clause  = literalIndex.getAllItems(eliminateLiteral).get(0).clause;
         ArrayList<CLiteral<Clause>> literals = clause.cliterals;
         boolean inPrimary = primaryClauses.contains(clause);
@@ -558,8 +557,8 @@ public class Resolution extends Solver {
         removeClause(clause,0);
         literalIndex.clearBoth(Math.abs(eliminateLiteral));
         if(checkConsistency) {check("processElimination");}
-        System.out.println("End Elimination " + eliminateLiteral + "@" + clause.toString());
-        System.out.println(toString());
+        //System.out.println("End Elimination " + eliminateLiteral + "@" + clause.toString());
+        //System.out.println(toString());
     }
 
     /** completes a model after resolution has finished.
@@ -618,7 +617,7 @@ public class Resolution extends Solver {
 
     /** inserts the clause into the local data structures.
      * - If the clause is a unit clause, it generates a trueLiteralTask<br>
-     * - If it is an initial clause, ti generates a simplifyBackwards task.<br>
+     * - If it is an initial clause, it generates a simplifyBackwards task.<br>
      *   These tasks are sorted such that longer clauses are simplified first (subsumption and replacement resolution).
      *
      * @param clause  the clause to be inserted.
@@ -761,6 +760,8 @@ public class Resolution extends Solver {
      * @return            null
      */
     private Result processEquivalence(int fromLiteral, int toLiteral) {
+        //System.out.println("START EQUIVALENCE " + fromLiteral + " -> " + toLiteral);
+        //System.out.println(toString());
         int fromStatus = model.status(fromLiteral);
         int toStatus   = model.status(toLiteral);
         if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
@@ -783,16 +784,32 @@ public class Resolution extends Solver {
                 if(literal == toLiteral) {continue;}
                 if(literal == -toLiteral) {tautology = true; break;}
                 if(literal == fromLiteral) {literal = toLiteral;}
-                else {if(literal == -fromLiteral) {literal = -toLiteral;}}
                 newClause.add(new CLiteral(literal));}
             removeClause(clause,0);
-            if(!tautology) {replacedClauses.add(clause);}}
+            if(!tautology) {replacedClauses.add(newClause);}}
+
+        for(CLiteral<Clause> cliteral : literalIndex.getAllItems(-fromLiteral)) {
+            Clause clause = cliteral.clause;
+            Clause newClause = new Clause(++id[0],clause.size());
+            boolean tautology = false;
+            for(CLiteral cLiteral : clause.cliterals) {
+                int literal = cLiteral.literal;
+                if(literal == -toLiteral) {continue;}
+                if(literal == toLiteral) {tautology = true; break;}
+                if(literal == -fromLiteral) {literal = -toLiteral;}
+                newClause.add(new CLiteral(literal));}
+            removeClause(clause,0);
+            if(!tautology) {replacedClauses.add(newClause);}}
+
         literalIndex.clearBoth(fromLiteral);
         for(Clause clause : replacedClauses) {
             simplifyBackwards(clause);
             if(!clause.removed) {
                 insertClause(clause,isPrimary(clause,false),"Literal " + fromLiteral + " -> " + toLiteral);}}
         for(Clause clause : replacedClauses) {if(!clause.removed) {simplifyForward(clause);}}
+
+        //System.out.println("END EQUIVALENCE " + fromLiteral + " -> " + toLiteral);
+        //System.out.println(toString());
         return null;}
 
 
