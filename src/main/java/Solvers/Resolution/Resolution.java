@@ -155,6 +155,7 @@ public class Resolution extends Solver {
             result = new Aborted("Resolution aborted after " + resolvents + " resolvents");}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + result.toString());
+        problemSupervisor.finished(this, result, "done");
         return result;}
 
     /** one resolution parent is always chosen from this list */
@@ -231,7 +232,7 @@ public class Resolution extends Solver {
             if(!taskQueue.isEmpty()) {Result result = taskQueue.run(); if(result != null) {return result;}}}
 
         Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
-                (literal-> addTrueLiteralTask(literal, "Initial Conjunction")));
+                (literal-> addTrueLiteralTask(literal, true, "Initial Conjunction")));
         if(Thread.interrupted()) {throw new InterruptedException();}
         Transformers.prepareDisjunctions(basicClauseList,id,equivalenceClasses,insertHandler);
         Transformers.prepareXors     (basicClauseList,id,equivalenceClasses,insertHandler);
@@ -297,13 +298,13 @@ public class Resolution extends Solver {
             insertClause(resolvent,isPrimary, "Resolvent");
             result = taskQueue.run();
             if(result != null) {break;}
-            /*System.out.println("PRIM");
-            System.out.println(primaryClauses.toString());
-            System.out.println("SEC");
-            System.out.println(secondaryClauses.toString());*/
+            //System.out.println("After Resolution");
+            //System.out.println(toString());
         }
         if(result == null) {
-            return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");}
+            System.out.println(toString());
+            return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");
+            }
         if(result.getClass() == Satisfiable.class) {
             ArrayList<int[]> falseClauses = basicClauseList.falseClauses(((Satisfiable)result).model);
             if(falseClauses == null) {return result;}
@@ -467,7 +468,7 @@ public class Resolution extends Solver {
     public void newTrueLiteral(int literal) {
         ++statistics.importedUnitClauses;
         --statistics.derivedUnitClauses;
-        addTrueLiteralTask(literal,"Imported from another solver");}
+        addTrueLiteralTask(literal, false,"Imported from another solver");}
 
 
     /** turns the literal into a trueLiteralTask.
@@ -476,12 +477,12 @@ public class Resolution extends Solver {
      * @reason  for monitoring the tasks
      * @param literal a unit literal.
      */
-    private void addTrueLiteralTask(int literal, String reason) {
+    private void addTrueLiteralTask(int literal, boolean forward, String reason) {
         taskQueue.add(new Task(1,
                 (()->processTrueLiteral(literal)),
                 (()->reason + ": " + (symboltable == null ? literal : symboltable.getLiteralName(literal)))));
         ++statistics.derivedUnitClauses;
-        if(!initializing) problemSupervisor.forwardTrueLiteral(this,literal);}
+        if(forward && !initializing) problemSupervisor.forwardTrueLiteral(this,literal);}
 
     /** computes the consequences of a new true literal
      * - all clauses with this literal are removed <br>
@@ -625,7 +626,7 @@ public class Resolution extends Solver {
      */
     private void insertClause(Clause clause, boolean primary, String reason) {
         switch(clause.size()) {
-            case 1: addTrueLiteralTask(clause.getLiteral(0),reason); return;
+            case 1: addTrueLiteralTask(clause.getLiteral(0),true,reason); return;
             case 2: findEquivalence(clause);}
         ++clauseCounter;
         maxClauseLength = Math.max(maxClauseLength,clause.size());
@@ -679,7 +680,8 @@ public class Resolution extends Solver {
             for(CLiteral<Clause> cliteral : clause) literalIndex.remove(cliteral);}
         clause.remove(cLiteral);
         if(clause.size() == 1) {
-            addTrueLiteralTask( clause.getLiteral(0),"New true literal derived from clause " + clause.toString());
+            addTrueLiteralTask( clause.getLiteral(0),true,
+                    "New true literal derived from clause " + clause.toString());
             removeClause(clause,0);
             return false;}
         if(isOld) {
@@ -742,7 +744,7 @@ public class Resolution extends Solver {
         int literal2 =  clause.getCLiteral(1).literal;
         if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
         int fromliteral = literal1; int toliteral = literal2;
-        equivalenceClasses.addEquivalence(fromliteral,toliteral);
+        if(!equivalenceClasses.addEquivalence(fromliteral,toliteral)) {return false;}
         taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
                 (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
         ++statistics.equivalences;
@@ -767,11 +769,11 @@ public class Resolution extends Solver {
         if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
             return new Unsatisfiable(model,toLiteral);}
         if(fromStatus != 0) {
-            addTrueLiteralTask((fromStatus == 1 ? toLiteral : -toLiteral),
+            addTrueLiteralTask((fromStatus == 1 ? toLiteral : -toLiteral),true,
                     "equivalent literals " + fromLiteral + " " + toLiteral);
             return null;}
         if(toStatus != 0) {
-            addTrueLiteralTask((toStatus == 1 ? fromLiteral : -fromLiteral),
+            addTrueLiteralTask((toStatus == 1 ? fromLiteral : -fromLiteral),true,
                     "equivalent literals " + fromLiteral + " " + toLiteral);
             return null;}
         replacedClauses.clear();

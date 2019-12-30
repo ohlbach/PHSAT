@@ -63,7 +63,7 @@ public class ProblemSupervisor {
         for(int i = 0; i < numberOfSolvers; ++i) {
             HashMap<String,Object> solverParameter = solverParameters.get(i);
             solvers[i] = Solver.construct((String)solverParameter.get("type"),i,solverParameter,this);}
-        Thread[] threads = new Thread[numberOfSolvers];
+        threads = new Thread[numberOfSolvers];
         results = new Result[numberOfSolvers];
         for(int i = 0; i < numberOfSolvers; ++i) {
             int j = i;
@@ -71,6 +71,9 @@ public class ProblemSupervisor {
         for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
         try{for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
         catch (InterruptedException e) {}
+        for(Solver solver : solvers) {
+            System.out.println(solver.getStatistics().toString(false));
+        }
         globalParameters.log("Solvers finished for problem " + problemId);}
 
     /** This method is called when a solver has found a new true literal.
@@ -80,7 +83,7 @@ public class ProblemSupervisor {
      * @param literal  the new true literal.
      */
     public synchronized void forwardTrueLiteral(Solver solver,int literal) {
-        for(Solver solv : solvers) {if(solv != solver) solver.newTrueLiteral(literal);}}
+        for(Solver solv : solvers) {if(solv != solver) solv.newTrueLiteral(literal);}}
 
     /** This method is called when a solver found a new binary clause.
      * It forwards the clause to all other solvers.
@@ -90,7 +93,7 @@ public class ProblemSupervisor {
      * @param literal2  the second literal of the clause
      */
     public synchronized void forwardBinaryClause(Solver solver, int literal1,int literal2) {
-        for(Solver solv : solvers) {if(solv != solver) solver.newBinaryClause(literal1,literal2);}}
+        for(Solver solv : solvers) {if(solv != solver) solv.newBinaryClause(literal1,literal2);}}
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.
      * If the solver succeeded (satisfiable or unsatisfiable) then all other solvers are interrupted. <br>

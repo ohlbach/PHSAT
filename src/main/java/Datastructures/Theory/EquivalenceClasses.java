@@ -62,12 +62,13 @@ public class EquivalenceClasses {
      * @param literal1 the first literal
      * @param literal2 the second literal
      */
-    public void addEquivalence(int literal1, int literal2) {
+    public boolean addEquivalence(int literal1, int literal2) {
         if(equivalenceClasses == null) {
             equivalenceClasses = new ArrayList<ArrayList<Integer>>();
             replacements = new HashMap<>();}
         ArrayList<Integer> eClass = null;
         for(ArrayList<Integer> eqClass : equivalenceClasses) {
+            if(eqClass.contains(literal1) && eqClass.contains(literal2)) {return false;}
             eClass = joinIfPossible(eqClass,literal1,literal2);
             if(eClass != null) {break;}
             eClass = joinIfPossible(eqClass,literal2,literal1);
@@ -84,7 +85,7 @@ public class EquivalenceClasses {
         if(literal2 != representative) {
             replacements.put(literal2,representative);
             replacements.put(-literal2,-representative);}
-        return;}
+        return true;}
 
     /** tries to join the equivalence literal1 == literal2 into the existing equivalence class.
      *  It must be called for (literal1,literal2) and (literal2,literal1)

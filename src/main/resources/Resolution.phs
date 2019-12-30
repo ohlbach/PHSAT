@@ -1,14 +1,17 @@
+global
+    monitor
+
 problem
     type = random
-    predicates = 20
-    cpRatio = 4.3
+    predicates = 50
+    cpRatio = 5
     length = 3
     precise = true
-    seed = 2
+    seed = 0
 
 solver
    type = resolution
    strategy = INPUT
-   limit = 10
+   limit = 20
    seed = 0
-   percentageOfSOSClauses = 80
+   percentageOfSOSClauses = 50
