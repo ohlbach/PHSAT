@@ -145,5 +145,63 @@ public class LitAlgorithms {
         return resolvent;}
 
 
+    public static CLiteral<Clause> canBRemoved(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex,
+                                               int timestamp, int maxLevel) {
+        int level = 0;
+        for(CLiteral<Clause> cliteral : clause) {ignoreLiterals(cliteral.literal,literalIndex, timestamp);}
+        for(CLiteral<Clause> cliteral1 : clause) {
+            int literal1 = cliteral1.literal;
+            blockClauses(literal1, literalIndex, timestamp);
+            Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(-literal1);
+            while(iterator.hasNext()) {
+                if(replResRecursive(iterator.next(),literalIndex, timestamp, level,maxLevel)) {
+                    return cliteral1;}}
+            unblockClauses(literal1,literalIndex);}
+        return null;}
 
-}
+    private static boolean replResRecursive(CLiteral<Clause> cliteral, BucketSortedIndex<CLiteral<Clause>> literalIndex,
+                                            int timestamp, int level, int maxLevel) {
+        Clause clause = cliteral.clause;
+        if(clause.timestamp > timestamp) {return false;}
+        boolean solved = true;
+        for(CLiteral<Clause> cliteral1 : clause) {
+            if(cliteral == cliteral1 || cliteral1.timestamp == timestamp) {continue;}
+            solved = false;
+            ignoreLiterals(cliteral1.literal, literalIndex, timestamp);
+            cliteral.timestamp = 0;}
+        if(solved) return true;
+        if(level == maxLevel) {return false;}
+
+        for(CLiteral<Clause> cliteral1 : clause) {
+            if(cliteral1 == cliteral ||  cliteral1.timestamp == timestamp) {continue;}
+            int literal1 = cliteral1.literal;
+            blockClauses(literal1, literalIndex, timestamp);
+            solved = false;
+            Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(-literal1);
+            while(iterator.hasNext()) {
+                if(replResRecursive(iterator.next(),literalIndex, timestamp, level+1,maxLevel)) {
+                    solved = true; break;}}
+            unblockClauses(literal1, literalIndex);
+            if(!solved) {;return false;}}
+        return true;}
+
+    private static final int[] signs = new int[]{+1,-1};
+
+    private static void blockClauses(int literal,BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
+        for(int sign : signs) {
+            Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(sign*literal);
+            while(iterator.hasNext()) {
+                Clause clause = iterator.next().clause;
+                if(clause.timestamp < timestamp) {clause.timestamp = timestamp;}
+                else {++clause.timestamp;}}}}
+
+    private static void unblockClauses(int literal, BucketSortedIndex<CLiteral<Clause>> literalIndex) {
+        for(int sign : signs) {
+            Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(sign*literal);
+            while(iterator.hasNext()) {--iterator.next().clause.timestamp;}}}
+
+    private static void ignoreLiterals(int literal, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
+        Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(literal);
+        while(iterator.hasNext()) {iterator.next().timestamp = timestamp;}}
+
+

@@ -460,11 +460,13 @@ public class Resolution extends Solver {
                         (()->{simplifyForward(otherClause);return null;}),
                         (()->"Forward Simplification for shortened clause " + otherClause.toString())));}}}
 
+
+
     /** This method is called be the problemSupervisor, when another solver derives a true literal.
-     * It generates a trueLiteral task.
-     *
-     * @param literal a new true literal
-     */
+         * It generates a trueLiteral task.
+         *
+         * @param literal a new true literal
+         */
     public void newTrueLiteral(int literal) {
         ++statistics.importedUnitClauses;
         --statistics.derivedUnitClauses;
