@@ -37,7 +37,7 @@ import java.util.function.Function;
  *  Unit clauses are exchanged between different solvers. <br>
  *  Therefore various resolution solvers can operate in parallel and exchange unit clauses as intermediate results.
  */
-public class Reduction extends Solver {
+public class Reduction extends ResolutionReduction {
 
     boolean checkConsistency = true;
 
@@ -70,15 +70,6 @@ public class Reduction extends Solver {
         return "There are no parameters";}
 
 
-    /** maintains the tasks to be executed */
-    private TaskQueue taskQueue = null;
-
-    /** collects statistical information */
-    public ResolutionStatistics statistics;
-
-    /** for forming the ids of the new clauses */
-    private int[] id = new int[]{0};
-
     /** constructs a new Resolution solver.
      *
      * @param solverNumber         for distinguishing different solvers of the same type, but different parameters
@@ -88,111 +79,21 @@ public class Reduction extends Solver {
     public Reduction(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
         super(solverNumber,solverParameters, problemSupervisor);}
 
-    /** This method controls the entire resolution sequence
-     * 1. All local data are initialized <br>
-     * 2. All basic clauses are transformed to clauses and distributed to the primary and secondary clause lists. <br>
-     *    Equivalences are turned to equivalence classes <br>
-     *    All literals are mapped to the representatives in their classes.<br>
-     * 3. The initial causes are put into the task queue for simplifications.<br>
-     * 4. Resolution and simplification is started until <br>
-     *     - a contradiction is formed or <br>
-     *     - the clauses became empty or<br>
-     *     - the resolution limit is exceeded or <br>
-     *     - the thread is interrupted.<br>
-     *
-     * @return the result of the resolution sequence.
-     */
-    public Result solve() {
-        super.initialize();
-        globalParameters.log(solverId + " for problem " + problemId + " started");
-        long time = System.currentTimeMillis();
-        initializeData();
-        Result result = null;
-        try{result = initializeClauses();
-            if(result == null) {result = reduce();}}
-        catch(InterruptedException ex) {
-            globalParameters.log("Resolution " + combinedId + " interrupted.\n");
-            result = new Aborted("Resolution aborted after ");}
-        statistics.elapsedTime = System.currentTimeMillis() - time;
-        System.out.println("RESULT " + result.toString());
-        problemSupervisor.finished(this, result, "done");
-        return result;}
-
-    /** one resolution parent is always chosen from this list */
+    /** contains all the clauses, sorted according to the clause length*/
     private BucketSortedList<Clause> clauses;
-
-    /** maps literals (numbers) to their occurrences in clauses */
-    public BucketSortedIndex<CLiteral<Clause>> literalIndex;
-
-    /** If the strategy is SOS, then this number determines how many randomly chosen clauses are put into the clauses list */
-    private int percentageOfSOSClauses = 0;
-
-
-    /** is set false after all initial clauses are integrated */
-    private boolean initializing = true;
-
-    /** for optimizing subsumption and replacement resolution operations */
-    private int timestamp = 1;
-
-    private int maxClauseLength = 3;
 
 
     /** initializes resolution specific data structures*/
-    private void initializeData() {
+    protected void initializeData() {
         clauses      = new BucketSortedList<Clause>(clause->clause.size());
         literalIndex = new BucketSortedIndex<CLiteral<Clause>>(predicates+1,
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));
         taskQueue    = new TaskQueue(combinedId,monitor);}
 
-    /** EquivalenceClasses manage equivalent literals.
-     *  In each equivalence class the literals are mapped to their representatives,
-     *  which is always the predicate with the smallest number.
-     */
-    private EquivalenceClasses equivalenceClasses = null;
 
-    /** If an equivalence p = -p occurs or can be derived, this function is called.
-     *  It adds an Unsatisfiable task to the task queue.
-     */
-    private Consumer<String> contradictionHandler = ((reason)->{
-        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason)), (()->reason)));});
 
-    /** This function is called when a new disjunction is to be inserted.
-     *  It generates a simplifyBackwards task.
-     */
-    private Consumer<Clause> insertHandler = (
-            clause -> {insertClause(clause,"Initial clause");
-                if(clause.size() > 1) {
-                    taskQueue.add(new Task(basicClauseList.maxClauseLength-clause.size()+3, // longer clauses should be
-                        (()-> {simplifyBackwards(clause); return null;}),    // checked first for subsumption and replacement resolution
-                        (()-> "Simplify initial clause " + clause.toString())));}});
-
-    private int maxInputId = 0;
-    /** This method translates all basic clauses into Clause data structures.
-     *  Equivalent literals are replaced by their representatives.
-     *
-     * @return possibly Unsatisfiable
-     * @throws InterruptedException
-     */
-    private Result initializeClauses() throws InterruptedException {
-        if(basicClauseList.equivalences != null) {
-            equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler,symboltable);
-            if(!taskQueue.isEmpty()) {Result result = taskQueue.run(); if(result != null) {return result;}}}
-
-        Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
-                (literal-> addTrueLiteralTask(literal, true, "Initial Conjunction")));
-        if(Thread.interrupted()) {throw new InterruptedException();}
-        Transformers.prepareDisjunctions(basicClauseList,id,equivalenceClasses,insertHandler);
-        Transformers.prepareXors     (basicClauseList,id,equivalenceClasses,insertHandler);
-        Transformers.prepareDisjoints(basicClauseList,id,equivalenceClasses,insertHandler);
-        initializing = false;
-        if(Thread.interrupted()) {throw new InterruptedException();}
-        if(checkConsistency) {check("initializeClauses");}
-        maxInputId = id[0];
-        purityAndElimination();
-        return taskQueue.run();}
-
-    private Result reduce() throws InterruptedException {
+    protected Result doTheWork() throws InterruptedException {
         for(int level = 2;; ++level) {
             if(Thread.interrupted()) {throw new InterruptedException();}
             int maxLevel = level;
@@ -223,40 +124,10 @@ public class Reduction extends Solver {
         problemSupervisor.forwardClause(this,clause.getLiterals());}
 
 
-    public void newBinaryClause(int literal1, int literal2) {
-        ++statistics.importedBinaryClauses;
-        taskQueue.add(new Task(2,
-                (()-> {importBinaryClause(literal1,literal2); return null;}),
-                (()-> "importing binary clause " + literal1 + " " + literal2)));}
 
 
-    private void importBinaryClause(int literal1, int literal2) {
-        Clause clause = new Clause(++id[0],2);
-        clause.add(new CLiteral(literal1));
-        clause.add(new CLiteral(literal2));
-        clause.setStructure();
-        simplifyBackwards(clause);
-        if(clause.removed) {return;}
-        insertClause(clause, "imported clause");
-        simplifyForward(clause);
-    }
-
-    public void newClause(int[] literals) {
-        ++statistics.importedOtherClauses;
-        taskQueue.add(new Task(literals.length,
-                (()-> {importClause(literals); return null;}),
-                (()-> "importing clause " + Arrays.toString(literals))));}
 
 
-    private void importClause(int[] literals) {
-        Clause clause = new Clause(++id[0],literals.length);
-        for(int literal : literals) {clause.add(new CLiteral(literal));}
-        clause.setStructure();
-        simplifyBackwards(clause);
-        if(clause.removed) {return;}
-        insertClause(clause, "imported clause");
-        simplifyForward(clause);
-    }
 
 
 
@@ -279,7 +150,7 @@ public class Reduction extends Solver {
      *
      * @param clause
      */
-    private void simplifyBackwards(Clause clause) {
+    protected void simplifyBackwards(Clause clause) {
         if(clause.removed) {return;}
         timestamp += maxClauseLength +1;
         Clause subsumer = LitAlgorithms.isSubsumed(clause,literalIndex,timestamp);
@@ -315,7 +186,7 @@ public class Reduction extends Solver {
      *
      * @param clause
      */
-    private void simplifyForward(Clause clause) {
+    protected void simplifyForward(Clause clause) {
         if(clause.removed) {return;}
         clauseList.clear();
         timestamp += maxClauseLength +1;
@@ -359,7 +230,7 @@ public class Reduction extends Solver {
      * @reason  for monitoring the tasks
      * @param literal a unit literal.
      */
-    private void addTrueLiteralTask(int literal, boolean forward, String reason) {
+    protected void addTrueLiteralTask(int literal, boolean forward, String reason) {
         taskQueue.add(new Task(1,
                 (()->processTrueLiteral(literal)),
                 (()->reason + ": " + (symboltable == null ? literal : symboltable.getLiteralName(literal)))));
@@ -376,7 +247,7 @@ public class Reduction extends Solver {
      * @param literal a new true literal
      * @return the result of a model completion or null
      */
-    private Result processTrueLiteral(int literal) {
+    protected Result processTrueLiteral(int literal) {
         //System.out.println("PL START " + literal);
         //System.out.println(toString());
         switch(model.status(literal)) {
@@ -404,45 +275,7 @@ public class Reduction extends Solver {
         return null;}
 
 
-    private ArrayList<Object[]> eliminatedLiterals = new ArrayList<>();
 
-    private void processElimination(int eliminateLiteral) {
-        int size01p = literalIndex.size01(eliminateLiteral);
-        int size01n = literalIndex.size01(-eliminateLiteral);
-        if(size01p != 1 || size01n == 0) {return;}
-        //System.out.println("Start Elimination " + eliminateLiteral );
-        //System.out.println(toString());
-        Clause clause  = literalIndex.getAllItems(eliminateLiteral).get(0).clause;
-        ArrayList<CLiteral<Clause>> literals = clause.cliterals;
-        boolean inPrimary = clauses.contains(clause);
-        for(CLiteral<Clause> otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) {
-            boolean tautology = false;
-            Clause otherClause = otherCliteral.clause;
-            Clause newClause = new Clause(++id[0]);
-            ArrayList<CLiteral<Clause>> newLiterals = new ArrayList<>();
-            for(CLiteral<Clause> literal : literals) {
-                if(literal.literal != eliminateLiteral) {newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size()));}}
-            for(CLiteral<Clause> literal : otherClause.cliterals) {
-                if(literal.literal == -eliminateLiteral) {continue;}
-                int contained = LitAlgorithms.contains(newLiterals,literal.literal);
-                if(contained > 0) {continue;}
-                if(contained < 0) {tautology = true; break;}
-                newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size()));}
-            if(tautology) {removeClause(otherClause,0); continue;}
-            newClause.cliterals = newLiterals;
-            newClause.setStructure();
-            simplifyBackwards(newClause);
-            if(newClause.removed) {removeClause(otherClause,0); continue;}
-            boolean inp = inPrimary || clauses.contains(otherClause);
-            removeClause(otherClause,0);
-            insertClause(newClause,"Literal " + eliminateLiteral + " eliminated");}
-        eliminatedLiterals.add(new Object[]{clause.cliterals,eliminateLiteral});
-        removeClause(clause,0);
-        literalIndex.clearBoth(Math.abs(eliminateLiteral));
-        if(checkConsistency) {check("processElimination");}
-        //System.out.println("End Elimination " + eliminateLiteral + "@" + clause.toString());
-        //System.out.println(toString());
-    }
 
     /** completes a model after resolution has finished.
      * Strategy INPUT or SOS: all remaining clauses should be true <br>
@@ -489,7 +322,7 @@ public class Reduction extends Solver {
      *
      * @param clause  the clause to be inserted.
      */
-    private void insertClause(Clause clause, String reason) {
+    protected void insertClause(Clause clause, String reason) {
         switch(clause.size()) {
             case 1: addTrueLiteralTask(clause.getLiteral(0),true,reason); return;
             case 2: findEquivalence(clause);}
@@ -505,7 +338,7 @@ public class Reduction extends Solver {
      * @param clause        the clause to be removed
      * @param ignoreLiteral the literal not to remove from the index
      */
-    private void removeClause(Clause clause, int ignoreLiteral) {
+    protected void removeClause(Clause clause, int ignoreLiteral) {
         if(clause.removed) {return;}
         --clauseCounter;
         clauses.remove(clause);
@@ -545,137 +378,7 @@ public class Reduction extends Solver {
 
 
 
-    private ArrayList<Integer> zeros = new ArrayList<>();
-    private ArrayList<Integer> ones = new ArrayList<>();
 
-    /** This method checks all predicates for purity and elimination.
-     * A literal p is pure if there are no clauses with p any more. <br>
-     * In this case -p can be made true. <br>
-     * A literal p can be eliminated if it occurs only once in the clauses, say in clause C.
-     * In this case all clauses with -p can be replaced with their resolvent with C.
-     */
-    private void purityAndElimination() {
-        while(literalIndex.size01(predicates,zeros,ones)) {
-            for(int literal : zeros) {
-                int sizep = literalIndex.size01(literal);
-                if(sizep == 0) {
-                    if(monitoring) {monitor.print(combinedId, "Eliminating pure literal " + -literal);}
-                    processTrueLiteral(-literal);}}
-            for(int literal : ones)  {processElimination(literal);}}}
-
-    /** checks if the clause is part of an equivalence like (p,q) and (-p,-q)
-     *
-     * @param clause a clause to be checked (p,q)
-     * @return true if there is another clause (-p,-q)
-     */
-    private boolean isEquivalence(Clause clause) {
-        if(clause.size() != 2) {return false;}
-        ArrayList<CLiteral<Clause>> clits1 = literalIndex.getItems(-clause.getCLiteral(0).literal,2);
-        ArrayList<CLiteral<Clause>> clits2 = literalIndex.getItems(-clause.getCLiteral(1).literal,2);
-        if(clits1 == null || clits2 == null) {return false;}
-        timestamp += maxClauseLength +1;
-        for(CLiteral<Clause> clit : clits1) {clit.clause.timestamp = timestamp;}
-        for(CLiteral<Clause> clit : clits2) {if(clit.clause.timestamp == timestamp) {return true;}}
-        return false;}
-
-    /** This method checks if the clause is part of an equivalence (p,q) (-p,-q)
-     * If this is the case: <br>
-     *     - -p == q is inserted into the equivalence classes <br>
-     *     - a processEquivalence task is generated
-     *
-     * @param clause the clause to be checked
-     * @return true if an equivalence has been found.
-     */
-    private boolean findEquivalence(Clause clause) {
-        if(!isEquivalence(clause)) {return false;}
-        int literal1 = -clause.getCLiteral(0).literal;
-        int literal2 =  clause.getCLiteral(1).literal;
-        if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
-        int fromliteral = literal1; int toliteral = literal2;
-        if(!equivalenceClasses.addEquivalence(fromliteral,toliteral)) {return false;}
-        taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
-                (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
-        ++statistics.equivalences;
-        return true;}
-
-    private ArrayList<Clause> replacedClauses = new ArrayList<>();
-
-    /** This method replaces all occurrences of fromLiteral by toLiteral.
-     *  Generated tautologies are ignored.<br>
-     *  Double literals are avoided. <br>
-     *  The new clauses are backwards simplified.
-     *
-     * @param fromLiteral antecedent
-     * @param toLiteral   succedent
-     * @return            null
-     */
-    private Result processEquivalence(int fromLiteral, int toLiteral) {
-        //System.out.println("START EQUIVALENCE " + fromLiteral + " -> " + toLiteral);
-        //System.out.println(toString());
-        int fromStatus = model.status(fromLiteral);
-        int toStatus   = model.status(toLiteral);
-        if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
-            return new Unsatisfiable(model,toLiteral);}
-        if(fromStatus != 0) {
-            addTrueLiteralTask((fromStatus == 1 ? toLiteral : -toLiteral),true,
-                    "equivalent literals " + fromLiteral + " " + toLiteral);
-            return null;}
-        if(toStatus != 0) {
-            addTrueLiteralTask((toStatus == 1 ? fromLiteral : -fromLiteral),true,
-                    "equivalent literals " + fromLiteral + " " + toLiteral);
-            return null;}
-        replacedClauses.clear();
-        for(CLiteral<Clause> cliteral : literalIndex.getAllItems(fromLiteral)) {
-            Clause clause = cliteral.clause;
-            Clause newClause = new Clause(++id[0],clause.size());
-            boolean tautology = false;
-            for(CLiteral cLiteral : clause.cliterals) {
-                int literal = cLiteral.literal;
-                if(literal == toLiteral) {continue;}
-                if(literal == -toLiteral) {tautology = true; break;}
-                if(literal == fromLiteral) {literal = toLiteral;}
-                newClause.add(new CLiteral(literal));}
-            removeClause(clause,0);
-            if(!tautology) {replacedClauses.add(newClause);}}
-
-        for(CLiteral<Clause> cliteral : literalIndex.getAllItems(-fromLiteral)) {
-            Clause clause = cliteral.clause;
-            Clause newClause = new Clause(++id[0],clause.size());
-            boolean tautology = false;
-            for(CLiteral cLiteral : clause.cliterals) {
-                int literal = cLiteral.literal;
-                if(literal == -toLiteral) {continue;}
-                if(literal == toLiteral) {tautology = true; break;}
-                if(literal == -fromLiteral) {literal = -toLiteral;}
-                newClause.add(new CLiteral(literal));}
-            removeClause(clause,0);
-            if(!tautology) {replacedClauses.add(newClause);}}
-
-        literalIndex.clearBoth(fromLiteral);
-        for(Clause clause : replacedClauses) {
-            simplifyBackwards(clause);
-            if(!clause.removed) {
-                insertClause(clause,"Literal " + fromLiteral + " -> " + toLiteral);}}
-        for(Clause clause : replacedClauses) {if(!clause.removed) {simplifyForward(clause);}}
-
-        //System.out.println("END EQUIVALENCE " + fromLiteral + " -> " + toLiteral);
-        //System.out.println(toString());
-        return null;}
-
-
-
-
-    /** return the entire statistics information
-     *
-     * @return the entire statistics information for the resolution solver.
-     */
-    public Statistic getStatistics() {return statistics;}
-
-    /** lists the clauses and the literal index as a string.
-     *
-     * @return the clauses and the literal index as a string.
-     */
-    public String toString() {return toString(null);}
 
     /** lists the clauses and the literal index as a string.
      *
@@ -686,7 +389,7 @@ public class Reduction extends Solver {
         Function<Clause,String> clauseString = (clause->clause.toString(symboltable));
         Function<CLiteral<Clause>,String> literalString = (cliteral->cliteral.toString(symboltable,clause->Integer.toString(clause.id)));
         StringBuilder st = new StringBuilder();
-        st.append("Resolution:\n");
+        st.append("Reduction:\n");
         if(!clauses.isEmpty()) {
             st.append("Clauses:\n").append(clauses.toString(clauseString)).append("\n");}
         if(model != null && !model.isEmpty()) {
