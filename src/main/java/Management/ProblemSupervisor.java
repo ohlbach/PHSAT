@@ -95,6 +95,15 @@ public class ProblemSupervisor {
     public synchronized void forwardBinaryClause(Solver solver, int literal1,int literal2) {
         for(Solver solv : solvers) {if(solv != solver) solv.newBinaryClause(literal1,literal2);}}
 
+    /** This method is called when a solver found a new clause.
+     * It forwards the clause to all other solvers.
+     *
+     * @param solver    which found the clause
+     * @param literals  the literals of the clause
+     */
+    public synchronized void forwardClause(Solver solver, int[] literals) {
+        for(Solver solv : solvers) {if(solv != solver) solv.newClause(literals);}}
+
     /** This method is called by the solvers to indicate that they have done their job or gave up.
      * If the solver succeeded (satisfiable or unsatisfiable) then all other solvers are interrupted. <br>
      * Some messages are logged.

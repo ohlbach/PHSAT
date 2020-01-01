@@ -144,6 +144,17 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
         assert position >= 0 && position < cliterals.size();
         return cliterals.get(position).literal;}
 
+    /** converts the cLiterals into an array of integers
+     *
+     * @return the literals as integers.
+     */
+    public int[] getLiterals() {
+        int size = cliterals.size();
+        int[] literals = new int[size];
+        for(int i = 0; i < size; ++i) {
+            literals[i] = cliterals.get(i).literal;}
+        return literals;}
+
     /** checks if the literal is in the clause
      *
      * @param literal a literal

@@ -248,6 +248,26 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
             bucketIndex = bucketStart;
         }
 
+        /** This method allows one to reuse the iterator
+         *
+         * @param bucketStart the index of the first bucket
+         * @param bucketEnd   the index + 1 of the last bucket
+         */
+        public void reset(int bucketStart, int bucketEnd) {
+            this.bucketEnd = Math.min(buckets.size(), bucketEnd);
+            bucketIndex    = bucketStart;
+            positionIndex  = -1;}
+
+        /** This method allows one to reuse the iterator
+         *
+         */
+        public void reset() {
+            this.bucketEnd = buckets.size();
+            bucketIndex    = 0;
+            positionIndex  = -1;}
+
+
+
         /**
          * checks if there is a next item in the buckets.
          * The indices are moved to the next item in the buckets

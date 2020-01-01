@@ -178,6 +178,7 @@ public class BucketSortedIndex<T extends Positioned> {
         return (list == null) ? emptyList.iterator() : list.iterator();}
 
 
+
     /** This method generates an iterator which iterates over the items in the bucket starting with bucket[startPosition]
      *
      * @param itemIndex an item index

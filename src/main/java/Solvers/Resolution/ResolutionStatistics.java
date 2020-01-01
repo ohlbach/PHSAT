@@ -25,6 +25,19 @@ public class ResolutionStatistics extends Statistic {
     @Description("number of imported unit clauses")
     public int importedUnitClauses = 0;
 
+    @Description("number of imported binary clauses")
+    public int importedBinaryClauses = 0;
+
+    @Description("number of exported binary clauses")
+    public int exportedBinaryClauses = 0;
+
+    @Description("number of imported other clauses")
+    public int importedOtherClauses = 0;
+
+    @Description("number of exported other clauses")
+    public int exportedOtherClauses = 0;
+
+
     @Description("number of backward subsumptions")
     public int backwardSubsumptions = 0;
 

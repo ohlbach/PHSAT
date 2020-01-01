@@ -32,7 +32,7 @@ public abstract class Solver {
        *********************** */
 
     /** the list of all solver types */
-    public static String[] solvers = new String[]{"walker isolated", "walker communicative","resolution"};
+    public static String[] solvers = new String[]{"walker isolated", "walker communicative","resolution", "reduction"};
 
     /** checks if the name is a solver name
      *
@@ -55,6 +55,7 @@ public abstract class Solver {
             case "walker isolated":      return WalkerIsolated.class;
             case "walker communicative": return WalkerCommunicative.class;
             case "resolution":           return Solvers.Resolution.Resolution.class;
+            case "reduction":            return Solvers.Resolution.Reduction.class;
             default: return null;}}
 
     /** collects all the help-strings for all solver classes
@@ -189,6 +190,13 @@ public abstract class Solver {
      * @param literal2 the second literal of the clause
      */
     public void newBinaryClause(int literal1, int literal2) {}
+
+    /** This method is called when another solver found a new clause.
+     * It need be overwritten in the solver class when it wants to exploit these clauses
+     *
+     * @param literals the literals of the clause
+     */
+    public void newClause(int[] literals) {}
 
 
     /** The key method, which has to be implemented by the solvers.
