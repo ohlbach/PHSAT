@@ -142,4 +142,96 @@ public class LitAlgorithmsTest {
 
     }
 
+    @Test
+    public void canBRemoved1() throws Exception {
+        System.out.println("canBRemoved1");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 10, 20, 30);
+        Clause c2 = make(2, index, 30, -10, 20);
+        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
+        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,1);
+        assertNotNull(clit);
+        assertEquals(10,clit.literal);
+        clit = LitAlgorithms.canBRemoved(c2,index,3,1);
+        assertNotNull(clit);
+        assertEquals(-10,clit.literal);
+    }
+
+    @Test
+    public void canBRemoved2() throws Exception {
+        System.out.println("canBRemoved2");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 10, 20, 30);
+        Clause c2 = make(2, index, -10,20, 31);
+        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
+        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,1);
+        assertNull(clit);
+    }
+    @Test
+    public void canBRemoved3() throws Exception {
+        System.out.println("canBRemoved3");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 10, 20, 30);
+        Clause c2 = make(2, index, -10,20, 31);
+        Clause c3 = make(3, index, -31,20, 30);
+        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
+        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3);
+        assertNotNull(clit);
+        assertEquals(10,clit.literal);
+    }
+
+    @Test
+    public void canBRemoved4() throws Exception {
+        System.out.println("canBRemoved4");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 10, 20, 30);
+        Clause c2 = make(2, index, -10,20, 31);
+        Clause c3 = make(3, index, -31,20, 33);
+        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
+        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3);
+        assertNull(clit);
+    }
+
+
+    @Test
+    public void canBRemoved5() throws Exception {
+        System.out.println("canBRemoved5");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 10, 20, 30);
+        Clause c2 = make(2, index, -10,20, 31);
+        Clause c3 = make(3, index, -31,20, 10);
+        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
+        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3);
+        assertNull(clit);
+    }
+
+    @Test
+    public void canBRemoved6() throws Exception {
+        System.out.println("canBRemoved6");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 1, 2, 3);
+        Clause c2 = make(2, index, -1,4, 5);
+        Clause c3 = make(3, index, -4,5, 3);
+        Clause c4 = make(4, index, -5,4, 2);
+
+        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
+        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3);
+        assertNull(clit);
+    }
+
+    @Test
+    public void canBRemoved7() throws Exception {
+        System.out.println("canBRemoved7");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 3, 2, 1);
+        Clause c2 = make(2, index, -1,4, 5);
+        Clause c3 = make(3, index, 3,5, -4);
+        Clause c4 = make(4, index, -5,3, 2);
+
+        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
+        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3);
+        assertNotNull(clit);
+        assertEquals(1,clit.literal);
+    }
+
 }
