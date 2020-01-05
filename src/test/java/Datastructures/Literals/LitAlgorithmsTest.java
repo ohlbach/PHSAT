@@ -135,7 +135,7 @@ public class LitAlgorithmsTest {
         Clause c3 = make(3,index, -10,20,30);
         int[] id = new int[]{3};
         Clause res = LitAlgorithms.resolve(id,c1.getCLiteral(1),c2.getCLiteral(2));
-        assertEquals("1+2:(10,30,20)", res.toString());
+        assertEquals("4:(10,30,20)", res.toString());
         res = LitAlgorithms.resolve(id,c1.getCLiteral(1),c3.getCLiteral(2));
         assertNull(res);
 

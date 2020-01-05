@@ -181,7 +181,7 @@ public abstract class Solver {
      *
      * @param literal a new true literal
      */
-    public void newTrueLiteral(int literal) {}
+    public void importTrueLiteral(int literal) {}
 
     /** This method is called when another solver found a new binary clause.
      * It need be overwritten in the solver class when it uses implication DAGs.
@@ -189,14 +189,14 @@ public abstract class Solver {
      * @param literal1 the first literal of the clause
      * @param literal2 the second literal of the clause
      */
-    public void newBinaryClause(int literal1, int literal2) {}
+    public void importBinaryClause(int literal1, int literal2) {}
 
     /** This method is called when another solver found a new clause.
      * It need be overwritten in the solver class when it wants to exploit these clauses
      *
      * @param literals the literals of the clause
      */
-    public void newClause(int[] literals) {}
+    public void importClause(int[] literals) {}
 
 
     /** The key method, which has to be implemented by the solvers.

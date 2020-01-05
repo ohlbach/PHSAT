@@ -23,14 +23,18 @@ public class LitAlgorithms {
     public static Clause isSubsumed(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
         int size = clause.size()+1;
         for(CLiteral cliteral : clause) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorTo(cliteral.literal,size);
+            int literal = cliteral.literal;
+            Iterator<CLiteral<Clause>> iterator = literalIndex.popIteratorTo(literal,size);
             while(iterator.hasNext()) {
                 CLiteral<Clause> otherLiteral = iterator.next();
                 Clause otherClause = otherLiteral.clause;
                 if(clause == otherClause) {continue;}
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp; continue;}
-                if(otherClause.timestamp - timestamp == otherClause.size()-2) {return otherClause;}
-                ++otherClause.timestamp;}}
+                if(otherClause.timestamp - timestamp == otherClause.size()-2) {
+                    literalIndex.pushIterator(literal,iterator);
+                    return otherClause;}
+                ++otherClause.timestamp;}
+            literalIndex.pushIterator(literal,iterator);}
         return null;}
 
     /** This method searches all clauses in the literal index which are subsumed by the given clause
@@ -44,7 +48,8 @@ public class LitAlgorithms {
          int size = clause.size();
         int difference = size - 2;
         for(CLiteral cliteral : clause) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorFrom(cliteral.literal,size);
+            int literal = cliteral.literal;
+            Iterator<CLiteral<Clause>> iterator = literalIndex.popIteratorFrom(literal,size);
             while(iterator.hasNext()) {
                 CLiteral<Clause> otherLiteral = iterator.next();
                 Clause otherClause = otherLiteral.clause;
@@ -53,7 +58,8 @@ public class LitAlgorithms {
                 if(otherClause.timestamp - timestamp == difference) {
                     subsumed.add(otherClause);
                     otherClause.timestamp = 0;}
-                ++otherClause.timestamp;}}}
+                ++otherClause.timestamp;}
+            literalIndex.pushIterator(literal,iterator);}}
 
 
     /** This method checks if a literal in the given clause can be removed by replacement resolution with another clause in the literal index.
@@ -66,20 +72,24 @@ public class LitAlgorithms {
     public static Object[] replacementResolutionBackwards(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
         int size = clause.size();
         for(CLiteral cliteral : clause) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorTo(cliteral.literal,size);
+            int literal = cliteral.literal;
+            Iterator<CLiteral<Clause>> iterator = literalIndex.popIteratorTo(literal,size);
             while(iterator.hasNext()) {
                 CLiteral<Clause> otherLiteral = iterator.next();
                 Clause otherClause = otherLiteral.clause;
                 if(clause == otherClause) {continue;}
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp;}
-                else {++otherClause.timestamp;}}}
+                else {++otherClause.timestamp;}}
+            literalIndex.pushIterator(literal,iterator);}
         for(CLiteral cliteral : clause) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorTo(-cliteral.literal,size);
+            int literal = -cliteral.literal;
+            Iterator<CLiteral<Clause>> iterator = literalIndex.popIteratorTo(literal,size);
             while(iterator.hasNext()) {
                 Clause otherClause = iterator.next().clause;
                 int otherTimestamp = otherClause.timestamp;
                 if(otherTimestamp >= timestamp && otherTimestamp - timestamp == otherClause.size()-2) {
-                    return new Object[]{cliteral,otherClause};}}}
+                    return new Object[]{cliteral,otherClause};}}
+            literalIndex.pushIterator(literal,iterator);}
         return null;}
 
     /** This method checks if a literal in the given clause can be removed vy replacement resolution with another clause in the literal index.
@@ -94,22 +104,26 @@ public class LitAlgorithms {
         int size = clause.size();
         int difference = size-2;
         for(CLiteral cliteral : clause) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorFrom(cliteral.literal,size);
+            int literal = cliteral.literal;
+            Iterator<CLiteral<Clause>> iterator = literalIndex.popIteratorFrom(literal,size);
             while(iterator.hasNext()) {
                 CLiteral<Clause> otherLiteral = iterator.next();
                 Clause otherClause = otherLiteral.clause;
                 if(clause == otherClause) {continue;}
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp;}
-                else {++otherClause.timestamp;}}}
+                else {++otherClause.timestamp;}}
+            literalIndex.pushIterator(literal,iterator);}
         for(CLiteral cliteral : clause) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorFrom(-cliteral.literal,size);
+            int literal = -cliteral.literal;
+            Iterator<CLiteral<Clause>> iterator = literalIndex.iteratorFrom(literal,size);
             while(iterator.hasNext()) {
                 CLiteral<Clause> otherLiteral = iterator.next();
                 Clause otherClause = otherLiteral.clause;
                 int otherTimestamp = otherClause.timestamp;
                 if(otherTimestamp >= timestamp && otherTimestamp - timestamp == difference) {
                     resolvents.add(otherLiteral);
-                    otherClause.timestamp = 0;}}}}
+                    otherClause.timestamp = 0;}}
+            literalIndex.pushIterator(literal,iterator);}}
 
     /** The method checks if the given literal or its negation are in the literals
      *
@@ -145,6 +159,7 @@ public class LitAlgorithms {
         return resolvent;}
 
 
+
     /** checks if a literal can be removed by recursive replacement resolution.
      *  That means, a sequence of resolutions cause a clause which is just one literal shorter than the given one.
      *
@@ -161,10 +176,12 @@ public class LitAlgorithms {
         for(CLiteral<Clause> cliteral1 : clause) {
             int literal1 = cliteral1.literal;
             blockClauses(literal1, literalIndex, timestamp);
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(-literal1);
+            Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(-literal1);
             while(iterator.hasNext()) {
                 if(replResRecursive(iterator.next(),literalIndex, timestamp, level,maxLevel)) {
+                    literalIndex.pushIterator(-literal1,iterator);
                     return cliteral1;};}
+            literalIndex.pushIterator(-literal1,iterator);
             unblockClauses(literal1,literalIndex);}
         return null;}
 
@@ -196,10 +213,11 @@ public class LitAlgorithms {
             int literal1 = cliteral1.literal;
             blockClauses(literal1, literalIndex, timestamp);
             solved = false;
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(-literal1);
+            Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(-literal1);
             while(iterator.hasNext()) {
                 if(replResRecursive(iterator.next(),literalIndex, timestamp, level+1,maxLevel)) {
                     solved = true; break;}}
+            literalIndex.pushIterator(-literal1,iterator);
             if(!solved) {;return false;}}
         return solved;}
 
@@ -213,11 +231,12 @@ public class LitAlgorithms {
      */
     private static void blockClauses(int literal,BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
         for(int sign : signs) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(sign*literal);
+            Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(sign*literal);
             while(iterator.hasNext()) {
                 Clause clause = iterator.next().clause;
                 if(clause.timestamp < timestamp) {clause.timestamp = timestamp;}
-                else {++clause.timestamp;}}}}
+                else {++clause.timestamp;}}
+            literalIndex.pushIterator(sign*literal,iterator);}}
 
     /** removes the recusive block marking for one level and for all clauses with the literal and its negation
      *
@@ -226,18 +245,20 @@ public class LitAlgorithms {
      */
     private static void unblockClauses(int literal, BucketSortedIndex<CLiteral<Clause>> literalIndex) {
         for(int sign : signs) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(sign*literal);
-            while(iterator.hasNext()) {--iterator.next().clause.timestamp;}}}
+            Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(sign*literal);
+            while(iterator.hasNext()) {--iterator.next().clause.timestamp;}
+            literalIndex.pushIterator(sign*literal,iterator);}}
 
-    /** makrs all literal occurrences with the given literal with the timestamp
+    /** marks all literal occurrences with the given literal with the timestamp
      *
      * @param literal      a literal
      * @param literalIndex the literal index
      * @param timestamp    the timestamp
      */
     private static void ignoreLiterals(int literal, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
-        Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(literal);
-        while(iterator.hasNext()) {iterator.next().timestamp = timestamp;}}
+        Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(literal);
+        while(iterator.hasNext()) {iterator.next().timestamp = timestamp;}
+        literalIndex.pushIterator(literal,iterator);}
     }
 
 

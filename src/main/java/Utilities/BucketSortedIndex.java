@@ -63,10 +63,10 @@ public class BucketSortedIndex<T extends Positioned> {
         if(list == null) {return;}
         boolean removed = list.remove(item);
         if(removed) {
-        int size = list.size();
-        if(size == 0) {
-            if(itemIndex > 0) {posOccurrences[itemIndex] = null;}
-            else              {negOccurrences[-itemIndex] = null;}}}}
+            int size = list.size();
+            if(size == 0) {
+                if(itemIndex > 0) {posOccurrences[itemIndex] = null;}
+                else              {negOccurrences[-itemIndex] = null;}}}}
 
     /** removes all entries for the given itemIndex
      *
@@ -177,8 +177,6 @@ public class BucketSortedIndex<T extends Positioned> {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
         return (list == null) ? emptyList.iterator() : list.iterator();}
 
-
-
     /** This method generates an iterator which iterates over the items in the bucket starting with bucket[startPosition]
      *
      * @param itemIndex an item index
@@ -198,6 +196,45 @@ public class BucketSortedIndex<T extends Positioned> {
     public Iterator<T> iteratorTo(int itemIndex, int endPosition) {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
         return (list == null) ? emptyList.iterator() : list.iteratorTo(endPosition);}
+
+    /** This method returns a used iterator back to the pool
+     *
+     * @param itemIndex an iterm index
+     * @param iterator  the used iterator
+     */
+    public void pushIterator(int itemIndex, Iterator iterator) {
+        BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
+        if(list != null) list.pushIterator((BucketSortedList.BucketIterator)iterator);}
+
+    /** This method returns an iterator which iterates over the items in the index
+     *
+     * @param itemIndex an item index
+     * @return an iterator for iterating over the items in the buckets.
+     */
+    public Iterator<T> popIterator(int itemIndex) {
+        BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
+        return (list == null) ? emptyList.iterator() : list.popIterator();}
+
+    /** This method returns an iterator which iterates over the items in the bucket starting with bucket[startPosition]
+     *
+     * @param itemIndex an item index
+     * @param startPosition the start position in the buckets with the given itemIndex
+     * @return an iterator for iterating over the items in the buckets.
+     */
+    public Iterator<T> popIteratorFrom(int itemIndex, int startPosition) {
+        BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
+        return (list == null) ? emptyList.iterator() : list.popIteratorFrom(startPosition);}
+
+    /** This method returns an iterator which iterates over the items in the bucket ending with bucket[endPosition]
+     *
+     * @param itemIndex an item index
+     * @param endPosition the end position +1 in the buckets with the given itemIndex
+     * @return an iterator for iterating over the items in the buckets.
+     */
+    public Iterator<T> popIteratorTo(int itemIndex, int endPosition) {
+        BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
+        return (list == null) ? emptyList.iterator() : list.popIteratorTo(endPosition);}
+
 
     /** comprises the index to a string.
      *  It uses the item's toString method

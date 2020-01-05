@@ -3,6 +3,7 @@ package Utilities;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.Stack;
 import java.util.function.Function;
 
 /** This class can store items according to an integer attribute 'bucket' (&ge; 0).
@@ -229,8 +230,55 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
     public Iterator<T> iteratorTo(int bucket) {
         return new BucketIterator(0, bucket);}
 
-    /** constructs a new BucketIterator
+    /** collects unused iterators */
+    private Stack<BucketIterator> iteratorStack = new Stack<BucketIterator>();
+
+    /** gives an iterator back to the list
      *
+     * @param iterator an iterator which is no longer used
+     */
+    public void pushIterator(BucketIterator iterator) {iteratorStack.push(iterator);}
+
+    /** This method returns an iterator which iterates over the items in the bucket.
+     * It may reuse old iterators
+     *
+     * @return an iterator for iterating over the items in the buckets.
+     */
+    public BucketIterator popIterator() {
+        if(iteratorStack.isEmpty()) {return new BucketIterator(0,buckets.size());}
+        else {
+            BucketIterator iterator = iteratorStack.pop();
+            iterator.reset(0,buckets.size());
+        return iterator;}}
+
+    /** This method returns an iterator which iterates over the items in the bucket, starting with bucket 'bucket'
+     * It may reuse old iterators
+     *
+     * @param bucket the start bucket index.
+     * @return an iterator for iterating over the items in the buckets.
+     */
+    public BucketIterator popIteratorFrom(int bucket) {
+        if(iteratorStack.isEmpty()) {return new BucketIterator(bucket,buckets.size());}
+        else {
+            BucketIterator iterator = iteratorStack.pop();
+            iterator.reset(bucket,buckets.size());
+            return iterator;}}
+
+    /** This method returns an iterator which iterates over the items in the bucket, ending with bucket 'bucket' + 1
+     * It may reuse old iterators
+     *
+     * @param bucket the end bucket index + 1.
+     * @return an iterator for iterating over the items in the buckets.
+     */
+    public BucketIterator popIteratorTo(int bucket) {
+        if(iteratorStack.isEmpty()) {return new BucketIterator(0,bucket);}
+        else {
+            BucketIterator iterator = iteratorStack.pop();
+            iterator.reset(0,bucket);
+            return iterator;}}
+
+
+    /** constructs a new BucketIterator
      */
     public class BucketIterator implements Iterator<T> {
         int bucketIndex = 0;    // iterates through the buckets

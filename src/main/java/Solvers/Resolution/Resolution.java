@@ -389,10 +389,10 @@ public class Resolution extends Solver {
      *      -p,r <br>
      *    p in the first clause can be removed. <br>
      *    In more complex examples, several literals can be removed at once.<br>
-     *    If the resulting clause is a unit clause, it generates a newTrueLiteral task.
+     *    If the resulting clause is a unit clause, it generates a importTrueLiteral task.
      *    <br>
      *    Removing clauses may produce pure literals, whose negation can be made true and therefore
-     *    generates a newTrueLiteral task.<br>
+     *    generates a importTrueLiteral task.<br>
      *  - Shortened clauses may trigger forward subsumptions and forward replacement resolutions.
      *    Therefore thy generate a corresponding task.
      *
@@ -467,7 +467,7 @@ public class Resolution extends Solver {
          *
          * @param literal a new true literal
          */
-    public void newTrueLiteral(int literal) {
+    public void importTrueLiteral(int literal) {
         ++statistics.importedUnitClauses;
         --statistics.derivedUnitClauses;
         addTrueLiteralTask(literal, false,"Imported from another solver");}

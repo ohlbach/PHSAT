@@ -268,7 +268,7 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
         st.append(":(");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
-            st.append( ""+cliterals.get(position).literal);
+            st.append(cliterals.get(position).toString(symboltable));
             if(position < size-1) {st.append(",");}};
         st.append(")");
         return st.toString();}

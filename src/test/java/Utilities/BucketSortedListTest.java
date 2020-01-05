@@ -173,7 +173,7 @@ public class BucketSortedListTest {
         int[] stat = new int[10];
         for(int i = 0; i < 200; ++i) {
             ++stat[list.getItem(list.getRandomIndex(rnd)).bucket];}
-        assertEquals("[63, 29, 27, 24, 16, 15, 10, 11, 3, 2]",Arrays.toString(stat));
+        assertEquals("[69, 32, 29, 19, 22, 15, 5, 5, 2, 2]",Arrays.toString(stat));
          // should be distributed quadratically decreasing
     }
 

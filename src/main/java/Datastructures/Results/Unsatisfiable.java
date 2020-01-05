@@ -39,6 +39,16 @@ public class Unsatisfiable extends Result {
     public Unsatisfiable(Model model, int literal) {
         reason = "The literal " + literal + " is false in the model " + model.toString();}
 
+    /** creates an Unsatisfiable object for a literal which became false in the model
+     *
+     * @param model   a model
+     * @param literal a derived false unit literal
+     */
+    public Unsatisfiable(Model model, int literal, Symboltable symboltable) {
+        String name = (symboltable != null) ? symboltable.getLiteralName(literal) : Integer.toString(literal);
+        reason = "The literal " + name + " is false in the model " + model.toString(symboltable);}
+
+
     /** just returns the reason for the unsatisfiability
      *
      * @return the reason for the unsatisfiability

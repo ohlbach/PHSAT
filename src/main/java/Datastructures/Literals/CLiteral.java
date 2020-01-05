@@ -80,6 +80,9 @@ public class CLiteral<Clause> implements Positioned {
     public String toString() {
         return Integer.toString(literal);}
 
+    public String toString(Symboltable symboltable) {
+        return (symboltable == null) ? Integer.toString(literal) : symboltable.getLiteralName(literal);}
+
     /** returns just the literal.
      *
      * @return the literal as a String.

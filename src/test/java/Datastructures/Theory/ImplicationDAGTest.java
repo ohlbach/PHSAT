@@ -189,7 +189,7 @@ public class ImplicationDAGTest {
 
     @Test
     public void newTrueLiteral() throws Exception {
-        System.out.println("newTrueLiteral");
+        System.out.println("importTrueLiteral");
         ImplicationDAG id = new ImplicationDAG();
         id.addClause(-1, 3);
         id.addClause(-2, 3);

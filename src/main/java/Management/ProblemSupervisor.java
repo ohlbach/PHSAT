@@ -83,7 +83,7 @@ public class ProblemSupervisor {
      * @param literal  the new true literal.
      */
     public synchronized void forwardTrueLiteral(Solver solver,int literal) {
-        for(Solver solv : solvers) {if(solv != solver) solv.newTrueLiteral(literal);}}
+        for(Solver solv : solvers) {if(solv != solver) solv.importTrueLiteral(literal);}}
 
     /** This method is called when a solver found a new binary clause.
      * It forwards the clause to all other solvers.
@@ -93,7 +93,7 @@ public class ProblemSupervisor {
      * @param literal2  the second literal of the clause
      */
     public synchronized void forwardBinaryClause(Solver solver, int literal1,int literal2) {
-        for(Solver solv : solvers) {if(solv != solver) solv.newBinaryClause(literal1,literal2);}}
+        for(Solver solv : solvers) {if(solv != solver) solv.importBinaryClause(literal1,literal2);}}
 
     /** This method is called when a solver found a new clause.
      * It forwards the clause to all other solvers.
@@ -102,7 +102,7 @@ public class ProblemSupervisor {
      * @param literals  the literals of the clause
      */
     public synchronized void forwardClause(Solver solver, int[] literals) {
-        for(Solver solv : solvers) {if(solv != solver) solv.newClause(literals);}}
+        for(Solver solv : solvers) {if(solv != solver) solv.importClause(literals);}}
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.
      * If the solver succeeded (satisfiable or unsatisfiable) then all other solvers are interrupted. <br>
