@@ -272,8 +272,9 @@ public abstract class ResolutionReduction extends Solver {
             if(monitoring) {
                 monitor.print(combinedId,"Literal " + cLiteral.toString(symboltable) + " in clause \n  " +
                         literalClause.toString(symboltable) +
-                        " resolved away by resolvent \n  " +clause.toString(symboltable));}
+                        " resolved away by clause\n  " +clause.toString(symboltable));}
             removeLiteral(cLiteral);
+            if(monitoring) {monitor.print(combinedId,"Shortened CLause:\n  " + literalClause.toString());}
             analyseShortenedClause(literalClause);}}
 
 
@@ -488,7 +489,8 @@ public abstract class ResolutionReduction extends Solver {
             removeClause(clause,literal);}
         literalIndex.pushIterator(literal,iterator);
         for(CLiteral<Clause> cLiteral : literalIndex.getAllItems(-literal)) {
-            removeLiteral(cLiteral);}
+            removeLiteral(cLiteral);
+            analyseShortenedClause(cLiteral.clause);}
         literalIndex.clearBoth(Math.abs(literal));
         return null;}
 
@@ -689,6 +691,7 @@ public abstract class ResolutionReduction extends Solver {
         getClauseList(clause).remove(clause);
         removeFromIndex(clause);
         clause.remove(cLiteral);
+        getClauseList(clause).add(clause);
         insertIntoIndex(clause);
         if(checkConsistency) {check("removeLiteral");}
         return false;}

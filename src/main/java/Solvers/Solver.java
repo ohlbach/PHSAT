@@ -141,7 +141,7 @@ public abstract class Solver {
 
     protected  BasicClauseList basicClauseList;
 
-    protected  int predicates;
+    public  int predicates;
 
     protected Model model;
 
