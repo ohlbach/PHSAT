@@ -46,6 +46,8 @@ public class ResolutionReductionTest {
 
         BucketSortedList<Clause> clauses = new BucketSortedList<Clause>((clause->clause.size()));
 
+        boolean clausesEmpty() {return clauses.isEmpty();}
+
 
 
         @Override

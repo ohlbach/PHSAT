@@ -12,9 +12,9 @@ import java.util.function.Consumer;
  */
 public class EquivalenceClasses {
     /** the list of equivalence classes */
-    private ArrayList<ArrayList<Integer>> equivalenceClasses = null;
+    private ArrayList<ArrayList<Integer>> equivalenceClasses = new ArrayList<>();
     /** maps literals to their representatives in an equivalence class */
-    private HashMap<Integer,Integer> replacements = null;
+    private HashMap<Integer,Integer> replacements = new HashMap<>();
     /**  a function to be called when adding the new equivalence class causes a contradiction p equiv -p */
     private Consumer<String> contradictionHandler = null;
 
@@ -141,7 +141,7 @@ public class EquivalenceClasses {
                 if(stat != 0 && stat != status) {
                     return new Unsatisfiable("Equivalent literal " + toStringSt(literal1) +
                             " is " + model.toString(status) + ", but " + toStringSt(literal) +
-                            " is " + model.toString(status));}
+                            " is " + model.toString(stat));}
                 model.setStatus(literal,status);}}
         return null;}
 

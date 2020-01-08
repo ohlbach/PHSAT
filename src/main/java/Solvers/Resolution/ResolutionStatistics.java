@@ -56,6 +56,14 @@ public class ResolutionStatistics extends Statistic {
     @Description("number of equivalences.")
     public int equivalences = 0;
 
+    @Description("reductions.")
+    public int reductions = 0;
+
+    @Description("purities")
+    public int purities = 0;
+
+    @Description("eliminations")
+    public int eliminations = 0;
 
 
 

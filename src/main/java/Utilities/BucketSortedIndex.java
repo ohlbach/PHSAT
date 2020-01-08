@@ -131,6 +131,15 @@ public class BucketSortedIndex<T extends Positioned> {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
         return list == null || list.isEmpty();}
 
+    /** checks if there is exactly one item with index 'itemIndex' in the index
+     *
+     * @param itemIndex an item index
+     * @return true if there is exactly one item with index 'itemIndex' in the index
+     */
+    public boolean containsOne(int itemIndex) {
+        BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
+        return list != null && list.containsOne();}
+
     /** checks if the item is in the index
      *
      * @param item the item to be checked
@@ -167,6 +176,20 @@ public class BucketSortedIndex<T extends Positioned> {
             if(size01n == 1 && size01p != 0) {ones.add(-predicate); continue;}
         }
         return !zeros.isEmpty() || !ones.isEmpty();}
+
+    public boolean zeroes(int predicates,ArrayList<Integer> zeros) {
+        zeros.clear();
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            if(isEmpty(predicate) && !isEmpty(-predicate)) {zeros.add(predicate); continue;}
+            if(isEmpty(-predicate) && !isEmpty(predicate)) {zeros.add(-predicate); continue;}}
+        return !zeros.isEmpty();}
+
+    public int oneOccurrence(int predicates) {
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            if(containsOne(predicate) && !isEmpty(-predicate)) {return predicate;}
+            if(containsOne(-predicate) && !isEmpty(predicate)) {return -predicate;}}
+        return 0;}
+
 
     /** This method generates an iterator which iterates over the items in the index
      *

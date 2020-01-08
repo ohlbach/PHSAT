@@ -73,23 +73,25 @@ public class Reduction extends ResolutionReduction {
         literalIndex = new BucketSortedIndex<CLiteral<Clause>>(predicates+1,
                             (cLiteral->cLiteral.literal),
                             (cLiteral->cLiteral.clause.size()));
-        taskQueue    = new TaskQueue(combinedId,monitor);}
+        taskQueue    = new TaskQueue(combinedId,monitor);
+        statistics = new ResolutionStatistics(combinedId);}
 
 
     Result doTheWork() throws InterruptedException {
-        for(int level = 2;; ++level) {
+        for(int level = 2;level < clauses.size(); ++level) {
+            System.out.println("REDUCTION LEVEL " + level);
             if(Thread.interrupted()) {throw new InterruptedException();}
             if(clauses.isEmpty()) {return completeModel();}
+            if(monitoring) {monitor.print(combinedId,"Reduction enters level " + level);}
             int maxLevel = level;
             for(Clause clause : clauses) {
-                taskQueue.add(new Task(maxClauseLength - clause.size() + 3,
+                taskQueue.add(new Task(maxClauseLength - clause.size() + priorityShift,
                         (() -> {reduceClause(clause,maxLevel); return null;}),
                         (() -> "reducing clause " + clause.toString())));}
             Result result = taskQueue.run();
             if(result != null) {return result;}
-            if(purityAndElimination()) {
-                result = taskQueue.run();
-                if(result != null) {return result;}}}}
+            if((result = purityAndElimination()) != null) {return result;}}
+        return null;}
 
 
     /** does recursive replacement resolution down to maxLevel
@@ -102,7 +104,12 @@ public class Reduction extends ResolutionReduction {
         CLiteral<Clause> cliteral = LitAlgorithms.canBRemoved(clause,literalIndex,timestamp,maxLevel);
         timestamp += maxClauseLength + maxLevel + 2;
         if(cliteral == null) {return;}
+        if(monitoring) {
+            monitor.print(combinedId,"Reduction removes literal " + cliteral.toString(symboltable) + " from clause "+
+            clause.toString(symboltable));}
+        ++statistics.reductions;
         removeLiteral(cliteral);
+        if(checkConsistency) {check("reduceClause");}
         analyseShortenedClause(clause);}
 
     /** just returns the clause
@@ -111,6 +118,12 @@ public class Reduction extends ResolutionReduction {
      * @return  the clauses
      */
     BucketSortedList<Clause> getClauseList(Clause clause) {return clauses;}
+
+    /** checks if there are no clauses any more
+     *
+     * @return true if there are no clauses any more.
+     */
+    boolean clausesEmpty() {return clauses.isEmpty();}
 
 
     /** just removes the clause
@@ -144,6 +157,7 @@ public class Reduction extends ResolutionReduction {
             st.append("Eliminated Literals:\n");
             for(Object[] elms : eliminatedLiterals) {
                 st.append("  "+elms[1].toString() + " from " + ((ArrayList<CLiteral>)elms[0]).toString()+"\n");}}
+        if(!equivalenceClasses.isEmpty()) {st.append(equivalenceClasses.toString());}
         return st.toString();}
 
     /** collects information about the control parameters

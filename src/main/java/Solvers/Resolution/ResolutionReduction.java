@@ -54,6 +54,14 @@ public abstract class ResolutionReduction extends Solver {
     /** for forming the ids of the new clauses */
     int[] id = new int[]{0};
 
+    static final int priorityResult      = 0;
+    static final int priorityUnity       = 1;
+    static final int priorityEquivalence = 2;
+    static final int priorityElimination = 3;
+    static final int priorityBinary      = 4;
+    static final int priorityShift       = 5;
+
+
     /** constructs a new ResolutionReduction solver.
      *
      * @param solverNumber         for distinguishing different solvers of the same type, but different parameters
@@ -88,7 +96,7 @@ public abstract class ResolutionReduction extends Solver {
      *  It adds an Unsatisfiable task to the task queue.
      */
     Consumer<String> contradictionHandler = ((reason)->{
-        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason)), (()->reason)));});
+        taskQueue.add(new Task(priorityResult,(()-> new Unsatisfiable(reason)), (()->reason)));});
 
     /** the id of the last input clause */
     int maxInputId = 0;
@@ -103,6 +111,9 @@ public abstract class ResolutionReduction extends Solver {
     abstract void replaceClause(Clause clause, Clause subsumer);
     /** checks the consistency of the data structures */
     abstract void check(String info);
+
+    /** checks if there are no clauses any more */
+    abstract boolean clausesEmpty();
 
     /** This method controls the entire operation sequence
      * 1. All local data are initialized <br>
@@ -130,7 +141,7 @@ public abstract class ResolutionReduction extends Solver {
             globalParameters.log(combinedId + " interrupted.\n");
             result = new Aborted(combinedId + " aborted after ");}
         statistics.elapsedTime = System.currentTimeMillis() - time;
-        System.out.println("RESULT " + result.toString());
+        System.out.println("RESULT " + ((result == null) ? " none" : result.toString()));
         problemSupervisor.finished(this, result, "done");
         return result;}
 
@@ -143,7 +154,7 @@ public abstract class ResolutionReduction extends Solver {
                     case 1: addTrueLiteralTask(clause.getLiteral(0),"Initial clause"); return;
                     case 2: findEquivalence(clause);
                     default: insertClause(clause);
-                        taskQueue.add(new Task(clause.size()+3,        // shorter clauses should be
+                        taskQueue.add(new Task(clause.size()+priorityShift,        // shorter clauses should be
                             (()-> {simplifyForward(clause); return null;}),    // checked first for subsumption and replacement resolution
                             (()-> "Simplify initial clause " + clause.toString())));}});
 
@@ -169,10 +180,10 @@ public abstract class ResolutionReduction extends Solver {
         maxInputId = id[0];
         Result result = taskQueue.run();
         if(result != null) {return result;}
-        purityAndElimination();
-        result = taskQueue.run();
+        result = purityAndElimination();
         initializing = false;
         if(Thread.interrupted()) {throw new InterruptedException();}
+        if(clausesEmpty()) {return completeModel();}
         return result;}
 
 
@@ -225,13 +236,17 @@ public abstract class ResolutionReduction extends Solver {
             changes = true;
             CLiteral<Clause> cLiteral = (CLiteral<Clause>)replacements[0];
             ++statistics.backwardReplacementResolutions;
+            String clauseString = null;
+            if(monitoring) {clauseString = clause.toString(symboltable);}
+            clause.remove(cLiteral);
             if(monitoring) {
                 monitor.print(combinedId,
-                        "Literal " + cLiteral.toString(symboltable) + " in clause \n  " + clause.toString(symboltable) + " resolved away by clause \n  "
-                                + ((Clause)replacements[1]).toString(symboltable));}
-            clause.remove(cLiteral);
+                        "\nLiteral " + cLiteral.toString(symboltable) + " in clause \n  " + clauseString + " resolved away by clause \n  "
+                                + ((Clause)replacements[1]).toString(symboltable) + " to\n  " + clause.toString(symboltable));}
             replacements = (clause.size() == 1) ? null : LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
             timestamp += maxClauseLength +1;}
+
+        if(checkConsistency) {check("backwardReplacementResolution");}
         return changes;}
 
 
@@ -249,7 +264,7 @@ public abstract class ResolutionReduction extends Solver {
     private ArrayList<Clause> subsumedClauses = new ArrayList<>();
 
     void forwardSubsumption(Clause clause) {
-        subsumedClauses.clear();
+        subsumedClauses.clear(); //timestamp += maxClauseLength +1;
         LitAlgorithms.subsumes(clause,literalIndex,timestamp, subsumedClauses);
         timestamp += maxClauseLength +1;
         for(Clause subsumedClause : subsumedClauses) {
@@ -257,7 +272,8 @@ public abstract class ResolutionReduction extends Solver {
             if(monitoring) {
                 monitor.print(combinedId,"Clause \n  " + clause.toString(symboltable) +
                     "  subsumes \n  " + subsumedClause.toString(symboltable));}
-            removeClause(subsumedClause,0);}}
+            removeClause(subsumedClause,0);}
+        if(checkConsistency) check("forwardSubsumption");}
 
     /** just used in simplifyForward */
     private ArrayList<CLiteral<Clause>> resolvedLiterals = new ArrayList<>();
@@ -269,13 +285,17 @@ public abstract class ResolutionReduction extends Solver {
         for(CLiteral<Clause> cLiteral : resolvedLiterals) {
             ++statistics.forwardReplacementResolutions;
             Clause literalClause = cLiteral.clause;
-            if(monitoring) {
-                monitor.print(combinedId,"Literal " + cLiteral.toString(symboltable) + " in clause \n  " +
-                        literalClause.toString(symboltable) +
-                        " resolved away by clause\n  " +clause.toString(symboltable));}
+            String clauseString = null;
+            if(monitoring) {clauseString = literalClause.toString(symboltable);}
             removeLiteral(cLiteral);
-            if(monitoring) {monitor.print(combinedId,"Shortened CLause:\n  " + literalClause.toString());}
-            analyseShortenedClause(literalClause);}}
+            if(monitoring) {
+                monitor.print(combinedId,"\nLiteral " + cLiteral.toString(symboltable) + " in clause \n  " +
+                        clauseString + " resolved away by clause\n  " +clause.toString(symboltable) + " to\n  " +
+                         literalClause.toString());}
+
+            if(checkConsistency) check("forwardReplacementResolution");
+            analyseShortenedClause(literalClause);
+            if(literalClause.size() == 1) {getClauseList(literalClause).remove(literalClause);}}}
 
 
 
@@ -296,20 +316,16 @@ public abstract class ResolutionReduction extends Solver {
                 addTrueLiteralTask(literal,
                         "Clause " + clause.toString(symboltable) + " shortened to unit literal " + ": " + literalName(literal));
                 exportUnitClause(literal);
-                literalIndex.remove(cliteral);
-                clause.removed = true;
+                getClauseList(clause).remove(clause);
                 return;
             case 2: exportBinaryClause(clause);
                     findEquivalence(clause); break;
             default: exportClause(clause);}
 
-        taskQueue.add(new Task(clause.size()+3,
+        taskQueue.add(new Task(clause.size()+priorityShift,
                 (()->{simplifyForward(clause);return null;}),
                 (()->"Forward Simplification for shortened clause " + clause.toString(symboltable))));}
 
-
-    private ArrayList<Integer> zeros = new ArrayList<>();
-    private ArrayList<Integer> ones = new ArrayList<>();
 
     /** This method checks all predicates for purity and elimination.
      * A literal p is pure if there are no clauses with p any more. <br>
@@ -317,19 +333,52 @@ public abstract class ResolutionReduction extends Solver {
      * A literal p can be eliminated if it occurs only once in the clauses, say in clause C. <br>
      * In this case all clauses with -p can be replaced with their resolvent with C.
      *
-     * @result true if some simplification was performed.
+     * @result a result or null
      */
-    boolean purityAndElimination() {
-        boolean reduced = false;
-        while(literalIndex.size01(predicates,zeros,ones)) {
-            reduced = true;
+    Result purityAndElimination() throws InterruptedException {
+        boolean simplified = true;
+        while(simplified) {
+            if(Thread.interrupted()) {throw new InterruptedException();}
+            simplified = false;
+            Result result = purities();
+            if(result != null) return result;
+            int elimLiteral = literalIndex.oneOccurrence(predicates);
+            if(elimLiteral != 0) {
+                ++statistics.eliminations;
+                if(monitoring) {monitor.print(combinedId, "Eliminating single literal " + literalName(elimLiteral));}
+                processElimination(elimLiteral);
+                result = taskQueue.run();
+                if(result != null) {return result;}
+                simplified = true;}}
+        return null;}
+
+
+
+    private ArrayList<Integer> zeros = new ArrayList<>();
+
+    /** removes all pure literals (literals which occur with one polarity only)
+     *  by making the other polarity true.
+     *
+     * @return null or a final result of simplifications
+     * @throws InterruptedException
+     */
+    Result purities() throws InterruptedException {
+        boolean purities = false; int c = 0;
+        while(literalIndex.zeroes(predicates,zeros)) {
+            purities = true;
             for(int literal : zeros) {
-                int sizep = literalIndex.size01(literal);
-                if(sizep == 0) {
-                    if(monitoring) {monitor.print(combinedId, "Eliminating pure literal " + literalName(-literal));}
-                    processTrueLiteral(-literal);}}
-            for(int literal : ones)  {processElimination(literal);}}
-        return reduced;}
+                if(model.status(literal) != 0) {continue;}
+                if(monitoring) {monitor.print(combinedId, "Making pure literal true: " + literalName(-literal));}
+                if(++c == 5) {
+                    System.out.println(toString());
+                    System.exit(1);
+                }
+                ++statistics.purities;
+                Result result = processTrueLiteral(-literal);
+                if(result != null) {return result;}}}
+        if(purities) {return taskQueue.run();}
+        return null;}
+
 
     /** This list collects the eliminated literals for completing the model at the end.
      *  For each clause (p,q,r,...) where p occurs only once it contains <br>
@@ -379,7 +428,7 @@ public abstract class ResolutionReduction extends Solver {
      */
     public void importTrueLiteral(int literal) {
         ++statistics.importedUnitClauses;
-        taskQueue.add(new Task(1,
+        taskQueue.add(new Task(priorityUnity,
                 (()->processTrueLiteral(literal)),
                 (()->"Literal " + literalName(literal) + " is imported from another solver ")));}
 
@@ -390,7 +439,7 @@ public abstract class ResolutionReduction extends Solver {
      */
     public void importBinaryClause(int literal1, int literal2) {
         ++statistics.importedBinaryClauses;
-        taskQueue.add(new Task(2,
+        taskQueue.add(new Task(priorityBinary,
                 (()-> {
                     processBinaryClause(literal1,literal2); return null;}),
                 (()-> "Importing binary clause " + literal1 + " " + literal2)));}
@@ -403,7 +452,7 @@ public abstract class ResolutionReduction extends Solver {
      */
     public void importClause(int[] literals) {
         ++statistics.importedOtherClauses;
-        taskQueue.add(new Task(literals.length,
+        taskQueue.add(new Task(literals.length+priorityShift,
                 (()-> {
                     processClause(literals); return null;}),
                 (()-> "Importing clause " + Arrays.toString(literals))));}
@@ -464,7 +513,7 @@ public abstract class ResolutionReduction extends Solver {
      */
     void addTrueLiteralTask(int literal, String reason) {
         ++statistics.derivedUnitClauses;
-        taskQueue.add(new Task(1,
+        taskQueue.add(new Task(priorityUnity,
                 (()->processTrueLiteral(literal)),
                 (()->reason + ": " + literalName(literal))));}
 
@@ -492,6 +541,7 @@ public abstract class ResolutionReduction extends Solver {
             removeLiteral(cLiteral);
             analyseShortenedClause(cLiteral.clause);}
         literalIndex.clearBoth(Math.abs(literal));
+        if(checkConsistency) {check("processTrueLiteral");}
         return null;}
 
 
@@ -564,9 +614,11 @@ public abstract class ResolutionReduction extends Solver {
         int literal1 = -clause.getCLiteral(0).literal;
         int literal2 =  clause.getCLiteral(1).literal;
         if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
+        if(Math.abs(literal1) < Math.abs(literal2)) {
+            int dummy = literal1;literal1 = literal2; literal2 = dummy;}
         int fromliteral = literal1; int toliteral = literal2;
         if(!equivalenceClasses.addEquivalence(fromliteral,toliteral)) {return false;}
-        taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
+        taskQueue.add(new Task(priorityEquivalence,(()->processEquivalence(fromliteral,toliteral)),
                 (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
         ++statistics.equivalences;
         return true;}
@@ -581,10 +633,9 @@ public abstract class ResolutionReduction extends Solver {
         ArrayList<CLiteral<Clause>> clits1 = literalIndex.getItems(-clause.getCLiteral(0).literal,2);
         ArrayList<CLiteral<Clause>> clits2 = literalIndex.getItems(-clause.getCLiteral(1).literal,2);
         if(clits1 == null || clits2 == null) {return false;}
-        timestamp += maxClauseLength +1;
         for(CLiteral<Clause> clit : clits1) {clit.clause.timestamp = timestamp;}
-        for(CLiteral<Clause> clit : clits2) {if(clit.clause.timestamp == timestamp) {return true;}}
-        return false;}
+        for(CLiteral<Clause> clit : clits2) {if(clit.clause.timestamp == timestamp) {++timestamp; return true;}}
+        ++timestamp; return false;}
 
 
 
@@ -614,13 +665,14 @@ public abstract class ResolutionReduction extends Solver {
         replacedClauses.clear();
         replaceLiteralInAllClauses(fromLiteral,toLiteral);
         replaceLiteralInAllClauses(-fromLiteral,-toLiteral);
-        literalIndex.clearBoth(fromLiteral);
+        literalIndex.clearBoth(Math.abs(fromLiteral));
 
         for(Clause clause : replacedClauses) {
             if(clause.size() > 1) simplifyBackwards(clause);
             if(!clause.removed) {
                 analyseShortenedClause(clause);
                 if(!clause.removed) {insertClause(clause);}}}
+        if(checkConsistency) check("processEquivalence");
         return null;}
 
     /** replaces fromLiteral by toLiteral in all clauses and inserts the new clause in replacedClauses
@@ -642,7 +694,12 @@ public abstract class ResolutionReduction extends Solver {
                 if(literal == fromLiteral) {literal = toLiteral;}
                 newClause.add(new CLiteral(literal));}
             removeClause(clause,0);
-            if(!tautology) {replacedClauses.add(newClause);}}}
+            if(!tautology) {
+                if(monitoring) {
+                    monitor.print(combinedId,"Literal " + literalName(fromLiteral) + " replaced by " +
+                    literalName(toLiteral) + " in clause\n  " + clause.toString() + " yielding\n  " + newClause.toString());}
+                replacedClauses.add(newClause);}}
+        if(checkConsistency) check("replaceLiteralInAllClauses");}
 
 
     /** inserts the clause into the local data structures.
@@ -708,14 +765,13 @@ public abstract class ResolutionReduction extends Solver {
      */
     Result completeModel() {
         System.out.println("Completing Model\n"+toString());
-        if(model.size() == predicates) {return new Satisfiable(model);}
-        boolean isPositive = true;
-
-        completeEliminationsInModel();
-        Result result = equivalenceClasses.completeModel(model);
-        if(result != null) {return result;}
-        result = checkModel();
-        if(result != null) {return result;}
+        Result result = null;
+        while(model.size() != predicates) {
+            result = equivalenceClasses.completeModel(model);
+            if(result != null) {return result;}
+            completeEliminationsInModel();
+            result = checkModel();
+            if(result != null) {return result;}}
         return new Satisfiable(model);}
 
     /** completes a partial model by inserting the value for eliminated literals */

@@ -70,6 +70,7 @@ public class LitAlgorithms {
      * @return              [cLiteral,otherClause], or null
      */
     public static Object[] replacementResolutionBackwards(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
+
         int size = clause.size()+1;
         for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;

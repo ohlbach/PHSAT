@@ -153,6 +153,19 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
             if(size > 1) {return -1;}}
         return size;}
 
+    /** checks if the sum of sizes of the buckets is exactly
+     *
+     * @return true if the sum of the bucket sizes is excactly 1
+     */
+    public boolean containsOne() {
+        int size = 0;
+        for(ArrayList<T> bucket : buckets) {
+            size += bucket.size();
+            if(size > 1) {return false;}}
+        return size == 1;}
+
+
+
     /** returns the number of items in the corresponding bucket
      *
      * @return the number of items in buckets(bucket)

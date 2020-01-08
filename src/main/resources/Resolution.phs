@@ -3,14 +3,14 @@ global
 
 problem
     type = random
-    predicates = 50
-    cpRatio = 5
+    predicates = 5
+    cpRatio = 4
     length = 3
     precise = true
     seed = 0
 
 solver
-   type = resolution
+   type = reduction
    strategy = INPUT
    limit = 20
    seed = 0
