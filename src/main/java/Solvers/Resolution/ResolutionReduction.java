@@ -617,7 +617,6 @@ public abstract class ResolutionReduction extends Solver {
         if(Math.abs(literal1) < Math.abs(literal2)) {
             int dummy = literal1;literal1 = literal2; literal2 = dummy;}
         int fromliteral = literal1; int toliteral = literal2;
-        if(!equivalenceClasses.addEquivalence(fromliteral,toliteral)) {return false;}
         taskQueue.add(new Task(priorityEquivalence,(()->processEquivalence(fromliteral,toliteral)),
                 (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
         ++statistics.equivalences;
@@ -662,6 +661,8 @@ public abstract class ResolutionReduction extends Solver {
             addTrueLiteralTask((toStatus == 1 ? fromLiteral : -fromLiteral),
                     "equivalent literals " + fromLiteral + " " + toLiteral);
             return null;}
+
+        if(!equivalenceClasses.addEquivalence(fromLiteral,toLiteral)) {return null;}
         replacedClauses.clear();
         replaceLiteralInAllClauses(fromLiteral,toLiteral);
         replaceLiteralInAllClauses(-fromLiteral,-toLiteral);
@@ -766,7 +767,8 @@ public abstract class ResolutionReduction extends Solver {
     Result completeModel() {
         System.out.println("Completing Model\n"+toString());
         Result result = null;
-        while(model.size() != predicates) {
+        for(int i = 1; i <= 3; ++i) {
+            if(model.size() == predicates) {return new Satisfiable(model);}
             result = equivalenceClasses.completeModel(model);
             if(result != null) {return result;}
             completeEliminationsInModel();

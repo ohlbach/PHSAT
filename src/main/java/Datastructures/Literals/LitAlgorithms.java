@@ -5,6 +5,7 @@ import Utilities.BucketSortedIndex;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Stack;
 
 /**
  * Created by ohlbach on 03.07.2019.
@@ -171,15 +172,20 @@ public class LitAlgorithms {
      * @return              null or the cLiteral which can be removed.
      */
     public static CLiteral<Clause> canBRemoved(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex,
-                                               int timestamp, int maxLevel) {
+                                               int timestamp, int maxLevel,  ArrayList<Clause> usedClauses) {
         int level = 0;
-        for(CLiteral<Clause> cliteral : clause) {ignoreLiterals(cliteral.literal,literalIndex, timestamp);}
+        for(CLiteral<Clause> cliteral : clause) {
+            int literal = cliteral.literal;
+            allowLiterals(literal,literalIndex, timestamp); // this allows merge of double literals
+            blockClauses(-literal,literalIndex,timestamp);}  // this avoids tautologies
+
         for(CLiteral<Clause> cliteral1 : clause) {
             int literal1 = cliteral1.literal;
-            blockClauses(literal1, literalIndex, timestamp);
+            blockClauses(literal1, literalIndex, timestamp); // this avoids that a literal which is resolved away reappears
             Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(-literal1);
             while(iterator.hasNext()) {
-                if(replResRecursive(iterator.next(),literalIndex, timestamp, level,maxLevel)) {
+                CLiteral<Clause> otherLiteral = iterator.next();
+                if(replResRecursive(otherLiteral,literalIndex, timestamp, level,maxLevel,usedClauses)) {
                     literalIndex.pushIterator(-literal1,iterator);
                     return cliteral1;};}
             literalIndex.pushIterator(-literal1,iterator);
@@ -190,39 +196,69 @@ public class LitAlgorithms {
      *  The merge literals are the literals which merge into other literals on the resolution path
      *
      * @param cliteral      a literal, (the resolution partner in the recursive search)
-     * @param literalIndex  the literal inde
+     * @param literalIndex  the literal index
      * @param timestamp     the current timestamp
      * @param level         the actual search depth
-     * @param maxLevel      the maximum searh depth
+     * @param maxLevel      the maximum search depth
      * @return              true if the literal, plus merge literals can be derived
      */
     private static boolean replResRecursive(CLiteral<Clause> cliteral, BucketSortedIndex<CLiteral<Clause>> literalIndex,
-                                            int timestamp, int level, int maxLevel) {
+                                                                int timestamp, int level, int maxLevel, ArrayList<Clause> usedClauses) {
         Clause clause = cliteral.clause;
-        if(clause.timestamp > timestamp) {return false;}
         boolean solved = true;
-        for(CLiteral<Clause> cliteral1 : clause) {
-            if(cliteral == cliteral1 || cliteral1.timestamp == timestamp) {continue;}
+        for(CLiteral<Clause> cliteral1 : clause) { // is it entirely solved already?
+            if(cliteral == cliteral1 || cliteral1.timestamp >= timestamp) {continue;}
             solved = false;
-            ignoreLiterals(cliteral1.literal, literalIndex, timestamp);
-            cliteral1.timestamp = 0;}
-        if(solved) return true;
-        if(level == maxLevel) {return false;}
-
-        for(CLiteral<Clause> cliteral1 : clause) {
-            if(cliteral1 == cliteral ||  cliteral1.timestamp == timestamp) {continue;}
             int literal1 = cliteral1.literal;
-            blockClauses(literal1, literalIndex, timestamp);
-            solved = false;
+            allowLiterals(literal1, literalIndex, timestamp); // they can be merged
+            blockClauses(-literal1,literalIndex,timestamp);   // to avoid tautologies
+            cliteral1.timestamp = 0;}                         // this still must be solved
+
+        if(solved || level == maxLevel) {
+            for(CLiteral<Clause> cliteral1 : clause) {
+                if(cliteral == cliteral1 || cliteral1.timestamp >= timestamp) {continue;}
+                int literal1 = cliteral1.literal;
+                unallowLiterals(literal1, literalIndex);
+                unblockClauses(-literal1,literalIndex);}
+            if(solved && usedClauses != null) {usedClauses.add(clause);}
+            return solved;}
+
+        solved = true;
+        int usedClausesSize = (usedClauses != null) ? usedClauses.size() : 0;
+        for(CLiteral<Clause> cliteral1 : clause) {
+            if(cliteral1 == cliteral ||  cliteral1.timestamp >= timestamp) {continue;} // they do merge
+            int literal1 = cliteral1.literal;
+            blockClauses(literal1, literalIndex, timestamp);   // to avoid reappearing literal1
+            boolean found = false;
             Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(-literal1);
             while(iterator.hasNext()) {
-                if(replResRecursive(iterator.next(),literalIndex, timestamp, level+1,maxLevel)) {
-                    solved = true; break;}}
+                CLiteral<Clause> cliteral2 = iterator.next();
+                if(cliteral2.clause.timestamp > timestamp) {continue;}   // blocked
+                if(replResRecursive(cliteral2,literalIndex, timestamp, level+1,maxLevel,usedClauses)) {
+                    found = true; break;}}
             literalIndex.pushIterator(-literal1,iterator);
-            if(!solved) {;return false;}}
+            if(!found) {
+                for(CLiteral<Clause> cliteral2 : clause) {
+                    if(cliteral == cliteral2 || cliteral2.timestamp >= timestamp) {continue;}
+                    unblockClauses(cliteral2.literal,literalIndex);
+                    if(cliteral2 == cliteral1) break;}
+                solved = false; break;}}
+
+        for(CLiteral<Clause> cliteral1 : clause) {
+            if(cliteral == cliteral1 || cliteral1.timestamp >= timestamp) {continue;}
+            int literal1 = cliteral1.literal;
+            unallowLiterals(literal1, literalIndex);
+            unblockClauses(-literal1,literalIndex);}
+
+        if(usedClauses != null) {
+            if(solved) {usedClauses.add(clause);}
+            else       {cutArray(usedClauses,usedClausesSize);}}
         return solved;}
 
-    private static final int[] signs = new int[]{+1,-1};
+    private static <T> void  cutArray(ArrayList<T> array, int size) {
+        for(int i = array.size()-1; i >= size; --i) {array.remove(i);}}
+
+
 
     /** marks all clauses with the literal and its negation as blocked for the search
      *
@@ -231,13 +267,12 @@ public class LitAlgorithms {
      * @param timestamp    the current timestamp
      */
     private static void blockClauses(int literal,BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
-        for(int sign : signs) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(sign*literal);
-            while(iterator.hasNext()) {
-                Clause clause = iterator.next().clause;
-                if(clause.timestamp < timestamp) {clause.timestamp = timestamp;}
-                else {++clause.timestamp;}}
-            literalIndex.pushIterator(sign*literal,iterator);}}
+        Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(literal);
+        while(iterator.hasNext()) {
+            Clause clause = iterator.next().clause;
+            if(clause.timestamp < timestamp) {clause.timestamp = timestamp;}
+            else {++clause.timestamp;}}
+        literalIndex.pushIterator(literal,iterator);}
 
     /** removes the recusive block marking for one level and for all clauses with the literal and its negation
      *
@@ -245,10 +280,11 @@ public class LitAlgorithms {
      * @param literalIndex the literal index
      */
     private static void unblockClauses(int literal, BucketSortedIndex<CLiteral<Clause>> literalIndex) {
-        for(int sign : signs) {
-            Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(sign*literal);
-            while(iterator.hasNext()) {--iterator.next().clause.timestamp;}
-            literalIndex.pushIterator(sign*literal,iterator);}}
+        Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(literal);
+        while(iterator.hasNext()) {
+            Clause clause = iterator.next().clause;
+            --clause.timestamp;}
+        literalIndex.pushIterator(literal,iterator);}
 
     /** marks all literal occurrences with the given literal with the timestamp
      *
@@ -256,10 +292,28 @@ public class LitAlgorithms {
      * @param literalIndex the literal index
      * @param timestamp    the timestamp
      */
-    private static void ignoreLiterals(int literal, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
+    private static void allowLiterals(int literal, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp) {
         Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(literal);
-        while(iterator.hasNext()) {iterator.next().timestamp = timestamp;}
+        while(iterator.hasNext()) {
+            CLiteral<Clause> cliteral = iterator.next();
+            if(cliteral.timestamp < timestamp) {cliteral.timestamp = timestamp;}
+            else {++cliteral.timestamp;}
+        }
         literalIndex.pushIterator(literal,iterator);}
+
+    /** unmarks all literal occurrences with the given literal with the timestamp
+     *
+     * @param literal      a literal
+     * @param literalIndex the literal index
+     */
+    private static void unallowLiterals(int literal, BucketSortedIndex<CLiteral<Clause>> literalIndex) {
+        Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(literal);
+        while(iterator.hasNext()) {
+            CLiteral<Clause> cliteral = iterator.next();
+            --cliteral.timestamp;}
+        literalIndex.pushIterator(literal,iterator);}
+
     }
+
 
 

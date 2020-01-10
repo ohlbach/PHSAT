@@ -93,7 +93,13 @@ public class Reduction extends ResolutionReduction {
             if((result = purityAndElimination()) != null) {return result;}}
         return null;}
 
+    private void resetTimestamps() {
+        for(Clause clause : clauses) {
+            clause.timestamp = 0;
+            for(CLiteral<Clause> clit : clause) {clit.timestamp = 0;}}}
 
+
+    ArrayList<Clause> usedClauses = new ArrayList<>();
     /** does recursive replacement resolution down to maxLevel
      *
      * @param clause    the clause to be investigated
@@ -101,12 +107,16 @@ public class Reduction extends ResolutionReduction {
      */
     private void reduceClause(Clause clause, int maxLevel) {
         if(clause.removed) {return ;}
-        CLiteral<Clause> cliteral = LitAlgorithms.canBRemoved(clause,literalIndex,timestamp,maxLevel);
-        timestamp += maxClauseLength + maxLevel + 2;
+        if(monitoring) {usedClauses.clear();}
+        CLiteral<Clause> cliteral = LitAlgorithms.canBRemoved(clause,literalIndex,timestamp,maxLevel,monitoring ? usedClauses : null);
+        timestamp += maxClauseLength * maxLevel + 2;
         if(cliteral == null) {return;}
         if(monitoring) {
-            monitor.print(combinedId,"Reduction removes literal " + cliteral.toString(symboltable) + " from clause "+
-            clause.toString(symboltable));}
+            StringBuilder st = new StringBuilder();
+            st.append("Reduction removes literal ").append(cliteral.toString(symboltable)).append(" from clause\n  ").
+                    append(clause.toString(symboltable)).append(" using clauses");
+            for(Clause usedClause : usedClauses) {st.append("\n  ").append(usedClause.toString(symboltable));}
+            monitor.print(combinedId,st.toString());}
         ++statistics.reductions;
         removeLiteral(cliteral);
         if(checkConsistency) {check("reduceClause");}
