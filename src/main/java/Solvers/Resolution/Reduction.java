@@ -119,6 +119,7 @@ public class Reduction extends ResolutionReduction {
             monitor.print(combinedId,st.toString());}
         ++statistics.reductions;
         removeLiteral(cliteral);
+       // System.out.println(toString());System.exit(1);
         if(checkConsistency) {check("reduceClause");}
         analyseShortenedClause(clause);}
 

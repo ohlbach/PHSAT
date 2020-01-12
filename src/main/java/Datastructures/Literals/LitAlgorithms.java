@@ -313,6 +313,55 @@ public class LitAlgorithms {
             --cliteral.timestamp;}
         literalIndex.pushIterator(literal,iterator);}
 
+
+
+    public static Object urResolution(Clause clause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp, int maxClauseLength,
+                                           ArrayList<Clause> usedClauses) {
+        int size = clause.size();
+        for(CLiteral<Clause> cliteral : clause) {
+            if(findEmptyClause(-cliteral.literal,clause,literalIndex,timestamp,usedClauses)) {
+                return -cliteral.literal;}
+            for(int i = 0; i < size; ++i) {
+                CLiteral<Clause> cliteral1 = clause.getCLiteral(i);
+                if(cliteral1 == cliteral1) {continue;}
+                if(findEmptyClause(cliteral1.literal,clause,literalIndex,timestamp,usedClauses)) {
+                    if(i == size-1) {return cliteral;}
+                    else {
+                        int[] literals = new int[i];
+                        for(int j = 0; j <= i; ++j) {
+                            literals[j] = (j==i) ? -clause.getLiteral(j) : clause.getLiteral(j);}
+                        return literals;}}}
+            timestamp += maxClauseLength +1;}
+        return null;}
+
+
+
+        private static boolean findEmptyClause(int literal, Clause blockedClause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp,
+                                           ArrayList<Clause> usedClauses) {
+        Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(literal);
+        while(iterator.hasNext()) {
+            CLiteral<Clause> cliteral = iterator.next();
+            Clause clause = cliteral.clause;
+            if(clause == blockedClause) {continue;}
+            cliteral.timestamp = timestamp;
+            int ts = clause.timestamp;
+            if(ts < timestamp) {clause.timestamp = timestamp; ts = timestamp;} // not yet visited
+            int size = clause.size();
+            if(ts - timestamp == size-1) {
+                literalIndex.pushIterator(literal,iterator);
+                if(usedClauses != null) {usedClauses.add(clause);}
+                return true;}
+            if(ts - timestamp == size-2) {
+                for(CLiteral<Clause> cliteral1 : clause) {
+                    if(cliteral1 != cliteral && cliteral1.timestamp < timestamp) {
+                        if(findEmptyClause(-cliteral1.literal, blockedClause, literalIndex,timestamp,usedClauses)) {
+                            if(usedClauses != null) {usedClauses.add(clause);}
+                            literalIndex.pushIterator(literal,iterator);
+                            return true;}
+                        else {break;}}}}
+            ++clause.timestamp;}
+        literalIndex.pushIterator(literal,iterator);
+        return false;}
     }
 
 

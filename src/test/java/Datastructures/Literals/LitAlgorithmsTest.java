@@ -250,4 +250,18 @@ public class LitAlgorithmsTest {
         CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3,stack);
         assertNull(clit);
     }
+
+
+    @Test
+    public void urResolution1() throws Exception {
+        System.out.println("urResolution1");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 1,2,3);
+        Clause c2 = make(2, index, -1,4);
+        Clause c3 = make(3, index, -4,-1);
+        ArrayList<Clause> usedClauses = new ArrayList<>();
+        Object result = LitAlgorithms.urResolution(c1,index,1,3,usedClauses);
+        assertEquals("-1",(result.toString()));
+        System.out.println(usedClauses.toString());
+    }
 }

@@ -4,7 +4,7 @@ global
 problem
     type = random
     predicates = 22
-    cpRatio = 4
+    cpRatio = 5
     length = 3
     precise = true
     seed = 0
