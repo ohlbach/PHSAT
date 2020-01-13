@@ -5,6 +5,7 @@ import Utilities.BucketSortedIndex;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Stack;
 
 import static org.junit.Assert.*;
@@ -262,6 +263,42 @@ public class LitAlgorithmsTest {
         ArrayList<Clause> usedClauses = new ArrayList<>();
         Object result = LitAlgorithms.urResolution(c1,index,1,3,usedClauses);
         assertEquals("-1",(result.toString()));
-        System.out.println(usedClauses.toString());
+        assertEquals("[2:(-1,4), 3:(-4,-1)]",usedClauses.toString());
+        result = LitAlgorithms.urResolution(c1,index,1,3,null);
+        assertEquals("-1",(result.toString()));
     }
+
+    @Test
+    public void urResolution2() throws Exception {
+        System.out.println("urResolution2");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 10,-1,11);
+        Clause c2 = make(2, index, 1,2);
+        Clause c3 = make(3, index, -2,3);
+        Clause c4 = make(4, index, -3,4,1);
+        Clause c5 = make(5, index, -4,1);
+
+        ArrayList<Clause> usedClauses = new ArrayList<>();
+        Object result = LitAlgorithms.urResolution(c1,index,1,3,usedClauses);
+        assertEquals("1",(result.toString()));
+        assertEquals("[2:(1,2), 3:(-2,3), 5:(-4,1), 4:(-3,4,1)]",usedClauses.toString());
+    }
+
+    @Test
+    public void urResolution3() throws Exception {
+        System.out.println("urResolution3");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 10,11,-1);
+        Clause c2 = make(2, index, 1,2);
+        Clause c3 = make(3, index, -2,3);
+        Clause c4 = make(4, index, -3,4,1);
+        Clause c5 = make(5, index, -4,1,10);
+
+        ArrayList<Clause> usedClauses = new ArrayList<>();
+        Object result = LitAlgorithms.urResolution(c1,index,1,3,usedClauses);
+        //assertEquals("[1, 10]", Arrays.toString((int[])result));
+        assertEquals("[2:(1,2), 3:(-2,3), 4:(-3,4,1), 5:(-4,1,10)]",usedClauses.toString());
+    }
+
+
 }

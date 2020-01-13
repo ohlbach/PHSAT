@@ -3,10 +3,8 @@ package Datastructures.Literals;
 import Datastructures.Clauses.Clause;
 import Utilities.BucketSortedIndex;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Stack;
+import java.lang.reflect.Array;
+import java.util.*;
 
 /**
  * Created by ohlbach on 03.07.2019.
@@ -321,19 +319,23 @@ public class LitAlgorithms {
         int size = clause.size();
         HashMap<Clause,ArrayList<Clause>> usedClausesMap = null;
         if(usedClauses != null) {usedClauses.clear(); usedClausesMap = new HashMap<>();}
-        for(CLiteral<Clause> cliteral : clause) {
-            if(findEmptyClause(-cliteral.literal,clause,literalIndex,timestamp,usedClausesMap)) {
+        for(int k = 0; k < clause.size(); ++k) {
+            CLiteral<Clause> cliteral = clause.getCLiteral(k);
+            if(findEmptyClause(-cliteral.literal,clause,null,literalIndex,timestamp,usedClausesMap)) {
                 if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
                 return -cliteral.literal;}
             for(int i = 0; i < size; ++i) {
                 CLiteral<Clause> cliteral1 = clause.getCLiteral(i);
-                if(cliteral1 == cliteral1) {continue;}
-                if(findEmptyClause(cliteral1.literal,clause,literalIndex,timestamp,usedClausesMap)) {
-                    if(i == size-1) {return cliteral;}
+                if(cliteral1 == cliteral) {continue;}
+                if(findEmptyClause(cliteral1.literal,clause,null,literalIndex,timestamp,usedClausesMap)) {
+                    if(i == size-1) {
+                        if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
+                        return cliteral;}
                     else {
-                        int[] literals = new int[i];
-                        for(int j = 0; j <= i; ++j) {
-                            literals[j] = (j==i) ? -clause.getLiteral(j) : clause.getLiteral(j);}
+                        int length = Math.max(i,k) + 1;
+                        int[] literals = new int[length];
+                        for(int j = 0; j < length; ++j) {
+                            literals[j] = (j==k) ? (-clause.getLiteral(j)) : clause.getLiteral(j);}
                         if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
                         return literals;}}}
             timestamp += maxClauseLength +1;}
@@ -341,26 +343,26 @@ public class LitAlgorithms {
 
 
 
-        private static boolean findEmptyClause(int literal, Clause blockedClause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp,
+        private static boolean findEmptyClause(int literal, Clause blockedClause, Clause parentClause, BucketSortedIndex<CLiteral<Clause>> literalIndex, int timestamp,
                                            HashMap<Clause,ArrayList<Clause>> usedClauses) {
         Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
             CLiteral<Clause> cliteral = iterator.next();
             Clause clause = cliteral.clause;
             if(clause == blockedClause) {continue;}
+            if(usedClauses != null) {joinUsedClauses(usedClauses,parentClause,clause);}
             cliteral.timestamp = timestamp;
             int ts = clause.timestamp;
             if(ts < timestamp) {clause.timestamp = timestamp; ts = timestamp;} // not yet visited
             int size = clause.size();
             if(ts - timestamp == size-1) {
                 literalIndex.pushIterator(literal,iterator);
-                if(usedClauses != null) {addUsedClause(usedClauses,clause); clearUsedClauses(usedClauses,clause);}
+                if(usedClauses != null) {clearUsedClauses(usedClauses,parentClause,clause);}
                 return true;}
             if(ts - timestamp == size-2) {
                 for(CLiteral<Clause> cliteral1 : clause) {
                     if(cliteral1 != cliteral && cliteral1.timestamp < timestamp) {
-                        if(usedClauses != null) {addUsedClause(usedClauses,clause);}
-                        if(findEmptyClause(-cliteral1.literal, blockedClause, literalIndex,timestamp,usedClauses)) {
+                        if(findEmptyClause(-cliteral1.literal, blockedClause, clause, literalIndex,timestamp,usedClauses)) {
                             literalIndex.pushIterator(literal,iterator);
                             return true;}
                         else {break;}}}}
@@ -369,17 +371,25 @@ public class LitAlgorithms {
         return false;}
 
 
-    private static void addUsedClause(HashMap<Clause,ArrayList<Clause>> usedClauses, Clause clause) {
-        ArrayList<Clause> clauses = usedClauses.get(clause);
-        if(clauses == null) {clauses = new ArrayList<>(); usedClauses.put(clause,clauses);}
-        clauses.add(clause);}
+    private static void joinUsedClauses(HashMap<Clause,ArrayList<Clause>> usedClauses, Clause parentClause,Clause clause) {
+        ArrayList<Clause> parentClauses = usedClauses.get(parentClause);
+        ArrayList<Clause> actualClauses = usedClauses.get(clause);
+        if(actualClauses == null) {actualClauses = new ArrayList<>(); usedClauses.put(clause,actualClauses);}
+        if(parentClauses != null) {actualClauses.addAll(parentClauses);}
+        if(parentClause != null) {actualClauses.add(parentClause);}}
 
-    private static void clearUsedClauses(HashMap<Clause,ArrayList<Clause>> usedClauses, Clause clause) {
-        ArrayList<Clause> clauses = usedClauses.get(clause);
-        if(clauses == null) {clauses = new ArrayList<>();}
+
+
+
+    private static void clearUsedClauses(HashMap<Clause,ArrayList<Clause>> usedClauses, Clause parentClause, Clause clause) {
+        ArrayList<Clause> parentClauses = usedClauses.get(parentClause);
+        ArrayList<Clause> actualClauses = usedClauses.get(clause);
+        if(actualClauses == null) {actualClauses = new ArrayList<>();}
+        if(parentClauses != null) {actualClauses.addAll(parentClauses);}
+        actualClauses.add(clause);
         usedClauses.clear();
-        usedClauses.put(clause,clauses);
-        clauses.add(clause);}
+        usedClauses.put(clause,actualClauses);}
+
 
 
 
