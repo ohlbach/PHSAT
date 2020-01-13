@@ -299,6 +299,7 @@ public class LitAlgorithmsTest {
         Clause c8 = make(8, index, 11,10,-1);
         ArrayList<Clause> usedClauses = new ArrayList<>();
         Object result = LitAlgorithms.urResolution(c5,index,1,3,usedClauses);
+        assertEquals(result.getClass(),int[].class);
         assertEquals("[1, 10]", Arrays.toString((int[])result));
         assertEquals("[1:(1,2), 2:(-2,3), 3:(-3,4,1), 4:(-4,1,10)]",usedClauses.toString());
 
@@ -312,9 +313,45 @@ public class LitAlgorithmsTest {
 
 
         result = LitAlgorithms.urResolution(c8,index,300,3,usedClauses);
-        assertEquals("[11, 10, 1]", Arrays.toString((int[])result));
+        assertEquals("-1", result.toString());
         assertEquals("[1:(1,2), 2:(-2,3), 3:(-3,4,1), 4:(-4,1,10)]",usedClauses.toString());
     }
+
+    @Test
+    public void urResolution4() throws Exception {
+        System.out.println("urResolution4");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, 1,2);
+        Clause c2 = make(2, index, 11,-2,3);
+        Clause c3 = make(3, index, -3,4,1);
+        Clause c4 = make(4, index, -4,1,10);
+        Clause c5 = make(5, index, -1,10,11);
+        Clause c6 = make(6, index, 10,-1,11);
+        Clause c7 = make(7, index, 10,11,-1);
+        Clause c8 = make(8, index, 11,10,-1);
+        ArrayList<Clause> usedClauses = new ArrayList<>();
+        Object result = LitAlgorithms.urResolution(c5,index,1,3,usedClauses);
+        assertEquals("-1", result.toString());
+        assertEquals("[1:(1,2), 4:(-4,1,10), 3:(-3,4,1), 2:(11,-2,3)]",usedClauses.toString());
+
+        result = LitAlgorithms.urResolution(c6,index,100,3,usedClauses);
+        assertEquals("-1", result.toString());
+        assertEquals("[1:(1,2), 4:(-4,1,10), 3:(-3,4,1), 2:(11,-2,3)]",usedClauses.toString());
+
+
+        result = LitAlgorithms.urResolution(c7,index,200,3,usedClauses);
+        assertEquals("-1", result.toString());
+        assertEquals("[1:(1,2), 4:(-4,1,10), 3:(-3,4,1), 2:(11,-2,3)]",usedClauses.toString());
+
+        result = LitAlgorithms.urResolution(c8,index,300,3,usedClauses);
+        assertEquals("-1", result.toString());
+        assertEquals("[1:(1,2), 2:(11,-2,3), 3:(-3,4,1), 4:(-4,1,10)]",usedClauses.toString());
+
+
+
+    }
+
+
 
 
 }

@@ -328,7 +328,7 @@ public class LitAlgorithms {
                 CLiteral<Clause> cliteral1 = clause.getCLiteral(i);
                 if(cliteral1 == cliteral) {continue;}
                 if(findEmptyClause(cliteral1.literal,clause,null,literalIndex,timestamp,usedClausesMap)) {
-                    if(i == size-1) {
+                    if(i == size-1 || (i == size-2 && k == size-1)) {
                         if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
                         return cliteral;}
                     else {
