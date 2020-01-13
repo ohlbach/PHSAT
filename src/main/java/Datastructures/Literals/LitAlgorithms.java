@@ -319,7 +319,7 @@ public class LitAlgorithms {
         int size = clause.size();
         HashMap<Clause,ArrayList<Clause>> usedClausesMap = null;
         if(usedClauses != null) {usedClauses.clear(); usedClausesMap = new HashMap<>();}
-        for(int k = 0; k < clause.size(); ++k) {
+        for(int k = 0; k < size; ++k) {
             CLiteral<Clause> cliteral = clause.getCLiteral(k);
             if(findEmptyClause(-cliteral.literal,clause,null,literalIndex,timestamp,usedClausesMap)) {
                 if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
@@ -332,10 +332,11 @@ public class LitAlgorithms {
                         if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
                         return cliteral;}
                     else {
-                        int length = Math.max(i,k) + 1;
+                        int length = i + ((i < k) ? 2 : 1);
                         int[] literals = new int[length];
-                        for(int j = 0; j < length; ++j) {
+                        for(int j = 0; j <= i; ++j) {
                             literals[j] = (j==k) ? (-clause.getLiteral(j)) : clause.getLiteral(j);}
+                        if(i < k) {literals[length-1] = -clause.getLiteral(k);}
                         if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
                         return literals;}}}
             timestamp += maxClauseLength +1;}
