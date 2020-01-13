@@ -323,7 +323,7 @@ public class LitAlgorithms {
             CLiteral<Clause> cliteral = clause.getCLiteral(k);
             if(findEmptyClause(-cliteral.literal,clause,null,literalIndex,timestamp,usedClausesMap)) {
                 if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
-                return -cliteral.literal;}
+                if(k == 0) {return -cliteral.literal;}}
             for(int i = 0; i < size; ++i) {
                 CLiteral<Clause> cliteral1 = clause.getCLiteral(i);
                 if(cliteral1 == cliteral) {continue;}
@@ -349,13 +349,14 @@ public class LitAlgorithms {
         Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
             CLiteral<Clause> cliteral = iterator.next();
+            if(cliteral.timestamp == timestamp) {continue;}
             Clause clause = cliteral.clause;
             if(clause == blockedClause) {continue;}
+            int size = clause.size();
+            int ts = clause.timestamp;
             if(usedClauses != null) {joinUsedClauses(usedClauses,parentClause,clause);}
             cliteral.timestamp = timestamp;
-            int ts = clause.timestamp;
             if(ts < timestamp) {clause.timestamp = timestamp; ts = timestamp;} // not yet visited
-            int size = clause.size();
             if(ts - timestamp == size-1) {
                 literalIndex.pushIterator(literal,iterator);
                 if(usedClauses != null) {clearUsedClauses(usedClauses,parentClause,clause);}
@@ -387,6 +388,7 @@ public class LitAlgorithms {
         ArrayList<Clause> actualClauses = usedClauses.get(clause);
         if(actualClauses == null) {actualClauses = new ArrayList<>();}
         if(parentClauses != null) {actualClauses.addAll(parentClauses);}
+        if(parentClause != null) {actualClauses.add(parentClause);}
         actualClauses.add(clause);
         usedClauses.clear();
         usedClauses.put(clause,actualClauses);}

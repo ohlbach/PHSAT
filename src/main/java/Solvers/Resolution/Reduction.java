@@ -77,7 +77,7 @@ public class Reduction extends ResolutionReduction {
         statistics = new ResolutionStatistics(combinedId);}
 
 
-    Result doTheWork() throws InterruptedException {
+    Result doTheWorkOld() throws InterruptedException {
         for(int level = 2;level < clauses.size(); ++level) {
             System.out.println("REDUCTION LEVEL " + level);
             if(Thread.interrupted()) {throw new InterruptedException();}
@@ -98,6 +98,56 @@ public class Reduction extends ResolutionReduction {
             clause.timestamp = 0;
             for(CLiteral<Clause> clit : clause) {clit.timestamp = 0;}}}
 
+
+    Result doTheWork() throws InterruptedException {
+        if(Thread.interrupted()) {throw new InterruptedException();}
+        if(clauses.isEmpty()) {return completeModel();}
+        for(Clause clause : clauses) {
+            taskQueue.add(new Task(maxClauseLength - clause.size() + priorityShift,
+                    (() -> {urResolveClause(clause); return null;}),
+                    (() -> "reducing clause " + clause.toString())));}
+        Result result = taskQueue.run();
+        if(result != null) {return result;}
+        if((result = purityAndElimination()) != null) {return result;}
+        return null;}
+
+    private void urResolveClause(Clause clause) {
+        if(clause.removed) {return;}
+        Object result = LitAlgorithms.urResolution(clause,literalIndex,timestamp,maxClauseLength,usedClauses);
+        timestamp += maxClauseLength + 1;
+        if(result == null) {return;}
+        ++statistics.reductions;
+        if(result.getClass() == Integer.class) {
+            int literal = (int)result;
+            if(monitoring) {monitorUsedClauses("Derived unit literal " + literalName(literal) + " by UR-Resolution using clauses:");}
+            processTrueLiteral(literal);
+            return;}
+
+        if(result.getClass() == int[].class) {
+            int[] literals = (int[])result;
+            Clause resolvent = new Clause(++id[0],literals.length);
+            for(int literal : literals) {resolvent.add(new CLiteral(literal));}
+            insertClause(resolvent);
+            if(monitoring) {monitorUsedClauses("Derived new clause\n   " + resolvent.toString(symboltable) + " by UR-Resolution using clauses:");}
+            analyseShortenedClause(resolvent);
+            return;}
+
+        CLiteral<Clause> cliteral = (CLiteral<Clause>)result;
+        if(monitoring) {monitorUsedClauses("removing literal " + cliteral.toString(symboltable) + " from clause\n   " +
+                clause.toString(symboltable) + " by UR-Resolution using clauses ");}
+        removeLiteral(cliteral);
+        if(checkConsistency) {check("urResolveClause");}
+        analyseShortenedClause(clause);}
+
+    private void monitorUsedClauses(String info) {
+        StringBuilder st = new StringBuilder();
+        st.append(info);
+        ArrayList<Integer> ids = new ArrayList<>();
+        for(Clause clause : usedClauses) {
+            if(ids.contains(clause.id)) {continue;}
+            ids.add(clause.id);
+            st.append("\n   ").append(clause.toString(symboltable));}
+        monitor.print(combinedId,st.toString());}
 
     ArrayList<Clause> usedClauses = new ArrayList<>();
     /** does recursive replacement resolution down to maxLevel

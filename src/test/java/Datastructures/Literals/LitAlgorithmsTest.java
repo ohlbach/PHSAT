@@ -351,6 +351,23 @@ public class LitAlgorithmsTest {
 
     }
 
+    @Test
+    public void urResolution5() throws Exception {
+        System.out.println("urResolution5");
+        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        Clause c1 = make(1, index, -1, -10,16);
+        Clause c2 = make(28, index, -5, -10, 1);
+        Clause c3 = make(30, index, 15,16,-10);
+        Clause c4 = make(35, index, -15,1,13);
+        Clause c5 = make(29, index, -13,14,1);
+        Clause c6 = make(3, index, -14,-16,5);
+        Clause c7 = make(7, index, -16,-19,-15);
+        Clause c8 = make(23, index, 16,7,14);
+        ArrayList<Clause> usedClauses = new ArrayList<>();
+        Object result = LitAlgorithms.urResolution(c1,index,1,3,usedClauses);
+        System.out.println(result);
+    }
+
 
 
 
