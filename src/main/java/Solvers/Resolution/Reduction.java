@@ -109,12 +109,13 @@ public class Reduction extends ResolutionReduction {
         Result result = taskQueue.run();
         if(result != null) {return result;}
         if((result = purityAndElimination()) != null) {return result;}
+        System.out.println(toString());
         return null;}
 
     private void urResolveClause(Clause clause) {
-        if(clause.removed) {return;}
+        if(clause.removed) {return;}   timestamp += 2*maxClauseLength;
         Object result = LitAlgorithms.urResolution(clause,literalIndex,timestamp,maxClauseLength,usedClauses);
-        timestamp += maxClauseLength + 1;
+        timestamp += 2* maxClauseLength ;
         if(result == null) {return;}
         ++statistics.reductions;
         if(result.getClass() == Integer.class) {
