@@ -353,10 +353,11 @@ public class LitAlgorithms {
             Clause clause = cliteral.clause;
             if(clause == blockedClause) {continue;}
             int size = clause.size();
-            int ts = clause.timestamp;
             if(usedClauses != null) {joinUsedClauses(usedClauses,parentClause,clause);}
             cliteral.timestamp = timestamp;
-            if(ts < timestamp) {clause.timestamp = timestamp; ts = timestamp;} // not yet visited
+            if(clause.timestamp < timestamp) {clause.timestamp = timestamp;} // not yet visited
+            else {++clause.timestamp;}
+            int ts = clause.timestamp;
             if(ts - timestamp == size-1) {
                 literalIndex.pushIterator(literal,iterator);
                 if(usedClauses != null) {clearUsedClauses(usedClauses,parentClause,clause);}
@@ -367,8 +368,7 @@ public class LitAlgorithms {
                         if(findEmptyClause(-cliteral1.literal, blockedClause, clause, literalIndex,timestamp,usedClauses)) {
                             literalIndex.pushIterator(literal,iterator);
                             return true;}
-                        else {break;}}}}
-            ++clause.timestamp;}
+                        else {break;}}}}}
         literalIndex.pushIterator(literal,iterator);
         return false;}
 
