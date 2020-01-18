@@ -185,9 +185,9 @@ public class Resolution extends Solver {
     /** initializes resolution specific data structures*/
     private void initializeData() {
         Object seed            = solverParameters.get("seed");
+        random                 = (seed != null) ? new Random((Integer)seed) : new Random();
         strategy               = (ResolutionStrategy)solverParameters.get("strategy");
         statistics             = new ResolutionStatistics(combinedId);
-        random                 = (seed != null) ? new Random((Integer)seed) : new Random();
         Object percent         = solverParameters.get("percentage");
         percentageOfSOSClauses = (percent != null) ? (Integer)percent : 0;
         primaryClauses         = new BucketSortedList<Clause>(clause->clause.size());

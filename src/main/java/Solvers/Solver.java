@@ -11,8 +11,7 @@ import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
-import Solvers.RandomWalker.WalkerCommunicative;
-import Solvers.RandomWalker.WalkerIsolated;
+import Solvers.Walker.Walker;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -32,7 +31,7 @@ public abstract class Solver {
        *********************** */
 
     /** the list of all solver types */
-    public static String[] solvers = new String[]{"walker isolated", "walker communicative","resolution", "reduction"};
+    public static String[] solvers = new String[]{"walker", "walker","resolution", "reduction"};
 
     /** checks if the name is a solver name
      *
@@ -52,10 +51,9 @@ public abstract class Solver {
      */
     public static Class solverClass(String solverName) {
         switch (solverName) {
-            case "walker isolated":      return WalkerIsolated.class;
-            case "walker communicative": return WalkerCommunicative.class;
-            case "resolution":           return Solvers.Resolution.Resolution.class;
-            case "reduction":            return Solvers.Resolution.Reduction.class;
+            case "walker":      return Walker.class;
+            case "resolution":  return Solvers.Resolution.Resolution.class;
+            case "reduction":   return Solvers.Resolution.Reduction.class;
             default: return null;}}
 
     /** collects all the help-strings for all solver classes
