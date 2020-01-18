@@ -66,6 +66,16 @@ public class ResolutionStatistics extends Statistic {
     public int eliminations = 0;
 
 
+    @Description("positive clauses")
+    public int positiveClauses = 0;
+
+    @Description("negative clauses")
+    public int negativeClauses = 0;
+
+    @Description("clauses")
+    public int clauses = 0;
+
+
 
 
 }

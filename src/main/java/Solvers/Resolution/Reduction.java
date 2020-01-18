@@ -101,6 +101,7 @@ public class Reduction extends ResolutionReduction {
 
     Result doTheWork() throws InterruptedException {
         if(Thread.interrupted()) {throw new InterruptedException();}
+        for(int i = 0; i < 1; ++i) {
         if(clauses.isEmpty()) {return completeModel();}
         for(Clause clause : clauses) {
             taskQueue.add(new Task(maxClauseLength - clause.size() + priorityShift,
@@ -108,7 +109,7 @@ public class Reduction extends ResolutionReduction {
                     (() -> "reducing clause " + clause.toString())));}
         Result result = taskQueue.run();
         if(result != null) {return result;}
-        if((result = purityAndElimination()) != null) {return result;}
+        if((result = purityAndElimination()) != null) {return result;}}
         System.out.println(toString());
         return null;}
 
@@ -128,6 +129,7 @@ public class Reduction extends ResolutionReduction {
             int[] literals = (int[])result;
             Clause resolvent = new Clause(++id[0],literals.length);
             for(int literal : literals) {resolvent.add(new CLiteral(literal));}
+            resolvent.setStructure();
             insertClause(resolvent);
             if(monitoring) {monitorUsedClauses("Derived new clause\n   " + resolvent.toString(symboltable) + " by UR-Resolution using clauses:");}
             analyseShortenedClause(resolvent);
@@ -149,6 +151,13 @@ public class Reduction extends ResolutionReduction {
             ids.add(clause.id);
             st.append("\n   ").append(clause.toString(symboltable));}
         monitor.print(combinedId,st.toString());}
+
+    boolean simplifyBackwards(Clause clause) {
+        if(clause.removed) {return false;}
+        Clause subsumer = backwardSubsumption(clause);
+        if(subsumer != null) {replaceClause(clause,subsumer); return false;}
+        urResolveClause(clause);
+        return !clause.removed;}
 
     ArrayList<Clause> usedClauses = new ArrayList<>();
     /** does recursive replacement resolution down to maxLevel
@@ -222,6 +231,8 @@ public class Reduction extends ResolutionReduction {
         if(!equivalenceClasses.isEmpty()) {st.append(equivalenceClasses.toString());}
         return st.toString();}
 
+
+
     /** collects information about the control parameters
      *
      * @return a string with information about the control parameters.
@@ -229,12 +240,15 @@ public class Reduction extends ResolutionReduction {
     public String parameters() {return "";}
 
     public void check(String info) {
-        clauses.check(info + ":'clauses'");
+        clauses.check(info + ": 'clauses'");
         literalIndex.check(info+":'literal index'");
 
         for(Clause clause : clauses) {
             for(CLiteral cLiteral : clause) {
                 if(!literalIndex.contains(cLiteral)) {
-                    System.out.println("Error: "+info+ " literal " + cLiteral.literal + " in clause " + clause.toString() + " is not in the index.");}}}
+                    System.out.println("Error: "+info+ " literal " + cLiteral.literal + " in clause "
+                            + clause.toString() + " is not in the index.");
+                    new Exception().printStackTrace();
+                System.exit(1);}}}
     }
 }

@@ -313,6 +313,7 @@ public class BucketSortedIndex<T extends Positioned> {
                         if(getItemIndex.apply(item) != i) {
                             System.out.println("Error on BucketSortedIndex " + name + ": item " + item.toString() + "" +
                                     " is in index list " + i + " and not in " + getItemIndex.apply(item));
+                            new Exception().printStackTrace();
                             System.exit(1);}}}
 
                 list = negOccurrences[i];
@@ -322,5 +323,6 @@ public class BucketSortedIndex<T extends Positioned> {
                         if(getItemIndex.apply(item) != -i) {
                             System.out.println("Error on BucketSortedIndex " + name + ": item " + item.toString() + "" +
                                     " is in index list " + -i + " and not in " + -getItemIndex.apply(item));
+                            new Exception().printStackTrace();
                             System.exit(1);}}}}}
 }

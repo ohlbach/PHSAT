@@ -1,5 +1,7 @@
 package Utilities;
 
+import Datastructures.Clauses.Clause;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;
@@ -45,6 +47,7 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
         ArrayList<T> bucket = buckets.get(bucketIndex);
         item.setPosition(bucket.size());
         bucket.add(item);}
+
 
     /** checks if the item is contained in the buckets
      *
@@ -216,10 +219,12 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
                 if(getBucket.apply(item) != i) {
                     System.out.println("Error in BucketSortedList " + name + ": item " + item.toString() +
                             " with bucket " + getBucket.apply(item) + " is in the wrong bucket " + i);
+                    new Exception().printStackTrace();
                     System.exit(1);}
                 if(item.getPosition() != j) {
                     System.out.println("Error in BucketSortedList " + name + ": item " + item.toString() +
                             " in bucket " + i + " is not in position " + item.getPosition() + ", but in " + j);
+                    new Exception().printStackTrace();
                     System.exit(1);}}}}
 
     /** This method generates an iterator which iterates over the items in the bucket.

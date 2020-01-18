@@ -83,8 +83,6 @@ public abstract class ResolutionReduction extends Solver {
     /** for incrementing the timestamp */
     int maxClauseLength = 3;
 
-    /** counts the number of clauses in the solver */
-    int clauseCounter = 0;
 
     /** EquivalenceClasses manage equivalent literals.
      *  In each equivalence class the literals are mapped to their representatives,
@@ -363,16 +361,12 @@ public abstract class ResolutionReduction extends Solver {
      * @throws InterruptedException
      */
     Result purities() throws InterruptedException {
-        boolean purities = false; int c = 0;
+        boolean purities = false;
         while(literalIndex.zeroes(predicates,zeros)) {
             purities = true;
             for(int literal : zeros) {
                 if(model.status(literal) != 0) {continue;}
                 if(monitoring) {monitor.print(combinedId, "Making pure literal true: " + literalName(-literal));}
-                if(++c == 5) {
-                    System.out.println(toString());
-                    System.exit(1);
-                }
                 ++statistics.purities;
                 Result result = processTrueLiteral(-literal);
                 if(result != null) {return result;}}}
@@ -415,7 +409,7 @@ public abstract class ResolutionReduction extends Solver {
         // all original clauses are removed
 
         for(Clause resolvent : replacedClauses) { // subsumption within the replaced clauses may not be recognized
-            if(simplifyBackwards(resolvent)) {insertClause(resolvent);}}
+            simplifyBackwards(resolvent);}
         if(checkConsistency) {check("processElimination");}
     }
 
@@ -709,10 +703,15 @@ public abstract class ResolutionReduction extends Solver {
      */
     void insertClause(Clause clause) {
         if(clause.size() > 1) {
-            ++clauseCounter;
+            if(clause.id == 320) {
+                System.err.print("CLAUSE 320 " + clause.toString());
+                new Exception().printStackTrace();}
+            ++statistics.clauses;
             maxClauseLength = Math.max(maxClauseLength,clause.size());
             getClauseList(clause).add(clause);
             insertIntoIndex(clause);
+            if(clause.isPositive()) {++statistics.positiveClauses;}
+            else {if(clause.isNegative()) {++statistics.negativeClauses;}}
             if(checkConsistency) {check("insertClause");}}}
 
 
@@ -723,7 +722,9 @@ public abstract class ResolutionReduction extends Solver {
      */
     void removeClause(Clause clause, int ignoreLiteral) {
         if(clause.removed) {return;}
-        --clauseCounter;
+        if(clause.isPositive()) {--statistics.positiveClauses;}
+        else {if(clause.isNegative()) {--statistics.negativeClauses;}}
+        --statistics.clauses;
         getClauseList(clause).remove(clause);
         for(CLiteral<Clause> cLiteral : clause) {
             if(cLiteral.literal != ignoreLiteral) {
@@ -742,6 +743,9 @@ public abstract class ResolutionReduction extends Solver {
     boolean removeLiteral(CLiteral<Clause> cLiteral) {
         Clause clause = cLiteral.clause;
         if(clause.removed) {return false;}
+        if(clause.getPosition() >= 0) {return false;}
+        if(clause.isPositive()) {--statistics.positiveClauses;}
+        else {if(clause.isNegative()) {--statistics.negativeClauses;}}
         if(clause.size() == 2) {
             removeClause(clause,0);
             clause.remove(cLiteral);
@@ -751,6 +755,8 @@ public abstract class ResolutionReduction extends Solver {
         clause.remove(cLiteral);
         getClauseList(clause).add(clause);
         insertIntoIndex(clause);
+        if(clause.isPositive()) {++statistics.positiveClauses;}
+        else {if(clause.isNegative()) {++statistics.negativeClauses;}}
         if(checkConsistency) {check("removeLiteral");}
         return false;}
 
