@@ -19,6 +19,7 @@ public class ProblemSupervisor {
     public String threadId;
 
     public BasicClauseList basicClauseList;
+    public BasicClauseList simplifiedBasicClauseList= null;
     public GlobalParameters globalParameters;
     public HashMap<String,Object> problemParameters;
     public ArrayList<HashMap<String,Object>> solverParameters;
@@ -82,8 +83,13 @@ public class ProblemSupervisor {
      * @param solver   which found the literal
      * @param literal  the new true literal.
      */
-    public synchronized void forwardTrueLiteral(Solver solver,int literal) {
-        for(Solver solv : solvers) {if(solv != solver) solv.importTrueLiteral(literal);}}
+    public synchronized Result forwardTrueLiteral(Solver solver,int literal) {
+        Result result = null;
+        for(Solver solv : solvers) {
+            if(solv != solver) {
+                result = solv.importTrueLiteral(literal);}
+                if(result.getClass() == Unsatisfiable.class || result.getClass() == Satisfiable.class) {return result;}}
+        return null;}
 
     /** This method is called when a solver found a new binary clause.
      * It forwards the clause to all other solvers.

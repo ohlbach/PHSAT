@@ -467,10 +467,11 @@ public class Resolution extends Solver {
          *
          * @param literal a new true literal
          */
-    public void importTrueLiteral(int literal) {
+    public Result importTrueLiteral(int literal) {
         ++statistics.importedUnitClauses;
         --statistics.derivedUnitClauses;
-        addTrueLiteralTask(literal, false,"Imported from another solver");}
+        addTrueLiteralTask(literal, false,"Imported from another solver");
+        return null;}
 
 
     /** turns the literal into a trueLiteralTask.

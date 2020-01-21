@@ -131,12 +131,21 @@ public class IntegerQueue {
      * @return an item, according to the random process.
      */
     public int getRandom(Random random, int exponent) {
-        int limit = size+1;
+        int limit = lastPositive();
+        if(limit == 0) {return 0;}
         for(int i = 0; i < exponent; ++i) {
             limit = random.nextInt(limit);
             if(limit == 0) {return queue[0];}}
         return queue[limit];}
 
+    public int lastPositive() {
+        int last = size;
+        if(scores[queue[last]] > 0) {return size;}
+        int half = last/2;
+        while(last-half > 1) {
+            if(scores[queue[half]] > 0 ) { half += (last-half)/2;}
+            else {last = half; half /=2;}}
+        return half;}
 
     /** turns the data into a string
      *

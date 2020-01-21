@@ -106,7 +106,6 @@ public class Transformers {
      */
     private static void prepareDisjoint(int[] basicClause, int[] id, EquivalenceClasses equivalenceClasses, Consumer<Clause> handler) {
         int size = basicClause.length;
-        int counter = 0;
         for(int i = 2; i < size-1;++i) {
             int literal1 = -basicClause[i];
             if(equivalenceClasses != null) {literal1 = equivalenceClasses.mapToRepresentative(literal1);}

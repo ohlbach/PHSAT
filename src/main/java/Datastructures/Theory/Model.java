@@ -27,33 +27,6 @@ public class Model {
         model = new ArrayList<>();
         status = new byte[predicates+1];}
 
-    /* Observers
-       ********* */
-
-    /** the observers are called when a new literal is inserted in the model */
-    private ArrayList<Consumer<Integer>> trueLiteralObservers = new ArrayList<>();
-
-    /** adds a new observer. The method is synchronized
-     *
-     * @param observer the new observer
-     */
-    public synchronized void addTrueLiteralObserver(Consumer<Integer> observer) {
-        trueLiteralObservers.add(observer);}
-
-    /** removes an observer. The method is synchronized
-     *
-     * @param observer the new observer
-     */
-    public synchronized void removeTrueLiteralObserver(Consumer<Integer> observer) {
-        trueLiteralObservers.remove(observer);}
-
-
-    /** calls all observers when a new literal has been inserted.
-     *
-     * @param literal a new literal in the model.
-     */
-    private void reportNewTruth(int literal) {
-        for(Consumer<Integer> observer : trueLiteralObservers) {observer.accept(literal);}}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
      *
@@ -67,7 +40,6 @@ public class Model {
         if(tr == 0){
             model.add(literal);
             status[predicate] = literal > 0 ? (byte)1: (byte)-1;
-            reportNewTruth(literal);
             return 0;}
         else {return (Integer.signum(literal) == (int)tr) ? 1 : -1;}}
 

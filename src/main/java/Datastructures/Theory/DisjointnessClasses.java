@@ -4,7 +4,6 @@ import Datastructures.Clauses.ClauseType;
 import Datastructures.Symboltable;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** A disjointness class is a set of literals which are pairwise contradictory.
@@ -15,14 +14,13 @@ public class DisjointnessClasses {
     /** the list of disjunctions representing disjoint literals */
     public ArrayList<ArrayList<Integer>> disjointnessClasses = null;
 
-    private Consumer<String> contradictionHandler;
+    private Symboltable symboltable = null;
 
     /** creates empty disjointness classes
-     *
-     * @param contradictionHandler for reporting contradictions
      */
-    public DisjointnessClasses(Consumer<String> contradictionHandler) {
-        this.contradictionHandler = contradictionHandler;};
+    public DisjointnessClasses(Symboltable symboltable) {
+        this.symboltable = symboltable;}
+
 
     /** checks if there are equivalence classes
     *
@@ -44,19 +42,25 @@ public class DisjointnessClasses {
      * @param basicClause [clause-problemId,typenumber,literal1,...]
      * @return the result disjointness clause or null
      */
-    public void addDisjointnessClass(int[] basicClause) {
+    public void addDisjointnessClass(int[] basicClause, Consumer<String> contradictionHandler) {
         assert basicClause.length > 2;
         if(basicClause.length == 3) {return;}
         assert basicClause[1] == ClauseType.DISJOINT.ordinal() || basicClause[1] == ClauseType.XOR.ordinal();
+        for(int i = 2; i < basicClause.length; ++i) {if(basicClause[i] < 0) {return;}}
         if(disjointnessClasses == null) {disjointnessClasses= new ArrayList<>();}
         ArrayList<Integer> disjointnessClass = new ArrayList<>();
-        for(int i = 2; i < basicClause.length; ++i) {disjointnessClass.add(basicClause[i]);}
+        for(int i = 2; i < basicClause.length; ++i) {
+            Integer literal = basicClause[i];
+            if(disjointnessClass.contains(literal)) {
+                contradictionHandler.accept("Disjointness class: " + basicClause.toString() + " contains " +
+                        literalName(literal) + " /= " + literalName(literal));}
+            disjointnessClass.add(literal);}
         if(!joinClass(disjointnessClass)) {disjointnessClasses.add(disjointnessClass);}}
 
     private ArrayList<ArrayList<Integer>> dummyClasses = new ArrayList<>();
     private HashSet<Integer> dummyLiterals = new HashSet<>();
 
-    /** tries to join a new clauss to existing classes
+    /** tries to join a new class to existing classes
      *
      * @param disjointnessClass a new class
      * @return true if the class has been joined
@@ -126,16 +130,11 @@ public class DisjointnessClasses {
         if(disjointnessClasses == null || model.isTrue(predicate)) {return false;}
         flips.clear();
         Integer literalp = predicate;
-        Integer literaln = -predicate;
         int status = model.status(predicate);
         for(ArrayList<Integer> dissClass : disjointnessClasses) {
             if(dissClass.contains(literalp)) {
                 for(Integer lit : dissClass) {
-                    if(!lit.equals(literalp) && model.isTrue(lit)) {flips.add(Math.abs(lit));}}}
-            else {
-                if(dissClass.contains(literaln)) {
-                    for(Integer lit : dissClass) {
-                        if(!lit.equals(literaln) &&  model.isTrue(-lit)) {flips.add(Math.abs(lit));}}}}}
+                    if(!lit.equals(literalp) && model.isTrue(lit)) {flips.add(Math.abs(lit));}};}}
         return !flips.isEmpty();}
 
     /** computes the literals which must be made true if the given literal is made true
@@ -149,28 +148,25 @@ public class DisjointnessClasses {
         if(disjointnessClasses == null) {return false;}
         truths.clear();
         Integer literalp = literal;
-        Integer literaln = -literal;
         for(ArrayList<Integer> dissClass : disjointnessClasses) {
             if(dissClass.contains(literalp)) {
-                for(Integer lit : dissClass) {if(!lit.equals(literalp)) {truths.add(-lit);}}}
-            else {
-                if(dissClass.contains(literaln)) {
-                    for(Integer lit : dissClass) {if(!lit.equals(literaln)) {truths.add(lit);}}}}}
+                for(Integer lit : dissClass) {if(!lit.equals(literalp)) {truths.add(-lit);}}}}
         return !truths.isEmpty();}
+
+    /** maps a literal to a string, possibly using the symboltable
+     *
+     * @param literal a literal
+     * @return  its name
+     */
+    public String literalName(int literal) {
+        return symboltable == null ? Integer.toString(literal) : symboltable.getLiteralName(literal);}
 
 
     /** lists all disjointness classes
      *
      * @return all disjointness classes as string
      */
-    public String toString() {return toString(null);}
-
-    /** lists all equivalence classes
-     *
-     * @param symboltable a symboltable
-     * @return all equivalence classes as string
-     */
-    public String toString(Symboltable symboltable) {
+    public String toString() {
         if (disjointnessClasses == null) {return "";}
         StringBuilder st = new StringBuilder();
         st.append("Disjointness Classes\n");
@@ -178,10 +174,8 @@ public class DisjointnessClasses {
             int size = disjointnessClass.size();
             st.append("  ");
             for(int i = 0; i < size - 1; ++i) {
-                st.append((symboltable == null) ? Integer.toString(disjointnessClass.get(i)) :
-                        symboltable.getLiteralName(disjointnessClass.get(i))).append(" /= ");}
-            st.append((symboltable == null) ? Integer.toString(disjointnessClass.get(size-1)) :
-                    symboltable.getLiteralName(disjointnessClass.get(size-1))).append("\n");}
+                st.append(literalName(disjointnessClass.get(i))).append(" /= ");}
+            st.append(literalName(disjointnessClass.get(size-1))).append("\n");}
         return st.toString();}
     }
 

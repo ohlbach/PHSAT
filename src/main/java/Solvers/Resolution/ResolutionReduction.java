@@ -420,11 +420,13 @@ public abstract class ResolutionReduction extends Solver {
      *
      * @param literal a new true literal
      */
-    public void importTrueLiteral(int literal) {
+    public Result importTrueLiteral(int literal) {
+        if(model.isFalse(literal)) {return new Unsatisfiable(model,literal,symboltable);}
         ++statistics.importedUnitClauses;
         taskQueue.add(new Task(priorityUnity,
                 (()->processTrueLiteral(literal)),
-                (()->"Literal " + literalName(literal) + " is imported from another solver ")));}
+                (()->"Literal " + literalName(literal) + " is imported from another solver ")));
+        return null;}
 
     /** This method is called by the problemSupervisor to announce a binary clause found by another solver
      *
@@ -703,9 +705,6 @@ public abstract class ResolutionReduction extends Solver {
      */
     void insertClause(Clause clause) {
         if(clause.size() > 1) {
-            if(clause.id == 320) {
-                System.err.print("CLAUSE 320 " + clause.toString());
-                new Exception().printStackTrace();}
             ++statistics.clauses;
             maxClauseLength = Math.max(maxClauseLength,clause.size());
             getClauseList(clause).add(clause);
@@ -778,7 +777,7 @@ public abstract class ResolutionReduction extends Solver {
             result = equivalenceClasses.completeModel(model);
             if(result != null) {return result;}
             completeEliminationsInModel();
-            result = checkModel();
+            result = checkModel(model);
             if(result != null) {return result;}}
         return new Satisfiable(model);}
 

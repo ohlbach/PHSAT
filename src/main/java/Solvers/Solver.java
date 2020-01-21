@@ -31,7 +31,7 @@ public abstract class Solver {
        *********************** */
 
     /** the list of all solver types */
-    public static String[] solvers = new String[]{"walker", "walker","resolution", "reduction"};
+    public static String[] solvers = new String[]{"walker","resolution"};
 
     /** checks if the name is a solver name
      *
@@ -53,7 +53,6 @@ public abstract class Solver {
         switch (solverName) {
             case "walker":      return Walker.class;
             case "resolution":  return Solvers.Resolution.Resolution.class;
-            case "reduction":   return Solvers.Resolution.Reduction.class;
             default: return null;}}
 
     /** collects all the help-strings for all solver classes
@@ -139,6 +138,8 @@ public abstract class Solver {
 
     protected  BasicClauseList basicClauseList;
 
+    protected BasicClauseList simplifiedBasicClauseList;
+
     public  int predicates;
 
     protected Model model;
@@ -160,16 +161,17 @@ public abstract class Solver {
         this.problemSupervisor  = problemSupervisor;}
 
     protected void initialize() {
-        solverId                = (String)solverParameters.get("solverId");
-        problemId               = problemSupervisor.problemId;
-        combinedId              = problemId+"@"+solverId + ":" + solverNumber;
-        globalParameters        = problemSupervisor.globalParameters;
-        basicClauseList         = problemSupervisor.basicClauseList;
-        predicates              = basicClauseList.predicates;
-        symboltable             = basicClauseList.symboltable;
-        monitor                 = globalParameters.monitor;
-        monitoring              = monitor.monitoring;
-        model                   = new Model(predicates);
+        solverId                   = (String)solverParameters.get("solverId");
+        problemId                  = problemSupervisor.problemId;
+        combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
+        globalParameters           = problemSupervisor.globalParameters;
+        basicClauseList            = problemSupervisor.basicClauseList;
+        simplifiedBasicClauseList  = problemSupervisor.simplifiedBasicClauseList;
+        predicates                 = basicClauseList.predicates;
+        symboltable                = basicClauseList.symboltable;
+        monitor                    = globalParameters.monitor;
+        monitoring                 = monitor.monitoring;
+        model                      = new Model(predicates);
         if(monitoring) {
             monitor.addThread(combinedId,"Monitor for problem " + problemId + " and solver " + solverId);}}
 
@@ -179,7 +181,7 @@ public abstract class Solver {
      *
      * @param literal a new true literal
      */
-    public void importTrueLiteral(int literal) {}
+    public Result importTrueLiteral(int literal) {return null;}
 
     /** This method is called when another solver found a new binary clause.
      * It need be overwritten in the solver class when it uses implication DAGs.
@@ -240,7 +242,7 @@ public abstract class Solver {
      *
      * @return null or an Erraneous Result
      */
-    public Result checkModel() {
+    public Result checkModel(Model model) {
         ArrayList<int[]> falseClauses = basicClauseList.falseClauses(model);
         if(falseClauses != null) {return new Erraneous(model,falseClauses,symboltable);}
         else {return null;}}

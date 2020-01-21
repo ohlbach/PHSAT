@@ -6,8 +6,12 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
+import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Management.ProblemSupervisor;
+import Solvers.Resolution.ResolutionReduction;
+import Solvers.Resolution.ResolutionStatistics;
+import Solvers.Solver;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
 
@@ -23,7 +27,7 @@ import java.util.function.Function;
  * The main purpose of the class is to support other solvers with reduced input clauses.
  *
  */
-public class Reduction extends ResolutionReduction {
+public class Preparer extends ResolutionReduction {
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
@@ -60,12 +64,17 @@ public class Reduction extends ResolutionReduction {
      * @param solverParameters     contains the parameters for controlling the solver
      * @param problemSupervisor    coordinates several solvers.
      */
-    public Reduction(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
+    public Preparer(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
         super(solverNumber,solverParameters, problemSupervisor);}
+
 
     /** contains all the clauses, sorted according to the clause length*/
     private BucketSortedList<Clause> clauses;
-
+    BucketSortedIndex<CLiteral<Clause>> literalIndex = null;
+    TaskQueue taskQueue = null;
+    ResolutionStatistics statistics = null;
+    int maxClauseLength = 3;
+    int timestamp = 1;
 
     /** initializes resolution specific data structures*/
     void initializeData() {
