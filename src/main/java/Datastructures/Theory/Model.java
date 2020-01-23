@@ -43,6 +43,14 @@ public class Model {
             return 0;}
         else {return (Integer.signum(literal) == (int)tr) ? 1 : -1;}}
 
+    /** flips the truth value of the predicate
+     *
+     * @param predicate a predicate to be flipped
+     */
+    public void flip(int predicate) {
+        assert predicate > 0 && predicate <= predicates;
+        status[predicate] *= -1;}
+
     /** returns the entire model, i.e. the list of true literals.
      * Access to the list, however is not synchronized.
      *
