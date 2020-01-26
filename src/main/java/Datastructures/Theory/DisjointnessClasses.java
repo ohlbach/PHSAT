@@ -30,6 +30,21 @@ public class DisjointnessClasses {
     public boolean isEmpty() {
         return disjointnessClasses == null || disjointnessClasses.isEmpty();}
 
+
+    /** turns the disjointness classes into basicClauses
+     *
+     * @return a list of basicClauses representing the disjointness classes.
+     */
+    public ArrayList<int[]> basicClauses(int id) {
+        ArrayList<int[]> clauses = new ArrayList<>();
+        for(ArrayList<Integer> disjointnessClass : disjointnessClasses) {
+            int[] clause = new int[disjointnessClass.size()+2];
+            clause[0] = ++id;
+            clause[1] = ClauseType.DISJOINT.ordinal();
+            for(int i = 0; i < disjointnessClass.size(); ++i) {clause[i+2] = disjointnessClass.get(i);}
+            clauses.add(clause);}
+        return clauses;}
+
     /** turns a basicClause into a disjointness class. <br>
      * A true literal causes all other literals to become false <br>
      * A false literal is ignored <br>
@@ -139,34 +154,15 @@ public class DisjointnessClasses {
 
 
 
-    /** computes the flips of truth values if the truth value of the given predicate is flipped.
-     * Example: p != q, and false(p) is flipped to true(p). If true(q) then q must be flipped.
-     *
-     * @param predicate the predicate to be flipped
-     * @param model     a model for all literals
-     * @param flips     collects the predicates to be flipped.
-     * @return          true if some predicates must be flipped.
-     */
-    public boolean flips(int predicate, Model model, ArrayList<Integer> flips) {
-        if(disjointnessClasses == null || model.isTrue(predicate)) {return false;} // if predicate becomes false, nothing must be flipped
-        flips.clear();
-        Integer literalp = predicate;  // now predicate is flipped to true. All disjoint predicates must become false.
-        for(ArrayList<Integer> dissClass : disjointnessClasses) {
-            if(dissClass.contains(literalp)) {
-                for(Integer lit : dissClass) {
-                    if(!lit.equals(literalp) && model.isTrue(lit)) {flips.add(Math.abs(lit));}};}}
-        return !flips.isEmpty();}
-
     /** computes the literals which must be made true if the given literal is made true
-     * Example: p == q, and p is made true then q must be made true
+     * Example: p != q, and p is made true then -q must be made true
      *
      * @param literal  the literal to be made true
      * @param truths   collects the literals to be made true.
      * @return         true if some literals must be made true.
      */
-    public boolean truths(int literal, Model model, ArrayList<Integer> truths) {
-        if(disjointnessClasses == null) {return false;}   // überarbeiten
-        truths.clear();
+    public boolean truths(int literal, ArrayList<Integer> truths) {
+        if(disjointnessClasses == null || literal < 0) {return false;}
         Integer literalp = literal;
         for(ArrayList<Integer> dissClass : disjointnessClasses) {
             if(dissClass.contains(literalp)) {

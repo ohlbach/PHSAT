@@ -43,6 +43,18 @@ public class Model {
             return 0;}
         else {return (Integer.signum(literal) == (int)tr) ? 1 : -1;}}
 
+    /** forces the literal to be true
+     *
+     * @param literal the literal for the model.
+     */
+    public void forceTrue(int literal) {
+        int predicate = Math.abs(literal);
+        assert predicate <= predicates;
+        if(status[predicate] != 0){model.removeIf(lit -> Math.abs(lit) == predicate);}
+        model.add(literal);
+        status[predicate] = literal > 0 ? (byte)1: (byte)-1;}
+
+
     /** flips the truth value of the predicate
      *
      * @param predicate a predicate to be flipped

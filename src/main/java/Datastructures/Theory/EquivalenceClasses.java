@@ -1,5 +1,6 @@
 package Datastructures.Theory;
 
+import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -38,9 +39,47 @@ public class EquivalenceClasses {
     public boolean isEmpty() {
         return equivalenceClasses == null;}
 
+    /** turns the equivalence classes into basicClauses
+     *
+     * @return a list of basicClauses representing the equivalence classes.
+     */
+    public ArrayList<int[]> basicClauses(int id) {
+        ArrayList<int[]> clauses = new ArrayList<>();
+        for(ArrayList<Integer> equivalenceClass : equivalenceClasses) {
+            int[] clause = new int[equivalenceClass.size()+2];
+            clause[0] = ++id;
+            clause[1] = ClauseType.EQUIV.ordinal();
+            for(int i = 0; i < equivalenceClass.size(); ++i) {clause[i+2] = equivalenceClass.get(i);}
+            clauses.add(clause);}
+        return clauses;}
+
 
     /** is used to sort literals according to their absolute value */
     private static Comparator<Integer> absComparator = Comparator.comparingInt(literal -> Math.abs(literal));
+
+    /** turns a basicClause into an equivalence class.
+     * The basicClause must be already a simplified and normalized equivalence class.
+     *
+     * @param basicClause [clause-problemId,typenumber,literal1,...]
+     */
+    public boolean addSimplifiedEquivalenceClass(int[] basicClause) {
+        assert basicClause.length > 2;
+        if(basicClause.length == 3) {return true;}
+        if(equivalenceClasses == null) {
+            equivalenceClasses = new ArrayList<ArrayList<Integer>>();
+            replacements = new HashMap<>();}
+
+        ArrayList<Integer> equivalenceClass = new ArrayList<>();
+        int representative = basicClause[2];
+        equivalenceClass.add(representative);
+        for(int i = 3; i < basicClause.length; ++i) {
+            int literal = basicClause[i];
+            equivalenceClass.add(literal);
+            replacements.put(literal,representative);
+            replacements.put(-literal,-representative);}
+        equivalenceClasses.add(equivalenceClass);
+        return true;}
+
 
     /** turns a basicClause into an equivalence class.
      * Overlapping classes are joined.
@@ -161,29 +200,6 @@ public class EquivalenceClasses {
         if(symboltable == null) {return Integer.toString(literal);}
         return symboltable.getLiteralName(literal);}
 
-    /** computes the flips of truth values if the truth value of the given predicate is flipped.
-     * Example: p == q, and true(p) is flipped to false(p). If true(q) then q must be flipped.
-     *
-     * @param predicate the predicate to be flipped
-     * @param model     a model for all literals
-     * @param flips     collects the predicates to be flipped.
-     * @return          true if some predicates must be flipped.
-     */
-    public boolean flips(int predicate, Model model, ArrayList<Integer> flips) {
-        if(replacements == null || replacements.get(predicate) == null) {return false;}
-        flips.clear();
-        Integer literalp = predicate;
-        Integer literaln = -predicate;
-        int status = model.status(predicate);
-        for(ArrayList<Integer> eqClass : equivalenceClasses) {
-            if(eqClass.contains(literalp)) {
-                for(Integer lit : eqClass) {
-                    if(!lit.equals(literalp) && status == model.status(lit)) {flips.add(Math.abs(lit));}}}
-            else {
-            if(eqClass.contains(literaln)) {
-                for(Integer lit : eqClass) {
-                    if(!lit.equals(literaln) && status == model.status(-lit)) {flips.add(Math.abs(lit));}}}}}
-        return !flips.isEmpty();}
 
     /** computes the literals which must be made true if the given literal is made true
      * Example: p == q, and p is made true then q must be made true
@@ -194,15 +210,18 @@ public class EquivalenceClasses {
      */
     public boolean truths(int literal, ArrayList<Integer> truths) {
         if(replacements == null || replacements.get(literal) == null) {return false;}
-        truths.clear();
         Integer literalp = literal;
         Integer literaln = -literal;
+        boolean found = false;
         for(ArrayList<Integer> eqClass : equivalenceClasses) {
             if(eqClass.contains(literalp)) {
+                found = true;
                 for(Integer lit : eqClass) {if(!lit.equals(literalp)) {truths.add(lit);}}}
             else {
                 if(eqClass.contains(literaln)) {
-                    for(Integer lit : eqClass) {if(!lit.equals(literaln)) {truths.add(-lit);}}}}}
+                    found = true;
+                    for(Integer lit : eqClass) {if(!lit.equals(literaln)) {truths.add(-lit);}}}}
+            if(found) break;}
         return !truths.isEmpty();}
 
 
