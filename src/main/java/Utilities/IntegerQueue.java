@@ -49,6 +49,15 @@ public class IntegerQueue {
         assert item >= 0 && item <= size && !sorted;
         scores[item] = score;}
 
+    /** adds the score for the given item
+     *
+     * @param item   typically a predicate
+     * @param score  its score, e.g. the number of clauses made true when the predicate is flipped
+     */
+    public void addScore(int item, int score) {
+        assert item >= 0 && item <= size && !sorted;
+        scores[item] += score;}
+
     /** gets the score for the given item
      *
      * @param item  e.g. a predicate
