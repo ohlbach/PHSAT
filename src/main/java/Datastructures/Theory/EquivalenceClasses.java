@@ -5,6 +5,7 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Utilities.IntegerQueue;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -15,7 +16,7 @@ import java.util.function.Consumer;
  */
 public class EquivalenceClasses {
     /** the list of equivalence classes */
-    private ArrayList<ArrayList<Integer>> equivalenceClasses = new ArrayList<>();
+    private ArrayList<IntArrayList> equivalenceClasses = new ArrayList<>();
     /** maps literals to their representatives in an equivalence class */
     private HashMap<Integer,Integer> replacements = new HashMap<>();
     /**  a function to be called when adding the new equivalence class causes a contradiction p equiv -p */
@@ -45,11 +46,11 @@ public class EquivalenceClasses {
      */
     public ArrayList<int[]> basicClauses(int id) {
         ArrayList<int[]> clauses = new ArrayList<>();
-        for(ArrayList<Integer> equivalenceClass : equivalenceClasses) {
+        for(IntArrayList equivalenceClass : equivalenceClasses) {
             int[] clause = new int[equivalenceClass.size()+2];
             clause[0] = ++id;
             clause[1] = ClauseType.EQUIV.ordinal();
-            for(int i = 0; i < equivalenceClass.size(); ++i) {clause[i+2] = equivalenceClass.get(i);}
+            for(int i = 0; i < equivalenceClass.size(); ++i) {clause[i+2] = equivalenceClass.getInt(i);}
             clauses.add(clause);}
         return clauses;}
 
@@ -66,10 +67,10 @@ public class EquivalenceClasses {
         assert basicClause.length > 2;
         if(basicClause.length == 3) {return true;}
         if(equivalenceClasses == null) {
-            equivalenceClasses = new ArrayList<ArrayList<Integer>>();
+            equivalenceClasses = new ArrayList<IntArrayList>();
             replacements = new HashMap<>();}
 
-        ArrayList<Integer> equivalenceClass = new ArrayList<>();
+        IntArrayList equivalenceClass = new IntArrayList();
         int representative = basicClause[2];
         equivalenceClass.add(representative);
         for(int i = 3; i < basicClause.length; ++i) {
@@ -92,7 +93,7 @@ public class EquivalenceClasses {
         assert basicClause.length > 2;
         if(basicClause.length == 3) {return true;}
         if(equivalenceClasses == null) {
-            equivalenceClasses = new ArrayList<ArrayList<Integer>>();
+            equivalenceClasses = new ArrayList<IntArrayList>();
             replacements = new HashMap<>();}
 
         int literal = basicClause[2];
@@ -110,17 +111,17 @@ public class EquivalenceClasses {
      */
     public boolean addEquivalence(int literal1, int literal2) {
         if(equivalenceClasses == null) {
-            equivalenceClasses = new ArrayList<ArrayList<Integer>>();
+            equivalenceClasses = new ArrayList();
             replacements = new HashMap<>();}
-        ArrayList<Integer> eClass = null;
-        for(ArrayList<Integer> eqClass : equivalenceClasses) {
+        IntArrayList eClass = null;
+        for(IntArrayList eqClass : equivalenceClasses) {
             if(eqClass.contains(literal1) && eqClass.contains(literal2)) {return false;}
             eClass = joinIfPossible(eqClass,literal1,literal2);
             if(eClass != null) {break;}
             eClass = joinIfPossible(eqClass,literal2,literal1);
             if(eClass != null) {break;}}
         if(eClass == null) {
-            eClass = new ArrayList<Integer>(2);
+            eClass = new IntArrayList(2);
             equivalenceClasses.add(eClass);
             eClass.add(literal1); eClass.add(literal2);}
         eClass.sort(absComparator);
@@ -142,13 +143,13 @@ public class EquivalenceClasses {
      * @param literal2  the second literal
      * @return  either eqClass itself, if the literals were inserted, or null
      */
-    private ArrayList<Integer> joinIfPossible(ArrayList<Integer> eqClass, int literal1, int literal2) {
+    private IntArrayList joinIfPossible(IntArrayList eqClass, int literal1, int literal2) {
         if(eqClass.contains(literal1)) {
             if(eqClass.contains(literal2)) {return eqClass;}
             if(eqClass.contains(-literal2)) {
                 String reason = "Equivalence " + toStringSt(literal1) + " = " +
                         toStringSt(literal2) + " contradicts existing equivalences: \n";
-                for(int i = 0; i < eqClass.size()-1; ++i) {reason += toStringSt(eqClass.get(i))+ " = ";}
+                for(int i = 0; i < eqClass.size()-1; ++i) {reason += toStringSt(eqClass.getInt(i))+ " = ";}
                 reason += toStringSt(eqClass.get(eqClass.size()-1));
                 contradictionHandler.accept(reason); return eqClass;}
             eqClass.add(literal2);
@@ -175,12 +176,12 @@ public class EquivalenceClasses {
      * @returns Unsatisfiable if two different literals in a class have already different truth values, otherwise null
      */
     public Result completeModel(Model model) {
-        for(ArrayList<Integer> eqClass : equivalenceClasses) {
+        for(IntArrayList eqClass : equivalenceClasses) {
             int status = 0;
             int literal1 = 0;
             for(int literal : eqClass) {
                 int stat = model.status(literal);
-                if(stat != 0) {status = stat; literal1 = literal;break;}}
+                if(stat != 0) {status = stat; literal1 = literal; break;}}
             if(status == 0) {continue;}
             for(int literal : eqClass) {
                 int stat = model.status(literal);
@@ -204,23 +205,22 @@ public class EquivalenceClasses {
     /** computes the literals which must be made true if the given literal is made true
      * Example: p == q, and p is made true then q must be made true
      *
-     * @param literal  the literal to be made true
+     * @param literalp  the literal to be made true
      * @param truths   collects the literals to be made true.
      * @return         true if some literals must be made true.
      */
-    public boolean truths(int literal, ArrayList<Integer> truths) {
-        if(replacements == null || replacements.get(literal) == null) {return false;}
-        Integer literalp = literal;
-        Integer literaln = -literal;
+    public boolean truths(int literalp, IntArrayList truths) {
+        if(replacements == null || replacements.get(literalp) == null) {return false;}
+        int literaln = -literalp;
         boolean found = false;
-        for(ArrayList<Integer> eqClass : equivalenceClasses) {
+        for(IntArrayList eqClass : equivalenceClasses) {
             if(eqClass.contains(literalp)) {
                 found = true;
-                for(Integer lit : eqClass) {if(!lit.equals(literalp)) {truths.add(lit);}}}
+                for(int lit : eqClass) {if(lit !=literalp) {truths.add(lit);}}}
             else {
                 if(eqClass.contains(literaln)) {
                     found = true;
-                    for(Integer lit : eqClass) {if(!lit.equals(literaln)) {truths.add(-lit);}}}}
+                    for(int lit : eqClass) {if(lit != literaln) {truths.add(-lit);}}}}
             if(found) break;}
         return !truths.isEmpty();}
 
@@ -234,10 +234,10 @@ public class EquivalenceClasses {
         StringBuilder st = new StringBuilder();
         if(equivalenceClasses.isEmpty()) {return "";}
         st.append("Equivalence Classes:\n");
-        for(ArrayList<Integer> eqClass : equivalenceClasses) {
-            st.append(toStringSt(eqClass.get(0))).append (" = ");
-            for(int i = 1; i < eqClass.size()-1; ++i) {st.append(toStringSt(eqClass.get(i))).append(" = ");}
-            st.append(toStringSt(eqClass.get(eqClass.size()-1))).append("\n");}
+        for(IntArrayList eqClass : equivalenceClasses) {
+            st.append(toStringSt(eqClass.getInt(0))).append (" = ");
+            for(int i = 1; i < eqClass.size()-1; ++i) {st.append(toStringSt(eqClass.getInt(i))).append(" = ");}
+            st.append(toStringSt(eqClass.getInt(eqClass.size()-1))).append("\n");}
         st.append("Replacements:\n");
             for(Map.Entry entry : replacements.entrySet()) {
                 st.append(toStringSt((Integer)entry.getKey())).
