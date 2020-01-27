@@ -13,11 +13,11 @@ import java.util.Iterator;
  *
  * Created by ohlbach on 13.09.2018.
  */
-public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
+public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** for identifying the clause */
     public int id;
     /** the literals */
-    public ArrayList<CLiteral<Clause>> cliterals;
+    public ArrayList<CLiteral> cliterals;
     /** indicates that the clause has been removed */
     public boolean removed = false;
     /** for sorting clauses, for example in a listPosition queue */
@@ -37,14 +37,14 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
      */
     public Clause(int id, int size) {
         this.id = id;
-        cliterals = new ArrayList<CLiteral<Clause>>(size);}
+        cliterals = new ArrayList<CLiteral>(size);}
 
     /** constructs a new clause with given literals
      *
      * @param id        the id of the new clause
      * @param cLiterals the list of CLiterals
      */
-    public Clause(int id, ArrayList<CLiteral<Clause>> cLiterals) {
+    public Clause(int id, ArrayList<CLiteral> cLiterals) {
         this.id = id;
         for(int i = 0; i < cLiterals.size(); ++i) {
             cLiterals.get(i).setClause(this,i);}
@@ -64,7 +64,7 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
         cliterals = new ArrayList<>(length-2);
         for(int i = 2; i < length; ++i) {
             int literal = basicClause[i];
-            cliterals.add(new CLiteral<Clause>(literal,this,cliterals.size()));}
+            cliterals.add(new CLiteral(literal,this,cliterals.size()));}
         setStructure();}
 
 
@@ -131,7 +131,7 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
      * @param position a literal clausePosition
      * @return the cliteral at that clausePosition.
      */
-    public CLiteral<Clause> getCLiteral(int position) {
+    public CLiteral getCLiteral(int position) {
         assert position >= 0 && position < cliterals.size();
         return cliterals.get(position);}
 
@@ -242,7 +242,7 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
         for(int i = 0; i < cliterals.size()-1; ++i) {
             int literal = cliterals.get(i).literal;
             for(int j = i+1; j < cliterals.size(); ++j) {
-                CLiteral<Clause> cliteral = cliterals.get(j);
+                CLiteral cliteral = cliterals.get(j);
                 if(literal == cliteral.literal) {
                     removeAtPosition(j--);
                     doubles = true;}}}
@@ -278,7 +278,7 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
      * @return the iterator over the literals
      */
     @Override
-    public Iterator<CLiteral<Clause>> iterator() {
+    public Iterator<CLiteral> iterator() {
         return cliterals.iterator();}
 
 
@@ -288,7 +288,7 @@ public class Clause implements Iterable<CLiteral<Clause>>, Positioned, Sizable {
     public void check() {
         if(removed) {return;}
         for(int i = 0; i < cliterals.size(); ++i) {
-            CLiteral<Clause> cliteral = cliterals.get(i);
+            CLiteral cliteral = cliterals.get(i);
             Clause clause = cliteral.clause;
             if(clause == null) {
                 System.out.println("Error in Clause.check: clause" + id + ", literal " +

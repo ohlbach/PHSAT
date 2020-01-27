@@ -1,5 +1,6 @@
 package Datastructures.Literals;
 
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Utilities.Positioned;
 
@@ -12,7 +13,7 @@ import java.util.function.Function;
  * Besides the literal, it contains a pointer to the clause and the clausePosition within the clause.
  * A CLiteral can be subclassed to carry more information.
  */
-public class CLiteral<Clause> implements Positioned {
+public class CLiteral implements Positioned {
     public int literal;                // the literal
     public Clause clause = null;       // the clause
     public int clausePosition = -1;    // the clausePosition of the literal within the clause.

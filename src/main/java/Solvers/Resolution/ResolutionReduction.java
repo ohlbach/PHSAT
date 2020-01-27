@@ -72,7 +72,7 @@ public abstract class ResolutionReduction extends Solver {
         super(solverNumber,solverParameters, problemSupervisor);}
 
     /** maps literals (numbers) to their occurrences in clauses */
-    BucketSortedIndex<CLiteral<Clause>> literalIndex;
+    BucketSortedIndex<CLiteral> literalIndex;
 
     /** is set false after all initial clauses are integrated */
     boolean initializing = true;
@@ -232,7 +232,7 @@ public abstract class ResolutionReduction extends Solver {
         boolean changes = false;
         while(replacements != null) { // several literals may become resolved away
             changes = true;
-            CLiteral<Clause> cLiteral = (CLiteral<Clause>)replacements[0];
+            CLiteral cLiteral = (CLiteral)replacements[0];
             ++statistics.backwardReplacementResolutions;
             String clauseString = null;
             if(monitoring) {clauseString = clause.toString(symboltable);}
@@ -274,13 +274,13 @@ public abstract class ResolutionReduction extends Solver {
         if(checkConsistency) check("forwardSubsumption");}
 
     /** just used in simplifyForward */
-    private ArrayList<CLiteral<Clause>> resolvedLiterals = new ArrayList<>();
+    private ArrayList<CLiteral> resolvedLiterals = new ArrayList<>();
 
     void forwardReplacementResolution(Clause clause) {
         resolvedLiterals.clear();
         LitAlgorithms.replacementResolutionForward(clause,literalIndex,timestamp, resolvedLiterals);
         timestamp += maxClauseLength +1;
-        for(CLiteral<Clause> cLiteral : resolvedLiterals) {
+        for(CLiteral cLiteral : resolvedLiterals) {
             ++statistics.forwardReplacementResolutions;
             Clause literalClause = cLiteral.clause;
             String clauseString = null;
@@ -309,7 +309,7 @@ public abstract class ResolutionReduction extends Solver {
     void analyseShortenedClause(Clause clause) {
         switch(clause.size()) {
             case 1:
-                CLiteral<Clause> cliteral = clause.getCLiteral(0);
+                CLiteral cliteral = clause.getCLiteral(0);
                 int literal = cliteral.literal;
                 addTrueLiteralTask(literal,
                         "Clause " + clause.toString(symboltable) + " shortened to unit literal " + ": " + literalName(literal));
@@ -394,10 +394,10 @@ public abstract class ResolutionReduction extends Solver {
         int size01p = literalIndex.size01(eliminateLiteral);
         int size01n = literalIndex.size01(-eliminateLiteral);
         if(size01p != 1 || size01n == 0) {return;} // the situation may have changed when this method is called.
-        CLiteral<Clause> parentCLiteral = literalIndex.getAllItems(eliminateLiteral).get(0);
+        CLiteral parentCLiteral = literalIndex.getAllItems(eliminateLiteral).get(0);
         Clause clause  = literalIndex.getAllItems(eliminateLiteral).get(0).clause;  // the clause with the literal to be eliminated
         replacedClauses.clear();
-        for(CLiteral<Clause> otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) { // all literals with -p
+        for(CLiteral otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) { // all literals with -p
             Clause otherClause = otherCliteral.clause;
             Clause resolvent = LitAlgorithms.resolve(id,parentCLiteral,otherCliteral); // double literals and tautologies tested
             removeClause(otherClause,0);
@@ -528,12 +528,12 @@ public abstract class ResolutionReduction extends Solver {
             case -1: return new Unsatisfiable(model,literal);
             case +1: return null;}
         model.add(literal);
-        Iterator<CLiteral<Clause>> iterator = literalIndex.popIterator(literal);
+        Iterator<CLiteral> iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
             Clause clause = iterator.next().clause;
             removeClause(clause,literal);}
         literalIndex.pushIterator(literal,iterator);
-        for(CLiteral<Clause> cLiteral : literalIndex.getAllItems(-literal)) {
+        for(CLiteral cLiteral : literalIndex.getAllItems(-literal)) {
             removeLiteral(cLiteral);
             analyseShortenedClause(cLiteral.clause);}
         literalIndex.clearBoth(Math.abs(literal));
@@ -625,11 +625,11 @@ public abstract class ResolutionReduction extends Solver {
      */
     private boolean isEquivalence(Clause clause) {
         if(clause.size() != 2) {return false;}
-        ArrayList<CLiteral<Clause>> clits1 = literalIndex.getItems(-clause.getCLiteral(0).literal,2);
-        ArrayList<CLiteral<Clause>> clits2 = literalIndex.getItems(-clause.getCLiteral(1).literal,2);
+        ArrayList<CLiteral> clits1 = literalIndex.getItems(-clause.getCLiteral(0).literal,2);
+        ArrayList<CLiteral> clits2 = literalIndex.getItems(-clause.getCLiteral(1).literal,2);
         if(clits1 == null || clits2 == null) {return false;}
-        for(CLiteral<Clause> clit : clits1) {clit.clause.timestamp = timestamp;}
-        for(CLiteral<Clause> clit : clits2) {if(clit.clause.timestamp == timestamp) {++timestamp; return true;}}
+        for(CLiteral clit : clits1) {clit.clause.timestamp = timestamp;}
+        for(CLiteral clit : clits2) {if(clit.clause.timestamp == timestamp) {++timestamp; return true;}}
         ++timestamp; return false;}
 
 
@@ -680,7 +680,7 @@ public abstract class ResolutionReduction extends Solver {
      * @param toLiteral    the new literal
      */
     void replaceLiteralInAllClauses(int fromLiteral, int toLiteral) {
-        for(CLiteral<Clause> cliteral : literalIndex.getAllItems(fromLiteral)) {
+        for(CLiteral cliteral : literalIndex.getAllItems(fromLiteral)) {
             Clause clause = cliteral.clause;
             Clause newClause = new Clause(++id[0],clause.size());
             boolean tautology = false;
@@ -725,7 +725,7 @@ public abstract class ResolutionReduction extends Solver {
         else {if(clause.isNegative()) {--statistics.negativeClauses;}}
         --statistics.clauses;
         getClauseList(clause).remove(clause);
-        for(CLiteral<Clause> cLiteral : clause) {
+        for(CLiteral cLiteral : clause) {
             if(cLiteral.literal != ignoreLiteral) {
                 literalIndex.remove(cLiteral);}}
         clause.removed = true;
@@ -739,7 +739,7 @@ public abstract class ResolutionReduction extends Solver {
      * @param cLiteral the literal to be removed
      * @return true if the clause became a unit clause
      */
-    boolean removeLiteral(CLiteral<Clause> cLiteral) {
+    boolean removeLiteral(CLiteral cLiteral) {
         Clause clause = cLiteral.clause;
         if(clause.removed) {return false;}
         if(clause.getPosition() >= 0) {return false;}
@@ -785,11 +785,11 @@ public abstract class ResolutionReduction extends Solver {
     void completeEliminationsInModel() {
         for(int i = eliminatedLiterals.size()-1; i >= 0; --i) {
             Object[] els = eliminatedLiterals.get(i);
-            ArrayList<CLiteral<Clause>> literals = (ArrayList<CLiteral<Clause>>)els[0];
+            ArrayList<CLiteral> literals = (ArrayList<CLiteral>)els[0];
             int literal = (int)els[1];
             if(model.status(literal) != 0) {continue;}
             boolean satisfied = false;
-            for(CLiteral<Clause>cliteral : literals) {
+            for(CLiteral cliteral : literals) {
                 int lit = cliteral.literal;
                 if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
             model.add(satisfied ? -literal : literal);}}
@@ -800,14 +800,14 @@ public abstract class ResolutionReduction extends Solver {
      * @param clause  the clause to be inserted
      */
     void insertIntoIndex(Clause clause) {
-        for(CLiteral<Clause> cliteral : clause) {literalIndex.add(cliteral);}}
+        for(CLiteral cliteral : clause) {literalIndex.add(cliteral);}}
 
     /** removes a clause from the literal index
      *
      * @param clause  the clause to be inserted
      */
     void removeFromIndex(Clause clause) {
-        for(CLiteral<Clause> cliteral : clause) {literalIndex.remove(cliteral);}}
+        for(CLiteral cliteral : clause) {literalIndex.remove(cliteral);}}
 
 
 

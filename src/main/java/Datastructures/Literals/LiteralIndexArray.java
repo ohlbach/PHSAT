@@ -7,10 +7,10 @@ import java.util.Iterator;
 /**
  * Created by ohlbach on 25.06.2019.
  */
-public class LiteralIndexArray<Clause> extends LiteralIndex<Clause>  {
-    private ArrayList<CLiteral<Clause>>[] posOccurrences;  // maps each positive predicate to the list of occurrences
-    private ArrayList<CLiteral<Clause>>[] negOccurrences;  // maps each negative predicate to the list of occurrences
-    private ArrayList<CLiteral<Clause>> emptyList;
+public class LiteralIndexArray extends LiteralIndex  {
+    private ArrayList<CLiteral>[] posOccurrences;  // maps each positive predicate to the list of occurrences
+    private ArrayList<CLiteral>[] negOccurrences;  // maps each negative predicate to the list of occurrences
+    private ArrayList<CLiteral> emptyList;
 
     /** constructs an index for a given number of predicates
      *
@@ -27,11 +27,11 @@ public class LiteralIndexArray<Clause> extends LiteralIndex<Clause>  {
      *
      * @param cliteral the literal to be added
      */
-    public void addLiteral(CLiteral<Clause> cliteral) {
+    public void addLiteral(CLiteral cliteral) {
         int literal = cliteral.literal;
         int predicate = Math.abs(literal);
-        ArrayList<CLiteral<Clause>>[] list = literal > 0 ? posOccurrences : negOccurrences;
-        ArrayList<CLiteral<Clause>> lits = list[predicate];
+        ArrayList<CLiteral>[] list = literal > 0 ? posOccurrences : negOccurrences;
+        ArrayList<CLiteral> lits = list[predicate];
         if(lits == null) {
             lits = new ArrayList();
             list[predicate] = lits;}
@@ -42,9 +42,9 @@ public class LiteralIndexArray<Clause> extends LiteralIndex<Clause>  {
      *
      * @param cliteral the literal to be removed.
      */
-    public void removeLiteral(CLiteral<Clause> cliteral) {
+    public void removeLiteral(CLiteral cliteral) {
         int literal = cliteral.literal;
-        ArrayList<CLiteral<Clause>> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        ArrayList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         if(list == null) {return;}
         int size = list.size()-1;
         if(size == 0) {
@@ -52,7 +52,7 @@ public class LiteralIndexArray<Clause> extends LiteralIndex<Clause>  {
             else            {negOccurrences[-literal] = null;}}
         else {
             int position = cliteral.indexPosition;
-            CLiteral<Clause> lastLiteral = list.get(size);
+            CLiteral lastLiteral = list.get(size);
             lastLiteral.indexPosition = position;
             list.set(position,lastLiteral);
             list.remove(size);}
@@ -64,9 +64,9 @@ public class LiteralIndexArray<Clause> extends LiteralIndex<Clause>  {
      * @param literal the literal (integer)
      * @return the list of occurrences (CLiterals)
      */
-    public AbstractCollection<CLiteral<Clause>> getLiterals(int literal) {
+    public AbstractCollection<CLiteral> getLiterals(int literal) {
         assert literal != 0 && (Math.abs(literal) <= predicates);
-        ArrayList<CLiteral<Clause>> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        ArrayList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null ? emptyList : list;}
 
     /** returns the number of cLiterals indexed by this literal
@@ -75,17 +75,17 @@ public class LiteralIndexArray<Clause> extends LiteralIndex<Clause>  {
      * @return the number of cLiterals indexed by this literal
      */
     public int size(int literal) {
-        ArrayList<CLiteral<Clause>> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        ArrayList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null ? 0 : list.size();}
 
     public boolean isEmpty(int literal) {
-        ArrayList<CLiteral<Clause>> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        ArrayList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null || list.isEmpty();}
 
 
 
-    public Iterator<CLiteral<Clause>> iterator(int literal) {
-        ArrayList<CLiteral<Clause>> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+    public Iterator<CLiteral> iterator(int literal) {
+        ArrayList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return (list == null) ? emptyList.iterator() : list.iterator();}
 
 

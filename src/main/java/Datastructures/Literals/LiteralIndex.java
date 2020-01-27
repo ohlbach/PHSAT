@@ -8,7 +8,7 @@ import java.util.function.Function;
  * Subclasses may differ in the representation of these lists, for example sorted according to the size of the clauses.
  * Created by Ohlbach on 25.08.2018.
  */
-public abstract class LiteralIndex<Clause> {
+public abstract class LiteralIndex {
     public int predicates;   // number of predicates
 
 
@@ -20,13 +20,13 @@ public abstract class LiteralIndex<Clause> {
      *
      * @param cliteral the literal to be added
      */
-    public abstract void addLiteral(CLiteral<Clause> cliteral);
+    public abstract void addLiteral(CLiteral cliteral);
 
     /** removes the literal from the index (in constant time)
      *
      * @param cliteral the literal to be removed.
      */
-    public abstract void removeLiteral(CLiteral<Clause> cliteral);
+    public abstract void removeLiteral(CLiteral cliteral);
 
 
     /** returns the CLiterals with the given literal (integer)
@@ -34,7 +34,7 @@ public abstract class LiteralIndex<Clause> {
      * @param literal the literal (integer)
      * @return the list of occurrences (CLiterals)
      */
-    public abstract AbstractCollection<CLiteral<Clause>> getLiterals(int literal);
+    public abstract AbstractCollection<CLiteral> getLiterals(int literal);
     /** returns the number of cLiterals indexed by this literal
      *
      * @param literal a literal
@@ -70,7 +70,7 @@ public abstract class LiteralIndex<Clause> {
      * @param literal a literal
      * @return an iterator over all CLiterals (occurrences of the literal in the clauses).
      */
-    public abstract Iterator<CLiteral<Clause>> iterator(int literal);
+    public abstract Iterator<CLiteral> iterator(int literal);
 
     /** comprises the index into a string
      *
@@ -84,22 +84,22 @@ public abstract class LiteralIndex<Clause> {
      * @param literalString a function for mapping cLiterals to strings
      * @return the entire index as string.
      */
-    public String toString(Function<CLiteral<Clause>,String> literalString) {
+    public String toString(Function<CLiteral,String> literalString) {
         StringBuilder st = new StringBuilder();
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             StringBuilder posString = null;
             StringBuilder negString = null;
-            Iterator<CLiteral<Clause>> it = iterator(predicate);
+            Iterator<CLiteral> it = iterator(predicate);
             if(!isEmpty(predicate)) {
                 posString = new StringBuilder();
                 while(it.hasNext()) {
-                    CLiteral<Clause> lit = it.next();
+                    CLiteral lit = it.next();
                     posString.append(literalString.apply(lit)).append("@"+lit.clausePosition).append(",");}}
             if(!isEmpty(-predicate)) {
                 negString = new StringBuilder();
                 it = iterator(-predicate);
                 while(it.hasNext()) {
-                    CLiteral<Clause> lit = it.next();
+                    CLiteral lit = it.next();
                     posString.append(literalString.apply(lit)).append("@"+lit.clausePosition).append(",");}}
             if(posString != null) {
                 st.append(" ").append(Integer.toString(predicate)).append(": ").append(posString).append("\n");}

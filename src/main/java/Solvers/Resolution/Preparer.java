@@ -70,7 +70,7 @@ public class Preparer extends ResolutionReduction {
 
     /** contains all the clauses, sorted according to the clause length*/
     private BucketSortedList<Clause> clauses;
-    BucketSortedIndex<CLiteral<Clause>> literalIndex = null;
+    BucketSortedIndex<CLiteral> literalIndex = null;
     TaskQueue taskQueue = null;
     ResolutionStatistics statistics = null;
     int maxClauseLength = 3;
@@ -79,7 +79,7 @@ public class Preparer extends ResolutionReduction {
     /** initializes resolution specific data structures*/
     void initializeData() {
         clauses      = new BucketSortedList<Clause>(clause->clause.size());
-        literalIndex = new BucketSortedIndex<CLiteral<Clause>>(predicates+1,
+        literalIndex = new BucketSortedIndex<CLiteral>(predicates+1,
                             (cLiteral->cLiteral.literal),
                             (cLiteral->cLiteral.clause.size()));
         taskQueue    = new TaskQueue(combinedId,monitor);
@@ -105,7 +105,7 @@ public class Preparer extends ResolutionReduction {
     private void resetTimestamps() {
         for(Clause clause : clauses) {
             clause.timestamp = 0;
-            for(CLiteral<Clause> clit : clause) {clit.timestamp = 0;}}}
+            for(CLiteral clit : clause) {clit.timestamp = 0;}}}
 
 
     Result doTheWork() throws InterruptedException {
@@ -144,7 +144,7 @@ public class Preparer extends ResolutionReduction {
             analyseShortenedClause(resolvent);
             return;}
 
-        CLiteral<Clause> cliteral = (CLiteral<Clause>)result;
+        CLiteral cliteral = (CLiteral)result;
         if(monitoring) {monitorUsedClauses("removing literal " + cliteral.toString(symboltable) + " from clause\n   " +
                 clause.toString(symboltable) + " by UR-Resolution using clauses ");}
         removeLiteral(cliteral);
@@ -177,7 +177,7 @@ public class Preparer extends ResolutionReduction {
     private void reduceClause(Clause clause, int maxLevel) {
         if(clause.removed) {return ;}
         if(monitoring) {usedClauses.clear();}
-        CLiteral<Clause> cliteral = LitAlgorithms.canBRemoved(clause,literalIndex,timestamp,maxLevel,monitoring ? usedClauses : null);
+        CLiteral cliteral = LitAlgorithms.canBRemoved(clause,literalIndex,timestamp,maxLevel,monitoring ? usedClauses : null);
         timestamp += maxClauseLength * maxLevel + 2;
         if(cliteral == null) {return;}
         if(monitoring) {
@@ -223,7 +223,7 @@ public class Preparer extends ResolutionReduction {
      */
     public String toString(Symboltable symboltable) {
         Function<Clause,String> clauseString = (clause->clause.toString(symboltable));
-        Function<CLiteral<Clause>,String> literalString = (cliteral->cliteral.toString(symboltable,clause->Integer.toString(clause.id)));
+        Function<CLiteral,String> literalString = (cliteral->cliteral.toString(symboltable,clause->Integer.toString(clause.id)));
         StringBuilder st = new StringBuilder();
         st.append("Reduction:\n");
         if(!clauses.isEmpty()) {

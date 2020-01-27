@@ -165,7 +165,7 @@ public class Resolution extends Solver {
     private BucketSortedList<Clause> secondaryClauses;
 
     /** maps literals (numbers) to their occurrences in clauses */
-    public BucketSortedIndex<CLiteral<Clause>> literalIndex;
+    public BucketSortedIndex<CLiteral> literalIndex;
 
     /** If the strategy is SOS, then this number determines how many randomly chosen clauses are put into the primaryClauses list */
     private int percentageOfSOSClauses = 0;
@@ -192,7 +192,7 @@ public class Resolution extends Solver {
         percentageOfSOSClauses = (percent != null) ? (Integer)percent : 0;
         primaryClauses         = new BucketSortedList<Clause>(clause->clause.size());
         secondaryClauses       = new BucketSortedList<Clause>(clause->clause.size());
-        literalIndex           = new BucketSortedIndex<CLiteral<Clause>>(predicates+1,
+        literalIndex           = new BucketSortedIndex<CLiteral>(predicates+1,
                                     (cLiteral->cLiteral.literal),
                                     (cLiteral->cLiteral.clause.size()));
         taskQueue = new TaskQueue(combinedId,monitor);}
@@ -266,7 +266,7 @@ public class Resolution extends Solver {
      */
     private Result resolve()  throws InterruptedException {
         Result result = null;
-        CLiteral<Clause>[] parentLiterals = new CLiteral[2];
+        CLiteral[] parentLiterals = new CLiteral[2];
         while(resolvents <= resolutionLimit) {
             if(Thread.interrupted()) {throw new InterruptedException();}
             purityAndElimination();
@@ -343,15 +343,15 @@ public class Resolution extends Solver {
             for(CLiteral literal1 : parent1) {
                 parentLiterals[0] = literal1;
                 boolean first = true;
-                Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(-literal1.literal);
+                Iterator<CLiteral> iterator = literalIndex.iterator(-literal1.literal);
                 while(iterator.hasNext()) {
-                    CLiteral<Clause> literal2 = iterator.next();parentLiterals[1] = literal2;
+                    CLiteral literal2 = iterator.next();parentLiterals[1] = literal2;
                     Clause parent2 = literal2.clause;
                     String id2 = Integer.toString(parent2.id);
                     if(clauseNames.contains(id1+id2) || clauseNames.contains(id2+id1)) {continue;}
                     if(first) {parentLiterals[1] = literal2; first = false;}
                     if(literal2.clause.size() < size1) {parentLiterals[1] = literal2; return;}
-                    for(CLiteral<Clause> lit2 : literal2.clause) {
+                    for(CLiteral lit2 : literal2.clause) {
                         if(parent1.contains(lit2.literal) == 1) {parentLiterals[1] = literal2; return;}}}}}
         System.out.println("\nNothing found");
         System.out.println(toString());}
@@ -414,7 +414,7 @@ public class Resolution extends Solver {
         Object[] replacements = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
 
         while(replacements != null) { // several literals may become resolved away
-             CLiteral<Clause> cLiteral = (CLiteral<Clause>)replacements[0];
+             CLiteral cLiteral = (CLiteral)replacements[0];
             ++statistics.backwardReplacementResolutions;
             if(monitoring) {
                 monitor.print(combinedId,
@@ -429,7 +429,7 @@ public class Resolution extends Solver {
     /** just used in simplifyForward */
     private ArrayList<Clause> clauseList = new ArrayList<>();
     /** just used in simplifyForward */
-    private ArrayList<CLiteral<Clause>> literalList = new ArrayList<>();
+    private ArrayList<CLiteral> literalList = new ArrayList<>();
 
     /** does forward subsumption and replacement resolution
      *
@@ -448,7 +448,7 @@ public class Resolution extends Solver {
         literalList.clear();
         timestamp += maxClauseLength +1;
         LitAlgorithms.replacementResolutionForward(clause,literalIndex,timestamp,literalList);
-        for(CLiteral<Clause> cLiteral : literalList) {
+        for(CLiteral cLiteral : literalList) {
             ++statistics.forwardReplacementResolutions;
             if(monitoring) {
                 monitor.print(combinedId,"Literal " + cLiteral.literal + " in clause \n  " + cLiteral.clause.toString() +
@@ -512,12 +512,12 @@ public class Resolution extends Solver {
                 for(int[] clause : falseClauses) {
                     System.out.println(basicClauseList.clauseToString(clause));}
                 System.exit(1);}}
-        Iterator<CLiteral<Clause>> iterator = literalIndex.iterator(literal);
+        Iterator<CLiteral> iterator = literalIndex.iterator(literal);
         while(iterator.hasNext()) {
             Clause clause = iterator.next().clause;
             removeClause(clause,literal);}
 
-        for(CLiteral<Clause> cLiteral : literalIndex.getAllItems(-literal)) {
+        for(CLiteral cLiteral : literalIndex.getAllItems(-literal)) {
             removeLiteral(cLiteral);}
         literalIndex.clearBoth(Math.abs(literal));
         //System.out.println("PL END " + literal);
@@ -534,16 +534,16 @@ public class Resolution extends Solver {
         //System.out.println("Start Elimination " + eliminateLiteral );
         //System.out.println(toString());
         Clause clause  = literalIndex.getAllItems(eliminateLiteral).get(0).clause;
-        ArrayList<CLiteral<Clause>> literals = clause.cliterals;
+        ArrayList<CLiteral> literals = clause.cliterals;
         boolean inPrimary = primaryClauses.contains(clause);
-        for(CLiteral<Clause> otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) {
+        for(CLiteral otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) {
             boolean tautology = false;
             Clause otherClause = otherCliteral.clause;
             Clause newClause = new Clause(++id[0]);
-            ArrayList<CLiteral<Clause>> newLiterals = new ArrayList<>();
-            for(CLiteral<Clause> literal : literals) {
+            ArrayList<CLiteral> newLiterals = new ArrayList<>();
+            for(CLiteral literal : literals) {
                 if(literal.literal != eliminateLiteral) {newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size()));}}
-            for(CLiteral<Clause> literal : otherClause.cliterals) {
+            for(CLiteral literal : otherClause.cliterals) {
                 if(literal.literal == -eliminateLiteral) {continue;}
                 int contained = LitAlgorithms.contains(newLiterals,literal.literal);
                 if(contained > 0) {continue;}
@@ -599,18 +599,18 @@ public class Resolution extends Solver {
         completeEliminations();
         Result result = equivalenceClasses.completeModel(model);
         if(result != null) {return result;}
-        result = checkModel();
+        result = checkModel(model);
         if(result != null) {return result;}
         return new Satisfiable(model);}
 
     private void completeEliminations() {
         for(int i = eliminatedLiterals.size()-1; i >= 0; --i) {
             Object[] els = eliminatedLiterals.get(i);
-            ArrayList<CLiteral<Clause>> literals = (ArrayList<CLiteral<Clause>>)els[0];
+            ArrayList<CLiteral> literals = (ArrayList<CLiteral>)els[0];
             int literal = (int)els[1];
             if(model.status(literal) != 0) {continue;}
             boolean satisfied = false;
-            for(CLiteral<Clause>cliteral : literals) {
+            for(CLiteral  cliteral : literals) {
                 int lit = cliteral.literal;
                 if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
             model.add(satisfied ? -literal : literal);}}
@@ -634,7 +634,7 @@ public class Resolution extends Solver {
         ++clauseCounter;
         maxClauseLength = Math.max(maxClauseLength,clause.size());
         (primary ? primaryClauses : secondaryClauses).add(clause);
-        for(CLiteral<Clause> cLiteral : clause) {literalIndex.add(cLiteral);}
+        for(CLiteral cLiteral : clause) {literalIndex.add(cLiteral);}
         if(checkConsistency) {check("insertClause");}}
 
 
@@ -648,7 +648,7 @@ public class Resolution extends Solver {
         --clauseCounter;
         if(primaryClauses.contains(clause)) {primaryClauses.remove(clause);}
         else {secondaryClauses.remove(clause);}
-        for(CLiteral<Clause> cLiteral : clause) {
+        for(CLiteral cLiteral : clause) {
             if(cLiteral.literal != ignoreLiteral) {
                 literalIndex.remove(cLiteral);}}
         clause.removed = true;
@@ -662,7 +662,7 @@ public class Resolution extends Solver {
     private void replaceClause(Clause primaryClause, Clause secondaryClause) {
         primaryClauses.remove(primaryClause);
         primaryClause.removed = true;
-        for(CLiteral<Clause> cLiteral : primaryClause) {literalIndex.remove(cLiteral);}
+        for(CLiteral cLiteral : primaryClause) {literalIndex.remove(cLiteral);}
         secondaryClauses.remove(secondaryClause);
         primaryClauses.add(secondaryClause);
         if(checkConsistency) {check("replaceClause");}}
@@ -674,13 +674,13 @@ public class Resolution extends Solver {
      * @param cLiteral the literal to be removed
      * @return true if the clause is still there.
      */
-    private boolean removeLiteral(CLiteral<Clause> cLiteral) {
+    private boolean removeLiteral(CLiteral cLiteral) {
         Clause clause = cLiteral.clause;
         if(clause.removed) {return false;}
         boolean isOld = clause.getPosition() >= 0;
         if(isOld) {
             (primaryClauses.contains(clause) ? primaryClauses : secondaryClauses).remove(clause);
-            for(CLiteral<Clause> cliteral : clause) literalIndex.remove(cliteral);}
+            for(CLiteral cliteral : clause) literalIndex.remove(cliteral);}
         clause.remove(cLiteral);
         if(clause.size() == 1) {
             addTrueLiteralTask( clause.getLiteral(0),true,
@@ -688,7 +688,7 @@ public class Resolution extends Solver {
             removeClause(clause,0);
             return false;}
         if(isOld) {
-            for(CLiteral<Clause> cliteral : clause) literalIndex.add(cliteral); // literals are inserted into different buckets
+            for(CLiteral cliteral : clause) literalIndex.add(cliteral); // literals are inserted into different buckets
             switch(strategy) {
                 case INPUT:
                 case SOS:      primaryClauses.add(clause); break;
@@ -725,12 +725,12 @@ public class Resolution extends Solver {
      */
     private boolean isEquivalence(Clause clause) {
         if(clause.size() != 2) {return false;}
-        ArrayList<CLiteral<Clause>> clits1 = literalIndex.getItems(-clause.getCLiteral(0).literal,2);
-        ArrayList<CLiteral<Clause>> clits2 = literalIndex.getItems(-clause.getCLiteral(1).literal,2);
+        ArrayList<CLiteral> clits1 = literalIndex.getItems(-clause.getCLiteral(0).literal,2);
+        ArrayList<CLiteral> clits2 = literalIndex.getItems(-clause.getCLiteral(1).literal,2);
         if(clits1 == null || clits2 == null) {return false;}
         timestamp += maxClauseLength +1;
-        for(CLiteral<Clause> clit : clits1) {clit.clause.timestamp = timestamp;}
-        for(CLiteral<Clause> clit : clits2) {if(clit.clause.timestamp == timestamp) {return true;}}
+        for(CLiteral clit : clits1) {clit.clause.timestamp = timestamp;}
+        for(CLiteral clit : clits2) {if(clit.clause.timestamp == timestamp) {return true;}}
         return false;}
 
     /** This method checks if the clause is part of an equivalence (p,q) (-p,-q)
@@ -780,7 +780,7 @@ public class Resolution extends Solver {
                     "equivalent literals " + fromLiteral + " " + toLiteral);
             return null;}
         replacedClauses.clear();
-        for(CLiteral<Clause> cliteral : literalIndex.getAllItems(fromLiteral)) {
+        for(CLiteral cliteral : literalIndex.getAllItems(fromLiteral)) {
             Clause clause = cliteral.clause;
             Clause newClause = new Clause(++id[0],clause.size());
             boolean tautology = false;
@@ -793,7 +793,7 @@ public class Resolution extends Solver {
             removeClause(clause,0);
             if(!tautology) {replacedClauses.add(newClause);}}
 
-        for(CLiteral<Clause> cliteral : literalIndex.getAllItems(-fromLiteral)) {
+        for(CLiteral cliteral : literalIndex.getAllItems(-fromLiteral)) {
             Clause clause = cliteral.clause;
             Clause newClause = new Clause(++id[0],clause.size());
             boolean tautology = false;
@@ -839,7 +839,7 @@ public class Resolution extends Solver {
      */
     public String toString(Symboltable symboltable) {
         Function<Clause,String> clauseString = (clause->clause.toString(symboltable));
-        Function<CLiteral<Clause>,String> literalString = (cliteral->cliteral.toString(symboltable,clause->Integer.toString(clause.id)));
+        Function<CLiteral,String> literalString = (cliteral->cliteral.toString(symboltable,clause->Integer.toString(clause.id)));
         StringBuilder st = new StringBuilder();
         st.append("Resolution:\n");
         if(!primaryClauses.isEmpty()) {
