@@ -16,26 +16,26 @@ import static org.junit.Assert.*;
 public class LitAlgorithmsTest {
 
 
-    private Clause make(int id,BucketSortedIndex<CLiteral<Clause>> literalIndex,int... literals) {
+    private Clause make(int id,BucketSortedIndex<CLiteral> literalIndex,int... literals) {
         Clause cl = new Clause(id,literals.length);
         int i = -1;
         for(int l:literals) {
             CLiteral lit = new CLiteral(l,cl,++i);
             cl.add(lit);}
-        for(CLiteral<Clause> lit : cl) {literalIndex.add(lit);}
+        for(CLiteral lit : cl) {literalIndex.add(lit);}
         cl.setStructure();
         return cl;}
 
-        private BucketSortedIndex<CLiteral<Clause>> makeIndex(int predicates) {
+        private BucketSortedIndex<CLiteral> makeIndex(int predicates) {
             return
-                new BucketSortedIndex<CLiteral<Clause>>(predicates,
+                new BucketSortedIndex<CLiteral>(predicates,
                     (cLiteral->cLiteral.literal),
                     (cLiteral-> cLiteral.clause.size()));}
 
     @Test
     public void isSubsumed() throws Exception {
         System.out.println("isSubsumed");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1,index, 10,20,30);
         Clause c2 = make(2,index,30,20,10);
         Clause c3 = make(3,index,30,20,10,40);
@@ -50,7 +50,7 @@ public class LitAlgorithmsTest {
     @Test
     public void subsumes() throws Exception {
         System.out.println("subsumes");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1,index, 10,20,30);
         Clause c2 = make(2,index,30,20,10);
         Clause c3 = make(3,index,30,20,10,40);
@@ -71,7 +71,7 @@ public class LitAlgorithmsTest {
     @Test
     public void replacementResolutionBackwards() throws Exception {
         System.out.println("replacement resolution backwards");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1,index, 10,20,30);
         Clause c2 = make(2,index,30,20,10);
         Clause c3 = make(3,index,30,20,10,40);
@@ -93,13 +93,13 @@ public class LitAlgorithmsTest {
     @Test
     public void replacementResolutionForward() throws Exception {
         System.out.println("replacement resolution forward");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1,index, 10,20,30);
         Clause c2 = make(2,index,30,20,11);
         Clause c3 = make(3,index,30,20,10,40);
         Clause c4 = make(4,index,30,20,-10,40);
         Clause c5 = make(5,index,30,-40);
-        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
+        ArrayList<CLiteral> result = new ArrayList<>();
         LitAlgorithms.replacementResolutionForward(c5,index, 1, result);
         assertEquals(2,result.size());
         assertEquals(c3.getCLiteral(3),result.get(0));
@@ -120,7 +120,7 @@ public class LitAlgorithmsTest {
     @Test
     public void contains() throws Exception {
         System.out.println("contains");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1,index, 10,-20,30);
         assertEquals(1,LitAlgorithms.contains(c1.cliterals,10));
         assertEquals(-1,LitAlgorithms.contains(c1.cliterals,-10));
@@ -131,7 +131,7 @@ public class LitAlgorithmsTest {
     @Test
     public void resolve() throws Exception {
         System.out.println("resolve");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1,index, 10,-20,30);
         Clause c2 = make(2,index, 10,20,30);
         Clause c3 = make(3,index, -10,20,30);
@@ -147,11 +147,11 @@ public class LitAlgorithmsTest {
     @Test
     public void canBRemoved1() throws Exception {
         System.out.println("canBRemoved1");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 10, 20, 30);
         Clause c2 = make(2, index, 30, -10, 20);
-        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
-        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,1,null);
+        ArrayList<CLiteral> result = new ArrayList<>();
+        CLiteral clit = LitAlgorithms.canBRemoved(c1,index,1,1,null);
         assertNotNull(clit);
         assertEquals(10,clit.literal);
         clit = LitAlgorithms.canBRemoved(c2,index,3,1,null);
@@ -162,22 +162,22 @@ public class LitAlgorithmsTest {
     @Test
     public void canBRemoved2() throws Exception {
         System.out.println("canBRemoved2");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 10, 20, 30);
         Clause c2 = make(2, index, -10,20, 31);
-        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
-        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,1,null);
+        ArrayList<CLiteral> result = new ArrayList<>();
+        CLiteral clit = LitAlgorithms.canBRemoved(c1,index,1,1,null);
         assertNull(clit);
     }
     @Test
     public void canBRemoved3() throws Exception {
         System.out.println("canBRemoved3");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 10, 20, 30);
         Clause c2 = make(2, index, -10,20, 31);
         Clause c3 = make(3, index, -31,20, 30);
-        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
-        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3,null);
+        ArrayList<CLiteral> result = new ArrayList<>();
+        CLiteral clit = LitAlgorithms.canBRemoved(c1,index,1,3,null);
         assertNotNull(clit);
         assertEquals(10,clit.literal);
     }
@@ -185,12 +185,12 @@ public class LitAlgorithmsTest {
     @Test
     public void canBRemoved4() throws Exception {
         System.out.println("canBRemoved4");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 10, 20, 30);
         Clause c2 = make(2, index, -10,20, 31);
         Clause c3 = make(3, index, -31,20, 33);
-        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
-        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3,null);
+        ArrayList<CLiteral> result = new ArrayList<>();
+        CLiteral clit = LitAlgorithms.canBRemoved(c1,index,1,3,null);
         assertNull(clit);
     }
 
@@ -198,40 +198,40 @@ public class LitAlgorithmsTest {
     @Test
     public void canBRemoved5() throws Exception {
         System.out.println("canBRemoved5");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 10, 20, 30);
         Clause c2 = make(2, index, -10,20, 31);
         Clause c3 = make(3, index, -31,20, 10);
-        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
-        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3,null);
+        ArrayList<CLiteral> result = new ArrayList<>();
+        CLiteral clit = LitAlgorithms.canBRemoved(c1,index,1,3,null);
         assertNull(clit);
     }
 
     @Test
     public void canBRemoved6() throws Exception {
         System.out.println("canBRemoved6");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 1, 2, 3);
         Clause c2 = make(2, index, -1,4, 5);
         Clause c3 = make(3, index, -4,5, 3);
         Clause c4 = make(4, index, -5,4, 2);
 
-        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
-        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3,null);
+        ArrayList<CLiteral> result = new ArrayList<>();
+        CLiteral clit = LitAlgorithms.canBRemoved(c1,index,1,3,null);
         assertNull(clit);
     }
 
     @Test
     public void canBRemoved7() throws Exception {
         System.out.println("canBRemoved7");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 3, 2, 1);
         Clause c2 = make(2, index, -1,4, 5);
         Clause c3 = make(3, index, 3,5, -4);
         Clause c4 = make(4, index, -5,3, 2);
 
-        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
-        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3,null);
+        ArrayList<CLiteral> result = new ArrayList<>();
+        CLiteral clit = LitAlgorithms.canBRemoved(c1,index,1,3,null);
         assertNotNull(clit);
         assertEquals(1,clit.literal);
     }
@@ -239,7 +239,7 @@ public class LitAlgorithmsTest {
     @Test
     public void canBRemoved8() throws Exception {
         System.out.println("canBRemoved8");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, -1,-10,16);
         Clause c2 = make(54, index, 19,-8,-10);
         Clause c3 = make(85, index, 5,16,-9);
@@ -247,8 +247,8 @@ public class LitAlgorithmsTest {
         Clause c5 = make(14, index, 9,17, -18);
         Clause c6 = make(24, index, -19,-17, 1);
         ArrayList<Clause> stack = new ArrayList<>();
-        ArrayList<CLiteral<Clause>> result = new ArrayList<>();
-        CLiteral<Clause> clit = LitAlgorithms.canBRemoved(c1,index,1,3,stack);
+        ArrayList<CLiteral> result = new ArrayList<>();
+        CLiteral clit = LitAlgorithms.canBRemoved(c1,index,1,3,stack);
         assertNull(clit);
     }
 
@@ -256,7 +256,7 @@ public class LitAlgorithmsTest {
     @Test
     public void urResolution1() throws Exception {
         System.out.println("urResolution1");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 1,2,3);
         Clause c2 = make(2, index, -1,4);
         Clause c3 = make(3, index, -4,-1);
@@ -272,7 +272,7 @@ public class LitAlgorithmsTest {
     @Test
     public void urResolution2() throws Exception {
         System.out.println("urResolution2");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 10,-1,11);
         Clause c2 = make(2, index, 1,2);
         Clause c3 = make(3, index, -2,3);
@@ -288,7 +288,7 @@ public class LitAlgorithmsTest {
     @Test
     public void urResolution3() throws Exception {
         System.out.println("urResolution3");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 1,2);
         Clause c2 = make(2, index, -2,3);
         Clause c3 = make(3, index, -3,4,1);
@@ -320,7 +320,7 @@ public class LitAlgorithmsTest {
     @Test
     public void urResolution4() throws Exception {
         System.out.println("urResolution4");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, 1,2);
         Clause c2 = make(2, index, 11,-2,3);
         Clause c3 = make(3, index, -3,4,1);
@@ -354,7 +354,7 @@ public class LitAlgorithmsTest {
     @Test
     public void urResolution5() throws Exception {
         System.out.println("urResolution5");
-        BucketSortedIndex<CLiteral<Clause>> index = makeIndex(41);
+        BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1, index, -1, -10,16);
         Clause c2 = make(28, index, -5, -10, 1);
         Clause c3 = make(30, index, 15,16,-10);

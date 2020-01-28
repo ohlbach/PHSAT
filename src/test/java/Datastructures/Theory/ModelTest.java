@@ -94,18 +94,4 @@ public class ModelTest {
         assertTrue(mod1.isTrue(3));
     }
 
-    @Test
-    public void observer() throws Exception {
-        System.out.println("observer");
-        Model mod = new Model(5);
-        StringBuilder st = new StringBuilder();
-        Consumer<Integer> obs = lit->st.append(lit + " ");
-        mod.addTrueLiteralObserver(obs);
-        mod.add(3);
-        mod.add(-5);
-        assertEquals("3 -5 ",st.toString());
-        mod.removeTrueLiteralObserver(obs);
-        mod.add(2);
-        assertEquals("3 -5 ",st.toString());
-    }
 }

@@ -35,7 +35,7 @@ public class ResolutionReductionTest {
         public RRTest() {
             super(1,null,sup);
             predicates = 20;
-            literalIndex = new BucketSortedIndex<CLiteral<Clause>>(predicates+1,
+            literalIndex = new BucketSortedIndex<CLiteral>(predicates+1,
                     (cLiteral->cLiteral.literal),
                     (cLiteral->cLiteral.clause.size()));
             statistics = new ResolutionStatistics("test");

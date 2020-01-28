@@ -6,6 +6,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Utilities.IntegerQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntComparator;
 
 import java.util.*;
 import java.util.function.Consumer;
@@ -56,7 +57,8 @@ public class EquivalenceClasses {
 
 
     /** is used to sort literals according to their absolute value */
-    private static Comparator<Integer> absComparator = Comparator.comparingInt(literal -> Math.abs(literal));
+    private static IntComparator absComparator = (i,j) -> Integer.compare(Math.abs(i),Math.abs(j));
+
 
     /** turns a basicClause into an equivalence class.
      * The basicClause must be already a simplified and normalized equivalence class.
@@ -125,7 +127,7 @@ public class EquivalenceClasses {
             equivalenceClasses.add(eClass);
             eClass.add(literal1); eClass.add(literal2);}
         eClass.sort(absComparator);
-        int representative = eClass.get(0);
+        int representative = eClass.getInt(0);
         if(literal1 != representative) {
             replacements.put(literal1,representative);
             replacements.put(-literal1,-representative);}
@@ -150,7 +152,7 @@ public class EquivalenceClasses {
                 String reason = "Equivalence " + toStringSt(literal1) + " = " +
                         toStringSt(literal2) + " contradicts existing equivalences: \n";
                 for(int i = 0; i < eqClass.size()-1; ++i) {reason += toStringSt(eqClass.getInt(i))+ " = ";}
-                reason += toStringSt(eqClass.get(eqClass.size()-1));
+                reason += toStringSt(eqClass.getInt(eqClass.size()-1));
                 contradictionHandler.accept(reason); return eqClass;}
             eqClass.add(literal2);
             return eqClass;}

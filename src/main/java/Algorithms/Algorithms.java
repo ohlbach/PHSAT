@@ -34,11 +34,11 @@ public class Algorithms {
         int size = literals.size();
         int timestamp = literalIndex.timestamp + 1;
         literalIndex.timestamp += size+2;
-        for(CLiteral<Clause> cliteral : literals) {
+        for(CLiteral cliteral : literals) {
             Clause subsumer = (Clause)
                 implicationDAG.find(cliteral.literal,false,
                     (literal -> {
-                        for(CLiteral<Clause> clit : literalIndex.getLiterals(literal)) {
+                        for(CLiteral clit : literalIndex.getLiterals(literal)) {
                             Clause otherClause = clit.clause;
                             if(otherClause.size() > size) {continue;}
                             if(clit.timestamp < timestamp) {
@@ -65,9 +65,9 @@ public class Algorithms {
    /* public static ArrayList<CLiteral<Clause>> resolved(ArrayList<CLiteral<Clause>> clause, LiteralIndex<Clause> literalIndex,  ImplicationDAG implicationDAG) {
         int timestamp = literalIndex.timestamp+1;
         int[] maxTimestamp = new int[]{timestamp};
-        for(CLiteral<Clause> clit1 : clause) {
+        for(CLiteral clit1 : clause) {
             implicationDAG.apply(clit1.literal,false,(literal -> {
-                for(CLiteral<Clause> clit2 :  literalIndex.getLiterals(literal)) {
+                for(CLiteral clit2 :  literalIndex.getLiterals(literal)) {
                     if(clit2.timestamp < timestamp) {
                         clit2.timestamp = timestamp;
                         Clause c2 = clit2.clause;
@@ -75,10 +75,10 @@ public class Algorithms {
                         else {++c2.timestamp;
                               maxTimestamp[0] = Math.max(maxTimestamp[0],c2.timestamp);}}}}));}
 
-        for(CLiteral<Clause> clit1 : clause) {  // new we look for resolution partners
+        for(CLiteral clit1 : clause) {  // new we look for resolution partners
             if((Boolean)
                 implicationDAG.find(clit1.literal,true,(literal -> {
-                    for(CLiteral<Clause> clit2 :  literalIndex.getLiterals(-literal)) {
+                    for(CLiteral clit2 :  literalIndex.getLiterals(-literal)) {
                         if(clit2.timestamp - timestamp >= clit2.clause.size()-2) {return true;}}
                     return false;}))) {
                 clause.remove(clit1);
@@ -98,9 +98,9 @@ public class Algorithms {
         int timestamp = literalIndex.timestamp+1;
         literalIndex.timestamp += size+1;
         ArrayList<Clause> subsumed = new ArrayList<>();
-        for(CLiteral<Clause> clit1 : clause) {
+        for(CLiteral clit1 : clause) {
             implicationDAG.apply(clit1.literal,true, (literal2 -> {
-                for(CLiteral<Clause> clit2 : literalIndex.getLiterals(literal2)) {
+                for(CLiteral clit2 : literalIndex.getLiterals(literal2)) {
                     Clause otherClause = clit2.clause;
                     if(otherClause == clause || otherClause.size() < size) {continue;}
                     if(clit2.timestamp < timestamp) {clit2.timestamp = timestamp; continue;}
@@ -126,16 +126,16 @@ public class Algorithms {
         int timestamp = literalIndex.timestamp+1;
         literalIndex.timestamp += size+1;
         ArrayList<CLiteral<Clause>> toBeResolved = new ArrayList<>();
-        for(CLiteral<Clause> clit1 : clause) {
+        for(CLiteral clit1 : clause) {
             implicationDAG.apply(clit1.literal,true, (literal2 -> {
-                for(CLiteral<Clause> clit2 : literalIndex.getLiterals(literal2)) {
+                for(CLiteral clit2 : literalIndex.getLiterals(literal2)) {
                     if(clit2.timestamp < timestamp) {
                         clit2.timestamp = timestamp;
                         if(clit2.clause.timestamp < timestamp) {clit2.clause.timestamp = timestamp;}
                         else {++clit2.clause.timestamp;}}}}));}
-        for(CLiteral<Clause> clit1 : clause) {
+        for(CLiteral clit1 : clause) {
             implicationDAG.apply(clit1.literal,true, (literal2 -> {
-                for(CLiteral<Clause> clit2 : literalIndex.getLiterals(-literal2)) {
+                for(CLiteral clit2 : literalIndex.getLiterals(-literal2)) {
                     if(clit2.timestamp < timestamp && clit2.clause.timestamp -timestamp == size - 2) {
                         toBeResolved.add(clit2);}}}));}
         return toBeResolved.isEmpty() ? null : toBeResolved;}*/
@@ -148,9 +148,9 @@ public class Algorithms {
      * @param implicationDAG the implication DAG
      * @return               true if the clause is subsumed by the implication DAG
      */
-    public static boolean subsumedByID(ArrayList<CLiteral<Clause>> clause, ImplicationDAG implicationDAG) {
-        for(CLiteral<Clause> clit1 : clause) {
-            for(CLiteral<Clause> clit2 : clause) {
+    public static boolean subsumedByID(ArrayList<CLiteral> clause, ImplicationDAG implicationDAG) {
+        for(CLiteral clit1 : clause) {
+            for(CLiteral clit2 : clause) {
                 return clit1 != clit2 && implicationDAG.implies(-clit1.literal,clit2.literal);}}
         return false;}
 
@@ -163,13 +163,13 @@ public class Algorithms {
      * @param implicationDAG the implication DAG
      * @return               the number of literal removals.
      */
-    public static int replacementResolutionWithID(ArrayList<CLiteral<Clause>> clause, ImplicationDAG implicationDAG) {
+    public static int replacementResolutionWithID(ArrayList<CLiteral> clause, ImplicationDAG implicationDAG) {
         int removals = 0;
         boolean again = true;
         while(again) {
             again = false;
-            for(CLiteral<Clause> clit1 : clause) {
-                for(CLiteral<Clause> clit2 : clause) {
+            for(CLiteral clit1 : clause) {
+                for(CLiteral clit2 : clause) {
                     if(clit1 != clit2 && implicationDAG.implies(clit1.literal,clit2.literal)) {
                         clause.remove(clit1);
                         ++removals;
@@ -192,20 +192,20 @@ public class Algorithms {
         int timestamp = literalIndex.timestamp;
         ++literalIndex.timestamp;
         implicationDAG.apply(-from,true, (q -> {
-            for(CLiteral<Clause> lit : literalIndex.getLiterals(q)) {
+            for(CLiteral lit : literalIndex.getLiterals(q)) {
                 lit.clause.timestamp = timestamp;}}));
         implicationDAG.apply(to,true, (q -> {
-            for(CLiteral<Clause> lit : literalIndex.getLiterals(q)) {
+            for(CLiteral lit : literalIndex.getLiterals(q)) {
                 Clause clause = lit.clause;
                 if(clause.timestamp == timestamp) {subsumed.add(clause); clause.timestamp = 0;}
                 else {clause.timestamp = timestamp;}}}));
 
         TreeSet<CLiteral> toBeResolved = new TreeSet<>();
         implicationDAG.apply(from,false, (q -> {
-            for(CLiteral<Clause> lit : literalIndex.getLiterals(q)) {
+            for(CLiteral lit : literalIndex.getLiterals(q)) {
                 if(lit.clause.timestamp == timestamp) {toBeResolved.add(lit);}}}));
         implicationDAG.apply(-to,false, (q -> {
-            for(CLiteral<Clause> lit : literalIndex.getLiterals(q)) {
+            for(CLiteral lit : literalIndex.getLiterals(q)) {
                 if(lit.clause.timestamp == timestamp) {toBeResolved.add(lit);}}}));
         return(!subsumed.isEmpty() || !toBeResolved.isEmpty()) ? new Object[]{subsumed,toBeResolved} : null;}
 

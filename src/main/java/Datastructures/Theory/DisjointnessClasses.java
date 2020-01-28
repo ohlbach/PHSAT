@@ -42,7 +42,7 @@ public class DisjointnessClasses {
             int[] clause = new int[disjointnessClass.size()+2];
             clause[0] = ++id;
             clause[1] = ClauseType.DISJOINT.ordinal();
-            for(int i = 0; i < disjointnessClass.size(); ++i) {clause[i+2] = disjointnessClass.get(i);}
+            for(int i = 0; i < disjointnessClass.size(); ++i) {clause[i+2] = disjointnessClass.getInt(i);}
             clauses.add(clause);}
         return clauses;}
 

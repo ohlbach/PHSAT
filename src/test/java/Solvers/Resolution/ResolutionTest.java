@@ -173,7 +173,7 @@ public class ResolutionTest {
         Field secondaryClauses = getField("secondaryClauses");
         secondaryClauses.set(res,new BucketSortedList<Clause>(clause->clause.size()));
         Field literalIndex = getField("literalIndex");
-        literalIndex.set(res,new BucketSortedIndex<CLiteral<Clause>>(10,
+        literalIndex.set(res,new BucketSortedIndex<CLiteral>(10,
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size())));
         Field taskQueue = getField("taskQueue");
@@ -229,7 +229,7 @@ public class ResolutionTest {
         Field secondaryClauses = getField("secondaryClauses");
         secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
         Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
                 (cLiteral -> cLiteral.literal),
                 (cLiteral -> cLiteral.clause.size())));
         Field taskQueue = getField("taskQueue");
@@ -289,7 +289,7 @@ public class ResolutionTest {
         Field secondaryClauses = getField("secondaryClauses");
         secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
         Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
                 (cLiteral -> cLiteral.literal),
                 (cLiteral -> cLiteral.clause.size())));
         Field taskQueue = getField("taskQueue");
@@ -353,7 +353,7 @@ public class ResolutionTest {
         Field secondaryClauses = getField("secondaryClauses");
         secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
         Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
                 (cLiteral -> cLiteral.literal),
                 (cLiteral -> cLiteral.clause.size())));
         Field taskQueue = getField("taskQueue");
@@ -392,7 +392,7 @@ public class ResolutionTest {
         Field secondaryClauses = getField("secondaryClauses");
         secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
         Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
                 (cLiteral -> cLiteral.literal),
                 (cLiteral -> cLiteral.clause.size())));
         Field taskQueue = getField("taskQueue");
@@ -428,7 +428,7 @@ public class ResolutionTest {
         Field secondaryClauses = getField("secondaryClauses");
         secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
         Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
                 (cLiteral -> cLiteral.literal),
                 (cLiteral -> cLiteral.clause.size())));
         Field taskQueue = getField("taskQueue");
@@ -479,7 +479,7 @@ public class ResolutionTest {
         Field secondaryClauses = getField("secondaryClauses");
         secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
         Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
                 (cLiteral -> cLiteral.literal),
                 (cLiteral -> cLiteral.clause.size())));
         Field taskQueue = getField("taskQueue");
@@ -550,7 +550,7 @@ public class ResolutionTest {
         Field secondaryClauses = getField("secondaryClauses");
         secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
         Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
                 (cLiteral -> cLiteral.literal),
                 (cLiteral -> cLiteral.clause.size())));
         Field taskQueue = getField("taskQueue");
@@ -615,7 +615,7 @@ public class ResolutionTest {
         Field secondaryClauses = getField("secondaryClauses");
         secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
         Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
                 (cLiteral -> cLiteral.literal),
                 (cLiteral -> cLiteral.clause.size())));
         Field taskQueue = getField("taskQueue");
@@ -677,7 +677,7 @@ public class ResolutionTest {
         Field secondaryClauses = getField("secondaryClauses");
         secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
         Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral<Clause>>(10,
+        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
                 (cLiteral -> cLiteral.literal),
                 (cLiteral -> cLiteral.clause.size())));
         Field taskQueue = getField("taskQueue");

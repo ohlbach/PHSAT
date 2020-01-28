@@ -45,7 +45,7 @@ public class CLiteralTest {
         Clause cl = new Clause(1, 3);
         CLiteral lit = new CLiteral(1, cl, 1);
         assertEquals("1",lit.toString());
-        assertEquals("A",lit.toString(stb,(cla->"")));
+        assertEquals("A@1",lit.toString(stb,(cla->""+cla.id)));
 
     }
 

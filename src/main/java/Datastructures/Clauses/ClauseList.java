@@ -57,7 +57,7 @@ public class ClauseList {
 
 
 
-        public ArrayList<CLiteral<Clause>> getLiterals(int literal) {return null;}
+        public ArrayList<CLiteral> getLiterals(int literal) {return null;}
 
     /** adds an observer which is called after a literal is replaced by another one (a representative in an equivalence class).
      * It is called for the new CLiteral and the old literal (Integer).
@@ -122,7 +122,7 @@ public class ClauseList {
      */
     protected void integrateClause(Clause clause) {
         id2Clause.put(clause.id,clause);
-        for(CLiteral<Clause> literal : clause) {literalIndex.addLiteral(literal);}
+        for(CLiteral literal : clause) {literalIndex.addLiteral(literal);}
         ClauseStructure oldStructure = structure;
         switch(clause.structure) {
             case MIXED:    ++mixedClauses; break;
@@ -167,7 +167,7 @@ public class ClauseList {
         ClauseStructure oldStructure = structure;
         clause.removed = true;
         id2Clause.remove(clause.id);
-        for(CLiteral<Clause> cliteral : clause) {literalIndex.removeLiteral(cliteral);}
+        for(CLiteral cliteral : clause) {literalIndex.removeLiteral(cliteral);}
         switch(clause.structure) {
             case MIXED:    --mixedClauses; break;
             case NEGATIVE: --negativeClauses; break;
@@ -186,7 +186,7 @@ public class ClauseList {
      *
      * @param cliteral the literal to be removed.
      */
-    public void removeLiteral(CLiteral<Clause> cliteral) {
+    public void removeLiteral(CLiteral cliteral) {
         /*
         ClauseStructure oldStructure = structure;
         Clause clause = cliteral.clause;
@@ -200,10 +200,10 @@ public class ClauseList {
             case NEGATIVE: --negativeClauses; break;
             case POSITIVE: --positiveClauses;}
         clauses[group].remove(clause);
-        for(CLiteral<Clause> clit : clause) {literalIndex.removeLiteral(clit);}
+        for(CLiteral clit : clause) {literalIndex.removeLiteral(clit);}
         clause.removeLiteral(cliteral);
         clauses[group].add(clause);
-        for(CLiteral<Clause> clit : clause) {literalIndex.addLiteral(clit);}
+        for(CLiteral clit : clause) {literalIndex.addLiteral(clit);}
         switch(clause.structure) {
             case MIXED:    ++mixedClauses; break;
             case NEGATIVE: ++negativeClauses; break;
@@ -219,7 +219,7 @@ public class ClauseList {
      */
     public void removeLiteral(int literal) {
         for(Object cLiteral : literalIndex.getLiterals(literal)) {
-            removeClause(((CLiteral<Clause>)cLiteral).clause);}}
+            removeClause(((CLiteral)cLiteral).clause);}}
 
     /** All disjunctions with the literal are removed. <br>
      *  All negated literals are removed from the disjunctions. <br>
@@ -228,7 +228,7 @@ public class ClauseList {
      * @param literal a literal which is supposed to be true.
      */
     public void makeTrue(int literal) { //we must avoid concurrent modification errors!
-        for(Object cliteral : literalIndex.getLiterals(literal).toArray()) {removeClause(((CLiteral<Clause>)cliteral).clause);}
+        for(Object cliteral : literalIndex.getLiterals(literal).toArray()) {removeClause(((CLiteral)cliteral).clause);}
         for(Object cliteral : literalIndex.getLiterals(-literal).toArray()) {removeLiteral((CLiteral)cliteral);}}
 
     /** replaces a literal by its representative in an equivalence class in all clauses containing the literal and its negation.
@@ -247,7 +247,7 @@ public class ClauseList {
             literal *= i;
             representative *= i;
             for(Object clit : literalIndex.getLiterals(literal).toArray()) {
-                CLiteral<Clause> cliteral = (CLiteral)clit;
+                CLiteral cliteral = (CLiteral)clit;
                 Clause clause = cliteral.clause;
                 if(clause.contains(-representative) >= 0) {removeClause(clause); continue;}    // tautology
                 if(clause.contains(representative) >= 0)  {removeLiteral(cliteral); continue;} // double literals
@@ -316,9 +316,9 @@ public class ClauseList {
      * @param down           if true then the ImplicationDAG is followed downwards, otherwise upwards.
      * @param consumer       a function to be applied to a CLiteral
      */
-    public void apply(int literal, ImplicationDAG implicationDAG, boolean down, Consumer<CLiteral<Clause>> consumer) {
+    public void apply(int literal, ImplicationDAG implicationDAG, boolean down, Consumer<CLiteral> consumer) {
         implicationDAG.apply(literal,down, (lit -> {
-            for(Object cLiteral : literalIndex.getLiterals(lit)) {consumer.accept((CLiteral<Clause>)cLiteral);}}));}
+            for(Object cLiteral : literalIndex.getLiterals(lit)) {consumer.accept((CLiteral)cLiteral);}}));}
 
 
     /** applies a consumer to all CLiterals which contradict the given literal (including the -literal itself)
@@ -327,9 +327,9 @@ public class ClauseList {
      * @param implicationDAG the ID_Implications
      * @param consumer       a function to be applied to a CLiteral
      */
-    public void applyContradicting(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral<Clause>> consumer) {
+    public void applyContradicting(int literal, ImplicationDAG implicationDAG, Consumer<CLiteral> consumer) {
         implicationDAG.apply(-literal,false, (lit -> {
-            for(Object  cLiteral : literalIndex.getLiterals(lit)) {consumer.accept((CLiteral<Clause>)cLiteral);}}));}
+            for(Object  cLiteral : literalIndex.getLiterals(lit)) {consumer.accept((CLiteral)cLiteral);}}));}
 
 
     /** the actual number of clauses

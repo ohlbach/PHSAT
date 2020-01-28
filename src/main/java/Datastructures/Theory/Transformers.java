@@ -114,8 +114,8 @@ public class Transformers {
                 if(equivalenceClasses != null) {literal2 = equivalenceClasses.mapToRepresentative(literal2);}
                 if(literal1 == -literal2) {continue;}
                 Clause clause = new Clause(++id[0], 2);
-                clause.add(new CLiteral<Clause>(literal1,clause,0));
-                if(literal1 != literal2) {clause.add(new CLiteral<Clause>(literal2,clause,1));}
+                clause.add(new CLiteral(literal1,clause,0));
+                if(literal1 != literal2) {clause.add(new CLiteral(literal2,clause,1));}
                 clause.setStructure();
                 handler.accept(clause);}}}
 

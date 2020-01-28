@@ -47,9 +47,9 @@ public class ClauseTest {
     @Test
     public void clause() throws Exception {
         System.out.println("clause");
-        ArrayList<CLiteral<Clause>> lits = new ArrayList<>();
-        lits.add(new CLiteral<Clause>(1));
-        lits.add(new CLiteral<Clause>(2));
+        ArrayList<CLiteral> lits = new ArrayList<>();
+        lits.add(new CLiteral(1));
+        lits.add(new CLiteral(2));
         Clause cl = new Clause(1,lits);
         assertEquals("1:(1,2)",cl.toString());
     }
@@ -95,7 +95,7 @@ public class ClauseTest {
         Clause c1 = make(1, 2, 3);
         c1.removeAtPosition(1);
         assertEquals("1:(1,3)",c1.toString());
-        CLiteral<Clause> lit = c1.getCLiteral(1);
+        CLiteral lit = c1.getCLiteral(1);
         assertEquals(1,lit.clausePosition);
     }
 
@@ -171,7 +171,7 @@ public class ClauseTest {
         counter = 1;
         Clause c1 = make(5, -6, -5, -6, -6);
         String st = "";
-        for(CLiteral<Clause> lit : c1) {st += lit.toString();}
+        for(CLiteral lit : c1) {st += lit.toString();}
         assertEquals("5-6-5-6-6",st);
     }
 
