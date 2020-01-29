@@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntComparator;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** This class manages equivalence classes of literals.
@@ -18,21 +19,46 @@ import java.util.function.Consumer;
 public class EquivalenceClasses {
     /** the list of equivalence classes */
     private ArrayList<IntArrayList> equivalenceClasses = new ArrayList<>();
+    /** For each equivalence class: the list of original basic clause ids which caused the equivelence */
+    private ArrayList<IntArrayList> origins = null;
     /** maps literals to their representatives in an equivalence class */
     private HashMap<Integer,Integer> replacements = new HashMap<>();
+    /** maps replacements to their origins */
+    private HashMap<Integer,IntArrayList> originMap = null;
     /**  a function to be called when adding the new equivalence class causes a contradiction p equiv -p */
-    private Consumer<String> contradictionHandler = null;
+    private BiConsumer<IntArrayList,IntArrayList> contradictionHandler = null;
 
     private Symboltable symboltable;
+    /** If true then origins must be filled */
+    private boolean trackReasoning;
 
     /** creates empty equivalence classes
      *
      * @param symboltable          maps integers to names
      * @param contradictionHandler for reporting contradictions
      */
-    public EquivalenceClasses(Symboltable symboltable,Consumer<String> contradictionHandler) {
+    public EquivalenceClasses(boolean trackReasoning,Symboltable symboltable,BiConsumer<IntArrayList,IntArrayList> contradictionHandler) {
+        this.trackReasoning = trackReasoning;
+        this.symboltable = symboltable;
+        this.contradictionHandler = contradictionHandler;}
+
+    /** This constructor clones the equivalence classes of another instance
+     *
+     * @param eqClasses  another instance of EquivalenceClasses, typically coming from the Preparer
+     * @param contradictionHandler  for dealing with contradictions in new equivalence classes added later.
+     */
+    public EquivalenceClasses(EquivalenceClasses eqClasses, BiConsumer<IntArrayList,IntArrayList> contradictionHandler) {
+        this.trackReasoning = eqClasses.trackReasoning;
+        this.symboltable = eqClasses.symboltable;
         this.contradictionHandler = contradictionHandler;
-        this.symboltable = symboltable;}
+        if(!eqClasses.equivalenceClasses.isEmpty()) {
+            for(IntArrayList eqClass : eqClasses.equivalenceClasses) {
+                equivalenceClasses.add(eqClass.clone());}
+            replacements = (HashMap)eqClasses.replacements.clone();}
+        if(eqClasses.origins != null) {
+            for(IntArrayList origin : eqClasses.origins) {
+                equivalenceClasses.add(origin.clone());}}}
+
 
     /** checks if there are equivalence classes
      *
@@ -41,47 +67,12 @@ public class EquivalenceClasses {
     public boolean isEmpty() {
         return equivalenceClasses == null;}
 
-    /** turns the equivalence classes into basicClauses
-     *
-     * @return a list of basicClauses representing the equivalence classes.
-     */
-    public ArrayList<int[]> basicClauses(int id) {
-        ArrayList<int[]> clauses = new ArrayList<>();
-        for(IntArrayList equivalenceClass : equivalenceClasses) {
-            int[] clause = new int[equivalenceClass.size()+2];
-            clause[0] = ++id;
-            clause[1] = ClauseType.EQUIV.ordinal();
-            for(int i = 0; i < equivalenceClass.size(); ++i) {clause[i+2] = equivalenceClass.getInt(i);}
-            clauses.add(clause);}
-        return clauses;}
 
 
     /** is used to sort literals according to their absolute value */
     private static IntComparator absComparator = (i,j) -> Integer.compare(Math.abs(i),Math.abs(j));
 
 
-    /** turns a basicClause into an equivalence class.
-     * The basicClause must be already a simplified and normalized equivalence class.
-     *
-     * @param basicClause [clause-problemId,typenumber,literal1,...]
-     */
-    public boolean addSimplifiedEquivalenceClass(int[] basicClause) {
-        assert basicClause.length > 2;
-        if(basicClause.length == 3) {return true;}
-        if(equivalenceClasses == null) {
-            equivalenceClasses = new ArrayList<IntArrayList>();
-            replacements = new HashMap<>();}
-
-        IntArrayList equivalenceClass = new IntArrayList();
-        int representative = basicClause[2];
-        equivalenceClass.add(representative);
-        for(int i = 3; i < basicClause.length; ++i) {
-            int literal = basicClause[i];
-            equivalenceClass.add(literal);
-            replacements.put(literal,representative);
-            replacements.put(-literal,-representative);}
-        equivalenceClasses.add(equivalenceClass);
-        return true;}
 
 
     /** turns a basicClause into an equivalence class.
@@ -91,16 +82,16 @@ public class EquivalenceClasses {
      *
      * @param basicClause [clause-problemId,typenumber,literal1,...]
      */
-    public boolean addEquivalenceClass(int[] basicClause) {
+    public boolean addEquivalenceClass(int[] basicClause, IntArrayList origin) {
         assert basicClause.length > 2;
         if(basicClause.length == 3) {return true;}
         if(equivalenceClasses == null) {
-            equivalenceClasses = new ArrayList<IntArrayList>();
+            equivalenceClasses = new ArrayList<>();
             replacements = new HashMap<>();}
 
         int literal = basicClause[2];
         for(int i = 3; i < basicClause.length; ++i) {
-            addEquivalence(literal,basicClause[i]);}
+            if(!addEquivalence(literal,basicClause[i],origin)) {return false;}}
         return true;}
 
     /** turns the two literals into an equivalence class.
@@ -110,53 +101,98 @@ public class EquivalenceClasses {
      *
      * @param literal1 the first literal
      * @param literal2 the second literal
+     * @param origin   null or the list of basicClause ids which caused the equivalence.
+     * @return true if the equivalences was added, false if a contradiction was found
      */
-    public boolean addEquivalence(int literal1, int literal2) {
+    public boolean addEquivalence(int literal1, int literal2, IntArrayList origin) {
+        if(Math.abs(literal2) < Math.abs(literal1)) {
+            int dummy = literal1; literal1 = literal2; literal2=dummy;}
+        if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
+
         if(equivalenceClasses == null) {
-            equivalenceClasses = new ArrayList();
-            replacements = new HashMap<>();}
-        IntArrayList eClass = null;
-        for(IntArrayList eqClass : equivalenceClasses) {
-            if(eqClass.contains(literal1) && eqClass.contains(literal2)) {return false;}
-            eClass = joinIfPossible(eqClass,literal1,literal2);
-            if(eClass != null) {break;}
-            eClass = joinIfPossible(eqClass,literal2,literal1);
-            if(eClass != null) {break;}}
-        if(eClass == null) {
-            eClass = new IntArrayList(2);
-            equivalenceClasses.add(eClass);
-            eClass.add(literal1); eClass.add(literal2);}
-        eClass.sort(absComparator);
-        int representative = eClass.getInt(0);
-        if(literal1 != representative) {
-            replacements.put(literal1,representative);
-            replacements.put(-literal1,-representative);}
-        if(literal2 != representative) {
-            replacements.put(literal2,representative);
-            replacements.put(-literal2,-representative);}
+            equivalenceClasses = new ArrayList<>();
+            replacements = new HashMap<>();
+            if(trackReasoning) {
+                origins = new ArrayList<>();
+                originMap = new HashMap<>();}}
+
+        for(int i = 0; i < equivalenceClasses.size(); ++i) {
+            IntArrayList eqClass = equivalenceClasses.get(i);
+            IntArrayList orig = (trackReasoning) ? origins.get(i) : null;
+             switch(joinIfPossible(eqClass,orig,literal1,literal2, origin)) {
+                 case -1: return false;
+                 case +1: return true;}}
+        IntArrayList eClass = new IntArrayList(2);
+        equivalenceClasses.add(eClass);
+        eClass.add(literal1); eClass.add(literal2);
+        replacements.put(literal2,literal1);
+        replacements.put(-literal2,-literal1);
+        if(trackReasoning) {
+            IntArrayList orig = origin.clone();
+            origins.add(orig);
+            originMap.put(literal2,orig);
+            originMap.put(-literal2,orig);}
         return true;}
 
+
     /** tries to join the equivalence literal1 == literal2 into the existing equivalence class.
-     *  It must be called for (literal1,literal2) and (literal2,literal1)
      *  If the equivalence contradicts an existing equivalence, the contradiction handler is called.
      *
      * @param eqClass   an existing equivalence class
+     * @param origins  either null or the list of basicClause ids which caused the old equivalence
      * @param literal1  the first literal
      * @param literal2  the second literal
-     * @return  either eqClass itself, if the literals were inserted, or null
+     * @param origin  either null or the list of basicClause ids which caused the new equivalence
+     * @return  +1 if the literals were joined, -1 if a contradiction was found, and 0 otherwise
      */
-    private IntArrayList joinIfPossible(IntArrayList eqClass, int literal1, int literal2) {
-        if(eqClass.contains(literal1)) {
-            if(eqClass.contains(literal2)) {return eqClass;}
-            if(eqClass.contains(-literal2)) {
-                String reason = "Equivalence " + toStringSt(literal1) + " = " +
-                        toStringSt(literal2) + " contradicts existing equivalences: \n";
-                for(int i = 0; i < eqClass.size()-1; ++i) {reason += toStringSt(eqClass.getInt(i))+ " = ";}
-                reason += toStringSt(eqClass.getInt(eqClass.size()-1));
-                contradictionHandler.accept(reason); return eqClass;}
-            eqClass.add(literal2);
-            return eqClass;}
-        return null;}
+    int joinIfPossible(IntArrayList eqClass, IntArrayList origins, int literal1, int literal2, IntArrayList origin) {
+        int found1 = 0; int found2 = 0;
+        for(int literal : eqClass) {
+            if(literal == literal1) {
+                found1 = +1;
+                if(found2 == +1) {return 1;}
+                if(found2 == -1) {eqClass.add(literal2); break;}}
+            if(literal == -literal1) {
+                found1 = -1;
+                if(found2 == -1) {return 1;}
+                if(found2 == +1) {eqClass.add(literal2); break;}}
+            if(literal == literal2) {
+                found2 = +1;
+                if(found1 == +1) {return 1;}
+                if(found1 == -1) {eqClass.add(literal1); break;}}
+            if(literal == -literal2) {
+                found2 = -1;
+                if(found1 == -1) {return 1;}
+                if(found1 == +1) {eqClass.add(literal2); break;}}}
+
+        if(found1 == 0 && found2 == 0) {return 0;}
+
+        if(trackReasoning) {origins.addAll(0, origin);}
+
+        if(found1 != 0 && found2 != 0) { // both must be different
+            contradictionHandler.accept(eqClass,origins);
+            return -1;}
+
+        switch(found1) {
+            case -1: eqClass.add(-literal2); break;
+            case 0 : break;
+            case +1: eqClass.add(literal2);  break;}
+        switch(found2) {
+            case -1: eqClass.add(-literal1); break;
+            case 0 : break;
+            case +1: eqClass.add(literal1);  break;}
+
+        eqClass.sort(absComparator);
+        int representative = eqClass.getInt(0);
+        for(int i = 1; i < eqClass.size(); ++i) {
+            int literal = eqClass.getInt(i);
+            replacements.put(literal,representative);
+            replacements.put(-literal,-representative);
+            if(trackReasoning) {
+                originMap.put(literal,origins);
+                originMap.put(-literal,origins);}}
+        return 1;}
+
 
 
 
@@ -169,6 +205,14 @@ public class EquivalenceClasses {
         if(replacements == null) {return literal;}
         Integer replaced = replacements.get(literal);
         return (replaced == null) ? literal : replaced;}
+
+    /** yields the original basicClause ids for an equivalence which causes the replacements
+     *
+     * @param literal a literal
+     * @return null or the  basicClause ids for an equivalence which causes the replacements
+     */
+    public IntArrayList mapOrigins(int literal) {
+        return (originMap == null) ? null : originMap.get(literal);}
 
 
     /** completes a model by the equivalence classes.

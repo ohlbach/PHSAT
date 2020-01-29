@@ -17,6 +17,8 @@ public class WLiteral extends CLiteral {
     public WLiteral(int literal) {
         super(literal);}
 
+
+
     /** creates a CLiteral and sets the clause
      *
      * @param literal    the literal

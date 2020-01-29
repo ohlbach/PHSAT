@@ -130,6 +130,7 @@ public abstract class Walker extends Solver {
 
     private int[][] negTruths = null;
 
+
     /** constructs a new Walker solver.
      *
      * @param solverNumber         for distinguishing different solvers of the same type, but different parameters
@@ -171,8 +172,8 @@ public abstract class Walker extends Solver {
      * @throws InterruptedException
      */
     private Result initializeClauses(BasicClauseList basicClauseList) throws InterruptedException {
-        if(basicClauseList.equivalences != null) {
-            equivalenceClasses = new EquivalenceClasses(symboltable,null);
+      /*  if(basicClauseList.equivalences != null) {
+            equivalenceClasses = new EquivalenceClasses(trackReasoning, symboltable,null);
             for(int[] equivalences : basicClauseList.equivalences) {
                 equivalenceClasses.addSimplifiedEquivalenceClass(equivalences);}}
         if(basicClauseList.conjunctions != null) {
@@ -195,7 +196,7 @@ public abstract class Walker extends Solver {
         if(equivalenceClasses != null || disjointnessClasses != null) {setTruths();}
         initializeModel();
         initializeScores();
-        if(statistics.falseClauses == 0) {return completeModel();}
+        if(statistics.falseClauses == 0) {return completeModel();} */
         return null;}
 
     /** This method computes the initial consequences of true literals, derivable from equivalences and disjointnesses.

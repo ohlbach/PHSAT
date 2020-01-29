@@ -17,7 +17,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addEquivalenceClass() throws Exception {
         System.out.println("add, no joins");
-        EquivalenceClasses eq = new EquivalenceClasses(null,null);
+        EquivalenceClasses eq = new EquivalenceClasses(false,null,null);
         int[] clause = new int[]{0,0,4,1,2,3};
         eq.addEquivalenceClass(clause);
         //System.out.println(eq.toString());
@@ -28,7 +28,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addJoins() throws Exception {
         System.out.println("add, with joins");
-        EquivalenceClasses eq = new EquivalenceClasses(null,null);
+        EquivalenceClasses eq = new EquivalenceClasses(false,null,null);
         int[] clause = new int[]{0,0,4,1,2,3};
         eq.addEquivalenceClass(clause);
         clause = new int[]{0,0,2,3,5};
@@ -42,7 +42,7 @@ public class EquivalenceClassesTest {
     public void addContradictions() throws Exception {
         System.out.println("add, with contradiction");
         String[] reason = new String[1];
-        EquivalenceClasses eq = new EquivalenceClasses(null,(r->reason[0] = r));
+        EquivalenceClasses eq = new EquivalenceClasses(false,null,(r->reason[0] = r));
         int[] clause = new int[]{0,0,4,1,2,3};
         eq.addEquivalenceClass(clause);
         clause = new int[]{0,0,2,3,-4};
@@ -55,7 +55,7 @@ public class EquivalenceClassesTest {
     @Test
     public void completeModel() throws Exception {
         System.out.println("complete model");
-        EquivalenceClasses eq = new EquivalenceClasses(null,contradictionHandler);
+        EquivalenceClasses eq = new EquivalenceClasses(false,null,contradictionHandler);
         int[] clause = new int[]{0,0,4,1,2,3};
         eq.addEquivalenceClass(clause);
         clause = new int[]{0,0,2,3,5};

@@ -3,6 +3,7 @@ package Utilities;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.function.BiConsumer;
 
 import static org.junit.Assert.*;
@@ -104,5 +105,41 @@ public class UtilitiesTest {
     public void stdoutLogger() {
         BiConsumer<String,String> logger = Utilities.stdoutLogger();
         logger.accept("ID","Test");
+    }
+
+    @Test
+    public void appendArrays1() {
+        System.out.println("append arrays 1");
+        int[] a1 = new int[]{1,2};
+        int[] a2 = new int[]{3,4,5};
+        int[] a = Utilities.appendArrays(a1,a2);
+        assertEquals("[1, 2, 3, 4, 5]", Arrays.toString(a));
+
+        int[] a3 = new int[]{};
+        int[] a4 = new int[]{};
+        int[] b = Utilities.appendArrays(a3,a4);
+        assertEquals("[]", Arrays.toString(b));
+
+    }
+
+    @Test
+    public void appendArrays2() {
+        System.out.println("append arrays 2");
+        int[] a1 = new int[]{1, 2};
+        int[] a2 = new int[]{3, 4, 5};
+        int[] a3 = new int[]{6, 7};
+        ArrayList<int[]> a = new ArrayList<>(3);
+        a.add(a1); a.add(a2); a.add(a3);
+        int[] b = Utilities.appendArrays(a);
+        assertEquals("[1, 2, 3, 4, 5, 6, 7]", Arrays.toString(b));
+
+        int[] a4 = new int[]{};
+        a.add(a4);
+        b = Utilities.appendArrays(a);
+        assertEquals("[1, 2, 3, 4, 5, 6, 7]", Arrays.toString(b));
+
+        a.clear();
+        b = Utilities.appendArrays(a);
+        assertEquals("[]", Arrays.toString(b));
     }
 }

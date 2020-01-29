@@ -38,6 +38,7 @@ public class GlobalParameters {
     /** if true then the implicationDAG is observed for disjointnesses */
     public boolean disjointnessesNeeded = true;
 
+    public boolean trackReasoning = true;
 
 
     /** @return a help-string which describes the parameters */
@@ -46,12 +47,12 @@ public class GlobalParameters {
                 " - directory  (default home) relative to the homedirectory\n"+
                 " - parallel   (default: 1)  controls how many problems are processed in parallel threads\n" +
                 "                            'true' means to use the number of available processors\n" +
-                " - exchange   (0,1,2) length of clauses to be exchanged between processors (default: 1).\n " +
                 " - logging    filename (default: System.out) for logging the actions\n" +
                 " - monitor   'separated file': collect them for all threads separated, \n" +
                 "             'mixed file':     just print out as the messages come\n" +
                 "              If the file is not specified then the messages are printed to System.out\n" +
                 "              default: no monitoring\n" +
+                " - trackReasoning tracks reasons for all derivations\n" +
                 " - results    (default: System.out) for printing the results to the given file.\n" +
                 " - statistics text [file] csv file (default: text System.out) for printing statistics information to the given files.";}
 
@@ -82,12 +83,7 @@ public class GlobalParameters {
                     Integer par = Utilities.parseInteger("GlobalParameter parallel", value,errors);
                     if(par != null) {parallel = par;}
                     break;
-                case "exchange" :
-                    Integer exc = Utilities.parseInteger("GlobalParameter exchange", value,errors);
-                    if(exc != null) {exchange = exc;}
-                    if(exchange < 0 || exchange > 2) {
-                        warnings.append("GlobalParameters exchange must be 0,1 or 2, not " + exchange + " default 1 is used.\n");
-                        exchange = 1;}
+                case "trackReasoning" : trackReasoning = value.equals("true");
                     break;
                 case "logging":
                     logFile = value;
@@ -151,7 +147,8 @@ public class GlobalParameters {
                 "  parallel threads:   " + Integer.toString(parallel)+"\n" +
                 "  logFile:            " + logFile +"\n" +
                 "  resultFile:         " + ((resultFile == null) ? "System.out" :resultFile.getAbsolutePath()) +"\n" +
-                "  monitor:            " + monitor.toString() + "\n" +
+                "  monitor:            " + monitor.toString() + "\n"+
+                "  trackReasoning:     " + Boolean.toString(trackReasoning) +"\n" +
                 "  statisticsText:     " + Boolean.toString(statisticsText) +"\n";
         if(statisticsTextFile != null) {result +=
                 "  statisticsTextFile: " + statisticsTextFile + "\n";}

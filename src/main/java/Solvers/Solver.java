@@ -149,6 +149,9 @@ public abstract class Solver {
     protected Integer solverNumber;
 
 
+    protected boolean trackReasoning = true;
+
+
     /** constructs a solver as an instance of the Processor class.
      *
      * @param solverNumber       to distinguish different solvers of the same type, but different parameters,
@@ -158,7 +161,8 @@ public abstract class Solver {
     public Solver(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
         this.solverNumber = solverNumber;
         this.solverParameters   = solverParameters;
-        this.problemSupervisor  = problemSupervisor;}
+        this.problemSupervisor  = problemSupervisor;
+        trackReasoning          = problemSupervisor.globalParameters.trackReasoning;}
 
     protected void initialize() {
         solverId                   = (String)solverParameters.get("solverId");

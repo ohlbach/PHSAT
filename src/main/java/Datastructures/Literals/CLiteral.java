@@ -56,10 +56,6 @@ public class CLiteral implements Positioned {
     public CLiteral clone() {
         return new CLiteral(literal);}
 
-    /** deletes the back-pointer to the clause, making it garbage.
-     */
-    public void delete() {
-        clause = null;}
 
     /** sets the position in a literal index
      *

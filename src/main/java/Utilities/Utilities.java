@@ -3,6 +3,7 @@ package Utilities;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import sun.awt.image.ImageWatched;
 
 import java.io.*;
@@ -412,6 +413,53 @@ public class Utilities {
         String s = n.toString();
         if(s.endsWith(".0")) {s = s.substring(0,s.length()-2);}
         return s;}
+
+    /** appends the two arrays into a new array
+     *
+     * @param a1 an int-array
+     * @param a2 an int-array
+     * @return the appended arrays
+     */
+    public static int[] appendArrays(int[] a1, int[] a2) {
+        int length = a1.length;
+        int[] a = new int[length+a2.length];
+        System.arraycopy(a1,0,a,0,length);
+        System.arraycopy(a2,0,a,length,a2.length);
+        return a;}
+
+    /** appends the arrays into a new array
+     *
+     * @param arrays a list of int-arrays
+     * @return the appended arrays
+     */
+    public static int[] appendArrays(Collection<int[]> arrays) {
+        int length = 0;
+        for(int[] array : arrays) {length+= array.length;}
+        int[] a = new int[length];
+        length = 0;
+        for(int[] array : arrays) {
+            System.arraycopy(array,0,a,length,array.length);
+            length += array.length;}
+        return a;}
+
+    /** turns the list into a separator-separated string. Duplicates are dropped.
+     *
+     * @param list      a list of ints
+     * @param separator for separating the ints
+     * @return the list as a string, without duplicates.
+     */
+    public static String toString(IntArrayList list, String separator) {
+        if(list == null || list.isEmpty()) {return "";}
+        StringBuilder st = new StringBuilder();
+        int size = list.size()-1;
+        for(int i = 0; i <= size; ++i) {
+            int item = list.getInt(i);
+            boolean found = false;
+            for(int j = 0; j < i; ++j) {if(item == list.getInt(j)) {found = true; break;}}
+            if(!found) {
+                st.append(Integer.toString(item));
+                if(i < size) st.append(separator);}}
+        return st.toString();}
 
     public static void printProperties() {
         System.out.println("System.getProperties()");

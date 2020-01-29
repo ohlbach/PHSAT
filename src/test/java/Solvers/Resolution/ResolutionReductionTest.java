@@ -40,7 +40,7 @@ public class ResolutionReductionTest {
                     (cLiteral->cLiteral.clause.size()));
             statistics = new ResolutionStatistics("test");
             taskQueue = new TaskQueue("test",null);
-            equivalenceClasses = new EquivalenceClasses(null,contradictionHandler);
+            equivalenceClasses = new EquivalenceClasses(trackReasoning,null,contradictionHandler);
             model = new Model(predicates);
         }
 

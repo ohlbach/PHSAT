@@ -28,7 +28,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public int timestamp = 0;
 
     public Clause(int id) {
-        this.id = id;}
+        this.id = id;
+        cliterals = new ArrayList<CLiteral>();}
 
     /** constructs a clause
      *
@@ -96,10 +97,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param position a position within a list.
      */
     public void setPosition(int position) {listPosition = position;}
-
-    /** deletes the back-pointers in the cliterals, making them garbage */
-    public void delete() {
-        for(CLiteral cliteral : cliterals) {cliteral.delete();}}
 
 
         /** return the current number of literals
