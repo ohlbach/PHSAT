@@ -352,7 +352,7 @@ public class EquivalenceClasses {
         for(IntArrayList[] eqClass : equivalenceClasses) {
             if(eqClass[0].contains(literalp)) {
                 found = true;
-                for(int lit : eqClass[0]) {if(lit !=literalp) {truths.add(lit);}}}
+                for(int lit : eqClass[0]) {if(lit != literalp) {truths.add(lit);}}}
             else {
                 if(eqClass[0].contains(literaln)) {
                     found = true;
