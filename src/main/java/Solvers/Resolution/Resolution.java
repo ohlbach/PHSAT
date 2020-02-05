@@ -15,8 +15,10 @@ import Solvers.Solver;
 import Utilities.Utilities;
 import Utilities.BucketSortedList;
 import Utilities.BucketSortedIndex;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -206,8 +208,8 @@ public class Resolution extends Solver {
     /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.
      */
-    private Consumer<String> contradictionHandler = ((reason)->{
-        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason)), (()->reason)));});
+    private BiConsumer<Integer,IntArrayList> contradictionHandler = ((reason,origin)->{
+        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.toString())), (()->reason.toString())));});
 
     /** This function is called when a new disjunction is to be inserted.
      *  It generates a simplifyBackwards task.
@@ -747,7 +749,7 @@ public class Resolution extends Solver {
         int literal2 =  clause.getCLiteral(1).literal;
         if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
         int fromliteral = literal1; int toliteral = literal2;
-        if(!equivalenceClasses.addEquivalence(fromliteral,toliteral)) {return false;}
+        if(!equivalenceClasses.addEquivalenceClass(fromliteral,toliteral,null)) {return false;}
         taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
                 (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
         ++statistics.equivalences;

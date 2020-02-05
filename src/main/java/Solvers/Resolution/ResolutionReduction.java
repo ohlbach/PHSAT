@@ -17,8 +17,10 @@ import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** This is the superclass for the Resolution and Reduction classes.
@@ -93,8 +95,8 @@ public abstract class ResolutionReduction extends Solver {
     /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.
      */
-    Consumer<String> contradictionHandler = ((reason)->{
-        taskQueue.add(new Task(priorityResult,(()-> new Unsatisfiable(reason)), (()->reason)));});
+    BiConsumer<Integer,IntArrayList> contradictionHandler = ((reason,origin)->{
+        taskQueue.add(new Task(priorityResult,(()-> new Unsatisfiable(reason.toString())), (()->reason.toString())));});
 
     /** the id of the last input clause */
     int maxInputId = 0;
@@ -658,7 +660,7 @@ public abstract class ResolutionReduction extends Solver {
                     "equivalent literals " + fromLiteral + " " + toLiteral);
             return null;}
 
-        if(!equivalenceClasses.addEquivalence(fromLiteral,toLiteral)) {return null;}
+        if(!equivalenceClasses.addEquivalenceClass(fromLiteral,toLiteral,null)) {return null;}
         replacedClauses.clear();
         replaceLiteralInAllClauses(fromLiteral,toLiteral);
         replaceLiteralInAllClauses(-fromLiteral,-toLiteral);

@@ -1,10 +1,12 @@
 package Datastructures.Theory;
 
+import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
+import javax.swing.plaf.synth.SynthMenuBarUI;
 import java.util.Arrays;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 import static org.junit.Assert.*;
 
@@ -13,12 +15,21 @@ import static org.junit.Assert.*;
  */
 public class EquivalenceClassesTest {
 
-    static Consumer<String> contradictionHandler = (reason -> System.out.println("CL "+ reason));
+    static BiConsumer<Integer,IntArrayList> cH =
+            ((literal,origin) -> {System.out.println("CL "+ literal);
+            if(origin != null) System.out.println(origin.toString());});
+
+    static BiConsumer<Integer,IntArrayList> uH =
+            ((literal,origin) -> {System.out.println("UN "+ literal);
+                if(origin != null) System.out.println(origin.toString());});
+
+
+    static Symboltable symboltable = null;
     @Test
     public void addEquivalenceClass() throws Exception {
         System.out.println("add, no joins");
-        EquivalenceClasses eq = new EquivalenceClasses(false,null,null);
-        int[] clause = new int[]{0,0,4,1,2,3};
+        EquivalenceClasses eq = new EquivalenceClasses(symboltable,cH,uH);
+        int[] clause = new int[]{1,4,4,1,2,3};
         eq.addEquivalenceClass(clause);
         //System.out.println(eq.toString());
         assertEquals(1,eq.mapToRepresentative(4));
@@ -28,12 +39,12 @@ public class EquivalenceClassesTest {
     @Test
     public void addJoins() throws Exception {
         System.out.println("add, with joins");
-        EquivalenceClasses eq = new EquivalenceClasses(false,null,null);
-        int[] clause = new int[]{0,0,4,1,2,3};
+        EquivalenceClasses eq = new EquivalenceClasses(symboltable,cH,uH);
+        int[] clause = new int[]{1,4,4,1,2,3};
         eq.addEquivalenceClass(clause);
-        clause = new int[]{0,0,2,3,5};
+        clause = new int[]{2,4,5,6,3,2};
         eq.addEquivalenceClass(clause);
-        //System.out.println(eq.toString());
+        System.out.println(eq.toString());
         assertEquals(1,eq.mapToRepresentative(5));
         assertEquals(-1,eq.mapToRepresentative(-5));
     }
@@ -42,20 +53,20 @@ public class EquivalenceClassesTest {
     public void addContradictions() throws Exception {
         System.out.println("add, with contradiction");
         String[] reason = new String[1];
-        EquivalenceClasses eq = new EquivalenceClasses(false,null,(r->reason[0] = r));
-        int[] clause = new int[]{0,0,4,1,2,3};
+        EquivalenceClasses eq = new EquivalenceClasses(symboltable,
+                ((r,o)->reason[0] = r.toString() + " " + o.toString()),uH);
+        int[] clause = new int[]{1,4,4,1,2,3};
         eq.addEquivalenceClass(clause);
-        clause = new int[]{0,0,2,3,-4};
+        clause = new int[]{2,4,2,3,-4};
         eq.addEquivalenceClass(clause);
-        //System.out.println(reason[0]);
-        assertEquals("Equivalence 2 = -4 contradicts existing equivalences: \n" +
-                "1 = 2 = 3 = 4",reason[0]);
+        System.out.println(reason[0]);
+        assertEquals("1 [1, 2]",reason[0]);
     }
 
     @Test
     public void completeModel() throws Exception {
         System.out.println("complete model");
-        EquivalenceClasses eq = new EquivalenceClasses(false,null,contradictionHandler);
+        EquivalenceClasses eq = new EquivalenceClasses(symboltable,cH,uH);
         int[] clause = new int[]{0,0,4,1,2,3};
         eq.addEquivalenceClass(clause);
         clause = new int[]{0,0,2,3,5};

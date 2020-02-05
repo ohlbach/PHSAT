@@ -30,6 +30,8 @@ public class ResolutionReductionTest {
     static ProblemSupervisor sup = new ProblemSupervisor(cntr,null,problemParameters,null);
     static {problemParameters.put("name","test");}
 
+    static Symboltable symboltable = null;
+
     class RRTest extends ResolutionReduction {
 
         public RRTest() {
@@ -40,7 +42,7 @@ public class ResolutionReductionTest {
                     (cLiteral->cLiteral.clause.size()));
             statistics = new ResolutionStatistics("test");
             taskQueue = new TaskQueue("test",null);
-            equivalenceClasses = new EquivalenceClasses(trackReasoning,null,contradictionHandler);
+            equivalenceClasses = new EquivalenceClasses(symboltable,contradictionHandler,null);
             model = new Model(predicates);
         }
 

@@ -461,6 +461,16 @@ public class Utilities {
                 if(i < size) st.append(separator);}}
         return st.toString();}
 
+    /** removes all duplicates from an IntArray
+     *
+     * @param list an IntArray
+     */
+    public static void removeDuplicates(IntArrayList list) {
+        for(int i = 0; i < list.size(); ++i) {
+            int item = list.getInt(i);
+            for(int j = 0; j < i; ++j) {
+                if(item == list.getInt(j)) {list.removeInt(i--); break;}}}}
+
     public static void printProperties() {
         System.out.println("System.getProperties()");
         for(Map.Entry<Object,Object> entry : System.getProperties().entrySet()) {
@@ -691,6 +701,15 @@ public class Utilities {
         try{Integer.parseInt(s);}
         catch(NumberFormatException ex) {return false;}
         return true;}
+
+    /** computes the union of the first IntArray with the second IntArray
+     *
+     * @param list1 an IntArray
+     * @param list2 an IntArray
+     */
+    public static void joinIntArray(IntArrayList list1, IntArrayList list2) {
+        for(int item : list2) {if(!list1.contains(item)) list1.add(item);}}
+
 
     public static void  mainA(String[] args) {
         int a = toInt(new int[]{0,4});

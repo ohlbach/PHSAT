@@ -4,6 +4,7 @@ import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -130,8 +131,8 @@ public class Transformers {
      * @param contradictionHandler  for dealing with contradictions
      * @return                      the new equivalence classes object or null, if a contradiction was found.
      */
-    public static EquivalenceClasses prepareEquivalences(BasicClauseList basicClauseList, Consumer<String> contradictionHandler, Symboltable symboltable) {
-         EquivalenceClasses equivalenceClasses = new EquivalenceClasses(symboltable,contradictionHandler);
+    public static EquivalenceClasses prepareEquivalences(BasicClauseList basicClauseList, BiConsumer<Integer,IntArrayList> contradictionHandler, Symboltable symboltable) {
+         EquivalenceClasses equivalenceClasses = new EquivalenceClasses(symboltable,contradictionHandler,null);
         for(int[] basicClause : basicClauseList.equivalences) {
             if(!equivalenceClasses.addEquivalenceClass(basicClause)) {return null;}}
         return equivalenceClasses;}
