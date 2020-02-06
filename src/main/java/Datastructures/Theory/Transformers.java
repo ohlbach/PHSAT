@@ -132,7 +132,7 @@ public class Transformers {
      * @return                      the new equivalence classes object or null, if a contradiction was found.
      */
     public static EquivalenceClasses prepareEquivalences(BasicClauseList basicClauseList, BiConsumer<Integer,IntArrayList> contradictionHandler, Symboltable symboltable) {
-         EquivalenceClasses equivalenceClasses = new EquivalenceClasses(symboltable,contradictionHandler,null);
+         EquivalenceClasses equivalenceClasses = new EquivalenceClasses(symboltable,contradictionHandler);
         for(int[] basicClause : basicClauseList.equivalences) {
             if(!equivalenceClasses.addEquivalenceClass(basicClause)) {return null;}}
         return equivalenceClasses;}

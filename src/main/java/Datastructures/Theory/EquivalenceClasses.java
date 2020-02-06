@@ -27,8 +27,6 @@ public class EquivalenceClasses {
     /**  a function to be called when adding the new equivalence class causes p equiv -p,*/
     private BiConsumer<Integer,IntArrayList> contradictionHandler = null;
 
-    /**  a function to be called when adding the new equivalence class causes p equiv p, which implies p */
-    private BiConsumer<Integer,IntArrayList> unitHandler = null;
 
     private Symboltable symboltable;
 
@@ -36,26 +34,20 @@ public class EquivalenceClasses {
      *
      * @param symboltable          maps integers to names
      * @param contradictionHandler for reporting contradictions
-     * @param unitHandler          for reporting unit clauses
      */
     public EquivalenceClasses(Symboltable symboltable,
-                              BiConsumer<Integer,IntArrayList> contradictionHandler,
-                              BiConsumer<Integer,IntArrayList> unitHandler) {
+                              BiConsumer<Integer,IntArrayList> contradictionHandler) {
         this.symboltable          = symboltable;
-        this.contradictionHandler = contradictionHandler;
-        this.unitHandler          = unitHandler;}
+        this.contradictionHandler = contradictionHandler;}
 
     /** This constructor clones the equivalence classes of another instance
      *
      * @param eqClasses  another instance of EquivalenceClasses, typically coming from the Preparer
      * @param contradictionHandler  for dealing with contradictions in new equivalence classes added later.
      */
-    public EquivalenceClasses(EquivalenceClasses eqClasses,
-                              BiConsumer<Integer,IntArrayList> contradictionHandler,
-                              BiConsumer<Integer,IntArrayList> unitHandler) {
+    public EquivalenceClasses(EquivalenceClasses eqClasses, BiConsumer<Integer,IntArrayList> contradictionHandler) {
         this.symboltable          = eqClasses.symboltable;
         this.contradictionHandler = contradictionHandler;
-        this.unitHandler          = unitHandler;
         initialize();
         if(!eqClasses.equivalenceClasses.isEmpty()) {
             for(IntArrayList[] eqClass : eqClasses.equivalenceClasses) {
@@ -97,8 +89,7 @@ public class EquivalenceClasses {
      * @return false if a contradiction was found, otherwise true.
      */
     public boolean addEquivalenceClass(int[] basicClause) {
-        assert basicClause.length > 2;
-        if(basicClause.length == 3) {return true;}
+        assert basicClause.length > 3;
         if(equivalenceClasses == null) {initialize();}
         findExistingClasses(basicClause);
         if(existingClasses.isEmpty()) {return addSeparateEquivalenceClass(basicClause);}
@@ -117,7 +108,7 @@ public class EquivalenceClasses {
      * @return false if a contradiction was found.
      */
     public boolean addEquivalenceClass(int literal1, int literal2, IntArrayList origins) {
-        if(literal1 == literal2) {unitHandler.accept(literal1,origins); return true;}
+        if(literal1 == literal2) {return true;}
         if(literal1 == -literal2) {contradictionHandler.accept(Math.abs(literal1),origins); return false;}
         if(equivalenceClasses == null) {initialize();}
         findExistingClasses(literal1,literal2);
@@ -252,9 +243,7 @@ public class EquivalenceClasses {
         for(int i = 2; i < basicClause.length; ++i) {literals.add(basicClause[i]);}
         Utilities.removeDuplicates(literals);
         IntArrayList origins = IntArrayList.wrap(new int[]{basicClause[0]});
-        if(literals.size() == 1) {
-            unitHandler.accept(literals.getInt(0),origins);
-            return true;}
+        if(literals.size() == 1) {return true;}
         literals.sort(absComparator);
         int representative = literals.getInt(0);
         for(int i = 1; i < literals.size(); ++i) {
