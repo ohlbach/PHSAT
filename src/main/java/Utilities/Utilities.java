@@ -705,10 +705,13 @@ public class Utilities {
     /** computes the union of the first IntArray with the second IntArray
      *
      * @param list1 an IntArray
-     * @param list2 an IntArray
+     * @param list2 an IntArray or null
+     * @return the exteded list1
      */
-    public static void joinIntArray(IntArrayList list1, IntArrayList list2) {
-        for(int item : list2) {if(!list1.contains(item)) list1.add(item);}}
+    public static IntArrayList joinIntArray(IntArrayList list1, IntArrayList list2) {
+        if(list2 == null) {return list1;}
+        for(int item : list2) {if(!list1.contains(item)) list1.add(item);}
+        return list1;}
 
 
     public static void  mainA(String[] args) {

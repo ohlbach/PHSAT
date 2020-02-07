@@ -1,5 +1,6 @@
 package Datastructures.Theory;
 
+import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -90,6 +91,7 @@ public class EquivalenceClasses {
      */
     public boolean addEquivalenceClass(int[] basicClause) {
         assert basicClause.length > 3;
+        assert basicClause[1] == ClauseType.EQUIV.ordinal();
         if(equivalenceClasses == null) {initialize();}
         findExistingClasses(basicClause);
         if(existingClasses.isEmpty()) {return addSeparateEquivalenceClass(basicClause);}
