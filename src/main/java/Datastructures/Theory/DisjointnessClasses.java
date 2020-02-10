@@ -10,20 +10,51 @@ import java.util.function.BiConsumer;
 
 /** A disjointness class is a set of literals which are pairwise contradictory.
  * Such a class may come from the input data, or be derived from binary clauses.
+ * This class, however can deal only with disjoint predicates (positive literals).
+ * Allowing mixed signs would cause the entire SAT-solving for binary clauses.
+ * <br>
+ * A disjointness like p,q,r is internally stored as a hash map:<br>
+ *     p -> q,r <br>
+ *     q -> p,r <br>
+ *     r -> p,q <br>
+ *  In addition the origins, i.e. the ids of the basicClauses defining the disjointnesses are stored.
+ *  If there are equivalences then the literals are mapped to their representatives, and the origins of the
+ *  equivalences are also stored.
+ *
  * Created by Ohlbach on 21.09.2018.
  */
 public class DisjointnessClasses {
+
+    /** disjointnesses maps literals to tuples [disjoint literals, origins]
+     * origins is an ArrayList[IntArrayList]. literals and origins have the same size.<br>
+     * Example: literals = 1,2,3 <br>
+     *     origins = [[10,11], [8,11], [7,11]] <br>
+     *     11 may be the id of the basic clause [11,3,5,6,7] <br>
+     *     10, 8, 7 may be the ids of the basic clauses of equivalence type: 1 = 5, 2 = 6, 3 = 7, <br>
+     *      which where used to replace 5,6,7 by their representatives.
+     * */
     private HashMap<Integer,Object[]> disjointnesses = null;
 
+    /** for mapping predicate numbers to their names */
     private Symboltable symboltable = null;
 
-    BiConsumer<Integer,IntArrayList> contradictionHandler = null;
-
-    TriConsumer<Integer,Integer,IntArrayList> binaryClauseHandler = null;
-
+    /** Disjointnesses like p != p imply -p, which are sent back to the main solver by
+     * unaryClauseHandler.accept(literal,origin) */
     BiConsumer<Integer,IntArrayList> unaryClauseHandler = null;
 
-    /** creates empty disjointness classes
+    /** disjointnesses with negative literals like p != -q cause SAT-Solving for binary clauses.
+     * These must be handled in the main Solver. If they are submitted to this class, they are sent back to the solver
+     * using binaryClauseHandler.accept(literal1, literal2, origins) */
+    TriConsumer<Integer,Integer,IntArrayList> binaryClauseHandler = null;
+
+
+
+
+    /** creates an empty disjointness class
+     *
+     * @param symboltable         for mapping predicate ids to their names (or null)
+     * @param unaryClauseHandler  treats p != p by unaryClauseHandler.accept(-p,origin)
+     * @param binaryClauseHandler treats p != -q by binaryClauseHandler.accept(-p, q, origins)
      */
     public DisjointnessClasses(Symboltable symboltable,
                                BiConsumer<Integer,IntArrayList> unaryClauseHandler,
@@ -33,25 +64,39 @@ public class DisjointnessClasses {
         this.binaryClauseHandler = binaryClauseHandler;}
 
 
-    /** checks if there are equivalence classes
-    *
-    * @return true if there are no equivalence classes
-    */
-    public boolean isEmpty() {
-        return disjointnesses == null || disjointnesses.isEmpty();}
+    /** copies an existing DisjointnessClass into the local data structures, but with new handlers.
+     *
+     * @param disClass            a previously generated disjointness class
+     * @param unaryClauseHandler  a new handler
+     * @param binaryClauseHandler a new handler
+     */
+    public DisjointnessClasses(DisjointnessClasses disClass,
+                               BiConsumer<Integer,IntArrayList> unaryClauseHandler,
+                               TriConsumer<Integer,Integer,IntArrayList> binaryClauseHandler) {
+        symboltable = disClass.symboltable;
+        this.unaryClauseHandler = unaryClauseHandler;
+        this.binaryClauseHandler = binaryClauseHandler;
+        disjointnesses = new HashMap<>();
+        disClass.disjointnesses.forEach((predicate, object) -> {
+            IntArrayList predicates = (IntArrayList)object[0];
+            ArrayList<IntArrayList> origins = (ArrayList<IntArrayList>)object[0];
+            ArrayList<IntArrayList> thisOrigins = new ArrayList<>();
+            for(IntArrayList list : origins) {thisOrigins.add(list.clone());}
+            disjointnesses.put(predicate, new Object[]{predicates,thisOrigins});});}
+
+
+
 
     /** turns a basicClause into a disjointness class. <br>
-     * A true literal causes all other literals to become false <br>
-     * A false literal is ignored <br>
-     * Two true literals are a contradiction <br>
-     * p &lt;=&gt; -p is ignored.<br>
-     * A double literal p,p is a contradiction.<br>
-     * The corresponding observers are called.
-     * New disjunctions which are subsets of a new clause are deleted.
-     * Literals occurring in several classes may cause joining of the classes.
+     *  Before treating the literals, they are mapped to their representatives in the equivalence classes (if necessary) <br>
+     *  The resulting clause may contain literals with mixed sign. <br>
+     *  These are mapped back to the solver by calling the binaryClauseHandler. <br>
+     *  The resulting clause may also contain literals p,p which imply -p. <br>
+     *  These are mapped back to the solver by calling the unaryClauseHandler.
      *
-     * @param basicClause [clause-problemId,typenumber,literal1,...]
-     * @return the result disjointness clause or null
+     * @param basicClause        [clause-problemId,typenumber,literal1,...]
+     * @param equivalenceClasses null or some equivalence classes.
+     * @return true if the clause caused a change, otherwise false.
      */
     public boolean addDisjointnessClass(int[] basicClause, EquivalenceClasses equivalenceClasses) {
         assert basicClause.length > 3;
@@ -63,7 +108,11 @@ public class DisjointnessClasses {
         if(disjointnesses == null) {disjointnesses = new HashMap<>();}
         for(int literal : literals) {
             result = disjointnesses.get(literal);
-            if(result == null) {disjointnesses.put(literal,new Object[]{literals,origins});}
+            if(result == null) {
+                IntArrayList joinedLiterals = literals.clone();
+                ArrayList<IntArrayList> joinedOrigins = (ArrayList<IntArrayList>)origins.clone();
+                removeDuplicates(literal,joinedLiterals,joinedOrigins);
+                disjointnesses.put(literal,new Object[]{joinedLiterals,joinedOrigins});}
             else {
                 IntArrayList joinedLiterals = ((IntArrayList)result[0]);
                 joinedLiterals.addAll(literals);
@@ -73,49 +122,75 @@ public class DisjointnessClasses {
                 disjointnesses.put(literal,new Object[]{joinedLiterals,joinedOrigins});}}
         return true;}
 
-    public void addDisjointnessClass(int literal1, int literal2, IntArrayList origins, EquivalenceClasses equivalenceClasses) {
-        assert literal1 > 0;
-        assert literal2 > 0;
-        assert literal1 != literal2;
+    /** This method can be called when a new disjointness clause -p,-q is derived, which means than p and q are disjoint.
+     *  Both literals must be positive, different, and replaced by their representative in an equivalence class.
+     *
+     * @param predicate1  a positive literal
+     * @param predicate2  a positive literal
+     * @param origins     the origins of the derived disjointness clause.
+     */
+    public void addDisjointnessClass(int predicate1, int predicate2, IntArrayList origins) {
+        assert predicate1 > 0;
+        assert predicate2 > 0;
+        assert predicate1 != predicate2;
         if(disjointnesses == null) {disjointnesses = new HashMap<>();}
 
-        Object[] result = disjointnesses.get(literal1);
-        if(result == null) {disjointnesses.put(literal1,new Object[]{IntArrayList.wrap(new int[]{literal2}),origins});}
+        ArrayList<IntArrayList> originList = new ArrayList<>();
+        originList.add(origins);
+        Object[] result = disjointnesses.get(predicate1);
+        if(result == null) {
+            disjointnesses.put(predicate1,new Object[]{IntArrayList.wrap(new int[]{predicate2}),originList});}
         else {
             IntArrayList joinedLiterals = ((IntArrayList)result[0]);
-            joinedLiterals.add(literal2);
+            joinedLiterals.add(predicate2);
             ArrayList<IntArrayList> joinedOrigins = (ArrayList<IntArrayList>)result[1];
             joinedOrigins.add(origins);
             removeDuplicates(0,joinedLiterals,joinedOrigins);
-            disjointnesses.put(literal1,new Object[]{joinedLiterals,joinedOrigins});}
+            disjointnesses.put(predicate1,new Object[]{joinedLiterals,joinedOrigins});}
 
-        result = disjointnesses.get(literal2);
-        if(result == null) {disjointnesses.put(literal2,new Object[]{IntArrayList.wrap(new int[]{literal1}),origins});}
+        result = disjointnesses.get(predicate2);
+        if(result == null) {disjointnesses.put(predicate2,new Object[]{IntArrayList.wrap(new int[]{predicate1}),originList});}
         else {
             IntArrayList joinedLiterals = ((IntArrayList)result[0]);
-            joinedLiterals.add(literal1);
+            joinedLiterals.add(predicate1);
             ArrayList<IntArrayList> joinedOrigins = (ArrayList<IntArrayList>)result[1];
             joinedOrigins.add(origins);
             removeDuplicates(0,joinedLiterals,joinedOrigins);
-            disjointnesses.put(literal2,new Object[]{joinedLiterals,joinedOrigins});}}
+            disjointnesses.put(predicate2,new Object[]{joinedLiterals,joinedOrigins});}}
 
-        void removeDuplicates(int literal, IntArrayList literals, ArrayList<IntArrayList> origins) {
-        for(int i = 0; i < literals.size(); ++i) {
-            int literali = literals.getInt(i);
-            if(literali == literal) {
-                literals.removeInt(i);
+    /** This method removes predicate from predicates, together with all duplicates.
+     * In parallel it removes the origins from the origins list. <br>
+     * When duplicates are removed, the shortest origins are kept. <br>
+     * In the normal case, there should be no duplicates. <br>
+     * There are only duplicates if the basicClause contains duplicates, or if equivalent literals are mapped
+     * to the same predicate.
+     *
+     * @param predicate  a predicate (or 0)
+     * @param predicates some predicates
+     * @param origins    the origins for each predicate
+     */
+    static void removeDuplicates(int predicate, IntArrayList predicates, ArrayList<IntArrayList> origins) {
+        boolean removed = false;
+        for(int i = 0; i < predicates.size(); ++i) {
+            int literali = predicates.getInt(i);
+            if(literali == predicate) {
+                predicates.removeInt(i);
                 origins.remove(i--);}
             else {
                 IntArrayList originsi = origins.get(i);
-                for(int j = i+1; j < literals.size(); ++j) {
-                    int literalj = literals.getInt(j);
+                for(int j = i+1; j < predicates.size(); ++j) {
+                    int literalj = predicates.getInt(j);
                     if(literali == literalj) {
+                        removed = true;
                         IntArrayList originsj = origins.get(j);
-                        if(originsi.size() < originsj.size()) {
-                            literals.removeInt(j);
+                        if(originsj == null) {predicates.removeInt(j); origins.remove(j--); continue;}
+                        if(originsi == null) {predicates.removeInt(i); origins.remove(i--); break;}
+                        if(originsi.size() <= originsj.size()) {
+                            predicates.removeInt(j);
                             origins.remove(j);}
-                        else {literals.removeInt(i); origins.remove(i--);}
-                        break;}}}}}
+                        else {predicates.removeInt(i); origins.remove(i--);}
+                        break;}}}}
+        if(removed) removeDuplicates(0,predicates,origins);}
 
 
     /** analyses a disjointness basicClause and handles the following cases:
@@ -130,7 +205,7 @@ public class DisjointnessClasses {
      * @param equivalenceClasses null or the equivalence classes
      * @return                   [IntArrayList of literals, ArrayList[IntArrayList] of origins], or null
      */
-     Object[] analyseClause(int[] basicClause, EquivalenceClasses equivalenceClasses) {
+    Object[] analyseClause(int[] basicClause, EquivalenceClasses equivalenceClasses) {
         IntArrayList literals = new IntArrayList(basicClause.length-2);
         ArrayList<IntArrayList> origins = new ArrayList<>();
         int id = basicClause[0];
@@ -163,6 +238,7 @@ public class DisjointnessClasses {
                     literals.removeInt(i); origins.remove(i--);
                     deleted.add(literal);
                     break;}}}
+
         if(literals.size() <= 1) {return null;}
 
         if(hasNegativeLiterals) { // split into positive literals and generation of binary clauses for negative literals
@@ -204,18 +280,18 @@ public class DisjointnessClasses {
         return ((IntArrayList)result[0]).contains(literal2);}
 
 
-    /** computes the literals which must be made true if the given literal is made true
+    /** computes the literals which must be made true if the given predicate is made true
      * Example: p != q, and p is made true then -q must be made true
      *
-     * @param literal  the literal to be made true
+     * @param predicate  the predicate to be made true
      * @param truths   collects the literals to be made true.
      * @return         true if some literals must be made true.
      */
-    public boolean truths(int literal, IntArrayList truths) {
-        if(disjointnesses == null || literal < 0) {return false;}
-        Object[] result = disjointnesses.get(literal);
+    public boolean truths(int predicate, IntArrayList truths) {
+        if(disjointnesses == null || predicate < 0) {return false;}
+        Object[] result = disjointnesses.get(predicate);
         if (result == null) {return false;}
-        for(int literal1 : (IntArrayList)result[0]) {truths.add(-literal1);}
+        for(int literal : (IntArrayList)result[0]) {truths.add(-literal);}
         return !truths.isEmpty();}
 
     /** returns the origins (basicClause ids) which caused literal1 disjoint to literal2
@@ -237,6 +313,13 @@ public class DisjointnessClasses {
             if(literals.getInt(i) == literal2) {found = true; break;}}
         return found ? ((ArrayList<IntArrayList>)result[1]).get(i) : null;}
 
+    /** checks if there are disjointenss classes
+     *
+     * @return true if there are no equivalence classes
+     */
+    public boolean isEmpty() {
+        return disjointnesses == null || disjointnesses.isEmpty();}
+
 
     /** maps a literal to a string, possibly using the symboltable
      *
@@ -255,14 +338,15 @@ public class DisjointnessClasses {
         if(disjointnesses == null) {return "";}
         StringBuilder st = new StringBuilder();
         st.append("Disjointness Classes\n");
-        disjointnesses.forEach((literal, result) -> {
-            st.append(literal).append(": ");
-            IntArrayList literals = (IntArrayList)result[0];
+        disjointnesses.forEach((predicate, result) -> {
+            st.append(literalName(predicate)).append(": ");
+            IntArrayList predicates = (IntArrayList)result[0];
             ArrayList<IntArrayList> origins = (ArrayList<IntArrayList>)result[1];
-            for(int i = 0; i< literals.size(); ++i) {
-                st.append(literals.getInt(i));
+            for(int i = 0; i< predicates.size(); ++i) {
+                st.append(literalName(predicates.getInt(i)));
                 IntArrayList origin = origins.get(i);
-                if(origin != null) {st.append(" @ ").append(origin.toString());}
-                st.append(",");}});
+                if(origin != null) {st.append("@").append(origin.toString());}
+                st.append(", ");}
+            st.append("\n");});
         return st.toString();}
     }
