@@ -314,9 +314,9 @@ public class EquivalenceClasses {
                 int stat = model.status(literal);
                 if(stat != 0 && stat != status) {
                     return new Unsatisfiable("Equivalent literal " + toStringSt(literal1) +
-                            " is " + model.toString(status) + ", but " + toStringSt(literal) +
-                            " is " + model.toString(stat));}
-                model.setStatus(literal,status);}}
+                            " is " + Model.toString(status) + ", but " + toStringSt(literal) +
+                            " is " + Model.toString(stat));}
+                model.setStatus(literal,status,null);}} // korrigieren
         return null;}
 
     /** maps a literal to a string, possibly via a symboltable

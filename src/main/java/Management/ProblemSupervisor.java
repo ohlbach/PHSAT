@@ -5,7 +5,9 @@ import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Results.*;
 import Generators.Generator;
+import Solvers.Resolution.Preparer;
 import Solvers.Solver;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -19,7 +21,6 @@ public class ProblemSupervisor {
     public String threadId;
 
     public BasicClauseList basicClauseList;
-    public BasicClauseList simplifiedBasicClauseList= null;
     public GlobalParameters globalParameters;
     public HashMap<String,Object> problemParameters;
     public ArrayList<HashMap<String,Object>> solverParameters;
@@ -28,7 +29,8 @@ public class ProblemSupervisor {
     Solver[] solvers;
     Result[] results;
     int numberOfSolvers;
-    Controller controller;
+    public Controller controller;
+    Preparer preparer;
 
     public SupervisorStatistics statistics = null;
 
@@ -56,6 +58,9 @@ public class ProblemSupervisor {
 
 
     public void solveProblem(String threadId) {
+        preparer =  new Preparer(this);
+        Result result = preparer.prepare();
+        if(result != null) {return;}
         this.threadId = threadId;
         numberOfSolvers = solverParameters.size();
         solvers = new Solver[numberOfSolvers];
@@ -83,13 +88,37 @@ public class ProblemSupervisor {
      * @param solver   which found the literal
      * @param literal  the new true literal.
      */
-    public synchronized Result forwardTrueLiteral(Solver solver,int literal) {
+    public Result forwardTrueLiteral(Solver solver,int literal) {
         Result result = null;
         for(Solver solv : solvers) {
             if(solv != solver) {
                 result = solv.importTrueLiteral(literal);}
                 if(result.getClass() == Unsatisfiable.class || result.getClass() == Satisfiable.class) {return result;}}
         return null;}
+
+    /** This method is called when a solver found a new equivalence p == q
+     * It forwards the clause to all other solvers.
+     *
+     * @param solver    which found the equivalence
+     * @param literal1  the first literal of the equivalence
+     * @param literal2  the second literal of the equivalence
+     * @param origins    null or the ids of the basicClauses which imply the equivalence
+     */
+    public void forwardEquivalence(Solver solver, int literal1, int literal2, IntArrayList origins) {
+        for(Solver solv : solvers) {if(solv != solver) solv.importEquivalence(literal1,literal2,origins);}}
+
+    /** This method is called when a solver found a new disjointness p != q
+     * It forwards the clause to all other solvers.
+     *
+     * @param solver    which found the disjointness
+     * @param predicate1  the first literal of the equivalence
+     * @param predicate2  the second literal of the equivalence
+     * @param origins    null or the ids of the basicClauses which imply the disjointness
+     */
+    public void forwardDisjointness(Solver solver, int predicate1, int predicate2, IntArrayList origins) {
+        for(Solver solv : solvers) {if(solv != solver) solv.importDisjointness(predicate1,predicate2,origins);}}
+
+
 
     /** This method is called when a solver found a new binary clause.
      * It forwards the clause to all other solvers.
@@ -98,7 +127,7 @@ public class ProblemSupervisor {
      * @param literal1  the first literal of the clause
      * @param literal2  the second literal of the clause
      */
-    public synchronized void forwardBinaryClause(Solver solver, int literal1,int literal2) {
+    public void forwardBinaryClause(Solver solver, int literal1,int literal2) {
         for(Solver solv : solvers) {if(solv != solver) solv.importBinaryClause(literal1,literal2);}}
 
     /** This method is called when a solver found a new clause.
@@ -107,7 +136,7 @@ public class ProblemSupervisor {
      * @param solver    which found the clause
      * @param literals  the literals of the clause
      */
-    public synchronized void forwardClause(Solver solver, int[] literals) {
+    public void forwardClause(Solver solver, int[] literals) {
         for(Solver solv : solvers) {if(solv != solver) solv.importClause(literals);}}
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.

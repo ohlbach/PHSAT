@@ -4,6 +4,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 import Utilities.Positioned;
 import Utilities.Sizable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,6 +27,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public ClauseStructure structure = null;
     /** a timestamp to be used by corresponding algorithms */
     public int timestamp = 0;
+    /** contains the list of basicClause ids which produced this clause */
+    public IntArrayList origins = null;
 
     public Clause(int id) {
         this.id = id;

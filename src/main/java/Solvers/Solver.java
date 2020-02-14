@@ -5,13 +5,16 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
+import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Walker.Walker;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -138,8 +141,6 @@ public abstract class Solver {
 
     protected  BasicClauseList basicClauseList;
 
-    protected BasicClauseList simplifiedBasicClauseList;
-
     public  int predicates;
 
     protected Model model;
@@ -170,7 +171,6 @@ public abstract class Solver {
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
         globalParameters           = problemSupervisor.globalParameters;
         basicClauseList            = problemSupervisor.basicClauseList;
-        simplifiedBasicClauseList  = problemSupervisor.simplifiedBasicClauseList;
         predicates                 = basicClauseList.predicates;
         symboltable                = basicClauseList.symboltable;
         monitor                    = globalParameters.monitor;
@@ -185,7 +185,7 @@ public abstract class Solver {
      *
      * @param literal a new true literal
      */
-    public Result importTrueLiteral(int literal) {return null;}
+    public synchronized Result importTrueLiteral(int literal) {return null;}
 
     /** This method is called when another solver found a new binary clause.
      * It need be overwritten in the solver class when it uses implication DAGs.
@@ -193,14 +193,30 @@ public abstract class Solver {
      * @param literal1 the first literal of the clause
      * @param literal2 the second literal of the clause
      */
-    public void importBinaryClause(int literal1, int literal2) {}
+    public synchronized void importBinaryClause(int literal1, int literal2) {}
 
     /** This method is called when another solver found a new clause.
      * It need be overwritten in the solver class when it wants to exploit these clauses
      *
      * @param literals the literals of the clause
      */
-    public void importClause(int[] literals) {}
+    public synchronized void importClause(int[] literals) {}
+
+    /** This method is called when another solver found an equivalence p == q
+     *
+     * @param literal1  a literal
+     * @param literal2  a literal
+     * @param origins   null or the ids of the basicClauses which imply the equivalence
+     */
+    public synchronized void importEquivalence(int literal1, int literal2, IntArrayList origins) {}
+
+    /** This method is called when another solver found a  disjointness p != q
+     *
+     * @param predicate1  a predicate
+     * @param predicate2  a predicate
+     * @param origins   null or the ids of the basicClauses which imply the disjointness
+     */
+    public synchronized void importDisjointness(int predicate1, int predicate2, IntArrayList origins) {}
 
 
     /** The key method, which has to be implemented by the solvers.
@@ -250,6 +266,7 @@ public abstract class Solver {
         ArrayList<int[]> falseClauses = basicClauseList.falseClauses(model);
         if(falseClauses != null) {return new Erraneous(model,falseClauses,symboltable);}
         else {return null;}}
+
 
 
 

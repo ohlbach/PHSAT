@@ -47,7 +47,7 @@ public class DisjointnessClasses {
      * using binaryClauseHandler.accept(literal1, literal2, origins) */
     TriConsumer<Integer,Integer,IntArrayList> binaryClauseHandler = null;
 
-
+    Model model = null;
 
 
     /** creates an empty disjointness class
@@ -56,10 +56,11 @@ public class DisjointnessClasses {
      * @param unaryClauseHandler  treats p != p by unaryClauseHandler.accept(-p,origin)
      * @param binaryClauseHandler treats p != -q by binaryClauseHandler.accept(-p, q, origins)
      */
-    public DisjointnessClasses(Symboltable symboltable,
+    public DisjointnessClasses(Symboltable symboltable, Model model,
                                BiConsumer<Integer,IntArrayList> unaryClauseHandler,
                                TriConsumer<Integer,Integer,IntArrayList> binaryClauseHandler) {
         this.symboltable = symboltable;
+        this.model = model;
         this.unaryClauseHandler = unaryClauseHandler;
         this.binaryClauseHandler = binaryClauseHandler;}
 

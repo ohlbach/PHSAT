@@ -1,6 +1,7 @@
 package Datastructures.Theory;
 
 import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.function.Consumer;
@@ -13,62 +14,52 @@ public class Model {
     /** the maximum number of predicates */
     public int predicates = 0;
     /** the current model */
-    private ArrayList<Integer> model = null;
+    private IntArrayList model = null;
+
+    /** lists the origins, i.e. the ids of the basic clauses causing the truth of the literal */
+    private ArrayList<IntArrayList> origins = null;
+
     /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined) */
     private byte[] status = null;
 
-    /** creates a model with a maximum number of predicates
+
+    /** creates a model with a maximum number of predicates, together with a means of tracking the origins
      *
+     * @param trackReasoning if true then the origins are initialized
      * @param predicates the maximum number of predicates
      */
-    public Model(int predicates) {
+    public Model(int predicates, boolean trackReasoning) {
         assert predicates > 0;
         this.predicates = predicates;
-        model = new ArrayList<>();
-        status = new byte[predicates+1];}
+        model = new IntArrayList(predicates);
+        if(trackReasoning) origins = new ArrayList<>(predicates);
+        status  = new byte[predicates+1];}
 
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
      *
      * @param literal the literal for the model.
+     * @param origin the ids of the basic clauses causing this truth
      * @return +1 if the literal was already in the model, -1 if the negated literal was in the model, otherwise 0.
      */
-    public int add(int literal) {
+    public int add(int literal, IntArrayList origin) {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         short tr = status[predicate];
         if(tr == 0){
             model.add(literal);
+            origins.add(origin);
             status[predicate] = literal > 0 ? (byte)1: (byte)-1;
             return 0;}
         else {return (Integer.signum(literal) == (int)tr) ? 1 : -1;}}
 
-    /** forces the literal to be true
-     *
-     * @param literal the literal for the model.
-     */
-    public void forceTrue(int literal) {
-        int predicate = Math.abs(literal);
-        assert predicate <= predicates;
-        if(status[predicate] != 0){model.removeIf(lit -> Math.abs(lit) == predicate);}
-        model.add(literal);
-        status[predicate] = literal > 0 ? (byte)1: (byte)-1;}
-
-
-    /** flips the truth value of the predicate
-     *
-     * @param predicate a predicate to be flipped
-     */
-    public void flip(int predicate) {
-        assert predicate > 0 && predicate <= predicates;
-        status[predicate] *= -1;}
 
     /** returns the entire model, i.e. the list of true literals.
      * Access to the list, however is not synchronized.
      *
      * @return the model
      */
-    public ArrayList<Integer> getModel() {return model;}
+    public IntArrayList getModel() {return model;}
 
     /** checks if the literal is true in the model.
      *
@@ -105,12 +96,24 @@ public class Model {
         short status = this.status[predicate];
         return literal > 0 ? status : -status;}
 
+    /** returns the origins of a model entry
+     *
+     * @param literal a literal
+     * @return null or the origins of the literal entry
+     */
+    public IntArrayList getOrigin(int literal) {
+        int predicate = Math.abs(literal);
+        assert predicate <= predicates;
+        byte status = this.status[predicate];
+        if(origins == null ||  status == 0) {return null;}
+        return origins.get(model.indexOf((status > 0) ? predicate : -predicate));}
+
     /** turns the status value into a string
      *
      * @param status -1,0,+1
      * @return the corresponding name
      */
-    public String toString(int status) {
+    public static String toString(int status) {
         switch(status) {
             case -1 : return "false";
             case  0:  return "unknown";
@@ -123,12 +126,13 @@ public class Model {
      * @param literal a literal
      * @param status +1 (for true) and -1 (for false)
      */
-    public void setStatus(int literal, int status) {
+    public void setStatus(int literal, int status, IntArrayList origin) {
         if(literal < 0) {literal = -literal; status = (byte)-status;}
         assert this.status[literal] == 0 || this.status[literal] == status;
         if(this.status[literal] == 0) {
             this.status[literal] = (byte)status;
-            model.add(status > 0 ? literal : -literal);}}
+            model.add(status > 0 ? literal : -literal);
+            if(origins != null) {origins.add(origin);}}}
 
 
 
@@ -137,9 +141,12 @@ public class Model {
      * @return a clone of the model
      */
     public Model clone() {
-        Model newModel = new Model(predicates);
+        Model newModel = new Model(predicates,origins != null);
+        if(origins != null) {
+            newModel.origins = new ArrayList<>();
+            for(IntArrayList origin : origins) {newModel.origins.add(origin.clone());}}
         newModel.status = status.clone();
-        newModel.model = (ArrayList<Integer>)model.clone();
+        newModel.model = model.clone();
         return newModel;}
 
     /** returns a clone of the current status of the model.
@@ -188,11 +195,13 @@ public class Model {
      * @return the model as a comma separated string of names
      */
     public String toString(Symboltable symboltable) {
-        if(symboltable == null) {return model.toString();}
         StringBuilder st = new StringBuilder();
-        for(int i = 0; i < model.size()-1; ++i) {
-            st.append(symboltable.getLiteralName(model.get(i))).append(",");}
-        st.append(symboltable.getLiteralName(model.get(model.size()-1)));
+        int size = model.size()-1;
+        for(int i = 0; i <= size; ++i) {
+            int literal = model.getInt(i);
+            st.append((symboltable == null) ? Integer.toString(literal) : symboltable.getLiteralName(literal));
+            if(origins != null) {st.append("@").append(origins.get(i).toString());}
+            if(i == size) st.append(",");}
         return st.toString();}
 
 

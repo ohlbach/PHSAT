@@ -2,12 +2,19 @@ package Solvers.Resolution;
 
 import Coordinator.Tasks.Task;
 import Coordinator.Tasks.TaskQueue;
+import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
+import Datastructures.Theory.DisjointnessClasses;
+import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.Model;
+import Datastructures.Theory.Transformers;
+import Management.GlobalParameters;
+import Management.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Resolution.ResolutionReduction;
 import Solvers.Resolution.ResolutionStatistics;
@@ -16,6 +23,7 @@ import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /** The class implements recursive replacement resolution on the input clauses
@@ -27,7 +35,9 @@ import java.util.function.Function;
  * The main purpose of the class is to support other solvers with reduced input clauses.
  *
  */
-public class Preparer extends ResolutionReduction {
+public class Preparer {
+
+    boolean checkConsistency = true;
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
@@ -50,6 +60,8 @@ public class Preparer extends ResolutionReduction {
         list.add(map);
         return list;}
 
+    ProblemSupervisor problemSupervisor;
+
     /** gives a string with descriptions of the available parameters.
      *
      * @return a description of the available parameters.
@@ -60,30 +72,100 @@ public class Preparer extends ResolutionReduction {
 
     /** constructs a new Resolution solver.
      *
-     * @param solverNumber         for distinguishing different solvers of the same type, but different parameters
-     * @param solverParameters     contains the parameters for controlling the solver
      * @param problemSupervisor    coordinates several solvers.
      */
-    public Preparer(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
-        super(solverNumber,solverParameters, problemSupervisor);}
+    public Preparer(ProblemSupervisor problemSupervisor) {
+        this.problemSupervisor = problemSupervisor;}
 
 
     /** contains all the clauses, sorted according to the clause length*/
     private BucketSortedList<Clause> clauses;
     BucketSortedIndex<CLiteral> literalIndex = null;
     TaskQueue taskQueue = null;
-    ResolutionStatistics statistics = null;
+    PreparerStatistics statistics = null;
     int maxClauseLength = 3;
     int timestamp = 1;
+    int predicates;
+    boolean monitoring = false;
+    Monitor monitor;
+    GlobalParameters globalParameters;
+    String problemId;
+    BasicClauseList basicClauseList;
+    EquivalenceClasses equivalenceClasses = null;
+    DisjointnessClasses disjointnessClasses = null;
+    Symboltable symboltable = null;
+    Model model = null;
+    boolean trackResasoning = true;
+    int maxInputId = 0;
 
     /** initializes resolution specific data structures*/
     void initializeData() {
+        basicClauseList = problemSupervisor.basicClauseList;
+        predicates   = basicClauseList.predicates;
+        symboltable = basicClauseList.symboltable;
+        globalParameters = problemSupervisor.globalParameters;
+        monitor                    = globalParameters.monitor;
+        monitoring                 = monitor.monitoring;
+        problemId                  = problemSupervisor.problemId;
         clauses      = new BucketSortedList<Clause>(clause->clause.size());
         literalIndex = new BucketSortedIndex<CLiteral>(predicates+1,
                             (cLiteral->cLiteral.literal),
                             (cLiteral->cLiteral.clause.size()));
-        taskQueue    = new TaskQueue(combinedId,monitor);
-        statistics = new ResolutionStatistics(combinedId);}
+        taskQueue    = new TaskQueue(problemId,monitor);
+        model = new Model(predicates,trackResasoning);
+        trackResasoning = globalParameters.trackReasoning;
+        statistics = new PreparerStatistics(problemId);}
+
+    Consumer<Clause> insertHandler = (
+            clause -> {
+                switch(clause.size()) {
+                    case 1: addTrueLiteralTask(clause.getLiteral(0),"Initial clause"); return;
+                    case 2: findEquivalence(clause);
+                    default: insertClause(clause);
+                        taskQueue.add(new Task(clause.size()+priorityShift,        // shorter clauses should be
+                                (()-> {simplifyForward(clause); return null;}),    // checked first for subsumption and replacement resolution
+                                (()-> "Simplify initial clause " + clause.toString())));}});
+
+    /** This method translates all basic clauses into Clause data structures.
+     *  Equivalent literals are replaced by their representatives.
+     *
+     * @return possibly Unsatisfiable
+     * @throws InterruptedException
+     */
+    Result initializeClauses() {
+        Result result = null;
+        int[] ids = new int[]{0};
+        if(basicClauseList.equivalences != null) {
+            Object x = Transformers.prepareEquivalences(basicClauseList.equivalences, symboltable);
+            if(x.getClass() == Unsatisfiable.class) {return (Unsatisfiable)x;}
+            equivalenceClasses = (EquivalenceClasses)x;}
+
+        if(basicClauseList.conjunctions != null) {
+            result = Transformers.prepareConjunctions(basicClauseList.conjunctions,symboltable,equivalenceClasses,model);
+            if(result != null) {return result;}}
+
+        if(basicClauseList.disjunctions != null) {
+            result = Transformers.prepareDisjunctions(basicClauseList.disjunctions,ids,symboltable,trackResasoning,model,equivalenceClasses,insertHandler)
+            if(result != null) {return result;}}
+
+        DisjointnessClasses disjointnessClasses = null;
+        if(basicClauseList.disjoints != null || basicClauseList.xors != null) {
+            disjointnessClasses = new DisjointnessClasses(symboltable,model,unaryClauseHandler,binaryClauseHandler);}
+
+        if(basicClauseList.disjoints != null) {
+            Transformers.prepareDisjoints(basicClauseList.disjoints,disjointnessClasses,equivalenceClasses);}
+
+        if(basicClauseList.xors != null) {
+            Transformers.prepareXors(basicClauseList.xors,ids,symboltable,trackResasoning,model,disjointnessClasses,equivalenceClasses,insertHandler);
+        }
+
+        if(checkConsistency) {check("initializeClauses");}
+        maxInputId = ids[0];
+        result = taskQueue.run();
+        if(result != null) {return result;}
+        result = purityAndElimination();
+        if(clausesEmpty()) {return completeModel();}
+        return result;}
 
 
     Result doTheWorkOld() throws InterruptedException {
@@ -108,8 +190,7 @@ public class Preparer extends ResolutionReduction {
             for(CLiteral clit : clause) {clit.timestamp = 0;}}}
 
 
-    Result doTheWork() throws InterruptedException {
-        if(Thread.interrupted()) {throw new InterruptedException();}
+    public Result prepare() {
         for(int i = 0; i < 1; ++i) {
         if(clauses.isEmpty()) {return completeModel();}
         for(Clause clause : clauses) {
