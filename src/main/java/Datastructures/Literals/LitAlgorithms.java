@@ -313,7 +313,20 @@ public class LitAlgorithms {
         literalIndex.pushIterator(literal,iterator);}
 
 
-
+    /** This method tries to simplify a clause by means of UR-Resolution with the other clauses.
+     * There are three types of results: for a clause like p,q,r,s <br>
+     *     - a literal like -p if this can be derived from the other clauses <br>
+     *     - an array of literals like -p,q,s,  which allows to resolve p away, but my be also useful for other inferences <br>
+     *     - a CLiteral [p] which indicates that this literal can be removed by replacement resolution. <br>
+     * The timestamp must be incremented at the end by (maxClauseLength +1) * clause.size()
+     *
+     * @param clause            the clause to be investigated
+     * @param literalIndex      the literal index
+     * @param timestamp         a new timestamp
+     * @param maxClauseLength   the maximum clause length
+     * @param usedClauses       is filled with the clauses which are used for the inferences
+     * @return                  a literal, an array of literals or a CLiteral
+     */
     public static Object urResolution(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp, int maxClauseLength,
                                            ArrayList<Clause> usedClauses) {
         int size = clause.size();
@@ -343,7 +356,16 @@ public class LitAlgorithms {
         return null;}
 
 
-
+    /** This method searches for the empty clause if the literal is assumed to be true.
+     *
+     * @param literal         a literal which is assumed to be true
+     * @param blockedClause   a clause which cannot be used for the search
+     * @param parentClause    null or the parent clause in the recursion
+     * @param literalIndex    the literal index
+     * @param timestamp       the current timestamp
+     * @param usedClauses     is filled with the clause which are used for the empty clause
+     * @return                true if the empty clause is found
+     */
         private static boolean findEmptyClause(int literal, Clause blockedClause, Clause parentClause, BucketSortedIndex<CLiteral> literalIndex, int timestamp,
                                            HashMap<Clause,ArrayList<Clause>> usedClauses) {
         Iterator<CLiteral> iterator = literalIndex.popIterator(literal);
@@ -372,7 +394,12 @@ public class LitAlgorithms {
         literalIndex.pushIterator(literal,iterator);
         return false;}
 
-
+    /** joins the used clauses with the used clauses of the parent clause and the given clause
+     *
+     * @param usedClauses   maps clauses to used clauses
+     * @param parentClause  the parent clause in the search
+     * @param clause        the current clause
+     */
     private static void joinUsedClauses(HashMap<Clause,ArrayList<Clause>> usedClauses, Clause parentClause,Clause clause) {
         ArrayList<Clause> parentClauses = usedClauses.get(parentClause);
         ArrayList<Clause> actualClauses = usedClauses.get(clause);
@@ -381,8 +408,12 @@ public class LitAlgorithms {
         if(parentClause != null) {actualClauses.add(parentClause);}}
 
 
-
-
+    /** joins the used clauses into the used clauses for the given clause and clears all other used clauses
+     *
+     * @param usedClauses   maps clauses to used clauses
+     * @param parentClause  the current parent clause
+     * @param clause        the actual clause
+     */
     private static void clearUsedClauses(HashMap<Clause,ArrayList<Clause>> usedClauses, Clause parentClause, Clause clause) {
         ArrayList<Clause> parentClauses = usedClauses.get(parentClause);
         ArrayList<Clause> actualClauses = usedClauses.get(clause);

@@ -255,7 +255,7 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      *
      * @param iterator an iterator which is no longer used
      */
-    public void pushIterator(BucketIterator iterator) {iteratorStack.push(iterator);}
+    public void pushIterator(Iterator iterator) {iteratorStack.push((BucketIterator)iterator);}
 
     /** This method returns an iterator which iterates over the items in the bucket.
      * It may reuse old iterators

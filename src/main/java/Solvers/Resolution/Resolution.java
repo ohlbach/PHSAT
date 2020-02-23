@@ -228,7 +228,7 @@ public class Resolution extends Solver {
      * @return possibly Unsatisfiable
      * @throws InterruptedException
      */
-    private Result initializeClauses() throws InterruptedException {
+    private Result initializeClauses() throws InterruptedException {/*
         if(basicClauseList.equivalences != null) {
             equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler,symboltable);
             if(!taskQueue.isEmpty()) {Result result = taskQueue.run(); if(result != null) {return result;}}}
@@ -245,7 +245,8 @@ public class Resolution extends Solver {
         if(Thread.interrupted()) {throw new InterruptedException();}
         if(checkConsistency) {check("initializeClauses");}
         maxInputId = id[0];
-        purityAndElimination();
+        purityAndElimination();*/
+
         return taskQueue.run();}
 
 
