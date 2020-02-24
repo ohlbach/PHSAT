@@ -147,7 +147,7 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
 
     /** checks if the size of the buckets is 0 or 1
      *
-     * @return -1 if the size is > 1, otherwise the size.
+     * @return -1 if the size is > 1, otherwise the size (0 or 1).
      */
     public int size01() {
         int size = 0;

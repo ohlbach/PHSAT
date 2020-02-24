@@ -7,24 +7,18 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
-import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
-import Datastructures.Theory.Transformers;
 import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
-import Solvers.Resolution.ResolutionReduction;
-import Solvers.Resolution.ResolutionStatistics;
-import Solvers.Solver;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 
@@ -170,10 +164,144 @@ public class Preparer {
         result = runTaskQueue();
         if(result != null) {return result;}
         result = purityAndElimination();
-        if(clausesEmpty()) {return completeModel();}
+        if(clauses.isEmpty()) {return completeModel();}
         return result;
     }
+    /** This method checks all predicates for purity and elimination.
+     * A literal p is pure if there are no clauses with p any more. <br>
+     * In this case -p can be made true. <br>
+     * A literal p can be eliminated if it occurs only once in the clauses, say in clause C. <br>
+     * In this case all clauses with -p can be replaced with their resolvent with C.
+     *
+     * @result a result or null
+     */
+    Result purityAndElimination(){
+        boolean simplified = true;
+        while(simplified) { // iterate until no simplifications are possible any more
+            simplified = false;
+            Result result = removePureLiterals();  // all currently pure literals are eliminated now
+            if(result != null) return result;
+            int elimLiteral = literalIndex.oneOccurrence(predicates);
+            if(elimLiteral != 0) {
+                ++statistics.eliminations;
+                if(monitoring) {monitor.print(problemId, "Eliminating single literal " + literalName(elimLiteral));}
+                processElimination(elimLiteral);
+                result = runTaskQueue();
+                if(result != null) {return result;}
+                simplified = true;}}
+        return null;}
 
+    /** This list collects the eliminated literals for completing the model at the end.
+     *  For each clause (p,q,r,...) where p occurs only once it contains <br>
+     *  (the clause, the eliminated literal)
+     */
+    private ArrayList<Object[]> eliminatedLiterals = new ArrayList<>();
+
+    private ArrayList<Clause> replacedClauses = new ArrayList<>();
+
+
+    /** The method eliminates all occurrences of a literal p and -p, where p occurs only once.<br>
+     *  The clauses with -p are replaced by their resolvents with the clause with p.
+     *  The resolvents are backward-simplified
+     *
+     * @param eliminateLiteral the literal which occurs only once.
+     */
+    void processElimination(int eliminateLiteral) {
+        CLiteral parentCLiteral = literalIndex.getAllItems(eliminateLiteral).get(0);
+        Clause clause  = parentCLiteral.clause;  // the clause with the literal to be eliminated
+        replacedClauses.clear();
+        for(CLiteral otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) { // all literals with -p
+            Clause otherClause = otherCliteral.clause;
+            Clause resolvent = LitAlgorithms.resolve(ids,parentCLiteral,otherCliteral); // double literals and tautologies tested
+            removeClause(otherClause);
+            if(resolvent != null) {
+                Clause sumbsumer = LitAlgorithms.isSubsumed(resolvent,literalIndex,timestamp);
+                timestamp += maxClauseLength + 1;
+                if(sumbsumer != null) continue;
+                IntArrayList origins = new IntArrayList();
+                origins.addAll(clause.origins); origins.addAll(otherClause.origins);
+                resolvent.origins = origins;
+                replacedClauses.add(resolvent);
+                insertClause(resolvent);}}
+
+        removeClause(clause);
+        eliminatedLiterals.add(new Object[]{clause.cliterals,eliminateLiteral});
+        literalIndex.clearBoth(Math.abs(eliminateLiteral));
+        // all original clauses are removed
+
+        for(Clause resolvent : replacedClauses) { // subsumption within the replaced clauses may not be recognized
+            simplifyClause(resolvent);}
+        if(checkConsistency) {check("processElimination");}
+    }
+
+
+    private IntArrayList zeros = new IntArrayList();
+
+    /** removes all pure literals (literals which occur with one polarity only)
+     *  by making the other polarity true.
+     *
+     * @return null or a final result of simplifications
+     * @throws InterruptedException
+     */
+    Result removePureLiterals() {
+        boolean purities = false;
+        while(literalIndex.zeroes(predicates,zeros)) {
+            purities = true;
+            for(int literal : zeros) {
+                if(model.status(literal) != 0) {continue;}
+                if(monitoring) {monitor.print(problemId, "Making pure literal true: " + literalName(-literal));}
+                ++statistics.purities;
+                model.add(-literal,null);
+                for(CLiteral cLiteral : literalIndex.getAllItems(-literal)) {
+                    removeClause(cLiteral.clause);}}}
+        if(purities && clauses.isEmpty()) {return completeModel();}
+        return null;}
+
+
+    /** completes a model after resolution has finished.
+     * Strategy INPUT or SOS: all remaining clauses should be true <br>
+     * Strategy POSITIVE: all remaining clauses are negative of mixed. <br>
+     * Choose an unassigned negative literal. <br>
+     *
+     * Strategy NEGATIVE: all remaining clauses are positive of mixed. <br>
+     * Choose an unassigned positive literal. <br>
+     *
+     * @return Satisfiable or Erraneous (if something went wrong).
+     */
+    Result completeModel() {
+        System.out.println("Completing Model\n"+toString());
+        Result result = null;
+        for(int i = 1; i <= 3; ++i) {
+            if(model.size() == predicates) {return new Satisfiable(model);}
+            result = equivalenceClasses.completeModel(model);
+            if(result != null) {return result;}
+            completeEliminationsInModel();
+            result = checkModel(model);
+            if(result != null) {return result;}}
+        return new Satisfiable(model);}
+
+    /** completes a partial model by inserting the value for eliminated literals */
+    void completeEliminationsInModel() {
+        for(int i = eliminatedLiterals.size()-1; i >= 0; --i) {
+            Object[] els = eliminatedLiterals.get(i);
+            ArrayList<CLiteral> literals = (ArrayList<CLiteral>)els[0];
+            int literal = (int)els[1];
+            if(model.status(literal) != 0) {continue;}
+            boolean satisfied = false;
+            for(CLiteral cliteral : literals) {
+                int lit = cliteral.literal;
+                if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
+            model.add((satisfied ? -literal : literal),null);}}
+
+
+    /** The method checks if the model satisfies the basic clauses.
+     *
+     * @return null or an Erraneous Result
+     */
+    public Result checkModel(Model model) {
+        ArrayList<int[]> falseClauses = basicClauseList.falseClauses(model);
+        if(falseClauses != null) {return new Erraneous(model,falseClauses,symboltable);}
+        else {return null;}}
 
     Result runTaskQueue() {
         try {return taskQueue.run();} catch (InterruptedException ex) {}
@@ -314,22 +442,24 @@ public class Preparer {
 
     /** removes the literal from its clause and the literal index.
      * - If the clause is already marked 'removed' nothing happens. <br>
-     * - If the shortened clause is a unit clause, it is entirely removed from the lists and the index.<br>
+     * - If the shortened clause is a binary clause, it is entirely removed from the lists and the index.<br>
      *   The clause itself becomes a unit clause.
      *
      * @param cLiteral the literal to be removed
+     * @param origins the basic Clauses Ids which caused the removal of the literal.
      * @return true if the clause became a unit clause
      */
-    boolean removeLiteral(CLiteral cLiteral) {
+    boolean removeLiteral(CLiteral cLiteral, IntArrayList origins) {
         Clause clause = cLiteral.clause;
         if(clause.removed) {return false;}
-        if(clause.getPosition() >= 0) {return false;}
-        if(clause.isPositive()) {--statistics.positiveClauses;}
-        else {if(clause.isNegative()) {--statistics.negativeClauses;}}
+        clause.origins.addAll(origins);
         if(clause.size() == 2) {
             removeClause(clause);
             clause.remove(cLiteral);
             return true;}
+
+        if(clause.isPositive()) {--statistics.positiveClauses;}
+        else {if(clause.isNegative()) {--statistics.negativeClauses;}}
         clauses.remove(clause);
         removeFromIndex(clause);
         clause.remove(cLiteral);
@@ -385,24 +515,22 @@ public class Preparer {
      * - for each shortened clause which became a unit clause, a new task is created.<br>
      * - if the primary clauses became empty, the model is completed
      *
-     * @param literal a new true literal
+     * @param trueLiteral a new true literal
      * @return the result of a model completion or null
      */
-    Result processTrueLiteral(int literal, IntArrayList origins) {
-        literal = equivalenceClasses.mapToRepresentative(literal);
+    Result processTrueLiteral(int trueLiteral, IntArrayList origins) {
+        int literal = equivalenceClasses.mapToRepresentative(trueLiteral);
+        if(literal != trueLiteral) {origins.addAll(equivalenceClasses.mapToOrigins(trueLiteral));}
         switch(model.status(literal)) {
             case -1: return new Unsatisfiable(model,literal,symboltable,origins);
             case +1: return null;}
         model.add(literal,origins);
-        Iterator<CLiteral> iterator = literalIndex.popIterator(literal);
-        while(iterator.hasNext()) {
-            Clause clause = iterator.next().clause;
-            removeClause(clause);}
-        literalIndex.pushIterator(literal,iterator);
+        for(CLiteral cLiteral : literalIndex.getAllItems(literal)) {
+            removeClause(cLiteral.clause);}
         for(CLiteral cLiteral : literalIndex.getAllItems(-literal)) {
-            removeLiteral(cLiteral);
-            analyseShortenedClause(cLiteral.clause);}
-        literalIndex.clearBoth(Math.abs(literal));
+            Clause clause = cLiteral.clause;
+            removeLiteral(cLiteral,origins);
+            analyseShortenedClause(clause, "clause " + clause.id + " simplified by true literal " + literalName(trueLiteral));}
         if(checkConsistency) {check("processTrueLiteral");}
         return null;}
 
@@ -487,19 +615,21 @@ public class Preparer {
             Clause literalClause = cLiteral.clause;
             String clauseString = null;
             if(monitoring) {clauseString = literalClause.toString(symboltable);}
-            literalClause.origins.addAll(clause.origins);
-            removeLiteral(cLiteral);
+            removeLiteral(cLiteral,clause.origins);
             if(monitoring) {
                 monitor.print(problemId,"\nLiteral " + cLiteral.toString(symboltable) + " in clause \n  " +
                         clauseString + " resolved away by clause\n  " +clause.toString(symboltable) + " to\n  " +
                         literalClause.toString());}
-            if(literalClause.size() == 1) {
-                addTrueLiteralTask(literalClause.getLiteral(0),literalClause.origins,"clause " + literalClause.id + " simplified");
-                removeClause(literalClause);}
-            else {taskQueue.add(new Task(priorityShift+literalClause.size(),
-                    () -> {forwardSubsumption(literalClause); forwardReplacementResolution(literalClause); return null;},
-                    () -> "simplify clause " + literalClause.toString(symboltable)));}
+            analyseShortenedClause(literalClause,"clause " + clause.id + " simplified by UR-Resolution");
             if(checkConsistency) check("forwardReplacementResolution");}}
+
+    void analyseShortenedClause(Clause clause, String reason) {
+        if(clause.size() == 1) {
+            addTrueLiteralTask(clause.getLiteral(0),clause.origins,reason);}
+        else {taskQueue.add(new Task(priorityShift+clause.size(),
+            () -> {forwardSubsumption(clause); forwardReplacementResolution(clause); return null;},
+            () -> "simplify clause " + clause.toString(symboltable)));}}
+
 
     static IntArrayList joinOrigins(ArrayList<Clause> clauses, Clause clause) {
         IntArrayList origins = new IntArrayList();
@@ -514,10 +644,11 @@ public class Preparer {
         timestamp += (maxClauseLength +1) * clause.size();
         if(result == null) {return null;}
         ++statistics.reductions;
+        IntArrayList origins = joinOrigins(usedClauses,clause);
         if(result.getClass() == Integer.class) {
             int literal = (int)result;
             if(monitoring) {monitorUsedClauses("Derived unit literal " + literalName(literal) + " by UR-Resolution using clauses:");}
-            processTrueLiteral(literal,joinOrigins(usedClauses,clause)); // this causes simplification of the clause
+            processTrueLiteral(literal,origins); // this causes simplification of the clause
             return null;}
 
         if(result.getClass() == int[].class) {
@@ -526,14 +657,14 @@ public class Preparer {
             for(int literal : literals) {resolvent.add(new CLiteral(literal));}
             resolvent.setStructure();
             insertClause(resolvent);
-            resolvent.origins = joinOrigins(usedClauses,clause);
+            resolvent.origins = origins;
             if(monitoring) {monitorUsedClauses("Derived new clause\n   " + resolvent.toString(symboltable) + " by UR-Resolution using clauses:");}
             return resolvent;}
 
         CLiteral cliteral = (CLiteral)result;
         if(monitoring) {monitorUsedClauses("removing literal " + cliteral.toString(symboltable) + " from clause\n   " +
                 clause.toString(symboltable) + " by UR-Resolution using clauses ");}
-        removeLiteral(cliteral);
+        removeLiteral(cliteral,origins);
         if(checkConsistency) {check("urResolveClause");}
          return clause;}
 
@@ -545,23 +676,10 @@ public class Preparer {
             if(ids.contains(clause.id)) {continue;}
             ids.add(clause.id);
             st.append("\n   ").append(clause.toString(symboltable));}
-        monitor.print(combinedId,st.toString());}
+        monitor.print(problemId,st.toString());}
 
     ArrayList<Clause> usedClauses = new ArrayList<>();
 
-
-    /** just returns the clause
-     *
-     * @param clause not used
-     * @return  the clauses
-     */
-    BucketSortedList<Clause> getClauseList(Clause clause) {return clauses;}
-
-    /** checks if there are no clauses any more
-     *
-     * @return true if there are no clauses any more.
-     */
-    boolean clausesEmpty() {return clauses.isEmpty();}
 
 
 

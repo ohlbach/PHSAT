@@ -1,5 +1,7 @@
 package Utilities;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.function.Function;
@@ -113,10 +115,10 @@ public class BucketSortedIndex<T extends Positioned> {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
         return list == null ? 0 : list.size();}
 
-    /** returns the number of cLiterals indexed by this literal
+    /** -1 if the literal has more than 1 occurrence, otherwise the number of occurrences (0 or 1) of the literal
      *
      * @param literal a literal
-     * @return the number of cLiterals indexed by this literal
+     * @return -1 if the literal has more than 1 occurrence, otherwise the number of occurrences (0 or 1) of the literal
      */
     public int size01(int literal) {
         BucketSortedList<T> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
@@ -177,13 +179,24 @@ public class BucketSortedIndex<T extends Positioned> {
         }
         return !zeros.isEmpty() || !ones.isEmpty();}
 
-    public boolean zeroes(int predicates,ArrayList<Integer> zeros) {
+    /** collects all pure literals p, i.e. p has no occurrence and -p has &gt; 0 occurrences
+     *
+     * @param predicates the largest predicate to be checked
+     * @param zeros      collects the pure literals
+     * @return           true if some pure literals are found
+     */
+    public boolean zeroes(int predicates,IntArrayList zeros) {
         zeros.clear();
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(isEmpty(predicate) && !isEmpty(-predicate)) {zeros.add(predicate); continue;}
             if(isEmpty(-predicate) && !isEmpty(predicate)) {zeros.add(-predicate); continue;}}
         return !zeros.isEmpty();}
 
+    /** returns the first (smallest) literal p which has only a single occurrence (and &gt; 0 occurrences -p)
+     *
+     * @param predicates the largest predicate to be checked
+     * @return 0 or the literal with a single occurrence.
+     */
     public int oneOccurrence(int predicates) {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(containsOne(predicate) && !isEmpty(-predicate)) {return predicate;}

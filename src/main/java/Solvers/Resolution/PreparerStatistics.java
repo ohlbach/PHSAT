@@ -43,7 +43,7 @@ public class PreparerStatistics extends Statistic {
     @Description("reductions.")
     public int reductions = 0;
 
-    @Description("purities")
+    @Description("removePureLiterals")
     public int purities = 0;
 
     @Description("eliminations")
