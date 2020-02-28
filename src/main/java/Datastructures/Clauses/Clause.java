@@ -248,6 +248,18 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                     doubles = true;}}}
         return doubles;}
 
+    /** joins the origins (Ids of the basicClauses which caused this clause)
+     *
+     * @param clauses a list of clauses
+     * @param clause an additional clauses
+     * @return the joined orignins of all the clauses
+     */
+    public static IntArrayList joinOrigins(ArrayList<Clause> clauses, Clause clause) {
+        IntArrayList origins = new IntArrayList();
+        if(clause != null) origins.addAll(clause.origins);
+        for(Clause clause1 : clauses) {origins.addAll(clause1.origins);}
+        return origins;}
+
     /** generates a string: clause-number: literals
      *
      * @return a string: clause-number: literals

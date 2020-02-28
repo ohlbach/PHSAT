@@ -164,7 +164,10 @@ public class Preparer {
         result = runTaskQueue();
         if(result != null) {return result;}
         result = purityAndElimination();
+        if(result != null) {return result;}
         if(clauses.isEmpty()) {return completeModel();}
+        result = findEquivalences();
+        if(result != null) {return result;}
         return result;
     }
     /** This method checks all predicates for purity and elimination.
@@ -190,6 +193,98 @@ public class Preparer {
                 if(result != null) {return result;}
                 simplified = true;}}
         return null;}
+
+    /** This method checks if the clause is part of an equivalence (p,q) (-p,-q) (maybe derivable)
+     * If this is the case: <br>
+     *     - -p == q is inserted into the equivalence classes <br>
+     *     - a processEquivalence task is generated
+     *
+     * @return the result of processing the equivalence
+     */
+    Result findEquivalences() {
+        Result result = null;
+        boolean again = true;
+        while(again) {
+            again = false;
+            for(Clause clause : clauses.getBucket(2)) {
+                int literal1 = clause.getCLiteral(0).literal;
+                int literal2 = clause.getCLiteral(1).literal;
+                Object item = LitAlgorithms.isDerivableBinaryClause(-literal1,-literal2,clause,
+                        literalIndex,timestamp, dummyClauses);
+                if(item == null) {continue;}
+                if(item.getClass() == Integer.class) {
+                    result = processTrueLiteral((Integer)item,Clause.joinOrigins(dummyClauses,null));
+                    if(result != null) {return result;}
+                    again = true;
+                    break;}
+                literal1 = -literal1;
+                if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
+                if(Math.abs(literal1) < Math.abs(literal2)) {
+                    int dummy = literal1;literal1 = literal2; literal2 = dummy;}
+                int fromliteral = literal1; int toliteral = literal2;
+                result = processEquivalence(fromliteral,toliteral,Clause.joinOrigins(dummyClauses,clause));
+                ++statistics.equivalences;
+                if(result != null) {return result;}
+                again = true;
+                break;}}
+        return null;}
+
+    /** This method replaces all occurrences of fromLiteral by toLiteral.
+     *  Generated tautologies are ignored.<br>
+     *  Double literals are avoided. <br>
+     *  The new clauses are backwards simplified.
+     *
+     * @param fromLiteral antecedent
+     * @param toLiteral   succedent
+     * @return            null
+     */
+    Result processEquivalence(int fromLiteral, int toLiteral, IntArrayList origins) {
+        equivalenceClasses.addEquivalenceClass(fromLiteral,toLiteral,origins);
+        replacedClauses.clear();
+        replaceLiteralInAllClauses(fromLiteral,toLiteral, origins);
+        replaceLiteralInAllClauses(-fromLiteral,-toLiteral, origins);
+        if(checkConsistency) check("processEquivalence");
+        for(Clause clause : replacedClauses) {
+            if(clause.size() == 1) {
+                addTrueLiteralTask(clause.getLiteral(0),clause.origins,"clause after processEquivalence");}
+            else {taskQueue.add(new Task(priorityShift+clause.size(),
+                    () -> simplifyClause(clause),
+                    () -> "simplify clause " + clause.toString(symboltable)));}}
+        if(checkConsistency) check("processEquivalence");
+        return null;}
+
+    /** replaces fromLiteral by toLiteral in all clauses and inserts the new clause in replacedClauses
+     * Double literals are ignored.<br>
+     * A tautology is not inserted into replacedClauses.
+     *
+     * @param fromLiteral  the old literal
+     * @param toLiteral    the new literal
+     */
+    void replaceLiteralInAllClauses(int fromLiteral, int toLiteral, IntArrayList origins) {
+        for(CLiteral cliteral : literalIndex.getAllItems(fromLiteral)) {
+            Clause clause = cliteral.clause;
+            Clause newClause = new Clause(++ids[0],clause.size());
+            boolean tautology = false;
+            for(CLiteral cLiteral : clause.cliterals) {
+                int literal = cLiteral.literal;
+                if(literal == toLiteral) {continue;}
+                if(literal == -toLiteral) {tautology = true; break;}
+                if(literal == fromLiteral) {literal = toLiteral;}
+                newClause.add(new CLiteral(literal));}
+            newClause.removeDoubles();
+            removeClause(clause);
+            if(tautology) continue;
+            Clause subsumer = LitAlgorithms.isSubsumed(newClause,literalIndex,timestamp);
+            timestamp += maxClauseLength + 1;
+            if(subsumer != null) {continue;}
+            newClause.origins = clause.origins; newClause.origins.addAll(origins);
+            if(newClause.size() > 1) {insertClause(newClause);}
+            replacedClauses.add(newClause);
+            if(monitoring) {
+                monitor.print(problemId,"Literal " + literalName(fromLiteral) + " replaced by " +
+                        literalName(toLiteral) + " in clause\n  " + clause.toString() + " yielding\n  " + newClause.toString());}}}
+
+
 
     /** This list collects the eliminated literals for completing the model at the end.
      *  For each clause (p,q,r,...) where p occurs only once it contains <br>
@@ -536,19 +631,19 @@ public class Preparer {
 
 
     /** just used in simplifyForward */
-    private ArrayList<Clause> subsumedClauses = new ArrayList<>();
+    private ArrayList<Clause> dummyClauses = new ArrayList<>();
 
     /** This method iterates over the clauses and eliminates all subsumed clauses*/
     void subsumeForward() {
-        subsumedClauses.clear();
+        dummyClauses.clear();
         int startIndex = 0;
         Iterator<Clause> iterator = clauses.popIterator();
         while(iterator.hasNext()) {
             Clause clause = iterator.next();
             if(clause.removed) {continue;}
-            LitAlgorithms.subsumes(clause,literalIndex,timestamp, subsumedClauses);
+            LitAlgorithms.subsumes(clause,literalIndex,timestamp, dummyClauses);
             timestamp += maxClauseLength +1;
-            int size = subsumedClauses.size();
+            int size = dummyClauses.size();
             for(int i = startIndex; i < size; ++i) {
                 Clause subsumedClause = clauses.getItem(i);
                 clause.removed = true;
@@ -558,7 +653,7 @@ public class Preparer {
                             "  subsumes \n  " + subsumedClause.toString(symboltable));}}
             startIndex = size;}
         clauses.pushIterator(iterator);
-        for(Clause clause :subsumedClauses) {clause.removed = false; removeClause(clause);}}
+        for(Clause clause : dummyClauses) {clause.removed = false; removeClause(clause);}}
 
     /** simplifies the clause be backward replacement resultion and ur resolution.
      *  A simplified clause triggers forward subsumption, forward replacement resolution and a true literal task.
@@ -569,8 +664,9 @@ public class Preparer {
      */
     Result simplifyClause(Clause clause) {
         if(clause.removed) {return null;}
-        clause = urResolveClause(clause);
-        if(clause == null) {return null;}
+        Clause otherclause = urResolveClause(clause);
+        if(otherclause == null) {return null;}
+        if(otherclause != clause) {return simplifyClause(otherclause);}
         if(clause.size() == 1) {
             addTrueLiteralTask(clause.getLiteral(0),clause.origins,"clause " + clause.id + " simplified");
             removeClause(clause);
@@ -587,10 +683,10 @@ public class Preparer {
      * @param clause a clause
      */
     void forwardSubsumption(Clause clause) {
-        subsumedClauses.clear(); //timestamp += maxClauseLength +1;
-        LitAlgorithms.subsumes(clause,literalIndex,timestamp, subsumedClauses);
+        dummyClauses.clear(); //timestamp += maxClauseLength +1;
+        LitAlgorithms.subsumes(clause,literalIndex,timestamp, dummyClauses);
         timestamp += maxClauseLength +1;
-        for(Clause subsumedClause : subsumedClauses) {
+        for(Clause subsumedClause : dummyClauses) {
             ++statistics.forwardSubsumptions;
             if(monitoring) {
                 monitor.print(problemId,"Clause \n  " + clause.toString(symboltable) +
@@ -631,20 +727,25 @@ public class Preparer {
             () -> "simplify clause " + clause.toString(symboltable)));}}
 
 
-    static IntArrayList joinOrigins(ArrayList<Clause> clauses, Clause clause) {
-        IntArrayList origins = new IntArrayList();
-        origins.addAll(clause.origins);
-        for(Clause clause1 : clauses) {
-            origins.addAll(clause1.origins);}
-        return origins;}
 
+    /** Tries to simplify a clause by UR-Resolution.
+     * The following things my happen for a clause like p,q,r,s: <br>
+     *     - no simplification is possible <br>
+     *     - a new unit clause is derived, e.g. -p. This causes processTrueLiteral <br>
+     *         The result is null <br>
+     *     - a shorter clause like -p,q is derived. This creates a new clause which is returned <br>
+     *     - a literal, e.g.  p is removed, i.e. the clause is shortened
+     *
+     * @param clause the clause to be simplified
+     * @return null or a new resolvent or the shortened clause.
+     */
     private Clause urResolveClause(Clause clause) {
         if(clause.removed) {return null;}
         Object result = LitAlgorithms.urResolution(clause,literalIndex,timestamp,maxClauseLength,usedClauses);
         timestamp += (maxClauseLength +1) * clause.size();
         if(result == null) {return null;}
         ++statistics.reductions;
-        IntArrayList origins = joinOrigins(usedClauses,clause);
+        IntArrayList origins = Clause.joinOrigins(usedClauses,clause);
         if(result.getClass() == Integer.class) {
             int literal = (int)result;
             if(monitoring) {monitorUsedClauses("Derived unit literal " + literalName(literal) + " by UR-Resolution using clauses:");}
@@ -666,7 +767,7 @@ public class Preparer {
                 clause.toString(symboltable) + " by UR-Resolution using clauses ");}
         removeLiteral(cliteral,origins);
         if(checkConsistency) {check("urResolveClause");}
-         return clause;}
+        return clause;}
 
     private void monitorUsedClauses(String info) {
         StringBuilder st = new StringBuilder();

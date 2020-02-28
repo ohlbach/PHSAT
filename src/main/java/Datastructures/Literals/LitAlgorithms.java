@@ -335,7 +335,7 @@ public class LitAlgorithms {
         for(int k = 0; k < size; ++k) {
             CLiteral cliteral = clause.getCLiteral(k);
             if(findEmptyClause(-cliteral.literal,clause,null,literalIndex,timestamp,usedClausesMap)) {
-                if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
+                    if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
                 if(k == 0) {return -cliteral.literal;}}
             for(int i = 0; i < size; ++i) {
                 CLiteral cliteral1 = clause.getCLiteral(i);
@@ -355,10 +355,24 @@ public class LitAlgorithms {
             timestamp += maxClauseLength +1;}
         return null;}
 
+    public static Object isDerivableBinaryClause(int literal1, int literal2, Clause blockedClause, BucketSortedIndex<CLiteral> literalIndex, int timestamp,
+                                                  ArrayList<Clause> usedClauses) {
+
+        HashMap<Clause,ArrayList<Clause>> usedClausesMap = null;
+        if(usedClauses != null) {usedClauses.clear(); usedClausesMap = new HashMap<>();}
+        if(findEmptyClause(-literal1,blockedClause,null,literalIndex,timestamp,usedClausesMap)) {
+            if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
+            return -literal1;}
+        if(findEmptyClause(-literal2,blockedClause,null,literalIndex,timestamp,usedClausesMap)) {
+            if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
+            return true;}
+        return null;}
+
+
 
     /** This method searches for the empty clause if the literal is assumed to be true.
      *
-     * @param literal         a literal which is assumed to be true
+     * @param literal         a literal which is assumed to be false
      * @param blockedClause   a clause which cannot be used for the search
      * @param parentClause    null or the parent clause in the recursion
      * @param literalIndex    the literal index
