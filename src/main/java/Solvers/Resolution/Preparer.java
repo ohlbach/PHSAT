@@ -16,9 +16,11 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
+import Utilities.TriConsumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 
 
@@ -92,6 +94,12 @@ public class Preparer {
     static final int priorityBinary      = 4;
     static final int priorityShift       = 5;
 
+    BiConsumer<Integer,IntArrayList> unaryClauseHandler =
+            ((literal,origins) -> addTrueLiteralTask(literal,origins, "derived from disjointness clause"));
+
+    TriConsumer<Integer,Integer,IntArrayList> binaryClauseHandler =
+            ((literal1,literal2,origins) -> addBinaryClauseTask(literal1,literal2,origins, "derived from disjointness clause"));
+
     public Result prepare() {
         initializeData();
         Result result = initializeClauses();
@@ -114,6 +122,9 @@ public class Preparer {
         taskQueue    = new TaskQueue(problemId,monitor);
         trackReasoning = globalParameters.trackReasoning;
         model = new Model(predicates,trackReasoning);
+        equivalenceClasses = new EquivalenceClasses(symboltable,
+                ((literal, origin) -> {
+                    new Unsatisfiable(""+literal+" == "+-literal + " in equivalence clause " + origin.getInt(0));}));
         statistics = new PreparerStatistics(problemId);}
 
 
@@ -138,9 +149,7 @@ public class Preparer {
             if(result != null) {return result;}}
 
         if(basicClauseList.disjoints != null || basicClauseList.xors != null) {
-            disjointnessClasses = new DisjointnessClasses(symboltable,model,
-                    ((literal,origins) -> addTrueLiteralTask(literal,origins, "derived from disjointness clause")),
-                    ((literal1, literal2, origins) -> insertBinaryClause(literal1,literal2,origins)));}
+            disjointnessClasses = new DisjointnessClasses(symboltable,model,equivalenceClasses,unaryClauseHandler,binaryClauseHandler);}
 
         if(basicClauseList.disjoints != null) {prepareDisjoints(basicClauseList.disjoints);}
 
@@ -421,10 +430,7 @@ public class Preparer {
      */
     public Unsatisfiable prepareEquivalences(ArrayList<int[]> basicClauses) {
         Unsatisfiable[] result = new Unsatisfiable[]{null};
-        equivalenceClasses = new EquivalenceClasses(symboltable,
-                ((literal, origin) -> {
-                    result[0] = new Unsatisfiable(""+literal+" == "+-literal + " in equivalence clause " + origin.getInt(0));}));
-        for(int[] clause : basicClauses) {
+          for(int[] clause : basicClauses) {
             equivalenceClasses.addEquivalenceClass(clause);
             if(result[0] != null) {return result[0];}}
         return null;}
@@ -501,12 +507,16 @@ public class Preparer {
             insertClause(clause);}
         return null;}
 
-    void insertBinaryClause(int literal1, int literal2, IntArrayList origins) {
+    void addBinaryClauseTask(int literal1,int literal2, IntArrayList origins, String reason) {
+        taskQueue.add(new Task(2,()->insertBinaryClause(literal1,literal2,origins),()->reason));}
+
+    Result insertBinaryClause(int literal1, int literal2, IntArrayList origins) {
         Clause clause = new Clause(++ids[0],2);
         clause.add(new CLiteral(literal1,clause,0));
         clause.add(new CLiteral(literal2,clause,1));
         clause.origins = origins;
-        insertClause(clause);}
+        insertClause(clause);
+        return null;}
 
     /** inserts the clause into the local data structures.
      *
@@ -587,7 +597,7 @@ public class Preparer {
      */
     public void prepareDisjoints(ArrayList<int[]> disjoints) {
         for(int[] basicClause : disjoints) {
-            disjointnessClasses.addDisjointnessClass(basicClause,equivalenceClasses,model);}}
+            disjointnessClasses.addDisjointnessClass(basicClause,equivalenceClasses);}}
 
     /** transforms all exclusive-or clauses in the xors into normal clauses and applies the handler to them.
      *  Example: p xor q xor r yields the clauses: <br>
@@ -601,7 +611,7 @@ public class Preparer {
     public void prepareXors(ArrayList<int[]> xors) {
         for(int[] basicClause : xors) {
             prepareDisjunction(basicClause);
-            disjointnessClasses.addDisjointnessClass(basicClause,equivalenceClasses,model);}}
+            disjointnessClasses.addDisjointnessClass(basicClause,equivalenceClasses);}}
 
 
     /** computes the consequences of a new true literal

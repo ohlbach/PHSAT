@@ -1,12 +1,16 @@
 package Datastructures.Theory;
 
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 import Utilities.Utilities;
 import Utilities.TriConsumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.*;
 import java.util.function.BiConsumer;
+import Utilities.BucketSortedIndex;
+import Utilities.BucketSortedList;
 
 /** A disjointness class is a set of literals which are pairwise contradictory.
  * Such a class may come from the input data, or be derived from binary clauses.
@@ -25,7 +29,11 @@ import java.util.function.BiConsumer;
  */
 public class DisjointnessClasses {
 
-    /** disjointnesses maps literals to tuples [disjoint literals, origins]
+    private EquivalenceClasses equivalenceClasses = null;
+
+    private int predicates;
+
+    /** disjointnesses maps literals to tuples [literals, origins]
      * origins is an ArrayList[IntArrayList]. literals and origins have the same size.<br>
      * Example: literals = 1,2,3 <br>
      *     origins = [[10,11], [8,11], [7,11]] <br>
@@ -34,6 +42,12 @@ public class DisjointnessClasses {
      *      which where used to replace 5,6,7 by their representatives.
      * */
     private HashMap<Integer,Object[]> disjointnesses = null;
+
+
+    private ArrayList<Clause> disjointnessClasses = null;
+
+    BucketSortedIndex<CLiteral> literalIndex = null;
+
 
     /** for mapping predicate numbers to their names */
     private Symboltable symboltable = null;
@@ -47,6 +61,7 @@ public class DisjointnessClasses {
      * using binaryClauseHandler.accept(literal1, literal2, origins) */
     TriConsumer<Integer,Integer,IntArrayList> binaryClauseHandler = null;
 
+
     Model model = null;
 
 
@@ -56,11 +71,17 @@ public class DisjointnessClasses {
      * @param unaryClauseHandler  treats p != p by unaryClauseHandler.accept(-p,origin)
      * @param binaryClauseHandler treats p != -q by binaryClauseHandler.accept(-p, q, origins)
      */
-    public DisjointnessClasses(Symboltable symboltable, Model model,
+    public DisjointnessClasses(Symboltable symboltable, Model model, EquivalenceClasses equivalenceClasses,
                                BiConsumer<Integer,IntArrayList> unaryClauseHandler,
                                TriConsumer<Integer,Integer,IntArrayList> binaryClauseHandler) {
         this.symboltable = symboltable;
         this.model = model;
+        this.predicates = model.predicates;
+        disjointnessClasses = new ArrayList<>();
+        literalIndex = new BucketSortedIndex<CLiteral>(predicates+1,
+                (cLiteral->cLiteral.literal),
+                (cLiteral->cLiteral.clause.size()));
+        this.equivalenceClasses = equivalenceClasses;
         this.unaryClauseHandler = unaryClauseHandler;
         this.binaryClauseHandler = binaryClauseHandler;}
 
@@ -102,16 +123,16 @@ public class DisjointnessClasses {
     public boolean addDisjointnessClass(int[] basicClause, EquivalenceClasses equivalenceClasses) {
         assert basicClause.length > 3;
         assert basicClause[1] == ClauseType.DISJOINT.ordinal() || basicClause[1] == ClauseType.XOR.ordinal();
-        Object[] result = analyseClause(basicClause,equivalenceClasses);
+        Object[] result = analyseClause(basicClause,equivalenceClasses); // [IntArrayList of literals, ArrayList[IntArrayList] of origins]
         if(result == null) {return false;}
-        IntArrayList literals = (IntArrayList)result[0];
+        IntArrayList            literals = (IntArrayList)result[0];
         ArrayList<IntArrayList> origins  = (ArrayList<IntArrayList>)result[1];
         if(disjointnesses == null) {disjointnesses = new HashMap<>();}
         for(int literal : literals) {
             result = disjointnesses.get(literal);
             if(result == null) {
                 IntArrayList joinedLiterals = literals.clone();
-                ArrayList<IntArrayList> joinedOrigins = (ArrayList<IntArrayList>)origins.clone();
+                ArrayList<IntArrayList> joinedOrigins = Utilities.deepClone(origins);
                 removeDuplicates(literal,joinedLiterals,joinedOrigins);
                 disjointnesses.put(literal,new Object[]{joinedLiterals,joinedOrigins});}
             else {
@@ -195,7 +216,8 @@ public class DisjointnessClasses {
 
 
     /** analyses a disjointness basicClause and handles the following cases:
-     *  - If equivalenceClasses are given the the literals are replaced by their representatives <br>
+     *  - If equivalenceClasses are given then the literals are replaced by their representatives <br>
+     *  - literals which are false or true in the model are treated accordingly
      *  - Double literals p != p cause the unit handler to be called with -p<br>
      *  - If there are negative literals, then the positive literals are extracted. <br>
      *  - For all negative literals -p binary clauses are generated for all other literals q: p,-q,<br>
@@ -207,25 +229,47 @@ public class DisjointnessClasses {
      * @return                   [IntArrayList of literals, ArrayList[IntArrayList] of origins], or null
      */
     Object[] analyseClause(int[] basicClause, EquivalenceClasses equivalenceClasses) {
-        IntArrayList literals = new IntArrayList(basicClause.length-2);
-        ArrayList<IntArrayList> origins = new ArrayList<>();
+        int length = basicClause.length-2;
+        IntArrayList literals;
+        ArrayList<IntArrayList> origins = null;
         int id = basicClause[0];
+        IntArrayList origin;
 
-        for(int i = 2; i < basicClause.length; ++i) { // literals are replaced by their representatives
-            int literal = basicClause[i];             // corresponding origins are collected
-            if(equivalenceClasses != null) {
+        if(equivalenceClasses == null) {
+            int[] lits = new int[length];
+            System.arraycopy(basicClause,2,lits,0,length);
+            literals = IntArrayList.wrap(lits);}
+        else{
+            literals = new IntArrayList(length);
+            origins = new ArrayList<>();
+            for(int i = 2; i < basicClause.length; ++i) { // literals are replaced by their representatives
+                int literal = basicClause[i];             // corresponding origins are collected
                 int representative = equivalenceClasses.mapToRepresentative(literal);
                 if(representative != literal) {
                     origins.add(equivalenceClasses.mapToOrigins(literal));
                     literal = representative;}
-                else origins.add(null);}
-            else {origins.add(null);}
-            literals.add(literal);}
+                else origins.add(null);
+                literals.add(literal);}}
 
-        IntArrayList origin = null;
+        for(int i = 0; i < literals.size(); ++i) {
+            int literal = literals.getInt(i);
+            if(model.isTrue(literal)) {                           // a true literal makes all others false
+                origin = IntArrayList.wrap(new int[]{id});
+                Utilities.joinIntArray(origin,origins.get(i));
+                for(int j = 0; j < literals.size(); ++j) {
+                    if(j == i) {continue;}
+                    int lit = literals.getInt(j);
+                    unaryClauseHandler.accept(-lit, Utilities.joinIntArray(origin.clone(),origins.get(j)));}
+                return null;}}
+
+        literals.removeIf((int literal)->model.isFalse(literal)); // false literals can just be removed
+        if(literals.size() <= 1) {return null;}
+
+
+
         boolean hasNegativeLiterals = false;
         IntArrayList deleted = new IntArrayList();
-        for(int i = 0; i < literals.size(); ++i) { // duplicates are detected
+        for(int i = 0; i < literals.size(); ++i) { // duplicates p,p are false : -p, and must be removed
             int literal = literals.getInt(i);
             if(deleted.contains(literal)) {literals.removeInt(i); origins.remove(i--); continue;}
             if(literal < 0) {hasNegativeLiterals = true;}
@@ -255,15 +299,19 @@ public class DisjointnessClasses {
                     for(int j = 0; j < size; ++j) {
                         if(j == i) {continue;}
                         int literal2 = literals.getInt(j);
-                        if(literal1 == -literal2) {continue;}
+                        if(literal1 == -literal2) {continue;}  // tautology
                         origin = IntArrayList.wrap(new int[]{id});
                         Utilities.joinIntArray(origin,origins.get(i));
                         Utilities.joinIntArray(origin,origins.get(j));
                         binaryClauseHandler.accept(-literal1,-literal2,origin);}}}
             return positiveLiterals.size() > 1 ? new Object[]{positiveLiterals,positiveOrigins} : null;}
         else {
-            for(int i = 0; i < origins.size(); ++i) {
-                origins.set(i,Utilities.joinIntArray(IntArrayList.wrap(new int[]{id}),origins.get(i)));}
+            if(origins == null) {
+                origins = new ArrayList<>(literals.size());
+                for(int i = 0; i < literals.size(); ++i) {origins.add(IntArrayList.wrap(new int[]{id}));}}
+            else {
+                for(int i = 0; i < origins.size(); ++i) {
+                    origins.set(i,Utilities.joinIntArray(IntArrayList.wrap(new int[]{id}),origins.get(i)));}}
             return new Object[]{literals,origins};}}
 
 

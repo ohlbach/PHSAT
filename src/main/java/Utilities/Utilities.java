@@ -706,13 +706,72 @@ public class Utilities {
      *
      * @param list1 an IntArray
      * @param list2 an IntArray or null
-     * @return the exteded list1
+     * @return the extended list1
      */
     public static IntArrayList joinIntArray(IntArrayList list1, IntArrayList list2) {
         if(list2 == null) {return list1;}
         for(int item : list2) {if(!list1.contains(item)) list1.add(item);}
         return list1;}
 
+    /** creates a deep clone of the array list
+     *
+     * @param array a list of IntArrayLists
+     * @return a deep clone of the list
+     */
+    public static ArrayList<IntArrayList> deepClone(ArrayList<IntArrayList> array) {
+        ArrayList list = new ArrayList(array.size());
+        for(IntArrayList item : array) {list.add(item == null ? null : item.clone());}
+        return list;}
+
+    /** searches the key in a sorted IntArrayList
+     *
+     * @param list a sorted IntArrayList
+     * @param key  any int
+     * @return the index of the key in the array, or -1 if the key is not in the array.
+     */
+    public static int binarySearch(IntArrayList list, int key) {
+        if(list.isEmpty()) {return -1;}
+        int start = 0; int end = list.size()-1;
+        int first = list.getInt(0);
+        int last = list.getInt(end);
+        if(key < first || key > last) {return -1;}
+        if(key == first) {return 0;}
+        if(key == last) {return end;}
+        while(start != end) {
+            int middle = (start + end) / 2;
+            int item = list.getInt(middle);
+            if(key == item) {return middle;}
+            if(middle == start) {return -1;}
+            if(key < item) {end = middle;}
+            else {start = middle;}}
+        return -1;}
+
+
+    /** inserts the item sorted into the list
+     *
+     * @param list a sorted list of integers
+     * @param item an old or new integer
+     * @return the index of the new (or old) integer in the list
+     */
+    public static int insertSorted(IntArrayList list, int item) {
+        if(list.isEmpty()) {list.add(item); return 0;}
+        int start = 0;
+        int first = list.getInt(0);
+        if(item == first) {return 0;}
+        if(item < first) {list.add(0,item); return 0;}
+        int end = list.size()-1;
+        int last = list.getInt(end);
+        if(item == last) {return end;}
+        if(item > last) {list.add(end+1,item); return end+1;}
+        while(start != end) {
+            int middle = (start + end) / 2;
+            int i = list.getInt(middle);
+            if(i == item) {return middle;}
+            if(middle == start) {list.add(middle+1,item); return middle+1;}
+            if(item < i) {end = middle;}
+            else {start = middle;}}
+        return -1;
+    }
 
     public static void  mainA(String[] args) {
         int a = toInt(new int[]{0,4});
