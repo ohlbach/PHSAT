@@ -403,7 +403,7 @@ public class Preparer {
      * @return null or an Erraneous Result
      */
     public Result checkModel(Model model) {
-        ArrayList<int[]> falseClauses = basicClauseList.falseClauses(model);
+        ArrayList<int[]> falseClauses = basicClauseList.notTrueClausesInModel(model);
         if(falseClauses != null) {return new Erraneous(model,falseClauses,symboltable);}
         else {return null;}}
 

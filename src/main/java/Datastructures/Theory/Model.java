@@ -4,6 +4,7 @@ import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
@@ -22,6 +23,8 @@ public class Model {
     /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined) */
     private byte[] status = null;
 
+    /** observers to be called when a new true literal is inserted */
+    private ArrayList<BiConsumer<Integer,IntArrayList>> observers = null;
 
     /** creates a model with a maximum number of predicates, together with a means of tracking the origins
      *
@@ -35,8 +38,17 @@ public class Model {
         if(trackReasoning) origins = new ArrayList<>(predicates);
         status  = new byte[predicates+1];}
 
+    /** adds a new observer which gets called when a new true literal is inserted
+     *
+     * @param observer to be called when a new true literal is inserted
+     */
+    public void addObserver(BiConsumer<Integer,IntArrayList> observer) {
+        if(observers == null) {observers = new ArrayList<>();}
+        observers.add(observer);}
+
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
+     * If the literal is new to the model then all observers are called.
      *
      * @param literal the literal for the model.
      * @param origin the ids of the basic clauses causing this truth
@@ -50,6 +62,7 @@ public class Model {
             model.add(literal);
             origins.add(origin);
             status[predicate] = literal > 0 ? (byte)1: (byte)-1;
+            if(observers != null) {for(BiConsumer<Integer,IntArrayList> observer : observers) {observer.accept(literal,origin);}}
             return 0;}
         else {return (Integer.signum(literal) == (int)tr) ? 1 : -1;}}
 

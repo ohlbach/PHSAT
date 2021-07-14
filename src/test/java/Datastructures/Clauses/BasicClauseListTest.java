@@ -26,7 +26,7 @@ public class BasicClauseListTest {
 
         Model model = new Model(10);
         model.add(-2); model.add(-1); model.add(3);
-        ArrayList<int[]> falseClauses = clauses.falseClauses(model);
+        ArrayList<int[]> falseClauses = clauses.notTrueClausesInModel(model);
         assertEquals(1,falseClauses.size());
         assertEquals(clause2,falseClauses.get(0));
     }
@@ -45,7 +45,7 @@ public class BasicClauseListTest {
 
         Model model = new Model(10);
         model.add(-2); model.add(1); model.add(3);
-        ArrayList<int[]> falseClauses = clauses.falseClauses(model);
+        ArrayList<int[]> falseClauses = clauses.notTrueClausesInModel(model);
         assertEquals(1,falseClauses.size());
         assertEquals(clause2,falseClauses.get(0));
     }
@@ -64,7 +64,7 @@ public class BasicClauseListTest {
 
         Model model = new Model(10);
         model.add(-2);
-        ArrayList<int[]> falseClauses = clauses.falseClauses(model);
+        ArrayList<int[]> falseClauses = clauses.notTrueClausesInModel(model);
         assertEquals(1,falseClauses.size());
         assertEquals(clause2,falseClauses.get(0));
     }
@@ -83,7 +83,7 @@ public class BasicClauseListTest {
 
         Model model = new Model(10);
         model.add(-3); model.add(-2);model.add(-1);model.add(4);model.add(5);
-        ArrayList<int[]> falseClauses = clauses.falseClauses(model);
+        ArrayList<int[]> falseClauses = clauses.notTrueClausesInModel(model);
         assertEquals(1,falseClauses.size());
         assertEquals(clause2,falseClauses.get(0));
     }
@@ -105,7 +105,7 @@ public class BasicClauseListTest {
 
         Model model = new Model(10);
         model.add(1); model.add(2);model.add(3);model.add(-4);model.add(-5);model.add(-6);model.add(7);model.add(-8);model.add(9);
-        ArrayList<int[]> falseClauses = clauses.falseClauses(model);
+        ArrayList<int[]> falseClauses = clauses.notTrueClausesInModel(model);
         assertEquals(1,falseClauses.size());
         assertEquals(clause3,falseClauses.get(0));
     }
@@ -349,11 +349,11 @@ public class BasicClauseListTest {
         assertFalse(clauses.disjunctionIsTrue(clause2,m1));
         assertFalse(clauses.conjunctionIsTrue(clause3,m1));
         StringBuilder st = new StringBuilder();
-        for(int[] clause : clauses.falseClauses(m1)) {st.append(BasicClauseList.clauseToString(2,clause,null));}
+        for(int[] clause : clauses.notTrueClausesInModel(m1)) {st.append(BasicClauseList.clauseToString(2,clause,null));}
         assertEquals(" 2 : 4 | 5 | 6 3 : 7 & 8 & 9 4 : 1 & 2 & 3 5 : 4 x 5 x 6 6 : 7 x 8 x 9 9 : 7 = 8 = 9",st.toString());
         m1.add(7); m1.add(8);m1.add(9);
         st = new StringBuilder();
-        for(int[] clause : clauses.falseClauses(m1)) {st.append(BasicClauseList.clauseToString(2,clause,null));}
+        for(int[] clause : clauses.notTrueClausesInModel(m1)) {st.append(BasicClauseList.clauseToString(2,clause,null));}
         assertEquals(" 2 : 4 | 5 | 6 4 : 1 & 2 & 3 5 : 4 x 5 x 6 6 : 7 x 8 x 9",st.toString());
 
 

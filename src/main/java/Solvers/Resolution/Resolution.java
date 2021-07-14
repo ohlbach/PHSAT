@@ -9,7 +9,6 @@ import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
-import Datastructures.Theory.Transformers;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;
@@ -309,7 +308,7 @@ public class Resolution extends Solver {
             return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");
             }
         if(result.getClass() == Satisfiable.class) {
-            ArrayList<int[]> falseClauses = basicClauseList.falseClauses(((Satisfiable)result).model);
+            ArrayList<int[]> falseClauses = basicClauseList.notTrueClausesInModel(((Satisfiable)result).model);
             if(falseClauses == null) {return result;}
             System.out.println(toString());
             return new Erraneous(((Satisfiable)result).model,falseClauses,symboltable);}
@@ -508,7 +507,7 @@ public class Resolution extends Solver {
             case +1: return null;}
         model.add(literal);
         if(false) {
-            ArrayList<int[]> falseClauses = basicClauseList.falseClausesInPartial(model);
+            ArrayList<int[]> falseClauses = basicClauseList.falseClausesInModel(model);
             if(falseClauses != null) {
                 System.out.println("ErrorCheck: the following basic clauses are false in the model");
                 System.out.println(model.toString());

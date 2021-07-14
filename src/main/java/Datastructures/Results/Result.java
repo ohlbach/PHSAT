@@ -1,7 +1,6 @@
 package Datastructures.Results;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.ClauseList;
 import Datastructures.Theory.Model;
 
 import java.util.ArrayList;
@@ -15,7 +14,7 @@ public class Result {
 
     public static Result makeResult(Model model, BasicClauseList clauses) {
         if(clauses == null) {return null;}
-        ArrayList<int[]> falseClauses = clauses.falseClauses(model);
+        ArrayList<int[]> falseClauses = clauses.notTrueClausesInModel(model);
         return (falseClauses == null) ? new Satisfiable(model) : new Erraneous(model,falseClauses,clauses.symboltable);
     }
 }

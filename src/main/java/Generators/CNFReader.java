@@ -131,8 +131,9 @@ public final class CNFReader {
                 " 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.\n" +
                 " 'x': means exclusive-or: 'x 3 4 5' means 3 xors 4 xors 5 (exactly one of them must be true).\n" +
                 " 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.\n" +
-                " 'o': means and:          'o 3 4 5' stands for 3 or 4 or 5.\n" +
-                "  The 'o' may be omitted");
+                " 'o': means or:           'o 3 4 5' stands for 3 or 4 or 5.\n" +
+                "  The 'o' may be omitted.\n");
+        st.append("Clauses with double literals or complementary literals (although logically okay) cause a syntax error.\n");
         return st.toString();
     }
 
@@ -194,6 +195,7 @@ public final class CNFReader {
                 if(lit != null) {lits[++j] = lit;}
                 else {j = 0; break;}}
             bcl.addClause(lits);}
+        errors.append(bcl.syntaxErrors.toString());
         bcl.info = info.toString();}
         catch(IOException ex) {
             errors.append(place + " IOException\n");

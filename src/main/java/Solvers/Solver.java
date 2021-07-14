@@ -5,10 +5,8 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
-import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor;
@@ -263,7 +261,7 @@ public abstract class Solver {
      * @return null or an Erraneous Result
      */
     public Result checkModel(Model model) {
-        ArrayList<int[]> falseClauses = basicClauseList.falseClauses(model);
+        ArrayList<int[]> falseClauses = basicClauseList.notTrueClausesInModel(model);
         if(falseClauses != null) {return new Erraneous(model,falseClauses,symboltable);}
         else {return null;}}
 

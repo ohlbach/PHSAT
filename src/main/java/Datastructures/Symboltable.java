@@ -32,6 +32,15 @@ public class Symboltable {
         return names[predicate];
     }
 
+    /** yields the name of the literal as string
+     *
+     * @param literal     a literal
+     * @param symboltable a symboltable, or null
+     * @return the name of the literal as string.
+     */
+    public static String getLiteralName(int literal, Symboltable symboltable) {
+        return (symboltable == null) ? Integer.toString(literal) : symboltable.getLiteralName(literal); }
+
     /**
      * @param literal any positive or negative predicate
      * @return  the name of the literal (e.g. -A)
