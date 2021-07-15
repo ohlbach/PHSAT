@@ -25,7 +25,7 @@ import java.util.ArrayList;
  *  and not added to the lists..
  */
 public class BasicClauseList {
-    public int predicates;
+    public int predicates = 0;
 
     /** the original disjunctions */
     public ArrayList<int[]> disjunctions  = new ArrayList<>();
@@ -95,7 +95,7 @@ public class BasicClauseList {
         int size = clause.length;
         for(int i = 2; i < size-1; ++i) {
             int literal = clause[i];
-            if(literal == 0 || Math.abs(literal) > predicates) {
+            if(literal == 0 || (predicates > 0 && Math.abs(literal) > predicates)) {
                 syntaxErrors.append("Clause '").append(clauseToString(0, clause, symboltable)).
                         append("' contains illegal literal ").append(Integer.toString(literal)).
                         append(".\n");

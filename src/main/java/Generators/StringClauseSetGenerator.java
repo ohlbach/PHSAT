@@ -99,6 +99,7 @@ public final class StringClauseSetGenerator  {
         name2Int.forEach((name,predicate) -> symboltable.setName(predicate,name));
         bcl.symboltable = symboltable;
         bcl.predicates = predicates;
+        errors.append(bcl.syntaxErrors.toString());
         return bcl;
     }
 }
