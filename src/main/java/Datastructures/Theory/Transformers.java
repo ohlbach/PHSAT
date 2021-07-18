@@ -1,6 +1,5 @@
 package Datastructures.Theory;
 
-import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
@@ -9,7 +8,6 @@ import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -23,7 +21,7 @@ public class Transformers {
      */
     public static Object prepareEquivalences(ArrayList<int[]> basicClauses, Symboltable symboltable) {
         Result[] result = new Result[]{null};
-        EquivalenceClasses equivalenceClasses = new EquivalenceClasses(symboltable,
+        EquivalenceClassesOld equivalenceClasses = new EquivalenceClassesOld(symboltable,
                 ((literal, origin) -> {
                     result[0] = new Unsatisfiable(""+literal+" == "+-literal + " in equivalence clause " + origin.getInt(0));}));
         for(int[] clause : basicClauses) {
@@ -44,7 +42,7 @@ public class Transformers {
      */
     public static Unsatisfiable prepareDisjunctions(ArrayList<int[]> disjunctions, int[] id, Symboltable symboltable,
                                                     boolean trackReasoning,
-                                                    Model model,EquivalenceClasses equivalenceClasses,
+                                                    Model model, EquivalenceClassesOld equivalenceClasses,
                                                     Consumer<Clause> handler) {
         for(int[] basicClause : disjunctions) {
             Unsatisfiable result = prepareDisjunction(basicClause,id,symboltable, trackReasoning, model, equivalenceClasses,handler);
@@ -63,7 +61,7 @@ public class Transformers {
      * @return Unsatisfiable if the clause is empty, otherwise null
      */
     private static Unsatisfiable prepareDisjunction(int[] basicClause, int[] id, Symboltable symboltable, boolean trackReasoning,
-                                           Model model, EquivalenceClasses equivalenceClasses,
+                                           Model model, EquivalenceClassesOld equivalenceClasses,
                                            Consumer<Clause> handler) {
         Clause clause = new Clause(++id[0],basicClause.length-2);
         IntArrayList origins = trackReasoning ? IntArrayList.wrap(new int[]{basicClause[0]}) : null;
@@ -96,7 +94,7 @@ public class Transformers {
      * @param model                for inserting the conjuncts
      * @return                     null or an Unsatisfiable object.
      */
-    public static Unsatisfiable prepareConjunctions(ArrayList<int[]> conjunctions, Symboltable symboltable, EquivalenceClasses equivalenceClasses, Model model) {
+    public static Unsatisfiable prepareConjunctions(ArrayList<int[]> conjunctions, Symboltable symboltable, EquivalenceClassesOld equivalenceClasses, Model model) {
         for(int[] basicClause : conjunctions) {
             for(int i = 2; i < basicClause.length; ++i) {
                 int originalLiteral =  basicClause[i];
@@ -128,7 +126,7 @@ public class Transformers {
     public static void prepareXors(ArrayList<int[]> xors, int[] id, Symboltable symboltable, boolean trackReasoning,
                                    Model model,
                                    DisjointnessClasses disjointnessClasses,
-                                   EquivalenceClasses equivalenceClasses, Consumer<Clause> handler) {
+                                   EquivalenceClassesOld equivalenceClasses, Consumer<Clause> handler) {
         for(int[] basicClause : xors) {
             prepareDisjunction(basicClause,id,symboltable,trackReasoning,model, equivalenceClasses ,handler);
             disjointnessClasses.addDisjointnessClass(basicClause,equivalenceClasses);}}
@@ -141,7 +139,7 @@ public class Transformers {
      */
     public static void prepareDisjoints(ArrayList<int[]> disjoints,
                                         DisjointnessClasses disjointnessClasses,
-                                        EquivalenceClasses equivalenceClasses) {
+                                        EquivalenceClassesOld equivalenceClasses) {
         for(int[] basicClause : disjoints) {
             disjointnessClasses.addDisjointnessClass(basicClause,equivalenceClasses);}}
 

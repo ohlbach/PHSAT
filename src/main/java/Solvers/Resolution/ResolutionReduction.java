@@ -11,7 +11,7 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClassesOld;
 import Datastructures.Theory.Transformers;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
@@ -90,7 +90,7 @@ public abstract class ResolutionReduction extends Solver {
      *  In each equivalence class the literals are mapped to their representatives,
      *  which is always the predicate with the smallest number.
      */
-    EquivalenceClasses equivalenceClasses = null;
+    EquivalenceClassesOld equivalenceClasses = null;
 
     /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.

@@ -54,13 +54,13 @@ public class Model {
      * @param origin the ids of the basic clauses causing this truth
      * @return +1 if the literal was already in the model, -1 if the negated literal was in the model, otherwise 0.
      */
-    public int add(int literal, IntArrayList origin) {
+    public synchronized int add(int literal, IntArrayList origin) {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         short tr = status[predicate];
         if(tr == 0){
             model.add(literal);
-            origins.add(origin);
+            if(origins != null) origins.add(origin);
             status[predicate] = literal > 0 ? (byte)1: (byte)-1;
             if(observers != null) {for(BiConsumer<Integer,IntArrayList> observer : observers) {observer.accept(literal,origin);}}
             return 0;}
@@ -79,7 +79,7 @@ public class Model {
      * @param literal the literal to be checked.
      * @return true if the literal is true in the model.
      */
-    public boolean isTrue(int literal) {
+    public synchronized  boolean isTrue(int literal) {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         short status = this.status[predicate];
@@ -91,7 +91,7 @@ public class Model {
      * @param literal the literal to be checked.
      * @return true if the literal is false in the model.
      */
-    public boolean isFalse(int literal) {
+    public synchronized boolean isFalse(int literal) {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         short status = this.status[predicate];
@@ -103,7 +103,7 @@ public class Model {
      * @param literal the literal to be checked
      * @return +1 if the literal is true in the model, -1 if it is false in the model, otherwise 0.
      */
-    public int status(int literal) {
+    public synchronized int status(int literal) {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         short status = this.status[predicate];
@@ -114,7 +114,7 @@ public class Model {
      * @param literal a literal
      * @return null or the origins of the literal entry
      */
-    public IntArrayList getOrigin(int literal) {
+    public synchronized IntArrayList getOrigin(int literal) {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         byte status = this.status[predicate];
@@ -126,7 +126,7 @@ public class Model {
      * @param status -1,0,+1
      * @return the corresponding name
      */
-    public static String toString(int status) {
+    public synchronized static String toString(int status) {
         switch(status) {
             case -1 : return "false";
             case  0:  return "unknown";
@@ -139,7 +139,7 @@ public class Model {
      * @param literal a literal
      * @param status +1 (for true) and -1 (for false)
      */
-    public void setStatus(int literal, int status, IntArrayList origin) {
+    public synchronized void setStatus(int literal, int status, IntArrayList origin) {
         if(literal < 0) {literal = -literal; status = (byte)-status;}
         assert this.status[literal] == 0 || this.status[literal] == status;
         if(this.status[literal] == 0) {
@@ -173,7 +173,7 @@ public class Model {
      * @param literal a literal
      * @return true if the model contains the literal.
      */
-    public boolean contains(int literal) {
+    public synchronized boolean contains(int literal) {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         return status[predicate] != 0;}
@@ -182,19 +182,19 @@ public class Model {
      *
      * @return the current size of the model
      */
-    public int size() {return model.size();}
+    public synchronized int size() {return model.size();}
 
     /** checks if the model is empty.
      *
      * @return true if the model is empty
      */
-    public boolean isEmpty() {return model.isEmpty();}
+    public synchronized boolean isEmpty() {return model.isEmpty();}
 
     /** checks if the model is full.
      *
      * @return true if the model is empty
      */
-    public boolean isFull() {return model.size() == predicates;}
+    public synchronized boolean isFull() {return model.size() == predicates;}
 
 
     /**

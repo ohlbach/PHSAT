@@ -708,8 +708,20 @@ public class Utilities {
      * @param list2 an IntArray or null
      * @return the extended list1
      */
-    public static IntArrayList joinIntArray(IntArrayList list1, IntArrayList list2) {
-        if(list2 == null) {return list1;}
+    public static IntArrayList joinIntArrays(IntArrayList list1, IntArrayList list2) {
+        if(list2 == null || list2.isEmpty()) {return list1;}
+        IntArrayList newList = list1.clone();
+        for(int item : list2) {if(!list1.contains(item)) newList.add(item);}
+        return newList;}
+
+    /** adds the elements of the second list to the first list
+     *
+     * @param list1 an IntArray
+     * @param list2 an IntArray or null
+     * @return the extended list1
+     */
+    public static IntArrayList addIntArray(IntArrayList list1, IntArrayList list2) {
+        if(list2 == null || list2.isEmpty()) {return list1;}
         for(int item : list2) {if(!list1.contains(item)) list1.add(item);}
         return list1;}
 

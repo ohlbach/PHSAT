@@ -4,8 +4,6 @@ import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
-import javax.swing.plaf.synth.SynthMenuBarUI;
-import java.util.Arrays;
 import java.util.function.BiConsumer;
 
 import static org.junit.Assert.*;
@@ -25,7 +23,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addEquivalenceClass() throws Exception {
         System.out.println("add, no joins");
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable,cH);
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable,cH);
         int[] clause = new int[]{1,4,4,1,2,3,2};
         assertTrue(eq.addEquivalenceClass(clause));
         //System.out.println(eq.toString());
@@ -40,7 +38,7 @@ public class EquivalenceClassesTest {
     public void addEquivalenceClass2() throws Exception {
         System.out.println("contradict");
         String[] result = new String[1];
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable, ((l,o)-> {result[0] = "U " + l + " " + o.toString();}));
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable, ((l, o)-> {result[0] = "U " + l + " " + o.toString();}));
         int[] clause = new int[]{1, 4, 2, -2};
         assertFalse(eq.addEquivalenceClass(clause));
         assertEquals("U 2 [1]",result[0]);
@@ -51,7 +49,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addJoins() throws Exception {
         System.out.println("add, with joins");
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable,cH);
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable,cH);
         int[] clause = new int[]{1,4,4,1,2,3};
         eq.addEquivalenceClass(clause);
         clause = new int[]{2,4,5,6,3,2};
@@ -64,7 +62,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addJoins1() throws Exception {
         System.out.println("add, more joins");
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable,cH);
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable,cH);
         assertTrue(eq.addEquivalenceClass(new int[]{1,4,1,2,3}));
         assertTrue(eq.addEquivalenceClass(new int[]{2,4,4,5,6}));
         assertTrue(eq.addEquivalenceClass(new int[]{3,4,7,8,9}));
@@ -78,7 +76,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addJoins2() throws Exception {
         System.out.println("add, more joins, negated");
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable,cH);
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable,cH);
         assertTrue(eq.addEquivalenceClass(new int[]{1,4,1,2,3}));
         assertTrue(eq.addEquivalenceClass(new int[]{2,4,4,5,6}));
         assertTrue(eq.addEquivalenceClass(new int[]{3,4,7,8,9}));
@@ -94,7 +92,7 @@ public class EquivalenceClassesTest {
     public void addJoins3() throws Exception {
         System.out.println("add, more joins, contradiction");
         String[] result = new String[1];
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable,((l,o)-> {result[0] = "C " + l + " " + o.toString();}));
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable,((l, o)-> {result[0] = "C " + l + " " + o.toString();}));
         assertTrue(eq.addEquivalenceClass(new int[]{1,4,1,2,3}));
         assertTrue(eq.addEquivalenceClass(new int[]{2,4,4,5,6}));
         assertTrue(eq.addEquivalenceClass(new int[]{3,4,7,8,9}));
@@ -112,7 +110,7 @@ public class EquivalenceClassesTest {
     public void addContradictions() throws Exception {
         System.out.println("add, with contradiction");
         String[] reason = new String[1];
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable,
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable,
                 ((r,o)->reason[0] = r.toString() + " " + o.toString()));
         int[] clause = new int[]{1,4,4,1,2,3};
         eq.addEquivalenceClass(clause);
@@ -126,7 +124,7 @@ public class EquivalenceClassesTest {
     public void addDouble1() throws Exception {
         System.out.println("add double 1");
         String[] result = new String[1];
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable, ((l,o)-> {result[0] = "C " + l + " " + o.toString();}));
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable, ((l, o)-> {result[0] = "C " + l + " " + o.toString();}));
         IntArrayList origins = IntArrayList.wrap(new int[]{10,11,12});
         assertTrue(eq.addEquivalenceClass(1,2,origins));
         assertEquals(1,eq.mapToRepresentative(2));
@@ -140,7 +138,7 @@ public class EquivalenceClassesTest {
     public void addDouble2() throws Exception {
         System.out.println("add double join");
         String[] result = new String[1];
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable, ((l,o)-> {result[0] = "C " + l + " " + o.toString();}));
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable, ((l, o)-> {result[0] = "C " + l + " " + o.toString();}));
         IntArrayList origins = IntArrayList.wrap(new int[]{10,11,12});
         assertTrue(eq.addEquivalenceClass(1,2,origins));
         origins = IntArrayList.wrap(new int[]{14,15});
@@ -156,7 +154,7 @@ public class EquivalenceClassesTest {
     @Test
     public void truths() throws Exception {
         System.out.println("truth");
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable,cH);
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable,cH);
         assertTrue(eq.addEquivalenceClass(new int[]{1,4,1,2,3}));
         assertTrue(eq.addEquivalenceClass(new int[]{2,4,4,5,6}));
         assertTrue(eq.addEquivalenceClass(new int[]{3,4,7,8,9}));
@@ -176,7 +174,7 @@ public class EquivalenceClassesTest {
         @Test
     public void completeModel() throws Exception {
         System.out.println("complete model");
-        EquivalenceClasses eq = new EquivalenceClasses(symboltable,cH);
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable,cH);
         int[] clause = new int[]{1,4,4,1,2,3};
         eq.addEquivalenceClass(clause);
         clause = new int[]{2,4,2,3,5};

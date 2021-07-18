@@ -8,7 +8,7 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.DisjointnessClasses;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClassesOld;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;
@@ -110,7 +110,7 @@ public abstract class Walker extends Solver {
      *  In each equivalence class the literals are mapped to their representatives,
      *  which is always the predicate with the smallest number.
      */
-    private EquivalenceClasses equivalenceClasses;
+    private EquivalenceClassesOld equivalenceClasses;
 
     private DisjointnessClasses disjointnessClasses;
 
@@ -543,7 +543,7 @@ public abstract class Walker extends Solver {
 
     void transferLocalModel() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-            model.setStatus(predicate,localModel[predicate]);}}
+            model.setStatus(predicate,localModel[predicate],null);}}
 
     /** completes a model after resolution has finished.
      * Strategy INPUT or SOS: all remaining clauses should be true <br>

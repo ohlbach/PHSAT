@@ -8,7 +8,7 @@ import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClassesOld;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;
@@ -202,7 +202,7 @@ public class Resolution extends Solver {
      *  In each equivalence class the literals are mapped to their representatives,
      *  which is always the predicate with the smallest number.
      */
-    private EquivalenceClasses equivalenceClasses = null;
+    private EquivalenceClassesOld equivalenceClasses = null;
 
     /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.

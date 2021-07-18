@@ -9,7 +9,7 @@ import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
 import Datastructures.Symboltable;
 import Datastructures.Theory.DisjointnessClasses;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClassesOld;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor;
@@ -80,7 +80,7 @@ public class Preparer {
     GlobalParameters globalParameters;
     String problemId;
     BasicClauseList basicClauseList;
-    EquivalenceClasses equivalenceClasses = null;
+    EquivalenceClassesOld equivalenceClasses = null;
     DisjointnessClasses disjointnessClasses = null;
     Symboltable symboltable = null;
     Model model = null;
@@ -122,7 +122,7 @@ public class Preparer {
         taskQueue    = new TaskQueue(problemId,monitor);
         trackReasoning = globalParameters.trackReasoning;
         model = new Model(predicates,trackReasoning);
-        equivalenceClasses = new EquivalenceClasses(symboltable,
+        equivalenceClasses = new EquivalenceClassesOld(symboltable,
                 ((literal, origin) -> {
                     new Unsatisfiable(""+literal+" == "+-literal + " in equivalence clause " + origin.getInt(0));}));
         statistics = new PreparerStatistics(problemId);}

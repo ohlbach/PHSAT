@@ -6,9 +6,7 @@ import Utilities.TriConsumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.InputMismatchException;
 import java.util.function.BiConsumer;
 
 import static org.junit.Assert.*;
@@ -127,7 +125,7 @@ public class DisjointnessClassesTest {
         BiConsumer<Integer,IntArrayList> ucH = (lit,origin) -> u[0] += "U "+ lit + " " + origin.toString() + " ";
         TriConsumer<Integer,Integer,IntArrayList> bcH = (lit1,lit2,origin) -> b[0] += "B "+ lit1 + " " + lit2 + " " + origin.toString() + " ";
         DisjointnessClasses dc = new DisjointnessClasses(stb,ucH,bcH);
-        EquivalenceClasses eq = new EquivalenceClasses(stb,null);
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(stb,null);
         eq.addEquivalenceClass(1,3,IntArrayList.wrap(new int[]{11,12}));
         Object[] result = dc.analyseClause(new int[]{10,type,1,-2,3,4,5},eq);
         IntArrayList preds = (IntArrayList)result[0];
@@ -149,7 +147,7 @@ public class DisjointnessClassesTest {
         TriConsumer<Integer,Integer,IntArrayList> bcH = (lit1,lit2,origin) -> b[0] += "B "+ lit1 + " " + lit2 + " " + origin.toString() + " ";
         stb = new Symboltable(10);
         stb.setName(1,"p");
-        EquivalenceClasses eq = new EquivalenceClasses(stb,null);
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(stb,null);
         eq.addEquivalenceClass(5,6,IntArrayList.wrap(new int[]{12,13}));
         DisjointnessClasses dc = new DisjointnessClasses(stb,ucH,bcH);
         int[] ca = new int[]{10,type,1,2,3};
@@ -184,7 +182,7 @@ public class DisjointnessClassesTest {
         BiConsumer<Integer,IntArrayList> ucH = (lit,origin) -> u[0] += "U "+ lit + " " + origin.toString() + " ";
         TriConsumer<Integer,Integer,IntArrayList> bcH = (lit1,lit2,origin) -> b[0] += "B "+ lit1 + " " + lit2 + " " + origin.toString() + " ";
         stb = new Symboltable(10);
-        EquivalenceClasses eq = new EquivalenceClasses(stb,null);
+        EquivalenceClassesOld eq = new EquivalenceClassesOld(stb,null);
         eq.addEquivalenceClass(5,6,IntArrayList.wrap(new int[]{12,13}));
         DisjointnessClasses dc = new DisjointnessClasses(stb,ucH,bcH);
         int[] ca = new int[]{10,type,1,2,3};

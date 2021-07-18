@@ -110,7 +110,7 @@ public class Clauses {
         catch(Exception e) {} // contradiction encountered
     }
 
-    public void addUnitClause(int literal, IntArrayList origins) throws Exception {
+    private void addUnitClause(int literal, IntArrayList origins) throws Exception {
         IntArrayList orig = unitClauses.get(-literal);
         if(orig != null) {
             inconsistencyReporter.accept(joinOrigins(origins,orig));
@@ -118,6 +118,8 @@ public class Clauses {
         orig = unitClauses.get(literal);
         if(orig != null) {return;}
         unitClauses.put(literal,origins);
+        removeEQClass(literal);
+        ArrayList<Pair<Integer,IntArrayList>> units = disjointLiterals(literal,origins);
         }
 
     /** The literals in the clause are replaced by equivalent ones (if necessary).
@@ -126,7 +128,7 @@ public class Clauses {
      * @param clause a new clause
      * @return true if the clause survived (no tautology and no unit clause).
      */
-    protected boolean normalizeClause(Clause clause) {
+    protected boolean normalizeClause(Clause clause) throws Exception {
         replaceEquivalentLiterals(clause);
 
         int literal1 = clause.literal1;
@@ -147,32 +149,6 @@ public class Clauses {
             addUnitClause(literal1,joinOrigins(clause.origins,origins));
             return false; }
         return true;}
-
-    /** replaces the literal by its equivalent literal (if necessary)
-     *
-     * @param literal the literal to be replaced
-     * @param origins the list of basic clause indices causing this literal
-     * @return a pair [replaced literal, joined origins]
-     */
-    protected Pair<Integer,IntArrayList> replaceByEquivalence(int literal, IntArrayList origins) {
-        Pair<Integer, IntArrayList> eqv = toBeReplacedByEquivalent(literal);
-        if(eqv == null) {return new Pair(literal,origins);}
-        return new Pair(eqv.getKey(),joinOrigins(origins,eqv.getValue())); }
-
-    /** replaces the two literals by the representatives of their equivalence class (if necessary)
-     *
-     * @param clause a new clause
-     */
-    protected void replaceEquivalentLiterals(Clause clause) {
-        Pair<Integer, IntArrayList> eqv = toBeReplacedByEquivalent(clause.literal1);
-        if (eqv != null) {
-            clause.literal1 = eqv.getKey();
-            clause.origins = joinOrigins(clause.origins, eqv.getValue());}
-
-        eqv = toBeReplacedByEquivalent(clause.literal2);
-        if (eqv != null) {
-            clause.literal2 = eqv.getKey();
-            clause.origins = joinOrigins(clause.origins, eqv.getValue());}}
 
 
     private void insertClause(Clause clause) {
@@ -312,12 +288,50 @@ public class Clauses {
             literal2 = clause.literal1;}
         return resolvents;}
 
+
+    /** replaces the literal by its equivalent literal (if necessary)
+     *
+     * @param literal the literal to be replaced
+     * @param origins the list of basic clause indices causing this literal
+     * @return a pair [replaced literal, joined origins]
+     */
+    protected Pair<Integer,IntArrayList> replaceByEquivalence(int literal, IntArrayList origins) {
+        Pair<Integer, IntArrayList> eqv = toBeReplacedByEquivalent(literal);
+        if(eqv == null) {return new Pair(literal,origins);}
+        return new Pair(eqv.getKey(),joinOrigins(origins,eqv.getValue())); }
+
+    /** replaces the two literals by the representatives of their equivalence class (if necessary)
+     *
+     * @param clause a new clause
+     */
+    protected void replaceEquivalentLiterals(Clause clause) {
+        Pair<Integer, IntArrayList> eqv = toBeReplacedByEquivalent(clause.literal1);
+        if (eqv != null) {
+            clause.literal1 = eqv.getKey();
+            clause.origins = joinOrigins(clause.origins, eqv.getValue());}
+
+        eqv = toBeReplacedByEquivalent(clause.literal2);
+        if (eqv != null) {
+            clause.literal2 = eqv.getKey();
+            clause.origins = joinOrigins(clause.origins, eqv.getValue());}}
+
+    /** removes the equivalence class containing the literals
+     *
+     * @param literal a literal
+     */
+    protected void removeEQClass(int literal) {
+        if(equivalenceClasses != null) {
+            equivalenceClasses.removeIf((ArrayList<IntArrayList> eqClass) ->
+                    eqClass.get(0).contains(literal) || eqClass.get(0).contains(-literal));}}
+
+
     /** checks if the literal must be replaced by an equivalent literal
      *
      * @param literal the literal to be checked
      * @return null (no replacement) or the pair [replaced literal, origins]
      */
     protected Pair<Integer,IntArrayList> toBeReplacedByEquivalent(int literal) {
+        if(equivalenceClasses == null) {return null;}
         for(ArrayList<IntArrayList> eqv : equivalenceClasses) {
             IntArrayList literals = eqv.get(0);
             if(literal ==  literals.getInt(0)) {return new Pair( literals.getInt(1),eqv.get(1));}
@@ -338,12 +352,15 @@ public class Clauses {
             literal1 = literal2; literal2 = dummy;}
         if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
         // the equivalence is now normalized.
-        for(ArrayList<IntArrayList> eqv : equivalenceClasses) {
-            IntArrayList literals = eqv.get(0);
-            boolean found = false;
-            if(literals.getInt(1) ==  literal1) {literals.set(1, literal2); found = true;}
-            if(literals.getInt(1) == -literal1) {literals.set(1,-literal2); found = true;}
-            if(found) {eqv.set(1,joinOrigins(eqv.get(1),origins)); break;}}
+        if(equivalenceClasses != null) {
+            for(ArrayList<IntArrayList> eqv : equivalenceClasses) {
+                IntArrayList literals = eqv.get(0);
+                boolean found = false;
+                if(literals.getInt(1) ==  literal1) {literals.set(1, literal2); found = true;}
+                if(literals.getInt(1) == -literal1) {literals.set(1,-literal2); found = true;}
+                if(found) {eqv.set(1,joinOrigins(eqv.get(1),origins)); break;}}}
+        else {equivalenceClasses = new ArrayList<>();}
+
         IntArrayList newPair = new IntArrayList();
         newPair.add(literal1); newPair.add(literal2);
         ArrayList<IntArrayList> newEqv = new ArrayList<>();
@@ -407,6 +424,27 @@ public class Clauses {
                     if(!origins.contains(index)) {origins.add(index);}}}
             return disjoints;}
         return null;}
+
+    /** returns for a true literal the other true literals.
+     *  Example: a disjointness class is p,q,r
+     *  For a true literal q: -p,-r become true as well.
+     *  The disjointness class containing q in this case is removed.
+     *
+     * @param literal a literal
+     * @param origins the basic clause indices causing the literal to be true
+     * @return null or a list of pairs: [true literal, combined origins]
+     */
+    protected ArrayList<Pair<Integer,IntArrayList>> disjointLiterals(int literal, IntArrayList origins) {
+        if(disjointnessClasses == null) {return null;}
+        ArrayList<Pair<Integer,IntArrayList>> trueLiterals = new ArrayList<>();
+        disjointnessClasses.removeIf((Pair<IntArrayList,IntArrayList> disjoints) -> {
+            IntArrayList disj = disjoints.getKey();
+            if(disj.contains(literal)) {
+                for(int lit : disj) {
+                    if(lit != literal) {trueLiterals.add(new Pair(-lit,joinOrigins(origins,disjoints.getValue())));}}
+                return true;}
+            return false;});
+        return trueLiterals;}
 
     /** joins the two lists and returns the joined list.
      * Double occurrences are avoided.

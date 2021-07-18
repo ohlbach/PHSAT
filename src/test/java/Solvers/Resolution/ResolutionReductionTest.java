@@ -6,7 +6,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClassesOld;
 import Datastructures.Theory.Model;
 import Management.Controller;
 import Management.Monitor;
@@ -15,7 +15,6 @@ import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import static org.junit.Assert.*;
@@ -42,7 +41,7 @@ public class ResolutionReductionTest {
                     (cLiteral->cLiteral.clause.size()));
             statistics = new ResolutionStatistics("test");
             taskQueue = new TaskQueue("test",null);
-            equivalenceClasses = new EquivalenceClasses(symboltable,contradictionHandler);
+            equivalenceClasses = new EquivalenceClassesOld(symboltable,contradictionHandler);
             model = new Model(predicates);
         }
 
