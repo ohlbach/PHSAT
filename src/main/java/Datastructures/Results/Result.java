@@ -8,9 +8,12 @@ import java.util.ArrayList;
 /**
  * Created by ohlbach on 14.09.2018.
  */
-public class Result {
+public class Result extends Exception {
 
     public boolean isOkay() {return true;}
+
+    public Result() {
+        super(); }
 
     public static Result makeResult(Model model, BasicClauseList clauses) {
         if(clauses == null) {return null;}

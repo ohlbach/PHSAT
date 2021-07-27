@@ -9,7 +9,7 @@ import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
 import Datastructures.Symboltable;
 import Datastructures.Theory.DisjointnessClasses;
-import Datastructures.Theory.EquivalenceClassesOld;
+import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor;
@@ -80,7 +80,7 @@ public class Preparer {
     GlobalParameters globalParameters;
     String problemId;
     BasicClauseList basicClauseList;
-    EquivalenceClassesOld equivalenceClasses = null;
+    EquivalenceClasses equivalenceClasses = null;
     DisjointnessClasses disjointnessClasses = null;
     Symboltable symboltable = null;
     Model model = null;
@@ -100,17 +100,16 @@ public class Preparer {
     TriConsumer<Integer,Integer,IntArrayList> binaryClauseHandler =
             ((literal1,literal2,origins) -> addBinaryClauseTask(literal1,literal2,origins, "derived from disjointness clause"));
 
-    public Result prepare() {
+    public void prepare() throws Result {
         initializeData();
-        Result result = initializeClauses();
-        if(result != null) {return result;}
-        return simplify();}
+        initializeClauses();
+        simplify();}
 
     /** initializes resolution specific data structures*/
     void initializeData() {
         basicClauseList = problemSupervisor.basicClauseList;
         predicates   = basicClauseList.predicates;
-        symboltable = basicClauseList.symboltable;
+        symboltable  = basicClauseList.symboltable;
         globalParameters = problemSupervisor.globalParameters;
         monitor                    = globalParameters.monitor;
         monitoring                 = monitor.monitoring;
@@ -121,10 +120,8 @@ public class Preparer {
                             (cLiteral->cLiteral.clause.size()));
         taskQueue    = new TaskQueue(problemId,monitor);
         trackReasoning = globalParameters.trackReasoning;
-        model = new Model(predicates,trackReasoning);
-        equivalenceClasses = new EquivalenceClassesOld(symboltable,
-                ((literal, origin) -> {
-                    new Unsatisfiable(""+literal+" == "+-literal + " in equivalence clause " + origin.getInt(0));}));
+        model = new Model(predicates,symboltable,trackReasoning);
+        equivalenceClasses = new EquivalenceClasses(model);
         statistics = new PreparerStatistics(problemId);}
 
 
@@ -134,15 +131,13 @@ public class Preparer {
      * @return possibly Unsatisfiable
      * @throws InterruptedException
      */
-    Result initializeClauses() {
-        Result result = null;
-        if(basicClauseList.equivalences != null) {
-            result = prepareEquivalences(basicClauseList.equivalences);
-            if(result != null) {return result;}}
+    Result initializeClauses() throws Result {
+        prepareConjunctions(basicClauseList.conjunctions);
 
-        if(basicClauseList.conjunctions != null) {
-            result = prepareConjunctions(basicClauseList.conjunctions);
-            if(result != null) {return result;}}
+        for(int[] clause : basicClauseList.equivalences) {
+            equivalenceClasses.addBasicEquivalenceClause(clause);}
+
+        Result result = null;
 
         if(basicClauseList.disjunctions != null) {
             result = prepareDisjunctions(basicClauseList.disjunctions);
@@ -424,38 +419,17 @@ public class Preparer {
                 (()->reason + ": " + literalName(literal))));}
 
 
-    /** turns all equivalences in the basicClauseList into equivalence classes and sets the variable 'equivalenceClasses'.
-     *
-     * @return either null or Unsatisfiable if p == -p was encountered
-     */
-    public Unsatisfiable prepareEquivalences(ArrayList<int[]> basicClauses) {
-        Unsatisfiable[] result = new Unsatisfiable[]{null};
-          for(int[] clause : basicClauses) {
-            equivalenceClasses.addEquivalenceClass(clause);
-            if(result[0] != null) {return result[0];}}
-        return null;}
 
-    /** The handler is applied to all conjuncts in the basicClauseList.
-     * If there are equivalence classes then the literals are mapped to the representative of the equivalence class.
+    /** All conjunctions are put into the model.
+     * A contradiction causes an Unsatisfiable exception.
      *
      * @param conjunctions         the list of input conjunctions.
-     * @return                     null or an Unsatisfiable object.
      */
-    public Unsatisfiable prepareConjunctions(ArrayList<int[]> conjunctions) {
+    public void prepareConjunctions(ArrayList<int[]> conjunctions) throws Unsatisfiable {
         for(int[] basicClause : conjunctions) {
+            IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);
             for(int i = 2; i < basicClause.length; ++i) {
-                int originalLiteral =  basicClause[i];
-                int literal = originalLiteral;
-                IntArrayList origin = null;
-                if(equivalenceClasses != null) {
-                    literal = equivalenceClasses.mapToRepresentative(originalLiteral);
-                    if(literal != originalLiteral) origin = equivalenceClasses.mapToOrigins(originalLiteral);}
-                IntArrayList origins = IntArrayList.wrap(new int[]{basicClause[0]});
-                if(origin != null) {origins.addAll(origin);}
-                if(model.isFalse(literal)) {
-                    return new Unsatisfiable(model,literal,symboltable,origins);}
-                else {model.add(literal,origins);}}}
-        return null;}
+                model.add(basicClause[i],origin,0);}}}
 
     /** transforms all disjunctions in the basic clause list into clauses and applies the handler to the new clauses.
      * If there are equivalence classes then the literals are mapped to the representative of the equivalence class.

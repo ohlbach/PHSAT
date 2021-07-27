@@ -18,7 +18,6 @@ import java.util.HashMap;
  */
 public class ProblemSupervisor {
     public String problemId;
-    public String threadId;
 
     public BasicClauseList basicClauseList;
     public GlobalParameters globalParameters;
@@ -57,11 +56,10 @@ public class ProblemSupervisor {
         return basicClauseList != null;}
 
 
-    public void solveProblem(String threadId) {
+    public void solveProblem() throws Result {
         preparer =  new Preparer(this);
-        Result result = preparer.prepare();
+        preparer.prepare();
         if(result != null) {return;}
-        this.threadId = threadId;
         numberOfSolvers = solverParameters.size();
         solvers = new Solver[numberOfSolvers];
         statistics.solvers = numberOfSolvers;

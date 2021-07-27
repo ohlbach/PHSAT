@@ -72,7 +72,10 @@ public class BasicClauseList {
         if(!checkSyntax(clause)) {return;}
         maxClauseLength = Math.max(maxClauseLength,clause.length-2);
         switch(ClauseType.getType(clause[1])) {
-            case OR:       disjunctions.add(clause); break;
+            case OR:
+                if(clause.length == 3)
+                    conjunctions.add(clause);
+                else disjunctions.add(clause); break;
             case AND:      conjunctions.add(clause); break;
             case XOR:      xors.add(clause);         break;
             case DISJOINT: disjoints.add(clause);    break;
@@ -99,19 +102,8 @@ public class BasicClauseList {
                 syntaxErrors.append("Clause '").append(clauseToString(0, clause, symboltable)).
                         append("' contains illegal literal ").append(Integer.toString(literal)).
                         append(".\n");
-                return false;}
-            for(int j = i+1; j < size; ++j) {
-                if (literal == clause[j]) {
-                    syntaxErrors.append("Clause '").append(clauseToString(0, clause, symboltable)).
-                            append("' contains double literal ").append(Symboltable.getLiteralName(literal,symboltable)).
-                            append(".\n");
-                    return false;}
-                if (literal == -clause[j]) {
-                    syntaxErrors.append("Clause '").append(clauseToString(0, clause, symboltable)).
-                            append("' contains complementary literal ").append(Symboltable.getLiteralName(literal,symboltable)).
-                            append(".\n");
-                    return false;}}}
-                return true; }
+                return false;}}
+        return true; }
 
 
     /** computes a list of clauses which are false in a model.

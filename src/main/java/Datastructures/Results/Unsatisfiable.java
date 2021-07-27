@@ -16,6 +16,7 @@ public class Unsatisfiable extends Result {
      * @param reason for the unsatisfiability
      */
     public Unsatisfiable(String reason) {
+        super();
         this.reason = reason;}
 
     /** creates an Unsatisfiable object for a false clause
@@ -41,6 +42,7 @@ public class Unsatisfiable extends Result {
      * @param origins    the basic clause ids causing the unsatisfiability.
      */
     public Unsatisfiable(Model model, int literal, Symboltable symboltable, IntArrayList origins) {
+        super();
         String name = (symboltable != null) ? symboltable.getLiteralName(literal) : Integer.toString(literal);
         IntArrayList origin = model.getOrigin(literal);
         if(origin == null) {origin = origins;}

@@ -165,6 +165,7 @@ public abstract class ResolutionReduction extends Solver {
      * @throws InterruptedException
      */
     Result initializeClauses() throws InterruptedException {
+        /*
         if(basicClauseList.equivalences != null) {
             equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler,symboltable);
             if(!taskQueue.isEmpty()) {Result result = taskQueue.run(); if(result != null) {return result;}}}
@@ -183,7 +184,7 @@ public abstract class ResolutionReduction extends Solver {
         result = purityAndElimination();
         initializing = false;
         if(Thread.interrupted()) {throw new InterruptedException();}
-        if(clausesEmpty()) {return completeModel();}
+        if(clausesEmpty()) {return completeModel();}*/
         return result;}
 
 

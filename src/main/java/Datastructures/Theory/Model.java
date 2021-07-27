@@ -1,19 +1,32 @@
 package Datastructures.Theory;
 
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
+
+import static Utilities.Utilities.joinIntArrays;
 
 /** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
+ * Each literal in the model is accompanied by the origins, i.e. the list of basic clause ids which
+ * caused the derivation of the model.
+ * <br>
+ * When a literals is added to the model, and its negation is already in the model then
+ * an Unsatisfiable exception is thrown.
+ * This may terminate the search process.
+ * Adding a non-contradictory literal to the model causes all transferers to be called.
+ * They distribute the information about the literal to the other reasoners.
  *
  * Created by ohlbach on 12.09.2018.
  */
 public class Model {
     /** the maximum number of predicates */
     public int predicates = 0;
+
+    /** the symboltable for the literals */
+    private Symboltable symboltable = null;
+
     /** the current model */
     private IntArrayList model = null;
 
@@ -24,54 +37,59 @@ public class Model {
     private byte[] status = null;
 
     /** observers to be called when a new true literal is inserted */
-    private ArrayList<BiConsumer<Integer,IntArrayList>> observers = null;
+    private ArrayList<OneLiteralTransfer> transferers = new ArrayList<>();
 
     /** creates a model with a maximum number of predicates, together with a means of tracking the origins
      *
+     * @param symboltable the symboltable for the literals.
      * @param trackReasoning if true then the origins are initialized
      * @param predicates the maximum number of predicates
      */
-    public Model(int predicates, boolean trackReasoning) {
+    public Model(int predicates, Symboltable symboltable, boolean trackReasoning) {
         assert predicates > 0;
         this.predicates = predicates;
+        this.symboltable = symboltable;
         model = new IntArrayList(predicates);
         if(trackReasoning) origins = new ArrayList<>(predicates);
         status  = new byte[predicates+1];}
 
     /** adds a new observer which gets called when a new true literal is inserted
      *
-     * @param observer to be called when a new true literal is inserted
+     * @param transferer to be called when a new true literal is inserted
      */
-    public void addObserver(BiConsumer<Integer,IntArrayList> observer) {
-        if(observers == null) {observers = new ArrayList<>();}
-        observers.add(observer);}
+    public void addTransferer(OneLiteralTransfer transferer) {
+        transferers.add(transferer);}
 
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
-     * If the literal is new to the model then all observers are called.
+     * If the literal is already false in the model an Unsatisfiability Exception is thrown.
+     * If the literal is new to the model then all transferers are called.
      *
      * @param literal the literal for the model.
      * @param origin the ids of the basic clauses causing this truth
-     * @return +1 if the literal was already in the model, -1 if the negated literal was in the model, otherwise 0.
      */
-    public synchronized int add(int literal, IntArrayList origin) {
+    public synchronized void add(int literal, IntArrayList origin, long threadId) throws Unsatisfiable {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
-        short tr = status[predicate];
-        if(tr == 0){
-            model.add(literal);
-            if(origins != null) origins.add(origin);
-            status[predicate] = literal > 0 ? (byte)1: (byte)-1;
-            if(observers != null) {for(BiConsumer<Integer,IntArrayList> observer : observers) {observer.accept(literal,origin);}}
-            return 0;}
-        else {return (Integer.signum(literal) == (int)tr) ? 1 : -1;}}
+        if(isTrue(literal)) {return;}
+        if(isFalse(literal))
+            throw new Unsatisfiable(this,literal,symboltable,
+                    origins != null ? joinIntArrays(origin,getOrigin(literal)) : null);
+
+        model.add(literal);
+        if(origins != null) origins.add(origin);
+        status[predicate] = literal > 0 ? (byte)1: (byte)-1;
+        if(transferers != null) {
+            for(OneLiteralTransfer transferer : transferers) {
+                if(threadId != transferer.threadId) {transferer.transferer.accept(literal,origin);}}}}
 
 
-    /** returns the entire model, i.e. the list of true literals.
-     * Access to the list, however is not synchronized.
-     *
-     * @return the model
-     */
+
+        /** returns the entire model, i.e. the list of true literals.
+         * Access to the list, however is not synchronized.
+         *
+         * @return the model
+         */
     public IntArrayList getModel() {return model;}
 
     /** checks if the literal is true in the model.
@@ -115,10 +133,11 @@ public class Model {
      * @return null or the origins of the literal entry
      */
     public synchronized IntArrayList getOrigin(int literal) {
+        if(origins == null) {return null;}
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         byte status = this.status[predicate];
-        if(origins == null ||  status == 0) {return null;}
+        if(status == 0) {return null;}
         return origins.get(model.indexOf((status > 0) ? predicate : -predicate));}
 
     /** turns the status value into a string
@@ -154,7 +173,7 @@ public class Model {
      * @return a clone of the model
      */
     public Model clone() {
-        Model newModel = new Model(predicates,origins != null);
+        Model newModel = new Model(predicates, symboltable,origins != null);
         if(origins != null) {
             newModel.origins = new ArrayList<>();
             for(IntArrayList origin : origins) {newModel.origins.add(origin.clone());}}
@@ -213,8 +232,8 @@ public class Model {
         for(int i = 0; i <= size; ++i) {
             int literal = model.getInt(i);
             st.append((symboltable == null) ? Integer.toString(literal) : symboltable.getLiteralName(literal));
-            if(origins != null) {st.append("@").append(origins.get(i).toString());}
-            if(i == size) st.append(",");}
+            if(origins != null) st.append("@").append(origins.get(i).toString());
+            if(i != size) st.append(",");}
         return st.toString();}
 
 

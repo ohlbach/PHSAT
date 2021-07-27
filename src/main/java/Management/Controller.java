@@ -150,9 +150,10 @@ public class Controller {
     /** distributes the problems to different threads.
      */
     private void distributeProblems() {
-        int nthreads = globalParameters.parallel; // parallel = 5 means: 5 threads are work on 5 problems in parallel
+        int nthreads = globalParameters.parallel; // parallel = 5 means: 5 threads work on the problems in parallel
         if(nthreads <= 1) {
-            solveProblems("T0",0,problemSupervisors.size()); // sequential processing
+            Thread.currentThread().setName("T0");
+            solveProblems(0,problemSupervisors.size()); // sequential processing
             return;}
         int nproblems = problemSupervisors.size();
         int groupSize = nproblems / nthreads;
@@ -161,9 +162,8 @@ public class Controller {
         threads = new Thread[nthreads];
         int group = -1;
         for(int thread = 0; thread < nthreads; ++thread) {
-            int start = group++*groupsize;
-            String threadId = "T"+thread;
-            threads[thread] = new Thread(()->solveProblems(threadId,start,groupsize));}
+            int start = group++ * groupsize;
+            threads[thread] = new Thread(()->solveProblems(start,groupsize),"T"+thread);}
         for(int n = 0; n < nthreads; ++n) {threads[n].start();}
         for(int n = 0; n < nthreads; ++n) {
             try {threads[n].join();} catch (InterruptedException e) {}}}
@@ -174,12 +174,12 @@ public class Controller {
      * @param start the index of the first problem to be solved.
      * @param size the number of problems to be solved sequentially
      */
-     private void solveProblems(String threadId, int start, int size) {
+     private void solveProblems(int start, int size) {
         for(int i = start; i < start+size; ++i) {
             if(i < problemSupervisors.size())  {
                 ProblemSupervisor supervisor = problemSupervisors.get(i);
                 if(supervisor.generateProblem()) {
-                    supervisor.solveProblem(threadId);}}}}
+                    supervisor.solveProblem();}}}}
 
     /** collects and prints all statistics
      */

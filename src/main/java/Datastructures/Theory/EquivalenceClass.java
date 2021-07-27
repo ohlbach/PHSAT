@@ -1,9 +1,11 @@
 package Datastructures.Theory;
 
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import javafx.util.Pair;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import static Utilities.Utilities.addIntArray;
 import static Utilities.Utilities.joinIntArrays;
@@ -15,26 +17,34 @@ import static Utilities.Utilities.joinIntArrays;
  * Therefore the other liters can't occur anymore.
  */
 public class EquivalenceClass {
-
-    /** maps literals to the origins of the equivalence with the representative. */
-    private HashMap<Integer, IntArrayList> origins;
-
     /** The smallest integer of the equivalence class. It is always positive */
     public int representative;
 
-    /** Constructs a new equivalence class from a basic clause.
+    /** the list of literals which are equivalent with the representative */
+    public IntArrayList literals;
+
+    /** for each literal which is equivalent with the representative:
+     * the list of basic clause ids causing this equivalence */
+    public ArrayList<IntArrayList> origins;
+
+
+    /** Constructs a new equivalence class from a preprocessed basic clause.
      *  The representative becomes the literal with the smallest absolut value.
-     * @param clause a basic clause [id,type,literal1,...]
+     * @param clause a preprocessed basic clause [[literal1,origins],...]
      */
-    public EquivalenceClass(int[] clause) {
-        IntArrayList orig = new IntArrayList(); orig.add(clause[0]);
-        representative = clause[2];
-        for(int i = 3; i < clause.length; ++i) {
-            if(Math.abs(clause[i])< Math.abs(representative)) {representative = clause[i];}}
+    public EquivalenceClass(ArrayList<Pair<Integer,IntArrayList>> clause) {
+        representative = Integer.MAX_VALUE;
+        literals = new IntArrayList(clause.size()-1);
+        origins = new ArrayList<>(clause.size()-1);
+        for(Pair<Integer,IntArrayList> pair : clause) {
+            if(Math.abs(pair.getKey()) < representative) {representative = pair.getKey();}}
         int sign = Integer.signum(representative);
-        for(int i = 3; i < clause.length; ++i) {
-            if(clause[i] != representative) {origins.put(sign*clause[i],orig.clone());}}
-        representative *= sign;}
+        for(Pair<Integer,IntArrayList> pair : clause) {
+            if(pair.getKey() != representative) {
+                literals.add(sign*pair.getKey());
+                origins.add(pair.getValue());}}
+        representative = Math.abs(representative);}
+
 
     /** construct a new equivalence class literal1 = literal2.
      * The smallest literal becomes the representative.
@@ -45,11 +55,14 @@ public class EquivalenceClass {
      * @param newOrigins the list of basic clause indices causing this equivalence.
      */
     public EquivalenceClass(int literal1, int literal2, IntArrayList newOrigins) {
-        if(Math.abs(literal2) > Math.abs(literal1)) {
+        if(Math.abs(literal2) < Math.abs(literal1)) {
             int dummy = literal1; literal1 = literal2; literal2 = dummy;}
         if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
-        representative = literal2;
-        origins.put(literal1,newOrigins);}
+        representative = literal1;
+        literals = new IntArrayList(1);
+        origins  = new ArrayList<>(1);
+        literals.add(literal2);
+        origins.add(newOrigins);}
 
     /** adds a literal which is supposed to be equivalent to one of the other literals in the equivalence class
      *  If the literal is smaller than the representative, it replaces the representative.
@@ -59,43 +72,22 @@ public class EquivalenceClass {
      * @param newOrigins  the list of basic clause indices causing this equivalence.
      * @return null or a pair [literal,origins] which is a contradiction to the class.
      */
-    public Pair<Integer,IntArrayList> addEquivalence(int literal, IntArrayList newOrigins) {
-        if(literal == -representative) {return new Pair(literal,newOrigins);}
-        IntArrayList orig = origins.get(-literal);
-        if(orig != null) {return new Pair(literal,joinIntArrays(orig,newOrigins));}
-        if(Math.abs(literal) < representative) {
-            if(literal < 0) {
-                HashMap<Integer,IntArrayList> oldOrigins = origins;
-                origins = new HashMap<>();
-                oldOrigins.forEach((Integer lit, IntArrayList origs) -> origins.put(-lit,addIntArray(origs,newOrigins)));
-                representative = -representative;}
-            else {origins.forEach((Integer lit, IntArrayList origins) -> addIntArray(origins,newOrigins));}
-            origins.put(representative,newOrigins);
-            representative = Math.abs(literal);}
-        else {origins.put(literal,newOrigins);}
-        return null;}
+    public void addEquivalence(int literal, IntArrayList newOrigins) throws Unsatisfiable {
+        if(literal == -representative || literals.contains(-literal)) {
+            throw new Unsatisfiable(
+                    "Wenn adding new literal " + literal + " to equivalence class" + toString() +
+                            ": Found " + literal + " = " + representative + ", Origin: " +
+                            newOrigins.toString());}
 
-    /** adds an overlapping basic equivalence clause to the equivalence class.
-     * A contradiction may occur if, for example, the clause p,-q is to be added to the class p,q.
-     * In this case the pair [literal,origins] is returned.
-     *
-     * @param clause an equivalence clause
-     * @return null or a pair [literal,origins] which is a contradiction to the class.
-     */
-    public Pair<Integer,IntArrayList> addOverlappingClause(int[] clause) {
-        IntArrayList orig = new IntArrayList(); orig.add(clause[0]);
-        int sign = 0;
-        for(int i = 2; i < clause.length; ++i) {
-            int literal = clause[i];
-            if(origins.get(literal)  != null) {sign = 1; break;}
-            if(origins.get(-literal) != null) {sign = -1; break;}}
-        assert sign != 0;  // not overlapping
-        for(int i = 2; i < clause.length; ++i) {
-            int literal = sign * clause[i];
-            if(origins.get(literal) != null) {continue;}
-            if(origins.get(-literal) != null)  {return new Pair(literal,joinIntArrays(orig,origins.get(-literal)));}
-            addEquivalence(literal,orig);}
-        return null;}
+        if(Math.abs(literal) < representative) {
+            int sign = Integer.signum(literal);
+            for(int i = 0; i < literals.size(); ++i) {
+                literals.set(i,sign*literals.getInt(i));
+                origins.set(i,joinIntArrays(origins.get(i),newOrigins));}
+            literals.add(representative); origins.add(newOrigins);
+            representative = Math.abs(literal);}
+        else {literals.add(literal); origins.add(newOrigins);}}
+
 
     /** checks if the literal is part of the equivalence class
      *
@@ -103,22 +95,25 @@ public class EquivalenceClass {
      * @return +1 if literal is part of the class, -1 if -literal is part of the class, otherwise 0.
      */
     public int contains(int literal) {
-        if(literal == representative) return 1;
-        if(literal == -representative) return -1;
-        if(origins.get(literal)  != null) return 1;
-        if(origins.get(-literal) != null) return -1;
+        if(literal ==  representative)  return  1;
+        if(literal == -representative)  return -1;
+        if(literals.contains(literal))  return  1;
+        if(literals.contains(-literal)) return -1;
         return 0;}
 
     /** maps literals to their representative of the equivalence class.
+     * Example: Class p = q,r <br>
+     * The representative of q is p.<br>
+     * The representative of -r is -p.<br>
      *
      * @param literal a literal
      * @return the literal or the representative of the literal's equivalence class.
      */
     public int getRepresentative(int literal) {
-        IntArrayList orig = origins.get(literal);
-        if(orig != null) {return representative;}
-        orig = origins.get(-literal);
-        if(orig != null) {return -representative;}
+        if(literal ==  representative)  return  literal;
+        if(literal == -representative)  return -literal;
+        if(literals.contains(literal))  return  representative;
+        if(literals.contains(-literal)) return -representative;
         return literal;}
 
     /** maps the literal to the origins of the equivalence with the representative of its class
@@ -127,11 +122,14 @@ public class EquivalenceClass {
      * @return null or the origins of the literal's equivalence with its representative.
      */
     public IntArrayList getOrigins(int literal) {
-        IntArrayList orig = origins.get(literal);
-        if(orig != null) {return orig;}
-        orig = origins.get(-literal);
-        if(orig != null) {return orig;}
+        if(literal ==  representative)  return null;
+        if(literal == -representative)  return null;
+        int index = literals.indexOf(literal);
+        if(index < 0 ) index = literals.indexOf(-literal);
+        if(index >= 0) return origins.get(index);
         return null;}
+
+
 
     /** turns the equivalence class into a string "literal1 = literal2 = ... = representative"
      *
@@ -146,13 +144,9 @@ public class EquivalenceClass {
      */
     public String toString(Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
-        if(symboltable != null) {
-            origins.forEach((Integer literal, IntArrayList origins) ->
-                    string.append(symboltable.getLiteralName(literal) + " = "));
-            string.append(symboltable.getLiteralName(representative));}
-        else {origins.forEach((Integer literal, IntArrayList origins) ->
-                    string.append(literal + " = "));
-            string.append(Integer.toString(representative));}
+        string.append(Symboltable.getLiteralName(representative,symboltable));
+        for(int i = 0; i < literals.size(); ++i) {
+            string.append(" = ").append(Symboltable.getLiteralName(literals.getInt(i),symboltable));}
         return string.toString();}
 
 
@@ -170,15 +164,11 @@ public class EquivalenceClass {
      */
     public String infoString(Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
-        if(symboltable != null) {
-            origins.forEach((Integer literal, IntArrayList origins) ->
-                    string.append(symboltable.getLiteralName(literal) + "[").
-                            append(origins.toString()).append("] = "));
-            string.append(symboltable.getLiteralName(representative));}
-        else {origins.forEach((Integer literal, IntArrayList origins) ->
-                string.append(literal + "[").
-                        append(origins.toString()).append("] = "));
-        string.append(Integer.toString(representative));}
+        string.append(Symboltable.getLiteralName(representative,symboltable));
+        for(int i = 0; i < literals.size(); ++i) {
+            string.append(" = ").append(Symboltable.getLiteralName(literals.getInt(i),symboltable));
+            if(origins != null) {
+                string.append("[").append(origins.get(i).toString()).append("]");}}
         return string.toString();}
 
 
