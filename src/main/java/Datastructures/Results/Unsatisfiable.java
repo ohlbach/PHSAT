@@ -15,8 +15,9 @@ public class Unsatisfiable extends Result {
      *
      * @param reason for the unsatisfiability
      */
-    public Unsatisfiable(String reason) {
+    public Unsatisfiable(String reason, IntArrayList origins) {
         super();
+        this.origins = origins;
         this.reason = reason;}
 
     /** creates an Unsatisfiable object for a false clause

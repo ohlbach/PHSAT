@@ -1,5 +1,8 @@
 package Datastructures.Theory;
 
+import Datastructures.Results.Unsatisfiable;
+import Datastructures.Symboltable;
+import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import javafx.util.Pair;
 
@@ -16,39 +19,36 @@ import static Utilities.Utilities.joinIntArrays;
  * -p,-q<br>
  * -p,-r<br>
  * -q,-r<br>
+ *
+ * The datastructures are not optimized because the lists are usually very small.
  */
 public class DisjointnessClass {
     /** The list of disjoint literals */
     public IntArrayList literals;
 
-    /** The list of basic clause indices, which cause the disjointness.
-     * Example: a basic clause 5 declares p,q,r as disjoint (or xor)
-     * The the origins are in all three cases [5].
-     * If new clauses 6: -p,-s and 7: -q,-s and 8: -r,-s are discovered then s is added to the disjointness class with
-     * origins: [5,6,7,8]
-     */
-    public ArrayList<IntArrayList> originsList;
+    /** The list of basic clause indices, which cause the disjointness.*/
+    public IntArrayList origins;
 
     /** constructs a new disjointness class from a basic clause.
      * The literals in the basic clause might be replaced by representatives of their equivalence class.
      * The literals must not contain double literals or complementary literals
      *
      * @param literals a list of literals
-     * @param origins the indices of the basic clauses causes this disjointness.
+     * @param origins the indices of the basic clauses causes the disjointness.
      */
     public DisjointnessClass(IntArrayList literals, IntArrayList origins) {
         this.literals = literals;
-        originsList = new ArrayList<>();
-        for(int l : literals) {originsList.add(origins);}}
+        this.origins = origins;}
 
     /** adds a literal which is disjoint to the remaining literals.
+     * Adding a new literal overwrites the origins by the new origins which come from the new literal.
      *
      * @param literal  a new literal
-     * @param origins  the list of basic clause indices which cause the dijointness with the remaining literals.
+     * @param origins  the list of basic clause indices which cause the disjointness between all literals.
      */
     public void addLiteral(int literal, IntArrayList origins) {
         literals.add(literal);
-        originsList.add(origins);}
+        this.origins = origins;}
 
     /** checks if the disjointness class contains the literal
      *
@@ -62,25 +62,52 @@ public class DisjointnessClass {
             if(literal == -lit) {return -1;} }
         return 0; }
 
-    /** If one of the literals in the disjointness class becomes true then all other ones become false.
-     * This method returns the other true literals (negation of the false ones) together with the origins for their truth.
+    /** replaces the occurrence of literal by representative (which are equivalent)
      *
-     * @param literal a literal which became true
-     * @param origs   the basic clause indices for the truth of the literal
-     * @return null (literal not in class) or the list of pairs [true literal,origins for truth]
+     * @param representative
+     * @param literal
+     * @param origin the basic clause ids which cause the equivalence
+     * @return true if the class has been changed
+     * @throws Unsatisfiable if representative now occurs twice in the class.
      */
-    public ArrayList<Pair<Integer,IntArrayList>> derivedLiterals(int literal, IntArrayList origs) {
-        int i = 0; int sign = 0;
-        for(; i < literals.size(); ++i) {
-            if(literal ==  literals.getInt(i)) {sign = 1; break;}
-            if(literal == -literals.getInt(i)) {sign = -1; break;}}
-        if(sign == 0) {return null;}
-        if(sign == -1) {literals.removeInt(i); originsList.remove(i); return null;}
+    public boolean replaceEquivalence(int representative, int literal, IntArrayList origin) throws Unsatisfiable {
+        int sign = 0;
+        if(literals.contains(literal))  sign = 1;
+        if(literals.contains(-literal)) sign = -1;
+        if(sign == 0) return false;
+        origins = joinIntArrays(origins,origin);
+        if(literals.contains(sign*representative)) {
+            throw new Unsatisfiable("replacing equivalent literal " + sign*literal +
+                    " by " + sign*representative + "in " + toString() + " causes double literals.",
+                    origins);}
 
-        ArrayList<Pair<Integer, IntArrayList>> derivedLits = new ArrayList<>(literals.size() - 1);
-        for(int j=0; j < literals.size(); ++j) {
-            if(j == i) {continue;}
-            derivedLits.add(new Pair(-literals.getInt(j),joinIntArrays(origs,originsList.get(j)))); }
-        return derivedLits;}
+        if(literals.contains(-sign*representative)) {
+            literals.rem(sign*literal);}
+        for(int i = 0; i < literals.size();++i) {
+            if(literals.getInt(i) == sign*literal) {
+                literals.set(i,sign*representative);
+                break;}}
+        return true;}
+
+
+
+    /** turns the disjointness class into a string
+     *
+     * @param symboltable for mapping integers to symbols
+     * @return the class as a comma separated string.
+     */
+    public String toString(@Nullable Symboltable symboltable) {
+        return Symboltable.getLiteralNames(literals,symboltable);}
+
+    /** turns the disjointness class into a string, together with the origins.
+     *
+     * @param symboltable for mapping integers to symbols
+     * @return the class as a comma separated string.
+     */
+    public String infoString(@Nullable Symboltable symboltable) {
+        return  Symboltable.getLiteralNames(literals,symboltable) + " @ " +
+                Symboltable.getLiteralNames(origins,null);}
+
+
 
 }

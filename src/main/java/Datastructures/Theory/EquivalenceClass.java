@@ -1,20 +1,22 @@
 package Datastructures.Theory;
 
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import javafx.util.Pair;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import static Utilities.Utilities.addIntArray;
 import static Utilities.Utilities.joinIntArrays;
 
 /** This class manages equivalence classes of literals together with the origins of the equivalences.
  * Equivalences are normalized such that the representative of the equivalence class is the
  * smallest integer, and it is a positive literal.
  * It is assumed that all literals in clauses are replaced by the representative of the equivalence class.
- * Therefore the other liters can't occur anymore.
+ * Therefore equivalence classes are disjoint.
+ *
+ * The datastructures are not optimized because the lists are usually very small.
  */
 public class EquivalenceClass {
     /** The smallest integer of the equivalence class. It is always positive */
@@ -70,14 +72,13 @@ public class EquivalenceClass {
      *
      * @param literal     A literal which is equivalent with the representative of the class
      * @param newOrigins  the list of basic clause indices causing this equivalence.
-     * @return null or a pair [literal,origins] which is a contradiction to the class.
+     * @throws Unsatisfiable if a contradiction is found.
      */
     public void addEquivalence(int literal, IntArrayList newOrigins) throws Unsatisfiable {
         if(literal == -representative || literals.contains(-literal)) {
             throw new Unsatisfiable(
                     "Wenn adding new literal " + literal + " to equivalence class" + toString() +
-                            ": Found " + literal + " = " + representative + ", Origin: " +
-                            newOrigins.toString());}
+                            ": Found " + literal + " = " + representative, newOrigins);}
 
         if(Math.abs(literal) < representative) {
             int sign = Integer.signum(literal);
@@ -130,45 +131,27 @@ public class EquivalenceClass {
         return null;}
 
 
-
-    /** turns the equivalence class into a string "literal1 = literal2 = ... = representative"
+    /** turns the equivalent literals into a =-separated string of names.
      *
-     * @return a string representation of the equivalence class.
+     * @param symboltable null or a symboltable
+     * @return the equivalent literals as a string
      */
-    public String toString() {return toString(null);}
-
-    /** turns the equivalence class into a string "literal1 = literal2 = ... = representative"
-     *
-     * @param symboltable or null
-     * @return a string representation of the equivalence class.
-     */
-    public String toString(Symboltable symboltable) {
-        StringBuilder string = new StringBuilder();
-        string.append(Symboltable.getLiteralName(representative,symboltable));
-        for(int i = 0; i < literals.size(); ++i) {
-            string.append(" = ").append(Symboltable.getLiteralName(literals.getInt(i),symboltable));}
-        return string.toString();}
+      public String toString(@Nullable Symboltable symboltable) {
+        return Symboltable.getLiteralNames(literals," = ",symboltable);}
 
 
-    /** turns the equivalence class into a string "literal1[origins] = literal2[origins] = ... = representative"
-     *
-     * @return a string representation of the equivalence class with the origins.
-     */
-    public String infoString() {return infoString(null);}
-
-
-    /** turns the equivalence class into a string "literal1[origins] = literal2[origins] = ... = representative"
+    /** turns the equivalence class into a string "representative = literal1[origins1] = literal2[origins2]"
      *
      * @param symboltable or null
      * @return a string representation of the equivalence class with the origins.
      */
-    public String infoString(Symboltable symboltable) {
+    public String infoString(@Nullable Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
         string.append(Symboltable.getLiteralName(representative,symboltable));
         for(int i = 0; i < literals.size(); ++i) {
             string.append(" = ").append(Symboltable.getLiteralName(literals.getInt(i),symboltable));
             if(origins != null) {
-                string.append("[").append(origins.get(i).toString()).append("]");}}
+                string.append("[").append(origins.get(i).toString()).append("],");}}
         return string.toString();}
 
 

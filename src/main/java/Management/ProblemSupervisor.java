@@ -4,6 +4,8 @@ import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Results.*;
+import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.Model;
 import Generators.Generator;
 import Solvers.Resolution.Preparer;
 import Solvers.Solver;
@@ -31,6 +33,9 @@ public class ProblemSupervisor {
     public Controller controller;
     Preparer preparer;
 
+    public Model model;
+    public EquivalenceClasses equivalenceClasses;
+
     public SupervisorStatistics statistics = null;
 
     public ProblemSupervisor(Controller controller,GlobalParameters globalParameters,
@@ -57,6 +62,8 @@ public class ProblemSupervisor {
 
 
     public void solveProblem() throws Result {
+        initializeData();
+        initializeAndEqv();
         preparer =  new Preparer(this);
         preparer.prepare();
         if(result != null) {return;}
@@ -79,6 +86,34 @@ public class ProblemSupervisor {
             System.out.println(solver.getStatistics().toString(false));
         }
         globalParameters.log("Solvers finished for problem " + problemId);}
+
+
+    protected void initializeData() {
+        model = new Model(basicClauseList.predicates,basicClauseList.symboltable,globalParameters.trackReasoning);
+        equivalenceClasses = new EquivalenceClasses(model,problemId, globalParameters.monitor);
+    }
+
+    /** This method initially fills up the model and the equivalenceClasses.
+     * The initial model comes from the conjunctions and the disjunctions with one literal.
+     * The initial equivalence classes come from the basic equivalence clauses.
+     * At this stage there is no further interaction with other parts.
+     *
+     * @throws Unsatisfiable if a contradiction occurs.
+     */
+    protected void initializeAndEqv() throws Unsatisfiable {
+        for(int[] basicClause : basicClauseList.conjunctions) {
+            IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);
+            for(int i = 2; i < basicClause.length; ++i) {
+                model.add(basicClause[i],origin,Thread.currentThread());}}
+
+        for(int[] clause : basicClauseList.equivalences) {
+            equivalenceClasses.addBasicEquivalenceClause(clause);}}
+
+    public Thread equivalenceThread;
+    protected void startInitialThreads() {
+        equivalenceThread = new Thread(()-> result = equivalenceClasses.run());
+        equivalenceThread.start();
+    }
 
     /** This method is called when a solver has found a new true literal.
      *  It forwards the literal to all other solvers.

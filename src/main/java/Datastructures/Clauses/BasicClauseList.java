@@ -142,7 +142,6 @@ public class BasicClauseList {
      * @return true if all literals are true in the model.
      */
     public static boolean conjunctionIsFalse(int[] clause, Model model) {
-        assert ClauseType.getType(clause[1]) == ClauseType.AND;
         for(int i = 2; i < clause.length; ++i) {if(model.isFalse(clause[i])) {return true;}}
         return false;}
 

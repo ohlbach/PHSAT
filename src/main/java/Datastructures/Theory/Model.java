@@ -2,6 +2,7 @@ package Datastructures.Theory;
 
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -10,9 +11,9 @@ import static Utilities.Utilities.joinIntArrays;
 
 /** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
  * Each literal in the model is accompanied by the origins, i.e. the list of basic clause ids which
- * caused the derivation of the model.
+ * caused the derivation of the truth of the literal.
  * <br>
- * When a literals is added to the model, and its negation is already in the model then
+ * When a literal is added to the model, and its negation is already in the model then
  * an Unsatisfiable exception is thrown.
  * This may terminate the search process.
  * Adding a non-contradictory literal to the model causes all transferers to be called.
@@ -25,7 +26,7 @@ public class Model {
     public int predicates = 0;
 
     /** the symboltable for the literals */
-    private Symboltable symboltable = null;
+    public Symboltable symboltable = null;
 
     /** the current model */
     private IntArrayList model = null;
@@ -62,13 +63,14 @@ public class Model {
 
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
-     * If the literal is already false in the model an Unsatisfiability Exception is thrown.
      * If the literal is new to the model then all transferers are called.
      *
      * @param literal the literal for the model.
      * @param origin the ids of the basic clauses causing this truth
+     * @param thread the thread which generated the true literal.
+     * @throws Unsatisfiable if a contradiction with an earlier entry in the model occurs.
      */
-    public synchronized void add(int literal, IntArrayList origin, long threadId) throws Unsatisfiable {
+    public synchronized void add(int literal, IntArrayList origin, Thread thread) throws Unsatisfiable {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         if(isTrue(literal)) {return;}
@@ -81,9 +83,17 @@ public class Model {
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
         if(transferers != null) {
             for(OneLiteralTransfer transferer : transferers) {
-                if(threadId != transferer.threadId) {transferer.transferer.accept(literal,origin);}}}}
+                if(thread != transferer.thread) {transferer.transferer.accept(literal,origin);}}}}
 
-
+    /** adds a literal immediately without any checks and transfers
+     *
+     * @param literal a literal
+     * @param origin he ids of the basic clauses causing this truth
+     */
+    public void addImmediately(int literal, IntArrayList origin) {
+        model.add(literal);
+        if(origins != null) origins.add(origin);
+        status[Math.abs(literal)] = literal > 0 ? (byte)1: (byte)-1;}
 
         /** returns the entire model, i.e. the list of true literals.
          * Access to the list, however is not synchronized.
@@ -97,7 +107,7 @@ public class Model {
      * @param literal the literal to be checked.
      * @return true if the literal is true in the model.
      */
-    public synchronized  boolean isTrue(int literal) {
+    public synchronized boolean isTrue(int literal) {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
         short status = this.status[predicate];
@@ -216,24 +226,27 @@ public class Model {
     public synchronized boolean isFull() {return model.size() == predicates;}
 
 
-    /**
-     * @return the model as a comma separated string.
-     */
-    public String toString() {return model.toString();}
-
     /** returns the model as a comma separated string of names
      *
-     * @param symboltable a symboltable
+     * @param symboltable null or a symboltable
      * @return the model as a comma separated string of names
      */
-    public String toString(Symboltable symboltable) {
+    public String toString(@Nullable Symboltable symboltable) {
+        return Symboltable.getLiteralNames(model,symboltable);}
+
+    /** turnes the model and the origins into a string
+     *
+     * @param symboltable null or a symboltable
+     * @return the model together with the origins as string.
+     */
+    public String infoString(@Nullable Symboltable symboltable) {
+        if(origins == null)  return toString(symboltable);
         StringBuilder st = new StringBuilder();
         int size = model.size()-1;
         for(int i = 0; i <= size; ++i) {
-            int literal = model.getInt(i);
-            st.append((symboltable == null) ? Integer.toString(literal) : symboltable.getLiteralName(literal));
-            if(origins != null) st.append("@").append(origins.get(i).toString());
-            if(i != size) st.append(",");}
+            st.append(Symboltable.getLiteralName(model.getInt(i),symboltable)).append(" @ ");
+            st.append(Symboltable.getLiteralNames(origins.get(i),null));
+            if(i < size-1) st.append("\n");}
         return st.toString();}
 
 

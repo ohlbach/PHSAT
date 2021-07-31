@@ -727,6 +727,44 @@ public class Utilities {
         for(int item : list2) {if(!list1.contains(item)) list1.add(item);}
         return list1;}
 
+    /** adds the item to the list, if it is not yet contained in the list
+     *
+     * @param list an IntArrayList
+     * @param item an int
+     * @return the list itself
+     */
+    public static IntArrayList addInt(IntArrayList list, int item) {
+        if(!list.contains(item)) {list.add(item);}
+        return list;}
+
+    /** replaces all occurrences of the old int by the new int
+     *
+     * @param list    an IntArrayList
+     * @param oldItem an int
+     * @param newItem an int
+     * @return the list itself
+     */
+    public static IntArrayList replaceBy(IntArrayList list, int oldItem, int newItem) {
+        if(list == null) return null;
+        for(int i = 0; i < list.size(); ++i) {
+            if(list.getInt(i) == oldItem) {list.set(i,newItem);}}
+        return list;}
+
+
+    /** checks if list1 is a subset of or equal to list2 (null means empty list)
+     *  An empty list is a subset of everything
+     *
+     * @param list1 null or a IntArrayList
+     * @param list2 null or an IntArrayList
+     * @return true if list1 is a subset of list2
+     */
+    public static boolean isSubset(IntArrayList list1, IntArrayList list2) {
+        if(list1 == null) {return true;}
+        if(list1.size() > list2.size()) {return false;}
+        for(int item : list1) {
+            if(!list2.contains(item)) {return false;}}
+        return true;}
+
     /** creates a deep clone of the array list
      *
      * @param array a list of IntArrayLists

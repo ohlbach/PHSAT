@@ -1,5 +1,8 @@
 package Datastructures;
 
+import com.sun.istack.internal.Nullable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 /**
  * Created by ohlbach on 25.08.2018.
  * The symboltable maps predicates to names.
@@ -40,6 +43,38 @@ public class Symboltable {
      */
     public static String getLiteralName(int literal, Symboltable symboltable) {
         return (symboltable == null) ? Integer.toString(literal) : symboltable.getLiteralName(literal); }
+
+    /** turns a list of literals into a comma separated string of literal names
+     *
+     * @param literals    a list of literals
+     * @param symboltable null or a symboltable
+     * @return the list as string
+     */
+    public static String getLiteralNames(IntArrayList literals, @Nullable Symboltable symboltable) {
+        if(literals == null) {return "";}
+        StringBuilder string = new StringBuilder();
+        int size = literals.size();
+        for(int i = 0; i < size; ++i) {
+            string.append(getLiteralName(literals.getInt(i),symboltable));
+            if(i < size-1) string.append(",");}
+        return string.toString(); }
+
+    /** turns a list of literals into a separator separated string of literal names
+     *
+     * @param literals    a list of literals
+     * @param separartor a string
+     * @param symboltable null or a symboltable
+     * @return the list as string
+     */
+    public static String getLiteralNames(IntArrayList literals, String separartor, @Nullable Symboltable symboltable) {
+        if(literals == null) {return "";}
+        StringBuilder string = new StringBuilder();
+        int size = literals.size();
+        for(int i = 0; i < size; ++i) {
+            string.append(getLiteralName(literals.getInt(i),symboltable));
+            if(i < size-1) string.append(separartor);}
+        return string.toString(); }
+
 
     /**
      * @param literal any positive or negative predicate

@@ -121,7 +121,7 @@ public class Preparer {
         taskQueue    = new TaskQueue(problemId,monitor);
         trackReasoning = globalParameters.trackReasoning;
         model = new Model(predicates,symboltable,trackReasoning);
-        equivalenceClasses = new EquivalenceClasses(model);
+        equivalenceClasses = new EquivalenceClasses(model,problemId,monitor);
         statistics = new PreparerStatistics(problemId);}
 
 
@@ -144,7 +144,7 @@ public class Preparer {
             if(result != null) {return result;}}
 
         if(basicClauseList.disjoints != null || basicClauseList.xors != null) {
-            disjointnessClasses = new DisjointnessClasses(symboltable,model,equivalenceClasses,unaryClauseHandler,binaryClauseHandler);}
+            disjointnessClasses = new DisjointnessClasses(model,equivalenceClasses,problemId);}
 
         if(basicClauseList.disjoints != null) {prepareDisjoints(basicClauseList.disjoints);}
 
@@ -154,7 +154,7 @@ public class Preparer {
         maxInputId = ids[0];
     return null;}
 
-    Result simplify() {
+    Result simplify() throws Unsatisfiable{
         Result result = runTaskQueue();
         if(result != null) {return result;}
         subsumeForward();
@@ -182,7 +182,7 @@ public class Preparer {
      *
      * @result a result or null
      */
-    Result purityAndElimination(){
+    Result purityAndElimination() throws Unsatisfiable{
         boolean simplified = true;
         while(simplified) { // iterate until no simplifications are possible any more
             simplified = false;
@@ -205,7 +205,7 @@ public class Preparer {
      *
      * @return the result of processing the equivalence
      */
-    Result findEquivalences() {
+    Result findEquivalences() throws Unsatisfiable{
         Result result = null;
         boolean again = true;
         while(again) {
@@ -242,8 +242,8 @@ public class Preparer {
      * @param toLiteral   succedent
      * @return            null
      */
-    Result processEquivalence(int fromLiteral, int toLiteral, IntArrayList origins) {
-        equivalenceClasses.addEquivalenceClass(fromLiteral,toLiteral,origins);
+    Result processEquivalence(int fromLiteral, int toLiteral, IntArrayList origins) throws Unsatisfiable{
+        equivalenceClasses.addEquivalence(fromLiteral,toLiteral,origins);
         replacedClauses.clear();
         replaceLiteralInAllClauses(fromLiteral,toLiteral, origins);
         replaceLiteralInAllClauses(-fromLiteral,-toLiteral, origins);
@@ -342,7 +342,7 @@ public class Preparer {
      * @return null or a final result of simplifications
      * @throws InterruptedException
      */
-    Result removePureLiterals() {
+    Result removePureLiterals() throws Unsatisfiable {
         boolean purities = false;
         while(literalIndex.zeroes(predicates,zeros)) {
             purities = true;
@@ -350,7 +350,7 @@ public class Preparer {
                 if(model.status(literal) != 0) {continue;}
                 if(monitoring) {monitor.print(problemId, "Making pure literal true: " + literalName(-literal));}
                 ++statistics.purities;
-                model.add(-literal,null);
+                model.add(-literal,null,null);
                 for(CLiteral cLiteral : literalIndex.getAllItems(-literal)) {
                     removeClause(cLiteral.clause);}}}
         if(purities && clauses.isEmpty()) {return completeModel();}
@@ -367,12 +367,12 @@ public class Preparer {
      *
      * @return Satisfiable or Erraneous (if something went wrong).
      */
-    Result completeModel() {
+    Result completeModel() throws Unsatisfiable {
         System.out.println("Completing Model\n"+toString());
         Result result = null;
         for(int i = 1; i <= 3; ++i) {
             if(model.size() == predicates) {return new Satisfiable(model);}
-            result = equivalenceClasses.completeModel(model);
+            result = equivalenceClasses.completeModel();
             if(result != null) {return result;}
             completeEliminationsInModel();
             result = checkModel(model);
@@ -380,7 +380,7 @@ public class Preparer {
         return new Satisfiable(model);}
 
     /** completes a partial model by inserting the value for eliminated literals */
-    void completeEliminationsInModel() {
+    void completeEliminationsInModel() throws Unsatisfiable {
         for(int i = eliminatedLiterals.size()-1; i >= 0; --i) {
             Object[] els = eliminatedLiterals.get(i);
             ArrayList<CLiteral> literals = (ArrayList<CLiteral>)els[0];
@@ -390,7 +390,7 @@ public class Preparer {
             for(CLiteral cliteral : literals) {
                 int lit = cliteral.literal;
                 if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
-            model.add((satisfied ? -literal : literal),null);}}
+            model.add((satisfied ? -literal : literal),null,null);}}
 
 
     /** The method checks if the model satisfies the basic clauses.
@@ -398,7 +398,7 @@ public class Preparer {
      * @return null or an Erraneous Result
      */
     public Result checkModel(Model model) {
-        ArrayList<int[]> falseClauses = basicClauseList.notTrueClausesInModel(model);
+        ArrayList<int[]> falseClauses = basicClauseList.falseClausesInModel(model);
         if(falseClauses != null) {return new Erraneous(model,falseClauses,symboltable);}
         else {return null;}}
 
@@ -429,7 +429,7 @@ public class Preparer {
         for(int[] basicClause : conjunctions) {
             IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);
             for(int i = 2; i < basicClause.length; ++i) {
-                model.add(basicClause[i],origin,0);}}}
+                model.add(basicClause[i],origin,null);}}}
 
     /** transforms all disjunctions in the basic clause list into clauses and applies the handler to the new clauses.
      * If there are equivalence classes then the literals are mapped to the representative of the equivalence class.
@@ -456,6 +456,7 @@ public class Preparer {
      * @return Unsatisfiable if the clause is empty, otherwise null
      */
     private Unsatisfiable prepareDisjunction(int[] basicClause) {
+        /*
         Clause clause = new Clause(++ids[0],basicClause.length-2);
         IntArrayList origins = trackReasoning ? IntArrayList.wrap(new int[]{basicClause[0]}) : null;
         for(int i = 2; i < basicClause.length; ++i) {
@@ -479,6 +480,8 @@ public class Preparer {
             clause.setStructure();
             clause.origins = origins;
             insertClause(clause);}
+            */
+
         return null;}
 
     void addBinaryClauseTask(int literal1,int literal2, IntArrayList origins, String reason) {
@@ -570,8 +573,9 @@ public class Preparer {
      * @param disjoints    the input clauses
      */
     public void prepareDisjoints(ArrayList<int[]> disjoints) {
-        for(int[] basicClause : disjoints) {
-            disjointnessClasses.addDisjointnessClass(basicClause,equivalenceClasses);}}
+        //for(int[] basicClause : disjoints) {
+        //    disjointnessClasses.addDisjointnessClass(basicClause,equivalenceClasses);}
+    }
 
     /** transforms all exclusive-or clauses in the xors into normal clauses and applies the handler to them.
      *  Example: p xor q xor r yields the clauses: <br>
@@ -583,9 +587,10 @@ public class Preparer {
      * @param xors    the input clauses
      */
     public void prepareXors(ArrayList<int[]> xors) {
-        for(int[] basicClause : xors) {
-            prepareDisjunction(basicClause);
-            disjointnessClasses.addDisjointnessClass(basicClause,equivalenceClasses);}}
+        //for(int[] basicClause : xors) {
+        //    prepareDisjunction(basicClause);
+        //    disjointnessClasses.addDisjointnessClass(basicClause,equivalenceClasses);}
+    }
 
 
     /** computes the consequences of a new true literal
@@ -598,6 +603,7 @@ public class Preparer {
      * @return the result of a model completion or null
      */
     Result processTrueLiteral(int trueLiteral, IntArrayList origins) {
+        /*
         int literal = equivalenceClasses.mapToRepresentative(trueLiteral);
         if(literal != trueLiteral) {origins.addAll(equivalenceClasses.mapToOrigins(trueLiteral));}
         switch(model.status(literal)) {
@@ -611,6 +617,8 @@ public class Preparer {
             removeLiteral(cLiteral,origins);
             analyseShortenedClause(clause, "clause " + clause.id + " simplified by true literal " + literalName(trueLiteral));}
         if(checkConsistency) {check("processTrueLiteral");}
+
+         */
         return null;}
 
 
