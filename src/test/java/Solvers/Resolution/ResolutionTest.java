@@ -450,11 +450,11 @@ public class ResolutionTest {
 
         Method completeModel = getMethod("completeModel");
         Field model = getSField("model");
-        model.set(res, new Model(10));
+        model.set(res, new Model(10,null));
         assertEquals("Satisfiable with model: [1, 6]",completeModel.invoke(res).toString());
 
         strategy.set(res,ResolutionStrategy.POSITIVE);
-        model.set(res, new Model(10));
+        model.set(res, new Model(10,null));
         ((BucketSortedList<Clause>)secondaryClauses.get(res)).remove(c1);
         Clause c4 = make(-1, -2, -3);
         ((BucketSortedList<Clause>)secondaryClauses.get(res)).add(c4);
@@ -501,7 +501,7 @@ public class ResolutionTest {
         Clause c6 = make(5,-6);    insertClause.invoke(res,c6,true,"initial");
 
         Field model = getSField("model");
-        model.set(res, new Model(10));
+        model.set(res, new Model(10,null));
 
         Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
         Result result = (Result)processTrueLiteral.invoke(res,1);
@@ -569,7 +569,7 @@ public class ResolutionTest {
         Clause c6 = make(-1,-6);    insertClause.invoke(res,c6,true,"initial");
         Clause c7 = make(-5,3);    insertClause.invoke(res,c7,true,"initial");
         Field model = getSField("model");
-        model.set(res, new Model(10));
+        model.set(res, new Model(10,null));
 
         Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
         Result result = (Result)processTrueLiteral.invoke(res,1);
@@ -633,7 +633,7 @@ public class ResolutionTest {
         Clause c5 = make(-2,-1,-3); insertClause.invoke(res,c5,false,"initial");
         Clause c6 = make(-1,-6);    insertClause.invoke(res,c6,true,"initial");
         Field model = getSField("model");
-        model.set(res, new Model(10));
+        model.set(res, new Model(10,null));
 
         Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
         Result result = (Result)processTrueLiteral.invoke(res,1);
@@ -698,7 +698,7 @@ public class ResolutionTest {
         Clause c5 = make(-2,-1,-3); insertClause.invoke(res,c5,false,"initial");
         Clause c6 = make(-1,-6);    insertClause.invoke(res,c6,true,"initial");
         Field model = getSField("model");
-        model.set(res, new Model(10));
+        model.set(res, new Model(10,null));
 
         Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
         Result result = (Result)processTrueLiteral.invoke(res,1);

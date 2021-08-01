@@ -78,7 +78,7 @@ public class CLiteral implements Positioned {
         return Integer.toString(literal);}
 
     public String toString(Symboltable symboltable) {
-        return (symboltable == null) ? Integer.toString(literal) : symboltable.getLiteralName(literal);}
+        return (symboltable == null) ? Integer.toString(literal) : symboltable.toString(literal);}
 
     /** returns just the literal.
      *
@@ -93,7 +93,7 @@ public class CLiteral implements Positioned {
      * @return the literal name as a String.
      */
     public String toString(Symboltable symboltable, Function<Clause,String> clauseString) {
-        return ((symboltable == null) ? toString() : symboltable.getLiteralName(literal)) +"@" + clauseString.apply(clause);}
+        return ((symboltable == null) ? toString() : symboltable.toString(literal)) +"@" + clauseString.apply(clause);}
 
 
 }

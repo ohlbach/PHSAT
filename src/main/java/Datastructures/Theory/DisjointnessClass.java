@@ -4,9 +4,6 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import javafx.util.Pair;
-
-import java.util.ArrayList;
 
 import static Utilities.Utilities.joinIntArrays;
 
@@ -97,7 +94,7 @@ public class DisjointnessClass {
      * @return the class as a comma separated string.
      */
     public String toString(@Nullable Symboltable symboltable) {
-        return Symboltable.getLiteralNames(literals,symboltable);}
+        return Symboltable.toString(literals,symboltable);}
 
     /** turns the disjointness class into a string, together with the origins.
      *
@@ -105,8 +102,8 @@ public class DisjointnessClass {
      * @return the class as a comma separated string.
      */
     public String infoString(@Nullable Symboltable symboltable) {
-        return  Symboltable.getLiteralNames(literals,symboltable) + " @ " +
-                Symboltable.getLiteralNames(origins,null);}
+        return  Symboltable.toString(literals,symboltable) + " @ " +
+                Symboltable.toString(origins,null);}
 
 
 

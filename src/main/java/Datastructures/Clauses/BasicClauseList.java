@@ -254,10 +254,10 @@ public class BasicClauseList {
         st.append(": ");
         int length = clause.length;
         for(int i = 2; i < length-1; ++i) {
-            if(symboltable != null) {st.append(symboltable.getLiteralName(clause[i]));}
+            if(symboltable != null) {st.append(symboltable.toString(clause[i]));}
             else                    {st.append(Integer.toString(clause[i]));}
             st.append(separator);}
-        if(symboltable != null) {st.append(symboltable.getLiteralName(clause[length-1]));}
+        if(symboltable != null) {st.append(symboltable.toString(clause[length-1]));}
         else                    {st.append(Integer.toString(clause[length-1]));}
         return st.toString();}
 

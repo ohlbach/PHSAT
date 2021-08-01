@@ -8,7 +8,7 @@ import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClassesOld;
+import Datastructures.Theory.EquivalenceClasses;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;
@@ -202,13 +202,13 @@ public class Resolution extends Solver {
      *  In each equivalence class the literals are mapped to their representatives,
      *  which is always the predicate with the smallest number.
      */
-    private EquivalenceClassesOld equivalenceClasses = null;
+    private EquivalenceClasses equivalenceClasses = null;
 
     /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.
      */
     private BiConsumer<Integer,IntArrayList> contradictionHandler = ((reason,origin)->{
-        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.toString())), (()->reason.toString())));});
+        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.toString(),null)), (()->reason.toString())));});
 
     /** This function is called when a new disjunction is to be inserted.
      *  It generates a simplifyBackwards task.
@@ -308,7 +308,7 @@ public class Resolution extends Solver {
             return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");
             }
         if(result.getClass() == Satisfiable.class) {
-            ArrayList<int[]> falseClauses = basicClauseList.notTrueClausesInModel(((Satisfiable)result).model);
+            ArrayList<int[]> falseClauses = basicClauseList.falseClausesInModel(((Satisfiable)result).model);
             if(falseClauses == null) {return result;}
             System.out.println(toString());
             return new Erraneous(((Satisfiable)result).model,falseClauses,symboltable);}
@@ -485,7 +485,7 @@ public class Resolution extends Solver {
     private void addTrueLiteralTask(int literal, boolean forward, String reason) {
         taskQueue.add(new Task(1,
                 (()->processTrueLiteral(literal)),
-                (()->reason + ": " + (symboltable == null ? literal : symboltable.getLiteralName(literal)))));
+                (()->reason + ": " + (symboltable == null ? literal : symboltable.toString(literal)))));
         ++statistics.derivedUnitClauses;
         if(forward && !initializing) problemSupervisor.forwardTrueLiteral(this,literal);}
 
@@ -503,9 +503,9 @@ public class Resolution extends Solver {
         //System.out.println("PL START " + literal);
         //System.out.println(toString());
         switch(model.status(literal)) {
-            case -1: return new Unsatisfiable(model,literal);
+            case -1: return new Unsatisfiable(null,null); //model,null); //literal);
             case +1: return null;}
-        model.add(literal);
+        model.addImmediately(literal,null);
         if(false) {
             ArrayList<int[]> falseClauses = basicClauseList.falseClausesInModel(model);
             if(falseClauses != null) {
@@ -596,10 +596,10 @@ public class Resolution extends Solver {
                     for(CLiteral cliteral : clause) {
                         int literal = cliteral.literal;
                         if(model.status(literal) == 0 && ((isPositive && literal < 0) || (!isPositive && literal > 0))) {
-                            model.add(literal); found = true; break;}}
+                            model.addImmediately(literal,null); found = true; break;}}
                     if(!found) return new Erraneous(model,clause,symboltable);}}
         completeEliminations();
-        Result result = equivalenceClasses.completeModel(model);
+        Result result = equivalenceClasses.completeModel();
         if(result != null) {return result;}
         result = checkModel(model);
         if(result != null) {return result;}
@@ -615,7 +615,7 @@ public class Resolution extends Solver {
             for(CLiteral  cliteral : literals) {
                 int lit = cliteral.literal;
                 if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
-            model.add(satisfied ? -literal : literal);}}
+            model.addImmediately(satisfied ? -literal : literal,null);}}
 
 
     /** counts the number of clauses in the resolution solver */
@@ -749,9 +749,9 @@ public class Resolution extends Solver {
         int literal2 =  clause.getCLiteral(1).literal;
         if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
         int fromliteral = literal1; int toliteral = literal2;
-        if(!equivalenceClasses.addEquivalenceClass(fromliteral,toliteral,null)) {return false;}
-        taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
-                (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
+        equivalenceClasses.addDerivedEquivalence(fromliteral,toliteral,null);
+       // taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
+       //         (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
         ++statistics.equivalences;
         return true;}
 
@@ -766,13 +766,13 @@ public class Resolution extends Solver {
      * @param toLiteral   succedent
      * @return            null
      */
-    private Result processEquivalence(int fromLiteral, int toLiteral) {
+    private Result processEquivalence(int fromLiteral, int toLiteral) throws Unsatisfiable{
         //System.out.println("START EQUIVALENCE " + fromLiteral + " -> " + toLiteral);
         //System.out.println(toString());
         int fromStatus = model.status(fromLiteral);
         int toStatus   = model.status(toLiteral);
         if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
-            return new Unsatisfiable(model,toLiteral);}
+            return new Unsatisfiable(null,null);} //model,toLiteral);}
         if(fromStatus != 0) {
             addTrueLiteralTask((fromStatus == 1 ? toLiteral : -toLiteral),true,
                     "equivalent literals " + fromLiteral + " " + toLiteral);
@@ -849,7 +849,7 @@ public class Resolution extends Solver {
         if(!secondaryClauses.isEmpty()) {
             st.append("Secondary Clauses:\n").append(secondaryClauses.toString(clauseString)).append("\n");}
         if(model != null && !model.isEmpty()) {
-            st.append("Model:\n").append(model.toString(symboltable)).append("\n\n");}
+            st.append("Model:\n").append(model.toString()).append("\n\n");}
         st.append("Literal Index:\n").append(literalIndex.toString(literalString));
         if(!taskQueue.isEmpty()) {
             st.append("\nTask Queue:\n").append(taskQueue.toString());}

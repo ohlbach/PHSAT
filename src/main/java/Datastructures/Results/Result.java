@@ -16,10 +16,4 @@ public class Result extends Exception {
 
     public Result() {
         super(); }
-
-    public static Result makeResult(Model model, BasicClauseList clauses) {
-        if(clauses == null) {return null;}
-        ArrayList<int[]> falseClauses = clauses.falseClausesInModel(model);
-        return (falseClauses == null) ? new Satisfiable(model) : new Erraneous(model,falseClauses,clauses.symboltable);
-    }
 }

@@ -89,7 +89,7 @@ public class ProblemSupervisor {
 
 
     protected void initializeData() {
-        model = new Model(basicClauseList.predicates,basicClauseList.symboltable,globalParameters.trackReasoning);
+        model = new Model(basicClauseList.predicates,basicClauseList.symboltable);
         equivalenceClasses = new EquivalenceClasses(model,problemId, globalParameters.monitor);
     }
 

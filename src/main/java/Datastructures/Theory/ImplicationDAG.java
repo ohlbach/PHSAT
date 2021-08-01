@@ -547,7 +547,7 @@ public class ImplicationDAG {
      */
     public void completeModel(Model model) {
         trueLiteralObservers.clear();
-        trueLiteralObservers.add(literal-> {model.add(literal);});
+        trueLiteralObservers.add(literal-> {model.addImmediately(literal,null);});
         while(!roots.isEmpty()) {
             for(Object node : roots.toArray()) { // this guarantees that the implication: 'root -> node' is true.
                 ++timestamp;

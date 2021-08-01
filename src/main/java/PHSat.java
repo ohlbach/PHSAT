@@ -1,8 +1,10 @@
+import Datastructures.Results.Result;
 import Generators.Generator;
 import Management.Controller;
 import Management.GlobalParameters;
 import Management.KVParser;
 import Solvers.Solver;
+import javafx.beans.property.ReadOnlySetProperty;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -31,6 +33,7 @@ public class PHSat {
      * @param args for the commands
      */
     public static void  main(String[] args) {
+        try{
         long start = System.currentTimeMillis();
         //args = new String[]{"help","global"};
         //args = new String[]{Utilities.resourceFile("Purity.cnf")};
@@ -53,7 +56,8 @@ public class PHSat {
                 if(controller.solve()) {controller.printStatistics();}
                 controller.close();}}
         long end = System.currentTimeMillis();
-        System.out.println("Total Time: " + (end-start) + " ms");
+        System.out.println("Total Time: " + (end-start) + " ms");}
+        catch(Result res){}
     }
 
     /** This method calls the help()-methods of the generators and solvers, and prints the results.

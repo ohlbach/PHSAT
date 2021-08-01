@@ -1,5 +1,6 @@
 package Management;
 
+import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Generators.Generator;
 import Solvers.Solver;
@@ -136,7 +137,7 @@ public class Controller {
      *
      * @return true if the problem was solved
      */
-    public boolean solve() {
+    public boolean solve() throws Result {
         problemSupervisors = new ArrayList<>();
         for(int i = 0; i < problemParameters.size(); ++i) {
             HashMap<String,Object> parameters = problemParameters.get(i);
@@ -149,7 +150,7 @@ public class Controller {
 
     /** distributes the problems to different threads.
      */
-    private void distributeProblems() {
+    private void distributeProblems() throws Result {
         int nthreads = globalParameters.parallel; // parallel = 5 means: 5 threads work on the problems in parallel
         if(nthreads <= 1) {
             Thread.currentThread().setName("T0");
@@ -174,12 +175,14 @@ public class Controller {
      * @param start the index of the first problem to be solved.
      * @param size the number of problems to be solved sequentially
      */
-     private void solveProblems(int start, int size) {
+     private void solveProblems(int start, int size)  {
+         try{
         for(int i = start; i < start+size; ++i) {
             if(i < problemSupervisors.size())  {
                 ProblemSupervisor supervisor = problemSupervisors.get(i);
                 if(supervisor.generateProblem()) {
                     supervisor.solveProblem();}}}}
+        catch(Result res) {}}
 
     /** collects and prints all statistics
      */

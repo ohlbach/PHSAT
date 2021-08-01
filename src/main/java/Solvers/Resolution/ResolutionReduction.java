@@ -11,8 +11,7 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClassesOld;
-import Datastructures.Theory.Transformers;
+import Datastructures.Theory.EquivalenceClasses;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.BucketSortedIndex;
@@ -90,13 +89,13 @@ public abstract class ResolutionReduction extends Solver {
      *  In each equivalence class the literals are mapped to their representatives,
      *  which is always the predicate with the smallest number.
      */
-    EquivalenceClassesOld equivalenceClasses = null;
+    EquivalenceClasses equivalenceClasses = null;
 
     /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.
      */
     BiConsumer<Integer,IntArrayList> contradictionHandler = ((reason,origin)->{
-        taskQueue.add(new Task(priorityResult,(()-> new Unsatisfiable(reason.toString())), (()->reason.toString())));});
+        taskQueue.add(new Task(priorityResult,(()-> new Unsatisfiable(reason.toString(),null)), (()->reason.toString())));});
 
     /** the id of the last input clause */
     int maxInputId = 0;
@@ -185,7 +184,7 @@ public abstract class ResolutionReduction extends Solver {
         initializing = false;
         if(Thread.interrupted()) {throw new InterruptedException();}
         if(clausesEmpty()) {return completeModel();}*/
-        return result;}
+        return null;} //result;}
 
 
     /** checks if the clause is subsumed or some of its literals can be resolved away by replacement resolution.
@@ -365,7 +364,7 @@ public abstract class ResolutionReduction extends Solver {
      */
     Result purities() throws InterruptedException {
         boolean purities = false;
-        while(literalIndex.zeroes(predicates,zeros)) {
+        while(literalIndex.zeroes(predicates,null)) { //zeros)) {
             purities = true;
             for(int literal : zeros) {
                 if(model.status(literal) != 0) {continue;}
@@ -424,7 +423,7 @@ public abstract class ResolutionReduction extends Solver {
      * @param literal a new true literal
      */
     public Result importTrueLiteral(int literal) {
-        if(model.isFalse(literal)) {return new Unsatisfiable(model,literal,symboltable);}
+        if(model.isFalse(literal)) {return null;} //new Unsatisfiable(model,literal,symboltable);}
         ++statistics.importedUnitClauses;
         taskQueue.add(new Task(priorityUnity,
                 (()->processTrueLiteral(literal)),
@@ -526,11 +525,11 @@ public abstract class ResolutionReduction extends Solver {
      * @return the result of a model completion or null
      */
     Result processTrueLiteral(int literal) {
-        literal = equivalenceClasses.mapToRepresentative(literal);
+        literal = equivalenceClasses.getRepresentative(literal);
         switch(model.status(literal)) {
-            case -1: return new Unsatisfiable(model,literal);
+            case -1: return new Unsatisfiable(null,null); //model,literal);
             case +1: return null;}
-        model.add(literal);
+        model.addImmediately(literal,null);
         Iterator<CLiteral> iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
             Clause clause = iterator.next().clause;
@@ -551,8 +550,8 @@ public abstract class ResolutionReduction extends Solver {
      * @param literal2 the second literal of the clause
      */
     void processBinaryClause(int literal1, int literal2) {
-        literal1 = equivalenceClasses.mapToRepresentative(literal1);
-        literal2 = equivalenceClasses.mapToRepresentative(literal2);
+        literal1 = equivalenceClasses.getRepresentative(literal1);
+        literal2 = equivalenceClasses.getRepresentative(literal2);
         if(literal1 == literal2) {
             addTrueLiteralTask(literal1,"Imported binary clause merged to" + literalName(literal1)); return;}
         if(literal1 == -literal2 || model.isTrue(literal1) || model.isTrue(literal2)) {return;}
@@ -580,7 +579,7 @@ public abstract class ResolutionReduction extends Solver {
         int size = literals.length;
         Clause clause = new Clause(++id[0],literals.length);
         for(int i = 0; i < size; ++i) {
-            int literal = equivalenceClasses.mapToRepresentative(literals[i]);
+            int literal = equivalenceClasses.getRepresentative(literals[i]);
             if(model.isTrue(literal)) {return;}
             if(!model.isFalse(literal)) {clause.add(new CLiteral(literal));}}
         if(clause.hasComplementaries()) {return;}
@@ -616,8 +615,8 @@ public abstract class ResolutionReduction extends Solver {
         if(Math.abs(literal1) < Math.abs(literal2)) {
             int dummy = literal1;literal1 = literal2; literal2 = dummy;}
         int fromliteral = literal1; int toliteral = literal2;
-        taskQueue.add(new Task(priorityEquivalence,(()->processEquivalence(fromliteral,toliteral)),
-                (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
+      //  taskQueue.add(new Task(priorityEquivalence,(()->processEquivalence(fromliteral,toliteral)),
+      //          (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
         ++statistics.equivalences;
         return true;}
 
@@ -647,11 +646,11 @@ public abstract class ResolutionReduction extends Solver {
      * @param toLiteral   succedent
      * @return            null
      */
-    Result processEquivalence(int fromLiteral, int toLiteral) {
+    Result processEquivalence(int fromLiteral, int toLiteral) throws Unsatisfiable {
         int fromStatus = model.status(fromLiteral);
         int toStatus   = model.status(toLiteral);
         if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
-            return new Unsatisfiable(model,toLiteral);}
+            return new Unsatisfiable(null,null);} //model,toLiteral);}
         if(fromStatus != 0) {
             addTrueLiteralTask((fromStatus == 1 ? toLiteral : -toLiteral),
                     "equivalent literals " + fromLiteral + " " + toLiteral);
@@ -660,8 +659,7 @@ public abstract class ResolutionReduction extends Solver {
             addTrueLiteralTask((toStatus == 1 ? fromLiteral : -fromLiteral),
                     "equivalent literals " + fromLiteral + " " + toLiteral);
             return null;}
-
-        if(!equivalenceClasses.addEquivalenceClass(fromLiteral,toLiteral,null)) {return null;}
+        equivalenceClasses.addDerivedEquivalence(fromLiteral,toLiteral,null);
         replacedClauses.clear();
         replaceLiteralInAllClauses(fromLiteral,toLiteral);
         replaceLiteralInAllClauses(-fromLiteral,-toLiteral);
@@ -777,7 +775,7 @@ public abstract class ResolutionReduction extends Solver {
         Result result = null;
         for(int i = 1; i <= 3; ++i) {
             if(model.size() == predicates) {return new Satisfiable(model);}
-            result = equivalenceClasses.completeModel(model);
+            result = equivalenceClasses.completeModel();
             if(result != null) {return result;}
             completeEliminationsInModel();
             result = checkModel(model);
@@ -795,7 +793,7 @@ public abstract class ResolutionReduction extends Solver {
             for(CLiteral cliteral : literals) {
                 int lit = cliteral.literal;
                 if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
-            model.add(satisfied ? -literal : literal);}}
+            model.addImmediately(satisfied ? -literal : literal,null);}}
 
 
     /** inserts a clause into the literal index
@@ -822,7 +820,7 @@ public abstract class ResolutionReduction extends Solver {
      */
     String literalName(int literal) {
         return (symboltable == null) ? Integer.toString(literal) :
-                symboltable.getLiteralName(literal);}
+                symboltable.toString(literal);}
 
     /** return the entire statistics information
      *

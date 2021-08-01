@@ -1,6 +1,5 @@
 package Datastructures.Theory;
 
-import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import com.sun.istack.internal.Nullable;
@@ -137,7 +136,7 @@ public class EquivalenceClass {
      * @return the equivalent literals as a string
      */
       public String toString(@Nullable Symboltable symboltable) {
-        return Symboltable.getLiteralNames(literals," = ",symboltable);}
+        return Symboltable.toString(literals," = ",symboltable);}
 
 
     /** turns the equivalence class into a string "representative = literal1[origins1] = literal2[origins2]"
@@ -147,9 +146,9 @@ public class EquivalenceClass {
      */
     public String infoString(@Nullable Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
-        string.append(Symboltable.getLiteralName(representative,symboltable));
+        string.append(Symboltable.toString(representative,symboltable));
         for(int i = 0; i < literals.size(); ++i) {
-            string.append(" = ").append(Symboltable.getLiteralName(literals.getInt(i),symboltable));
+            string.append(" = ").append(Symboltable.toString(literals.getInt(i),symboltable));
             if(origins != null) {
                 string.append("[").append(origins.get(i).toString()).append("],");}}
         return string.toString();}

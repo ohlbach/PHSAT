@@ -125,5 +125,5 @@ public class ImplicationNode implements Comparable<ImplicationNode> {
      * @return the literal or its name as string
      */
     public String toString(Symboltable symboltable) {
-        return symboltable == null ? Integer.toString(literal) : symboltable.getLiteralName(literal);}
+        return symboltable == null ? Integer.toString(literal) : symboltable.toString(literal);}
 }

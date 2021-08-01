@@ -697,6 +697,11 @@ public class Utilities {
         forSome(Integer.MIN_VALUE+1,(i-> {System.out.println(i); return false;}));
     }
 
+    /** checks if the string codes an integer
+     *
+     * @param s a string
+     * @return true if the string codes an integer
+     */
     public static boolean isInteger(String s) {
         try{Integer.parseInt(s);}
         catch(NumberFormatException ex) {return false;}
@@ -734,6 +739,10 @@ public class Utilities {
      * @return the list itself
      */
     public static IntArrayList addInt(IntArrayList list, int item) {
+        if(list == null) {
+            list = new IntArrayList();
+            list.add(item);
+            return list;}
         if(!list.contains(item)) {list.add(item);}
         return list;}
 

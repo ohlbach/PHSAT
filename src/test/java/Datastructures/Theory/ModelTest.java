@@ -1,5 +1,7 @@
 package Datastructures.Theory;
 
+import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -11,87 +13,59 @@ import static org.junit.Assert.*;
  * Created by Ohlbach on 25.08.2018.
  */
 public class ModelTest {
+
     @Test
-    public void add() throws Exception {
-        System.out.println("add");
-        Model mod = new Model(5);
-        assertEquals(0,mod.add(3));
-        assertEquals(1,mod.add(3));
-        assertEquals(-1,mod.add(-3));
-        assertEquals(0,mod.add(-2));
-        assertEquals(-1,mod.add(2));
-        assertEquals(1,mod.add(-2));
-        //System.out.println(mod.toString());
+    public void addImmediately1() throws Exception {
+        System.out.println("addImmediately1");
+        Model model = new Model(5,null);
+        model.addImmediately(1,null);
+        model.addImmediately(-2,null);
+        assertEquals("1,-2",model.toString());
+        assertEquals(1,model.status(1));
+        assertEquals(-1,model.status(-1));
+        assertEquals(-1,model.status(2));
+        assertEquals(1,model.status(-2));
+        assertEquals(0,model.status(3));
+        assertTrue(model.isTrue(1));
+        assertTrue(model.isFalse(-1));
+        assertTrue(model.isTrue(-2));
+        assertTrue(model.isFalse(2));
+        assertFalse(model.isTrue(3));
         }
 
-
     @Test
-    public void isTrueFalse() throws Exception {
-        System.out.println("isTrue, isFalse");
-        Model mod = new Model(5);
-        assertFalse(mod.isTrue(3));
-        assertFalse(mod.isTrue(-3));
-        assertFalse(mod.isFalse(3));
-        assertFalse(mod.isFalse(-3));
-
-        mod.add(3);
-        assertTrue(mod.isTrue(3));
-        assertFalse(mod.isTrue(-3));
-        assertFalse(mod.isFalse(3));
-        assertTrue(mod.isFalse(-3));
-
-        mod.add(-2);
-        assertTrue(mod.isTrue(-2));
-        assertFalse(mod.isTrue(2));
-        assertFalse(mod.isFalse(-2));
-        assertTrue(mod.isFalse(2));
+    public void addImmediately2() throws Exception {
+        System.out.println("addImmediately with origins");
+        Model model = new Model(5, null);
+        IntArrayList origins1 = new IntArrayList();
+        origins1.add(10);
+        origins1.add(11);
+        model.addImmediately(1, origins1);
+        model.addImmediately(-2, null);
+        IntArrayList origins3 = new IntArrayList();
+        origins3.add(30);
+        model.addImmediately(3, origins3);
+        assertEquals("1@10,11\n" +
+                "-2\n" +
+                "3@30", model.infoString(false));
+        assertEquals("[10, 11]",model.getOrigin(1).toString());
+        assertEquals("[10, 11]",model.getOrigin(-1).toString());
+        assertNull(model.getOrigin(2));
+        assertEquals("[30]",model.getOrigin(3).toString());
+        assertEquals("[30]",model.getOrigin(-3).toString());
+    }
+    @Test
+    public void addImmediately3() throws Exception {
+        System.out.println("addImmediately with symboltable");
+        Symboltable symboltable = new Symboltable(5);
+        symboltable.setName(1,"p");
+        symboltable.setName(2,"q");
+        symboltable.setName(3,"r");
+        Model model = new Model(5,symboltable);
+        model.addImmediately(1,null);
+        model.addImmediately(-2,null);
+        assertEquals("p,-q",model.toString());
+        assertEquals("1,-2",model.toNumbers());
 
     }
-
-
-    @Test
-    public void contains() throws Exception {
-        System.out.println("contains");
-        Model mod = new Model(5);
-        assertFalse(mod.contains(3));
-        assertFalse(mod.contains(-3));
-        mod.add(3);
-        assertTrue(mod.contains(3));
-        assertTrue(mod.contains(-3));
-    }
-
-    @Test
-    public void isFull() throws Exception {
-        System.out.println("isFull");
-        Model mod = new Model(2);
-        assertTrue(mod.isEmpty());
-        assertFalse(mod.isFull());
-        mod.add(1);
-        assertFalse(mod.isEmpty());
-        assertFalse(mod.isFull());
-        mod.add(2);
-        assertTrue(mod.isFull());
-    }
-
-    @Test
-    public void cloneStatus() throws Exception {
-        System.out.println("cloneStatus");
-        Model mod = new Model(5);
-        mod.add(3);
-        mod.add(-5);
-        byte[] st = mod.cloneStatus();
-        assertEquals("[0, 0, 0, 1, 0, -1]",Arrays.toString(st));
-    }
-
-    @Test
-    public void cloneModel() throws Exception {
-        System.out.println("cloneModel");
-        Model mod = new Model(5);
-        mod.add(3);
-        mod.add(-5);
-        Model mod1 = mod.clone();
-        assertEquals("[3, -5]",mod1.toString());
-        assertTrue(mod1.isTrue(3));
-    }
-
 }

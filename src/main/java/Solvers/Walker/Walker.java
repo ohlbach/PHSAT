@@ -8,7 +8,7 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.DisjointnessClasses;
-import Datastructures.Theory.EquivalenceClassesOld;
+import Datastructures.Theory.EquivalenceClasses;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;
@@ -110,7 +110,7 @@ public abstract class Walker extends Solver {
      *  In each equivalence class the literals are mapped to their representatives,
      *  which is always the predicate with the smallest number.
      */
-    private EquivalenceClassesOld equivalenceClasses;
+    private EquivalenceClasses equivalenceClasses;
 
     private DisjointnessClasses disjointnessClasses;
 
@@ -162,7 +162,7 @@ public abstract class Walker extends Solver {
      *  It generates a simplifyBackwards task.
      */
     private Consumer<Clause> insertHandler = (
-            clause -> {if(clause.size() == 1) {model.add(clause.getLiteral(0));}
+            clause -> {if(clause.size() == 1) {model.addImmediately(clause.getLiteral(0),null);}
                        else                   {insertClause(clause);}});
 
 
@@ -211,16 +211,16 @@ public abstract class Walker extends Solver {
         negTruths = new int[predicates+1][];
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             dummyLiterals1.clear();
-            if(equivalenceClasses != null)  {equivalenceClasses.truths(predicate,dummyLiterals1);}
-            if(disjointnessClasses != null) {disjointnessClasses.truths(predicate,dummyLiterals1);}
+         //   if(equivalenceClasses != null)  {equivalenceClasses.truths(predicate,dummyLiterals1);}
+            //if(disjointnessClasses != null) {disjointnessClasses.truths(predicate,dummyLiterals1);}
             if(!dummyLiterals1.isEmpty()) {
                 int[] truths = new int[dummyLiterals1.size()];
                 for(int i = 0; i < dummyLiterals1.size(); ++i) {truths[i] = dummyLiterals1.getInt(i);}
                 posTruths[predicate] = truths;}
             else {posTruths[predicate] = null;}
             dummyLiterals1.clear();
-            if(equivalenceClasses != null)  {equivalenceClasses.truths(-predicate,dummyLiterals1);}
-            if(disjointnessClasses != null) {disjointnessClasses.truths(-predicate,dummyLiterals1);}
+         //   if(equivalenceClasses != null)  {equivalenceClasses.truths(-predicate,dummyLiterals1);}
+            //if(disjointnessClasses != null) {disjointnessClasses.truths(-predicate,dummyLiterals1);}
             if(!dummyLiterals1.isEmpty()) {
                 int[] truths = new int[dummyLiterals1.size()];
                 for(int i = 0; i < dummyLiterals1.size(); ++i) {truths[i] = dummyLiterals1.getInt(i);}
@@ -238,7 +238,7 @@ public abstract class Walker extends Solver {
         long time = System.currentTimeMillis();
         initializeData();
         Result result;
-        try{result = initializeClauses(simplifiedBasicClauseList);
+        try{result = null; //initializeClauses(simplifiedBasicClauseList);
             if(result == null) {result = walk();}}
         catch(InterruptedException ex) {
             globalParameters.log("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
@@ -532,9 +532,9 @@ public abstract class Walker extends Solver {
     public Result importTrueLiteral(int literal) {
         if(isLocallyTrue(-literal)) {
             transferLocalModel();
-            return new Unsatisfiable(model,literal,symboltable);}
+            return new Unsatisfiable(null,null);} //model,literal,symboltable);}
         ++statistics.importedUnitClauses;
-        model.add(literal);
+        model.addImmediately(literal,null);
         int predicate = Math.abs(literal);
         if(isLocallyTrue(-literal)) {flipPredicate(predicate);}
         if(statistics.falseClauses == 0) {return completeModel();}
@@ -557,7 +557,7 @@ public abstract class Walker extends Solver {
      */
     Result completeModel() {
         System.out.println("Completing Model\n"+toString());
-        equivalenceClasses.completeModel(model);
+        equivalenceClasses.completeModel();
         Result result = checkModel(model);
         if(result != null) {return result;}
         return new Satisfiable(model);}

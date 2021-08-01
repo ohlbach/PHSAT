@@ -302,7 +302,7 @@ public class ImplicationDAGTest {
         id.addClause(-5, 6);
         id.addClause(-5, 7);
         id.addClause(-8, 4);
-        Model model = new Model(10);
+        Model model = new Model(10,null);
         id.completeModel(model);
         assertEquals("[4, 5, 6, 7, 3]",model.toString());
     }
@@ -318,7 +318,7 @@ public class ImplicationDAGTest {
         id.addClause(-5, 6);
         id.addClause(-5, 7);
         id.addClause(-8, 4);
-        Model model = new Model(10);
+        Model model = new Model(10,null);
         id.completeModel(model);
         assertEquals("[4, 5, 6, 7, 3]",model.toString());}
     }

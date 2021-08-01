@@ -47,7 +47,7 @@ public class Clause {
      */
     public String toString(Symboltable symboltable) {
         if(symboltable == null) return toString();
-        return symboltable.getLiteralName(literal1) + "," + symboltable.getLiteralName(literal2); }
+        return symboltable.toString(literal1) + "," + symboltable.toString(literal2); }
 
 
 

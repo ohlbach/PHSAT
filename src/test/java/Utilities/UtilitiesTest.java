@@ -1,5 +1,6 @@
 package Utilities;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -142,4 +143,66 @@ public class UtilitiesTest {
         b = Utilities.appendArrays(a);
         assertEquals("[]", Arrays.toString(b));
     }
+    @Test
+    public void joinIntArrays() {
+        System.out.println("joinIntArrays");
+        assertNull(Utilities.joinIntArrays(null,null));
+        IntArrayList list1 = new IntArrayList();
+        list1.add(1); list1.add(2);
+        IntArrayList list2 = new IntArrayList();
+        list2.add(2); list2.add(3);
+        IntArrayList list = Utilities.joinIntArrays(list1,list2);
+        assertEquals("[1, 2]",list1.toString());
+        assertEquals("[2, 3]",list2.toString());
+        assertEquals("[1, 2, 3]",list.toString());
+    }
+    @Test
+    public void addIntArray() {
+        System.out.println("addIntArray");
+        assertNull(Utilities.addIntArray(null,null));
+        IntArrayList list1 = new IntArrayList();
+        list1.add(1); list1.add(2);
+        IntArrayList list2 = new IntArrayList();
+        list2.add(2); list2.add(3);
+        IntArrayList list = Utilities.addIntArray(list1,list2);
+        assertEquals("[1, 2, 3]",list1.toString());
+        assertEquals("[2, 3]",list2.toString());
+        assertEquals("[1, 2, 3]",list.toString());
+    }
+
+    @Test
+    public void addInt() {
+        System.out.println("addInt");
+        assertEquals("[1]",Utilities.addInt(null,1).toString());
+        IntArrayList list1 = new IntArrayList();
+        list1.add(1); list1.add(2);
+        IntArrayList list = Utilities.addInt(list1,1);
+        assertEquals("[1, 2]",list.toString());
+        list = Utilities.addInt(list1,3);
+        assertEquals("[1, 2, 3]",list.toString());
+    }
+    @Test
+    public void replaceBy() {
+        System.out.println("replaceBy");
+        IntArrayList list = new IntArrayList();
+        list.add(1); list.add(2); list.add(2); list.add(1);
+        IntArrayList list1 = Utilities.replaceBy(list,1,3);
+        assertTrue(list == list1);
+        assertEquals("[3, 2, 2, 3]",list.toString());}
+
+    @Test
+    public void isSubset() {
+        System.out.println("isSubset");
+        IntArrayList list1 = new IntArrayList();
+        list1.add(1); list1.add(2); list1.add(3); list1.add(4);
+
+        IntArrayList list2 = new IntArrayList();
+        list2.add(2); list2.add(1);
+        assertTrue(Utilities.isSubset(list2,list1));
+        assertFalse(Utilities.isSubset(list1,list2));
+
+        list2.add(4); list2.add(3);
+        assertTrue(Utilities.isSubset(list2,list1));
+        assertTrue(Utilities.isSubset(list1,list2));}
+
 }

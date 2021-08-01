@@ -15,7 +15,7 @@ import static org.junit.Assert.*;
  * Created by ohlbach on 08.12.2019.
  */
 public class TransformersTest {
-
+/*
     static BiConsumer<int[],Integer> contradictionHandler = ((clause, literal) -> {
         System.out.println("CL "+ Arrays.toString(clause));
         System.out.println("LI "+ literal);});
@@ -169,5 +169,5 @@ public class TransformersTest {
                 "5 -> -1\n",eq.toString());
 
     }
-
+*/
 }

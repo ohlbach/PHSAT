@@ -50,9 +50,6 @@ public class DisjointnessClasses {
     /** The cuurent thread */
     public Thread thread;
 
-    /** fetches true literals from the model */
-    public OneLiteralTransfer transferer;
-
     /** creates a new instance
      *
      * @param model               the global (partial) model
@@ -71,9 +68,8 @@ public class DisjointnessClasses {
      */
     public Result run() {
         thread = Thread.currentThread();
-        transferer = new OneLiteralTransfer(thread,
+        model.addObserver(thread,
                 (Integer literal, IntArrayList origins) -> addTrueLiteral(literal,origins));
-        model.addTransferer(transferer);
 
         equivalenceClasses.addEquivalenceObserver((representative, literal, origins) ->
                 addEquivalenceClass (representative,literal,origins));
@@ -89,7 +85,7 @@ public class DisjointnessClasses {
                 if(cl == IntArrayList.class) {integrateDisjointnessClause((int[])key,null); continue;}
                 if(cl == ArrayList.class) {integrateDisjointnessClass((ArrayList)key,origins); continue;}
                 if(cl == Pair.class) {
-                    integrateEquivalence((int)((Pair<?, ?>) key).getKey(), (int)((Pair<?, ?>) key).getValue(), origins);
+                    integrateEquivalence((Integer)((Pair<?, ?>) key).getKey(), (Integer)((Pair<?, ?>) key).getValue(), origins);
                     continue;}}
             catch(InterruptedException ex) {return null;}
             catch(Unsatisfiable unsatisfiable) {return unsatisfiable;}}
@@ -439,7 +435,7 @@ public class DisjointnessClasses {
             string.append(dClass.infoString(symboltable)).append("\n");}
         string.append("\nDisjoint Literals;\n");
         disjointnesses.forEach((literal, disjoints) -> {
-            string.append(Symboltable.getLiteralName(literal,symboltable)).append(": ");
-            string.append(Symboltable.getLiteralNames(disjoints,symboltable)).append("\n");});
+            string.append(Symboltable.toString(literal,symboltable)).append(": ");
+            string.append(Symboltable.toString(disjoints,symboltable)).append("\n");});
             return string.toString();}
     }

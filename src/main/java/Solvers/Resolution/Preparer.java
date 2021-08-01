@@ -120,7 +120,7 @@ public class Preparer {
                             (cLiteral->cLiteral.clause.size()));
         taskQueue    = new TaskQueue(problemId,monitor);
         trackReasoning = globalParameters.trackReasoning;
-        model = new Model(predicates,symboltable,trackReasoning);
+        model = new Model(predicates,symboltable);
         equivalenceClasses = new EquivalenceClasses(model,problemId,monitor);
         statistics = new PreparerStatistics(problemId);}
 
@@ -790,7 +790,7 @@ public class Preparer {
         if(!clauses.isEmpty()) {
             st.append("Clauses:\n").append(clauses.toString(clauseString)).append("\n");}
         if(model != null && !model.isEmpty()) {
-            st.append("Model:\n").append(model.toString(symboltable)).append("\n\n");}
+            st.append("Model:\n").append(model.toString()).append("\n\n");}
         st.append("Literal Index:\n").append(literalIndex.toString(literalString));
         if(!taskQueue.isEmpty()) {
             st.append("\nTask Queue:\n").append(taskQueue.toString());}
@@ -808,7 +808,7 @@ public class Preparer {
      */
     String literalName(int literal) {
         return (symboltable == null) ? Integer.toString(literal) :
-                symboltable.getLiteralName(literal);}
+                symboltable.toString(literal);}
 
 
     /** collects information about the control parameters

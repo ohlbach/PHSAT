@@ -173,7 +173,7 @@ public abstract class Solver {
         symboltable                = basicClauseList.symboltable;
         monitor                    = globalParameters.monitor;
         monitoring                 = monitor.monitoring;
-        model                      = new Model(predicates);
+        model                      = new Model(predicates,null);
         if(monitoring) {
             monitor.addThread(combinedId,"Monitor for problem " + problemId + " and solver " + solverId);}}
 
@@ -261,7 +261,7 @@ public abstract class Solver {
      * @return null or an Erraneous Result
      */
     public Result checkModel(Model model) {
-        ArrayList<int[]> falseClauses = basicClauseList.notTrueClausesInModel(model);
+        ArrayList<int[]> falseClauses = basicClauseList.falseClausesInModel(model);
         if(falseClauses != null) {return new Erraneous(model,falseClauses,symboltable);}
         else {return null;}}
 

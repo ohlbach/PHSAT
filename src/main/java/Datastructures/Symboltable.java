@@ -11,77 +11,35 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
  */
 
 public class Symboltable {
-    /**
-     * size is the number of predicates
-     */
-    public int size;
+    /** number of predicates */
+    public int predicates;
 
-    /**
-     * This array maps predicates to names
-     */
+    /** This array maps predicates to names */
     private String[] names;
 
-    public Symboltable(int size) {
-        this.size = size;
-        names = new String[size+1];
-    }
-
-    /**
-     * @param predicate  any predicate
-     * @return  the names of the predicate
-     */
-    public String getPredicateName(int predicate) {
-        assert predicate > 0;
-        return names[predicate];
-    }
-
-    /** yields the name of the literal as string
+    /** creates a new symboltable for a given number of prediates.
      *
-     * @param literal     a literal
-     * @param symboltable a symboltable, or null
-     * @return the name of the literal as string.
+     * @param predicates the number of predicates.
      */
-    public static String getLiteralName(int literal, Symboltable symboltable) {
-        return (symboltable == null) ? Integer.toString(literal) : symboltable.getLiteralName(literal); }
+    public Symboltable(int predicates) {
+        this.predicates = predicates;
+        names = new String[predicates +1];}
 
-    /** turns a list of literals into a comma separated string of literal names
+    /** sets the name of the predicate
      *
-     * @param literals    a list of literals
-     * @param symboltable null or a symboltable
-     * @return the list as string
+     * @param predicate any predicate
+     * @param name  the name of the predicate
      */
-    public static String getLiteralNames(IntArrayList literals, @Nullable Symboltable symboltable) {
-        if(literals == null) {return "";}
-        StringBuilder string = new StringBuilder();
-        int size = literals.size();
-        for(int i = 0; i < size; ++i) {
-            string.append(getLiteralName(literals.getInt(i),symboltable));
-            if(i < size-1) string.append(",");}
-        return string.toString(); }
-
-    /** turns a list of literals into a separator separated string of literal names
-     *
-     * @param literals    a list of literals
-     * @param separartor a string
-     * @param symboltable null or a symboltable
-     * @return the list as string
-     */
-    public static String getLiteralNames(IntArrayList literals, String separartor, @Nullable Symboltable symboltable) {
-        if(literals == null) {return "";}
-        StringBuilder string = new StringBuilder();
-        int size = literals.size();
-        for(int i = 0; i < size; ++i) {
-            string.append(getLiteralName(literals.getInt(i),symboltable));
-            if(i < size-1) string.append(separartor);}
-        return string.toString(); }
-
+    public void setName(int predicate, String name) {
+        assert predicate > 0 && predicate <= predicates;
+        names[predicate] = name;}
 
     /**
      * @param literal any positive or negative predicate
-     * @return  the name of the literal (e.g. -A)
+     * @return  the name of the literal (e.g. -A), or the literal as string
      */
-    public String getLiteralName(int literal) {
-        assert  literal != 0 && Math.abs(literal) <= size;
+    public String toString(int literal) {
+        assert  literal != 0 && Math.abs(literal) <= predicates;
         String name;
         if(literal > 0) {
             name = names[literal];
@@ -89,21 +47,48 @@ public class Symboltable {
         name = names[-literal];
         return name == null ? Integer.toString(literal) : "-"+name;}
 
-    /**
-     * @param predicate any predicate
-     * @param name  sets the name of the predicate
+    /** yields the name of the literal as string
+     *
+     * @param literal     a literal
+     * @param symboltable a symboltable, or null
+     * @return the name of the literal as string.
      */
-    public void setName(int predicate, String name) {
-        assert predicate > 0 && predicate <= size;
-        names[predicate] = name;}
+    public static String toString(int literal, Symboltable symboltable) {
+        return (symboltable == null) ? Integer.toString(literal) : symboltable.toString(literal); }
 
-    /**
+    /** turns a list of literals into a comma separated string of literal names
+     *
+     * @param literals    a list of literals
+     * @param symboltable null or a symboltable
+     * @return the list as string
+     */
+    public static String toString(IntArrayList literals, Symboltable symboltable) {
+        return toString(literals,",",symboltable);}
+
+    /** turns a list of literals into a separator separated string of literal names
+     *
+     * @param literals    a list of literals
+     * @param separator a string
+     * @param symboltable null or a symboltable
+     * @return the list as string
+     */
+    public static String toString(IntArrayList literals, String separator, Symboltable symboltable) {
+        if(literals == null) {return "";}
+        StringBuilder string = new StringBuilder();
+        int size = literals.size();
+        for(int i = 0; i < size; ++i) {
+            string.append(toString(literals.getInt(i),symboltable));
+            if(i < size-1) string.append(separator);}
+        return string.toString(); }
+
+  /**
      * @return the contents of the symboltable
      */
     public String toString() {
         StringBuilder st = new StringBuilder();
-        for(int i = 1; i <= size; ++i) {
-            st.append(i + ":" + names[i]+",");}
+        for(int i = 1; i <= predicates; ++i) {
+            String name = names[i];
+            if(name != null) st.append(i + ":" + names[i]+",");}
         return st.toString();}
 
 

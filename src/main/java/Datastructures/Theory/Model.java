@@ -4,8 +4,10 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import javafx.util.Pair;
 
 import java.util.ArrayList;
+import java.util.function.BiConsumer;
 
 import static Utilities.Utilities.joinIntArrays;
 
@@ -23,44 +25,44 @@ import static Utilities.Utilities.joinIntArrays;
  */
 public class Model {
     /** the maximum number of predicates */
-    public int predicates = 0;
+    public int predicates;
 
     /** the symboltable for the literals */
-    public Symboltable symboltable = null;
+    public Symboltable symboltable;
 
     /** the current model */
-    private IntArrayList model = null;
+    private IntArrayList model;
 
     /** lists the origins, i.e. the ids of the basic clauses causing the truth of the literal */
-    private ArrayList<IntArrayList> origins = null;
+    private ArrayList<IntArrayList> origins;
 
     /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined) */
-    private byte[] status = null;
+    private byte[] status;
 
     /** observers to be called when a new true literal is inserted */
-    private ArrayList<OneLiteralTransfer> transferers = new ArrayList<>();
+    private ArrayList<Pair<Thread, BiConsumer<Integer, IntArrayList>>> observers = new ArrayList<>();
 
     /** creates a model with a maximum number of predicates, together with a means of tracking the origins
      *
-     * @param symboltable the symboltable for the literals.
-     * @param trackReasoning if true then the origins are initialized
      * @param predicates the maximum number of predicates
+     * @param symboltable the symboltable for the literals (mostly for error messages).
      */
-    public Model(int predicates, Symboltable symboltable, boolean trackReasoning) {
+    public Model(int predicates, Symboltable symboltable) {
         assert predicates > 0;
-        this.predicates = predicates;
+        this.predicates  = predicates;
         this.symboltable = symboltable;
-        model = new IntArrayList(predicates);
-        if(trackReasoning) origins = new ArrayList<>(predicates);
+        model   = new IntArrayList(predicates);
+        origins = new ArrayList<>(predicates);
         status  = new byte[predicates+1];}
 
-    /** adds a new observer which gets called when a new true literal is inserted
-     *
-     * @param transferer to be called when a new true literal is inserted
-     */
-    public void addTransferer(OneLiteralTransfer transferer) {
-        transferers.add(transferer);}
 
+    /** add a new observer which gets called when a new true literal is inserted
+     *
+     * @param thread      the target thread
+     * @param observer a function (literal,origins)
+     */
+    public void addObserver(Thread thread, BiConsumer<Integer, IntArrayList> observer) {
+        observers.add(new Pair(thread, observer));}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
      * If the literal is new to the model then all transferers are called.
@@ -72,18 +74,19 @@ public class Model {
      */
     public synchronized void add(int literal, IntArrayList origin, Thread thread) throws Unsatisfiable {
         int predicate = Math.abs(literal);
-        assert predicate <= predicates;
+        assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
         if(isFalse(literal))
-            throw new Unsatisfiable(this,literal,symboltable,
-                    origins != null ? joinIntArrays(origin,getOrigin(literal)) : null);
+            throw new Unsatisfiable(
+                    "True literal " + Symboltable.toString(literal,symboltable) +
+                            " is already false in the model " + Symboltable.toString(model,symboltable),
+                    joinIntArrays(origin,getOrigin(literal)));
 
         model.add(literal);
-        if(origins != null) origins.add(origin);
+        origins.add(origin);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
-        if(transferers != null) {
-            for(OneLiteralTransfer transferer : transferers) {
-                if(thread != transferer.thread) {transferer.transferer.accept(literal,origin);}}}}
+        for(Pair<Thread, BiConsumer<Integer, IntArrayList>> observer : observers) {
+            if(thread != observer.getKey()) {observer.getValue().accept(literal,origin);}}}
 
     /** adds a literal immediately without any checks and transfers
      *
@@ -92,7 +95,7 @@ public class Model {
      */
     public void addImmediately(int literal, IntArrayList origin) {
         model.add(literal);
-        if(origins != null) origins.add(origin);
+        origins.add(origin);
         status[Math.abs(literal)] = literal > 0 ? (byte)1: (byte)-1;}
 
         /** returns the entire model, i.e. the list of true literals.
@@ -183,7 +186,7 @@ public class Model {
      * @return a clone of the model
      */
     public Model clone() {
-        Model newModel = new Model(predicates, symboltable,origins != null);
+        Model newModel = new Model(predicates, symboltable);
         if(origins != null) {
             newModel.origins = new ArrayList<>();
             for(IntArrayList origin : origins) {newModel.origins.add(origin.clone());}}
@@ -225,28 +228,34 @@ public class Model {
      */
     public synchronized boolean isFull() {return model.size() == predicates;}
 
-
     /** returns the model as a comma separated string of names
      *
-     * @param symboltable null or a symboltable
      * @return the model as a comma separated string of names
      */
-    public String toString(@Nullable Symboltable symboltable) {
-        return Symboltable.getLiteralNames(model,symboltable);}
+    public String toString() {
+        return Symboltable.toString(model,symboltable);}
 
-    /** turnes the model and the origins into a string
+    /** returns the model as a comma separated string of numbers
      *
-     * @param symboltable null or a symboltable
+     * @return the model as a comma separated string of names
+     */
+    public String toNumbers() {
+        return Symboltable.toString(model,null);}
+
+    /** turnes the model and the origins into a string of names or numbers
+     *
      * @return the model together with the origins as string.
      */
-    public String infoString(@Nullable Symboltable symboltable) {
-        if(origins == null)  return toString(symboltable);
+    public String infoString(boolean withSymboltable) {
+        Symboltable symboltable = withSymboltable ? this.symboltable : null;
+        if(origins == null)  return Symboltable.toString(model,symboltable);
         StringBuilder st = new StringBuilder();
         int size = model.size()-1;
         for(int i = 0; i <= size; ++i) {
-            st.append(Symboltable.getLiteralName(model.getInt(i),symboltable)).append(" @ ");
-            st.append(Symboltable.getLiteralNames(origins.get(i),null));
-            if(i < size-1) st.append("\n");}
+            st.append(Symboltable.toString(model.getInt(i),symboltable));
+            IntArrayList origin = origins.get(i);
+            if(origin != null) st.append("@").append(Symboltable.toString(origin,null));
+            if(i < size) st.append("\n");}
         return st.toString();}
 
 
