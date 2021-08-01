@@ -135,8 +135,15 @@ public class EquivalenceClass {
      * @param symboltable null or a symboltable
      * @return the equivalent literals as a string
      */
-      public String toString(@Nullable Symboltable symboltable) {
+    public String toString(@Nullable Symboltable symboltable) {
         return Symboltable.toString(literals," = ",symboltable);}
+
+    /** turns the equivalent literals into a =-separated string of numbers.
+     *
+     * @return the equivalent literals as a string
+     */
+    public String toNumbers() {
+        return Symboltable.toString(literals," = ",null);}
 
 
     /** turns the equivalence class into a string "representative = literal1[origins1] = literal2[origins2]"
@@ -152,6 +159,4 @@ public class EquivalenceClass {
             if(origins != null) {
                 string.append("[").append(origins.get(i).toString()).append("],");}}
         return string.toString();}
-
-
 }

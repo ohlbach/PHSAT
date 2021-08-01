@@ -2,7 +2,6 @@ package Datastructures.Theory;
 
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import javafx.util.Pair;
 
@@ -17,8 +16,8 @@ import static Utilities.Utilities.joinIntArrays;
  * <br>
  * When a literal is added to the model, and its negation is already in the model then
  * an Unsatisfiable exception is thrown.
- * This may terminate the search process.
- * Adding a non-contradictory literal to the model causes all transferers to be called.
+ * This may terminate the search process. <br>
+ * Adding a non-contradictory literal to the model causes all observers to be called.
  * They distribute the information about the literal to the other reasoners.
  *
  * Created by ohlbach on 12.09.2018.
@@ -56,7 +55,10 @@ public class Model {
         status  = new byte[predicates+1];}
 
 
-    /** add a new observer which gets called when a new true literal is inserted
+    /** add a new observer which gets called when a new true literal is inserted.
+     * Submitting a thread causes the observers to be called only if this thread
+     * is different to the thread that submitted the literal.
+     * This avoids a ping pong effect.
      *
      * @param thread      the target thread
      * @param observer a function (literal,origins)
@@ -65,7 +67,8 @@ public class Model {
         observers.add(new Pair(thread, observer));}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
-     * If the literal is new to the model then all transferers are called.
+     * If the literal is new to the model then the observers from a thread different to the
+     * submitting thread are called.
      *
      * @param literal the literal for the model.
      * @param origin the ids of the basic clauses causing this truth
@@ -78,7 +81,7 @@ public class Model {
         if(isTrue(literal)) {return;}
         if(isFalse(literal))
             throw new Unsatisfiable(
-                    "True literal " + Symboltable.toString(literal,symboltable) +
+                    "Supposed true literal " + Symboltable.toString(literal,symboltable) +
                             " is already false in the model " + Symboltable.toString(model,symboltable),
                     joinIntArrays(origin,getOrigin(literal)));
 
@@ -166,6 +169,8 @@ public class Model {
         return "error";}
 
 
+    //  Unklar
+
     /** sets the logical status of the literal.
      *
      * @param literal a literal
@@ -180,6 +185,7 @@ public class Model {
             if(origins != null) {origins.add(origin);}}}
 
 
+    // unklar
 
     /** clones the model (without observers)
      *
@@ -254,7 +260,7 @@ public class Model {
         for(int i = 0; i <= size; ++i) {
             st.append(Symboltable.toString(model.getInt(i),symboltable));
             IntArrayList origin = origins.get(i);
-            if(origin != null) st.append("@").append(Symboltable.toString(origin,null));
+            if(origin != null) st.append(" @ ").append(origin.toString());
             if(i < size) st.append("\n");}
         return st.toString();}
 
