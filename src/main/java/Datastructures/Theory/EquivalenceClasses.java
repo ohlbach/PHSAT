@@ -166,7 +166,7 @@ public class EquivalenceClasses  {
                 literals.add(new Pair(representative,joinIntArrays(origins,getOrigins(literal))));}
             else {literals.add(new Pair(literal,origins));}}
         if(literals.size() == 1) return;
-        joinEquivalenceClass(new EquivalenceClass(literals));}
+        joinEquivalenceClass(new EquivalenceClass(literals,clause[0]));}
 
     /** checks the truth value of the literals in the basic clause.
      * If a literal is true then all literals in the clause are made true.

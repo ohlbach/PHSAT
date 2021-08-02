@@ -15,6 +15,11 @@ import static Utilities.Utilities.joinIntArrays;
  * It is assumed that all literals in clauses are replaced by the representative of the equivalence class.
  * Therefore equivalence classes are disjoint.
  *
+ * For an equivalence p = q = r, with p being the representative,
+ * there may be an origin list o1 for q and an o2 for r.
+ * o1 indicates the basic clause ids which allow to conclude p = q,
+ * and o2 indicates the basic clause ids which allow to conclude p = r.
+ *
  * The datastructures are not optimized because the lists are usually very small.
  */
 public class EquivalenceClass {
@@ -31,19 +36,27 @@ public class EquivalenceClass {
 
     /** Constructs a new equivalence class from a preprocessed basic clause.
      *  The representative becomes the literal with the smallest absolut value.
+     *  The origins may come from equivalence replacements.
+     *
      * @param clause a preprocessed basic clause [[literal1,origins],...]
+     * @param clauseId the basic clause' id.
      */
-    public EquivalenceClass(ArrayList<Pair<Integer,IntArrayList>> clause) {
+    public EquivalenceClass(ArrayList<Pair<Integer,IntArrayList>> clause, int clauseId) {
         representative = Integer.MAX_VALUE;
+        IntArrayList repOrigins = null;
         literals = new IntArrayList(clause.size()-1);
         origins = new ArrayList<>(clause.size()-1);
         for(Pair<Integer,IntArrayList> pair : clause) {
-            if(Math.abs(pair.getKey()) < representative) {representative = pair.getKey();}}
+            if(Math.abs(pair.getKey()) < representative) {
+                representative = pair.getKey();
+                repOrigins = pair.getValue();}}
         int sign = Integer.signum(representative);
+        if(repOrigins == null) {repOrigins = new IntArrayList();}
+        repOrigins.add(clauseId);
         for(Pair<Integer,IntArrayList> pair : clause) {
             if(pair.getKey() != representative) {
                 literals.add(sign*pair.getKey());
-                origins.add(pair.getValue());}}
+                origins.add(joinIntArrays(repOrigins,pair.getValue()));}}
         representative = Math.abs(representative);}
 
 
@@ -67,7 +80,7 @@ public class EquivalenceClass {
 
     /** adds a literal which is supposed to be equivalent to one of the other literals in the equivalence class
      *  If the literal is smaller than the representative, it replaces the representative.
-     *  If the literal contradicts one of the literals then  a non-null result is returned.
+     *  If the literal contradicts one of the literals then  an exception is thrown.
      *
      * @param literal     A literal which is equivalent with the representative of the class
      * @param newOrigins  the list of basic clause indices causing this equivalence.
@@ -76,8 +89,8 @@ public class EquivalenceClass {
     public void addEquivalence(int literal, IntArrayList newOrigins) throws Unsatisfiable {
         if(literal == -representative || literals.contains(-literal)) {
             throw new Unsatisfiable(
-                    "Wenn adding new literal " + literal + " to equivalence class" + toString() +
-                            ": Found " + literal + " = " + representative, newOrigins);}
+                    "Wenn adding new literal " + literal + " to equivalence class: " + toNumbers() +
+                            ":\nFound " + literal + " = " + representative, newOrigins);}
 
         if(Math.abs(literal) < representative) {
             int sign = Integer.signum(literal);
@@ -136,14 +149,15 @@ public class EquivalenceClass {
      * @return the equivalent literals as a string
      */
     public String toString(@Nullable Symboltable symboltable) {
-        return Symboltable.toString(literals," = ",symboltable);}
+        String st = Symboltable.toString(representative,symboltable) + " = ";
+        return st + Symboltable.toString(literals," = ",symboltable);}
 
     /** turns the equivalent literals into a =-separated string of numbers.
      *
      * @return the equivalent literals as a string
      */
     public String toNumbers() {
-        return Symboltable.toString(literals," = ",null);}
+        return "" + representative + " = " + Symboltable.toString(literals," = ",null);}
 
 
     /** turns the equivalence class into a string "representative = literal1[origins1] = literal2[origins2]"
@@ -157,6 +171,8 @@ public class EquivalenceClass {
         for(int i = 0; i < literals.size(); ++i) {
             string.append(" = ").append(Symboltable.toString(literals.getInt(i),symboltable));
             if(origins != null) {
-                string.append("[").append(origins.get(i).toString()).append("],");}}
+                IntArrayList orig = origins.get(i);
+                String origString = orig == null ? " []" : orig.toString();
+                string.append(origString);}}
         return string.toString();}
 }
