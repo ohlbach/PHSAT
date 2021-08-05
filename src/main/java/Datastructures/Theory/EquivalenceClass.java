@@ -76,11 +76,11 @@ public class EquivalenceClass {
      * @param origins the basic clause ids causing the two classes to join
      * @throws Unsatisfiable if a contradiction is found.
      */
-    public EquivalenceClass addEquivalenceClass(EquivalenceClass eqClass, IntArrayList origins) throws Unsatisfiable {
-        addLiteral(eqClass.representative,origins);
+    public EquivalenceClass addEquivalenceClass(EquivalenceClass eqClass, int sign, IntArrayList origins) throws Unsatisfiable {
+        addLiteral(sign*eqClass.representative,origins);
         this.origins = joinIntArrays(this.origins,eqClass.origins);
         for(int literal : eqClass.literals) {
-            addLiteral(literal,null);}
+            addLiteral(sign*literal,null);}
         return this;}
 
 

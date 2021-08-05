@@ -97,9 +97,9 @@ public class EquivalenceClassTest {
         EquivalenceClass eqClass2 = new EquivalenceClass(literals, orig);
         orig = new IntArrayList(); orig.add(50);
         try{
-            EquivalenceClass eqClass = eqClass1.addEquivalenceClass(eqClass2, orig);}
+            EquivalenceClass eqClass = eqClass1.addEquivalenceClass(eqClass2, -1,orig);}
         catch(Unsatisfiable uns) {}
-        assertEquals("2 = 3 = 4 = 5 = 6 = 7 [10, 20, 50, 30, 40]",
+        assertEquals("2 = 3 = 4 = -5 = -6 = -7 [10, 20, 50, 30, 40]",
                 eqClass1.infoString(null));}
 
     @Test
@@ -117,7 +117,7 @@ public class EquivalenceClassTest {
         EquivalenceClass eqClass2 = new EquivalenceClass(literals, orig);
         orig = new IntArrayList(); orig.add(50);
         try{
-            EquivalenceClass eqClass = eqClass1.addEquivalenceClass(eqClass2, orig);}
+            EquivalenceClass eqClass = eqClass1.addEquivalenceClass(eqClass2, 1,orig);}
         catch(Unsatisfiable uns) {}
         assertEquals("1 = 3 = 4 = 2 = 5 = 6 [10, 20, 50, 30, 40]",
                 eqClass1.infoString(null));}
@@ -137,7 +137,7 @@ public class EquivalenceClassTest {
         EquivalenceClass eqClass2 = new EquivalenceClass(literals, orig);
         orig = new IntArrayList(); orig.add(50);
         try{
-            EquivalenceClass eqClass = eqClass1.addEquivalenceClass(eqClass2, orig);}
+            EquivalenceClass eqClass = eqClass1.addEquivalenceClass(eqClass2,1, orig);}
         catch(Unsatisfiable uns) {
             System.out.println(uns.toString());
         }}

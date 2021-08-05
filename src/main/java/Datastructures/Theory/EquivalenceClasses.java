@@ -102,7 +102,6 @@ public class EquivalenceClasses  {
      * @returns Unsatisfiable as soon as a contradiction is discovered.
      */
     public Unsatisfiable run() {
-        System.out.println("RUNNING");
         thread = Thread.currentThread();
         model.addObserver(thread,
                 (Integer literal, IntArrayList origins) ->
@@ -112,7 +111,6 @@ public class EquivalenceClasses  {
                 System.out.println("Waiting");
                 Pair<Object, IntArrayList> object = queue.take(); // waits if the queue is empty
                 Object key = object.getKey();
-                System.out.println("TT " + key.toString());
                 if(key.getClass() == Integer.class) {
                     integrateTrueLiteral((Integer)key,object.getValue());}
                 else {
@@ -121,9 +119,7 @@ public class EquivalenceClasses  {
                 System.out.println("ECL\n"+ this.toString(null));
             }
             catch(InterruptedException ex) {return null;}
-            catch(Unsatisfiable unsatisfiable) {
-                System.out.println("UNSAT " + unsatisfiable.toString());
-                return unsatisfiable;}}
+            catch(Unsatisfiable unsatisfiable) {return unsatisfiable;}}
         return null;}
 
     /** This method is to be called by the TwoLiteral module to announce a newly derived equivalence
@@ -253,9 +249,7 @@ public class EquivalenceClasses  {
      * @throws Unsatisfiable, if a contradiction occurs
      */
     public synchronized void addEquivalence(int literal1, int literal2, IntArrayList origins) throws Unsatisfiable{
-        System.out.println("AE " + literal1 + "  " + literal2);
-        System.out.println("CL " + toString());
-        if(monitoring) {
+         if(monitoring) {
             monitor.print(monitorId,"Adding new equivalence " +
                     Symboltable.toString(literal1,model.symboltable) + " = " +
                     Symboltable.toString(literal2,model.symboltable) + " @ " +
@@ -269,7 +263,7 @@ public class EquivalenceClasses  {
         EquivalenceClass eqClass1 = getEquivalenceClass(literal1);
         EquivalenceClass eqClass2 = getEquivalenceClass(literal2);
         int rep = 0; int lit = 0;
-
+        int sign = 0;
         if(eqClass1 == null) {
             if(eqClass2 == null) {
                 IntArrayList literals = new IntArrayList(2);
@@ -278,30 +272,34 @@ public class EquivalenceClasses  {
                 equivalenceClasses.add(newClass);
                 rep = newClass.representative; lit = newClass.literals.getInt(0);}
             else {  // eqClass2 != null
-                rep = eqClass2.representative; lit = literal1;
+                sign = eqClass2.contains(literal2);
+                rep = eqClass2.representative; lit = sign*literal1;
                 if(monitoring) {
                     monitor.print(monitorId,"Adding literal " +
-                            Symboltable.toString(literal1,model.symboltable) + " to " +
+                            Symboltable.toString(sign*literal1,model.symboltable) + " to " +
                             eqClass2.toString(model.symboltable));}
                 statistics.extendedClasses++;
-                eqClass2.addLiteral(literal1,origins);}}
+                eqClass2.addLiteral(sign*literal1,origins);}}
         else { // eqClass1 != null
+            sign = eqClass1.contains(literal1);
             if(eqClass2 == null) {
-                rep = eqClass1.representative; lit = literal2;
+                rep = eqClass1.representative; lit = sign*literal2;
                 if(monitoring) {
                     monitor.print(monitorId,"Adding literal " +
-                            Symboltable.toString(literal2,model.symboltable) + " to " +
+                            Symboltable.toString(sign*literal2,model.symboltable) + " to " +
                             eqClass1.toString(model.symboltable));}
                 statistics.extendedClasses++;
-                eqClass1.addLiteral(literal2,origins);}
+                eqClass1.addLiteral(sign*literal2,origins);}
             else {  // eqClass2 != null
+                sign *= eqClass2.contains(literal2);
                 rep = eqClass1.representative; lit = eqClass2.representative;
                 if(lit < rep) {int dummy = lit; lit = rep; rep = dummy;}
+                lit *= sign;
                 if(monitoring) {
                     monitor.print(monitorId,"Joining the two equivalence classes " +
                             eqClass1.toString(model.symboltable) + " and " +
                             eqClass2.toString(model.symboltable));}
-                eqClass1.addEquivalenceClass(eqClass2,origins);
+                eqClass1.addEquivalenceClass(eqClass2,sign,origins);
                 statistics.joinedClasses++;
                 equivalenceClasses.remove(eqClass2);}}
 

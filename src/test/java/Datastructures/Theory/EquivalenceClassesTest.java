@@ -194,15 +194,13 @@ public class EquivalenceClassesTest {
         Thread thread1 = new Thread(()->result[0] = eqClasses.run());
         thread1.start();
 
-        Thread thread2 = new Thread(() -> {
-            IntArrayList origins = new IntArrayList(); origins.add(10);
-            eqClasses.addDerivedEquivalence(2,-5,origins);
-            System.out.println("DONE");
-            try{Thread.sleep(1000);}catch(Exception ex) {}});
-        thread2.start();
+        IntArrayList origins = new IntArrayList(); origins.add(10);
+        eqClasses.addDerivedEquivalence(2,-5,origins);
 
-        try{thread1.join(); thread2.join();} catch(Exception ex) {}
-        System.out.println(result[0].toString());
+        try{Thread.sleep(100);}catch(Exception ex) {}
+        thread1.interrupt();
+        try{thread1.join();} catch(Exception ex) {}
+        System.out.println(result[0]);
     }
 
     }
