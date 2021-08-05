@@ -2,6 +2,7 @@ package Datastructures.Theory;
 
 import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Inconsistency;
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Management.Monitor;
@@ -30,9 +31,9 @@ public class EquivalenceClassesTest {
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
         assertEquals("1 = 2 = 3",eqClasses.toString());
-        assertEquals("1 = 2[1] = 3[1]",eqClasses.infoString(null));
+        assertEquals("1 = 2 = 3 [1]",eqClasses.infoString(null));
         assertEquals("p = q = r",eqClasses.toString(symboltable));
-        assertEquals("p = q[1] = r[1]",eqClasses.infoString(symboltable));
+        assertEquals("p = q = r [1]",eqClasses.infoString(symboltable));
 
         clause = new int[]{2,type,4,-5,-6};
         try{eqClasses.addBasicEquivalenceClause(clause);}
@@ -40,12 +41,12 @@ public class EquivalenceClassesTest {
 
         assertEquals("1 = 2 = 3\n" +
                 "4 = -5 = -6",eqClasses.toString());
-        assertEquals("1 = 2[1] = 3[1]\n" +
-                "4 = -5[2] = -6[2]",eqClasses.infoString(null));
+        assertEquals("1 = 2 = 3 [1]\n" +
+                "4 = -5 = -6 [2]",eqClasses.infoString(null));
         assertEquals("p = q = r\n" +
                 "a = -b = -c",eqClasses.toString(symboltable));
-        assertEquals("p = q[1] = r[1]\n" +
-                "a = -b[2] = -c[2]",eqClasses.infoString(symboltable));
+        assertEquals("p = q = r [1]\n" +
+                "a = -b = -c [2]",eqClasses.infoString(symboltable));
 
         assertEquals(1,eqClasses.getRepresentative(2));
         assertEquals(-1,eqClasses.getRepresentative(-2));
@@ -76,13 +77,13 @@ public class EquivalenceClassesTest {
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
         assertEquals("2 = 3 = 4 = -5 = 6",eqClasses.toString());
-        assertEquals("2 = 3[1] = 4[1] = -5[2] = 6[2]",eqClasses.infoString(null));
+        assertEquals("2 = 3 = 4 = -5 = 6 [1, 2]",eqClasses.infoString(null));
 
         clause = new int[]{3,type,6,7,1}; // 2 overlaps
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
         assertEquals("1 = 2 = 7 = 3 = 4 = -5 = 6",eqClasses.toString());
-        assertEquals("1 = 2[3, 2] = 7[3] = 3[1] = 4[1] = -5[2] = 6[2]",eqClasses.infoString(null));
+        assertEquals("1 = 2 = 7 = 3 = 4 = -5 = 6 [3, 1, 2]",eqClasses.infoString(null));
     }
 
     @Test
@@ -145,7 +146,7 @@ public class EquivalenceClassesTest {
         clause = new int[]{3,type,5,3,4};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
-        assertEquals("2 = 3[1, 3] = 4[1] = 5[1, 3]",eqClasses.infoString(null));
+        assertEquals("2 = 3 = 4 = 5 [1, 3]",eqClasses.infoString(null));
         clause = new int[]{4,type,6,3,-4};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {
@@ -170,11 +171,38 @@ public class EquivalenceClassesTest {
         IntArrayList origins = new IntArrayList(); origins.add(20);
         try{eqClasses.integrateTrueLiteral(6,origins);}
         catch(Unsatisfiable uns) {}
-        assertEquals("[-5, [20], 6, [20, 2]]",observed.toString());
-        assertEquals("2 = 3[1] = 4[1]",eqClasses.infoString(null));
-        assertEquals("-5 @ [20]\n" +
-                "6 @ [20, 2]",model.infoString(false));
+        assertEquals("[-5, [2, 20], 6, [2, 20]]",observed.toString());
+        assertEquals("2 = 3 = 4 [1]",eqClasses.infoString(null));
+        assertEquals("-5 @ [2, 20]\n" +
+                "6 @ [2, 20]",model.infoString(false));
 
 
     }
+
+    @Test
+    public void threadtest() {
+        System.out.println("Thread ");
+        Model model = new Model(10, null);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", null);
+        int[] clause1 = new int[]{1,type,2,3,4};
+        int[] clause2 = new int[]{2,type,5,6,7};
+        try{eqClasses.addBasicEquivalenceClause(clause1);
+            eqClasses.addBasicEquivalenceClause(clause2);}
+            catch(Unsatisfiable uns) {}
+
+        Result[] result = new Result[]{null};
+        Thread thread1 = new Thread(()->result[0] = eqClasses.run());
+        thread1.start();
+
+        Thread thread2 = new Thread(() -> {
+            IntArrayList origins = new IntArrayList(); origins.add(10);
+            eqClasses.addDerivedEquivalence(2,-5,origins);
+            System.out.println("DONE");
+            try{Thread.sleep(1000);}catch(Exception ex) {}});
+        thread2.start();
+
+        try{thread1.join(); thread2.join();} catch(Exception ex) {}
+        System.out.println(result[0].toString());
+    }
+
     }

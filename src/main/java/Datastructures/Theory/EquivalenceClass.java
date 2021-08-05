@@ -6,17 +6,16 @@ import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import static Utilities.Utilities.addIntArray;
+import static Utilities.Utilities.joinIntArrays;
 
 /** This class manages equivalence classes of literals together with the origins of the equivalences.
  * Equivalences are normalized such that the representative of the equivalence class is the
  * smallest integer, and it is a positive literal.
  * It is assumed that all literals in clauses are replaced by the representative of the equivalence class.
  * Therefore equivalence classes are disjoint.
- *
- * For an equivalence p = q = r, with p being the representative,
- * there may be an origin list o1 for q and an o2 for r.
- * o1 indicates the basic clause ids which allow to conclude p = q,
- * and o2 indicates the basic clause ids which allow to conclude p = r.
+ * <br>
+ * The equivalence classes may carry the origins, i.e. the basic clause ids specifying or
+ * causing the equivalence.
  *
  * The datastructures are not optimized because the lists are usually very small.
  */
@@ -24,18 +23,17 @@ public class EquivalenceClass {
     /** The smallest integer of the equivalence class. It is always positive */
     public int representative;
 
-    /** the list of literals which are equivalent with the representative */
+    /** the list of other literals which are equivalent with the representative */
     public IntArrayList literals;
 
     /** the list of basic clause ids causing this equivalence */
     public IntArrayList origins;
 
 
-    /** Constructs a new equivalence class from a preprocessed basic clause.
+    /** Constructs a new equivalence class from a list of literals
      *  The representative becomes the literal with the smallest absolut value.
-     *  The origins may come from equivalence replacements.
      *
-     * @param literals a preprocessed basic clause
+     * @param literals a preprocessed basic clause (the list may be changed)
      * @param origins  the list of basic clause ids for this equivalence
      */
     public EquivalenceClass(IntArrayList literals, IntArrayList origins) {
@@ -50,23 +48,6 @@ public class EquivalenceClass {
         this.literals = literals;}
 
 
-    /** construct a new equivalence class literal1 = literal2.
-     * The smallest literal becomes the representative.
-     * If it is negative, both literals are negated.
-     *
-     * @param literal1
-     * @param literal2
-     * @param origins the list of basic clause indices causing this equivalence.
-     */
-    public EquivalenceClass(int literal1, int literal2, IntArrayList origins) {
-        this.origins = origins;
-        if(Math.abs(literal2) < Math.abs(literal1)) {
-            int dummy = literal1; literal1 = literal2; literal2 = dummy;}
-        if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
-        representative = literal1;
-        literals = new IntArrayList(1);
-        literals.add(literal2);}
-
     /** adds a literal which is supposed to be equivalent to one of the other literals in the equivalence class
      *  If the literal is smaller than the representative, it replaces the representative.
      *  If the literal contradicts one of the literals then  an exception is thrown.
@@ -75,12 +56,12 @@ public class EquivalenceClass {
      * @param origins  the list of basic clause indices causing this equivalence.
      * @throws Unsatisfiable if a contradiction is found.
      */
-    public void addEquivalence(int literal, IntArrayList origins) throws Unsatisfiable {
+    public void addLiteral(int literal, IntArrayList origins) throws Unsatisfiable {
         this.origins = addIntArray(this.origins,origins);
         if(literal == -representative || literals.contains(-literal)) {
             throw new Unsatisfiable(
                     "Wenn adding new literal " + literal + " to equivalence class: " + toNumbers() +
-                            ":\nFound " + literal + " = " + representative, origins);}
+                            ":\nFound " + literal + " = " + representative, this.origins);}
 
         if(Math.abs(literal) < representative) {
             int sign = Integer.signum(literal);
@@ -88,6 +69,19 @@ public class EquivalenceClass {
             literals.add(sign*representative);
             representative = Math.abs(literal);}
         else {literals.add(literal);}}
+
+    /** joins the two equivalence classes
+     *
+     * @param eqClass another equivalence class
+     * @param origins the basic clause ids causing the two classes to join
+     * @throws Unsatisfiable if a contradiction is found.
+     */
+    public EquivalenceClass addEquivalenceClass(EquivalenceClass eqClass, IntArrayList origins) throws Unsatisfiable {
+        addLiteral(eqClass.representative,origins);
+        this.origins = joinIntArrays(this.origins,eqClass.origins);
+        for(int literal : eqClass.literals) {
+            addLiteral(literal,null);}
+        return this;}
 
 
     /** checks if the literal is part of the equivalence class
@@ -145,7 +139,6 @@ public class EquivalenceClass {
         string.append(Symboltable.toString(representative,symboltable));
         for(int i = 0; i < literals.size(); ++i) {
             string.append(" = ").append(Symboltable.toString(literals.getInt(i),symboltable));}
-        if(origins != null) {
-            string.append(" ").append(origins.toString());}
+        if(origins != null) {string.append(" ").append(origins.toString());}
         return string.toString();}
 }

@@ -7,7 +7,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import static Utilities.Utilities.joinIntArrays;
 
-/** A disjointness class is a list of literal, e.g. p,q,r, with disjoint truth values.
+/** A disjointness class is a list of literals, e.g. p,q,r, with disjoint truth values.
  * If one of the literals is true, then all other ones must be false.
  * They all, however can be false.
  *
@@ -26,9 +26,8 @@ public class DisjointnessClass {
     /** The list of basic clause indices, which cause the disjointness.*/
     public IntArrayList origins;
 
-    /** constructs a new disjointness class from a basic clause.
-     * The literals in the basic clause might be replaced by representatives of their equivalence class.
-     * The literals must not contain double literals or complementary literals
+    /** constructs a new disjointness class from a list of literals.
+     * The literals must not contain double literals or complementary literals.
      *
      * @param literals a list of literals
      * @param origins the indices of the basic clauses causes the disjointness.
@@ -38,14 +37,13 @@ public class DisjointnessClass {
         this.origins = origins;}
 
     /** adds a literal which is disjoint to the remaining literals.
-     * Adding a new literal overwrites the origins by the new origins which come from the new literal.
      *
      * @param literal  a new literal
      * @param origins  the list of basic clause indices which cause the disjointness between all literals.
      */
     public void addLiteral(int literal, IntArrayList origins) {
         literals.add(literal);
-        this.origins = origins;}
+        this.origins = joinIntArrays(this.origins,origins);}
 
     /** checks if the disjointness class contains the literal
      *
@@ -59,7 +57,7 @@ public class DisjointnessClass {
             if(literal == -lit) {return -1;} }
         return 0; }
 
-    /** replaces the occurrence of literal by representative (which are equivalent)
+    /** replaces the occurrence of a literal by its representative (which are equivalent)
      *
      * @param representative
      * @param literal
@@ -69,24 +67,28 @@ public class DisjointnessClass {
      */
     public boolean replaceEquivalence(int representative, int literal, IntArrayList origin) throws Unsatisfiable {
         int sign = 0;
-        if(literals.contains(literal))  sign = 1;
+        if(literals.contains(literal))  sign =  1;
         if(literals.contains(-literal)) sign = -1;
         if(sign == 0) return false;
-        origins = joinIntArrays(origins,origin);
         if(literals.contains(sign*representative)) {
             throw new Unsatisfiable("replacing equivalent literal " + sign*literal +
-                    " by " + sign*representative + "in " + toString() + " causes double literals.",
-                    origins);}
+                    " by " + sign*representative + " in disjointness class " + toString() + " causes double literals.",
+                    joinIntArrays(origins,origin));}
 
-        if(literals.contains(-sign*representative)) {
-            literals.rem(sign*literal);}
+        if(literals.contains(-sign*representative)) return false;
+        origins = joinIntArrays(origins,origin);
         for(int i = 0; i < literals.size();++i) {
             if(literals.getInt(i) == sign*literal) {
                 literals.set(i,sign*representative);
                 break;}}
         return true;}
 
-
+    /** turns the disjointness class into a string
+     *
+     * @return the class as a comma separated string.
+     */
+    public String toString() {
+        return Symboltable.toString(literals,null);}
 
     /** turns the disjointness class into a string
      *
@@ -102,8 +104,9 @@ public class DisjointnessClass {
      * @return the class as a comma separated string.
      */
     public String infoString(@Nullable Symboltable symboltable) {
-        return  Symboltable.toString(literals,symboltable) + " @ " +
-                Symboltable.toString(origins,null);}
+        String string = Symboltable.toString(literals,symboltable);
+        if(origins != null) {string += " " +origins.toString();}
+        return string;}
 
 
 
