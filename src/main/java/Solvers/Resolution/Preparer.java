@@ -243,7 +243,7 @@ public class Preparer {
      * @return            null
      */
     Result processEquivalence(int fromLiteral, int toLiteral, IntArrayList origins) throws Unsatisfiable{
-        equivalenceClasses.addEquivalence(fromLiteral,toLiteral,origins);
+       // equivalenceClasses.addEquivalence(fromLiteral,toLiteral,origins);
         replacedClauses.clear();
         replaceLiteralInAllClauses(fromLiteral,toLiteral, origins);
         replaceLiteralInAllClauses(-fromLiteral,-toLiteral, origins);
