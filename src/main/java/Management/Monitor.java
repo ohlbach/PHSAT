@@ -22,21 +22,21 @@ public class Monitor {
     /** creates a monitor which does nothing at all*/
     public Monitor() {}
 
-    /** creates a monitor according to the specification.
-     *  The specification may be:<br>
+    /** creates a monitor according to the mode.
+     *  The mode may be:<br>
      *  - separated [filename]<br>
      *  - mixed     [filename]<br>
      * 'separated' causes the messages to be collected and printed separately for each thread. <br>
      * If the filename is not given or cannot be opened then the messages are printed to System.out.
      *
-     * @param specification 'separated' or 'mixed'
+     * @param mode 'separated' or 'mixed'
      * @param errors for error messages.
      * @param warnings for warnings.
      */
-    public Monitor(File directory,String specification, StringBuffer errors, StringBuffer warnings) {
+    public Monitor(File directory,String mode, StringBuffer errors, StringBuffer warnings) {
         monitoring = true;
-        if(specification.equals("true")) {return;}
-        String[] parts = specification.split("\\s*(,| )\\s*");
+        if(mode.equals("true")) {return;}
+        String[] parts = mode.split("\\s*(,| )\\s*");
         if(parts[0].equals("separated")) {separated = true;}
         else {if(parts[0].equals("mixed")) {separated = false;}
             else {monitoring = false; errors.append("Monitoring '" + parts[0] + "' is unknown. Use 'separated' or 'mixed'.\n");}}

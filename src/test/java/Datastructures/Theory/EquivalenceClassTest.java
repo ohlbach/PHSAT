@@ -27,9 +27,9 @@ public class EquivalenceClassTest {
         literals.add(3);
         EquivalenceClass eqClass = new EquivalenceClass(literals,orig);
         assertEquals("1 = 2 = 3", eqClass.toNumbers());
-        assertEquals("1 = 2 = 3", eqClass.toString(null));
+        assertEquals("1 = 2 = 3", eqClass.toString());
         assertEquals("1 = 2 = 3 [10, 20]", eqClass.infoString(null));
-        assertEquals("p = q = r", eqClass.toString(symboltable));
+        assertEquals("p = q = r", eqClass.toString("",symboltable));
         assertEquals("p = q = r [10, 20]", eqClass.infoString(symboltable));
         assertEquals(1 , eqClass.representative);
         assertEquals("[2, 3]",eqClass.literals.toString());
@@ -49,9 +49,9 @@ public class EquivalenceClassTest {
         IntArrayList orig1 = new IntArrayList(); orig1.add(10); orig1.add(20);
         EquivalenceClass eqClass = new EquivalenceClass(literals,orig1);
         assertEquals("1 = -2 = -3", eqClass.toNumbers());
-        assertEquals("1 = -2 = -3", eqClass.toString(null));
+        assertEquals("1 = -2 = -3", eqClass.toString());
         assertEquals("1 = -2 = -3 [10, 20]", eqClass.infoString(null));
-        assertEquals("p = -q = -r", eqClass.toString(symboltable));
+        assertEquals("p = -q = -r", eqClass.toString("",symboltable));
         assertEquals("p = -q = -r [10, 20]", eqClass.infoString(symboltable));
         assertEquals(1 , eqClass.representative);
         assertEquals("[-2, -3]",eqClass.literals.toString());

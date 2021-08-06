@@ -111,14 +111,21 @@ public class EquivalenceClass {
         if(literals.contains(-literal)) return -representative;
         return literal;}
 
+    /** turns the equivalent literals into a =-separated string of names.
+     *
+     * @return the equivalent literals as a string
+     */
+    public String toString() {
+        return toString("",null);}
 
     /** turns the equivalent literals into a =-separated string of names.
      *
+     * @param prefix a prefix for the string.
      * @param symboltable null or a symboltable
      * @return the equivalent literals as a string
      */
-    public String toString(@Nullable Symboltable symboltable) {
-        String st = Symboltable.toString(representative,symboltable) + " = ";
+    public String toString(String prefix, @Nullable Symboltable symboltable) {
+        String st = prefix + Symboltable.toString(representative,symboltable) + " = ";
         return st + Symboltable.toString(literals," = ",symboltable);}
 
     /** turns the equivalent literals into a =-separated string of numbers.

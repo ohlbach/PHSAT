@@ -32,7 +32,7 @@ public class EquivalenceClassesTest {
         catch(Unsatisfiable uns) {}
         assertEquals("1 = 2 = 3",eqClasses.toString());
         assertEquals("1 = 2 = 3 [1]",eqClasses.infoString(null));
-        assertEquals("p = q = r",eqClasses.toString(symboltable));
+        assertEquals("p = q = r",eqClasses.toString("",symboltable));
         assertEquals("p = q = r [1]",eqClasses.infoString(symboltable));
 
         clause = new int[]{2,type,4,-5,-6};
@@ -44,7 +44,7 @@ public class EquivalenceClassesTest {
         assertEquals("1 = 2 = 3 [1]\n" +
                 "4 = -5 = -6 [2]",eqClasses.infoString(null));
         assertEquals("p = q = r\n" +
-                "a = -b = -c",eqClasses.toString(symboltable));
+                "a = -b = -c",eqClasses.toString("",symboltable));
         assertEquals("p = q = r [1]\n" +
                 "a = -b = -c [2]",eqClasses.infoString(symboltable));
 
@@ -174,16 +174,85 @@ public class EquivalenceClassesTest {
         assertEquals("[-5, [2, 20], 6, [2, 20]]",observed.toString());
         assertEquals("2 = 3 = 4 [1]",eqClasses.infoString(null));
         assertEquals("-5 @ [2, 20]\n" +
-                "6 @ [2, 20]",model.infoString(false));
+                "6 @ [2, 20]",model.infoString(false));}
 
 
+
+    @Test
+    public void addDerived1() {
+        System.out.println("add derived equivalence empty ");
+        Model model = new Model(10, null);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", null);
+        ArrayList<Object> observed = new ArrayList<>();
+        eqClasses.addEquivalenceObserver((representative, literal, origins) ->
+            {observed.add(representative); observed.add(literal);observed.add(origins);});
+        IntArrayList orig = new IntArrayList();
+        orig.add(20);
+        try{
+            eqClasses.addEquivalence(5,-3,orig);}
+        catch(Unsatisfiable uns) {}
+        assertEquals("3 = -5",eqClasses.toString());
+        assertEquals("[3, -5, [20]]",observed.toString());
     }
+
+    @Test
+    public void addDerived2() {
+        System.out.println("add derived equivalence join one ");
+        Model model = new Model(10, null);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", null);
+        ArrayList<Object> observed = new ArrayList<>();
+        eqClasses.addEquivalenceObserver((representative, literal, origins) ->
+        {observed.add(representative); observed.add(literal);observed.add(origins);});
+
+        int[] clause = new int[]{1,type,3,4,5};
+        try{eqClasses.addBasicEquivalenceClause(clause);}
+        catch(Unsatisfiable uns) {}
+
+        IntArrayList orig = new IntArrayList();
+        orig.add(20);
+        try{
+            eqClasses.addEquivalence(-5,6,orig);}
+        catch(Unsatisfiable uns) {}
+
+        assertEquals("3 = 4 = 5 = -6",eqClasses.toString());
+        assertEquals("[3, -6, [20]]",observed.toString());
+    }
+    @Test
+    public void addDerived3() {
+        System.out.println("add derived equivalence join two  ");
+        Model model = new Model(10, null);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", null);
+        ArrayList<Object> observed = new ArrayList<>();
+        eqClasses.addEquivalenceObserver((representative, literal, origins) ->
+        {observed.add(representative); observed.add(literal);observed.add(origins);});
+
+        int[] clause1 = new int[]{1,type,3,4,5};
+        int[] clause2 = new int[]{2,type,6,7};
+        try{eqClasses.addBasicEquivalenceClause(clause1);
+            eqClasses.addBasicEquivalenceClause(clause2);}
+        catch(Unsatisfiable uns) {}
+
+        IntArrayList orig = new IntArrayList();
+        orig.add(20);
+        try{
+            eqClasses.addEquivalence(5,-7,orig);}
+        catch(Unsatisfiable uns) {}
+
+        assertEquals("3 = 4 = 5 = -6 = -7",eqClasses.toString());
+        assertEquals("[3, -6, [20]]",observed.toString());
+    }
+
+
+
 
     @Test
     public void threadtest() {
         System.out.println("Thread ");
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        Monitor monitor = new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", null);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
         int[] clause1 = new int[]{1,type,2,3,4};
         int[] clause2 = new int[]{2,type,5,6,7};
         try{eqClasses.addBasicEquivalenceClause(clause1);
@@ -196,11 +265,17 @@ public class EquivalenceClassesTest {
 
         IntArrayList origins = new IntArrayList(); origins.add(10);
         eqClasses.addDerivedEquivalence(2,-5,origins);
+        try {
+            model.add(2, null, null);
+        }catch(Unsatisfiable uns) {}
 
         try{Thread.sleep(100);}catch(Exception ex) {}
         thread1.interrupt();
         try{thread1.join();} catch(Exception ex) {}
         System.out.println(result[0]);
+        System.out.println("END " +eqClasses.toString());
+        System.out.println(model.toNumbers());
+
     }
 
     }
