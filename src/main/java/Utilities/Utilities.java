@@ -720,6 +720,20 @@ public class Utilities {
         for(int item : list2) {if(!list1.contains(item)) newList.add(item);}
         return newList;}
 
+    /** joins two IntArrays and and sorts the result
+     *
+     * @param list1 a IntArrayList
+     * @param list2 a IntArrayList
+     * @return the joined and sorted list.
+     */
+    public static IntArrayList joinIntArraysSorted(IntArrayList list1, IntArrayList list2) {
+        if(list1 == null || list1.isEmpty()) {return list2;}
+        if(list2 == null || list2.isEmpty()) {return list1;}
+        IntArrayList newList = list1.clone();
+        for(int item : list2) {if(!list1.contains(item)) newList.add(item);}
+        newList.sort((i,j)-> Integer.compare(i,j));
+        return newList;}
+
     /** adds the elements of the second list to the first list
      *
      * @param list1 an IntArray
@@ -834,6 +848,7 @@ public class Utilities {
         return -1;
     }
 
+
     public static void  mainA(String[] args) {
         int a = toInt(new int[]{0,4});
         int b = toInt(new int[]{1,3});
@@ -852,6 +867,7 @@ public class Utilities {
 
         pll("L",list1);
     }
+
 
 
 }

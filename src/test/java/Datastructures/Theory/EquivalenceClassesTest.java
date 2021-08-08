@@ -10,6 +10,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import static org.junit.Assert.*;
 
@@ -91,7 +92,7 @@ public class EquivalenceClassesTest {
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
         assertEquals("1 = 2 = 7 = 3 = 4 = -5 = 6",eqClasses.toString());
-        assertEquals("1 = 2 = 7 = 3 = 4 = -5 = 6 [3, 1, 2]",eqClasses.infoString(null));
+        assertEquals("1 = 2 = 7 = 3 = 4 = -5 = 6 [1, 2, 3]",eqClasses.infoString(null));
     }
 
     @Test
@@ -181,11 +182,10 @@ public class EquivalenceClassesTest {
         catch(Unsatisfiable uns) {}
         IntArrayList origins = new IntArrayList(); origins.add(20);
         try{eqClasses.integrateTrueLiteral(6,origins);}
-        catch(Unsatisfiable uns) {}
-        assertEquals("[-5, [2, 20], 6, [2, 20]]",observed.toString());
+        catch(Unsatisfiable uns) {if(uns != null) System.out.println(uns.toString());}
+        assertEquals("[-5, [2, 20]]",observed.toString());
         assertEquals("2 = 3 = 4 [1]",eqClasses.infoString(null));
-        assertEquals("-5 @ [2, 20]\n" +
-                "6 @ [2, 20]",model.infoString(false));}
+        assertEquals("-5 @ [2, 20]",model.infoString(false));}
 
 
 
@@ -271,8 +271,7 @@ public class EquivalenceClassesTest {
             eqClasses.addBasicEquivalenceClause(clause2);}
             catch(Unsatisfiable uns) {}
 
-        Result[] result = new Result[]{null};
-        Thread thread1 = new Thread(()->result[0] = eqClasses.run());
+        Thread thread1 = new Thread(()->eqClasses.run());
         thread1.start();
 
         IntArrayList origins = new IntArrayList(); origins.add(10);
@@ -284,10 +283,9 @@ public class EquivalenceClassesTest {
         try{Thread.sleep(100);}catch(Exception ex) {}
         thread1.interrupt();
         try{thread1.join();} catch(Exception ex) {}
-        System.out.println(result[0]);
-        System.out.println("END " +eqClasses.toString());
-        System.out.println(model.toNumbers());
+        System.out.println(eqClasses.result);
+        System.out.println("CLASS " + eqClasses.toString());
+        System.out.println("MODEL " + model.toNumbers());
 
     }
-
     }

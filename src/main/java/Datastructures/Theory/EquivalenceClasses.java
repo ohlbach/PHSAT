@@ -3,6 +3,7 @@ package Datastructures.Theory;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Inconsistency;
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Management.Monitor;
@@ -35,6 +36,15 @@ import static Utilities.Utilities.*;
 
 public class EquivalenceClasses  {
 
+    /** The final result: null or Unsatisfiable */
+    public Result result = null;
+
+    /** for collecting statistics */
+    public EquivalenceStatistics statistics;
+
+    /** The id of the current problem to be solved */
+    private String problemId;
+
     /** stores the equivalence classes */
     private ArrayList<EquivalenceClass> equivalenceClasses = new ArrayList<>();
 
@@ -44,20 +54,14 @@ public class EquivalenceClasses  {
     /** The threadId of currentThread() */
     private Thread thread = null;
 
-    /** for collecting statistics */
-    public EquivalenceStatistics statistics;
-
     /** for logging the actions of this class */
-    public Monitor monitor;
+    private Monitor monitor;
 
     /** indicates monitoring is on */
     private boolean monitoring = false;
 
     /** for distinguishing the monitoring areas */
     private String monitorId = null;
-
-    /** The id of the current problem to be solved */
-    private String problemId;
 
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
@@ -120,10 +124,10 @@ public class EquivalenceClasses  {
      * by the equivalenceObservers.
      * <br>
      * The loop can only be stopped by an interrupt or a contradiction.
-     *
-     * @returns Unsatisfiable as soon as a contradiction is discovered.
+     * <br>
+     * The result is stored into the variable result.
      */
-    public Unsatisfiable run() {
+    public void run() {
         thread = Thread.currentThread();
         model.addObserver(thread,
                 (Integer literal, IntArrayList origins) ->
@@ -149,9 +153,8 @@ public class EquivalenceClasses  {
                 if(monitoring) {
                     monitor.print(monitorId,"Current equivalences:\n" + toString("            ",model.symboltable));}
             }
-            catch(InterruptedException ex) {return null;}
-            catch(Unsatisfiable unsatisfiable) {return unsatisfiable;}}
-        return null;}
+            catch(InterruptedException ex) {return;}
+            catch(Unsatisfiable unsatisfiable) {result = unsatisfiable;}}}
 
 
     /** adds a basic equivalence clause to the equivalence classes.
@@ -169,7 +172,7 @@ public class EquivalenceClasses  {
         assert ClauseType.getType(clause[1]) == ClauseType.EQUIV;
 
         if(monitoring) {
-            monitor.print(monitorId,"new clause: " +
+            monitor.print(monitorId,"New equivalence clause: " +
                     BasicClauseList.clauseToString(0,clause,model.symboltable));}
 
         statistics.basicClauses++;
@@ -186,13 +189,17 @@ public class EquivalenceClasses  {
                 throw new Unsatisfiable(
                         "Wenn adding new equivalence class " + clause[0] +
                                 ": Found " + representative + " = " + -representative,origins);
-            if(representative != literal) origins = joinIntArrays(origins,getOrigins(literal));
+            if(representative != literal) origins = joinIntArraysSorted(origins,getOrigins(literal));
             literals.add(representative);}
-        if(literals.size() == 1) return;
+        if(literals.size() <= 1) {
+            if(monitoring) {
+                monitor.print(monitorId,"Equivalence clause " + clause[0] + " shrank to '" +
+                Symboltable.toString(literals,model.symboltable) + "' and will be ignored.");}
+            return; }
         EquivalenceClass eqClass = new EquivalenceClass(literals,origins);
         eqClass = joinEquivalenceClass(eqClass);
         if(monitoring) {
-            monitor.print(monitorId,"Class " + eqClass.infoString(model.symboltable));}
+            monitor.print(monitorId,"Equivalence class " + eqClass.infoString(model.symboltable));}
     }
 
     /** checks the truth value of the literals in the basic clause.
@@ -235,13 +242,13 @@ public class EquivalenceClasses  {
         for(EquivalenceClass oldClass : equivalenceClasses) {
             if(newRepresentative == oldClass.representative) {
                 oldClass.literals = joinIntArrays(oldClass.literals,newClass.literals);
-                oldClass.origins  = joinIntArrays(oldClass.origins,newClass.origins);
+                oldClass.origins  = joinIntArraysSorted(oldClass.origins,newClass.origins);
                 return oldClass;}
             int sign = newClass.contains(oldClass.representative);
             if(sign != 0) {
                 for(int literal : oldClass.literals) {
                     newClass.literals = addInt(newClass.literals,sign*literal);}
-                newClass.origins = joinIntArrays(newClass.origins,oldClass.origins);
+                newClass.origins = joinIntArraysSorted(newClass.origins,oldClass.origins);
                 equivalenceClasses.remove(oldClass);
                 break;}}
         equivalenceClasses.add(newClass);
@@ -266,7 +273,7 @@ public class EquivalenceClasses  {
                     monitor.print(monitorId,"Exec: Literal " +
                             Symboltable.toString(literal, model.symboltable) + " -> " +
                             eqClass.toString("",model.symboltable));}
-                origins = joinIntArrays(eqClass.origins,origins);
+                origins = joinIntArraysSorted(eqClass.origins,origins);
                 addToModel(sign* eqClass.representative,origins);
                 for(int lit: eqClass.literals) {
                     lit *= sign;
@@ -410,7 +417,7 @@ public class EquivalenceClasses  {
             for(int i = 0; i < eqClass.literals.size(); ++i) {
                 int literal = eqClass.literals.getInt(i);
                 if(model.status(literal) == 0) {
-                    model.addImmediately(sign*literal,joinIntArrays(origins,eqClass.origins));}}}
+                    model.addImmediately(sign*literal,joinIntArraysSorted(origins,eqClass.origins));}}}
         return null;}
 
     /** checks if there is no equivalence class

@@ -111,7 +111,7 @@ public class ProblemSupervisor {
 
     public Thread equivalenceThread;
     protected void startInitialThreads() {
-        equivalenceThread = new Thread(()-> result = equivalenceClasses.run());
+        equivalenceThread = new Thread(()-> equivalenceClasses.run());
         equivalenceThread.start();
     }
 
