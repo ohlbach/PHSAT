@@ -144,7 +144,7 @@ public class Preparer {
             if(result != null) {return result;}}
 
         if(basicClauseList.disjoints != null || basicClauseList.xors != null) {
-            disjointnessClasses = new DisjointnessClasses(model,equivalenceClasses,problemId);}
+            disjointnessClasses = new DisjointnessClasses(model,equivalenceClasses,problemId,monitor);}
 
         if(basicClauseList.disjoints != null) {prepareDisjoints(basicClauseList.disjoints);}
 

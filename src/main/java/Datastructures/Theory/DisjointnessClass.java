@@ -6,6 +6,7 @@ import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import static Utilities.Utilities.joinIntArrays;
+import static Utilities.Utilities.joinIntArraysSorted;
 
 /** A disjointness class is a list of literals, e.g. p,q,r, with disjoint truth values.
  * If one of the literals is true, then all other ones must be false.
@@ -43,7 +44,7 @@ public class DisjointnessClass {
      */
     public void addLiteral(int literal, IntArrayList origins) {
         literals.add(literal);
-        this.origins = joinIntArrays(this.origins,origins);}
+        this.origins = joinIntArraysSorted(this.origins,origins);}
 
     /** checks if the disjointness class contains the literal
      *
@@ -73,10 +74,10 @@ public class DisjointnessClass {
         if(literals.contains(sign*representative)) {
             throw new Unsatisfiable("replacing equivalent literal " + sign*literal +
                     " by " + sign*representative + " in disjointness class " + toString() + " causes double literals.",
-                    joinIntArrays(origins,origin));}
+                    joinIntArraysSorted(origins,origin));}
 
         if(literals.contains(-sign*representative)) return false;
-        origins = joinIntArrays(origins,origin);
+        origins = joinIntArraysSorted(origins,origin);
         for(int i = 0; i < literals.size();++i) {
             if(literals.getInt(i) == sign*literal) {
                 literals.set(i,sign*representative);
@@ -88,15 +89,15 @@ public class DisjointnessClass {
      * @return the class as a comma separated string.
      */
     public String toString() {
-        return Symboltable.toString(literals,null);}
+        return Symboltable.toString(literals, " != ",null);}
 
     /** turns the disjointness class into a string
      *
      * @param symboltable for mapping integers to symbols
      * @return the class as a comma separated string.
      */
-    public String toString(@Nullable Symboltable symboltable) {
-        return Symboltable.toString(literals,symboltable);}
+    public String toString(String prefix, @Nullable Symboltable symboltable) {
+        return prefix + Symboltable.toString(literals," != ",symboltable);}
 
     /** turns the disjointness class into a string, together with the origins.
      *
@@ -104,8 +105,8 @@ public class DisjointnessClass {
      * @return the class as a comma separated string.
      */
     public String infoString(@Nullable Symboltable symboltable) {
-        String string = Symboltable.toString(literals,symboltable);
-        if(origins != null) {string += " " +origins.toString();}
+        String string = Symboltable.toString(literals," != ", symboltable);
+        if(origins != null) {string += ": " +origins.toString();}
         return string;}
 
 
