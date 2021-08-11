@@ -249,7 +249,7 @@ public class BasicClauseList {
             case AND:      separator = " & "; break;
             case XOR:      separator = " x "; break;
             case EQUIV:    separator = " = "; break;
-            case DISJOINT: separator = " /= "; break;
+            case DISJOINT: separator = " != "; break;
             default:       separator = " , ";}
         st.append(": ");
         int length = clause.length;

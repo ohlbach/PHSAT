@@ -3,6 +3,8 @@ package Datastructures;
 import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import java.util.ArrayList;
+
 /**
  * Created by ohlbach on 25.08.2018.
  * The symboltable maps predicates to names.
@@ -65,6 +67,8 @@ public class Symboltable {
     public static String toString(IntArrayList literals, Symboltable symboltable) {
         return toString(literals,",",symboltable);}
 
+
+
     /** turns a list of literals into a separator separated string of literal names
      *
      * @param literals    a list of literals
@@ -81,7 +85,9 @@ public class Symboltable {
             if(i < size-1) string.append(separator);}
         return string.toString(); }
 
-  /**
+
+
+    /**
      * @return the contents of the symboltable
      */
     public String toString() {

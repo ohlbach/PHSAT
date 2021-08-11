@@ -3,13 +3,18 @@ package Datastructures.Theory;
 import Datastructures.Statistics.Statistic;
 import com.sun.org.glassfish.gmbal.Description;
 
+import java.util.ArrayList;
+
 
 public class DisjointnessStatistics extends Statistic {
+
+    public static ArrayList<DisjointnessStatistics> statistics = new ArrayList<>();
 
     static {Statistic.statisticsClasses.add(DisjointnessStatistics.class);}
 
     public DisjointnessStatistics(String id) {
-        super(id);}
+        super(id);
+        statistics.add(this);}
 
     @Description("number of basic clauses")
     public int basicClauses = 0;
@@ -41,6 +46,8 @@ public class DisjointnessStatistics extends Statistic {
     @Description("number of joined disjointness classes")
     public int joinedClasses = 0;
 
+    @Description("number of extended disjointness classes")
+    public int extendedClasses = 0;
 
 
 }
