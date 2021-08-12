@@ -7,7 +7,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
     Therefore this special class.
 **/
 
-public class Clause {
+public class TwoLitClause {
     public int literal1;          // the first literal
     public int literal2;          // the second literal
     public IntArrayList origins;  // the list of basic clause ids which caused this clause.
@@ -18,7 +18,7 @@ public class Clause {
      * @param literal2  the second literal
      * @param origins    the list of basic clause ids which caused this clause.
      */
-    public Clause(int literal1, int literal2, IntArrayList origins) {
+    public TwoLitClause(int literal1, int literal2, IntArrayList origins) {
         this.literal1 = literal1;
         this.literal2 = literal2;
         this.origins = origins;}
@@ -29,7 +29,7 @@ public class Clause {
      * @param literal2  the second literal
      * @param origin    the basic clause id which caused this clause.
      */
-    public Clause(int literal1, int literal2, int origin) {
+    public TwoLitClause(int literal1, int literal2, int origin) {
         this.literal1 = literal1;
         this.literal2 = literal2;
         origins = new IntArrayList();
@@ -42,12 +42,13 @@ public class Clause {
 
     /** turns this clause into a string using the symbol table
      *
-     * @param symboltable a symboltable
+     * @param symboltable null or a symboltable
+     * @param prefix  for the string
      * @return the clause as a string.
      */
-    public String toString(Symboltable symboltable) {
-        if(symboltable == null) return toString();
-        return symboltable.toString(literal1) + "," + symboltable.toString(literal2); }
+    public String toString(String prefix, Symboltable symboltable) {
+        if(symboltable == null) return prefix + toString();
+        return prefix + symboltable.toString(literal1) + "," + symboltable.toString(literal2); }
 
 
 

@@ -20,29 +20,6 @@ public class DisjointnessClassesTest {
     int type = ClauseType.DISJOINT.ordinal();
     int typeEQ = ClauseType.EQUIV.ordinal();
 
-    @Test
-    public void addDisjointnessObserver() {
-    }
-
-    @Test
-    public void run() {
-    }
-
-    @Test
-    public void addDisjointnessClause() {
-    }
-
-    @Test
-    public void addTrueLiteral() {
-    }
-
-    @Test
-    public void addDerivedDisjoints() {
-    }
-
-    @Test
-    public void addEquivalenceClass() {
-    }
 
     @Test
     public void integrateDerivedDisjoints() {

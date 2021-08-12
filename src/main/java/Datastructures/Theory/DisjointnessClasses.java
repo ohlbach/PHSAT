@@ -60,8 +60,8 @@ public class DisjointnessClasses {
     private final PriorityBlockingQueue<Pair<Object,IntArrayList>> queue =
             new PriorityBlockingQueue<>(10,(Pair<Object,IntArrayList> o1, Pair<Object,IntArrayList> o2) -> {
                 Class cl = o1.getKey().getClass();
-                if(cl == Integer.class) return 0;        // true literal
-                if(cl == IntArrayList.class) {return 1;} // basic clause
+                if(cl == Integer.class)   {return 0;}    // true literal
+                if(cl == int[].class)     {return 1;}    // basic clause
                 if(cl == ArrayList.class) {return 2;}    // Triple p,q,r
                 return 3;});                             // Equivalence class
 
