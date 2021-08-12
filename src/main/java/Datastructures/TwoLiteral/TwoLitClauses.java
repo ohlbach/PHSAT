@@ -17,6 +17,15 @@ import java.util.function.Consumer;
 
 import static Utilities.Utilities.joinIntArraysSorted;
 
+/** This class maintains two-literal clauses.
+ *  The clause set is kept resolution complete, but minimized as far as possible.
+ *  (subsumption, replacement resolution, tautologies are recognized) <br>
+ *  The following structures are recognized: <br>
+ *  - Derived unit literals (are put into the model and may cause a snowball effect) <br>
+ *  - Derived Equivalences are p = q  are put into the EquivalenceClasses <br>
+ *  - Derived Disjunctions p != q != r are put into the DisjointnessClasses <br>
+ */
+
 public class TwoLitClauses {
     ArrayList<TwoLitClause> clauses = new ArrayList<>();
 
@@ -63,15 +72,15 @@ public class TwoLitClauses {
                 if(cl == int[].class)     {return 1;}    // basic clause
                  return 3;});                             // Equivalence class
 
-    public TwoLitClauses(String problemId, Model model, EquivalenceClasses equivalenceClasses,
-                        DisjointnessClasses disjointnessClasses, Monitor monitor) {
+    public TwoLitClauses(Model model, EquivalenceClasses equivalenceClasses,
+                        DisjointnessClasses disjointnessClasses, String problemId, Monitor monitor) {
         this.problemId = problemId;
         this.model = model;
         this.equivalenceClasses = equivalenceClasses;
         this.disjointnessClasses = disjointnessClasses;
         this.monitor = monitor;
         monitoring = monitor != null;
-        monitorId = problemId+"TwoLit";
+        monitorId = problemId+"-TwoLit";
         statistics = new TwoLitStatistics(problemId);
         thread = Thread.currentThread();
     }
@@ -142,7 +151,7 @@ public class TwoLitClauses {
      */
     public void addDerivedClause(int literal1, int literal2, IntArrayList origins) {
         if(monitoring) {
-            monitor.print(monitorId,"In:   derived clause" +
+            monitor.print(monitorId,"In:   derived clause " +
                     Symboltable.toString(literal1,model.symboltable) + "," +
                     Symboltable.toString(literal2,model.symboltable));}
         int[] clause = new int[]{-1,ClauseType.OR.ordinal(),literal1,literal2};
@@ -156,7 +165,7 @@ public class TwoLitClauses {
      */
     protected void integrateBasicClause(int[] basicClause, IntArrayList origins) throws Unsatisfiable {
         if(monitoring) {
-            monitor.print(monitorId,"Exec:    clause " +
+            monitor.print(monitorId,"Exec: clause " +
                     BasicClauseList.clauseToString(0,basicClause, model.symboltable));}
         if(origins == null && basicClause[0] >= 0) {
             origins = new IntArrayList(); origins.add(basicClause[0]);}
@@ -290,6 +299,18 @@ public class TwoLitClauses {
         if(literal1 == literal2) {                // merge
             model.add(literal1,clause.origins,null); // send back to me
             return false;}
+
+        switch(model.status(literal1)) {
+            case +1: return false;
+            case -1: model.add(literal2,
+                        joinIntArraysSorted(clause.origins, model.getOrigin(-literal1)),null); // send back to me
+                return false;}
+
+        switch(model.status(literal2)) {
+            case +1: return false;
+            case -1: model.add(literal1,
+                        joinIntArraysSorted(clause.origins, model.getOrigin(-literal2)),null); // send back to me
+                return false;}
         return true;}
 
     /** The method looks for equivalences and disjointnesses
@@ -452,6 +473,13 @@ public class TwoLitClauses {
             disjointnessClasses.addDerivedDisjoints(literals,origins);});
     }
 
+    /** checks if there are no two-literal clauses
+     *
+     * @return true if there are no clauses.
+     */
+    public boolean isEmpty() {
+        return clauses.isEmpty();}
+
     /** turns the clauses into a string
      *
      * @param symboltable null or a symboltable
@@ -460,7 +488,7 @@ public class TwoLitClauses {
     public String toString(String prefix,Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
         string.append(prefix);
-        string.append("Two-Literal Clauses of problem " + problemId + "\n");
+        string.append("Two-Literal clauses of problem " + problemId + ":\n");
         for(int i = 0; i < clauses.size(); ++i) {
             string.append(prefix + clauses.get(i).toString("  ", symboltable));
             if(i < clauses.size()-1) string.append("\n");}
