@@ -121,7 +121,7 @@ public class Preparer {
         taskQueue    = new TaskQueue(problemId,monitor);
         trackReasoning = globalParameters.trackReasoning;
         model = new Model(predicates,symboltable);
-        equivalenceClasses = new EquivalenceClasses(model,problemId,monitor);
+        equivalenceClasses = new EquivalenceClasses(model,problemId,monitor,null);
         statistics = new PreparerStatistics(problemId);}
 
 

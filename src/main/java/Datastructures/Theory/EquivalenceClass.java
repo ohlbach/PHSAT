@@ -20,6 +20,9 @@ import static Utilities.Utilities.joinIntArrays;
  * The datastructures are not optimized because the lists are usually very small.
  */
 public class EquivalenceClass {
+    /** the identifier for the class */
+    public int id;
+
     /** The smallest integer of the equivalence class. It is always positive */
     public int representative;
 
@@ -36,7 +39,8 @@ public class EquivalenceClass {
      * @param literals a preprocessed basic clause (the list may be changed)
      * @param origins  the list of basic clause ids for this equivalence
      */
-    public EquivalenceClass(IntArrayList literals, IntArrayList origins) {
+    public EquivalenceClass(int id, IntArrayList literals, IntArrayList origins) {
+        this.id = id;
         this.origins = origins;
         representative = Integer.MAX_VALUE;
         for(int literal : literals) {
@@ -125,7 +129,7 @@ public class EquivalenceClass {
      * @return the equivalent literals as a string
      */
     public String toString(String prefix, @Nullable Symboltable symboltable) {
-        String st = prefix + Symboltable.toString(representative,symboltable) + " = ";
+        String st = prefix + id + ": " + Symboltable.toString(representative,symboltable) + " = ";
         return st + Symboltable.toString(literals," = ",symboltable);}
 
     /** turns the equivalent literals into a =-separated string of numbers.
@@ -133,7 +137,7 @@ public class EquivalenceClass {
      * @return the equivalent literals as a string
      */
     public String toNumbers() {
-        return "" + representative + " = " + Symboltable.toString(literals," = ",null);}
+        return "" + id + ": " + representative + " = " + Symboltable.toString(literals," = ",null);}
 
 
     /** turns the equivalence class into a string "representative = literal1 = literal2 =  [origins]"
@@ -143,6 +147,7 @@ public class EquivalenceClass {
      */
     public String infoString(@Nullable Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
+        string.append(id + ": ");
         string.append(Symboltable.toString(representative,symboltable));
         for(int i = 0; i < literals.size(); ++i) {
             string.append(" = ").append(Symboltable.toString(literals.getInt(i),symboltable));}

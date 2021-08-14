@@ -6,6 +6,7 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Management.Monitor;
+import Utilities.NumberGenerator;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
@@ -22,9 +23,12 @@ public class EquivalenceClassesTest {
     boolean monitoring = true;
 
     int type = ClauseType.EQUIV.ordinal();
+
+
     @Test
     public void addBasicEquivalenceClause1() {
         System.out.println("Add Basic Equivalence Clause no overlaps");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Symboltable symboltable = new Symboltable(10);
         symboltable.setName(1,"p");
@@ -34,27 +38,27 @@ public class EquivalenceClassesTest {
         symboltable.setName(5,"b");
         symboltable.setName(6,"c");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,ng);
         int[] clause = new int[]{1,type,1,2,3};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
-        assertEquals("1 = 2 = 3",eqClasses.toString());
-        assertEquals("1 = 2 = 3 [1]",eqClasses.infoString(null));
-        assertEquals("p = q = r",eqClasses.toString("",symboltable));
-        assertEquals("p = q = r [1]",eqClasses.infoString(symboltable));
+        assertEquals("1: 1 = 2 = 3",eqClasses.toString());
+        assertEquals("1: 1 = 2 = 3 [1]",eqClasses.infoString(null));
+        assertEquals("1: p = q = r",eqClasses.toString("",symboltable));
+        assertEquals("1: p = q = r [1]",eqClasses.infoString(symboltable));
 
         clause = new int[]{2,type,4,-5,-6};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
 
-        assertEquals("1 = 2 = 3\n" +
-                "4 = -5 = -6",eqClasses.toString());
-        assertEquals("1 = 2 = 3 [1]\n" +
-                "4 = -5 = -6 [2]",eqClasses.infoString(null));
-        assertEquals("p = q = r\n" +
-                "a = -b = -c",eqClasses.toString("",symboltable));
-        assertEquals("p = q = r [1]\n" +
-                "a = -b = -c [2]",eqClasses.infoString(symboltable));
+        assertEquals("1: 1 = 2 = 3\n" +
+                "2: 4 = -5 = -6",eqClasses.toString());
+        assertEquals("1: 1 = 2 = 3 [1]\n" +
+                "2: 4 = -5 = -6 [2]",eqClasses.infoString(null));
+        assertEquals("1: p = q = r\n" +
+                "2: a = -b = -c",eqClasses.toString("",symboltable));
+        assertEquals("1: p = q = r [1]\n" +
+                "2: a = -b = -c [2]",eqClasses.infoString(symboltable));
 
         assertEquals(1,eqClasses.getRepresentative(2));
         assertEquals(-1,eqClasses.getRepresentative(-2));
@@ -68,6 +72,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addBasicEquivalenceClause2() {
         System.out.println("Add Basic Equivalence Clause with overlaps");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Symboltable symboltable = new Symboltable(10);
         symboltable.setName(1,"p");
@@ -77,7 +82,7 @@ public class EquivalenceClassesTest {
         symboltable.setName(5,"b");
         symboltable.setName(6,"c");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,ng);
         int[] clause = new int[]{1,type,2,3,4};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
@@ -85,19 +90,20 @@ public class EquivalenceClassesTest {
         clause = new int[]{2,type,-5,6,2}; // 2 overlaps
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
-        assertEquals("2 = 3 = 4 = -5 = 6",eqClasses.toString());
-        assertEquals("2 = 3 = 4 = -5 = 6 [1, 2]",eqClasses.infoString(null));
+        assertEquals("1: 2 = 3 = 4 = -5 = 6",eqClasses.toString());
+        assertEquals("1: 2 = 3 = 4 = -5 = 6 [1, 2]",eqClasses.infoString(null));
 
         clause = new int[]{3,type,6,7,1}; // 2 overlaps
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
-        assertEquals("1 = 2 = 7 = 3 = 4 = -5 = 6",eqClasses.toString());
-        assertEquals("1 = 2 = 7 = 3 = 4 = -5 = 6 [1, 2, 3]",eqClasses.infoString(null));
+        assertEquals("3: 1 = 2 = 7 = 3 = 4 = -5 = 6",eqClasses.toString());
+        assertEquals("3: 1 = 2 = 7 = 3 = 4 = -5 = 6 [1, 2, 3]",eqClasses.infoString(null));
     }
 
     @Test
     public void addBasicEquivalenceClause3() {
         System.out.println("Add Basic Equivalence Clause with model ");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Symboltable symboltable = new Symboltable(10);
         symboltable.setName(1, "p");
@@ -118,7 +124,7 @@ public class EquivalenceClassesTest {
                 ((literal, originals) -> {
                     observed.add(literal);
                     observed.add(originals);}));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
 
         int[] clause = new int[]{1,type,5,2,4};
         try{
@@ -142,9 +148,10 @@ public class EquivalenceClassesTest {
     @Test
     public void addBasicEquivalenceClause4() {
         System.out.println("Add Basic Equivalence Clause internal error ");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
         int[] clause = new int[]{1,type,2,3,4,3};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
@@ -166,6 +173,7 @@ public class EquivalenceClassesTest {
     @Test
     public void integrateTrueLiteral() {
         System.out.println("Integrate True Literal ");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
         ArrayList<Object> observed = new ArrayList<>();
@@ -173,7 +181,7 @@ public class EquivalenceClassesTest {
                 ((literal, originals) -> {
                     observed.add(literal);
                     observed.add(originals);}));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
         int[] clause = new int[]{1,type,2,3,4};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
@@ -192,9 +200,10 @@ public class EquivalenceClassesTest {
     @Test
     public void addDerived1() {
         System.out.println("add derived equivalence empty ");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
         ArrayList<Object> observed = new ArrayList<>();
         eqClasses.addEquivalenceObserver((representative, literal, origins) ->
             {observed.add(representative); observed.add(literal);observed.add(origins);});
@@ -210,9 +219,10 @@ public class EquivalenceClassesTest {
     @Test
     public void addDerived2() {
         System.out.println("add derived equivalence join one ");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
         ArrayList<Object> observed = new ArrayList<>();
         eqClasses.addEquivalenceObserver((representative, literal, origins) ->
         {observed.add(representative); observed.add(literal);observed.add(origins);});
@@ -233,9 +243,10 @@ public class EquivalenceClassesTest {
     @Test
     public void addDerived3() {
         System.out.println("add derived equivalence join two  ");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
         ArrayList<Object> observed = new ArrayList<>();
         eqClasses.addEquivalenceObserver((representative, literal, origins) ->
         {observed.add(representative); observed.add(literal);observed.add(origins);});
@@ -262,9 +273,10 @@ public class EquivalenceClassesTest {
     @Test
     public void threadtest() {
         System.out.println("Thread ");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
         int[] clause1 = new int[]{1,type,2,3,4};
         int[] clause2 = new int[]{2,type,5,6,7};
         try{eqClasses.addBasicEquivalenceClause(clause1);

@@ -41,7 +41,11 @@ public class BasicClauseList {
     /** an info-string about the origin of the clauses */
     public String info = null;
 
+    /** the largest clause length */
     public int maxClauseLength = 0;
+
+    /** the largest clause index */
+    public int maxIndex = 0;
 
     /** is set in the generators */
     public Symboltable symboltable = null;
@@ -71,10 +75,12 @@ public class BasicClauseList {
     public void addClause(int[] clause) {
         if(!checkSyntax(clause)) {return;}
         maxClauseLength = Math.max(maxClauseLength,clause.length-2);
+        maxIndex        = Math.max(clause[0],maxIndex);
         switch(ClauseType.getType(clause[1])) {
             case OR:
-                if(clause.length == 3)
-                    conjunctions.add(clause);
+                if(clause.length == 3) {
+                    clause[1] = ClauseType.AND.ordinal();
+                    conjunctions.add(clause);}
                 else disjunctions.add(clause); break;
             case AND:      conjunctions.add(clause); break;
             case XOR:      xors.add(clause);         break;

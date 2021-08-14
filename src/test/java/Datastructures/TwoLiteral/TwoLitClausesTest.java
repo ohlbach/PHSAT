@@ -7,6 +7,7 @@ import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Management.Monitor;
+import Utilities.NumberGenerator;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
@@ -27,13 +28,14 @@ public class TwoLitClausesTest {
     @Test
     public void addBasicClause1() {
         System.out.println("addBasicClause plain");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Symboltable symboltable = new Symboltable(10);
         symboltable.setName(1,"p");
         symboltable.setName(2,"q");
         symboltable.setName(3,"r");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,ng);
         DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
 
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
@@ -51,13 +53,14 @@ public class TwoLitClausesTest {
     @Test
     public void addBasicClause2() {
         System.out.println("addBasicClause tautology and subsumed");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Symboltable symboltable = new Symboltable(10);
         symboltable.setName(1,"p");
         symboltable.setName(2,"q");
         symboltable.setName(3,"r");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,ng);
         DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
 
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
@@ -76,6 +79,7 @@ public class TwoLitClausesTest {
     @Test
     public void addBasicClause3() {
         System.out.println("addBasicClause with model");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Symboltable symboltable = new Symboltable(10);
         symboltable.setName(1,"p");
@@ -92,7 +96,7 @@ public class TwoLitClausesTest {
         IntArrayList origins = new IntArrayList();
         origins.add(20);
         model.addImmediately(2,origins);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,ng);
         DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
 
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
@@ -112,9 +116,10 @@ public class TwoLitClausesTest {
     @Test
     public void addBasicClause4() {
         System.out.println("addBasicClause with equivalence");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10,null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,ng);
         DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
 
         int[] clauseeq = new int[]{1,typeEQ,1,2};
@@ -139,6 +144,7 @@ public class TwoLitClausesTest {
     @Test
     public void threadtest1() {
         System.out.println("Thread ");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
         ArrayList<Object> observed = new ArrayList<>();
@@ -147,7 +153,7 @@ public class TwoLitClausesTest {
                     observed.add(literal);
                     observed.add(originals);
                 }));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
         DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
 
@@ -179,9 +185,10 @@ public class TwoLitClausesTest {
     @Test
     public void threadtest2() {
         System.out.println("Thread with Unsatifiability");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
         DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
 
@@ -208,9 +215,10 @@ public class TwoLitClausesTest {
     @Test
     public void threadtest3() {
         System.out.println("Thread with Equivalences");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
         DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
 
@@ -236,9 +244,10 @@ public class TwoLitClausesTest {
     @Test
     public void threadtest4() {
         System.out.println("Thread with Disjointnesses");
+        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
         DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
 
