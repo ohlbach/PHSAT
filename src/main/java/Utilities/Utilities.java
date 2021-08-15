@@ -734,6 +734,33 @@ public class Utilities {
         newList.sort((i,j)-> Integer.compare(i,j));
         return newList;}
 
+    /** generates a sorted IntArray with the two ints
+     *
+     * @param i
+     * @param j
+     * @return the sorted IntArray.
+     */
+    public static IntArrayList makeIntArraySorted(int i, int j) {
+        IntArrayList list = new IntArrayList();
+        if(i == j) {list.add(i); return list;}
+        if(i < j) {list.add(i); list.add(j); return list;}
+        list.add(j); list.add(i); return list;}
+
+    /** adds the int to a clone of list and sorts it
+     *
+     * @param list  an IntArrayList
+     * @param j     an int
+     * @return the sorted IntArrayList.
+     */
+    public static IntArrayList addIntArraySorted(IntArrayList list, int j) {
+        if(list == null) {list = new IntArrayList(); list.add(j); return list;}
+        if(list.contains(j)) return list;
+        IntArrayList newList = list.clone();
+        newList.add(j);
+        newList.sort((i,k)-> Integer.compare(i,k));
+        return newList;}
+
+
     /** adds the elements of the second list to the first list
      *
      * @param list1 an IntArray

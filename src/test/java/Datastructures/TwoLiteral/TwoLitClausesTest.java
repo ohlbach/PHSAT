@@ -7,7 +7,6 @@ import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Management.Monitor;
-import Utilities.NumberGenerator;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
@@ -28,14 +27,13 @@ public class TwoLitClausesTest {
     @Test
     public void addBasicClause1() {
         System.out.println("addBasicClause plain");
-        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Symboltable symboltable = new Symboltable(10);
         symboltable.setName(1,"p");
         symboltable.setName(2,"q");
         symboltable.setName(3,"r");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,ng);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
         DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
 
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
@@ -44,23 +42,22 @@ public class TwoLitClausesTest {
         try{clauses.integrateBasicClause(clause1,null);
             clauses.integrateBasicClause(clause2,null);}
         catch(Unsatisfiable uns) {}
-        assertEquals("Two-Literal Clauses of problem test\n" +
-                "  q,r\n" +
-                "  r,5",clauses.toString());
+        assertEquals("Two-Literal clauses of problem test:\n" +
+                "  2-1: q,r\n" +
+                "  2-2: r,5",clauses.toString());
         //System.out.println(clauses.infoString(symboltable));
     }
 
     @Test
     public void addBasicClause2() {
         System.out.println("addBasicClause tautology and subsumed");
-        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Symboltable symboltable = new Symboltable(10);
         symboltable.setName(1,"p");
         symboltable.setName(2,"q");
         symboltable.setName(3,"r");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,ng);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
         DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
 
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
@@ -72,14 +69,13 @@ public class TwoLitClausesTest {
             clauses.integrateBasicClause(clause2,null);
             clauses.integrateBasicClause(clause3,null);}
         catch(Unsatisfiable uns) {}
-        assertEquals("Two-Literal Clauses of problem test\n" +
-                "  q,r",clauses.toString());
+        assertEquals("Two-Literal clauses of problem test:\n" +
+                "  2-1: q,r",clauses.toString());
         //System.out.println(clauses.infoString(symboltable));
     }
     @Test
     public void addBasicClause3() {
         System.out.println("addBasicClause with model");
-        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Symboltable symboltable = new Symboltable(10);
         symboltable.setName(1,"p");
@@ -96,7 +92,7 @@ public class TwoLitClausesTest {
         IntArrayList origins = new IntArrayList();
         origins.add(20);
         model.addImmediately(2,origins);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,ng);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
         DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
 
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
@@ -116,10 +112,9 @@ public class TwoLitClausesTest {
     @Test
     public void addBasicClause4() {
         System.out.println("addBasicClause with equivalence");
-        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10,null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,ng);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
         DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
 
         int[] clauseeq = new int[]{1,typeEQ,1,2};
@@ -135,16 +130,15 @@ public class TwoLitClausesTest {
             clauses.integrateBasicClause(clause3,null);}
         catch(Unsatisfiable uns) {}
         assertEquals("Two-Literal clauses of problem test:\n" +
-                "  1,3\n" +
-                "  -1,4\n" +
-                "  5,-1",clauses.toString());
+                "  2-1: 1,3\n" +
+                "  2-2: -1,4\n" +
+                "  2-3: 5,-1",clauses.toString());
         //System.out.println(clauses.infoString(null));
     }
 
     @Test
     public void threadtest1() {
         System.out.println("Thread ");
-        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
         ArrayList<Object> observed = new ArrayList<>();
@@ -153,7 +147,7 @@ public class TwoLitClausesTest {
                     observed.add(literal);
                     observed.add(originals);
                 }));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
         DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
 
@@ -175,7 +169,7 @@ public class TwoLitClausesTest {
         eqthread.interrupt(); twothread.interrupt();
         try{eqthread.join();twothread.join();} catch(Exception ex) {}
         assertEquals("Two-Literal clauses of problem test:\n" +
-                "  5,6",clauses.toString());
+                "  2-4: 5,6",clauses.toString());
         assertEquals("[3, [1, 3], 4, [1, 2, 3]]",observed.toString());
         assertEquals("3,4",model.toNumbers());
         //System.out.println(dClasses.infoString(null));
@@ -185,10 +179,9 @@ public class TwoLitClausesTest {
     @Test
     public void threadtest2() {
         System.out.println("Thread with Unsatifiability");
-        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
         DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
 
@@ -215,10 +208,9 @@ public class TwoLitClausesTest {
     @Test
     public void threadtest3() {
         System.out.println("Thread with Equivalences");
-        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
         DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
 
@@ -237,17 +229,16 @@ public class TwoLitClausesTest {
         try{Thread.sleep(100);}catch(Exception ex) {}
         eqthread.interrupt(); dthread.interrupt(); twothread.interrupt();
         try{eqthread.join();dthread.join();twothread.join();} catch(Exception ex) {}
-        assertEquals("1 = 2", eqClasses.toString());
+        assertEquals("E-1: 1 = 2", eqClasses.toString());
         assertTrue(clauses.isEmpty());
     }
 
     @Test
     public void threadtest4() {
         System.out.println("Thread with Disjointnesses");
-        NumberGenerator ng = new NumberGenerator(1);
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,ng);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
         DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
         TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
 
@@ -269,10 +260,10 @@ public class TwoLitClausesTest {
         eqthread.interrupt(); dthread.interrupt(); twothread.interrupt();
         try{eqthread.join();dthread.join();twothread.join();} catch(Exception ex) {}
         assertEquals("Disjointness Classes:\n" +
-                "2 != 3 != 1", dClasses.toString());
+                "D-1: 2 != 3 != 1", dClasses.toString());
         assertEquals("Two-Literal clauses of problem test:\n" +
-                "  -1,-2\n" +
-                "  -1,-3\n" +
-                "  -2,-3",clauses.toString());
+                "  2-1: -1,-2\n" +
+                "  2-2: -1,-3\n" +
+                "  2-3: -2,-3",clauses.toString());
     }
 }

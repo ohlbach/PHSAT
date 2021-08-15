@@ -27,6 +27,10 @@ import static Utilities.Utilities.joinIntArraysSorted;
  */
 
 public class TwoLitClauses {
+
+    /** for enumerating the clauses */
+    int counter = 0;
+
     ArrayList<TwoLitClause> clauses = new ArrayList<>();
 
     /** maps a literal to the clauses containing this literal. */
@@ -169,7 +173,7 @@ public class TwoLitClauses {
                     BasicClauseList.clauseToString(0,basicClause, model.symboltable));}
         if(origins == null && basicClause[0] >= 0) {
             origins = new IntArrayList(); origins.add(basicClause[0]);}
-        TwoLitClause clause = new TwoLitClause(basicClause[2],basicClause[3],origins);
+        TwoLitClause clause = new TwoLitClause(++counter,basicClause[2],basicClause[3],origins);
         if(normalizeClause(clause) && !isSubsumed(clause)) insertClause(clause);}
 
     /** puts a true literal into the queue.

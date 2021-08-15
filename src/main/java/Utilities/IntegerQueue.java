@@ -128,7 +128,7 @@ public class IntegerQueue {
                     positions[queue[pos]] = pos;
                     positions[queue[pos-1]] = pos-1;}
                 else{break;}}}
-        }
+    }
 
     /** gets an item in the queue which is defined by a random generator.
      * If exponent = 1, the chance is equal for every item<br>
@@ -169,5 +169,4 @@ public class IntegerQueue {
         }
         return st.toString();
     }
-
 }

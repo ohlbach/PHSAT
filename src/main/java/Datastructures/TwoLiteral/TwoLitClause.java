@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 **/
 
 public class TwoLitClause {
+    public int id;                // the identifier
     public int literal1;          // the first literal
     public int literal2;          // the second literal
     public IntArrayList origins;  // the list of basic clause ids which caused this clause.
@@ -18,7 +19,8 @@ public class TwoLitClause {
      * @param literal2  the second literal
      * @param origins    the list of basic clause ids which caused this clause.
      */
-    public TwoLitClause(int literal1, int literal2, IntArrayList origins) {
+    public TwoLitClause(int id, int literal1, int literal2, IntArrayList origins) {
+        this.id = id;
         this.literal1 = literal1;
         this.literal2 = literal2;
         this.origins = origins;}
@@ -29,7 +31,8 @@ public class TwoLitClause {
      * @param literal2  the second literal
      * @param origin    the basic clause id which caused this clause.
      */
-    public TwoLitClause(int literal1, int literal2, int origin) {
+    public TwoLitClause(int id, int literal1, int literal2, int origin) {
+        this.id = id;
         this.literal1 = literal1;
         this.literal2 = literal2;
         origins = new IntArrayList();
@@ -37,7 +40,7 @@ public class TwoLitClause {
 
     /** turns this clause into a string */
     public String toString() {
-        return literal1 + "," + literal2;
+        return "2-" + id + ": " + literal1 + "," + literal2;
     }
 
     /** turns this clause into a string using the symbol table
@@ -48,7 +51,7 @@ public class TwoLitClause {
      */
     public String toString(String prefix, Symboltable symboltable) {
         if(symboltable == null) return prefix + toString();
-        return prefix + symboltable.toString(literal1) + "," + symboltable.toString(literal2); }
+        return prefix + "2-" + id + ": " + symboltable.toString(literal1) + "," + symboltable.toString(literal2); }
 
 
 

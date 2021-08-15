@@ -24,6 +24,9 @@ import static Utilities.Utilities.*;
  */
 public class DisjointnessClasses {
 
+    /** for enumerating the classes */
+    private int counter = 0;
+
     /** the final result of this thread */
     public Result result = null;
 
@@ -408,7 +411,7 @@ public class DisjointnessClasses {
      * @return the new disjointness class
      */
     private DisjointnessClass createDisjointnessClass(IntArrayList literals, IntArrayList origins) {
-        DisjointnessClass dClass = new DisjointnessClass(literals,origins);
+        DisjointnessClass dClass = new DisjointnessClass(++counter,literals,origins);
         disjointnessClasses.add(dClass);
         for(int literal1 : literals) {
             IntArrayList disjoints = disjointnesses.get(literal1);

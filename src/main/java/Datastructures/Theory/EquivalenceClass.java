@@ -129,7 +129,7 @@ public class EquivalenceClass {
      * @return the equivalent literals as a string
      */
     public String toString(String prefix, @Nullable Symboltable symboltable) {
-        String st = prefix + id + ": " + Symboltable.toString(representative,symboltable) + " = ";
+        String st = prefix + "E-"+ id + ": " + Symboltable.toString(representative,symboltable) + " = ";
         return st + Symboltable.toString(literals," = ",symboltable);}
 
     /** turns the equivalent literals into a =-separated string of numbers.
@@ -137,7 +137,7 @@ public class EquivalenceClass {
      * @return the equivalent literals as a string
      */
     public String toNumbers() {
-        return "" + id + ": " + representative + " = " + Symboltable.toString(literals," = ",null);}
+        return "E-" + id + ": " + representative + " = " + Symboltable.toString(literals," = ",null);}
 
 
     /** turns the equivalence class into a string "representative = literal1 = literal2 =  [origins]"
@@ -147,7 +147,7 @@ public class EquivalenceClass {
      */
     public String infoString(@Nullable Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
-        string.append(id + ": ");
+        string.append("E-" + id + ": ");
         string.append(Symboltable.toString(representative,symboltable));
         for(int i = 0; i < literals.size(); ++i) {
             string.append(" = ").append(Symboltable.toString(literals.getInt(i),symboltable));}

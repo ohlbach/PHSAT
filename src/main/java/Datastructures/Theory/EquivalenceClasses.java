@@ -7,7 +7,6 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Management.Monitor;
-import Utilities.NumberGenerator;
 import Utilities.TriConsumer;
 import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -64,7 +63,7 @@ public class EquivalenceClasses  {
     /** for distinguishing the monitoring areas */
     private String monitorId = null;
 
-    private NumberGenerator numberGenerator;
+    private int counter = 0;
 
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
@@ -80,11 +79,10 @@ public class EquivalenceClasses  {
      *
      * @param model
      */
-    public EquivalenceClasses(Model model, String problemId, Monitor monitor, NumberGenerator numberGenerator) {
+    public EquivalenceClasses(Model model, String problemId, Monitor monitor) {
         this.problemId = problemId;
         thread = Thread.currentThread();
         this.model = model;
-        this.numberGenerator = numberGenerator;
         statistics = new EquivalenceStatistics(problemId);
         this.monitor = monitor;
         if(monitor != null) {
@@ -200,7 +198,7 @@ public class EquivalenceClasses  {
                 monitor.print(monitorId,"Equivalence clause " + clause[0] + " shrank to '" +
                 Symboltable.toString(literals,model.symboltable) + "' and will be ignored.");}
             return; }
-        EquivalenceClass eqClass = new EquivalenceClass(numberGenerator.next(), literals,origins);
+        EquivalenceClass eqClass = new EquivalenceClass(++counter, literals,origins);
         eqClass = joinEquivalenceClass(eqClass);
         if(monitoring) {
             monitor.print(monitorId,"Equivalence class " + eqClass.infoString(model.symboltable));}
@@ -245,14 +243,22 @@ public class EquivalenceClasses  {
         int newRepresentative = newClass.representative;
         for(EquivalenceClass oldClass : equivalenceClasses) {
             if(newRepresentative == oldClass.representative) {
+                if(monitoring) {
+                    monitor.print(monitorId,"merging " +
+                            newClass.toString("", model.symboltable) + " into " +
+                            oldClass.toString("", model.symboltable));}
                 oldClass.literals = joinIntArrays(oldClass.literals,newClass.literals);
                 oldClass.origins  = joinIntArraysSorted(oldClass.origins,newClass.origins);
                 return oldClass;}
             int sign = newClass.contains(oldClass.representative);
             if(sign != 0) {
+                if(monitoring) {
+                    monitor.print(monitorId,"merging " +
+                            oldClass.toString("", model.symboltable) + " into " +
+                            newClass.toString("", model.symboltable));}
                 for(int literal : oldClass.literals) {
                     newClass.literals = addInt(newClass.literals,sign*literal);}
-                newClass.origins = joinIntArraysSorted(newClass.origins,oldClass.origins);
+                newClass.origins = joinIntArraysSorted(oldClass.origins,newClass.origins);
                 equivalenceClasses.remove(oldClass);
                 break;}}
         equivalenceClasses.add(newClass);
@@ -326,7 +332,7 @@ public class EquivalenceClasses  {
             if(eqClass2 == null) {
                 IntArrayList literals = new IntArrayList(2);
                 literals.add(literal1); literals.add(literal2);
-                EquivalenceClass newClass = new EquivalenceClass(numberGenerator.next(),literals,origins);
+                EquivalenceClass newClass = new EquivalenceClass(++counter,literals,origins);
                 equivalenceClasses.add(newClass);
                 rep = newClass.representative; lit = newClass.literals.getInt(0);}
             else {  // eqClass2 != null

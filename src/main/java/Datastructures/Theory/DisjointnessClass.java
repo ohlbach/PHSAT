@@ -5,7 +5,6 @@ import Datastructures.Symboltable;
 import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import static Utilities.Utilities.joinIntArrays;
 import static Utilities.Utilities.joinIntArraysSorted;
 
 /** A disjointness class is a list of literals, e.g. p,q,r, with disjoint truth values.
@@ -21,6 +20,9 @@ import static Utilities.Utilities.joinIntArraysSorted;
  * The datastructures are not optimized because the lists are usually very small.
  */
 public class DisjointnessClass {
+    /** the classes identifier */
+    public int id;
+
     /** The list of disjoint literals */
     public IntArrayList literals;
 
@@ -33,7 +35,8 @@ public class DisjointnessClass {
      * @param literals a list of literals
      * @param origins the indices of the basic clauses causes the disjointness.
      */
-    public DisjointnessClass(IntArrayList literals, IntArrayList origins) {
+    public DisjointnessClass(int id,IntArrayList literals, IntArrayList origins) {
+        this.id = id;
         this.literals = literals;
         this.origins = origins;}
 
@@ -89,7 +92,7 @@ public class DisjointnessClass {
      * @return the class as a comma separated string.
      */
     public String toString() {
-        return Symboltable.toString(literals, " != ",null);}
+        return "D-" + id + ": " + Symboltable.toString(literals, " != ",null);}
 
     /** turns the disjointness class into a string
      *
@@ -97,7 +100,7 @@ public class DisjointnessClass {
      * @return the class as a comma separated string.
      */
     public String toString(String prefix, @Nullable Symboltable symboltable) {
-        return prefix + Symboltable.toString(literals," != ",symboltable);}
+        return prefix + "D-" + id + ": " + Symboltable.toString(literals," != ",symboltable);}
 
     /** turns the disjointness class into a string, together with the origins.
      *
@@ -105,7 +108,7 @@ public class DisjointnessClass {
      * @return the class as a comma separated string.
      */
     public String infoString(@Nullable Symboltable symboltable) {
-        String string = Symboltable.toString(literals," != ", symboltable);
+        String string = "D-" + id + ": " + Symboltable.toString(literals," != ", symboltable);
         if(origins != null) {string += ": " +origins.toString();}
         return string;}
 

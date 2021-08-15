@@ -11,7 +11,6 @@ import Datastructures.TwoLiteral.TwoLitClauses;
 import Generators.Generator;
 import Solvers.Resolution.Preparer;
 import Solvers.Solver;
-import Utilities.NumberGenerator;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.PrintStream;
@@ -35,7 +34,6 @@ public class ProblemSupervisor {
     int numberOfSolvers;
     public Controller controller;
     Preparer preparer;
-    public NumberGenerator numberGenerator;
 
     public Model model;
     public EquivalenceClasses equivalenceClasses;
@@ -65,13 +63,12 @@ public class ProblemSupervisor {
         String type = (String)problemParameters.get("type");
         StringBuffer errors = new StringBuffer(); StringBuffer warnings = new StringBuffer();
         basicClauseList = Generator.generate(type,problemParameters,errors,warnings);
-        numberGenerator = new NumberGenerator(basicClauseList.maxIndex + 1);
         controller.addError(errors); controller.addWarning(warnings);
         return basicClauseList != null;}
 
 
     public void solveProblem() throws Result {
-        initializeData();
+        initializeClasses();
         initializeAndEqv();
         preparer =  new Preparer(this);
         preparer.prepare();
@@ -97,9 +94,9 @@ public class ProblemSupervisor {
         globalParameters.log("Solvers finished for problem " + problemId);}
 
 
-    protected void initializeData() {
+    protected void initializeClasses() {
         model = new Model(basicClauseList.predicates,basicClauseList.symboltable);
-        equivalenceClasses  = new EquivalenceClasses(model,problemId, globalParameters.monitor,numberGenerator);
+        equivalenceClasses  = new EquivalenceClasses(model,problemId, globalParameters.monitor);
         disjointnessClasses = new DisjointnessClasses(model, equivalenceClasses, problemId, globalParameters.monitor);
         twoLitClauses = new TwoLitClauses(model,equivalenceClasses,disjointnessClasses,problemId, globalParameters.monitor);
     }
