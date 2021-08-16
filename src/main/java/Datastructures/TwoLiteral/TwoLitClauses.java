@@ -53,6 +53,8 @@ public class TwoLitClauses {
     /** The current thread */
     public Thread thread;
 
+    private Thread supervisorThread;
+
     /** for monitoring actions */
     public Monitor monitor;
 
@@ -77,7 +79,7 @@ public class TwoLitClauses {
                  return 3;});                             // Equivalence class
 
     public TwoLitClauses(Model model, EquivalenceClasses equivalenceClasses,
-                        DisjointnessClasses disjointnessClasses, String problemId, Monitor monitor) {
+                        DisjointnessClasses disjointnessClasses, String problemId, Monitor monitor, Thread supervisorThread) {
         this.problemId = problemId;
         this.model = model;
         this.equivalenceClasses = equivalenceClasses;
@@ -87,6 +89,7 @@ public class TwoLitClauses {
         monitorId = problemId+"-TwoLit";
         statistics = new TwoLitStatistics(problemId);
         thread = Thread.currentThread();
+        this.supervisorThread = supervisorThread;
     }
 
     /** adds an observer which is called when a two-literal clause is inserted
@@ -132,7 +135,9 @@ public class TwoLitClauses {
                 if(monitoring) {
                     monitor.print(monitorId,toString("",model.symboltable));}}
             catch(InterruptedException ex) {return;}
-            catch(Unsatisfiable unsatisfiable) {result = unsatisfiable;}}}
+            catch(Unsatisfiable unsatisfiable) {
+                result = unsatisfiable;
+                supervisorThread.interrupt();}}}
 
     /** puts a two-literal clause into the queue
      *

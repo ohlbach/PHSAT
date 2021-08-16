@@ -121,7 +121,7 @@ public class Preparer {
         taskQueue    = new TaskQueue(problemId,monitor);
         trackReasoning = globalParameters.trackReasoning;
         model = new Model(predicates,symboltable);
-        equivalenceClasses = new EquivalenceClasses(model,problemId,monitor);
+        equivalenceClasses = new EquivalenceClasses(model,problemId,monitor,null);
         statistics = new PreparerStatistics(problemId);}
 
 
@@ -144,7 +144,7 @@ public class Preparer {
             if(result != null) {return result;}}
 
         if(basicClauseList.disjoints != null || basicClauseList.xors != null) {
-            disjointnessClasses = new DisjointnessClasses(model,equivalenceClasses,problemId,monitor);}
+            disjointnessClasses = new DisjointnessClasses(model,equivalenceClasses,problemId,monitor,null);}
 
         if(basicClauseList.disjoints != null) {prepareDisjoints(basicClauseList.disjoints);}
 

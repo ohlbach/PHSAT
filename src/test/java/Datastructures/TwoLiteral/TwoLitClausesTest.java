@@ -33,10 +33,10 @@ public class TwoLitClausesTest {
         symboltable.setName(2,"q");
         symboltable.setName(3,"r");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor,null);
 
-        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
+        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor,null);
         int[] clause1 = new int[]{1,type,2,3};
         int[] clause2 = new int[]{1,type,3,5};
         try{clauses.integrateBasicClause(clause1,null);
@@ -57,10 +57,10 @@ public class TwoLitClausesTest {
         symboltable.setName(2,"q");
         symboltable.setName(3,"r");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor,null);
 
-        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
+        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor,null);
         int[] clause1 = new int[]{1,type,2,3};
         int[] clause2 = new int[]{2,type,3,-3};
         int[] clause3 = new int[]{3,type,3,2};
@@ -92,10 +92,10 @@ public class TwoLitClausesTest {
         IntArrayList origins = new IntArrayList();
         origins.add(20);
         model.addImmediately(2,origins);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor,null);
 
-        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
+        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor,null);
         int[] clause1 = new int[]{1,type,2,3};
         int[] clause2 = new int[]{2,type,-2,4};
         int[] clause3 = new int[]{3,type,5,-2};
@@ -114,13 +114,13 @@ public class TwoLitClausesTest {
         System.out.println("addBasicClause with equivalence");
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10,null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor,null);
 
         int[] clauseeq = new int[]{1,typeEQ,1,2};
         try{eqClasses.addBasicEquivalenceClause(clauseeq);} catch(Unsatisfiable uns) {}
 
-        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
+        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor,null);
         int[] clause1 = new int[]{2,type,2,3};
         int[] clause2 = new int[]{3,type,-2,4};
         int[] clause3 = new int[]{4,type,5,-2};
@@ -147,9 +147,9 @@ public class TwoLitClausesTest {
                     observed.add(literal);
                     observed.add(originals);
                 }));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
-        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
+        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor,null);
 
         Thread eqthread = new Thread(()->eqClasses.run());
         Thread twothread = new Thread(()->clauses.run());
@@ -181,9 +181,9 @@ public class TwoLitClausesTest {
         System.out.println("Thread with Unsatifiability");
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
-        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
+        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor,null);
 
         Thread eqthread = new Thread(()->eqClasses.run());
         Thread twothread = new Thread(()->clauses.run());
@@ -210,9 +210,9 @@ public class TwoLitClausesTest {
         System.out.println("Thread with Equivalences");
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
-        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
+        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor,null);
 
         Thread eqthread = new Thread(()->eqClasses.run());
         Thread dthread  = new Thread(()->dClasses.run());
@@ -238,9 +238,9 @@ public class TwoLitClausesTest {
         System.out.println("Thread with Disjointnesses");
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
-        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
+        TwoLitClauses clauses = new TwoLitClauses(model,eqClasses,dClasses,"test",monitor,null);
 
         Thread eqthread = new Thread(()->eqClasses.run());
         Thread dthread  = new Thread(()->dClasses.run());

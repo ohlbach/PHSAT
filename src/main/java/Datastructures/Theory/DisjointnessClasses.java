@@ -57,6 +57,12 @@ public class DisjointnessClasses {
     private ArrayList<Consumer<DisjointnessClass>> disjointnessObservers = new ArrayList<>();
 
 
+    /** The cuurent thread */
+    public Thread thread;
+
+    public Thread supervisorThread;
+
+
     /** A queue of newly derived unit literals, newly derived binary disjointnesses and basic disjointness clauses
      * The unit literals are automatically put at the beginning of the queue.
      */
@@ -68,18 +74,16 @@ public class DisjointnessClasses {
                 if(cl == ArrayList.class) {return 2;}    // Triple p,q,r
                 return 3;});                             // Equivalence class
 
-
-    /** The cuurent thread */
-    public Thread thread;
-
     /** creates a new instance
      *
      * @param model               the global (partial) model
      * @param equivalenceClasses  the equivalence classes (thread)
      */
-    public DisjointnessClasses(Model model, EquivalenceClasses equivalenceClasses, String problemId, Monitor monitor) {
+    public DisjointnessClasses(Model model, EquivalenceClasses equivalenceClasses, String problemId,
+                               Monitor monitor, Thread supervisorThread) {
         this.model = model;
         this.equivalenceClasses = equivalenceClasses;
+        this.supervisorThread = supervisorThread;
         statistics = new DisjointnessStatistics(problemId);
         this.monitor = monitor;
         monitoring = monitor != null;
@@ -127,7 +131,9 @@ public class DisjointnessClasses {
                     monitor.print(monitorId,"Current disjoinentesses:\n" +
                             toString("            ",model.symboltable));}}
             catch(InterruptedException ex) {return;}
-            catch(Unsatisfiable unsatisfiable) {result = unsatisfiable;}}}
+            catch(Unsatisfiable unsatisfiable) {
+                result = unsatisfiable;
+                supervisorThread.interrupt();}}}
 
     /** Adds a basic disjointness clause to the queue.
      *

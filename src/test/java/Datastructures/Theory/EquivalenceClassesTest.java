@@ -33,7 +33,7 @@ public class EquivalenceClassesTest {
         symboltable.setName(5,"b");
         symboltable.setName(6,"c");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,null);
         int[] clause = new int[]{1,type,1,2,3};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
@@ -76,7 +76,7 @@ public class EquivalenceClassesTest {
         symboltable.setName(5,"b");
         symboltable.setName(6,"c");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,null);
         int[] clause = new int[]{1,type,2,3,4};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
@@ -117,7 +117,7 @@ public class EquivalenceClassesTest {
                 ((literal, originals) -> {
                     observed.add(literal);
                     observed.add(originals);}));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
 
         int[] clause = new int[]{1,type,5,2,4};
         try{
@@ -143,7 +143,7 @@ public class EquivalenceClassesTest {
         System.out.println("Add Basic Equivalence Clause internal error ");
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         int[] clause = new int[]{1,type,2,3,4,3};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
@@ -172,7 +172,7 @@ public class EquivalenceClassesTest {
                 ((literal, originals) -> {
                     observed.add(literal);
                     observed.add(originals);}));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         int[] clause = new int[]{1,type,2,3,4};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
@@ -193,7 +193,7 @@ public class EquivalenceClassesTest {
         System.out.println("add derived equivalence empty ");
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         ArrayList<Object> observed = new ArrayList<>();
         eqClasses.addEquivalenceObserver((representative, literal, origins) ->
             {observed.add(representative); observed.add(literal);observed.add(origins);});
@@ -211,7 +211,7 @@ public class EquivalenceClassesTest {
         System.out.println("add derived equivalence join one ");
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         ArrayList<Object> observed = new ArrayList<>();
         eqClasses.addEquivalenceObserver((representative, literal, origins) ->
         {observed.add(representative); observed.add(literal);observed.add(origins);});
@@ -234,7 +234,7 @@ public class EquivalenceClassesTest {
         System.out.println("add derived equivalence join two  ");
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         ArrayList<Object> observed = new ArrayList<>();
         eqClasses.addEquivalenceObserver((representative, literal, origins) ->
         {observed.add(representative); observed.add(literal);observed.add(origins);});
@@ -263,7 +263,7 @@ public class EquivalenceClassesTest {
         System.out.println("Thread ");
         Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         Model model = new Model(10, null);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         int[] clause1 = new int[]{1,type,2,3,4};
         int[] clause2 = new int[]{2,type,5,6,7};
         try{eqClasses.addBasicEquivalenceClause(clause1);

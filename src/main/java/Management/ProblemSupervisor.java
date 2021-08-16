@@ -37,10 +37,15 @@ public class ProblemSupervisor {
 
     public Model model;
     public EquivalenceClasses equivalenceClasses;
+    public Thread equivalenceThread;
 
     public DisjointnessClasses disjointnessClasses;
+    public Thread disjointnessThread;
 
     public TwoLitClauses twoLitClauses;
+    public Thread twoLitThread;
+
+    public Thread supervisorThread;
 
     public SupervisorStatistics statistics = null;
 
@@ -53,6 +58,7 @@ public class ProblemSupervisor {
         this.problemParameters      = problemParameters;
         this.solverParameters       = solverParameters;
         statistics                  = new SupervisorStatistics(problemId);
+        supervisorThread            = Thread.currentThread();
     }
 
     /** reads or generates the SAT-clauses
@@ -70,6 +76,15 @@ public class ProblemSupervisor {
     public void solveProblem() throws Result {
         initializeClasses();
         initializeAndEqv();
+        try{
+            equivalenceThread = new Thread(()-> equivalenceClasses.run());
+            equivalenceThread.start();
+            disjointnessThread = new Thread(()-> equivalenceClasses.run());
+            disjointnessThread.start();
+            twoLitThread = new Thread(() -> twoLitClauses.run());
+            twoLitThread.start();
+            initializeDisjoints();
+
         preparer =  new Preparer(this);
         preparer.prepare();
         if(result != null) {return;}
@@ -86,19 +101,22 @@ public class ProblemSupervisor {
             int j = i;
             threads[i] = new Thread(() -> {results[j] = solvers[j].solve();});}
         for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
-        try{for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
+        for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
         catch (InterruptedException e) {}
+
         for(Solver solver : solvers) {
             System.out.println(solver.getStatistics().toString(false));
         }
         globalParameters.log("Solvers finished for problem " + problemId);}
 
 
-    protected void initializeClasses() {
+    /** initializes the model, the equivalenceClasses, the disjointnessClasses and the twoLitClauses
+     */
+    private void initializeClasses() {
         model = new Model(basicClauseList.predicates,basicClauseList.symboltable);
-        equivalenceClasses  = new EquivalenceClasses(model,problemId, globalParameters.monitor);
-        disjointnessClasses = new DisjointnessClasses(model, equivalenceClasses, problemId, globalParameters.monitor);
-        twoLitClauses = new TwoLitClauses(model,equivalenceClasses,disjointnessClasses,problemId, globalParameters.monitor);
+        equivalenceClasses  = new EquivalenceClasses(model,problemId, globalParameters.monitor,supervisorThread);
+        disjointnessClasses = new DisjointnessClasses(model, equivalenceClasses, problemId, globalParameters.monitor,supervisorThread);
+        twoLitClauses = new TwoLitClauses(model,equivalenceClasses,disjointnessClasses,problemId, globalParameters.monitor,supervisorThread);
     }
 
     /** This method initially fills up the model and the equivalenceClasses.
@@ -108,20 +126,23 @@ public class ProblemSupervisor {
      *
      * @throws Unsatisfiable if a contradiction occurs.
      */
-    protected void initializeAndEqv() throws Unsatisfiable {
+    private void initializeAndEqv() throws Unsatisfiable {
         for(int[] basicClause : basicClauseList.conjunctions) {
-            IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);
             for(int i = 2; i < basicClause.length; ++i) {
-                model.add(basicClause[i],origin,Thread.currentThread());}}
+                IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);
+                model.add(basicClause[i],origin,supervisorThread);}}
 
         for(int[] clause : basicClauseList.equivalences) {
             equivalenceClasses.addBasicEquivalenceClause(clause);}}
 
-    public Thread equivalenceThread;
-    protected void startInitialThreads() {
-        equivalenceThread = new Thread(()-> equivalenceClasses.run());
-        equivalenceThread.start();
-    }
+    /** sends the disjoints and xors into the corresponding class queues
+     */
+    private void initializeDisjoints() {
+        for(int[] basicClause : basicClauseList.disjoints) {
+            disjointnessClasses.addDisjointnessClause(basicClause);}
+        for(int[] basicClause : basicClauseList.xors) {
+            disjointnessClasses.addDisjointnessClause(basicClause);} }
+
 
     /** This method is called when a solver has found a new true literal.
      *  It forwards the literal to all other solvers.

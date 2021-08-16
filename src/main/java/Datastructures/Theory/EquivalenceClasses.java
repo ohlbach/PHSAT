@@ -65,6 +65,8 @@ public class EquivalenceClasses  {
 
     private int counter = 0;
 
+    private Thread supervisorThread;
+
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
      */
@@ -74,14 +76,17 @@ public class EquivalenceClasses  {
 
     private ArrayList<TriConsumer<Integer,Integer,IntArrayList>> equivalenceObservers = new ArrayList<>();
 
-    /** created a new instance with the global model.
-     * The model may already contain true literals.
+    /** creates the EquivalenceClasses instance
      *
-     * @param model
+     * @param model         the global model
+     * @param problemId     the is of the current problem
+     * @param monitor       null or the monitor
+     * @param supervisorThread the problemSupervisor's thread
      */
-    public EquivalenceClasses(Model model, String problemId, Monitor monitor) {
+    public EquivalenceClasses(Model model, String problemId, Monitor monitor, Thread supervisorThread) {
         this.problemId = problemId;
         thread = Thread.currentThread();
+        this.supervisorThread = supervisorThread;
         this.model = model;
         statistics = new EquivalenceStatistics(problemId);
         this.monitor = monitor;
@@ -156,7 +161,9 @@ public class EquivalenceClasses  {
                     monitor.print(monitorId,"Current equivalences:\n" + toString("            ",model.symboltable));}
             }
             catch(InterruptedException ex) {return;}
-            catch(Unsatisfiable unsatisfiable) {result = unsatisfiable;}}}
+            catch(Unsatisfiable unsatisfiable) {
+                result = unsatisfiable;
+                supervisorThread.interrupt();}}}
 
 
     /** adds a basic equivalence clause to the equivalence classes.

@@ -30,8 +30,8 @@ public class DisjointnessClassesTest {
         symboltable.setName(2,"q");
         symboltable.setName(3,"r");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor,null);
         IntArrayList literals = new IntArrayList();
         literals.add(1); literals.add(3);literals.add(2);
         IntArrayList origins = new IntArrayList();
@@ -53,8 +53,8 @@ public class DisjointnessClassesTest {
         symboltable.setName(2,"q");
         symboltable.setName(3,"r");
         Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor,null);
         int[] clause = new int[]{1,type,1,2,3};
         try{
         dClasses.integrateDisjointnessClause(clause,null);}
@@ -102,8 +102,8 @@ public class DisjointnessClassesTest {
         origins.add(20);
         origins.add(30);
         model.addImmediately(2, origins);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
         int[] clause = new int[]{1, type, 1, 2, 3};
         try {dClasses.integrateDisjointnessClause(clause, null);
         } catch (Unsatisfiable uns) {}
@@ -119,12 +119,12 @@ public class DisjointnessClassesTest {
         symboltable.setName(2, "q");
         symboltable.setName(3, "r");
         Model model = new Model(10, symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         int[] clause = new int[]{1,typeEQ,3,2,1};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
         clause = new int[]{2,type,4,2,5};
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
         try {dClasses.integrateDisjointnessClause(clause, null);
         } catch (Unsatisfiable uns) {}
         assertEquals("Disjointness Classes:\n" +
@@ -138,8 +138,8 @@ public class DisjointnessClassesTest {
         Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
         Symboltable symboltable =  null;
         Model model = new Model(10, symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
         int[] clause1 = new int[]{1, type, 1, 2, 3, 4};
         int[] clause2 = new int[]{2, type, 3,2,1};
         try {
@@ -166,8 +166,8 @@ public class DisjointnessClassesTest {
         Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
         Symboltable symboltable =  null;
         Model model = new Model(10, symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
         int[] clause1 = new int[]{1, type, 1, 2, 3, 4};
         int[] clause2 = new int[]{2, type, 3,2,1};
         try {
@@ -202,8 +202,8 @@ public class DisjointnessClassesTest {
                     observed.add(literal);
                     observed.add(originals);
                 }));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
         int[] clause1 = new int[]{1, type, 1, 2, 3, 4};
         int[] clause2 = new int[]{2, type, 3, 2, -1,5};
         try {
@@ -223,8 +223,8 @@ public class DisjointnessClassesTest {
         Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
         Symboltable symboltable = null;
         Model model = new Model(10, symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
         int[] clause1 = new int[]{1, type, 1, 2, 3};
         int[] clause2 = new int[]{2, type, 1, 3, 4};
         int[] clause3 = new int[]{3, type, 2,3,4};
@@ -252,8 +252,8 @@ public class DisjointnessClassesTest {
                         observed.add(literal);
                         observed.add(originals);
                     }));
-            EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-            DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
+            EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+            DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
             int[] clause1 = new int[]{1, type, 1, 2, 3};
             int[] clause2 = new int[]{2, type, 1, 3, 4};
             int[] clause3 = new int[]{2, type, 6, -3, 5,7};
@@ -276,8 +276,8 @@ public class DisjointnessClassesTest {
         Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
         Symboltable symboltable = null;
         Model model = new Model(10, symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
         int[] clause1 = new int[]{1, type, 1, 2, 3};
         IntArrayList originals = new IntArrayList();
         originals.add(20);
@@ -294,8 +294,8 @@ public class DisjointnessClassesTest {
         Symboltable symboltable = null;
         Model model = new Model(10, symboltable);
         ArrayList<DisjointnessClass> observed = new ArrayList<>();
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
         dClasses.addDisjointnessObserver(dClass -> observed.add(dClass));
         int[] clause1 = new int[]{1, type, 1, 2, 3};
         int[] clause2 = new int[]{1, type, 4,5,6};
@@ -324,8 +324,8 @@ public class DisjointnessClassesTest {
                     observed.add(literal);
                     observed.add(originals);
                 }));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
 
         Thread thread1 = new Thread(()->dClasses.run());
         thread1.start();
