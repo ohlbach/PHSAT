@@ -311,59 +311,60 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
          */
         public BucketIterator(int bucketStart, int bucketEnd) {
             this.bucketEnd = Math.min(buckets.size(), bucketEnd);
-            bucketIndex = bucketStart;
-        }
+            for(bucketIndex = bucketStart; bucketIndex < bucketEnd; ++bucketIndex) {
+                if(!buckets.get(bucketIndex).isEmpty()) {break;}}}
 
-        /** This method allows one to reuse the iterator
+        /**
+         * This method allows one to reuse the iterator
          *
          * @param bucketStart the index of the first bucket
          * @param bucketEnd   the index + 1 of the last bucket
          */
         public void reset(int bucketStart, int bucketEnd) {
             this.bucketEnd = Math.min(buckets.size(), bucketEnd);
-            bucketIndex    = bucketStart;
-            positionIndex  = -1;}
+            bucketIndex = bucketStart;
+            positionIndex = -1;
+        }
 
-        /** This method allows one to reuse the iterator
-         *
+        /**
+         * This method allows one to reuse the iterator
          */
         public void reset() {
             this.bucketEnd = buckets.size();
-            bucketIndex    = 0;
-            positionIndex  = -1;}
-
+            bucketIndex = 0;
+            positionIndex = -1;
+        }
 
 
         /**
          * checks if there is a next item in the buckets.
-         * The indices are moved to the next item in the buckets
          *
          * @return true if there is another item in the buckets
          */
         public boolean hasNext() {
-            if (bucketIndex >= bucketEnd) {
-                return false;
-            }
+            if (bucketIndex >= bucketEnd) {return false;}
             for (; bucketIndex < bucketEnd; ++bucketIndex) {
                 ArrayList<T> bucket = buckets.get(bucketIndex);
                 if (positionIndex == bucket.size() - 1) {
                     positionIndex = -1;
-                    continue;
-                }
+                    continue;}
                 ++positionIndex;
-                return true;
-            }
-            return false;
-        }
+                return true;}
+            return false;}
 
-        /**
-         * yields the next item in the buckets.
+        /** yields the next item in the buckets and moves the pointers forward to the next item
          *
          * @return the next item in the buckets.
          */
         public T next() {
-            return buckets.get(bucketIndex).get(positionIndex);
-        }
+            return buckets.get(bucketIndex).get(positionIndex);}
 
-    }
+        /** removes the item at the current position.*/
+        public void remove() {
+            ArrayList<T> bucket = buckets.get(bucketIndex);
+            bucket.remove(positionIndex);
+            for(int i = positionIndex+1; i < bucket.size(); ++i) {
+                T item = bucket.get(i);
+                item.setPosition(item.getPosition()-1);}
+            --positionIndex;}}
 }

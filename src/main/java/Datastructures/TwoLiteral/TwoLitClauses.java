@@ -73,10 +73,16 @@ public class TwoLitClauses {
      */
     private final PriorityBlockingQueue<Pair<Object,IntArrayList>> queue =
             new PriorityBlockingQueue<>(10,(Pair<Object,IntArrayList> o1, Pair<Object,IntArrayList> o2) -> {
+                int priority1; int priority2;
                 Class cl = o1.getKey().getClass();
-                if(cl == Integer.class)   {return 0;}    // true literal
-                if(cl == int[].class)     {return 1;}    // basic clause
-                 return 3;});                             // Equivalence class
+                if(cl == Integer.class)     {priority1 = 0;}        // true literal
+                else {if(cl == int[].class) {priority1 = 1;}        // basic clause
+                        else priority1 = 3;}
+                cl = o2.getKey().getClass();
+                if(cl == Integer.class)     {priority2 = 0;}        // true literal
+                    else {if(cl == int[].class) {priority2 = 1;}    // basic clause
+                        else priority2 = 3;}                        // Equivalence class
+                return Integer.compare(priority1,priority2);});
 
     public TwoLitClauses(Model model, EquivalenceClasses equivalenceClasses,
                         DisjointnessClasses disjointnessClasses, String problemId, Monitor monitor, Thread supervisorThread) {
@@ -117,7 +123,7 @@ public class TwoLitClauses {
         model.addObserver(thread,
                 (Integer literal, IntArrayList origins) -> addTrueLiteral(literal,origins));
 
-        equivalenceClasses.addEquivalenceObserver((representative, literal, origins) ->
+        equivalenceClasses.addObserver((representative, literal, origins) ->
                 addEquivalence(representative,literal,origins));
 
         while(!Thread.interrupted()) {

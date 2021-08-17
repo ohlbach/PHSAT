@@ -195,7 +195,7 @@ public class EquivalenceClassesTest {
         Model model = new Model(10, null);
         EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         ArrayList<Object> observed = new ArrayList<>();
-        eqClasses.addEquivalenceObserver((representative, literal, origins) ->
+        eqClasses.addObserver((representative, literal, origins) ->
             {observed.add(representative); observed.add(literal);observed.add(origins);});
         IntArrayList orig = new IntArrayList();
         orig.add(20);
@@ -213,7 +213,7 @@ public class EquivalenceClassesTest {
         Model model = new Model(10, null);
         EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         ArrayList<Object> observed = new ArrayList<>();
-        eqClasses.addEquivalenceObserver((representative, literal, origins) ->
+        eqClasses.addObserver((representative, literal, origins) ->
         {observed.add(representative); observed.add(literal);observed.add(origins);});
 
         int[] clause = new int[]{1,type,3,4,5};
@@ -236,7 +236,7 @@ public class EquivalenceClassesTest {
         Model model = new Model(10, null);
         EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         ArrayList<Object> observed = new ArrayList<>();
-        eqClasses.addEquivalenceObserver((representative, literal, origins) ->
+        eqClasses.addObserver((representative, literal, origins) ->
         {observed.add(representative); observed.add(literal);observed.add(origins);});
 
         int[] clause1 = new int[]{1,type,3,4,5};

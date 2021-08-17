@@ -296,7 +296,7 @@ public class DisjointnessClassesTest {
         ArrayList<DisjointnessClass> observed = new ArrayList<>();
         EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
         DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
-        dClasses.addDisjointnessObserver(dClass -> observed.add(dClass));
+        dClasses.addObserver(dClass -> observed.add(dClass));
         int[] clause1 = new int[]{1, type, 1, 2, 3};
         int[] clause2 = new int[]{1, type, 4,5,6};
         IntArrayList originals = new IntArrayList();

@@ -67,12 +67,20 @@ public class DisjointnessClasses {
      * The unit literals are automatically put at the beginning of the queue.
      */
     private final PriorityBlockingQueue<Pair<Object,IntArrayList>> queue =
-            new PriorityBlockingQueue<>(10,(Pair<Object,IntArrayList> o1, Pair<Object,IntArrayList> o2) -> {
-                Class cl = o1.getKey().getClass();
-                if(cl == Integer.class)   {return 0;}    // true literal
-                if(cl == int[].class)     {return 1;}    // basic clause
-                if(cl == ArrayList.class) {return 2;}    // Triple p,q,r
-                return 3;});                             // Equivalence class
+            new PriorityBlockingQueue<>(10,(Pair<Object,IntArrayList> o1, Pair<Object,IntArrayList> o2) ->
+                Integer.compare(getPriority(o1.getKey().getClass()),getPriority(o2.getKey().getClass())));
+
+    /** gets the priority for the objects in the queue.
+     *
+     * @param clazz the class of the objects in the queue.
+     * @return the priority of the objects in the queue.
+     */
+    private int getPriority(Class clazz) {
+        if(clazz == Integer.class)   {return 0;}    // true literal
+        if(clazz == int[].class)     {return 1;}    // basic clause
+        if(clazz == ArrayList.class) {return 2;}    // Triple p,q,r
+        return 3;};                             // Equivalence class
+
 
     /** creates a new instance
      *
@@ -96,7 +104,7 @@ public class DisjointnessClasses {
      *
      * @param observer a TriConsumer for transferring newly derived equivalences.
      */
-    public void addDisjointnessObserver(Consumer<DisjointnessClass> observer) {
+    public void addObserver(Consumer<DisjointnessClass> observer) {
         disjointnessObservers.add(observer);}
 
 
@@ -110,7 +118,7 @@ public class DisjointnessClasses {
         model.addObserver(thread,
                 (Integer literal, IntArrayList origins) -> addTrueLiteral(literal,origins));
 
-        equivalenceClasses.addEquivalenceObserver((representative, literal, origins) ->
+        equivalenceClasses.addObserver((representative, literal, origins) ->
                 addEquivalence(representative,literal,origins));
 
         while(!Thread.interrupted()) {
@@ -146,7 +154,7 @@ public class DisjointnessClasses {
             monitor.print(monitorId,"In:   disjointness clause: " +
                     BasicClauseList.clauseToString(0,basicClause,model.symboltable));}
         statistics.basicClauses++;
-        queue.add(new Pair(basicClause,null)); }
+        queue.add(new Pair(basicClause,IntArrayList.wrap(new int[]{basicClause[0]})));};
 
     /** adds a true literal to the queue
      *
@@ -221,7 +229,7 @@ public class DisjointnessClasses {
      * @param basicClause        [clause-problemId,typenumber,literal1,...]
      * @return null or the new disjointnes class
      */
-    protected DisjointnessClass integrateDisjointnessClause(int[] basicClause, IntArrayList origin) throws Unsatisfiable {
+    protected DisjointnessClass integrateDisjointnessClause(int[] basicClause,IntArrayList origin) throws Unsatisfiable {
         if(monitoring && basicClause[0] >= 0) {
             monitor.print(monitorId,"Exec: disjointness clause: " +
                     BasicClauseList.clauseToString(0,basicClause,model.symboltable));}

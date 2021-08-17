@@ -101,7 +101,7 @@ public class EquivalenceClasses  {
      *
      * @param observer a TriConsumer for transferring newly derived equivalences.
      */
-    public void addEquivalenceObserver(TriConsumer<Integer,Integer,IntArrayList> observer) {
+    public void addObserver(TriConsumer<Integer,Integer,IntArrayList> observer) {
         equivalenceObservers.add(observer);}
 
 

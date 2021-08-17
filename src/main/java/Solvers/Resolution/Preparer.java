@@ -11,6 +11,7 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
+import Datastructures.TwoLiteral.TwoLitClauses;
 import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
@@ -23,31 +24,13 @@ import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+import static Utilities.Utilities.joinIntArraysSorted;
+
 
 public class Preparer {
 
     boolean checkConsistency = true;
 
-    private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
-    static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"name", "type", "solver"}) {
-            keys.add(key);}}
-
-    /** parses a HashMap with key-value pairs:<br>
-     *
-     * @param parameters  the parameters with the keys "seed", "strategy", "percentageOfSOSClauses", "limit"
-     * @param errors      for error messages
-     * @param warnings    for warnings
-     * @return            a list of HashMaps with keys "seed" and "sos", "limit".
-     */
-    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
-        for(String key : parameters.keySet()) {
-            if(!keys.contains(key)) {warnings.append("Reduction: unknown key in parameters: " + key + "\n");}}
-        ArrayList<HashMap<String,Object>> list = new ArrayList<>();
-        HashMap<String,Object> map = new HashMap<>();
-        map.put("name","Reduction");
-        list.add(map);
-        return list;}
 
     ProblemSupervisor problemSupervisor;
 
@@ -77,11 +60,13 @@ public class Preparer {
     int predicates;
     boolean monitoring = false;
     Monitor monitor;
+    String monitorId;
     GlobalParameters globalParameters;
     String problemId;
     BasicClauseList basicClauseList;
     EquivalenceClasses equivalenceClasses = null;
     DisjointnessClasses disjointnessClasses = null;
+    TwoLitClauses twoLitClauses;
     Symboltable symboltable = null;
     Model model = null;
     int maxInputId = 0;
@@ -93,12 +78,6 @@ public class Preparer {
     static final int priorityElimination = 3;
     static final int priorityBinary      = 4;
     static final int priorityShift       = 5;
-
-    BiConsumer<Integer,IntArrayList> unaryClauseHandler =
-            ((literal,origins) -> addTrueLiteralTask(literal,origins, "derived from disjointness clause"));
-
-    TriConsumer<Integer,Integer,IntArrayList> binaryClauseHandler =
-            ((literal1,literal2,origins) -> addBinaryClauseTask(literal1,literal2,origins, "derived from disjointness clause"));
 
     public void prepare() throws Result {
         initializeData();
@@ -114,6 +93,7 @@ public class Preparer {
         monitor                    = globalParameters.monitor;
         monitoring                 = monitor.monitoring;
         problemId                  = problemSupervisor.problemId;
+        monitorId                  = problemId+"Prep";
         clauses      = new BucketSortedList<Clause>(clause->clause.size());
         literalIndex = new BucketSortedIndex<CLiteral>(predicates+1,
                             (cLiteral->cLiteral.literal),
@@ -121,7 +101,8 @@ public class Preparer {
         taskQueue    = new TaskQueue(problemId,monitor);
         trackReasoning = globalParameters.trackReasoning;
         model = new Model(predicates,symboltable);
-        equivalenceClasses = new EquivalenceClasses(model,problemId,monitor,null);
+        equivalenceClasses = problemSupervisor.equivalenceClasses;
+        twoLitClauses      = problemSupervisor.twoLitClauses;
         statistics = new PreparerStatistics(problemId);}
 
 
@@ -131,28 +112,16 @@ public class Preparer {
      * @return possibly Unsatisfiable
      * @throws InterruptedException
      */
-    Result initializeClauses() throws Result {
-        prepareConjunctions(basicClauseList.conjunctions);
-
-        for(int[] clause : basicClauseList.equivalences) {
-            equivalenceClasses.addBasicEquivalenceClause(clause);}
+    void initializeClauses() throws Result {
 
         Result result = null;
 
         if(basicClauseList.disjunctions != null) {
-            result = prepareDisjunctions(basicClauseList.disjunctions);
-            if(result != null) {return result;}}
-
-        if(basicClauseList.disjoints != null || basicClauseList.xors != null) {
-            disjointnessClasses = new DisjointnessClasses(model,equivalenceClasses,problemId,monitor,null);}
-
-        if(basicClauseList.disjoints != null) {prepareDisjoints(basicClauseList.disjoints);}
-
-        if(basicClauseList.xors != null) {prepareXors(basicClauseList.xors);}
+            prepareDisjunctions(basicClauseList);}
 
         if(checkConsistency) {check("initializeClauses");}
-        maxInputId = ids[0];
-    return null;}
+        maxInputId = ids[0];}
+
 
     Result simplify() throws Unsatisfiable{
         Result result = runTaskQueue();
@@ -170,7 +139,6 @@ public class Preparer {
         result = purityAndElimination();
         if(result != null) {return result;}
         if(clauses.isEmpty()) {return completeModel();}
-        result = findEquivalences();
         if(result != null) {return result;}
         return result;
     }
@@ -196,41 +164,6 @@ public class Preparer {
                 result = runTaskQueue();
                 if(result != null) {return result;}
                 simplified = true;}}
-        return null;}
-
-    /** This method checks if the clause is part of an equivalence (p,q) (-p,-q) (maybe derivable)
-     * If this is the case: <br>
-     *     - -p == q is inserted into the equivalence classes <br>
-     *     - a processEquivalence task is generated
-     *
-     * @return the result of processing the equivalence
-     */
-    Result findEquivalences() throws Unsatisfiable{
-        Result result = null;
-        boolean again = true;
-        while(again) {
-            again = false;
-            for(Clause clause : clauses.getBucket(2)) {
-                int literal1 = clause.getCLiteral(0).literal;
-                int literal2 = clause.getCLiteral(1).literal;
-                Object item = LitAlgorithms.isDerivableBinaryClause(-literal1,-literal2,clause,
-                        literalIndex,timestamp, dummyClauses);
-                if(item == null) {continue;}
-                if(item.getClass() == Integer.class) {
-                    result = processTrueLiteral((Integer)item,Clause.joinOrigins(dummyClauses,null));
-                    if(result != null) {return result;}
-                    again = true;
-                    break;}
-                literal1 = -literal1;
-                if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
-                if(Math.abs(literal1) < Math.abs(literal2)) {
-                    int dummy = literal1;literal1 = literal2; literal2 = dummy;}
-                int fromliteral = literal1; int toliteral = literal2;
-                result = processEquivalence(fromliteral,toliteral,Clause.joinOrigins(dummyClauses,clause));
-                ++statistics.equivalences;
-                if(result != null) {return result;}
-                again = true;
-                break;}}
         return null;}
 
     /** This method replaces all occurrences of fromLiteral by toLiteral.
@@ -437,14 +370,15 @@ public class Preparer {
      * Tautologies are ignored. <br>
      * A resulting clause may be a unit clause.
      *
-     * @param disjunctions       the list of input clauses.
-     * @return Unsatisfiable if the clause is empty, otherwise null
+     * @param basicClauses       the list of input clauses.
+     * @throws Unsatisfiable if the clause is empty, otherwise null
      */
-    public Unsatisfiable prepareDisjunctions(ArrayList<int[]> disjunctions) {
-        for(int[] basicClause : disjunctions) {
-            Unsatisfiable result = prepareDisjunction(basicClause);
-            if(result != null) return result;}
-        return null;}
+    public void prepareDisjunctions(BasicClauseList basicClauses) throws Unsatisfiable{
+        for(int[] basicClause : basicClauses.disjunctions) {
+            prepareDisjunction(basicClause);}
+        for(int[] basicClause : basicClauses.xors) {
+            prepareDisjunction(basicClause);}
+        return;}
 
 
     /** turns a single basic clause into a Clause datastructure and applies the handler to it.
@@ -455,37 +389,42 @@ public class Preparer {
      * @param basicClause [id,type,lit1,...] (the type is ignored)
      * @return Unsatisfiable if the clause is empty, otherwise null
      */
-    private Unsatisfiable prepareDisjunction(int[] basicClause) {
-        /*
+    private void prepareDisjunction(int[] basicClause) throws Unsatisfiable {
         Clause clause = new Clause(++ids[0],basicClause.length-2);
         IntArrayList origins = trackReasoning ? IntArrayList.wrap(new int[]{basicClause[0]}) : null;
         for(int i = 2; i < basicClause.length; ++i) {
             int originalLiteral =  basicClause[i];
             int literal = originalLiteral;
-            if(equivalenceClasses != null) {
-                literal = equivalenceClasses.mapToRepresentative(originalLiteral);
-                if(trackReasoning && literal != originalLiteral) {
-                    IntArrayList origin = equivalenceClasses.mapToOrigins(originalLiteral);
-                    if(origin != null) {origins.addAll(origin);}}}
-            if(model.isFalse(literal)) {
-                if(trackReasoning) {origins.addAll(model.getOrigin(literal));}
-                continue;}
+            literal = equivalenceClasses.getRepresentative(originalLiteral);
+            if(trackReasoning && literal != originalLiteral) {
+                origins = joinIntArraysSorted(origins,equivalenceClasses.getOrigins(originalLiteral));}
+            switch(model.status(literal)) {
+                case +1: return; // true clause
+                case -1:
+                    if(trackReasoning) {origins = joinIntArraysSorted(origins,model.getOrigin(literal));}
+                    continue;}
             clause.add(new CLiteral(literal,clause,i-2));}
-        if(clause.isEmpty()) return new Unsatisfiable(model,basicClause,symboltable,origins);
-        if(!clause.hasComplementaries()) {
+
+        if(clause.isEmpty()) {
+            throw new Unsatisfiable("Clause " + BasicClauseList.clauseToString(0,basicClause,symboltable) +
+                    " became empty",origins);}
+
+        if(clause.hasComplementaries()) {
+            if(monitoring) {
+                monitor.print(monitorId, "Clause " +
+                        BasicClauseList.clauseToString(0,basicClause,symboltable) + " became a tautology");}
+            return;}
+        else {
             clause.removeDoubles();
-            if(clause.size() == 1) {
-                addTrueLiteralTask(clause.getLiteral(0),origins, "initial clause " + clause.id +
-                        " simpified to one-literal clause");}
+            switch(clause.size()) {
+                case 1:
+                    model.add(clause.getLiteral(0),origins,null); // back to this process
+                    return;
+                case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),
+                        clause.getLiteral(1),origins);}
             clause.setStructure();
             clause.origins = origins;
-            insertClause(clause);}
-            */
-
-        return null;}
-
-    void addBinaryClauseTask(int literal1,int literal2, IntArrayList origins, String reason) {
-        taskQueue.add(new Task(2,()->insertBinaryClause(literal1,literal2,origins),()->reason));}
+            insertClause(clause);}}
 
     Result insertBinaryClause(int literal1, int literal2, IntArrayList origins) {
         Clause clause = new Clause(++ids[0],2);
