@@ -225,5 +225,43 @@ public class BucketSortedListTest {
         assertEquals(" C2B1P0 C5B1P1 C8B1P2 C11B1P3 C14B1P4 C3B2P0 C6B2P1 C9B2P2 C12B2P3",st);
     }
 
+    @Test
+    public void iteratorRemove1() throws Exception {
+        System.out.println("iterator with remove of an item");
+        Items.counter = 0;
+        BucketSortedList<Items> list = new BucketSortedList<BucketSortedListTest.Items>(getter);
+        for(int i = 0; i < 5; ++i) {
+            for(int j = 0; j < 3; ++j) {
+                list.add(new Items(j));}}
+        String st = "";
+        for(Items i : list) {st += " "+i.toString();}
+        assertEquals(" C1B0P0 C4B0P1 C7B0P2 C10B0P3 C13B0P4 C2B1P0 C5B1P1 C8B1P2 C11B1P3 C14B1P4 C3B2P0 C6B2P1 C9B2P2 C12B2P3 C15B2P4",st);
+
+        BucketSortedList.BucketIterator it = list.iterator();
+        while(it.hasNext()) {
+            Items item = (Items)it.next();
+            if(item.bucket == 0 || (item.bucket == 2 && item.index == 15)) {it.remove(item);}}
+
+        Items[] items = new Items[9];
+        int c = 0;
+        st = "";
+        for(Items i : list) {st += " "+i.toString();items[c++] = i;}
+        assertEquals(" C2B1P0 C5B1P1 C8B1P2 C11B1P3 C14B1P4 C3B2P0 C6B2P1 C9B2P2 C12B2P3",st);
+        int i = 0;
+        it = list.iterator();
+        while(it.hasNext()) {
+            Items item = (Items)it.next();
+            if(++i == 1){it.remove(items[3]); it.remove(items[8]); }}
+
+        st = "";
+        it = list.iterator();
+        while(it.hasNext()) {
+            Items item = (Items)it.next();
+            st += " "+item.toString();}
+
+        assertEquals(" C2B1P0 C5B1P1 C8B1P2 C14B1P3 C3B2P0 C6B2P1 C9B2P2",st);
+
+    }
+
 
 }

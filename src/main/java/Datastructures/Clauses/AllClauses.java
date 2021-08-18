@@ -238,7 +238,7 @@ public class AllClauses {
      * @throws Unsatisfiable if a contradiction is found.
      */
     private void integrateTrueLiteral(int literal, IntArrayList origins) throws Unsatisfiable {
-        Iterator<CLiteral> iterator = literalIndex.popIterator(literal);
+        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
             CLiteral cliteral = iterator.next();
             removeFromIndex(cliteral.clause);}

@@ -231,21 +231,21 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
      *
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> iterator() {
+    public BucketIterator iterator() {
         return new BucketIterator(0,buckets.size());}
 
     /** This method generates an iterator which iterates over the items in the bucket starting with buckets[bucket]
      *
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> iteratorFrom(int bucket) {
+    public BucketIterator iteratorFrom(int bucket) {
         return new BucketIterator(bucket, buckets.size());}
 
     /** This method generates an iterator which iterates over the items in the bucket ending with buckets[bucket]
      *
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> iteratorTo(int bucket) {
+    public BucketIterator iteratorTo(int bucket) {
         return new BucketIterator(0, bucket);}
 
     /** collects unused iterators */
@@ -345,7 +345,7 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
             if (bucketIndex >= bucketEnd) {return false;}
             for (; bucketIndex < bucketEnd; ++bucketIndex) {
                 ArrayList<T> bucket = buckets.get(bucketIndex);
-                if (positionIndex == bucket.size() - 1) {
+                if (positionIndex >= bucket.size() - 1) {
                     positionIndex = -1;
                     continue;}
                 ++positionIndex;
@@ -363,8 +363,32 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
         public void remove() {
             ArrayList<T> bucket = buckets.get(bucketIndex);
             bucket.remove(positionIndex);
-            for(int i = positionIndex+1; i < bucket.size(); ++i) {
+            for(int i = positionIndex; i < bucket.size(); ++i) {
                 T item = bucket.get(i);
                 item.setPosition(item.getPosition()-1);}
-            --positionIndex;}}
+            --positionIndex;}
+
+        /** removes the item while keeping the iterator intact.
+         *
+         * @param item the item to be removed
+         */
+        public void remove(T item) {
+            int bucketIndex = getBucket.apply(item);
+            ArrayList<T> bucket = buckets.get(bucketIndex);
+            int position = item.getPosition();
+            bucket.remove(position);
+            for(int i = position; i < bucket.size(); ++i) {
+                T itm = bucket.get(i);
+                itm.setPosition(itm.getPosition()-1);}
+            if(this.bucketIndex == bucketIndex && position == positionIndex) --positionIndex;}}
+
+    /** checks the position of the bucket elements,
+     *  used for testing
+     */
+        private void checkPosition() {
+            for(ArrayList<T> list : buckets) {
+                for(int i = 0; i < list.size(); ++i) {
+                    if(list.get(i).getPosition() != i) {
+                        System.out.println("POS " + list.get(i).toString() + " " + i + " " + list.get(i).getPosition());
+                    } }}}
 }

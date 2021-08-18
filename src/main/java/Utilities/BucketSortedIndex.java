@@ -25,6 +25,7 @@ public class BucketSortedIndex<T extends Positioned> {
     private Function<T,Integer> getItemIndex;      // in the literal example: cLiterals -> literals
     private Function<T,Integer> getBucketIndex;    // in the literal example: cLiterals -> clause length
 
+    private static final BucketSortedList emptyBucket = new BucketSortedList(x -> 0); // just to optimize things.
     private static final ArrayList emptyList = new ArrayList(); // just to optimize things.
 
     /** Constructs a new index
@@ -247,9 +248,9 @@ public class BucketSortedIndex<T extends Positioned> {
      * @param itemIndex an item index
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> popIterator(int itemIndex) {
+    public BucketSortedList<T>.BucketIterator popIterator(int itemIndex) {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
-        return (list == null) ? emptyList.iterator() : list.popIterator();}
+        return (list == null) ? emptyBucket.iterator() : list.popIterator();}
 
     /** This method returns an iterator which iterates over the items in the bucket starting with bucket[startPosition]
      *
@@ -257,9 +258,9 @@ public class BucketSortedIndex<T extends Positioned> {
      * @param startPosition the start position in the buckets with the given itemIndex
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> popIteratorFrom(int itemIndex, int startPosition) {
+    public BucketSortedList<T>.BucketIterator popIteratorFrom(int itemIndex, int startPosition) {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
-        return (list == null) ? emptyList.iterator() : list.popIteratorFrom(startPosition);}
+        return (list == null) ? emptyBucket.iterator() : list.popIteratorFrom(startPosition);}
 
     /** This method returns an iterator which iterates over the items in the bucket ending with bucket[endPosition]
      *
@@ -267,9 +268,9 @@ public class BucketSortedIndex<T extends Positioned> {
      * @param endPosition the end position +1 in the buckets with the given itemIndex
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> popIteratorTo(int itemIndex, int endPosition) {
+    public BucketSortedList<T>.BucketIterator popIteratorTo(int itemIndex, int endPosition) {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
-        return (list == null) ? emptyList.iterator() : list.popIteratorTo(endPosition);}
+        return (list == null) ? emptyBucket.iterator() : list.popIteratorTo(endPosition);}
 
 
     /** comprises the index to a string.
