@@ -210,9 +210,9 @@ public class BucketSortedIndex<T extends Positioned> {
      * @param itemIndex an item index
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> iterator(int itemIndex) {
+    public BucketSortedList<T>.BucketIterator iterator(int itemIndex) {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
-        return (list == null) ? emptyList.iterator() : list.iterator();}
+        return (list == null) ? emptyBucket.iterator() : list.iterator();}
 
     /** This method generates an iterator which iterates over the items in the bucket starting with bucket[startPosition]
      *
@@ -220,9 +220,9 @@ public class BucketSortedIndex<T extends Positioned> {
      * @param startPosition the start position in the buckets with the given itemIndex
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> iteratorFrom(int itemIndex, int startPosition) {
+    public BucketSortedList<T>.BucketIterator iteratorFrom(int itemIndex, int startPosition) {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
-        return (list == null) ? emptyList.iterator() : list.iteratorFrom(startPosition);}
+        return (list == null) ? emptyBucket.iterator() : list.iteratorFrom(startPosition);}
 
     /** This method generates an iterator which iterates over the items in the bucket ending with bucket[endPosition]
      *
@@ -230,16 +230,16 @@ public class BucketSortedIndex<T extends Positioned> {
      * @param endPosition the end position +1 in the buckets with the given itemIndex
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<T> iteratorTo(int itemIndex, int endPosition) {
+    public BucketSortedList<T>.BucketIterator iteratorTo(int itemIndex, int endPosition) {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
-        return (list == null) ? emptyList.iterator() : list.iteratorTo(endPosition);}
+        return (list == null) ? emptyBucket.iterator() : list.iteratorTo(endPosition);}
 
     /** This method returns a used iterator back to the pool
      *
      * @param itemIndex an iterm index
      * @param iterator  the used iterator
      */
-    public void pushIterator(int itemIndex, Iterator iterator) {
+    public void pushIterator(int itemIndex, BucketSortedList<T>.BucketIterator iterator) {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
         if(list != null) list.pushIterator((BucketSortedList.BucketIterator)iterator);}
 

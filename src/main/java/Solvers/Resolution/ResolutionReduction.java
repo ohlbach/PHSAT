@@ -530,7 +530,7 @@ public abstract class ResolutionReduction extends Solver {
             case -1: return new Unsatisfiable(null,null); //model,literal);
             case +1: return null;}
         model.addImmediately(literal,null);
-        Iterator<CLiteral> iterator = literalIndex.popIterator(literal);
+        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
             Clause clause = iterator.next().clause;
             removeClause(clause,literal);}

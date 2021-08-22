@@ -4,6 +4,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 import Utilities.Positioned;
 import Utilities.Sizable;
+import com.sun.java.accessibility.util.AccessibilityListenerList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -71,7 +72,20 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             cliterals.add(new CLiteral(literal,this,cliterals.size()));}
         setStructure();}
 
-
+    /** creates a new clause with the two literals
+     *
+     * @param id       the new id
+     * @param literal1 a literal
+     * @param literal2 a literal
+     * @param origins the basic clause ids
+     */
+    public Clause(int id, int literal1, int literal2, IntArrayList origins) {
+        this.id = id;
+        this.origins = origins;
+        cliterals = new ArrayList<>(2);
+        cliterals.add(new CLiteral(literal1,this,0));
+        cliterals.add(new CLiteral(literal2,this,1));
+        setStructure();}
 
     /** checks if the clause is positive, negative or mixed and sets the corresponding value for the structure.
      */
@@ -237,7 +251,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      *
      * @return true if there were multiple occurrences of literals
      */
-    public boolean removeDoubles() {
+    public boolean removeDoubles() {  // INDEX
         boolean doubles = false;
         for(int i = 0; i < cliterals.size()-1; ++i) {
             int literal = cliterals.get(i).literal;

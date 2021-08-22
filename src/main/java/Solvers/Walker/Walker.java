@@ -14,6 +14,7 @@ import Solvers.Solver;
 import Utilities.Utilities;
 import Utilities.IntegerQueue;
 import Utilities.BucketSortedIndex;
+import Utilities.BucketSortedList;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -310,7 +311,7 @@ public abstract class Walker extends Solver {
     int numberOfClausesIfTrue(int literal) {
         int counter = 0;
 
-        Iterator<WLiteral> iterator = literalIndex.popIterator(literal);
+        BucketSortedList<WLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {++counter; iterator.next().clause.timestamp = timestamp;}
         literalIndex.pushIterator(literal,iterator);
 
@@ -429,7 +430,7 @@ public abstract class Walker extends Solver {
 
          for(int sign : signs) {
             int pred = sign*predicate;
-            Iterator<WLiteral> iterator = literalIndex.popIterator(pred);
+            BucketSortedList<WLiteral>.BucketIterator iterator = literalIndex.popIterator(pred);
             while(iterator.hasNext()) {
                 Clause clause = iterator.next().clause;
                 updateClauseScore(clause, predicate);

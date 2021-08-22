@@ -3,6 +3,7 @@ package Datastructures.Clauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Datastructures.Theory.DisjointnessClass;
 import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
@@ -20,6 +21,8 @@ import java.util.Iterator;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import static Utilities.Utilities.joinIntArraysSorted;
+import static Utilities.Utilities.replaceBy;
+
 import Utilities.Triple;
 
 public class AllClauses {
@@ -49,13 +52,12 @@ public class AllClauses {
     BucketSortedIndex<CLiteral> literalIndex = null;
     AllClausesStatistics statistics;
 
-    /** A queue of newly derived unit literals, newly derived binary disjointnesses and basic disjointness clauses
+    /** A queue of newly derived unit literals, newly derived binary equivalences and disjointness clauses
      * The unit literals are automatically put at the beginning of the queue.
      */
     private final PriorityBlockingQueue<Triple<Object,Object,IntArrayList>> queue =
             new PriorityBlockingQueue<Triple<Object,Object,IntArrayList>>(10,
-                    (o1,o2) ->
-                    Integer.compare(getPriority(o1),getPriority(o2)));
+                    (o1,o2) ->Integer.compare(getPriority(o1),getPriority(o2)));
 
     /** gets the priority for the objects in the queue.
      *
@@ -120,8 +122,7 @@ public class AllClauses {
     private void initializeAnd() throws Unsatisfiable {
         for(int[] basicClause : basicClauseList.conjunctions) {
             for(int i = 2; i < basicClause.length; ++i) {
-                IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);
-                model.add(basicClause[i],origin,thread);}}}
+                model.add(basicClause[i],IntArrayList.wrap(new int[]{basicClause[0]}),thread);}}}
 
 
     /** This method puts the equivalence clauses into the equivalence classes
@@ -201,8 +202,7 @@ public class AllClauses {
                     model.add(clause.getLiteral(0),origins,null); // back to this process
                     return;
                 case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),
-                        clause.getLiteral(1),origins);
-                        return;}
+                                clause.getLiteral(1),origins);}
             clause.setStructure();
             clause.origins = origins;
             insertClause(clause);}}
@@ -217,9 +217,9 @@ public class AllClauses {
                     integrateTrueLiteral((Integer)triple.a,triple.c);
                     continue;}
                 if(triple.a.getClass() == Integer.class && triple.b.getClass() == Integer.class) {
-                    //integrateEquivalence(triple.a,triple.b,triple.c);
+                    integrateEquivalence((Integer)triple.a,(Integer)triple.b,triple.c);
                     continue;}
-                //integrateDisjointness(triple.a);
+                integrateDisjointness((DisjointnessClass) triple.a);
             }
             catch(InterruptedException ex) {return null;}
             catch(Unsatisfiable unsatisfiable) {
@@ -239,26 +239,88 @@ public class AllClauses {
      */
     private void integrateTrueLiteral(int literal, IntArrayList origins) throws Unsatisfiable {
         BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
-        while(iterator.hasNext()) {
+        while(iterator.hasNext()) {   // remove all clauses with the literal
             CLiteral cliteral = iterator.next();
-            removeFromIndex(cliteral.clause);}
+            removeFromIndex(cliteral.clause,iterator);
+            clauses.remove(cliteral.clause);}
         literalIndex.pushIterator(literal,iterator);
 
         iterator = literalIndex.popIterator(-literal);
-        while(iterator.hasNext()) {
+        while(iterator.hasNext()) {               // remove from all clauses the negated literal
             CLiteral cliteral = iterator.next();
             Clause clause = cliteral.clause;
             clause.remove(cliteral);
-            removeFromIndex(clause);
             iterator.remove();
             switch(clause.size()) {
                 case 1:
                     model.add(clause.getLiteral(0),
                             joinIntArraysSorted(clause.origins,origins),null);
-                    removeFromIndex(clause);
+                    removeFromIndex(clause, iterator);
+                    clauses.remove(cliteral.clause);
+                    break;
                 case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),clause.getLiteral(2),
-                        joinIntArraysSorted(clause.origins,origins));}}
+                        joinIntArraysSorted(clause.origins,origins));}} // keep the two-literal clause
         literalIndex.pushIterator(-literal,iterator);}
+
+    /** replaces all occurrences of literal by representative
+     * resulting tautologies are deleted <br>
+     * unit literals are put into the model <br>
+     * two-literal clauses are kept and put into the twoLiteral module.
+     *
+     * @param representative
+     * @param literal
+     * @param origins      the basic clause ids for the equivalence.
+     * @throws Unsatisfiable if a contradiction is found
+     */
+    private void integrateEquivalence(int representative, int literal, IntArrayList origins) throws Unsatisfiable {
+        BucketSortedList<CLiteral>.BucketIterator iterator;
+        for(int i = 1; i <= 2; ++i) {
+            iterator = literalIndex.popIterator(literal);
+            while(iterator.hasNext()) {
+                CLiteral cliteral = iterator.next();
+                Clause clause = cliteral.clause;
+                IntArrayList orig = joinIntArraysSorted(clause.origins,origins);
+                switch(clause.contains(representative)) {
+                    case +1 :
+                        iterator.remove();
+                        clause.remove(cliteral);
+                        switch(clause.size()) {
+                            case 1:
+                                model.add(clause.getLiteral(0),orig,null);
+                                removeFromIndex(clause, iterator);
+                                clauses.remove(cliteral.clause);
+                                break;
+                            case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),clause.getLiteral(2),
+                                    orig);} // keep the two-literal clause
+                        continue;
+                    case -1 :
+                        removeFromIndex(clause,iterator);
+                        clauses.remove(clause);
+                        continue;}
+                iterator.remove();
+                cliteral.literal = representative;
+                clause.origins = orig;
+                clause.setStructure();  // UPDATE
+                literalIndex.add(cliteral);}
+            literalIndex.pushIterator(literal,iterator);
+            literal = -literal;
+            representative = -representative;}
+    }
+
+    /** turns a disjointenss class into the corresponding list of two-literal clauses.
+     *
+     * @param disjoints a disjointness class.
+     */
+    private void integrateDisjointness(DisjointnessClass disjoints) {
+        IntArrayList origins  = disjoints.origins;
+        IntArrayList literals = disjoints.literals;
+        int size = literals.size();
+        for(int i = 0; i < size; ++i) {
+            int literal1 = -literals.getInt(i);
+            for(int j = i+1; j < size; ++j) {
+                Clause clause = new Clause(++counter,literal1,-literals.getInt(j),origins);
+                insertClause(clause);}}}
+
 
     /** inserts the clause into the local data structures.
      *
@@ -281,8 +343,11 @@ public class AllClauses {
 
     /** removes a clause from the literal index
      *
-     * @param clause  the clause to be inserted
+     * @param clause  the clause to be removed
+     * @param iterator null or an iterator over the CLiterals
      */
-    void removeFromIndex(Clause clause) {
-        for(CLiteral cliteral : clause) {literalIndex.remove(cliteral);}}
+    void removeFromIndex(Clause clause, BucketSortedList<CLiteral>.BucketIterator iterator) {
+        if(iterator == null) {
+            for(CLiteral cliteral : clause) {literalIndex.remove(cliteral);}}
+        else {for(CLiteral cliteral : clause) {iterator.remove(cliteral);}}}
 }
