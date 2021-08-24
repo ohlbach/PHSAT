@@ -22,7 +22,7 @@ public class LitAlgorithms {
      * @return              either a subsumer, or null
      */
     public static Clause isSubsumed(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp) {
-        int size = clause.size()+1;
+        int size = clause.size();
         for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
             BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
@@ -46,7 +46,7 @@ public class LitAlgorithms {
      * @param subsumed     collects all subsumed clauses
      */
     public static void subsumes(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp, ArrayList<Clause> subsumed) {
-         int size = clause.size();
+        int size = clause.size();
         int difference = size - 2;
         for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
@@ -85,7 +85,7 @@ public class LitAlgorithms {
             literalIndex.pushIterator(literal,iterator);}
         for(CLiteral cliteral : clause) {
             int literal = -cliteral.literal;
-            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size+1);
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
             while(iterator.hasNext()) {
                 Clause otherClause = iterator.next().clause;
                 int otherTimestamp = otherClause.timestamp;
@@ -94,7 +94,7 @@ public class LitAlgorithms {
             literalIndex.pushIterator(literal,iterator);}
         return null;}
 
-    /** This method checks if a literal in the given clause can be removed vy replacement resolution with another clause in the literal index.
+    /** This method searches literals in other clauses to be removed by replacement resolution with the given clause.
      *
      * @param clause        the clause to be checked
      * @param literalIndex  the index mapping literals to occurrences in clauses

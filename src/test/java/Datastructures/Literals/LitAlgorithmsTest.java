@@ -77,13 +77,14 @@ public class LitAlgorithmsTest {
         Clause c3 = make(3,index,30,20,10,40);
         Clause c4 = make(4,index,30,20,-10,40);
         Clause c5 = make(5,index,30,-40);
+        //System.out.println(index.toString(l->""+l.literal+"@"+l.clause.id));
         Object[] result = LitAlgorithms.replacementResolutionBackwards(c4,index,1);
         assertEquals(2,result.length);
         assertEquals("-10",result[0].toString());
         assertEquals(c1,result[1]);
         result = LitAlgorithms.replacementResolutionBackwards(c3,index,10);
-        assertEquals("40",result[0].toString());
-        assertEquals(c5,result[1]);
+        assertEquals("10",result[0].toString());
+        assertEquals(c4,result[1]);
         result = LitAlgorithms.replacementResolutionBackwards(c1,index,20);
         assertNull(result);
         //System.out.println(result[0]); System.out.println(result[1]);
@@ -136,8 +137,8 @@ public class LitAlgorithmsTest {
         Clause c2 = make(2,index, 10,20,30);
         Clause c3 = make(3,index, -10,20,30);
         int[] id = new int[]{3};
-        Clause res = LitAlgorithms.resolve(id,c1.getCLiteral(1),c2.getCLiteral(2));
-        assertEquals("4:(10,30,20)", res.toString());
+        Clause res = LitAlgorithms.resolve(id,c1.getCLiteral(1),c2.getCLiteral(1));
+        assertEquals("4: 10,30", res.toString());
         res = LitAlgorithms.resolve(id,c1.getCLiteral(1),c3.getCLiteral(2));
         assertNull(res);
 

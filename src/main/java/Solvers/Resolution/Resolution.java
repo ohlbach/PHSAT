@@ -840,7 +840,7 @@ public class Resolution extends Solver {
      * @return the clauses and the literal index as a string.
      */
     public String toString(Symboltable symboltable) {
-        Function<Clause,String> clauseString = (clause->clause.toString(symboltable));
+        Function<Clause,String> clauseString = (clause->clause.toString(0,symboltable));
         Function<CLiteral,String> literalString = (cliteral->cliteral.toString(symboltable,clause->Integer.toString(clause.id)));
         StringBuilder st = new StringBuilder();
         st.append("Resolution:\n");

@@ -8,7 +8,9 @@ import com.sun.java.accessibility.util.AccessibilityListenerList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.Formatter;
 import java.util.Iterator;
+import java.util.Locale;
 
 /** A clause is just a list of CLiterals.
  * It may represent disjunctions, conjunctions or any other logical list structure.
@@ -172,12 +174,14 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** checks if the literal is in the clause
      *
      * @param literal a literal
-     * @return the literal's clausePosition in the clause, or -1
+     * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
      */
     public int contains(int literal) {
         for(int i = 0; i < cliterals.size(); ++i) {
-            if(cliterals.get(i).literal == literal) {return i;}}
-        return -1;}
+            int lit = cliterals.get(i).literal;
+            if(lit ==  literal) {return +1;}
+            if(lit == -literal) {return -1;}}
+        return 0;}
 
 
     /** adds a cliteral to the end of the clause, without checking for double literals and tautologies.
@@ -279,25 +283,44 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return a string: clause-number: literals
      */
     public String toString() {
-        return toString(null);}
+        return toString(0,null);}
 
-
-
-    /** generates a string: clause-number: non-false literals
+    /** generates a string: clause-number: literals
      *
-     * @param symboltable for mapping numbers to names
-     * @return a string: clause-number: non-false literals
+     * @return a string: clause-number: literals
      */
-    public String toString(Symboltable symboltable) {
-        StringBuffer st = new StringBuffer();
-        st.append(Integer.toString(id));
-        st.append(":(");
+    public String toNumbers() {
+        return toString(0,null);}
+
+
+    /** generates a string: clause-number: literals
+     *
+     * @param width: 0 or the width of the id-part.
+     * @param symboltable for mapping numbers to names
+     * @return a string: clause-number: literals
+     */
+    public String toString(int width, Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        if(width > 0) {
+            Formatter format = new Formatter(st, Locale.GERMANY);
+            format.format("%"+width+"s: ",id);}
+        else st.append(Integer.toString(id)+": ");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
-            st.append(cliterals.get(position).toString(symboltable));
+            st.append(Symboltable.toString(cliterals.get(position).literal,symboltable));
             if(position < size-1) {st.append(",");}};
-        st.append(")");
         return st.toString();}
+
+    /** generates a string: clause-number: literals [origins]
+     *
+     * @param width       0 or the width of the id-part.
+     * @param symboltable null or for mapping numbers to names
+     * @return the clause as string
+     */
+    public String infoString(int width, Symboltable symboltable) {
+        String st = toString(width,symboltable);
+        if(origins != null) st += " " + origins.toString();
+        return st;}
 
     /** gets an iterator over the literals
      *

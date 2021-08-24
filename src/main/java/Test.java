@@ -15,14 +15,11 @@ import java.util.function.Function;
 public class Test {
 
     public static void main(String[] args) throws Exception {
-        final PriorityBlockingQueue<Integer> queue =
-                new PriorityBlockingQueue<Integer>(10,
-                        (Integer i, Integer j) -> {
-                        int s1 = 0;
-                        if(i < 0) return -1;
-                        else return 1;});
-        queue.add(6); queue.add(5);
-        System.out.println(queue.toString());
-        System.out.println(queue.poll());}
+        for(int i = 0; i < 10; ++i) {
+            switch(i) {
+                case 1: continue;
+                case 8: return;}
+            System.out.println(i);
+        }
 
-}
+}}

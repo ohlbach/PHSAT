@@ -20,6 +20,7 @@ public class ClauseTest {
         int i = -1;
         for(int l:literals) {
             cl.add(new CLiteral(l,cl,++i));}
+        cl.setStructure();
         return cl;}
 
     @Test
@@ -35,8 +36,9 @@ public class ClauseTest {
         assertEquals(2, cl.size());
         CLiteral lit2 = new CLiteral(-5);
         cl.add(lit2);
+        cl.setStructure();
         assertEquals(3, cl.size());
-        assertEquals("1:(5,5,-5)",cl.toString());
+        assertEquals("    1: 5,5,-5",cl.toString(5,null));
         assertEquals(ClauseStructure.MIXED,cl.structure);
         assertTrue(cl.hasDoubles());
         assertTrue(cl.hasComplementaries());
@@ -51,7 +53,7 @@ public class ClauseTest {
         lits.add(new CLiteral(1));
         lits.add(new CLiteral(2));
         Clause cl = new Clause(1,lits);
-        assertEquals("1:(1,2)",cl.toString());
+        assertEquals("1: 1,2",cl.toString());
     }
     @Test
     public void make() throws Exception {
@@ -60,9 +62,9 @@ public class ClauseTest {
         Clause c1 = make(1, 2, 3);
         Clause c2 = make(-1, -2, 3);
         Clause c3 = make(-1, -2, -3);
-        assertEquals("1:(1,2,3)",c1.toString());
-        assertEquals("2:(-1,-2,3)",c2.toString());
-        assertEquals("3:(-1,-2,-3)",c3.toString());
+        assertEquals("1: 1,2,3",c1.toString());
+        assertEquals("2: -1,-2,3",c2.toString());
+        assertEquals("3: -1,-2,-3",c3.toString());
         assertEquals(ClauseStructure.POSITIVE,c1.structure);
         assertEquals(ClauseStructure.MIXED,c2.structure);
         assertEquals(ClauseStructure.NEGATIVE,c3.structure);
@@ -74,18 +76,18 @@ public class ClauseTest {
         counter = 1;
         Clause c1 = make(1, 2, 3);
         c1.remove(c1.getCLiteral(1));
-        assertEquals("1:(1,3)",c1.toString());
+        assertEquals("1: 1,3",c1.toString());
         c1.remove(c1.getCLiteral(1));
-        assertEquals("1:(1)",c1.toString());
+        assertEquals("1: 1",c1.toString());
         c1.remove(c1.getCLiteral(0));
-        assertEquals("1:()",c1.toString());
+        assertEquals("1: ",c1.toString());
         assertTrue(c1.isEmpty());
 
         c1 = make(1, 2, 3);
         c1.remove(c1.getCLiteral(2));
-        assertEquals("2:(1,2)",c1.toString());
+        assertEquals("2: 1,2",c1.toString());
         c1.remove(c1.getCLiteral(0));
-        assertEquals("2:(2)",c1.toString());
+        assertEquals("2: 2",c1.toString());
     }
 
     @Test
@@ -94,7 +96,7 @@ public class ClauseTest {
         counter = 1;
         Clause c1 = make(1, 2, 3);
         c1.removeAtPosition(1);
-        assertEquals("1:(1,3)",c1.toString());
+        assertEquals("1: 1,3",c1.toString());
         CLiteral lit = c1.getCLiteral(1);
         assertEquals(1,lit.clausePosition);
     }
@@ -106,9 +108,10 @@ public class ClauseTest {
         counter = 1;
         Clause cl = make(5, -6, 7);
 
-        assertEquals(0, cl.contains(5));
-        assertEquals(1, cl.contains(-6));
-        assertEquals(2, cl.contains(7));
+        assertEquals(+1, cl.contains(5));
+        assertEquals(-1, cl.contains(-5));
+        assertEquals(+1, cl.contains(-6));
+        assertEquals(+1, cl.contains(7));
         assertEquals(-1, cl.contains(6));
 
         assertEquals(5,cl.getLiteral(0));
@@ -150,7 +153,7 @@ public class ClauseTest {
         st.setName(5, "five");
         st.setName(6, "six");
         st.setName(7, "seven");
-        assertEquals("1:(five,-six,seven)", cl1.toString(st));
+        assertEquals("1: five,-six,seven", cl1.toString(0,st));
     }
 
     @Test
@@ -161,7 +164,7 @@ public class ClauseTest {
         assertTrue(c1.hasDoubles());
         assertTrue(c1.hasComplementaries());
         assertTrue(c1.removeDoubles());
-        assertEquals("1:(5,-6,-5)",c1.toString());
+        assertEquals("1: 5,-6,-5",c1.toString());
 
     }
 

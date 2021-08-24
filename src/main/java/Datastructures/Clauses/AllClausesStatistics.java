@@ -56,4 +56,8 @@ public class AllClausesStatistics extends Statistic {
     @Description("clauses")
     public int clauses = 0;
 
+    @Description("tautologies")
+    public int tautologies = 0;
+
+
 }

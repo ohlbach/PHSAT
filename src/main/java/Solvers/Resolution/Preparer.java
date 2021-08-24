@@ -186,7 +186,7 @@ public class Preparer {
                 addTrueLiteralTask(clause.getLiteral(0),clause.origins,"clause after processEquivalence");}
             else {taskQueue.add(new Task(priorityShift+clause.size(),
                     () -> simplifyClause(clause),
-                    () -> "simplify clause " + clause.toString(symboltable)));}}
+                    () -> "simplify clause " + clause.toString(0,symboltable)));}}
         if(checkConsistency) check("processEquivalence");
         return null;}
 
@@ -580,8 +580,8 @@ public class Preparer {
                 clause.removed = true;
                 ++statistics.forwardSubsumptions;
                 if(monitoring) {
-                    monitor.print(problemId,"Clause \n  " + clause.toString(symboltable) +
-                            "  subsumes \n  " + subsumedClause.toString(symboltable));}}
+                    monitor.print(problemId,"Clause \n  " + clause.toString(0,symboltable) +
+                            "  subsumes \n  " + subsumedClause.toString(0,symboltable));}}
             startIndex = size;}
         clauses.pushIterator(iterator);
         for(Clause clause : dummyClauses) {clause.removed = false; removeClause(clause);}}
@@ -620,8 +620,8 @@ public class Preparer {
         for(Clause subsumedClause : dummyClauses) {
             ++statistics.forwardSubsumptions;
             if(monitoring) {
-                monitor.print(problemId,"Clause \n  " + clause.toString(symboltable) +
-                        "  subsumes \n  " + subsumedClause.toString(symboltable));}
+                monitor.print(problemId,"Clause \n  " + clause.toString(0,symboltable) +
+                        "  subsumes \n  " + subsumedClause.toString(0,symboltable));}
             removeClause(subsumedClause);}
         if(checkConsistency) check("forwardSubsumption");}
 
@@ -641,11 +641,11 @@ public class Preparer {
             ++statistics.forwardReplacementResolutions;
             Clause literalClause = cLiteral.clause;
             String clauseString = null;
-            if(monitoring) {clauseString = literalClause.toString(symboltable);}
+            if(monitoring) {clauseString = literalClause.toString(0,symboltable);}
             removeLiteral(cLiteral,clause.origins);
             if(monitoring) {
                 monitor.print(problemId,"\nLiteral " + cLiteral.toString(symboltable) + " in clause \n  " +
-                        clauseString + " resolved away by clause\n  " +clause.toString(symboltable) + " to\n  " +
+                        clauseString + " resolved away by clause\n  " +clause.toString(0,symboltable) + " to\n  " +
                         literalClause.toString());}
             analyseShortenedClause(literalClause,"clause " + clause.id + " simplified by UR-Resolution");
             if(checkConsistency) check("forwardReplacementResolution");}}
@@ -655,7 +655,7 @@ public class Preparer {
             addTrueLiteralTask(clause.getLiteral(0),clause.origins,reason);}
         else {taskQueue.add(new Task(priorityShift+clause.size(),
             () -> {forwardSubsumption(clause); forwardReplacementResolution(clause); return null;},
-            () -> "simplify clause " + clause.toString(symboltable)));}}
+            () -> "simplify clause " + clause.toString(0,symboltable)));}}
 
 
 
@@ -690,12 +690,12 @@ public class Preparer {
             resolvent.setStructure();
             insertClause(resolvent);
             resolvent.origins = origins;
-            if(monitoring) {monitorUsedClauses("Derived new clause\n   " + resolvent.toString(symboltable) + " by UR-Resolution using clauses:");}
+            if(monitoring) {monitorUsedClauses("Derived new clause\n   " + resolvent.toString(0,symboltable) + " by UR-Resolution using clauses:");}
             return resolvent;}
 
         CLiteral cliteral = (CLiteral)result;
         if(monitoring) {monitorUsedClauses("removing literal " + cliteral.toString(symboltable) + " from clause\n   " +
-                clause.toString(symboltable) + " by UR-Resolution using clauses ");}
+                clause.toString(0,symboltable) + " by UR-Resolution using clauses ");}
         removeLiteral(cliteral,origins);
         if(checkConsistency) {check("urResolveClause");}
         return clause;}
@@ -707,7 +707,7 @@ public class Preparer {
         for(Clause clause : usedClauses) {
             if(ids.contains(clause.id)) {continue;}
             ids.add(clause.id);
-            st.append("\n   ").append(clause.toString(symboltable));}
+            st.append("\n   ").append(clause.toString(0,symboltable));}
         monitor.print(problemId,st.toString());}
 
     ArrayList<Clause> usedClauses = new ArrayList<>();
@@ -722,7 +722,7 @@ public class Preparer {
      * @return the clauses and the literal index as a string.
      */
     public String toString(Symboltable symboltable) {
-        Function<Clause,String> clauseString = (clause->clause.toString(symboltable));
+        Function<Clause,String> clauseString = (clause->clause.toString(0,symboltable));
         Function<CLiteral,String> literalString = (cliteral->cliteral.toString(symboltable,clause->Integer.toString(clause.id)));
         StringBuilder st = new StringBuilder();
         st.append("Reduction:\n");

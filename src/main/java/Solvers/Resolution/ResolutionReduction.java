@@ -237,12 +237,12 @@ public abstract class ResolutionReduction extends Solver {
             CLiteral cLiteral = (CLiteral)replacements[0];
             ++statistics.backwardReplacementResolutions;
             String clauseString = null;
-            if(monitoring) {clauseString = clause.toString(symboltable);}
+            if(monitoring) {clauseString = clause.toString(0,symboltable);}
             clause.remove(cLiteral);
             if(monitoring) {
                 monitor.print(combinedId,
                         "\nLiteral " + cLiteral.toString(symboltable) + " in clause \n  " + clauseString + " resolved away by clause \n  "
-                                + ((Clause)replacements[1]).toString(symboltable) + " to\n  " + clause.toString(symboltable));}
+                                + ((Clause)replacements[1]).toString(0,symboltable) + " to\n  " + clause.toString(0,symboltable));}
             replacements = (clause.size() == 1) ? null : LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
             timestamp += maxClauseLength +1;}
 
@@ -270,8 +270,8 @@ public abstract class ResolutionReduction extends Solver {
         for(Clause subsumedClause : subsumedClauses) {
             ++statistics.forwardSubsumptions;
             if(monitoring) {
-                monitor.print(combinedId,"Clause \n  " + clause.toString(symboltable) +
-                    "  subsumes \n  " + subsumedClause.toString(symboltable));}
+                monitor.print(combinedId,"Clause \n  " + clause.toString(0,symboltable) +
+                    "  subsumes \n  " + subsumedClause.toString(0,symboltable));}
             removeClause(subsumedClause,0);}
         if(checkConsistency) check("forwardSubsumption");}
 
@@ -286,11 +286,11 @@ public abstract class ResolutionReduction extends Solver {
             ++statistics.forwardReplacementResolutions;
             Clause literalClause = cLiteral.clause;
             String clauseString = null;
-            if(monitoring) {clauseString = literalClause.toString(symboltable);}
+            if(monitoring) {clauseString = literalClause.toString(0,symboltable);}
             removeLiteral(cLiteral);
             if(monitoring) {
                 monitor.print(combinedId,"\nLiteral " + cLiteral.toString(symboltable) + " in clause \n  " +
-                        clauseString + " resolved away by clause\n  " +clause.toString(symboltable) + " to\n  " +
+                        clauseString + " resolved away by clause\n  " +clause.toString(0,symboltable) + " to\n  " +
                          literalClause.toString());}
 
             if(checkConsistency) check("forwardReplacementResolution");
@@ -314,7 +314,7 @@ public abstract class ResolutionReduction extends Solver {
                 CLiteral cliteral = clause.getCLiteral(0);
                 int literal = cliteral.literal;
                 addTrueLiteralTask(literal,
-                        "Clause " + clause.toString(symboltable) + " shortened to unit literal " + ": " + literalName(literal));
+                        "Clause " + clause.toString(0,symboltable) + " shortened to unit literal " + ": " + literalName(literal));
                 exportUnitClause(literal);
                 getClauseList(clause).remove(clause);
                 return;
@@ -324,7 +324,7 @@ public abstract class ResolutionReduction extends Solver {
 
         taskQueue.add(new Task(clause.size()+priorityShift,
                 (()->{simplifyForward(clause);return null;}),
-                (()->"Forward Simplification for shortened clause " + clause.toString(symboltable))));}
+                (()->"Forward Simplification for shortened clause " + clause.toString(0,symboltable))));}
 
 
     /** This method checks all predicates for purity and elimination.
