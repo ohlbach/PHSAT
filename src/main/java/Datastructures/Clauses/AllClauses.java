@@ -15,10 +15,8 @@ import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import javafx.util.Pair;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import static Utilities.Utilities.joinIntArraysSorted;
@@ -47,12 +45,13 @@ public class AllClauses {
     private int counter = 0;
     private int maxClauseLength = 0;
     private BucketSortedList<Clause> clauses;
-    BucketSortedIndex<CLiteral> literalIndex = null;
-    AllClausesStatistics statistics;
+    private BucketSortedIndex<CLiteral> literalIndex = null;
+    private AllClausesStatistics statistics;
     private int timestamp = 1;
+    private boolean clausesFinished = false;
 
     private static enum TaskType {
-        TRUELITERAL, EQUIVALENCE, DISJOINTNESS,REPLACEMENTRESOLUTION, SIMPLIFY,
+        TRUELITERAL, EQUIVALENCE, DISJOINTNESS,SIMPLIFYALL, SIMPLIFYOTHERS,
     }
 
     private static class Task {
@@ -86,8 +85,8 @@ public class AllClauses {
             case TRUELITERAL:  return 0;
             case EQUIVALENCE:  return 1;
             case DISJOINTNESS: return 2;
-            case REPLACEMENTRESOLUTION: return 3;
-            case SIMPLIFY: return 1 + (((CLiteral)task.b).clause).size();
+            case SIMPLIFYALL: return 3;
+            case SIMPLIFYOTHERS: return 2 + ((Clause)task.a).size();
             }
         return -1;}
 
@@ -132,6 +131,7 @@ public class AllClauses {
         initializeDisjoints();
         initializeXors();
         initializeDisjunctions();
+        clausesFinished = true;
     }
     /** This method initially fills up the model with the conjunctions and the disjunctions with one literal.
      * At this stage there is no further interaction with other parts.
@@ -158,7 +158,8 @@ public class AllClauses {
      */
     private void initializeDisjoints() throws Unsatisfiable {
         for(int[] clause : basicClauseList.disjoints) {
-            disjointnessClasses.addDisjointnessClause(clause);}}
+            disjointnessClasses.addDisjointnessClause(clause);
+            integrateDisjointnessClause(clause);}}
 
     /** This method puts the xor clauses into the disjointness classes and the clauses
      *
@@ -167,7 +168,8 @@ public class AllClauses {
     private void initializeXors() throws Unsatisfiable {
         for(int[] clause : basicClauseList.xors) {
             disjointnessClasses.addDisjointnessClause(clause);
-            addClause(clause);}}
+            addClause(clause);
+            integrateDisjointnessClause(clause);}}
 
     /** This method puts the disjunctions clauses into the clauses
      *
@@ -199,10 +201,10 @@ public class AllClauses {
                     case DISJOINTNESS:
                         integrateDisjointness((DisjointnessClass)task.a);
                         break;
-                    case REPLACEMENTRESOLUTION:
-                        replacementResolutionBackwards();
-                    case SIMPLIFY:
-                        simplify((Clause)task.a);
+                    case SIMPLIFYALL:
+                        simplifyAllClauses();
+                    case SIMPLIFYOTHERS:
+                        simplifyOtherClauses((Clause)task.a);
                 }}
             catch(InterruptedException ex) {return null;}
             catch(Unsatisfiable unsatisfiable) {return unsatisfiable;}}
@@ -303,7 +305,7 @@ public class AllClauses {
             iterator = literalIndex.popIterator(literal);
             while(iterator.hasNext()) {
                 Clause clause = replaceLiteral(iterator,representative,literal,origins);
-                if(clause != null) subsumes(clause);}
+                if(clause != null) removeSubsumedClauses(clause);}
             literalIndex.pushIterator(literal,iterator);
             literal = -literal;
             representative = -representative;}
@@ -313,7 +315,7 @@ public class AllClauses {
      *
      * @param disjoints a disjointness class.
      */
-    private void integrateDisjointness(DisjointnessClass disjoints) {
+    private void integrateDisjointness(DisjointnessClass disjoints)  {
         IntArrayList origins  = disjoints.origins;
         IntArrayList literals = disjoints.literals;
         int size = literals.size();
@@ -321,9 +323,20 @@ public class AllClauses {
             int literal1 = -literals.getInt(i);
             for(int j = i+1; j < size; ++j) {
                 Clause clause = new Clause(++counter,literal1,-literals.getInt(j),origins);
-                if(!isSubsumed(clause)) {
-                    insertClause(clause);
-                    subsumes(clause);}}}}
+                if(!isSubsumed(clause)) {insertClause(clause);}}}}
+
+    /** turns a disjointness clause into a list of two-literal clauses
+     *
+     * @param basicClause a basic disjointness clause.
+     */
+    private void integrateDisjointnessClause(int[] basicClause) {
+        IntArrayList origins  = trackReasoning ? IntArrayList.wrap(new int[]{basicClause[0]}) : null;
+        int size = basicClause.length;
+        for(int i = 2; i < size; ++i) {
+            int literal1 = -basicClause[i];
+            for(int j = i+1; j < size; ++j) {
+                Clause clause = new Clause(++counter,literal1,-basicClause[j],origins);
+                if(!isSubsumed(clause)) {insertClause(clause);}}}}
 
     /** checks if the clause is subsumed by another clause
      *
@@ -346,8 +359,9 @@ public class AllClauses {
     /** removes all clauses subsumed by the given clause
      *
      * @param clause a clause
+     * @throws Unsatisfiable if a contradiction is found
      */
-    private void subsumes(Clause clause) {
+    private void removeSubsumedClauses(Clause clause) throws Unsatisfiable{
         subsumedClauses.clear();
         LitAlgorithms.subsumes(clause,literalIndex,timestamp,subsumedClauses);
         for(Clause subsumed : subsumedClauses) {
@@ -359,11 +373,11 @@ public class AllClauses {
         timestamp += 2;
     }
 
-    /** performs all replacement resolutions
+    /** performs all replacement resolutions and all purity checks
      *
      * @throws Unsatisfiable if a contradiction is found.
      */
-    private void replacementResolutionBackwards() throws Unsatisfiable{
+    private void simplifyAllClauses() throws Unsatisfiable{
         ArrayList<Object[]> results = new ArrayList<>();
         for(Clause clause : clauses) {
             Object[] result = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
@@ -380,20 +394,71 @@ public class AllClauses {
                         " will be removed by replacement resolution with clause\n" +
                         otherClause.toString(3,symboltable));}
             if(removeLiteral(cliteral,trackReasoning ? joinIntArraysSorted(cliteral.clause.origins,otherClause.origins) : null))
-                queue.add(new Task(TaskType.SIMPLIFY,null,cliteral.clause,null));}
+                queue.add(new Task(TaskType.SIMPLIFYOTHERS,null,cliteral.clause,null));
+            purityCheck();}
     }
 
-    private void simplify(Clause clause) {
-        subsumes(clause);
+    private ArrayList<CLiteral> resolvents = new ArrayList<>();
 
+    /** removes subsumed clauses and literals in other clauses by replacement resolution
+     *
+     * @param clause         a clause to be used for simplifying other clauses
+     * @throws Unsatisfiable if a contradiction is found.
+     */
+    private void simplifyOtherClauses(Clause clause) throws Unsatisfiable {
+        removeSubsumedClauses(clause);
+        resolvents.clear();
+        LitAlgorithms.replacementResolutionForward(clause,literalIndex,timestamp,resolvents);
+        for(CLiteral cliteral : resolvents) {
+            ++statistics.forwardReplacementResolutions;
+            if(monitoring) {
+                monitor.print(monitorId, "Literal " + cliteral.toString(symboltable) +
+                        " in  clause \n" + cliteral.clause.toString(3,symboltable) +
+                        " will be removed by replacement resolution with clause\n" +
+                        clause.toString(3,symboltable));}
+            if(removeLiteral(cliteral,trackReasoning ? joinIntArraysSorted(cliteral.clause.origins,clause.origins) : null))
+                queue.add(new Task(TaskType.SIMPLIFYOTHERS,null,cliteral.clause,null));}
+        }
 
-    }
+    /** checks if the literal is pure (there are no further occurrences).
+     * If literal is pure then -literal can be made true.
+     *
+     * @param literal        a literal to be checked
+     * @throws Unsatisfiable if a contradiction is found.
+     */
+    private void purityCheck(int literal) throws Unsatisfiable {
+        assert clausesFinished;
+        if(literalIndex.isEmpty(literal)) {
+            if(monitoring) {
+                monitor.print(monitorId,"Literal " + Symboltable.toString(literal,symboltable) +
+                        " became pure");}
+            model.add(-literal,null,null);}}
+
+    /** performs purity checks for all literals in the clause
+     *
+     * @param clause          a just removed clause.
+     * @throws Unsatisfiable
+     */
+    private void purityCheck(Clause clause) throws Unsatisfiable {
+        assert clausesFinished;
+        for(CLiteral cliteral : clause.cliterals) purityCheck(cliteral.literal);}
+
+    /** checks all literals for purity.
+     *
+     * @throws Unsatisfiable
+     */
+    private void purityCheck() throws Unsatisfiable {
+        assert clausesFinished;
+        for(int literal = 1; literal <= predicates; ++literal) {
+            if(model.status(literal) == 0) {
+                purityCheck(literal);
+                purityCheck(-literal);}}}
 
     /** inserts the clause into the local data structures.
      *
      * @param clause  the clause to be inserted.
      */
-    void insertClause(Clause clause) {
+    private void insertClause(Clause clause) {
         ++statistics.clauses;
         maxClauseLength = Math.max(maxClauseLength,clause.size());
         clauses.add(clause);
@@ -402,24 +467,26 @@ public class AllClauses {
             case NEGATIVE: ++statistics.negativeClauses; break;
             case POSITIVE: ++statistics.positiveClauses; break;}}
 
-    /** removes the clause
+    /** removes the clause and does purity checks
      *
      * @param clause a clause to be removed.
      */
-    private void removeClause(Clause clause) {
+    private void removeClause(Clause clause) throws Unsatisfiable{
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
         --statistics.clauses;
         for(CLiteral cliteral : clause) {literalIndex.remove(cliteral);}
-        clauses.remove(clause);}
+        clauses.remove(clause);
+        purityCheck(clause);}
 
 
-    /** removes the iterator's next clause
+    /** removes the iterator's next clause and does purity checks
      *
      * @param iterator an iterator over the literal index.
+     * @throws Unsatisfiable if a contradiction is found.
      */
-    private void removeClause(BucketSortedList<CLiteral>.BucketIterator iterator) {
+    private void removeClause(BucketSortedList<CLiteral>.BucketIterator iterator) throws Unsatisfiable {
         CLiteral cliteral = iterator.next();
         Clause clause = cliteral.clause;
         switch(clause.structure) {
@@ -429,9 +496,10 @@ public class AllClauses {
         iterator.remove();
         for(CLiteral clit : clause) {
             if(clit != cliteral) literalIndex.remove(clit);}
-        clauses.remove(cliteral.clause);}
+        clauses.remove(clause);
+        purityCheck(clause);}
 
-    /** removes the cliteral
+    /** removes the cliteral and performs a purity check
      *
      * @param cliteral the literal to be removed
      * @param origins the basic clause ids for removing the literal.
@@ -446,15 +514,18 @@ public class AllClauses {
         clause.remove(cliteral);
         clause.setStructure();
         literalIndex.remove(cliteral);
-        return updateClause(clause,origins);}
+        boolean alive = updateClause(clause,origins);
+        purityCheck(cliteral.literal);
+        return alive;}
 
 
-    /** removes the iterator's next literal
+    /** removes the iterator's next literal and performs a purity check
      *
      * @param iterator an iterator over the literal index.
      * @param origins the basic clause ids for removing the literal.
+     * @return true if the clause survived
      */
-    private void removeLiteral(BucketSortedList<CLiteral>.BucketIterator iterator, IntArrayList origins) throws Unsatisfiable {
+    private boolean removeLiteral(BucketSortedList<CLiteral>.BucketIterator iterator, IntArrayList origins) throws Unsatisfiable {
         CLiteral cliteral = iterator.next();
         Clause clause = cliteral.clause;
         switch(clause.structure) {
@@ -464,8 +535,17 @@ public class AllClauses {
         clause.remove(cliteral);
         clause.setStructure();
         iterator.remove();
-        updateClause(clause,origins);}
+        boolean alive = updateClause(clause,origins);
+        purityCheck(cliteral.literal);
+        return alive;}
 
+    /** updates the status of a clause after literal removal
+     *
+     * @param clause   a clause whose literal has been removed
+     * @param origins basic clause ids for the literal removal
+     * @return true if the clause survived
+     * @throws Unsatisfiable if a contradiction is found.
+     */
     private boolean updateClause(Clause clause, IntArrayList origins) throws Unsatisfiable{
         switch(clause.size()) {
             case 1:
