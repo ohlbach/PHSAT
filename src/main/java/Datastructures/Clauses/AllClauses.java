@@ -2,6 +2,8 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
+import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.DisjointnessClass;
@@ -24,33 +26,33 @@ import static Utilities.Utilities.joinIntArraysSorted;
 public class AllClauses {
 
     /** supervises the problem solution */
-    private ProblemSupervisor problemSupervisor;
-    private Thread thread;
+    private final ProblemSupervisor problemSupervisor;
+    private final Thread thread;
 
-    private Model model;
-    private BasicClauseList     basicClauseList;
-    private EquivalenceClasses  equivalenceClasses;
-    private DisjointnessClasses disjointnessClasses;
-    private TwoLitClauses       twoLitClauses;
+    private final Model model;
+    private final BasicClauseList     basicClauseList;
+    private final EquivalenceClasses  equivalenceClasses;
+    private final DisjointnessClasses disjointnessClasses;
+    private final TwoLitClauses       twoLitClauses;
 
     private boolean monitoring = false;
-    private Monitor monitor;
-    private String monitorId;
-    private boolean trackReasoning;
-    private GlobalParameters globalParameters;
-    private String problemId;
-    private Symboltable symboltable;
+    private final Monitor monitor;
+    private final String monitorId;
+    private final boolean trackReasoning;
+    private final GlobalParameters globalParameters;
+    private final String problemId;
+    private final Symboltable symboltable;
 
-    private int predicates;
+    private final int predicates;
     private int counter = 0;
     private int maxClauseLength = 0;
-    private BucketSortedList<Clause> clauses;
-    private BucketSortedIndex<CLiteral> literalIndex = null;
-    private AllClausesStatistics statistics;
+    private final BucketSortedList<Clause> clauses;
+    private final BucketSortedIndex<CLiteral> literalIndex;
+    private final AllClausesStatistics statistics;
     private int timestamp = 1;
     private boolean clausesFinished = false;
 
-    private static enum TaskType {
+    private enum TaskType {
         TRUELITERAL, EQUIVALENCE, DISJOINTNESS,SIMPLIFYALL, SIMPLIFYOTHERS,
     }
 
@@ -85,7 +87,7 @@ public class AllClauses {
             case TRUELITERAL:  return 0;
             case EQUIVALENCE:  return 1;
             case DISJOINTNESS: return 2;
-            case SIMPLIFYALL: return 3;
+            case SIMPLIFYALL:  return 3;
             case SIMPLIFYOTHERS: return 2 + ((Clause)task.a).size();
             }
         return -1;}
@@ -95,7 +97,7 @@ public class AllClauses {
      *
      * @param problemSupervisor    coordinates several solvers.
      */
-    public AllClauses(ProblemSupervisor problemSupervisor) throws Unsatisfiable {
+    public AllClauses(ProblemSupervisor problemSupervisor) throws Result {
         this.problemSupervisor = problemSupervisor;
         globalParameters = problemSupervisor.globalParameters;
         thread = Thread.currentThread();
@@ -111,7 +113,7 @@ public class AllClauses {
         trackReasoning = globalParameters.trackReasoning;
         symboltable = model.symboltable;
         predicates = symboltable.predicates;
-        clauses      = new BucketSortedList<Clause>(clause->clause.size());
+        clauses      = new BucketSortedList<Clause>(Clause::size);
         literalIndex = new BucketSortedIndex<CLiteral>(predicates+1,
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));
@@ -136,9 +138,9 @@ public class AllClauses {
     /** This method initially fills up the model with the conjunctions and the disjunctions with one literal.
      * At this stage there is no further interaction with other parts.
      *
-     * @throws Unsatisfiable if a contradiction occurs.
+     * @throws Result if a contradiction occurs.
      */
-    private void initializeAnd() throws Unsatisfiable {
+    private void initializeAnd() throws Result {
         for(int[] basicClause : basicClauseList.conjunctions) {
             for(int i = 2; i < basicClause.length; ++i) {
                 model.add(basicClause[i],IntArrayList.wrap(new int[]{basicClause[0]}),thread);}}}
@@ -146,26 +148,24 @@ public class AllClauses {
 
     /** This method puts the equivalence clauses into the equivalence classes
      *
-     * @throws Unsatisfiable if a contradiction occurs.
+     * @throws Result if a contradiction occurs.
      */
-    private void initializeEqv() throws Unsatisfiable {
+    private void initializeEqv() throws Result {
         for(int[] clause : basicClauseList.equivalences) {
             equivalenceClasses.addBasicEquivalenceClause(clause);}}
 
     /** This method puts the disjointness clauses into the disjointness classes
-     *
-     * @throws Unsatisfiable if a contradiction occurs.
      */
-    private void initializeDisjoints() throws Unsatisfiable {
+    private void initializeDisjoints() {
         for(int[] clause : basicClauseList.disjoints) {
             disjointnessClasses.addDisjointnessClause(clause);
             integrateDisjointnessClause(clause);}}
 
     /** This method puts the xor clauses into the disjointness classes and the clauses
      *
-     * @throws Unsatisfiable if a contradiction occurs.
+     * @throws Result if a contradiction occurs.
      */
-    private void initializeXors() throws Unsatisfiable {
+    private void initializeXors() throws Result {
         for(int[] clause : basicClauseList.xors) {
             disjointnessClasses.addDisjointnessClause(clause);
             addClause(clause);
@@ -173,9 +173,9 @@ public class AllClauses {
 
     /** This method puts the disjunctions clauses into the clauses
      *
-     * @throws Unsatisfiable if a contradiction occurs.
+     * @throws Result if a contradiction occurs.
      */
-    private void initializeDisjunctions() throws Unsatisfiable {
+    private void initializeDisjunctions() throws Result {
         for(int[] clause : basicClauseList.disjunctions) {
             addClause(clause);}}
 
@@ -185,9 +185,9 @@ public class AllClauses {
      * new equivalences <br>
      * new disjointnesses <br>
      *
-     * @return null or Unsatisfiable if a contradiction is found.
+     * @return null or Result if a contradiction is found.
      */
-    public Unsatisfiable runQueue() {
+    public Result runQueue() {
         while(!Thread.interrupted()) {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting");}
@@ -207,7 +207,7 @@ public class AllClauses {
                         simplifyOtherClauses((Clause)task.a);
                 }}
             catch(InterruptedException ex) {return null;}
-            catch(Unsatisfiable unsatisfiable) {return unsatisfiable;}}
+            catch(Result Result) {return Result;}}
         return null;}
 
 
@@ -217,13 +217,13 @@ public class AllClauses {
      * True or false literlas are eliminated<br>
      * Double literals are removed.<br>
      * Tautologies are ignored.<br>
-     * Empty clauses cause thrown of Unsatisfiable <br>
+     * Empty clauses cause thrown of Result <br>
      * Two-literal clauses are put into twoLitClauses.
      *
      * @param basicClause [id,type,lit1,...]
-     * @throws Unsatisfiable if the clause is empty, otherwise null
+     * @throws Result if the clause is empty, otherwise null
      */
-    private void addClause(int[] basicClause) throws Unsatisfiable {
+    private void addClause(int[] basicClause) throws Result {
         Clause clause = new Clause(++counter,basicClause.length-2);
         IntArrayList origins = trackReasoning ? IntArrayList.wrap(new int[]{basicClause[0]}) : null;
         int position = -1;
@@ -276,9 +276,9 @@ public class AllClauses {
      *
      * @param literal a true literal
      * @param origins the basic clause ids for the truth of the literal
-     * @throws Unsatisfiable if a contradiction is found.
+     * @throws Result if a contradiction is found.
      */
-    private void integrateTrueLiteral(int literal, IntArrayList origins) throws Unsatisfiable {
+    private void integrateTrueLiteral(int literal, IntArrayList origins) throws Result {
         BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {   // remove all clauses with the literal
             removeClause(iterator);}
@@ -297,14 +297,14 @@ public class AllClauses {
      * @param representative
      * @param literal
      * @param origins      the basic clause ids for the equivalence.
-     * @throws Unsatisfiable if a contradiction is found
+     * @throws Result if a contradiction is found
      */
-    private void integrateEquivalence(int representative, int literal, IntArrayList origins) throws Unsatisfiable {
+    private void integrateEquivalence(int representative, int literal, IntArrayList origins) throws Result {
         BucketSortedList<CLiteral>.BucketIterator iterator;
         for(int i = 1; i <= 2; ++i) {
             iterator = literalIndex.popIterator(literal);
             while(iterator.hasNext()) {
-                Clause clause = replaceLiteral(iterator,representative,literal,origins);
+                Clause clause = replaceLiteral(iterator,representative,origins);
                 if(clause != null) removeSubsumedClauses(clause);}
             literalIndex.pushIterator(literal,iterator);
             literal = -literal;
@@ -354,14 +354,14 @@ public class AllClauses {
             return true;}
         return false;}
 
-    private ArrayList<Clause> subsumedClauses = new ArrayList<>();
+    private final ArrayList<Clause> subsumedClauses = new ArrayList<>();
 
     /** removes all clauses subsumed by the given clause
      *
      * @param clause a clause
-     * @throws Unsatisfiable if a contradiction is found
+     * @throws Result if a contradiction is found
      */
-    private void removeSubsumedClauses(Clause clause) throws Unsatisfiable{
+    private void removeSubsumedClauses(Clause clause) throws Result{
         subsumedClauses.clear();
         LitAlgorithms.subsumes(clause,literalIndex,timestamp,subsumedClauses);
         for(Clause subsumed : subsumedClauses) {
@@ -375,9 +375,9 @@ public class AllClauses {
 
     /** performs all replacement resolutions and all purity checks
      *
-     * @throws Unsatisfiable if a contradiction is found.
+     * @throws Result if a contradiction is found.
      */
-    private void simplifyAllClauses() throws Unsatisfiable{
+    private void simplifyAllClauses() throws Result{
         ArrayList<Object[]> results = new ArrayList<>();
         for(Clause clause : clauses) {
             Object[] result = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
@@ -398,14 +398,14 @@ public class AllClauses {
             purityCheck();}
     }
 
-    private ArrayList<CLiteral> resolvents = new ArrayList<>();
+    private final ArrayList<CLiteral> resolvents = new ArrayList<>();
 
     /** removes subsumed clauses and literals in other clauses by replacement resolution
      *
      * @param clause         a clause to be used for simplifying other clauses
-     * @throws Unsatisfiable if a contradiction is found.
+     * @throws Result if a contradiction is found.
      */
-    private void simplifyOtherClauses(Clause clause) throws Unsatisfiable {
+    private void simplifyOtherClauses(Clause clause) throws Result {
         removeSubsumedClauses(clause);
         resolvents.clear();
         LitAlgorithms.replacementResolutionForward(clause,literalIndex,timestamp,resolvents);
@@ -424,35 +424,90 @@ public class AllClauses {
      * If literal is pure then -literal can be made true.
      *
      * @param literal        a literal to be checked
-     * @throws Unsatisfiable if a contradiction is found.
+     * @throws Result if a contradiction is found.
      */
-    private void purityCheck(int literal) throws Unsatisfiable {
+    private void purityCheck(int literal) throws Result {
         assert clausesFinished;
         if(literalIndex.isEmpty(literal)) {
             if(monitoring) {
                 monitor.print(monitorId,"Literal " + Symboltable.toString(literal,symboltable) +
                         " became pure");}
+            ++statistics.purities;
             model.add(-literal,null,null);}}
 
     /** performs purity checks for all literals in the clause
      *
-     * @param clause          a just removed clause.
-     * @throws Unsatisfiable
+     * @param clause  a just removed clause.
+     * @throws Result may throw Satisfiable
      */
-    private void purityCheck(Clause clause) throws Unsatisfiable {
+    private void purityCheck(Clause clause) throws Result {
         assert clausesFinished;
         for(CLiteral cliteral : clause.cliterals) purityCheck(cliteral.literal);}
 
     /** checks all literals for purity.
      *
-     * @throws Unsatisfiable
+     * @throws Result may throw Satisfiable
      */
-    private void purityCheck() throws Unsatisfiable {
+    private void purityCheck() throws Result {
         assert clausesFinished;
         for(int literal = 1; literal <= predicates; ++literal) {
             if(model.status(literal) == 0) {
                 purityCheck(literal);
                 purityCheck(-literal);}}}
+
+    /** Checks the clause set for satisfiability.
+     * If the clauses contain no positive clauses, a model is generated from the negative and mixed clauses.<br>
+     * If the clauses contain no negative clauses, a model is generated from the positive and mixed clauses.<br>
+     * In this case the model will be completed as far as necessary, and the clause set becomes empty.
+     *
+     * @throws Result should be just Satisfiable
+     */
+    private void checkSatisfiablity() throws Result {
+        assert clausesFinished;
+        if(statistics.negativeClauses == 0) {
+            while(!clauses.isEmpty()) {
+                if(!findTrueLiteral(ClauseStructure.POSITIVE,+1))
+                    findTrueLiteral(ClauseStructure.MIXED,-1);}
+            throw new Satisfiable(model);}
+
+        if(statistics.positiveClauses == 0) {
+            while(!clauses.isEmpty()) {
+                if(!findTrueLiteral(ClauseStructure.NEGATIVE,-1))
+                findTrueLiteral(ClauseStructure.MIXED,+1);}
+            throw new Satisfiable(model);}}
+
+    /** finds a literal which can be made true:
+     * If structure == POSITIVE, then the first literal in the first positive clause is chosen (sign = 1). <br>
+     * If structure == NEGATIVE, then the first literal in the first negative clause is chosen (sign = -1). <br>
+     * If structure == MIXED, then there should be no other clause type any more. <br>
+     * The the first literal with the given sign in the first clause is chosen.
+     *
+     * @param structure any of the possible clause structures
+     * @param sign   +1 or -1
+     * @return true if a literal has been found.
+     * @throws Result should not happen
+     */
+    private boolean findTrueLiteral(ClauseStructure structure, int sign) throws Result {
+        int literal = 0;
+        if(structure != ClauseStructure.MIXED) {
+            for(Clause clause : clauses) {
+                if(clause.structure == structure) {
+                    literal = sign*clause.getLiteral(0);
+                break;}}}
+        else {
+            for(CLiteral cliteral : clauses.getItem(0).cliterals) {
+                int lit = cliteral.literal;
+                if(Integer.signum(lit) == sign) {literal = -sign * lit;}
+                break;}}
+        if(literal != 0) {
+            if(monitoring) {
+                monitor.print(monitorId, "Making literal " +
+                        Symboltable.toString(literal,symboltable) +
+                        " true because clauses contain only positive/negative and mixed clauses." );}
+            model.add(literal,null,thread);
+            integrateTrueLiteral(literal,null);
+            return true;}
+        return false;}
 
     /** inserts the clause into the local data structures.
      *
@@ -471,22 +526,25 @@ public class AllClauses {
      *
      * @param clause a clause to be removed.
      */
-    private void removeClause(Clause clause) throws Unsatisfiable{
+    private void removeClause(Clause clause) throws Result{
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
         --statistics.clauses;
         for(CLiteral cliteral : clause) {literalIndex.remove(cliteral);}
         clauses.remove(clause);
-        purityCheck(clause);}
+        if(clausesFinished) {
+            if(clauses.isEmpty()) throw new Satisfiable(model);
+            purityCheck(clause);
+            checkSatisfiablity();}}
 
 
     /** removes the iterator's next clause and does purity checks
      *
      * @param iterator an iterator over the literal index.
-     * @throws Unsatisfiable if a contradiction is found.
+     * @throws Result if a contradiction is found.
      */
-    private void removeClause(BucketSortedList<CLiteral>.BucketIterator iterator) throws Unsatisfiable {
+    private void removeClause(BucketSortedList<CLiteral>.BucketIterator iterator) throws Result {
         CLiteral cliteral = iterator.next();
         Clause clause = cliteral.clause;
         switch(clause.structure) {
@@ -497,7 +555,10 @@ public class AllClauses {
         for(CLiteral clit : clause) {
             if(clit != cliteral) literalIndex.remove(clit);}
         clauses.remove(clause);
-        purityCheck(clause);}
+        if(clausesFinished) {
+            if(clauses.isEmpty()) throw new Satisfiable(model);
+            purityCheck(clause);
+            checkSatisfiablity();}}
 
     /** removes the cliteral and performs a purity check
      *
@@ -505,7 +566,7 @@ public class AllClauses {
      * @param origins the basic clause ids for removing the literal.
      * @return true if the clause survived
      */
-    private boolean removeLiteral(CLiteral cliteral, IntArrayList origins) throws Unsatisfiable {
+    private boolean removeLiteral(CLiteral cliteral, IntArrayList origins) throws Result {
         Clause clause = cliteral.clause;
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
@@ -515,7 +576,7 @@ public class AllClauses {
         clause.setStructure();
         literalIndex.remove(cliteral);
         boolean alive = updateClause(clause,origins);
-        purityCheck(cliteral.literal);
+        if(clausesFinished) purityCheck(cliteral.literal);
         return alive;}
 
 
@@ -525,7 +586,7 @@ public class AllClauses {
      * @param origins the basic clause ids for removing the literal.
      * @return true if the clause survived
      */
-    private boolean removeLiteral(BucketSortedList<CLiteral>.BucketIterator iterator, IntArrayList origins) throws Unsatisfiable {
+    private boolean removeLiteral(BucketSortedList<CLiteral>.BucketIterator iterator, IntArrayList origins) throws Result {
         CLiteral cliteral = iterator.next();
         Clause clause = cliteral.clause;
         switch(clause.structure) {
@@ -536,7 +597,7 @@ public class AllClauses {
         clause.setStructure();
         iterator.remove();
         boolean alive = updateClause(clause,origins);
-        purityCheck(cliteral.literal);
+        if(clausesFinished) purityCheck(cliteral.literal);
         return alive;}
 
     /** updates the status of a clause after literal removal
@@ -544,15 +605,16 @@ public class AllClauses {
      * @param clause   a clause whose literal has been removed
      * @param origins basic clause ids for the literal removal
      * @return true if the clause survived
-     * @throws Unsatisfiable if a contradiction is found.
+     * @throws Result if a contradiction is found, Satisfiable if the clause set became empty.
      */
-    private boolean updateClause(Clause clause, IntArrayList origins) throws Unsatisfiable{
+    private boolean updateClause(Clause clause, IntArrayList origins) throws Result{
         switch(clause.size()) {
             case 1:
                 model.add(clause.getLiteral(0),
                         trackReasoning ? joinIntArraysSorted(clause.origins,origins) : null,null);
                 literalIndex.remove(clause.getCLiteral(0));
                 clauses.remove(clause);
+                if(clausesFinished && clauses.isEmpty()) throw new Satisfiable(model);
                 return false;
             case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),clause.getLiteral(2),
                     trackReasoning ? joinIntArraysSorted(clause.origins,origins) : null);} // keep the two-literal clause
@@ -567,13 +629,12 @@ public class AllClauses {
      *
      * @param iterator    the next() yields the oldLiteral
      * @param newLiteral  a new literal
-     * @param oldLiteral  an old literal in the clause
      * @param origins     null or the clause ids for the replacement
      * @return            null (tautology) or the changed clause
-     * @throws Unsatisfiable if a contradiction has been found.
+     * @throws Result if a contradiction has been found.
      */
     private Clause replaceLiteral(BucketSortedList<CLiteral>.BucketIterator iterator,
-                                int newLiteral, int oldLiteral, IntArrayList origins) throws Unsatisfiable {
+                                int newLiteral, IntArrayList origins) throws Result {
         CLiteral cliteral = iterator.next();
         Clause clause = cliteral.clause;
         IntArrayList orig = trackReasoning ? joinIntArraysSorted(clause.origins,origins) : null;

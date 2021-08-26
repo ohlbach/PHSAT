@@ -94,7 +94,7 @@ public class BucketSortedList<T extends Positioned> implements Iterable<T> {
         if(size == 0) {return 0;}
         return random.nextInt(random.nextInt(size)+1);}
 
-    /** returns a randomly chosen item.
+    /** returns the index's item
      *  items in smaller buckets are chosen more likely (quadratic) than items in larger buckets.
      *
      * @param index the index in the aggregated lists.
