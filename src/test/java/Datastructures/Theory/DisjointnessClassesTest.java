@@ -3,11 +3,15 @@ package Datastructures.Theory;
 import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Management.Controller;
+import Management.GlobalParameters;
 import Management.Monitor;
+import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import static org.junit.Assert.*;
 
@@ -20,18 +24,37 @@ public class DisjointnessClassesTest {
     int type = ClauseType.DISJOINT.ordinal();
     int typeEQ = ClauseType.EQUIV.ordinal();
 
+    GlobalParameters globalParameters = new GlobalParameters();
+    Controller controller = new Controller(null,null,null);
+    ProblemSupervisor problemSupervisor;
+    Symboltable symboltable; 
+    EquivalenceClasses eqClasses;
+    DisjointnessClasses dClasses;
+    Model model;
+
+    private void prepare() {
+        globalParameters.monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
+        HashMap<String,Object> problemParameters = new HashMap<>();
+        problemParameters.put("name","test");
+        problemSupervisor = new ProblemSupervisor(controller,globalParameters,problemParameters,null);
+        symboltable = new Symboltable(10);
+        symboltable.setName(1,"p");
+        symboltable.setName(2,"q");
+        symboltable.setName(3,"r");
+        symboltable.setName(4,"a");
+        symboltable.setName(5,"b");
+        symboltable.setName(6,"c");
+        model = new Model(10,symboltable);
+        problemSupervisor.model = model;
+        eqClasses = new EquivalenceClasses(problemSupervisor);
+        problemSupervisor.equivalenceClasses = eqClasses;
+        dClasses = new DisjointnessClasses(problemSupervisor);
+    }
 
     @Test
     public void integrateDerivedDisjoints() {
         System.out.println("integrateDerivedDisjoints");
-        Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
-        Symboltable symboltable = new Symboltable(10);
-        symboltable.setName(1,"p");
-        symboltable.setName(2,"q");
-        symboltable.setName(3,"r");
-        Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,null);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor,null);
+        prepare();
         IntArrayList literals = new IntArrayList();
         literals.add(1); literals.add(3);literals.add(2);
         IntArrayList origins = new IntArrayList();
@@ -47,14 +70,7 @@ public class DisjointnessClassesTest {
     @Test
     public void integrateDisjointnessClause1() {
         System.out.println("integrateDisjointnessClause1");
-        Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
-        Symboltable symboltable = new Symboltable(10);
-        symboltable.setName(1,"p");
-        symboltable.setName(2,"q");
-        symboltable.setName(3,"r");
-        Model model = new Model(10,symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model,"test",monitor,null);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model,eqClasses,"test",monitor,null);
+        prepare();
         int[] clause = new int[]{1,type,1,2,3};
         try{
         dClasses.integrateDisjointnessClause(clause,null);}
@@ -73,7 +89,7 @@ public class DisjointnessClassesTest {
         catch(Unsatisfiable uns) {}
         assertEquals("Disjointness Classes:\n" +
                 "D-1: p != q != r\n" +
-                "D-2: 4 != q",dClasses.toString("",symboltable));
+                "D-2: a != q",dClasses.toString("",symboltable));
         System.out.println(dClasses.infoString(null));
         clause = new int[]{2,type,5,3,5};
         try{
@@ -86,12 +102,7 @@ public class DisjointnessClassesTest {
     @Test
     public void integrateDisjointnessClause2() {
         System.out.println("integrateDisjointnessClause with model");
-        Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
-        Symboltable symboltable = new Symboltable(10);
-        symboltable.setName(1, "p");
-        symboltable.setName(2, "q");
-        symboltable.setName(3, "r");
-        Model model = new Model(10, symboltable);
+        prepare();
         ArrayList<Object> observed = new ArrayList<>();
         model.addObserver(null,
                 ((literal, originals) -> {
@@ -102,8 +113,8 @@ public class DisjointnessClassesTest {
         origins.add(20);
         origins.add(30);
         model.addImmediately(2, origins);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
+        EquivalenceClasses eqClasses = new EquivalenceClasses(problemSupervisor);
+        DisjointnessClasses dClasses = new DisjointnessClasses(problemSupervisor);
         int[] clause = new int[]{1, type, 1, 2, 3};
         try {dClasses.integrateDisjointnessClause(clause, null);
         } catch (Unsatisfiable uns) {}
@@ -113,33 +124,23 @@ public class DisjointnessClassesTest {
     @Test
     public void integrateDisjointnessClause3() {
         System.out.println("integrateDisjointnessClause with equivalences");
-        Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
-        Symboltable symboltable = new Symboltable(10);
-        symboltable.setName(1, "p");
-        symboltable.setName(2, "q");
-        symboltable.setName(3, "r");
-        Model model = new Model(10, symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
+        prepare();
         int[] clause = new int[]{1,typeEQ,3,2,1};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
         clause = new int[]{2,type,4,2,5};
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
+        DisjointnessClasses dClasses = new DisjointnessClasses(problemSupervisor);
         try {dClasses.integrateDisjointnessClause(clause, null);
         } catch (Unsatisfiable uns) {}
         assertEquals("Disjointness Classes:\n" +
-                "D-1: 4 != p != 5",dClasses.toString("",symboltable));
+                "D-1: a != p != b",dClasses.toString("",symboltable));
         //System.out.println(dClasses.infoString(symboltable));
         }
 
     @Test
     public void forwardSubsumption() {
         System.out.println("forwardSubsumption");
-        Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
-        Symboltable symboltable =  null;
-        Model model = new Model(10, symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
+        prepare();
         int[] clause1 = new int[]{1, type, 1, 2, 3, 4};
         int[] clause2 = new int[]{2, type, 3,2,1};
         try {
@@ -163,11 +164,7 @@ public class DisjointnessClassesTest {
     @Test
     public void backwardSubsumption() {
         System.out.println("backwardSubsumption");
-        Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
-        Symboltable symboltable =  null;
-        Model model = new Model(10, symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
+        prepare();
         int[] clause1 = new int[]{1, type, 1, 2, 3, 4};
         int[] clause2 = new int[]{2, type, 3,2,1};
         try {
@@ -193,17 +190,13 @@ public class DisjointnessClassesTest {
     @Test
     public void resolve() {
         System.out.println("resolve");
-        Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
-        Symboltable symboltable = null;
-        Model model = new Model(10, symboltable);
+        prepare();
         ArrayList<Object> observed = new ArrayList<>();
         model.addObserver(Thread.currentThread(),
                 ((literal, originals) -> {
                     observed.add(literal);
                     observed.add(originals);
                 }));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
         int[] clause1 = new int[]{1, type, 1, 2, 3, 4};
         int[] clause2 = new int[]{2, type, 3, 2, -1,5};
         try {
@@ -214,17 +207,13 @@ public class DisjointnessClassesTest {
         assertEquals("[-3, [1, 2], -2, [1, 2]]",observed.toString());
         assertEquals("Disjointness Classes:\n" +
                 "D-1: 1 != 2 != 3 != 4\n" +
-                "D-2: -1 != 5",dClasses.toString("",symboltable));
+                "D-2: -1 != 5",dClasses.toString("",null));
        // System.out.println(dClasses.infoString(symboltable));
     }
     @Test
     public void extendNormalizedClause() {
         System.out.println("extendNormalizedClause");
-        Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
-        Symboltable symboltable = null;
-        Model model = new Model(10, symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
+        prepare();
         int[] clause1 = new int[]{1, type, 1, 2, 3};
         int[] clause2 = new int[]{2, type, 1, 3, 4};
         int[] clause3 = new int[]{3, type, 2,3,4};
@@ -243,17 +232,13 @@ public class DisjointnessClassesTest {
         @Test
     public void integrateTrueLiteral() {
             System.out.println("integrateTrueLiteral");
-            Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
-            Symboltable symboltable = null;
-            Model model = new Model(10, symboltable);
+            prepare();
             ArrayList<Object> observed = new ArrayList<>();
             model.addObserver(null, //Thread.currentThread(),
                     ((literal, originals) -> {
                         observed.add(literal);
                         observed.add(originals);
                     }));
-            EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
-            DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
             int[] clause1 = new int[]{1, type, 1, 2, 3};
             int[] clause2 = new int[]{2, type, 1, 3, 4};
             int[] clause3 = new int[]{2, type, 6, -3, 5,7};
@@ -273,11 +258,7 @@ public class DisjointnessClassesTest {
     @Test
     public void integrateEquivalence1() {
         System.out.println("integrateTrueLiteral unsatisfiable");
-        Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
-        Symboltable symboltable = null;
-        Model model = new Model(10, symboltable);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
+        prepare();
         int[] clause1 = new int[]{1, type, 1, 2, 3};
         IntArrayList originals = new IntArrayList();
         originals.add(20);
@@ -290,12 +271,8 @@ public class DisjointnessClassesTest {
     @Test
     public void integrateEquivalence2() {
         System.out.println("integrateTrueLiteral satisfiable");
-        Monitor monitor = !monitoring ? null : new Monitor(null, "mixed", errors, warnings);
-        Symboltable symboltable = null;
-        Model model = new Model(10, symboltable);
+        prepare();
         ArrayList<DisjointnessClass> observed = new ArrayList<>();
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
         dClasses.addObserver(dClass -> observed.add(dClass));
         int[] clause1 = new int[]{1, type, 1, 2, 3};
         int[] clause2 = new int[]{1, type, 4,5,6};
@@ -316,16 +293,13 @@ public class DisjointnessClassesTest {
     @Test
     public void threadtest() {
         System.out.println("Thread ");
-        Monitor monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
-        Model model = new Model(10, null);
+        prepare();
         ArrayList<Object> observed = new ArrayList<>();
         model.addObserver(null, //Thread.currentThread(),
                 ((literal, originals) -> {
                     observed.add(literal);
                     observed.add(originals);
                 }));
-        EquivalenceClasses eqClasses = new EquivalenceClasses(model, "test", monitor,null);
-        DisjointnessClasses dClasses = new DisjointnessClasses(model, eqClasses, "test", monitor,null);
 
         Thread thread1 = new Thread(()->dClasses.run());
         thread1.start();

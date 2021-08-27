@@ -51,6 +51,7 @@ public class AllClauses {
     private final AllClausesStatistics statistics;
     private int timestamp = 1;
     private boolean clausesFinished = false;
+    private Thread supervisorThread;
 
     private enum TaskType {
         TRUELITERAL, EQUIVALENCE, DISJOINTNESS,SIMPLIFYALL, SIMPLIFYOTHERS,
@@ -118,6 +119,7 @@ public class AllClauses {
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));
         statistics = new AllClausesStatistics(problemId);
+        supervisorThread = problemSupervisor.supervisorThread;
 
         model.addObserver(Thread.currentThread(),(literal, origins) ->
                 queue.add(new Task(TaskType.TRUELITERAL,origins, literal,null)));
@@ -128,31 +130,11 @@ public class AllClauses {
         disjointnessClasses.addObserver((disjoints) ->
                 queue.add(new Task(TaskType.DISJOINTNESS,null, disjoints, null)));
 
-        initializeAnd();
-        initializeEqv();
         initializeDisjoints();
         initializeXors();
         initializeDisjunctions();
         clausesFinished = true;
     }
-    /** This method initially fills up the model with the conjunctions and the disjunctions with one literal.
-     * At this stage there is no further interaction with other parts.
-     *
-     * @throws Result if a contradiction occurs.
-     */
-    private void initializeAnd() throws Result {
-        for(int[] basicClause : basicClauseList.conjunctions) {
-            for(int i = 2; i < basicClause.length; ++i) {
-                model.add(basicClause[i],IntArrayList.wrap(new int[]{basicClause[0]}),thread);}}}
-
-
-    /** This method puts the equivalence clauses into the equivalence classes
-     *
-     * @throws Result if a contradiction occurs.
-     */
-    private void initializeEqv() throws Result {
-        for(int[] clause : basicClauseList.equivalences) {
-            equivalenceClasses.addBasicEquivalenceClause(clause);}}
 
     /** This method puts the disjointness clauses into the disjointness classes
      */
@@ -187,14 +169,15 @@ public class AllClauses {
      *
      * @return null or Result if a contradiction is found.
      */
-    public Result runQueue() {
+    public void run() {
         while(!Thread.interrupted()) {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting");}
                 Task task = queue.take(); // waits if the queue is empty
                 switch (task.taskType) {
-                    case TRUELITERAL: integrateTrueLiteral((Integer)task.a,task.origins);
-                    break;
+                    case TRUELITERAL:
+                        integrateTrueLiteral((Integer)task.a,task.origins);
+                        break;
                     case EQUIVALENCE:
                         integrateEquivalence((Integer)task.a,(Integer)task.b,task.origins);
                         break;
@@ -203,12 +186,14 @@ public class AllClauses {
                         break;
                     case SIMPLIFYALL:
                         simplifyAllClauses();
+                        break;
                     case SIMPLIFYOTHERS:
                         simplifyOtherClauses((Clause)task.a);
+                        break;
                 }}
-            catch(InterruptedException ex) {return null;}
-            catch(Result Result) {return Result;}}
-        return null;}
+            catch(InterruptedException ex) {return;}
+            catch(Result result) {problemSupervisor.setResult(result,"AllClauses");}}
+        return;}
 
 
 
@@ -217,7 +202,7 @@ public class AllClauses {
      * True or false literlas are eliminated<br>
      * Double literals are removed.<br>
      * Tautologies are ignored.<br>
-     * Empty clauses cause thrown of Result <br>
+     * Empty clauses cause throw of Result <br>
      * Two-literal clauses are put into twoLitClauses.
      *
      * @param basicClause [id,type,lit1,...]
@@ -294,8 +279,8 @@ public class AllClauses {
      * unit literals are put into the model <br>
      * two-literal clauses are kept and put into the twoLiteral module.
      *
-     * @param representative
-     * @param literal
+     * @param representative for representative = literal
+     * @param literal       a literal
      * @param origins      the basic clause ids for the equivalence.
      * @throws Result if a contradiction is found
      */
@@ -526,7 +511,7 @@ public class AllClauses {
      *
      * @param clause a clause to be removed.
      */
-    private void removeClause(Clause clause) throws Result{
+    private void removeClause(Clause clause) throws Result {
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
@@ -656,5 +641,47 @@ public class AllClauses {
         return clause;
     }
 
+    /** Lists all clauses as a string
+     *
+     * @return the clauses as string
+     */
+    public String toString() {
+        return toString(symboltable);}
+
+
+    /** Lists all clauses as a string of nombers
+     *
+     * @return the clauses as string
+     */
+    public String toNumbers() {
+        return toString(null);}
+
+
+    /** Lists all clauses as a string
+     *
+     * @param symboltable null or a symboltable
+     * @return the clauses as string
+     */
+    public String toString(Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        st.append("All Clauses:\n");
+        int size = Integer.toString(counter).length()+2;
+        for(Clause clause : clauses) {
+            st.append(clause.toString(size,symboltable)).append("\n");}
+        return st.toString();}
+
+    /** lists all clauses and the literal index as string
+     *
+     * @param symboltable null or a symboltable
+     * @return the info as string.
+     */
+    public String infoString(Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        st.append("All Clauses:\n");
+        int size = Integer.toString(counter).length()+2;
+        for(Clause clause : clauses) {
+            st.append(clause.infoString(size,symboltable)).append("\n");}
+        st.append(literalIndex.toString(cliteral -> cliteral.toString(symboltable)));
+        return st.toString();}
 
 }

@@ -1,5 +1,6 @@
 package Management;
 
+import Datastructures.Clauses.AllClauses;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
@@ -27,7 +28,8 @@ public class ProblemSupervisor {
     public GlobalParameters globalParameters;
     public HashMap<String,Object> problemParameters;
     public ArrayList<HashMap<String,Object>> solverParameters;
-    Result result;
+    public Result result = null;
+    private String solver = null;
     Thread[] threads;
     Solver[] solvers;
     Result[] results;
@@ -45,7 +47,14 @@ public class ProblemSupervisor {
     public TwoLitClauses twoLitClauses;
     public Thread twoLitThread;
 
+    public AllClauses allClauses;
+    public Thread allClausesThread;
+
     public Thread supervisorThread;
+
+    private Monitor monitor;
+    private String monitorId;
+    private boolean monitoring;
 
     public SupervisorStatistics statistics = null;
 
@@ -59,6 +68,31 @@ public class ProblemSupervisor {
         this.solverParameters       = solverParameters;
         statistics                  = new SupervisorStatistics(problemId);
         supervisorThread            = Thread.currentThread();
+        monitor                     = globalParameters.monitor;
+        monitoring                  = monitor != null;
+        monitorId                   = problemId+"PS";
+    }
+
+    /** a thread which found a solution calls this method to set the result and interrupt all other threads
+     *
+     * @param result of the search
+     * @param solver who found the solution.
+     */
+    public synchronized void setResult(Result result, String solver) {
+        interruptAll();
+        this.result = result;
+        this.solver = solver;
+        if(monitoring) {
+            monitor.print(monitorId,"Result of solver " + solver + ":\n" + result.toString());}
+    }
+
+    /** interrupts all threads */
+    private void interruptAll() {
+        supervisorThread.interrupt();
+        equivalenceThread.interrupt();
+        disjointnessThread.interrupt();
+        twoLitThread.interrupt();
+        allClausesThread.interrupt();
     }
 
     /** reads or generates the SAT-clauses
@@ -76,6 +110,7 @@ public class ProblemSupervisor {
     public void solveProblem() throws Result {
         initializeClasses();
         initializeAndEqv();
+        allClauses = new AllClauses(this);
         try{
             equivalenceThread = new Thread(()-> equivalenceClasses.run());
             equivalenceThread.start();
@@ -83,7 +118,9 @@ public class ProblemSupervisor {
             disjointnessThread.start();
             twoLitThread = new Thread(() -> twoLitClauses.run());
             twoLitThread.start();
-            initializeDisjoints();
+            allClausesThread = new Thread(() -> allClauses.run());
+            allClausesThread.start();
+
 
         preparer =  new Preparer(this);
         preparer.prepare();
@@ -113,10 +150,12 @@ public class ProblemSupervisor {
     /** initializes the model, the equivalenceClasses, the disjointnessClasses and the twoLitClauses
      */
     private void initializeClasses() {
-        model = new Model(basicClauseList.predicates,basicClauseList.symboltable);
-        equivalenceClasses  = new EquivalenceClasses(model,problemId, globalParameters.monitor,supervisorThread);
-        disjointnessClasses = new DisjointnessClasses(model, equivalenceClasses, problemId, globalParameters.monitor,supervisorThread);
-        twoLitClauses = new TwoLitClauses(model,equivalenceClasses,disjointnessClasses,problemId, globalParameters.monitor,supervisorThread);
+        model               = new Model(basicClauseList.predicates,basicClauseList.symboltable);
+        equivalenceClasses  = new EquivalenceClasses(this);
+        //equivalenceClasses  = new EquivalenceClasses(model,problemId, globalParameters.monitor,supervisorThread);
+
+        disjointnessClasses = new DisjointnessClasses(this);
+        twoLitClauses       = new TwoLitClauses(this);
     }
 
     /** This method initially fills up the model and the equivalenceClasses.

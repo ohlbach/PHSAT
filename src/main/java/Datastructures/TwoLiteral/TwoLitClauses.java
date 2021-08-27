@@ -7,6 +7,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.*;
 import Management.Monitor;
+import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import javafx.util.Pair;
 
@@ -53,20 +54,20 @@ public class TwoLitClauses {
     /** The current thread */
     public Thread thread;
 
-    private Thread supervisorThread;
+    private final Thread supervisorThread;
 
     /** for monitoring actions */
-    public Monitor monitor;
+    public final Monitor monitor;
 
-    private String monitorId;
+    private final String monitorId;
 
     /** if monitoring is active */
-    public boolean monitoring;
+    public final boolean monitoring;
 
     /** Unsatisfiable if a contradiction is found */
     public Result result = null;
 
-    private ArrayList<Consumer<TwoLitClause>> observers = new ArrayList<>();
+    private final ArrayList<Consumer<TwoLitClause>> observers = new ArrayList<>();
 
     /** A queue of newly derived unit literals, newly derived binary disjointnesses and basic disjointness clauses
      * The unit literals are automatically put at the beginning of the queue.
@@ -74,7 +75,7 @@ public class TwoLitClauses {
     private final PriorityBlockingQueue<Pair<Object,IntArrayList>> queue =
             new PriorityBlockingQueue<>(10,(Pair<Object,IntArrayList> o1, Pair<Object,IntArrayList> o2) -> {
                 int priority1; int priority2;
-                Class cl = o1.getKey().getClass();
+                Class<?> cl = o1.getKey().getClass();
                 if(cl == Integer.class)     {priority1 = 0;}        // true literal
                 else {if(cl == int[].class) {priority1 = 1;}        // basic clause
                         else priority1 = 3;}
@@ -84,18 +85,17 @@ public class TwoLitClauses {
                         else priority2 = 3;}                        // Equivalence class
                 return Integer.compare(priority1,priority2);});
 
-    public TwoLitClauses(Model model, EquivalenceClasses equivalenceClasses,
-                        DisjointnessClasses disjointnessClasses, String problemId, Monitor monitor, Thread supervisorThread) {
-        this.problemId = problemId;
-        this.model = model;
-        this.equivalenceClasses = equivalenceClasses;
-        this.disjointnessClasses = disjointnessClasses;
-        this.monitor = monitor;
+    public TwoLitClauses(ProblemSupervisor problemSupervisor) {
+        problemId = problemSupervisor.problemId;
+        model = problemSupervisor.model;
+        equivalenceClasses = problemSupervisor.equivalenceClasses;
+        disjointnessClasses = problemSupervisor.disjointnessClasses;
+        monitor = problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
         monitorId = problemId+"-TwoLit";
         statistics = new TwoLitStatistics(problemId);
         thread = Thread.currentThread();
-        this.supervisorThread = supervisorThread;
+        supervisorThread = problemSupervisor.supervisorThread;
     }
 
     /** adds an observer which is called when a two-literal clause is inserted
@@ -107,7 +107,7 @@ public class TwoLitClauses {
 
     /** removes the observer
      *
-     * @param observer
+     * @param observer for observing bew two-literal clauses
      */
     public void removeObserver(Consumer<TwoLitClause> observer) {
         observers.remove(observer);}
@@ -120,18 +120,16 @@ public class TwoLitClauses {
      */
     public void run() {
         thread = Thread.currentThread();
-        model.addObserver(thread,
-                (Integer literal, IntArrayList origins) -> addTrueLiteral(literal,origins));
+        model.addObserver(thread,this::addTrueLiteral);
 
-        equivalenceClasses.addObserver((representative, literal, origins) ->
-                addEquivalence(representative,literal,origins));
+        equivalenceClasses.addObserver(this::addEquivalence);
 
         while(!Thread.interrupted()) {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting");}
                 Pair<Object, IntArrayList> object = queue.take();
                 Object key = object.getKey();
-                Class cl = key.getClass();
+                Class<?> cl = key.getClass();
                 IntArrayList origins = object.getValue();
                 if(cl == Integer.class) {integrateTrueLiteral((Integer)key,origins); continue;}
                 if(cl == int[].class) {integrateBasicClause((int[])key,null); continue;}
@@ -147,7 +145,7 @@ public class TwoLitClauses {
 
     /** puts a two-literal clause into the queue
      *
-     * @param clause
+     * @param clause a basic clause
      */
     public void addBasicClause(int[] clause) {
         assert clause.length == 4;
@@ -155,7 +153,7 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   basic clause" +
                     BasicClauseList.clauseToString(0,clause, model.symboltable));}
-        queue.add(new Pair(clause,null)); }
+        queue.add(new Pair<>(clause,null)); }
 
 
     /** puts a derived two-literal clause into the queue
@@ -170,12 +168,12 @@ public class TwoLitClauses {
                     Symboltable.toString(literal1,model.symboltable) + "," +
                     Symboltable.toString(literal2,model.symboltable));}
         int[] clause = new int[]{-1,ClauseType.OR.ordinal(),literal1,literal2};
-        queue.add(new Pair(clause,origins));}
+        queue.add(new Pair<>(clause,origins));}
 
     /** adds a two-literal disjunction to the data structures and performs all simplifications and inferences.
      * If a contradiction is encountered the inconsistencyReporter is called and the method stops.
      *
-     * @param basicClause
+     * @param basicClause a basic clause
      * @throws Unsatisfiable if a contradiction is encountered
      */
     protected void integrateBasicClause(int[] basicClause, IntArrayList origins) throws Unsatisfiable {
@@ -196,7 +194,7 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   true literal " +
                 Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Pair(literal,origins));}
+        queue.add(new Pair<>(literal,origins));}
 
 
     /** generates all unit resolvents and removes the clauses with the literal from the data structures
@@ -218,7 +216,7 @@ public class TwoLitClauses {
                 clauses.remove(i--); continue;}
             if(clause.literal2 == -literal) {
                 model.add(clause.literal1,joinIntArraysSorted(clause.origins,origins),null);
-                clauses.remove(i--); continue;}}
+                clauses.remove(i--);}}
         clauseMap.remove(literal);
         clauseMap.remove(-literal);}
 
@@ -233,7 +231,7 @@ public class TwoLitClauses {
         monitor.print(monitorId,"In:   equivalence" +
                 Symboltable.toString(representative,model.symboltable) + " = " +
                 Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Pair<>(new Pair(representative,literal),origins));}
+        queue.add(new Pair<>(new Pair<>(representative,literal),origins));}
 
     /** replaces in all clauses the 'literal' with 'representative
      *
@@ -263,8 +261,7 @@ public class TwoLitClauses {
                                         Symboltable.toString(clause.literal1,model.symboltable));}
                             model.add(clause.literal1,joinIntArraysSorted(clause.origins,origins),null);
                             clausesLit.remove(i--);
-                            clauses.remove(clause);
-                            continue;}}
+                            clauses.remove(clause);}}
                 clauseMap.remove(literal);}
             literal = -literal;
             representative = -representative;}
@@ -286,10 +283,7 @@ public class TwoLitClauses {
         if(clause.literal1 ==  clause.literal2) return 2;
 
         clause.origins = joinIntArraysSorted(clause.origins,origins);
-        ArrayList<TwoLitClause> clausesLit = clauseMap.get(representative);
-        if(clausesLit == null) {
-            clausesLit = new ArrayList<>();
-            clauseMap.put(representative,clausesLit);}
+        ArrayList<TwoLitClause> clausesLit = clauseMap.computeIfAbsent(representative, k -> new ArrayList<>());
         clausesLit.add(clause);
         return 3;}
 
@@ -352,12 +346,10 @@ public class TwoLitClauses {
     private void insertClause(TwoLitClause clause) throws Unsatisfiable{
         if(!findStructures(clause)) return;
         clauses.add(clause);
-        ArrayList<TwoLitClause> clausesLit = clauseMap.get(clause.literal1);
-        if(clausesLit == null) {clausesLit = new ArrayList<>(); clauseMap.put(clause.literal1,clausesLit);}
+        ArrayList<TwoLitClause> clausesLit = clauseMap.computeIfAbsent(clause.literal1, k -> new ArrayList<>());
         clausesLit.add(clause);
 
-        clausesLit = clauseMap.get(clause.literal2);
-        if(clausesLit == null) {clausesLit = new ArrayList<>(); clauseMap.put(clause.literal2,clausesLit);}
+        clausesLit = clauseMap.computeIfAbsent(clause.literal2, k -> new ArrayList<>());
         clausesLit.add(clause);
 
         statistics.twoLitlauses++;
@@ -383,8 +375,8 @@ public class TwoLitClauses {
 
     /** searches for a clause with the given literals
      *
-     * @param literal1
-     * @param literal2
+     * @param literal1 a literal
+     * @param literal2 a literal
      * @return null or the clause with the literals.
      */
     private TwoLitClause findClause(int literal1, int literal2) {
@@ -530,7 +522,7 @@ public class TwoLitClauses {
      */
     public String infoString(Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
-        string.append(toString());
+        string.append(this);
         string.append("\nClause Map:\n");
         clauseMap.forEach((literal,clauses) -> {
             string.append("  "+Symboltable.toString(literal,symboltable)).append(": ");
