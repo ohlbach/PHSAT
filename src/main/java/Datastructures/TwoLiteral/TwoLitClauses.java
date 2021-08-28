@@ -151,7 +151,7 @@ public class TwoLitClauses {
         assert clause.length == 4;
         assert ClauseType.getType(clause[1]) == ClauseType.OR;
         if(monitoring) {
-            monitor.print(monitorId,"In:   basic clause" +
+            monitor.print(monitorId,"In:   basic clause " +
                     BasicClauseList.clauseToString(0,clause, model.symboltable));}
         queue.add(new Pair<>(clause,null)); }
 

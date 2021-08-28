@@ -11,7 +11,6 @@ import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
-import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
@@ -19,6 +18,7 @@ import Utilities.BucketSortedList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import static Utilities.Utilities.joinIntArraysSorted;
@@ -35,12 +35,10 @@ public class AllClauses {
     private final DisjointnessClasses disjointnessClasses;
     private final TwoLitClauses       twoLitClauses;
 
-    private boolean monitoring = false;
+    private final boolean monitoring;
     private final Monitor monitor;
     private final String monitorId;
     private final boolean trackReasoning;
-    private final GlobalParameters globalParameters;
-    private final String problemId;
     private final Symboltable symboltable;
 
     private final int predicates;
@@ -50,8 +48,7 @@ public class AllClauses {
     private final BucketSortedIndex<CLiteral> literalIndex;
     private final AllClausesStatistics statistics;
     private int timestamp = 1;
-    private boolean clausesFinished = false;
-    private Thread supervisorThread;
+    private final boolean clausesFinished;
 
     private enum TaskType {
         TRUELITERAL, EQUIVALENCE, DISJOINTNESS,SIMPLIFYALL, SIMPLIFYOTHERS,
@@ -75,8 +72,7 @@ public class AllClauses {
      * The unit literals are automatically put at the beginning of the queue.
      */
     private final PriorityBlockingQueue<Task> queue =
-            new PriorityBlockingQueue<Task>(10,
-                    (task1,task2) ->Integer.compare(getPriority(task1),getPriority(task2)));
+            new PriorityBlockingQueue<>(10, Comparator.comparingInt(this::getPriority));
 
     /** gets the priority for the objects in the queue.
      *
@@ -100,18 +96,17 @@ public class AllClauses {
      */
     public AllClauses(ProblemSupervisor problemSupervisor) throws Result {
         this.problemSupervisor = problemSupervisor;
-        globalParameters = problemSupervisor.globalParameters;
         thread = Thread.currentThread();
         model = problemSupervisor.model;
         basicClauseList = problemSupervisor.basicClauseList;
         equivalenceClasses  = problemSupervisor.equivalenceClasses;
         disjointnessClasses = problemSupervisor.disjointnessClasses;
         twoLitClauses       = problemSupervisor.twoLitClauses;
-        problemId = problemSupervisor.problemId;
+        String problemId = problemSupervisor.problemId;
         monitor = problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
         monitorId = problemId+"AC";
-        trackReasoning = globalParameters.trackReasoning;
+        trackReasoning = problemSupervisor.globalParameters.trackReasoning;
         symboltable = model.symboltable;
         predicates = symboltable.predicates;
         clauses      = new BucketSortedList<Clause>(Clause::size);
@@ -119,7 +114,6 @@ public class AllClauses {
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));
         statistics = new AllClausesStatistics(problemId);
-        supervisorThread = problemSupervisor.supervisorThread;
 
         model.addObserver(Thread.currentThread(),(literal, origins) ->
                 queue.add(new Task(TaskType.TRUELITERAL,origins, literal,null)));
@@ -166,8 +160,6 @@ public class AllClauses {
      * new true literals <br>
      * new equivalences <br>
      * new disjointnesses <br>
-     *
-     * @return null or Result if a contradiction is found.
      */
     public void run() {
         while(!Thread.interrupted()) {
@@ -192,8 +184,7 @@ public class AllClauses {
                         break;
                 }}
             catch(InterruptedException ex) {return;}
-            catch(Result result) {problemSupervisor.setResult(result,"AllClauses");}}
-        return;}
+            catch(Result result) {problemSupervisor.setResult(result,"AllClauses");}}}
 
 
 
@@ -450,49 +441,34 @@ public class AllClauses {
     private void checkSatisfiablity() throws Result {
         assert clausesFinished;
         if(statistics.negativeClauses == 0) {
-            while(!clauses.isEmpty()) {
-                if(!findTrueLiteral(ClauseStructure.POSITIVE,+1))
-                    findTrueLiteral(ClauseStructure.MIXED,-1);}
+            while(!clauses.isEmpty()) makeLiteralTrue(+1);
             throw new Satisfiable(model);}
 
         if(statistics.positiveClauses == 0) {
             while(!clauses.isEmpty()) {
-                if(!findTrueLiteral(ClauseStructure.NEGATIVE,-1))
-                findTrueLiteral(ClauseStructure.MIXED,+1);}
+                makeLiteralTrue(-1);}
             throw new Satisfiable(model);}}
 
-    /** finds a literal which can be made true:
-     * If structure == POSITIVE, then the first literal in the first positive clause is chosen (sign = 1). <br>
-     * If structure == NEGATIVE, then the first literal in the first negative clause is chosen (sign = -1). <br>
-     * If structure == MIXED, then there should be no other clause type any more. <br>
-     * The the first literal with the given sign in the first clause is chosen.
+    /** finds the first literal which can be made true:
+     * sign = +1: the first positive literal<br>
+     * sign = -1: the first negative literal. <br>
+     * The literal is made true.
      *
-     * @param structure any of the possible clause structures
      * @param sign   +1 or -1
-     * @return true if a literal has been found.
      * @throws Result should not happen
      */
-    private boolean findTrueLiteral(ClauseStructure structure, int sign) throws Result {
+    private void makeLiteralTrue(int sign) throws Result {
         int literal = 0;
-        if(structure != ClauseStructure.MIXED) {
-            for(Clause clause : clauses) {
-                if(clause.structure == structure) {
-                    literal = sign*clause.getLiteral(0);
-                break;}}}
-        else {
-            for(CLiteral cliteral : clauses.getItem(0).cliterals) {
-                int lit = cliteral.literal;
-                if(Integer.signum(lit) == sign) {literal = -sign * lit;}
-                break;}}
-        if(literal != 0) {
-            if(monitoring) {
-                monitor.print(monitorId, "Making literal " +
-                        Symboltable.toString(literal,symboltable) +
-                        " true because clauses contain only positive/negative and mixed clauses." );}
-            model.add(literal,null,thread);
-            integrateTrueLiteral(literal,null);
-            return true;}
-        return false;}
+        for(Clause clause : clauses) {
+            for(CLiteral cliteral : clause.cliterals) {
+                if(sign*cliteral.literal > 0) {literal = cliteral.literal; break;}}
+            if(literal != 0) break;}
+        if(monitoring) {
+            monitor.print(monitorId, "Making literal " +
+                    Symboltable.toString(literal,symboltable) +
+                    " true because clauses contain only positive/negative and mixed clauses." );}
+        model.add(literal,null,thread);
+        integrateTrueLiteral(literal,null);}
 
     /** inserts the clause into the local data structures.
      *

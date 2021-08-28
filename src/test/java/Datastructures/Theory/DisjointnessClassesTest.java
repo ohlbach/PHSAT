@@ -291,7 +291,7 @@ public class DisjointnessClassesTest {
         }
 
     @Test
-    public void threadtest() {
+    public void threadtest() throws Unsatisfiable{
         System.out.println("Thread ");
         prepare();
         ArrayList<Object> observed = new ArrayList<>();
@@ -300,6 +300,7 @@ public class DisjointnessClassesTest {
                     observed.add(literal);
                     observed.add(originals);
                 }));
+        model.symboltable = null;
 
         Thread thread1 = new Thread(()->dClasses.run());
         thread1.start();
@@ -313,7 +314,8 @@ public class DisjointnessClassesTest {
         origins = new IntArrayList(); origins.add(30);
         dClasses.addEquivalence(1,4,origins);
         origins = new IntArrayList(); origins.add(40);
-        dClasses.addTrueLiteral(6,origins);
+        model.add(6,origins,null);
+        //dClasses.addTrueLiteral(6,origins);
 
         try{Thread.sleep(100);}catch(Exception ex) {}
         thread1.interrupt();

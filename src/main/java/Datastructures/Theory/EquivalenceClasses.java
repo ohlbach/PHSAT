@@ -61,6 +61,7 @@ public class EquivalenceClasses  {
     /** for distinguishing the monitoring areas */
     private String monitorId = null;
 
+    /** for enumerating the equivalence classes */
     private int counter = 0;
 
 
@@ -78,6 +79,7 @@ public class EquivalenceClasses  {
      * @param problemSupervisor         the problem supervisor
      */
     public EquivalenceClasses(ProblemSupervisor problemSupervisor) {
+        problemSupervisor.equivalenceClasses = this;
         this.problemSupervisor = problemSupervisor;
         problemId = problemSupervisor.problemId;
         thread = Thread.currentThread();

@@ -2,9 +2,9 @@ package Datastructures.Theory;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.ClauseType;
-import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Datastructures.Task;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import com.sun.istack.internal.Nullable;
@@ -24,19 +24,17 @@ import static Utilities.Utilities.*;
  * Created by Ohlbach on 21.09.2018.
  */
 public class DisjointnessClasses {
-    private ProblemSupervisor problemSupervisor;
+    /** supervises the problem solution */
+    private final ProblemSupervisor problemSupervisor;
 
     /** for enumerating the classes */
     private int counter = 0;
-
-    /** the final result of this thread */
-    public Result result = null;
 
     /** the statistics of this thread */
     public DisjointnessStatistics statistics;
 
     /** activates monitoring */
-    private boolean monitoring = false;
+    private final boolean monitoring;
 
     /** for logging the actions of this class */
     private final Monitor monitor;
@@ -59,29 +57,33 @@ public class DisjointnessClasses {
     private final ArrayList<Consumer<DisjointnessClass>> disjointnessObservers = new ArrayList<>();
 
 
-    /** The cuurent thread */
+    /** The current thread */
     public Thread thread;
 
-    public Thread supervisorThread;
+    private enum TaskType {
+        TRUELITERAL, DERIVEDDISJOINTS, DISJOINTNESSCLAUSE ,EQUIVALENCE}
 
 
     /** A queue of newly derived unit literals, newly derived binary disjointnesses and basic disjointness clauses
      * The unit literals are automatically put at the beginning of the queue.
      */
-    private final PriorityBlockingQueue<Pair<Object,IntArrayList>> queue =
-            new PriorityBlockingQueue<>(10, Comparator.comparingInt((Pair<Object, IntArrayList> o) -> getPriority(o.getKey().getClass())));
-
+    private final PriorityBlockingQueue<Task<TaskType>> queue =
+            new PriorityBlockingQueue<>(10, Comparator.comparingInt(this::getPriority));
 
     /** gets the priority for the objects in the queue.
      *
-     * @param clazz the class of the objects in the queue.
+     * @param task the task in the queue
      * @return the priority of the objects in the queue.
      */
-    private int getPriority(Class<?> clazz) {
-        if(clazz == Integer.class)   {return 0;}    // true literal
-        if(clazz == int[].class)     {return 1;}    // basic clause
-        if(clazz == ArrayList.class) {return 2;}    // Triple p,q,r
-        return 3;}                                  // Equivalence class
+    private int getPriority(Task<TaskType> task) {
+        switch(task.taskType) {
+            case TRUELITERAL:        return 0;
+            case DISJOINTNESSCLAUSE: return 1;
+            case DERIVEDDISJOINTS:   return 2;
+            case EQUIVALENCE:        return 3;}
+        return 4;}
+
+
 
 
     /** creates a new instance
@@ -90,9 +92,9 @@ public class DisjointnessClasses {
      */
     public DisjointnessClasses(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
+        problemSupervisor.disjointnessClasses = this;
         model = problemSupervisor.model;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
-        supervisorThread = problemSupervisor.supervisorThread;
         statistics = new DisjointnessStatistics(problemSupervisor.problemId);
         monitor = problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
@@ -109,6 +111,7 @@ public class DisjointnessClasses {
         disjointnessObservers.add(observer);}
 
 
+
     /** This method is started as thread.
      * It reads and executes tasks from the queue
      * It can only be stopped by an interrupt or when a contradiction is found.
@@ -117,29 +120,24 @@ public class DisjointnessClasses {
     public void run() {
         thread = Thread.currentThread();
         model.addObserver(thread,this::addTrueLiteral);
-
         equivalenceClasses.addObserver(this::addEquivalence);
 
         while(!Thread.interrupted()) {
             try {
-                if(monitoring) {monitor.print(monitorId,"Queue is waiting");}
-                Pair<Object, IntArrayList> object = queue.take();
-                Object key = object.getKey();
-                Class<?> cl = key.getClass();
-                IntArrayList origins = object.getValue();
-                if(cl == Integer.class) {integrateTrueLiteral((Integer)key,origins);
-                    continue;}
-                if(cl == int[].class) {integrateDisjointnessClause((int[])key,null); continue;}
-                if(cl == IntArrayList.class) {integrateDerivedDisjoints((IntArrayList)key,origins); continue;}
-                if(cl == Pair.class) {
-                    integrateEquivalence((Integer)((Pair<?, ?>) key).getKey(), (Integer)((Pair<?, ?>) key).getValue(), origins);
-                    continue;}
+                if(monitoring) {monitor.print(monitorId,"Queue is waiting " + queue);}
+                Task<TaskType> task = queue.take();
+                IntArrayList origins = task.origins;
+                switch(task.taskType) {
+                    case TRUELITERAL:        integrateTrueLiteral((Integer)task.a,origins);           break;
+                    case DISJOINTNESSCLAUSE: integrateDisjointnessClause((int[])task.a,null);   break;
+                    case DERIVEDDISJOINTS:   integrateDerivedDisjoints((IntArrayList)task.a,origins); break;
+                    case EQUIVALENCE:        integrateEquivalence((Integer)task.a, (Integer)task.b, origins);}
                 if(monitoring) {
-                    monitor.print(monitorId,"Current disjoinentesses:\n" +
+                    monitor.print(monitorId,"Current disjointnesses:\n" +
                             toString("            ",model.symboltable));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
-                problemSupervisor.setResult(result,"Disjointnesses");}}}
+                problemSupervisor.setResult(unsatisfiable,"Disjointness");}}}
 
     /** Adds a basic disjointness clause to the queue.
      *
@@ -152,7 +150,8 @@ public class DisjointnessClasses {
             monitor.print(monitorId,"In:   disjointness clause: " +
                     BasicClauseList.clauseToString(0,basicClause,model.symboltable));}
         statistics.basicClauses++;
-        queue.add(new Pair<>(basicClause,IntArrayList.wrap(new int[]{basicClause[0]})));}
+        queue.add(new Task<>(TaskType.DISJOINTNESSCLAUSE,
+                IntArrayList.wrap(new int[]{basicClause[0]}), basicClause, null));}
 
     /** adds a true literal to the queue
      *
@@ -164,7 +163,7 @@ public class DisjointnessClasses {
         monitor.print(monitorId,"In:   Unit literal " +
                 Symboltable.toString(literal,model.symboltable) +
                 (origins == null ? "" : " " + origins));
-        queue.add(new Pair<>(literal,origins));}
+        queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}
 
     /** adds a new derived disjointness p,q,r to the queue
      *
@@ -177,7 +176,7 @@ public class DisjointnessClasses {
             monitor.print(monitorId,"In:   Disjointness " +
                     Symboltable.toString(literals,model.symboltable) +
                     (origins == null ? "" : " " + origins));}
-        queue.add(new Pair<>(literals,origins));}
+        queue.add(new Task<>(TaskType.DERIVEDDISJOINTS, origins, literals, null));}
 
       /** adds a new equivalence class representative == literal to the queue
      *
@@ -193,7 +192,7 @@ public class DisjointnessClasses {
                     Symboltable.toString(representative, model.symboltable) + " = " +
                     Symboltable.toString(literal, model.symboltable)  +
                     (origins == null ? "" : " " + origins));}
-        queue.add(new Pair<>(new Pair<>(representative,literal),origins));}
+        queue.add(new Task<>(TaskType.EQUIVALENCE, origins, representative, literal));}
 
     /** integrates a new disjointness submitted from some other part of the program.
      * The method simulates a basic clause.
@@ -280,12 +279,20 @@ public class DisjointnessClasses {
                         " normalized to " + Symboltable.toString(literals, model.symboltable) +
                         " contains double literal " + Symboltable.toString(representative,model.symboltable),
                         origin);}
-            if(model.isTrue(representative)) {trueLiteral = representative; continue;}
+            if(model.isTrue(representative)) {
+                origin = joinIntArraysSorted(origin,model.getOrigin(representative));
+                if(trueLiteral != 0) {
+                    throw new Unsatisfiable("Disjointness clause " +
+                            BasicClauseList.clauseToString(0,basicClause,model.symboltable) +
+                            " normalized to " + Symboltable.toString(literals, model.symboltable) +
+                            " contains two true literals: " +
+                            Symboltable.toString(trueLiteral,model.symboltable) + " and " +
+                            Symboltable.toString(representative,model.symboltable), origin);}
+                trueLiteral = representative; continue;}
             literals.add(representative);
             if(literal != representative)
                 origin = joinIntArraysSorted(equivalenceClasses.getOrigins(literal), origin);}
-
-        if(literals.size() < 2) {return null;}
+        if(trueLiteral == 0 && literals.size() < 2) {return null;}
         if(trueLiteral == 0) return new Pair<>(literals,origin);
         for(int i = 0; i < literals.size(); ++i) {
             int literal = literals.getInt(i);
