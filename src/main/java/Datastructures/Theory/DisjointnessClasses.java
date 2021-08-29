@@ -79,10 +79,10 @@ public class DisjointnessClasses {
      */
     private int getPriority(Task<TaskType> task) {
         switch(task.taskType) {
-            case TRUELITERAL:        return 0;
-            case DISJOINTNESSCLAUSE: return 1;
-            case DERIVEDDISJOINTS:   return 2;
-            case EQUIVALENCE:        return 3;}
+            case TRUELITERAL:        return Integer.MIN_VALUE;
+            case EQUIVALENCE:        return Integer.MIN_VALUE + 1;
+            case DISJOINTNESSCLAUSE: return Integer.MIN_VALUE + 2 + ((int[])task.a)[0];
+            case DERIVEDDISJOINTS:   return task.priority;}
         return 4;}
 
 
@@ -127,7 +127,7 @@ public class DisjointnessClasses {
 
         while(!Thread.interrupted()) {
             try {
-                if(monitoring) {monitor.print(monitorId,"Queue is waiting " + queue);}
+                if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 Task<TaskType> task = queue.take();
                 IntArrayList origins = task.origins;
                 switch(task.taskType) {
@@ -169,6 +169,7 @@ public class DisjointnessClasses {
                 (origins == null ? "" : " " + origins));
         queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}
 
+    private int priority = 0;
     /** adds a new derived disjointness p,q,r to the queue
      *
      * @param literals some literals
@@ -180,7 +181,9 @@ public class DisjointnessClasses {
             monitor.print(monitorId,"In:   Disjointness " +
                     Symboltable.toString(literals,model.symboltable) +
                     (origins == null ? "" : " " + origins));}
-        queue.add(new Task<>(TaskType.DERIVEDDISJOINTS, origins, literals, null));}
+        Task<TaskType> task = new Task<>(TaskType.DERIVEDDISJOINTS, origins, literals, null);
+        task.priority = ++priority;
+        queue.add(task);}
 
       /** adds a new equivalence class representative == literal to the queue
      *
@@ -566,6 +569,6 @@ public class DisjointnessClasses {
                 string.append(Symboltable.toString(literal,symboltable)).append(": ");
                 string.append(Symboltable.toString(disjoints,symboltable)).append("\n");});}
         if(!queue.isEmpty()) {
-            string.append("Disjointnesses Queue of Problem "+problemId+":").append(queue.toString());}
+            string.append("Disjointnesses Queue of Problem "+problemId+":").append(Task.queueToString(queue));}
         return string.toString();}
     }

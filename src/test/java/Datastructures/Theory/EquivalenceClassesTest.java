@@ -200,7 +200,7 @@ public class EquivalenceClassesTest {
         IntArrayList orig = new IntArrayList();
         orig.add(20);
         try{
-            eqClasses.addEquivalence(5,-3,orig);}
+            eqClasses.integrateEquivalence(5,-3,orig);}
         catch(Unsatisfiable uns) {}
         assertEquals("Equivalence Classes of Problem test:\nE-1: 3 = -5",eqClasses.toString());
         assertEquals("[3, -5, [20]]",observed.toString());
@@ -222,7 +222,7 @@ public class EquivalenceClassesTest {
         IntArrayList orig = new IntArrayList();
         orig.add(20);
         try{
-            eqClasses.addEquivalence(-5,6,orig);}
+            eqClasses.integrateEquivalence(-5,6,orig);}
         catch(Unsatisfiable uns) {}
 
         assertEquals("Equivalence Classes of Problem test:\nE-1: 3 = 4 = 5 = -6",eqClasses.toString());
@@ -246,7 +246,7 @@ public class EquivalenceClassesTest {
         IntArrayList orig = new IntArrayList();
         orig.add(20);
         try{
-            eqClasses.addEquivalence(5,-7,orig);}
+            eqClasses.integrateEquivalence(5,-7,orig);}
         catch(Unsatisfiable uns) {}
 
         assertEquals("Equivalence Classes of Problem test:\nE-1: 3 = 4 = 5 = -6 = -7",eqClasses.toString());

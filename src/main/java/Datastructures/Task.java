@@ -13,6 +13,7 @@ import java.util.concurrent.PriorityBlockingQueue;
  */
 public class Task<TaskType> {
     public TaskType taskType;
+    public int priority;
     public IntArrayList origins;
     public Object a;
     public Object b;

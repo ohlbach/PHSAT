@@ -5,14 +5,15 @@ import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Inconsistency;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Datastructures.Task;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.TriConsumer;
 import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import javafx.util.Pair;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import static Utilities.Utilities.*;
@@ -64,13 +65,25 @@ public class EquivalenceClasses  {
     /** for enumerating the equivalence classes */
     private int counter = 0;
 
+    private enum TaskType {
+        TRUELITERAL,EQUIVALENCE}
+
+    /** gets the priority for the objects in the queue.
+     *
+     * @param task the task in the queue
+     * @return the priority of the objects in the queue.
+     */
+    private int getPriority(Task<EquivalenceClasses.TaskType> task) {
+        switch(task.taskType) {
+            case TRUELITERAL: return Integer.MIN_VALUE;
+            case EQUIVALENCE: return task.priority;}
+        return 4;}
 
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
      */
-    private final PriorityBlockingQueue<Pair<Object,IntArrayList>> queue =
-            new PriorityBlockingQueue<>(10,(Pair<Object,IntArrayList> o1, Pair<Object,IntArrayList> o2) ->
-                    (o1.getKey().getClass() == Integer.class) ? -1 : +1);
+    private final PriorityBlockingQueue<Task<EquivalenceClasses.TaskType>> queue =
+            new PriorityBlockingQueue<>(10, Comparator.comparingInt(this::getPriority));
 
     private final ArrayList<TriConsumer<Integer,Integer,IntArrayList>> equivalenceObservers = new ArrayList<>();
 
@@ -100,6 +113,7 @@ public class EquivalenceClasses  {
     public void addObserver(TriConsumer<Integer,Integer,IntArrayList> observer) {
         equivalenceObservers.add(observer);}
 
+    private int priority = 0;
 
     /** This method is to be called by the TwoLiteral module to announce a newly derived equivalence
      * literal1 = literal2.
@@ -116,7 +130,9 @@ public class EquivalenceClasses  {
                     Symboltable.toString(literal1, model.symboltable) + " = " +
                     Symboltable.toString(literal2, model.symboltable) +
                     (origins == null ? "" : " " + origins));}
-        queue.add(new Pair<>(new Pair<>(literal1,literal2),origins));}
+        Task<TaskType> task = new Task(TaskType.EQUIVALENCE,origins,literal1,literal2);
+        task.priority = ++priority;
+        queue.add(task);}
 
 
     /** Starts the instance in a thread.
@@ -138,24 +154,17 @@ public class EquivalenceClasses  {
                     monitor.print(monitorId,"In:   Unit literal " +
                             Symboltable.toString(literal,model.symboltable) +
                             (origins == null ? "" : " " + origins));}
-                    queue.add(new Pair<>(literal,origins));});
+                    queue.add(new Task<TaskType>(TaskType.TRUELITERAL,origins, literal,null));});
         while(!Thread.interrupted()) {
             try {
-                if(monitoring) {monitor.print(monitorId,"Queue is waiting");}
-                Pair<Object, IntArrayList> object = queue.take(); // waits if the queue is empty
-                Object key = object.getKey();
-                if(key.getClass() == Integer.class) {
-                    int literal = (Integer)key;
-                    IntArrayList originals = object.getValue();
-                    integrateTrueLiteral(literal,originals);}
-                else {
-                    Pair<Integer,Integer> equivalence = (Pair<Integer,Integer>)key;
-                    int literal1 = equivalence.getKey(); int literal2 = equivalence.getValue();
-                    IntArrayList originals = object.getValue();
-                    addEquivalence(literal1,literal2,originals);}
+                if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                Task<TaskType> task = queue.take(); // waits if the queue is empty
+                switch(task.taskType){
+                    case TRUELITERAL: integrateTrueLiteral((Integer)task.a,task.origins); break;
+                    case EQUIVALENCE: integrateEquivalence((Integer)task.a,(Integer)task.b,task.origins); break;}
                 if(monitoring) {
-                    monitor.print(monitorId,"Current equivalences:\n" + toString("            ",model.symboltable));}
-            }
+                    monitor.print(monitorId,"Current equivalences:\n" +
+                            toString("            ",model.symboltable));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
                 problemSupervisor.setResult(unsatisfiable,"EquivalenceClasses");
@@ -316,7 +325,7 @@ public class EquivalenceClasses  {
      * @param origins  the indices of the basic clauses causes this equivalence.
      * @throws Unsatisfiable, if a contradiction occurs
      */
-    protected synchronized void addEquivalence(int literal1, int literal2, IntArrayList origins) throws Unsatisfiable{
+    protected synchronized void integrateEquivalence(int literal1, int literal2, IntArrayList origins) throws Unsatisfiable{
         if(monitoring) {
             monitor.print(monitorId,"Exec: Equivalence " +
                     Symboltable.toString(literal1,model.symboltable) + " = " +
@@ -324,9 +333,10 @@ public class EquivalenceClasses  {
                             (origins == null ? " " : " " + origins));}
         statistics.derivedClasses++;
         int status = model.status(literal1);
-        if(status != 0) {model.add(status*literal2,origins,thread); return;}
+        if(status != 0) {addToModel(status*literal2,joinIntArraysSorted(origins,model.getOrigin(literal1))); return;}
+
         status = model.status(literal2);
-        if(status != 0) {model.add(status*literal1,origins,thread); return;}
+        if(status != 0) {addToModel(status*literal1,joinIntArraysSorted(origins,model.getOrigin(literal2))); return;}
 
         EquivalenceClass eqClass1 = getEquivalenceClass(literal1);
         EquivalenceClass eqClass2 = getEquivalenceClass(literal2);
@@ -477,7 +487,8 @@ public class EquivalenceClasses  {
                 string.append(equivalenceClasses.get(i).infoString(symboltable));
                 if(i < size-1) string.append("\n");}}
         if(!queue.isEmpty()) {
-            string.append("Equivalence Classes Queue of Problem " + problemId + ":\n").append(queue);}
+            string.append("Equivalence Classes Queue of Problem " + problemId + ":\n").
+                    append(Task.queueToString(queue));}
         return string.toString();}
 
     public ArrayList<TriConsumer<Integer, Integer, IntArrayList>> getEquivalenceObservers() {

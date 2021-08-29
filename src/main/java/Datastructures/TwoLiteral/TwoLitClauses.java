@@ -9,6 +9,7 @@ import Datastructures.Task;
 import Datastructures.Theory.*;
 import Management.Monitor;
 import Management.ProblemSupervisor;
+import Utilities.TriConsumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -94,7 +95,7 @@ public class TwoLitClauses {
             case BASICCLAUSE:
                 int id = ((int[])task.a)[0];
                 if(id >= 0) return Integer.MIN_VALUE + 2 + id;
-                return ++counter1;}
+                return task.priority;}
         return 3;}
 
     public TwoLitClauses(ProblemSupervisor problemSupervisor) {
@@ -135,7 +136,11 @@ public class TwoLitClauses {
         thread = Thread.currentThread();
         model.addObserver(thread,this::addTrueLiteral);
 
-        equivalenceClasses.addObserver(this::addEquivalence);
+        equivalenceClasses.addObserver(
+                new TriConsumer<Integer, Integer, IntArrayList>() {
+                    @Override
+                    public void accept(Integer var1, Integer var2, IntArrayList var3) {
+                        addEquivalence(var1,var2,var3);}});
 
         while(!Thread.interrupted()) {
             try {
@@ -169,6 +174,7 @@ public class TwoLitClauses {
                     BasicClauseList.clauseToString(0,clause, model.symboltable));}
         queue.add(new Task<TaskType>(TaskType.BASICCLAUSE,null, clause,null)); }
 
+    private int priority = 0;
 
     /** puts a derived two-literal clause into the queue
      *
@@ -182,7 +188,9 @@ public class TwoLitClauses {
                     Symboltable.toString(literal1,model.symboltable) + "," +
                     Symboltable.toString(literal2,model.symboltable));}
         int[] clause = new int[]{-1,ClauseType.OR.ordinal(),literal1,literal2};
-        queue.add(new Task<TaskType>(TaskType.BASICCLAUSE,origins,clause,null));}
+        Task<TaskType> task = new Task<TaskType>(TaskType.BASICCLAUSE,origins,clause,null);
+        task.priority = ++priority;
+        queue.add(task);}
 
     /** adds a two-literal disjunction to the data structures and performs all simplifications and inferences.
      * If a contradiction is encountered the inconsistencyReporter is called and the method stops.
