@@ -83,16 +83,15 @@ public class ProblemSupervisor {
         this.result = result;
         this.solver = solver;
         if(monitoring) {
-            monitor.print(monitorId,"Result of solver " + solver + ":\n" + result.toString());}
-    }
+            monitor.print(monitorId,"Result of solver " + solver + ":\n" + result.toString());}}
 
     /** interrupts all threads */
     private void interruptAll() {
         supervisorThread.interrupt();
-        equivalenceThread.interrupt();
-        disjointnessThread.interrupt();
-        twoLitThread.interrupt();
-        allClausesThread.interrupt();
+        if(equivalenceThread != null)  equivalenceThread.interrupt();
+        if(disjointnessThread != null) disjointnessThread.interrupt();
+        if(twoLitThread != null)       twoLitThread.interrupt();
+        if(allClausesThread != null)   allClausesThread.interrupt();
     }
 
     /** reads or generates the SAT-clauses

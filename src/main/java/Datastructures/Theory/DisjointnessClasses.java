@@ -27,6 +27,8 @@ public class DisjointnessClasses {
     /** supervises the problem solution */
     private final ProblemSupervisor problemSupervisor;
 
+    private final String problemId;
+
     /** for enumerating the classes */
     private int counter = 0;
 
@@ -93,12 +95,13 @@ public class DisjointnessClasses {
     public DisjointnessClasses(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
         problemSupervisor.disjointnessClasses = this;
+        problemId = problemSupervisor.problemId;
         model = problemSupervisor.model;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
         statistics = new DisjointnessStatistics(problemSupervisor.problemId);
         monitor = problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
-        monitorId = problemSupervisor.problemId + "DISJ";
+        monitorId = problemId + "DISJ";
         thread = Thread.currentThread();}
 
     /** Any solver which is interested to know about newly derived disjointnesses can add an observer.
@@ -137,7 +140,8 @@ public class DisjointnessClasses {
                             toString("            ",model.symboltable));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
-                problemSupervisor.setResult(unsatisfiable,"Disjointness");}}}
+                problemSupervisor.setResult(unsatisfiable,"Disjointness");
+                return;}}}
 
     /** Adds a basic disjointness clause to the queue.
      *
@@ -538,7 +542,7 @@ public class DisjointnessClasses {
     public String toString(String prefix,@Nullable Symboltable symboltable) {
         if(disjointnessClasses.isEmpty()) {return "";}
         StringBuilder string = new StringBuilder();
-        string.append("Disjointness Classes:\n");
+        string.append("Disjointness Classes of Problem " + problemId + ":\n");
         int size = disjointnessClasses.size();
         for(int i = 0; i < size; ++i) {
             string.append(disjointnessClasses.get(i).toString(prefix,symboltable));
@@ -551,14 +555,17 @@ public class DisjointnessClasses {
      * @return the datastructures as string.
      */
     public String infoString(@Nullable Symboltable symboltable) {
-        if(disjointnessClasses.isEmpty()) {return "";}
         StringBuilder string = new StringBuilder();
-        string.append("Disjointness Classes:\n");
-        for(DisjointnessClass dClass : disjointnessClasses) {
-            string.append(dClass.infoString(symboltable)).append("\n");}
-        string.append("\nDisjoint Literals;\n");
-        disjointnesses.forEach((literal, disjoints) -> {
-            string.append(Symboltable.toString(literal,symboltable)).append(": ");
-            string.append(Symboltable.toString(disjoints,symboltable)).append("\n");});
-            return string.toString();}
+        if(!disjointnessClasses.isEmpty()) {
+            string.append("Disjointness Classes of Problem "+problemId+":\n");
+            for(DisjointnessClass dClass : disjointnessClasses) {
+                string.append(dClass.infoString(symboltable)).append("\n");}}
+        if(!disjointnesses.isEmpty()) {
+            string.append("\nDisjoint Literals of Problem "+problemId+":\n");
+            disjointnesses.forEach((literal, disjoints) -> {
+                string.append(Symboltable.toString(literal,symboltable)).append(": ");
+                string.append(Symboltable.toString(disjoints,symboltable)).append("\n");});}
+        if(!queue.isEmpty()) {
+            string.append("Disjointnesses Queue of Problem "+problemId+":").append(queue.toString());}
+        return string.toString();}
     }

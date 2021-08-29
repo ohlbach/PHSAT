@@ -27,6 +27,7 @@ public class AllClauses {
 
     /** supervises the problem solution */
     private final ProblemSupervisor problemSupervisor;
+    private final String problemId;
     private final Thread thread;
 
     private final Model model;
@@ -41,7 +42,6 @@ public class AllClauses {
     private final boolean trackReasoning;
     private final Symboltable symboltable;
 
-    private final int predicates;
     private int counter = 0;
     private int maxClauseLength = 0;
     private final BucketSortedList<Clause> clauses;
@@ -96,21 +96,21 @@ public class AllClauses {
      */
     public AllClauses(ProblemSupervisor problemSupervisor) throws Result {
         this.problemSupervisor = problemSupervisor;
+        problemSupervisor.allClauses = this;
+        problemId = problemSupervisor.problemId;
         thread = Thread.currentThread();
         model = problemSupervisor.model;
         basicClauseList = problemSupervisor.basicClauseList;
         equivalenceClasses  = problemSupervisor.equivalenceClasses;
         disjointnessClasses = problemSupervisor.disjointnessClasses;
         twoLitClauses       = problemSupervisor.twoLitClauses;
-        String problemId = problemSupervisor.problemId;
         monitor = problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
         monitorId = problemId+"AC";
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
         symboltable = model.symboltable;
-        predicates = symboltable.predicates;
         clauses      = new BucketSortedList<Clause>(Clause::size);
-        literalIndex = new BucketSortedIndex<CLiteral>(predicates+1,
+        literalIndex = new BucketSortedIndex<CLiteral>(model.predicates+1,
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));
         statistics = new AllClausesStatistics(problemId);
@@ -184,7 +184,7 @@ public class AllClauses {
                         break;
                 }}
             catch(InterruptedException ex) {return;}
-            catch(Result result) {problemSupervisor.setResult(result,"AllClauses");}}}
+            catch(Result result) {problemSupervisor.setResult(result,"AllClauses"); return;}}}
 
 
 
@@ -426,7 +426,7 @@ public class AllClauses {
      */
     private void purityCheck() throws Result {
         assert clausesFinished;
-        for(int literal = 1; literal <= predicates; ++literal) {
+        for(int literal = 1; literal <= model.predicates; ++literal) {
             if(model.status(literal) == 0) {
                 purityCheck(literal);
                 purityCheck(-literal);}}}
@@ -640,7 +640,7 @@ public class AllClauses {
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        st.append("All Clauses:\n");
+        st.append("All Clauses of Problem " + problemId+":\n");
         int size = Integer.toString(counter).length()+2;
         for(Clause clause : clauses) {
             st.append(clause.toString(size,symboltable)).append("\n");}
@@ -653,11 +653,13 @@ public class AllClauses {
      */
     public String infoString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        st.append("All Clauses:\n");
+        st.append("All Clauses of Problem "+problemId+":\n");
         int size = Integer.toString(counter).length()+2;
         for(Clause clause : clauses) {
             st.append(clause.infoString(size,symboltable)).append("\n");}
-        st.append(literalIndex.toString(cliteral -> cliteral.toString(symboltable)));
+        st.append(literalIndex.toString(cliteral -> cliteral.toString(symboltable)+"@"+cliteral.clause.id));
+        if(!queue.isEmpty()) {
+            st.append("All Clauses Queue of Problem "+problemId+":").append(queue.toString());}
         return st.toString();}
 
 }

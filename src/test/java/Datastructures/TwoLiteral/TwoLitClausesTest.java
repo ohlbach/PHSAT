@@ -46,13 +46,12 @@ public class TwoLitClausesTest {
         symboltable.setName(4,"a");
         symboltable.setName(5,"b");
         symboltable.setName(6,"c");
-        problemSupervisor.model = new Model(10,symboltable);
+        model = new Model(10,symboltable);
+        problemSupervisor.model = model;
         eqClasses = new EquivalenceClasses(problemSupervisor);
         dClasses = new DisjointnessClasses(problemSupervisor);
         problemSupervisor.equivalenceClasses = eqClasses;
         problemSupervisor.disjointnessClasses = dClasses;
-        model = new Model(10,symboltable);
-        problemSupervisor.model = model;
     }
 
 
@@ -188,8 +187,8 @@ public class TwoLitClausesTest {
     public void threadtest2() {
         System.out.println("Thread with Unsatifiability");
         prepare();
+        model.symboltable = null;
         TwoLitClauses clauses = new TwoLitClauses(problemSupervisor);
-
         Thread eqthread = new Thread(()->eqClasses.run());
         Thread twothread = new Thread(()->clauses.run());
         eqthread.start();
@@ -207,7 +206,7 @@ public class TwoLitClausesTest {
         try{Thread.sleep(100);}catch(Exception ex) {}
         eqthread.interrupt(); twothread.interrupt();
         try{eqthread.join();twothread.join();} catch(Exception ex) {}
-        System.out.println(clauses.result.toString());
+        //System.out.println(problemSupervisor.result.toString());
     }
 
     @Test
@@ -231,7 +230,8 @@ public class TwoLitClausesTest {
         try{Thread.sleep(100);}catch(Exception ex) {}
         eqthread.interrupt(); dthread.interrupt(); twothread.interrupt();
         try{eqthread.join();dthread.join();twothread.join();} catch(Exception ex) {}
-        assertEquals("E-1: 1 = 2", eqClasses.toString());
+        assertEquals("Equivalence Classes of Problem test:\n" +
+                "E-1: 1 = 2", eqClasses.toString());
         assertTrue(clauses.isEmpty());
     }
 
@@ -259,7 +259,7 @@ public class TwoLitClausesTest {
         try{Thread.sleep(100);}catch(Exception ex) {}
         eqthread.interrupt(); dthread.interrupt(); twothread.interrupt();
         try{eqthread.join();dthread.join();twothread.join();} catch(Exception ex) {}
-        assertEquals("Disjointness Classes:\n" +
+        assertEquals("Disjointness Classes of Problem test:\n" +
                 "D-1: 1 != 3 != 2", dClasses.toString());
         assertEquals("Two-Literal clauses of problem test:\n" +
                 "  2-1: -1,-2\n" +

@@ -39,7 +39,7 @@ public class Model {
     private byte[] status;
 
     /** observers to be called when a new true literal is inserted */
-    private ArrayList<Pair<Thread, BiConsumer<Integer, IntArrayList>>> observers = new ArrayList<>();
+    private final ArrayList<Pair<Thread, BiConsumer<Integer, IntArrayList>>> observers = new ArrayList<>();
 
     /** creates a model with a maximum number of predicates, together with a means of tracking the origins
      *
@@ -64,7 +64,7 @@ public class Model {
      * @param observer a function (literal,origins)
      */
     public void addObserver(Thread thread, BiConsumer<Integer, IntArrayList> observer) {
-        observers.add(new Pair(thread, observer));}
+        observers.add(new Pair<>(thread, observer));}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
      * If the literal is new to the model then the observers from a thread different to the
@@ -79,11 +79,11 @@ public class Model {
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
-        if(isFalse(literal))
+        if(isFalse(literal)) {
             throw new Unsatisfiable(
                     "Supposed true literal " + Symboltable.toString(literal,symboltable) +
                             " is already false in the model " + Symboltable.toString(model,symboltable),
-                    joinIntArrays(origin,getOrigin(literal)));
+                    joinIntArrays(origin,getOrigin(literal)));}
 
         model.add(literal);
         origins.add(origin);
@@ -260,7 +260,7 @@ public class Model {
         for(int i = 0; i <= size; ++i) {
             st.append(Symboltable.toString(model.getInt(i),symboltable));
             IntArrayList origin = origins.get(i);
-            if(origin != null) st.append(" @ ").append(origin.toString());
+            if(origin != null) st.append(" @ ").append(origin);
             if(i < size) st.append("\n");}
         return st.toString();}
 

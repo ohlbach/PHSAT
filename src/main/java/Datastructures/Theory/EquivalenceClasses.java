@@ -158,7 +158,8 @@ public class EquivalenceClasses  {
             }
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
-                problemSupervisor.setResult(unsatisfiable,"EquivalenceClasses");}}}
+                problemSupervisor.setResult(unsatisfiable,"EquivalenceClasses");
+                return;}}}
 
 
     /** adds a basic equivalence clause to the equivalence classes.
@@ -453,6 +454,7 @@ public class EquivalenceClasses  {
      */
     public String toString(String prefix, @Nullable Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
+        string.append("Equivalence Classes of Problem " + problemId + ":\n");
         int size = equivalenceClasses.size();
         for(int i = 0; i < size; ++i) {
             string.append(equivalenceClasses.get(i).toString(prefix,symboltable));
@@ -467,10 +469,14 @@ public class EquivalenceClasses  {
      */
     public String infoString(@Nullable Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
-        int size = equivalenceClasses.size();
-        for(int i = 0; i < size; ++i) {
-            string.append(equivalenceClasses.get(i).infoString(symboltable));
-            if(i < size-1) string.append("\n");}
+        if(!equivalenceClasses.isEmpty()) {
+            string.append("Equivalence Classes of Problem " + problemId + ":\n");
+            int size = equivalenceClasses.size();
+            for(int i = 0; i < size; ++i) {
+                string.append(equivalenceClasses.get(i).infoString(symboltable));
+                if(i < size-1) string.append("\n");}}
+        if(!queue.isEmpty()) {
+            string.append("Equivalence Classes Queue of Problem " + problemId + ":\n").append(queue);}
         return string.toString();}
 
     public ArrayList<TriConsumer<Integer, Integer, IntArrayList>> getEquivalenceObservers() {
