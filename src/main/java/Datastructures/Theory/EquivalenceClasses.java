@@ -287,7 +287,8 @@ public class EquivalenceClasses  {
                             Symboltable.toString(literal, model.symboltable) + " -> " +
                             eqClass.toString("",model.symboltable));}
                 origins = joinIntArraysSorted(eqClass.origins,origins);
-                addToModel(sign* eqClass.representative,origins);
+                int rep = sign* eqClass.representative;
+                if(rep != literal) addToModel(rep,origins);
                 for(int lit: eqClass.literals) {
                     lit *= sign;
                     if(lit != literal) addToModel(lit,origins);}

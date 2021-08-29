@@ -109,8 +109,7 @@ public class EquivalenceClass {
      * @return the literal or the representative of the literal's equivalence class.
      */
     public int getRepresentative(int literal) {
-        if(literal ==  representative)  return  literal;
-        if(literal == -representative)  return -literal;
+        if(Math.abs(literal) == representative)  return literal;
         if(literals.contains(literal))  return  representative;
         if(literals.contains(-literal)) return -representative;
         return literal;}

@@ -79,6 +79,9 @@ public class TwoLitClauses {
      */
     private final PriorityBlockingQueue<Task<TwoLitClauses.TaskType>> queue =
             new PriorityBlockingQueue<>(10, Comparator.comparingInt(this::getPriority));
+
+    private int counter1 = 0;
+
     /** gets the priority for the objects in the queue.
      *
      * @param task the task in the queue
@@ -86,13 +89,13 @@ public class TwoLitClauses {
      */
     private int getPriority(Task<TwoLitClauses.TaskType> task) {
         switch(task.taskType) {
-            case TRUELITERAL:   return 0;
-            case BASICCLAUSE:   return 1;
-            case EQUIVALENCE:   return 2;}
+            case TRUELITERAL:   return Integer.MIN_VALUE;
+            case EQUIVALENCE:   return Integer.MIN_VALUE + 1;
+            case BASICCLAUSE:
+                int id = ((int[])task.a)[0];
+                if(id >= 0) return Integer.MIN_VALUE + 2 + id;
+                return ++counter1;}
         return 3;}
-
-
-
 
     public TwoLitClauses(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
@@ -136,14 +139,19 @@ public class TwoLitClauses {
 
         while(!Thread.interrupted()) {
             try {
-                if(monitoring) {monitor.print(monitorId,"Queue is waiting");}
+                if(monitoring) {
+                    String q = "Queue is waiting\n";
+                        if(!clauses.isEmpty()) q += toString("  ",model.symboltable) + "\n";
+                        if(!queue.isEmpty())   q += "  Queue: "+ Task.queueToString(queue);
+                    monitor.print(monitorId,q);}
+
                 Task<TaskType> task = queue.take();
                 IntArrayList origins = task.origins;
                 switch (task.taskType) {
                     case TRUELITERAL: integrateTrueLiteral((Integer)task.a,origins); break;
                     case BASICCLAUSE: integrateBasicClause((int[])task.a,null); break;
                     case EQUIVALENCE: integrateEquivalence((Integer)task.a, (Integer)task.b,origins); break;}
-                if(monitoring) {monitor.print(monitorId,toString("",model.symboltable));}}
+                if(monitoring && !clauses.isEmpty()) {monitor.print(monitorId,toString("",model.symboltable));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
                 problemSupervisor.setResult(unsatisfiable,"TwoLitClauses");
@@ -198,7 +206,7 @@ public class TwoLitClauses {
      */
     public void addTrueLiteral(int literal, IntArrayList origins) {
         if(monitoring) {
-            monitor.print(monitorId,"In:   true literal " +
+            monitor.print(monitorId,"In:   Unit literal " +
                 Symboltable.toString(literal,model.symboltable));}
         queue.add(new Task<TaskType>(TaskType.TRUELITERAL,origins, literal,null));}
 
@@ -454,7 +462,6 @@ public class TwoLitClauses {
      * @param clause a new clause
      */
     protected void replaceEquivalentLiterals(TwoLitClause clause) {
-        System.out.println("RE1 " + clause.toString());
         int literal1 = clause.literal1;
         int literal2 = clause.literal2;
         int representative1 = equivalenceClasses.getRepresentative(literal1);
@@ -465,8 +472,7 @@ public class TwoLitClauses {
         if(literal2 != representative2) {
             clause.literal2 = representative2;
             clause.origins = joinIntArraysSorted(clause.origins,equivalenceClasses.getOrigins(representative2));}
-
-        System.out.println("RE2 " + clause.toString());}
+}
 
 
 
@@ -551,6 +557,7 @@ public class TwoLitClauses {
             for(int i = 0; i < clauses.size(); ++i) {
                 string.append(clauses.get(i).toString(prefix,symboltable)).append("\n");
                 prefix = "      ";}});
+        if(!queue.isEmpty()) {string.append("Queue:").append(Task.queueToString(queue));}
         return string.toString();}
 
 }

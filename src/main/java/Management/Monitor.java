@@ -18,6 +18,7 @@ public class Monitor {
     private File file          = null;
     private PrintStream out    = System.out;
     private HashMap<String,ArrayList<String>> buffers = new HashMap<>();
+    private ArrayList<String> printIds = new ArrayList<>();
 
     /** creates a monitor which does nothing at all*/
     public Monitor() {}
@@ -48,7 +49,16 @@ public class Monitor {
                     out = System.out;
                     warnings.append("Monitorfile '"+ parts[1] + "' cannot be opened. Printing to System.out\n");}}}}
 
+    /** adds a print Id which should be printed
+     *
+     * @param id a print id
+     */
+    public void addPrintId(String id) {
+        printIds.add(id);}
 
+    /** removes the print id */
+    public void removePrintId(String id) {
+        printIds.remove(id);}
 
     /** adds a thread for separated printing of messages
      *
@@ -62,14 +72,16 @@ public class Monitor {
             buffers.put(id,buffer);}}
 
     /** either prints or collects the message
+     * If printIds are specified, only the messages with these ids are printed
      *
      * @param id      for identifying the thread
      * @param message to be printed.
      */
     public synchronized void print(String id, String message) {
         if(monitoring) {
-            if(separated) {buffers.get(id).add(message);}
-            else {out.printf(id);out.printf(": "); out.println(message);}}}
+            if(printIds.isEmpty() || printIds.contains(id)) {
+                if(separated) {buffers.get(id).add(message);}
+                else {out.printf(id);out.printf(": "); out.println(message);}}}}
 
     /** In 'separated' mode, the messages are now printed.
      */
