@@ -391,11 +391,8 @@ public class TwoLitClauses {
     private void insertClause(TwoLitClause clause) throws Unsatisfiable{
         if(!findStructures(clause)) return;
         clauses.add(clause);
-        ArrayList<TwoLitClause> clausesLit = clauseMap.computeIfAbsent(clause.literal1, k -> new ArrayList<>());
-        clausesLit.add(clause);
-
-        clausesLit = clauseMap.computeIfAbsent(clause.literal2, k -> new ArrayList<>());
-        clausesLit.add(clause);
+        clauseMap.computeIfAbsent(clause.literal1, k -> new ArrayList<>()).add(clause);
+        clauseMap.computeIfAbsent(clause.literal2, k -> new ArrayList<>()).add(clause);
 
         statistics.twoLitlauses++;
         for(Consumer<TwoLitClause> observer : observers) observer.accept(clause);
