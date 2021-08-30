@@ -134,13 +134,9 @@ public class TwoLitClauses {
      */
     public void run() {
         thread = Thread.currentThread();
-        model.addObserver(thread,this::addTrueLiteral);
 
-        equivalenceClasses.addObserver(
-                new TriConsumer<Integer, Integer, IntArrayList>() {
-                    @Override
-                    public void accept(Integer var1, Integer var2, IntArrayList var3) {
-                        addEquivalence(var1,var2,var3);}});
+        model.addObserver(thread,this::addTrueLiteral);
+        equivalenceClasses.addObserver(this::addEquivalence);
 
         while(!Thread.interrupted()) {
             try {
@@ -212,11 +208,11 @@ public class TwoLitClauses {
      * @param literal a true literal
      * @param origins the basic clause ids causing the derivation of the true literal.
      */
-    public void addTrueLiteral(int literal, IntArrayList origins) {
+    public void addTrueLiteral(int literal, IntArrayList origins){
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                 Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<TaskType>(TaskType.TRUELITERAL,origins, literal,null));}
+        queue.add(new Task<TaskType>(TaskType.TRUELITERAL,origins,literal,null));}
 
 
     /** generates all unit resolvents and removes the clauses with the literal from the data structures
@@ -229,18 +225,33 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"Exec: true literal " +
                     Symboltable.toString(literal,model.symboltable));}
-        for(int i = 0; i < clauses.size(); ++i) {
-            TwoLitClause clause = clauses.get(i);
-            if(clause.literal1 == literal || clause.literal2 == literal) {
-                clauses.remove(i--); continue;}
-            if(clause.literal1 == -literal) {
-                model.add(clause.literal2,joinIntArraysSorted(clause.origins,origins),null);
-                clauses.remove(i--); continue;}
-            if(clause.literal2 == -literal) {
-                model.add(clause.literal1,joinIntArraysSorted(clause.origins,origins),null);
-                clauses.remove(i--);}}
-        clauseMap.remove(literal);
-        clauseMap.remove(-literal);}
+        ArrayList<TwoLitClause> clauseList = clauseMap.get(literal); // remove all true literals
+        if(clauseList != null) {
+            for(TwoLitClause clause : clauseList) {clauses.remove(clause);}
+            clauseMap.remove(literal);}
+
+        literal = -literal;
+        clauseList = clauseMap.get(literal);
+        if(clauseList != null) {   // false literals yield new true literals
+            for(TwoLitClause clause : clauseList) {
+                if(clause.literal1 == literal) {
+                    if(monitoring) {
+                        monitor.print(monitorId,"False literal " +
+                                Symboltable.toString(literal, model.symboltable) + " and clause " +
+                                clause.toString("", model.symboltable) + " yields new unit literal " +
+                                Symboltable.toString(clause.literal2, model.symboltable));}
+                    model.add(clause.literal2,joinIntArraysSorted(clause.origins,origins),null);
+                    clauses.remove(clause); continue;}
+
+                if(clause.literal2 == literal) {
+                    if(monitoring) {
+                        monitor.print(monitorId,"False literal " +
+                                Symboltable.toString(literal, model.symboltable) + " and clause " +
+                                clause.toString("", model.symboltable) + " yields new unit literal " +
+                                Symboltable.toString(clause.literal1, model.symboltable));}
+                    model.add(clause.literal1,joinIntArraysSorted(clause.origins,origins),null);
+                    clauses.remove(clause);}}
+            clauseMap.remove(literal);}}
 
     /** puts an equivalence into the queue
      *
@@ -250,7 +261,7 @@ public class TwoLitClauses {
      */
     public void addEquivalence(int representative, int literal, IntArrayList origins) {
         if(monitoring) {
-        monitor.print(monitorId,"In:   equivalence " +
+            monitor.print(monitorId,"In:   equivalence " +
                 Symboltable.toString(representative,model.symboltable) + " = " +
                 Symboltable.toString(literal,model.symboltable));}
         queue.add(new Task<TaskType>(TaskType.EQUIVALENCE,origins,representative,literal));}
@@ -458,7 +469,7 @@ public class TwoLitClauses {
                                     parent.toString("",model.symboltable) + " yields " +
                                     Symboltable.toString(literal2,model.symboltable));}
                         model.add(literal2,joinIntArraysSorted(clause.origins,parent.origins),null);
-                        continue;}
+                        return;}  // clause becomes true anyway
                     statistics.resolvents++;
                     addDerivedClause(literal2,literal3,joinIntArraysSorted(clause.origins,parent.origins));}}
             literal1 = clause.literal2;

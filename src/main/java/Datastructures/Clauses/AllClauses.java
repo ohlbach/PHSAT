@@ -6,6 +6,7 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Datastructures.Task;
 import Datastructures.Theory.DisjointnessClass;
 import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
+import static Utilities.Utilities.joinIntArrays;
 import static Utilities.Utilities.joinIntArraysSorted;
 
 public class AllClauses {
@@ -40,7 +42,6 @@ public class AllClauses {
     private final Monitor monitor;
     private final String monitorId;
     private final boolean trackReasoning;
-    private final Symboltable symboltable;
 
     private int counter = 0;
     private int maxClauseLength = 0;
@@ -51,27 +52,15 @@ public class AllClauses {
     private final boolean clausesFinished;
 
     private enum TaskType {
-        TRUELITERAL, EQUIVALENCE, DISJOINTNESS,SIMPLIFYALL, SIMPLIFYOTHERS,
+        TRUELITERAL, EQUIVALENCE, DISJOINTNESS, INSERTCLAUSE, SIMPLIFYALL, SIMPLIFYOTHERS,
     }
 
-    private static class Task {
-        TaskType taskType;
-        IntArrayList origins;
-        Object a;
-        Object b;
-        Task(TaskType taskType, IntArrayList origins, Object a, Object b) {
-            this.taskType = taskType;
-            this.origins = origins;
-            this.a = a;
-            this.b = b;
-        }
-    }
 
 
     /** A queue of newly derived unit literals, newly derived binary equivalences and disjointness clauses
      * The unit literals are automatically put at the beginning of the queue.
      */
-    private final PriorityBlockingQueue<Task> queue =
+    private final PriorityBlockingQueue<Task<TaskType>> queue =
             new PriorityBlockingQueue<>(10, Comparator.comparingInt(this::getPriority));
 
     /** gets the priority for the objects in the queue.
@@ -79,7 +68,7 @@ public class AllClauses {
      * @param task the objects in the queue
      * @return the priority of the objects in the queue.
      */
-    private int getPriority(Task task) {
+    private int getPriority(Task<TaskType> task) {
         switch(task.taskType) {
             case TRUELITERAL:  return 0;
             case EQUIVALENCE:  return 1;
@@ -108,21 +97,15 @@ public class AllClauses {
         monitoring = monitor != null;
         monitorId = problemId+"AC";
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
-        symboltable = model.symboltable;
         clauses      = new BucketSortedList<Clause>(Clause::size);
         literalIndex = new BucketSortedIndex<CLiteral>(model.predicates+1,
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));
         statistics = new AllClausesStatistics(problemId);
 
-        model.addObserver(Thread.currentThread(),(literal, origins) ->
-                queue.add(new Task(TaskType.TRUELITERAL,origins, literal,null)));
-
-        equivalenceClasses.addObserver((representative,literal,origins) ->
-                queue.add(new Task(TaskType.EQUIVALENCE,origins,representative,literal)));
-
-        disjointnessClasses.addObserver((disjoints) ->
-                queue.add(new Task(TaskType.DISJOINTNESS,null, disjoints, null)));
+        model.addObserver(thread,this::addTrueLiteral);
+        equivalenceClasses.addObserver(this::addEquivalence);
+        disjointnessClasses.addObserver(this::addDisjointness);
 
         initializeDisjoints();
         initializeXors();
@@ -134,8 +117,7 @@ public class AllClauses {
      */
     private void initializeDisjoints() {
         for(int[] clause : basicClauseList.disjoints) {
-            disjointnessClasses.addDisjointnessClause(clause);
-            integrateDisjointnessClause(clause);}}
+            disjointnessClasses.addDisjointnessClause(clause);}}
 
     /** This method puts the xor clauses into the disjointness classes and the clauses
      *
@@ -144,8 +126,7 @@ public class AllClauses {
     private void initializeXors() throws Result {
         for(int[] clause : basicClauseList.xors) {
             disjointnessClasses.addDisjointnessClause(clause);
-            addClause(clause);
-            integrateDisjointnessClause(clause);}}
+            integrateDisjunction(clause);}}
 
     /** This method puts the disjunctions clauses into the clauses
      *
@@ -153,7 +134,7 @@ public class AllClauses {
      */
     private void initializeDisjunctions() throws Result {
         for(int[] clause : basicClauseList.disjunctions) {
-            addClause(clause);}}
+            integrateDisjunction(clause);}}
 
 
     /** works off the queue
@@ -164,18 +145,20 @@ public class AllClauses {
     public void run() {
         while(!Thread.interrupted()) {
             try {
-                if(monitoring) {monitor.print(monitorId,"Queue is waiting");}
-                Task task = queue.take(); // waits if the queue is empty
+                if(monitoring) {monitor.print(monitorId,"Queue is waiting:\n"+Task.queueToString(queue));}
+                Task<TaskType> task = queue.take(); // waits if the queue is empty
                 switch (task.taskType) {
                     case TRUELITERAL:
                         integrateTrueLiteral((Integer)task.a,task.origins);
                         break;
                     case EQUIVALENCE:
-                        integrateEquivalence((Integer)task.a,(Integer)task.b,task.origins);
+                        integrateEquivalence((Integer)task.a);
                         break;
                     case DISJOINTNESS:
-                        integrateDisjointness((DisjointnessClass)task.a);
+                        integrateDisjointnessClass((DisjointnessClass)task.a);
                         break;
+                    case INSERTCLAUSE:
+                        integrateClause((Clause)task.a);
                     case SIMPLIFYALL:
                         simplifyAllClauses();
                         break;
@@ -186,69 +169,137 @@ public class AllClauses {
             catch(InterruptedException ex) {return;}
             catch(Result result) {problemSupervisor.setResult(result,"AllClauses"); return;}}}
 
+    /** puts a true literal into the queue.
+     *
+     * @param literal a true literal
+     * @param origins the basic clause ids causing the derivation of the true literal.
+     */
+    public void addTrueLiteral(int literal, IntArrayList origins){
+        if(monitoring) {
+            monitor.print(monitorId,"In:   Unit literal " +
+                    Symboltable.toString(literal,model.symboltable));}
+        queue.add(new Task<>(AllClauses.TaskType.TRUELITERAL, origins, literal, null));}
 
+    /** puts an equivalence into the queue
+     *
+     * @param representative a literal
+     * @param literal        a literal
+     */
+    public void addEquivalence(int representative, int literal, IntArrayList origins) {
+        if(monitoring) {
+            monitor.print(monitorId,"In:   equivalence " +
+                    Symboltable.toString(representative,model.symboltable) + " = " +
+                    Symboltable.toString(literal,model.symboltable));}
+        queue.add(new Task<>(AllClauses.TaskType.EQUIVALENCE,null, literal,null));}
 
-    /** turns a single basic clause into a Clause datastructure. <br>
-     * Literals are replaced by their representative in the equivalence classes.<br>
-     * True or false literlas are eliminated<br>
-     * Double literals are removed.<br>
-     * Tautologies are ignored.<br>
-     * Empty clauses cause throw of Result <br>
-     * Two-literal clauses are put into twoLitClauses.
+    /** puts a disjointness into the queue
+     *
+     * @param disjoints  a disjointness class
+     */
+    public void addDisjointness(DisjointnessClass disjoints) {
+        if(monitoring) {
+            monitor.print(monitorId,"In:   disjointness " +
+                    disjoints.toString("",model.symboltable));}
+        queue.add(new Task<>(TaskType.DISJOINTNESS, null, disjoints, null));}
+
+    /** a not-integrated clause is simplified and integrated into the internal data structures.
+     *  - equivalent literals are replaced <br>
+     *  - true and false literals are taken care of <br>
+     *  - double literals are removed <br>
+     *  - tautologies are recognised <br>
+     *  - a subsumed clause is deletec <br>
+     *  - backward and froward replacement resolution is done <br>
+     *  - an empty clause is thrown<br>
+     *  - a unit clause is put into the model <br>
+     *  - a two-literal clause is send to the Two-Lit module.
+     *
+     * @param clause
+     * @throws Result
+     */
+    private void integrateClause(Clause clause) throws Result {
+        IntArrayList origins = clause.origins;
+        ArrayList<CLiteral> cliterals = clause.cliterals;
+
+        for(int i = 0; i < cliterals.size(); ++i) {
+            CLiteral cliteral = cliterals.get(i);
+            int oldLiteral = cliteral.literal;
+
+            int literal = equivalenceClasses.getRepresentative(oldLiteral); // take care of equivalences
+            if(trackReasoning && literal != oldLiteral) {
+                origins = joinIntArraysSorted(origins,equivalenceClasses.getOrigins(oldLiteral));}
+
+            switch(model.status(literal)) {                                 // take care of the model
+                case +1: return; // true clause
+                case -1:         // false literal
+                    if(trackReasoning) origins = joinIntArraysSorted(origins,model.getOrigin(literal));
+                    cliterals.remove(i--);
+                    continue;}
+
+            boolean doubel = false;                                        // take care of doubles and tautologies
+            for(int j = 0; j < i; ++j) {
+                int lit = cliterals.get(j).literal;
+                if(lit == literal) {doubel = true; break;}
+                if(lit == -literal) return;} // tautology
+            if(doubel) {cliterals.remove(i--); continue;}
+
+            cliteral.literal = literal;} // maybe changed
+
+        switch(clause.size()) {
+            case 0:
+                throw new Unsatisfiable("Clause " + clause.id + " became empty", origins);
+            case 1:
+                if (monitoring) {
+                    monitor.print(monitorId, "Clause " + clause.toString(0, model.symboltable) +
+                            " became a unit clause");}
+                model.add(clause.getLiteral(0), origins, null); // back to this
+                return;}
+
+        if(isSubsumed(clause)) return;
+
+        Object[] result = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
+        timestamp += 2;
+        if(result != null) {
+            CLiteral cliteral = (CLiteral) result[0];
+            Clause otherClause = (Clause) result[1];
+            ++statistics.forwardReplacementResolutions;
+            if(trackReasoning) origins = joinIntArraysSorted(origins,otherClause.origins);
+            if(monitoring) {
+                monitor.print(monitorId, "Literal " + cliteral.toString(model.symboltable) +
+                        " in  clause \n" + cliteral.clause.toString(3,model.symboltable) +
+                        " will be removed by replacement resolution with clause\n" +
+                        otherClause.toString(3,model.symboltable));}
+            clause.remove(cliteral);
+            clause.origins = origins;
+            if(checkUnitClause(clause)) return;}
+
+        clause.origins = origins;
+        removeSubsumedClauses(clause);
+
+        if(clause.size() == 2)
+            twoLitClauses.addDerivedClause(clause.getLiteral(0), clause.getLiteral(1), origins);
+
+        simplifyOtherClauses(clause);
+        insertClause(clause);
+    }
+
+    /** turns a single basic clause into a Clause datastructure.
+     * The clause is simplified in integrateClause
      *
      * @param basicClause [id,type,lit1,...]
      * @throws Result if the clause is empty, otherwise null
      */
-    private void addClause(int[] basicClause) throws Result {
+    private void integrateDisjunction(int[] basicClause) throws Result {
         Clause clause = new Clause(++counter,basicClause.length-2);
-        IntArrayList origins = trackReasoning ? IntArrayList.wrap(new int[]{basicClause[0]}) : null;
-        int position = -1;
         for(int i = 2; i < basicClause.length; ++i) {
-            int originalLiteral =  basicClause[i];
-            int literal = equivalenceClasses.getRepresentative(originalLiteral);
-            if(trackReasoning && literal != originalLiteral) {
-                origins = joinIntArraysSorted(origins,equivalenceClasses.getOrigins(originalLiteral));}
-
-            switch(model.status(literal)) {
-                case +1: return; // true literal:  ignore clause
-                case -1:         // false literal: ignore literal
-                    if(trackReasoning) {origins = joinIntArraysSorted(origins,model.getOrigin(literal));}
-                    continue;}
-
-            switch(clause.contains(literal)) {
-                case +1: continue; // double literal
-                case -1:
-                    ++statistics.tautologies;
-                    if(monitoring) {
-                        monitor.print(monitorId, "Clause " +
-                                BasicClauseList.clauseToString(0,basicClause,symboltable) + " became a tautology");}
-                    return;}   // tautology
-
-            clause.add(new CLiteral(literal,clause,++position));}
-
-        switch(clause.size()) {
-            case 0:
-                throw new Unsatisfiable("Clause " + BasicClauseList.clauseToString(0,basicClause,symboltable) +
-                    " became empty",origins);
-                case 1:
-                    ++statistics.derivedUnitClauses;
-                    model.add(clause.getLiteral(0),origins,null); // back to this process
-                    return;}
-
-        if(isSubsumed(clause)) return;
-        if(clause.size() == 2) twoLitClauses.addDerivedClause(clause.getLiteral(0),
-                                                              clause.getLiteral(1),origins);
-        clause.setStructure();
-        clause.origins = origins;
-        insertClause(clause);}
+            clause.add(new CLiteral(basicClause[i],clause,i-2));}
+        clause.origins = trackReasoning ? IntArrayList.wrap(new int[]{basicClause[0]}) : null;
+        integrateClause(clause);}
 
 
     /** applies a true literal to all clauses.
      * Clauses containing the literal are removed.<br>
      * In clauses containing the negated literal, this literal is removed.<br>
-     * If the resulting clause is a unit clause, it is added to the model and removed from the clauses.<br>
-     * If the resulting clause is a two-literal clause, it is added to the twoLitClauses and  not removed
-     * from the clauses.
+     * For the resulting clause a INSERTCLAUSE Task is generated.
      *
      * @param literal a true literal
      * @param origins the basic clause ids for the truth of the literal
@@ -261,37 +312,34 @@ public class AllClauses {
         literalIndex.pushIterator(literal,iterator);
 
         iterator = literalIndex.popIterator(-literal);
-        while(iterator.hasNext()) {               // remove from all clauses the negated literal
-            removeLiteral(iterator,origins);}
+        while(iterator.hasNext()) {
+            CLiteral cliteral = removeClause(iterator);
+            Clause clause = cliteral.clause;
+            clause.remove(cliteral);
+            if(trackReasoning) clause.origins = joinIntArraysSorted(clause.origins,origins);
+            if(checkUnitClause(clause)) continue;
+            queue.add(new Task<>(TaskType.INSERTCLAUSE,null,clause,null));}
         literalIndex.pushIterator(-literal,iterator);}
 
-    /** replaces all occurrences of literal by representative
-     * resulting tautologies are deleted <br>
-     * unit literals are put into the model <br>
-     * two-literal clauses are kept and put into the twoLiteral module.
+    /** generates for all clauses with the literal an INSERTCLAUSE task which does the replacements
      *
-     * @param representative for representative = literal
-     * @param literal       a literal
-     * @param origins      the basic clause ids for the equivalence.
-     * @throws Result if a contradiction is found
+     * @param literal       a literal equal to some representative
      */
-    private void integrateEquivalence(int representative, int literal, IntArrayList origins) throws Result {
+    private void integrateEquivalence(int literal) {
         BucketSortedList<CLiteral>.BucketIterator iterator;
         for(int i = 1; i <= 2; ++i) {
             iterator = literalIndex.popIterator(literal);
             while(iterator.hasNext()) {
-                Clause clause = replaceLiteral(iterator,representative,origins);
-                if(clause != null) removeSubsumedClauses(clause);}
+                CLiteral cLiteral = removeClause(iterator);
+                queue.add(new Task<>(TaskType.INSERTCLAUSE,null, cLiteral.clause,null));}
             literalIndex.pushIterator(literal,iterator);
-            literal = -literal;
-            representative = -representative;}
-    }
+            literal = -literal;}}
 
     /** turns a disjointness class into the corresponding list of two-literal clauses.
      *
      * @param disjoints a disjointness class.
      */
-    private void integrateDisjointness(DisjointnessClass disjoints)  {
+    private void integrateDisjointnessClass(DisjointnessClass disjoints)  {
         IntArrayList origins  = disjoints.origins;
         IntArrayList literals = disjoints.literals;
         int size = literals.size();
@@ -299,7 +347,7 @@ public class AllClauses {
             int literal1 = -literals.getInt(i);
             for(int j = i+1; j < size; ++j) {
                 Clause clause = new Clause(++counter,literal1,-literals.getInt(j),origins);
-                if(!isSubsumed(clause)) {insertClause(clause);}}}}
+                queue.add(new Task<>(TaskType.INSERTCLAUSE,null, clause,null));}}}
 
     /** turns a disjointness clause into a list of two-literal clauses
      *
@@ -312,7 +360,7 @@ public class AllClauses {
             int literal1 = -basicClause[i];
             for(int j = i+1; j < size; ++j) {
                 Clause clause = new Clause(++counter,literal1,-basicClause[j],origins);
-                if(!isSubsumed(clause)) {insertClause(clause);}}}}
+                queue.add(new Task<>(TaskType.INSERTCLAUSE,null, clause,null));}}}
 
     /** checks if the clause is subsumed by another clause
      *
@@ -325,8 +373,8 @@ public class AllClauses {
         if(subsumer != null) {
             ++statistics.forwardSubsumptions;
             if(monitoring)
-                monitor.print(monitorId, "Clause\n" + clause.toString(4,symboltable) +
-                        " is subsumed by clause\n" + subsumer.toString(4,symboltable));
+                monitor.print(monitorId, "Clause\n" + clause.toString(4,model.symboltable) +
+                        " is subsumed by clause\n" + subsumer.toString(4,model.symboltable));
             return true;}
         return false;}
 
@@ -343,8 +391,8 @@ public class AllClauses {
         for(Clause subsumed : subsumedClauses) {
             ++statistics.backwardSubsumptions;
             if(monitoring)
-                monitor.print(monitorId, "Clause\n" + subsumed.toString(4,symboltable) +
-                        " is subsumed by clause\n" + clause.toString(4,symboltable));
+                monitor.print(monitorId, "Clause\n" + subsumed.toString(4,model.symboltable) +
+                        " is subsumed by clause\n" + clause.toString(4,model.symboltable));
             removeClause(clause);}
         timestamp += 2;
     }
@@ -365,13 +413,13 @@ public class AllClauses {
             Clause otherClause = (Clause)result[1];
             ++statistics.backwardReplacementResolutions;
             if(monitoring) {
-                monitor.print(monitorId, "Literal " + cliteral.toString(symboltable) +
-                        " in  clause \n" + cliteral.clause.toString(3,symboltable) +
+                monitor.print(monitorId, "Literal " + cliteral.toString(model.symboltable) +
+                        " in  clause \n" + cliteral.clause.toString(3,model.symboltable) +
                         " will be removed by replacement resolution with clause\n" +
-                        otherClause.toString(3,symboltable));}
+                        otherClause.toString(3,model.symboltable));}
             if(removeLiteral(cliteral,trackReasoning ? joinIntArraysSorted(cliteral.clause.origins,otherClause.origins) : null))
-                queue.add(new Task(TaskType.SIMPLIFYOTHERS,null,cliteral.clause,null));
-            purityCheck();}
+                queue.add(new Task<>(TaskType.SIMPLIFYOTHERS,null,cliteral.clause,null));
+            checkPurity();}
     }
 
     private final ArrayList<CLiteral> resolvents = new ArrayList<>();
@@ -388,13 +436,29 @@ public class AllClauses {
         for(CLiteral cliteral : resolvents) {
             ++statistics.forwardReplacementResolutions;
             if(monitoring) {
-                monitor.print(monitorId, "Literal " + cliteral.toString(symboltable) +
-                        " in  clause \n" + cliteral.clause.toString(3,symboltable) +
+                monitor.print(monitorId, "Literal " + cliteral.toString(model.symboltable) +
+                        " in  clause \n" + cliteral.clause.toString(3,model.symboltable) +
                         " will be removed by replacement resolution with clause\n" +
-                        clause.toString(3,symboltable));}
+                        clause.toString(3,model.symboltable));}
             if(removeLiteral(cliteral,trackReasoning ? joinIntArraysSorted(cliteral.clause.origins,clause.origins) : null))
-                queue.add(new Task(TaskType.SIMPLIFYOTHERS,null,cliteral.clause,null));}
+                queue.add(new Task<>(TaskType.SIMPLIFYOTHERS,null,cliteral.clause,null));}
         }
+
+    /** checks if the clause is a unit clause.
+     * In this case the clause is put into the model.
+     *
+     * @param clause a clause
+     * @return true if the clause is a unit clause
+     * @throws Unsatisfiable if a contradiction is found
+     */
+    private boolean checkUnitClause(Clause clause) throws Unsatisfiable {
+        if(clause.size() == 1) {
+            if (monitoring) {
+                monitor.print(monitorId, "Clause " + clause.toString(0, model.symboltable) +
+                        " became a unit clause");}
+            model.add(clause.getLiteral(0), clause.origins, null); // back to this
+            return true;}
+        return false;}
 
     /** checks if the literal is pure (there are no further occurrences).
      * If literal is pure then -literal can be made true.
@@ -402,11 +466,11 @@ public class AllClauses {
      * @param literal        a literal to be checked
      * @throws Result if a contradiction is found.
      */
-    private void purityCheck(int literal) throws Result {
+    private void checkPurity(int literal) throws Result {
         assert clausesFinished;
         if(literalIndex.isEmpty(literal)) {
             if(monitoring) {
-                monitor.print(monitorId,"Literal " + Symboltable.toString(literal,symboltable) +
+                monitor.print(monitorId,"Literal " + Symboltable.toString(literal,model.symboltable) +
                         " became pure");}
             ++statistics.purities;
             model.add(-literal,null,null);}}
@@ -416,20 +480,20 @@ public class AllClauses {
      * @param clause  a just removed clause.
      * @throws Result may throw Satisfiable
      */
-    private void purityCheck(Clause clause) throws Result {
+    private void checkPurity(Clause clause) throws Result {
         assert clausesFinished;
-        for(CLiteral cliteral : clause.cliterals) purityCheck(cliteral.literal);}
+        for(CLiteral cliteral : clause.cliterals) checkPurity(cliteral.literal);}
 
     /** checks all literals for purity.
      *
      * @throws Result may throw Satisfiable
      */
-    private void purityCheck() throws Result {
+    private void checkPurity() throws Result {
         assert clausesFinished;
         for(int literal = 1; literal <= model.predicates; ++literal) {
             if(model.status(literal) == 0) {
-                purityCheck(literal);
-                purityCheck(-literal);}}}
+                checkPurity(literal);
+                checkPurity(-literal);}}}
 
     /** Checks the clause set for satisfiability.
      * If the clauses contain no positive clauses, a model is generated from the negative and mixed clauses.<br>
@@ -465,7 +529,7 @@ public class AllClauses {
             if(literal != 0) break;}
         if(monitoring) {
             monitor.print(monitorId, "Making literal " +
-                    Symboltable.toString(literal,symboltable) +
+                    Symboltable.toString(literal,model.symboltable) +
                     " true because clauses contain only positive/negative and mixed clauses." );}
         model.add(literal,null,thread);
         integrateTrueLiteral(literal,null);}
@@ -477,6 +541,7 @@ public class AllClauses {
     private void insertClause(Clause clause) {
         ++statistics.clauses;
         maxClauseLength = Math.max(maxClauseLength,clause.size());
+        clause.setStructure();
         clauses.add(clause);
         for(CLiteral cliteral : clause) {literalIndex.add(cliteral);}
         switch(clause.structure) {
@@ -496,16 +561,16 @@ public class AllClauses {
         clauses.remove(clause);
         if(clausesFinished) {
             if(clauses.isEmpty()) throw new Satisfiable(model);
-            purityCheck(clause);
+            checkPurity(clause);
             checkSatisfiablity();}}
 
 
-    /** removes the iterator's next clause and does purity checks
+    /** removes the iterator's next clause from the index and the clauses
      *
      * @param iterator an iterator over the literal index.
-     * @throws Result if a contradiction is found.
+     * @return the iterator's next cliteral;
      */
-    private void removeClause(BucketSortedList<CLiteral>.BucketIterator iterator) throws Result {
+    private CLiteral removeClause(BucketSortedList<CLiteral>.BucketIterator iterator)  {
         CLiteral cliteral = iterator.next();
         Clause clause = cliteral.clause;
         switch(clause.structure) {
@@ -513,13 +578,9 @@ public class AllClauses {
             case POSITIVE: --statistics.positiveClauses; break;}
         --statistics.clauses;
         iterator.remove();
-        for(CLiteral clit : clause) {
-            if(clit != cliteral) literalIndex.remove(clit);}
+        for(CLiteral clit : clause) if(clit != cliteral) literalIndex.remove(clit);
         clauses.remove(clause);
-        if(clausesFinished) {
-            if(clauses.isEmpty()) throw new Satisfiable(model);
-            purityCheck(clause);
-            checkSatisfiablity();}}
+        return cliteral;}
 
     /** removes the cliteral and performs a purity check
      *
@@ -537,7 +598,7 @@ public class AllClauses {
         clause.setStructure();
         literalIndex.remove(cliteral);
         boolean alive = updateClause(clause,origins);
-        if(clausesFinished) purityCheck(cliteral.literal);
+        if(clausesFinished) checkPurity(cliteral.literal);
         return alive;}
 
 
@@ -558,7 +619,7 @@ public class AllClauses {
         clause.setStructure();
         iterator.remove();
         boolean alive = updateClause(clause,origins);
-        if(clausesFinished) purityCheck(cliteral.literal);
+        if(clausesFinished) checkPurity(cliteral.literal);
         return alive;}
 
     /** updates the status of a clause after literal removal
@@ -571,6 +632,9 @@ public class AllClauses {
     private boolean updateClause(Clause clause, IntArrayList origins) throws Result{
         switch(clause.size()) {
             case 1:
+                if(monitoring) {
+                    monitor.print(monitorId,"Clause " + clause.toString(0, model.symboltable) +
+                            " became a unit clause");}
                 model.add(clause.getLiteral(0),
                         trackReasoning ? joinIntArraysSorted(clause.origins,origins) : null,null);
                 literalIndex.remove(clause.getCLiteral(0));
@@ -588,25 +652,23 @@ public class AllClauses {
 
     /** replaces the oldLiteral by the newLiteral
      *
-     * @param iterator    the next() yields the oldLiteral
+     * @param cliteral    the oldLiteral
      * @param newLiteral  a new literal
      * @param origins     null or the clause ids for the replacement
      * @return            null (tautology) or the changed clause
      * @throws Result if a contradiction has been found.
      */
-    private Clause replaceLiteral(BucketSortedList<CLiteral>.BucketIterator iterator,
-                                int newLiteral, IntArrayList origins) throws Result {
-        CLiteral cliteral = iterator.next();
+    private Clause replaceLiteral(CLiteral cliteral, int newLiteral, IntArrayList origins) throws Result {
         Clause clause = cliteral.clause;
         IntArrayList orig = trackReasoning ? joinIntArraysSorted(clause.origins,origins) : null;
         switch(clause.contains(newLiteral)) {
-            case +1 : removeLiteral(iterator,orig); return clause;  // double oldLiteral
-            case -1 : removeClause(iterator);       return null;}   // tautology
+            case +1 : removeLiteral(cliteral,orig); return clause;  // double oldLiteral
+            case -1 : removeClause(cliteral.clause);       return null;}   // tautology
 
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
-        iterator.remove();
+        literalIndex.remove(cliteral);
         cliteral.literal = newLiteral;
         literalIndex.add(cliteral);
         clause.origins = orig;
@@ -622,7 +684,7 @@ public class AllClauses {
      * @return the clauses as string
      */
     public String toString() {
-        return toString(symboltable);}
+        return toString(model.symboltable);}
 
 
     /** Lists all clauses as a string of nombers
@@ -659,7 +721,7 @@ public class AllClauses {
             st.append(clause.infoString(size,symboltable)).append("\n");}
         st.append(literalIndex.toString(cliteral -> cliteral.toString(symboltable)+"@"+cliteral.clause.id));
         if(!queue.isEmpty()) {
-            st.append("All Clauses Queue of Problem "+problemId+":").append(queue.toString());}
+            st.append("All Clauses Queue of Problem "+problemId+":").append(Task.queueToString(queue));}
         return st.toString();}
 
 }
