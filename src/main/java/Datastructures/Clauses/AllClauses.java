@@ -22,6 +22,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.function.Consumer;
 
 import static Utilities.Utilities.joinIntArraysSorted;
 
@@ -222,8 +223,8 @@ public class AllClauses {
      *  - a unit clause is put into the model <br>
      *  - a two-literal clause is send to the Two-Lit module.
      *
-     * @param clause
-     * @throws Result
+     * @param clause  a new clause
+     * @throws Result if a contradiction is found.
      */
     private void integrateClause(Clause clause) throws Result {
         IntArrayList origins = clause.origins;
@@ -314,14 +315,11 @@ public class AllClauses {
      * @throws Result if a contradiction is found.
      */
     private void integrateTrueLiteral(int literal, IntArrayList origins) throws Result {
-        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
-        while(iterator.hasNext()) {   // remove all clauses with the literal
-            removeClause(iterator);}
-        literalIndex.pushIterator(literal,iterator);
+        withIterator(literal,iterator -> removeClause(iterator.next(),iterator)); // remove all clauses with the literal
 
-        iterator = literalIndex.popIterator(-literal);
+        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(-literal);
         while(iterator.hasNext()) {
-            CLiteral cliteral = removeClause(iterator);
+            CLiteral cliteral = removeClause(iterator.next(),iterator);
             Clause clause = cliteral.clause;
             clause.remove(cliteral);
             if(trackReasoning) clause.origins = joinIntArraysSorted(clause.origins,origins);
@@ -334,13 +332,10 @@ public class AllClauses {
      * @param literal       a literal equal to some representative
      */
     private void integrateEquivalence(int literal) {
-        BucketSortedList<CLiteral>.BucketIterator iterator;
         for(int i = 1; i <= 2; ++i) {
-            iterator = literalIndex.popIterator(literal);
-            while(iterator.hasNext()) {
-                CLiteral cLiteral = removeClause(iterator);
-                queue.add(new Task<>(TaskType.INSERTCLAUSE,null, cLiteral.clause,null));}
-            literalIndex.pushIterator(literal,iterator);
+            withIterator(literal,iterator -> { // the replacements is done in insertClause
+                queue.add(new Task<>(TaskType.INSERTCLAUSE,null,
+                        removeClause(iterator.next(),iterator).clause,null));});
             literal = -literal;}}
 
     /** turns a disjointness class into the corresponding list of two-literal clauses.
@@ -370,37 +365,69 @@ public class AllClauses {
                 Clause clause = new Clause(++counter,literal1,-basicClause[j],origins);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE,null, clause,null));}}}
 
-    /** replacement resolution with a derived two-literal clause (usually a resolvent)
+    private final boolean[] keepClause = new boolean[1];
+
+    /** forward subsumption and replacement resolution with a derived two-literal clause (usually a resolvent)
+     * The new two-literal clause may subsume old clauses (the new clause must be kept in this case) <br>
+     * It may also replacement resolve old clauses:  p,q and -p,q,... yields q,...<br>
+     * Usually the new two-literal clause is not kept in AllClauses.
      *
      * @param clause a two-literal clause (usually a resolvent)
      */
     private void integrateTwoLitClause(TwoLitClause clause) throws Unsatisfiable {
-        // forward subsumption
-        int literal1 = clause.literal1;
-        int literal2 = clause.literal2;
+        int literal1 = clause.literal2;
+        int literal2 = clause.literal1;
+        keepClause[0] = false;
+
         for(int i = 1; i <= 2; ++i) {
-            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal1);
-            while(iterator.hasNext()) {
-                iterator.next().clause.timestamp = timestamp;}
-            literalIndex.pushIterator(literal1,iterator);
-            iterator = literalIndex.popIterator(-literal2);
-            while(iterator.hasNext()) {
+            withIterator(literal1,iterator -> iterator.next().clause.timestamp = timestamp);
+
+            if(i == 1) { // test for forward subsumption
+                withIterator(literal2, iterator -> {
+                    CLiteral cliteral = iterator.next();
+                    if(cliteral.clause.timestamp == timestamp) { // forward subsumption
+                        ++statistics.forwardSubsumptions;
+                        keepClause[0] = true;  // because subsumed clause is removed.
+                        removeClause(cliteral,iterator);}});}
+
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(-literal2);
+            while(iterator.hasNext()) {              // test for replacement resolution
                 CLiteral cliteral = iterator.next();
                 Clause otherClause = cliteral.clause;
                 if(otherClause.timestamp == timestamp) {
                     if(monitoring) {
-                        monitor.print(monitorId,"repalcement resolution between clause " +
+                        monitor.print(monitorId,"replacement resolution between clause " +
                                 clause.toString("",model.symboltable) + " and " +
-                        otherClause.toString(0,model.symboltable));}
-                    removeClause(iterator);
+                                otherClause.toString(0,model.symboltable));}
+                    removeClause(cliteral,iterator);
                     otherClause.remove(cliteral);
+                    ++statistics.forwardReplacementResolutions;
                     if(trackReasoning) otherClause.origins = joinIntArraysSorted(clause.origins,otherClause.origins);
                     if(!checkUnitClause(otherClause))
                         queue.add(new Task<>(TaskType.INSERTCLAUSE,null,otherClause,null));}}
             literalIndex.pushIterator(-literal2,iterator);
+
             timestamp += 2;
-            literal1 = clause.literal2;
-            literal2 = clause.literal1;}}
+            literal1 = clause.literal1;
+            literal2 = clause.literal2;}
+
+        if(keepClause[0]) {
+            Clause newClause = new Clause(++counter,2);
+            newClause.add(new CLiteral(literal1,newClause,0));
+            newClause.add(new CLiteral(literal2,newClause,1));
+            newClause.origins = clause.origins;
+            insertClause(newClause);}
+    }
+
+    /** A shortcut for using BucketSorted iterators
+     *
+     * @param literal  a literal
+     * @param consumer to be applied to the iterator
+     */
+    private void withIterator(int literal, Consumer<BucketSortedList<CLiteral>.BucketIterator> consumer){
+        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
+        while(iterator.hasNext()) {consumer.accept(iterator);}
+        literalIndex.pushIterator(literal,iterator);}
 
     /** checks if the clause is subsumed by another clause
      *
@@ -588,11 +615,11 @@ public class AllClauses {
 
     /** removes the iterator's next clause from the index and the clauses
      *
+     * @param cliteral iterator's next cliteral;
      * @param iterator an iterator over the literal index.
-     * @return the iterator's next cliteral;
+     * @return cliteral;
      */
-    private CLiteral removeClause(BucketSortedList<CLiteral>.BucketIterator iterator)  {
-        CLiteral cliteral = iterator.next();
+    private CLiteral removeClause(CLiteral cliteral,BucketSortedList<CLiteral>.BucketIterator iterator)  {
         Clause clause = cliteral.clause;
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
@@ -671,34 +698,6 @@ public class AllClauses {
         ++statistics.clauses;
         return true;}
 
-    /** replaces the oldLiteral by the newLiteral
-     *
-     * @param cliteral    the oldLiteral
-     * @param newLiteral  a new literal
-     * @param origins     null or the clause ids for the replacement
-     * @return            null (tautology) or the changed clause
-     * @throws Result if a contradiction has been found.
-     */
-    private Clause replaceLiteral(CLiteral cliteral, int newLiteral, IntArrayList origins) throws Result {
-        Clause clause = cliteral.clause;
-        IntArrayList orig = trackReasoning ? joinIntArraysSorted(clause.origins,origins) : null;
-        switch(clause.contains(newLiteral)) {
-            case +1 : removeLiteral(cliteral,orig); return clause;  // double oldLiteral
-            case -1 : removeClause(cliteral.clause);       return null;}   // tautology
-
-        switch(clause.structure) {
-            case NEGATIVE: --statistics.negativeClauses; break;
-            case POSITIVE: --statistics.positiveClauses; break;}
-        literalIndex.remove(cliteral);
-        cliteral.literal = newLiteral;
-        literalIndex.add(cliteral);
-        clause.origins = orig;
-        clause.setStructure();
-        switch(clause.structure) {
-            case NEGATIVE: ++statistics.negativeClauses; break;
-            case POSITIVE: ++statistics.positiveClauses; break;}
-        return clause;
-    }
 
     /** Lists all clauses as a string
      *

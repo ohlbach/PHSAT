@@ -201,7 +201,11 @@ public class TwoLitClauses {
         if(origins == null && basicClause[0] >= 0) {
             origins = new IntArrayList(); origins.add(basicClause[0]);}
         TwoLitClause clause = new TwoLitClause(++counter,basicClause[2],basicClause[3],origins);
-        if(normalizeClause(clause) && !isSubsumed(clause)) insertClause(clause);}
+
+        if(normalizeClause(clause) && !isSubsumed(clause)) {
+            insertClause(clause);
+            if(basicClause[0] < 0) // derived clause
+                for(Consumer<TwoLitClause> observer : observers) observer.accept(clause);}}
 
     /** puts a true literal into the queue.
      *
@@ -395,7 +399,6 @@ public class TwoLitClauses {
         clauseMap.computeIfAbsent(clause.literal2, k -> new ArrayList<>()).add(clause);
 
         statistics.twoLitlauses++;
-        for(Consumer<TwoLitClause> observer : observers) observer.accept(clause);
         addResolvents(clause);}
 
     /** removes the clause from the internal data structures
