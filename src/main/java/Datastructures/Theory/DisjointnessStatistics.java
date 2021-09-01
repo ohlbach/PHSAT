@@ -16,8 +16,8 @@ public class DisjointnessStatistics extends Statistic {
         super(id);
         statistics.add(this);}
 
-    @Description("number of basic clauses")
-    public int basicClauses = 0;
+    @Description("number of clauses")
+    public int clauses = 0;
 
     @Description("number of submitted true literals")
     public int trueLiterals = 0;

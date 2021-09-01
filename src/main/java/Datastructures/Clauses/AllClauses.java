@@ -22,7 +22,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
-import java.util.function.Consumer;
 
 import static Utilities.Utilities.joinIntArraysSorted;
 
@@ -51,6 +50,8 @@ public class AllClauses {
     private final AllClausesStatistics statistics;
     private int timestamp = 1;
     private final boolean clausesFinished;
+
+    private final ClauseType clauseType = ClauseType.OR;
 
     private enum TaskType {
         TRUELITERAL, EQUIVALENCE, DISJOINTNESS, INSERTCLAUSE, TWOLITCLAUSE, SIMPLIFYALL, SIMPLIFYOTHERS,
@@ -298,9 +299,7 @@ public class AllClauses {
      * @throws Result if the clause is empty, otherwise null
      */
     private void integrateDisjunction(int[] basicClause) throws Result {
-        Clause clause = new Clause(++counter,basicClause.length-2);
-        for(int i = 2; i < basicClause.length; ++i) {
-            clause.add(new CLiteral(basicClause[i],clause,i-2));}
+        Clause clause = new Clause(++counter,basicClause);
         clause.origins = trackReasoning ? IntArrayList.wrap(new int[]{basicClause[0]}) : null;
         integrateClause(clause);}
 
@@ -315,7 +314,7 @@ public class AllClauses {
      * @throws Result if a contradiction is found.
      */
     private void integrateTrueLiteral(int literal, IntArrayList origins) throws Result {
-        withIterator(literal,iterator -> removeClause(iterator.next(),iterator)); // remove all clauses with the literal
+        literalIndex.withIterator(literal,iterator -> removeClause(iterator.next(),iterator)); // remove all clauses with the literal
 
         BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(-literal);
         while(iterator.hasNext()) {
@@ -333,7 +332,7 @@ public class AllClauses {
      */
     private void integrateEquivalence(int literal) {
         for(int i = 1; i <= 2; ++i) {
-            withIterator(literal,iterator -> { // the replacements is done in insertClause
+            literalIndex.withIterator(literal,iterator -> { // the replacements is done in insertClause
                 queue.add(new Task<>(TaskType.INSERTCLAUSE,null,
                         removeClause(iterator.next(),iterator).clause,null));});
             literal = -literal;}}
@@ -349,7 +348,7 @@ public class AllClauses {
         for(int i = 0; i < size; ++i) {
             int literal1 = -literals.getInt(i);
             for(int j = i+1; j < size; ++j) {
-                Clause clause = new Clause(++counter,literal1,-literals.getInt(j),origins);
+                Clause clause = new Clause(++counter,clauseType,literal1,-literals.getInt(j),origins);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE,null, clause,null));}}}
 
     /** turns a disjointness clause into a list of two-literal clauses
@@ -362,7 +361,7 @@ public class AllClauses {
         for(int i = 2; i < size; ++i) {
             int literal1 = -basicClause[i];
             for(int j = i+1; j < size; ++j) {
-                Clause clause = new Clause(++counter,literal1,-basicClause[j],origins);
+                Clause clause = new Clause(++counter,clauseType,literal1,-basicClause[j],origins);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE,null, clause,null));}}}
 
     private final boolean[] keepClause = new boolean[1];
@@ -380,10 +379,10 @@ public class AllClauses {
         keepClause[0] = false;
 
         for(int i = 1; i <= 2; ++i) {
-            withIterator(literal1,iterator -> iterator.next().clause.timestamp = timestamp);
+            literalIndex.withIterator(literal1,iterator -> iterator.next().clause.timestamp = timestamp);
 
             if(i == 1) { // test for forward subsumption
-                withIterator(literal2, iterator -> {
+                literalIndex.withIterator(literal2, iterator -> {
                     CLiteral cliteral = iterator.next();
                     if(cliteral.clause.timestamp == timestamp) { // forward subsumption
                         ++statistics.forwardSubsumptions;
@@ -412,22 +411,12 @@ public class AllClauses {
             literal2 = clause.literal2;}
 
         if(keepClause[0]) {
-            Clause newClause = new Clause(++counter,2);
+            Clause newClause = new Clause(++counter,clauseType,2);
             newClause.add(new CLiteral(literal1,newClause,0));
             newClause.add(new CLiteral(literal2,newClause,1));
             newClause.origins = clause.origins;
             insertClause(newClause);}
     }
-
-    /** A shortcut for using BucketSorted iterators
-     *
-     * @param literal  a literal
-     * @param consumer to be applied to the iterator
-     */
-    private void withIterator(int literal, Consumer<BucketSortedList<CLiteral>.BucketIterator> consumer){
-        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
-        while(iterator.hasNext()) {consumer.accept(iterator);}
-        literalIndex.pushIterator(literal,iterator);}
 
     /** checks if the clause is subsumed by another clause
      *

@@ -249,14 +249,7 @@ public class BasicClauseList {
         StringBuilder st = new StringBuilder();
         if(size == 0) {size = Integer.toString(clause[0]).length();}
         st.append(String.format("%"+size+"d ",clause[0]));
-        String separator = ",";
-        switch(ClauseType.getType(clause[1])) {
-            case OR:       separator = " | "; break;
-            case AND:      separator = " & "; break;
-            case XOR:      separator = " x "; break;
-            case EQUIV:    separator = " = "; break;
-            case DISJOINT: separator = " != "; break;
-            default:       separator = " , ";}
+        String separator = ClauseType.getType(clause[1]).separator;
         st.append(": ");
         int length = clause.length;
         for(int i = 2; i < length-1; ++i) {

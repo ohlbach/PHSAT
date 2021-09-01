@@ -20,6 +20,8 @@ import java.util.Locale;
 public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** for identifying the clause */
     public int id;
+    /** OR,DISJOINT, ... */
+    public ClauseType clauseType;
     /** the literals */
     public ArrayList<CLiteral> cliterals;
     /** indicates that the clause has been removed */
@@ -33,26 +35,31 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** contains the list of basicClause ids which produced this clause */
     public IntArrayList origins = null;
 
-    public Clause(int id) {
+    public Clause(int id, ClauseType clauseType) {
         this.id = id;
+        this.clauseType = clauseType;
         cliterals = new ArrayList<CLiteral>();}
 
     /** constructs a clause
      *
      * @param id   the clause problemId
+     * @parma clauseType  the clause's type
      * @param size  the estimated number of literals
      */
-    public Clause(int id, int size) {
+    public Clause(int id, ClauseType clauseType, int size) {
         this.id = id;
+        this.clauseType = clauseType;
         cliterals = new ArrayList<CLiteral>(size);}
 
     /** constructs a new clause with given literals
      *
      * @param id        the id of the new clause
+     * @parma clauseType  the clause's type
      * @param cLiterals the list of CLiterals
      */
-    public Clause(int id, ArrayList<CLiteral> cLiterals) {
+    public Clause(int id, ClauseType clauseType, ArrayList<CLiteral> cLiterals) {
         this.id = id;
+        this.clauseType = clauseType;
         for(int i = 0; i < cLiterals.size(); ++i) {
             cLiterals.get(i).setClause(this,i);}
         cliterals = cLiterals;
@@ -63,26 +70,31 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * complementary literals cause the structure to be TAUTOLOGY
      *
      * @param id           the name of the clause
+     * @parma clauseType  the clause's type
      * @param basicClause  a basic clause [number,type,literal1,...]
      */
     public Clause(int id, int[] basicClause) {
         this.id = id;
+        clauseType = ClauseType.getType(basicClause[0]);
         int length = basicClause.length;
         cliterals = new ArrayList<>(length-2);
         for(int i = 2; i < length; ++i) {
             int literal = basicClause[i];
             cliterals.add(new CLiteral(literal,this,cliterals.size()));}
+        origins = IntArrayList.wrap(new int[]{basicClause[0]});
         setStructure();}
 
     /** creates a new clause with the two literals
      *
      * @param id       the new id
+     * @parma clauseType  the clause's type
      * @param literal1 a literal
      * @param literal2 a literal
      * @param origins the basic clause ids
      */
-    public Clause(int id, int literal1, int literal2, IntArrayList origins) {
+    public Clause(int id, ClauseType clauseType, int literal1, int literal2, IntArrayList origins) {
         this.id = id;
+        this.clauseType = clauseType;
         this.origins = origins;
         cliterals = new ArrayList<>(2);
         cliterals.add(new CLiteral(literal1,this,0));
@@ -183,6 +195,21 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(lit == -literal) {return -1;}}
         return 0;}
 
+    /** checks if the literal is in the clause (except cliteral)
+     *
+     * @param literal a literal
+     * @param ignore  a cLiteral to be ignored.
+     * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
+     */
+    public int contains(int literal, CLiteral ignore) {
+        for(int i = 0; i < cliterals.size(); ++i) {
+            CLiteral cLiteral = cliterals.get(i);
+            if(cLiteral == ignore) continue;
+            int lit = cLiteral.literal;
+            if(lit ==  literal) {return +1;}
+            if(lit == -literal) {return -1;}}
+        return 0;}
+
 
     /** adds a cliteral to the end of the clause, without checking for double literals and tautologies.
      *
@@ -191,7 +218,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public void add(CLiteral cliteral) {
         int position = cliterals.size();
         cliterals.add(cliteral);
-        cliteral.setClause(this,position);}
+        cliteral.setClause(this,position);
+        setStructure();}
 
     /** removes a cliteral from the clause.
      *
@@ -215,17 +243,15 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         setStructure();}
 
 
-    /** checks if the literals in this, except cLiteral also occur in clause2
+    /** checks if the literals in this occur in clause2
      *
-     * @param cLiteral a cLiteral in 'this'
      * @param clause2 any other clause
      * @return true if the literals in this, except cLiteral also occur in clause2
      */
-    public boolean isSubset(CLiteral cLiteral, Clause clause2) {
-        boolean found = true;
+    public boolean isSubset(Clause clause2) {
         for(CLiteral cl : cliterals) {
-            if(cl != cLiteral & clause2.contains(cl.literal) < 0) {found = false; break;}}
-        return found;}
+            if(clause2.contains(cl.literal) <= 0) {return false;}}
+        return true;}
 
     /** checks if the clause has double literals
      *
@@ -308,7 +334,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(cliterals.get(position).literal,symboltable));
-            if(position < size-1) {st.append(",");}};
+            if(position < size-1) {st.append(clauseType.separator);}};
         return st.toString();}
 
     /** generates a string: clause-number: literals [origins]

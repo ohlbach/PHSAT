@@ -5,6 +5,7 @@ import Utilities.BucketSortedList;
 import Utilities.Sizable;
 
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
@@ -132,6 +133,7 @@ public class LiteralIndexSorted extends LiteralIndex {
     public Iterator<CLiteral> iteratorTo(int literal, int position) {
         BucketSortedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return (list == null) ? emptyList.iterator() : list.iteratorTo(position);}
+
 
 
 }

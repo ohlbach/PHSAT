@@ -1,12 +1,16 @@
 package Datastructures.Theory;
 
 import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Task;
 import Management.Monitor;
 import Management.ProblemSupervisor;
+import Utilities.BucketSortedIndex;
+import Utilities.BucketSortedList;
 import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.*;
@@ -35,6 +39,8 @@ public class DisjointnessClasses {
     /** the statistics of this thread */
     public DisjointnessStatistics statistics;
 
+    private boolean trackReasoning;
+
     /** activates monitoring */
     private final boolean monitoring;
 
@@ -50,14 +56,23 @@ public class DisjointnessClasses {
     /** The equivalence classes thread */
     private final EquivalenceClasses equivalenceClasses;
 
+
+    private final BucketSortedList<Clause> clauses;
+    private final BucketSortedIndex<CLiteral> literalIndex;
+
+    private int maxClauseLength;
+
+    private int timestamp = 0;
+
     /** maps literals to disjoint literals */
-    private final HashMap<Integer, IntArrayList> disjointnesses = new HashMap<>();
+    //private final HashMap<Integer, IntArrayList> disjointnesses = new HashMap<>();
 
     /** The list of disjointness classes */
-    private final ArrayList<DisjointnessClass> disjointnessClasses = new ArrayList<>();
+    //private final ArrayList<DisjointnessClass> disjointnessClasses = new ArrayList<>();
 
     private final ArrayList<Consumer<DisjointnessClass>> disjointnessObservers = new ArrayList<>();
 
+    private final ClauseType clauseType = ClauseType.DISJOINT;
 
     /** The current thread */
     public Thread thread;
@@ -98,7 +113,12 @@ public class DisjointnessClasses {
         problemId = problemSupervisor.problemId;
         model = problemSupervisor.model;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
+        clauses      = new BucketSortedList<Clause>(Clause::size);
+        literalIndex = new BucketSortedIndex<CLiteral>(model.predicates+1,
+                (cLiteral->cLiteral.literal),
+                (cLiteral->cLiteral.clause.size()));
         statistics = new DisjointnessStatistics(problemSupervisor.problemId);
+        trackReasoning = problemSupervisor.globalParameters.trackReasoning;
         monitor = problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
         monitorId = problemId + "DISJ";
@@ -132,7 +152,7 @@ public class DisjointnessClasses {
                 IntArrayList origins = task.origins;
                 switch(task.taskType) {
                     case TRUELITERAL:        integrateTrueLiteral((Integer)task.a,origins);           break;
-                    case DISJOINTNESSCLAUSE: integrateDisjointnessClause((int[])task.a,null);   break;
+                    case DISJOINTNESSCLAUSE: integrateDisjointnessClause((Clause)task.a);   break;
                     case DERIVEDDISJOINTS:   integrateDerivedDisjoints((IntArrayList)task.a,origins); break;
                     case EQUIVALENCE:        integrateEquivalence((Integer)task.a, (Integer)task.b, origins);}
                 if(monitoring) {
@@ -153,9 +173,8 @@ public class DisjointnessClasses {
         if(monitoring) {
             monitor.print(monitorId,"In:   disjointness clause: " +
                     BasicClauseList.clauseToString(0,basicClause,model.symboltable));}
-        statistics.basicClauses++;
-        queue.add(new Task<>(TaskType.DISJOINTNESSCLAUSE,
-                IntArrayList.wrap(new int[]{basicClause[0]}), basicClause, null));}
+        statistics.clauses++;
+        queue.add(new Task<>(TaskType.DISJOINTNESSCLAUSE,null,new Clause(++counter,basicClause),null));}
 
     /** adds a true literal to the queue
      *
@@ -230,24 +249,24 @@ public class DisjointnessClasses {
      *  The resulting clause may also contain literals p,p which imply -p. <br>
      *  These are mapped back to the solver by calling the unaryClauseHandler.
      *
-     * @param basicClause        [clause-problemId,typenumber,literal1,...]
+     * @param clause        a disjointness clause
      * @return null or the new disjointnes class
      */
-    protected DisjointnessClass integrateDisjointnessClause(int[] basicClause,IntArrayList origin) throws Unsatisfiable {
-        if(monitoring && basicClause[0] >= 0) {
-            monitor.print(monitorId,"Exec: disjointness clause: " +
-                    BasicClauseList.clauseToString(0,basicClause,model.symboltable));}
-        Pair<IntArrayList,IntArrayList>  result = normalizeClause(basicClause,origin); // [IntArrayList of literals, ArrayList[IntArrayList] of origins]
-        if(result == null) return null;
-        IntArrayList literals = result.getKey();
-        DisjointnessClass subsumer = isSubsumed(literals,null);
+    protected Clause integrateDisjointnessClause(Clause clause) throws Unsatisfiable {
+        if(monitoring) {
+            monitor.print(monitorId,"Exec: disjointness clause: " + clause.toString(0,model.symboltable));}
+        clause = normalizeClause(clause);
+        if(clause == null) return null;
+        Clause subsumer = isSubsumed(clause);
         if(subsumer != null) {
             if(monitoring) {
                 monitor.print(monitorId,"new class is subsumed by " +
-                        subsumer.toString("",model.symboltable));}
+                        subsumer.toString(0,model.symboltable));}
             return null;}
-        IntArrayList origins = result.getValue();
-        if(!resolveNormalizedClause(literals,origins)) return null;
+        if(!clauses.isEmpty()) {
+            resolveNormalizedClause(clause);
+            if(clause.size() == 1) {return null;}}
+
         result = extendNormalizedClause(literals,origins);
         if(result != null) {literals = result.getKey(); origins = result.getValue();}
         removeSubsumedClasses(literals,null);
@@ -255,90 +274,96 @@ public class DisjointnessClasses {
         if(monitoring) {
             monitor.print(monitorId,"Exec: disjointness class: " +
                     dClass.toString("",model.symboltable));}
-        return dClass;}
+        return clause;}
 
 
     /**
-     * @param basicClause  a disjointness clause
-     * @return             null or a pair [literals,origins]
-     * @throws             Unsatisfiable if a contradiction is discovered.
+     * @param clause  a disjointness clause
+     * @return null or the normalized clause
+     * @throws Unsatisfiable if a contradiction is discovered.
      */
-    private Pair<IntArrayList,IntArrayList> normalizeClause(int[] basicClause, IntArrayList origin) throws Unsatisfiable {
-        if(origin == null && basicClause[0] >= 0) {
-            origin = new IntArrayList();
-            origin.add(basicClause[0]);}
-        IntArrayList literals = new IntArrayList();
-        int trueLiteral = 0;
+    private Clause normalizeClause(Clause clause) throws Unsatisfiable {
         // replace literals by representatives in some equivalence class
         // check for true/false literals
         // check for double literals p,p (unsatisfiable)
         // check for complementary literals p,-p (superfluous)
-        for(int i = 2; i < basicClause.length; ++i) {
-            int literal = basicClause[i];
-            int representative = equivalenceClasses.getRepresentative(literal);
-            if(model.isFalse(representative)) continue;
-            if(literals.contains(-representative)) {statistics.tautologies++; continue;}
+        ArrayList<CLiteral> cliterals = clause.cliterals;
+        if(!equivalenceClasses.isEmpty()) {
+            for(CLiteral cliteral : cliterals) {
+                int oldLiteral = cliteral.literal;
+                int literal = equivalenceClasses.getRepresentative(oldLiteral);
+                if(literal != oldLiteral) {
+                    cliteral.literal = literal;
+                    if(trackReasoning) clause.origins = joinIntArraysSorted(clause.origins,
+                                        equivalenceClasses.getOrigins(oldLiteral));}}}
 
-            if(literals.contains(representative)) {
-                literals.add(representative);
-                throw new Unsatisfiable("Disjointness clause " +
-                        BasicClauseList.clauseToString(0,basicClause,model.symboltable) +
-                        " normalized to " + Symboltable.toString(literals, model.symboltable) +
-                        " contains double literal " + Symboltable.toString(representative,model.symboltable),
-                        origin);}
-            if(model.isTrue(representative)) {
-                origin = joinIntArraysSorted(origin,model.getOrigin(representative));
-                if(trueLiteral != 0) {
-                    throw new Unsatisfiable("Disjointness clause " +
-                            BasicClauseList.clauseToString(0,basicClause,model.symboltable) +
-                            " normalized to " + Symboltable.toString(literals, model.symboltable) +
-                            " contains two true literals: " +
-                            Symboltable.toString(trueLiteral,model.symboltable) + " and " +
-                            Symboltable.toString(representative,model.symboltable), origin);}
-                trueLiteral = representative; continue;}
-            literals.add(representative);
-            if(literal != representative)
-                origin = joinIntArraysSorted(equivalenceClasses.getOrigins(literal), origin);}
-        if(trueLiteral == 0 && literals.size() < 2) {return null;}
-        if(trueLiteral == 0) return new Pair<>(literals,origin);
-        for(int i = 0; i < literals.size(); ++i) {
-            int literal = literals.getInt(i);
-            if(literal == trueLiteral) continue;
-            model.add(-literal,origin,thread);}
-        return null;}
+        for(int i = 0; i < cliterals.size(); ++i) {
+            CLiteral cliteral = cliterals.get(i);
+            int literal = cliteral.literal;
+            switch(model.status(literal)) {
+                case -1: clause.remove(cliteral); --i; continue;
+                case +1:
+                    if(monitoring) {
+                        monitor.print(monitorId,"True literal " + Symboltable.toString(literal,model.symboltable) +
+                                " causes all other literals in disjointness clause " +
+                                clause.toString(0, model.symboltable) + " to become false.");}
+                    for(CLiteral clit : cliterals) {
+                        if(clit != cliteral) {
+                            model.add(-clit.literal,
+                                trackReasoning ? joinIntArraysSorted(clause.origins,model.getOrigin(literal)) : null,
+                                null);}}
+                    return null;}
+
+            switch(clause.contains(literal,cliteral)) {
+                case +1: throw new Unsatisfiable("Disjointenss clause " + clause.toString(0,model.symboltable)+
+                        " contains double literal " + Symboltable.toString(literal, model.symboltable),
+                        clause.origins);
+                case -1: clause.remove(cliteral); --i; continue;}}
+        return (clause.size() == 1)  ? null : clause;}
+
+    /** inserts the clause into the local data structures.
+     *
+     * @param clause  the clause to be inserted.
+     */
+    private void insertClause(Clause clause) {
+        ++statistics.clauses;
+        maxClauseLength = Math.max(maxClauseLength,clause.size());
+        clauses.add(clause);
+        for(CLiteral cliteral : clause) {literalIndex.add(cliteral);}}
 
     /** A new Disjointness: p,q may interact with an old disjointness p,-q, which causes -p to become true.
      * This method looks for these kind of resolution possibilities to generate unit clauses.
-     * In this case p is removed from the literals and from its origins.
+     * In this case p is removed from the literals
      *
-     * @param literals the disjoint literals
-     * @param origins  the corresponding origin
-     * @return true if there are still disjointnesses left.
+     * @param clause the clause to be tested
      * @throws Unsatisfiable if an contradiction is found.
      */
-    private boolean resolveNormalizedClause(IntArrayList literals, IntArrayList origins) throws Unsatisfiable {
-        for(int i = 0; i < literals.size();++i) { // we check for  p,q and p,-q which means -p
-            int literal1 = literals.getInt(i);
-            IntArrayList disjoints = disjointnesses.get(literal1);
-            if(disjoints == null) continue;
-            for(int j = 0; j < literals.size();++j) {
-                int literal2 = literals.getInt(j);
-                if(literal1 != literal2 && disjoints.contains(-literal2)) {
-                    IntArrayList origin = joinIntArraysSorted(getOrigins(literal1,-literal2),origins);
-                    if(monitoring) {
-                        monitor.print(monitorId,"Found " +
-                                Symboltable.toString(literal1, model.symboltable) + " != " +
-                                Symboltable.toString(literal2, model.symboltable) + " and " +
-                                Symboltable.toString(literal1, model.symboltable) + " != " +
-                                Symboltable.toString(-literal2, model.symboltable) + ":" +
-                                (origins == null ? " " : " " + origins) +
-                                " which yields " + Symboltable.toString(-literal1, model.symboltable));}
-                    model.add(-literal1,origin,null); // put it into the own queue as well
-                    statistics.resolutions++;
-                    literals.removeInt(i);
-                    --i;
-                    break;}}}
-        return literals.size() > 1;}
+    private void resolveNormalizedClause(Clause clause) throws Unsatisfiable {
+        for(CLiteral cliteral1 : clause.cliterals) {
+            timestamp += 2;
+            int literal1 = cliteral1.literal;
+            literalIndex.withIterator(literal1,(iterator -> iterator.next().clause.timestamp = timestamp));
+            for(CLiteral cliteral2 : clause.cliterals) {
+                int literal2 = cliteral1.literal;
+                if(cliteral1 != cliteral2) {
+                    CLiteral clit2 = literalIndex.findWithIterator(-literal2,(iterator -> {
+                        CLiteral clit = iterator.next();
+                        if(clit.clause.timestamp == timestamp) return clit;
+                        return null;}));
+                    if(clit2 != null) {
+                        statistics.resolutions++;
+                        if(monitoring) {
+                            monitor.print(monitorId, "Resolution of clause\n" +
+                                    clause.toString(4, model.symboltable) + " with clause\n" +
+                                    clit2.clause.toString(4, model.symboltable) + "\n  yields unit literal " +
+                                    Symboltable.toString(-literal1, model.symboltable));}
+                        IntArrayList origins = trackReasoning ? joinIntArraysSorted(clause.origins, clit2.clause.origins) : null;
+                        model.add(-literal1,origins,null);
+                        clause.remove(cliteral1);
+                        clause.origins = origins;
+                        if(clause.size() > 1) resolveNormalizedClause(clause);
+                        return;}}}}
+        timestamp += 2;}
 
     /** tries to extend a list of disjoint literals.
      * Example: literals = p,q,r
@@ -377,15 +402,14 @@ public class DisjointnessClasses {
     /** checks of a new disjointness class is a subset of an already existing one.
      * In this case the new class is superfluous
      *
-     * @param literals a list of disjoint literals
-     * @param ignore a class to be ignored
+     * @param clause a disjointness clause
      * @return null or the subsumer class
      */
-    private DisjointnessClass isSubsumed(IntArrayList literals, DisjointnessClass ignore) {
-        for(DisjointnessClass dClass : disjointnessClasses) {
-            if(dClass != ignore &&  isSubset(literals,dClass.literals)) {
+    private Clause isSubsumed(Clause clause) {
+        for(Clause dClause : clauses) {
+            if(clause.isSubset(dClause)) {
                 statistics.forwardSubsumed++;
-                return dClass;}}
+                return dClause;}}
         return null;}
 
     /** removes all disjointness classes which are subsets of the new class

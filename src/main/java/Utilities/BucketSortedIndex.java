@@ -1,10 +1,13 @@
 package Utilities;
 
+import Datastructures.Literals.CLiteral;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /** This class can be used to map items to item occurrences, for example literals to literal occurrences.
  * Created by ohlbach on 05.12.2019.
@@ -272,6 +275,28 @@ public class BucketSortedIndex<T extends Positioned> {
         BucketSortedList<T> list =  itemIndex > 0 ? posOccurrences[itemIndex] : negOccurrences[-itemIndex];
         return (list == null) ? emptyBucket.iterator() : list.popIteratorTo(endPosition);}
 
+    /** A shortcut for using BucketSorted iterators
+     *
+     * @param literal  a literal
+     * @param consumer to be applied to the iterator
+     */
+    public void withIterator(int literal, Consumer<BucketSortedList<T>.BucketIterator> consumer){
+        BucketSortedList<T>.BucketIterator iterator = popIterator(literal);
+        while(iterator.hasNext()) {consumer.accept(iterator);}
+        pushIterator(literal,iterator);}
+
+    /** iterates with the iterator until the function returns something not null
+     *
+     * @param literal   a literal
+     * @param function a function
+     * @return the result of the function call.
+     */
+    public T findWithIterator(int literal, Function<BucketSortedList<T>.BucketIterator,T> function) {
+        BucketSortedList<T>.BucketIterator iterator = popIterator(literal);
+        T item = null;
+        while(iterator.hasNext()) {T found = function.apply(iterator); if (found != null) item = found; break;}
+        pushIterator(literal,iterator);
+        return item;}
 
     /** comprises the index to a string.
      *  It uses the item's toString method
