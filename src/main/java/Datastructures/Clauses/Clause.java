@@ -55,6 +55,21 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      *
      * @param id        the id of the new clause
      * @parma clauseType  the clause's type
+     * @param literals the list of literals
+     */
+    public Clause(int id, ClauseType clauseType, IntArrayList literals, IntArrayList origins) {
+        this.id = id;
+        this.clauseType = clauseType;
+        this.origins = origins;
+        cliterals = new ArrayList<>(literals.size());
+        for(int i = 0; i < literals.size(); ++i) {
+            cliterals.add(new CLiteral(literals.getInt(i),this,i));}
+        setStructure();}
+
+    /** constructs a new clause with given literals
+     *
+     * @param id        the id of the new clause
+     * @parma clauseType  the clause's type
      * @param cLiterals the list of CLiterals
      */
     public Clause(int id, ClauseType clauseType, ArrayList<CLiteral> cLiterals) {
@@ -64,6 +79,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             cLiterals.get(i).setClause(this,i);}
         cliterals = cLiterals;
         setStructure();}
+
 
     /** generates a clause from a basicClause (which should be a disjunction)
      * double literals are removed
@@ -220,6 +236,17 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         cliterals.add(cliteral);
         cliteral.setClause(this,position);
         setStructure();}
+
+    /** adds a new literal to the clause
+     *
+     * @param literal a literal
+     */
+    public void add(int literal) {
+        int position = cliterals.size();
+        CLiteral cliteral = new CLiteral(literal,this,position);
+        cliterals.add(cliteral);
+        setStructure();}
+
 
     /** removes a cliteral from the clause.
      *
