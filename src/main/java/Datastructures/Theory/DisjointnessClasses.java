@@ -19,8 +19,8 @@ import java.util.function.Consumer;
 
 import static Utilities.Utilities.*;
 
-/** A disjointness class is a set of literals which are pairwise contradictory.
- * Such a class may come from the input data, or be derived from binary clauses.
+/** A disjointness clause is a set of literals which are pairwise contradictory.
+ * Such a clause may come from the input data, or be derived from binary clauses.
  * The class works as Thread in parallel to the other solvers.
  *
  * Created by Ohlbach on 21.09.2018.
@@ -62,22 +62,14 @@ public class DisjointnessClasses {
     /** maps literals to the literal occurrences in clauses */
     private final BucketSortedIndex<CLiteral> literalIndex;
 
-    /** the length of the longes clause */
-    private int maxClauseLength;
-
-    /** supports time consming algorithms */
+    /** supports time consuming algorithms */
     private int timestamp = 0;
 
     /** maps literals to disjoint literals */
     private final HashMap<Integer, ArrayList<CLiteral>> disjointnesses = new HashMap<>();
 
-
-    private final ArrayList<Consumer<DisjointnessClass>> disjointnessObservers = new ArrayList<>();
-
-    private final ClauseType clauseType = ClauseType.DISJOINT;
-
-    /** The current thread */
-    public Thread thread;
+    /** called in integrateDisjointnessClause for a new clause */
+    private final ArrayList<Consumer<Clause>> observers = new ArrayList<>();
 
     /** types of tasks in the queue */
     private enum TaskType {
@@ -121,8 +113,7 @@ public class DisjointnessClasses {
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
         monitor = problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
-        monitorId = problemId + "DISJ";
-        thread = Thread.currentThread();}
+        monitorId = problemId + "DISJ";}
 
     /** Any solver which is interested to know about newly derived disjointnesses can add an observer.
      * The observer is called with (literals, origins) as soon as new disjointnesses
@@ -130,8 +121,8 @@ public class DisjointnessClasses {
      *
      * @param observer a TriConsumer for transferring newly derived equivalences.
      */
-    public void addObserver(Consumer<DisjointnessClass> observer) {
-        disjointnessObservers.add(observer);}
+    public void addObserver(Consumer<Clause> observer) {
+        observers.add(observer);}
 
 
 
@@ -141,8 +132,7 @@ public class DisjointnessClasses {
      *
      */
     public void run() {
-        thread = Thread.currentThread();
-        model.addObserver(thread,this::addTrueLiteral);
+        model.addObserver(Thread.currentThread(),this::addTrueLiteral);
         equivalenceClasses.addObserver(this::addEquivalence);
 
         while(!Thread.interrupted()) {
@@ -154,8 +144,7 @@ public class DisjointnessClasses {
                     case TRUELITERAL:      integrateTrueLiteral((Integer)task.a,origins); break;
                     case INSERTCLAUSE:     integrateDisjointnessClause((Clause)task.a);   break;
                     case EQUIVALENCE:      integrateEquivalence((Integer)task.a, (Integer)task.b, origins);}
-                if(monitoring) {
-                    monitor.print(monitorId,toString(model.symboltable));}}
+                if(monitoring) {monitor.print(monitorId,toString(model.symboltable));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
                 problemSupervisor.setResult(unsatisfiable,"Disjointness");
@@ -168,10 +157,10 @@ public class DisjointnessClasses {
     public synchronized void addDisjointnessClause(int[] basicClause) {
         assert basicClause.length > 4;
         assert basicClause[1] == ClauseType.DISJOINT.ordinal() || basicClause[1] == ClauseType.XOR.ordinal();
+        ++statistics.basicClauses;
         if(monitoring) {
             monitor.print(monitorId,"In:   disjointness clause: " +
                     BasicClauseList.clauseToString(0,basicClause,model.symboltable));}
-        statistics.clauses++;
         queue.add(new Task<>(TaskType.INSERTCLAUSE,null,new Clause(++counter,basicClause),null));}
 
     /** adds a true literal to the queue
@@ -180,7 +169,7 @@ public class DisjointnessClasses {
      * @param origins the basic clause ids for the true literal
      */
     public synchronized void addTrueLiteral(int literal,IntArrayList origins) {
-        statistics.trueLiterals++;
+        ++statistics.trueLiterals;
         monitor.print(monitorId,"In:   True literal " +
                 Symboltable.toString(literal,model.symboltable) +
                 (origins == null ? "" : " " + origins));
@@ -192,14 +181,13 @@ public class DisjointnessClasses {
      * @param origins the basic clause ids for the disjointness
      */
     public synchronized void addDerivedDisjoints(IntArrayList literals, IntArrayList origins) {
-        statistics.derivedDisjointesses++;
+        ++statistics.derivedDisjointesses;
         if(monitoring) {
             monitor.print(monitorId,"In:   Disjointness " +
                     Symboltable.toString(literals,model.symboltable) +
                     (origins == null ? "" : " " + origins));}
-        Clause clause = new Clause(++counter,clauseType,literals,origins);
-        Task<TaskType> task = new Task<>(TaskType.INSERTCLAUSE, null, clause, null);
-        queue.add(task);}
+        Clause clause = new Clause(++counter,ClauseType.DISJOINT,literals,origins);
+        queue.add(new Task<>(TaskType.INSERTCLAUSE, null, clause, null));}
 
       /** adds a new equivalence class representative == literal to the queue
      *
@@ -209,7 +197,7 @@ public class DisjointnessClasses {
      */
 
     public synchronized void addEquivalence(int representative, int literal, IntArrayList origins) {
-        statistics.equivalences++;
+        ++statistics.equivalences;
         if(monitoring) {
             monitor.print(monitorId,"In:   Equivalence " +
                     Symboltable.toString(representative, model.symboltable) + " = " +
@@ -236,26 +224,30 @@ public class DisjointnessClasses {
                         subsumer.toString(0,model.symboltable));}
             return;}
         if(!clauses.isEmpty()) {
-            resolveNormalizedClause(clause);
-            if(clause.size() == 1) {return;}}
+            resolveClause(clause);
+            if(clause.size() <= 1) {return;}}
 
         extendNormalizedClause(clause);
         removeSubsumedClauses(clause);
-        insertClause(clause);}
+        insertClause(clause);
+        for(Consumer<Clause> observer : observers) observer.accept(clause);
+    }
 
 
-    /**
+    /** performs a number of transformations and simplifications.
+     * replaces literals by representatives in some equivalence class<br>
+     * checks for true/false literals<br>
+     * checks for double literals p,p (p becomes false)<br>
+     * checks for complementary literals p,-p (all other literals become false)<br>
+     *
      * @param clause  a disjointness clause
      * @return null or the normalized clause
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     private Clause normalizeClause(Clause clause) throws Unsatisfiable {
-        // replace literals by representatives in some equivalence class
-        // check for true/false literals
-        // check for double literals p,p (unsatisfiable)
-        // check for complementary literals p,-p (superfluous)
         ArrayList<CLiteral> cliterals = clause.cliterals;
-        if(!equivalenceClasses.isEmpty()) {
+
+        if(!equivalenceClasses.isEmpty()) {  // replacement of equivalent literals
             for(CLiteral cliteral : cliterals) {
                 int oldLiteral = cliteral.literal;
                 int literal = equivalenceClasses.getRepresentative(oldLiteral);
@@ -267,30 +259,33 @@ public class DisjointnessClasses {
         for(int i = 0; i < cliterals.size(); ++i) {
             CLiteral cliteral = cliterals.get(i);
             int literal = cliteral.literal;
-            switch(model.status(literal)) {
+            switch(model.status(literal)) { // checking truth values of the literals
                 case -1: clause.remove(cliteral); --i; continue; // false literals can be ignored.
                 case +1: // true literals cause all other literals to become false.
                     if(monitoring) {
                         monitor.print(monitorId,"True literal " + Symboltable.toString(literal,model.symboltable) +
-                                " causes all other literals in disjointness clause " +
+                                " causes all other literals in disjointness clause\n" +
                                 clause.toString(0, model.symboltable) + " to become false.");}
                     for(CLiteral clit : cliterals) {
                         if(clit != cliteral) {
                             model.add(-clit.literal,
                                 trackReasoning ? joinIntArraysSorted(clause.origins,model.getOrigin(literal)) : null,
                                 null);}} // back to this
-                    return null;}
+                    return null;} // clause no longer needed
 
             switch(clause.contains(literal,cliteral)) {
                 case +1: // double literal is false
                     if(monitoring) {
                         monitor.print(monitorId,"Disjointenss clause " + clause.toString(0,model.symboltable)+
-                            " contains double literal " + Symboltable.toString(literal, model.symboltable));}
-                    clause.remove(cliteral); --i;
-                    model.add(-literal,
+                            " contains double literal " + Symboltable.toString(literal, model.symboltable) +
+                                " which becomes false.");}
+                     model.add(-literal,
                             trackReasoning ? joinIntArraysSorted(clause.origins,model.getOrigin(literal)) : null,
                             null);  // back to this
-                    break;
+                    for(int j = 0; j < cliterals.size(); ++j) {
+                        CLiteral clit = cliterals.get(j);
+                        if(clit.literal == literal) {cliterals.remove(clit); --j;}}
+                    return clause.size() > 1 ?  normalizeClause(clause) : null;
                 case -1: // p != -p is true. All other literals become false.
                     if(monitoring) {
                         monitor.print(monitorId,"Complementary literals +-" +
@@ -301,7 +296,7 @@ public class DisjointnessClasses {
                         if(Math.abs(clit.literal) != Math.abs(literal)) {
                             model.add(-clit.literal,clause.origins,null);}}
                     return null;}}
-        return clause;}
+        return clause.size() > 1 ? clause : null;}
 
 
     /** A new Disjointness: p,q may interact with an old disjointness p,-q, which causes -p to become true.
@@ -311,19 +306,21 @@ public class DisjointnessClasses {
      * @param clause the clause to be tested
      * @throws Unsatisfiable if an contradiction is found.
      */
-    private void resolveNormalizedClause(Clause clause) throws Unsatisfiable {
+    private void resolveClause(Clause clause) throws Unsatisfiable {
         for(CLiteral cliteral1 : clause.cliterals) {
             timestamp += 2;
             int literal1 = cliteral1.literal;
             literalIndex.withIterator(literal1,(iterator -> iterator.next().clause.timestamp = timestamp));
+            // all clauses with literal1 are timestamped
+
             for(CLiteral cliteral2 : clause.cliterals) {
                 int literal2 = cliteral1.literal;
-                if(cliteral1 != cliteral2) {
+                if(cliteral1 != cliteral2) { // now we look for clauses with -literal2
                     CLiteral clit2 = literalIndex.findWithIterator(-literal2,(iterator -> {
                         CLiteral clit = iterator.next();
-                        if(clit.clause.timestamp == timestamp) return clit;
-                        return null;}));
-                    if(clit2 != null) {
+                        return (clit.clause.timestamp == timestamp) ? clit : null;}));
+
+                    if(clit2 != null) { // clit2.clause has literal1, -literal2
                         statistics.resolutions++;
                         if(monitoring) {
                             monitor.print(monitorId, "Resolution of clause\n" +
@@ -334,7 +331,7 @@ public class DisjointnessClasses {
                         model.add(-literal1,origins,null);
                         clause.remove(cliteral1);
                         clause.origins = origins;
-                        if(clause.size() > 1) resolveNormalizedClause(clause);
+                        if(clause.size() > 1) resolveClause(clause); // try again
                         return;}}}}
         timestamp += 2;}
 
@@ -383,12 +380,11 @@ public class DisjointnessClasses {
             if(clause.isSubset(dClause)) {statistics.forwardSubsumed++; return dClause;}}
         return null;}
 
-    private ArrayList<Clause> subsumed = new ArrayList<>();
+    private final ArrayList<Clause> subsumed = new ArrayList<>();
 
     /** removes all disjointness classes which are subsets of the new class
      *
      * @param clause a new disjointness clause
-     * @return
      */
     private void removeSubsumedClauses(Clause clause) {
         subsumed.clear();
@@ -431,7 +427,7 @@ public class DisjointnessClasses {
                 clause.remove(cliteral1);
                 if(clause.size() > 1) {
                     if(trackReasoning) clause.origins = joinIntArraysSorted(origins,clause.origins);
-                    queue.add(new Task<TaskType>(TaskType.INSERTCLAUSE,null,clause,null));}}));}
+                    queue.add(new Task<>(TaskType.INSERTCLAUSE, null, clause, null));}}));}
         }
 
 
@@ -454,7 +450,7 @@ public class DisjointnessClasses {
                 Clause clause = iterator.next().clause;
                 removeClause(cLiteral,iterator);
                 if(trackReasoning) clause.origins = joinIntArraysSorted(origins,clause.origins);
-                queue.add(new Task<TaskType>(TaskType.INSERTCLAUSE,null,clause,null));}));}
+                queue.add(new Task<>(TaskType.INSERTCLAUSE, null, clause, null));}));}
             literal = -literal;}}
 
 
@@ -504,7 +500,7 @@ public class DisjointnessClasses {
             for(CLiteral cliteral2 : clause)
                 if(cliteral1 != cliteral2)
                     disjointnesses.computeIfAbsent(cliteral1.literal,
-                            k->new ArrayList<CLiteral>()).add(cliteral2);}}
+                            k-> new ArrayList<>()).add(cliteral2);}}
 
     /** removes a clause from the internal lists.
      *
@@ -528,9 +524,9 @@ public class DisjointnessClasses {
         Clause clause = cliteral.clause;
         --statistics.clauses;
         clauses.remove(clause);
-        iterator.remove();
+        iterator.remove(); // removes cliteral and keeps the iterator okay
         for(CLiteral cliteral1 : clause) {
-            literalIndex.remove(cliteral1);
+            if(cliteral1 != cliteral) literalIndex.remove(cliteral1);
             for(CLiteral cliteral2 : clause)
                 if(cliteral1 != cliteral2) disjointnesses.get(cliteral1.literal).remove(cliteral2);}
         return cliteral;}

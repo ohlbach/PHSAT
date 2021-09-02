@@ -161,7 +161,7 @@ public class AllClauses {
                         integrateEquivalence((Integer)task.a);
                         break;
                     case DISJOINTNESS:
-                        integrateDisjointnessClass((DisjointnessClass)task.a);
+                        integrateDisjointnessClass((Clause)task.a);
                         break;
                     case INSERTCLAUSE:
                         integrateClause((Clause)task.a);
@@ -200,10 +200,10 @@ public class AllClauses {
      *
      * @param disjoints  a disjointness class
      */
-    public void addDisjointness(DisjointnessClass disjoints) {
+    public void addDisjointness(Clause disjoints) {
         if(monitoring) {
             monitor.print(monitorId,"In:   disjointness " +
-                    disjoints.toString("",model.symboltable));}
+                    disjoints.toString(0,model.symboltable));}
         queue.add(new Task<>(TaskType.DISJOINTNESS, null, disjoints, null));}
 
     private void addTwoLitClause(TwoLitClause clause) {
@@ -341,14 +341,14 @@ public class AllClauses {
      *
      * @param disjoints a disjointness class.
      */
-    private void integrateDisjointnessClass(DisjointnessClass disjoints)  {
+    private void integrateDisjointnessClass(Clause disjoints)  {
         IntArrayList origins  = disjoints.origins;
-        IntArrayList literals = disjoints.literals;
-        int size = literals.size();
+        ArrayList<CLiteral> cliterals = disjoints.cliterals;
+        int size = cliterals.size();
         for(int i = 0; i < size; ++i) {
-            int literal1 = -literals.getInt(i);
+            int literal1 = -cliterals.get(i).literal;
             for(int j = i+1; j < size; ++j) {
-                Clause clause = new Clause(++counter,clauseType,literal1,-literals.getInt(j),origins);
+                Clause clause = new Clause(++counter,clauseType,literal1,-cliterals.get(j).literal,origins);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE,null, clause,null));}}}
 
     /** turns a disjointness clause into a list of two-literal clauses
