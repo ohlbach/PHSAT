@@ -35,6 +35,10 @@ import static Utilities.Utilities.*;
  * <br>
  * Search phase as thread: <br>
  * It gets its input from the model and from the TwoLiteral module.
+ * <br>
+ * Equivalences are stored as clauses with sorted literals
+ * The first literal (with the smallest predicate) is the representative of the equivalence class. <br>
+ * The representative is always positive.
  */
 
 public class EquivalenceClasses  {
@@ -43,15 +47,11 @@ public class EquivalenceClasses  {
     /** for collecting statistics */
     public EquivalenceStatistics statistics;
 
-
     /** controls the computation of the clause's origins */
-    private boolean trackReasoning;
+    private final boolean trackReasoning;
 
     /** The id of the current problem to be solved */
     private final String problemId;
-
-    /** stores the equivalence classes */
-    //private final ArrayList<EquivalenceClass> equivalenceClasses = new ArrayList<>();
 
     /** The list of Equivalence  clauses */
     private final ArrayList<Clause> clauses;
@@ -62,8 +62,6 @@ public class EquivalenceClasses  {
     /** the global model of true literals */
     private final Model model;
 
-    /** The threadId of currentThread() */
-    private Thread thread;
 
     /** for logging the actions of this class */
     private final Monitor monitor;
@@ -107,9 +105,8 @@ public class EquivalenceClasses  {
         problemSupervisor.equivalenceClasses = this;
         this.problemSupervisor = problemSupervisor;
         problemId = problemSupervisor.problemId;
-        thread = Thread.currentThread();
         model = problemSupervisor.model;
-        statistics = new EquivalenceStatistics(problemId);
+        statistics   = new EquivalenceStatistics(problemId);
         clauses      = new ArrayList<>();
         literalIndex = new HashMap<>();
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
@@ -130,24 +127,6 @@ public class EquivalenceClasses  {
 
     private int priority = 0;
 
-    /** This method is to be called by the TwoLiteral module to announce a newly derived equivalence
-     * literal1 = literal2.
-     * The equivalences is put into the queue.
-     *
-     * @param literal1 a literal
-     * @param literal2 an equivalent literal
-     * @param origins  the list of basic clause Ids used to derive the equivalence.
-     */
-    public void addDerivedEquivalence(int literal1, int literal2, IntArrayList origins) {
-        statistics.derivedClasses++;
-        if(monitoring) {
-            monitor.print(monitorId,"In:   Equivalence " +
-                    Symboltable.toString(literal1, model.symboltable) + " = " +
-                    Symboltable.toString(literal2, model.symboltable) +
-                    (origins == null ? "" : " " + origins));}
-        Task<TaskType> task = new Task(TaskType.EQUIVALENCE,origins,literal1,literal2);
-        task.priority = ++priority;
-        queue.add(task);}
 
 
     /** Starts the instance in a thread.
@@ -162,14 +141,13 @@ public class EquivalenceClasses  {
      * The result is stored into the variable result.
      */
     public void run() {
-        thread = Thread.currentThread();
-        model.addObserver(thread,
+        model.addObserver(Thread.currentThread(),
                 (Integer literal, IntArrayList origins) ->
                 {if(monitoring) {
                     monitor.print(monitorId,"In:   Unit literal " +
                             Symboltable.toString(literal,model.symboltable) +
                             (origins == null ? "" : " " + origins));}
-                    queue.add(new Task<TaskType>(TaskType.TRUELITERAL,origins, literal,null));});
+                    queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));});
         while(!Thread.interrupted()) {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
@@ -179,7 +157,7 @@ public class EquivalenceClasses  {
                     case EQUIVALENCE: integrateEquivalence((Integer)task.a,(Integer)task.b,task.origins); break;}
                 if(monitoring) {
                     monitor.print(monitorId,"Current equivalences:\n" +
-                            toString("            ",model.symboltable));}}
+                            toString(model.symboltable));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
                 problemSupervisor.setResult(unsatisfiable,"EquivalenceClasses");
@@ -203,20 +181,42 @@ public class EquivalenceClasses  {
         integrateEquivalenceClause(new Clause(++counter,clause));
     }
 
+    /** This method is to be called by the TwoLiteral module to announce a newly derived equivalence
+     * literal1 = literal2.
+     * The equivalences is put into the queue.
+     *
+     * @param literal1 a literal
+     * @param literal2 an equivalent literal
+     * @param origins  the list of basic clause Ids used to derive the equivalence.
+     */
+    public void addDerivedEquivalence(int literal1, int literal2, IntArrayList origins) {
+        statistics.derivedClasses++;
+        if(monitoring) {
+            monitor.print(monitorId,"In:   Equivalence " +
+                    Symboltable.toString(literal1, model.symboltable) + " = " +
+                    Symboltable.toString(literal2, model.symboltable) +
+                    (origins == null ? "" : " " + origins));}
+        Task<TaskType> task = new Task<>(TaskType.EQUIVALENCE,origins,literal1,literal2);
+        task.priority = ++priority;
+        queue.add(task);}
+
+
     /** turns a basicClause into a disjointness class. <br>
      *  Before treating the literals, they are mapped to their representatives in the equivalence classes (if necessary) <br>
      *
      * @param clause a new disjointness clause
+     * @return if the new clause joins with an old clause, the old representative, otherwise the new representative
      */
-    protected Clause integrateEquivalenceClause(Clause clause) throws Unsatisfiable {
+    protected Integer integrateEquivalenceClause(Clause clause) throws Unsatisfiable {
         if(monitoring) {
             monitor.print(monitorId,"Exec: equivalence clause: " + clause.toString(0,model.symboltable));}
         clause = normalizeClause(clause);
         if(clause == null) return null;
         clause = joinClause(clause);
+        int oldRepresentative = clause.cliterals.get(0).literal;
         sortLiterals(clause);
         insertClause(clause);
-        return clause;}
+        return oldRepresentative;}
 
 
     /** performs a number of transformations and simplifications.
@@ -246,7 +246,7 @@ public class EquivalenceClasses  {
                         Symboltable.toString(literal, model.symboltable) );}
                 for(CLiteral clit : cliterals) {
                     if(clit != cliteral) {
-                        model.add(sign*clit.literal,
+                        addToModel(sign*clit.literal,
                                 trackReasoning ? joinIntArraysSorted(clause.origins,model.getOrigin(literal)) : null,
                                 Thread.currentThread());}} // Equivalence classes are disjoint
                     return null;} // clause no longer needed
@@ -281,6 +281,73 @@ public class EquivalenceClasses  {
                         return oldClause;}}}
         return clause;}
 
+
+    /** A true literal causes all other equivalent literals to become true.
+     *
+     * @param literal a true literal
+     * @param origins the baisc clause ids causing the literal to become true.
+     * @throws Unsatisfiable if a contradiction occurs.
+     */
+    protected void integrateTrueLiteral(int literal, IntArrayList origins) throws Unsatisfiable {
+        if(monitoring) {
+            monitor.print(monitorId,"Exec: True literal " +
+                    Symboltable.toString(literal, model.symboltable) +
+                    (origins == null ? "" : " " + origins));}
+        int sign = 1;
+        CLiteral cliteral = literalIndex.get(literal);
+        if(cliteral == null) {cliteral = literalIndex.get(-literal); sign = -1;}
+        if(cliteral != null) {
+            if(trackReasoning) origins = joinIntArraysSorted(origins,cliteral.clause.origins);
+            removeClause(cliteral.clause);
+            for(CLiteral cLiteral : cliteral.clause.cliterals) {
+                if(cLiteral != cliteral) {
+                    addToModel(sign*cLiteral.literal,origins,null);}}}}
+
+
+    /** add the equivalence literal1 = literal2 to the equivalence classes, either to an existing one or a new one is created.
+     * Adding an equivalence p = -q to a class p = q causes a contradiction to be reported.
+     *
+     * @param literal1 literal1 == literal2
+     * @param literal2 literal1 == literal2
+     * @param origins  the indices of the basic clauses causes this equivalence.
+     * @throws Unsatisfiable, if a contradiction occurs
+     */
+    protected synchronized void integrateEquivalence(int literal1, int literal2, IntArrayList origins) throws Unsatisfiable{
+        if(monitoring) {
+            monitor.print(monitorId,"Exec: Equivalence " +
+                    Symboltable.toString(literal1,model.symboltable) + " = " +
+                    Symboltable.toString(literal2,model.symboltable) +
+                            (origins == null ? " " : " " + origins));}
+        statistics.derivedClasses++;
+        Integer oldRepresentative = integrateEquivalenceClause(new Clause(counter++, ClauseType.EQUIV, literal1,literal2, origins));
+
+        int newRepresentative = getRepresentative(oldRepresentative);
+        if(oldRepresentative != newRepresentative) {
+            for(TriConsumer<Integer,Integer,IntArrayList> observer : equivalenceObservers){
+                observer.accept(newRepresentative,oldRepresentative,origins);}}
+
+        int representative = getRepresentative(literal1);
+        if(representative != literal1) {
+            for(TriConsumer<Integer,Integer,IntArrayList> observer : equivalenceObservers){
+                observer.accept(representative,literal1,origins);}}representative = getRepresentative(literal1);
+        if(representative != literal2) {
+            for(TriConsumer<Integer,Integer,IntArrayList> observer : equivalenceObservers){
+                observer.accept(representative,literal2,origins);}}}
+
+    /** adds the literal to the model and calls the monitor.
+     *
+     * @param literal  a true literal
+     * @param origins  the basic clause ids for the truth
+     * @throws Unsatisfiable if a contradiction is found
+     */
+    private void addToModel(int literal, IntArrayList origins, Thread thread) throws Unsatisfiable {
+        if(monitoring) {
+            monitor.print(monitorId,"Exec: Derived true Literal " +
+                    Symboltable.toString(literal, model.symboltable) +
+                    (origins == null ? " " : " " + origins));}
+        model.add(literal,origins,thread);}
+
+
     /** adds a literal to an equivalence clause.
      *
      * @param clause an equivalence clause
@@ -310,59 +377,6 @@ public class EquivalenceClasses  {
             cliteral.literal *= sign;
             cliteral.clausePosition = i;}}
 
-
-    /** A true literal causes all other equivalent literals to become true.
-     *
-     * @param literal a true literal
-     * @param origins the baisc clause ids causing the literal to become true.
-     * @throws Unsatisfiable if a contradiction occurs.
-     */
-    protected void integrateTrueLiteral(int literal, IntArrayList origins) throws Unsatisfiable {
-        if(monitoring) {
-            monitor.print(monitorId,"Exec: True literal " +
-                    Symboltable.toString(literal, model.symboltable) +
-                    (origins == null ? "" : " " + origins));}
-        int sign = 1;
-        CLiteral cliteral = literalIndex.get(literal);
-        if(cliteral == null) {cliteral = literalIndex.get(-literal); sign = -1;}
-        if(cliteral != null) {
-            if(trackReasoning) origins = joinIntArraysSorted(origins,cliteral.clause.origins);
-            removeClause(cliteral.clause);
-            for(CLiteral cLiteral : cliteral.clause.cliterals) {
-                if(cLiteral != cliteral) {
-                    addToModel(sign*cLiteral.literal,origins,null);}}}}
-
-    /** adds the literal to the model and calls the monitor.
-     *
-     * @param literal  a true literal
-     * @param origins  the basic clause ids for the truth
-     * @throws Unsatisfiable if a contradiction is found
-     */
-    private void addToModel(int literal, IntArrayList origins, Thread thread) throws Unsatisfiable {
-        if(monitoring) {
-            monitor.print(monitorId,"Exec: Derived true Literal " +
-                    Symboltable.toString(literal, model.symboltable) +
-                    (origins == null ? " " : " " + origins));}
-        model.add(literal,origins,thread);}
-
-    /** add the equivalence literal1 = literal2 to the equivalence classes, either to an existing one or a new one is created.
-     * Adding an equivalence p = -q to a class p = q causes a contradiction to be reported.
-     *
-     * @param literal1 literal1 == literal2
-     * @param literal2 literal1 == literal2
-     * @param origins  the indices of the basic clauses causes this equivalence.
-     * @throws Unsatisfiable, if a contradiction occurs
-     */
-    protected synchronized void integrateEquivalence(int literal1, int literal2, IntArrayList origins) throws Unsatisfiable{
-        if(monitoring) {
-            monitor.print(monitorId,"Exec: Equivalence " +
-                    Symboltable.toString(literal1,model.symboltable) + " = " +
-                    Symboltable.toString(literal2,model.symboltable) +
-                            (origins == null ? " " : " " + origins));}
-        statistics.derivedClasses++;
-        Clause clause = integrateEquivalenceClause(new Clause(counter++, ClauseType.EQUIV, literal1,literal2, origins));
-        for(TriConsumer<Integer,Integer,IntArrayList> observer : equivalenceObservers){
-            observer.accept(rep,lit,origins);}}
 
     /** returns null or the equivalence class containing the literal
      *
@@ -407,20 +421,20 @@ public class EquivalenceClasses  {
             int sign = 0;
             int lit = 0;
             IntArrayList origins = null;
-            for(CLiteral cliteral : clause.cliterals) {
+            for(CLiteral cliteral : clause.cliterals) { // find a true/false literal
                 int literal = cliteral.literal;
                 int status = model.status(literal);
                 if(status != 0) {
                     if(sign != 0 && status != sign) {
-                        return new Inconsistency(problemId,
-                                "Equivalence class: " + clause.toString("",model.symboltable) +
+                        return new Inconsistency(problemId, // something went terribly wrong
+                                "Equivalence class: " + clause.toString(0,model.symboltable) +
                                 ": Literal " + Symboltable.toString(lit,model.symboltable) +
                                 " is " + (sign > 0 ? "true" : false) + " but literal " +
                                         Symboltable.toString(literal,model.symboltable) +
                                 " is " + (status > 0 ? "true" : "false"));}
                     else {sign = status; lit = literal;
                         origins = model.getOrigin(literal);}}}
-            if(sign == 0) return null;
+            if(sign == 0) continue;  // no literal has a truth value.
 
             for(int i = 0; i < clause.cliterals.size(); ++i) {
                 int literal = clause.cliterals.get(i).literal;
@@ -483,7 +497,7 @@ public class EquivalenceClasses  {
      */
     public String infoString(@Nullable Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
-        if(!clauses.isEmpty()) {string.append(toString());}
+        if(!clauses.isEmpty()) {string.append(toString(symboltable));}
         if(!literalIndex.isEmpty()) {
             string.append("Literal Index:\n");
             literalIndex.forEach((literal,cliteral) -> string.append("  " + literal + "@"+cliteral.clause.id + "\n"));}
