@@ -1,7 +1,8 @@
 package Datastructures.Theory;
 
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Inconsistency;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -14,6 +15,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import static Utilities.Utilities.*;
@@ -41,11 +43,21 @@ public class EquivalenceClasses  {
     /** for collecting statistics */
     public EquivalenceStatistics statistics;
 
+
+    /** controls the computation of the clause's origins */
+    private boolean trackReasoning;
+
     /** The id of the current problem to be solved */
     private final String problemId;
 
     /** stores the equivalence classes */
-    private final ArrayList<EquivalenceClass> equivalenceClasses = new ArrayList<>();
+    //private final ArrayList<EquivalenceClass> equivalenceClasses = new ArrayList<>();
+
+    /** The list of Equivalence  clauses */
+    private final ArrayList<Clause> clauses;
+
+    /** maps literals to the literal occurrences in clauses */
+    private final HashMap<Integer,CLiteral> literalIndex;
 
     /** the global model of true literals */
     private final Model model;
@@ -98,6 +110,9 @@ public class EquivalenceClasses  {
         thread = Thread.currentThread();
         model = problemSupervisor.model;
         statistics = new EquivalenceStatistics(problemId);
+        clauses      = new ArrayList<>();
+        literalIndex = new HashMap<>();
+        trackReasoning = problemSupervisor.globalParameters.trackReasoning;
         monitor = problemSupervisor.globalParameters.monitor;
         if(monitor != null) {
             monitoring = true;
@@ -184,97 +199,117 @@ public class EquivalenceClasses  {
     public void addBasicEquivalenceClause(int[] clause) throws Unsatisfiable {
         assert clause.length > 3;
         assert ClauseType.getType(clause[1]) == ClauseType.EQUIV;
-
-        if(monitoring) {
-            monitor.print(monitorId,"New equivalence clause: " +
-                    BasicClauseList.clauseToString(0,clause,model.symboltable));}
-
         statistics.basicClauses++;
-        if(expandTruthValue(clause)) return; // may throw Unsatisfiable
-
-        IntArrayList origins = new IntArrayList(1);
-        origins.add(clause[0]);
-        IntArrayList literals = new IntArrayList(clause.length-2);
-        for(int i = 2; i < clause.length; ++i) {
-            int literal = clause[i];
-            int representative = getRepresentative(literal);
-            if(literals.contains(representative)) continue; // double occurrence
-            if(literals.contains(-representative)) // contradiction p = -p
-                throw new Unsatisfiable(
-                        "Wenn adding new equivalence class " + clause[0] +
-                                ": Found " + representative + " = " + -representative,origins);
-            if(representative != literal) origins = joinIntArraysSorted(origins,getOrigins(literal));
-            literals.add(representative);}
-        if(literals.size() <= 1) {
-            if(monitoring) {
-                monitor.print(monitorId,"Equivalence clause " + clause[0] + " shrank to '" +
-                Symboltable.toString(literals,model.symboltable) + "' and will be ignored.");}
-            return; }
-        EquivalenceClass eqClass = new EquivalenceClass(++counter, literals,origins);
-        eqClass = joinEquivalenceClass(eqClass);
-        if(monitoring) {
-            monitor.print(monitorId,"Equivalence class " + eqClass.infoString(model.symboltable));}
+        integrateEquivalenceClause(new Clause(++counter,clause));
     }
 
-    /** checks the truth value of the literals in the basic clause.
-     * If a literal is true then all literals in the clause are made true.
-     * If a literal is false then all literals in the clause are made false.<br>
+    /** turns a basicClause into a disjointness class. <br>
+     *  Before treating the literals, they are mapped to their representatives in the equivalence classes (if necessary) <br>
      *
-     * @param clause a basic clause
-     * @return true, if all literals got a truth value.
-     * @throws Unsatisfiable if a contradictory truth value has been discovered.
+     * @param clause a new disjointness clause
      */
-    protected boolean expandTruthValue(int[] clause) throws Unsatisfiable {
-        for(int i = 2; i < clause.length; ++i) {
-            int literal = clause[i];
-            IntArrayList origins = new IntArrayList(1); origins.add(clause[0]);
-            switch(model.status(literal)) {
-                case +1:
-                    for(int j = 2; j < clause.length; ++j) {
-                        if(i != j) addToModel(clause[j],origins);}
-                    return true;
-                case -1:
-                    for(int j = 2; j < clause.length; ++j) {
-                        if(i != j) addToModel(-clause[j],origins);}
-                    return true;}}
-        return false;}
+    protected Clause integrateEquivalenceClause(Clause clause) throws Unsatisfiable {
+        if(monitoring) {
+            monitor.print(monitorId,"Exec: equivalence clause: " + clause.toString(0,model.symboltable));}
+        clause = normalizeClause(clause);
+        if(clause == null) return null;
+        clause = joinClause(clause);
+        sortLiterals(clause);
+        insertClause(clause);
+        return clause;}
 
-    /** joins the new equivalence class to the old ones.
-     *  Two special cases may occur: <br>
-     *  1. old class: p = q,r <br>
-     *     new class: p = s,t<br>
-     *     Then s,t are added to old class<br>
-     *  2. old class: 5 = 7,8
-     *     new class: 3 = +-5,9,10 <br>
-     *     The +-7,+-8 is added to new class and old class is removed.
+
+    /** performs a number of transformations and simplifications.
+     * replaces literals by representatives in some equivalence class<br>
+     * checks for true/false literals<br>
+     * checks for double literals p,p (p becomes false)<br>
+     * checks for complementary literals p,-p (all other literals become false)<br>
      *
-     * @param newClass A new equivalence class. Only the representatives may occur in old classes.
-     * @return either the new class or an extended old one.
+     * @param clause  a disjointness clause
+     * @return null or the normalized clause
+     * @throws Unsatisfiable if a contradiction is discovered.
      */
-    protected EquivalenceClass joinEquivalenceClass(EquivalenceClass newClass) {
-        int newRepresentative = newClass.representative;
-        for(EquivalenceClass oldClass : equivalenceClasses) {
-            if(newRepresentative == oldClass.representative) {
-                if(monitoring) {
-                    monitor.print(monitorId,"merging " +
-                            newClass.toString("", model.symboltable) + " into " +
-                            oldClass.toString("", model.symboltable));}
-                oldClass.literals = joinIntArrays(oldClass.literals,newClass.literals);
-                oldClass.origins  = joinIntArraysSorted(oldClass.origins,newClass.origins);
-                return oldClass;}
-            int sign = newClass.contains(oldClass.representative);
+    private Clause normalizeClause(Clause clause) throws Unsatisfiable {
+        ArrayList<CLiteral> cliterals = clause.cliterals;
+
+        if(!clauses.isEmpty()) {  // replacement of equivalent literals
+            clause.replaceEquivalences(this,trackReasoning);}
+
+        for(int i = 0; i < cliterals.size(); ++i) {
+            CLiteral cliteral = cliterals.get(i);
+            int literal = cliteral.literal;
+            int sign = model.status(literal);
             if(sign != 0) {
                 if(monitoring) {
-                    monitor.print(monitorId,"merging " +
-                            oldClass.toString("", model.symboltable) + " into " +
-                            newClass.toString("", model.symboltable));}
-                for(int literal : oldClass.literals) {
-                    newClass.literals = addInt(newClass.literals,sign*literal);}
-                newClass.origins = joinIntArraysSorted(oldClass.origins,newClass.origins);
-                equivalenceClasses.remove(oldClass);
-                break;}}
-        equivalenceClasses.add(newClass);
-        return newClass;}
+                    monitor.print(monitorId, "All literals in clause " +
+                            clause.toString(0, model.symboltable) + " get the same truth value as " +
+                        Symboltable.toString(literal, model.symboltable) );}
+                for(CLiteral clit : cliterals) {
+                    if(clit != cliteral) {
+                        model.add(sign*clit.literal,
+                                trackReasoning ? joinIntArraysSorted(clause.origins,model.getOrigin(literal)) : null,
+                                Thread.currentThread());}} // Equivalence classes are disjoint
+                    return null;} // clause no longer needed
+
+            switch(clause.contains(literal,cliteral)) {
+                case +1: clause.remove(cliteral); --i; continue;
+                case -1: // p = -p is contradictory
+                    throw new Unsatisfiable("Contradictory literals in equivalence class" +
+                            clause.toString(0, model.symboltable), clause.origins);}}
+        return clause.size() > 1 ? clause : null;}
+
+
+    /** joins the new (not inserted) equivalence clause to the old ones if there is an overlapping.
+     * If there is an overlapping then the old clause is removed from the internal data structures.
+     *
+     * @param clause A new equivalence clause
+     * @return either the new class or an extended old one.
+     * @throws Unsatisfiable if a contradiction p = -p occurs.
+     */
+    protected Clause joinClause(Clause clause) throws Unsatisfiable {
+        for(CLiteral cliteral : clause.cliterals) {
+            int literal = cliteral.literal;
+            for(Clause oldClause : clauses) {
+                int sign = oldClause.contains(literal);
+                    if(sign != 0) {
+                        if(monitoring) monitor.print(monitorId, "Joining equivalence clauses\n" +
+                                oldClause.toString(4, model.symboltable) + " and\n" +
+                                clause.toString(4, model.symboltable));
+                        removeClause(oldClause);
+                        for(CLiteral clit : clause) {addLiteral(oldClause,sign*clit.literal);}
+                        if(trackReasoning) oldClause.origins = joinIntArraysSorted(oldClause.origins,clause.origins);
+                        return oldClause;}}}
+        return clause;}
+
+    /** adds a literal to an equivalence clause.
+     *
+     * @param clause an equivalence clause
+     * @param literal a literal
+     * @throws Unsatisfiable if the clause contains the negated literal.
+     */
+    private void addLiteral(Clause clause, int literal) throws Unsatisfiable {
+        switch(clause.contains(literal)) {
+            case 1: return;
+            case -1: throw new Unsatisfiable("Adding complementary literal " +
+                    Symboltable.toString(literal, model.symboltable) + " to equivalence clause\n"+
+                    clause.toString(4, model.symboltable), clause.origins);}
+        addLiteral(clause,literal);}
+
+    /** sorts the literals in the clause.
+     * Literals are sorted according to their absolute values.
+     * If the first literal is negative, then all literals are inverted.
+     *
+     * @param clause a new clause
+     */
+    private void sortLiterals(Clause clause) {
+        ArrayList<CLiteral> cliterals = clause.cliterals;
+        cliterals.sort(Comparator.comparingInt(clit -> Math.abs(clit.literal)));
+        int sign = (cliterals.get(0).literal < 0) ? -1 : +1;
+        for(int i = 0; i < cliterals.size(); ++i) {
+            CLiteral cliteral = cliterals.get(i);
+            cliteral.literal *= sign;
+            cliteral.clausePosition = i;}}
+
 
     /** A true literal causes all other equivalent literals to become true.
      *
@@ -284,25 +319,18 @@ public class EquivalenceClasses  {
      */
     protected void integrateTrueLiteral(int literal, IntArrayList origins) throws Unsatisfiable {
         if(monitoring) {
-            monitor.print(monitorId,"Exec: Unit literal " +
+            monitor.print(monitorId,"Exec: True literal " +
                     Symboltable.toString(literal, model.symboltable) +
                     (origins == null ? "" : " " + origins));}
-        for(EquivalenceClass eqClass : equivalenceClasses) {
-            int sign = eqClass.contains(literal);
-            if(sign != 0) {
-                statistics.trueLiterals++;
-                if(monitoring) {
-                    monitor.print(monitorId,"Exec: Literal " +
-                            Symboltable.toString(literal, model.symboltable) + " -> " +
-                            eqClass.toString("",model.symboltable));}
-                origins = joinIntArraysSorted(eqClass.origins,origins);
-                int rep = sign* eqClass.representative;
-                if(rep != literal) addToModel(rep,origins);
-                for(int lit: eqClass.literals) {
-                    lit *= sign;
-                    if(lit != literal) addToModel(lit,origins);}
-                equivalenceClasses.remove(eqClass);
-                return;}}}
+        int sign = 1;
+        CLiteral cliteral = literalIndex.get(literal);
+        if(cliteral == null) {cliteral = literalIndex.get(-literal); sign = -1;}
+        if(cliteral != null) {
+            if(trackReasoning) origins = joinIntArraysSorted(origins,cliteral.clause.origins);
+            removeClause(cliteral.clause);
+            for(CLiteral cLiteral : cliteral.clause.cliterals) {
+                if(cLiteral != cliteral) {
+                    addToModel(sign*cLiteral.literal,origins,null);}}}}
 
     /** adds the literal to the model and calls the monitor.
      *
@@ -310,7 +338,7 @@ public class EquivalenceClasses  {
      * @param origins  the basic clause ids for the truth
      * @throws Unsatisfiable if a contradiction is found
      */
-    private void addToModel(int literal, IntArrayList origins) throws Unsatisfiable {
+    private void addToModel(int literal, IntArrayList origins, Thread thread) throws Unsatisfiable {
         if(monitoring) {
             monitor.print(monitorId,"Exec: Derived true Literal " +
                     Symboltable.toString(literal, model.symboltable) +
@@ -332,55 +360,7 @@ public class EquivalenceClasses  {
                     Symboltable.toString(literal2,model.symboltable) +
                             (origins == null ? " " : " " + origins));}
         statistics.derivedClasses++;
-        int status = model.status(literal1);
-        if(status != 0) {addToModel(status*literal2,joinIntArraysSorted(origins,model.getOrigin(literal1))); return;}
-
-        status = model.status(literal2);
-        if(status != 0) {addToModel(status*literal1,joinIntArraysSorted(origins,model.getOrigin(literal2))); return;}
-
-        EquivalenceClass eqClass1 = getEquivalenceClass(literal1);
-        EquivalenceClass eqClass2 = getEquivalenceClass(literal2);
-        int rep = 0; int lit = 0;
-        int sign = 0;
-        if(eqClass1 == null) {
-            if(eqClass2 == null) {
-                IntArrayList literals = new IntArrayList(2);
-                literals.add(literal1); literals.add(literal2);
-                EquivalenceClass newClass = new EquivalenceClass(++counter,literals,origins);
-                equivalenceClasses.add(newClass);
-                rep = newClass.representative; lit = newClass.literals.getInt(0);}
-            else {  // eqClass2 != null
-                sign = eqClass2.contains(literal2);
-                rep = eqClass2.representative; lit = sign*literal1;
-                if(monitoring) {
-                    monitor.print(monitorId,"Adding literal " +
-                            Symboltable.toString(sign*literal1,model.symboltable) + " to " +
-                            eqClass2.toString("",model.symboltable));}
-                statistics.extendedClasses++;
-                eqClass2.addLiteral(sign*literal1,origins);}}
-        else { // eqClass1 != null
-            sign = eqClass1.contains(literal1);
-            if(eqClass2 == null) {
-                rep = eqClass1.representative; lit = sign*literal2;
-                if(monitoring) {
-                    monitor.print(monitorId,"Adding literal " +
-                            Symboltable.toString(sign*literal2,model.symboltable) + " to " +
-                            eqClass1.toString("",model.symboltable));}
-                statistics.extendedClasses++;
-                eqClass1.addLiteral(sign*literal2,origins);}
-            else {  // eqClass2 != null
-                sign *= eqClass2.contains(literal2);
-                rep = eqClass1.representative; lit = eqClass2.representative;
-                if(lit < rep) {int dummy = lit; lit = rep; rep = dummy;}
-                lit *= sign;
-                if(monitoring) {
-                    monitor.print(monitorId,"Joining the two equivalence classes " +
-                            eqClass1.toString(" ",model.symboltable) + " and " +
-                            eqClass2.toString(" ",model.symboltable) +
-                            (origins == null ? "" : " " + origins));}
-                eqClass1.addEquivalenceClass(eqClass2,sign,origins);
-                statistics.joinedClasses++;
-                equivalenceClasses.remove(eqClass2);}}
+        Clause clause = integrateEquivalenceClause(new Clause(counter++, ClauseType.EQUIV, literal1,literal2, origins));
         for(TriConsumer<Integer,Integer,IntArrayList> observer : equivalenceObservers){
             observer.accept(rep,lit,origins);}}
 
@@ -389,10 +369,10 @@ public class EquivalenceClasses  {
      * @param literal any literal
      * @return null or the equivalence class containing the literal
      */
-    public synchronized EquivalenceClass getEquivalenceClass(int literal) {
-        for(EquivalenceClass eqClass : equivalenceClasses) {
-            if(eqClass.contains(literal) != 0) return eqClass;}
-        return null;}
+    public synchronized Clause getEquivalenceClass(int literal) {
+        CLiteral cliteral = literalIndex.get(literal);
+        if(cliteral == null) cliteral = literalIndex.get(-literal);
+        return cliteral == null ? null : cliteral.clause;}
 
     /** maps literals to their representative in the equivalence class.
      *
@@ -400,36 +380,40 @@ public class EquivalenceClasses  {
      * @return the literal or the representative of the literal's equivalence class.
      */
     public synchronized int getRepresentative(int literal) {
-        for(EquivalenceClass eqClass : equivalenceClasses) {
-            int representative = eqClass.getRepresentative(literal);
-            if(representative != literal) {return representative;}}
+        CLiteral cliteral = literalIndex.get(literal);
+        if(cliteral != null) return cliteral.clause.cliterals.get(0).literal;
+        cliteral = literalIndex.get(-literal);
+        if(cliteral != null) {
+            return cliteral.clausePosition == 0 ? literal : -cliteral.clause.cliterals.get(0).literal;}
         return literal;}
 
-    /** maps a literal to the origins of the equivalence with the literal with its representative
+    /** maps a literal to the origins of the equivalence containing the literal or its negation.
+     * If the literal is already the representative of the class then the origins are null.
      *
      * @param literal any literal
      * @return null or the indices of the basic clauses causing this equivalence.
      */
     public synchronized IntArrayList getOrigins(int literal) {
-        for(EquivalenceClass eqClass : equivalenceClasses) {
-            if(eqClass.contains(literal) != 0) return eqClass.origins;}
-        return null;}
+        CLiteral cliteral = literalIndex.get(literal);
+        if(cliteral == null) cliteral = literalIndex.get(-literal);
+        return (cliteral == null || cliteral.clausePosition == 0) ? null : cliteral.clause.origins;}
 
     /** If a literal in an equivalence class is true, then all other literals are also made true
      *
      * @return an Inconsistency if the resulting model becomes inconsistent (should never happen)
      */
     public Inconsistency completeModel() {
-        for(EquivalenceClass eqClass : equivalenceClasses) {
+        for(Clause clause : clauses) {
             int sign = 0;
             int lit = 0;
             IntArrayList origins = null;
-            for(int literal : eqClass.literals) {
+            for(CLiteral cliteral : clause.cliterals) {
+                int literal = cliteral.literal;
                 int status = model.status(literal);
                 if(status != 0) {
                     if(sign != 0 && status != sign) {
                         return new Inconsistency(problemId,
-                                "Equivalence class: " + eqClass.toString("",model.symboltable) +
+                                "Equivalence class: " + clause.toString("",model.symboltable) +
                                 ": Literal " + Symboltable.toString(lit,model.symboltable) +
                                 " is " + (sign > 0 ? "true" : false) + " but literal " +
                                         Symboltable.toString(literal,model.symboltable) +
@@ -438,37 +422,56 @@ public class EquivalenceClasses  {
                         origins = model.getOrigin(literal);}}}
             if(sign == 0) return null;
 
-            for(int i = 0; i < eqClass.literals.size(); ++i) {
-                int literal = eqClass.literals.getInt(i);
+            for(int i = 0; i < clause.cliterals.size(); ++i) {
+                int literal = clause.cliterals.get(i).literal;
                 if(model.status(literal) == 0) {
-                    model.addImmediately(sign*literal,joinIntArraysSorted(origins,eqClass.origins));}}}
+                    model.addImmediately(sign*literal,joinIntArraysSorted(origins,clause.origins));}}}
         return null;}
+
+    /** inserts the clause into the local data structures.
+     *
+     * @param clause  the clause to be inserted.
+     */
+    private void insertClause(Clause clause) {
+        ++statistics.clauses;
+        clauses.add(clause);
+        for(CLiteral cliteral : clause) {literalIndex.put(cliteral.literal, cliteral);}}
+
+    /** removes a clause from the internal lists.
+     *
+     * @param clause a clause to be removed.
+     */
+    private void removeClause(Clause clause) {
+        --statistics.clauses;
+        clauses.remove(clause);
+        for(CLiteral cliteral : clause) {literalIndex.remove(cliteral.literal);}}
+
 
     /** checks if there is no equivalence class
      *
      * @return true if there is no equivalence class
      */
     public synchronized boolean isEmpty() {
-        return equivalenceClasses.isEmpty();}
+        return clauses.isEmpty();}
 
     /** turns the equivalence classes into a string "literal1 = literal2 = ... = representative\n..."
      *
      * @return a string representation of the equivalence classes.
      */
-    public String toString() {return toString("",null);}
+    public String toString() {return toString(null);}
 
     /** turns the equivalence classes into a string "literal1 = literal2 = ... = representative\n..."
      *
-     * @param prefix a prefix for the strings
      * @param symboltable or null
      * @return a string representation of the equivalence classes.
      */
-    public String toString(String prefix, @Nullable Symboltable symboltable) {
+    public String toString(@Nullable Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
         string.append("Equivalence Classes of Problem " + problemId + ":\n");
-        int size = equivalenceClasses.size();
+        int width = Integer.toString(counter).length();
+        int size = clauses.size();
         for(int i = 0; i < size; ++i) {
-            string.append(equivalenceClasses.get(i).toString(prefix,symboltable));
+            string.append(clauses.get(i).toString(width,symboltable));
             if(i < size-1) string.append("\n");}
         return string.toString();}
 
@@ -480,18 +483,13 @@ public class EquivalenceClasses  {
      */
     public String infoString(@Nullable Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
-        if(!equivalenceClasses.isEmpty()) {
-            string.append("Equivalence Classes of Problem " + problemId + ":\n");
-            int size = equivalenceClasses.size();
-            for(int i = 0; i < size; ++i) {
-                string.append(equivalenceClasses.get(i).infoString(symboltable));
-                if(i < size-1) string.append("\n");}}
+        if(!clauses.isEmpty()) {string.append(toString());}
+        if(!literalIndex.isEmpty()) {
+            string.append("Literal Index:\n");
+            literalIndex.forEach((literal,cliteral) -> string.append("  " + literal + "@"+cliteral.clause.id + "\n"));}
         if(!queue.isEmpty()) {
             string.append("Equivalence Classes Queue of Problem " + problemId + ":\n").
                     append(Task.queueToString(queue));}
         return string.toString();}
 
-    public ArrayList<TriConsumer<Integer, Integer, IntArrayList>> getEquivalenceObservers() {
-        return equivalenceObservers;
-    }
 }

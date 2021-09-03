@@ -56,7 +56,7 @@ public class DisjointnessClasses {
     /** The equivalence classes thread */
     private final EquivalenceClasses equivalenceClasses;
 
-    /** The list of Disjointnes clauses */
+    /** The list of Disjointness clauses */
     private final BucketSortedList<Clause> clauses;
 
     /** maps literals to the literal occurrences in clauses */
@@ -248,13 +248,7 @@ public class DisjointnessClasses {
         ArrayList<CLiteral> cliterals = clause.cliterals;
 
         if(!equivalenceClasses.isEmpty()) {  // replacement of equivalent literals
-            for(CLiteral cliteral : cliterals) {
-                int oldLiteral = cliteral.literal;
-                int literal = equivalenceClasses.getRepresentative(oldLiteral);
-                if(literal != oldLiteral) {
-                    cliteral.literal = literal;
-                    if(trackReasoning) clause.origins = joinIntArraysSorted(clause.origins,
-                                        equivalenceClasses.getOrigins(oldLiteral));}}}
+            clause.replaceEquivalences(equivalenceClasses,trackReasoning);}
 
         for(int i = 0; i < cliterals.size(); ++i) {
             CLiteral cliteral = cliterals.get(i);
@@ -349,7 +343,7 @@ public class DisjointnessClasses {
             for(CLiteral cliteral1 : clause.cliterals) {
                 int literal1 = cliteral1.literal;
                 ArrayList<CLiteral> disjoints = disjointnesses.get(literal1);
-                if(disjoints == null) break; // no extension possible
+                if(disjoints == null || disjoints.isEmpty()) break; // no extension possible
                 for(CLiteral cliteral2 : disjoints) {
                     int literal2 = cliteral2.literal; // literal2 is a candidate for extension
                     boolean found = true;
@@ -362,7 +356,7 @@ public class DisjointnessClasses {
                             monitor.print(monitorId,"Disjointenss Clause " +  clause.toString(0, model.symboltable) +
                                     "\nwill be extended with literal " + Symboltable.toString(literal2,model.symboltable));}
                         clause.add(literal2);
-                        statistics.extendedClasses++;
+                        ++statistics.extendedClasses;
                         if(trackReasoning) {
                             IntArrayList origins = clause.origins;
                             for(CLiteral cliteral11 : clause.cliterals)
@@ -419,7 +413,7 @@ public class DisjointnessClasses {
                 removeClause(cliteral1,iterator);}
             literalIndex.pushIterator(literal,iterator);}
 
-        if(!literalIndex.isEmpty(-literal)) {
+        if(!literalIndex.isEmpty(-literal)) { // false literals must be removed from all clauses
             literalIndex.withIterator(-literal, (iterator -> {
                 CLiteral cliteral1 = iterator.next();
                 Clause clause = cliteral1.clause;

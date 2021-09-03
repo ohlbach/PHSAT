@@ -2,6 +2,7 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
+import Datastructures.Theory.EquivalenceClasses;
 import Utilities.Positioned;
 import Utilities.Sizable;
 import com.sun.java.accessibility.util.AccessibilityListenerList;
@@ -11,6 +12,8 @@ import java.util.ArrayList;
 import java.util.Formatter;
 import java.util.Iterator;
 import java.util.Locale;
+
+import static Utilities.Utilities.joinIntArraysSorted;
 
 /** A clause is just a list of CLiterals.
  * It may represent disjunctions, conjunctions or any other logical list structure.
@@ -318,6 +321,19 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                     removeAtPosition(j--);
                     doubles = true;}}}
         return doubles;}
+
+    /** replaces literals by equivalent literals
+     *
+     * @param eqClasses         the equivalence classes
+     * @param trackReasoning    controls management of origins
+     */
+    public void replaceEquivalences(EquivalenceClasses eqClasses, boolean trackReasoning) {
+     for(CLiteral cliteral : cliterals) {
+        int oldLiteral = cliteral.literal;
+        int literal = eqClasses.getRepresentative(oldLiteral);
+        if(literal != oldLiteral) {
+            cliteral.literal = literal;
+            if(trackReasoning) origins = joinIntArraysSorted(origins,eqClasses.getOrigins(oldLiteral));}}}
 
     /** joins the origins (Ids of the basicClauses which caused this clause)
      *
