@@ -55,7 +55,7 @@ public class EquivalenceClassesTest {
         catch(Unsatisfiable uns) {}
         assertEquals("Equivalence Classes of Problem test:\nE-1: 1 = 2 = 3",eqClasses.toString());
         assertEquals("Equivalence Classes of Problem test:\nE-1: 1 = 2 = 3 [1]",eqClasses.infoString(null));
-        assertEquals("Equivalence Classes of Problem test:\nE-1: p = q = r",eqClasses.toString("",symboltable));
+        assertEquals("Equivalence Classes of Problem test:\nE-1: p = q = r",eqClasses.toString(symboltable));
         assertEquals("Equivalence Classes of Problem test:\nE-1: p = q = r [1]",eqClasses.infoString(symboltable));
 
         clause = new int[]{2,type,4,-5,-6};
@@ -67,7 +67,7 @@ public class EquivalenceClassesTest {
         assertEquals("Equivalence Classes of Problem test:\nE-1: 1 = 2 = 3 [1]\n" +
                 "E-2: 4 = -5 = -6 [2]",eqClasses.infoString(null));
         assertEquals("Equivalence Classes of Problem test:\nE-1: p = q = r\n" +
-                "E-2: a = -b = -c",eqClasses.toString("",symboltable));
+                "E-2: a = -b = -c",eqClasses.toString(symboltable));
         assertEquals("Equivalence Classes of Problem test:\nE-1: p = q = r [1]\n" +
                 "E-2: a = -b = -c [2]",eqClasses.infoString(symboltable));
 
