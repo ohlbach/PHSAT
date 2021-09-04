@@ -3,6 +3,7 @@ package Solvers.Resolution;
 import Coordinator.Tasks.Task;
 import Coordinator.Tasks.TaskQueue;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseType;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
@@ -541,7 +542,7 @@ public class Resolution extends Solver {
         for(CLiteral otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) {
             boolean tautology = false;
             Clause otherClause = otherCliteral.clause;
-            Clause newClause = new Clause(++id[0]);
+            Clause newClause = new Clause(++id[0], ClauseType.OR);
             ArrayList<CLiteral> newLiterals = new ArrayList<>();
             for(CLiteral literal : literals) {
                 if(literal.literal != eliminateLiteral) {newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size()));}}
@@ -784,7 +785,7 @@ public class Resolution extends Solver {
         replacedClauses.clear();
         for(CLiteral cliteral : literalIndex.getAllItems(fromLiteral)) {
             Clause clause = cliteral.clause;
-            Clause newClause = new Clause(++id[0],clause.size());
+            Clause newClause = new Clause(++id[0],ClauseType.OR, clause.size());
             boolean tautology = false;
             for(CLiteral cLiteral : clause.cliterals) {
                 int literal = cLiteral.literal;
@@ -797,7 +798,7 @@ public class Resolution extends Solver {
 
         for(CLiteral cliteral : literalIndex.getAllItems(-fromLiteral)) {
             Clause clause = cliteral.clause;
-            Clause newClause = new Clause(++id[0],clause.size());
+            Clause newClause = new Clause(++id[0],ClauseType.OR, clause.size());
             boolean tautology = false;
             for(CLiteral cLiteral : clause.cliterals) {
                 int literal = cLiteral.literal;

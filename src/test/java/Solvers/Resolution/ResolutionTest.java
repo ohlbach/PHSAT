@@ -3,6 +3,7 @@ package Solvers.Resolution;
 import Coordinator.Tasks.TaskQueue;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseType;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
@@ -69,7 +70,7 @@ public class ResolutionTest {
     private static int counter = 1;
 
     private Clause make(int... literals) {
-        Clause cl = new Clause(counter++,literals.length);
+        Clause cl = new Clause(counter++, ClauseType.OR, literals.length);
         int i = -1;
         for(int l:literals) {
             cl.add(new CLiteral(l,cl,++i));}

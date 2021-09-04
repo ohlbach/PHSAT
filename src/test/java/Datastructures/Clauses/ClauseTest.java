@@ -14,19 +14,95 @@ import static org.junit.Assert.*;
 public class ClauseTest {
 
     private static int counter = 1;
+    private static ClauseType type = ClauseType.OR;
 
     private Clause make(int... literals) {
-        Clause cl = new Clause(counter++,literals.length);
+        Clause cl = new Clause(counter++,type,literals.length);
         int i = -1;
         for(int l:literals) {
             cl.add(new CLiteral(l,cl,++i));}
         cl.setStructure();
         return cl;}
 
+    private Clause make(int id, ClauseType type, int... literals) {
+        Clause cl = new Clause(id,type,literals.length);
+        int i = -1;
+        for(int l:literals) {
+            cl.add(new CLiteral(l,cl,++i));}
+        cl.setStructure();
+        return cl;}
+
+    private Symboltable symboltable = new Symboltable(10);
+    private void prepare() {
+        symboltable.setName(1,"p");
+        symboltable.setName(2,"q");
+        symboltable.setName(3,"r");
+        symboltable.setName(4,"s");
+        symboltable.setName(5,"t");
+        symboltable.setName(6,"u");
+
+    }
+
+    @Test
+    public void constructOR() {
+        System.out.println("constructOR");
+        prepare();
+        Clause clause = make(1, ClauseType.OR, 1, 2);
+        assertEquals("1: 1,2",clause.toString());
+        assertEquals("1: 1,2",clause.toNumbers());
+        assertEquals("   1: p,q",clause.toString(4,symboltable));
+       // System.out.println(clause.toString());
+    }
+
+    @Test
+    public void constructAND() {
+        System.out.println("constructAND");
+        prepare();
+        Clause clause = make(1, ClauseType.AND, 1, 2);
+        assertEquals("1: 1&2",clause.toString());
+        assertEquals("1: 1&2",clause.toNumbers());
+        assertEquals("   1: p&q",clause.toString(4,symboltable));
+       // System.out.println(clause.toString());
+    }
+
+    @Test
+    public void constructXOR() {
+        System.out.println("constructXOR");
+        prepare();
+        Clause clause = make(1, ClauseType.XOR, 1, 2);
+        assertEquals("1: 1 x 2",clause.toString());
+        assertEquals("1: 1 x 2",clause.toNumbers());
+        assertEquals("   1: p x q",clause.toString(4,symboltable));
+        //System.out.println(clause.toString());
+    }
+
+    @Test
+    public void constructDISJ() {
+        System.out.println("constructDISJ");
+        prepare();
+        Clause clause = make(1, ClauseType.DISJOINT, 1, 2);
+        assertEquals("1: 1!=2",clause.toString());
+        assertEquals("1: 1!=2",clause.toNumbers());
+        assertEquals("   1: p!=q",clause.toString(4,symboltable));
+        //System.out.println(clause.toString());
+    }
+
+    @Test
+    public void constructEQV() {
+        System.out.println("constructEQV");
+        prepare();
+        Clause clause = make(1, ClauseType.EQUIV, 1, 2);
+        assertEquals("1: 1=2",clause.toString());
+        assertEquals("1: 1=2",clause.toNumbers());
+        assertEquals("   1: p=q",clause.toString(4,symboltable));
+        //System.out.println(clause.toString());
+    }
+
+
     @Test
     public void addCLiteral() throws Exception {
         System.out.println("add");
-        Clause cl = new Clause(1, 3);
+        Clause cl = new Clause(1,type);
         assertEquals(0, cl.size());
         CLiteral lit = new CLiteral(5);
         cl.add(lit);
@@ -52,7 +128,7 @@ public class ClauseTest {
         ArrayList<CLiteral> lits = new ArrayList<>();
         lits.add(new CLiteral(1));
         lits.add(new CLiteral(2));
-        Clause cl = new Clause(1,lits);
+        Clause cl = new Clause(1,type,lits);
         assertEquals("1: 1,2",cl.toString());
     }
     @Test
@@ -137,7 +213,7 @@ public class ClauseTest {
         assertTrue(cl2.isSubset(lit10, cll));
         assertFalse(cl2.isSubset(lit11, cll));
         */
-         */
+
     }
 
 
@@ -145,7 +221,7 @@ public class ClauseTest {
     @Test
     public void symboltable() throws Exception {
         System.out.println("symboltable");
-        Clause cl1 = new Clause(1, 3);
+        Clause cl1 = new Clause(1,type, 3);
         CLiteral lit1 = new CLiteral(5);
         cl1.add(lit1);
         CLiteral lit2 = new CLiteral(-6);

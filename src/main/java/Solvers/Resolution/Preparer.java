@@ -4,6 +4,7 @@ import Coordinator.Tasks.Task;
 import Coordinator.Tasks.TaskQueue;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseType;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
@@ -200,7 +201,7 @@ public class Preparer {
     void replaceLiteralInAllClauses(int fromLiteral, int toLiteral, IntArrayList origins) {
         for(CLiteral cliteral : literalIndex.getAllItems(fromLiteral)) {
             Clause clause = cliteral.clause;
-            Clause newClause = new Clause(++ids[0],clause.size());
+            Clause newClause = new Clause(++ids[0], ClauseType.OR, clause.size());
             boolean tautology = false;
             for(CLiteral cLiteral : clause.cliterals) {
                 int literal = cLiteral.literal;
@@ -390,7 +391,7 @@ public class Preparer {
      * @return Unsatisfiable if the clause is empty, otherwise null
      */
     private void prepareDisjunction(int[] basicClause) throws Unsatisfiable {
-        Clause clause = new Clause(++ids[0],basicClause.length-2);
+        Clause clause = new Clause(++ids[0],ClauseType.OR,basicClause.length-2);
         IntArrayList origins = trackReasoning ? IntArrayList.wrap(new int[]{basicClause[0]}) : null;
         for(int i = 2; i < basicClause.length; ++i) {
             int originalLiteral =  basicClause[i];
@@ -427,7 +428,7 @@ public class Preparer {
             insertClause(clause);}}
 
     Result insertBinaryClause(int literal1, int literal2, IntArrayList origins) {
-        Clause clause = new Clause(++ids[0],2);
+        Clause clause = new Clause(++ids[0],ClauseType.OR, 2);
         clause.add(new CLiteral(literal1,clause,0));
         clause.add(new CLiteral(literal2,clause,1));
         clause.origins = origins;
@@ -685,7 +686,7 @@ public class Preparer {
 
         if(result.getClass() == int[].class) {
             int[] literals = (int[])result;
-            Clause resolvent = new Clause(++ids[0],literals.length);
+            Clause resolvent = new Clause(++ids[0],ClauseType.OR, literals.length);
             for(int literal : literals) {resolvent.add(new CLiteral(literal));}
             resolvent.setStructure();
             insertClause(resolvent);

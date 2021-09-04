@@ -1,6 +1,7 @@
 package Datastructures.Literals;
 
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseType;
 import Utilities.BucketSortedIndex;
 import org.junit.Test;
 
@@ -17,7 +18,7 @@ public class LitAlgorithmsTest {
 
 
     private Clause make(int id,BucketSortedIndex<CLiteral> literalIndex,int... literals) {
-        Clause cl = new Clause(id,literals.length);
+        Clause cl = new Clause(id, ClauseType.OR, literals.length);
         int i = -1;
         for(int l:literals) {
             CLiteral lit = new CLiteral(l,cl,++i);

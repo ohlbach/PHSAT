@@ -3,6 +3,7 @@ package Solvers.Resolution;
 import Coordinator.Tasks.Task;
 import Coordinator.Tasks.TaskQueue;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseType;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.Aborted;
@@ -561,7 +562,7 @@ public abstract class ResolutionReduction extends Solver {
         if(model.isFalse(literal2)) {
             addTrueLiteralTask(literal2,"Imported binary clause " + literalName(literal1) + "," +
                 literalName(literal2) + " reduced to " + literalName(literal1)); return;}
-        Clause clause = new Clause(++id[0],2);
+        Clause clause = new Clause(++id[0], ClauseType.OR, 2);
         clause.add(new CLiteral(literal1));
         clause.add(new CLiteral(literal2));
         clause.setStructure();
@@ -577,7 +578,7 @@ public abstract class ResolutionReduction extends Solver {
      */
     void processClause(int[] literals) {
         int size = literals.length;
-        Clause clause = new Clause(++id[0],literals.length);
+        Clause clause = new Clause(++id[0],ClauseType.OR, literals.length);
         for(int i = 0; i < size; ++i) {
             int literal = equivalenceClasses.getRepresentative(literals[i]);
             if(model.isTrue(literal)) {return;}
@@ -683,7 +684,7 @@ public abstract class ResolutionReduction extends Solver {
     void replaceLiteralInAllClauses(int fromLiteral, int toLiteral) {
         for(CLiteral cliteral : literalIndex.getAllItems(fromLiteral)) {
             Clause clause = cliteral.clause;
-            Clause newClause = new Clause(++id[0],clause.size());
+            Clause newClause = new Clause(++id[0],ClauseType.OR, clause.size());
             boolean tautology = false;
             for(CLiteral cLiteral : clause.cliterals) {
                 int literal = cLiteral.literal;
