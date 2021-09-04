@@ -415,7 +415,7 @@ public class DisjointnessClasses {
                 removeClause(clause);
                 clause.remove(cliteral1);
                 if(clause.size() > 1) {  // shortened clauses are reinserted
-                    if(trackReasoning) clause.origins = joinIntArraysSorted(origins,clause.origins);
+                    if(trackReasoning) clause.joinOrigins(clause.origins);
                     queue.add(new Task<>(TaskType.INSERTCLAUSE, null, clause, null));}}));
             literalIndex.removeClauses(-literal);}
 
@@ -437,7 +437,7 @@ public class DisjointnessClasses {
             literalIndex.forEach(literal,(cLiteral -> {
                 Clause clause = cLiteral.clause;
                 removeClause(clause);
-                if(trackReasoning) clause.origins = joinIntArraysSorted(origins,clause.origins);
+                if(trackReasoning) clause.joinOrigins(origins);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE, null, clause, null));}));
             literalIndex.removeClauses(literal);
             literal = -literal;}}

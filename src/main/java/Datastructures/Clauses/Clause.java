@@ -91,7 +91,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public Clause(int id, int[] basicClause) {
         this.id = id;
-        clauseType = ClauseType.getType(basicClause[0]);
+        clauseType = ClauseType.getType(basicClause[1]);
         int length = basicClause.length;
         cliterals = new ArrayList<>(length-2);
         for(int i = 2; i < length; ++i) {
@@ -332,17 +332,36 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             cliteral.literal = literal;
             if(trackReasoning) origins = joinIntArraysSorted(origins,eqClasses.getOrigins(oldLiteral));}}}
 
+    /** joins the origins to the clause's origins
+     *
+     * @param origins null or a list of basic clause ids
+     */
+    public void joinOrigins(IntArrayList origins) {
+            this.origins = joinIntArraysSorted(this.origins,origins);}
+
     /** joins the origins (Ids of the basicClauses which caused this clause)
      *
      * @param clauses a list of clauses
      * @param clause an additional clauses
-     * @return the joined orignins of all the clauses
+     * @return the joined origins of all the clauses
      */
     public static IntArrayList joinOrigins(ArrayList<Clause> clauses, Clause clause) {
         IntArrayList origins = new IntArrayList();
-        if(clause != null) origins.addAll(clause.origins);
-        for(Clause clause1 : clauses) {origins.addAll(clause1.origins);}
+        if(clause != null) joinIntArraysSorted(origins,clause.origins);
+        for(Clause clause1 : clauses) {joinIntArraysSorted(origins,clause1.origins);}
         return origins;}
+
+    /** checks if the two clauses overlap.
+     *
+     * @param clause a clause
+     * @return true if the clause overlaps with this
+     */
+    public boolean overlaps(Clause clause) {
+        for(CLiteral cLiteral1 : this) {
+            int literal1 = Math.abs(cLiteral1.literal);
+            for(CLiteral cLiteral2 : clause) {
+                if(Math.abs(cLiteral2.literal) == literal1) return true;}}
+        return false;}
 
     /** generates a string: clause-number: literals
      *
@@ -369,7 +388,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         StringBuilder st = new StringBuilder();
         if(width > 0) {
             Formatter format = new Formatter(st, Locale.GERMANY);
-            format.format("%"+width+"s: ",id);}
+            format.format("%"+width+"s: ", clauseType.prefix+id);}
         else st.append(Integer.toString(id)+": ");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {

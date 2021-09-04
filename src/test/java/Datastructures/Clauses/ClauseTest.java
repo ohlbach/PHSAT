@@ -2,9 +2,18 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
+import Datastructures.Theory.DisjointnessClasses;
+import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.Model;
+import Management.Controller;
+import Management.GlobalParameters;
+import Management.Monitor;
+import Management.ProblemSupervisor;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import static org.junit.Assert.*;
 
@@ -15,6 +24,8 @@ public class ClauseTest {
 
     private static int counter = 1;
     private static ClauseType type = ClauseType.OR;
+    StringBuffer errors = new StringBuffer();
+    StringBuffer warnings = new StringBuffer();
 
     private Clause make(int... literals) {
         Clause cl = new Clause(counter++,type,literals.length);
@@ -255,6 +266,54 @@ public class ClauseTest {
         String st = "";
         for(CLiteral lit : c1) {st += lit.toString();}
         assertEquals("5-6-5-6-6",st);
+    }
+    @Test
+    public void joinOrigins() throws Exception {
+        System.out.println("join origins");
+        IntArrayList origins1 = IntArrayList.wrap(new int[]{20,30});
+        Clause c = new Clause(1,type,1,2,origins1);
+        IntArrayList origins2 = IntArrayList.wrap(new int[]{10,30});
+        c.joinOrigins(origins2);
+        assertEquals("[10, 20, 30]",c.origins.toString());}
+
+
+    GlobalParameters globalParameters = new GlobalParameters();
+    Controller controller = new Controller(null,null,null);
+    ProblemSupervisor problemSupervisor;
+    boolean monitoring = false;
+    Model model;
+    EquivalenceClasses eqClasses;
+
+    private void prepareEq() {
+        globalParameters.monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
+        HashMap<String,Object> problemParameters = new HashMap<>();
+        problemParameters.put("name","test");
+        problemSupervisor = new ProblemSupervisor(controller,globalParameters,problemParameters,null);
+        symboltable = new Symboltable(10);
+        symboltable.setName(1,"p");
+        symboltable.setName(2,"q");
+        symboltable.setName(3,"r");
+        symboltable.setName(4,"a");
+        symboltable.setName(5,"b");
+        symboltable.setName(6,"c");
+        model = new Model(10,symboltable);
+        problemSupervisor.model = model;
+        eqClasses = new EquivalenceClasses(problemSupervisor);
+        problemSupervisor.equivalenceClasses = eqClasses;
+    }
+
+    @Test
+    public void replaceEquivalence() throws Exception {
+        System.out.println("replaceEquivalence");
+        prepareEq();
+        IntArrayList origins1 = IntArrayList.wrap(new int[]{20,30});
+        IntArrayList origins2 = IntArrayList.wrap(new int[]{10,30});
+        eqClasses.integrateEquivalenceClause(new Clause(1,ClauseType.EQUIV,4,5,origins1));
+        Clause c = new Clause(2,type,1,-5,origins2);
+        c.replaceEquivalences(eqClasses,true);
+        assertEquals("2: 1,-4",c.toNumbers());
+        assertEquals("[10, 20, 30]",c.origins.toString());
+
     }
 
     }

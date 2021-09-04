@@ -5,18 +5,20 @@ package Datastructures.Clauses;
  * Created by ohlbach on 14.09.2018.
  */
 public enum ClauseType {
-    OR('o', ","),
-    AND('a',"&"),
-    XOR('x', " x "),
-    DISJOINT('d', "!="),
-    EQUIV('e',"=");
+    OR('o', ",",""),
+    AND('a',"&","A-"),
+    XOR('x', " x ", "X-"),
+    DISJOINT('d', "!=","D-"),
+    EQUIV('e',"=","E-");
 
     public char abbreviation;
     public String separator;
+    public String prefix;
 
-    ClauseType(char abbreviation, String separator) {
+    ClauseType(char abbreviation, String separator, String prefix) {
         this.abbreviation = abbreviation;
-        this.separator = separator;}
+        this.separator = separator;
+        this.prefix = prefix;}
 
     public static ClauseType getType(int n) {
         assert n >= 0 && n < 5;
