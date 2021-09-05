@@ -57,7 +57,7 @@ public class EquivalenceClasses  {
     private final ArrayList<Clause> clauses = new ArrayList<>();
 
     /** maps literals to the literal occurrences in clauses.
-     * It exploits that equvialence classes are disjoint.
+     * It exploits that equivalence classes are disjoint.
      * Therefore a literal can occur in only a single equivalence clause.
      */
     private final HashMap<Integer,CLiteral> literalIndex = new HashMap<>();
@@ -145,11 +145,12 @@ public class EquivalenceClasses  {
      */
     public void run() {
         model.addObserver(Thread.currentThread(),
-                (Integer literal, IntArrayList origins) ->
-                {if(monitoring) {
-                    monitor.print(monitorId,"In:   Unit literal " +
-                            Symboltable.toString(literal,model.symboltable) +
-                            (origins == null ? "" : " " + origins));}
+                (Integer literal, IntArrayList origins) -> {
+                    System.out.println("SIN " + literal);
+                    if(monitoring) {
+                        monitor.print(monitorId,"In:   Unit literal " +
+                                Symboltable.toString(literal,model.symboltable) +
+                                (origins == null ? "" : " " + origins));}
                     queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));});
         while(!Thread.interrupted()) {
             try {

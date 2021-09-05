@@ -63,7 +63,7 @@ public class Model {
      * @param thread      the target thread
      * @param observer a function (literal,origins)
      */
-    public void addObserver(Thread thread, BiConsumer<Integer, IntArrayList> observer) {
+    public synchronized void addObserver(Thread thread, BiConsumer<Integer, IntArrayList> observer) {
         observers.add(new Pair<>(thread, observer));}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
@@ -88,6 +88,7 @@ public class Model {
         model.add(literal);
         origins.add(origin);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
+        System.out.println("MODD " + literal);
         for(Pair<Thread, BiConsumer<Integer, IntArrayList>> observer : observers) {
             if(thread != observer.getKey()) {observer.getValue().accept(literal,origin);}}}
 
@@ -239,14 +240,23 @@ public class Model {
      * @return the model as a comma separated string of names
      */
     public String toString() {
-        return Symboltable.toString(model,symboltable);}
+        StringBuilder st = new StringBuilder();
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            int status = status(predicate);
+            if(status != 0) st.append(Symboltable.toString(status*predicate,symboltable)).append(",");}
+        return st.toString();}
 
     /** returns the model as a comma separated string of numbers
      *
-     * @return the model as a comma separated string of names
+     * @return the model as a comma separated string of numbers
      */
     public String toNumbers() {
-        return Symboltable.toString(model,null);}
+        StringBuilder st = new StringBuilder();
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            int status = status(predicate);
+            if(status != 0) st.append(Integer.toString(status*predicate)).append(",");}
+        return st.toString();}
+
 
     /** turnes the model and the origins into a string of names or numbers
      *

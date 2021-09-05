@@ -347,6 +347,7 @@ public class EquivalenceClassesTest {
         System.out.println("Thread ");
         prepare();
         Model model=problemSupervisor.model;
+        model.symboltable = null;
         EquivalenceClasses eqClasses=new EquivalenceClasses(problemSupervisor);
         int[] clause1=new int[]{1,type,2,3,4};
         int[] clause2=new int[]{2,type,5,6,7};
@@ -363,12 +364,15 @@ public class EquivalenceClassesTest {
             model.add(2, null, null);
         }catch(Unsatisfiable uns) {}
 
-        try{Thread.sleep(100);}catch(Exception ex) {}
+        try{Thread.sleep(20);}catch(Exception ex) {}
         thread1.interrupt();
         try{thread1.join();} catch(Exception ex) {}
-        System.out.println(problemSupervisor.result);
+
+        System.out.println("Result: " + problemSupervisor.result);
         System.out.println("CLASS " + eqClasses.toString());
         System.out.println("MODEL " + model.toNumbers());
+        System.out.println("MODEL " + model.toString());
+        assertEquals("2,3,4,-5,-6,-7,",model.toNumbers());
 
     }
     }
