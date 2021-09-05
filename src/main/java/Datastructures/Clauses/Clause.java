@@ -1,6 +1,7 @@
 package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import Utilities.Positioned;
@@ -332,6 +333,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             cliteral.literal = literal;
             if(trackReasoning) origins = joinIntArraysSorted(origins,eqClasses.getOrigins(oldLiteral));}}}
 
+
+
     /** joins the origins to the clause's origins
      *
      * @param origins null or a list of basic clause ids
@@ -354,14 +357,15 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** checks if the two clauses overlap.
      *
      * @param clause a clause
-     * @return true if the clause overlaps with this
+     * @return +1 if they overlap with a literal, -1 if they overlap complementary, otherwise 0
      */
-    public boolean overlaps(Clause clause) {
+    public int overlaps(Clause clause) {
         for(CLiteral cLiteral1 : this) {
-            int literal1 = Math.abs(cLiteral1.literal);
+            int literal1 =cLiteral1.literal;
             for(CLiteral cLiteral2 : clause) {
-                if(Math.abs(cLiteral2.literal) == literal1) return true;}}
-        return false;}
+                if(cLiteral2.literal ==  literal1) return +1;
+                if(cLiteral2.literal == -literal1) return -1;}}
+        return 0;}
 
     /** generates a string: clause-number: literals
      *

@@ -1,6 +1,7 @@
 package Datastructures.TwoLiteral;
 
 import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
@@ -259,16 +260,12 @@ public class TwoLitClauses {
 
     /** puts an equivalence into the queue
      *
-     * @param representative a literal
-     * @param literal        a literal
-     * @param origins        the basic clause ids for the equivalence.
+     * @param clause  tan equivalence clause
      */
-    public void addEquivalence(int representative, int literal, IntArrayList origins) {
+    public void addEquivalence(Clause clause) {
         if(monitoring) {
-            monitor.print(monitorId,"In:   equivalence " +
-                Symboltable.toString(representative,model.symboltable) + " = " +
-                Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<TaskType>(TaskType.EQUIVALENCE,origins,representative,literal));}
+            monitor.print(monitorId,"In:   Equivalence " + clause.toString(0,model.symboltable));}
+        queue.add(new Task<TaskType>(TaskType.EQUIVALENCE,null,clause,null));}
 
     /** replaces in all clauses the 'literal' with 'representative
      *

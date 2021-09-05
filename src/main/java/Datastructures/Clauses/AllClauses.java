@@ -185,15 +185,12 @@ public class AllClauses {
 
     /** puts an equivalence into the queue
      *
-     * @param representative a literal
-     * @param literal        a literal
+     * @param clause an equivalence clause
      */
-    public void addEquivalence(int representative, int literal, IntArrayList origins) {
+    public void addEquivalence(Clause clause) {
         if(monitoring) {
-            monitor.print(monitorId,"In:   equivalence " +
-                    Symboltable.toString(representative,model.symboltable) + " = " +
-                    Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<>(AllClauses.TaskType.EQUIVALENCE,null, literal,null));}
+            monitor.print(monitorId,"In:   equivalence " + clause.toString(0,model.symboltable));}
+        queue.add(new Task<>(AllClauses.TaskType.EQUIVALENCE,null, clause,null));}
 
     /** puts a disjointness into the queue
      *

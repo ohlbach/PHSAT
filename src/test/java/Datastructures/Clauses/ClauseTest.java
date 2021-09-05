@@ -2,7 +2,6 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
-import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Management.Controller;
@@ -308,7 +307,7 @@ public class ClauseTest {
         prepareEq();
         IntArrayList origins1 = IntArrayList.wrap(new int[]{20,30});
         IntArrayList origins2 = IntArrayList.wrap(new int[]{10,30});
-        eqClasses.integrateEquivalenceClause(new Clause(1,ClauseType.EQUIV,4,5,origins1));
+        eqClasses.integrateEquivalence(new Clause(1,ClauseType.EQUIV,4,5,origins1),false);
         Clause c = new Clause(2,type,1,-5,origins2);
         c.replaceEquivalences(eqClasses,true);
         assertEquals("2: 1,-4",c.toNumbers());

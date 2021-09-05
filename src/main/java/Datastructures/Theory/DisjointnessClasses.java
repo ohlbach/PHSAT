@@ -188,19 +188,14 @@ public class DisjointnessClasses {
 
       /** adds a new equivalence class representative == literal to the queue
      *
-     * @param representative the representative of the class
-     * @param literal        the literal which equals the representative
-     * @param origins        the ids of the basic clauses causing the equivalence
+     * @param clause  tan equivalence clause
      */
 
-    public synchronized void addEquivalence(int representative, int literal, IntArrayList origins) {
+    public synchronized void addEquivalence(Clause clause) {
         ++statistics.equivalences;
         if(monitoring) {
-            monitor.print(monitorId,"In:   Equivalence " +
-                    Symboltable.toString(representative, model.symboltable) + " = " +
-                    Symboltable.toString(literal, model.symboltable)  +
-                    (origins == null ? "" : " " + origins));}
-        queue.add(new Task<>(TaskType.EQUIVALENCE, origins, representative, literal));}
+            monitor.print(monitorId,"In:   Equivalence " + clause.toString(0,model.symboltable));}
+        queue.add(new Task<>(TaskType.EQUIVALENCE, null, clause,null));}
 
 
 
