@@ -354,6 +354,7 @@ public class EquivalenceClassesTest {
         try{eqClasses.addBasicEquivalenceClause(clause1);
             eqClasses.addBasicEquivalenceClause(clause2);}
             catch(Unsatisfiable uns) {}
+        eqClasses.configure();
 
         Thread thread1=new Thread(()->eqClasses.run());
         thread1.start();

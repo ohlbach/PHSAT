@@ -129,7 +129,18 @@ public class EquivalenceClasses  {
     public void addObserver(Consumer<Clause> observer) {
         observers.add(observer);}
 
-
+    /** adds the observer to the model.
+     * Must be called before the thread is started.
+     */
+    public void configure() {
+        model.addObserver(Thread.currentThread(),
+                (Integer literal, IntArrayList origins) -> {
+                    synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}
+                    if(monitoring) {
+                        monitor.print(monitorId,"In:   Unit literal " +
+                                Symboltable.toString(literal,model.symboltable) +
+                                (origins == null ? "" : " " + origins));};});
+    }
 
 
     /** Starts the instance in a thread.
@@ -144,18 +155,11 @@ public class EquivalenceClasses  {
      * The result is stored into the variable result.
      */
     public void run() {
-        model.addObserver(Thread.currentThread(),
-                (Integer literal, IntArrayList origins) -> {
-                    System.out.println("SIN " + literal);
-                    if(monitoring) {
-                        monitor.print(monitorId,"In:   Unit literal " +
-                                Symboltable.toString(literal,model.symboltable) +
-                                (origins == null ? "" : " " + origins));}
-                    queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));});
+        Task<TaskType> task;
         while(!Thread.interrupted()) {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
-                Task<TaskType> task = queue.take(); // waits if the queue is empty
+                synchronized (this) {task = queue.take();} // waits if the queue is empty
                 switch(task.taskType){
                     case TRUELITERAL: integrateTrueLiteral((Integer)task.a,task.origins); break;
                     case EQUIVALENCE: integrateEquivalence((Clause)task.a,true); break;}
@@ -247,17 +251,18 @@ public class EquivalenceClasses  {
         for(int i = 0; i < cliterals.size(); ++i) {
             CLiteral cliteral = cliterals.get(i);
             int literal = cliteral.literal;
-            int sign = model.status(literal);
-            if(sign != 0) {
-                if(monitoring) {
-                    monitor.print(monitorId, "All literals in clause " +
-                            clause.toString(0, model.symboltable) + " get the same truth value as " +
-                        Symboltable.toString(literal, model.symboltable) );}
-                for(CLiteral clit : cliterals) {
-                    if(clit != cliteral) {
-                        addToModel(sign*clit.literal,
-                                trackReasoning ? joinIntArraysSorted(clause.origins,model.getOrigin(literal)) : null);}}
-                    return null;} // clause no longer needed
+            synchronized (model) {
+                int sign = model.status(literal);
+                if(sign != 0) {
+                    if(monitoring) {
+                        monitor.print(monitorId, "All literals in clause " +
+                                clause.toString(0, model.symboltable) + " get the same truth value as " +
+                            Symboltable.toString(literal, model.symboltable) );}
+                    for(CLiteral clit : cliterals) {
+                        if(clit != cliteral) {
+                            addToModel(sign*clit.literal,
+                                    trackReasoning ? joinIntArraysSorted(clause.origins,model.getOrigin(literal)) : null);}}
+                        return null;}}// clause no longer needed
 
             switch(clause.contains(literal,cliteral)) {
                 case +1: clause.remove(cliteral); --i; continue;

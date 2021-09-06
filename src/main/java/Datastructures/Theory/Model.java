@@ -85,10 +85,9 @@ public class Model {
                             " is already false in the model " + Symboltable.toString(model,symboltable),
                     joinIntArrays(origin,getOrigin(literal)));}
 
-        model.add(literal);
         origins.add(origin);
+        model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
-        System.out.println("MODD " + literal);
         for(Pair<Thread, BiConsumer<Integer, IntArrayList>> observer : observers) {
             if(thread != observer.getKey()) {observer.getValue().accept(literal,origin);}}}
 
