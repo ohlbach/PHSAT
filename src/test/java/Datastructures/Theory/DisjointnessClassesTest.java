@@ -1,5 +1,6 @@
 package Datastructures.Theory;
 
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -60,21 +61,21 @@ public class DisjointnessClassesTest {
         IntArrayList origins = new IntArrayList();
         origins.add(20); origins.add(30);
         dClasses.addDerivedDisjoints(literals,origins);
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-1: p != r != q",dClasses.toString(symboltable));
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: p!=r!=q",dClasses.toString(symboltable));
         //System.out.println(dClasses.infoString(symboltable));
     }
-/*
+
     @Test
     public void integrateDisjointnessClause1() {
         System.out.println("integrateDisjointnessClause1");
         prepare();
         int[] clause = new int[]{1,type,1,2,3};
         try{
-        dClasses.integrateDisjointnessClause(clause,null);}
+        dClasses.integrateDisjointnessClause(new Clause(1,clause));}
         catch(Unsatisfiable uns) {}
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-1: p != q != r",dClasses.toString("",symboltable));
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: p!=q!=r",dClasses.toString(symboltable));
         //System.out.println(dClasses.infoString(symboltable));
         assertTrue(dClasses.areDisjoint(1,3));
         assertFalse(dClasses.areDisjoint(1,-3));
@@ -83,20 +84,21 @@ public class DisjointnessClassesTest {
 
         clause = new int[]{2,type,4,2,-4};
         try{
-            dClasses.integrateDisjointnessClause(clause,null);}
+            dClasses.integrateDisjointnessClause(new Clause(2,clause));}
         catch(Unsatisfiable uns) {}
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-1: p != q != r\n" +
-                "D-2: a != q",dClasses.toString("",symboltable));
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: p!=q!=r",dClasses.toString(symboltable));
+        assertEquals("-2,",model.toNumbers());
         System.out.println(dClasses.infoString(null));
         clause = new int[]{2,type,5,3,5};
         try{
-            dClasses.integrateDisjointnessClause(clause,null);}
-        catch(Unsatisfiable uns) {
-            System.out.println(uns.toString());
-        }
+            dClasses.integrateDisjointnessClause(new Clause(3,clause));}
+        catch(Unsatisfiable uns) {}
+        assertEquals("-2,-5,",model.toNumbers());
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: p!=q!=r",dClasses.toString(symboltable));
     }
-
+/*
     @Test
     public void integrateDisjointnessClause2() {
         System.out.println("integrateDisjointnessClause with model");
@@ -129,8 +131,8 @@ public class DisjointnessClassesTest {
         clause = new int[]{2,type,4,2,5};
         DisjointnessClasses dClasses = new DisjointnessClasses(problemSupervisor);
         dClasses.addDisjointnessClause(clause);
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-1: a != p != b",dClasses.toString("",symboltable));
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: a!=p!=b",dClasses.toString("",symboltable));
         //System.out.println(dClasses.infoString(symboltable));
         }
 
@@ -144,8 +146,8 @@ public class DisjointnessClassesTest {
             dClasses.integrateDisjointnessClause(clause1, null);
             dClasses.integrateDisjointnessClause(clause2, null);
         } catch (Unsatisfiable uns) {}
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-1: 1 != 2 != 3 != 4",dClasses.toString());
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: 1!=2!=3!=4",dClasses.toString());
         //System.out.println(dClasses.infoString(symboltable));
 
         int[] clause = new int[]{3,typeEQ,1,5};
@@ -155,8 +157,8 @@ public class DisjointnessClassesTest {
         try {
             dClasses.integrateDisjointnessClause(clause2, null);
         } catch (Unsatisfiable uns) {}
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-1: 1 != 2 != 3 != 4",dClasses.toString());
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: 1!=2!=3!=4",dClasses.toString());
     }
     @Test
     public void backwardSubsumption() {
@@ -168,8 +170,8 @@ public class DisjointnessClassesTest {
             dClasses.integrateDisjointnessClause(clause2, null);
             dClasses.integrateDisjointnessClause(clause1, null);
         } catch (Unsatisfiable uns) {}
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-2: 1 != 2 != 3 != 4",dClasses.toString());
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-2: 1!=2!=3!=4",dClasses.toString());
         //System.out.println(dClasses.infoString(symboltable));
 
         int[] clause = new int[]{3,typeEQ,1,5};
@@ -179,8 +181,8 @@ public class DisjointnessClassesTest {
         try {
             dClasses.integrateDisjointnessClause(clause2, null);
         } catch (Unsatisfiable uns) {}
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-3: 3 != 2 != 1 != 4 != 6",dClasses.toString());
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-3: 3!=2!=1!=4!=6",dClasses.toString());
         //System.out.println(dClasses.infoString(null));
     }
 
@@ -202,9 +204,9 @@ public class DisjointnessClassesTest {
         } catch (Unsatisfiable uns) {
         }
         assertEquals("[-3, [1, 2], -2, [1, 2]]",observed.toString());
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-1: 1 != 2 != 3 != 4\n" +
-                "D-2: -1 != 5",dClasses.toString("",null));
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: 1!=2!=3!=4\n" +
+                "D-2: -1!=5",dClasses.toString("",null));
        // System.out.println(dClasses.infoString(symboltable));
     }
     @Test
@@ -220,8 +222,8 @@ public class DisjointnessClassesTest {
             dClasses.integrateDisjointnessClause(clause3, null);
         } catch (Unsatisfiable uns) {
         }
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-3: 2 != 3 != 4 != 1",dClasses.toString());
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-3: 2!=3!=4!=1",dClasses.toString());
      //   System.out.println(dClasses.infoString(null));
 
 
@@ -248,8 +250,8 @@ public class DisjointnessClassesTest {
                 dClasses.integrateTrueLiteral(3,originals);
             } catch (Unsatisfiable uns) {}
             assertEquals("[-1, [1, 20], -2, [1, 20], -4, [2, 20]]",observed.toString());
-            assertEquals("Disjointness Classes of Problem test:\n" +
-                    "D-3: 6 != 5 != 7",dClasses.toString());
+            assertEquals("Disjointness Clauses of Problem test:\n" +
+                    "D-3: 6!=5!=7",dClasses.toString());
     }
 
     @Test
@@ -280,10 +282,10 @@ public class DisjointnessClassesTest {
             dClasses.integrateDisjointnessClause(clause2, null);
             dClasses.integrateEquivalence(3,6,originals);
         } catch (Unsatisfiable uns) {}
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-1: 1 != 2 != 3\n" +
-                "D-2: 4 != 5 != 3",dClasses.toString());
-        assertEquals("[D-2: 4 != 5 != 3]", observed.toString());
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: 1!=2!=3\n" +
+                "D-2: 4!=5!=3",dClasses.toString());
+        assertEquals("[D-2: 4!=5!=3]", observed.toString());
         //System.out.println(dClasses.infoString(null));
         }
 
@@ -317,8 +319,8 @@ public class DisjointnessClassesTest {
         try{Thread.sleep(100);}catch(Exception ex) {}
         thread1.interrupt();
         try{thread1.join();} catch(Exception ex) {}
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-1: 2 != 3 != 1",dClasses.toString());
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: 2!=3!=1",dClasses.toString());
         assertEquals("[-5, [10, 40]]",observed.toString());
         //System.out.println(dClasses.infoString(null));
         //System.out.println(model.infoString(false));

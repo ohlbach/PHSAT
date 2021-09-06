@@ -324,14 +324,18 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      *
      * @param eqClasses         the equivalence classes
      * @param trackReasoning    controls management of origins
+     * @return true if some literals have been changed.
      */
-    public void replaceEquivalences(EquivalenceClasses eqClasses, boolean trackReasoning) {
-     for(CLiteral cliteral : cliterals) {
-        int oldLiteral = cliteral.literal;
-        int literal = eqClasses.getRepresentative(oldLiteral);
-        if(literal != oldLiteral) {
-            cliteral.literal = literal;
-            if(trackReasoning) origins = joinIntArraysSorted(origins,eqClasses.getOrigins(oldLiteral));}}}
+    public boolean replaceEquivalences(EquivalenceClasses eqClasses, boolean trackReasoning) {
+        boolean changed = false;
+        for(CLiteral cliteral : cliterals) {
+            int oldLiteral = cliteral.literal;
+            int literal = eqClasses.getRepresentative(oldLiteral);
+            if(literal != oldLiteral) {
+                changed = true;
+                cliteral.literal = literal;
+                if(trackReasoning) origins = joinIntArraysSorted(origins,eqClasses.getOrigins(oldLiteral));}}
+        return changed;}
 
 
 

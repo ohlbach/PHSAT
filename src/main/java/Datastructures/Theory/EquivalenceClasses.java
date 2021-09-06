@@ -133,14 +133,8 @@ public class EquivalenceClasses  {
      * Must be called before the thread is started.
      */
     public void configure() {
-        model.addObserver(Thread.currentThread(),
-                (Integer literal, IntArrayList origins) -> {
-                    synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}
-                    if(monitoring) {
-                        monitor.print(monitorId,"In:   Unit literal " +
-                                Symboltable.toString(literal,model.symboltable) +
-                                (origins == null ? "" : " " + origins));};});
-    }
+        model.addObserver(Thread.currentThread(),this::addTrueLiteral);};
+
 
 
     /** Starts the instance in a thread.
@@ -189,6 +183,18 @@ public class EquivalenceClasses  {
         integrateEquivalence(new Clause(++counter,clause),false);
     }
 
+    /** adds a true literal to the queue
+     *
+     * @param literal a true literal
+     * @param origins the basic clause ids for the true literal
+     */
+    public void addTrueLiteral(int literal,IntArrayList origins) {
+        ++statistics.trueLiterals;
+        monitor.print(monitorId,"In:   True literal " +
+                Symboltable.toString(literal,model.symboltable) +
+                (origins == null ? "" : " " + origins));
+        synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}}
+
     /** This method is to be called by the TwoLiteral module to announce a newly derived equivalence
      * literal1 = literal2.
      * The equivalences is put into the queue.
@@ -206,7 +212,7 @@ public class EquivalenceClasses  {
                     (origins == null ? "" : " " + origins));}
         Task<TaskType> task = new Task<>(TaskType.EQUIVALENCE,
                 null, new Clause(++counter,ClauseType.EQUIV,literal1,literal2,origins),null);
-        queue.add(task);}
+        synchronized (this) {queue.add(task);}}
 
 
     /** integrates a clause into the equivalence classes.
@@ -407,7 +413,7 @@ public class EquivalenceClasses  {
      *
      * @param clause  the clause to be inserted.
      */
-    private void insertClause(Clause clause) {
+    private synchronized void insertClause(Clause clause) {
         ++statistics.clauses;
         clauses.add(clause);
         for(CLiteral cliteral : clause) {literalIndex.put(cliteral.literal, cliteral);}}
@@ -416,7 +422,7 @@ public class EquivalenceClasses  {
      *
      * @param clause a clause to be removed.
      */
-    private void removeClause(Clause clause) {
+    private synchronized void removeClause(Clause clause) {
         --statistics.clauses;
         clauses.remove(clause);
         for(CLiteral cliteral : clause) {literalIndex.remove(cliteral.literal);}}
@@ -426,7 +432,7 @@ public class EquivalenceClasses  {
      * @param clause a clause
      * @param literal a literal
      */
-    private void addLiteral(Clause clause, int literal) {
+    private synchronized void addLiteral(Clause clause, int literal) {
         if(clause.contains(literal) == 0) {
             CLiteral cliteral = new CLiteral(literal,clause,clause.cliterals.size());
             clause.add(cliteral);
