@@ -153,7 +153,7 @@ public class EquivalenceClasses  {
         while(!Thread.interrupted()) {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
-                synchronized (this) {task = queue.take();} // waits if the queue is empty
+                task = queue.take(); // waits if the queue is empty
                 switch(task.taskType){
                     case TRUELITERAL: integrateTrueLiteral((Integer)task.a,task.origins); break;
                     case EQUIVALENCE: integrateEquivalence((Clause)task.a,true); break;}

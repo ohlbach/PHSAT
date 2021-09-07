@@ -3,6 +3,8 @@ package Datastructures.TwoLiteral;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import static Utilities.Utilities.joinIntArraysSorted;
+
 /** A two-literal clause is usd for various special purposes.
     Therefore this special class.
 **/
@@ -24,6 +26,10 @@ public class TwoLitClause {
         this.literal1 = literal1;
         this.literal2 = literal2;
         this.origins = origins;}
+
+    /** joins the origins */
+    public void joinOrigins(IntArrayList origins) {
+        this.origins = joinIntArraysSorted(this.origins,origins); }
 
 
     /** turns this clause into a string */

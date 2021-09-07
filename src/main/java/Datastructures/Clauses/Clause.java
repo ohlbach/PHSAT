@@ -397,7 +397,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         if(width > 0) {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%"+width+"s: ", clauseType.prefix+id);}
-        else st.append(Integer.toString(id)+": ");
+        else st.append(clauseType.prefix+Integer.toString(id)+": ");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(cliterals.get(position).literal,symboltable));

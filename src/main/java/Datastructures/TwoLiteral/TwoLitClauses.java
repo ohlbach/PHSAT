@@ -10,7 +10,6 @@ import Datastructures.Task;
 import Datastructures.Theory.*;
 import Management.Monitor;
 import Management.ProblemSupervisor;
-import Utilities.TriConsumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -39,7 +38,7 @@ public class TwoLitClauses {
     ArrayList<TwoLitClause> clauses = new ArrayList<>();
 
     /** maps a literal to the clauses containing this literal. */
-    HashMap<Integer,ArrayList<TwoLitClause>> clauseMap = new HashMap<>();
+    HashMap<Integer,ArrayList<TwoLitClause>> literalIndex = new HashMap<>();
 
     String problemId;
 
@@ -58,8 +57,6 @@ public class TwoLitClauses {
     /** The current thread */
     public Thread thread;
 
-    private final Thread supervisorThread;
-
     /** for monitoring actions */
     public final Monitor monitor;
 
@@ -68,21 +65,21 @@ public class TwoLitClauses {
     /** if monitoring is active */
     public final boolean monitoring;
 
+    private final boolean trackReasoning;
+
     /** Unsatisfiable if a contradiction is found */
     public Result result = null;
 
     private final ArrayList<Consumer<TwoLitClause>> observers = new ArrayList<>();
 
-    private enum TaskType {
-        TRUELITERAL, BASICCLAUSE , EQUIVALENCE}
+    private enum TaskType {TRUELITERAL, TWOLITCLAUSE, EQUIVALENCE}
 
-    /** A queue of newly derived unit literals, newly derived binary disjointnesses and basic disjointness clauses
+    /** A queue of tasks
      * The unit literals are automatically put at the beginning of the queue.
      */
     private final PriorityBlockingQueue<Task<TwoLitClauses.TaskType>> queue =
             new PriorityBlockingQueue<>(10, Comparator.comparingInt(this::getPriority));
 
-    private int counter1 = 0;
 
     /** gets the priority for the objects in the queue.
      *
@@ -93,13 +90,14 @@ public class TwoLitClauses {
         switch(task.taskType) {
             case TRUELITERAL:   return Integer.MIN_VALUE;
             case EQUIVALENCE:   return Integer.MIN_VALUE + 1;
-            case BASICCLAUSE:
+            case TWOLITCLAUSE:
                 int id = ((int[])task.a)[0];
                 if(id >= 0) return Integer.MIN_VALUE + 2 + id;
                 return task.priority;}
         return 3;}
 
     public TwoLitClauses(ProblemSupervisor problemSupervisor) {
+        problemSupervisor.twoLitClauses = this;
         this.problemSupervisor = problemSupervisor;
         problemId = problemSupervisor.problemId;
         model = problemSupervisor.model;
@@ -107,10 +105,10 @@ public class TwoLitClauses {
         disjointnessClasses = problemSupervisor.disjointnessClasses;
         monitor = problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
-        monitorId = problemId+"-TwoLit";
+        monitorId = problemId+"-2Lit";
         statistics = new TwoLitStatistics(problemId);
         thread = Thread.currentThread();
-        supervisorThread = problemSupervisor.supervisorThread;
+        trackReasoning = problemSupervisor.globalParameters.trackReasoning;
     }
 
     /** adds an observer which is called when a two-literal clause is inserted
@@ -151,8 +149,8 @@ public class TwoLitClauses {
                 IntArrayList origins = task.origins;
                 switch (task.taskType) {
                     case TRUELITERAL: integrateTrueLiteral((Integer)task.a,origins); break;
-                    case BASICCLAUSE: integrateBasicClause((int[])task.a,null); break;
-                    case EQUIVALENCE: integrateEquivalence((Integer)task.a, (Integer)task.b,origins); break;}
+                    case TWOLITCLAUSE: integrateClause((TwoLitClause) task.a,(boolean)task.b); break;
+                    case EQUIVALENCE: integrateEquivalence((Clause)task.a); break;}
                 if(monitoring && !clauses.isEmpty()) {monitor.print(monitorId,toString("",model.symboltable));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
@@ -169,9 +167,8 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   basic clause " +
                     BasicClauseList.clauseToString(0,clause, model.symboltable));}
-        queue.add(new Task<TaskType>(TaskType.BASICCLAUSE,null, clause,null)); }
+        synchronized (this) {queue.add(new Task<>(TaskType.TWOLITCLAUSE, null, clause, false));}}
 
-    private int priority = 0;
 
     /** puts a derived two-literal clause into the queue
      *
@@ -184,29 +181,22 @@ public class TwoLitClauses {
             monitor.print(monitorId,"In:   derived clause " +
                     Symboltable.toString(literal1,model.symboltable) + "," +
                     Symboltable.toString(literal2,model.symboltable));}
-        int[] clause = new int[]{-1,ClauseType.OR.ordinal(),literal1,literal2};
-        Task<TaskType> task = new Task<TaskType>(TaskType.BASICCLAUSE,origins,clause,null);
-        task.priority = ++priority;
-        queue.add(task);}
+        TwoLitClause clause = new TwoLitClause(++counter,literal1,literal2,origins);
+        synchronized (this) {queue.add(new Task<>(TaskType.TWOLITCLAUSE, null, clause, true));}}
 
     /** adds a two-literal disjunction to the data structures and performs all simplifications and inferences.
      * If a contradiction is encountered the inconsistencyReporter is called and the method stops.
      *
-     * @param basicClause a basic clause
+     * @param clause a TwoLit clause
      * @throws Unsatisfiable if a contradiction is encountered
      */
-    protected void integrateBasicClause(int[] basicClause, IntArrayList origins) throws Unsatisfiable {
+    protected void integrateClause(TwoLitClause clause, boolean derived) throws Unsatisfiable {
         if(monitoring) {
-            monitor.print(monitorId,"Exec: clause " +
-                    BasicClauseList.clauseToString(0,basicClause, model.symboltable));}
-        if(origins == null && basicClause[0] >= 0) {
-            origins = new IntArrayList(); origins.add(basicClause[0]);}
-        TwoLitClause clause = new TwoLitClause(++counter,basicClause[2],basicClause[3],origins);
+            monitor.print(monitorId,"Exec: clause " + clause.toString("",model.symboltable));}
 
         if(normalizeClause(clause) && !isSubsumed(clause)) {
             insertClause(clause);
-            if(basicClause[0] < 0) // derived clause
-                for(Consumer<TwoLitClause> observer : observers) observer.accept(clause);}}
+            if(derived) for(Consumer<TwoLitClause> observer : observers) observer.accept(clause);}}
 
     /** puts a true literal into the queue.
      *
@@ -217,7 +207,7 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                 Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<TaskType>(TaskType.TRUELITERAL,origins,literal,null));}
+        queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}
 
 
     /** generates all unit resolvents and removes the clauses with the literal from the data structures
@@ -230,13 +220,13 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"Exec: true literal " +
                     Symboltable.toString(literal,model.symboltable));}
-        ArrayList<TwoLitClause> clauseList = clauseMap.get(literal); // remove all true literals
+        ArrayList<TwoLitClause> clauseList = literalIndex.get(literal); // remove all true literals
         if(clauseList != null) {
             for(TwoLitClause clause : clauseList) {clauses.remove(clause);}
-            clauseMap.remove(literal);}
+            literalIndex.remove(literal);}
 
         literal = -literal;
-        clauseList = clauseMap.get(literal);
+        clauseList = literalIndex.get(literal);
         if(clauseList != null) {   // false literals yield new true literals
             for(TwoLitClause clause : clauseList) {
                 if(clause.literal1 == literal) {
@@ -256,7 +246,7 @@ public class TwoLitClauses {
                                 Symboltable.toString(clause.literal1, model.symboltable));}
                     model.add(clause.literal1,joinIntArraysSorted(clause.origins,origins),null);
                     clauses.remove(clause);}}
-            clauseMap.remove(literal);}}
+            literalIndex.remove(literal);}}
 
     /** puts an equivalence into the queue
      *
@@ -265,61 +255,24 @@ public class TwoLitClauses {
     public void addEquivalence(Clause clause) {
         if(monitoring) {
             monitor.print(monitorId,"In:   Equivalence " + clause.toString(0,model.symboltable));}
-        queue.add(new Task<TaskType>(TaskType.EQUIVALENCE,null,clause,null));}
+        queue.add(new Task<>(TaskType.EQUIVALENCE, null, clause, null));}
 
     /** replaces in all clauses the 'literal' with 'representative
      *
-     * @param representative a literal
-     * @param literal        a literal
-     * @param origins        the basic clause ids for the equivalence
+     * @param eqClause an equivalence clause
      * @throws Unsatisfiable if a contradiction is found.
      */
-    protected void integrateEquivalence(int representative, int literal, IntArrayList origins) throws Unsatisfiable {
+    protected void integrateEquivalence(Clause eqClause) throws Unsatisfiable {
         if(monitoring) {
-            monitor.print(monitorId,"Exec:   equivalence " +
-                    Symboltable.toString(representative,model.symboltable) + " = " +
-                    Symboltable.toString(literal,model.symboltable));}
-        for(int j = 1; j <= 2; ++j) {
-            ArrayList<TwoLitClause> clausesLit = clauseMap.get(literal);
-            if(clausesLit != null) {
-                for(int i = 0; i < clausesLit.size(); ++i) {
-                    TwoLitClause clause = clausesLit.get(i);
-                    switch(replaceLiteral(clause,representative,literal,origins)) {
-                        case 1: // tautology
-                            clausesLit.remove(i--);
-                            clauses.remove(clause);
-                            continue;
-                        case 2:  // double literal
-                            if(monitoring) {
-                                monitor.print(monitorId,"Double literal " +
-                                        Symboltable.toString(clause.literal1,model.symboltable));}
-                            model.add(clause.literal1,joinIntArraysSorted(clause.origins,origins),null);
-                            clausesLit.remove(i--);
-                            clauses.remove(clause);}}
-                clauseMap.remove(literal);}
-            literal = -literal;
-            representative = -representative;}
-    }
+            monitor.print(monitorId,"Exec:   equivalence " + eqClause.toString(2,model.symboltable));}
+        for(int position = 1; position < eqClause.size(); ++position) {
+            int literal = eqClause.getLiteral(position);
+            for(int j = 1; j <= 2; ++j) {
+                for(TwoLitClause clause : literalIndex.get(literal)) {
+                    removeClause(clause);
+                    synchronized (this) {queue.add(new Task<>(TaskType.TWOLITCLAUSE,null,clause,true));}
+                literal = -literal;}}}}
 
-    /** replaces the literal by the equivalent representative in the clause,
-     *  and the corresponding data structures
-     *
-     * @param clause          a clause containing literal
-     * @param representative  a literal
-     * @param literal         a literal
-     * @param origins         the clause ids of the equivalence
-     * @return 1: tautology, 2: double literal, 3: none of these
-     */
-    private int replaceLiteral(TwoLitClause clause, int representative, int literal, IntArrayList origins) {
-        if(clause.literal1 == literal) {clause.literal1 = representative;}
-        else {clause.literal2 = representative;}
-        if(clause.literal1 == -clause.literal2) return 1;
-        if(clause.literal1 ==  clause.literal2) return 2;
-
-        clause.origins = joinIntArraysSorted(clause.origins,origins);
-        ArrayList<TwoLitClause> clausesLit = clauseMap.computeIfAbsent(representative, k -> new ArrayList<>());
-        clausesLit.add(clause);
-        return 3;}
 
     /** The literals in the clause are replaced by equivalent ones (if necessary).
      * The clause bay become a tautology, which is ignored.
@@ -339,33 +292,24 @@ public class TwoLitClauses {
 
         if(literal1 == -literal2) {return false;} // tautology
 
-        if(literal1 == literal2) {                // merge
-            if(monitoring) {
-                monitor.print(monitorId,"Clause " + clause.toString("",model.symboltable) + " merges to unit clause " +
-                        Symboltable.toString(literal1, model.symboltable));}
-            model.add(literal1,clause.origins,null); // send back to me
+        if(literal1 == literal2) {
+            addToModel(literal1,clause.origins); // send back to me
             return false;}
 
-        switch(model.status(literal1)) {
-            case +1: return false;
-            case -1:
-                if(monitoring) {
-                    monitor.print(monitorId,"Clause " + clause.toString("",model.symboltable) + ": false literal " +
-                            Symboltable.toString(literal1, model.symboltable) + " yields  unit clause " +
-                            Symboltable.toString(literal2, model.symboltable));}
-                model.add(literal2,
-                        joinIntArraysSorted(clause.origins, model.getOrigin(-literal1)),null); // send back to me
-                return false;}
-
-        switch(model.status(literal2)) {
-            case +1: return false;
-            case -1: if(monitoring) {
+        for(int i = 1; i <= 2; ++i) {
+            switch(model.status(literal1)) {
+                case +1: return false;
+                case -1:
+                    if(monitoring) {
                         monitor.print(monitorId,"Clause " + clause.toString("",model.symboltable) + ": false literal " +
-                            Symboltable.toString(literal2, model.symboltable) + " yields  unit clause " +
-                            Symboltable.toString(literal1, model.symboltable));}
-                model.add(literal1,
-                        joinIntArraysSorted(clause.origins, model.getOrigin(-literal2)),null); // send back to me
-                return false;}
+                                Symboltable.toString(literal1, model.symboltable) + " yields  unit clause " +
+                                Symboltable.toString(literal2, model.symboltable));}
+                    model.add(literal2,
+                            joinIntArraysSorted(clause.origins, model.getOrigin(-literal1)),null); // send back to me
+                    return false;}
+            literal1 = clause.literal2;
+            literal2 = clause.literal1;}
+
         return true;}
 
     /** The method looks for equivalences and disjointnesses
@@ -392,8 +336,8 @@ public class TwoLitClauses {
     private void insertClause(TwoLitClause clause) throws Unsatisfiable{
         if(!findStructures(clause)) return;
         clauses.add(clause);
-        clauseMap.computeIfAbsent(clause.literal1, k -> new ArrayList<>()).add(clause);
-        clauseMap.computeIfAbsent(clause.literal2, k -> new ArrayList<>()).add(clause);
+        literalIndex.computeIfAbsent(clause.literal1, k -> new ArrayList<>()).add(clause);
+        literalIndex.computeIfAbsent(clause.literal2, k -> new ArrayList<>()).add(clause);
 
         statistics.twoLitlauses++;
         addResolvents(clause);}
@@ -403,8 +347,8 @@ public class TwoLitClauses {
      * @param clause a clause to be removed.
      */
     private void removeClause(TwoLitClause clause) {
-        clauseMap.get(clause.literal1).remove(clause);
-        clauseMap.get(clause.literal2).remove(clause);
+        literalIndex.get(clause.literal1).remove(clause);
+        literalIndex.get(clause.literal2).remove(clause);
         clauses.remove(clause);}
 
     /** checks if the clause is subsumed by another clause in the list.
@@ -422,7 +366,7 @@ public class TwoLitClauses {
      * @return null or the clause with the literals.
      */
     private TwoLitClause findClause(int literal1, int literal2) {
-        ArrayList<TwoLitClause> clauses = clauseMap.get(literal1);
+        ArrayList<TwoLitClause> clauses = literalIndex.get(literal1);
         if(clauses == null) {return null;}
         for(TwoLitClause clause : clauses) {
             if(literal2 == clause.literal1 || literal2 == clause.literal2) {return clause;} }
@@ -453,7 +397,7 @@ public class TwoLitClauses {
         int literal1 = clause.literal1;
         int literal2 = clause.literal2;
         for(int i = 1; i <= 2; ++i) {
-            ArrayList<TwoLitClause>  parents = clauseMap.get(-literal1);
+            ArrayList<TwoLitClause>  parents = literalIndex.get(-literal1);
             if(parents != null) {
                 for(TwoLitClause parent : parents) {
                     int literal3 = (literal1 == -parent.literal1) ? parent.literal2 : parent.literal1;
@@ -484,11 +428,10 @@ public class TwoLitClauses {
         int representative2 = equivalenceClasses.getRepresentative(literal2);
         if(literal1 != representative1) {
             clause.literal1 = representative1;
-            clause.origins = joinIntArraysSorted(clause.origins,equivalenceClasses.getOrigins(representative1));}
+            clause.joinOrigins(equivalenceClasses.getOrigins(representative1));}
         if(literal2 != representative2) {
             clause.literal2 = representative2;
-            clause.origins = joinIntArraysSorted(clause.origins,equivalenceClasses.getOrigins(representative2));}
-}
+            clause.joinOrigins(equivalenceClasses.getOrigins(representative2));}}
 
 
 
@@ -503,7 +446,7 @@ public class TwoLitClauses {
         int literal2 = clause.literal2;
         int predicate1 = Math.abs(literal1);
         int predicate2 = Math.abs(literal2);
-        clauseMap.forEach((literal,clauses) -> {
+        literalIndex.forEach((literal, clauses) -> {
             int predicate = Math.abs(literal);
             if(predicate1 == predicate || predicate2 == predicate) return;
             TwoLitClause clause2 = findClause(literal1,literal);
@@ -522,6 +465,19 @@ public class TwoLitClauses {
                         Symboltable.toString(-literal,model.symboltable));}
             disjointnessClasses.addDerivedDisjoints(literals,origins);});
     }
+
+    /** adds the literal to the model and calls the monitor.
+     *
+     * @param literal  a true literal
+     * @param origins  the basic clause ids for the truth
+     * @throws Unsatisfiable if a contradiction is found
+     */
+    private void addToModel(int literal, IntArrayList origins) throws Unsatisfiable {
+        if(monitoring) {
+            monitor.print(monitorId,"Exec: Derived true Literal " +
+                    Symboltable.toString(literal, model.symboltable) +
+                    (origins == null ? "" : " " + origins));}
+        model.add(literal,origins,null);}
 
     /** checks if there are no two-literal clauses
      *
@@ -567,7 +523,7 @@ public class TwoLitClauses {
         StringBuilder string = new StringBuilder();
         string.append(this);
         string.append("\nClause Map:\n");
-        clauseMap.forEach((literal,clauses) -> {
+        literalIndex.forEach((literal, clauses) -> {
             string.append("  "+Symboltable.toString(literal,symboltable)).append(": ");
             String prefix = " ";
             for(int i = 0; i < clauses.size(); ++i) {
