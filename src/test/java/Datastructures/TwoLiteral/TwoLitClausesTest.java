@@ -11,6 +11,7 @@ import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import javafx.scene.input.KeyCharacterCombination;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class TwoLitClausesTest {
     Symboltable symboltable;
     EquivalenceClasses eqClasses;
     DisjointnessClasses dClasses;
+    TwoLitClauses clauses;
     Model model;
 
     private void prepare() {
@@ -50,8 +52,8 @@ public class TwoLitClausesTest {
         problemSupervisor.model = model;
         eqClasses = new EquivalenceClasses(problemSupervisor);
         dClasses = new DisjointnessClasses(problemSupervisor);
-        problemSupervisor.equivalenceClasses = eqClasses;
-        problemSupervisor.disjointnessClasses = dClasses;
+        clauses  = new TwoLitClauses(problemSupervisor);
+
     }
 
     public TwoLitClause make (int[] basicClause) {
@@ -106,10 +108,7 @@ public class TwoLitClausesTest {
         IntArrayList origins = new IntArrayList();
         origins.add(20);
         model.addImmediately(2,origins);
-        EquivalenceClasses eqClasses = new EquivalenceClasses(problemSupervisor);
-        DisjointnessClasses dClasses = new DisjointnessClasses(problemSupervisor);
 
-        TwoLitClauses clauses = new TwoLitClauses(problemSupervisor);
         int[] clause1 = new int[]{1,type,2,3};
         int[] clause2 = new int[]{2,type,-2,4};
         int[] clause3 = new int[]{3,type,5,-2};
@@ -124,27 +123,34 @@ public class TwoLitClausesTest {
     }
 
     @Test
-    public void addBasicClause4() {
+    public void addBasicClause4() throws Exception {
         System.out.println("addBasicClause with equivalence");
         prepare();
+        clauses.configure();
 
         int[] clauseeq = new int[]{1,typeEQ,1,2};
         try{eqClasses.addBasicEquivalenceClause(clauseeq);} catch(Unsatisfiable uns) {}
 
-        TwoLitClauses clauses = new TwoLitClauses(problemSupervisor);
         int[] clause1 = new int[]{2,type,2,3};
         int[] clause2 = new int[]{3,type,-2,4};
         int[] clause3 = new int[]{4,type,5,-2};
         model.symboltable = null;
 
-        try{clauses.integrateClause(make(clause1),false);
-            clauses.integrateClause(make(clause2),false);
-            clauses.integrateClause(make(clause3),false);}
-        catch(Unsatisfiable uns) {}
+        clauses.addBasicClause(clause1);
+        clauses.addBasicClause(clause2);
+        clauses.addBasicClause(clause3);
+
+        Thread thread = new Thread(() -> clauses.run());
+        thread.start();
+        Thread.sleep(100);
+        thread.interrupt();
+
         assertEquals("Two-Literal clauses of problem test:\n" +
                 "  2-1: 1,3\n" +
                 "  2-2: -1,4\n" +
-                "  2-3: 5,-1",clauses.toString());
+                "  2-3: 5,-1\n" +
+                "  2-4: 4,3\n" +
+                "  2-5: 5,3",clauses.toString());
         //System.out.println(clauses.infoString(null));
     }
 
@@ -152,6 +158,7 @@ public class TwoLitClausesTest {
     public void threadtest1() {
         System.out.println("Thread ");
         prepare();
+        clauses.configure();
         ArrayList<Object> observed = new ArrayList<>();
         model.addObserver(Thread.currentThread(),
                 ((literal, originals) -> {
@@ -159,7 +166,6 @@ public class TwoLitClausesTest {
                     observed.add(originals);
                 }));
         model.symboltable = null;
-        TwoLitClauses clauses = new TwoLitClauses(problemSupervisor);
 
         Thread eqthread = new Thread(()->eqClasses.run());
         Thread twothread = new Thread(()->clauses.run());
@@ -181,18 +187,18 @@ public class TwoLitClausesTest {
         assertEquals("Two-Literal clauses of problem test:\n" +
                 "  2-4: 5,6",clauses.toString());
         assertEquals("[3, [1, 3], 4, [1, 2, 3]]",observed.toString());
-        assertEquals("3,4",model.toNumbers());
-        //System.out.println(dClasses.infoString(null));
-        //System.out.println(model.infoString(false));
+        assertEquals("3,4,",model.toNumbers());
+        System.out.println(dClasses.infoString(null));
+        System.out.println(model.infoString(false));
     }
 
     @Test
     public void threadtest2() {
         System.out.println("Thread with Unsatifiability");
         prepare();
+        clauses.configure();
         //globalParameters.monitor.addPrintId("test-TwoLit");
         model.symboltable = null;
-        TwoLitClauses clauses = new TwoLitClauses(problemSupervisor);
         Thread eqthread = new Thread(()->eqClasses.run());
         Thread twothread = new Thread(()->clauses.run());
         eqthread.start();

@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.function.BiConsumer;
 
 import static Utilities.Utilities.joinIntArrays;
+import static Utilities.Utilities.joinIntArraysSorted;
 
 /** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
  * Each literal in the model is accompanied by the origins, i.e. the list of basic clause ids which
@@ -76,6 +77,7 @@ public class Model {
      * @throws Unsatisfiable if a contradiction with an earlier entry in the model occurs.
      */
     public synchronized void add(int literal, IntArrayList origin, Thread thread) throws Unsatisfiable {
+        System.out.println("ADD " + literal);
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
@@ -83,13 +85,15 @@ public class Model {
             throw new Unsatisfiable(
                     "Supposed true literal " + Symboltable.toString(literal,symboltable) +
                             " is already false in the model " + Symboltable.toString(model,symboltable),
-                    joinIntArrays(origin,getOrigin(literal)));}
+                    joinIntArraysSorted(origin,getOrigin(literal)));}
 
         origins.add(origin);
         model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
+
         for(Pair<Thread, BiConsumer<Integer, IntArrayList>> observer : observers) {
-            if(thread != observer.getKey()) {observer.getValue().accept(literal,origin);}}}
+            if(thread != observer.getKey()) {
+                observer.getValue().accept(literal,origin);}}}
 
     /** adds a literal immediately without any checks and transfers
      *

@@ -18,6 +18,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.Consumer;
 
 import static Utilities.Utilities.joinIntArraysSorted;
+import static Utilities.Utilities.stdoutLogger;
 
 /** This class maintains two-literal clauses.
  *  The clause set is kept resolution complete, but minimized as far as possible.
@@ -124,6 +125,10 @@ public class TwoLitClauses {
     public void removeObserver(Consumer<TwoLitClause> observer) {
         observers.remove(observer);}
 
+    public void configure() {
+        model.addObserver(Thread.currentThread(),this::addTrueLiteral);
+        equivalenceClasses.addObserver(this::addEquivalence);
+    }
 
     /** This method is started as thread.
      * It reads and executes tasks from the queue
@@ -131,15 +136,12 @@ public class TwoLitClauses {
      *
      */
     public void run() {
-        model.addObserver(Thread.currentThread(),this::addTrueLiteral);
-        equivalenceClasses.addObserver(this::addEquivalence);
-
         while(!Thread.interrupted()) {
             try {
                 if(monitoring) {
                     String q = "Queue is waiting\n";
-                        if(!clauses.isEmpty()) q += toString("  ",model.symboltable) + "\n";
-                        if(!queue.isEmpty())   q += "  Queue: "+ Task.queueToString(queue);
+                        if(!queue.isEmpty())   q += "  Queue: "+ Task.queueToString(queue) + "\n";
+                        if(!clauses.isEmpty()) q += toString("  ",model.symboltable) ;
                     monitor.print(monitorId,q);}
 
                 Task<TaskType> task = queue.take();
@@ -204,7 +206,8 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                 Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}
+        synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}
+        System.out.println("QQQ " + Task.queueToString(queue));}
 
 
     /** generates all unit resolvents and removes the clauses with the literal from the data structures
@@ -227,7 +230,7 @@ public class TwoLitClauses {
         clauseList = literalIndex.get(literal);
         if(clauseList != null) {   // false literals yield new true literals
             for(TwoLitClause clause : clauseList) {
-                int literal2 = (clause.literal1 == literal) ? clause.literal2 : literal;
+                int literal2 = (clause.literal1 == literal) ? clause.literal2 : clause.literal1;
                 if(monitoring) {
                     monitor.print(monitorId,"False literal " +
                             Symboltable.toString(literal, model.symboltable) + " and clause " +
