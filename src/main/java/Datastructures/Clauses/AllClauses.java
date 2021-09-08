@@ -317,7 +317,7 @@ public class AllClauses {
             CLiteral cliteral = removeClause(iterator.next(),iterator);
             Clause clause = cliteral.clause;
             clause.remove(cliteral);
-            if(trackReasoning) clause.origins = joinIntArrays(clause.origins,origins);
+            if(trackReasoning) clause.joinOrigins(origins);
             if(checkUnitClause(clause)) continue;
             queue.add(new Task<>(TaskType.INSERTCLAUSE,null,clause,null));}
         literalIndex.pushIterator(-literal,iterator);}

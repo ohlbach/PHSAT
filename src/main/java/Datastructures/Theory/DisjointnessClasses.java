@@ -261,9 +261,9 @@ public class DisjointnessClasses {
 
 
 
-      /** adds a new equivalence class representative == literal to the queue
+      /** adds a new equivalence clause to the queue
      *
-     * @param clause  tan equivalence clause
+     * @param clause  an equivalence clause
      */
 
     public void addEquivalence(Clause clause) {
