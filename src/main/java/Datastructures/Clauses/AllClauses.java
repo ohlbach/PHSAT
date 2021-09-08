@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
-import static Utilities.Utilities.joinIntArraysSorted;
+import static Utilities.Utilities.joinIntArrays;
 
 public class AllClauses {
 
@@ -233,12 +233,12 @@ public class AllClauses {
 
             int literal = equivalenceClasses.getRepresentative(oldLiteral); // take care of equivalences
             if(trackReasoning && literal != oldLiteral) {
-                origins = joinIntArraysSorted(origins,equivalenceClasses.getOrigins(oldLiteral));}
+                origins = joinIntArrays(origins,equivalenceClasses.getOrigins(oldLiteral));}
 
             switch(model.status(literal)) {                                 // take care of the model
                 case +1: return; // true clause
                 case -1:         // false literal
-                    if(trackReasoning) origins = joinIntArraysSorted(origins,model.getOrigin(literal));
+                    if(trackReasoning) origins = joinIntArrays(origins,model.getOrigin(literal));
                     cliterals.remove(i--);
                     continue;}
 
@@ -269,7 +269,7 @@ public class AllClauses {
             CLiteral cliteral = (CLiteral) result[0];
             Clause otherClause = (Clause) result[1];
             ++statistics.forwardReplacementResolutions;
-            if(trackReasoning) origins = joinIntArraysSorted(origins,otherClause.origins);
+            if(trackReasoning) origins = joinIntArrays(origins,otherClause.origins);
             if(monitoring) {
                 monitor.print(monitorId, "Literal " + cliteral.toString(model.symboltable) +
                         " in  clause \n" + cliteral.clause.toString(3,model.symboltable) +
@@ -317,7 +317,7 @@ public class AllClauses {
             CLiteral cliteral = removeClause(iterator.next(),iterator);
             Clause clause = cliteral.clause;
             clause.remove(cliteral);
-            if(trackReasoning) clause.origins = joinIntArraysSorted(clause.origins,origins);
+            if(trackReasoning) clause.origins = joinIntArrays(clause.origins,origins);
             if(checkUnitClause(clause)) continue;
             queue.add(new Task<>(TaskType.INSERTCLAUSE,null,clause,null));}
         literalIndex.pushIterator(-literal,iterator);}
@@ -397,7 +397,7 @@ public class AllClauses {
                     removeClause(cliteral,iterator);
                     otherClause.remove(cliteral);
                     ++statistics.forwardReplacementResolutions;
-                    if(trackReasoning) otherClause.origins = joinIntArraysSorted(clause.origins,otherClause.origins);
+                    if(trackReasoning) otherClause.origins = joinIntArrays(clause.origins,otherClause.origins);
                     if(!checkUnitClause(otherClause))
                         queue.add(new Task<>(TaskType.INSERTCLAUSE,null,otherClause,null));}}
             literalIndex.pushIterator(-literal2,iterator);
@@ -473,7 +473,7 @@ public class AllClauses {
                         clause.toString(3,model.symboltable));}
             removeClause(resolvent);
             resolvent.remove(cliteral);
-            if(trackReasoning) resolvent.origins = joinIntArraysSorted(resolvent.origins,clause.origins);
+            if(trackReasoning) resolvent.origins = joinIntArrays(resolvent.origins,clause.origins);
             if(!checkUnitClause(resolvent))
                 queue.add(new Task<>(TaskType.INSERTCLAUSE,null,resolvent,null));}}
 
@@ -669,13 +669,13 @@ public class AllClauses {
                     monitor.print(monitorId,"Clause " + clause.toString(0, model.symboltable) +
                             " became a unit clause");}
                 model.add(clause.getLiteral(0),
-                        trackReasoning ? joinIntArraysSorted(clause.origins,origins) : null,null);
+                        trackReasoning ? joinIntArrays(clause.origins,origins) : null,null);
                 literalIndex.remove(clause.getCLiteral(0));
                 clauses.remove(clause);
                 if(clausesFinished && clauses.isEmpty()) throw new Satisfiable(model);
                 return false;
             case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),clause.getLiteral(2),
-                    trackReasoning ? joinIntArraysSorted(clause.origins,origins) : null);} // keep the two-literal clause
+                    trackReasoning ? joinIntArrays(clause.origins,origins) : null);} // keep the two-literal clause
 
         switch(clause.structure) {
             case NEGATIVE: ++statistics.negativeClauses; break;

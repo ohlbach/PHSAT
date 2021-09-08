@@ -267,7 +267,7 @@ public class EquivalenceClasses  {
                     for(CLiteral clit : cliterals) {
                         if(clit != cliteral) {
                             addToModel(sign*clit.literal,
-                                    trackReasoning ? joinIntArraysSorted(clause.origins,model.getOrigin(literal)) : null);}}
+                                    trackReasoning ? joinIntArrays(clause.origins,model.getOrigin(literal)) : null);}}
                         return null;}}// clause no longer needed
 
             switch(clause.contains(literal,cliteral)) {
@@ -319,7 +319,7 @@ public class EquivalenceClasses  {
         CLiteral cliteral = literalIndex.get(literal);
         if(cliteral == null) {cliteral = literalIndex.get(-literal); sign = -1;}
         if(cliteral != null) {
-            if(trackReasoning) origins = joinIntArraysSorted(origins,cliteral.clause.origins);
+            if(trackReasoning) origins = joinIntArrays(origins,cliteral.clause.origins);
             removeClause(cliteral.clause);
             for(CLiteral cLiteral : cliteral.clause.cliterals) {
                 if(cLiteral != cliteral) {
@@ -403,7 +403,7 @@ public class EquivalenceClasses  {
                         origins = model.getOrigin(literal);}}}
             if(sign == 0) continue;  // no literal has a truth value.
 
-            if(trackReasoning) origins = joinIntArraysSorted(origins,clause.origins);
+            if(trackReasoning) origins = joinIntArrays(origins,clause.origins);
             for(CLiteral cliteral : clause) {
                 int literal = cliteral.literal;
                 if(model.status(literal) == 0) model.addImmediately(sign*literal,origins);}}

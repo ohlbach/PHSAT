@@ -18,14 +18,12 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
-import Utilities.TriConsumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import static Utilities.Utilities.joinIntArraysSorted;
+import static Utilities.Utilities.joinIntArrays;
 
 
 public class Preparer {
@@ -398,11 +396,11 @@ public class Preparer {
             int literal = originalLiteral;
             literal = equivalenceClasses.getRepresentative(originalLiteral);
             if(trackReasoning && literal != originalLiteral) {
-                origins = joinIntArraysSorted(origins,equivalenceClasses.getOrigins(originalLiteral));}
+                origins = joinIntArrays(origins,equivalenceClasses.getOrigins(originalLiteral));}
             switch(model.status(literal)) {
                 case +1: return; // true clause
                 case -1:
-                    if(trackReasoning) {origins = joinIntArraysSorted(origins,model.getOrigin(literal));}
+                    if(trackReasoning) {origins = joinIntArrays(origins,model.getOrigin(literal));}
                     continue;}
             clause.add(new CLiteral(literal,clause,i-2));}
 

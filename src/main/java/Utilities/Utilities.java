@@ -714,6 +714,19 @@ public class Utilities {
      * @param list2 an IntArray or null
      * @return the union of both lists
      */
+    public static IntArrayList joinIntArrays1(IntArrayList list1, IntArrayList list2) {
+        if(list1 == null || list1.isEmpty()) {return list2;}
+        if(list2 == null || list2.isEmpty()) {return list1;}
+        IntArrayList newList = list1.clone();
+        for(int item : list2) {if(!list1.contains(item)) newList.add(item);}
+        return newList;}
+
+    /** joins two IntArrays and and sorts the result
+     *
+     * @param list1 a IntArrayList
+     * @param list2 a IntArrayList
+     * @return the joined and sorted list.
+     */
     public static IntArrayList joinIntArrays(IntArrayList list1, IntArrayList list2) {
         if(list1 == null || list1.isEmpty()) {return list2;}
         if(list2 == null || list2.isEmpty()) {return list1;}
@@ -728,39 +741,25 @@ public class Utilities {
      * @return the joined and sorted list.
      */
     public static IntArrayList joinIntArraysSorted(IntArrayList list1, IntArrayList list2) {
-        if(list1 == null || list1.isEmpty()) {return list2;}
-        if(list2 == null || list2.isEmpty()) {return list1;}
+        if(list1 == null || list1.isEmpty()) {
+            if(list2 == null || list2.isEmpty()) return null;
+            else {list2.sort((i,j)-> Integer.compare(i,j)); return list2;}}
+        if(list2 == null || list2.isEmpty()) {
+            list1.sort((i,j)-> Integer.compare(i,j)); return list1;}
         IntArrayList newList = list1.clone();
         for(int item : list2) {if(!list1.contains(item)) newList.add(item);}
         newList.sort((i,j)-> Integer.compare(i,j));
         return newList;}
 
-    /** generates a sorted IntArray with the two ints
+    /** sorts the IntArray.
      *
-     * @param i
-     * @param j
+     * @param list an IntArray
      * @return the sorted IntArray.
      */
-    public static IntArrayList makeIntArraySorted(int i, int j) {
-        IntArrayList list = new IntArrayList();
-        if(i == j) {list.add(i); return list;}
-        if(i < j) {list.add(i); list.add(j); return list;}
-        list.add(j); list.add(i); return list;}
-
-    /** adds the int to a clone of list and sorts it
-     *
-     * @param list  an IntArrayList
-     * @param j     an int
-     * @return the sorted IntArrayList.
-     */
-    public static IntArrayList addIntArraySorted(IntArrayList list, int j) {
-        if(list == null) {list = new IntArrayList(); list.add(j); return list;}
-        if(list.contains(j)) return list;
-        IntArrayList newList = list.clone();
-        newList.add(j);
-        newList.sort((i,k)-> Integer.compare(i,k));
-        return newList;}
-
+    public static IntArrayList sortIntArray(IntArrayList list) {
+        if(list == null) return null;
+        list.sort((i,j)-> Integer.compare(i,j));
+        return list;}
 
     /** adds the elements of the second list to the first list
      *

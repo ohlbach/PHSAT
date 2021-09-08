@@ -11,19 +11,19 @@ import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import javafx.scene.input.KeyCharacterCombination;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import static Utilities.Utilities.sortIntArray;
 import static org.junit.Assert.*;
 
 public class TwoLitClausesTest {
 
     StringBuffer errors = new StringBuffer();
     StringBuffer warnings = new StringBuffer();
-    boolean monitoring = true;
+    boolean monitoring = false;
 
     int type = ClauseType.OR.ordinal();
     int typeEQ = ClauseType.EQUIV.ordinal();
@@ -103,7 +103,7 @@ public class TwoLitClausesTest {
         model.addObserver(Thread.currentThread(),
                 ((literal, originals) -> {
                     observed.add(literal);
-                    observed.add(originals);
+                    observed.add(sortIntArray(originals));
                 }));
         IntArrayList origins = new IntArrayList();
         origins.add(20);
@@ -163,7 +163,7 @@ public class TwoLitClausesTest {
         model.addObserver(Thread.currentThread(),
                 ((literal, originals) -> {
                     observed.add(literal);
-                    observed.add(originals);
+                    observed.add(sortIntArray(originals));
                 }));
         model.symboltable = null;
 
@@ -241,7 +241,7 @@ public class TwoLitClausesTest {
         eqthread.interrupt(); dthread.interrupt(); twothread.interrupt();
         try{eqthread.join();dthread.join();twothread.join();} catch(Exception ex) {}
         assertEquals("Equivalence Classes of Problem test:\n" +
-                "E-1: 1 = 2", eqClasses.toString());
+                "E-1: 1=2", eqClasses.toString());
         assertTrue(clauses.isEmpty());
     }
 
@@ -250,7 +250,6 @@ public class TwoLitClausesTest {
         System.out.println("Thread with Disjointnesses");
         prepare();
         model.symboltable = null;
-        TwoLitClauses clauses = new TwoLitClauses(problemSupervisor);
 
         Thread eqthread = new Thread(()->eqClasses.run());
         Thread dthread  = new Thread(()->dClasses.run());
@@ -269,11 +268,11 @@ public class TwoLitClausesTest {
         try{Thread.sleep(100);}catch(Exception ex) {}
         eqthread.interrupt(); dthread.interrupt(); twothread.interrupt();
         try{eqthread.join();dthread.join();twothread.join();} catch(Exception ex) {}
-        assertEquals("Disjointness Classes of Problem test:\n" +
-                "D-1: 1 != 3 != 2", dClasses.toString());
+        assertEquals("Disjointness Clauses of Problem test:\n" +
+                "D-1: 1!=2!=3", dClasses.toString());
         assertEquals("Two-Literal clauses of problem test:\n" +
                 "  2-1: -1,-2\n" +
-                "  2-2: -2,-3\n" +
-                "  2-3: -1,-3",clauses.toString());
+                "  2-2: -1,-3\n" +
+                "  2-3: -2,-3",clauses.toString());
     }
 }

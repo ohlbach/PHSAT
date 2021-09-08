@@ -3,7 +3,8 @@ package Datastructures.TwoLiteral;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import static Utilities.Utilities.joinIntArraysSorted;
+import static Utilities.Utilities.joinIntArrays;
+import static Utilities.Utilities.sortIntArray;
 
 /** A two-literal clause is usd for various special purposes.
     Therefore this special class.
@@ -29,7 +30,7 @@ public class TwoLitClause {
 
     /** joins the origins */
     public void joinOrigins(IntArrayList origins) {
-        this.origins = joinIntArraysSorted(this.origins,origins); }
+        this.origins = joinIntArrays(this.origins,origins); }
 
 
     /** turns this clause into a string */
@@ -47,7 +48,19 @@ public class TwoLitClause {
         if(symboltable == null) return prefix + this;
         return prefix + "2-" + id + ": " + symboltable.toString(literal1) + "," + symboltable.toString(literal2); }
 
+    /** turns this clause together with the origins into a string using the symbol table
+     *
+     * @param symboltable null or a symboltable
+     * @param prefix  for the string
+     * @return the clause as a string.
+     */
+    public String infoString(String prefix,Symboltable symboltable) {
+        String st = toString(prefix,symboltable);
+        if(origins != null) st += "@"+sortIntArray(origins).toString();
+        return st;}
+    }
 
 
 
-}
+
+

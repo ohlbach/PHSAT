@@ -335,7 +335,7 @@ public class DisjointnessClasses {
                         for(CLiteral clit : cliterals) {
                             if(clit != cliteral) {
                                 addToModel(-clit.literal,
-                                    trackReasoning ? joinIntArraysSorted(clause.origins,model.getOrigin(literal)) : null);}} // back to this
+                                    trackReasoning ? joinIntArrays(clause.origins,model.getOrigin(literal)) : null);}} // back to this
                         return null;}} // clause no longer needed
 
             switch(clause.contains(literal,cliteral)) {
@@ -345,7 +345,7 @@ public class DisjointnessClasses {
                             " contains double literal " + Symboltable.toString(literal, model.symboltable) +
                                 " which becomes false.");}
                      addToModel(-literal,
-                            trackReasoning ? joinIntArraysSorted(clause.origins,model.getOrigin(literal)) : null);  // back to this
+                            trackReasoning ? joinIntArrays(clause.origins,model.getOrigin(literal)) : null);  // back to this
                     for(int j = 0; j < cliterals.size(); ++j) {
                         CLiteral clit = cliterals.get(j);
                         if(clit.literal == literal) {cliterals.remove(clit); --j;}}
@@ -388,7 +388,7 @@ public class DisjointnessClasses {
                                     clause.toString(4, model.symboltable) + " with clause\n" +
                                     clit2.clause.toString(4, model.symboltable) + "\n  yields unit literal " +
                                     Symboltable.toString(-literal1, model.symboltable));}
-                        IntArrayList origins = trackReasoning ? joinIntArraysSorted(clause.origins, clit2.clause.origins) : null;
+                        IntArrayList origins = trackReasoning ? joinIntArrays(clause.origins, clit2.clause.origins) : null;
                         addToModel(-literal1,origins);
                         clause.remove(cliteral1);
                         clause.origins = origins;
@@ -423,7 +423,7 @@ public class DisjointnessClasses {
                 if(trackReasoning) {
                     IntArrayList origins = clause.origins;
                     for(CLiteral cliteral11 : clause.cliterals)
-                        origins = joinIntArraysSorted(origins,getOrigins(cliteral11.literal,literal2));
+                        origins = joinIntArrays(origins,getOrigins(cliteral11.literal,literal2));
                     clause.origins = origins;}}}}
 
     /** checks of a new disjointness class is a subset of an already existing one.
@@ -475,7 +475,7 @@ public class DisjointnessClasses {
                 for(CLiteral cliteral2 : clause.cliterals) {
                     if(cliteral1 != cliteral2) {
                         addToModel(-cliteral2.literal,
-                                trackReasoning ? joinIntArraysSorted(origins,clause.origins) : null);}}}
+                                trackReasoning ? joinIntArrays(origins,clause.origins) : null);}}}
             literalIndex.removeClauses(literal);}
 
             literalIndex.forEach(-literal, (cliteral1 -> { // false literals must be removed from all clauses

@@ -146,12 +146,12 @@ public class UtilitiesTest {
     @Test
     public void joinIntArrays() {
         System.out.println("joinIntArrays");
-        assertNull(Utilities.joinIntArrays(null,null));
+        assertNull(Utilities.joinIntArrays1(null,null));
         IntArrayList list1 = new IntArrayList();
         list1.add(1); list1.add(2);
         IntArrayList list2 = new IntArrayList();
         list2.add(2); list2.add(3);
-        IntArrayList list = Utilities.joinIntArrays(list1,list2);
+        IntArrayList list = Utilities.joinIntArrays1(list1,list2);
         assertEquals("[1, 2]",list1.toString());
         assertEquals("[2, 3]",list2.toString());
         assertEquals("[1, 2, 3]",list.toString());

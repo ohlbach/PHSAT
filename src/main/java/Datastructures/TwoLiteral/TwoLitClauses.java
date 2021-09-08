@@ -17,8 +17,7 @@ import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.Consumer;
 
-import static Utilities.Utilities.joinIntArraysSorted;
-import static Utilities.Utilities.stdoutLogger;
+import static Utilities.Utilities.joinIntArrays;
 
 /** This class maintains two-literal clauses.
  *  The clause set is kept resolution complete, but minimized as far as possible.
@@ -206,8 +205,7 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                 Symboltable.toString(literal,model.symboltable));}
-        synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}
-        System.out.println("QQQ " + Task.queueToString(queue));}
+        synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}}
 
 
     /** generates all unit resolvents and removes the clauses with the literal from the data structures
@@ -236,7 +234,7 @@ public class TwoLitClauses {
                             Symboltable.toString(literal, model.symboltable) + " and clause " +
                             clause.toString("", model.symboltable) + " yields new unit literal " +
                             Symboltable.toString(literal2, model.symboltable));}
-                model.add(literal2,joinIntArraysSorted(clause.origins,origins),null);
+                model.add(literal2, joinIntArrays(clause.origins,origins),null);
                 clauses.remove(clause);}
             literalIndex.remove(literal);}}
 
@@ -291,7 +289,7 @@ public class TwoLitClauses {
                         monitor.print(monitorId,"Clause " + clause.toString("",model.symboltable) + ": false literal " +
                                 Symboltable.toString(literal1, model.symboltable) + " yields  unit clause " +
                                 Symboltable.toString(literal2, model.symboltable));}
-                    if(trackReasoning) origins = joinIntArraysSorted(clause.origins, model.getOrigin(-literal1));
+                    if(trackReasoning) origins = joinIntArrays(clause.origins, model.getOrigin(-literal1));
                     model.add(literal2, origins,null); // send back to me
                     return false;} // clause not needed
             literal1 = clause.literal2;
@@ -325,7 +323,7 @@ public class TwoLitClauses {
         TwoLitClause partner = findEquivalence(clause);
         if(partner != null) {
             equivalenceClasses.addDerivedEquivalence(clause.literal1, -clause.literal2,
-                    joinIntArraysSorted(clause.origins,partner.origins));
+                    joinIntArrays(clause.origins,partner.origins));
             removeClause(partner);
             return false;}
         findDisjointnesses(clause);
@@ -414,11 +412,11 @@ public class TwoLitClauses {
                                     clause.toString("  ",model.symboltable) + " and\n" +
                                     parent.toString("  ",model.symboltable) + " yield unit clause: " +
                                     Symboltable.toString(literal2,model.symboltable));}
-                        if(trackReasoning) origins = joinIntArraysSorted(clause.origins,parent.origins);
+                        if(trackReasoning) origins = joinIntArrays(clause.origins,parent.origins);
                         model.add(literal2,origins,null);
                         return;}  // clause becomes true anyway
                     statistics.resolvents++;
-                    if(trackReasoning) origins = joinIntArraysSorted(clause.origins,parent.origins);
+                    if(trackReasoning) origins = joinIntArrays(clause.origins,parent.origins);
                     TwoLitClause resolvent = new TwoLitClause(++counter,literal2,literal3,origins);
                     if(monitoring) {
                         monitor.print(monitorId,"Clauses \n" +
@@ -446,13 +444,13 @@ public class TwoLitClauses {
             if(clauses != null) {
                 for(TwoLitClause clause2 : clauses) {
                     if(clause2 != clause) {             // clause2 = p,r
-                        int literal3 = (clause.literal1 == literal1) ? literal2 : literal1;
+                        int literal3 = (clause2.literal1 == literal1) ? clause2.literal2 : clause2.literal1;
                         TwoLitClause clause3 = findClause(literal2,literal3);
                         if(clause3 != null) {           // clause3 = q,r
                             IntArrayList literals = new IntArrayList();
                             literals.add(-literal1); literals.add(-literal2); literals.add(-literal3);
-                            if(trackReasoning) {origins = joinIntArraysSorted(clause.origins,clause2.origins);
-                                                origins = joinIntArraysSorted(origins,clause3.origins);}
+                            if(trackReasoning) {origins = joinIntArrays(clause.origins,clause2.origins);
+                                                origins = joinIntArrays(origins,clause3.origins);}
                             statistics.disjointnesses++;
                             if(monitoring) {
                                 monitor.print(monitorId,"Disjointness found: " +
@@ -512,7 +510,7 @@ public class TwoLitClauses {
             string.append("  "+Symboltable.toString(literal,symboltable)).append(": ");
             String prefix = " ";
             for(int i = 0; i < clauses.size(); ++i) {
-                string.append(clauses.get(i).toString(prefix,symboltable)).append("\n");
+                string.append(clauses.get(i).infoString(prefix,symboltable)).append("\n");
                 prefix = "      ";}});
         if(!queue.isEmpty()) {string.append("Queue:").append(Task.queueToString(queue));}
         return string.toString();}

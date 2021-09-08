@@ -1,17 +1,16 @@
 package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
-import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import Utilities.Positioned;
 import Utilities.Sizable;
-import com.sun.java.accessibility.util.AccessibilityListenerList;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
 
-import static Utilities.Utilities.joinIntArraysSorted;
+import static Utilities.Utilities.joinIntArrays;
+import static Utilities.Utilities.sortIntArray;
 
 /** A clause is just a list of CLiterals.
  * It may represent disjunctions, conjunctions or any other logical list structure.
@@ -334,7 +333,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(literal != oldLiteral) {
                 changed = true;
                 cliteral.literal = literal;
-                if(trackReasoning) origins = joinIntArraysSorted(origins,eqClasses.getOrigins(oldLiteral));}}
+                if(trackReasoning) origins = joinIntArrays(origins,eqClasses.getOrigins(oldLiteral));}}
         return changed;}
 
 
@@ -344,7 +343,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param origins null or a list of basic clause ids
      */
     public void joinOrigins(IntArrayList origins) {
-            this.origins = joinIntArraysSorted(this.origins,origins);}
+            this.origins = joinIntArrays(this.origins,origins);}
 
     /** joins the origins (Ids of the basicClauses which caused this clause)
      *
@@ -354,8 +353,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public static IntArrayList joinOrigins(ArrayList<Clause> clauses, Clause clause) {
         IntArrayList origins = new IntArrayList();
-        if(clause != null) joinIntArraysSorted(origins,clause.origins);
-        for(Clause clause1 : clauses) {joinIntArraysSorted(origins,clause1.origins);}
+        if(clause != null) joinIntArrays(origins,clause.origins);
+        for(Clause clause1 : clauses) {
+            joinIntArrays(origins,clause1.origins);}
         return origins;}
 
     /** checks if the two clauses overlap.
@@ -412,7 +412,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public String infoString(int width, Symboltable symboltable) {
         String st = toString(width,symboltable);
-        if(origins != null) st += " " + origins.toString();
+        if(origins != null) st += " " + sortIntArray(origins).toString();
         return st;}
 
     /** gets an iterator over the literals
