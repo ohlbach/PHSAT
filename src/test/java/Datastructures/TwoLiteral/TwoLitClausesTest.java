@@ -54,6 +54,9 @@ public class TwoLitClausesTest {
         problemSupervisor.disjointnessClasses = dClasses;
     }
 
+    public TwoLitClause make (int[] basicClause) {
+        return new TwoLitClause(basicClause[0],basicClause[2],basicClause[3],
+                IntArrayList.wrap(new int[]{basicClause[0]}));}
 
     @Test
     public void addBasicClause1() {
@@ -62,9 +65,9 @@ public class TwoLitClausesTest {
 
         TwoLitClauses clauses = new TwoLitClauses(problemSupervisor);
         int[] clause1 = new int[]{1,type,2,3};
-        int[] clause2 = new int[]{1,type,3,5};
-        try{clauses.integrateBasicClause(clause1,null);
-            clauses.integrateBasicClause(clause2,null);}
+        int[] clause2 = new int[]{2,type,3,5};
+        try{clauses.integrateClause(make(clause1),false);
+            clauses.integrateClause(make(clause2),false);}
         catch(Unsatisfiable uns) {}
         assertEquals("Two-Literal clauses of problem test:\n" +
                 "  2-1: q,r\n" +
@@ -82,9 +85,9 @@ public class TwoLitClausesTest {
         int[] clause2 = new int[]{2,type,3,-3};
         int[] clause3 = new int[]{3,type,3,2};
 
-        try{clauses.integrateBasicClause(clause1,null);
-            clauses.integrateBasicClause(clause2,null);
-            clauses.integrateBasicClause(clause3,null);}
+        try{clauses.integrateClause(make(clause1),false);
+            clauses.integrateClause(make(clause2),false);
+            clauses.integrateClause(make(clause3),false);}
         catch(Unsatisfiable uns) {}
         assertEquals("Two-Literal clauses of problem test:\n" +
                 "  2-1: q,r",clauses.toString());
@@ -111,9 +114,9 @@ public class TwoLitClausesTest {
         int[] clause2 = new int[]{2,type,-2,4};
         int[] clause3 = new int[]{3,type,5,-2};
 
-        try{clauses.integrateBasicClause(clause1,null);
-            clauses.integrateBasicClause(clause2,null);
-            clauses.integrateBasicClause(clause3,null);}
+        try{clauses.integrateClause(make(clause1),false);
+            clauses.integrateClause(make(clause2),false);
+            clauses.integrateClause(make(clause3),false);}
         catch(Unsatisfiable uns) {}
         assertTrue(clauses.isEmpty());
         assertEquals("[4, [2, 20], 5, [3, 20]]",observed.toString());
@@ -134,9 +137,9 @@ public class TwoLitClausesTest {
         int[] clause3 = new int[]{4,type,5,-2};
         model.symboltable = null;
 
-        try{clauses.integrateBasicClause(clause1,null);
-            clauses.integrateBasicClause(clause2,null);
-            clauses.integrateBasicClause(clause3,null);}
+        try{clauses.integrateClause(make(clause1),false);
+            clauses.integrateClause(make(clause2),false);
+            clauses.integrateClause(make(clause3),false);}
         catch(Unsatisfiable uns) {}
         assertEquals("Two-Literal clauses of problem test:\n" +
                 "  2-1: 1,3\n" +
