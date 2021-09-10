@@ -34,6 +34,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public int timestamp = 0;
     /** contains the list of basicClause ids which produced this clause */
     public IntArrayList origins = null;
+    /** some auxiliary pointer */
+    public Object aux = null;
 
     public Clause(int id, ClauseType clauseType) {
         this.id = id;

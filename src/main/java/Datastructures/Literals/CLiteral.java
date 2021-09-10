@@ -19,6 +19,7 @@ public class CLiteral implements Positioned {
     public int clausePosition = -1;    // the clausePosition of the literal within the clause.
     public int indexPosition = -1;     // the position in a literal index.
     public int timestamp = 0;
+    public Object aux = null;          // an auxiliary storage point
 
     /** creates a CLiteral without a clause
      *
