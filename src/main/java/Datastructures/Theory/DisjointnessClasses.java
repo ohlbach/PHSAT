@@ -478,19 +478,14 @@ public class DisjointnessClasses {
                                 trackReasoning ? joinIntArrays(origins,clause.origins) : null);}}}
             literalIndex.removeClauses(literal);}
 
-            literalIndex.forEach(-literal, (cliteral1 -> { // false literals must be removed from all clauses
-                Clause clause = cliteral1.clause;
-                removeClause(clause);
-                clause.remove(cliteral1);
-                if(clause.size() > 1) {  // shortened clauses are reinserted
-                    if(trackReasoning) clause.joinOrigins(clause.origins);
-                    queue.add(new Task<>(TaskType.INSERTCLAUSE, null, clause, null));}}));
+            // false literals are not removed from the clauses.
+            // Other threads may still use the original clause.
             literalIndex.removeClauses(-literal);}
 
 
 
 
-    /** removes all clauses with literal and creates a new Task which does the replacements
+    /** removes all clauses with literal and creates a new Task which does the replacements on clones of the original clauses
      *
      * @param eqClause an equivalence clause
      */
@@ -503,10 +498,11 @@ public class DisjointnessClasses {
                 literalIndex.forEach(literal,(cLiteral -> {
                     Clause clause = cLiteral.clause;
                     removeClause(clause);
-                    if(trackReasoning) clause.joinOrigins(eqClause.origins);
-                    queue.add(new Task<>(TaskType.INSERTCLAUSE, null, clause, null));}));}
+                    Clause clone = clause.clone(++counter);
+                    if(trackReasoning)  clone.origins = joinIntArraysSorted(clause.origins,eqClause.origins);
+                    queue.add(new Task<>(TaskType.INSERTCLAUSE, null, clone, null));}));
                 literalIndex.removeClauses(literal);
-                literal = -literal;}}
+                literal = -literal;}}}
 
 
     /** checks if two literals are disjoint
@@ -563,6 +559,7 @@ public class DisjointnessClasses {
     private void removeClause(Clause clause) {
         --statistics.clauses;
         clauses.remove(clause);
+        clause.setRemoved();
         for(CLiteral cliteral1 : clause) {
             for(CLiteral cliteral2 : clause)
                 if(cliteral1 != cliteral2) disjointnesses.get(cliteral1.literal).remove(cliteral2);}}

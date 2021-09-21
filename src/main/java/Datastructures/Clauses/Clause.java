@@ -25,7 +25,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** the literals */
     public ArrayList<CLiteral> cliterals;
     /** indicates that the clause has been removed */
-    public boolean removed = false;
+    private boolean removed = false;
     /** for sorting clauses, for example in a listPosition queue */
     public int listPosition = -1;
     /** positive, negative or mixed */
@@ -118,6 +118,17 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         cliterals.add(new CLiteral(literal1,this,0));
         cliterals.add(new CLiteral(literal2,this,1));
         setStructure();}
+
+    /** creates a clone of the clause.
+     * The origins, the timestamp and the aux values are not cloned.
+     *
+     * @param id the identifier for the new clone
+     * @return the new clone
+     */
+    public Clause clone(int id) {
+        Clause clause = new Clause(id,this.clauseType);
+        for(CLiteral cLiteral : cliterals) {clause.add(cLiteral.literal);}
+        return clause;}
 
     /** checks if the clause is positive, negative or mixed and sets the corresponding value for the structure.
      */
@@ -338,6 +349,18 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 if(trackReasoning) origins = joinIntArrays(origins,eqClasses.getOrigins(oldLiteral));}}
         return changed;}
 
+    /** sets the removed flag
+     */
+    public synchronized void setRemoved() {
+        removed = true;}
+
+    /** returns the removed flag
+     *
+     * @return the removed flag
+     */
+    public synchronized boolean isRemoved() {
+        return removed;}
+
 
 
     /** joins the origins to the clause's origins
@@ -372,6 +395,21 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 if(cLiteral2.literal ==  literal1) return +1;
                 if(cLiteral2.literal == -literal1) return -1;}}
         return 0;}
+
+    /** removes from an array of clauses all removed clauses
+     *
+     * @param clauses an array of clauses
+     * @return an array of clauses with the removed clauses removed.
+     */
+    public static Clause[] removeRemovedClauses(Clause[] clauses) {
+        int removed = 0;
+        for(int i = 0; i < clauses.length; ++i) {if(clauses[i].isRemoved()) ++removed;}
+        if(removed == 0) return clauses;
+        Clause[] newClauses = new Clause[clauses.length-removed];
+        int i = 0;
+        for(Clause clause : clauses) {
+            if(!clause.isRemoved()) newClauses[i++] = clause;}
+        return newClauses;}
 
     /** generates a string: clause-number: literals
      *

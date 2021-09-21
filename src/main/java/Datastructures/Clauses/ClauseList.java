@@ -165,7 +165,7 @@ public class ClauseList {
      */
     private void updateRemoval(Clause clause) {
         ClauseStructure oldStructure = structure;
-        clause.removed = true;
+        //clause.removed = true;
         id2Clause.remove(clause.id);
         for(CLiteral cliteral : clause) {literalIndex.removeLiteral(cliteral);}
         switch(clause.structure) {

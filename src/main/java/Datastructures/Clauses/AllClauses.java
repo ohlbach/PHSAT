@@ -20,6 +20,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
@@ -55,6 +57,7 @@ public class AllClauses {
 
     private enum TaskType {
         TRUELITERAL, EQUIVALENCE, DISJOINTNESS, INSERTCLAUSE, TWOLITCLAUSE, SIMPLIFYALL, SIMPLIFYOTHERS,
+        MRESOLUTION
     }
 
 
@@ -77,6 +80,7 @@ public class AllClauses {
             case DISJOINTNESS: return 2;
             case SIMPLIFYALL:  return 3;
             case SIMPLIFYOTHERS: return 2 + ((Clause)task.a).size();
+            case MRESOLUTION: return 100;
             }
         return -1;}
 
@@ -168,6 +172,9 @@ public class AllClauses {
                         break;
                     case TWOLITCLAUSE:
                         integrateTwoLitClause((TwoLitClause)task.a);
+                        break;
+                    case MRESOLUTION:
+                        multiResolution((Clause[]) task.a);
                         break;
                 }
                 if(clausesFinished && queue.isEmpty()) {
@@ -340,6 +347,7 @@ public class AllClauses {
      * @param disjoints a disjointness class.
      */
     private void integrateDisjointnessClass(Clause disjoints)  {
+        if(disjoints.isRemoved()) return;
         IntArrayList origins  = disjoints.origins;
         ArrayList<CLiteral> cliterals = disjoints.cliterals;
         int size = cliterals.size();
@@ -486,89 +494,109 @@ public class AllClauses {
      * @param dClause a disjointness clause
      */
     private void linkDisjointnesses(Clause dClause) {
+        int dSize = dClause.size();
         for(CLiteral dliteral : dClause.cliterals) {
             literalIndex.withIterator(dliteral.literal,iterator -> {
                     CLiteral cliteral = iterator.next();
                     Clause clause = cliteral.clause;
-                    if(clause.size() > 2) {
+                    int cSize = clause.size();
+                    if(cSize <= dSize) {
                         ArrayList<CLiteral> links = (ArrayList<CLiteral>)cliteral.aux;
                         if(links == null) {links = new ArrayList<>(); cliteral.aux = links;}
                         links.add(dliteral);
 
                         links = (ArrayList<CLiteral>)dliteral.aux;
                         if(links == null) {links = new ArrayList<>(); dliteral.aux = links;}
-                        links.add(cliteral);
-                        if(atmostOneLinkGap(clause)) addDisjointnessCombinations(cliteral, dClause);}});}}
+                        links.add(cliteral);}});}}
 
-    /** checks if there is atmost one literal in the clause without a pointer to a disjointness literal
-     *
-     * @param clause a clause
-     * @return true if there is at most one literal in the clause without a pointer to a disjointness literal
-     */
-    private boolean atmostOneLinkGap(Clause clause) {
-        boolean nogap = true;
-        for(CLiteral cliteral : clause) {
-            if(cliteral.aux == null) {
-                if(!nogap) return false;
-                else nogap = false;}}
-        return nogap;}
+    private ArrayList<Clause[]> fullCombinations = new ArrayList<>();
 
-    /** computes for a clause of size n a list of lists: (disjointness clause1, ... disjointness clause n)
+    /** computes for a clause of size n a list of arrays: [disjointness clause 1, ... disjointness clause n]
      * Each disjointness clause indicates that the literal may be part of a disjointness <br>
-     * The disjointness clauses in a single list must be all different.<br>
-     * One element may be null (the literal in a multiresolution step becomes part of the resolvent)<br>
+     * The first element in the arrays is the current number of nulls in the array.
      * The list is attached at variable aux at cliteral's clause.
      *
-     * @param cliteral a literal of a disjunctive clause
      * @param dClause  a disjointness clause.
      */
-    private void addDisjointnessCombinations(CLiteral cliteral, Clause dClause) {
-        Clause clause = cliteral.clause;
-        int position = cliteral.clausePosition;
-        ArrayList<ArrayList<Clause>> combinations = (ArrayList<ArrayList<Clause>>) clause.aux;
-        if(combinations != null) {
-            int size = combinations.size();
-            for(int i = 0; i < size; ++i) {
-                ArrayList<Clause> combination = (ArrayList<Clause>)combinations.get(i).clone();
-                combination.set(position,dClause);
-                combinations.add(combination);}
-            return;}
+    private void addDisjointnessCombinations(Clause dClause) {
+        assert dClause.clauseType == ClauseType.DISJOINT;
+        fullCombinations.clear();
+        for(CLiteral dliteral : dClause.cliterals) {          // dliteral.literal may occur in several clauses.
+            literalIndex.withIterator(dliteral.literal, (iterator -> {
+                CLiteral cliteral = iterator.next();
+                Clause clause = cliteral.clause;
+                int position = cliteral.clausePosition;
+                ArrayList<Clause[]> combinations = (ArrayList<Clause[]>) clause.aux;
+                if(combinations == null) {
+                    Clause[] list = new Clause[clause.size()];
+                    combinations = new ArrayList<>();
+                    combinations.add(list);
+                    clause.aux = combinations;}
 
-        combinations = new ArrayList<>();
-        int size = clause.size();
-        ArrayList<Clause> firstCombination = new ArrayList<>();
-        firstCombination.add(null);
-        ArrayList<CLiteral> dLiterals = (ArrayList<CLiteral>)clause.cliterals.get(0).aux;
-        if(dLiterals != null) {for(CLiteral dliteral : dLiterals) firstCombination.add(dliteral.clause);}
-        if(position == 0) firstCombination.add(dClause);
-        combinations.add(firstCombination);
+                int size = combinations.size();
+                for(int i = 0; i < size; ++i) {
+                    Clause[] combination = combinations.get(i);
+                    if(combination[position] == null) {
+                        combination[position] = dClause;}
+                    else { // a further combination is added
+                        combination = Arrays.copyOf(combination,combination.length);
+                        combination[position] = dClause;
+                        combinations.add(combination);}
+                    if(isFull(combination)) addFullCombination(combination);}}));}
+        for(Clause[] combination : fullCombinations) {
+            queue.add(new Task(TaskType.MRESOLUTION,null,combination,null));}}
 
-        for(int i = 1; i < size; ++i) {
-            CLiteral clit = clause.cliterals.get(i);
-            dLiterals = (ArrayList<CLiteral>)clit.aux;
-            ArrayList<ArrayList<Clause>> newCombinations = new ArrayList<>();
-            for(ArrayList<Clause> combination : combinations) {
-                if(dLiterals != null) {
-                    for(CLiteral dliteral : dLiterals) {
-                        Clause dclause = dliteral.clause;
-                        if(!combination.contains(dclause)) {
-                            combination = (ArrayList<Clause>) combination.clone();
-                            combination.add(dliteral.clause);
-                            newCombinations.add(combination);}}}
-                if(!combination.contains(null)) {
-                    combination = (ArrayList<Clause>) combination.clone();
-                    combination.add(null);
-                    newCombinations.add(combination);}
-                if(i == position) {
-                    combination = (ArrayList<Clause>) combination.clone();
-                    combination.add(dClause);
-                    newCombinations.add(combination);}}
-            combinations = newCombinations;}
-        clause.aux = combinations;}
+    private boolean isFull(Clause[] combination) {
+        for(Clause clause :combination) {if(clause == null) return false;}
+        return true;}
 
+    private void addFullCombination(Clause[] combination) {
+        for(int i = 0; i < fullCombinations.size(); ++i) {
+            Clause[] oldCombination = fullCombinations.get(i);
+            if(isSubset(combination,oldCombination)) return;
+            if(isSubset(oldCombination,combination)) {
+                fullCombinations.remove(i--);}}
+        fullCombinations.add(combination);}
 
+    private boolean isSubset(Clause[] combination1, Clause[] combination2) {
+        if(combination1.length > combination2.length) return false;
+        for(Clause clause1 : combination1) {
+            boolean found = false;
+            for(Clause clause2 : combination2) {
+                if(clause1 == clause2) {found = true; break;}}
+            if(!found) return false;}
+        return true;}
 
+    private void multiResolution(Clause[] combination) {
 
+    }
+
+    private ArrayList<Clause> fullyTagged = new ArrayList<>();
+    private ArrayList<Clause> almostTagged = new ArrayList<>();
+
+    private boolean selectTaggedClauses(Clause[] combination) {
+        combination = Clause.removeRemovedClauses(combination);
+        if(combination.length <= 1) return false;
+        fullyTagged.clear();
+        almostTagged.clear();
+        int startTimestamp = timestamp;
+        for(CLiteral dLiteral : combination[0]) {
+            literalIndex.withIterator(dLiteral.literal, (iterator -> {
+                iterator.next().clause.timestamp = timestamp;}));}
+        for(int i = 1; i < combination.length; ++i) {
+            for(CLiteral dLiteral : combination[i]) {
+                literalIndex.withIterator(dLiteral.literal, (iterator -> {
+                    Clause cClause = iterator.next().clause;
+                    if(cClause.timestamp == timestamp) {
+                        cClause.timestamp = timestamp+1;
+                        if(clauses.size() == timestamp-startTimestamp + 2) {
+                            fullyTagged.add(cClause);
+                            almostTagged.remove(cClause);}
+                        else {if(clauses.size() ==  timestamp-startTimestamp + 3) {
+                            almostTagged.add(cClause);}}}}));}
+            ++timestamp;}
+        timestamp += 2;
+        return true;}
 
 
     /** checks if the clause is a unit clause.

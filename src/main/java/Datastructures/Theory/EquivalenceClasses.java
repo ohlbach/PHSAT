@@ -220,7 +220,7 @@ public class EquivalenceClasses  {
      * True and false literals cause all equivalent literals to become true/false <br>
      * Double literals are removed. <br>
      * Complementary literals cause Unsatisfiable to be thrown. <br>
-     * Overlapping equivalences are joined.<br>
+     * Overlapping equivalences are joined to the new clause (the old clauses are removed).<br>
      * All observers are applied to derived clauses.
      *
      * @param clause a new equivalence clause
@@ -279,7 +279,7 @@ public class EquivalenceClasses  {
 
 
     /** joins the new (not inserted) equivalence clause to the old ones if there is an overlapping.
-     * If there is are overlappings then the old clauses are removed from the internal data structures.
+     * If there are overlappings then the old clauses are removed from the internal data structures.
      *
      * @param clause A new equivalence clause
      * @return the extended new clause
@@ -307,7 +307,7 @@ public class EquivalenceClasses  {
     /** A true literal causes all other equivalent literals to become true.
      *
      * @param literal a true literal
-     * @param origins the baisc clause ids causing the literal to become true.
+     * @param origins the basic clause ids causing the literal to become true.
      * @throws Unsatisfiable if a contradiction occurs.
      */
     protected void integrateTrueLiteral(int literal, IntArrayList origins) throws Unsatisfiable {
@@ -425,6 +425,7 @@ public class EquivalenceClasses  {
     private synchronized void removeClause(Clause clause) {
         --statistics.clauses;
         clauses.remove(clause);
+        clause.setRemoved();
         for(CLiteral cliteral : clause) {literalIndex.remove(cliteral.literal);}}
 
     /** adds a literal to the clause
