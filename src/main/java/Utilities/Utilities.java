@@ -815,6 +815,21 @@ public class Utilities {
             if(!list2.contains(item)) {return false;}}
         return true;}
 
+    /** checks if the array1 is a subset of the array2 (using == on the objects)
+     *
+     * @param array1 an array of objects
+     * @param array2 an array of objects
+     * @return true if the first array is a subset of the second one.
+     */
+    public static boolean isSubset(Object[] array1, Object[] array2) {
+        if(array1.length > array2.length) return false;
+        for(Object object1 : array1) {
+            boolean found = false;
+            for(Object object2 : array2) {
+                if(object1 == object2) {found = true; break;}}
+            if(!found) return false;}
+        return true;}
+
     /** creates a deep clone of the array list
      *
      * @param array a list of IntArrayLists

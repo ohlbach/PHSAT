@@ -16,15 +16,16 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
+import Utilities.Utilities.*;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
+import static Utilities.Utilities.isSubset;
 import static Utilities.Utilities.joinIntArrays;
 
 public class AllClauses {
@@ -554,20 +555,13 @@ public class AllClauses {
         for(int i = 0; i < fullCombinations.size(); ++i) {
             Clause[] oldCombination = fullCombinations.get(i);
             if(isSubset(combination,oldCombination)) return;
-            if(isSubset(oldCombination,combination)) {
-                fullCombinations.remove(i--);}}
+            if(isSubset(oldCombination,combination)) {fullCombinations.remove(i--);}}
         fullCombinations.add(combination);}
 
-    private boolean isSubset(Clause[] combination1, Clause[] combination2) {
-        if(combination1.length > combination2.length) return false;
-        for(Clause clause1 : combination1) {
-            boolean found = false;
-            for(Clause clause2 : combination2) {
-                if(clause1 == clause2) {found = true; break;}}
-            if(!found) return false;}
-        return true;}
+
 
     private void multiResolution(Clause[] combination) {
+        if(!selectTaggedClauses(combination)) return;
 
     }
 
@@ -596,7 +590,7 @@ public class AllClauses {
                             almostTagged.add(cClause);}}}}));}
             ++timestamp;}
         timestamp += 2;
-        return true;}
+        return !fullyTagged.isEmpty();}
 
 
     /** checks if the clause is a unit clause.
