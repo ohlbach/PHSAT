@@ -2,6 +2,7 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.TwoLiteral.TwoLitClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -97,7 +98,7 @@ public class MRMatrix {
             if(dLiteral != null && literal == dColumn.get(row).literal) return row;}
         return dColumn.size()-1;}
 
-    public void mrResolve(ArrayList<Clause> oneLitClauses, ArrayList<Clause> twoLitClauses) throws Unsatisfiable {
+    public void mrResolve(ArrayList<Clause> oneLitClauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable {
         int[] colIndices;
         for(int size = columns; size > 1; --size) {
             while((colIndices = findFirstColIndices(size)) != null) {
@@ -108,7 +109,8 @@ public class MRMatrix {
                 mrResolveRectangle(colIndices,block,oneLitClauses,twoLitClauses);}}}
 
     private void mrResolveSquare(int[] colIndices, ArrayList<CLiteral[]> block,
-                                 ArrayList<Clause> oneLitClauses, ArrayList<Clause> twoLitClauses) {
+                                 ArrayList<Clause> oneLitClauses, ArrayList<TwoLitClause> twoLitClauses)
+        throws Unsatisfiable {
         IntArrayList origins = null;
         CLiteral external = null;
         for(CLiteral[] clausePart : block) {
@@ -128,19 +130,13 @@ public class MRMatrix {
                     if(clausePart[colIndex].literal == literal) {found = true; break;}}
                 if(!found) {
                     if(external == null) {
-                        Clause unitClause = new Clause(0,ClauseType.AND,1);
-                        unitClause.add(-literal);
-                        if(trackReasoning) unitClause.origins = joinIntArraysSorted(origins,dClause.origins);
-                        oneLitClauses.add(unitClause);}
-                    else {
-                        Clause twoClause = new Clause(0,ClauseType.OR,2);
-                        twoClause.add(external.literal);
-                        twoClause.add(-literal);
-                        if(trackReasoning) twoClause.origins = joinIntArraysSorted(origins,dClause.origins);
-                        twoLitClauses.add(twoClause);}}}}}
+                        addOneLitClause(-literal,
+                                trackReasoning ? joinIntArraysSorted(origins,dClause.origins) : null,oneLitClauses);}
+                    else {addTwoLitClause(external.literal,-literal,
+                                trackReasoning ? joinIntArraysSorted(origins,dClause.origins) : null, twoLitClauses);}}}}}
 
     private void mrResolveRectangle(int[] colIndices, ArrayList<CLiteral[]> block,
-                                    ArrayList<Clause> oneLitClauses, ArrayList<Clause> twoLitClauses) throws Unsatisfiable{
+                                    ArrayList<Clause> oneLitClauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable{
         IntArrayList origins = null;
         ArrayList<CLiteral> externals = new ArrayList<>();
         for (CLiteral[] clausePart : block) {
@@ -152,39 +148,63 @@ public class MRMatrix {
                     if (cLiteral != null) {
                         origins = joinIntArrays(origins, cLiteral.clause.origins);
                         break;}}}}
-        if(externals.size() == 0) {
-            throw new Unsatisfiable("",origins);}
+        switch(externals.size()) {
+            case 0: throw new Unsatisfiable("",origins);
+            case 1:
+            for(int colIndex : colIndices) {
+                Clause dClause = combination[colIndex];
+                for(CLiteral dLiteral : dClause) {
+                    int literal = dLiteral.literal;
+                    boolean found = false;
+                    for(CLiteral[] clausePart : block) {
+                        if(clausePart[colIndex].literal == literal) {found = true; break;}}
+                    if(!found) {
+                        if(externals.isEmpty())
+                            addOneLitClause(-literal, trackReasoning ? joinIntArraysSorted(origins,dClause.origins) : null,
+                            oneLitClauses);
+                    else {addTwoLitClause(-literal,externals.get(0).literal,
+                                trackReasoning ? joinIntArraysSorted(origins,dClause.origins) : null,
+                                twoLitClauses);}}}}
+            case 2: addTwoLitClause(externals.get(0).literal,externals.get(1).literal,origins,twoLitClauses);}}
 
-        if(externals.size() == 2) {
-            Clause twoClause = new Clause(0,ClauseType.OR,2);
-            twoClause.add(externals.get(0));
-            twoClause.add(externals.get(1));
-            if(trackReasoning) twoClause.origins = sortIntArray(origins);
-            twoLitClauses.add(twoClause);
-            return;}
+    /** adds a derived literal as one-literal clause to the list.
+     * The literal is only added if it is new to the list
+     * The literal is wrapped into a clause in order to store the origins with it.
+     *
+     * @param literal        a derived literal
+     * @param origins        the basic clause ids causing the derivation of the literal
+     * @param oneLitClauses  the list of derived unit clauses
+     * @throws Unsatisfiable if the literal contradicts a previously derived literal.
+     */
+    private void addOneLitClause(int literal, IntArrayList origins, ArrayList<Clause> oneLitClauses) throws Unsatisfiable {
+        for(Clause clause : oneLitClauses) {
+            int oldLiteral = clause.getLiteral(0);
+            if(literal == oldLiteral) return; // is already there
+            if(literal == -oldLiteral) throw new Unsatisfiable("", joinIntArraysSorted(clause.origins, origins));}
+            Clause unitClause = new Clause(0,ClauseType.AND,1); // clause id is arbitrary
+            unitClause.add(literal);
+            unitClause.origins = sortIntArray(origins);
+            oneLitClauses.add(unitClause);}
 
-        for(int colIndex : colIndices) {
-            Clause dClause = combination[colIndex];
-            for(CLiteral dLiteral : dClause) {
-                int literal = dLiteral.literal;
-                boolean found = false;
-                for(CLiteral[] clausePart : block) {
-                    if(clausePart[colIndex].literal == literal) {found = true; break;}}
-                if(!found) {
-                    if(externals.isEmpty()) {
-                        Clause unitClause = new Clause(0,ClauseType.AND,1);
-                        unitClause.add(-literal);
-                        if(trackReasoning) unitClause.origins = joinIntArraysSorted(origins,dClause.origins);
-                        oneLitClauses.add(unitClause);}
-                    else {
-                        Clause twoClause = new Clause(0,ClauseType.OR,2);
-                        twoClause.add(externals.get(0).literal);
-                        twoClause.add(-literal);
-                        if(trackReasoning) twoClause.origins = joinIntArraysSorted(origins,dClause.origins);
-                        twoLitClauses.add(twoClause);}}}}}
+    /** adds a derived two-literal clause to the list, if it is not already there
+     * The two literals are wrapped into a clause in order to store the origins as well.
+     *
+     * @param literal1       a literal of the two-literal clause
+     * @param literal2       a literal of the two-literal clause
+     * @param origins        the basic clause ids causing the derivation of the literal
+     * @param twoLitClauses  the list of derived two-literal clauses.
+     */
+    private void addTwoLitClause(int literal1, int literal2, IntArrayList origins,  ArrayList<TwoLitClause> twoLitClauses) {
+        for(TwoLitClause clause : twoLitClauses) {
+            int lit1 = clause.literal1;
+            int lit2 = clause.literal2;
+            if((lit1 == literal1 && lit2 == literal2) || (lit2 == literal1 && lit1 == literal2)) return;}
+            TwoLitClause twoClause = new TwoLitClause(0,literal1,literal2, trackReasoning ? sortIntArray(origins) : null);
+            twoLitClauses.add(twoClause);}
 
 
-        private ArrayList<CLiteral[]> block = new ArrayList<>();
+
+    private ArrayList<CLiteral[]> block = new ArrayList<>();
 
     /** finds a block in the matrix which matches colIndices.
      * Example: colIndices = [3,5,7] <br>

@@ -1,6 +1,7 @@
 package Datastructures.Clauses;
 
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.TwoLiteral.TwoLitClause;
 
 import java.util.ArrayList;
 
@@ -9,7 +10,7 @@ public class MRMatrices {
 
     public ArrayList<MRMatrix> matrices = new ArrayList<>();
     private ArrayList<Clause> oneLitClauses = new ArrayList<>();
-    private ArrayList<Clause> twoLitClauses = new ArrayList<>();
+    private ArrayList<TwoLitClause> twoLitClauses = new ArrayList<>();
 
 
     public MRMatrices(Clause[] combination, boolean trackReasoning, ArrayList<Clause> fullyTagged, ArrayList<Clause> almostTagged) {
