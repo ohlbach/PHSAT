@@ -2,30 +2,42 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Symboltable;
 import Datastructures.TwoLiteral.TwoLitClause;
+import Management.Monitor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.Formatter;
+import java.util.Locale;
 
 import static Utilities.Utilities.*;
 
 public class MRMatrix {
-    public Clause[] combination;
-    public ArrayList<CLiteral>[] dLiterals;
-    public ArrayList<CLiteral[]> matrix = new ArrayList<>();
-    public int columns;
+    private Clause[] combination;
+    private ArrayList<CLiteral>[] dLiterals;
+    private ArrayList<CLiteral[]> matrix = new ArrayList<>();
+    private int columns;
     public boolean trackReasoning;
+    private Symboltable symboltable;
+    private Monitor monitor;
+    private boolean monitoring;
 
-    public MRMatrix(Clause[] combination, boolean trackReasoning) {
+
+    public MRMatrix(Clause[] combination, Symboltable symboltable, Monitor  monitor, boolean trackReasoning) {
         this.combination = combination;
+        this.symboltable = symboltable;
+        this.monitor = monitor;
+        monitoring = monitor != null;
         this.trackReasoning = trackReasoning;
         this.columns = combination.length;
         int maxLength = 0;
         for(Clause clause : combination) maxLength = Math.max(maxLength,clause.size());
         dLiterals = new ArrayList[combination.length];
         for(int i = 0; i < columns; ++i) {
-            dLiterals[i] = (ArrayList<CLiteral>)combination[i].cliterals.clone();}
-        for(int i = columns; i < maxLength; ++i) dLiterals[i].add(null);}
+            dLiterals[i] = (ArrayList<CLiteral>)combination[i].cliterals.clone();
+            int size = dLiterals[i].size();
+            for(int j = size; j < maxLength; ++j) dLiterals[i].add(null);}}
 
     /** inserts the clause into the matrix
      *
@@ -72,7 +84,7 @@ public class MRMatrix {
             if(cLiteral != null && literal == cLiteral.literal) return true;}
         return false;}
 
-    /** exchanges the CLiterals in the column such that the literal can be put into the iven row number
+    /** exchanges the CLiterals in the column such that the literal can be put into the given row number
      *
      * @param literal a literal
      * @param row     a target row number
@@ -269,4 +281,73 @@ public class MRMatrix {
             previousIndices.add(indices);
             return indices;}
         return null;}
+
+
+    /** returns the clause of the given matrix's row
+     *
+     * @param row a row in the matrix (the literals of the clause, possibly with nulls inbetween
+     * @return the clause belonging to the row.
+     */
+    private Clause getClause(CLiteral[] row) {
+        for(CLiteral cLiteral : row) {
+            if(cLiteral != null) return cLiteral.clause;}
+        return null;}
+
+
+    public String infoString(Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        st.append("Multi-Resolution Matrix\nDisjointness Clauses:\n");
+        int width = 0;
+        for(Clause dClause : combination) {width = Math.max(width,Integer.toString(dClause.id).length());}
+
+        for(Clause dClause :combination) {st.append(dClause.toString(width,symboltable)).append("\n");}
+
+        for(Clause dClause : combination) {
+            for(CLiteral dLiteral : dClause)
+                width = Math.max(width,Symboltable.toString(dLiteral.literal,symboltable).length());}
+
+        st.append("\n\nRearranged literals of the disjointness clauses:\n");
+        Formatter format = new Formatter(st, Locale.GERMANY);
+        combinationHeader(st,0,width,format);
+        for(int row = 0; row <dLiterals[0].size(); ++row) {
+            for(int i = 0; i < columns; ++i) {
+                CLiteral dLiteral = dLiterals[i].get(row);
+                format.format("%"+width+"s|",
+                        (dLiteral == null ? " " : Symboltable.toString(dLiteral.literal,symboltable)));}
+            st.append("\n");}
+        return st.toString();}
+
+    private void combinationHeader(StringBuilder st, int prefix, int width, Formatter format) {
+        if(prefix > 0) format.format("%"+prefix+"s "," ");
+        for(Clause clause : combination) format.format("%"+width+"s|",clause.id);
+        st.append("\n");
+        st.append(concatenateString("-",combination.length * (width+3)));
+        st.append("\n");}
+
+    //public Clause[] combination;
+    //public ArrayList<CLiteral>[] dLiterals;
+    //public ArrayList<CLiteral[]> matrix = new ArrayList<>();
+
+    public String toString(Symboltable symboltable) {
+        int dSize = Clause.clauseNameWidth(combination) + 2;
+        int cSize = 1;
+        for(CLiteral[] row : matrix) {
+            for(CLiteral cLiteral : row) {
+                Clause clause = getClause(row);
+                if(clause != null) cSize = Math.max(cSize,Integer.toString(clause.id).length()+2);}}
+
+        StringBuilder st = new StringBuilder();
+        Formatter format = new Formatter(st, Locale.GERMANY);
+        combinationHeader(st,cSize,dSize,format);
+        for(CLiteral[] row : matrix) {
+            Clause clause = getClause(row);
+            if(clause == null) continue;
+            format.format("%"+cSize+"s|",clause.id);
+            for(CLiteral cLiteral : row) {
+                format.format("|%"+dSize+"s",cLiteral == null ? " " :
+                        Symboltable.toString(cLiteral.literal,symboltable));}
+            st.append("\n");}
+        return st.toString();}
+
+
 }

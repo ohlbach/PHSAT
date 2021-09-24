@@ -1,7 +1,9 @@
 package Datastructures.Clauses;
 
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Symboltable;
 import Datastructures.TwoLiteral.TwoLitClause;
+import Management.Monitor;
 
 import java.util.ArrayList;
 
@@ -13,16 +15,16 @@ public class MRMatrices {
     private ArrayList<TwoLitClause> twoLitClauses = new ArrayList<>();
 
 
-    public MRMatrices(Clause[] combination, boolean trackReasoning, ArrayList<Clause> fullyTagged, ArrayList<Clause> almostTagged) {
+    public MRMatrices(Clause[] combination, Symboltable symboltable, Monitor monitor,  boolean trackReasoning, ArrayList<Clause> fullyTagged, ArrayList<Clause> almostTagged) {
         this.combination = combination;
-        matrices.add(new MRMatrix(combination, trackReasoning));
+        matrices.add(new MRMatrix(combination, symboltable, monitor, trackReasoning));
         for(int i = 0; i < fullyTagged.size(); ++i) {
             Clause clause = fullyTagged.get(i);
             boolean done = false;
             for(MRMatrix matrix : matrices) {
                 if(matrix.insertClause(clause)) {done = true; break;}}
             if(done) continue;
-            MRMatrix matrix = new MRMatrix(combination,trackReasoning);
+            MRMatrix matrix = new MRMatrix(combination,symboltable, monitor, trackReasoning);
             matrices.add(matrix);
             matrix.insertClause(clause);
             for(int j = 0; j < i; ++j) {matrix.insertClause(fullyTagged.get(j));}}
@@ -33,7 +35,7 @@ public class MRMatrices {
             for(MRMatrix matrix : matrices) {
                 if(matrix.insertClause(clause)) {done = true; break;}}
             if(done) continue;
-            MRMatrix matrix = new MRMatrix(combination,trackReasoning);
+            MRMatrix matrix = new MRMatrix(combination,symboltable, monitor, trackReasoning);
             matrices.add(matrix);
             matrix.insertClause(clause);
             for(int j = 0; j < fullyTagged.size(); ++j) {matrix.insertClause(fullyTagged.get(j));}

@@ -25,7 +25,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** the literals */
     public ArrayList<CLiteral> cliterals;
     /** indicates that the clause has been removed */
-    private boolean removed = false;
+    public boolean removed = false;
     /** for sorting clauses, for example in a listPosition queue */
     public int listPosition = -1;
     /** positive, negative or mixed */
@@ -411,6 +411,17 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(!clause.isRemoved()) newClauses[i++] = clause;}
         return newClauses;}
 
+    /** computes the maximum width of the clause ids.
+     *
+     * @param clauses an array of clauses
+     * @return the maximum width of the clause ids
+     */
+    public static int clauseNameWidth(Clause[] clauses) {
+        int width = 0;
+        for(Clause clause : clauses) {
+            width = Math.max(width,Integer.toString(clause.id).length());}
+        return width;}
+
     /** generates a string: clause-number: literals
      *
      * @return a string: clause-number: literals
@@ -436,7 +447,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         StringBuilder st = new StringBuilder();
         if(width > 0) {
             Formatter format = new Formatter(st, Locale.GERMANY);
-            format.format("%"+width+"s: ", clauseType.prefix+id);}
+            format.format("%-"+(width+clauseType.prefix.length())+"s: ", clauseType.prefix+id);}
         else st.append(clauseType.prefix+Integer.toString(id)+": ");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {

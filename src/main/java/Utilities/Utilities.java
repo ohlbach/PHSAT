@@ -890,6 +890,17 @@ public class Utilities {
         return -1;
     }
 
+    /** contatenates the string n times
+     *
+     * @param s a string
+     * @param n an integer
+     * @return the concatenated string.
+     */
+    public static String concatenateString(String s, int n) {
+        StringBuilder st = new StringBuilder();
+        for(int i = 0; i < n; ++i) st.append(s);
+        return st.toString();}
+
 
     public static void  mainA(String[] args) {
         int a = toInt(new int[]{0,4});
