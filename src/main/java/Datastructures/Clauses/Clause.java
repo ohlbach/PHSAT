@@ -62,7 +62,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public Clause(int id, ClauseType clauseType, IntArrayList literals, IntArrayList origins) {
         this.id = id;
         this.clauseType = clauseType;
-        this.origins = origins;
+        this.origins = origins == null ? IntArrayList.wrap(new int[]{id}) : origins;
         cliterals = new ArrayList<>(literals.size());
         for(int i = 0; i < literals.size(); ++i) {
             cliterals.add(new CLiteral(literals.getInt(i),this,i));}
