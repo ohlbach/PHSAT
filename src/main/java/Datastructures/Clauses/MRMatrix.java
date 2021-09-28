@@ -6,8 +6,8 @@ import Datastructures.Symboltable;
 import Datastructures.TwoLiteral.TwoLitClause;
 import Management.Monitor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import jdk.nashorn.internal.ir.Symbol;
 
+import java.awt.image.AreaAveragingScaleFilter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Formatter;
@@ -15,17 +15,39 @@ import java.util.Locale;
 
 import static Utilities.Utilities.*;
 
+/** This class performs multi-resolution.
+ * A simple example: Clauses:
+ * 1,2,3<br>
+ * 4,5,6<br>
+ * 7,8,9<br>
+ * 10,11,12<br>
+ * where the disjointness clauses are:<br>
+ * 1,4,7,10<br>
+ * 2,5,8,11<br>
+ * 3,6,9,12<br>
+ * This is an immediate contradiction. <br>
+ * There are other versions of multi-resolution where resolvents are created.
+ */
 public class MRMatrix {
-    private Clause[] combination;
-    private ArrayList<CLiteral>[] dLiterals;
-    private ArrayList<CLiteral[]> matrix = new ArrayList<>();
-    private int columns;
-    public boolean trackReasoning;
-    private Symboltable symboltable;
-    private Monitor monitor;
-    private boolean monitoring;
-    private String monitorId;
+    private Clause[] combination;            // a list of Disjointness clauses
+    private ArrayList<CLiteral>[] dLiterals; // the rearranged list of CLiterals of the disjointness clauses
+    private ArrayList<CLiteral[]> matrix = new ArrayList<>(); // the matrix of clauses
+    private int columns;                     // combination.length
+    public boolean trackReasoning;           // controls computation of origins
+    private Symboltable symboltable;         // null or a symboltable
+    private Monitor monitor;                 // null or a monitor
+    private boolean monitoring;              // monitor != null
+    private String monitorId;                // a monitor id
 
+
+    /** Creates a multi-resolution matrix
+     *
+     * @param combination a list of Disjointness clauses
+     * @param symboltable a symboltable
+     * @param monitor     null or a monitor
+     * @param monitorId   a monitorId
+     * @param trackReasoning controls computation of origins.
+     */
 
     public MRMatrix(Clause[] combination, Symboltable symboltable, Monitor  monitor, String monitorId,
                     boolean trackReasoning) {
@@ -50,6 +72,7 @@ public class MRMatrix {
      * @return true if the clause could be inserted.
      */
     public boolean insertClause(Clause cClause) {
+        System.out.println("INS " + cClause.toString());
         for(CLiteral cLiteral : cClause) {
             int literal = cLiteral.literal;
             if(contains(literal, getColumn(literal))) return false;}
@@ -116,6 +139,12 @@ public class MRMatrix {
             if(dLiteral != null && literal == dColumn.get(row).literal) return row;}
         return dColumn.size()-1;}
 
+    /** performs all multi-resolutions and adds the resolvents to oneLitClauses and twoLitClauses
+     *
+     * @param oneLitClauses  for adding derived one-literal clauses
+     * @param twoLitClauses  for adding derived two-literal clauses.
+     * @throws Unsatisfiable if a contradiction is found.
+     */
     public void mrResolve(ArrayList<Clause> oneLitClauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable {
         int[] colIndices;
         for(int size = columns; size > 1; --size) {
@@ -158,6 +187,7 @@ public class MRMatrix {
     protected void mrResolveSquare(int[] colIndices, ArrayList<CLiteral[]> block,
                                  ArrayList<Clause> oneLitClauses, ArrayList<TwoLitClause> twoLitClauses)
             throws Unsatisfiable {
+        System.out.println("COL " + Arrays.toString(colIndices) );
         IntArrayList origins = null;
         CLiteral external = null;
         for(CLiteral[] row : block) {
@@ -175,6 +205,7 @@ public class MRMatrix {
                 int literal = dLiteral.literal; // not in the block. They generate resolvents.
                 boolean found = false;
                 for(CLiteral[] row : block) {
+                    System.out.println("ROW " + arraysToString(row,(cl-> cl == null ? " ": ((CLiteral)cl).literal)));
                     if(row[colIndex] != null && row[colIndex].literal == literal) {found = true; break;}}
                 if(!found) { // literal is not in the block
                     if(external == null) {  // generate unit literals
@@ -184,38 +215,60 @@ public class MRMatrix {
                                 trackReasoning ? joinIntArraysSorted(origins,dClause.origins) : null, twoLitClauses);}}}}}
 
 
+    /** performs multi-resolution where the block has more rows than columns.
+     * Example: block:
+     * 1,2,3<br>
+     * 4,5,6<br>
+     * 7,8,9<br>
+     * 10,11,12<br>
+     * where the disjointness clauses are:<br>
+     * 1,4,7,10<br>
+     * 2,5,8,11<br>
+     * 3,6,9,12<br>
+     * This is an immediate contradiction. <br>
+     * <br>
+     * Example: (with the same disjointness clauses) block: <br>
+     * 1,2,3<br>
+     * 4,5,6,20<br>
+     * 7,8,9<br>
+     * 10,11,12<br>
+     * Now a unit clause 20 can be derived.
+     * Example: (with the same disjointness clauses) block: <br>
+     * 1,2,3<br>
+     * 4,5,6,20<br>
+     * 7,8,9,30<br>
+     * 10,11,12<br>
+     * Now a two-literal clause 20,30 can be derived.
+     *
+     * @param colIndices     the result of findFirstColIndices
+     * @param block          the result of findBlock
+     * @param oneLitClauses  for adding derived one-literal clauses
+     * @param twoLitClauses  for adding derived two-literal clauses.
+     * @throws Unsatisfiable if a contradiction is found.
+     */
     protected void mrResolveRectangle(int[] colIndices, ArrayList<CLiteral[]> block,
                                     ArrayList<Clause> oneLitClauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable{
         IntArrayList origins = null;
         ArrayList<CLiteral> externals = new ArrayList<>();
-        for (CLiteral[] clausePart : block) {
-            CLiteral external = clausePart[clausePart.length - 1];
-            if (external != null && externals.size() > 1) return; // only at most two externals allowed
-            externals.add(external);
+        for (CLiteral[] row : block) { // compute externals and origins
             if (trackReasoning) {
-                for (CLiteral cLiteral : clausePart) {
-                    if (cLiteral != null) {
-                        origins = joinIntArrays(origins, cLiteral.clause.origins);
-                        break;}}}}
-        switch(externals.size()) {
-            case 0: throw new Unsatisfiable("",origins);
-            case 1:
+                for (CLiteral cLiteral : row) {
+                    if (cLiteral != null) {origins = joinIntArrays(origins, cLiteral.clause.origins); break;}}}
+            CLiteral external = row[row.length - 1];
+            if(external == null) continue;
+            if(externals.size() > 1) return; // at most two externals allowed
+            externals.add(external);}
+
+        if (trackReasoning) {
             for(int colIndex : colIndices) {
-                Clause dClause = combination[colIndex];
-                for(CLiteral dLiteral : dClause) {
-                    int literal = dLiteral.literal;
-                    boolean found = false;
-                    for(CLiteral[] clausePart : block) {
-                        if(clausePart[colIndex].literal == literal) {found = true; break;}}
-                    if(!found) {
-                        if(externals.isEmpty())
-                            addOneLitClause(-literal, colIndices,block,
-                                    trackReasoning ? joinIntArraysSorted(origins,dClause.origins) : null,
-                            oneLitClauses);
-                    else {addTwoLitClause(-literal,externals.get(0).literal,colIndices, block,
-                                trackReasoning ? joinIntArraysSorted(origins,dClause.origins) : null,
-                                twoLitClauses);}}}}
-            case 2: addTwoLitClause(externals.get(0).literal,externals.get(1).literal,colIndices, block,origins,twoLitClauses);}}
+                origins = joinIntArraysSorted(origins,combination[colIndex].origins);}}
+
+        switch(externals.size()) {
+            case 0: throw new Unsatisfiable(block2String(colIndices,block,symboltable) + "is unsatisfiable",
+                                            origins);
+            case 1: addOneLitClause(externals.get(0).literal,colIndices,block,origins,oneLitClauses); break;
+            case 2: addTwoLitClause(externals.get(0).literal,externals.get(1).literal,
+                    colIndices, block,origins,twoLitClauses);}}
 
     /** adds a derived literal as one-literal clause to the list.
      * The literal is only added if it is new to the list
@@ -333,7 +386,7 @@ public class MRMatrix {
         st.append("\n");
         st.append(concatenateString("-",combination.length * (width+3))).append("\n");
         for(CLiteral[] row : block) {
-            format.format("%"+width+"s|",row[0].clause.id);
+            format.format("%"+width+"s|",getClause(row).id);
             for(CLiteral cLiteral : row) {
                 format.format("%"+width+"s|",cLiteral == null ? " " :
                         Symboltable.toString(cLiteral.literal,symboltable));}

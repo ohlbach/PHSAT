@@ -10,6 +10,7 @@ import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Random;
 
 import static org.junit.Assert.*;
 
@@ -214,4 +215,183 @@ public class MRMatrixTest {
         //System.out.println(twoLitClauses.toString());
         assertEquals("[2-0: 10,-20, 2-0: 10,-21, 2-0: 10,-22]", twoLitClauses.toString());
     }
-}
+
+    @Test
+    public void mrResolveRectangle() throws Unsatisfiable {
+        System.out.println("mrResolveRectangle");
+        Monitor monitor = new Monitor(null,"mixed",errors,warnings);
+        Clause[] combination = new Clause[3];
+        combination[0] = new Clause(100, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{1, 4, 7, 10}), null);
+        combination[1] = new Clause(2, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{2, 5, 8, 11}), null);
+        combination[2] = new Clause(3, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{3, 6, 9, 12}), null);
+        MRMatrix matrix = new MRMatrix(combination, null, monitor, "M-Test", true);
+        Clause clause1 = new Clause(10, ClauseType.OR, IntArrayList.wrap(new int[]{1, 2,3}), null);
+        Clause clause2 = new Clause(11, ClauseType.OR, IntArrayList.wrap(new int[]{4, 5,6,20}), null);
+        Clause clause3 = new Clause(12, ClauseType.OR, IntArrayList.wrap(new int[]{7, 8, 9}), null);
+        Clause clause4 = new Clause(13, ClauseType.OR, IntArrayList.wrap(new int[]{10,11,12}), null);
+        matrix.insertClause(clause1);
+        matrix.insertClause(clause2);
+        matrix.insertClause(clause3);
+        matrix.insertClause(clause4);
+        System.out.println(matrix.infoString(null));
+        int[] colIndices = matrix.findFirstColIndices(3);
+        ArrayList<CLiteral[]> block = matrix.findBlock(colIndices);
+        System.out.println(matrix.block2String(colIndices, block, null));
+        ArrayList<Clause> oneLitClauses = new ArrayList<>();
+        ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
+        matrix.mrResolveRectangle(colIndices, block, oneLitClauses, twoLitClauses);
+        assertEquals("[A-0: 20]", oneLitClauses.toString());
+    }
+
+    @Test
+    public void mrResolveRectangle2Lit() throws Unsatisfiable {
+        System.out.println("mrResolveRectangle Two Lit Clauses");
+        Monitor monitor = new Monitor(null,"mixed",errors,warnings);
+        Clause[] combination = new Clause[3];
+        combination[0] = new Clause(100, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{1, 4, 7, 10}), null);
+        combination[1] = new Clause(2, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{2, 5, 8, 11}), null);
+        combination[2] = new Clause(3, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{3, 6, 9, 12}), null);
+        MRMatrix matrix = new MRMatrix(combination, null, monitor, "M-Test", true);
+        Clause clause1 = new Clause(10, ClauseType.OR, IntArrayList.wrap(new int[]{1, 2,3}), null);
+        Clause clause2 = new Clause(11, ClauseType.OR, IntArrayList.wrap(new int[]{4, 5,6,20}), null);
+        Clause clause3 = new Clause(12, ClauseType.OR, IntArrayList.wrap(new int[]{7, 8, 9,30}), null);
+        Clause clause4 = new Clause(13, ClauseType.OR, IntArrayList.wrap(new int[]{10,11,12}), null);
+        matrix.insertClause(clause1);
+        matrix.insertClause(clause2);
+        matrix.insertClause(clause3);
+        matrix.insertClause(clause4);
+        //System.out.println(matrix.infoString(null));
+        int[] colIndices = matrix.findFirstColIndices(3);
+        ArrayList<CLiteral[]> block = matrix.findBlock(colIndices);
+        //System.out.println(matrix.block2String(colIndices, block, null));
+        ArrayList<Clause> oneLitClauses = new ArrayList<>();
+        ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
+        matrix.mrResolveRectangle(colIndices, block, oneLitClauses, twoLitClauses);
+        assertEquals("[2-0: 20,30]", twoLitClauses.toString());
+    }
+
+    @Test
+    public void mrResolveRectangleUnsat() throws Unsatisfiable {
+        System.out.println("mrResolveRectangle Unsatisfiable");
+        Monitor monitor = new Monitor(null,"mixed",errors,warnings);
+        Clause[] combination = new Clause[3];
+        combination[0] = new Clause(100, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{1, 4, 7, 10}), null);
+        combination[1] = new Clause(2, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{2, 5, 8, 11}), null);
+        combination[2] = new Clause(3, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{3, 6, 9, 12}), null);
+        MRMatrix matrix = new MRMatrix(combination, null, monitor, "M-Test", true);
+        Clause clause1 = new Clause(10, ClauseType.OR, IntArrayList.wrap(new int[]{1, 2,3}), null);
+        Clause clause2 = new Clause(11, ClauseType.OR, IntArrayList.wrap(new int[]{4, 5,6}), null);
+        Clause clause3 = new Clause(12, ClauseType.OR, IntArrayList.wrap(new int[]{7, 8, 9}), null);
+        Clause clause4 = new Clause(13, ClauseType.OR, IntArrayList.wrap(new int[]{10,11,12}), null);
+        matrix.insertClause(clause1);
+        matrix.insertClause(clause2);
+        matrix.insertClause(clause3);
+        matrix.insertClause(clause4);
+        //System.out.println(matrix.infoString(null));
+        int[] colIndices = matrix.findFirstColIndices(3);
+        ArrayList<CLiteral[]> block = matrix.findBlock(colIndices);
+        //System.out.println(matrix.block2String(colIndices, block, null));
+        ArrayList<Clause> oneLitClauses = new ArrayList<>();
+        ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
+        try{
+        matrix.mrResolveRectangle(colIndices, block, oneLitClauses, twoLitClauses);}
+        catch(Unsatisfiable uns) {System.out.println(uns.toString());}
+    }
+
+    @Test
+    public void mrResolve1() throws Unsatisfiable {
+        System.out.println("mrResolve 1");
+        Monitor monitor = new Monitor(null,"mixed",errors,warnings);
+        Clause[] combination = new Clause[3];
+        combination[0] = new Clause(100, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{1, 4, 7, 10}), null);
+        combination[1] = new Clause(2, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{2, 5, 8, 11}), null);
+        combination[2] = new Clause(3, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{3, 6, 9, 12}), null);
+        MRMatrix matrix = new MRMatrix(combination, null, monitor, "M-Test", true);
+        Clause clause1 = new Clause(10, ClauseType.OR, IntArrayList.wrap(new int[]{1, 2,3}), null);
+        Clause clause2 = new Clause(11, ClauseType.OR, IntArrayList.wrap(new int[]{4, 5,6}), null);
+        Clause clause3 = new Clause(12, ClauseType.OR, IntArrayList.wrap(new int[]{7, 8, 9}), null);
+        Clause clause4 = new Clause(13, ClauseType.OR, IntArrayList.wrap(new int[]{10,11,12}), null);
+        matrix.insertClause(clause1);
+        matrix.insertClause(clause2);
+        matrix.insertClause(clause3);
+        matrix.insertClause(clause4);
+        //System.out.println(matrix.infoString(null));
+        ArrayList<Clause> oneLitClauses = new ArrayList<>();
+        ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
+        try{
+            matrix.mrResolve(oneLitClauses, twoLitClauses);}
+        catch(Unsatisfiable uns) {System.out.println(uns.toString());}
+    }
+
+    @Test
+    public void mrResolve2() throws Unsatisfiable {
+        System.out.println("mrResolve 2");
+        Monitor monitor = new Monitor(null,"mixed",errors,warnings);
+        Clause[] combination = new Clause[3];
+        combination[0] = new Clause(100, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{1, 4, 7, 10}), null);
+        combination[1] = new Clause(2, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{2, 5, 8, 11}), null);
+        combination[2] = new Clause(3, ClauseType.DISJOINT, IntArrayList.wrap(new int[]{3, 6, 9,12}), null);
+        MRMatrix matrix = new MRMatrix(combination, null, monitor, "M-Test", true);
+        Clause clause1 = new Clause(10, ClauseType.OR, IntArrayList.wrap(new int[]{1, 2,3}), null);
+        Clause clause2 = new Clause(11, ClauseType.OR, IntArrayList.wrap(new int[]{4, 5,6,20}), null);
+        Clause clause3 = new Clause(12, ClauseType.OR, IntArrayList.wrap(new int[]{7, 8, 9}), null);
+        Clause clause4 = new Clause(13, ClauseType.OR, IntArrayList.wrap(new int[]{10,11}), null);
+        matrix.insertClause(clause1);
+        matrix.insertClause(clause2);
+        matrix.insertClause(clause3);
+        matrix.insertClause(clause4);
+        //System.out.println(matrix.infoString(null));
+        ArrayList<Clause> oneLitClauses = new ArrayList<>();
+        ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
+        matrix.mrResolve(oneLitClauses, twoLitClauses);
+        System.out.println(oneLitClauses);
+        System.out.println(twoLitClauses);
+
+        assertEquals("[A-0: 20]", oneLitClauses.toString());
+        assertEquals("[2-0: 3,9]", twoLitClauses.toString());
+    }
+
+    private boolean contains (int i, int[] ints) {
+        for(int k : ints) if(k == i) return true;
+        return false;}
+
+    @Test
+    public void mrResolveRandom() throws Unsatisfiable {
+        System.out.println("mrResolve random");
+        Monitor monitor = new Monitor(null, "mixed", errors, warnings);
+        Random ramdom = new Random(0);
+        int combSize = 20;
+        int clauseSize = 30;
+        Clause[] combination = new Clause[combSize];
+        for (int i = 0; i < combSize; ++i) {
+            int size = ramdom.nextInt(8) + 3;
+            int[] lits = new int[size];
+            for (int l = 0; l < size; ++l) {
+                int lit =  ramdom.nextInt(50);
+                if(contains(lit,lits)) {--l; continue;}
+                lits[l] = lit;}
+            combination[i] = new Clause(i, ClauseType.DISJOINT, IntArrayList.wrap(lits), null);
+            System.out.println(combination[i].toString()   );
+        }
+        MRMatrix matrix = new MRMatrix(combination, null, monitor, "M-Test", true);
+        for (int i = 0; i < clauseSize; ++i) {
+            int size = ramdom.nextInt(5) + 2;
+            int[] lits = new int[size];
+            for (int l = 0; l < size; ++l) {
+                int lit =  ramdom.nextInt(50);
+                if(contains(lit,lits)) {--l; continue;}
+                lits[l] = lit;}
+            matrix.insertClause(new Clause(100 + i, ClauseType.OR, IntArrayList.wrap(lits), null));
+        }
+        System.out.println(matrix.infoString(null));
+
+        ArrayList<Clause> oneLitClauses = new ArrayList<>();
+        ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
+        matrix.mrResolve(oneLitClauses, twoLitClauses);
+        System.out.println(oneLitClauses);
+        System.out.println(twoLitClauses);
+    }
+
+
+
+    }

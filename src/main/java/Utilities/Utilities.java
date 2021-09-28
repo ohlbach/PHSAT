@@ -901,6 +901,20 @@ public class Utilities {
         for(int i = 0; i < n; ++i) st.append(s);
         return st.toString();}
 
+    /** turns an array to a string
+     *
+     * @param array    the array
+     * @param function for mapping array elements to a string
+     * @return a string [item_1,...,item_n]
+     */
+    public static String arraysToString(Object[] array, Function<Object,Object> function) {
+        StringBuilder st = new StringBuilder();
+        st.append("[");
+        for(int i = 0; i < array.length-1; ++i) {
+            st.append(function.apply(array[i]).toString()).append(",");}
+        st.append(function.apply(array[array.length-1]).toString()).append("]");
+        return st.toString(); }
+
 
     public static void  mainA(String[] args) {
         int a = toInt(new int[]{0,4});
