@@ -42,7 +42,7 @@ public class MRMatrix {
     /** Creates a multi-resolution matrix
      *
      * @param combination a list of Disjointness clauses
-     * @param symboltable a symboltable
+     * @param symboltable null or a symboltable
      * @param monitor     null or a monitor
      * @param monitorId   a monitorId
      * @param trackReasoning controls computation of origins.
@@ -66,16 +66,18 @@ public class MRMatrix {
             for(int j = size; j < matrixDepth; ++j) dLiterals[i].add(null);}}
 
     /** inserts the clause into the matrix
+     * A clause forms a new row in the matrix only if certain conditions hold.
+     * The literals are distributed such that they fit into the combination's columns.
+     * Only one extra literal which is not in the columns is allowed.
+     * It is put into the last cell of the row.
+     * Two literals in the clause which are already disjoint are not allowed.
+     *
      *
      * @param cClause a clause
      * @return true if the clause could be inserted.
      */
     public boolean insertClause(Clause cClause) {
         if(matrix.size() == matrixDepth) return false;
-        /*for(CLiteral cLiteral : cClause) {
-            int literal = cLiteral.literal;
-            if(contains(literal, getColumn(literal))) return false;}*/
-
         int row = matrix.size();
         CLiteral[] matrixRow = new CLiteral[columns +1];
 
@@ -90,10 +92,12 @@ public class MRMatrix {
 
         return true;}
 
-    /** determines the column number for the literal
+    /** determines the column number for the literal.
+     * The literal must be in the disjointness clause of the column,
+     * but but already in the column of the matrix.
      *
      * @param literal a literal
-     * @return the column number for the literal
+     * @return a free column number for the literal
      */
     private int getColumn(int literal) {
         for(int column = 0; column < columns; ++column) {

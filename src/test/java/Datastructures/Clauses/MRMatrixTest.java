@@ -442,5 +442,35 @@ public class MRMatrixTest {
         try{matrix.mrResolve(oneLitClauses, twoLitClauses);}
         catch(Unsatisfiable uns) {System.out.println(uns.toString());}
         }
+    @Test
+    public void pidgeonDerivation()  {
+        System.out.println("pidgeon hole with derivation");
+        Monitor monitor = new Monitor(null, "mixed", errors, warnings);
+        int hole = 10;
+        int pidgeon = 11;
+        Clause[] combination = new Clause[hole];
+        for(int h = 1; h <= hole; ++h) {
+            int[] lits = new int[pidgeon];
+            for(int p = 1; p <= pidgeon; ++p) {lits[p-1] = p*100+h;}
+            combination[h-1] = new Clause(h, ClauseType.DISJOINT, IntArrayList.wrap(lits), null);
+        }
+        MRMatrix matrix = new MRMatrix(combination, null, monitor, "M-Test", true);
+        for(int p = 1; p <= pidgeon; ++p) {
+            int[] lits = new int[hole + (p == 1 ? 1 : 0)];
+            if(p == 1) lits[hole] = -1;
+            for(int h = 1; h <= hole; ++h) {
+                lits[h-1] = p*100+h;}
+            matrix.insertClause(new Clause(1000 + p, ClauseType.OR, IntArrayList.wrap(lits), null));
+        }
+        System.out.println(matrix.infoString(null));
+        System.out.println(matrix.toString(null));
 
+        ArrayList<Clause> oneLitClauses = new ArrayList<>();
+        ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
+
+        try{matrix.mrResolve(oneLitClauses, twoLitClauses);}
+        catch(Unsatisfiable uns) {System.out.println(uns.toString());}
+        System.out.println(oneLitClauses);
+        assertEquals("[A-0: -1]",oneLitClauses.toString());
+    }
     }
