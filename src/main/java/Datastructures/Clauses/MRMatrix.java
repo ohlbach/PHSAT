@@ -186,19 +186,26 @@ public class MRMatrix {
     protected void mrResolveSquare(int[] colIndices, ArrayList<CLiteral[]> block, ArrayList<TwoLitClause> twoLitClauses)
             throws Unsatisfiable {
         IntArrayList origins = null;
-        CLiteral external = null;
-        for(CLiteral[] row : block) {
-            if(trackReasoning) {
-                for(CLiteral cLiteral : row) {
-                    if(cLiteral != null) {origins = joinIntArrays(origins,cLiteral.clause.origins); break;}}}
-            CLiteral nextExternal = row[row.length-1];
-            if(nextExternal == null) continue;
-            if(external != null) return; // at most one external allowed
-            external = nextExternal;}
+
+        int size = block.size();
+        ArrayList<CLiteral> externals = new ArrayList<>();
+        for(int i = 0; i < size; ++i) {
+            CLiteral external = block.get(i)[size];
+            if(external != null) externals.add(external);}
+        if(externals.size() >= 2) return;
 
         if(trackReasoning) {
             for(int colIndex : colIndices) {
                 origins = joinIntArrays(origins, disjointnessClauses[colIndex].origins);}}
+
+        int maxSurplus = 0;
+        for(int i = 0; i < colIndices.length; ++i) {
+            maxSurplus = Math.max(maxSurplus,disjointnessClauses[colIndices[i]].size()-size);}
+
+        if(maxSurplus >= 2) {
+            for(CLiteral cLiteral : externals) {
+                sendTrueLiteral(cLiteral.literal,colIndices,block,null,null,-1,sortIntArray(origins));} }
+        if(externals.size() > 1) return;
 
         for(int i = 0; i < colIndices.length; ++i) {
             for(CLiteral dLiteral : disjointnessClauses[colIndices[i]]) {  // now look for literals in the disjointness clauses which are
@@ -207,9 +214,9 @@ public class MRMatrix {
                 for(CLiteral[] row : block) {
                     if(row[i] != null && row[i].literal == literal) {found = true; break;}}
                 if(!found) { // literal is not in the block
-                    if(external == null) {  // generate unit literals
+                    if(externals.size() == 0) {  // generate unit literals
                         sendTrueLiteral(-literal,colIndices, block,null,null,-1,sortIntArray(origins));}
-                    else {addTwoLitClause(external.literal,-literal,colIndices, block,null, null,-1,-1,
+                    else {addTwoLitClause(externals.get(0).literal,-literal,colIndices, block,null, null,-1,-1,
                                 sortIntArray(origins), twoLitClauses);}}}}}
 
 
