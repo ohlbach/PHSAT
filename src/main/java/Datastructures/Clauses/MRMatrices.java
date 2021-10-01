@@ -1,49 +1,31 @@
 package Datastructures.Clauses;
 
 import Datastructures.Results.Unsatisfiable;
-import Datastructures.Symboltable;
 import Datastructures.TwoLiteral.TwoLitClause;
-import Management.Monitor;
 
 import java.util.ArrayList;
 
 public class MRMatrices {
-    public Clause[] combination;
+    private AllClauses allClauses;
 
-    public ArrayList<MRMatrix> matrices = new ArrayList<>();
-    private ArrayList<Clause> oneLitClauses = new ArrayList<>();
-    private ArrayList<TwoLitClause> twoLitClauses = new ArrayList<>();
+    public MRMatrices(AllClauses allClauses) {
+        this.allClauses = allClauses;}
 
-
-    public MRMatrices(Clause[] combination, Symboltable symboltable, Monitor monitor,  String monitorId,boolean trackReasoning,
-                      ArrayList<Clause> fullyTagged, ArrayList<Clause> almostTagged) {
-        this.combination = combination;
-        matrices.add(new MRMatrix(combination, symboltable, monitor,monitorId, trackReasoning));
-        for(int i = 0; i < fullyTagged.size(); ++i) {
-            Clause clause = fullyTagged.get(i);
+    public void mrResolve(Clause[] disjointnessClauses, ArrayList<Clause> clauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable {
+        ArrayList<MRMatrix> matrices = new ArrayList<>();
+        matrices.add(new MRMatrix(allClauses,disjointnessClauses));
+        for(int i = 0; i < clauses.size(); ++i) {
+            Clause clause = clauses.get(i);
             boolean done = false;
             for(MRMatrix matrix : matrices) {
                 if(matrix.insertClause(clause)) {done = true; break;}}
             if(done) continue;
-            MRMatrix matrix = new MRMatrix(combination,symboltable, monitor,monitorId, trackReasoning);
+            MRMatrix matrix = new MRMatrix(allClauses,disjointnessClauses);
             matrices.add(matrix);
             matrix.insertClause(clause);
-            for(int j = 0; j < i; ++j) {matrix.insertClause(fullyTagged.get(j));}}
+            for(int j = 0; j < i; ++j) {matrix.insertClause(clauses.get(j));}}
 
-        for(int i = 0; i < almostTagged.size(); ++i) {
-            Clause clause = almostTagged.get(i);
-            boolean done = false;
-            for(MRMatrix matrix : matrices) {
-                if(matrix.insertClause(clause)) {done = true; break;}}
-            if(done) continue;
-            MRMatrix matrix = new MRMatrix(combination,symboltable, monitor,monitorId, trackReasoning);
-            matrices.add(matrix);
-            matrix.insertClause(clause);
-            for(int j = 0; j < fullyTagged.size(); ++j) {matrix.insertClause(fullyTagged.get(j));}
-            for(int j = 0; j < i; ++j) {matrix.insertClause(almostTagged.get(j));}}
-        }
+        for(MRMatrix matrix : matrices) {matrix.mrResolve(twoLitClauses);}
+    }
 
-        private void mrResolve() throws Unsatisfiable {
-            for(MRMatrix matrix : matrices) {
-                matrix.mrResolve(oneLitClauses,twoLitClauses);}}
 }

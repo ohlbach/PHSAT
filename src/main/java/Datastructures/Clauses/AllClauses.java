@@ -35,16 +35,16 @@ public class AllClauses {
     private final String problemId;
     private final Thread thread;
 
-    private final Model model;
+    protected final Model model;
     private final BasicClauseList     basicClauseList;
     private final EquivalenceClasses  equivalenceClasses;
     private final DisjointnessClasses disjointnessClasses;
-    private final TwoLitClauses       twoLitClauses;
+    protected final TwoLitClauses       twoLitClauses;
 
     private final boolean monitoring;
-    private final Monitor monitor;
-    private final String monitorId;
-    private final boolean trackReasoning;
+    protected final Monitor monitor;
+    protected final String monitorId;
+    protected final boolean trackReasoning;
 
     private int counter = 0;
     private int maxClauseLength = 0;
@@ -514,7 +514,6 @@ public class AllClauses {
 
     /** computes for a clause of size n a list of arrays: [disjointness clause 1, ... disjointness clause n]
      * Each disjointness clause indicates that the literal may be part of a disjointness <br>
-     * The first element in the arrays is the current number of nulls in the array.
      * The list is attached at variable aux at cliteral's clause.
      *
      * @param dClause  a disjointness clause.
