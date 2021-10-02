@@ -16,6 +16,7 @@ import static org.junit.Assert.*;
 
 public class MRMatrixTest {
 
+    /*
     static StringBuffer errors = new StringBuffer();
     static StringBuffer warnings = new StringBuffer();
     static Clause[] combination = new Clause[4];
@@ -473,4 +474,6 @@ public class MRMatrixTest {
         System.out.println(oneLitClauses);
         assertEquals("[A-0: -1]",oneLitClauses.toString());
     }
+    */
+
     }

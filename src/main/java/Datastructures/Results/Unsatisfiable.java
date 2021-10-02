@@ -3,6 +3,7 @@ package Datastructures.Results;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 /** This class represents the final reason for an unsatisfiability in the clauses.
@@ -20,6 +21,17 @@ public class Unsatisfiable extends Result {
         super();
         this.origins = origins;
         this.reason = reason;}
+
+    /** creates an Unsatisfiable object with a reason
+     *
+     * @param reason for the unsatisfiability
+     * @param inferenceStep the step causing the unsatisfiability
+     */
+    public Unsatisfiable(String reason, InferenceStep inferenceStep) {
+        super();
+        this.inferenceStep = inferenceStep;
+        this.reason = reason;}
+
 
 
     /** just returns the reason for the unsatisfiability

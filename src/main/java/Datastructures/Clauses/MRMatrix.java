@@ -203,9 +203,13 @@ public class MRMatrix {
             maxSurplus = Math.max(maxSurplus,disjointnessClauses[colIndices[i]].size()-size);}
 
         if(maxSurplus >= 2) {
-            for(CLiteral cLiteral : externals) {
-                sendTrueLiteral(cLiteral.literal,colIndices,block,null,null,-1,sortIntArray(origins));} }
-        if(externals.size() > 1) return;
+            switch(externals.size()) {
+                case 1: sendTrueLiteral(externals.get(0).literal,colIndices,block,
+                        null,null,-1,sortIntArray(origins));
+                return;
+                case 2: addTwoLitClause(externals.get(0).literal,externals.get(1).literal,colIndices, block,
+                        null, null,-1,-1,sortIntArray(origins), twoLitClauses);
+                return;}}
 
         for(int i = 0; i < colIndices.length; ++i) {
             for(CLiteral dLiteral : disjointnessClauses[colIndices[i]]) {  // now look for literals in the disjointness clauses which are

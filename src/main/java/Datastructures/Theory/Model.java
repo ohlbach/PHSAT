@@ -2,13 +2,13 @@ package Datastructures.Theory;
 
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import javafx.util.Pair;
 
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
 
-import static Utilities.Utilities.joinIntArrays;
 import static Utilities.Utilities.joinIntArraysSorted;
 
 /** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
@@ -36,6 +36,8 @@ public class Model {
     /** lists the origins, i.e. the ids of the basic clauses causing the truth of the literal */
     private ArrayList<IntArrayList> origins;
 
+    private ArrayList<InferenceStep> inferenceSteps;
+
     /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined) */
     private byte[] status;
 
@@ -53,6 +55,7 @@ public class Model {
         this.symboltable = symboltable;
         model   = new IntArrayList(predicates);
         origins = new ArrayList<>(predicates);
+        inferenceSteps = new ArrayList<>(predicates);
         status  = new byte[predicates+1];}
 
 
@@ -76,7 +79,7 @@ public class Model {
      * @param thread the thread which generated the true literal.
      * @throws Unsatisfiable if a contradiction with an earlier entry in the model occurs.
      */
-    public synchronized void add(int literal, IntArrayList origin, Thread thread) throws Unsatisfiable {
+    public synchronized void addd(int literal, IntArrayList origin, Thread thread) throws Unsatisfiable {
         System.out.println("ADD " + literal);
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
@@ -94,6 +97,34 @@ public class Model {
         for(Pair<Thread, BiConsumer<Integer, IntArrayList>> observer : observers) {
             if(thread != observer.getKey()) {
                 observer.getValue().accept(literal,origin);}}}
+
+    /** pushes a literal onto the model and checks if the literal is already in the model.
+     * If the literal is new to the model then the observers from a thread different to the
+     * submitting thread are called.
+     *
+     * @param literal the literal for the model.
+     * @param inferenceStep the ids of the basic clauses causing this truth
+     * @param thread the thread which generated the true literal.
+     * @throws Unsatisfiable if a contradiction with an earlier entry in the model occurs.
+     */
+    public synchronized void add(int literal, InferenceStep inferenceStep, Thread thread) throws Unsatisfiable {
+        int predicate = Math.abs(literal);
+        assert predicate > 0 && predicate <= predicates;
+        if(isTrue(literal)) {return;}
+        if(isFalse(literal)) {
+            throw new Unsatisfiable(
+                    "Supposed true literal " + Symboltable.toString(literal,symboltable) +
+                            " is already false in the model " + Symboltable.toString(model,symboltable),
+                    inferenceStep);}
+
+        inferenceSteps.add(inferenceStep);
+        model.add(literal);
+        status[predicate] = literal > 0 ? (byte)1: (byte)-1;
+
+        for(Pair<Thread, BiConsumer<Integer, IntArrayList>> observer : observers) {
+            if(thread != observer.getKey()) {
+                observer.getValue().accept(literal,null);}}}
+
 
     /** adds a literal immediately without any checks and transfers
      *
@@ -159,6 +190,20 @@ public class Model {
         byte status = this.status[predicate];
         if(status == 0) {return null;}
         return origins.get(model.indexOf((status > 0) ? predicate : -predicate));}
+
+    /** returns the origins of a model entry
+     *
+     * @param literal a literal
+     * @return null or the origins of the literal entry
+     */
+    public synchronized InferenceStep getInferenceStep(int literal) {
+        if(inferenceSteps == null) {return null;}
+        int predicate = Math.abs(literal);
+        assert predicate <= predicates;
+        byte status = this.status[predicate];
+        if(status == 0) {return null;}
+        return inferenceSteps.get(model.indexOf((status > 0) ? predicate : -predicate));}
+
 
     /** turns the status value into a string
      *

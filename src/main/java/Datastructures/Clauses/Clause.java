@@ -3,6 +3,7 @@ package Datastructures.Clauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
+import InferenceSteps.InferenceStep;
 import Utilities.Positioned;
 import Utilities.Sizable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -36,6 +37,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public IntArrayList origins = null;
     /** some auxiliary pointer */
     public Object aux = null;
+
+    public InferenceStep inferenceStep;
 
     public Clause(int id, ClauseType clauseType) {
         this.id = id;

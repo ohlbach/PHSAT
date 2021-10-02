@@ -1,5 +1,6 @@
 package Datastructures;
 
+import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -14,12 +15,24 @@ import java.util.concurrent.PriorityBlockingQueue;
 public class Task<TaskType> {
     public TaskType taskType;
     public int priority;
-    public IntArrayList origins;
+    public IntArrayList origins = null;
+    public InferenceStep inferenceStep = null;
     public Object a;
     public Object b;
+
+    /*
     public Task(TaskType taskType, IntArrayList origins, Object a, Object b) {
         this.taskType = taskType;
         this.origins = origins;
+        this.a = a;
+        this.b = b;
+    }
+    */
+
+
+    public Task(TaskType taskType, InferenceStep inferenceStep, Object a, Object b) {
+        this.taskType = taskType;
+        this.inferenceStep = inferenceStep;
         this.a = a;
         this.b = b;
     }
@@ -34,6 +47,7 @@ public class Task<TaskType> {
         if(a != null) st.append(" a: " + (a.getClass() == int[].class ? Arrays.toString((int[])a) : a.toString()));
         if(b != null) st.append(", b: " + (b.getClass() == int[].class ? Arrays.toString((int[])b) : b.toString()));
         if(origins != null) st.append(" @ ").append(origins.toString());
+        if(inferenceStep != null) st.append(inferenceStep.toString(null));
         return st.toString();}
 
     /** turns the queue into a string of tasks, sorted according to the queue's comparator.

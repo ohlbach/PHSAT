@@ -12,6 +12,7 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClause;
 import Datastructures.TwoLiteral.TwoLitClauses;
+import InferenceSteps.DisjointnessClause2Clause;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
@@ -345,17 +346,18 @@ public class AllClauses {
 
     /** turns a disjointness class into the corresponding list of two-literal clauses.
      *
-     * @param disjoints a disjointness class.
+     * @param dClause a disjointness class.
      */
-    private void integrateDisjointnessClass(Clause disjoints)  {
-        if(disjoints.isRemoved()) return;
-        IntArrayList origins  = disjoints.origins;
-        ArrayList<CLiteral> cliterals = disjoints.cliterals;
+    private void integrateDisjointnessClass(Clause dClause)  {
+        if(dClause.isRemoved()) return;
+        IntArrayList origins  = dClause.origins;
+        ArrayList<CLiteral> cliterals = dClause.cliterals;
         int size = cliterals.size();
         for(int i = 0; i < size; ++i) {
             int literal1 = -cliterals.get(i).literal;
             for(int j = i+1; j < size; ++j) {
                 Clause clause = new Clause(++counter,clauseType,literal1,-cliterals.get(j).literal,origins);
+                if(trackReasoning) clause.inferenceStep = new DisjointnessClause2Clause(dClause,clause);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE,null, clause,null));}}}
 
     /** turns a disjointness clause into a list of two-literal clauses
@@ -369,6 +371,7 @@ public class AllClauses {
             int literal1 = -basicClause[i];
             for(int j = i+1; j < size; ++j) {
                 Clause clause = new Clause(++counter,clauseType,literal1,-basicClause[j],origins);
+                if(trackReasoning) clause.inferenceStep = new DisjointnessClause2Clause(basicClause,clause);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE,null, clause,null));}}}
 
     private final boolean[] keepClause = new boolean[1];
