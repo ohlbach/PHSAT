@@ -335,7 +335,7 @@ public class DisjointnessClassesTest {
         Clause eqClause = new Clause(1,ClauseType.EQUIV,1,4,origins);
         eqClasses.integrateEquivalence(eqClause,true);
         origins = new IntArrayList(); origins.add(40);
-        model.add(6,origins,null);
+        model.add(6,null,null);
         //dClasses.addTrueLiteral(6,origins);
 
         try{Thread.sleep(100);}catch(Exception ex) {}

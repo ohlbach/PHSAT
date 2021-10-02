@@ -95,9 +95,9 @@ public abstract class ResolutionReduction extends Solver {
     /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.
      */
-    BiConsumer<Integer,IntArrayList> contradictionHandler = ((reason,origin)->{
+    BiConsumer<Integer,IntArrayList> contradictionHandler = null; /*((reason,origin)->{
         taskQueue.add(new Task(priorityResult,(()-> new Unsatisfiable(reason.toString(),null)), (()->reason.toString())));});
-
+*/
     /** the id of the last input clause */
     int maxInputId = 0;
 
@@ -528,7 +528,7 @@ public abstract class ResolutionReduction extends Solver {
     Result processTrueLiteral(int literal) {
         literal = equivalenceClasses.getRepresentative(literal);
         switch(model.status(literal)) {
-            case -1: return new Unsatisfiable(null,null); //model,literal);
+            case -1: return null; //new Unsatisfiable(null,null); //model,literal);
             case +1: return null;}
         model.addImmediately(literal,null);
         BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
@@ -651,7 +651,7 @@ public abstract class ResolutionReduction extends Solver {
         int fromStatus = model.status(fromLiteral);
         int toStatus   = model.status(toLiteral);
         if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
-            return new Unsatisfiable(null,null);} //model,toLiteral);}
+            return null;} //new Unsatisfiable(null,null);} //model,toLiteral);}
         if(fromStatus != 0) {
             addTrueLiteralTask((fromStatus == 1 ? toLiteral : -toLiteral),
                     "equivalent literals " + fromLiteral + " " + toLiteral);

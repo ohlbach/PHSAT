@@ -27,7 +27,7 @@ import static org.junit.Assert.*;
  * Created by ohlbach on 09.12.2019.
  */
 public class ResolutionTest {
-
+/*
     static Method getMethod(String name, Class<?>... classes) {
         try {
             Class clazz = Class.forName("Solvers.Resolution.Resolution");
@@ -751,7 +751,7 @@ public class ResolutionTest {
             assertEquals(BucketSortedIndex.class, getField("literalIndex").get(res).getClass());
         }
 
-    /* private Result initializeClauses() throws InterruptedException {
+     private Result initializeClauses() throws InterruptedException {
         if(basicClauseList.equivalences != null) {
             equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler);
             if(equivalenceClasses == null) {return null;}}
@@ -766,7 +766,7 @@ public class ResolutionTest {
         resolutionLimit = (limit == Integer.MAX_VALUE) ? limit : limit * clauseCounter;
         initializing = false;
         if(Thread.interrupted()) {throw new InterruptedException();}
-        return null;}*/
+        return null;}
 
     @Test
     public void initializeClauses1() throws Exception {
@@ -1027,5 +1027,5 @@ public class ResolutionTest {
     public void addTrueLiteralTask() throws Exception {
 
     }
-
+*/
 }

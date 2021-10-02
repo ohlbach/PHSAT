@@ -13,6 +13,8 @@ import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClause;
 import Datastructures.TwoLiteral.TwoLitClauses;
 import InferenceSteps.DisjointnessClause2Clause;
+import InferenceSteps.EquivalenceReplacements;
+import InferenceSteps.UnitResolution;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
@@ -54,6 +56,7 @@ public class AllClauses {
     private final AllClausesStatistics statistics;
     private int timestamp = 1;
     private final boolean clausesFinished;
+    private Symboltable symboltable;
 
     private final ClauseType clauseType = ClauseType.OR;
 
@@ -97,6 +100,7 @@ public class AllClauses {
         problemId = problemSupervisor.problemId;
         thread = Thread.currentThread();
         model = problemSupervisor.model;
+        symboltable = model.symboltable;
         basicClauseList = problemSupervisor.basicClauseList;
         equivalenceClasses  = problemSupervisor.equivalenceClasses;
         disjointnessClasses = problemSupervisor.disjointnessClasses;
@@ -195,7 +199,7 @@ public class AllClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                     Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<>(AllClauses.TaskType.TRUELITERAL, origins, literal, null));}
+        queue.add(new Task<>(AllClauses.TaskType.TRUELITERAL, null, literal, null));}
 
     /** puts an equivalence into the queue
      *
@@ -228,7 +232,7 @@ public class AllClauses {
      *  - true and false literals are taken care of <br>
      *  - double literals are removed <br>
      *  - tautologies are recognised <br>
-     *  - a subsumed clause is deletec <br>
+     *  - a subsumed clause is deleted <br>
      *  - backward and froward replacement resolution is done <br>
      *  - an empty clause is thrown<br>
      *  - a unit clause is put into the model <br>
@@ -238,41 +242,17 @@ public class AllClauses {
      * @throws Result if a contradiction is found.
      */
     private void integrateClause(Clause clause) throws Result {
-        IntArrayList origins = clause.origins;
-        ArrayList<CLiteral> cliterals = clause.cliterals;
-
-        for(int i = 0; i < cliterals.size(); ++i) {
-            CLiteral cliteral = cliterals.get(i);
-            int oldLiteral = cliteral.literal;
-
-            int literal = equivalenceClasses.getRepresentative(oldLiteral); // take care of equivalences
-            if(trackReasoning && literal != oldLiteral) {
-                origins = joinIntArrays(origins,equivalenceClasses.getOrigins(oldLiteral));}
-
-            switch(model.status(literal)) {                                 // take care of the model
-                case +1: return; // true clause
-                case -1:         // false literal
-                    if(trackReasoning) origins = joinIntArrays(origins,model.getOrigin(literal));
-                    cliterals.remove(i--);
-                    continue;}
-
-            boolean doubel = false;                                        // take care of doubles and tautologies
-            for(int j = 0; j < i; ++j) {
-                int lit = cliterals.get(j).literal;
-                if(lit == literal) {doubel = true; break;}
-                if(lit == -literal) return;} // tautology
-            if(doubel) {cliterals.remove(i--); continue;}
-
-            cliteral.literal = literal;} // maybe changed
+        clause = replaceEquivalences(clause);
+        clause = replaceDoublesAndTautologies(clause);
+        if(clause == null) return;           // tautology, not needed any more
+        clause = replaceTruthValues(clause);
+        if(clause == null) return;           // true clause, not needed any more
 
         switch(clause.size()) {
             case 0:
-                throw new Unsatisfiable("Clause " + clause.id + " became empty", origins);
+                throw new Unsatisfiable("Clause " + clause.id + " became empty", clause.inferenceStep);
             case 1:
-                if (monitoring) {
-                    monitor.print(monitorId, "Clause " + clause.toString(0, model.symboltable) +
-                            " became a unit clause");}
-                model.add(clause.getLiteral(0), origins, null); // back to this
+                model.add(clause.getLiteral(0), clause.inferenceStep, null); // back to this
                 return;}
 
         if(isSubsumed(clause)) return;
@@ -282,27 +262,90 @@ public class AllClauses {
         if(result != null) {
             CLiteral cliteral = (CLiteral) result[0];
             Clause otherClause = (Clause) result[1];
-            ++statistics.forwardReplacementResolutions;
-            if(trackReasoning) origins = joinIntArrays(origins,otherClause.origins);
+            ++statistics.backwardReplacementResolutions; 
             if(monitoring) {
                 monitor.print(monitorId, "Literal " + cliteral.toString(model.symboltable) +
                         " in  clause \n" + cliteral.clause.toString(3,model.symboltable) +
                         " will be removed by replacement resolution with clause\n" +
                         otherClause.toString(3,model.symboltable));}
             clause.remove(cliteral);
-            clause.origins = origins;
             if(checkUnitClause(clause)) return;}
 
-        clause.origins = origins;
 
         if(clause.size() == 2)
-            twoLitClauses.addDerivedClause(clause.getLiteral(0), clause.getLiteral(1), origins);
+            twoLitClauses.addDerivedClause(clause.getLiteral(0), clause.getLiteral(1), null);
 
         simplifyOtherClauses(clause);
         insertClause(clause);
     }
 
+    /** replaces the literals in the oldClause by their representatives in the equivalence class.
+     * The clause must not be integrated.
+     *
+     * @param oldClause a clause
+     * @return the original clause or a new clause with the literals replaced.
+     */
+    protected Clause replaceEquivalences(Clause oldClause) {
+        if(equivalenceClasses.isEmpty()) return oldClause;
+        for(CLiteral cliteral : oldClause) {
+            int oldLiteral = cliteral.literal;
+            int newLiteral = equivalenceClasses.getRepresentative(oldLiteral);
+            if(newLiteral != oldLiteral) {
+                Clause newClause = oldClause.clone(problemSupervisor.nextClauseId());
+                for(CLiteral newcliteral : newClause) {
+                    if(newcliteral.literal == oldLiteral) {
+                        newcliteral.literal = newLiteral;
+                        if(trackReasoning) {
+                            newClause.inferenceStep = new EquivalenceReplacements(oldClause,oldLiteral,newClause,newLiteral,
+                                            equivalenceClasses.getEClause(oldLiteral));
+                            if(monitoring) {monitor.print(monitorId,newClause.inferenceStep.toString(symboltable));}}
+                         return replaceEquivalences(newClause);}}}}
+        return oldClause;}
 
+    /** replaces all double literals and checks for tautology.
+     *
+     * @param clause an unintegrated clause
+     * @return null (tautology) or the clause without double literals.
+     */
+    protected Clause replaceDoublesAndTautologies(Clause clause) {
+        for(int i = 0; i < clause.size(); ++i) {
+            int literal = clause.getLiteral(i);
+            for(int j = i+1; j < clause.size(); ++j) {
+                int otherLiteral = clause.getLiteral(j);
+                if(literal == otherLiteral) {clause.removeAtPosition(j); continue;}
+                if(literal == -otherLiteral) {
+                    if(monitoring) {
+                        monitor.print(monitorId, "Clause " + clause.toString(0,symboltable) +
+                                " is a tautology.");}
+                    return null;}}}
+        return clause;}
+
+    /** a true literal causes the clause to be deleted, a false literal is removed.
+     *
+     * @param clause the original not integrated clause
+     * @return null (true clause) or the unchanged clause or a new shortened clause
+     */
+    protected Clause replaceTruthValues(Clause clause) {
+        Clause newClause = clause;
+        for(int i = 0; i < clause.size(); ++i) {
+            int literal = clause.getLiteral(i);
+            switch(model.status(literal)) {
+                case +1:
+                    if(monitoring) {
+                        monitor.print(monitorId, "Clause " + clause.toString(0,symboltable) +
+                                " has a true literal " +
+                                Symboltable.toString(literal,symboltable) +
+                        " and is deleted.");}
+                    return null;
+                case -1:
+                    newClause = clause.clone(problemSupervisor.nextClauseId());
+                    newClause.removeAtPosition(i);
+                    if(trackReasoning) {
+                        newClause.inferenceStep = new UnitResolution(clause,-literal,newClause,model.getInferenceStep(-literal));
+                        if(monitoring) {monitor.print(monitorId,newClause.inferenceStep.toString(symboltable));}}
+                    clause = newClause;
+                    --i;}}
+        return newClause;}
 
     /** applies a true literal to all clauses.
      * Clauses containing the literal are removed.<br>
@@ -607,7 +650,7 @@ public class AllClauses {
             if (monitoring) {
                 monitor.print(monitorId, "Clause " + clause.toString(0, model.symboltable) +
                         " became a unit clause");}
-            model.add(clause.getLiteral(0), clause.origins, null); // back to this
+            model.add(clause.getLiteral(0), null, null); // back to this
             return true;}
         return false;}
 
@@ -784,8 +827,8 @@ public class AllClauses {
                 if(monitoring) {
                     monitor.print(monitorId,"Clause " + clause.toString(0, model.symboltable) +
                             " became a unit clause");}
-                model.add(clause.getLiteral(0),
-                        trackReasoning ? joinIntArrays(clause.origins,origins) : null,null);
+                model.add(clause.getLiteral(0), null,null);
+                       // trackReasoning ? joinIntArrays(clause.origins,origins) : null,null);
                 literalIndex.remove(clause.getCLiteral(0));
                 clauses.remove(clause);
                 if(clausesFinished && clauses.isEmpty()) throw new Satisfiable(model);

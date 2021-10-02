@@ -40,7 +40,7 @@ import java.util.function.Function;
  *  Unit clauses are exchanged between different solvers. <br>
  *  Therefore various resolution solvers can operate in parallel and exchange unit clauses as intermediate results.
  */
-public class Resolution extends Solver {
+public abstract class Resolution extends Solver {
 
     boolean checkConsistency = true;
 
@@ -209,7 +209,9 @@ public class Resolution extends Solver {
      *  It adds an Unsatisfiable task to the task queue.
      */
     private BiConsumer<Integer,IntArrayList> contradictionHandler = ((reason,origin)->{
-        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.toString(),null)), (()->reason.toString())));});
+        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.toString(),
+                IntArrayList.wrap(new int[]{})
+                )), (()->reason.toString())));});
 
     /** This function is called when a new disjunction is to be inserted.
      *  It generates a simplifyBackwards task.
@@ -504,7 +506,7 @@ public class Resolution extends Solver {
         //System.out.println("PL START " + literal);
         //System.out.println(toString());
         switch(model.status(literal)) {
-            case -1: return new Unsatisfiable(null,null); //model,null); //literal);
+            case -1: //return new Unsatisfiable(null,null); //model,null); //literal);
             case +1: return null;}
         model.addImmediately(literal,null);
         if(false) {
@@ -773,7 +775,7 @@ public class Resolution extends Solver {
         int fromStatus = model.status(fromLiteral);
         int toStatus   = model.status(toLiteral);
         if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
-            return new Unsatisfiable(null,null);} //model,toLiteral);}
+            return null;} //new Unsatisfiable(null,null);} //model,toLiteral);}
         if(fromStatus != 0) {
             addTrueLiteralTask((fromStatus == 1 ? toLiteral : -toLiteral),true,
                     "equivalent literals " + fromLiteral + " " + toLiteral);
@@ -827,7 +829,7 @@ public class Resolution extends Solver {
      *
      * @return the entire statistics information for the resolution solver.
      */
-    public Statistic getStatistics() {return statistics;}
+   // public Statistic getStatistics() {return statistics;}
 
     /** lists the clauses and the literal index as a string.
      *

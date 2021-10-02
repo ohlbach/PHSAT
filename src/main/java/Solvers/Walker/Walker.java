@@ -533,7 +533,8 @@ public abstract class Walker extends Solver {
     public Result importTrueLiteral(int literal) {
         if(isLocallyTrue(-literal)) {
             transferLocalModel();
-            return new Unsatisfiable(null,null);} //model,literal,symboltable);}
+            //return new Unsatisfiable(null,null);
+        } //model,literal,symboltable);}
         ++statistics.importedUnitClauses;
         model.addImmediately(literal,null);
         int predicate = Math.abs(literal);

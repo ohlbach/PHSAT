@@ -56,6 +56,8 @@ public class ProblemSupervisor {
     private String monitorId;
     private boolean monitoring;
 
+    private int clauseCounter = -1;
+
     public SupervisorStatistics statistics = null;
 
     public ProblemSupervisor(Controller controller,GlobalParameters globalParameters,
@@ -72,6 +74,9 @@ public class ProblemSupervisor {
         monitoring                  = monitor != null;
         monitorId                   = problemId+"PS";
     }
+
+    public synchronized int nextClauseId() {
+        return ++clauseCounter;}
 
     /** a thread which found a solution calls this method to set the result and interrupt all other threads
      *
@@ -168,7 +173,7 @@ public class ProblemSupervisor {
         for(int[] basicClause : basicClauseList.conjunctions) {
             for(int i = 2; i < basicClause.length; ++i) {
                 IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);
-                model.add(basicClause[i],origin,supervisorThread);}}
+                model.add(basicClause[i],null,supervisorThread);}}
 
         for(int[] clause : basicClauseList.equivalences) {
             equivalenceClasses.addBasicEquivalenceClause(clause);}}

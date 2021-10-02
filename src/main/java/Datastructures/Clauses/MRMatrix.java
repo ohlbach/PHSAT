@@ -327,7 +327,7 @@ public class MRMatrix {
             monitor.print(monitorId,"Multi-resolution with block\n" +
                     block2String(colIndices,block,ignoreIndices,keepIndex,keepIndex,symboltable) +
                     "yields unit literal " + Symboltable.toString(literal,symboltable) + orig);}
-        model.add(literal,origins,null);}
+        model.add(literal,null,null);}
 
 
     /** adds a derived two-literal clause to the list, if it is not already there

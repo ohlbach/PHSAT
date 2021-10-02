@@ -85,13 +85,13 @@ public class ModelTest {
         IntArrayList orig = new IntArrayList();
         orig.add(10);
         orig.add(20);
-        model.add(1, orig, null);
+        model.add(1, null, null);
         assertEquals(1,observed.get(0));
         assertEquals("[10, 20]",observed.get(1).toString());
         orig = new IntArrayList();
         orig.add(30);
         orig.add(40);
-        model.add(2, orig, Thread.currentThread());
+        model.add(2, null, Thread.currentThread());
         assertEquals(2,observed.size());
         assertEquals("1,2",model.toNumbers());
         assertEquals("p,q",model.toString());
@@ -107,10 +107,10 @@ public class ModelTest {
         Model model = new Model(5, symboltable);
         model.add(1,null,null);
         IntArrayList orig1 = new IntArrayList(); orig1.add(20);
-        model.add(2,orig1,null);
+        model.add(2,null,null);
         try {
             IntArrayList orig2 = new IntArrayList(); orig2.add(30);
-            model.add(-2,orig2,null);}
+            model.add(-2,null,null);}
         catch(Unsatisfiable unsat) {
             System.out.println(unsat.toString());}}
 

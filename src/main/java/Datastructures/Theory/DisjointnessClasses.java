@@ -237,7 +237,7 @@ public class DisjointnessClasses {
                 Symboltable.toString(literal, model.symboltable) +
                 (origins == null ? "" : " " + origins));
         synchronized (this) {
-            queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));
+            queue.add(new Task<>(TaskType.TRUELITERAL, null, literal, null));
         }
     }
 
@@ -594,7 +594,7 @@ public class DisjointnessClasses {
             monitor.print(monitorId,"Exec: Derived true Literal " +
                     Symboltable.toString(literal, model.symboltable) +
                     (origins == null ? "" : " " + origins));}
-        model.add(literal,origins,null);}
+        model.add(literal,null,null);}
 
     /** turns the disjoinentesses into a string.
      *

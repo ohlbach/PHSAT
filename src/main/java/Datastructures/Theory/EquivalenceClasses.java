@@ -193,7 +193,7 @@ public class EquivalenceClasses  {
         monitor.print(monitorId,"In:   True literal " +
                 Symboltable.toString(literal,model.symboltable) +
                 (origins == null ? "" : " " + origins));
-        synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}}
+        synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, null, literal, null));}}
 
     /** This method is to be called by the TwoLiteral module to announce a newly derived equivalence
      * literal1 = literal2.
@@ -337,7 +337,7 @@ public class EquivalenceClasses  {
             monitor.print(monitorId,"Exec: Derived true Literal " +
                     Symboltable.toString(literal, model.symboltable) +
                     (origins == null ? "" : " " + origins));}
-        model.add(literal,origins,null);}
+        model.add(literal,null,null);}
 
 
     /** sorts the literals in the clause.
@@ -367,6 +367,15 @@ public class EquivalenceClasses  {
         if(cliteral != null) {
             return cliteral.clausePosition == 0 ? literal : -cliteral.clause.cliterals.get(0).literal;}
         return literal;}
+
+    public synchronized Clause getEClause(int literal) {
+        CLiteral cliteral = literalIndex.get(literal);
+        if(cliteral != null) return cliteral.clause;
+        cliteral = literalIndex.get(-literal);
+        if(cliteral != null) {return cliteral.clause;}
+        return null;}
+
+
 
     /** maps a literal to the origins of the equivalence containing the literal or its negation.
      * If the literal is already the representative of the class then the origins are null.

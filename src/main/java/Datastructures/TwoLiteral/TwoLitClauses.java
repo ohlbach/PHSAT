@@ -205,7 +205,7 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                 Symboltable.toString(literal,model.symboltable));}
-        synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, origins, literal, null));}}
+        synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, null, literal, null));}}
 
 
     /** generates all unit resolvents and removes the clauses with the literal from the data structures
@@ -234,7 +234,7 @@ public class TwoLitClauses {
                             Symboltable.toString(literal, model.symboltable) + " and clause " +
                             clause.toString("", model.symboltable) + " yields new unit literal " +
                             Symboltable.toString(literal2, model.symboltable));}
-                model.add(literal2, joinIntArrays(clause.origins,origins),null);
+                model.add(literal2, null,null);
                 clauses.remove(clause);}
             literalIndex.remove(literal);}}
 
@@ -278,7 +278,7 @@ public class TwoLitClauses {
             if(monitoring) {
                 monitor.print(monitorId,"Clause " + clause.toString("",model.symboltable) + " is a unit clause " +
                         Symboltable.toString(literal1, model.symboltable));}
-            model.add(literal1,clause.origins,null); // send back to me
+            model.add(literal1,null,null); // send back to me
             return false;}
 
         for(int i = 1; i <= 2; ++i) {
@@ -290,7 +290,7 @@ public class TwoLitClauses {
                                 Symboltable.toString(literal1, model.symboltable) + " yields  unit clause " +
                                 Symboltable.toString(literal2, model.symboltable));}
                     if(trackReasoning) origins = joinIntArrays(clause.origins, model.getOrigin(-literal1));
-                    model.add(literal2, origins,null); // send back to me
+                    model.add(literal2, null,null); // send back to me
                     return false;} // clause not needed
             literal1 = clause.literal2;
             literal2 = clause.literal1;}
@@ -413,7 +413,7 @@ public class TwoLitClauses {
                                     parent.toString("  ",model.symboltable) + " yield unit clause: " +
                                     Symboltable.toString(literal2,model.symboltable));}
                         if(trackReasoning) origins = joinIntArrays(clause.origins,parent.origins);
-                        model.add(literal2,origins,null);
+                        model.add(literal2,null,null);
                         return;}  // clause becomes true anyway
                     statistics.resolvents++;
                     if(trackReasoning) origins = joinIntArrays(clause.origins,parent.origins);

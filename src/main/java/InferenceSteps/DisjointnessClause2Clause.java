@@ -15,6 +15,7 @@ public class DisjointnessClause2Clause  extends InferenceStep {
 
 
     public static String rule =
+            "Disjointness Clauses are turned into corresponding two-literal clauses:\n"+
                     "p != q != ... != r != s\n"+
                     "-----------------------\n"+
                             "       -p,-q\n" +

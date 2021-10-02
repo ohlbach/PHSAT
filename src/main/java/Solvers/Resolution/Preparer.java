@@ -361,7 +361,7 @@ public class Preparer {
         for(int[] basicClause : conjunctions) {
             IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);
             for(int i = 2; i < basicClause.length; ++i) {
-                model.add(basicClause[i],origin,null);}}}
+                model.add(basicClause[i],null,null);}}}
 
     /** transforms all disjunctions in the basic clause list into clauses and applies the handler to the new clauses.
      * If there are equivalence classes then the literals are mapped to the representative of the equivalence class.
@@ -417,7 +417,7 @@ public class Preparer {
             clause.removeDoubles();
             switch(clause.size()) {
                 case 1:
-                    model.add(clause.getLiteral(0),origins,null); // back to this process
+                    model.add(clause.getLiteral(0),null,null); // back to this process
                     return;
                 case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),
                         clause.getLiteral(1),origins);}
