@@ -57,8 +57,7 @@ public class TwoLitClausesTest {
     }
 
     public TwoLitClause make (int[] basicClause) {
-        return new TwoLitClause(basicClause[0],basicClause[2],basicClause[3],
-                IntArrayList.wrap(new int[]{basicClause[0]}));}
+        return new TwoLitClause(basicClause[0],basicClause[2],basicClause[3]);}
 
     @Test
     public void addBasicClause1() {

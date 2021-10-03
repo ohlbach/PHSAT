@@ -165,7 +165,7 @@ public class AllClauses {
                 Task<TaskType> task = queue.take(); // waits if the queue is empty
                 switch (task.taskType) {
                     case TRUELITERAL:
-                        integrateTrueLiteral((Integer)task.a,task.origins);
+                        integrateTrueLiteral((Integer)task.a);
                         break;
                     case EQUIVALENCE:
                         integrateEquivalence((Integer)task.a);
@@ -199,7 +199,7 @@ public class AllClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                     Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<>(AllClauses.TaskType.TRUELITERAL, null, literal, null));}
+        queue.add(new Task<>(AllClauses.TaskType.TRUELITERAL, literal, null));}
 
     /** puts an equivalence into the queue
      *
@@ -208,7 +208,7 @@ public class AllClauses {
     public void addEquivalence(Clause clause) {
         if(monitoring) {
             monitor.print(monitorId,"In:   equivalence " + clause.toString(0,model.symboltable));}
-        queue.add(new Task<>(AllClauses.TaskType.EQUIVALENCE,null, clause,null));}
+        queue.add(new Task<>(AllClauses.TaskType.EQUIVALENCE,clause,null));}
 
     /** puts a disjointness into the queue
      *
@@ -218,13 +218,13 @@ public class AllClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   disjointness " +
                     disjoints.toString(0,model.symboltable));}
-        queue.add(new Task<>(TaskType.DISJOINTNESS, null, disjoints, null));}
+        queue.add(new Task<>(TaskType.DISJOINTNESS, disjoints, null));}
 
     private void addTwoLitClause(TwoLitClause clause) {
         if(monitoring) {
             monitor.print(monitorId,"In:   two-lit clause " +
                     clause.toString("",model.symboltable));}
-        queue.add(new Task<>(TaskType.TWOLITCLAUSE, null, clause, null));}
+        queue.add(new Task<>(TaskType.TWOLITCLAUSE, clause, null));}
 
 
     /** a not-integrated clause is simplified and integrated into the internal data structures.
@@ -262,7 +262,7 @@ public class AllClauses {
         if(result != null) {
             CLiteral cliteral = (CLiteral) result[0];
             Clause otherClause = (Clause) result[1];
-            ++statistics.backwardReplacementResolutions; 
+            ++statistics.backwardReplacementResolutions;
             if(monitoring) {
                 monitor.print(monitorId, "Literal " + cliteral.toString(model.symboltable) +
                         " in  clause \n" + cliteral.clause.toString(3,model.symboltable) +
@@ -273,7 +273,7 @@ public class AllClauses {
 
 
         if(clause.size() == 2)
-            twoLitClauses.addDerivedClause(clause.getLiteral(0), clause.getLiteral(1), null);
+            twoLitClauses.addDerivedClause(clause.getLiteral(0), clause.getLiteral(1));
 
         simplifyOtherClauses(clause);
         insertClause(clause);
@@ -353,10 +353,9 @@ public class AllClauses {
      * For the resulting clause a INSERTCLAUSE Task is generated.
      *
      * @param literal a true literal
-     * @param origins the basic clause ids for the truth of the literal
      * @throws Result if a contradiction is found.
      */
-    private void integrateTrueLiteral(int literal, IntArrayList origins) throws Result {
+    private void integrateTrueLiteral(int literal) throws Result {
         // remove all clauses with the literal
         BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {removeClause(iterator.next(),iterator,true);}
@@ -368,9 +367,8 @@ public class AllClauses {
             CLiteral cliteral = removeClause(iterator.next(),iterator,false);
             Clause clause = cliteral.clause;
             clause.remove(cliteral);
-            if(trackReasoning) clause.joinOrigins(origins);
             if(checkUnitClause(clause)) continue;
-            queue.add(new Task<>(TaskType.INSERTCLAUSE,null,clause,null));}
+            queue.add(new Task<>(TaskType.INSERTCLAUSE,clause,null));}
         literalIndex.pushIterator(-literal,iterator);}
 
     /** generates for all clauses with the literal an INSERTCLAUSE task which does the replacements
@@ -382,7 +380,7 @@ public class AllClauses {
         for(int i = 1; i <= 2; ++i) {
             iterator = literalIndex.popIterator(literal);
             while(iterator.hasNext()) { // the replacements is done in insertClause
-                queue.add(new Task<>(TaskType.INSERTCLAUSE,null,
+                queue.add(new Task<>(TaskType.INSERTCLAUSE,
                         removeClause(iterator.next(),iterator,false).clause,null));}
             literalIndex.pushIterator(literal,iterator);
             literal = -literal;}}
@@ -393,15 +391,14 @@ public class AllClauses {
      */
     private void integrateDisjointnessClass(Clause dClause)  {
         if(dClause.isRemoved()) return;
-        IntArrayList origins  = dClause.origins;
         ArrayList<CLiteral> cliterals = dClause.cliterals;
         int size = cliterals.size();
         for(int i = 0; i < size; ++i) {
             int literal1 = -cliterals.get(i).literal;
             for(int j = i+1; j < size; ++j) {
-                Clause clause = new Clause(++counter,clauseType,literal1,-cliterals.get(j).literal,origins);
+                Clause clause = new Clause(++counter,clauseType,literal1,-cliterals.get(j).literal);
                 if(trackReasoning) clause.inferenceStep = new DisjointnessClause2Clause(dClause,clause);
-                queue.add(new Task<>(TaskType.INSERTCLAUSE,null, clause,null));}}}
+                queue.add(new Task<>(TaskType.INSERTCLAUSE, clause,null));}}}
 
     /** turns a disjointness clause into a list of two-literal clauses
      *
@@ -413,9 +410,9 @@ public class AllClauses {
         for(int i = 2; i < size; ++i) {
             int literal1 = -basicClause[i];
             for(int j = i+1; j < size; ++j) {
-                Clause clause = new Clause(++counter,clauseType,literal1,-basicClause[j],origins);
+                Clause clause = new Clause(++counter,clauseType,literal1,-basicClause[j]);
                 if(trackReasoning) clause.inferenceStep = new DisjointnessClause2Clause(basicClause,clause);
-                queue.add(new Task<>(TaskType.INSERTCLAUSE,null, clause,null));}}}
+                queue.add(new Task<>(TaskType.INSERTCLAUSE, clause,null));}}}
 
     private final boolean[] keepClause = new boolean[1];
 
@@ -456,9 +453,8 @@ public class AllClauses {
                     removeClause(cliteral,iterator,false);
                     otherClause.remove(cliteral);
                     ++statistics.forwardReplacementResolutions;
-                    if(trackReasoning) otherClause.origins = joinIntArrays(clause.origins,otherClause.origins);
                     if(!checkUnitClause(otherClause))
-                        queue.add(new Task<>(TaskType.INSERTCLAUSE,null,otherClause,null));}}
+                        queue.add(new Task<>(TaskType.INSERTCLAUSE,otherClause,null));}}
             literalIndex.pushIterator(-literal2,iterator);
 
             timestamp += 2;
@@ -469,7 +465,6 @@ public class AllClauses {
             Clause newClause = new Clause(++counter,clauseType,2);
             newClause.add(new CLiteral(literal1,newClause,0));
             newClause.add(new CLiteral(literal2,newClause,1));
-            newClause.origins = clause.origins;
             insertClause(newClause);}
     }
 
@@ -532,9 +527,8 @@ public class AllClauses {
                         clause.toString(3,model.symboltable));}
             removeClause(resolvent,false);
             resolvent.remove(cliteral);
-            if(trackReasoning) resolvent.origins = joinIntArrays(resolvent.origins,clause.origins);
             if(!checkUnitClause(resolvent))
-                queue.add(new Task<>(TaskType.INSERTCLAUSE,null,resolvent,null));}}
+                queue.add(new Task<>(TaskType.INSERTCLAUSE,resolvent,null));}}
 
     /** links the literals of the disjointness clause with the literals of the normal clauses.
      *
@@ -590,7 +584,7 @@ public class AllClauses {
                         combinations.add(combination);}
                     if(isFull(combination)) addFullCombination(combination);}}));}
         for(Clause[] combination : fullCombinations) {
-            queue.add(new Task(TaskType.MRESOLUTION,null,combination,null));}}
+            queue.add(new Task(TaskType.MRESOLUTION,combination,null));}}
 
     private boolean isFull(Clause[] combination) {
         for(Clause clause :combination) {if(clause == null) return false;}
@@ -726,7 +720,7 @@ public class AllClauses {
                     Symboltable.toString(literal,model.symboltable) +
                     " true because clauses contain only positive/negative and mixed clauses." );}
         model.add(literal,null,thread);
-        integrateTrueLiteral(literal,null);}
+        integrateTrueLiteral(literal);}
 
     /** inserts the clause into the local data structures.
      *
@@ -833,8 +827,7 @@ public class AllClauses {
                 clauses.remove(clause);
                 if(clausesFinished && clauses.isEmpty()) throw new Satisfiable(model);
                 return false;
-            case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),clause.getLiteral(2),
-                    trackReasoning ? joinIntArrays(clause.origins,origins) : null);} // keep the two-literal clause
+            case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),clause.getLiteral(2));} // keep the two-literal clause
 
         switch(clause.structure) {
             case NEGATIVE: ++statistics.negativeClauses; break;

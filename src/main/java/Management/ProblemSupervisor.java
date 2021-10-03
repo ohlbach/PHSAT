@@ -10,7 +10,6 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
 import Generators.Generator;
-import Solvers.Resolution.Preparer;
 import Solvers.Solver;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -35,7 +34,6 @@ public class ProblemSupervisor {
     Result[] results;
     int numberOfSolvers;
     public Controller controller;
-    Preparer preparer;
 
     public Model model;
     public EquivalenceClasses equivalenceClasses;
@@ -126,8 +124,6 @@ public class ProblemSupervisor {
             allClausesThread.start();
 
 
-        preparer =  new Preparer(this);
-        preparer.prepare();
         if(result != null) {return;}
         numberOfSolvers = solverParameters.size();
         solvers = new Solver[numberOfSolvers];

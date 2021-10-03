@@ -10,7 +10,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
 
-import static Utilities.Utilities.joinIntArrays;
 import static Utilities.Utilities.sortIntArray;
 
 /** A clause is just a list of CLiterals.
@@ -33,8 +32,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public ClauseStructure structure = null;
     /** a timestamp to be used by corresponding algorithms */
     public int timestamp = 0;
-    /** contains the list of basicClause ids which produced this clause */
-    public IntArrayList origins = null;
     /** some auxiliary pointer */
     public Object aux = null;
 
@@ -62,10 +59,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @parma clauseType  the clause's type
      * @param literals the list of literals
      */
-    public Clause(int id, ClauseType clauseType, IntArrayList literals, IntArrayList origins) {
+    public Clause(int id, ClauseType clauseType, IntArrayList literals) {
         this.id = id;
         this.clauseType = clauseType;
-        this.origins = origins == null ? IntArrayList.wrap(new int[]{id}) : origins;
         cliterals = new ArrayList<>(literals.size());
         for(int i = 0; i < literals.size(); ++i) {
             cliterals.add(new CLiteral(literals.getInt(i),this,i));}
@@ -102,7 +98,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         for(int i = 2; i < length; ++i) {
             int literal = basicClause[i];
             cliterals.add(new CLiteral(literal,this,cliterals.size()));}
-        origins = IntArrayList.wrap(new int[]{basicClause[0]});
         setStructure();}
 
     /** creates a new clause with the two literals
@@ -111,12 +106,10 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @parma clauseType  the clause's type
      * @param literal1 a literal
      * @param literal2 a literal
-     * @param origins the basic clause ids
      */
-    public Clause(int id, ClauseType clauseType, int literal1, int literal2, IntArrayList origins) {
+    public Clause(int id, ClauseType clauseType, int literal1, int literal2) {
         this.id = id;
         this.clauseType = clauseType;
-        this.origins = origins;
         cliterals = new ArrayList<>(2);
         cliterals.add(new CLiteral(literal1,this,0));
         cliterals.add(new CLiteral(literal2,this,1));
@@ -348,8 +341,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             int literal = eqClasses.getRepresentative(oldLiteral);
             if(literal != oldLiteral) {
                 changed = true;
-                cliteral.literal = literal;
-                if(trackReasoning) origins = joinIntArrays(origins,eqClasses.getOrigins(oldLiteral));}}
+                cliteral.literal = literal;}}
         return changed;}
 
     /** sets the removed flag
@@ -365,26 +357,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         return removed;}
 
 
-
-    /** joins the origins to the clause's origins
-     *
-     * @param origins null or a list of basic clause ids
-     */
-    public void joinOrigins(IntArrayList origins) {
-            this.origins = joinIntArrays(this.origins,origins);}
-
-    /** joins the origins (Ids of the basicClauses which caused this clause)
-     *
-     * @param clauses a list of clauses
-     * @param clause an additional clauses
-     * @return the joined origins of all the clauses
-     */
-    public static IntArrayList joinOrigins(ArrayList<Clause> clauses, Clause clause) {
-        IntArrayList origins = new IntArrayList();
-        if(clause != null) joinIntArrays(origins,clause.origins);
-        for(Clause clause1 : clauses) {
-            joinIntArrays(origins,clause1.origins);}
-        return origins;}
 
     /** checks if the two clauses overlap.
      *
@@ -466,7 +438,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public String infoString(int width, Symboltable symboltable) {
         String st = toString(width,symboltable);
-        if(origins != null) st += " " + sortIntArray(origins).toString();
+        if(inferenceStep != null) st += " " + sortIntArray(inferenceStep.origins()).toString();
         return st;}
 
     /** gets an iterator over the literals

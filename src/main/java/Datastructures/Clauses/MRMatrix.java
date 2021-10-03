@@ -194,9 +194,6 @@ public class MRMatrix {
             if(external != null) externals.add(external);}
         if(externals.size() >= 2) return;
 
-        if(trackReasoning) {
-            for(int colIndex : colIndices) {
-                origins = joinIntArrays(origins, disjointnessClauses[colIndex].origins);}}
 
         int maxSurplus = 0;
         for(int i = 0; i < colIndices.length; ++i) {
@@ -262,9 +259,6 @@ public class MRMatrix {
     protected void mrResolveRectangle(int[] colIndices, ArrayList<CLiteral[]> block, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable{
 
         IntArrayList origins = null;
-        if(trackReasoning) {
-            for(int i : colIndices) {
-                origins = joinIntArrays(origins, disjointnessClauses[i].origins);}}
 
         int width = disjointnessClauses.length;
         int depth = block.size();
@@ -285,7 +279,7 @@ public class MRMatrix {
 
         switch(keepExternals) {
             case 0: throw new Unsatisfiable(block2String(colIndices,block,
-                        externalRowIndices,-1,-1,symboltable) + "is unsatisfiable",origins);
+                        externalRowIndices,-1,-1,symboltable) + "is unsatisfiable",null);
             case 1:
                 for(int i = 0; i < externalSize; ++i) {
                     sendTrueLiteral(externals.get(i).literal,
@@ -317,10 +311,6 @@ public class MRMatrix {
                                  IntArrayList ignoreIndices, int keepIndex,
                                  IntArrayList origins) throws Unsatisfiable {
         if(model.isTrue(literal)) return;
-        if(trackReasoning) {
-            for(int i = 0; i < block.size(); ++i) {
-                if(externals == null || i == keepIndex || !ignoreIndices.contains(i)) {
-                    joinIntArrays(origins,getClause(block.get(i)).origins);}}}
         if(monitoring) {
             String orig = "";
             if(origins != null) orig = "\nOrigins: " +origins.toString();
@@ -343,10 +333,6 @@ public class MRMatrix {
                                  IntArrayList ignoreIndices, int keepIndex1, int keepIndex2,
                                  IntArrayList origins,  ArrayList<TwoLitClause> twoLitClauses) {
 
-        if(trackReasoning) {
-            for(int i = 0; i < block.size(); ++i) {
-                if(externals == null || i == keepIndex1 || i == keepIndex2 || !ignoreIndices.contains(i)) {
-                    joinIntArrays(origins,getClause(block.get(i)).origins);}}}
 
         for(TwoLitClause clause : twoLitClauses) {
             int lit1 = clause.literal1;
@@ -360,7 +346,7 @@ public class MRMatrix {
                     block2String(colIndices,block,ignoreIndices,keepIndex1,keepIndex2,symboltable) +
                     "yields two-literal clause " +
                     Symboltable.toString(literal1,symboltable)+","+Symboltable.toString(literal2,symboltable) + orig);}
-        TwoLitClause twoClause = new TwoLitClause(0,literal1,literal2, trackReasoning ? sortIntArray(origins) : null);
+        TwoLitClause twoClause = new TwoLitClause(0,literal1,literal2);
         twoLitClauses.add(twoClause);}
 
 

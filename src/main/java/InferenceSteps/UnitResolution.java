@@ -2,7 +2,10 @@ package InferenceSteps;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
+
+import static Utilities.Utilities.joinIntArrays;
 
 /** specifies a unit resolution step where a false literal is removed from a clause */
 public class UnitResolution extends InferenceStep{
@@ -49,4 +52,8 @@ public class UnitResolution extends InferenceStep{
     @Override
     public Object output() {
         return newClause;}
+
+    @Override
+    public IntArrayList origins() {
+        return joinIntArrays(oldClause.inferenceStep.origins(),inferenceStep.origins());}
 }

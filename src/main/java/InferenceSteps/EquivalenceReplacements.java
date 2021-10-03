@@ -2,7 +2,10 @@ package InferenceSteps;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
+
+import static Utilities.Utilities.joinIntArrays;
 
 public class EquivalenceReplacements extends InferenceStep {
     private Clause oldClause;
@@ -44,4 +47,9 @@ public class EquivalenceReplacements extends InferenceStep {
     @Override
     public Clause output() {
         return newClause;}
+
+    @Override
+    public IntArrayList origins() {
+        return joinIntArrays(oldClause.inferenceStep.origins(),equivalenceClause.inferenceStep.origins());
+    }
 }

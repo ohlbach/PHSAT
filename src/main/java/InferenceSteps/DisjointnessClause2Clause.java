@@ -3,13 +3,16 @@ package InferenceSteps;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
+
+import static Utilities.Utilities.joinIntArrays;
 
 /** explains the transformation of a disjointness clause to a number of two-literal clauses
  *  The input can be a basicClause from the generators, or a derived Clause.
  */
 public class DisjointnessClause2Clause  extends InferenceStep {
-    private int[] basicClause;
+    private int[] basicClause = null;
     private Clause disjointnessClause = null;
     private Clause clause = null;
 
@@ -72,5 +75,10 @@ public class DisjointnessClause2Clause  extends InferenceStep {
     @Override
     public Clause output() {
         return clause;}
+
+    @Override
+    public IntArrayList origins() {
+        if(disjointnessClause != null) return disjointnessClause.inferenceStep.origins();
+        else return IntArrayList.wrap(new int[]{basicClause[0]});}
 
 }

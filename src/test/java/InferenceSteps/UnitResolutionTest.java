@@ -4,8 +4,6 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
 import org.junit.Test;
 
-import static org.junit.Assert.*;
-
 public class UnitResolutionTest {
 
     @Test

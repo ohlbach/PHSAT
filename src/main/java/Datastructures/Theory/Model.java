@@ -33,9 +33,6 @@ public class Model {
     /** the current model */
     private IntArrayList model;
 
-    /** lists the origins, i.e. the ids of the basic clauses causing the truth of the literal */
-    private ArrayList<IntArrayList> origins;
-
     private ArrayList<InferenceStep> inferenceSteps;
 
     /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined) */
@@ -54,7 +51,6 @@ public class Model {
         this.predicates  = predicates;
         this.symboltable = symboltable;
         model   = new IntArrayList(predicates);
-        origins = new ArrayList<>(predicates);
         inferenceSteps = new ArrayList<>(predicates);
         status  = new byte[predicates+1];}
 
@@ -70,33 +66,6 @@ public class Model {
     public synchronized void addObserver(Thread thread, BiConsumer<Integer, IntArrayList> observer) {
         observers.add(new Pair<>(thread, observer));}
 
-    /** pushes a literal onto the model and checks if the literal is already in the model.
-     * If the literal is new to the model then the observers from a thread different to the
-     * submitting thread are called.
-     *
-     * @param literal the literal for the model.
-     * @param origin the ids of the basic clauses causing this truth
-     * @param thread the thread which generated the true literal.
-     * @throws Unsatisfiable if a contradiction with an earlier entry in the model occurs.
-     */
-    public synchronized void addd(int literal, IntArrayList origin, Thread thread) throws Unsatisfiable {
-        System.out.println("ADD " + literal);
-        int predicate = Math.abs(literal);
-        assert predicate > 0 && predicate <= predicates;
-        if(isTrue(literal)) {return;}
-        if(isFalse(literal)) {
-            throw new Unsatisfiable(
-                    "Supposed true literal " + Symboltable.toString(literal,symboltable) +
-                            " is already false in the model " + Symboltable.toString(model,symboltable),
-                    joinIntArraysSorted(origin,getOrigin(literal)));}
-
-        origins.add(origin);
-        model.add(literal);
-        status[predicate] = literal > 0 ? (byte)1: (byte)-1;
-
-        for(Pair<Thread, BiConsumer<Integer, IntArrayList>> observer : observers) {
-            if(thread != observer.getKey()) {
-                observer.getValue().accept(literal,origin);}}}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
      * If the literal is new to the model then the observers from a thread different to the
@@ -133,7 +102,6 @@ public class Model {
      */
     public void addImmediately(int literal, IntArrayList origin) {
         model.add(literal);
-        origins.add(origin);
         status[Math.abs(literal)] = literal > 0 ? (byte)1: (byte)-1;}
 
         /** returns the entire model, i.e. the list of true literals.
@@ -183,19 +151,6 @@ public class Model {
      * @param literal a literal
      * @return null or the origins of the literal entry
      */
-    public synchronized IntArrayList getOrigin(int literal) {
-        if(origins == null) {return null;}
-        int predicate = Math.abs(literal);
-        assert predicate <= predicates;
-        byte status = this.status[predicate];
-        if(status == 0) {return null;}
-        return origins.get(model.indexOf((status > 0) ? predicate : -predicate));}
-
-    /** returns the origins of a model entry
-     *
-     * @param literal a literal
-     * @return null or the origins of the literal entry
-     */
     public synchronized InferenceStep getInferenceStep(int literal) {
         if(inferenceSteps == null) {return null;}
         int predicate = Math.abs(literal);
@@ -230,8 +185,7 @@ public class Model {
         assert this.status[literal] == 0 || this.status[literal] == status;
         if(this.status[literal] == 0) {
             this.status[literal] = (byte)status;
-            model.add(status > 0 ? literal : -literal);
-            if(origins != null) {origins.add(origin);}}}
+            model.add(status > 0 ? literal : -literal);}}
 
 
     // unklar
@@ -242,9 +196,8 @@ public class Model {
      */
     public Model clone() {
         Model newModel = new Model(predicates, symboltable);
-        if(origins != null) {
-            newModel.origins = new ArrayList<>();
-            for(IntArrayList origin : origins) {newModel.origins.add(origin.clone());}}
+        newModel.inferenceSteps = new ArrayList<>();
+        for(InferenceStep inferenceStep : inferenceSteps) {newModel.inferenceSteps.add(inferenceStep);}
         newModel.status = status.clone();
         newModel.model = model.clone();
         return newModel;}
@@ -312,12 +265,12 @@ public class Model {
      */
     public String infoString(boolean withSymboltable) {
         Symboltable symboltable = withSymboltable ? this.symboltable : null;
-        if(origins == null)  return Symboltable.toString(model,symboltable);
+        if(inferenceSteps.isEmpty())  return Symboltable.toString(model,symboltable);
         StringBuilder st = new StringBuilder();
         int size = model.size()-1;
         for(int i = 0; i <= size; ++i) {
             st.append(Symboltable.toString(model.getInt(i),symboltable));
-            IntArrayList origin = origins.get(i);
+            IntArrayList origin = inferenceSteps.get(i).origins();
             if(origin != null) st.append(" @ ").append(origin);
             if(i < size) st.append("\n");}
         return st.toString();}

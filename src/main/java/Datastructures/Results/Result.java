@@ -11,7 +11,6 @@ import java.util.ArrayList;
  * Created by ohlbach on 14.09.2018.
  */
 public class Result extends Exception {
-    public IntArrayList origins = null;
     public InferenceStep inferenceStep = null;
 
     public boolean isOkay() {return true;}

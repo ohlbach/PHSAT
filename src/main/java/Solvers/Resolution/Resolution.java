@@ -209,8 +209,7 @@ public abstract class Resolution extends Solver {
      *  It adds an Unsatisfiable task to the task queue.
      */
     private BiConsumer<Integer,IntArrayList> contradictionHandler = ((reason,origin)->{
-        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.toString(),
-                IntArrayList.wrap(new int[]{})
+        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.toString(),null
                 )), (()->reason.toString())));});
 
     /** This function is called when a new disjunction is to be inserted.
@@ -752,7 +751,7 @@ public abstract class Resolution extends Solver {
         int literal2 =  clause.getCLiteral(1).literal;
         if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
         int fromliteral = literal1; int toliteral = literal2;
-        equivalenceClasses.addDerivedEquivalence(fromliteral,toliteral,null);
+        equivalenceClasses.addDerivedEquivalence(fromliteral,toliteral);
        // taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
        //         (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
         ++statistics.equivalences;

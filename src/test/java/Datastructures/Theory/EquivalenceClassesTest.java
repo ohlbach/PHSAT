@@ -105,8 +105,6 @@ public class EquivalenceClassesTest {
         assertEquals(-4,eqClasses.getRepresentative(5));
         assertEquals(4,eqClasses.getRepresentative(-5));
 
-        assertEquals("[1]",eqClasses.getOrigins(3).toString());
-        assertEquals("[2]",eqClasses.getOrigins(5).toString());
     }
 
     @Test
@@ -230,8 +228,7 @@ public class EquivalenceClassesTest {
         clause=new int[]{2,type,5,-6};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
-        IntArrayList origins=new IntArrayList(); origins.add(20);
-        try{eqClasses.integrateTrueLiteral(6,origins);}
+        try{eqClasses.integrateTrueLiteral(6);}
         catch(Unsatisfiable uns) {if(uns != null) System.out.println(uns.toString());}
         assertEquals("[-5, [2, 20]]",observed.toString());
         assertEquals("Equivalence Classes of Problem test:\n" +
@@ -244,7 +241,7 @@ public class EquivalenceClassesTest {
 
 
     public Clause make(int id, int literal1, int literal2, IntArrayList origins) {
-        return new Clause(id,ClauseType.EQUIV,literal1,literal2,origins);
+        return new Clause(id,ClauseType.EQUIV,literal1,literal2);
     }
 
     public String info(ArrayList<Clause>clauses) {
@@ -360,7 +357,7 @@ public class EquivalenceClassesTest {
         thread1.start();
 
         IntArrayList origins=new IntArrayList(); origins.add(10);
-        eqClasses.addDerivedEquivalence(2,-5,origins);
+        eqClasses.addDerivedEquivalence(2,-5);
         try {
             model.add(2, null, null);
         }catch(Unsatisfiable uns) {}

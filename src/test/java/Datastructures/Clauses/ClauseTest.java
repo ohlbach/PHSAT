@@ -266,14 +266,7 @@ public class ClauseTest {
         for(CLiteral lit : c1) {st += lit.toString();}
         assertEquals("5-6-5-6-6",st);
     }
-    @Test
-    public void joinOrigins() throws Exception {
-        System.out.println("join origins");
-        IntArrayList origins1 = IntArrayList.wrap(new int[]{20,30});
-        Clause c = new Clause(1,type,1,2,origins1);
-        IntArrayList origins2 = IntArrayList.wrap(new int[]{10,30});
-        c.joinOrigins(origins2);
-        assertEquals("[10, 20, 30]",c.origins.toString());}
+
 
 
     GlobalParameters globalParameters = new GlobalParameters();
@@ -301,18 +294,5 @@ public class ClauseTest {
         problemSupervisor.equivalenceClasses = eqClasses;
     }
 
-    @Test
-    public void replaceEquivalence() throws Exception {
-        System.out.println("replaceEquivalence");
-        prepareEq();
-        IntArrayList origins1 = IntArrayList.wrap(new int[]{20,30});
-        IntArrayList origins2 = IntArrayList.wrap(new int[]{10,30});
-        eqClasses.integrateEquivalence(new Clause(1,ClauseType.EQUIV,4,5,origins1),false);
-        Clause c = new Clause(2,type,1,-5,origins2);
-        c.replaceEquivalences(eqClasses,true);
-        assertEquals("2: 1,-4",c.toNumbers());
-        assertEquals("[10, 20, 30]",c.origins.toString());
-
-    }
 
     }

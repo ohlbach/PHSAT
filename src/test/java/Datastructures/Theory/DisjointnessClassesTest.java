@@ -83,7 +83,7 @@ public class DisjointnessClassesTest {
         assertTrue(dClasses.areDisjoint(1,3));
         assertFalse(dClasses.areDisjoint(1,-3));
         assertFalse(dClasses.areDisjoint(1,4));
-        assertEquals("[1]",dClasses.getOrigins(1,2).toString());
+        //assertEquals("[1]",dClasses.getOrigins(1,2).toString());
 
         clause = new int[]{2,type,4,2,-4};
         try{
@@ -248,13 +248,11 @@ public class DisjointnessClassesTest {
             int[] clause1 = new int[]{1, type, 1, 2, 3};
             int[] clause2 = new int[]{2, type, 1, 3, 4};
             int[] clause3 = new int[]{3, type, 6, -3, 5,7};
-            IntArrayList originals = new IntArrayList();
-            originals.add(20);
             try {
                 dClasses.integrateDisjointnessClause(new Clause(1,clause1));
                 dClasses.integrateDisjointnessClause(new Clause(2,clause2));
                 dClasses.integrateDisjointnessClause(new Clause(3,clause3));
-                dClasses.integrateTrueLiteral(3,originals);
+                dClasses.integrateTrueLiteral(3);
             } catch (Unsatisfiable uns) {}
 
             Thread thread = new Thread(()->dClasses.run());
@@ -275,7 +273,7 @@ public class DisjointnessClassesTest {
         originals.add(20);
         try {
             dClasses.integrateDisjointnessClause(new Clause(1,clause1));
-            dClasses.integrateEquivalence(new Clause(1,ClauseType.EQUIV,2,3,originals));
+            dClasses.integrateEquivalence(new Clause(1,ClauseType.EQUIV,2,3));
         } catch (Unsatisfiable uns) {
             System.out.println(uns.toString());}}
 
@@ -289,7 +287,7 @@ public class DisjointnessClassesTest {
         int[] clause2 = new int[]{2, type, 4,5,6};
         IntArrayList originals = new IntArrayList();
         originals.add(20);
-        Clause eqClause = new Clause(3,ClauseType.EQUIV,3,6,originals);
+        Clause eqClause = new Clause(3,ClauseType.EQUIV,3,6);
         try {
             dClasses.integrateDisjointnessClause(new Clause(1,clause1));
             dClasses.integrateDisjointnessClause(new Clause(2,clause2));
@@ -332,7 +330,7 @@ public class DisjointnessClassesTest {
         IntArrayList literals = new IntArrayList();  literals.add(5); literals.add(6);
         dClasses.addDerivedDisjoints(literals,origins);
         origins = new IntArrayList(); origins.add(30);
-        Clause eqClause = new Clause(1,ClauseType.EQUIV,1,4,origins);
+        Clause eqClause = new Clause(1,ClauseType.EQUIV,1,4);
         eqClasses.integrateEquivalence(eqClause,true);
         origins = new IntArrayList(); origins.add(40);
         model.add(6,null,null);
