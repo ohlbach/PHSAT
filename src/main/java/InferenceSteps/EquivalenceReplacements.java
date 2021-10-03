@@ -5,16 +5,19 @@ import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
+
 import static Utilities.Utilities.joinIntArrays;
 
 public class EquivalenceReplacements extends InferenceStep {
-    private Clause oldClause;
-    private Clause newClause;
-    private int oldLiteral;
-    private int newLiteral;
-    private Clause equivalenceClause;
+    private final Clause oldClause;
+    private final Clause newClause;
+    private final int oldLiteral;
+    private final int newLiteral;
+    private final Clause equivalenceClause;
+    public static final String title = "Equivalence Replacement";
 
-    public static String rule = "Replacement of Literals by equivalent ones\n"+
+    public static String rule = title + "\n" +
             "p,q,a,s,t   with (a == b)\n"+
             "---------\n"+
             "p,q,b,s,t";
@@ -32,7 +35,7 @@ public class EquivalenceReplacements extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st = oldClause.toString(0,symboltable);
+        String st = title + ":\n"+oldClause.toString(0,symboltable);
         int width = st.length();
         st += "  (" + Symboltable.toString(oldLiteral,symboltable) + " == " +
                 Symboltable.toString(newLiteral,symboltable) + ")\n" +
@@ -52,4 +55,10 @@ public class EquivalenceReplacements extends InferenceStep {
     public IntArrayList origins() {
         return joinIntArrays(oldClause.inferenceStep.origins(),equivalenceClause.inferenceStep.origins());
     }
+
+    @Override
+    public void inferenceSteps(ArrayList<InferenceStep> steps) {
+        oldClause.inferenceStep.inferenceSteps(steps);
+        equivalenceClause.inferenceStep.inferenceSteps(steps);
+        if(!steps.contains(this)) steps.add(this);}
 }

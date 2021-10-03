@@ -6,7 +6,7 @@ import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
 
-import static Utilities.Utilities.joinIntArrays;
+import java.util.ArrayList;
 
 /** explains the transformation of a disjointness clause to a number of two-literal clauses
  *  The input can be a basicClause from the generators, or a derived Clause.
@@ -14,10 +14,11 @@ import static Utilities.Utilities.joinIntArrays;
 public class DisjointnessClause2Clause  extends InferenceStep {
     private int[] basicClause = null;
     private Clause disjointnessClause = null;
-    private Clause clause = null;
-
+    private final Clause clause;
+    public static String title = "DisjointnessClause -> Two-Literal Clause";
 
     public static String rule =
+            title + ":\n"+
             "Disjointness Clauses are turned into corresponding two-literal clauses:\n"+
                     "p != q != ... != r != s\n"+
                     "-----------------------\n"+
@@ -54,8 +55,9 @@ public class DisjointnessClause2Clause  extends InferenceStep {
      */
     @Override
     public String toString(Symboltable symboltable) {
-        String st = basicClause != null ? BasicClauseList.clauseToString(0,basicClause,symboltable) :
-                disjointnessClause.toString(0,symboltable);
+        String st = title + ":\n"+
+                (basicClause != null ? BasicClauseList.clauseToString(0,basicClause,symboltable) :
+                disjointnessClause.toString(0,symboltable));
         int size = st.length();
         return st + "\n" + StringUtils.repeat('-',size) + "\n" +
                 StringUtils.center(clause.toString(0,symboltable),size);}
@@ -80,5 +82,10 @@ public class DisjointnessClause2Clause  extends InferenceStep {
     public IntArrayList origins() {
         if(disjointnessClause != null) return disjointnessClause.inferenceStep.origins();
         else return IntArrayList.wrap(new int[]{basicClause[0]});}
+
+    @Override
+    public void inferenceSteps(ArrayList<InferenceStep> steps) {
+        if(disjointnessClause != null) disjointnessClause.inferenceStep.inferenceSteps(steps);
+        if(!steps.contains(this)) steps.add(this);}
 
 }

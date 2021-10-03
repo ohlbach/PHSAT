@@ -19,17 +19,14 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
-import Utilities.Utilities.*;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import static Utilities.Utilities.isSubset;
-import static Utilities.Utilities.joinIntArrays;
 
 public class AllClauses {
 
@@ -56,7 +53,7 @@ public class AllClauses {
     private final AllClausesStatistics statistics;
     private int timestamp = 1;
     private final boolean clausesFinished;
-    private Symboltable symboltable;
+    private final Symboltable symboltable;
 
     private final ClauseType clauseType = ClauseType.OR;
 
@@ -405,7 +402,6 @@ public class AllClauses {
      * @param basicClause a basic disjointness clause.
      */
     private void integrateDisjointnessClause(int[] basicClause) {
-        IntArrayList origins  = trackReasoning ? IntArrayList.wrap(new int[]{basicClause[0]}) : null;
         int size = basicClause.length;
         for(int i = 2; i < size; ++i) {
             int literal1 = -basicClause[i];
@@ -489,9 +485,8 @@ public class AllClauses {
     /** removes all clauses subsumed by the given clause
      *
      * @param clause a clause
-     * @throws Result if a contradiction is found
      */
-    private void removeSubsumedClauses(Clause clause) throws Result{
+    private void removeSubsumedClauses(Clause clause){
         subsumedClauses.clear();
         LitAlgorithms.subsumes(clause,literalIndex,timestamp,subsumedClauses);
         for(Clause subsumed : subsumedClauses) {

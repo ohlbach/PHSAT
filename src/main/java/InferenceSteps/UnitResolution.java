@@ -5,16 +5,19 @@ import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
+
 import static Utilities.Utilities.joinIntArrays;
 
 /** specifies a unit resolution step where a false literal is removed from a clause */
 public class UnitResolution extends InferenceStep{
-    private Clause oldClause;
-    private Clause newClause;
-    private int literal;
-    private InferenceStep inferenceStep;
+    private final Clause oldClause;
+    private final Clause newClause;
+    private final int literal;
+    private final InferenceStep inferenceStep;
+    public static final String title = "Unit Resolution";
 
-    public static String rule = "Unit Resolution:\n"+
+    public static String rule = title + ":\n" +
             "p,q,r,...\n"+
             "-p\n"+
             "---------\n"+
@@ -39,7 +42,7 @@ public class UnitResolution extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st = "Unit Resoluton:\n"+oldClause.toString(0,symboltable);
+        String st = title + ":\n"+oldClause.toString(0,symboltable);
         int width = st.length();
         return st + "\n   " + Symboltable.toString(literal,symboltable)+"\n" +
                 StringUtils.repeat('-',width) + "\n"+
@@ -56,4 +59,10 @@ public class UnitResolution extends InferenceStep{
     @Override
     public IntArrayList origins() {
         return joinIntArrays(oldClause.inferenceStep.origins(),inferenceStep.origins());}
+
+    @Override
+    public void inferenceSteps(ArrayList<InferenceStep> steps) {
+        oldClause.inferenceStep.inferenceSteps(steps);
+        if(!steps.contains(inferenceStep)) steps.add(inferenceStep);
+        if(!steps.contains(this)) steps.add(this);}
 }

@@ -1,10 +1,8 @@
 package Datastructures.Results;
 
-import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Symboltable;
-import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
+
+import java.util.ArrayList;
 
 /** This class represents the final reason for an unsatisfiability in the clauses.
  * Created by ohlbach on 14.09.2018.
@@ -32,15 +30,20 @@ public class Unsatisfiable extends Result {
         this.inferenceStep = inferenceStep;}
 
 
-    /** just returns the reason for the unsatisfiability
+    /** returns the reason for the unsatisfiability, usually the entire proof
      *
      * @return the reason for the unsatisfiability
      */
     public String toString() {
-        String string =  "Unsatisfiable:\n";
-        if(reason != null) string += reason;
+        StringBuilder st = new StringBuilder();
+        st.append("Unsatisfiable:\n");
+        if(reason != null) st.append(reason).append("\n");
         if(inferenceStep != null) {
-            string += inferenceStep.toString();
-            string += "\nparticipating clauses: " + inferenceStep.origins().toString();}
-        return string;}
+            ArrayList<InferenceStep> steps = new ArrayList<>();
+            inferenceStep.inferenceSteps(steps);
+            if(!steps.contains(inferenceStep)) steps.add(inferenceStep);
+            for(InferenceStep step : steps) {st.append(step.toString()).append("\n");}
+            st.append("\nparticipating clauses: " + inferenceStep.origins().toString());
+            for(String rule : inferenceStep.rules(steps)) {st.append(rule).append("\n");}}
+        return st.toString();}
 }
