@@ -12,10 +12,7 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClause;
 import Datastructures.TwoLiteral.TwoLitClauses;
-import InferenceSteps.ClauseCopy;
-import InferenceSteps.DisjointnessClause2Clause;
-import InferenceSteps.EquivalenceReplacements;
-import InferenceSteps.UnitResolution;
+import InferenceSteps.*;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
@@ -244,10 +241,8 @@ public class AllClauses {
      */
     private void integrateClause(Clause clause) throws Result {
         clause = replaceEquivalences(clause);
-        clause = replaceDoublesAndTautologies(clause);
-        if(clause == null) return;           // tautology, not needed any more
-        clause = replaceTruthValues(clause);
-        if(clause == null) return;           // true clause, not needed any more
+        if((clause = replaceDoublesAndTautologies(clause)) == null) return;  // tautology, not needed any more
+        if((clause = replaceTruthValues(clause)) == null) return;            // true clause, not needed any more
 
         switch(clause.size()) {
             case 0: throw new Unsatisfiable("Clause " + clause.id + " became empty", clause.inferenceStep);
@@ -255,26 +250,12 @@ public class AllClauses {
                     return;}
 
         if(isSubsumed(clause)) return;
-
-        Object[] result = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
-        timestamp += 2;
-        if(result != null) {
-            CLiteral cliteral = (CLiteral) result[0];
-            Clause otherClause = (Clause) result[1];
-            ++statistics.backwardReplacementResolutions;
-            if(monitoring) {
-                monitor.print(monitorId, "Literal " + cliteral.toString(model.symboltable) +
-                        " in  clause \n" + cliteral.clause.toString(3,model.symboltable) +
-                        " will be removed by replacement resolution with clause\n" +
-                        otherClause.toString(3,model.symboltable));}
-            clause.remove(cliteral);
-            if(checkUnitClause(clause)) return;}
-
-
+        if((clause = replacementResolutionBackwards(clause)) == null) return;
         if(clause.size() == 2)
             twoLitClauses.addDerivedClause(clause.getLiteral(0), clause.getLiteral(1));
 
-        simplifyOtherClauses(clause);
+        removeSubsumedClauses(clause);
+        replacementResolutionForward(clause);
         insertClause(clause);
     }
 
@@ -344,6 +325,31 @@ public class AllClauses {
                     clause = newClause;
                     --i;}}
         return newClause;}
+
+    /** performs all possible replacement resolutions on the given clause
+     *
+     * @param clause a not yet integrated clause
+     * @return null, or the resolvent or the oroginal clause
+     * @throws Unsatisfiable if a contradiction is detected.
+     */
+    protected Clause replacementResolutionBackwards(Clause clause) throws Unsatisfiable{
+        Object[] result = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
+        timestamp += 2;
+        while(result != null) {
+            CLiteral cliteral = (CLiteral) result[0];
+            Clause otherClause = (Clause) result[1];
+            ++statistics.replacementResolutionBackward;
+            Clause resolvent = clause.clone(problemSupervisor.nextClauseId(),cliteral.clausePosition);
+            if(trackReasoning) {
+                resolvent.inferenceStep = new ReplacementResolution(clause,otherClause, cliteral.literal,resolvent);
+                if(monitoring) {monitor.print(monitorId,resolvent.inferenceStep.toString(symboltable));}}
+            if(resolvent.size() == 1) {
+                model.add(resolvent.getLiteral(0),resolvent.inferenceStep,null);
+                return null;}
+            clause = resolvent;
+            result = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
+            timestamp += 2;}
+        return clause;}
 
     /** applies a true literal to all clauses.
      * Clauses containing the literal are removed.<br>
@@ -449,7 +455,7 @@ public class AllClauses {
                                 otherClause.toString(0,model.symboltable));}
                     removeClause(cliteral,iterator,false);
                     otherClause.remove(cliteral);
-                    ++statistics.forwardReplacementResolutions;
+                    ++statistics.replacementResolutionForward;
                     if(!checkUnitClause(otherClause))
                         queue.add(new Task<>(TaskType.INSERTCLAUSE,otherClause,null));}}
             literalIndex.pushIterator(-literal2,iterator);
@@ -495,35 +501,33 @@ public class AllClauses {
             if(monitoring)
                 monitor.print(monitorId, "Clause\n" + subsumed.toString(4,model.symboltable) +
                         " is subsumed by clause\n" + clause.toString(4,model.symboltable));
-            removeClause(clause,true);}
+            removeClause(clause);}
         timestamp += 2 + maxClauseLength;}
 
 
 
     private final ArrayList<CLiteral> resolvents = new ArrayList<>();
 
-    /** removes subsumed clauses and literals in other clauses by replacement resolution
+    /** removes literals in other clauses by replacement resolution
      *
      * @param clause         a clause to be used for simplifying other clauses
      * @throws Result if a contradiction is found.
      */
-    private void simplifyOtherClauses(Clause clause) throws Result {
-        removeSubsumedClauses(clause);
+    private void replacementResolutionForward(Clause clause) throws Result {
         resolvents.clear();
         LitAlgorithms.replacementResolutionForward(clause,literalIndex,timestamp,resolvents);
         timestamp += 2 + maxClauseLength;
         for(CLiteral cliteral : resolvents) {
-            ++statistics.forwardReplacementResolutions;
-            Clause resolvent = cliteral.clause;
-            if(monitoring) {
-                monitor.print(monitorId, "Literal " + cliteral.toString(model.symboltable) +
-                        " in  clause \n" + resolvent.toString(3,model.symboltable) +
-                        " will be removed by replacement resolution with clause\n" +
-                        clause.toString(3,model.symboltable));}
-            removeClause(resolvent,false);
-            resolvent.remove(cliteral);
-            if(!checkUnitClause(resolvent))
-                queue.add(new Task<>(TaskType.INSERTCLAUSE,resolvent,null));}}
+            ++statistics.replacementResolutionForward;
+            Clause parentClause = cliteral.clause;
+            Clause resolvent = parentClause.clone(problemSupervisor.nextClauseId(),cliteral.clausePosition);
+            if(trackReasoning) {
+                resolvent.inferenceStep = new ReplacementResolution(clause,parentClause,cliteral.literal,resolvent);
+                if(monitoring) {monitor.print(monitorId,resolvent.inferenceStep.toString(symboltable));}}
+            removeClause(parentClause);
+            if(resolvent.size() == 1) {
+                model.add(resolvent.getLiteral(0),resolvent.inferenceStep,null);}
+            else {queue.add(new Task<>(TaskType.INSERTCLAUSE,resolvent,null));}}}
 
     /** links the literals of the disjointness clause with the literals of the normal clauses.
      *
@@ -636,10 +640,7 @@ public class AllClauses {
      */
     private boolean checkUnitClause(Clause clause) throws Unsatisfiable {
         if(clause.size() == 1) {
-            if (monitoring) {
-                monitor.print(monitorId, "Clause " + clause.toString(0, model.symboltable) +
-                        " became a unit clause");}
-            model.add(clause.getLiteral(0), null, null); // back to this
+            model.add(clause.getLiteral(0), clause.inferenceStep, null); // back to this
             return true;}
         return false;}
 
@@ -734,9 +735,9 @@ public class AllClauses {
     /** removes the clause and does purity checks
      *
      * @param clause a clause to be removed.
-     * @param really if true then the clause will not be used any more
      */
-    private void removeClause(Clause clause, boolean really) {
+    private void removeClause(Clause clause) {
+        clause.removed = true;
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}

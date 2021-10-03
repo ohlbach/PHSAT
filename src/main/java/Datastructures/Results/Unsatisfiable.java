@@ -4,6 +4,8 @@ import InferenceSteps.InferenceStep;
 
 import java.util.ArrayList;
 
+import static Utilities.Utilities.sortIntArray;
+
 /** This class represents the final reason for an unsatisfiability in the clauses.
  * Created by ohlbach on 14.09.2018.
  */
@@ -43,7 +45,7 @@ public class Unsatisfiable extends Result {
             inferenceStep.inferenceSteps(steps);
             if(!steps.contains(inferenceStep)) steps.add(inferenceStep);
             for(InferenceStep step : steps) {st.append(step.toString()).append("\n");}
-            st.append("\nparticipating clauses: " + inferenceStep.origins().toString());
+            st.append("\nparticipating clauses: " + sortIntArray(inferenceStep.origins()).toString());
             for(String rule : inferenceStep.rules(steps)) {st.append(rule).append("\n");}}
         return st.toString();}
 }
