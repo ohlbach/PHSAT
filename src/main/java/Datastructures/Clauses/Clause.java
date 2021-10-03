@@ -116,7 +116,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         setStructure();}
 
     /** creates a clone of the clause.
-     * The origins, the timestamp and the aux values are not cloned.
+     * Only the literals themselves are cloned
      *
      * @param id the identifier for the new clone
      * @return the new clone
@@ -124,6 +124,19 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public Clause clone(int id) {
         Clause clause = new Clause(id,this.clauseType);
         for(CLiteral cLiteral : cliterals) {clause.add(cLiteral.literal);}
+        return clause;}
+
+    /** creates a clone of the clause.
+     * Only the literals themselves are cloned
+     *
+     * @param id the identifier for the new clone
+     * @param ignore the position of a literal to be ignored
+     * @return the new clone
+     */
+    public Clause clone(int id, int ignore) {
+        Clause clause = new Clause(id,this.clauseType);
+        for(int i = 0; i < clause.size(); ++i) {
+            if(i != ignore) {clause.add(getLiteral(i));}}
         return clause;}
 
     /** checks if the clause is positive, negative or mixed and sets the corresponding value for the structure.

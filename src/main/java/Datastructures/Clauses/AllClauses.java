@@ -12,6 +12,7 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClause;
 import Datastructures.TwoLiteral.TwoLitClauses;
+import InferenceSteps.ClauseCopy;
 import InferenceSteps.DisjointnessClause2Clause;
 import InferenceSteps.EquivalenceReplacements;
 import InferenceSteps.UnitResolution;
@@ -46,7 +47,6 @@ public class AllClauses {
     protected final String monitorId;
     protected final boolean trackReasoning;
 
-    private int counter = 0;
     private int maxClauseLength = 0;
     private final BucketSortedList<Clause> clauses;
     private final BucketSortedIndex<CLiteral> literalIndex;
@@ -136,18 +136,22 @@ public class AllClauses {
      * @throws Result if a contradiction occurs.
      */
     private void initializeXors() throws Result {
-        for(int[] clause : basicClauseList.xors) {
-            disjointnessClasses.addDisjointnessClause(clause);
-            integrateDisjointnessClause(clause);
-            integrateClause(new Clause(++counter,clause));}}
+        for(int[] basicClause : basicClauseList.xors) {
+            disjointnessClasses.addDisjointnessClause(basicClause);
+            integrateDisjointnessClause(basicClause);
+            Clause clause = new Clause(problemSupervisor.nextClauseId(),basicClause);
+            if(trackReasoning) clause.inferenceStep = new ClauseCopy(basicClause,clause);
+            integrateClause(clause);}}
 
     /** This method puts the disjunctions clauses into the clauses
      *
      * @throws Result if a contradiction occurs.
      */
     private void initializeDisjunctions() throws Result {
-        for(int[] clause : basicClauseList.disjunctions) {
-            integrateClause(new Clause(++counter,clause));}}
+        for(int[] basicClause : basicClauseList.disjunctions) {
+            Clause clause = new Clause(problemSupervisor.nextClauseId(),basicClause);
+            if(trackReasoning) clause.inferenceStep = new ClauseCopy(basicClause,clause);
+            integrateClause(clause);}}
 
 
     /** works off the queue
@@ -246,11 +250,9 @@ public class AllClauses {
         if(clause == null) return;           // true clause, not needed any more
 
         switch(clause.size()) {
-            case 0:
-                throw new Unsatisfiable("Clause " + clause.id + " became empty", clause.inferenceStep);
-            case 1:
-                model.add(clause.getLiteral(0), clause.inferenceStep, null); // back to this
-                return;}
+            case 0: throw new Unsatisfiable("Clause " + clause.id + " became empty", clause.inferenceStep);
+            case 1: model.add(clause.getLiteral(0), clause.inferenceStep, null); // back to this
+                    return;}
 
         if(isSubsumed(clause)) return;
 
@@ -335,8 +337,7 @@ public class AllClauses {
                         " and is deleted.");}
                     return null;
                 case -1:
-                    newClause = clause.clone(problemSupervisor.nextClauseId());
-                    newClause.removeAtPosition(i);
+                    newClause = clause.clone(problemSupervisor.nextClauseId(),i);
                     if(trackReasoning) {
                         newClause.inferenceStep = new UnitResolution(clause,-literal,newClause,model.getInferenceStep(-literal));
                         if(monitoring) {monitor.print(monitorId,newClause.inferenceStep.toString(symboltable));}}
@@ -393,7 +394,7 @@ public class AllClauses {
         for(int i = 0; i < size; ++i) {
             int literal1 = -cliterals.get(i).literal;
             for(int j = i+1; j < size; ++j) {
-                Clause clause = new Clause(++counter,clauseType,literal1,-cliterals.get(j).literal);
+                Clause clause = new Clause(problemSupervisor.nextClauseId(),clauseType,literal1,-cliterals.get(j).literal);
                 if(trackReasoning) clause.inferenceStep = new DisjointnessClause2Clause(dClause,clause);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE, clause,null));}}}
 
@@ -406,7 +407,7 @@ public class AllClauses {
         for(int i = 2; i < size; ++i) {
             int literal1 = -basicClause[i];
             for(int j = i+1; j < size; ++j) {
-                Clause clause = new Clause(++counter,clauseType,literal1,-basicClause[j]);
+                Clause clause = new Clause(problemSupervisor.nextClauseId(),clauseType,literal1,-basicClause[j]);
                 if(trackReasoning) clause.inferenceStep = new DisjointnessClause2Clause(basicClause,clause);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE, clause,null));}}}
 
@@ -458,7 +459,7 @@ public class AllClauses {
             literal2 = clause.literal2;}
 
         if(keepClause[0]) {
-            Clause newClause = new Clause(++counter,clauseType,2);
+            Clause newClause = new Clause(problemSupervisor.nextClauseId(),clauseType,2);
             newClause.add(new CLiteral(literal1,newClause,0));
             newClause.add(new CLiteral(literal2,newClause,1));
             insertClause(newClause);}
@@ -495,8 +496,7 @@ public class AllClauses {
                 monitor.print(monitorId, "Clause\n" + subsumed.toString(4,model.symboltable) +
                         " is subsumed by clause\n" + clause.toString(4,model.symboltable));
             removeClause(clause,true);}
-        timestamp += 2 + maxClauseLength;
-    }
+        timestamp += 2 + maxClauseLength;}
 
 
 
@@ -855,7 +855,7 @@ public class AllClauses {
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append("All Clauses of Problem " + problemId+":\n");
-        int size = Integer.toString(counter).length()+2;
+        int size = Integer.toString(problemSupervisor.clauseCounter).length()+2;
         for(Clause clause : clauses) {
             st.append(clause.toString(size,symboltable)).append("\n");}
         return st.toString();}
@@ -868,7 +868,7 @@ public class AllClauses {
     public String infoString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append("All Clauses of Problem "+problemId+":\n");
-        int size = Integer.toString(counter).length()+2;
+        int size = Integer.toString(problemSupervisor.clauseCounter).length()+2;
         for(Clause clause : clauses) {
             st.append(clause.infoString(size,symboltable)).append("\n");}
         st.append(literalIndex.toString(cliteral -> cliteral.toString(symboltable)+"@"+cliteral.clause.id));
