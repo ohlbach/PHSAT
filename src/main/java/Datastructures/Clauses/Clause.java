@@ -376,13 +376,13 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param clause a clause
      * @return +1 if they overlap with a literal, -1 if they overlap complementary, otherwise 0
      */
-    public int overlaps(Clause clause) {
+    public int[] overlaps(Clause clause) {
         for(CLiteral cLiteral1 : this) {
             int literal1 =cLiteral1.literal;
             for(CLiteral cLiteral2 : clause) {
-                if(cLiteral2.literal ==  literal1) return +1;
-                if(cLiteral2.literal == -literal1) return -1;}}
-        return 0;}
+                if(cLiteral2.literal ==  literal1) return new int[]{+1,literal1};
+                if(cLiteral2.literal == -literal1) return new int[]{-1,literal1};}}
+        return null;}
 
     /** removes from an array of clauses all removed clauses
      *

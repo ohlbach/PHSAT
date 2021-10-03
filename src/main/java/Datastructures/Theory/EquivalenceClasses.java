@@ -231,8 +231,7 @@ public class EquivalenceClasses  {
     public void integrateEquivalence(Clause clause, boolean derived) throws Unsatisfiable {
         if(monitoring) {
             monitor.print(monitorId,"Exec: equivalence clause: " + clause.toString(0,model.symboltable));}
-        clause = normalizeClause(clause);
-        if(clause == null) return;
+        if((clause = normalizeClause(clause)) == null) return;
         sortLiterals(clause);
         clause = joinClause(clause);
         sortLiterals(clause);
@@ -244,7 +243,7 @@ public class EquivalenceClasses  {
      * replaces literals by representatives in some equivalence class<br>
      * checks for true/false literals<br>
      * checks for double literals p,p (p becomes false)<br>
-     * checks for complementary literals p,-p (all other literals become false)<br>
+     * checks for inconsistencies p == -p <br>
      *
      * @param clause  a disjointness clause
      * @return null or the normalized clause
@@ -328,19 +327,24 @@ public class EquivalenceClasses  {
     protected Clause joinClause(Clause clause) throws Unsatisfiable {
         for(int i = 0; i < clauses.size(); ++i) {
             Clause oldClause = clauses.get(i);
-            int sign = clause.overlaps(oldClause);
-            if(sign != 0) {
+            int[] result = clause.overlaps(oldClause);
+            if(result != null) {
+                int sign = result[0];
+                int literal = result[1];
+                Clause newClause = clause.clone(problemSupervisor.nextClauseId());
                 if(monitoring) monitor.print(monitorId, "Joining equivalence clauses\n" +
                         oldClause.toString(4, model.symboltable) + " and\n" +
                         clause.toString(4, model.symboltable));
-                for(CLiteral cliteral : oldClause) addLiteral(clause,sign*cliteral.literal);
-                removeClause(oldClause); --i;}}
+                for(CLiteral cliteral : oldClause) addLiteral(newClause,sign*cliteral.literal);
 
-        for(CLiteral cliteral : clause) {
-            if(clause.contains(cliteral.literal) < 0) {
-                throw new Unsatisfiable("Equivalence clause " + clause.infoString(0,model.symboltable)
-                + " contains contradictory literals", null);}}
-        return clause;}
+                if(trackReasoning) {
+                    EquivalenceJoining eqj = new EquivalenceJoining(clause,oldClause,literal,newClause);
+                    newClause.inferenceStep = eqj;
+                    if(monitoring) monitor.print(monitorId,eqj.toString(symboltable));}
+
+                removeClause(oldClause); --i;
+                clause = newClause;}}
+        return removeDoublesAndInconsistencies(clause);}
 
 
     /** A true literal causes all other equivalent literals to become true.
@@ -549,7 +553,7 @@ public class EquivalenceClasses  {
 
         for(Clause clause1 : clauses) {
             for(Clause clause2 : clauses) {
-                if(clause1 != clause2 && clause1.overlaps(clause2) != 0) {
+                if(clause1 != clause2 && clause1.overlaps(clause2) != null) {
                     System.out.println("Clause\n" + clause1.toString(0, model.symboltable) +
                             " overlaps with\n" + clause2.toString(0,model.symboltable));}}}}
 
