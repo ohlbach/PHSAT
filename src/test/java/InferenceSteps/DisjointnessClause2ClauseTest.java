@@ -19,8 +19,6 @@ public class DisjointnessClause2ClauseTest {
         int[] bc = new int[]{1, ClauseType.DISJOINT.ordinal(),1,2,3,4};
         Clause c = new Clause(2,ClauseType.DISJOINT,-2,-4);
         DisjointnessClause2Clause inf = new DisjointnessClause2Clause(bc,c);
-        assertEquals(bc,inf.input());
-        assertEquals(c,inf.output());
         System.out.println(inf.toString(null));
     }
 
@@ -32,8 +30,6 @@ public class DisjointnessClause2ClauseTest {
         Clause dc = new Clause(2,bc);
         Clause c = new Clause(3,ClauseType.DISJOINT,-2,-4);
         DisjointnessClause2Clause inf = new DisjointnessClause2Clause(dc,c);
-        assertEquals(dc,inf.input());
-        assertEquals(c,inf.output());
         System.out.println(inf.toString(null));
     }
 

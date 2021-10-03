@@ -62,21 +62,6 @@ public class DisjointnessClause2Clause  extends InferenceStep {
         return st + "\n" + StringUtils.repeat('-',size) + "\n" +
                 StringUtils.center(clause.toString(0,symboltable),size);}
 
-    /** returns the input (basic clause or disjointnessClause)
-     *
-     * @return the input to the inference step
-     */
-    @Override
-    public Object input() {
-        return basicClause != null ? basicClause : disjointnessClause;}
-
-    /** returns the resulting two-literal clause
-     *
-     * @return the resulting two-literal clause
-     */
-    @Override
-    public Clause output() {
-        return clause;}
 
     @Override
     public IntArrayList origins() {

@@ -49,14 +49,6 @@ public class UnitResolution extends InferenceStep{
                 newClause.toString(0,symboltable);}
 
     @Override
-    public Object[] input() {
-        return new Object[]{oldClause,literal,inferenceStep};}
-
-    @Override
-    public Object output() {
-        return newClause;}
-
-    @Override
     public IntArrayList origins() {
         return joinIntArrays(oldClause.inferenceStep.origins(),inferenceStep.origins());}
 

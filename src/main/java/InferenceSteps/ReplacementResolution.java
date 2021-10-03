@@ -52,14 +52,6 @@ public class ReplacementResolution extends InferenceStep{
                 resolvent.toString(0,symboltable);}
 
     @Override
-    public Clause[] input() {
-        return new Clause[]{parentClause1,parentClause2};}
-
-    @Override
-    public Clause output() {
-        return resolvent;}
-
-    @Override
     public IntArrayList origins() {
         return  joinIntArrays(parentClause1.inferenceStep.origins(), parentClause2.inferenceStep.origins());}
 

@@ -21,17 +21,6 @@ public abstract class InferenceStep {
      */
     public abstract String toString(Symboltable symboltable);
 
-    /** returns the inputs to the inference step
-     *
-     * @return the inputs to the inference step
-     */
-    public abstract Object input();
-
-    /** returns the output of the inference step
-     *
-     * @return the output of the inference step
-     */
-    public abstract Object output();
 
     /** collects the basicClause ids of all clauses causing the current inference
      *
@@ -57,4 +46,7 @@ public abstract class InferenceStep {
             String rule = step.rule();
             if(!rules.contains(rule)) rules.add(rule);}
         return rules;}
+
+    public String toString() {
+        return toString(null);}
 }

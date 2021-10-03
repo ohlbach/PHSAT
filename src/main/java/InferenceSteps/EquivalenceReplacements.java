@@ -43,13 +43,6 @@ public class EquivalenceReplacements extends InferenceStep {
                 newClause.toString(0,symboltable);
         return st;}
 
-    @Override
-    public Clause[] input() {
-        return new Clause[]{oldClause,equivalenceClause}; }
-
-    @Override
-    public Clause output() {
-        return newClause;}
 
     @Override
     public IntArrayList origins() {

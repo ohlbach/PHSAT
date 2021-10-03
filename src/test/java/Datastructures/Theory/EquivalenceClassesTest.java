@@ -357,7 +357,7 @@ public class EquivalenceClassesTest {
         thread1.start();
 
         IntArrayList origins=new IntArrayList(); origins.add(10);
-        eqClasses.addDerivedEquivalence(2,-5);
+        eqClasses.addDerivedEquivalence(2,-5,null);
         try {
             model.add(2, null, null);
         }catch(Unsatisfiable uns) {}

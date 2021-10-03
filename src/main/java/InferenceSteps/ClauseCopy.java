@@ -35,17 +35,6 @@ public class ClauseCopy extends InferenceStep {
                 clause.toString(0,symboltable);}
 
     @Override
-    public int[] input() {
-        return basicClause;
-    }
-
-    @Override
-    public Clause output() {
-        return clause;
-    }
-
-
-    @Override
     public IntArrayList origins() {
         return IntArrayList.wrap(new int[]{basicClause[0]});}
 

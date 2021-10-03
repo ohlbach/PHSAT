@@ -317,7 +317,7 @@ public class TwoLitClauses {
     private boolean findStructures(TwoLitClause clause) {
         TwoLitClause partner = findEquivalence(clause);
         if(partner != null) {
-            equivalenceClasses.addDerivedEquivalence(clause.literal1, -clause.literal2);
+            equivalenceClasses.addDerivedEquivalence(clause.literal1, -clause.literal2,null);
             removeClause(partner);
             return false;}
         findDisjointnesses(clause);

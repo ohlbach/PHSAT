@@ -271,15 +271,15 @@ public class AllClauses {
             int oldLiteral = cliteral.literal;
             int newLiteral = equivalenceClasses.getRepresentative(oldLiteral);
             if(newLiteral != oldLiteral) {
+                int position = cliteral.clausePosition;
                 Clause newClause = oldClause.clone(problemSupervisor.nextClauseId());
-                for(CLiteral newcliteral : newClause) {
-                    if(newcliteral.literal == oldLiteral) {
-                        newcliteral.literal = newLiteral;
-                        if(trackReasoning) {
-                            newClause.inferenceStep = new EquivalenceReplacements(oldClause,oldLiteral,newClause,newLiteral,
-                                            equivalenceClasses.getEClause(oldLiteral));
-                            if(monitoring) {monitor.print(monitorId,newClause.inferenceStep.toString(symboltable));}}
-                         return replaceEquivalences(newClause);}}}}
+                CLiteral newcliteral = newClause.getCLiteral(position);
+                newcliteral.literal = newLiteral;
+                if(trackReasoning) {
+                    newClause.inferenceStep = new EquivalenceReplacements(oldClause,oldLiteral,newClause,newLiteral,
+                                    equivalenceClasses.getEClause(oldLiteral));
+                    if(monitoring) {monitor.print(monitorId,newClause.inferenceStep.toString(symboltable));}}
+                return replaceEquivalences(newClause);}}
         return oldClause;}
 
     /** replaces all double literals and checks for tautology.
@@ -292,7 +292,7 @@ public class AllClauses {
             int literal = clause.getLiteral(i);
             for(int j = i+1; j < clause.size(); ++j) {
                 int otherLiteral = clause.getLiteral(j);
-                if(literal == otherLiteral) {clause.removeAtPosition(j); continue;}
+                if(literal == otherLiteral) {clause.removeAtPosition(j--); continue;}
                 if(literal == -otherLiteral) {
                     if(monitoring) {
                         monitor.print(monitorId, "Clause " + clause.toString(0,symboltable) +

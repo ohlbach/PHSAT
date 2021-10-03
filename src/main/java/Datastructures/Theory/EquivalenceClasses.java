@@ -7,6 +7,7 @@ import Datastructures.Results.Inconsistency;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Task;
+import InferenceSteps.*;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import com.sun.istack.internal.Nullable;
@@ -18,7 +19,6 @@ import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.Consumer;
 
-import static Utilities.Utilities.*;
 
 /** This class manages lists of equivalence classes of literals.
  * It operates in two modes: <br>
@@ -65,6 +65,9 @@ public class EquivalenceClasses  {
     /** the global model of true literals */
     private final Model model;
 
+    /** null or a the global symboltable */
+    private final Symboltable symboltable;
+
     /** for logging the actions of this class */
     private final Monitor monitor;
 
@@ -74,8 +77,6 @@ public class EquivalenceClasses  {
     /** for distinguishing the monitoring areas */
     private String monitorId = null;
 
-    /** for enumerating the equivalence classes */
-    private int counter = 0;
 
     /** These two types can occur in the task queue */
     private enum TaskType {
@@ -112,6 +113,7 @@ public class EquivalenceClasses  {
         this.problemSupervisor = problemSupervisor;
         problemId = problemSupervisor.problemId;
         model = problemSupervisor.model;
+        symboltable = model.symboltable;
         statistics   = new EquivalenceStatistics(problemId);
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
         monitor = problemSupervisor.globalParameters.monitor;
@@ -166,22 +168,23 @@ public class EquivalenceClasses  {
                 return;}}}
 
 
-    /** adds a basic equivalence clause to the equivalence classes.
+    /** adds a basic equivalence basicClause to the equivalence classes.
      * All literals are replaced by the representatives of already existing equivalence classes.
      * Double occurrences are ignored.<br>
      * A contradiction may occur, if for example p,-q is to be added to p,q.<br>
      * In this case an Unsatisfiable exception is thrown.<br>
      * If the new equivalence class overlaps with the old one, the two are joined.
      *
-     * @param clause a basic equivalence clause
+     * @param basicClause a basic equivalence basicClause
      * @throws Unsatisfiable if a contradictory truth value has been discovered.
      */
-    public void addBasicEquivalenceClause(int[] clause) throws Unsatisfiable {
-        assert clause.length > 3;
-        assert ClauseType.getType(clause[1]) == ClauseType.EQUIV;
+    public void addBasicEquivalenceClause(int[] basicClause) throws Unsatisfiable {
+        assert basicClause.length > 3;
+        assert ClauseType.getType(basicClause[1]) == ClauseType.EQUIV;
         statistics.basicClauses++;
-        integrateEquivalence(new Clause(++counter,clause),false);
-    }
+        Clause clause = new Clause(problemSupervisor.nextClauseId(),basicClause);
+        if(trackReasoning) {clause.inferenceStep = new ClauseCopy(basicClause,clause);}
+        integrateEquivalence(clause,false);}
 
     /** adds a true literal to the queue
      *
@@ -202,14 +205,15 @@ public class EquivalenceClasses  {
      * @param literal1 a literal
      * @param literal2 an equivalent literal
      */
-    public void addDerivedEquivalence(int literal1, int literal2) {
+    public void addDerivedEquivalence(int literal1, int literal2, InferenceStep inferenceStep) {
         statistics.derivedClasses++;
         if(monitoring) {
             monitor.print(monitorId,"In:   Equivalence " +
                     Symboltable.toString(literal1, model.symboltable) + " = " +
                     Symboltable.toString(literal2, model.symboltable));}
-        Task<TaskType> task = new Task<>(TaskType.EQUIVALENCE,
-                new Clause(++counter,ClauseType.EQUIV,literal1,literal2),null);
+        Clause clause = new Clause(problemSupervisor.nextClauseId(),ClauseType.EQUIV,literal1,literal2);
+        clause.inferenceStep = inferenceStep;
+        Task<TaskType> task = new Task<>(TaskType.EQUIVALENCE,clause,null);
         synchronized (this) {queue.add(task);}}
 
 
@@ -247,33 +251,72 @@ public class EquivalenceClasses  {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     private Clause normalizeClause(Clause clause) throws Unsatisfiable {
-        ArrayList<CLiteral> cliterals = clause.cliterals;
+        clause = replaceEquivalences(clause);
+        if((clause = replaceTruthValues(clause)) == null) return null;
+        if((clause = removeDoublesAndInconsistencies(clause)) == null) return null;
+        return clause;}
 
-        if(!clauses.isEmpty()) {  // replacement of equivalent literals
-            clause.replaceEquivalences(this,trackReasoning);}
+    /** replaces the literals in the oldClause by their representatives in the equivalence class.
+     * The clause must not be integrated.
+     *
+     * @param oldClause a clause
+     * @return the original clause or a new clause with the literals replaced.
+     */
+    protected Clause replaceEquivalences(Clause oldClause) {
+        if(isEmpty()) return oldClause;
+        for(CLiteral cliteral : oldClause) {
+            int oldLiteral = cliteral.literal;
+            int newLiteral = getRepresentative(oldLiteral);
+            if(newLiteral != oldLiteral) {
+                int position = cliteral.clausePosition;
+                Clause newClause = oldClause.clone(problemSupervisor.nextClauseId());
+                CLiteral newcliteral = newClause.getCLiteral(position);
+                newcliteral.literal = newLiteral;
+                if(trackReasoning) {
+                    newClause.inferenceStep = new EquivalenceReplacements(oldClause,oldLiteral,newClause,newLiteral,
+                            getEClause(oldLiteral));
+                    if(monitoring) {monitor.print(monitorId,newClause.inferenceStep.toString(symboltable));}}
+                return replaceEquivalences(newClause);}}
+        return oldClause;}
 
-        for(int i = 0; i < cliterals.size(); ++i) {
-            CLiteral cliteral = cliterals.get(i);
-            int literal = cliteral.literal;
-            synchronized (model) {
-                int sign = model.status(literal);
-                if(sign != 0) {
-                    if(monitoring) {
-                        monitor.print(monitorId, "All literals in clause " +
-                                clause.toString(0, model.symboltable) + " get the same truth value as " +
-                            Symboltable.toString(literal, model.symboltable) );}
-                    for(CLiteral clit : cliterals) {
-                        if(clit != cliteral) {
-                            addToModel(sign*clit.literal,null);}}
-                        return null;}}// clause no longer needed
-
-            switch(clause.contains(literal,cliteral)) {
-                case +1: clause.remove(cliteral); --i; continue;
-                case -1: // p = -p is contradictory
-                    throw new Unsatisfiable("Contradictory literals in equivalence class" +
-                            clause.toString(0, model.symboltable), null);}}
+    /** replaces all double literals and checks for inconsistency.
+     *
+     * @param clause an unintegrated clause
+     * @return null (single literal) or the clause without double literals.
+     * @throws Unsatisfiable if the clause contains a contradiction p = -p
+     */
+    protected Clause removeDoublesAndInconsistencies(Clause clause) throws Unsatisfiable {
+        for(int i = 0; i < clause.size(); ++i) {
+            int literal = clause.getLiteral(i);
+            for(int j = i+1; j < clause.size(); ++j) {
+                int otherLiteral = clause.getLiteral(j);
+                if(literal == otherLiteral) {clause.removeAtPosition(j--); continue;}
+                if(literal == -otherLiteral) {
+                    EquivalenceInconsistency eqi = trackReasoning ?
+                            new EquivalenceInconsistency(clause,literal,otherLiteral) : null;
+                    throw new Unsatisfiable(eqi);}}}
         return clause.size() > 1 ? clause : null;}
 
+    /** a true literal causes the clause to be deleted, a false literal is removed.
+     *
+     * @param clause the original not integrated clause
+     * @return null (true clause) or the unchanged clause or a new shortened clause
+     */
+    protected Clause replaceTruthValues(Clause clause) throws Unsatisfiable{
+        for(CLiteral cLiteral1 : clause) {
+            int literal1 = cLiteral1.literal;
+            int sign = model.status(literal1);
+            if(sign != 0) {
+                for(CLiteral cLiteral2 : clause) {
+                    EquivalentTrueLiteral inference = null;
+                    if(cLiteral2 != cLiteral1) {
+                        if(trackReasoning) inference =
+                                new EquivalentTrueLiteral(clause,sign*literal1,sign*cLiteral2.literal,
+                                    model.getInferenceStep(literal1));
+                        if(monitoring) monitor.print(monitorId,inference.toString());
+                        model.add(sign*cLiteral2.literal,inference,null);}}
+                return null;}}
+        return clause;}
 
     /** joins the new (not inserted) equivalence clause to the old ones if there is an overlapping.
      * If there are overlappings then the old clauses are removed from the internal data structures.
@@ -459,7 +502,7 @@ public class EquivalenceClasses  {
     public String toString(@Nullable Symboltable symboltable, boolean info) {
         StringBuilder string = new StringBuilder();
         string.append("Equivalence Classes of Problem " + problemId + ":\n");
-        int width = Integer.toString(counter).length();
+        int width = Integer.toString(problemSupervisor.clauseCounter).length();
         int size = clauses.size();
         for(int i = 0; i < size; ++i) {
             if(info) string.append(clauses.get(i).infoString(width,symboltable));
