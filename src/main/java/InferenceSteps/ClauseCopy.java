@@ -3,6 +3,7 @@ package InferenceSteps;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
+import Datastructures.TwoLiteral.TwoLitClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
 
@@ -13,15 +14,20 @@ import java.util.ArrayList;
  */
 public class ClauseCopy extends InferenceStep {
     private int[] basicClause;
-    private Clause clause;
+    private Clause clause = null;
+    private TwoLitClause twoLitClause = null;
     public static String title = "Clause Copy";
 
     public static String rule = title + ":\n"+
-            "Copies a basic clause like [id,type,literal1,...] to a Clause data structure";
+            "Copies a basic clause like [id,type,literal1,...] to a Clause or TwoLitClause data structure";
 
     public ClauseCopy(int[] basicClause, Clause clause) {
         this.basicClause = basicClause;
         this.clause = clause;}
+
+    public ClauseCopy(int[] basicClause, TwoLitClause clause) {
+        this.basicClause = basicClause;
+        this.twoLitClause = clause;}
 
     @Override
     public String rule() {
@@ -32,7 +38,7 @@ public class ClauseCopy extends InferenceStep {
         String st = title + ":\n" + BasicClauseList.clauseToString(0,basicClause,symboltable);
         int width = st.length();
         return st + "\n" + StringUtils.repeat('-',width) + "\n" +
-                clause.toString(0,symboltable);}
+                (clause != null ? clause.toString(0,symboltable) : twoLitClause.toString("",symboltable));}
 
     @Override
     public IntArrayList origins() {

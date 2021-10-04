@@ -191,13 +191,13 @@ public class AllClauses {
     /** puts a true literal into the queue.
      *
      * @param literal a true literal
-     * @param origins the basic clause ids causing the derivation of the true literal.
+     * @param inference for making the literal true
      */
-    public void addTrueLiteral(int literal, IntArrayList origins){
+    public void addTrueLiteral(int literal, InferenceStep inference){
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                     Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<>(AllClauses.TaskType.TRUELITERAL, literal, null));}
+        queue.add(new Task<>(AllClauses.TaskType.TRUELITERAL, literal, inference));}
 
     /** puts an equivalence into the queue
      *
@@ -252,7 +252,8 @@ public class AllClauses {
         if(isSubsumed(clause)) return;
         if((clause = replacementResolutionBackwards(clause)) == null) return;
         if(clause.size() == 2)
-            twoLitClauses.addDerivedClause(clause.getLiteral(0), clause.getLiteral(1));
+            twoLitClauses.addDerivedClause(clause.getLiteral(0), clause.getLiteral(1),
+                    clause.inferenceStep);
 
         removeSubsumedClauses(clause);
         replacementResolutionForward(clause);
@@ -823,7 +824,8 @@ public class AllClauses {
                 clauses.remove(clause);
                 if(clausesFinished && clauses.isEmpty()) throw new Satisfiable(model);
                 return false;
-            case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),clause.getLiteral(2));} // keep the two-literal clause
+            case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),clause.getLiteral(2),
+                    clause.inferenceStep);} // keep the two-literal clause
 
         switch(clause.structure) {
             case NEGATIVE: ++statistics.negativeClauses; break;

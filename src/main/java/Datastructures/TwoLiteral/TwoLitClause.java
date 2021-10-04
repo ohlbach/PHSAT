@@ -13,7 +13,7 @@ public class TwoLitClause {
     public int id;                // the identifier
     public int literal1;          // the first literal
     public int literal2;          // the second literal
-    public InferenceStep inferenceStep;  // the iinference step which generated this clause
+    public InferenceStep inferenceStep;  // the inference step which generated this clause
 
     /** constructs a new two-literal clause
      *

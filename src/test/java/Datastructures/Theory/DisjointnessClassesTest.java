@@ -80,9 +80,9 @@ public class DisjointnessClassesTest {
         assertEquals("Disjointness Clauses of Problem test:\n" +
                 "D-1: p!=q!=r",dClasses.toString(symboltable));
         //System.out.println(dClasses.infoString(symboltable));
-        assertTrue(dClasses.areDisjoint(1,3));
-        assertFalse(dClasses.areDisjoint(1,-3));
-        assertFalse(dClasses.areDisjoint(1,4));
+        assertTrue(dClasses.areDisjoint(1,3) != null);
+        assertNull(dClasses.areDisjoint(1,-3));
+        assertNull(dClasses.areDisjoint(1,4));
         //assertEquals("[1]",dClasses.getOrigins(1,2).toString());
 
         clause = new int[]{2,type,4,2,-4};
