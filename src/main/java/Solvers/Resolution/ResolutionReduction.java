@@ -530,7 +530,7 @@ public abstract class ResolutionReduction extends Solver {
         switch(model.status(literal)) {
             case -1: return null; //new Unsatisfiable(null,null); //model,literal);
             case +1: return null;}
-        model.addImmediately(literal,null);
+        model.addImmediately(literal);
         BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
             Clause clause = iterator.next().clause;
@@ -794,7 +794,7 @@ public abstract class ResolutionReduction extends Solver {
             for(CLiteral cliteral : literals) {
                 int lit = cliteral.literal;
                 if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
-            model.addImmediately(satisfied ? -literal : literal,null);}}
+            model.addImmediately(satisfied ? -literal : literal);}}
 
 
     /** inserts a clause into the literal index

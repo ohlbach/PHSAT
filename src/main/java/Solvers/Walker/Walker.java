@@ -163,7 +163,7 @@ public abstract class Walker extends Solver {
      *  It generates a simplifyBackwards task.
      */
     private Consumer<Clause> insertHandler = (
-            clause -> {if(clause.size() == 1) {model.addImmediately(clause.getLiteral(0),null);}
+            clause -> {if(clause.size() == 1) {model.addImmediately(clause.getLiteral(0));}
                        else                   {insertClause(clause);}});
 
 
@@ -536,7 +536,7 @@ public abstract class Walker extends Solver {
             //return new Unsatisfiable(null,null);
         } //model,literal,symboltable);}
         ++statistics.importedUnitClauses;
-        model.addImmediately(literal,null);
+        model.addImmediately(literal);
         int predicate = Math.abs(literal);
         if(isLocallyTrue(-literal)) {flipPredicate(predicate);}
         if(statistics.falseClauses == 0) {return completeModel();}
@@ -545,7 +545,7 @@ public abstract class Walker extends Solver {
 
     void transferLocalModel() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-            model.setStatus(predicate,localModel[predicate],null);}}
+            model.setStatus(predicate,localModel[predicate]);}}
 
     /** completes a model after resolution has finished.
      * Strategy INPUT or SOS: all remaining clauses should be true <br>

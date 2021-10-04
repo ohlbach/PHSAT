@@ -507,7 +507,7 @@ public abstract class Resolution extends Solver {
         switch(model.status(literal)) {
             case -1: //return new Unsatisfiable(null,null); //model,null); //literal);
             case +1: return null;}
-        model.addImmediately(literal,null);
+        model.addImmediately(literal);
         if(false) {
             ArrayList<int[]> falseClauses = basicClauseList.falseClausesInModel(model);
             if(falseClauses != null) {
@@ -598,7 +598,7 @@ public abstract class Resolution extends Solver {
                     for(CLiteral cliteral : clause) {
                         int literal = cliteral.literal;
                         if(model.status(literal) == 0 && ((isPositive && literal < 0) || (!isPositive && literal > 0))) {
-                            model.addImmediately(literal,null); found = true; break;}}
+                            model.addImmediately(literal); found = true; break;}}
                     if(!found) return new Erraneous(model,clause,symboltable);}}
         completeEliminations();
         Result result = equivalenceClasses.completeModel();
@@ -617,7 +617,7 @@ public abstract class Resolution extends Solver {
             for(CLiteral  cliteral : literals) {
                 int lit = cliteral.literal;
                 if(lit != literal && model.status(lit) == 1) {satisfied = true; break;}}
-            model.addImmediately(satisfied ? -literal : literal,null);}}
+            model.addImmediately(satisfied ? -literal : literal);}}
 
 
     /** counts the number of clauses in the resolution solver */

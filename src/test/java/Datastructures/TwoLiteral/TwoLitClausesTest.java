@@ -102,11 +102,10 @@ public class TwoLitClausesTest {
         model.addObserver(Thread.currentThread(),
                 ((literal, originals) -> {
                     observed.add(literal);
-                    observed.add(sortIntArray(originals));
                 }));
         IntArrayList origins = new IntArrayList();
         origins.add(20);
-        model.addImmediately(2,origins);
+        model.addImmediately(2);
 
         int[] clause1 = new int[]{1,type,2,3};
         int[] clause2 = new int[]{2,type,-2,4};
@@ -162,7 +161,6 @@ public class TwoLitClausesTest {
         model.addObserver(Thread.currentThread(),
                 ((literal, originals) -> {
                     observed.add(literal);
-                    observed.add(sortIntArray(originals));
                 }));
         model.symboltable = null;
 

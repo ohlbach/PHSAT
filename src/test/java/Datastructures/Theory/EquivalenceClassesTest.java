@@ -154,8 +154,8 @@ public class EquivalenceClassesTest {
         IntArrayList orig2=new IntArrayList();
         orig2.add(30);
         Model model=problemSupervisor.model;
-        model.addImmediately(2, orig1);
-        model.addImmediately(-3, orig2);
+        model.addImmediately(2);
+        model.addImmediately(-3);
         ArrayList<Object> observed=new ArrayList<>();
         model.addObserver(Thread.currentThread(),
                 ((literal, originals) -> {

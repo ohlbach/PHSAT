@@ -2,6 +2,7 @@ package Datastructures.Theory;
 
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import InferenceSteps.ContradictoryLiterals;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import javafx.util.Pair;
@@ -9,7 +10,6 @@ import javafx.util.Pair;
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
 
-import static Utilities.Utilities.joinIntArraysSorted;
 
 /** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
  * Each literal in the model is accompanied by the origins, i.e. the list of basic clause ids which
@@ -33,6 +33,7 @@ public class Model {
     /** the current model */
     private IntArrayList model;
 
+    /** The inference steps which caused the truth of the literals */
     private ArrayList<InferenceStep> inferenceSteps;
 
     /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined) */
@@ -84,8 +85,8 @@ public class Model {
             throw new Unsatisfiable(
                     "Supposed true literal " + Symboltable.toString(literal,symboltable) +
                             " is already false in the model " + Symboltable.toString(model,symboltable),
-                    inferenceStep);}
-
+                    (inferenceStep == null) ? null :
+                            new ContradictoryLiterals(literal,inferenceStep,getInferenceStep(literal)));}
         inferenceSteps.add(inferenceStep);
         model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
@@ -97,9 +98,8 @@ public class Model {
     /** adds a literal immediately without any checks and transfers
      *
      * @param literal a literal
-     * @param origin he ids of the basic clauses causing this truth
      */
-    public void addImmediately(int literal, IntArrayList origin) {
+    public void addImmediately(int literal) {
         model.add(literal);
         status[Math.abs(literal)] = literal > 0 ? (byte)1: (byte)-1;}
 
@@ -179,7 +179,7 @@ public class Model {
      * @param literal a literal
      * @param status +1 (for true) and -1 (for false)
      */
-    public synchronized void setStatus(int literal, int status, IntArrayList origin) {
+    public synchronized void setStatus(int literal, int status) {
         if(literal < 0) {literal = -literal; status = (byte)-status;}
         assert this.status[literal] == 0 || this.status[literal] == status;
         if(this.status[literal] == 0) {
@@ -196,16 +196,10 @@ public class Model {
     public Model clone() {
         Model newModel = new Model(predicates, symboltable);
         newModel.inferenceSteps = new ArrayList<>();
-        for(InferenceStep inferenceStep : inferenceSteps) {newModel.inferenceSteps.add(inferenceStep);}
+        newModel.inferenceSteps.addAll(inferenceSteps);
         newModel.status = status.clone();
         newModel.model = model.clone();
         return newModel;}
-
-    /** returns a clone of the current status of the model.
-     *
-     * @return a clone of the current status of the model
-     */
-    public byte[] cloneStatus() {return status.clone();}
 
     /** checks if the literal is in the model.
      *
@@ -231,7 +225,7 @@ public class Model {
 
     /** checks if the model is full.
      *
-     * @return true if the model is empty
+     * @return true if the model is full
      */
     public synchronized boolean isFull() {return model.size() == predicates;}
 

@@ -434,7 +434,7 @@ public class EquivalenceClasses  {
 
             for(CLiteral cliteral : clause) {
                 int literal = cliteral.literal;
-                if(model.status(literal) == 0) model.addImmediately(sign*literal,null);}}
+                if(model.status(literal) == 0) model.addImmediately(sign*literal);}}
         return null;}
 
     /** inserts the clause into the local data structures.

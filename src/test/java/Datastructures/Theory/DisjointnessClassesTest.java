@@ -115,7 +115,7 @@ public class DisjointnessClassesTest {
         IntArrayList origins = new IntArrayList();
         origins.add(20);
         origins.add(30);
-        model.addImmediately(2, origins);
+        model.addImmediately(2);
         int[] clause = new int[]{1, type, 1, 2, 3};
         try {dClasses.integrateDisjointnessClause(new Clause(1,clause));
         } catch (Unsatisfiable uns) {}

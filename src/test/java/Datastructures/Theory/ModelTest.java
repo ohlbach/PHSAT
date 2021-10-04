@@ -20,8 +20,8 @@ public class ModelTest {
     public void addImmediately1() throws Exception {
         System.out.println("addImmediately1");
         Model model = new Model(5,null);
-        model.addImmediately(1,null);
-        model.addImmediately(-2,null);
+        model.addImmediately(1);
+        model.addImmediately(-2);
         assertEquals("1,-2",model.toString());
         assertEquals(1,model.status(1));
         assertEquals(-1,model.status(-1));
@@ -42,11 +42,11 @@ public class ModelTest {
         IntArrayList origins1 = new IntArrayList();
         origins1.add(10);
         origins1.add(11);
-        model.addImmediately(1, origins1);
-        model.addImmediately(-2, null);
+        model.addImmediately(1);
+        model.addImmediately(-2);
         IntArrayList origins3 = new IntArrayList();
         origins3.add(30);
-        model.addImmediately(3, origins3);
+        model.addImmediately(3);
         assertEquals("1 @ [10, 11]\n" +
                 "-2\n" +
                 "3 @ [30]", model.infoString(false));
@@ -64,8 +64,8 @@ public class ModelTest {
         symboltable.setName(2,"q");
         symboltable.setName(3,"r");
         Model model = new Model(5,symboltable);
-        model.addImmediately(1,null);
-        model.addImmediately(-2,null);
+        model.addImmediately(1);
+        model.addImmediately(-2);
         assertEquals("p,-q",model.toString());
         assertEquals("1,-2",model.toNumbers());
 
