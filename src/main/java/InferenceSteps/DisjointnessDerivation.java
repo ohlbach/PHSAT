@@ -11,51 +11,50 @@ import static Utilities.Utilities.joinIntArrays;
 
 public class DisjointnessDerivation extends InferenceStep{
     private final IntArrayList literals;
-    private final TwoLitClause clause1;
-    private final TwoLitClause clause2;
-    private final TwoLitClause clause3;
+    private final ArrayList<TwoLitClause> clauses;
 
     public static final String title = "Disjointness Derivation";
 
     public static final String rule = title + "\n"+
-            "   -p,-q\n"+
-            "   -p,-r\n"+
-            "   -q,-r\n"+
-            "-----------\n"+
-            "p != q != r";
+            "         -p,-q\n"+
+            "         -p,-r\n"+
+            "         ....\n" +
+            "        -s,-t\n"+
+            "-----------------------\n"+
+            "p != q != r != ... != t";
 
-    public DisjointnessDerivation(IntArrayList literals, TwoLitClause clause1, TwoLitClause clause2, TwoLitClause clause3) {
+    public DisjointnessDerivation(IntArrayList literals, ArrayList<TwoLitClause> clauses) {
         this.literals = literals;
-        this.clause1 = clause1;
-        this.clause2 = clause2;
-        this.clause3 = clause3;}
+        this.clauses = clauses;}
     @Override
     public String rule() {
-        return null;}
+        return rule;}
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st1 = clause1.toString("",symboltable);
-        String st2 = clause2.toString("",symboltable);
-        String st3 = clause3.toString("",symboltable);
-        String st4 =
-                Symboltable.toString(literals.getInt(0),symboltable) + " != " +
-                Symboltable.toString(literals.getInt(1),symboltable) + " != " +
-                Symboltable.toString(literals.getInt(2),symboltable) ;
-        int width = Math.max(Math.max(st1.length(),st2.length()) ,Math.max(st3.length(),st4.length()));
-        return title + ":\n" + st1 + "\n" + st2 + "\n" + st3 + "\n" +
-                StringUtils.repeat('-',width) + "\n" + st4;}
+        ArrayList<String> strings = new ArrayList<>();
+        int width = 0;
+        for(TwoLitClause clause : clauses) {
+            String st =  clause.toString("",symboltable);
+            width = Math.max(width,st.length());
+            strings.add(st);}
+        String st4 = "";
+        for(int i = 0; i < literals.size()-1; ++i)
+                st4 += Symboltable.toString(literals.getInt(i),symboltable) + " != ";
+        st4 += Symboltable.toString(literals.getInt(literals.size()-1),symboltable);
+        width = Math.max(width,st4.length());
+        String result = title + "\n";
+        for(String st : strings) result += StringUtils.center(st,width) + "\n";
+        return result + StringUtils.repeat('-',width) + "\n" + st4;}
 
     @Override
     public IntArrayList origins() {
-        IntArrayList origins = clause1.inferenceStep.origins();
-        origins  = joinIntArrays(origins,clause2.inferenceStep.origins());
-        return joinIntArrays(origins,clause3.inferenceStep.origins());}
+        IntArrayList origins = null;
+        for(TwoLitClause clause : clauses) origins  = joinIntArrays(origins,clause.inferenceStep.origins());
+        return origins;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        clause1.inferenceStep.inferenceSteps(steps);
-        clause2.inferenceStep.inferenceSteps(steps);
-        clause3.inferenceStep.inferenceSteps(steps);
+        for(TwoLitClause clause : clauses) clause.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

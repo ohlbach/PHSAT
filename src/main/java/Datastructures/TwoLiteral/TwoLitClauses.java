@@ -406,34 +406,46 @@ public class TwoLitClauses {
 
 
 
-    /** tries to find a triple of disjoint literals.
-     *  Three clauses: p,q  and p,r and q,r mean that -p,-q,-r are disjoint
-     *  The triple is inserted into the disjointnessClasses.
+    /** tries to find a tuple of disjoint literals.
+     *  Example: three clauses: p,q  and p,r and q,r mean that -p,-q,-r are disjoint
+     *  The tuple is inserted into the disjointnessClasses.
      *
-     * @param clause a potential partner of the triple
+     * @param clause a potential partner of the tuple
      */
     protected void findDisjointnesses(TwoLitClause clause) { // clause = p,q
-        int literal1 = clause.literal1;
-        int literal2 = clause.literal2;
-        for(int i = 1; i <= 2; ++i) {
-            ArrayList<TwoLitClause> clauses = literalIndex.get(literal1);
-            if(clauses != null) {
-                for(TwoLitClause clause2 : clauses) {
-                    if(clause2 != clause) {             // clause2 = p,r
-                        int literal3 = (clause2.literal1 == literal1) ? clause2.literal2 : clause2.literal1;
-                        TwoLitClause clause3 = findClause(literal2,literal3);
-                        if(clause3 != null) {           // clause3 = q,r
-                            IntArrayList literals = new IntArrayList();
-                            literals.add(-literal1); literals.add(-literal2); literals.add(-literal3);
-                            statistics.disjointnesses++;
-                            DisjointnessDerivation inf = null;
-                            if(trackReasoning) {
-                                inf = new DisjointnessDerivation(literals,clause,clause2,clause3);
-                                if(monitoring) monitor.print(monitorId,inf.toString(symboltable));}
-                            disjointnessClasses.addDerivedDisjoints(literals,inf);
-                            return;}}}}
-            literal1 = clause.literal2;
-            literal2 = clause.literal1;}}
+        int literal = clause.literal1;
+        ArrayList<TwoLitClause> candidateClauses = literalIndex.get(literal);
+        if(candidateClauses == null) return;
+        IntArrayList candidateLiterals = new IntArrayList();
+        candidateLiterals.add(literal);
+        for(TwoLitClause clause2 : candidateClauses) {
+            candidateLiterals.add((clause2.literal1 == literal) ? clause2.literal2 : clause2.literal1);}
+        if(candidateLiterals.size() < 3) return; // we want at least three disjoint literals
+        IntArrayList literals = new IntArrayList();
+        ArrayList<TwoLitClause> clauses = new ArrayList<>();
+        literals.add(-candidateLiterals.getInt(0));
+        TwoLitClause clause3 = findClause(literal,candidateLiterals.getInt(1));
+        if(clause3 == null) return;
+        literals.add(-candidateLiterals.getInt(1));
+        clauses.add(clause3);
+        for(int i = 2; i < candidateLiterals.size(); ++i) {
+            int candidateLiteral = candidateLiterals.getInt(i); // it must be disjoint to all literals in literals
+            candidateClauses.clear();
+            boolean found = true;
+            for(int j = 0; j < i; ++j) {
+                clause3 = findClause(-literals.getInt(j),candidateLiteral);
+                if(clause3 == null) {found = false; break;}
+                candidateClauses.add(clause3);}
+            if(found) {
+                literals.add(-candidateLiteral);
+                clauses.addAll(candidateClauses);}}
+        if(literals.size() < 3) return;
+        DisjointnessDerivation inf = null;
+        if(trackReasoning) {
+            inf = new DisjointnessDerivation(literals,clauses);
+            if(monitoring) monitor.print(monitorId,inf.toString(symboltable));}
+        disjointnessClasses.addDerivedDisjoints(literals,inf);}
+
 
     /** checks if there are no two-literal clauses
      *
