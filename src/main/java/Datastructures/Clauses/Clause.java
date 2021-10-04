@@ -2,7 +2,6 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
 import InferenceSteps.InferenceStep;
 import Utilities.Positioned;
 import Utilities.Sizable;
@@ -34,29 +33,34 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public int timestamp = 0;
     /** some auxiliary pointer */
     public Object aux = null;
-
+    /** the reason for deriving the clause */
     public InferenceStep inferenceStep;
 
+    /** constructs a new clause
+     *
+     * @param id         its identifier
+     * @param clauseType its type
+     */
     public Clause(int id, ClauseType clauseType) {
         this.id = id;
         this.clauseType = clauseType;
-        cliterals = new ArrayList<CLiteral>();}
+        cliterals = new ArrayList<>();}
 
     /** constructs a clause
      *
      * @param id   the clause problemId
-     * @parma clauseType  the clause's type
+     * @param clauseType  the clause's type
      * @param size  the estimated number of literals
      */
     public Clause(int id, ClauseType clauseType, int size) {
         this.id = id;
         this.clauseType = clauseType;
-        cliterals = new ArrayList<CLiteral>(size);}
+        cliterals = new ArrayList<>(size);}
 
     /** constructs a new clause with given literals
      *
      * @param id        the id of the new clause
-     * @parma clauseType  the clause's type
+     * @param clauseType  the clause's type
      * @param literals the list of literals
      */
     public Clause(int id, ClauseType clauseType, IntArrayList literals) {
@@ -70,7 +74,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** constructs a new clause with given literals
      *
      * @param id        the id of the new clause
-     * @parma clauseType  the clause's type
+     * @param clauseType  the clause's type
      * @param cLiterals the list of CLiterals
      */
     public Clause(int id, ClauseType clauseType, ArrayList<CLiteral> cLiterals) {
@@ -87,7 +91,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * complementary literals cause the structure to be TAUTOLOGY
      *
      * @param id           the name of the clause
-     * @parma clauseType  the clause's type
      * @param basicClause  a basic clause [number,type,literal1,...]
      */
     public Clause(int id, int[] basicClause) {
@@ -103,7 +106,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** creates a new clause with the two literals
      *
      * @param id       the new id
-     * @parma clauseType  the clause's type
+     * @param clauseType  the clause's type
      * @param literal1 a literal
      * @param literal2 a literal
      */
@@ -227,8 +230,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
      */
     public int contains(int literal) {
-        for(int i = 0; i < cliterals.size(); ++i) {
-            int lit = cliterals.get(i).literal;
+        for(CLiteral cliteral : this) {
+            int lit = cliteral.literal;
             if(lit ==  literal) {return +1;}
             if(lit == -literal) {return -1;}}
         return 0;}
@@ -240,8 +243,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
      */
     public int contains(int literal, CLiteral ignore) {
-        for(int i = 0; i < cliterals.size(); ++i) {
-            CLiteral cLiteral = cliterals.get(i);
+        for(CLiteral cLiteral : this) {
             if(cLiteral == ignore) continue;
             int lit = cLiteral.literal;
             if(lit ==  literal) {return +1;}
@@ -341,21 +343,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                     doubles = true;}}}
         return doubles;}
 
-    /** replaces literals by equivalent literals
-     *
-     * @param eqClasses         the equivalence classes
-     * @param trackReasoning    controls management of origins
-     * @return true if some literals have been changed.
-     */
-    public boolean replaceEquivalences(EquivalenceClasses eqClasses, boolean trackReasoning) {
-        boolean changed = false;
-        for(CLiteral cliteral : cliterals) {
-            int oldLiteral = cliteral.literal;
-            int literal = eqClasses.getRepresentative(oldLiteral);
-            if(literal != oldLiteral) {
-                changed = true;
-                cliteral.literal = literal;}}
-        return changed;}
 
     /** sets the removed flag
      */
@@ -391,7 +378,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public static Clause[] removeRemovedClauses(Clause[] clauses) {
         int removed = 0;
-        for(int i = 0; i < clauses.length; ++i) {if(clauses[i].isRemoved()) ++removed;}
+        for(Clause clause : clauses) {if(clause.isRemoved()) ++removed;}
         if(removed == 0) return clauses;
         Clause[] newClauses = new Clause[clauses.length-removed];
         int i = 0;
@@ -440,7 +427,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(cliterals.get(position).literal,symboltable));
-            if(position < size-1) {st.append(clauseType.separator);}};
+            if(position < size-1) {st.append(clauseType.separator);}}
         return st.toString();}
 
     /** generates a string: clause-number: literals [origins]

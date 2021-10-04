@@ -432,9 +432,8 @@ public class TwoLitClauses {
             int candidateLiteral = candidateLiterals.getInt(i); // it must be disjoint to all literals in literals
             candidateClauses.clear();
             boolean found = true;
-            for(int j = 0; j < i; ++j) {
-                clause3 = findClause(-literals.getInt(j),candidateLiteral);
-                if(clause3 == null) {found = false; break;}
+            for(int oldLiteral : literals) {
+                if((clause3 = findClause(-oldLiteral,candidateLiteral)) == null) {found = false; break;}
                 candidateClauses.add(clause3);}
             if(found) {
                 literals.add(-candidateLiteral);
