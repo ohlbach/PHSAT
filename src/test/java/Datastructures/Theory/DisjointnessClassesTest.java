@@ -60,7 +60,7 @@ public class DisjointnessClassesTest {
         literals.add(1); literals.add(3);literals.add(2);
         IntArrayList origins = new IntArrayList();
         origins.add(20); origins.add(30);
-        dClasses.addDerivedDisjoints(literals,origins);
+        dClasses.addDerivedDisjoints(literals,null);
         Thread thread = new Thread(()->dClasses.run());
         thread.start(); Thread.sleep(10);
         thread.interrupt();
@@ -252,7 +252,7 @@ public class DisjointnessClassesTest {
                 dClasses.integrateDisjointnessClause(new Clause(1,clause1));
                 dClasses.integrateDisjointnessClause(new Clause(2,clause2));
                 dClasses.integrateDisjointnessClause(new Clause(3,clause3));
-                dClasses.integrateTrueLiteral(3);
+                dClasses.integrateTrueLiteral(3,null);
             } catch (Unsatisfiable uns) {}
 
             Thread thread = new Thread(()->dClasses.run());
@@ -328,7 +328,7 @@ public class DisjointnessClassesTest {
 
         IntArrayList origins = new IntArrayList(); origins.add(10);
         IntArrayList literals = new IntArrayList();  literals.add(5); literals.add(6);
-        dClasses.addDerivedDisjoints(literals,origins);
+        dClasses.addDerivedDisjoints(literals,null);
         origins = new IntArrayList(); origins.add(30);
         Clause eqClause = new Clause(1,ClauseType.EQUIV,1,4);
         eqClasses.integrateEquivalence(eqClause,true);

@@ -39,7 +39,7 @@ public class Model {
     private byte[] status;
 
     /** observers to be called when a new true literal is inserted */
-    private final ArrayList<Pair<Thread, BiConsumer<Integer, IntArrayList>>> observers = new ArrayList<>();
+    private final ArrayList<Pair<Thread, BiConsumer<Integer, InferenceStep>>> observers = new ArrayList<>();
 
     /** creates a model with a maximum number of predicates, together with a means of tracking the origins
      *
@@ -63,7 +63,7 @@ public class Model {
      * @param thread      the target thread
      * @param observer a function (literal,origins)
      */
-    public synchronized void addObserver(Thread thread, BiConsumer<Integer, IntArrayList> observer) {
+    public synchronized void addObserver(Thread thread, BiConsumer<Integer, InferenceStep> observer) {
         observers.add(new Pair<>(thread, observer));}
 
 
@@ -90,9 +90,8 @@ public class Model {
         model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
 
-        for(Pair<Thread, BiConsumer<Integer, IntArrayList>> observer : observers) {
-            if(thread != observer.getKey()) {
-                observer.getValue().accept(literal,null);}}}
+        for(Pair<Thread, BiConsumer<Integer, InferenceStep>> observer : observers) {
+            if(thread != observer.getKey()) {observer.getValue().accept(literal,inferenceStep);}}}
 
 
     /** adds a literal immediately without any checks and transfers

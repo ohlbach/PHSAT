@@ -228,7 +228,7 @@ public class EquivalenceClassesTest {
         clause=new int[]{2,type,5,-6};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
-        try{eqClasses.integrateTrueLiteral(6);}
+        try{eqClasses.integrateTrueLiteral(6,null);}
         catch(Unsatisfiable uns) {if(uns != null) System.out.println(uns.toString());}
         assertEquals("[-5, [2, 20]]",observed.toString());
         assertEquals("Equivalence Classes of Problem test:\n" +

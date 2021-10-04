@@ -447,7 +447,7 @@ public class TwoLitClauses {
                                     Symboltable.toString(-literal1,model.symboltable) + " != " +
                                     Symboltable.toString(-literal2,model.symboltable)+ " != " +
                                     Symboltable.toString(-literal3,model.symboltable));}
-                            disjointnessClasses.addDerivedDisjoints(literals,origins);
+                            disjointnessClasses.addDerivedDisjoints(literals,null);
                             return;}}}}
             literal1 = clause.literal2;
             literal2 = clause.literal1;}}
