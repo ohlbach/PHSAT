@@ -25,6 +25,10 @@ public class EquivalenceInconsistency extends InferenceStep {
         this.literal2 = literal2; }
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {
         return rule;}
 

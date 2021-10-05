@@ -34,6 +34,10 @@ public class DisjointnessExtension extends InferenceStep {
         this.cLiterals = cLiterals;}
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {
         return rule;}
 

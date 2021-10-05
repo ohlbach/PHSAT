@@ -26,6 +26,10 @@ public class ContradictoryLiterals extends InferenceStep{
         this.step2 = step2; }
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {
         return rule;}
 
@@ -35,7 +39,7 @@ public class ContradictoryLiterals extends InferenceStep{
         String st2 = Symboltable.toString(-literal,symboltable);
         String st3 = "false";
         int width = Math.max(st1.length(),Math.max(st2.length(),st3.length()));
-        return title + ":\n" + StringUtils.center(st1,width) + "\n" + StringUtils.center(st2,width) +
+        return title + ":\n" + StringUtils.center(st1,width) + "\n" + StringUtils.center(st2,width) + "\n" +
                 StringUtils.repeat('-',width) + "\n" + StringUtils.center(st3,width);}
 
     @Override

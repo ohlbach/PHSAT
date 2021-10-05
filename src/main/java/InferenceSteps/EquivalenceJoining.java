@@ -31,6 +31,10 @@ public class EquivalenceJoining  extends InferenceStep {
     }
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {
         return rule;}
 

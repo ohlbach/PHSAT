@@ -41,11 +41,13 @@ public class Unsatisfiable extends Result {
         st.append("Unsatisfiable:\n");
         if(reason != null) st.append(reason).append("\n");
         if(inferenceStep != null) {
+            st.append("Sequence of Inference Steps:\n");
             ArrayList<InferenceStep> steps = new ArrayList<>();
             inferenceStep.inferenceSteps(steps);
             if(!steps.contains(inferenceStep)) steps.add(inferenceStep);
             for(InferenceStep step : steps) {st.append(step.toString()).append("\n");}
-            st.append("\nparticipating clauses: " + sortIntArray(inferenceStep.origins()).toString());
-            for(String rule : inferenceStep.rules(steps)) {st.append(rule).append("\n");}}
+            st.append("\nParticipating Clauses: " + sortIntArray(inferenceStep.origins()).toString());
+            st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:");
+            for(String rule : inferenceStep.rules(steps)) {st.append("\n\n").append(rule);}}
         return st.toString();}
 }

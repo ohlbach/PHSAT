@@ -37,6 +37,10 @@ public class EquivalentTrueLiteral extends InferenceStep{
         this.inferenceStep = inferenceStep;}
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {
         return rule;}
 

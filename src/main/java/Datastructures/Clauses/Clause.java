@@ -422,8 +422,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         StringBuilder st = new StringBuilder();
         if(width > 0) {
             Formatter format = new Formatter(st, Locale.GERMANY);
-            format.format("%-"+(width+clauseType.prefix.length())+"s: ", clauseType.prefix+id);}
-        else st.append(clauseType.prefix+Integer.toString(id)+": ");
+            format.format("%-"+(width+clauseType.prefix.length())+"s", clauseType.prefix+id+":");}
+        else st.append(clauseType.prefix+id+": ");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(cliterals.get(position).literal,symboltable));

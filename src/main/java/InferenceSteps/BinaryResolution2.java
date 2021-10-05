@@ -29,6 +29,9 @@ public class BinaryResolution2 extends InferenceStep {
         this.parent2 = parent2;
         this.resolvent = resolvent;}
 
+    @Override
+    public String title() {
+        return title;}
 
     @Override
     public String rule() {

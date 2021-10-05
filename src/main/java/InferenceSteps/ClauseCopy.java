@@ -30,6 +30,10 @@ public class ClauseCopy extends InferenceStep {
         this.twoLitClause = clause;}
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {
         return rule;}
 

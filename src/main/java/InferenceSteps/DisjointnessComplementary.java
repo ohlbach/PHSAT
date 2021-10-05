@@ -25,6 +25,10 @@ public class DisjointnessComplementary extends InferenceStep {
         this.falseLiteral = falseLiteral; }
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {
         return rule;}
 

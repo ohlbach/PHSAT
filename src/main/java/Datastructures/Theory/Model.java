@@ -10,6 +10,8 @@ import javafx.util.Pair;
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
 
+import static Utilities.Utilities.sortIntArray;
+
 
 /** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
  * Each literal in the model is accompanied by the origins, i.e. the list of basic clause ids which
@@ -229,42 +231,67 @@ public class Model {
      */
     public synchronized boolean isFull() {return model.size() == predicates;}
 
-    /** returns the model as a comma separated string of names
+
+    /** returns the model as a comma separated string  (sorted)
      *
-     * @return the model as a comma separated string of names
+     * @return the model as a comma separated string  (sorted)
      */
     public String toString() {
-        StringBuilder st = new StringBuilder();
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            int status = status(predicate);
-            if(status != 0) st.append(Symboltable.toString(status*predicate,symboltable)).append(",");}
-        return st.toString();}
+        return toString(symboltable);}
 
-    /** returns the model as a comma separated string of numbers
+    /** returns the model as a comma separated string of numbers (sorted)
      *
-     * @return the model as a comma separated string of numbers
+     * @return the model as a comma separated string of numbers (sorted)
      */
     public String toNumbers() {
-        StringBuilder st = new StringBuilder();
+        return toString(null);}
+
+    /** returns the model as a comma separated string of names (sorted)
+     *
+     * @return the model as a comma separated string of names (sorted)
+     */
+    public String toString(Symboltable symboltable) {
+        IntArrayList model = new IntArrayList();
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             int status = status(predicate);
-            if(status != 0) st.append(Integer.toString(status*predicate)).append(",");}
+            if(status != 0) model.add(status*predicate);}
+        if(model.isEmpty()) return "";
+        StringBuilder st = new StringBuilder();
+        for(int i = 0; i < model.size()-1; ++i)
+            st.append(Symboltable.toString(model.getInt(i),symboltable)).append(",");
+        st.append(Symboltable.toString(model.getInt(model.size()-1),symboltable));
         return st.toString();}
 
 
-    /** turnes the model and the origins into a string of names or numbers
+    /** turns the model and the inference steps into a string of names or numbers
      *
-     * @return the model together with the origins as string.
+     * @return the model together with the inference steps as string.
      */
     public String infoString(boolean withSymboltable) {
         Symboltable symboltable = withSymboltable ? this.symboltable : null;
-        if(inferenceSteps.isEmpty())  return Symboltable.toString(model,symboltable);
+        if(inferenceSteps.isEmpty())  return toString(symboltable);
+
+        IntArrayList model = new IntArrayList();
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            int status = status(predicate);
+            if(status != 0) model.add(status*predicate);}
+        if(model.isEmpty()) return "";
+
         StringBuilder st = new StringBuilder();
         int size = model.size()-1;
         for(int i = 0; i <= size; ++i) {
-            st.append(Symboltable.toString(model.getInt(i),symboltable));
-            IntArrayList origin = inferenceSteps.get(i).origins();
-            if(origin != null) st.append(" @ ").append(origin);
+            int literal = model.getInt(i);
+            st.append(Symboltable.toString(literal,symboltable));
+            InferenceStep step = getInferenceStep(literal);
+            if(step != null) {
+                st.append("\n").append(step.toString(symboltable));
+                IntArrayList origins = step.origins();
+                if(origins != null) st.append("\nOrigins: ").append(sortIntArray(origins).toString());
+                ArrayList<InferenceStep> steps = new ArrayList<>();
+                step.inferenceSteps(steps);
+                if(!steps.isEmpty()) {
+                    st.append("\nInference Steps: ");
+                    for(InferenceStep stp : steps) st.append(stp.title()).append(",");}}
             if(i < size) st.append("\n");}
         return st.toString();}
 

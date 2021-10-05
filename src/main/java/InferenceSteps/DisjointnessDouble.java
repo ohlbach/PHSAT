@@ -23,6 +23,10 @@ public class DisjointnessDouble extends InferenceStep {
         this.literal = literal; }
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {
         return rule;}
 

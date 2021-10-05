@@ -26,6 +26,11 @@ public class DisjointnessDerivation extends InferenceStep{
     public DisjointnessDerivation(IntArrayList literals, ArrayList<TwoLitClause> clauses) {
         this.literals = literals;
         this.clauses = clauses;}
+
+    @Override
+    public String title() {
+        return title;}
+
     @Override
     public String rule() {
         return rule;}

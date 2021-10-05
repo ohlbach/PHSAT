@@ -31,6 +31,9 @@ public class BinaryResolution extends InferenceStep {
         this.literal = literal;
         this.resolvent = resolvent;}
 
+    @Override
+    public String title() {
+        return title;}
 
     @Override
     public String rule() {

@@ -31,6 +31,10 @@ public class EquivalenceReplacements extends InferenceStep {
         this.equivalenceClause = equivalenceClause;}
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {
         return rule;}
 

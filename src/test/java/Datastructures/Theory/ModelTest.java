@@ -2,12 +2,12 @@ package Datastructures.Theory;
 
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import InferenceSteps.InferenceStep;
+import InferenceSteps.InferenceTest;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.function.Consumer;
 
 import static org.junit.Assert.*;
 
@@ -17,7 +17,7 @@ import static org.junit.Assert.*;
 public class ModelTest {
 
     @Test
-    public void addImmediately1() throws Exception {
+    public void addImmediately1() {
         System.out.println("addImmediately1");
         Model model = new Model(5,null);
         model.addImmediately(1);
@@ -36,28 +36,16 @@ public class ModelTest {
         }
 
     @Test
-    public void addImmediately2() throws Exception {
+    public void addImmediately2() {
         System.out.println("addImmediately with origins");
         Model model = new Model(5, null);
-        IntArrayList origins1 = new IntArrayList();
-        origins1.add(10);
-        origins1.add(11);
         model.addImmediately(1);
         model.addImmediately(-2);
-        IntArrayList origins3 = new IntArrayList();
-        origins3.add(30);
         model.addImmediately(3);
-        assertEquals("1 @ [10, 11]\n" +
-                "-2\n" +
-                "3 @ [30]", model.infoString(false));
-        /*assertEquals("[10, 11]",model.getOrigin(1).toString());
-        assertEquals("[10, 11]",model.getOrigin(-1).toString());
-        assertNull(model.getOrigin(2));
-        assertEquals("[30]",model.getOrigin(3).toString());
-        assertEquals("[30]",model.getOrigin(-3).toString());*/
+        assertEquals("1,-2,3", model.infoString(false));
     }
     @Test
-    public void addImmediately3() throws Exception {
+    public void addImmediately3()  {
         System.out.println("addImmediately with symboltable");
         Symboltable symboltable = new Symboltable(5);
         symboltable.setName(1,"p");
@@ -78,23 +66,19 @@ public class ModelTest {
         symboltable.setName(2, "q");
         symboltable.setName(3, "r");
         Model model = new Model(5, symboltable);
-        ArrayList<Object> observed = new ArrayList<>();
+        IntArrayList lits = new IntArrayList();
+        ArrayList<InferenceStep> infs = new ArrayList<>();
         model.addObserver(Thread.currentThread(),
-                ((literal, originals) -> {
-                    observed.add(literal); observed.add(originals);}));
-        IntArrayList orig = new IntArrayList();
-        orig.add(10);
-        orig.add(20);
-        model.add(1, null, null);
-        assertEquals(1,observed.get(0));
-        assertEquals("[10, 20]",observed.get(1).toString());
-        orig = new IntArrayList();
-        orig.add(30);
-        orig.add(40);
-        model.add(2, null, Thread.currentThread());
-        assertEquals(2,observed.size());
-        assertEquals("1,2",model.toNumbers());
-        assertEquals("p,q",model.toString());
+                ((Integer literal, InferenceStep inference) -> {lits.add((int)literal); infs.add(inference);}));
+        InferenceTest inf1 = new InferenceTest("comment1");
+        InferenceTest inf2 = new InferenceTest("comment2");
+        model.add(-2, inf1, null);
+        model.add(1, inf2, Thread.currentThread());
+        assertEquals(1,lits.size());
+        assertEquals(1,infs.size());
+        assertEquals("1,-2",model.toNumbers());
+        assertEquals("p,-q",model.toString());
+        System.out.println(model.infoString(false));
     }
 
     @Test
@@ -105,13 +89,14 @@ public class ModelTest {
         symboltable.setName(2, "q");
         symboltable.setName(3, "r");
         Model model = new Model(5, symboltable);
-        model.add(1,null,null);
-        IntArrayList orig1 = new IntArrayList(); orig1.add(20);
-        model.add(2,null,null);
+        InferenceTest inf1 = new InferenceTest("comment1");
+        InferenceTest inf2 = new InferenceTest("comment2");
+        InferenceTest inf3 = new InferenceTest("comment3");
+
+        model.add(1,inf1,null);
+        model.add(2,inf2,null);
         try {
-            IntArrayList orig2 = new IntArrayList(); orig2.add(30);
-            model.add(-2,null,null);}
-        catch(Unsatisfiable unsat) {
-            System.out.println(unsat.toString());}}
+            model.add(-2,inf3,null);}
+        catch(Unsatisfiable unsat) {System.out.println(unsat);}}
 
 }

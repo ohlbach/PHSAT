@@ -25,6 +25,11 @@ public class EquivalenceDerivation extends InferenceStep {
         this.clause1 = clause1;
         this.clause2 = clause2;
     }
+
+    @Override
+    public String title() {
+        return title;}
+
     @Override
     public String rule() {
         return rule;}

@@ -8,7 +8,6 @@ import Management.Controller;
 import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -22,7 +21,7 @@ import static org.junit.Assert.*;
 public class ClauseTest {
 
     private static int counter = 1;
-    private static ClauseType type = ClauseType.OR;
+    private static final ClauseType type = ClauseType.OR;
     StringBuffer errors = new StringBuffer();
     StringBuffer warnings = new StringBuffer();
 
@@ -60,7 +59,7 @@ public class ClauseTest {
         Clause clause = make(1, ClauseType.OR, 1, 2);
         assertEquals("1: 1,2",clause.toString());
         assertEquals("1: 1,2",clause.toNumbers());
-        assertEquals("   1: p,q",clause.toString(4,symboltable));
+        assertEquals("1:  p,q",clause.toString(4,symboltable));
        // System.out.println(clause.toString());
     }
 
@@ -69,9 +68,9 @@ public class ClauseTest {
         System.out.println("constructAND");
         prepare();
         Clause clause = make(1, ClauseType.AND, 1, 2);
-        assertEquals("1: 1&2",clause.toString());
-        assertEquals("1: 1&2",clause.toNumbers());
-        assertEquals("   1: p&q",clause.toString(4,symboltable));
+        assertEquals("A-1: 1&2",clause.toString());
+        assertEquals("A-1: 1&2",clause.toNumbers());
+        assertEquals("A-1:  p&q",clause.toString(4,symboltable));
        // System.out.println(clause.toString());
     }
 
@@ -80,9 +79,9 @@ public class ClauseTest {
         System.out.println("constructXOR");
         prepare();
         Clause clause = make(1, ClauseType.XOR, 1, 2);
-        assertEquals("1: 1 x 2",clause.toString());
-        assertEquals("1: 1 x 2",clause.toNumbers());
-        assertEquals("   1: p x q",clause.toString(4,symboltable));
+        assertEquals("X-1: 1 x 2",clause.toString());
+        assertEquals("X-1: 1 x 2",clause.toNumbers());
+        assertEquals("X-1:  p x q",clause.toString(4,symboltable));
         //System.out.println(clause.toString());
     }
 
@@ -91,9 +90,9 @@ public class ClauseTest {
         System.out.println("constructDISJ");
         prepare();
         Clause clause = make(1, ClauseType.DISJOINT, 1, 2);
-        assertEquals("1: 1!=2",clause.toString());
-        assertEquals("1: 1!=2",clause.toNumbers());
-        assertEquals("   1: p!=q",clause.toString(4,symboltable));
+        assertEquals("D-1: 1!=2",clause.toString());
+        assertEquals("D-1: 1!=2",clause.toNumbers());
+        assertEquals("D-1:  p!=q",clause.toString(4,symboltable));
         //System.out.println(clause.toString());
     }
 
@@ -102,9 +101,9 @@ public class ClauseTest {
         System.out.println("constructEQV");
         prepare();
         Clause clause = make(1, ClauseType.EQUIV, 1, 2);
-        assertEquals("1: 1=2",clause.toString());
-        assertEquals("1: 1=2",clause.toNumbers());
-        assertEquals("   1: p=q",clause.toString(4,symboltable));
+        assertEquals("E-1: 1=2",clause.toString());
+        assertEquals("E-1: 1=2",clause.toNumbers());
+        assertEquals("E-1:  p=q",clause.toString(4,symboltable));
         //System.out.println(clause.toString());
     }
 
@@ -124,7 +123,7 @@ public class ClauseTest {
         cl.add(lit2);
         cl.setStructure();
         assertEquals(3, cl.size());
-        assertEquals("    1: 5,5,-5",cl.toString(5,null));
+        assertEquals("1:   5,5,-5",cl.toString(5,null));
         assertEquals(ClauseStructure.MIXED,cl.structure);
         assertTrue(cl.hasDoubles());
         assertTrue(cl.hasComplementaries());
@@ -206,23 +205,21 @@ public class ClauseTest {
     }
 
     @Test
-    public void isSubset() throws Exception {
+    public void isSubset() {
         System.out.println("isSubset");
-        /*
+
         counter = 1;
-        Clause cll = make(5, -6, 7);
-        Clause cl2 = new Clause(2,3);
-        CLiteral lit10 = new CLiteral(10);
-        cl2.add(lit10);
-        assertTrue(cl2.isSubset(lit10, cll));
-        CLiteral lit11 = new CLiteral(7);
-        cl2.add(lit11);
-        assertTrue(cl2.isSubset(lit10, cll));
-        CLiteral lit12 = new CLiteral(-6);
-        cl2.add(lit12);
-        assertTrue(cl2.isSubset(lit10, cll));
-        assertFalse(cl2.isSubset(lit11, cll));
-        */
+        Clause cl1 = make(5, -6, 7);
+        Clause cl2 = make(5, -6, 7);
+        assertTrue(cl1.isSubset(cl2));
+        Clause cl3 = make(7,5);
+        assertTrue(cl3.isSubset(cl1));
+        assertFalse(cl1.isSubset(cl3));
+        Clause cl4 = make(5, 6, 7);
+        assertFalse(cl1.isSubset(cl4));
+
+
+
 
     }
 

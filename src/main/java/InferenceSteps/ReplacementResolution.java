@@ -39,6 +39,10 @@ public class ReplacementResolution extends InferenceStep{
         this.resolvent = resolvent;}
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {
         return rule;}
 

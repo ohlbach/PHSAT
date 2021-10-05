@@ -46,6 +46,10 @@ public class DisjointnessClause2Clause  extends InferenceStep {
 
 
     @Override
+    public String title() {
+        return title;}
+
+    @Override
     public String rule() {return rule;}
 
     /** explains the actual inference step
