@@ -65,7 +65,7 @@ public class EquivalenceClasses  {
     public final Model model;
 
     /** null or a the global symboltable */
-    public final Symboltable symboltable;
+    public Symboltable symboltable;
 
     /** for logging the actions of this class */
     private final Monitor monitor;
@@ -247,7 +247,7 @@ public class EquivalenceClasses  {
      * @return null or the normalized clause
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    private Clause normalizeClause(Clause clause) throws Unsatisfiable {
+    protected Clause normalizeClause(Clause clause) throws Unsatisfiable {
         clause = replaceEquivalences(this,clause);
         if((clause = replaceTruthValues(clause)) == null) return null;
         if((clause = removeDoublesAndInconsistencies(clause)) == null) return null;
@@ -266,10 +266,8 @@ public class EquivalenceClasses  {
             int oldLiteral = cliteral.literal;
             int newLiteral = eqClasses.getRepresentative(oldLiteral);
             if(newLiteral != oldLiteral) {
-                int position = cliteral.clausePosition;
                 Clause newClause = oldClause.clone(eqClasses.problemSupervisor.nextClauseId());
-                CLiteral newcliteral = newClause.getCLiteral(position);
-                newcliteral.literal = newLiteral;
+                newClause.getCLiteral(cliteral.clausePosition).literal = newLiteral;
                 if(eqClasses.trackReasoning) {
                     newClause.inferenceStep = new EquivalenceReplacements(oldClause,oldLiteral,newClause,newLiteral,
                             eqClasses.getEClause(oldLiteral));
@@ -332,16 +330,11 @@ public class EquivalenceClasses  {
                 int sign = result[0];
                 int literal = result[1];
                 Clause newClause = clause.clone(problemSupervisor.nextClauseId());
-                if(monitoring) monitor.print(monitorId, "Joining equivalence clauses\n" +
-                        oldClause.toString(4, model.symboltable) + " and\n" +
-                        clause.toString(4, model.symboltable));
-                for(CLiteral cliteral : oldClause) addLiteral(newClause,sign*cliteral.literal);
-
+                for(CLiteral cliteral : oldClause) newClause.add(sign*cliteral.literal);
                 if(trackReasoning) {
                     EquivalenceJoining eqj = new EquivalenceJoining(clause,oldClause,literal,newClause);
                     newClause.inferenceStep = eqj;
                     if(monitoring) monitor.print(monitorId,eqj.toString(symboltable));}
-
                 removeClause(oldClause); --i;
                 clause = newClause;}}
         return removeDoublesAndInconsistencies(clause);}
@@ -462,7 +455,7 @@ public class EquivalenceClasses  {
      * @param literal a literal
      */
     private synchronized void addLiteral(Clause clause, int literal) {
-        if(clause.contains(literal) == 0) {
+        if(clause.contains(literal) <= 0) { // contradictions are recognized later
             CLiteral cliteral = new CLiteral(literal,clause,clause.cliterals.size());
             clause.add(cliteral);
             literalIndex.put(literal,cliteral);}}

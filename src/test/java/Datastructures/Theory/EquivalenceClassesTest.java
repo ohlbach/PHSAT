@@ -2,7 +2,6 @@ package Datastructures.Theory;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
-import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceTest;
@@ -28,7 +27,7 @@ public class EquivalenceClassesTest {
     int type=ClauseType.EQUIV.ordinal();
 
 
-    EquivalenceClasses prepare(boolean monitoring) {
+    EquivalenceClasses prepare(boolean monitoring, boolean withSymboltable) {
         GlobalParameters globalParameters=new GlobalParameters();
         globalParameters.monitor=!monitoring ? null : new Monitor(null,"mixed",errors,warnings);
         HashMap<String,Object> problemParameters=new HashMap<>();
@@ -36,13 +35,15 @@ public class EquivalenceClassesTest {
 
         Controller controller=new Controller(null,null,null);
         ProblemSupervisor problemSupervisor=new ProblemSupervisor(controller,globalParameters,problemParameters,null);
-        Symboltable symboltable=new Symboltable(10);
-        symboltable.setName(1,"p");
-        symboltable.setName(2,"q");
-        symboltable.setName(3,"r");
-        symboltable.setName(4,"a");
-        symboltable.setName(5,"b");
-        symboltable.setName(6,"c");
+        Symboltable symboltable= null;
+        if(withSymboltable) {
+            symboltable = new Symboltable(10);
+            symboltable.setName(1,"p");
+            symboltable.setName(2,"q");
+            symboltable.setName(3,"r");
+            symboltable.setName(4,"a");
+            symboltable.setName(5,"b");
+            symboltable.setName(6,"c");}
         problemSupervisor.model=new Model(20,symboltable);
         return new EquivalenceClasses(problemSupervisor);
     }
@@ -54,10 +55,10 @@ public class EquivalenceClassesTest {
     @Test
     public void removeDouble() throws Unsatisfiable {
         System.out.println("Remove Double and Inconsistency");
-        EquivalenceClasses eqClasses=prepare(monitoring);
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         Clause c1 = make(1,1,2,3);
         Clause c2 = eqClasses.removeDoublesAndInconsistencies(c1);
-        assertTrue(c1 == c2);
+        assertSame(c1, c2);
         assertEquals("E-1: 1=2=3",c1.toString());
 
         Clause c3 = make(2,1,2,3,2);
@@ -71,7 +72,7 @@ public class EquivalenceClassesTest {
 
         try{
             Clause c7 = make(4,1,2,3,2,-3);
-            Clause c8 = eqClasses.removeDoublesAndInconsistencies(c7);}
+            eqClasses.removeDoublesAndInconsistencies(c7);}
         catch(Unsatisfiable uns) {
             System.out.println(uns);
             System.out.println(uns.toString(eqClasses.symboltable));}}
@@ -80,13 +81,13 @@ public class EquivalenceClassesTest {
     @Test
     public void replaceTruthValues() throws Unsatisfiable {
         System.out.println("Replace Truth Values");
-        EquivalenceClasses eqClasses=prepare(monitoring);
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         InferenceTest inf = new InferenceTest("My Test");
         Clause c1 = make(1,1,2,3);
         Clause c2 = eqClasses.replaceTruthValues(c1);
-        assertTrue(c1 == c2);
+        assertSame(c1, c2);
         eqClasses.model.add(2,inf,null);
-        Clause c3 = eqClasses.replaceTruthValues(c1);
+        eqClasses.replaceTruthValues(c1);
         assertEquals("Model:\n1,2,3",eqClasses.model.toNumbers());
         //System.out.println(eqClasses.model.infoString(false));
         eqClasses.model.add(5,inf,null);
@@ -103,8 +104,7 @@ public class EquivalenceClassesTest {
     @Test
     public void replaceEquivalences1() throws Unsatisfiable{
         System.out.println("Replace Equivalences 1");
-        EquivalenceClasses eqClasses=prepare(monitoring);
-        InferenceTest inf = new InferenceTest("My Test");
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         Clause c1 = make(1,3,2,1);
         eqClasses.integrateEquivalence(c1,false);
         //System.out.println(eqClasses.toString());
@@ -118,26 +118,64 @@ public class EquivalenceClassesTest {
     @Test
     public void replaceEquivalences2() throws Unsatisfiable{
         System.out.println("Replace Equivalences 2");
-        EquivalenceClasses eqClasses=prepare(monitoring);
-        InferenceTest inf = new InferenceTest("My Test");
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         Clause c1 = make(1,2,1);
         eqClasses.integrateEquivalence(c1,false);
         Clause c2 = make(2,4,5);
         eqClasses.integrateEquivalence(c2,false);
 
-        System.out.println(eqClasses.toString());
+        System.out.println(eqClasses);
 
         Clause c3 = make(2,1,2,3,4,-5);
         Clause c4 = EquivalenceClasses.replaceEquivalences(eqClasses,c3);
         assertEquals("E-1: 1=1=3=4=-4",c4.toString());
     }
+    @Test
+    public void joinClause() throws Unsatisfiable{
+        System.out.println("Join Clause");
+        EquivalenceClasses eqClasses = prepare(monitoring,false);
+        Clause c1 = make(1, 1,2,3);
+        eqClasses.integrateEquivalence(c1, false);
+        Clause c2 = make(2, 2,4,5);
+        Clause c3 = eqClasses.joinClause(c2);
+        assertEquals("E-0: 2=4=5=1=3",c3.toString());
 
+        eqClasses.integrateEquivalence(c1, false);
+        Clause c4 = make(3, 5,-2,7);
+        Clause c5 = eqClasses.joinClause(c4);
+        assertEquals("E-1: 5=-2=7=-1=-3",c5.toString());
+
+        eqClasses.integrateEquivalence(c1, false);
+        Clause c6 = make(4, 5,6,-7);
+        eqClasses.integrateEquivalence(c6, false);
+
+        Clause c7 = make(5, 3,6,8,2);
+        Clause c8 = eqClasses.joinClause(c7);
+        assertEquals("E-3: 3=6=8=2=1=5=-7",c8.toString());
+        try{
+            eqClasses.integrateEquivalence(c1, false);
+            Clause c9 = make(6, 3,4,-1);
+            eqClasses.joinClause(c9);}
+        catch(Unsatisfiable uns) {System.out.println(uns); }
+    }
+    @Test
+    public void normalizeClause() throws Unsatisfiable {
+        System.out.println("Normalize Clause");
+        EquivalenceClasses eqClasses = prepare(monitoring, false);
+        Clause c1 = make(1, 1, 2, 3);
+        eqClasses.integrateEquivalence(c1, false);
+        InferenceTest inf = new InferenceTest("My Test");
+        eqClasses.model.add(1,inf,null);
+        Clause c2 = make(2, 3,5,4,3);
+        eqClasses.normalizeClause(c2);
+        assertEquals("Model:\n" +
+                "1,4,5",eqClasses.model.toNumbers());}
 
 
     @Test
     public void addBasicEquivalenceClause1() {
         System.out.println("Add Basic Equivalence Clause no overlaps");
-        EquivalenceClasses eqClasses=prepare(true);
+        EquivalenceClasses eqClasses=prepare(true,true);
         int[] clause=new int[]{1,type,1,2,3};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
@@ -195,7 +233,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addBasicEquivalenceClause2() {
         System.out.println("Add Basic Equivalence Clause with overlaps");
-        EquivalenceClasses eqClasses=prepare(true);
+        EquivalenceClasses eqClasses=prepare(true,true);
         int[] clause=new int[]{1,type,2,3,4};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
@@ -232,7 +270,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addBasicEquivalenceClause3() {
         System.out.println("Add Basic Equivalence Clause with model ");
-        EquivalenceClasses eqClasses =  prepare(true);
+        EquivalenceClasses eqClasses =  prepare(true,true);
         IntArrayList orig1=new IntArrayList();
         orig1.add(20);
         IntArrayList orig2=new IntArrayList();
@@ -268,7 +306,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addBasicEquivalenceClause4() {
         System.out.println("Add Basic Equivalence Clause internal error ");
-        EquivalenceClasses eqClasses=prepare(true);
+        EquivalenceClasses eqClasses=prepare(true,true);
         int[] clause=new int[]{1,type,2,3,4,3};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {}
@@ -296,7 +334,7 @@ public class EquivalenceClassesTest {
     @Test
     public void integrateTrueLiteral() {
         System.out.println("Integrate True Literal ");
-        EquivalenceClasses eqClasses=prepare(true);
+        EquivalenceClasses eqClasses=prepare(true,true);
         Model model=eqClasses.model;
         ArrayList<Object> observed=new ArrayList<>();
         model.addObserver(Thread.currentThread(),
@@ -333,7 +371,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addDerived1() {
         System.out.println("add derived equivalence empty ");
-        EquivalenceClasses eqClasses=prepare(true);
+        EquivalenceClasses eqClasses=prepare(true,true);
         Model model=eqClasses.model;
         ArrayList<Clause> observed=new ArrayList<>();
         eqClasses.addObserver(clause  -> observed.add(clause));
@@ -349,7 +387,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addDerived2() {
         System.out.println("add derived equivalence join one ");
-        EquivalenceClasses eqClasses=prepare(true);
+        EquivalenceClasses eqClasses=prepare(true,true);
         ArrayList<Clause> observed=new ArrayList<>();
         eqClasses.addObserver(clause -> observed.add(clause));
 
@@ -369,7 +407,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addDerived3() {
         System.out.println("add derived equivalence join two  ");
-        EquivalenceClasses eqClasses=prepare(true);
+        EquivalenceClasses eqClasses=prepare(true,true);
         ArrayList<Clause> observed=new ArrayList<>();
         eqClasses.addObserver(observed::add);
 
@@ -392,7 +430,7 @@ public class EquivalenceClassesTest {
     @Test
     public void addDerived4() {
         System.out.println("add derived equivalence join three  ");
-        EquivalenceClasses eqClasses=prepare(true);
+        EquivalenceClasses eqClasses=prepare(true,true);
         eqClasses.model.symboltable = null;
         ArrayList<Clause> observed=new ArrayList<>();
         eqClasses.addObserver(observed::add);
@@ -419,7 +457,7 @@ public class EquivalenceClassesTest {
     @Test
     public void threadtest() {
         System.out.println("Thread ");
-        EquivalenceClasses eqClasses=prepare(true);
+        EquivalenceClasses eqClasses=prepare(true,true);
         Model model=eqClasses.model;
         model.symboltable = null;
         int[] clause1=new int[]{1,type,2,3,4};

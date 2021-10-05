@@ -15,9 +15,7 @@ public class EquivalenceInconsistency extends InferenceStep {
     public static final String title = "Equivalence Inconsistency";
 
     public static final String rule = title + ":\n"+
-            "p == -p == q == ...\n"+
-            "---------------------\n"+
-            "       false";
+            "p == -p == q == ... -> false";
 
     public EquivalenceInconsistency(Clause eClause, int literal1, int literal2) {
         this.eClause = eClause;
@@ -34,13 +32,9 @@ public class EquivalenceInconsistency extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st = eClause.toString(0,symboltable);
-        int width = st.length();
-        return title + ":\n" + st + "\n" +
-                StringUtils.center(Symboltable.toString(literal1,symboltable) + " = " +
-                        Symboltable.toString(literal2,symboltable),width)+ "\n" +
-                        StringUtils.repeat('-',width) + "\n" +
-                StringUtils.center("false",width);}
+        return title + ":\n" + eClause.toString(0,symboltable) + " at " +
+                Symboltable.toString(literal1,symboltable) + " = " +
+                        Symboltable.toString(literal2,symboltable) + " -> false";}
 
     @Override
     public IntArrayList origins() {

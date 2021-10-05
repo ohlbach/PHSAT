@@ -40,21 +40,19 @@ public class EquivalenceJoining  extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st1 = clause1.toString(0,symboltable);
-        String st2 = clause2.toString(0,symboltable) + " at " + Symboltable.toString(literal,symboltable);
-        String st3 = joinedClause.toString(0,symboltable);
-        int width = Math.max(st1.length(),Math.max(st2.length(),st3.length()));
-        return title + "\n" + st1 + "\n" + st2 + "\n" +
-                StringUtils.repeat('-',width) + "\n" +
-                st3;}
+        return title + ":\n" + clause1.toString(0,symboltable) + " and " +
+        clause2.toString(0,symboltable) + " at " + Symboltable.toString(literal,symboltable) + " -> " +
+        joinedClause.toString(0,symboltable);}
 
     @Override
     public IntArrayList origins() {
-        return joinIntArrays(clause1.inferenceStep.origins(),clause2.inferenceStep.origins());}
+        return joinIntArrays(
+                (clause1.inferenceStep != null) ? clause1.inferenceStep.origins() : null,
+                (clause2.inferenceStep != null) ? clause2.inferenceStep.origins() : null);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        clause1.inferenceStep.inferenceSteps(steps);
-        clause2.inferenceStep.inferenceSteps(steps);
+        if(clause1.inferenceStep != null) clause1.inferenceStep.inferenceSteps(steps);
+        if(clause2.inferenceStep != null) clause2.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }
