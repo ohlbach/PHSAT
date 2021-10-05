@@ -41,7 +41,7 @@ import java.util.function.Consumer;
  */
 
 public class EquivalenceClasses  {
-    private final ProblemSupervisor problemSupervisor;
+    public final ProblemSupervisor problemSupervisor;
 
     /** for collecting statistics */
     public EquivalenceStatistics statistics;
@@ -62,10 +62,10 @@ public class EquivalenceClasses  {
     private final HashMap<Integer,CLiteral> literalIndex = new HashMap<>();
 
     /** the global model of true literals */
-    private final Model model;
+    public final Model model;
 
     /** null or a the global symboltable */
-    private final Symboltable symboltable;
+    public final Symboltable symboltable;
 
     /** for logging the actions of this class */
     private final Monitor monitor;

@@ -18,10 +18,7 @@ public class EquivalenceReplacements extends InferenceStep {
     public static final String title = "Equivalence Replacement";
 
     public static String rule = title + "\n" +
-            "...,a,...\n"+
-            "  a == b\n"+
-            "---------\n"+
-            "...,b,...";
+            "...,a,... and  a == b -> ...,b,...";
 
     public EquivalenceReplacements(Clause oldClause, int oldLiteral, Clause newClause, int newLiteral, Clause equivalenceClause) {
         this.oldClause  = oldClause;
@@ -40,14 +37,10 @@ public class EquivalenceReplacements extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st = title + ":\n"+oldClause.toString(0,symboltable);
-        int width = st.length();
-        st += "\n" +
+        return title + ":\n"+oldClause.toString(0,symboltable) + " and " +
                 Symboltable.toString(oldLiteral,symboltable) + " == " +
-                Symboltable.toString(newLiteral,symboltable) + "\n" +
-                StringUtils.repeat('-',width) + "\n" +
-                newClause.toString(0,symboltable);
-        return st;}
+                Symboltable.toString(newLiteral,symboltable) + " -> " +
+                newClause.toString(0,symboltable);}
 
 
     @Override

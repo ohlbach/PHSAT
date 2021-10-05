@@ -44,10 +44,10 @@ public class EquivalenceInconsistency extends InferenceStep {
 
     @Override
     public IntArrayList origins() {
-        return eClause.inferenceStep.origins();}
+        return (eClause.inferenceStep != null) ? eClause.inferenceStep.origins() : null;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        eClause.inferenceStep.inferenceSteps(steps);
+        if(eClause.inferenceStep != null) eClause.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

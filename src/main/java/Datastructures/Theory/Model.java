@@ -257,6 +257,7 @@ public class Model {
             if(status != 0) model.add(status*predicate);}
         if(model.isEmpty()) return "";
         StringBuilder st = new StringBuilder();
+        st.append("Model:\n");
         for(int i = 0; i < model.size()-1; ++i)
             st.append(Symboltable.toString(model.getInt(i),symboltable)).append(",");
         st.append(Symboltable.toString(model.getInt(model.size()-1),symboltable));
@@ -278,6 +279,7 @@ public class Model {
         if(model.isEmpty()) return "";
 
         StringBuilder st = new StringBuilder();
+        st.append("Model:\n");
         int size = model.size()-1;
         for(int i = 0; i <= size; ++i) {
             int literal = model.getInt(i);

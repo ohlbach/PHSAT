@@ -109,7 +109,7 @@ public class ClauseTest {
 
 
     @Test
-    public void addCLiteral() throws Exception {
+    public void addCLiteral()  {
         System.out.println("add");
         Clause cl = new Clause(1,type);
         assertEquals(0, cl.size());
@@ -141,7 +141,7 @@ public class ClauseTest {
         assertEquals("1: 1,2",cl.toString());
     }
     @Test
-    public void make() throws Exception {
+    public void make(){
         System.out.println("make");
         counter = 1;
         Clause c1 = make(1, 2, 3);
@@ -156,7 +156,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void removeLiteral() throws Exception {
+    public void removeLiteral() {
         System.out.println("remove");
         counter = 1;
         Clause c1 = make(1, 2, 3);
@@ -176,7 +176,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void removeAtPosition() throws Exception {
+    public void removeAtPosition() {
         System.out.println("removeAtPosition");
         counter = 1;
         Clause c1 = make(1, 2, 3);
@@ -188,7 +188,7 @@ public class ClauseTest {
 
 
     @Test
-    public void contains() throws Exception {
+    public void contains()  {
         System.out.println("getLiteral, contains");
         counter = 1;
         Clause cl = make(5, -6, 7);
@@ -218,11 +218,7 @@ public class ClauseTest {
         Clause cl4 = make(5, 6, 7);
         assertFalse(cl1.isSubset(cl4));
 
-
-
-
     }
-
 
 
     @Test
@@ -243,7 +239,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void doubles() throws Exception {
+    public void doubles()  {
         System.out.println("double tautology");
         counter = 1;
         Clause c1 = make(5, -6, -5, -6, -6);
@@ -251,11 +247,10 @@ public class ClauseTest {
         assertTrue(c1.hasComplementaries());
         assertTrue(c1.removeDoubles());
         assertEquals("1: 5,-6,-5",c1.toString());
-
     }
 
     @Test
-    public void iterator() throws Exception {
+    public void iterator(){
         System.out.println("iterator");
         counter = 1;
         Clause c1 = make(5, -6, -5, -6, -6);

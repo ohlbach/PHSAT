@@ -18,10 +18,7 @@ public class EquivalentTrueLiteral extends InferenceStep{
     public static final String title = "Equivalent True Literals";
 
     public static final String rule = title + ":\n"+
-            "p == q == r == ...\n"+
-            "  true/false(p)\n"+
-            "------------------\n" +
-            "true/false(q), true/false(r),...";
+            "p == q == r == ... and true(p) -> true(q) and ...";
 
     /**
      *
@@ -46,20 +43,20 @@ public class EquivalentTrueLiteral extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        String s = eClause.toString(0,symboltable);
-        int width = s.length();
-        return title + ":\n" + s+"\n"+
-                StringUtils.center(Symboltable.toString(trueLiteral,symboltable),width) + "\n" +
-                StringUtils.repeat('-',width)+"\n"+
-                StringUtils.center(Symboltable.toString(derivedLiteral,symboltable),width);}
+        return title + ":\n" + eClause.toString(0,symboltable) +
+                " and true("+Symboltable.toString(trueLiteral,symboltable) +
+                ") -> true(" + Symboltable.toString(derivedLiteral,symboltable) +")";}
 
     @Override
     public IntArrayList origins() {
-        return joinIntArrays(eClause.inferenceStep.origins(),inferenceStep.origins());}
+        InferenceStep step = eClause.inferenceStep;
+        return joinIntArrays(step != null ? step.origins() : null,
+                inferenceStep != null ? inferenceStep.origins() : null);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        eClause.inferenceStep.inferenceSteps(steps);
-        inferenceStep.inferenceSteps(steps);
+        InferenceStep step = eClause.inferenceStep;
+        if(step != null) step.inferenceSteps(steps);
+        if(inferenceStep != null) inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

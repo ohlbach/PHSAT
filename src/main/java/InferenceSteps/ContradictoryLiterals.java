@@ -16,10 +16,8 @@ public class ContradictoryLiterals extends InferenceStep{
     public static final String title = "Contradictory Literals";
 
     public static final String rule = title + ":\n"+
-    "   p \n"+
-    "  -p\n" +
-    "-----\n" +
-    "false";
+    "p and -p -> false";
+
     public ContradictoryLiterals(int literal, InferenceStep step1, InferenceStep step2) {
         this.literal = literal;
         this.step1 = step1;
@@ -37,10 +35,7 @@ public class ContradictoryLiterals extends InferenceStep{
     public String toString(Symboltable symboltable) {
         String st1 = Symboltable.toString(literal,symboltable);
         String st2 = Symboltable.toString(-literal,symboltable);
-        String st3 = "false";
-        int width = Math.max(st1.length(),Math.max(st2.length(),st3.length()));
-        return title + ":\n" + StringUtils.center(st1,width) + "\n" + StringUtils.center(st2,width) + "\n" +
-                StringUtils.repeat('-',width) + "\n" + StringUtils.center(st3,width);}
+        return title + ":\n" + st1 + " and " + st2  + " -> false";}
 
     @Override
     public IntArrayList origins() {

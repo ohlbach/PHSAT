@@ -1,6 +1,8 @@
 package Datastructures.Results;
 
+import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
@@ -31,22 +33,30 @@ public class Unsatisfiable extends Result {
         super();
         this.inferenceStep = inferenceStep;}
 
-
     /** returns the reason for the unsatisfiability, usually the entire proof
      *
      * @return the reason for the unsatisfiability
      */
     public String toString() {
+        return toString(null);}
+
+    /** returns the reason for the unsatisfiability, usually the entire proof
+     *
+     * @param symboltable null or a symboltable
+     * @return the reason for the unsatisfiability
+     */
+    public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        st.append("Unsatisfiable:\n");
+        st.append("UNSATISFIABLE:\n");
         if(reason != null) st.append(reason).append("\n");
         if(inferenceStep != null) {
             st.append("Sequence of Inference Steps:\n");
             ArrayList<InferenceStep> steps = new ArrayList<>();
             inferenceStep.inferenceSteps(steps);
             if(!steps.contains(inferenceStep)) steps.add(inferenceStep);
-            for(InferenceStep step : steps) {st.append(step.toString()).append("\n");}
-            st.append("\nParticipating Clauses: " + sortIntArray(inferenceStep.origins()).toString());
+            for(InferenceStep step : steps) {st.append(step.toString(symboltable)).append("\n");}
+            IntArrayList origins = inferenceStep.origins();
+            if(origins != null) st.append("\nParticipating Clauses: " + sortIntArray(inferenceStep.origins()).toString());
             st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:");
             for(String rule : inferenceStep.rules(steps)) {st.append("\n\n").append(rule);}}
         return st.toString();}
