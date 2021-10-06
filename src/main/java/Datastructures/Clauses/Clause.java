@@ -133,14 +133,28 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * Only the literals themselves are cloned
      *
      * @param id the identifier for the new clone
-     * @param ignore the position of a literal to be ignored
+     * @param ignorePosition the position of a literal to be ignored
      * @return the new clone
      */
-    public Clause clone(int id, int ignore) {
+    public Clause clone(int id, int ignorePosition) {
         Clause clause = new Clause(id,this.clauseType);
-        for(int i = 0; i < clause.size(); ++i) {
-            if(i != ignore) {clause.add(getLiteral(i));}}
+        for(int i = 0; i < size(); ++i) {
+            if(i != ignorePosition) {clause.add(getLiteral(i));}}
         return clause;}
+
+    /** clones the clause except the given literal
+     *
+     * @param id             a new id of the clause
+     * @param ignoreLiteral  a literal to be ignored
+     * @return               the cloned clause
+     */
+    public Clause cloneExcept(int id, int ignoreLiteral) {
+        Clause clause = new Clause(id,this.clauseType);
+        for(int i = 0; i < size(); ++i) {
+            int literal = getLiteral(i);
+            if(literal != ignoreLiteral) {clause.add(literal);}}
+        return clause;}
+
 
     /** checks if the clause is positive, negative or mixed and sets the corresponding value for the structure.
      */

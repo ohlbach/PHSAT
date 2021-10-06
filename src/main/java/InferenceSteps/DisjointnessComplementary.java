@@ -3,7 +3,6 @@ package InferenceSteps;
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 
@@ -12,12 +11,10 @@ public class DisjointnessComplementary extends InferenceStep {
     private final int doubleLiteral;
     private final int falseLiteral;
 
-    public static final String title = "Disjointness False";
+    public static final String title = "Disjointness Complementary";
 
     public static final String rule = title + ":\n"+
-            "p != +-p != q !=...\n"+
-            "-------------------\n"+
-            "           -q";
+            "p != -p != q !=... -> -q";
 
     public DisjointnessComplementary(Clause dClause, int doubleLiteral, int falseLiteral) {
         this.dClause = dClause;
@@ -34,19 +31,16 @@ public class DisjointnessComplementary extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st = dClause.toString(0,symboltable) + " at " +
-                Symboltable.toString(doubleLiteral,symboltable);
-        int width = st.length();
-        return title + ":\n" + st + "\n" +
-                StringUtils.repeat('-',width) + "\n" +
-                StringUtils.center(Symboltable.toString(falseLiteral,symboltable), width);}
+        return title + ":\n" + dClause.toString(0,symboltable) + " at " +
+                Symboltable.toString(doubleLiteral,symboltable) + " -> " +
+                Symboltable.toString(falseLiteral,symboltable);}
 
     @Override
     public IntArrayList origins() {
-        return dClause.inferenceStep.origins();}
+        return dClause.inferenceStep == null ? null : dClause.inferenceStep.origins();}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        dClause.inferenceStep.inferenceSteps(steps);
+        if(dClause.inferenceStep != null) dClause.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

@@ -47,20 +47,20 @@ public class DisjointnessFalseLiteral extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        String s = oldClause.toString(0,symboltable);
-        int width = s.length();
-        return title + ":\n" + s+"\n"+
-                StringUtils.center(Symboltable.toString(falseLiteral,symboltable),width) + "\n" +
-                StringUtils.repeat('-',width)+"\n"+ newClause.toString(0,symboltable);}
+        return oldClause.toString(0,symboltable) + " and false(" +
+                Symboltable.toString(falseLiteral,symboltable) + ") -> " +
+                newClause.toString(0,symboltable);}
 
     @Override
     public IntArrayList origins() {
-        return joinIntArrays(oldClause.inferenceStep.origins(),inferenceStep.origins());}
+        return joinIntArrays(
+                oldClause.inferenceStep == null ? null : oldClause.inferenceStep.origins(),
+                inferenceStep != null ? null : inferenceStep.origins());}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        oldClause.inferenceStep.inferenceSteps(steps);
-        inferenceStep.inferenceSteps(steps);
+        if(oldClause.inferenceStep != null) oldClause.inferenceStep.inferenceSteps(steps);
+        if(inferenceStep != null) inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }
 

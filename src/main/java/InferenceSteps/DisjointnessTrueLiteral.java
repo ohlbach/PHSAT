@@ -3,7 +3,6 @@ package InferenceSteps;
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 
@@ -19,10 +18,7 @@ public class DisjointnessTrueLiteral extends InferenceStep{
 
     public static final String rule = title + ":\n"+
             "A true literal causes all other disjoint literals to become false.\n" +
-            "p != q != r != ...\n"+
-            "p\n"+
-            "------------------\n" +
-            "-q, -r, ...";
+            "p != q != r != ... and true(p) -> -q, -r, ...";
 
     /**
      *
@@ -47,20 +43,19 @@ public class DisjointnessTrueLiteral extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        String s = dClause.toString(0,symboltable);
-        int width = s.length();
-        return title + ":\n" + s+"\n"+
-                StringUtils.center(Symboltable.toString(trueLiteral,symboltable),width) + "\n" +
-                StringUtils.repeat('-',width)+"\n"+
-                StringUtils.center(Symboltable.toString(derivedLiteral,symboltable),width);}
+        return title + ":\n" + dClause.toString(0,symboltable) + " and true(" +
+                Symboltable.toString(trueLiteral,symboltable) + ") -> " +
+                Symboltable.toString(derivedLiteral,symboltable);}
 
     @Override
     public IntArrayList origins() {
-        return joinIntArrays(dClause.inferenceStep.origins(),inferenceStep.origins());}
+        return joinIntArrays(
+                dClause.inferenceStep == null ? null : dClause.inferenceStep.origins(),
+                inferenceStep == null ? null : inferenceStep.origins());}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        dClause.inferenceStep.inferenceSteps(steps);
-        inferenceStep.inferenceSteps(steps);
+        if(dClause.inferenceStep != null) dClause.inferenceStep.inferenceSteps(steps);
+        if(inferenceStep != null) inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

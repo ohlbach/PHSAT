@@ -27,16 +27,16 @@ import java.util.function.Consumer;
  */
 public class DisjointnessClasses {
 
-    private final ProblemSupervisor problemSupervisor;  // supervises the problem solution
+    public final ProblemSupervisor problemSupervisor;  // supervises the problem solution
     private final String problemId;                     // the current problem's id
     public  final DisjointnessStatistics statistics;    // the statistics of this thread
     private final boolean trackReasoning;               // controls the computation of the clause's origins
-    private final boolean monitoring;                   // activates monitoring
-    private final Monitor monitor;                      // for logging the actions of this class
-    private final String monitorId;                     // for distinguishing the monitoring areas
-    private final Model model;                          // the global model
-    private final Symboltable symboltable;              // its symboltable
-    private final EquivalenceClasses equivalenceClasses;// The equivalence classes thread
+    public final boolean monitoring;                   // activates monitoring
+    public final Monitor monitor;                      // for logging the actions of this class
+    public final String monitorId;                     // for distinguishing the monitoring areas
+    public final Model model;                          // the global model
+    public final Symboltable symboltable;              // its symboltable
+    public final EquivalenceClasses equivalenceClasses;// The equivalence classes thread
     private final ArrayList<Clause> clauses;            // The list of Disjointness clauses
     private final HashIndex literalIndex;               // maps literals to the literal occurrences in clauses
     private final HashMap<Integer, ArrayList<CLiteral>> disjointnesses = new HashMap<>();// maps literals to disjoint literals
@@ -144,8 +144,9 @@ public class DisjointnessClasses {
      */
     public void addTrueLiteral(int literal, InferenceStep inferenceStep) {
         ++statistics.trueLiterals;
-        monitor.print(monitorId, "In:   True literal " +
-                Symboltable.toString(literal, symboltable));
+        if(monitoring) {
+            monitor.print(monitorId, "In:   True literal " +
+                    Symboltable.toString(literal, symboltable));}
         synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, literal, inferenceStep));}}
 
     /** adds a new derived disjointness p,q,r to the queue
@@ -211,42 +212,46 @@ public class DisjointnessClasses {
      * @return null or the normalized clause
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    private Clause normalizeClause(Clause clause) throws Unsatisfiable {
+    protected Clause normalizeClause(Clause clause) throws Unsatisfiable {
         clause = EquivalenceClasses.replaceEquivalences(equivalenceClasses,clause);
         if((clause = removeDoubles(clause)) == null) return null;
         return replaceTruthValues(clause);}
 
     /** replaces all double literals and checks for inconsistency.
+     * p != p  is false and must be removed from the clause <br>
+     * p != -p is true and therefore all other literals become false<br>
+     * The original clause is not changed.
      *
      * @param clause an unintegrated clause
-     * @return null (single literal) or the clause without double literals.
+     * @return null (single literal) or a clause without double and complementary literals.
      * @throws Unsatisfiable if the clause contains a contradiction p = -p
      */
     protected Clause removeDoubles(Clause clause) throws Unsatisfiable {
-        InferenceStep step = null;
+        if(clause.size() < 2) return null;
+        InferenceStep step = null; // we must first check for complementary literals.
         for(int i = 0; i < clause.size(); ++i) {
             int literal = clause.getLiteral(i);
-            boolean found = false;
             for(int j = i+1; j < clause.size(); ++j) {
                 int otherLiteral = clause.getLiteral(j);
-                if(literal == otherLiteral) { // p != p is false. All other literals become false as well.
-                    found = true;
+                if(literal == -otherLiteral) { // p != -p is true. All other literals become false
+                    for(CLiteral cLiteral : clause) {
+                        int nextLiteral = -cLiteral.literal;
+                        if (Math.abs(literal) == Math.abs(nextLiteral)) continue;
+                        if(trackReasoning) {
+                            step = new DisjointnessComplementary(clause,literal,nextLiteral);
+                            if(monitoring) monitor.print(monitorId,step.toString());}
+                        model.add(nextLiteral,step,null);}
+                    return null;}}}
+        for(int i = 0; i < clause.size(); ++i) {  // now we can check for double literals.
+            int literal = clause.getLiteral(i);
+            for(int j = i+1; j < clause.size(); ++j) {
+                int otherLiteral = clause.getLiteral(j);
+                if(literal == otherLiteral) { // p != p is false and has to be removed
                     if(trackReasoning) {
                         step = new DisjointnessDouble(clause,literal);
                         if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
                     model.add(-literal,step,null);
-                    break;}
-                if(literal == -otherLiteral) { // p != -p is true. All other literals become false
-                    found = true; break;}}
-            if(found) {
-                for(CLiteral cLiteral : clause) {
-                    int otherLiteral = -cLiteral.literal;
-                    if (Math.abs(literal) == Math.abs(otherLiteral)) continue;
-                    if(trackReasoning) {
-                        step = new DisjointnessComplementary(clause,literal,otherLiteral);
-                        if(monitoring) monitor.print(monitorId,step.toString());}
-                    model.add(otherLiteral,step,null);}
-                return null;}}
+                    return removeDoubles(clause.cloneExcept(problemSupervisor.nextClauseId(),literal));}}}
         return clause;}
 
     /** a true literal causes all other literals to become false, a false literal is removed.
@@ -273,7 +278,7 @@ public class DisjointnessClasses {
             int literal = clause.getLiteral(i);
             if(model.isFalse(literal)) {
                 InferenceStep step1 = model.getInferenceStep(literal);
-                Clause newClause = clause.clone(i--);
+                Clause newClause = clause.clone(problemSupervisor.nextClauseId(), i--);
                 if(trackReasoning) {
                     step2 = new DisjointnessFalseLiteral(clause,newClause,literal,step1);
                     newClause.inferenceStep = step2;
@@ -490,7 +495,7 @@ public class DisjointnessClasses {
         if(clauses.isEmpty()) {return "";}
         StringBuilder string = new StringBuilder();
         string.append("Disjointness Clauses of Problem " + problemId + ":");
-        int width = Integer.toString(problemSupervisor.clauseCounter).length();
+        int width = Integer.toString(problemSupervisor.clauseCounter).length()+1;
         for(Clause clause : clauses) {
             string.append("\n").append(clause.toString(width,symboltable));}
         return string.toString();}
