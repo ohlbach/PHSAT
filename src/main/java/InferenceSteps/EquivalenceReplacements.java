@@ -45,12 +45,12 @@ public class EquivalenceReplacements extends InferenceStep {
 
     @Override
     public IntArrayList origins() {
-        return joinIntArrays(oldClause.inferenceStep.origins(),equivalenceClause.inferenceStep.origins());
-    }
+        return joinIntArrays(oldClause.inferenceStep == null ? null : oldClause.inferenceStep.origins(),
+                equivalenceClause.inferenceStep == null ? null : equivalenceClause.inferenceStep.origins());}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        oldClause.inferenceStep.inferenceSteps(steps);
-        equivalenceClause.inferenceStep.inferenceSteps(steps);
+        if(oldClause.inferenceStep != null)         oldClause.inferenceStep.inferenceSteps(steps);
+        if(equivalenceClause.inferenceStep != null) equivalenceClause.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

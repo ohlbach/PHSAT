@@ -601,7 +601,9 @@ public abstract class Resolution extends Solver {
                             model.addImmediately(literal); found = true; break;}}
                     if(!found) return new Erraneous(model,clause,symboltable);}}
         completeEliminations();
-        Result result = equivalenceClasses.completeModel();
+        try{equivalenceClasses.completeModel();}
+        catch(Unsatisfiable uns) {return uns;}
+        Result result = null;
         if(result != null) {return result;}
         result = checkModel(model);
         if(result != null) {return result;}

@@ -39,11 +39,13 @@ public class ContradictoryLiterals extends InferenceStep{
 
     @Override
     public IntArrayList origins() {
-        return joinIntArrays(step1.origins(),step2.origins());}
+        return joinIntArrays(
+                step1 == null ? null : step1.origins(),
+                step2 == null ? null : step2.origins());}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        step1.inferenceSteps(steps);
-        step2.inferenceSteps(steps);
+        if(step1 != null) step1.inferenceSteps(steps);
+        if(step2 != null) step2.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

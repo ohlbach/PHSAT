@@ -22,7 +22,8 @@ public class EquivalenceClassesTest {
 
     static StringBuffer errors=new StringBuffer();
     static StringBuffer warnings=new StringBuffer();
-    boolean monitoring = true;
+
+    boolean monitoring = false;
 
     int type=ClauseType.EQUIV.ordinal();
 
@@ -74,8 +75,10 @@ public class EquivalenceClassesTest {
             Clause c7 = make(4,1,2,3,2,-3);
             eqClasses.removeDoublesAndInconsistencies(c7);}
         catch(Unsatisfiable uns) {
-            System.out.println(uns);
-            System.out.println(uns.toString(eqClasses.symboltable));}}
+            if(monitoring) {
+                System.out.println(uns);
+                System.out.println(uns.toString(eqClasses.symboltable));}
+            else System.out.println("Unsatisfiable");}}
 
 
     @Test
@@ -98,7 +101,8 @@ public class EquivalenceClassesTest {
         Clause c6 = make(3,4,5);
         try{eqClasses.replaceTruthValues(c6);}
         catch(Unsatisfiable uns) {
-            System.out.println(uns.toString(eqClasses.symboltable));}
+            if(monitoring) System.out.println(uns);
+            else System.out.println("Unsatisfiable");}
     }
 
     @Test
@@ -110,10 +114,10 @@ public class EquivalenceClassesTest {
         //System.out.println(eqClasses.toString());
         Clause c2 = make(2,4,5,3);
         Clause c3 = EquivalenceClasses.replaceEquivalences(eqClasses,c2);
-        assertEquals("E-0: 4=5=1",c3.toString());
+        assertEquals("E-1: 4=5=1",c3.toString());
         Clause c4 = make(3,4,5,-3);
         Clause c5 = EquivalenceClasses.replaceEquivalences(eqClasses,c4);
-        assertEquals("E-1: 4=5=-1",c5.toString());
+        assertEquals("E-2: 4=5=-1",c5.toString());
     }
     @Test
     public void replaceEquivalences2() throws Unsatisfiable{
@@ -124,11 +128,11 @@ public class EquivalenceClassesTest {
         Clause c2 = make(2,4,5);
         eqClasses.integrateEquivalence(c2,false);
 
-        System.out.println(eqClasses);
+        //System.out.println(eqClasses);
 
         Clause c3 = make(2,1,2,3,4,-5);
         Clause c4 = EquivalenceClasses.replaceEquivalences(eqClasses,c3);
-        assertEquals("E-1: 1=1=3=4=-4",c4.toString());
+        assertEquals("E-2: 1=1=3=4=-4",c4.toString());
     }
     @Test
     public void joinClause() throws Unsatisfiable{
@@ -138,12 +142,12 @@ public class EquivalenceClassesTest {
         eqClasses.integrateEquivalence(c1, false);
         Clause c2 = make(2, 2,4,5);
         Clause c3 = eqClasses.joinClause(c2);
-        assertEquals("E-0: 2=4=5=1=3",c3.toString());
+        assertEquals("E-1: 2=4=5=1=3",c3.toString());
 
         eqClasses.integrateEquivalence(c1, false);
         Clause c4 = make(3, 5,-2,7);
         Clause c5 = eqClasses.joinClause(c4);
-        assertEquals("E-1: 5=-2=7=-1=-3",c5.toString());
+        assertEquals("E-2: 5=-2=7=-1=-3",c5.toString());
 
         eqClasses.integrateEquivalence(c1, false);
         Clause c6 = make(4, 5,6,-7);
@@ -151,12 +155,14 @@ public class EquivalenceClassesTest {
 
         Clause c7 = make(5, 3,6,8,2);
         Clause c8 = eqClasses.joinClause(c7);
-        assertEquals("E-3: 3=6=8=2=1=5=-7",c8.toString());
+        assertEquals("E-4: 3=6=8=2=1=5=-7",c8.toString());
         try{
             eqClasses.integrateEquivalence(c1, false);
             Clause c9 = make(6, 3,4,-1);
             eqClasses.joinClause(c9);}
-        catch(Unsatisfiable uns) {System.out.println(uns); }
+        catch(Unsatisfiable uns) {
+            if(monitoring) System.out.println(uns);
+            else System.out.println("Unsatisfiable"); }
     }
     @Test
     public void normalizeClause() throws Unsatisfiable {
@@ -173,30 +179,24 @@ public class EquivalenceClassesTest {
 
 
     @Test
-    public void addBasicEquivalenceClause1() {
+    public void addBasicEquivalenceClause1() throws Unsatisfiable {
         System.out.println("Add Basic Equivalence Clause no overlaps");
-        EquivalenceClasses eqClasses=prepare(true,true);
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         int[] clause=new int[]{1,type,1,2,3};
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
         assertEquals("Equivalence Classes of Problem test:\nE-1: 1=2=3",eqClasses.toString());
         assertEquals("Equivalence Classes of Problem test:\n" +
                 "E-1: 1=2=3 [1]\n" +
                 "Literal Index:\n" +
-                "  1@1\n" +
-                "  2@1\n" +
-                "  3@1\n",eqClasses.infoString(null));
+                " 1@1,2@1,3@1,",eqClasses.infoString(null));
         assertEquals("Equivalence Classes of Problem test:\nE-1: p=q=r",eqClasses.toString(eqClasses.symboltable));
         assertEquals("Equivalence Classes of Problem test:\n" +
                 "E-1: p=q=r [1]\n" +
                 "Literal Index:\n" +
-                "  p@1\n" +
-                "  q@1\n" +
-                "  r@1\n",eqClasses.infoString(eqClasses.symboltable));
+                " p@1,q@1,r@1,",eqClasses.infoString(eqClasses.symboltable));
 
         clause=new int[]{2,type,4,-5,-6};
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
 
         assertEquals("Equivalence Classes of Problem test:\nE-1: 1=2=3\n" +
                 "E-2: 4=-5=-6",eqClasses.toString());
@@ -204,24 +204,14 @@ public class EquivalenceClassesTest {
                 "E-1: 1=2=3 [1]\n" +
                 "E-2: 4=-5=-6 [2]\n" +
                 "Literal Index:\n" +
-                "  1@1\n" +
-                "  2@1\n" +
-                "  3@1\n" +
-                "  4@2\n" +
-                "  -5@2\n" +
-                "  -6@2\n",eqClasses.infoString(null));
+                " 1@1,2@1,3@1,4@2,-5@2,-6@2,",eqClasses.infoString(null));
         assertEquals("Equivalence Classes of Problem test:\nE-1: p=q=r\n" +
                 "E-2: a=-b=-c",eqClasses.toString(eqClasses.symboltable));
         assertEquals("Equivalence Classes of Problem test:\n" +
                 "E-1: p=q=r [1]\n" +
                 "E-2: a=-b=-c [2]\n" +
                 "Literal Index:\n" +
-                "  p@1\n" +
-                "  q@1\n" +
-                "  r@1\n" +
-                "  a@2\n" +
-                "  -b@2\n" +
-                "  -c@2\n",eqClasses.infoString(eqClasses.symboltable));
+                " p@1,q@1,r@1,a@2,-b@2,-c@2,",eqClasses.infoString(eqClasses.symboltable));
 
         assertEquals(1,eqClasses.getRepresentative(2));
         assertEquals(-1,eqClasses.getRepresentative(-2));
@@ -231,110 +221,91 @@ public class EquivalenceClassesTest {
     }
 
     @Test
-    public void addBasicEquivalenceClause2() {
+    public void addBasicEquivalenceClause2() throws Unsatisfiable {
         System.out.println("Add Basic Equivalence Clause with overlaps");
-        EquivalenceClasses eqClasses=prepare(true,true);
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         int[] clause=new int[]{1,type,2,3,4};
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
 
         clause=new int[]{2,type,-5,6,2}; // 2 overlaps
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
-        assertEquals("Equivalence Classes of Problem test:\nE-2: 2=3=4=-5=6",eqClasses.toString());
+        eqClasses.addBasicEquivalenceClause(clause);
+        assertEquals("Equivalence Classes of Problem test:\nE-1: 2=3=4=-5=6",eqClasses.toString());
         assertEquals("Equivalence Classes of Problem test:\n" +
-                "E-2: 2=3=4=-5=6 [1, 2]\n" +
+                "E-1: 2=3=4=-5=6 [1, 2]\n" +
                 "Literal Index:\n" +
-                "  2@2\n" +
-                "  3@2\n" +
-                "  4@2\n" +
-                "  -5@2\n" +
-                "  6@2\n",eqClasses.infoString(null));
+                " 2@1,3@1,4@1,-5@1,6@1,",eqClasses.infoString(null));
 
         clause=new int[]{3,type,6,7,1}; // 2 overlaps
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
         assertEquals("Equivalence Classes of Problem test:\nE-3: 1=2=3=4=-5=6=7",eqClasses.toString());
         assertEquals("Equivalence Classes of Problem test:\n" +
                 "E-3: 1=2=3=4=-5=6=7 [1, 2, 3]\n" +
                 "Literal Index:\n" +
-                "  1@3\n" +
-                "  2@3\n" +
-                "  3@3\n" +
-                "  4@3\n" +
-                "  -5@3\n" +
-                "  6@3\n" +
-                "  7@3\n",eqClasses.infoString(null));
+                " 1@3,2@3,3@3,4@3,-5@3,6@3,7@3,",eqClasses.infoString(null));
     }
 
     @Test
-    public void addBasicEquivalenceClause3() {
+    public void addBasicEquivalenceClause3() throws Unsatisfiable {
         System.out.println("Add Basic Equivalence Clause with model ");
-        EquivalenceClasses eqClasses =  prepare(true,true);
-        IntArrayList orig1=new IntArrayList();
-        orig1.add(20);
-        IntArrayList orig2=new IntArrayList();
-        orig2.add(30);
+        EquivalenceClasses eqClasses =  prepare(monitoring,true);
         Model model=eqClasses.model;
-        model.addImmediately(2);
-        model.addImmediately(-3);
+        InferenceTest inf1 = new InferenceTest("INF TEST 1");
+        model.add(2, inf1, null);
+        InferenceTest inf2 = new InferenceTest("INF TEST 2");
+        model.add(-3,inf2,null);
         ArrayList<Object> observed=new ArrayList<>();
         model.addObserver(Thread.currentThread(),
-                ((literal, originals) -> {
+                ((literal, step) -> {
                     observed.add(literal);
-                    observed.add(originals);}));
+                    observed.add(step);}));
 
         int[] clause=new int[]{1,type,5,2,4};
-        try{
-            eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
         assertEquals("Equivalence Classes of Problem test:\n",eqClasses.toString());
-        assertEquals("[5, [1, 20], 4, [1, 20]]",observed.toString());
+        assertEquals("[5, Equivalent True Literals:\n" +
+                "E-1: 5=2=4 and true(2) -> true(5), 4, Equivalent True Literals:\n" +
+                "E-1: 5=2=4 and true(2) -> true(4)]",observed.toString());
         observed.clear();
         clause=new int[]{2,type,6,7,-4};
-        try{
-            eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
-        assertEquals("[-6, [1, 2, 20], -7, [1, 2, 20]]",observed.toString());
+        eqClasses.addBasicEquivalenceClause(clause);
+        assertEquals("[-6, Equivalent True Literals:\n" +
+                "E-2: 6=7=-4 and true(4) -> true(-6), -7, Equivalent True Literals:\n" +
+                "E-2: 6=7=-4 and true(4) -> true(-7)]",observed.toString());
         observed.clear();
         clause=new int[]{3,type,8,-6,-2};
         try{
             eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {
-            System.out.println(uns.toString());}}
+            if(monitoring) System.out.println(uns);
+            else System.out.println("Unsatisfiable");}}
 
     @Test
-    public void addBasicEquivalenceClause4() {
+    public void addBasicEquivalenceClause4() throws Unsatisfiable{
         System.out.println("Add Basic Equivalence Clause internal error ");
-        EquivalenceClasses eqClasses=prepare(true,true);
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         int[] clause=new int[]{1,type,2,3,4,3};
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
         assertEquals("Equivalence Classes of Problem test:\nE-1: 2=3=4",eqClasses.toString());
         clause=new int[]{2,type,2,3,4};
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
         assertEquals("Equivalence Classes of Problem test:\nE-1: 2=3=4",eqClasses.toString());
 
         clause=new int[]{3,type,5,3,4};
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
         assertEquals("Equivalence Classes of Problem test:\n" +
-                "E-3: 2=3=4=5 [1, 3]\n" +
+                "E-5: 2=3=4=5 [1, 3]\n" +
                 "Literal Index:\n" +
-                "  2@3\n" +
-                "  3@3\n" +
-                "  4@3\n" +
-                "  5@3\n",eqClasses.infoString(null));
+                " 2@5,3@5,4@5,5@5,",eqClasses.infoString(null));
         clause=new int[]{4,type,6,3,-4};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {
-            System.out.println(uns.toString());}}
+            if(monitoring) System.out.println(uns);
+            else System.out.println("Unsatisfiable");}}
 
     @Test
-    public void integrateTrueLiteral() {
+    public void integrateTrueLiteral() throws Unsatisfiable {
         System.out.println("Integrate True Literal ");
-        EquivalenceClasses eqClasses=prepare(true,true);
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         Model model=eqClasses.model;
         ArrayList<Object> observed=new ArrayList<>();
         model.addObserver(Thread.currentThread(),
@@ -342,26 +313,26 @@ public class EquivalenceClassesTest {
                     observed.add(literal);
                     observed.add(originals);}));
         int[] clause=new int[]{1,type,2,3,4};
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
         clause=new int[]{2,type,5,-6};
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
         try{eqClasses.integrateTrueLiteral(6,null);}
-        catch(Unsatisfiable uns) {if(uns != null) System.out.println(uns.toString());}
-        assertEquals("[-5, [2, 20]]",observed.toString());
+        catch(Unsatisfiable uns) {
+            if(monitoring) System.out.println(uns);
+            else System.out.println("Unsatisfiable");}
+        assertEquals("[-5, Equivalent True Literals:\n" +
+                "E-2: 5=-6 and true(6) -> true(-5)]",observed.toString());
         assertEquals("Equivalence Classes of Problem test:\n" +
                 "E-1: 2=3=4 [1]\n" +
                 "Literal Index:\n" +
-                "  2@1\n" +
-                "  3@1\n" +
-                "  4@1\n",eqClasses.infoString(null));
-        assertEquals("-5 @ [2, 20]",model.infoString(false));}
+                " 2@1,3@1,4@1,",eqClasses.infoString(null));
+        assertEquals("Model:\n" +
+                "-5\n" +
+                "Equivalent True Literals:\n" +
+                "E-2: 5=-6 and true(6) -> true(-5)\n" +
+                "Origins: [2]\n" +
+                "Inference Steps: Clause Copy,Equivalent True Literals,",model.infoString(false));}
 
-
-    public Clause make(int id, int literal1, int literal2, IntArrayList origins) {
-        return new Clause(id,ClauseType.EQUIV,literal1,literal2);
-    }
 
     public String info(ArrayList<Clause>clauses) {
         StringBuilder st = new StringBuilder();
@@ -369,68 +340,53 @@ public class EquivalenceClassesTest {
         return st.toString(); }
 
     @Test
-    public void addDerived1() {
+    public void addDerived1() throws Unsatisfiable{
         System.out.println("add derived equivalence empty ");
-        EquivalenceClasses eqClasses=prepare(true,true);
-        Model model=eqClasses.model;
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         ArrayList<Clause> observed=new ArrayList<>();
-        eqClasses.addObserver(clause  -> observed.add(clause));
-        IntArrayList orig=new IntArrayList();
-        orig.add(20);
-        try{
-            eqClasses.integrateEquivalence(make(1,5,-3,orig),true);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addObserver(observed::add);
+        eqClasses.integrateEquivalence(make(1,5,-3),true);
         assertEquals("Equivalence Classes of Problem test:\nE-1: 3=-5",eqClasses.toString());
-        assertEquals("[1: 3=-5 [20]]",info(observed));
+        assertEquals("[E-1: 3=-5]",info(observed));
     }
 
     @Test
-    public void addDerived2() {
+    public void addDerived2() throws Unsatisfiable {
         System.out.println("add derived equivalence join one ");
-        EquivalenceClasses eqClasses=prepare(true,true);
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         ArrayList<Clause> observed=new ArrayList<>();
-        eqClasses.addObserver(clause -> observed.add(clause));
+        eqClasses.addObserver(observed::add);
 
         int[] clause=new int[]{1,type,3,4,5};
-        try{eqClasses.addBasicEquivalenceClause(clause);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause);
 
-        IntArrayList orig=new IntArrayList();
-        orig.add(20);
-        try{
-            eqClasses.integrateEquivalence(make(2,-5,6,orig),true);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.integrateEquivalence(make(2,-5,6),true);
 
         assertEquals("Equivalence Classes of Problem test:\nE-2: 3=4=5=-6",eqClasses.toString(null));
-        assertEquals("[2: 3=4=5=-6 [1, 20]]",info(observed));
+        assertEquals("[E-2: 3=4=5=-6 [1]]",info(observed));
     }
     @Test
-    public void addDerived3() {
+    public void addDerived3() throws Unsatisfiable {
         System.out.println("add derived equivalence join two  ");
-        EquivalenceClasses eqClasses=prepare(true,true);
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         ArrayList<Clause> observed=new ArrayList<>();
         eqClasses.addObserver(observed::add);
 
         int[] clause1=new int[]{1,type,3,4,5};
         int[] clause2=new int[]{2,type,6,7};
-        try{eqClasses.addBasicEquivalenceClause(clause1);
-            eqClasses.addBasicEquivalenceClause(clause2);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause1);
+        eqClasses.addBasicEquivalenceClause(clause2);
 
-        IntArrayList orig=new IntArrayList();
-        orig.add(20);
-        try{
-            eqClasses.integrateEquivalence(make(2,5,-7,orig),true);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.integrateEquivalence(make(2,5,-7),true);
 
-        assertEquals("Equivalence Classes of Problem test:\nE-2: 3=4=5=-6=-7",eqClasses.toString());
-        assertEquals("[2: 3=4=5=-6=-7 [1, 2, 20]]",info(observed));
+        assertEquals("Equivalence Classes of Problem test:\nE-4: 3=4=5=-6=-7",eqClasses.toString());
+        assertEquals("[E-4: 3=4=5=-6=-7 [1, 2]]",info(observed));
     }
 
     @Test
-    public void addDerived4() {
+    public void addDerived4() throws Unsatisfiable {
         System.out.println("add derived equivalence join three  ");
-        EquivalenceClasses eqClasses=prepare(true,true);
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         eqClasses.model.symboltable = null;
         ArrayList<Clause> observed=new ArrayList<>();
         eqClasses.addObserver(observed::add);
@@ -440,51 +396,68 @@ public class EquivalenceClassesTest {
         int[] clause3=new int[]{3,type,4,5,6};
 
 
-        try{eqClasses.addBasicEquivalenceClause(clause1);
-            eqClasses.addBasicEquivalenceClause(clause2);
-            eqClasses.addBasicEquivalenceClause(clause3);
-            eqClasses.integrateEquivalence(new Clause(4,new int[]{4,type,3,6,-9}),true);}
-        catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause1);
+        eqClasses.addBasicEquivalenceClause(clause2);
+        eqClasses.addBasicEquivalenceClause(clause3);
+        eqClasses.integrateEquivalence(new Clause(4,new int[]{4,type,3,6,-9}),true);
 
-
-
-        assertEquals("Equivalence Classes of Problem test:\nE-4: 1=2=3=4=5=6=-7=-8=-9",eqClasses.toString());
-        assertEquals("[4: 1=2=3=4=5=6=-7=-8=-9 [1, 2, 3, 4]]",info(observed));
+        assertEquals("Equivalence Classes of Problem test:\nE-6: 1=2=3=4=5=6=-7=-8=-9",eqClasses.toString());
+        assertEquals("[E-6: 1=2=3=4=5=6=-7=-8=-9 [1, 2, 3]]",info(observed));
     }
 
 
 
     @Test
-    public void threadtest() {
+    public void threadtest() throws Unsatisfiable {
         System.out.println("Thread ");
-        EquivalenceClasses eqClasses=prepare(true,true);
+        EquivalenceClasses eqClasses=prepare(monitoring,true);
         Model model=eqClasses.model;
         model.symboltable = null;
         int[] clause1=new int[]{1,type,2,3,4};
         int[] clause2=new int[]{2,type,5,6,7};
-        try{eqClasses.addBasicEquivalenceClause(clause1);
-            eqClasses.addBasicEquivalenceClause(clause2);}
-            catch(Unsatisfiable uns) {}
+        eqClasses.addBasicEquivalenceClause(clause1);
+        eqClasses.addBasicEquivalenceClause(clause2);
         eqClasses.configure();
 
         Thread thread1=new Thread(()->eqClasses.run());
         thread1.start();
 
-        IntArrayList origins=new IntArrayList(); origins.add(10);
         eqClasses.addDerivedEquivalence(2,-5,null);
-        try {
-            model.add(2, null, null);
-        }catch(Unsatisfiable uns) {}
+        model.add(2, null, null);
 
         try{Thread.sleep(20);}catch(Exception ex) {}
         thread1.interrupt();
         try{thread1.join();} catch(Exception ex) {}
 
-        System.out.println("Result: " + eqClasses.problemSupervisor.result);
-        System.out.println("CLASS " + eqClasses.toString());
-        System.out.println("MODEL " + model.toNumbers());
-        System.out.println("MODEL " + model.toString());
-        assertEquals("2,3,4,-5,-6,-7,",model.toNumbers());
+        if(monitoring) {
+            System.out.println("Result: " + eqClasses.problemSupervisor.result);
+            System.out.println("CLASS " + eqClasses);
+            System.out.println("MODEL " + model.toNumbers());
+            System.out.println("MODEL " + model);}
+        assertEquals("Model:\n2,3,4,-5,-6,-7",model.toNumbers());
 
     }
+
+    @Test
+    public void completeModel () throws Unsatisfiable {
+        System.out.println("complete Model ");
+        EquivalenceClasses eqClasses = prepare(monitoring, false);
+        Model model = eqClasses.model;
+        int[] clause1 = new int[]{1, type, 1, 2, 3};
+        eqClasses.addBasicEquivalenceClause(clause1);
+        model.add(2, null, null);
+        eqClasses.completeModel();
+        assertEquals("Model:\n" +
+                "1,2,3", model.toNumbers());
+
+        int[] clause2 = new int[]{1, type, 4, -5, 6};
+        eqClasses.addBasicEquivalenceClause(clause2);
+        model.add(5, null, null);
+        model.add(6, null, null);
+        try {eqClasses.completeModel();}
+        catch (Unsatisfiable uns) {
+            if(monitoring) System.out.println(uns);
+            else System.out.println("Unsatisfiable");}
+    }
+
     }

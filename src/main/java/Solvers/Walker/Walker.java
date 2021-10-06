@@ -530,7 +530,7 @@ public abstract class Walker extends Solver {
         oldPredicate = predicate;
         return predicate;}
 
-    public Result importTrueLiteral(int literal) {
+    public Result importTrueLiteral(int literal)  {
         if(isLocallyTrue(-literal)) {
             transferLocalModel();
             //return new Unsatisfiable(null,null);
@@ -557,9 +557,9 @@ public abstract class Walker extends Solver {
      *
      * @return Satisfiable or Erraneous (if something went wrong).
      */
-    Result completeModel() {
+    Result completeModel()  {
         System.out.println("Completing Model\n"+toString());
-        equivalenceClasses.completeModel();
+        try{equivalenceClasses.completeModel();} catch(Unsatisfiable uns) {return uns;}
         Result result = checkModel(model);
         if(result != null) {return result;}
         return new Satisfiable(model);}

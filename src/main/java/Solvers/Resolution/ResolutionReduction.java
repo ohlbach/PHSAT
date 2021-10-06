@@ -776,7 +776,8 @@ public abstract class ResolutionReduction extends Solver {
         Result result = null;
         for(int i = 1; i <= 3; ++i) {
             if(model.size() == predicates) {return new Satisfiable(model);}
-            result = equivalenceClasses.completeModel();
+            try{equivalenceClasses.completeModel();}
+            catch(Unsatisfiable uns) {return uns;}
             if(result != null) {return result;}
             completeEliminationsInModel();
             result = checkModel(model);

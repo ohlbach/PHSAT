@@ -13,7 +13,6 @@ public class EquivalenceStatistics extends Statistic {
     @Description("number of basic clauses")
     public int basicClauses = 0;
 
-
     @Description("number of clauses")
     public int clauses = 0;
 
@@ -23,11 +22,8 @@ public class EquivalenceStatistics extends Statistic {
     @Description("number of joined equivalence classes")
     public int joinedClasses = 0;
 
-    @Description("number of extended equivalence classes")
-    public int extendedClasses = 0;
-
-    @Description("number of true literals included")
-    public int trueLiterals = 0;
+    @Description("number of derived true literals")
+    public int derivedTrueLiterals = 0;
 
 
 }

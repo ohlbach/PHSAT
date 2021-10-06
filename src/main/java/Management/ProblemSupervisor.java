@@ -54,7 +54,7 @@ public class ProblemSupervisor {
     private String monitorId;
     private boolean monitoring;
 
-    public int clauseCounter = -1;
+    public int clauseCounter = 0;
 
     public SupervisorStatistics statistics = null;
 

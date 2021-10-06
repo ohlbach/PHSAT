@@ -3,7 +3,6 @@ package Datastructures.Theory;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
 import Datastructures.Literals.CLiteral;
-import Datastructures.Results.Inconsistency;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Task;
@@ -181,7 +180,7 @@ public class EquivalenceClasses  {
         assert basicClause.length > 3;
         assert ClauseType.getType(basicClause[1]) == ClauseType.EQUIV;
         statistics.basicClauses++;
-        Clause clause = new Clause(problemSupervisor.nextClauseId(),basicClause);
+        Clause clause = new Clause(basicClause[0],basicClause);
         if(trackReasoning) {clause.inferenceStep = new ClauseCopy(basicClause,clause);}
         integrateEquivalence(clause,false);}
 
@@ -191,9 +190,9 @@ public class EquivalenceClasses  {
      * @param inference which caused the truth
      */
     public void addTrueLiteral(int literal,InferenceStep inference) {
-        ++statistics.trueLiterals;
-        monitor.print(monitorId,"In:   True literal " +
-                Symboltable.toString(literal,model.symboltable));
+        if(monitoring) {
+            monitor.print(monitorId,"In:   True literal " +
+                    Symboltable.toString(literal,model.symboltable));}
         synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, literal, inference));}}
 
     /** This method is to be called by the TwoLiteral module to announce a newly derived equivalence
@@ -204,7 +203,7 @@ public class EquivalenceClasses  {
      * @param literal2 an equivalent literal
      */
     public void addDerivedEquivalence(int literal1, int literal2, InferenceStep inferenceStep) {
-        statistics.derivedClasses++;
+        ++statistics.derivedClasses;
         if(monitoring) {
             monitor.print(monitorId,"In:   Equivalence " +
                     Symboltable.toString(literal1, model.symboltable) + " = " +
@@ -272,7 +271,7 @@ public class EquivalenceClasses  {
                     newClause.inferenceStep = new EquivalenceReplacements(oldClause,oldLiteral,newClause,newLiteral,
                             eqClasses.getEClause(oldLiteral));
                     if(eqClasses.monitoring) {eqClasses.monitor.print(eqClasses.monitorId,newClause.inferenceStep.toString(eqClasses.symboltable));}}
-                return eqClasses.replaceEquivalences(eqClasses,newClause);}}
+                return replaceEquivalences(eqClasses,newClause);}}
         return oldClause;}
 
     /** replaces all double literals and checks for inconsistency.
@@ -311,6 +310,7 @@ public class EquivalenceClasses  {
                             inference = new EquivalentTrueLiteral(clause,sign*literal1,
                                     sign*cLiteral2.literal,inferenceLit);
                             if(monitoring) monitor.print(monitorId,inference.toString());}
+                        ++statistics.derivedTrueLiterals;
                         model.add(sign*cLiteral2.literal,inference,null);}}
                 return null;}}
         return clause;}
@@ -327,6 +327,7 @@ public class EquivalenceClasses  {
             Clause oldClause = clauses.get(i);
             int[] result = clause.overlaps(oldClause);
             if(result != null) {
+                ++statistics.joinedClasses;
                 int sign = result[0];
                 int literal = result[1];
                 Clause newClause = clause.clone(problemSupervisor.nextClauseId());
@@ -363,7 +364,7 @@ public class EquivalenceClasses  {
                         inference = new EquivalentTrueLiteral(clause,literal,
                                 sign*cLiteral.literal,inferenceStep);
                         if(monitoring) monitor.print(monitorId,inference.toString());}
-                    model.add(sign*literal,inference,null);}}}}
+                    model.add(sign*cLiteral.literal,inference,null);}}}}
 
 
     /** sorts the literals in the clause.
@@ -394,6 +395,11 @@ public class EquivalenceClasses  {
             return cliteral.clausePosition == 0 ? literal : -cliteral.clause.cliterals.get(0).literal;}
         return literal;}
 
+    /** return the Equivalence clause which contains the literal (positive or negative)
+     *
+     * @param literal any literal
+     * @return null or the equivalence clause containing the literal (positive or negative)
+     */
     public synchronized Clause getEClause(int literal) {
         CLiteral cliteral = literalIndex.get(literal);
         if(cliteral != null) return cliteral.clause;
@@ -404,31 +410,21 @@ public class EquivalenceClasses  {
 
 
     /** If a literal in an equivalence class is true, then all other literals are also made true
+     * This method is called when a partial model is found, which is supposed to be extendable to a complete model.
      *
-     * @return an Inconsistency if the resulting model becomes inconsistent (should never happen)
+     * @throws Unsatisfiable if the resulting model becomes inconsistent (should never happen)
      */
-    public Inconsistency completeModel() {
+    public void completeModel() throws Unsatisfiable {
         for(Clause clause : clauses) {
-            int sign = 0;
-            int lit = 0;
             for(CLiteral cliteral : clause) { // find a true/false literal
                 int literal = cliteral.literal;
                 int status = model.status(literal);
                 if(status != 0) {
-                    if(sign != 0 && status != sign) {
-                        return new Inconsistency(problemId, // something went terribly wrong
-                                "Equivalence class: " + clause.toString(0,model.symboltable) +
-                                ": Literal " + Symboltable.toString(lit,model.symboltable) +
-                                " is " + (sign > 0 ? "true" : false) + " but literal " +
-                                        Symboltable.toString(literal,model.symboltable) +
-                                " is " + (status > 0 ? "true" : "false"));}
-                    else {sign = status; lit = literal;}}}
-            if(sign == 0) continue;  // no literal has a truth value.
-
-            for(CLiteral cliteral : clause) {
-                int literal = cliteral.literal;
-                if(model.status(literal) == 0) model.addImmediately(sign*literal);}}
-        return null;}
+                    switch(status) {
+                        case +1: integrateTrueLiteral(literal, model.getInferenceStep(literal)); break;
+                        case -1: integrateTrueLiteral(-literal, model.getInferenceStep(literal)); break;}
+                    completeModel();
+                    return;}}}}
 
     /** inserts the clause into the local data structures.
      *
@@ -449,16 +445,6 @@ public class EquivalenceClasses  {
         clause.setRemoved();
         for(CLiteral cliteral : clause) {literalIndex.remove(cliteral.literal);}}
 
-    /** adds a literal to the clause
-     *
-     * @param clause a clause
-     * @param literal a literal
-     */
-    private synchronized void addLiteral(Clause clause, int literal) {
-        if(clause.contains(literal) <= 0) { // contradictions are recognized later
-            CLiteral cliteral = new CLiteral(literal,clause,clause.cliterals.size());
-            clause.add(cliteral);
-            literalIndex.put(literal,cliteral);}}
 
     /** checks if there is no equivalence class
      *
@@ -491,7 +477,7 @@ public class EquivalenceClasses  {
     public String toString(@Nullable Symboltable symboltable, boolean info) {
         StringBuilder string = new StringBuilder();
         string.append("Equivalence Classes of Problem " + problemId + ":\n");
-        int width = Integer.toString(problemSupervisor.clauseCounter).length();
+        int width = Integer.toString(problemSupervisor.clauseCounter).length()+2;
         int size = clauses.size();
         for(int i = 0; i < size; ++i) {
             if(info) string.append(clauses.get(i).infoString(width,symboltable));
@@ -509,10 +495,10 @@ public class EquivalenceClasses  {
         StringBuilder string = new StringBuilder();
         if(!clauses.isEmpty()) {string.append(toString(symboltable,true));}
         if(!literalIndex.isEmpty()) {
-            string.append("\nLiteral Index:\n");
-            literalIndex.forEach((literal,cliteral) -> string.append("  " +
+            string.append("\nLiteral Index:\n ");
+            literalIndex.forEach((literal,cliteral) -> string.append(
                     Symboltable.toString(literal,symboltable) +
-                     "@"+cliteral.clause.id + "\n"));}
+                     "@"+cliteral.clause.id + ","));}
         if(!queue.isEmpty()) {
             string.append("\nEquivalence Classes Queue of Problem " + problemId + ":\n").
                     append(Task.queueToString(queue));}
