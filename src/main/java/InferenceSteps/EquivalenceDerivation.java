@@ -3,7 +3,6 @@ package InferenceSteps;
 import Datastructures.Symboltable;
 import Datastructures.TwoLiteral.TwoLitClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 
@@ -15,11 +14,8 @@ public class EquivalenceDerivation extends InferenceStep {
 
     public static final String title = "Equivalence Derivation";
 
-    public static final String rule = title + ":\n" +
-            "-p, q\n"+
-            " p,-q\n"+
-            "------\n"+
-            "p == q";
+    public static final String rule = title +
+            ":\n-p, q and p,-q -> p == q";
 
     public EquivalenceDerivation(TwoLitClause clause1,TwoLitClause clause2) {
         this.clause1 = clause1;
@@ -36,23 +32,22 @@ public class EquivalenceDerivation extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st1 = clause1.toString("",symboltable);
-        String st2 = clause2.toString("",symboltable);
         int literal1 = -clause1.literal1;
         int literal2 = clause2.literal2;
         if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
-        String st3 = Symboltable.toString(literal1,symboltable) + " == " + Symboltable.toString(literal2,symboltable);
-        int width = Math.max(st1.length(),Math.max(st2.length(),st3.length()));
-        return st1 + "\n" + st2 + "\n" + StringUtils.repeat('-',width) + st3;}
+        return clause1.toString("",symboltable) + " and " + clause2.toString("",symboltable) + " -> " +
+                Symboltable.toString(literal1,symboltable) + " == " + Symboltable.toString(literal2,symboltable);}
 
     @Override
     public IntArrayList origins() {
-        return joinIntArrays(clause1.inferenceStep.origins(),clause2.inferenceStep.origins());}
+        return joinIntArrays(
+                (clause1.inferenceStep != null) ? clause1.inferenceStep.origins() : null,
+                (clause2.inferenceStep != null) ? clause2.inferenceStep.origins() : null);}
 
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        clause1.inferenceStep.inferenceSteps(steps);
-        clause2.inferenceStep.inferenceSteps(steps);
+        if(clause1.inferenceStep != null)  clause1.inferenceStep.inferenceSteps(steps);
+        if(clause2.inferenceStep != null)  clause2.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

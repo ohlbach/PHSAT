@@ -55,11 +55,14 @@ public class DisjointnessDerivation extends InferenceStep{
     @Override
     public IntArrayList origins() {
         IntArrayList origins = null;
-        for(TwoLitClause clause : clauses) origins  = joinIntArrays(origins,clause.inferenceStep.origins());
+        for(TwoLitClause clause : clauses)
+            if(clause.inferenceStep != null)
+                origins  = joinIntArrays(origins,clause.inferenceStep.origins());
         return origins;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        for(TwoLitClause clause : clauses) clause.inferenceStep.inferenceSteps(steps);
+        for(TwoLitClause clause : clauses)
+            if(clause.inferenceStep != null) clause.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

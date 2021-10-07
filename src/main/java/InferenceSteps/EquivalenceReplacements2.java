@@ -53,23 +53,27 @@ public class EquivalenceReplacements2 extends InferenceStep{
     public String toString(Symboltable symboltable) {
         String st1 = oldClause.toString("",symboltable);
         String st2 = (eClause1 != null) ? (Symboltable.toString(literal1,symboltable) + " == " +
-                Symboltable.toString(representative1,symboltable) + "\n") : "";
+                Symboltable.toString(representative1,symboltable) + " from " +
+                eClause1.toString(0,symboltable) +"\n") : "";
         String st3 = (eClause2 != null) ? (Symboltable.toString(literal2,symboltable) + " == " +
-                Symboltable.toString(representative2,symboltable) + "\n") : "";
-        int width = Math.max(st1.length(),Math.max(st2.length(),st3.length()));
+                Symboltable.toString(representative2,symboltable) + " from " +
+                eClause2.toString(0,symboltable) +"\n") : "";
+        String st4 = newClause.toString("",symboltable);
+        int width = Math.max(Math.max(st1.length(),st2.length()),Math.max(st3.length(),st4.length()));
         return title + ":\n" + st1 + st2 + st3 +
-                StringUtils.repeat('-',width) + "\n" + st3;}
+                StringUtils.repeat('-',width) + "\n" + st4;}
 
     @Override
     public IntArrayList origins() {
-        IntArrayList origins = oldClause.inferenceStep.origins();
+        IntArrayList origins = null;
+        if(oldClause.inferenceStep != null) origins = oldClause.inferenceStep.origins();
         if(eClause1 != null) origins = joinIntArrays(origins,eClause1.inferenceStep.origins());
         if(eClause2 != null) origins = joinIntArrays(origins,eClause2.inferenceStep.origins());
         return origins;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        oldClause.inferenceStep.inferenceSteps(steps);
+        if(oldClause.inferenceStep != null) oldClause.inferenceStep.inferenceSteps(steps);
         if(eClause1 != null) eClause1.inferenceStep.inferenceSteps(steps);
         if(eClause2 != null) eClause2.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}

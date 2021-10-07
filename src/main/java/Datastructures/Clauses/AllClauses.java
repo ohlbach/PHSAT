@@ -252,8 +252,7 @@ public class AllClauses {
         if(isSubsumed(clause)) return;
         if((clause = replacementResolutionBackwards(clause)) == null) return;
         if(clause.size() == 2)
-            twoLitClauses.addDerivedClause(clause.getLiteral(0), clause.getLiteral(1),
-                    clause.inferenceStep);
+            twoLitClauses.addDerivedClause(clause);
 
         removeSubsumedClauses(clause);
         replacementResolutionForward(clause);
@@ -824,8 +823,7 @@ public class AllClauses {
                 clauses.remove(clause);
                 if(clausesFinished && clauses.isEmpty()) throw new Satisfiable(model);
                 return false;
-            case 2: twoLitClauses.addDerivedClause(clause.getLiteral(0),clause.getLiteral(2),
-                    clause.inferenceStep);} // keep the two-literal clause
+            case 2: twoLitClauses.addDerivedClause(clause);} // keep the two-literal clause
 
         switch(clause.structure) {
             case NEGATIVE: ++statistics.negativeClauses; break;

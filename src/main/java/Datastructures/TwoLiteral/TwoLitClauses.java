@@ -138,7 +138,7 @@ public class TwoLitClauses {
 
                 Task<TaskType> task = queue.take();
                 switch (task.taskType) {
-                    case TRUELITERAL: integrateTrueLiteral((Integer)task.a); break;
+                    case TRUELITERAL:  integrateTrueLiteral((Integer)task.a); break;
                     case TWOLITCLAUSE: integrateClause((TwoLitClause) task.a,(boolean)task.b); break;}
 
                 if(monitoring && !clauses.isEmpty()) {monitor.print(monitorId,toString("",model.symboltable));}}
@@ -164,27 +164,21 @@ public class TwoLitClauses {
 
     /** puts a derived two-literal clause into the queue
      *
-     * @param literal1 a literal
-     * @param literal2 a literal
+     * @param clause a two-literal clause
      */
-    public void addDerivedClause(int literal1, int literal2, InferenceStep inferenceStep) {
-        if(monitoring) {
-            monitor.print(monitorId,"In:   derived clause " +
-                    Symboltable.toString(literal1,model.symboltable) + "," +
-                    Symboltable.toString(literal2,model.symboltable));}
-        TwoLitClause clause = new TwoLitClause(problemSupervisor.nextClauseId(),literal1,literal2);
-        clause.inferenceStep = inferenceStep;
-        synchronized (this) {queue.add(new Task<>(TaskType.TWOLITCLAUSE, clause, true));}}
+    public void addDerivedClause(Clause clause) {
+        if(monitoring) {monitor.print(monitorId,"In:   derived clause " + clause.toString(0,symboltable));}
+        TwoLitClause clause2 = new TwoLitClause(clause.id, clause.getLiteral(0), clause.getLiteral(1));
+        clause2.inferenceStep = clause.inferenceStep;
+        synchronized (this) {queue.add(new Task<>(TaskType.TWOLITCLAUSE, clause2, false));}}
 
     /** adds a two-literal disjunction to the data structures and performs all simplifications and inferences.
-     * If a contradiction is encountered the inconsistencyReporter is called and the method stops.
      *
      * @param clause a TwoLit clause
      * @throws Unsatisfiable if a contradiction is encountered
      */
     protected void integrateClause(TwoLitClause clause, boolean derived) throws Unsatisfiable {
-        if(monitoring) {
-            monitor.print(monitorId,"Exec: clause " + clause.toString("",model.symboltable));}
+        if(monitoring) {monitor.print(monitorId,"Exec: clause " + clause.toString("",model.symboltable));}
         clause = normalizeClause(clause);
         if(clause != null && !isSubsumed(clause)) {
             insertClause(clause);
@@ -199,7 +193,7 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                 Symboltable.toString(literal,model.symboltable));}
-        synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, literal, inferenceStep));}}
+        synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, literal, null));}}
 
 
     /** generates all unit resolvents and removes the clauses with the literal from the data structures
@@ -208,9 +202,8 @@ public class TwoLitClauses {
      * @throws Unsatisfiable if a contradiction is found.
      */
     private void integrateTrueLiteral(int literal) throws Unsatisfiable {
-        if(monitoring) {
-            monitor.print(monitorId,"Exec: true literal " +
-                    Symboltable.toString(literal,model.symboltable));}
+        if(monitoring) {monitor.print(monitorId,"Exec: true literal " +
+                            Symboltable.toString(literal,model.symboltable));}
 
         ArrayList<TwoLitClause> clauseList = literalIndex.get(literal); // remove all true literals
         if(clauseList != null) { // remove all true clauses
@@ -225,7 +218,7 @@ public class TwoLitClauses {
             literalIndex.remove(-literal);}}
 
 
-    /** All clauses with literals which must be replaced because of the equivalence clause are put into the queue.
+    /** All clauses with literals which must be replaced because of the equivalence clause, are put into the queue.
      *
      * @param eqClause an equivalence clause
      */
@@ -314,6 +307,7 @@ public class TwoLitClauses {
                     inf = new UnitResolution2(clause,literal1,model.getInferenceStep(literal1));
                     if(monitoring) monitor.print(monitorId,inf.toString(symboltable));}
                 model.add(literal2,inf,null);
+                ++statistics.unitClauses;
                 return null;}
             literal1 = clause.literal2;
             literal2 = clause.literal1;}
@@ -324,7 +318,7 @@ public class TwoLitClauses {
      * @param clause a new clause (not yet internalized)
      * @return true if the clause survived.
      */
-    private boolean findStructures(TwoLitClause clause) {
+    protected boolean findEquivalences(TwoLitClause clause) {
         TwoLitClause partner = findClause(-clause.literal1,-clause.literal2);
         if(partner != null) {
             EquivalenceDerivation eqd = null;
@@ -333,8 +327,8 @@ public class TwoLitClauses {
                 if(monitoring) monitor.print(monitorId,eqd.toString(symboltable));}
             equivalenceClasses.addDerivedEquivalence(clause.literal1, -clause.literal2,eqd);
             removeClause(partner);
+            ++statistics.equivalences;
             return false;}
-        findDisjointnesses(clause);
         return true;}
 
     /** searches for equivalences and disjointnesses, and
@@ -344,11 +338,11 @@ public class TwoLitClauses {
      * @param clause a new two-literal clause
      */
     private void insertClause(TwoLitClause clause){
-        if(!findStructures(clause)) return;
+        if(!findEquivalences(clause)) return;
         clauses.add(clause);
         literalIndex.computeIfAbsent(clause.literal1, k -> new ArrayList<>()).add(clause);
         literalIndex.computeIfAbsent(clause.literal2, k -> new ArrayList<>()).add(clause);
-        statistics.twoLitlauses++;
+        ++statistics.twoLitlauses;
         addResolvents(clause);}
 
     /** removes the clause from the internal data structures
@@ -358,6 +352,7 @@ public class TwoLitClauses {
     private void removeClause(TwoLitClause clause) {
         literalIndex.get(clause.literal1).remove(clause);
         literalIndex.get(clause.literal2).remove(clause);
+        --statistics.twoLitlauses;
         clauses.remove(clause);}
 
     /** checks if the clause is subsumed by another clause in the list.
@@ -394,7 +389,7 @@ public class TwoLitClauses {
                 for(TwoLitClause parent : parents) {
                     int literal3 = (literal1 == -parent.literal1) ? parent.literal2 : parent.literal1;
                     if(literal2 == -literal3) continue; // yields a tautology
-                    statistics.resolvents++;
+                    ++statistics.resolvents;
                     TwoLitClause resolvent = new TwoLitClause(problemSupervisor.nextClauseId(),literal2,literal3);
                     if(trackReasoning) {
                         BinaryResolution2 inf = new BinaryResolution2(clause,parent,resolvent);
@@ -410,39 +405,40 @@ public class TwoLitClauses {
      *  Example: three clauses: p,q  and p,r and q,r mean that -p,-q,-r are disjoint
      *  The tuple is inserted into the disjointnessClasses.
      *
-     * @param clause a potential partner of the tuple
+     * @param literal a potential partner of the tuple
      */
-    protected void findDisjointnesses(TwoLitClause clause) { // clause = p,q
-        int literal = clause.literal1;
+    protected void findDisjointnesses(int literal) {
         ArrayList<TwoLitClause> candidateClauses = literalIndex.get(literal);
-        if(candidateClauses == null) return;
+        if(candidateClauses == null || candidateClauses.size() < 2) return; // we want atleast 3 disjoint literals
         IntArrayList candidateLiterals = new IntArrayList();
         candidateLiterals.add(literal);
         for(TwoLitClause clause2 : candidateClauses) {
             candidateLiterals.add((clause2.literal1 == literal) ? clause2.literal2 : clause2.literal1);}
-        if(candidateLiterals.size() < 3) return; // we want at least three disjoint literals
+        // we want to find a subset which is mutually disjoint
         IntArrayList literals = new IntArrayList();
         ArrayList<TwoLitClause> clauses = new ArrayList<>();
-        literals.add(-candidateLiterals.getInt(0));
+        literals.add(literal);
         TwoLitClause clause3 = findClause(literal,candidateLiterals.getInt(1));
         if(clause3 == null) return;
-        literals.add(-candidateLiterals.getInt(1));
+        literals.add(candidateLiterals.getInt(1));
         clauses.add(clause3);
         for(int i = 2; i < candidateLiterals.size(); ++i) {
             int candidateLiteral = candidateLiterals.getInt(i); // it must be disjoint to all literals in literals
             candidateClauses.clear();
             boolean found = true;
             for(int oldLiteral : literals) {
-                if((clause3 = findClause(-oldLiteral,candidateLiteral)) == null) {found = false; break;}
+                if((clause3 = findClause(oldLiteral,candidateLiteral)) == null) {found = false; break;}
                 candidateClauses.add(clause3);}
             if(found) {
-                literals.add(-candidateLiteral);
+                literals.add(candidateLiteral);
                 clauses.addAll(candidateClauses);}}
         if(literals.size() < 3) return;
+        for(int i = 0; i < literals.size(); ++i) literals.set(i, -literals.getInt(i));
         DisjointnessDerivation inf = null;
         if(trackReasoning) {
             inf = new DisjointnessDerivation(literals,clauses);
             if(monitoring) monitor.print(monitorId,inf.toString(symboltable));}
+        ++statistics.disjointnesses;
         disjointnessClasses.addDerivedDisjoints(literals,inf);}
 
 

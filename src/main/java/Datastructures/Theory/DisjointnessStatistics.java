@@ -47,9 +47,6 @@ public class DisjointnessStatistics extends Statistic {
     @Description("number of resolutions")
     public int resolutions = 0;
 
-    @Description("number of joined disjointness classes")
-    public int joinedClasses = 0;
-
     @Description("number of extended disjointness classes")
     public int extendedClasses = 0;
 
