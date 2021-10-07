@@ -43,15 +43,17 @@ public class BinaryResolution2 extends InferenceStep {
         String st2 = parent2.toString("",symboltable);
         String st3 = resolvent.toString("",symboltable);
         int width = Math.max(st1.length(), Math.max(st2.length(), st3.length()));
-        return title + ":\n" + st1 + "\n" + st2 + StringUtils.repeat('-',width) + "\n" + st3;}
+        return title + ":\n" + st1 + "\n" + st2 + "\n" +StringUtils.repeat('-',width) + "\n" + st3;}
 
     @Override
     public IntArrayList origins() {
-        return joinIntArrays(parent1.inferenceStep.origins(),parent2.inferenceStep.origins());}
+        return joinIntArrays(
+                parent1.inferenceStep == null ? null : parent1.inferenceStep.origins(),
+                parent2.inferenceStep == null ? null : parent2.inferenceStep.origins());}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        parent2.inferenceStep.inferenceSteps(steps);
-        parent2.inferenceStep.inferenceSteps(steps);
+        if(parent1.inferenceStep != null) parent1.inferenceStep.inferenceSteps(steps);
+        if(parent2.inferenceStep != null) parent2.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

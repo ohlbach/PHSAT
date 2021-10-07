@@ -159,7 +159,7 @@ public class EquivalenceClasses  {
                     case EQUIVALENCE: integrateEquivalence((Clause)task.a,true); break;}
                 if(monitoring) {
                     monitor.print(monitorId,"Current equivalences:\n" +
-                            toString(model.symboltable,false));}}
+                            toString(symboltable,false));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
                 problemSupervisor.setResult(unsatisfiable,"EquivalenceClasses");
@@ -192,7 +192,7 @@ public class EquivalenceClasses  {
     public void addTrueLiteral(int literal,InferenceStep inference) {
         if(monitoring) {
             monitor.print(monitorId,"In:   True literal " +
-                    Symboltable.toString(literal,model.symboltable));}
+                    Symboltable.toString(literal,symboltable));}
         synchronized (this) {queue.add(new Task<>(TaskType.TRUELITERAL, literal, inference));}}
 
     /** This method is to be called by the TwoLiteral module to announce a newly derived equivalence
@@ -206,8 +206,8 @@ public class EquivalenceClasses  {
         ++statistics.derivedClasses;
         if(monitoring) {
             monitor.print(monitorId,"In:   Equivalence " +
-                    Symboltable.toString(literal1, model.symboltable) + " = " +
-                    Symboltable.toString(literal2, model.symboltable));}
+                    Symboltable.toString(literal1, symboltable) + " = " +
+                    Symboltable.toString(literal2, symboltable));}
         Clause clause = new Clause(problemSupervisor.nextClauseId(),ClauseType.EQUIV,literal1,literal2);
         clause.inferenceStep = inferenceStep;
         Task<TaskType> task = new Task<>(TaskType.EQUIVALENCE,clause,null);
@@ -227,7 +227,7 @@ public class EquivalenceClasses  {
      */
     public void integrateEquivalence(Clause clause, boolean derived) throws Unsatisfiable {
         if(monitoring) {
-            monitor.print(monitorId,"Exec: equivalence clause: " + clause.toString(0,model.symboltable));}
+            monitor.print(monitorId,"Exec: equivalence clause: " + clause.toString(0,symboltable));}
         if((clause = normalizeClause(clause)) == null) return;
         sortLiterals(clause);
         clause = joinClause(clause);
@@ -247,7 +247,7 @@ public class EquivalenceClasses  {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     protected Clause normalizeClause(Clause clause) throws Unsatisfiable {
-        clause = replaceEquivalences(this,clause);
+        clause = replaceEquivalences(clause);
         if((clause = replaceTruthValues(clause)) == null) return null;
         if((clause = removeDoublesAndInconsistencies(clause)) == null) return null;
         return clause;}
@@ -255,23 +255,22 @@ public class EquivalenceClasses  {
     /** replaces the literals in the oldClause by their representatives in the equivalence class.
      * The clause must not be integrated.
      *
-     * @param eqClasses the EquaivalenceClasses
      * @param oldClause a clause
      * @return the original clause or a new clause with the literals replaced.
      */
-    public static Clause replaceEquivalences(EquivalenceClasses eqClasses, Clause oldClause) {
-        if(eqClasses.isEmpty()) return oldClause;
+    public synchronized Clause replaceEquivalences(Clause oldClause) {
+        if(isEmpty()) return oldClause;
         for(CLiteral cliteral : oldClause) {
             int oldLiteral = cliteral.literal;
-            int newLiteral = eqClasses.getRepresentative(oldLiteral);
+            int newLiteral = getRepresentative(oldLiteral);
             if(newLiteral != oldLiteral) {
-                Clause newClause = oldClause.clone(eqClasses.problemSupervisor.nextClauseId());
+                Clause newClause = oldClause.clone(problemSupervisor.nextClauseId());
                 newClause.getCLiteral(cliteral.clausePosition).literal = newLiteral;
-                if(eqClasses.trackReasoning) {
+                if(trackReasoning) {
                     newClause.inferenceStep = new EquivalenceReplacements(oldClause,oldLiteral,newClause,newLiteral,
-                            eqClasses.getEClause(oldLiteral));
-                    if(eqClasses.monitoring) {eqClasses.monitor.print(eqClasses.monitorId,newClause.inferenceStep.toString(eqClasses.symboltable));}}
-                return replaceEquivalences(eqClasses,newClause);}}
+                            getEClause(oldLiteral));
+                    if(monitoring) {monitor.print(monitorId,newClause.inferenceStep.toString(symboltable));}}
+                return replaceEquivalences(newClause);}}
         return oldClause;}
 
     /** replaces all double literals and checks for inconsistency.
@@ -350,7 +349,7 @@ public class EquivalenceClasses  {
     protected void integrateTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
         if(monitoring) {
             monitor.print(monitorId,"Exec: True literal " +
-                    Symboltable.toString(literal, model.symboltable));}
+                    Symboltable.toString(literal, symboltable));}
         int sign = 1;
         CLiteral cliteral = literalIndex.get(literal);
         if(cliteral == null) {cliteral = literalIndex.get(-literal); sign = -1;}
@@ -511,22 +510,22 @@ public class EquivalenceClasses  {
             clause.check();
             for(CLiteral cliteral : clause) {
                 if(literalIndex.get(cliteral.literal) == null) {
-                    System.out.println("Literal Index:  Cliteral: " + cliteral.toString(model.symboltable) +
+                    System.out.println("Literal Index:  Cliteral: " + cliteral.toString(symboltable) +
                             " is not in the literalIndex");}
                 else {if(literalIndex.get(cliteral.literal) != cliteral) {
                         System.out.println("Literal Index:  Wrong cliteral: " +
-                            literalIndex.get(cliteral.literal).toString(model.symboltable) +
-                            " in the literalIndex insread of " + cliteral.toString(model.symboltable));}}}}
+                            literalIndex.get(cliteral.literal).toString(symboltable) +
+                            " in the literalIndex insread of " + cliteral.toString(symboltable));}}}}
         literalIndex.forEach((literal, cliteral) -> {
             if(literal != cliteral.literal) {
-                System.out.println("Literal Index: Literal " + Symboltable.toString(literal,model.symboltable) +
-                        " != Cliteral.literal: " + cliteral.toString(model.symboltable));}});
+                System.out.println("Literal Index: Literal " + Symboltable.toString(literal,symboltable) +
+                        " != Cliteral.literal: " + cliteral.toString(symboltable));}});
 
         for(Clause clause1 : clauses) {
             for(Clause clause2 : clauses) {
                 if(clause1 != clause2 && clause1.overlaps(clause2) != null) {
-                    System.out.println("Clause\n" + clause1.toString(0, model.symboltable) +
-                            " overlaps with\n" + clause2.toString(0,model.symboltable));}}}}
+                    System.out.println("Clause\n" + clause1.toString(0, symboltable) +
+                            " overlaps with\n" + clause2.toString(0,symboltable));}}}}
 
 
 }

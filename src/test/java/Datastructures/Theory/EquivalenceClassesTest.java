@@ -113,10 +113,10 @@ public class EquivalenceClassesTest {
         eqClasses.integrateEquivalence(c1,false);
         //System.out.println(eqClasses.toString());
         Clause c2 = make(2,4,5,3);
-        Clause c3 = EquivalenceClasses.replaceEquivalences(eqClasses,c2);
+        Clause c3 = eqClasses.replaceEquivalences(c2);
         assertEquals("E-1: 4=5=1",c3.toString());
         Clause c4 = make(3,4,5,-3);
-        Clause c5 = EquivalenceClasses.replaceEquivalences(eqClasses,c4);
+        Clause c5 = eqClasses.replaceEquivalences(c4);
         assertEquals("E-2: 4=5=-1",c5.toString());
     }
     @Test
@@ -131,7 +131,7 @@ public class EquivalenceClassesTest {
         //System.out.println(eqClasses);
 
         Clause c3 = make(2,1,2,3,4,-5);
-        Clause c4 = EquivalenceClasses.replaceEquivalences(eqClasses,c3);
+        Clause c4 = eqClasses.replaceEquivalences(c3);
         assertEquals("E-2: 1=1=3=4=-4",c4.toString());
     }
     @Test
