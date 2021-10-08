@@ -28,7 +28,7 @@ import java.util.function.Consumer;
  */
 
 public class TwoLitClauses {
-    ProblemSupervisor problemSupervisor;
+    public final ProblemSupervisor problemSupervisor;
 
     /** stores the clauses */
     private final ArrayList<TwoLitClause> clauses = new ArrayList<>();
@@ -40,15 +40,15 @@ public class TwoLitClauses {
     private final String problemId;
 
     /** the global model */
-    private final Model model;
+    public final Model model;
 
-    private final Symboltable symboltable;
+    public final Symboltable symboltable;
 
     /** the global set of equivalence classes */
-    private final EquivalenceClasses equivalenceClasses;
+    public final EquivalenceClasses equivalenceClasses;
 
     /** the global set of disjointness classes */
-    private final DisjointnessClasses disjointnessClasses;
+    public final DisjointnessClasses disjointnessClasses;
 
     /** counts various aspects */
     private final TwoLitStatistics statistics;
@@ -182,7 +182,10 @@ public class TwoLitClauses {
         clause = normalizeClause(clause);
         if(clause != null && !isSubsumed(clause)) {
             insertClause(clause);
-            if(derived) for(Consumer<TwoLitClause> observer : observers) observer.accept(clause);}}
+            if(derived) {
+                findDisjointnesses(clause.literal1);
+                for(Consumer<TwoLitClause> observer : observers) observer.accept(clause);}
+            addResolvents(clause);}}
 
     /** puts a true literal into the queue.
      *
@@ -285,7 +288,7 @@ public class TwoLitClauses {
         if(literal1 == -literal2) {return null;} // tautology
         if(literal1 == literal2) {
             if(monitoring) {
-                monitor.print(monitorId,"Clause " + clause.toString("",model.symboltable) + " is a unit clause " +
+                monitor.print(monitorId,"Clause " + clause.toString("",model.symboltable) + " -> " +
                         Symboltable.toString(literal1, model.symboltable));}
             model.add(literal1,clause.inferenceStep,null); // send back to me
             return null;}
@@ -333,7 +336,6 @@ public class TwoLitClauses {
 
     /** searches for equivalences and disjointnesses, and
      * inserts the clause into the clauses list and the clausMap
-     * Finally it generates all binary resolvents with the clause.
      *
      * @param clause a new two-literal clause
      */
@@ -342,8 +344,7 @@ public class TwoLitClauses {
         clauses.add(clause);
         literalIndex.computeIfAbsent(clause.literal1, k -> new ArrayList<>()).add(clause);
         literalIndex.computeIfAbsent(clause.literal2, k -> new ArrayList<>()).add(clause);
-        ++statistics.twoLitlauses;
-        addResolvents(clause);}
+        ++statistics.twoLitlauses;}
 
     /** removes the clause from the internal data structures
      *
@@ -400,16 +401,25 @@ public class TwoLitClauses {
             literal2 = clause.literal1;}}
 
 
+    /** tries to find all disjointness clauses specified by the two-literal clauses.
+     */
+    public void findAllDisjointnesses() {
+        IntArrayList literals = new IntArrayList();
+        for(int literal : literalIndex.keySet()) {
+            if(!literals.contains(-literal))  {
+                IntArrayList disjointnesses = findDisjointnesses(literal);
+                if(disjointnesses != null) literals.addAll(disjointnesses);}}}
 
     /** tries to find a tuple of disjoint literals.
      *  Example: three clauses: p,q  and p,r and q,r mean that -p,-q,-r are disjoint
      *  The tuple is inserted into the disjointnessClasses.
      *
      * @param literal a potential partner of the tuple
+     * @return null or the disjointnenss literals
      */
-    protected void findDisjointnesses(int literal) {
+    protected IntArrayList findDisjointnesses(int literal) {
         ArrayList<TwoLitClause> candidateClauses = literalIndex.get(literal);
-        if(candidateClauses == null || candidateClauses.size() < 2) return; // we want atleast 3 disjoint literals
+        if(candidateClauses == null || candidateClauses.size() < 2) return null; // we want atleast 3 disjoint literals
         IntArrayList candidateLiterals = new IntArrayList();
         candidateLiterals.add(literal);
         for(TwoLitClause clause2 : candidateClauses) {
@@ -419,7 +429,7 @@ public class TwoLitClauses {
         ArrayList<TwoLitClause> clauses = new ArrayList<>();
         literals.add(literal);
         TwoLitClause clause3 = findClause(literal,candidateLiterals.getInt(1));
-        if(clause3 == null) return;
+        if(clause3 == null) return null;
         literals.add(candidateLiterals.getInt(1));
         clauses.add(clause3);
         for(int i = 2; i < candidateLiterals.size(); ++i) {
@@ -432,14 +442,15 @@ public class TwoLitClauses {
             if(found) {
                 literals.add(candidateLiteral);
                 clauses.addAll(candidateClauses);}}
-        if(literals.size() < 3) return;
+        if(literals.size() < 3) return null;
         for(int i = 0; i < literals.size(); ++i) literals.set(i, -literals.getInt(i));
         DisjointnessDerivation inf = null;
         if(trackReasoning) {
             inf = new DisjointnessDerivation(literals,clauses);
             if(monitoring) monitor.print(monitorId,inf.toString(symboltable));}
         ++statistics.disjointnesses;
-        disjointnessClasses.addDerivedDisjoints(literals,inf);}
+        disjointnessClasses.addDerivedDisjoints(literals,inf);
+        return literals;}
 
 
     /** checks if there are no two-literal clauses

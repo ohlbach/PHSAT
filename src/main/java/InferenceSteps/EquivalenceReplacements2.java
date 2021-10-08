@@ -30,8 +30,8 @@ public class EquivalenceReplacements2 extends InferenceStep{
             " x,y";
 
     public EquivalenceReplacements2(TwoLitClause oldClause, TwoLitClause newClause,
-                                    int literal1, int representative1,Clause eClause1,
-                                    int literal2, int representative2,Clause eClause2) {
+                                    int literal1, int representative1, Clause eClause1,
+                                    int literal2, int representative2, Clause eClause2) {
         this.oldClause = oldClause;
         this.newClause = newClause;
         this.literal1  = literal1;
@@ -51,7 +51,7 @@ public class EquivalenceReplacements2 extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st1 = oldClause.toString("",symboltable);
+        String st1 = oldClause.toString("",symboltable) + "\n";
         String st2 = (eClause1 != null) ? (Symboltable.toString(literal1,symboltable) + " == " +
                 Symboltable.toString(representative1,symboltable) + " from " +
                 eClause1.toString(0,symboltable) +"\n") : "";

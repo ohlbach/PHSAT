@@ -35,7 +35,7 @@ public class UnitResolution2 extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        int resolvent = clause.literal1 == -falseLiteral ? clause.literal2 : clause.literal1;
+        int resolvent = clause.literal1 == falseLiteral ? clause.literal2 : clause.literal1;
         return clause.toString("",symboltable) + " and false(" + Symboltable.toString(falseLiteral,symboltable) +
                 ") -> true(" +Symboltable.toString(resolvent,symboltable) + ")";}
 
