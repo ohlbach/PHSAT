@@ -32,8 +32,8 @@ public class EquivalenceDerivation extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        int literal1 = -clause1.literal1;
-        int literal2 = clause2.literal2;
+        int literal1 =  clause1.literal1;
+        int literal2 = -clause1.literal2;
         if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
         return clause1.toString("",symboltable) + " and " + clause2.toString("",symboltable) + " -> " +
                 Symboltable.toString(literal1,symboltable) + " == " + Symboltable.toString(literal2,symboltable);}

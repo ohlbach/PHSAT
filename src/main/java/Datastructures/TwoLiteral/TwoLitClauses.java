@@ -70,7 +70,8 @@ public class TwoLitClauses {
 
     private enum TaskType {
         TRUELITERAL,  // a new true literal must be integrated
-        TWOLITCLAUSE} // a new or old two-literal clause must be simplified and resolved.
+        TWOLITCLAUSE,
+        DISJOINTNESSES} // a new or old two-literal clause must be simplified and resolved.
 
     /** A queue of tasks
      * The unit literals are automatically put at the beginning of the queue.
@@ -87,7 +88,8 @@ public class TwoLitClauses {
     private int getPriority(Task<TwoLitClauses.TaskType> task) {
         switch(task.taskType) {
             case TRUELITERAL:   return Integer.MIN_VALUE;
-            case TWOLITCLAUSE:  return ((TwoLitClause)task.a).id;}
+            case TWOLITCLAUSE:  return ((TwoLitClause)task.a).id;
+            case DISJOINTNESSES: return Integer.MAX_VALUE;}
         return Integer.MAX_VALUE;}
 
     /** creates a new instance
@@ -139,7 +141,8 @@ public class TwoLitClauses {
                 Task<TaskType> task = queue.take();
                 switch (task.taskType) {
                     case TRUELITERAL:  integrateTrueLiteral((Integer)task.a); break;
-                    case TWOLITCLAUSE: integrateClause((TwoLitClause) task.a,(boolean)task.b); break;}
+                    case TWOLITCLAUSE: integrateClause((TwoLitClause) task.a,(boolean)task.b); break;
+                    case DISJOINTNESSES: findAllDisjointnesses(); break;}
 
                 if(monitoring && !clauses.isEmpty()) {monitor.print(monitorId,toString("",model.symboltable));}}
             catch(InterruptedException ex) {return;}
@@ -157,7 +160,7 @@ public class TwoLitClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   basic basicClause " +
                     BasicClauseList.clauseToString(0,basicClause, model.symboltable));}
-        TwoLitClause clause = new TwoLitClause(problemSupervisor.nextClauseId(),basicClause[2],basicClause[3]);
+        TwoLitClause clause = new TwoLitClause(basicClause[0], basicClause[2],basicClause[3]);
         if(trackReasoning) {clause.inferenceStep = new ClauseCopy(basicClause,clause);}
         synchronized (this) {queue.add(new Task<>(TaskType.TWOLITCLAUSE, clause, false));}}
 
@@ -328,7 +331,7 @@ public class TwoLitClauses {
             if(trackReasoning) {
                 eqd = new EquivalenceDerivation(clause,partner);
                 if(monitoring) monitor.print(monitorId,eqd.toString(symboltable));}
-            equivalenceClasses.addDerivedEquivalence(clause.literal1, -clause.literal2,eqd);
+            equivalenceClasses.addDerivedEquivalence(-clause.literal1, clause.literal2,eqd);
             removeClause(partner);
             ++statistics.equivalences;
             return false;}
@@ -400,6 +403,11 @@ public class TwoLitClauses {
             literal1 = clause.literal2;
             literal2 = clause.literal1;}}
 
+    /** puts the findAllDisjointnesses into the queue
+     */
+    public void addDisjointnessFinder() {
+        if(monitoring) monitor.print(monitorId,"Adding Disjointness Finder");
+        synchronized (this) {queue.add(new Task<>(TaskType.DISJOINTNESSES,null,null));}}
 
     /** tries to find all disjointness clauses specified by the two-literal clauses.
      */
@@ -432,16 +440,17 @@ public class TwoLitClauses {
         if(clause3 == null) return null;
         literals.add(candidateLiterals.getInt(1));
         clauses.add(clause3);
+        ArrayList<TwoLitClause> candClauses = new ArrayList<>();
         for(int i = 2; i < candidateLiterals.size(); ++i) {
             int candidateLiteral = candidateLiterals.getInt(i); // it must be disjoint to all literals in literals
-            candidateClauses.clear();
+            candClauses.clear();
             boolean found = true;
             for(int oldLiteral : literals) {
                 if((clause3 = findClause(oldLiteral,candidateLiteral)) == null) {found = false; break;}
-                candidateClauses.add(clause3);}
+                candClauses.add(clause3);}
             if(found) {
                 literals.add(candidateLiteral);
-                clauses.addAll(candidateClauses);}}
+                clauses.addAll(candClauses);}}
         if(literals.size() < 3) return null;
         for(int i = 0; i < literals.size(); ++i) literals.set(i, -literals.getInt(i));
         DisjointnessDerivation inf = null;
