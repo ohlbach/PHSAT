@@ -2,17 +2,20 @@ package InferenceSteps;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
+import Datastructures.TwoLiteral.TwoLitClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 
 import static Utilities.Utilities.joinIntArrays;
+import static Utilities.Utilities.joinIntArraysSorted;
 
 /** documents a replacement resolution step
  */
 public class ReplacementResolution extends InferenceStep{
-    private final Clause parentClause1;
+    private Clause parentClause1 = null;
+    private TwoLitClause parent2Clause1 = null;
     private final Clause parentClause2;
     private final int literal;
     private final Clause resolvent;
@@ -38,6 +41,20 @@ public class ReplacementResolution extends InferenceStep{
         this.literal = literal;
         this.resolvent = resolvent;}
 
+    /** creates a replacement resolution step
+     *
+     * @param parent2Clause1  a clause
+     * @param parentClause2  a corresponding clause
+     * @param literal       the resolution literal
+     * @param resolvent     the resolvent
+     */
+    public ReplacementResolution(TwoLitClause parent2Clause1, Clause parentClause2, int literal, Clause resolvent) {
+        this.parent2Clause1 = parent2Clause1;
+        this.parentClause2 = parentClause2;
+        this.literal = literal;
+        this.resolvent = resolvent;}
+
+
     @Override
     public String title() {
         return title;}
@@ -48,7 +65,7 @@ public class ReplacementResolution extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        String s1 = parentClause1.toString(0,symboltable);
+        String s1 = parentClause1 != null ? parentClause1.toString(0,symboltable) : parent2Clause1.toString("",symboltable);
         String s2 = parentClause2.toString(0,symboltable);
         return title + ":\n" + s1 + "\n" + s2 + " at literal " +
                 Symboltable.toString(literal,symboltable) +"\n" +
@@ -57,11 +74,17 @@ public class ReplacementResolution extends InferenceStep{
 
     @Override
     public IntArrayList origins() {
-        return  joinIntArrays(parentClause1.inferenceStep.origins(), parentClause2.inferenceStep.origins());}
+        IntArrayList origins = parentClause2.inferenceStep == null ? null : parentClause2.inferenceStep.origins();
+        if(parentClause1 != null)
+             origins = joinIntArrays(origins,parentClause1.inferenceStep == null ? null : parentClause1.inferenceStep.origins());
+        else origins = joinIntArrays(origins,parent2Clause1.inferenceStep == null ? null : parent2Clause1.inferenceStep.origins());
+        return  origins;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        parentClause1.inferenceStep.inferenceSteps(steps);
-        parentClause2.inferenceStep.inferenceSteps(steps);
+        if(parentClause1 != null) {
+            if(parentClause1.inferenceStep != null) parentClause1.inferenceStep.inferenceSteps(steps);}
+        else {if(parent2Clause1.inferenceStep != null) parent2Clause1.inferenceStep.inferenceSteps(steps);}
+        if(parentClause2.inferenceStep != null) parentClause2.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

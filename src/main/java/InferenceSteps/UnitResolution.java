@@ -46,19 +46,19 @@ public class UnitResolution extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st = title + ":\n"+oldClause.toString(0,symboltable);
-        int width = st.length();
-        return st + "\n   " + Symboltable.toString(literal,symboltable)+"\n" +
-                StringUtils.repeat('-',width) + "\n"+
+        return title + ":\n"+oldClause.toString(0,symboltable) + " and true(" +
+                Symboltable.toString(literal,symboltable)+") -> " +
                 newClause.toString(0,symboltable);}
 
     @Override
     public IntArrayList origins() {
-        return joinIntArrays(oldClause.inferenceStep.origins(),inferenceStep.origins());}
+        return joinIntArrays(
+                oldClause.inferenceStep == null ? null : oldClause.inferenceStep.origins(),
+                inferenceStep.origins());}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        oldClause.inferenceStep.inferenceSteps(steps);
+        if(oldClause.inferenceStep != null) oldClause.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(inferenceStep)) steps.add(inferenceStep);
         if(!steps.contains(this)) steps.add(this);}
 }

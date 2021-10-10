@@ -418,6 +418,9 @@ public class TwoLitClauses {
                 IntArrayList disjointnesses = findDisjointnesses(literal);
                 if(disjointnesses != null) literals.addAll(disjointnesses);}}}
 
+
+    private ArrayList<TwoLitClause> candClauses = new ArrayList<>();
+
     /** tries to find a tuple of disjoint literals.
      *  Example: three clauses: p,q  and p,r and q,r mean that -p,-q,-r are disjoint
      *  The tuple is inserted into the disjointnessClasses.
@@ -440,7 +443,6 @@ public class TwoLitClauses {
         if(clause3 == null) return null;
         literals.add(candidateLiterals.getInt(1));
         clauses.add(clause3);
-        ArrayList<TwoLitClause> candClauses = new ArrayList<>();
         for(int i = 2; i < candidateLiterals.size(); ++i) {
             int candidateLiteral = candidateLiterals.getInt(i); // it must be disjoint to all literals in literals
             candClauses.clear();

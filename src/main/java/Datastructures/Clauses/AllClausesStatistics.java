@@ -26,7 +26,7 @@ public class AllClausesStatistics extends Statistic {
     public int forwardSubsumptions = 0;
 
     @Description("number of replacement resolutions into the new clause")
-    public int replacementResolutionBackward = 0;
+    public int replacementResolutionBackwards = 0;
 
     @Description("number of replacement resolutions from the new clause")
     public int replacementResolutionForward = 0;
@@ -34,12 +34,14 @@ public class AllClausesStatistics extends Statistic {
     @Description("number of derived equivalences.")
     public int equivalences = 0;
 
+    @Description("number of equivalence replacements.")
+    public int equivalenceReplacements = 0;
+
     @Description("number of derived disjunctions.")
     public int disjunctions = 0;
 
-
-    @Description("reductions.")
-    public int reductions = 0;
+    @Description("number of unit resolutions.")
+    public int unitResolutions = 0;
 
     @Description("removePureLiterals")
     public int purities = 0;

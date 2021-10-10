@@ -34,10 +34,10 @@ public class AllClauses {
     private final Thread thread;
 
     protected final Model model;
-    private final BasicClauseList     basicClauseList;
-    private final EquivalenceClasses  equivalenceClasses;
-    private final DisjointnessClasses disjointnessClasses;
-    protected final TwoLitClauses       twoLitClauses;
+    public BasicClauseList     basicClauseList;
+    public EquivalenceClasses  equivalenceClasses;
+    public DisjointnessClasses disjointnessClasses;
+    public TwoLitClauses       twoLitClauses;
 
     private final boolean monitoring;
     protected final Monitor monitor;
@@ -49,7 +49,7 @@ public class AllClauses {
     private final BucketSortedIndex<CLiteral> literalIndex;
     private final AllClausesStatistics statistics;
     private int timestamp = 1;
-    private final boolean clausesFinished;
+    private boolean clausesFinished;
     private final Symboltable symboltable;
 
     private final ClauseType clauseType = ClauseType.OR;
@@ -88,7 +88,7 @@ public class AllClauses {
      *
      * @param problemSupervisor    coordinates several solvers.
      */
-    public AllClauses(ProblemSupervisor problemSupervisor) throws Result {
+    public AllClauses(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
         problemSupervisor.allClauses = this;
         problemId = problemSupervisor.problemId;
@@ -113,11 +113,14 @@ public class AllClauses {
         equivalenceClasses.addObserver(this::addEquivalence);
         disjointnessClasses.addObserver(this::addDisjointness);
         twoLitClauses.addObserver(this::addTwoLitClause);
+    }
 
+    public void initialize() throws Result {
         initializeDisjoints();
         initializeXors();
         initializeDisjunctions();
         clausesFinished = true;
+        twoLitClauses.addDisjointnessFinder();
         checkPurity();
     }
 
@@ -126,7 +129,7 @@ public class AllClauses {
     private void initializeDisjoints() {
         for(int[] clause : basicClauseList.disjoints) {
             disjointnessClasses.addDisjointnessClause(clause);
-            integrateDisjointnessClause(clause);}}
+            integrateBasicDisjointnessClause(clause);}}
 
     /** This method puts the xor clauses into the disjointness classes and the clauses
      *
@@ -135,8 +138,8 @@ public class AllClauses {
     private void initializeXors() throws Result {
         for(int[] basicClause : basicClauseList.xors) {
             disjointnessClasses.addDisjointnessClause(basicClause);
-            integrateDisjointnessClause(basicClause);
-            Clause clause = new Clause(problemSupervisor.nextClauseId(),basicClause);
+            integrateBasicDisjointnessClause(basicClause);
+            Clause clause = new Clause(basicClause[0],basicClause);
             if(trackReasoning) clause.inferenceStep = new ClauseCopy(basicClause,clause);
             integrateClause(clause);}}
 
@@ -146,7 +149,7 @@ public class AllClauses {
      */
     private void initializeDisjunctions() throws Result {
         for(int[] basicClause : basicClauseList.disjunctions) {
-            Clause clause = new Clause(problemSupervisor.nextClauseId(),basicClause);
+            Clause clause = new Clause(basicClause[0],basicClause);
             if(trackReasoning) clause.inferenceStep = new ClauseCopy(basicClause,clause);
             integrateClause(clause);}}
 
@@ -166,10 +169,10 @@ public class AllClauses {
                         integrateTrueLiteral((Integer)task.a);
                         break;
                     case EQUIVALENCE:
-                        integrateEquivalence((Integer)task.a);
+                        integrateEquivalence((Clause)task.a);
                         break;
                     case DISJOINTNESS:
-                        integrateDisjointnessClass((Clause)task.a);
+                        integrateDerivedDisjointnessClass((Clause)task.a);
                         break;
                     case INSERTCLAUSE:
                         integrateClause((Clause)task.a);
@@ -201,22 +204,22 @@ public class AllClauses {
 
     /** puts an equivalence into the queue
      *
-     * @param clause an equivalence clause
+     * @param eClause an equivalence clause
      */
-    public void addEquivalence(Clause clause) {
+    public void addEquivalence(Clause eClause) {
         if(monitoring) {
-            monitor.print(monitorId,"In:   equivalence " + clause.toString(0,model.symboltable));}
-        queue.add(new Task<>(AllClauses.TaskType.EQUIVALENCE,clause,null));}
+            monitor.print(monitorId,"In:   equivalence " + eClause.toString(0,model.symboltable));}
+        queue.add(new Task<>(AllClauses.TaskType.EQUIVALENCE,eClause,null));}
 
     /** puts a disjointness into the queue
      *
-     * @param disjoints  a disjointness class
+     * @param dClause  a disjointness class
      */
-    public void addDisjointness(Clause disjoints) {
+    public void addDisjointness(Clause dClause) {
         if(monitoring) {
             monitor.print(monitorId,"In:   disjointness " +
-                    disjoints.toString(0,model.symboltable));}
-        queue.add(new Task<>(TaskType.DISJOINTNESS, disjoints, null));}
+                    dClause.toString(0,model.symboltable));}
+        queue.add(new Task<>(TaskType.DISJOINTNESS, dClause, null));}
 
     private void addTwoLitClause(TwoLitClause clause) {
         if(monitoring) {
@@ -231,7 +234,7 @@ public class AllClauses {
      *  - double literals are removed <br>
      *  - tautologies are recognised <br>
      *  - a subsumed clause is deleted <br>
-     *  - backward and froward replacement resolution is done <br>
+     *  - backward and forward replacement resolution is done <br>
      *  - an empty clause is thrown<br>
      *  - a unit clause is put into the model <br>
      *  - a two-literal clause is send to the Two-Lit module.
@@ -240,7 +243,7 @@ public class AllClauses {
      * @throws Result if a contradiction is found.
      */
     private void integrateClause(Clause clause) throws Result {
-        clause = replaceEquivalences(clause);
+        clause = equivalenceClasses.replaceEquivalences(clause);             // can be a new clause
         if((clause = replaceDoublesAndTautologies(clause)) == null) return;  // tautology, not needed any more
         if((clause = replaceTruthValues(clause)) == null) return;            // true clause, not needed any more
 
@@ -251,36 +254,12 @@ public class AllClauses {
 
         if(isSubsumed(clause)) return;
         if((clause = replacementResolutionBackwards(clause)) == null) return;
-        if(clause.size() == 2)
-            twoLitClauses.addDerivedClause(clause);
+        if(clause.size() == 2) twoLitClauses.addDerivedClause(clause);
 
         removeSubsumedClauses(clause);
         replacementResolutionForward(clause);
         insertClause(clause);
     }
-
-    /** replaces the literals in the oldClause by their representatives in the equivalence class.
-     * The clause must not be integrated.
-     *
-     * @param oldClause a clause
-     * @return the original clause or a new clause with the literals replaced.
-     */
-    protected Clause replaceEquivalences(Clause oldClause) {
-        if(equivalenceClasses.isEmpty()) return oldClause;
-        for(CLiteral cliteral : oldClause) {
-            int oldLiteral = cliteral.literal;
-            int newLiteral = equivalenceClasses.getRepresentative(oldLiteral);
-            if(newLiteral != oldLiteral) {
-                int position = cliteral.clausePosition;
-                Clause newClause = oldClause.clone(problemSupervisor.nextClauseId());
-                CLiteral newcliteral = newClause.getCLiteral(position);
-                newcliteral.literal = newLiteral;
-                if(trackReasoning) {
-                    newClause.inferenceStep = new EquivalenceReplacements(oldClause,oldLiteral,newClause,newLiteral,
-                                    equivalenceClasses.getEClause(oldLiteral));
-                    if(monitoring) {monitor.print(monitorId,newClause.inferenceStep.toString(symboltable));}}
-                return replaceEquivalences(newClause);}}
-        return oldClause;}
 
     /** replaces all double literals and checks for tautology.
      *
@@ -329,27 +308,48 @@ public class AllClauses {
     /** performs all possible replacement resolutions on the given clause
      *
      * @param clause a not yet integrated clause
-     * @return null, or the resolvent or the oroginal clause
+     * @return null, or the resolvent or the original clause
      * @throws Unsatisfiable if a contradiction is detected.
      */
-    protected Clause replacementResolutionBackwards(Clause clause) throws Unsatisfiable{
-        Object[] result = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
-        timestamp += 2;
-        while(result != null) {
-            CLiteral cliteral = (CLiteral) result[0];
-            Clause otherClause = (Clause) result[1];
-            ++statistics.replacementResolutionBackward;
-            Clause resolvent = clause.clone(problemSupervisor.nextClauseId(),cliteral.clausePosition);
-            if(trackReasoning) {
-                resolvent.inferenceStep = new ReplacementResolution(clause,otherClause, cliteral.literal,resolvent);
-                if(monitoring) {monitor.print(monitorId,resolvent.inferenceStep.toString(symboltable));}}
-            if(resolvent.size() == 1) {
-                model.add(resolvent.getLiteral(0),resolvent.inferenceStep,null);
-                return null;}
-            clause = resolvent;
-            result = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
-            timestamp += 2;}
+    protected Clause replacementResolutionBackwards(Clause clause) throws Unsatisfiable {
+        timestamp += maxClauseLength + 2;
+        int size = clause.size();
+        setTimestamps(clause,size);
+        for(CLiteral cliteral : clause) {
+            int literal = -cliteral.literal;
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
+            while(iterator.hasNext()) {
+                Clause otherClause = iterator.next().clause;
+                int otherTimestamp = otherClause.timestamp;
+                if(otherTimestamp >= timestamp && otherTimestamp - timestamp == otherClause.size()-2) {
+                    literalIndex.pushIterator(literal,iterator);
+                    Clause resolvent = replacementResolveBackwards(clause,cliteral,otherClause);
+                    return resolvent == null ? null : replacementResolutionBackwards(resolvent);}}
+            literalIndex.pushIterator(literal,iterator);}
         return clause;}
+
+    private Clause replacementResolveBackwards(Clause clause, CLiteral cliteral, Clause otherClause) throws Unsatisfiable {
+        ++statistics.replacementResolutionBackwards;
+        Clause resolvent = clause.clone(problemSupervisor.nextClauseId(),cliteral.clausePosition);
+        if(trackReasoning) {
+            resolvent.inferenceStep = new ReplacementResolution(clause,otherClause, cliteral.literal,resolvent);
+            if(monitoring) {monitor.print(monitorId,resolvent.inferenceStep.toString(symboltable));}}
+        if(resolvent.size() == 1) {
+            model.add(resolvent.getLiteral(0),resolvent.inferenceStep,null);
+            return null;}
+        return resolvent;}
+
+    private void setTimestamps(Clause clause, int size) {
+        for(CLiteral cliteral : clause) {
+            int literal = cliteral.literal;
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
+            while(iterator.hasNext()) {
+                CLiteral otherLiteral = iterator.next();
+                Clause otherClause = otherLiteral.clause;
+                if(clause == otherClause) {continue;}
+                if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp;}
+                else {++otherClause.timestamp;}}
+            literalIndex.pushIterator(literal,iterator);}}
 
     /** applies a true literal to all clauses.
      * Clauses containing the literal are removed.<br>
@@ -369,31 +369,41 @@ public class AllClauses {
         iterator = literalIndex.popIterator(-literal);
         while(iterator.hasNext()) {
             CLiteral cliteral = removeClause(iterator.next(),iterator,false);
-            Clause clause = cliteral.clause;
-            clause.remove(cliteral);
-            if(checkUnitClause(clause)) continue;
-            queue.add(new Task<>(TaskType.INSERTCLAUSE,clause,null));}
+            Clause resolvent = cliteral.clause.clone(problemSupervisor.nextClauseId(),cliteral.clausePosition);
+            ++statistics.unitResolutions;
+            UnitResolution inf = null;
+            if(trackReasoning) {
+                inf = new UnitResolution(cliteral.clause, cliteral.literal,resolvent, model.getInferenceStep(literal));
+                resolvent.inferenceStep = inf;
+                if(monitoring) monitor.print(monitorId,inf.toString(symboltable));}
+            if(resolvent.size() == 1) {
+                ++statistics.derivedUnitClauses;
+                model.add(resolvent.getLiteral(0),inf,null);}
+            else queue.add(new Task<>(TaskType.INSERTCLAUSE,resolvent,null));}
         literalIndex.pushIterator(-literal,iterator);}
 
     /** generates for all clauses with the literal an INSERTCLAUSE task which does the replacements
      *
-     * @param literal       a literal equal to some representative
+     * @param eClause       an equivalence clause
      */
-    private void integrateEquivalence(int literal) throws Result {
+    private void integrateEquivalence(Clause eClause) throws Result {
         BucketSortedList<CLiteral>.BucketIterator iterator;
-        for(int i = 1; i <= 2; ++i) {
-            iterator = literalIndex.popIterator(literal);
-            while(iterator.hasNext()) { // the replacements is done in insertClause
-                queue.add(new Task<>(TaskType.INSERTCLAUSE,
-                        removeClause(iterator.next(),iterator,false).clause,null));}
-            literalIndex.pushIterator(literal,iterator);
-            literal = -literal;}}
+        for(int j = 1; j < eClause.size(); ++j) {
+            int literal = eClause.getLiteral(j);
+            for(int i = 1; i <= 2; ++i) {
+                iterator = literalIndex.popIterator(literal);
+                while(iterator.hasNext()) { // the replacements is done in insertClause
+                    ++statistics.equivalenceReplacements;
+                    queue.add(new Task<>(TaskType.INSERTCLAUSE,
+                            removeClause(iterator.next(),iterator,false).clause,null));}
+                literalIndex.pushIterator(literal,iterator);
+                literal = -literal;}}}
 
     /** turns a disjointness class into the corresponding list of two-literal clauses.
      *
      * @param dClause a disjointness class.
      */
-    private void integrateDisjointnessClass(Clause dClause)  {
+    private void integrateDerivedDisjointnessClass(Clause dClause)  {
         if(dClause.isRemoved()) return;
         ArrayList<CLiteral> cliterals = dClause.cliterals;
         int size = cliterals.size();
@@ -404,11 +414,11 @@ public class AllClauses {
                 if(trackReasoning) clause.inferenceStep = new DisjointnessClause2Clause(dClause,clause);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE, clause,null));}}}
 
-    /** turns a disjointness clause into a list of two-literal clauses
+    /** turns a basic disjointness clause into a list of two-literal clauses
      *
      * @param basicClause a basic disjointness clause.
      */
-    private void integrateDisjointnessClause(int[] basicClause) {
+    private void integrateBasicDisjointnessClause(int[] basicClause) {
         int size = basicClause.length;
         for(int i = 2; i < size; ++i) {
             int literal1 = -basicClause[i];
@@ -438,52 +448,52 @@ public class AllClauses {
                 BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal2);
                 while(iterator.hasNext()) {
                     CLiteral cliteral = iterator.next();
-                    if(cliteral.clause.timestamp == timestamp) { // forward subsumption
+                    Clause otherClause = cliteral.clause;
+                    if(otherClause.timestamp == timestamp) {
+                        if(otherClause.size() == 2) return; // backward subsumption
                         ++statistics.forwardSubsumptions;
                         keepClause[0] = true;  // because subsumed clause is removed.
                         removeClause(cliteral,iterator,false);}}
-                literalIndex.pushIterator(-literal2,iterator);}
+                literalIndex.pushIterator(literal2,iterator);}
 
             BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(-literal2);
             while(iterator.hasNext()) {              // test for replacement resolution
                 CLiteral cliteral = iterator.next();
                 Clause otherClause = cliteral.clause;
                 if(otherClause.timestamp == timestamp) {
-                    if(monitoring) {
-                        monitor.print(monitorId,"replacement resolution between clause " +
-                                clause.toString("",model.symboltable) + " and " +
-                                otherClause.toString(0,model.symboltable));}
                     removeClause(cliteral,iterator,false);
-                    otherClause.remove(cliteral);
                     ++statistics.replacementResolutionForward;
-                    if(!checkUnitClause(otherClause))
-                        queue.add(new Task<>(TaskType.INSERTCLAUSE,otherClause,null));}}
+                    Clause resolvent = otherClause.clone(problemSupervisor.nextClauseId(),cliteral.clausePosition);
+                    ReplacementResolution step = null;
+                    if(trackReasoning) {
+                            step = new ReplacementResolution(clause,otherClause,cliteral.literal,resolvent);
+                            resolvent.inferenceStep = step;
+                            if(monitoring) {monitor.print(monitorId,step.toString());}}
+                    if(resolvent.size() == 1) {
+                        model.add(resolvent.getLiteral(0),step,null);}}}
             literalIndex.pushIterator(-literal2,iterator);
-
             timestamp += 2;
             literal1 = clause.literal1;
             literal2 = clause.literal2;}
 
         if(keepClause[0]) {
-            Clause newClause = new Clause(problemSupervisor.nextClauseId(),clauseType,2);
-            newClause.add(new CLiteral(literal1,newClause,0));
-            newClause.add(new CLiteral(literal2,newClause,1));
-            insertClause(newClause);}
-    }
+            Clause newClause = new Clause(clause.id,clauseType,literal1,literal2);
+            newClause.inferenceStep = clause.inferenceStep;
+            insertClause(newClause);}}
 
     /** checks if the clause is subsumed by another clause
      *
      * @param clause a clause
      * @return true if the clause is subsumed
      */
-    private boolean isSubsumed(Clause clause) {
+    protected boolean isSubsumed(Clause clause) {
         Clause subsumer = LitAlgorithms.isSubsumed(clause,literalIndex,timestamp);
         timestamp += clause.size() + 2;
         if(subsumer != null) {
             ++statistics.forwardSubsumptions;
             if(monitoring)
-                monitor.print(monitorId, "Clause\n" + clause.toString(4,model.symboltable) +
-                        " is subsumed by clause\n" + subsumer.toString(4,model.symboltable));
+                monitor.print(monitorId, "Clause " + clause.toString(0,model.symboltable) +
+                        " is subsumed by clause " + subsumer.toString(0,model.symboltable));
             return true;}
         return false;}
 
@@ -493,15 +503,15 @@ public class AllClauses {
      *
      * @param clause a clause
      */
-    private void removeSubsumedClauses(Clause clause){
+    protected void removeSubsumedClauses(Clause clause){
         subsumedClauses.clear();
         LitAlgorithms.subsumes(clause,literalIndex,timestamp,subsumedClauses);
         for(Clause subsumed : subsumedClauses) {
             ++statistics.backwardSubsumptions;
             if(monitoring)
-                monitor.print(monitorId, "Clause\n" + subsumed.toString(4,model.symboltable) +
-                        " is subsumed by clause\n" + clause.toString(4,model.symboltable));
-            removeClause(clause);}
+                monitor.print(monitorId, "Clause " + subsumed.toString(0,model.symboltable) +
+                        " is subsumed by clause " + clause.toString(0,model.symboltable));
+            removeClause(subsumed);}
         timestamp += 2 + maxClauseLength;}
 
 
@@ -549,7 +559,7 @@ public class AllClauses {
                         if(links == null) {links = new ArrayList<>(); dliteral.aux = links;}
                         links.add(cliteral);}});}}
 
-    private ArrayList<Clause[]> fullCombinations = new ArrayList<>();
+    private final ArrayList<Clause[]> fullCombinations = new ArrayList<>();
 
     /** computes for a clause of size n a list of arrays: [disjointness clause 1, ... disjointness clause n]
      * Each disjointness clause indicates that the literal may be part of a disjointness <br>
@@ -583,7 +593,7 @@ public class AllClauses {
                         combinations.add(combination);}
                     if(isFull(combination)) addFullCombination(combination);}}));}
         for(Clause[] combination : fullCombinations) {
-            queue.add(new Task(TaskType.MRESOLUTION,combination,null));}}
+            queue.add(new Task<>(TaskType.MRESOLUTION,combination,null));}}
 
     private boolean isFull(Clause[] combination) {
         for(Clause clause :combination) {if(clause == null) return false;}
@@ -613,8 +623,7 @@ public class AllClauses {
         almostTagged.clear();
         int startTimestamp = timestamp;
         for(CLiteral dLiteral : combination[0]) {
-            literalIndex.withIterator(dLiteral.literal, (iterator -> {
-                iterator.next().clause.timestamp = timestamp;}));}
+            literalIndex.withIterator(dLiteral.literal, (iterator -> iterator.next().clause.timestamp = timestamp));}
         for(int i = 1; i < combination.length; ++i) {
             for(CLiteral dLiteral : combination[i]) {
                 literalIndex.withIterator(dLiteral.literal, (iterator -> {
@@ -722,7 +731,7 @@ public class AllClauses {
      *
      * @param clause  the clause to be inserted.
      */
-    private void insertClause(Clause clause) {
+    protected void insertClause(Clause clause) {
         ++statistics.clauses;
         maxClauseLength = Math.max(maxClauseLength,clause.size());
         clause.setStructure();
@@ -855,10 +864,10 @@ public class AllClauses {
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        st.append("All Clauses of Problem " + problemId+":\n");
+        st.append("All Clauses of Problem " + problemId+":");
         int size = Integer.toString(problemSupervisor.clauseCounter).length()+2;
         for(Clause clause : clauses) {
-            st.append(clause.toString(size,symboltable)).append("\n");}
+            st.append("\n").append(clause.toString(size,symboltable));}
         return st.toString();}
 
     /** lists all clauses and the literal index as string
