@@ -34,7 +34,7 @@ public class TwoLitClauses {
     private final ArrayList<TwoLitClause> clauses = new ArrayList<>();
 
     /** maps a literal to the clauses containing this literal. */
-    private final HashMap<Integer,ArrayList<TwoLitClause>> literalIndex = new HashMap<>();
+    public final HashMap<Integer,ArrayList<TwoLitClause>> literalIndex = new HashMap<>();
 
     /** name of the problem */
     private final String problemId;
@@ -180,7 +180,7 @@ public class TwoLitClauses {
      * @param clause a TwoLit clause
      * @throws Unsatisfiable if a contradiction is encountered
      */
-    protected void integrateClause(TwoLitClause clause, boolean derived) throws Unsatisfiable {
+    public void integrateClause(TwoLitClause clause, boolean derived) throws Unsatisfiable {
         if(monitoring) {monitor.print(monitorId,"Exec: clause " + clause.toString("",model.symboltable));}
         clause = normalizeClause(clause);
         if(clause != null && !isSubsumed(clause)) {

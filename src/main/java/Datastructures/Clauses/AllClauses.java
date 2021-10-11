@@ -314,32 +314,64 @@ public class AllClauses {
     protected Clause replacementResolutionBackwards(Clause clause) throws Unsatisfiable {
         timestamp += maxClauseLength + 2;
         int size = clause.size();
-        setTimestamps(clause,size);
+        setTimestamps(clause);
         for(CLiteral cliteral : clause) {
             int literal = -cliteral.literal;
             BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
-            while(iterator.hasNext()) {
-                Clause otherClause = iterator.next().clause;
-                int otherTimestamp = otherClause.timestamp;
-                if(otherTimestamp >= timestamp && otherTimestamp - timestamp == otherClause.size()-2) {
-                    literalIndex.pushIterator(literal,iterator);
-                    Clause resolvent = replacementResolveBackwards(clause,cliteral,otherClause);
-                    return resolvent == null ? null : replacementResolutionBackwards(resolvent);}}
-            literalIndex.pushIterator(literal,iterator);}
+            try{
+                while(iterator.hasNext()) {
+                    Clause otherClause = iterator.next().clause;
+                    int otherTimestamp = otherClause.timestamp;
+                    if(otherTimestamp >= timestamp && otherTimestamp - timestamp == otherClause.size()-2) {
+                        literalIndex.pushIterator(literal,iterator);
+                        Clause resolvent = replacementResolveBackwards(clause,cliteral,otherClause,null);
+                        timestamp += maxClauseLength + 2;
+                        return resolvent == null ? null : replacementResolutionBackwards(resolvent);}}}
+            finally {literalIndex.pushIterator(literal,iterator);}
+
+            ArrayList<TwoLitClause> clauses2 = twoLitClauses.literalIndex.get(literal);
+            if(clauses2 == null) continue;
+            for(TwoLitClause clause2 : clauses2) {
+                int literal2 = clause2.literal1 == literal ? clause2.literal2 : clause2.literal1;
+                iterator = literalIndex.popIteratorTo(-literal2,size);
+                try{
+                    while(iterator.hasNext()) {
+                        Clause otherClause = iterator.next().clause;
+                        int otherTimestamp = otherClause.timestamp;
+                        if(otherTimestamp >= timestamp && otherTimestamp - timestamp == otherClause.size()-2) {
+                            Clause resolvent = replacementResolveBackwards(clause,cliteral,otherClause,clause2);
+                            timestamp += maxClauseLength + 2;
+                            return resolvent == null ? null : replacementResolutionBackwards(resolvent);}}}
+                finally {literalIndex.pushIterator(literal,iterator);}}}
+        timestamp += maxClauseLength + 2;
         return clause;}
 
-    private Clause replacementResolveBackwards(Clause clause, CLiteral cliteral, Clause otherClause) throws Unsatisfiable {
+    /** performs the replacement resolution
+     *
+     * @param clause    the clause to be shortened
+     * @param cliteral  the literal of this clause
+     * @param otherClause the other parent clause
+     * @param clause2     null or an auxiliary two-literal clause
+     * @return            null (unit clause) of the resolvent
+     * @throws Unsatisfiable if the unit clause generated a contradiction
+     */
+    private Clause replacementResolveBackwards(Clause clause, CLiteral cliteral, Clause otherClause, TwoLitClause clause2) throws Unsatisfiable {
         ++statistics.replacementResolutionBackwards;
         Clause resolvent = clause.clone(problemSupervisor.nextClauseId(),cliteral.clausePosition);
         if(trackReasoning) {
-            resolvent.inferenceStep = new ReplacementResolution(clause,otherClause, cliteral.literal,resolvent);
+            resolvent.inferenceStep = new ReplacementResolution(clause,otherClause, clause2, cliteral.literal,resolvent);
             if(monitoring) {monitor.print(monitorId,resolvent.inferenceStep.toString(symboltable));}}
         if(resolvent.size() == 1) {
             model.add(resolvent.getLiteral(0),resolvent.inferenceStep,null);
             return null;}
         return resolvent;}
 
-    private void setTimestamps(Clause clause, int size) {
+    /** sets and increments the timestamps of the clauses with the same literals as in the clause
+     *
+     * @param clause a clause
+     */
+    private void setTimestamps(Clause clause) {
+        int size = clause.size();
         for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
             BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
@@ -532,7 +564,7 @@ public class AllClauses {
             Clause parentClause = cliteral.clause;
             Clause resolvent = parentClause.clone(problemSupervisor.nextClauseId(),cliteral.clausePosition);
             if(trackReasoning) {
-                resolvent.inferenceStep = new ReplacementResolution(clause,parentClause,cliteral.literal,resolvent);
+                resolvent.inferenceStep = new ReplacementResolution(clause,parentClause,null,cliteral.literal,resolvent);
                 if(monitoring) {monitor.print(monitorId,resolvent.inferenceStep.toString(symboltable));}}
             removeClause(parentClause);
             if(resolvent.size() == 1) {

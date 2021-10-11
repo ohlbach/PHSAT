@@ -6,6 +6,7 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
+import Datastructures.TwoLiteral.TwoLitClause;
 import Datastructures.TwoLiteral.TwoLitClauses;
 import InferenceSteps.InferenceTest;
 import Management.Controller;
@@ -46,6 +47,7 @@ public class AllClausesTest {
             symboltable.setName(4,"a");
             symboltable.setName(5,"b");
             symboltable.setName(6,"c");}
+        problemSupervisor.clauseCounter = 9;
         problemSupervisor.basicClauseList = new BasicClauseList();
         problemSupervisor.model = new Model(20,symboltable);
         problemSupervisor.equivalenceClasses = new EquivalenceClasses(problemSupervisor);
@@ -77,10 +79,10 @@ public class AllClausesTest {
         allClauses.model.add(2,new InferenceTest("my test 1"),null);
         assertNull(allClauses.replaceTruthValues(clause1));
         Clause clause2 = make(2, 1, -2, 3);
-        assertEquals("1: 1,3", allClauses.replaceTruthValues(clause2).toString());
+        assertEquals("10: 1,3", allClauses.replaceTruthValues(clause2).toString());
         allClauses.model.add(4,new InferenceTest("my test 2"),null);
         Clause clause3 = make(3, 1, -2, 3,-4,5);
-        assertEquals("3: 1,3,5", allClauses.replaceTruthValues(clause3).toString());
+        assertEquals("12: 1,3,5", allClauses.replaceTruthValues(clause3).toString());
     }
     @Test
     public void isSubsumed() {
@@ -96,7 +98,7 @@ public class AllClausesTest {
         assertTrue(allClauses.isSubsumed(clause4));
     }
     @Test
-    public void removeSubsumedClauses() throws Unsatisfiable {
+    public void removeSubsumedClauses() {
         System.out.println("isSubsumed");
         AllClauses allClauses = prepare(monitoring, true);
         Clause clause1 = make(1, 1, 2, 3, 4 );
@@ -123,10 +125,10 @@ public class AllClausesTest {
         assertSame(clause3,allClauses.replacementResolutionBackwards(clause3));
         Clause clause4 = make(4, 1, -2 ,3);
         Clause clause5 = allClauses.replacementResolutionBackwards(clause4);
-        assertEquals("1: 1,3",clause5.toNumbers());
+        assertEquals("10: 1,3",clause5.toNumbers());
         Clause clause6 = make(5, 1, -2 ,3,4);
         Clause clause7 = allClauses.replacementResolutionBackwards(clause6);
-        assertEquals("2: 1,3,4",clause7.toNumbers());
+        assertEquals("11: 1,3,4",clause7.toNumbers());
     }
 
     @Test
@@ -139,7 +141,7 @@ public class AllClausesTest {
         allClauses.insertClause(clause2);
         Clause clause3 = make(3, -1,2,-4,3,5);
         Clause clause4 = allClauses.replacementResolutionBackwards(clause3);
-        assertEquals("2: 2,-4-5",clause4.toNumbers());
+        assertEquals("11: 2,-4,5",clause4.toNumbers());
     }
 
     @Test
@@ -156,7 +158,49 @@ public class AllClausesTest {
 
     }
 
-
+    @Test
+    public void replacementResolutionBackwards4() throws Result {
+        System.out.println("replacementResolutionBackwards 2LitClauses");
+        AllClauses allClauses = prepare(monitoring, true);
+        TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
+        allClauses.twoLitClauses.integrateClause(clause1,false);
+        Clause clause2 = make(2, 1, 2, 4);
+        allClauses.insertClause(clause2);
+        Clause clause3 = make(3, 1, 3,4);
+        Clause clause4 = allClauses.replacementResolutionBackwards(clause3);
+        assertEquals("10: 1,4",clause4.toNumbers());
+    }
+    @Test
+    public void replacementResolutionBackwards5() throws Exception {
+        System.out.println("replacementResolutionBackwards 2LitClauses 2");
+        AllClauses allClauses = prepare(monitoring, false);
+        TwoLitClause clause1 = new TwoLitClause(1,-2,-5);
+        allClauses.twoLitClauses.integrateClause(clause1,false);
+        TwoLitClause clause2 = new TwoLitClause(2,5,-3);
+        allClauses.twoLitClauses.integrateClause(clause2,false);
+        Thread thread = new Thread(allClauses.twoLitClauses::run);
+        thread.start(); Thread.sleep(20);
+        thread.interrupt();
+        Clause clause3 = make(2, 1, 2, 4);
+        allClauses.insertClause(clause3);
+        Clause clause4 = make(3, 1, 3,4,6);
+        Clause clause5 = allClauses.replacementResolutionBackwards(clause4);
+        assertEquals("11: 1,4,6",clause5.toNumbers());
+    }
+    @Test
+    public void replacementResolutionBackwards6() throws Result {
+        System.out.println("replacementResolutionBackwards double");
+        AllClauses allClauses = prepare(monitoring, true);
+        TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
+        allClauses.twoLitClauses.integrateClause(clause1,false);
+        Clause clause2 = make(2, 1, 2, 4);
+        allClauses.insertClause(clause2);
+        Clause clause3 = make(3, 1, -5, 6);
+        allClauses.insertClause(clause3);
+        Clause clause4 = make(4, 1, 3,4,5,6);
+        Clause clause5 = allClauses.replacementResolutionBackwards(clause4);
+        assertEquals("11: 1,4,6",clause5.toNumbers());
+    }
         @Test
     public void insertOr() throws Result {
         System.out.println("insert OR");

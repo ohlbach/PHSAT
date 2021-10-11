@@ -21,7 +21,7 @@ public class ReplacementResolutionTest {
         Clause c2 = new Clause(2,bc2);
         int[] bc3 = new int[]{3, ClauseType.OR.ordinal(),1,2,4,5};
         Clause c3 = new Clause(3,bc3);
-        ReplacementResolution rr = new ReplacementResolution(c1,c2,3,c3);
+        ReplacementResolution rr = new ReplacementResolution(c1,c2, null,3,c3);
         System.out.println(rr.toString(null));
     }
 }
