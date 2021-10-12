@@ -29,7 +29,7 @@ import static Utilities.Utilities.isSubset;
 public class AllClauses {
 
     /** supervises the problem solution */
-    private final ProblemSupervisor problemSupervisor;
+    public final ProblemSupervisor problemSupervisor;
     private final String problemId;
     private final Thread thread;
 
@@ -293,8 +293,7 @@ public class AllClauses {
                     if(monitoring) {
                         monitor.print(monitorId, "Clause " + clause.toString(0,symboltable) +
                                 " has a true literal " +
-                                Symboltable.toString(literal,symboltable) +
-                        " and is deleted.");}
+                                Symboltable.toString(literal,symboltable) + " and is deleted.");}
                     return null;
                 case -1:
                     newClause = clause.clone(problemSupervisor.nextClauseId(),i);
@@ -548,28 +547,84 @@ public class AllClauses {
 
 
 
-    private final ArrayList<CLiteral> resolvents = new ArrayList<>();
+    private final ArrayList<Object[]> resolvents = new ArrayList<>();
 
     /** removes literals in other clauses by replacement resolution
      *
      * @param clause         a clause to be used for simplifying other clauses
-     * @throws Result if a contradiction is found.
+     * @throws Unsatisfiable if a contradiction is found.
      */
-    private void replacementResolutionForward(Clause clause) throws Result {
+    protected void replacementResolutionForward(Clause clause) throws Unsatisfiable {
         resolvents.clear();
-        LitAlgorithms.replacementResolutionForward(clause,literalIndex,timestamp,resolvents);
+        replacementResolutionForwardFind(clause);
         timestamp += 2 + maxClauseLength;
-        for(CLiteral cliteral : resolvents) {
+        for(Object[] object : resolvents) {
+            CLiteral cliteral = (CLiteral)object[0];
+            TwoLitClause twoClause = (TwoLitClause)object[1];
             ++statistics.replacementResolutionForward;
             Clause parentClause = cliteral.clause;
             Clause resolvent = parentClause.clone(problemSupervisor.nextClauseId(),cliteral.clausePosition);
             if(trackReasoning) {
-                resolvent.inferenceStep = new ReplacementResolution(clause,parentClause,null,cliteral.literal,resolvent);
+                resolvent.inferenceStep = new ReplacementResolution(clause,parentClause,twoClause,cliteral.literal,resolvent);
                 if(monitoring) {monitor.print(monitorId,resolvent.inferenceStep.toString(symboltable));}}
             removeClause(parentClause);
             if(resolvent.size() == 1) {
                 model.add(resolvent.getLiteral(0),resolvent.inferenceStep,null);}
             else {queue.add(new Task<>(TaskType.INSERTCLAUSE,resolvent,null));}}}
+
+    /** This method searches literals in other clauses to be removed by replacement resolution with the given clause.
+     * The results are put into the list resolvents: [cLiteral,two-literal clause]
+     *
+     * @param clause        the clause to be checked
+     */
+    private void replacementResolutionForwardFind(Clause clause) {
+        timestamp += maxClauseLength + 2;
+        int size = clause.size();
+        int difference = size-2;
+        for(CLiteral cliteral : clause) { // all other clauses are timestamped
+            int literal = cliteral.literal;
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorFrom(literal,size);
+            while(iterator.hasNext()) {
+                CLiteral otherLiteral = iterator.next();
+                Clause otherClause = otherLiteral.clause;
+                if(clause == otherClause) {continue;}
+                if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp;}
+                else {++otherClause.timestamp;}}
+            literalIndex.pushIterator(literal,iterator);}
+
+        // now we look for direct replacement resolvents
+        // p,q,r  and -p,q,r,s -> q,r,s
+        for(CLiteral cliteral : clause) {
+            int literal = -cliteral.literal;
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.iteratorFrom(literal,size);
+            while(iterator.hasNext()) {
+                CLiteral otherLiteral = iterator.next();
+                Clause otherClause = otherLiteral.clause;
+                int otherTimestamp = otherClause.timestamp;
+                if(otherTimestamp >= timestamp && otherTimestamp - timestamp == difference) {
+                    resolvents.add(new Object[]{otherLiteral,null});
+                    otherClause.timestamp = 0;}}
+            literalIndex.pushIterator(literal,iterator);
+
+            // now we look for indirect repalcement resolvents via two-literal clauses
+            // p,q,r and -q,-s  and s,q,r,t -> q,r,t
+            ArrayList<TwoLitClause> twoClauses = twoLitClauses.literalIndex.get(literal);
+            if(twoClauses == null) continue;  // no available two-literal clauses
+            for(TwoLitClause twoClause : twoClauses) {
+                int literal2 = (literal == twoClause.literal1) ? twoClause.literal2 : twoClause.literal1;
+                iterator = literalIndex.iteratorFrom(-literal2,size);
+                while(iterator.hasNext()) {
+                    CLiteral otherLiteral = iterator.next();
+                    Clause otherClause = otherLiteral.clause;
+                    int otherTimestamp = otherClause.timestamp;
+                    if(otherTimestamp >= timestamp && otherTimestamp - timestamp == difference) {
+                        resolvents.add(new Object[]{otherLiteral,twoClause});
+                        otherClause.timestamp = 0;}}
+                literalIndex.pushIterator(literal,iterator);}}
+    }
+
+
+
 
     /** links the literals of the disjointness clause with the literals of the normal clauses.
      *
@@ -872,6 +927,12 @@ public class AllClauses {
         ++statistics.clauses;
         return true;}
 
+    /** checks if the clauses are empty.
+     *
+     * @return true if there are no clauses
+     */
+    public boolean isEmpty() {
+        return clauses.isEmpty();}
 
     /** Lists all clauses as a string
      *

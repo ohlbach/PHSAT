@@ -201,6 +201,85 @@ public class AllClausesTest {
         Clause clause5 = allClauses.replacementResolutionBackwards(clause4);
         assertEquals("11: 1,4,6",clause5.toNumbers());
     }
+
+    @Test
+    public void replacementResolutionForward1() throws Exception{
+        System.out.println("replacementResolutionForward 1");
+        AllClauses allClauses = prepare(monitoring, true);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        Clause clause1 = make(1, 1, 2, 3);
+        allClauses.insertClause(clause1);
+        Clause clause2 = make(2, -1, 2, 4);
+        allClauses.replacementResolutionForward(clause2);
+        assertEquals("All Clauses of Problem test:\n" +
+                "1: 1,2,3",allClauses.toNumbers());
+        Clause clause3 = make(3, -1, 2, 3);
+        allClauses.replacementResolutionForward(clause3);
+        Thread thread = new Thread(allClauses::run);
+        thread.start(); Thread.sleep(20);
+        thread.interrupt();
+        assertEquals("All Clauses of Problem test:\n" +
+                "10: 2,3",allClauses.toNumbers());
+    }
+    @Test
+    public void replacementResolutionForward2() throws Exception{
+        System.out.println("replacementResolutionForward 2");
+        AllClauses allClauses = prepare(monitoring, true);
+        allClauses.problemSupervisor.clauseCounter = 9;
+
+        TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
+        allClauses.twoLitClauses.integrateClause(clause1,false);
+        TwoLitClause clause2 = new TwoLitClause(2,-2,-4);
+        allClauses.twoLitClauses.integrateClause(clause2,false);
+
+        Clause clause3 = make(3, 1, 3, 4, 5);
+        allClauses.insertClause(clause3);
+        Clause clause4 = make(4, 4, 6, 1, 5);
+        allClauses.insertClause(clause4);
+
+        Clause clause5 = make(5, 1, 2, 5);
+        allClauses.replacementResolutionForward(clause5);
+        Thread thread = new Thread(allClauses::run);
+        thread.start(); Thread.sleep(20);
+        thread.interrupt();
+        assertEquals("All Clauses of Problem test:\n" +
+                "10: 1,4,5\n" +
+                "11: 6,1,5",allClauses.toNumbers());
+    }
+    @Test
+    public void replacementResolutionForward3() throws Exception{
+        System.out.println("replacementResolutionForward unit");
+        AllClauses allClauses = prepare(monitoring, true);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        Clause clause1 = make(1, 1, 2);
+        allClauses.insertClause(clause1);
+        Clause clause2 = make(2, -1, 2);
+        allClauses.replacementResolutionForward(clause2);
+        assertTrue(allClauses.isEmpty());
+        assertEquals("Model:\n2",allClauses.model.toNumbers());
+    }
+
+    @Test
+    public void replacementResolutionForward4() throws Exception{
+        System.out.println("replacementResolutionForward twoLit");
+        AllClauses allClauses = prepare(monitoring, true);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        Clause clause1 = make(1, 1, 2, 4, 5);
+        allClauses.insertClause(clause1);
+        Clause clause2 = make(2, 4, 2, 1, 6);
+        allClauses.insertClause(clause2);
+
+        Clause clause3 = make(3, 1, -2, 4);
+        allClauses.replacementResolutionForward(clause3);
+        Thread thread = new Thread(allClauses::run);
+        thread.start(); Thread.sleep(20);
+        thread.interrupt();
+        assertEquals("All Clauses of Problem test:\n" +
+                "10: 1,4,5\n" +
+                "11: 4,1,6",allClauses.toNumbers());
+    }
+
+
         @Test
     public void insertOr() throws Result {
         System.out.println("insert OR");
