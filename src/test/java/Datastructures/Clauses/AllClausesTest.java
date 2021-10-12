@@ -23,7 +23,7 @@ import static org.junit.Assert.*;
 public class AllClausesTest {
     StringBuffer errors = new StringBuffer();
     StringBuffer warnings = new StringBuffer();
-    boolean monitoring = true;
+    boolean monitoring = false;
 
     int typeOR = ClauseType.OR.ordinal();
     int typeXOR = ClauseType.XOR.ordinal();
@@ -261,7 +261,7 @@ public class AllClausesTest {
 
     @Test
     public void replacementResolutionForward4() throws Exception{
-        System.out.println("replacementResolutionForward twoLit");
+        System.out.println("replacementResolutionForward 4");
         AllClauses allClauses = prepare(monitoring, true);
         allClauses.problemSupervisor.clauseCounter = 9;
         Clause clause1 = make(1, 1, 2, 4, 5);
@@ -279,48 +279,28 @@ public class AllClausesTest {
                 "11: 4,1,6",allClauses.toNumbers());
     }
 
-
-        @Test
-    public void insertOr() throws Result {
-        System.out.println("insert OR");
-        AllClauses allClauses = prepare(monitoring,true);
-        allClauses.basicClauseList.addClause(new int[]{1,typeOR,1,2,3});
-        allClauses.basicClauseList.addClause(new int[]{2,typeOR,3,4,-5});
-        assertEquals("All Clauses of Problem test:\n" +
-                "  1: p,q,r\n" +
-                "  2: r,a,-b\n",allClauses.toString());
-        assertEquals("All Clauses of Problem test:\n" +
-                "  1: 1,2,3\n" +
-                "  2: 3,4,-5\n",allClauses.toNumbers());
-        //System.out.println(allClauses.infoString(null));
-    }
-
     @Test
-    public void insertEQV() throws Result {
-        System.out.println("insert EQV");
-        AllClauses allClauses = prepare(monitoring,true);
-        allClauses.equivalenceClasses.addBasicEquivalenceClause(new int[]{1,typeEQ,1,2,3});
-        allClauses.equivalenceClasses.addBasicEquivalenceClause(new int[]{2,typeEQ,5,-4,6});
-        allClauses.basicClauseList.addClause(new int[]{3,typeOR,1,2,3});
-
-        assertEquals("All Clauses of Problem test:\n",allClauses.toString());
-        //System.out.println(eqClasses.infoString(null));
-        //System.out.println(model.infoString(false));
-        assertEquals("1",allClauses.model.toNumbers());
-    }
-
-    @Test
-    public void insertDisj() throws Result {
-        System.out.println("insert Disjoints");
-        AllClauses allClauses = prepare(monitoring,true);
-        allClauses.basicClauseList.addClause(new int[]{1, typeDISJ, 1, 2, 3});
-        System.out.println(allClauses.infoString(null));
-        System.out.println(allClauses.disjointnessClasses.infoString(null));
-        assertEquals("",allClauses.disjointnessClasses.toString());
+    public void replacementResolutionTwo1() throws Exception {
+        System.out.println("replacementResolutionForward Two 1");
+        AllClauses allClauses = prepare(monitoring, false);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
+        Clause clause2 = make(2, 1, 2, 4, 5);
+        allClauses.insertClause(clause2);
+        Clause clause3 = make(3, 1, 3, 4, 5);
+        allClauses.insertClause(clause3);
+        Clause clause4 = make(4, 1, 2, 6);
+        allClauses.insertClause(clause4);
+        Clause clause5 = make(5, 1, 3, 6, 7);
+        allClauses.insertClause(clause5);
+        allClauses.replacementResolutionTwo(clause1);
+        Thread thread = new Thread(allClauses::run);
+        thread.start(); Thread.sleep(20);
+        thread.interrupt();
         assertEquals("All Clauses of Problem test:\n" +
-                "  1: -p,-q\n" +
-                "  2: -p,-r\n" +
-                "  3: -q,-r\n",allClauses.toString());
+                "4:  1,2,6\n" +
+                "10: 1,6,7\n" +
+                "11: 1,4,5",allClauses.toNumbers());}
 
-    }
+
     }

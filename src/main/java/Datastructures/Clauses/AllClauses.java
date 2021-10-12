@@ -313,7 +313,7 @@ public class AllClauses {
     protected Clause replacementResolutionBackwards(Clause clause) throws Unsatisfiable {
         timestamp += maxClauseLength + 2;
         int size = clause.size();
-        setTimestamps(clause);
+        setTimestamps(clause,false);
         for(CLiteral cliteral : clause) {
             int literal = -cliteral.literal;
             BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
@@ -369,11 +369,13 @@ public class AllClauses {
      *
      * @param clause a clause
      */
-    private void setTimestamps(Clause clause) {
+    private void setTimestamps(Clause clause, boolean from) {
         int size = clause.size();
         for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
-            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
+            BucketSortedList<CLiteral>.BucketIterator iterator =
+                     from ? literalIndex.popIteratorFrom(literal,size) :
+                            literalIndex.popIteratorTo(literal,size);
             while(iterator.hasNext()) {
                 CLiteral otherLiteral = iterator.next();
                 Clause otherClause = otherLiteral.clause;
@@ -507,6 +509,8 @@ public class AllClauses {
             literal1 = clause.literal1;
             literal2 = clause.literal2;}
 
+        replacementResolutionTwo(clause);
+
         if(keepClause[0]) {
             Clause newClause = new Clause(clause.id,clauseType,literal1,literal2);
             newClause.inferenceStep = clause.inferenceStep;
@@ -518,6 +522,7 @@ public class AllClauses {
      * @return true if the clause is subsumed
      */
     protected boolean isSubsumed(Clause clause) {
+        timestamp += maxClauseLength + 2;
         Clause subsumer = LitAlgorithms.isSubsumed(clause,literalIndex,timestamp);
         timestamp += clause.size() + 2;
         if(subsumer != null) {
@@ -536,6 +541,7 @@ public class AllClauses {
      */
     protected void removeSubsumedClauses(Clause clause){
         subsumedClauses.clear();
+        timestamp += 2 + maxClauseLength;
         LitAlgorithms.subsumes(clause,literalIndex,timestamp,subsumedClauses);
         for(Clause subsumed : subsumedClauses) {
             ++statistics.backwardSubsumptions;
@@ -557,10 +563,13 @@ public class AllClauses {
     protected void replacementResolutionForward(Clause clause) throws Unsatisfiable {
         resolvents.clear();
         replacementResolutionForwardFind(clause);
-        timestamp += 2 + maxClauseLength;
+        replacementResolutionResolveForward();}
+
+    private void replacementResolutionResolveForward() throws Unsatisfiable{
         for(Object[] object : resolvents) {
-            CLiteral cliteral = (CLiteral)object[0];
-            TwoLitClause twoClause = (TwoLitClause)object[1];
+            Clause clause = (Clause)object[0];
+            CLiteral cliteral = (CLiteral)object[1];
+            TwoLitClause twoClause = (TwoLitClause)object[2];
             ++statistics.replacementResolutionForward;
             Clause parentClause = cliteral.clause;
             Clause resolvent = parentClause.clone(problemSupervisor.nextClauseId(),cliteral.clausePosition);
@@ -571,6 +580,8 @@ public class AllClauses {
             if(resolvent.size() == 1) {
                 model.add(resolvent.getLiteral(0),resolvent.inferenceStep,null);}
             else {queue.add(new Task<>(TaskType.INSERTCLAUSE,resolvent,null));}}}
+
+
 
     /** This method searches literals in other clauses to be removed by replacement resolution with the given clause.
      * The results are put into the list resolvents: [cLiteral,two-literal clause]
@@ -602,11 +613,11 @@ public class AllClauses {
                 Clause otherClause = otherLiteral.clause;
                 int otherTimestamp = otherClause.timestamp;
                 if(otherTimestamp >= timestamp && otherTimestamp - timestamp == difference) {
-                    resolvents.add(new Object[]{otherLiteral,null});
+                    resolvents.add(new Object[]{clause,otherLiteral,null});
                     otherClause.timestamp = 0;}}
             literalIndex.pushIterator(literal,iterator);
 
-            // now we look for indirect repalcement resolvents via two-literal clauses
+            // now we look for indirect replacement resolvents via two-literal clauses
             // p,q,r and -q,-s  and s,q,r,t -> q,r,t
             ArrayList<TwoLitClause> twoClauses = twoLitClauses.literalIndex.get(literal);
             if(twoClauses == null) continue;  // no available two-literal clauses
@@ -618,9 +629,52 @@ public class AllClauses {
                     Clause otherClause = otherLiteral.clause;
                     int otherTimestamp = otherClause.timestamp;
                     if(otherTimestamp >= timestamp && otherTimestamp - timestamp == difference) {
-                        resolvents.add(new Object[]{otherLiteral,twoClause});
+                        resolvents.add(new Object[]{clause,otherLiteral,twoClause});
                         otherClause.timestamp = 0;}}
                 literalIndex.pushIterator(literal,iterator);}}
+        timestamp += maxClauseLength + 2;
+    }
+
+
+    /** performs indirect replacement resolution triggered by a newly derived two-literal clause
+     * Example:<br>
+     * p,q,r<br>
+     * -p,-s<br>
+     * s,q,r<br>
+     * -----<br>
+     * q,r
+     *
+     * @param twoClause a newly derived two-literal clause
+     * @throws Unsatisfiable if a contradiction is encounterend
+     */
+    protected void replacementResolutionTwo(TwoLitClause twoClause) throws Unsatisfiable {
+        resolvents.clear();
+        timestamp += maxClauseLength + 2;
+        int twoLiteral1 = twoClause.literal1;
+        int twoLiteral2 = twoClause.literal2;
+        for(int i = 0; i <= 1; ++i) {
+            BucketSortedList<CLiteral>.BucketIterator iterator1 = literalIndex.popIterator(-twoLiteral1);
+            while(iterator1.hasNext()) {
+                CLiteral cliteral = iterator1.next();
+                Clause clause = cliteral.clause;
+                setTimestamps(clause,true);
+                int size = clause.size();
+                int difference = size-2;
+                BucketSortedList<CLiteral>.BucketIterator iterator2 = literalIndex.popIteratorFrom(-twoLiteral2,size+i);
+                while(iterator2.hasNext()) {
+                    CLiteral otherLiteral = iterator2.next();
+                    Clause otherClause = otherLiteral.clause;
+                    int otherTimestamp = otherClause.timestamp;
+                    if(otherTimestamp >= timestamp && otherTimestamp - timestamp == difference) {
+                     resolvents.add(new Object[]{clause,otherLiteral,twoClause});
+                     otherClause.timestamp = 0;}}
+                literalIndex.pushIterator(-twoLiteral2,iterator2);
+                timestamp += maxClauseLength + 2;}
+            literalIndex.pushIterator(-twoLiteral1,iterator1);
+            twoLiteral1 = twoClause.literal2;
+            twoLiteral2 = twoClause.literal1;}
+        replacementResolutionResolveForward();
+        timestamp += maxClauseLength + 2;
     }
 
 
