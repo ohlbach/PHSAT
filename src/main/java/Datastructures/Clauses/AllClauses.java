@@ -75,11 +75,12 @@ public class AllClauses {
     private int getPriority(Task<TaskType> task) {
         switch(task.taskType) {
             case TRUELITERAL:  return 0;
-            case EQUIVALENCE:  return 1;
-            case DISJOINTNESS: return 2;
-            case SIMPLIFYALL:  return 3;
-            case SIMPLIFYOTHERS: return 2 + ((Clause)task.a).size();
-            case MRESOLUTION: return 100;
+            case INSERTCLAUSE: return ((Clause)task.a).size();
+            case EQUIVALENCE:  return 100;
+            case DISJOINTNESS: return 101;
+            case SIMPLIFYALL:  return 102;
+            case SIMPLIFYOTHERS: return 103 + ((Clause)task.a).size();
+            case MRESOLUTION: return 200;
             }
         return -1;}
 
@@ -164,6 +165,7 @@ public class AllClauses {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting:\n"+Task.queueToString(queue));}
                 Task<TaskType> task = queue.take(); // waits if the queue is empty
+                if(monitoring) System.out.println("Next Task: " + task.toString());
                 switch (task.taskType) {
                     case TRUELITERAL:
                         integrateTrueLiteral((Integer)task.a);
@@ -172,7 +174,7 @@ public class AllClauses {
                         integrateEquivalence((Clause)task.a);
                         break;
                     case DISJOINTNESS:
-                        integrateDerivedDisjointnessClass((Clause)task.a);
+                        integrateDerivedDisjointnessClause((Clause)task.a);
                         break;
                     case INSERTCLAUSE:
                         integrateClause((Clause)task.a);
@@ -242,7 +244,7 @@ public class AllClauses {
      * @param clause  a new clause
      * @throws Result if a contradiction is found.
      */
-    private void integrateClause(Clause clause) throws Result {
+    protected void integrateClause(Clause clause) throws Result {
         clause = equivalenceClasses.replaceEquivalences(clause);             // can be a new clause
         if((clause = replaceDoublesAndTautologies(clause)) == null) return;  // tautology, not needed any more
         if((clause = replaceTruthValues(clause)) == null) return;            // true clause, not needed any more
@@ -419,7 +421,7 @@ public class AllClauses {
      *
      * @param eClause       an equivalence clause
      */
-    private void integrateEquivalence(Clause eClause) throws Result {
+    protected void integrateEquivalence(Clause eClause) throws Result {
         BucketSortedList<CLiteral>.BucketIterator iterator;
         for(int j = 1; j < eClause.size(); ++j) {
             int literal = eClause.getLiteral(j);
@@ -436,7 +438,7 @@ public class AllClauses {
      *
      * @param dClause a disjointness class.
      */
-    private void integrateDerivedDisjointnessClass(Clause dClause)  {
+    protected void integrateDerivedDisjointnessClause(Clause dClause)  {
         if(dClause.isRemoved()) return;
         ArrayList<CLiteral> cliterals = dClause.cliterals;
         int size = cliterals.size();
@@ -451,7 +453,7 @@ public class AllClauses {
      *
      * @param basicClause a basic disjointness clause.
      */
-    private void integrateBasicDisjointnessClause(int[] basicClause) {
+    protected void integrateBasicDisjointnessClause(int[] basicClause) {
         int size = basicClause.length;
         for(int i = 2; i < size; ++i) {
             int literal1 = -basicClause[i];
@@ -469,7 +471,7 @@ public class AllClauses {
      *
      * @param clause a two-literal clause (usually a resolvent)
      */
-    private void integrateTwoLitClause(TwoLitClause clause) throws Result {
+    protected void integrateTwoLitClause(TwoLitClause clause) throws Result {
         int literal1 = clause.literal2;
         int literal2 = clause.literal1;
         keepClause[0] = false;
@@ -486,6 +488,9 @@ public class AllClauses {
                         if(otherClause.size() == 2) return; // backward subsumption
                         ++statistics.forwardSubsumptions;
                         keepClause[0] = true;  // because subsumed clause is removed.
+                        if(monitoring) {monitor.print(monitorId,
+                                "Clause " + otherClause.toString(0,symboltable) + " is subsumed by "
+                        + clause.toString("",symboltable));}
                         removeClause(cliteral,iterator,false);}}
                 literalIndex.pushIterator(literal2,iterator);}
 
@@ -503,7 +508,9 @@ public class AllClauses {
                             resolvent.inferenceStep = step;
                             if(monitoring) {monitor.print(monitorId,step.toString());}}
                     if(resolvent.size() == 1) {
-                        model.add(resolvent.getLiteral(0),step,null);}}}
+                        model.add(resolvent.getLiteral(0),step,null);}
+                    else {synchronized(this) {queue.add(new Task(TaskType.INSERTCLAUSE, resolvent,null));}}
+                }}
             literalIndex.pushIterator(-literal2,iterator);
             timestamp += 2;
             literal1 = clause.literal1;
@@ -645,7 +652,7 @@ public class AllClauses {
      * q,r
      *
      * @param twoClause a newly derived two-literal clause
-     * @throws Unsatisfiable if a contradiction is encounterend
+     * @throws Unsatisfiable if a contradiction is encountered
      */
     protected void replacementResolutionTwo(TwoLitClause twoClause) throws Unsatisfiable {
         resolvents.clear();

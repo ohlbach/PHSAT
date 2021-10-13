@@ -23,7 +23,7 @@ import static org.junit.Assert.*;
 public class AllClausesTest {
     StringBuffer errors = new StringBuffer();
     StringBuffer warnings = new StringBuffer();
-    boolean monitoring = false;
+    boolean monitoring = true;
 
     int typeOR = ClauseType.OR.ordinal();
     int typeXOR = ClauseType.XOR.ordinal();
@@ -58,6 +58,14 @@ public class AllClausesTest {
 
     private Clause make(int id,int... literals) {
         return new Clause(id,ClauseType.OR, IntArrayList.wrap(literals));}
+
+    private Clause maked(int id,int... literals) {
+        return new Clause(id,ClauseType.DISJOINT, IntArrayList.wrap(literals));}
+
+    private Clause makee(int id,int... literals) {
+        return new Clause(id,ClauseType.EQUIV, IntArrayList.wrap(literals));}
+
+
 
     @Test
     public void replaceDoublesAndTautologies() {
@@ -99,7 +107,7 @@ public class AllClausesTest {
     }
     @Test
     public void removeSubsumedClauses() {
-        System.out.println("isSubsumed");
+        System.out.println("removeSubsumedClauses");
         AllClauses allClauses = prepare(monitoring, true);
         Clause clause1 = make(1, 1, 2, 3, 4 );
         allClauses.insertClause(clause1);
@@ -303,4 +311,134 @@ public class AllClausesTest {
                 "11: 1,4,5",allClauses.toNumbers());}
 
 
+    @Test
+    public void integrateClause() throws Exception {
+        System.out.println("integrate Clause");
+        AllClauses allClauses = prepare(monitoring, false);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        Clause clause1 = make(1, 1, 2, 3);
+        allClauses.integrateClause(clause1);
+        assertEquals("All Clauses of Problem test:\n" +
+                "1: 1,2,3", allClauses.toNumbers());
+        Clause clause2 = make(2, 2, 3, 4);
+        allClauses.integrateClause(clause2);
+        assertEquals("All Clauses of Problem test:\n" +
+                "1: 1,2,3\n" +
+                "2: 2,3,4", allClauses.toNumbers());
+
+        Clause clause3 = make(3, 2, 3);
+        allClauses.integrateClause(clause3);
+        assertEquals("All Clauses of Problem test:\n" +
+                "3: 2,3", allClauses.toNumbers());
+
+
+        Clause clause4 = make(4,5,6,7);
+        allClauses.integrateClause(clause4);
+        Clause clause5 = make(5,5,-6,7);
+        allClauses.integrateClause(clause5);
+        assertEquals("All Clauses of Problem test:\n" +
+                "3:  2,3\n" +
+                "10: 5,7", allClauses.toNumbers());
+
+    }
+    @Test
+    public void integrateDerivedDisjointnessClass() throws Exception {
+        System.out.println("integrateDerivedDisjointnessClass");
+        AllClauses allClauses = prepare(monitoring, false);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        Clause clause1 = maked(1, 1, 2, 3);
+        allClauses.integrateDerivedDisjointnessClause(clause1);
+        Thread thread = new Thread(allClauses::run);
+        thread.start(); Thread.sleep(20);
+        thread.interrupt();
+        assertEquals("All Clauses of Problem test:\n" +
+                "10: -1,-2\n" +
+                "12: -2,-3\n" +
+                "11: -1,-3",allClauses.toNumbers());
+    }
+
+    @Test
+    public void integrateBasicDisjointnessClause() throws Exception {
+        System.out.println("integrateBasicDisjointnessClause");
+        AllClauses allClauses = prepare(monitoring, false);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        int[] clause1 = new int[]{1, typeDISJ, 1, 2, 3};
+        allClauses.integrateBasicDisjointnessClause(clause1);
+        Thread thread = new Thread(allClauses::run);
+        thread.start(); Thread.sleep(20);
+        thread.interrupt();
+        assertEquals("All Clauses of Problem test:\n" +
+                "10: -1,-2\n" +
+                "12: -2,-3\n" +
+                "11: -1,-3",allClauses.toNumbers());}
+
+    @Test
+    public void integrateTwoLitClause1() throws Exception {
+        System.out.println("integrateTwoLitClause 1");
+        AllClauses allClauses = prepare(monitoring, false);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        Clause clause1 = make(1,3,2,1);
+        allClauses.insertClause(clause1);
+        Clause clause2 = make(2,2,1,4);
+        allClauses.insertClause(clause2);
+        TwoLitClause clause3 = new TwoLitClause(3, 1, 2);
+        allClauses.integrateTwoLitClause(clause3);
+        assertEquals("All Clauses of Problem test:\n" +
+               "3: 1,2", allClauses.toNumbers());
+    }
+
+    @Test
+    public void integrateTwoLitClause2() throws Exception {
+        System.out.println("integrateTwoLitClause 2");
+        AllClauses allClauses = prepare(monitoring, false);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        Clause clause1 = make(1,3,2,1);
+        allClauses.insertClause(clause1);
+        Clause clause2 = make(2,2,1,4);
+        allClauses.insertClause(clause2);
+        TwoLitClause clause3 = new TwoLitClause(3, -1, 2);
+        allClauses.integrateTwoLitClause(clause3);
+        Thread thread = new Thread(allClauses::run);
+        thread.start(); Thread.sleep(20);
+        thread.interrupt();
+        assertEquals("All Clauses of Problem test:\n" +
+                "10: 3,2\n" +
+                "11: 2,4", allClauses.toNumbers());
+    }
+    @Test
+    public void integrateTwoLitClause3() throws Exception {
+        System.out.println("integrateTwoLitClause 3");
+        AllClauses allClauses = prepare(monitoring, false);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        Clause clause1 = make(1,2,1,4);
+        allClauses.insertClause(clause1);
+        Clause clause2 = make(2,2,1);
+        allClauses.insertClause(clause2);
+        TwoLitClause clause3 = new TwoLitClause(3, -1, 2);
+        allClauses.integrateTwoLitClause(clause3);
+        Thread thread = new Thread(allClauses::run);
+        thread.start(); Thread.sleep(20);
+        thread.interrupt();
+        assertEquals("Model:\n2", allClauses.model.toNumbers());
+    }
+
+    @Test
+    public void integrateEquivalence() throws Exception {
+        System.out.println("integrateEquivalence");
+        AllClauses allClauses = prepare(monitoring, false);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        Clause clausee = makee(1,1,2,3);
+        Clause clause1 = make(2,3,4,5);
+        Clause clause2 = make(3,2,4,5);
+        allClauses.integrateClause(clause1);
+        allClauses.integrateClause(clause2);
+        allClauses.equivalenceClasses.integrateEquivalence(clausee,true);
+        Thread thread = new Thread(allClauses::run);
+        thread.start(); Thread.sleep(20);
+        thread.interrupt();
+        assertEquals("All Clauses of Problem test:\n" +
+                "10: 1,4,5",allClauses.toNumbers());
+
+
+    }
     }

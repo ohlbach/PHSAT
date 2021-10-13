@@ -36,9 +36,14 @@ public class Task<TaskType> {
      */
     public String toString() {
         StringBuilder st = new StringBuilder();
-        st.append("\n  "+taskType.toString());
-        if(a != null) st.append(" a: " + (a.getClass() == int[].class ? Arrays.toString((int[])a) : a.toString()));
-        if(b != null) st.append(", b: " + (b.getClass() == int[].class ? Arrays.toString((int[])b) : b.toString()));
+        try{
+            Class inferenceStep = Class.forName("InferenceSteps.InferenceStep");
+            st.append("\n  "+taskType.toString());
+            if(a != null && a.getClass().getSuperclass() != inferenceStep)
+                st.append(" a: " + (a.getClass() == int[].class ? Arrays.toString((int[])a) : a.toString()));
+            if(b != null && b.getClass().getSuperclass() != inferenceStep)
+                st.append(", b: " + (b.getClass() == int[].class ? Arrays.toString((int[])b) : b.toString()));}
+        catch(Exception ex) {System.out.println( "Unknown class name: InferenceSteps.InferenceStep");}
         return st.toString();}
 
     /** turns the queue into a string of tasks, sorted according to the queue's comparator.

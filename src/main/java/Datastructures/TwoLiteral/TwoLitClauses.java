@@ -419,7 +419,7 @@ public class TwoLitClauses {
                 if(disjointnesses != null) literals.addAll(disjointnesses);}}}
 
 
-    private ArrayList<TwoLitClause> candClauses = new ArrayList<>();
+    private final ArrayList<TwoLitClause> candClauses = new ArrayList<>();
 
     /** tries to find a tuple of disjoint literals.
      *  Example: three clauses: p,q  and p,r and q,r mean that -p,-q,-r are disjoint
@@ -478,8 +478,7 @@ public class TwoLitClauses {
      */
     public String toString(String prefix,Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
-        string.append(prefix);
-        string.append("Two-Literal clauses of problem " + problemId + ":\n");
+        string.append(prefix).append("Two-Literal clauses of problem " + problemId + ":\n");
         for(int i = 0; i < clauses.size(); ++i) {
             string.append(prefix + clauses.get(i).toString("  ", symboltable));
             if(i < clauses.size()-1) string.append("\n");}
@@ -511,9 +510,11 @@ public class TwoLitClauses {
         literalIndex.forEach((literal, clauses) -> {
             string.append("  "+Symboltable.toString(literal,symboltable)).append(": ");
             String prefix = " ";
-            for(int i = 0; i < clauses.size(); ++i) {
-                string.append(clauses.get(i).infoString(prefix,symboltable)).append("\n");
-                prefix = "      ";}});
+            for (TwoLitClause clause : clauses) {
+                string.append(clause.infoString(prefix, symboltable)).append("\n");
+                prefix = "      ";
+            }
+        });
         if(!queue.isEmpty()) {string.append("Queue:").append(Task.queueToString(queue));}
         return string.toString();}
 
