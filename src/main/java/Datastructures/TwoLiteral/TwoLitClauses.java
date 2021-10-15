@@ -175,6 +175,15 @@ public class TwoLitClauses {
         clause2.inferenceStep = clause.inferenceStep;
         synchronized (this) {queue.add(new Task<>(TaskType.TWOLITCLAUSE, clause2, false));}}
 
+    /** puts a derived two-literal clause into the queue
+     *
+     * @param clause a two-literal clause
+     */
+    public void addDerivedClause(TwoLitClause clause) {
+        if(monitoring) {monitor.print(monitorId,"In:   derived clause " + clause.toString("",symboltable));}
+        synchronized (this) {queue.add(new Task<>(TaskType.TWOLITCLAUSE, clause, false));}}
+
+
     /** adds a two-literal disjunction to the data structures and performs all simplifications and inferences.
      *
      * @param clause a TwoLit clause
@@ -184,9 +193,9 @@ public class TwoLitClauses {
         if(monitoring) {monitor.print(monitorId,"Exec: clause " + clause.toString("",model.symboltable));}
         clause = normalizeClause(clause);
         if(clause != null && !isSubsumed(clause)) {
+            findDisjointnesses(clause.literal1);
             insertClause(clause);
             if(derived) {
-                findDisjointnesses(clause.literal1);
                 for(Consumer<TwoLitClause> observer : observers) observer.accept(clause);}
             addResolvents(clause);}}
 

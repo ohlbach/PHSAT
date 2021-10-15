@@ -915,6 +915,20 @@ public class Utilities {
         st.append(function.apply(array[array.length-1]).toString()).append("]");
         return st.toString(); }
 
+    /** checks to arrays if they are equal as multisets, testing the elements with ==
+     *
+     * @param as an array of objects
+     * @param bs an array of objects
+     * @return true if they are equal as multisets
+     */
+    public static boolean multisetEquals(Object[] as, Object [] bs) {
+        if(as.length != bs.length) {return false;}
+        for(Object a : as) {
+            boolean contains = false;
+            for(Object b : bs) {if(a == b) contains = true;}
+            if(!contains) {return false;}}
+        return true;}
+
 
     public static void  mainA(String[] args) {
         int a = toInt(new int[]{0,4});

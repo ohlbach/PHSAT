@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
 import static Utilities.Utilities.isSubset;
+import static Utilities.Utilities.multisetEquals;
 
 public class AllClauses {
 
@@ -51,6 +52,7 @@ public class AllClauses {
     private int timestamp = 1;
     private boolean clausesFinished;
     private final Symboltable symboltable;
+    private final MRMatrices mrMatrices;
 
     private final ClauseType clauseType = ClauseType.OR;
 
@@ -109,6 +111,7 @@ public class AllClauses {
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));
         statistics = new AllClausesStatistics(problemId);
+        mrMatrices = new MRMatrices((this));
 
         model.addObserver(thread,this::addTrueLiteral);
         equivalenceClasses.addObserver(this::addEquivalence);
@@ -183,7 +186,7 @@ public class AllClauses {
                         integrateTwoLitClause((TwoLitClause)task.a);
                         break;
                     case MRESOLUTION:
-                        multiResolution((Clause[]) task.a);
+                        //multiResolution((Clause[]) task.a);
                         break;
                 }
                 if(clausesFinished && queue.isEmpty()) {
@@ -684,108 +687,111 @@ public class AllClauses {
         timestamp += maxClauseLength + 2;
     }
 
+    private ArrayList<Clause[]>     mrDClauses      = new ArrayList<>();
+    private ArrayList<Clause>       mrClauses       = new ArrayList<>();
+    private ArrayList<TwoLitClause> mrTwoLitClauses = new ArrayList<>();
 
-
-
-    /** links the literals of the disjointness clause with the literals of the normal clauses.
+    /** performs all multi-resolutions involving the given disjointness clause
      *
-     * @param dClause a disjointness clause
+     * @param dClause       a disjointness clause
+     * @throws Unsatisfiable if a contradiction is discovered
      */
-    private void linkDisjointnesses(Clause dClause) {
+    private void multiResolution(Clause dClause) throws Unsatisfiable {
+        mrDClauses.clear();
+        mrTwoLitClauses.clear();
+        linkDisjointnesses(dClause, mrDClauses);
+        for(Clause[] dClauses : mrDClauses) {
+            mrClauses.clear();
+            collectClauses(dClauses,mrClauses);
+            if(!mrClauses.isEmpty()) {mrMatrices.mrResolve(dClauses,mrClauses,mrTwoLitClauses);}}
+        for(TwoLitClause twoClause : mrTwoLitClauses) {twoLitClauses.addDerivedClause(twoClause);}}
+
+    /** collects for a combination of disjointness clauses those clauses which may become part of a mult-resolution
+     *
+     * @param dClauses a combination of disjointness clauses
+     * @param clauses for collecting the partners for a multi-resolution
+     */
+    private void collectClauses(Clause[] dClauses, ArrayList<Clause> clauses) {
+        int minSize = Integer.MAX_VALUE;
+        for(Clause dClause : dClauses) minSize = Math.min(minSize,dClause.size());
+        int dLength = dClauses.length;
+        for(Clause dClause : dClauses) {
+            for(CLiteral dLiteral : dClause) {
+                BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorFrom(dLiteral.literal,dLength);
+                while(iterator.hasNext()) {
+                    Clause clause = iterator.next().clause;
+                    if(clause.size() <= dLength+1 &&!clauses.contains(clause)) clauses.add(clause);}
+                literalIndex.pushIterator(dLiteral.literal,iterator);}}
+        if(clauses.size() < minSize) clauses.clear();}
+
+
+    /** adds the disjointenss clause to the clause's aux attribute
+     *
+     * @param dClause    a disjointness clause
+     * @param mrDClauses for collecting the full disjointness combinations (no null's in the array)
+     */
+    private void linkDisjointnesses(Clause dClause, ArrayList<Clause[]> mrDClauses) {
         int dSize = dClause.size();
         for(CLiteral dliteral : dClause.cliterals) {
-            literalIndex.withIterator(dliteral.literal,iterator -> {
-                    CLiteral cliteral = iterator.next();
-                    Clause clause = cliteral.clause;
-                    int cSize = clause.size();
-                    if(cSize <= dSize) {
-                        ArrayList<CLiteral> links = (ArrayList<CLiteral>)cliteral.aux;
-                        if(links == null) {links = new ArrayList<>(); cliteral.aux = links;}
-                        links.add(dliteral);
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(dliteral.literal,dSize);
+            while(iterator.hasNext()) {addDClause(iterator.next(),dClause,mrDClauses); }
+            literalIndex.pushIterator(dliteral.literal,iterator);}}
 
-                        links = (ArrayList<CLiteral>)dliteral.aux;
-                        if(links == null) {links = new ArrayList<>(); dliteral.aux = links;}
-                        links.add(cliteral);}});}}
-
-    private final ArrayList<Clause[]> fullCombinations = new ArrayList<>();
-
-    /** computes for a clause of size n a list of arrays: [disjointness clause 1, ... disjointness clause n]
-     * Each disjointness clause indicates that the literal may be part of a disjointness <br>
-     * The list is attached at variable aux at cliteral's clause.
+    /** adds a disjointness clause to the clause's aux-attribute.
+     * Example: a clause:
+     * 1,  2,   3 may be linked to disjointness clauses: <br>
+     * D1, D2, D3  (eq. D1 = 1,5,6, D2 = 2,7,8 and D3 = 3,9,10,11)  <br>
+     * D4,null,D5 <br>
+     * A new disjointness clause D6 with literal 2 is now added as follows:<br>
      *
-     * @param dClause  a disjointness clause.
+     * 1,  2,   3 <br>
+     * D1, D2, D3  <br>
+     * D4, D6, D5 <br>
+     * D1, D6, D3  <br>
+     *
+     * @param cLiteral   a literal of a normal clause
+     * @param dClause    a disjointness clause with the same literal
+     * @param mrDClauses for collecting the full disjointness combinations (no null's in the array)
      */
-    private void addDisjointnessCombinations(Clause dClause) {
-        assert dClause.clauseType == ClauseType.DISJOINT;
-        fullCombinations.clear();
-        for(CLiteral dliteral : dClause.cliterals) {          // dliteral.literal may occur in several clauses.
-            literalIndex.withIterator(dliteral.literal, (iterator -> {
-                CLiteral cliteral = iterator.next();
-                Clause clause = cliteral.clause;
-                int position = cliteral.clausePosition;
-                ArrayList<Clause[]> combinations = (ArrayList<Clause[]>) clause.aux;
-                if(combinations == null) {
-                    Clause[] list = new Clause[clause.size()];
-                    combinations = new ArrayList<>();
-                    combinations.add(list);
-                    clause.aux = combinations;}
+    private void addDClause(CLiteral cLiteral, Clause dClause, ArrayList<Clause[]> mrDClauses) {
+        Clause clause = cLiteral.clause;
+        int position = cLiteral.clausePosition;
+        ArrayList<Clause[]> dClauses = (ArrayList<Clause[]>)clause.aux;
+        if(dClauses == null) {dClauses = new ArrayList<>(); clause.aux = dClauses;}
+        if(dClauses.isEmpty()) {
+            Clause[] dcl = new Clause[clause.size()];
+            dClauses.add(dcl);
+            dcl[position] = dClause;
+            return;}
+        int size = dClauses.size();
+        for(int i = 0; i < size; ++i) {
+            Clause[] dcl = dClauses.get(i);
+            if(dcl[position] == null) {dcl[position] = dClause;}
+            else {dcl = Arrays.copyOf(dcl,dcl.length);
+                  dcl[position] = dClause;
+                  dClauses.add(dcl);}
+            if(isFull(dcl)) addFullDClause(mrDClauses,dcl);}}
 
-                int size = combinations.size();
-                for(int i = 0; i < size; ++i) {
-                    Clause[] combination = combinations.get(i);
-                    if(combination[position] == null) {
-                        combination[position] = dClause;}
-                    else { // a further combination is added
-                        combination = Arrays.copyOf(combination,combination.length);
-                        combination[position] = dClause;
-                        combinations.add(combination);}
-                    if(isFull(combination)) addFullCombination(combination);}}));}
-        for(Clause[] combination : fullCombinations) {
-            queue.add(new Task<>(TaskType.MRESOLUTION,combination,null));}}
+    /** adds a full combination of disjointness clauses to the list.
+     *  However, it checks first if there is already a multiset equal list.
+     *
+     * @param mrDClauses a list of full combinations of disjointness clauses
+     * @param dClauses   a new full combination of disjointness clauses
+     */
+    private void addFullDClause(ArrayList<Clause[]> mrDClauses, Clause[] dClauses) {
+        for(Clause[] dcls : mrDClauses) {
+            if(multisetEquals(dcls,dClauses)) return;}
+        mrDClauses.add(dClauses);}
 
-    private boolean isFull(Clause[] combination) {
-        for(Clause clause :combination) {if(clause == null) return false;}
+    /** checks if there are no nulls anymore in the array
+     *
+     * @param dClauses an array of Disjointness clauses
+     * @return true if there are no nulls anymore in the array
+     */
+    private boolean isFull(Clause[] dClauses) {
+        for(Clause dClause : dClauses) {if(dClause == null) return false;}
         return true;}
 
-    private void addFullCombination(Clause[] combination) {
-        for(int i = 0; i < fullCombinations.size(); ++i) {
-            Clause[] oldCombination = fullCombinations.get(i);
-            if(isSubset(combination,oldCombination)) return;
-            if(isSubset(oldCombination,combination)) {fullCombinations.remove(i--);}}
-        fullCombinations.add(combination);}
-
-
-
-    private void multiResolution(Clause[] combination) {
-        if(!selectTaggedClauses(combination)) return;
-
-    }
-
-    private ArrayList<Clause> fullyTagged = new ArrayList<>();
-    private ArrayList<Clause> almostTagged = new ArrayList<>();
-
-    private boolean selectTaggedClauses(Clause[] combination) {
-        combination = Clause.removeRemovedClauses(combination);
-        if(combination.length <= 1) return false;
-        fullyTagged.clear();
-        almostTagged.clear();
-        int startTimestamp = timestamp;
-        for(CLiteral dLiteral : combination[0]) {
-            literalIndex.withIterator(dLiteral.literal, (iterator -> iterator.next().clause.timestamp = timestamp));}
-        for(int i = 1; i < combination.length; ++i) {
-            for(CLiteral dLiteral : combination[i]) {
-                literalIndex.withIterator(dLiteral.literal, (iterator -> {
-                    Clause cClause = iterator.next().clause;
-                    if(cClause.timestamp == timestamp) {
-                        cClause.timestamp = timestamp+1;
-                        if(clauses.size() == timestamp-startTimestamp + 2) {
-                            fullyTagged.add(cClause);
-                            almostTagged.remove(cClause);}
-                        else {if(clauses.size() ==  timestamp-startTimestamp + 3) {
-                            almostTagged.add(cClause);}}}}));}
-            ++timestamp;}
-        timestamp += 2;
-        return !fullyTagged.isEmpty();}
 
 
     /** checks if the clause is a unit clause.
