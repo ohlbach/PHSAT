@@ -714,18 +714,18 @@ public class AllClauses {
     private void collectClauses(Clause[] dClauses, ArrayList<Clause> clauses) {
         int minSize = Integer.MAX_VALUE;
         for(Clause dClause : dClauses) minSize = Math.min(minSize,dClause.size());
-        int dLength = dClauses.length;
+        int dLength = dClauses.length + 1;
         for(Clause dClause : dClauses) {
             for(CLiteral dLiteral : dClause) {
-                BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorFrom(dLiteral.literal,dLength);
+                BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(dLiteral.literal,dLength);
                 while(iterator.hasNext()) {
                     Clause clause = iterator.next().clause;
-                    if(clause.size() <= dLength+1 &&!clauses.contains(clause)) clauses.add(clause);}
+                    if(!clauses.contains(clause)) clauses.add(clause);}
                 literalIndex.pushIterator(dLiteral.literal,iterator);}}
         if(clauses.size() < minSize) clauses.clear();}
 
 
-    /** adds the disjointenss clause to the clause's aux attribute
+    /** adds the disjointeness clause to the clause's aux attribute
      *
      * @param dClause    a disjointness clause
      * @param mrDClauses for collecting the full disjointness combinations (no null's in the array)
@@ -753,7 +753,7 @@ public class AllClauses {
      * @param dClause    a disjointness clause with the same literal
      * @param mrDClauses for collecting the full disjointness combinations (no null's in the array)
      */
-    private void addDClause(CLiteral cLiteral, Clause dClause, ArrayList<Clause[]> mrDClauses) {
+    protected void addDClause(CLiteral cLiteral, Clause dClause, ArrayList<Clause[]> mrDClauses) {
         Clause clause = cLiteral.clause;
         int position = cLiteral.clausePosition;
         ArrayList<Clause[]> dClauses = (ArrayList<Clause[]>)clause.aux;
@@ -778,9 +778,8 @@ public class AllClauses {
      * @param mrDClauses a list of full combinations of disjointness clauses
      * @param dClauses   a new full combination of disjointness clauses
      */
-    private void addFullDClause(ArrayList<Clause[]> mrDClauses, Clause[] dClauses) {
-        for(Clause[] dcls : mrDClauses) {
-            if(multisetEquals(dcls,dClauses)) return;}
+    protected void addFullDClause(ArrayList<Clause[]> mrDClauses, Clause[] dClauses) {
+        for(Clause[] dcls : mrDClauses) {if(multisetEquals(dcls,dClauses)) return;}
         mrDClauses.add(dClauses);}
 
     /** checks if there are no nulls anymore in the array

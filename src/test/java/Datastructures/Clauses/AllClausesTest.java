@@ -1,5 +1,6 @@
 package Datastructures.Clauses;
 
+import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -16,6 +17,7 @@ import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import static org.junit.Assert.*;
@@ -438,7 +440,68 @@ public class AllClausesTest {
         thread.interrupt();
         assertEquals("All Clauses of Problem test:\n" +
                 "10: 1,4,5",allClauses.toNumbers());
-
-
     }
+    @Test
+    public void addFullDClause() throws Exception {
+        System.out.println("addFullDClause");
+        AllClauses allClauses = prepare(monitoring, false);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        ArrayList<Clause[]> mrDClauses = new ArrayList<>();
+        Clause dClause1 = maked(1, 1, 2, 3);
+        Clause dClause2 = maked(2, 4, 5);
+        Clause dClause3 = maked(3, -6,-7,-8,-9);
+        Clause[] dClauses = new Clause[]{dClause1, dClause2};
+        allClauses.addFullDClause(mrDClauses, dClauses);
+        assertEquals(1,mrDClauses.size());
+        Clause[] dClauses2 = new Clause[]{dClause2, dClause1};
+        allClauses.addFullDClause(mrDClauses, dClauses2);
+        assertEquals(1,mrDClauses.size());
+        Clause[] dClauses3 = new Clause[]{dClause1};
+        allClauses.addFullDClause(mrDClauses, dClauses3);
+        assertEquals(2,mrDClauses.size());
+        Clause[] dClauses4 = new Clause[]{dClause2, dClause1,dClause3};
+        allClauses.addFullDClause(mrDClauses, dClauses4);
+        assertEquals(3,mrDClauses.size());
+        Clause[] dClauses5 = new Clause[]{dClause3, dClause1,dClause2};
+        allClauses.addFullDClause(mrDClauses, dClauses5);
+        assertEquals(3,mrDClauses.size());
+    }
+    private Clause getDCl(Clause clause, int cl, int pos) {
+        return ((ArrayList<Clause[]>)clause.aux).get(cl)[pos];}
+
+    @Test
+    public void addDClause() throws Exception {
+        System.out.println("addDClause");
+        AllClauses allClauses = prepare(monitoring, false);
+        allClauses.problemSupervisor.clauseCounter = 9;
+        ArrayList<Clause[]> mrDClauses = new ArrayList<>();
+        Clause dClause1 = maked(1, 2,5,8);
+        Clause dClause2 = maked(2, 1,4,7);
+        Clause dClause3 = maked(3, 3,6,9);
+        Clause dClause4 = maked(4, 3,2,9);
+        Clause clause = make(10,1,2,3);
+        CLiteral cLiteral = clause.cliterals.get(1);
+        assertNull(clause.aux);
+        allClauses.addDClause(cLiteral,dClause1,mrDClauses);
+        assertEquals(1,((ArrayList<Clause[]>)clause.aux).size());
+        assertNull(getDCl(clause,0,0));
+        assertNull(getDCl(clause,0,2));
+        assertNull(((ArrayList<Clause[]>)clause.aux).get(0)[0]);
+        assertNull(((ArrayList<Clause[]>)clause.aux).get(0)[2]);
+        assertSame(dClause1,getDCl(clause,0,1));
+        cLiteral = clause.cliterals.get(0);
+        allClauses.addDClause(cLiteral,dClause2,mrDClauses);
+        assertSame(dClause2,getDCl(clause,0,0));
+        assertTrue(mrDClauses.isEmpty());
+        cLiteral = clause.cliterals.get(2);
+        allClauses.addDClause(cLiteral,dClause3,mrDClauses);
+        assertSame(dClause3,getDCl(clause,0,2));
+        assertEquals(1,mrDClauses.size());
+        cLiteral = clause.cliterals.get(1);
+        allClauses.addDClause(cLiteral,dClause4,mrDClauses);
+        assertSame(dClause4,getDCl(clause,1,1));
+        //System.out.println(((ArrayList<Clause[]>)clause.aux).get(1)[1]);
+    }
+
+
     }
