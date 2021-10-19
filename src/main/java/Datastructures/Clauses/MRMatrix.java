@@ -187,7 +187,7 @@ public class MRMatrix {
             throws Unsatisfiable {
         IntArrayList origins = null;
 
-        int size = block.size();
+        int size = block.size()-1;
         ArrayList<CLiteral> externals = new ArrayList<>();
         for(int i = 0; i < size; ++i) {
             CLiteral external = block.get(i)[size];
@@ -388,6 +388,10 @@ public class MRMatrix {
             if(!isEmpty) {block.add(cliterals);}}
         return block;}
 
+    public String block2String(int[] colIndices, ArrayList<CLiteral[]> block,
+                               Symboltable symboltable) {
+        return block2String(colIndices,block,null,-1,-1,symboltable);
+    }
     /** turns a block, found by findBlock into a formatted string
      *
      * @param colIndices  the result of findFirstColIndices
