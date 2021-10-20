@@ -2,6 +2,7 @@ package Datastructures.Results;
 
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
+import InferenceSteps.Input;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -54,7 +55,9 @@ public class Unsatisfiable extends Result {
             ArrayList<InferenceStep> steps = new ArrayList<>();
             inferenceStep.inferenceSteps(steps);
             if(!steps.contains(inferenceStep)) steps.add(inferenceStep);
-            for(InferenceStep step : steps) {st.append(step.toString(symboltable)).append("\n");}
+            for(InferenceStep step : steps) {
+                if(step.getClass() != InferenceSteps.Input.class)
+                    st.append(step.toString(symboltable)).append("\n");}
             IntArrayList origins = inferenceStep.origins();
             if(origins != null) st.append("\nParticipating Clauses: " + sortIntArray(inferenceStep.origins()).toString());
             st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:");

@@ -3,6 +3,7 @@ package Datastructures.Clauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
+import InferenceSteps.Input;
 import Utilities.Positioned;
 import Utilities.Sizable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -44,7 +45,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public Clause(int id, ClauseType clauseType) {
         this.id = id;
         this.clauseType = clauseType;
-        cliterals = new ArrayList<>();}
+        cliterals = new ArrayList<>();
+        inferenceStep = new Input(id);
+    }
 
     /** constructs a clause
      *
@@ -55,7 +58,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public Clause(int id, ClauseType clauseType, int size) {
         this.id = id;
         this.clauseType = clauseType;
-        cliterals = new ArrayList<>(size);}
+        cliterals = new ArrayList<>(size);
+        inferenceStep = new Input(id);}
 
     /** constructs a new clause with given literals
      *
@@ -69,6 +73,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         cliterals = new ArrayList<>(literals.size());
         for(int i = 0; i < literals.size(); ++i) {
             cliterals.add(new CLiteral(literals.getInt(i),this,i));}
+        inferenceStep = new Input(id);
         setStructure();}
 
     /** constructs a new clause with given literals
@@ -83,6 +88,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         for(int i = 0; i < cLiterals.size(); ++i) {
             cLiterals.get(i).setClause(this,i);}
         cliterals = cLiterals;
+        inferenceStep = new Input(id);
         setStructure();}
 
 
@@ -101,21 +107,22 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         for(int i = 2; i < length; ++i) {
             int literal = basicClause[i];
             cliterals.add(new CLiteral(literal,this,cliterals.size()));}
+        inferenceStep = new Input(id);
         setStructure();}
 
     /** creates a new clause with the two literals
      *
      * @param id       the new id
      * @param clauseType  the clause's type
-     * @param literal1 a literal
-     * @param literal2 a literal
+     * @param literals a list of literals
      */
-    public Clause(int id, ClauseType clauseType, int literal1, int literal2) {
+    public Clause(int id, ClauseType clauseType, int... literals) {
         this.id = id;
         this.clauseType = clauseType;
-        cliterals = new ArrayList<>(2);
-        cliterals.add(new CLiteral(literal1,this,0));
-        cliterals.add(new CLiteral(literal2,this,1));
+        cliterals = new ArrayList<>(literals.length);
+        for(int i = 0; i< literals.length; ++i) {
+            cliterals.add(new CLiteral(literals[i],this,i));}
+        inferenceStep = new Input(id);
         setStructure();}
 
     /** creates a clone of the clause.

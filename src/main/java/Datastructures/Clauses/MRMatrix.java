@@ -5,6 +5,9 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClause;
+import InferenceSteps.InferenceStep;
+import InferenceSteps.MRResolutionSquare1;
+import InferenceSteps.MRResolutionSquare2;
 import Management.Monitor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -29,7 +32,7 @@ import static Utilities.Utilities.*;
  */
 public class MRMatrix {
     private AllClauses allClauses;
-    private Clause[] disjointnessClauses;    // a list of Disjointness clauses
+    public Clause[] disjointnessClauses;    // a list of Disjointness clauses
     private ArrayList<CLiteral>[] dLiterals; // the rearranged list of CLiterals of the disjointness clauses
     private ArrayList<CLiteral[]> matrix = new ArrayList<>(); // the matrix of clauses
     private int columnSize;                  // disjointnessClauses.length
@@ -187,38 +190,61 @@ public class MRMatrix {
             throws Unsatisfiable {
         IntArrayList origins = null;
 
-        int size = block.size()-1;
+        int size = block.size();
         ArrayList<CLiteral> externals = new ArrayList<>();
-        for(int i = 0; i < size; ++i) {
-            CLiteral external = block.get(i)[size];
-            if(external != null) externals.add(external);}
-        if(externals.size() >= 2) return;
+        for (CLiteral[] row : block) {
+            CLiteral external = row[size]; // extra literal in the clause which is not in the disjointness clause
+            if (external != null) externals.add(external);}
+        int exSize = externals.size();
+        if(exSize >= 2) return;
 
 
-        int maxSurplus = 0;
-        for(int i = 0; i < colIndices.length; ++i) {
-            maxSurplus = Math.max(maxSurplus,disjointnessClauses[colIndices[i]].size()-size);}
+        int maxSurplus = 0;                           // extra literals of the longest disjointness clause
+        for (int colIndex : colIndices) {  // basis for replacement resolution
+            maxSurplus = Math.max(maxSurplus, disjointnessClauses[colIndex].size() - size);}
 
-        if(maxSurplus >= 2) {
-            switch(externals.size()) {
-                case 1: sendTrueLiteral(externals.get(0).literal,colIndices,block,
+        if(maxSurplus >= 2) {  // multi-resolution followed by replacement-resolution
+            switch(exSize) {
+                case 1:
+                    InferenceStep step = null;
+                    if(trackReasoning) {
+                        step = new MRResolutionSquare1(this,externals.get(0),0,colIndices, block);
+                        if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
+                    model.add(externals.get(0).literal,step,null);
+                    sendTrueLiteral(externals.get(0).literal,colIndices,block,
                         null,null,-1,sortIntArray(origins));
                 return;
                 case 2: addTwoLitClause(externals.get(0).literal,externals.get(1).literal,colIndices, block,
                         null, null,-1,-1,sortIntArray(origins), twoLitClauses);
                 return;}}
 
+        if(exSize > 1) return;
+
         for(int i = 0; i < colIndices.length; ++i) {
             for(CLiteral dLiteral : disjointnessClauses[colIndices[i]]) {  // now look for literals in the disjointness clauses which are
-                int literal = dLiteral.literal;                    // not in the block. They generate resolvents.
+                int literal = dLiteral.literal;                            // not in the block. They generate resolvents.
                 boolean found = false;
                 for(CLiteral[] row : block) {
                     if(row[i] != null && row[i].literal == literal) {found = true; break;}}
-                if(!found) { // literal is not in the block
-                    if(externals.size() == 0) {  // generate unit literals
-                        sendTrueLiteral(-literal,colIndices, block,null,null,-1,sortIntArray(origins));}
-                    else {addTwoLitClause(externals.get(0).literal,-literal,colIndices, block,null, null,-1,-1,
-                                sortIntArray(origins), twoLitClauses);}}}}}
+                if(!found) {           // literal is not in the block
+                    if(exSize == 0) {  // generate unit literals
+                        if(!model.isTrue(-literal)) {
+                            InferenceStep step = null;
+                            if(trackReasoning) {
+                                step = new MRResolutionSquare1(this,dLiteral,i,colIndices, block);
+                                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
+                            model.add(-literal,step,null);}}
+                    else {
+                        int literal1 = externals.get(0).literal;
+                        int literal2 = -literal;
+                        if(!contains(twoLitClauses,literal1,literal2)) {
+                            InferenceStep step = null;
+                            if(trackReasoning) {
+                                step = new MRResolutionSquare2(this,externals.get(0),dLiteral,i, colIndices, block);
+                                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
+                            TwoLitClause twoClause = new TwoLitClause(allClauses.problemSupervisor.nextClauseId(),literal1,literal2);
+                            twoClause.inferenceStep = step;
+                            twoLitClauses.add(twoClause);}}}}}}
 
 
     /** performs multi-resolution where the block has more rows than columns.
@@ -319,6 +345,19 @@ public class MRMatrix {
                     "yields unit literal " + Symboltable.toString(literal,symboltable) + orig);}
         model.add(literal,null,null);}
 
+    /** checks if the list contains the two-literal clause
+     *
+     * @param twoLitClauses a list of two-literal clauses
+     * @param literal1 a literal
+     * @param literal2 a literal
+     * @return true if the list contains the clause
+     */
+    private static boolean contains(ArrayList<TwoLitClause> twoLitClauses, int literal1, int literal2) {
+        for(TwoLitClause clause : twoLitClauses) {
+            int lit1 = clause.literal1;
+            int lit2 = clause.literal2;
+            if((lit1 == literal1 && lit2 == literal2) || (lit2 == literal1 && lit1 == literal2)) return true;}
+        return false;}
 
     /** adds a derived two-literal clause to the list, if it is not already there
      * The two literals are wrapped into a clause in order to store the origins as well.
@@ -356,7 +395,7 @@ public class MRMatrix {
     /** finds a block in the matrix which matches colIndices.
      * Example: colIndices = [3,5,7] <br>
      * Each row in the matrix where at positions 3,5,7 is a CLiteral != null is added to the block;
-     * but only of there is atmost one external CLiteral.
+     * but only if there is atmost one external CLiteral.
      * An external CLiteral is either the last CLiteral in the row (which will become part of the resolvent)
      * or a non-null CLiteral at a position in the row which is not in the colIndices
      *
@@ -410,7 +449,7 @@ public class MRMatrix {
                         Symboltable.toString(cliteral.literal, symboltable).length());}}
 
         StringBuilder st = new StringBuilder();
-        st.append("Multi-Resolution Block of size ").append(Integer.toString(colIndices.length)).append(":\n");
+        st.append("Multi-Resolution Block of size ").append(colIndices.length).append(":\n");
         Formatter format = new Formatter(st, Locale.GERMANY);
         format.format("%"+width+"s|"," ");
         for(int colIndex : colIndices) {
@@ -468,7 +507,7 @@ public class MRMatrix {
      * @param row a row in the matrix (the literals of the clause, possibly with nulls in between
      * @return the clause belonging to the row.
      */
-    private Clause getClause(CLiteral[] row) {
+    public Clause getClause(CLiteral[] row) {
         for(CLiteral cLiteral : row) {
             if(cLiteral != null) return cLiteral.clause;}
         return null;}
