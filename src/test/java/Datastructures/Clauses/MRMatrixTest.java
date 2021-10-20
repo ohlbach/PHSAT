@@ -8,8 +8,6 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClause;
 import Datastructures.TwoLiteral.TwoLitClauses;
-import InferenceSteps.MRResolutionSquare1;
-import InferenceSteps.MRResolutionSquare2;
 import Management.Controller;
 import Management.GlobalParameters;
 import Management.Monitor;
@@ -274,7 +272,7 @@ public class MRMatrixTest {
         //System.out.println(twoLitClauses.toString());
         assertEquals("[2-10: 10,-20, 2-11: 10,-21, 2-12: 10,-22]", twoLitClauses.toString());
         assertEquals("[2, 3, 10, 11, 12, 100]",sortIntArray(twoLitClauses.get(0).inferenceStep.origins()).toString());
-        System.out.println(MRResolutionSquare2.rule);
+        //System.out.println(MRResolutionSquare2.rule);
     }
 
     @Test

@@ -12,34 +12,31 @@ import java.util.Locale;
 
 import static Utilities.Utilities.joinIntArrays;
 
-public class MRResolutionSquare2 extends InferenceStep{
+public class MRSquare1 extends InferenceStep{
+    public static String title = "Multi-Resolution of Unit Clause with Square Matrix";
 
-    public static final String title = "Multi-Resolution of Two-Literal Clause with Square Matrix";
-
-    public static final String rule = "Multi-Resolution of Two-Literal Clause with Square Matrix\nExample:\n" +
+    public static String rule = "Multi-Resolution of Unit Clause with Square Matrix\nExample:\n" +
             "Ci horizontal: clauses (disjunctions)\n" +
             "Di vertical:   disjointness clauses\n\n" +
             "   D1  D2  D3\n" +
             "C1: 1   2   3\n" +
-            "C2: 4   5   6  p\n" +
+            "C2: 4   5   6\n" +
             "C3: 7   8   9\n" +
-            "        q\n" +
+            "       10\n" +
             "-------------\n" +
-            "      p,-q\n" +
+            "      -10\n" +
             "In each clause Ci one literal must be true.\n" +
-            "Therefore one of the first three literals of each disjointness clause Di, or the literal p is true.\n" +
-            "For all the remaining disjoint literals, either p is true, or q must be false.";
+            "Therefore one of the first three literals of each disjointness clause Di is true.\n" +
+            "All the remaining disjoint literals must therefore be false.";
 
     private final MRMatrix mrMatrix;
     private final int[] colIndices;
     private final ArrayList<CLiteral[]> block;
-    private final CLiteral cLiteral;
     private final CLiteral dLiteral;
     private final int colIndex;
 
-    public MRResolutionSquare2(MRMatrix mrMatrix, CLiteral cLiteral, CLiteral dLiteral, int colIndex, int[] colIndices, ArrayList<CLiteral[]> block) {
+    public MRSquare1(MRMatrix mrMatrix, CLiteral dLiteral, int colIndex, int[] colIndices, ArrayList<CLiteral[]> block) {
         this.mrMatrix = mrMatrix;
-        this.cLiteral = cLiteral;
         this.dLiteral = dLiteral;
         this.colIndex = colIndex;
         this.colIndices = colIndices;
@@ -56,10 +53,9 @@ public class MRResolutionSquare2 extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title + ":\n" + block2String(symboltable);}
+        return title + ":\n" + block2String(colIndices,block,symboltable);}
 
-
-    private String block2String(Symboltable symboltable) {
+    private String block2String(int[] colIndices, ArrayList<CLiteral[]> block, Symboltable symboltable) {
         int width = 0;
         for(int colIndex : colIndices) {
             width = Math.max(width,Integer.toString(mrMatrix.disjointnessClauses[colIndex].id).length());}
@@ -67,7 +63,7 @@ public class MRResolutionSquare2 extends InferenceStep{
             for(int j = 0; j < row.length-1; ++j) {
                 CLiteral cLiteral = row[j];
                 width = Math.max(width, cLiteral == null ? 0 :
-                        Symboltable.toString(cLiteral.literal, symboltable).length());}}
+                    Symboltable.toString(cLiteral.literal, symboltable).length());}}
 
         StringBuilder st = new StringBuilder();
         Formatter format = new Formatter(st, Locale.GERMANY);
@@ -76,7 +72,8 @@ public class MRResolutionSquare2 extends InferenceStep{
             StringBuilder line = new StringBuilder();
             Formatter fLine = new Formatter(line, Locale.GERMANY);
             fLine.format("%" + width + "s:", mrMatrix.getClause(row).id);
-            for (CLiteral cLiteral : row) {
+            for (int j = 0; j < row.length - 1; ++j) {
+                CLiteral cLiteral = row[j];
                 fLine.format("%" + width + "s|", cLiteral == null ? " " :
                         Symboltable.toString(cLiteral.literal, symboltable));
             }
@@ -92,7 +89,7 @@ public class MRResolutionSquare2 extends InferenceStep{
 
         format.format("%"+width+"s "," ");
         for(int i = 0; i < colIndices.length; ++i) {
-            format.format("%"+width+"s ",i != colIndex ? " " : Symboltable.toString(cLiteral.literal,symboltable) + ","+
+            format.format("%"+width+"s ",i != colIndex ? " " :
                     Symboltable.toString(-dLiteral.literal,symboltable));}
 
         String body = st.toString();
@@ -122,8 +119,6 @@ public class MRResolutionSquare2 extends InferenceStep{
                     if(step != null) origins = joinIntArrays(origins,step.origins());}}}
         step = dLiteral.clause.inferenceStep;
         if(step != null) origins = joinIntArrays(origins,step.origins());
-        step = cLiteral.clause.inferenceStep;
-        if(step != null) origins = joinIntArrays(origins,step.origins());
         return origins;}
 
     @Override
@@ -140,8 +135,6 @@ public class MRResolutionSquare2 extends InferenceStep{
                     step = cLiteral.clause.inferenceStep;
                     if(step != null) step.inferenceSteps(steps);}}}
         step = dLiteral.clause.inferenceStep;
-        if(step != null) step.inferenceSteps(steps);
-        step = cLiteral.clause.inferenceStep;
         if(step != null) step.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }
