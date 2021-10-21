@@ -148,25 +148,27 @@ public final class CNFReader {
         StringBuilder info = new StringBuilder();
         File file = (File)parameters.get("file");
         String filename = file.getName();
-        String place =  "CNFReader: file " + filename+": ";
+        String place =  "CNFReader: File " + filename+": ";
         String prefix = "          ";
         BufferedReader reader;
         try {reader = new BufferedReader(new FileReader(file));}
         catch (FileNotFoundException e) {
-            errors.append(place + " not found");
+            errors.append(place + "not found");
             return null;}
         String line;
         BasicClauseList bcl = new BasicClauseList();
-        Integer predicates;
+        Integer predicates = 0;
         Symboltable symboltable = null;
         boolean symbolic = false;
+        int lineNumber = 0;
         try{
         while((line = reader.readLine()) != null) {
+            ++lineNumber;
             line = line.trim();
             if(line.isEmpty()) {continue;}
             if(line.startsWith("%")){continue;}
             if(line.startsWith("c")) {info.append(line.substring(1)).append("\n"); continue;}
-            if(line.startsWith("p")) { // p cnf predicates clauses symbolic
+            if(line.startsWith("p") && !line.endsWith("0")) { // p cnf predicates clauses symbolic
                 String[] parts = line.split("\\s*( |,)\\s*");
                 if(parts.length < 4) {
                     errors.append(place + "Illegal format of line '" + line+ "'\n").append(prefix).
@@ -175,20 +177,28 @@ public final class CNFReader {
                 if(!parts[1].equals("cnf")) {
                     errors.append(place + "'" + line + "' " + "indicates no cnf file");
                     return null;}
-                predicates = Utilities.parseInteger(place, parts[2],errors);
-                if(predicates != null) {bcl.predicates = predicates;}
-                else {errors.append(place + "Unknown number of predicates: '" + parts[2] +"'\n");
-                      return null;}
+
+                predicates = Utilities.parseInteger(place + "'"+line+"' ", parts[2],errors);
+                if(predicates == null) {return null;}
+                if(predicates <= 0) {
+                    errors.append(place + "Negative number of predicates: '" + parts[2] +"'");
+                    return null;}
+                bcl.predicates = predicates;
+
                 if(parts.length == 5) {
                     if(parts[4].equals("symbolic")) {
                         symbolic = true;
                         symboltable = new Symboltable(predicates);
                         bcl.symboltable = symboltable;}
-                    else {errors.append(place + "'"+parts[4] + "' should be 'symbolic'");
+                    else {errors.append(place + "End of line '"+ line + "' should be 'symbolic'");
                         return null;}}
                 continue;}
+            if(predicates == 0) {
+                errors.append(place + "p-line missing: 'p cnf predicates clauses [symbolic]'");
+                return null;}
+
             if(!line.endsWith(" 0")) {
-                errors.append(place + " line '" + line + "' does not end with '0'\n");
+                errors.append(place + " line " + lineNumber + ": '" + line + "' does not end with '0'\n");
                 continue;}
             String[] parts = line.split("\\s*( |,)\\s*");
             int startParts = 1;
@@ -209,8 +219,11 @@ public final class CNFReader {
             clause[0] = problemSupervisor.nextClauseId();
             clause[1] = typnumber;
             if(isNumeric) {
-                Integer n = Utilities.parseInteger (place,parts[1],errors);
-                if(n == 0) break;
+                Integer n = Utilities.parseInteger (place + "line " + lineNumber +": ",parts[1],errors);
+                if(n == null) {errors.append("\n"); continue;}
+                if(n < 1) {
+                    errors.append(place + "line " + lineNumber  + ": '" + line + "' quantifier >= 1 required\n");
+                    continue;}
                 literalCounter = 2;
                 clause[2] = n;}
 
@@ -221,14 +234,21 @@ public final class CNFReader {
                     if(part.startsWith("-")) {sign = -1; part = part.substring(1);}
                     int literal = sign * symboltable.getPredicate(part);
                     if(literal == 0) {
-                        errors.append(place + "predicate overflow: " + parts[i] +"\n");
+                        errors.append(place + "line "+ lineNumber + ": predicate overflow: " + parts[i] +"\n");
                         literalCounter = 0; break;}
                     else {clause[++literalCounter] = literal;}}
                 else {
-                    Integer literal = Utilities.parseInteger (place,parts[i],errors);
-                    if(literal != null) {clause[++literalCounter] = literal;}
-                    else {literalCounter = 0; break;}}}
-            if(literalCounter == 0) break;
+                    Integer literal = Utilities.parseInteger (place+"line " + lineNumber +": ", parts[i],errors);
+                    if(literal != null) {
+                        if(literal == 0) {
+                            errors.append(place + "line " + lineNumber + ": literal '" + literal + "' = 0\n");
+                            literalCounter = 0; break;}
+                        if(Math.abs(literal) > predicates) {
+                            errors.append(place + "line " + lineNumber + ": |literal| '" + literal + "' > " +predicates +"\n");
+                            literalCounter = 0; break;}
+                        clause[++literalCounter] = literal;}
+                    else {errors.append("\n"); literalCounter = 0; break;}}}
+            if(literalCounter == 0) continue;
             bcl.addClause(clause);}
         errors.append(bcl.syntaxErrors.toString());
         bcl.info = info.toString();}

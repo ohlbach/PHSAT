@@ -31,7 +31,7 @@ public class Utilities {
     public static Integer parseInteger(String place, String value, StringBuffer errors) {
         if(value == null) {return null;}
         try{return Integer.parseInt(value);}
-        catch(NumberFormatException ex) {errors.append(place+": " + value + " is no integer.\n");}
+        catch(NumberFormatException ex) {errors.append(place+"'" + value + "' is no integer");}
         return null;}
 
     /** parses a string-representation of a float value

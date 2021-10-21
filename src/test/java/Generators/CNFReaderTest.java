@@ -42,7 +42,7 @@ public class CNFReaderTest {
         assertEquals(file2.getAbsolutePath(),pars.get(1).get("file").toString());
     }
     @Test
-    public void parseProblemParameters2() throws Exception {
+    public void parseProblemParameters2() {
         System.out.println("parseProblemParameters directory");
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
@@ -59,7 +59,7 @@ public class CNFReaderTest {
         assertEquals(file2.getAbsolutePath(),pars.get(1).get("file").toString());
     }
     @Test
-    public void parseProblemParameters3() throws Exception {
+    public void parseProblemParameters3() {
         System.out.println("parseProblemParameters regExpr");
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
@@ -97,46 +97,270 @@ public class CNFReaderTest {
         return  new ProblemSupervisor(controller,globalParameters,problemParameters,null);}
 
 
+    @Test
+    public void generateFileNotFound() {
+        System.out.println("generate file not found");
 
-        @Test
-    public void generate1() throws Exception {
-        System.out.println("generate disjunctions");
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        file.delete();
+        assertNull(CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings));
+        assertEquals("CNFReader: File test.cnf: not found",errors.toString());
+    }
+
+    @Test
+    public void generatePLineMissing() {
+        System.out.println("generate p-line missing");
 
         ProblemSupervisor problemSupervisor = prepare();
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         String cnf = "c test1\n" +
-                "c test2\n" +
-                "p cnf 10 5\n" +
-                "1 -5 3 0\n"+
-                "-5 7 1 1 0\n" +
-                "4 5 6 0\n" +
-                "4 0\n" +
-                "5 0";
+                "% comment\n" +
+                "q cnf 10 6\n" +
+                "1 2 3";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        assertNull(CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings));
+        assertEquals("CNFReader: File test.cnf: p-line missing: 'p cnf predicates clauses [symbolic]'",
+                errors.toString());
+    }
+
+    @Test
+    public void generatePLineError() {
+        System.out.println("generate p line error");
+
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n" +
+                "% comment\n" +
+                "p cng 10 6";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        assertNull(CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings));
+        assertEquals("CNFReader: File test.cnf: 'p cng 10 6' indicates no cnf file",errors.toString());
+    }
+
+    @Test
+    public void generatePredicateError1(){
+        System.out.println("generate predicate error 1");
+
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n" +
+                "% comment\n" +
+                "p cnf 10a 6";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        assertNull(CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings));
+        assertEquals("CNFReader: File test.cnf: 'p cnf 10a 6' '10a' is no integer",errors.toString());
+    }
+    @Test
+    public void generatePredicateError2() {
+        System.out.println("generate predicate error 2");
+
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n" +
+                "% comment\n" +
+                "p cnf -10 6";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        assertNull(CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings));
+        assertEquals("CNFReader: File test.cnf: Negative number of predicates: '-10'",errors.toString());
+    }
+    @Test
+    public void generateSymbolic()  {
+        System.out.println("generate predicate symbolic error");
+
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n" +
+                "% comment\n" +
+                "p cnf 10 6 sympolic";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        assertNull(CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings));
+        assertEquals("CNFReader: File test.cnf: End of line 'p cnf 10 6 sympolic' should be 'symbolic'",errors.toString());
+    }
+
+    @Test
+    public void generateSymbols()  {
+        System.out.println("generate symbol error");
+
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n" +
+                "% comment\n" +
+                "p cnf 10 6\n" +
+                "p q r 0";
         HashMap<String,String> parameters = new HashMap<>();
         File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
         parameters.put("file",file.getAbsolutePath());
         ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals(1,pars.size());
         BasicClauseList bcl = CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings);
-        file.delete();
+        assertEquals("CNFReader: File test.cnf: 'p' is no integer",errors.toString());
+    }
+
+    @Test
+    public void generateZeroEnd()  {
+        System.out.println("generate zero end");
+
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n" +
+                "% comment\n" +
+                "p cnf 10 6\n" +
+                "1 2 3\n" +
+                "4 5 6 0\n" +
+                "7 8 9";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        BasicClauseList bcl = CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings);
+        assertEquals(
+                "CNFReader: File test.cnf:  line 4: '1 2 3' does not end with '0'\n" +
+                "CNFReader: File test.cnf:  line 6: '7 8 9' does not end with '0'\n",errors.toString());
+    }
+
+    @Test
+    public void generateTooLargePredicate()  {
+        System.out.println("generate too large predicate");
+
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n" +
+                "% comment\n" +
+                "p cnf 10 6\n" +
+                "1 20 3 0\n" +
+                "4 5a 6 0\n" +
+                "7 8 -11 0\n" +
+                "6, 0, 1, 0";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        BasicClauseList bcl = CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings);
+        assertEquals(
+                "CNFReader: File test.cnf: line 4: |literal| '20' > 10\n" +
+                        "CNFReader: File test.cnf: line 5: '5a' is no integer\n" +
+                        "CNFReader: File test.cnf: line 6: |literal| '-11' > 10\n" +
+                        "CNFReader: File test.cnf: line 7: literal '0' = 0\n",errors.toString());
+    }
+    @Test
+    public void generateSymbolicErrors()  {
+        System.out.println("generate symbolic errors");
+
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n" +
+                "% comment\n" +
+                "p cnf 5 6 symbolic\n" +
+                "a b c 0\n" +
+                "-d -e -a 0\n" +
+                "-f -a 0";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        BasicClauseList bcl = CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings);
+        assertEquals(
+                "CNFReader: File test.cnf: line 6: predicate overflow: -f\n",errors.toString());
+    }
+
+    @Test
+    public void generateNumericErrors()  {
+        System.out.println("generate numeric errors");
+
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n" +
+                "% comment\n" +
+                "p cnf 10 6 symbolic\n" +
+                ">= 2 a b c 0\n" +
+                "<= -3 -d -e -a 0\n" +
+                "= -f -a 0";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        BasicClauseList bcl = CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings);
+        assertEquals(
+                "CNFReader: File test.cnf: line 5: '<= -3 -d -e -a 0' quantifier >= 1 required\n" +
+                        "CNFReader: File test.cnf: line 6: '-f' is no integer\n",errors.toString());
+    }
+
+
+    @Test
+    public void generateNumeric() {
+        System.out.println("generate numeric");
+
+        ProblemSupervisor problemSupervisor = prepare();
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        String cnf = "c test1\n" +
+                "c test2\n" +
+                "% test3\n" +
+                "p cnf 10 5\n" +
+                "1 -5 3 0\n"+
+                "-5 7 1 1 0\n" +
+                "o 4 5 6 0\n" +
+                "a 4 -5 0\n" +
+                "e 5 2 0\n" +
+                "<= 2 1,2,3 0\n" +
+                ">= 3 4,5,6,7 0\n" +
+                "= 2 -2,-4 5 0";
+        HashMap<String,String> parameters = new HashMap<>();
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
+        parameters.put("file",file.getAbsolutePath());
+        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
+        assertEquals(1,pars.size());
+        BasicClauseList bcl = CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings);
         assertEquals("",errors.toString());
-        assertEquals(" test1\n" +
-                " test2\n" +
-                "\n" +
-                "Disjunctions:\n" +
-                "   1 : 1,-5,3\n" +
-                "   2 : -5,7,1,1\n" +
-                "   3 : 4,5,6\n" +
-                "Conjunctions:\n" +
-                "   4 : 4\n" +
-                "   5 : 5\n",bcl.toString());
+        System.out.println( bcl.toString());
         assertEquals(" test1\n test2\n",bcl.info);
 
     }
 
     @Test
-    public void generate2() throws Exception {
+    public void generate2() {
         System.out.println("generate mixed");
         ProblemSupervisor problemSupervisor = prepare();
         StringBuffer errors = new StringBuffer();
