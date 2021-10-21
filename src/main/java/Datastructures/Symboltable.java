@@ -25,7 +25,7 @@ public class Symboltable {
      */
     public Symboltable(int predicates) {
         this.predicates = predicates;
-        names = new String[predicates +1];}
+        names = new String[predicates + 1];}
 
     /** sets the name of the predicate
      *
@@ -35,6 +35,24 @@ public class Symboltable {
     public void setName(int predicate, String name) {
         assert predicate > 0 && predicate <= predicates;
         names[predicate] = name;}
+
+    /** returns for a given predicate name the corresponding number.
+     * If the name is new, it gets the first empty number
+     *
+     * @param name of a predicate
+     * @return its number, or 0 if there is no free number any more.
+     */
+    public int getPredicate(String name) {
+        int emptyPosition = 0;
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            String pred = names[predicate];
+            if(pred == null) {
+                if(emptyPosition == 0) {emptyPosition = predicate;}
+                continue;}
+            if(pred.equals(name)) return predicate;}
+        if(emptyPosition == 0) return 0;
+        names[emptyPosition] = name;
+        return emptyPosition;}
 
     /**
      * @param literal any positive or negative predicate

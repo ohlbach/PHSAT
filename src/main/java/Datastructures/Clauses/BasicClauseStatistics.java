@@ -12,14 +12,21 @@ public class BasicClauseStatistics  extends Statistic{
 
     @Description("number of disjunctions in the input clauses")
     public int disjunctions = 0;
+
     @Description("number of conjunctions in the input clauses")
     public int conjunctions = 0;
-    @Description("number of xors in the input clauses")
-    public int xors         = 0;
-    @Description("number of disjointness classes in the input clauses")
-    public int disjoints    = 0;
+
     @Description("number of equivalence classes in the input clauses")
     public int equivalences = 0;
+
+    @Description("number of atlest clauses in the input clauses")
+    public int atleasts         = 0;
+
+    @Description("number of atmost clauses in the input clauses")
+    public int atmosts    = 0;
+
+    @Description("number of exactly clauses in the input clauses")
+    public int exactlys    = 0;
 
     public BasicClauseStatistics(String id) {
         super(id);}

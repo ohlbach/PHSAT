@@ -5,17 +5,18 @@ package Datastructures.Clauses;
  * Created by ohlbach on 14.09.2018.
  */
 public enum ClauseType {
-    OR('o', ",",""),
-    AND('a',"&","A-"),
-    XOR('x', " x ", "X-"),
-    DISJOINT('d', "!=","D-"),
-    EQUIV('e',"=","E-");
+    OR("o", ",",""),
+    AND("a","&","A-"),
+    EQUIV("e","=","E-"),
+    ATLEAST("<=", ",", "X-"),
+    ATMOST(">=", ",","D-"),
+    EXACTLY("=", ",","D-");
 
-    public char abbreviation;
+    public String abbreviation;
     public String separator;
     public String prefix;
 
-    ClauseType(char abbreviation, String separator, String prefix) {
+    ClauseType(String abbreviation, String separator, String prefix) {
         this.abbreviation = abbreviation;
         this.separator = separator;
         this.prefix = prefix;}
@@ -25,23 +26,26 @@ public enum ClauseType {
         switch(n) {
             case 0: return OR;
             case 1: return AND;
-            case 2: return XOR;
-            case 3: return DISJOINT;
-            case 4: return EQUIV;
+            case 2: return EQUIV;
+            case 3: return ATLEAST;
+            case 4: return ATMOST;
+            case 5: return EXACTLY;
         }
         return null;
     }
 
-    public static ClauseType getType(char n) {
+    public static ClauseType getType(String n) {
         switch(n) {
-            case 'o': return OR;
-            case 'a': return AND;
-            case 'x': return XOR;
-            case 'd': return DISJOINT;
-            case 'e': return EQUIV;
-        }
-        return null;
-    }
+            case "o":  return OR;
+            case "a":  return AND;
+            case "e":  return EQUIV;
+            case "<=": return ATLEAST;
+            case ">=": return ATMOST;
+            case "=":  return EXACTLY;}
+        return null;}
+
+    public static boolean isNumericType(int n) {
+        return n >= 3;}
 
 
 }

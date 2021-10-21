@@ -1,18 +1,18 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.ClauseType;
+import Datastructures.Symboltable;
+import Management.ProblemSupervisor;
+import Utilities.Utilities;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
-import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
-import Utilities.Utilities;
 
 /**
  * Created by ohlbach on 26.08.2018.
@@ -21,26 +21,27 @@ import Utilities.Utilities;
  * A standard cnf-file has the following structure:<br>
  * c comment<br>
  * c comment<br>
- * p cnf predicates clauses <br>
+ * p cnf predicates clauses [symbolic]<br>
  * clause1 0 <br>
  * clause2 0 <br>
  * ...<br>
- * A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0).
+ * A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0, or names).
  * <br>
  * An extension of this format may contain clauses beginning with special characters:.<br>
- * 'd': means disjunction:  'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).<br>
- * 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br>
- * 'x': means exclusive-or: 'x 3 4 5' means 3 xors 4 xors 5 (exactly one of them must be true).<br>
- * 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.<br>
- * 'o': means or:           'o 3 4 5' stands for 3 or 4 or 5.<br>
- * The 'o' may be omitted.
+ *
+ * 'o':  means or:           'o 3 4 5' stands for 3 or 4 or 5.<br>
+ * 'a':  means and:          'a 3 4 5' stands for 3 and 4 and 5.<br>
+ * 'e':  means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br>
+ * '<=': means atleast:      '<= 2 p q r' means atleast two of p,q,r are true.<br>
+ * '>=': means atleast:      '>= 2 p q r' means atmost two of p,q,r are true.<br>
+ * '=':  means exactly:      '= 2 p q r' means exactly two of p,q,r are true.<br>
  */
 public final class CNFReader {
 
-    private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
+    private static final HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
-        for(String key : new String[]{"problem", "type", "file", "directory", "regExpr"}) {
-            keys.add(key);}}
+        Collections.addAll(keys, "problem", "type", "file", "directory", "regExpr");
+    }
 
     /** parses a HashMap with key-value pairs:<br>
      * file: a comma separated list of pathnames<br>
@@ -79,7 +80,7 @@ public final class CNFReader {
                     errors.append("CNFReader: unknown directory: " +directoryname+"\n");}
                 else {
                     for(File file : directory.listFiles()) {
-                        if(file.isFile() && file.getName().endsWith(".cnf")) {
+                        if(file != null && file.isFile() && file.getName().endsWith(".cnf")) {
                             HashMap<String,Object> map = new HashMap<>();
                             map.put("file",file);
                             map.put("name",file.getName());
@@ -95,7 +96,7 @@ public final class CNFReader {
                     Pattern pattern;
                     try {pattern = Pattern.compile(regExprs);}
                     catch(PatternSyntaxException ex) {
-                        errors.append("CNFReader: " + ex.toString());
+                        errors.append("CNFReader: " + ex);
                         continue;}
                     for(File file: directory.listFiles(pathname -> pattern.matcher(pathname.getName()).matches())) {
                         HashMap<String,Object> map = new HashMap<>();
@@ -120,20 +121,19 @@ public final class CNFReader {
         st.append("A standard cnf-file has the following structure:\n" +
                 " c comment\n" +
                 " c comment\n" +
-                " p cnf predicates clauses\n" +
+                " p cnf predicates clauses [symbolic]\n" +
                 " clause1 0\n" +
                 " clause2 0\n" +
                 " ...\n" +
-                " A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0).\n" +
+                " A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0, or symbols).\n" +
                 " \n" +
                 " An extension of this format may contain clauses beginning with special characters:.\n" +
-                " 'd': means disjoint:     'd 1 3 5' means 1,3,5 are disjoint literals (at most one of them can be true).\n" +
-                " 'e': means equivalences: 'e 4 5 -6' means that these three literals are equivalent.\n" +
-                " 'x': means exclusive-or: 'x 3 4 5' means 3 xors 4 xors 5 (exactly one of them must be true).\n" +
-                " 'a': means and:          'a 3 4 5' stands for 3 and 4 and 5.\n" +
-                " 'o': means or:           'o 3 4 5' stands for 3 or 4 or 5.\n" +
-                "  The 'o' may be omitted.\n");
-        st.append("Clauses with double literals or complementary literals (although logically okay) cause a syntax error.\n");
+                " 'a':  means and:         'a 3 4 5' stands for 3 and 4 and 5.\n" +
+                " 'o':  means or:          'o 3 4 5' stands for 3 or 4 or 5.\n" +
+                " 'e':  means equivalence: 'e 4 5 -6' means that these three literals are equivalent.\n" +
+                " '<=': means atleast:     '<= 2 p q r' means atleast two of p,q,r are true.\n" +
+                " '>=': means atmost:      '>= 2 p q r' means atmost two of p,q,r are true.\n" +
+                " '=':  means exactly:     '= 2 p q r' means exactly two of p,q,r are true.\n");
         return st.toString();
     }
 
@@ -144,7 +144,9 @@ public final class CNFReader {
      * @param warnings  for warnings
      * @return  the new clauses
      */
-    public static BasicClauseList generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
+    public static BasicClauseList generate(HashMap<String,Object> parameters,
+                                           ProblemSupervisor problemSupervisor,
+                                           StringBuffer errors, StringBuffer warnings) {
         StringBuilder info = new StringBuilder();
         File file = (File)parameters.get("file");
         String filename = file.getName();
@@ -157,44 +159,74 @@ public final class CNFReader {
         String line;
         BasicClauseList bcl = new BasicClauseList();
         Integer predicates = null;
+        Symboltable symboltable = null;
+        boolean symbolic = false;
         try{
-            int number = 0;
         while((line = reader.readLine()) != null) {
             line = line.trim();
             if(line.isEmpty()) {continue;}
             if(line.startsWith("%")){continue;}
             if(line.startsWith("c")) {info.append(line.substring(1)).append("\n"); continue;}
-            if(line.startsWith("p")) {
-                String[] parts = line.split("\\s+");
+            if(line.startsWith("p")) { // p cnf predicates clauses symbolic
+                String[] parts = line.split("\\s*( |,)\\s*");
                 if(parts.length < 4) {
                     errors.append(place + " illegal format of line " + line+"\n");
+                    return null;}
+                if(!parts[1].equals("cnf")) {
+                    errors.append(place + "'" + line + "' " + "indicates no cnf file");
                     return null;}
                 predicates = Utilities.parseInteger(place, parts[2],errors);
                 if(predicates != null) {bcl.predicates = predicates;}
                 else {errors.append(place + " unknown number of predicates.\n");
                       return null;}
+                if(parts.length == 5 && parts[4].equals("symbolic")) {
+                    symbolic = true;
+                    symboltable = new Symboltable(predicates);
+                    bcl.symboltable = symboltable;}
                 continue;}
             if(!line.endsWith(" 0")) {
-                errors.append(place + " line does not end with 0: " + line + "\n");
-                return null;}
+                errors.append(place + " line does not end with '0': " + line + "\n");
+                continue;}
             String[] parts = line.split("\\s*( |,)\\s*");
-            int shift = Utilities.isInteger(parts[0]) ? 1 : 0;
-            int[] lits = new int[parts.length+shift];
-            lits[0] = ++number;
-            int start = 1;
+            int startParts = 1;
+            int typnumber;
             switch(line.charAt(0)) {
-                case 'd': lits[1] = ClauseType.DISJOINT.ordinal();     break;
-                case 'e': lits[1] = ClauseType.EQUIV.ordinal();        break;
-                case 'x': lits[1] = ClauseType.XOR.ordinal();          break;
-                case 'a': lits[1] = ClauseType.AND.ordinal();          break;
-                case 'o': lits[1] = ClauseType.OR.ordinal();           break;
-                default: lits[1] = ClauseType.OR.ordinal(); start = 0; break;}
-            int j = 1;
-            for(int i = start; i < parts.length-1; ++i) {
-                Integer lit = Utilities.parseInteger (place,parts[i],errors);
-                if(lit != null) {lits[++j] = lit;}
-                else {j = 0; break;}}
-            bcl.addClause(lits);}
+                case 'a': typnumber = ClauseType.AND.ordinal();          break;
+                case 'o': typnumber = ClauseType.OR.ordinal();           break;
+                case 'e': typnumber = ClauseType.EQUIV.ordinal();        break;
+                case '<': typnumber = ClauseType.ATLEAST.ordinal();      break;
+                case '>': typnumber = ClauseType.ATMOST.ordinal();       break;
+                case '=': typnumber = ClauseType.EXACTLY.ordinal();      break;
+                default: typnumber = ClauseType.OR.ordinal(); startParts = 0; break;}
+            boolean isNumeric = ClauseType.isNumericType(typnumber);
+
+            int length = parts.length + 1 + (isNumeric ? 1 : 0);
+            int literalCounter = 1;
+            int[] clause = new int[length];
+            clause[0] = problemSupervisor.nextClauseId();
+            clause[1] = typnumber;
+            if(isNumeric) {
+                Integer n = Utilities.parseInteger (place,parts[1],errors);
+                if(n == 0) break;
+                literalCounter = 2;
+                clause[2] = n;}
+
+            for(int i = startParts; i < parts.length-1; ++i) {
+                String part = parts[i];
+                if(symbolic) {
+                    int sign = 1;
+                    if(part.startsWith("-")) {sign = -1; part = part.substring(1);}
+                    int literal = sign * symboltable.getPredicate(part);
+                    if(literal == 0) {
+                        errors.append(place + "predicate overflow: " + parts[i] +"\n");
+                        literalCounter = 0; break;}
+                    else {clause[++literalCounter] = literal;}}
+                else {
+                    Integer literal = Utilities.parseInteger (place,parts[i],errors);
+                    if(literal != null) {clause[++literalCounter] = literal;}
+                    else {literalCounter = 0; break;}}}
+            if(literalCounter == 0) break;
+            bcl.addClause(clause);}
         errors.append(bcl.syntaxErrors.toString());
         bcl.info = info.toString();}
         catch(IOException ex) {

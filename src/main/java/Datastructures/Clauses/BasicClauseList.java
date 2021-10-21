@@ -6,6 +6,7 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Created by Ohlbach on 03.09.2018.<br>
@@ -31,12 +32,15 @@ public class BasicClauseList {
     public ArrayList<int[]> disjunctions  = new ArrayList<>();
     /** the original conjunctions */
     public ArrayList<int[]> conjunctions  = new ArrayList<>();
-    /** the original xors */
-    public ArrayList<int[]> xors          = new ArrayList<>();
-    /** the original disjoints */
-    public ArrayList<int[]> disjoints     = new ArrayList<>();
     /** the original equivalences */
     public ArrayList<int[]> equivalences  = new ArrayList<>();
+    /** the original atleasts */
+    public ArrayList<int[]> atleasts      = new ArrayList<>();
+    /** the original atmosts */
+    public ArrayList<int[]> atmosts       = new ArrayList<>();
+    /** the original exactlys */
+    public ArrayList<int[]> exactlys      = new ArrayList<>();
+
 
     /** an info-string about the origin of the clauses */
     public String info = null;
@@ -51,6 +55,9 @@ public class BasicClauseList {
     public Symboltable symboltable = null;
 
     public StringBuffer syntaxErrors = new StringBuffer();
+
+    public boolean isNumericClause(int[] clause) {
+        return ClauseType.isNumericType(clause[1]);}
 
     /** adds the clauses to the corresponding lists.
      * If a clause is syntactically wrong, error messages are appended to syntaxErrors.
@@ -81,11 +88,12 @@ public class BasicClauseList {
                 if(clause.length == 3) {
                     clause[1] = ClauseType.AND.ordinal();
                     conjunctions.add(clause);}
-                else disjunctions.add(clause); break;
+                else disjunctions.add(clause);       break;
             case AND:      conjunctions.add(clause); break;
-            case XOR:      xors.add(clause);         break;
-            case DISJOINT: disjoints.add(clause);    break;
-            case EQUIV:    equivalences.add(clause); break;}
+            case EQUIV:    equivalences.add(clause); break;
+            case ATLEAST:  atleasts.add(clause);     break;
+            case ATMOST:   atmosts.add(clause);      break;
+            case EXACTLY:  exactlys.add(clause);     break;}
     }
 
     /** checks the clause's syntax.
@@ -97,16 +105,24 @@ public class BasicClauseList {
      */
     private boolean checkSyntax(int[] clause) {
         int type = clause[1];
-        if(type < 0 || type > 4) {
-            syntaxErrors.append("Clause '").append(clauseToString(0, clause, symboltable)).
-                    append("' contains illegal type ").append(Integer.toString(type)).append(".\n");
+        if(type < 0 || type > 5) {
+            syntaxErrors.append("Clause '").append(Arrays.toString(clause)).
+                    append("' contains illegal type ").append(type).append(".\n");
             return false;}
+        int start = 2;
+        boolean isNumeric = ClauseType.isNumericType(type);
         int size = clause.length;
-        for(int i = 2; i < size-1; ++i) {
+        if(isNumeric) {
+            start = 3;
+            if(clause[2] <= 0 || clause[2] > size-3)
+                syntaxErrors.append("Clause '").append(clauseToString(0, clause, symboltable)).
+                append("' contains illegal number: ").append(clause[2]);
+            return false;}
+        for(int i = start; i < size-1; ++i) {
             int literal = clause[i];
             if(literal == 0 || (predicates > 0 && Math.abs(literal) > predicates)) {
                 syntaxErrors.append("Clause '").append(clauseToString(0, clause, symboltable)).
-                        append("' contains illegal literal ").append(Integer.toString(literal)).
+                        append("' contains illegal literal ").append(literal).
                         append(".\n");
                 return false;}}
         return true; }
@@ -123,9 +139,10 @@ public class BasicClauseList {
         ArrayList<int[]> falseClauses = new ArrayList<>();
         for(int[] clause : disjunctions) {if(disjunctionIsFalse(clause,model)) {falseClauses.add(clause);}}
         for(int[] clause : conjunctions) {if(conjunctionIsFalse(clause,model)) {falseClauses.add(clause);}}
-        for(int[] clause : xors)         {if(xorIsFalse(clause,model))         {falseClauses.add(clause);}}
-        for(int[] clause : disjoints)    {if(disjointIsFalse(clause,model))    {falseClauses.add(clause);}}
         for(int[] clause : equivalences) {if(equivalenceIsFalse(clause,model)) {falseClauses.add(clause);}}
+        for(int[] clause : atleasts)     {if(atleastIsFalse(clause,model))     {falseClauses.add(clause);}}
+        for(int[] clause : atmosts)      {if(atmostIsFalse(clause,model))      {falseClauses.add(clause);}}
+        for(int[] clause : exactlys)     {if(exactlyIsFalse(clause,model))     {falseClauses.add(clause);}}
         return falseClauses.isEmpty() ? null : falseClauses;}
 
 
@@ -152,43 +169,50 @@ public class BasicClauseList {
         return false;}
 
 
-    /** checks if a xors-clause is false in a model
+    /** checks if a atleast-clause is false in a model
      *
-     * @param clause a xors clause
+     * @param clause a atleast clause  [id,type,n,literal1,...]
      * @param model a model
-     * @return true if not exactly one of the literals is true in the model.
+     * @return true if not atleast n literals are true in the model
      */
-    public static boolean xorIsFalse(int[] clause, Model model) {
-        assert ClauseType.getType(clause[1]) == ClauseType.XOR;
+    public static boolean atleastIsFalse(int[] clause, Model model) {
+        assert ClauseType.getType(clause[1]) == ClauseType.ATLEAST;
+        int n = clause[2];
         int size = clause.length;
         int trueLiterals = 0;
-        int falseLiterals = 0;
-        for(int i = 2; i < size; ++i) {
-            switch(model.status(clause[i])) {
-                case +1: ++trueLiterals; break;
-                case -1: ++falseLiterals;}}
-        return trueLiterals != 1 || falseLiterals != size-3;}
+        for(int i = 3; i < size; ++i) {
+            if(model.isTrue(clause[i])) ++trueLiterals;}
+        return trueLiterals < n;}
 
-
-    /** checks if a disjoint clause is true in a model
+    /** checks if a atmost-clause is false in a model
      *
-     * @param clause a disjoint clause
+     * @param clause a atleast clause  [id,type,n,literal1,...]
      * @param model a model
-     * @return true if at most one of the literals is true in the model.
+     * @return true if not atleast n literals are true in the model
      */
-    public static boolean disjointIsFalse(int[] clause, Model model) {
-        assert ClauseType.getType(clause[1]) == ClauseType.DISJOINT;
+    public static boolean atmostIsFalse(int[] clause, Model model) {
+        assert ClauseType.getType(clause[1]) == ClauseType.ATMOST;
+        int n = clause[2];
         int size = clause.length;
         int trueLiterals = 0;
-        int falseLiterals = 0;
-        for(int i = 2; i < size; ++i) {
-            switch(model.status(clause[i])) {
-                case +1: ++trueLiterals; break;
-                case -1: ++falseLiterals;}}
-        if(trueLiterals == 0 && falseLiterals == size-2) return false;  // clause is true
-        if(trueLiterals == 1 && falseLiterals == size-3) return false;  // clause is true
-        return false;}
+        for(int i = 3; i < size; ++i) {
+            if(model.isTrue(clause[i])) ++trueLiterals;}
+        return trueLiterals > n;}
 
+    /** checks if an exactly-clause is false in a model
+     *
+     * @param clause a atleast clause  [id,type,n,literal1,...]
+     * @param model a model
+     * @return true if not atleast n literals are true in the model
+     */
+    public static boolean exactlyIsFalse(int[] clause, Model model) {
+        assert ClauseType.getType(clause[1]) == ClauseType.EXACTLY;
+        int n = clause[2];
+        int size = clause.length;
+        int trueLiterals = 0;
+        for(int i = 3; i < size; ++i) {
+            if(model.isTrue(clause[i])) ++trueLiterals;}
+        return trueLiterals != n;}
 
     /** checks if an equivalence is false in a model
      *
@@ -206,27 +230,22 @@ public class BasicClauseList {
                 case +1: ++trueLiterals; break;
                 case -1: ++falseLiterals;}}
         size -= 2;
-        return (trueLiterals != size && falseLiterals != size);}
-
-
-
-
-
-
+        return (trueLiterals != size || falseLiterals != size);}
 
 
     /** adds some parameters to the statistics
      *
      * @param problemId the problem identifier
-     * @returns the BasicClauseStatistics
+     * @return the BasicClauseStatistics
      */
     public Statistic getStatistics(String problemId) {
         BasicClauseStatistics statistics = new BasicClauseStatistics(problemId);
-        statistics.disjoints    = disjoints.size();
         statistics.disjunctions = disjunctions.size();
         statistics.conjunctions = conjunctions.size();
-        statistics.xors         = xors.size();
         statistics.equivalences = equivalences.size();
+        statistics.atleasts     = atleasts.size();
+        statistics.atmosts      = atmosts.size();
+        statistics.exactlys     = exactlys.size();
         return statistics;}
 
     /** turns a clause into a string.
@@ -248,16 +267,19 @@ public class BasicClauseList {
     public static String clauseToString(int size, int[] clause, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         if(size == 0) {size = Integer.toString(clause[0]).length();}
-        st.append(String.format("%"+size+"d ",clause[0]));
-        String separator = ClauseType.getType(clause[1]).separator;
-        st.append(": ");
+        st.append(String.format("%"+size+"d ",clause[0])).append(": ");
+        int typeNumber = clause[1];
+        ClauseType type = ClauseType.getType(typeNumber);
+        int start = 2;
+        if(ClauseType.isNumericType(typeNumber)) {
+            start = 3;
+            st.append(type.toString() + " " + clause[2] + " ");}
+        String separator = type.separator;
         int length = clause.length;
-        for(int i = 2; i < length-1; ++i) {
-            if(symboltable != null) {st.append(symboltable.toString(clause[i]));}
-            else                    {st.append(Integer.toString(clause[i]));}
+        for(int i = start; i < length-1; ++i) {
+            st.append(Symboltable.toString(clause[i],symboltable));
             st.append(separator);}
-        if(symboltable != null) {st.append(symboltable.toString(clause[length-1]));}
-        else                    {st.append(Integer.toString(clause[length-1]));}
+        st.append(Symboltable.toString(clause[length-1],symboltable));
         return st.toString();}
 
     /** generates a string representation of the clause
@@ -273,40 +295,29 @@ public class BasicClauseList {
      * @return  a string representation of the disjunctions.
      */
     public String toString(boolean withSymboltable) {
-        Symboltable symboltable1 = withSymboltable ? this.symboltable : null;
+        Symboltable symboltable = withSymboltable ? this.symboltable : null;
         StringBuilder st = new StringBuilder();
         if(info != null) {st.append(info).append("\n");}
-        int size = (""+(disjunctions.size() + conjunctions.size() + xors.size() + disjoints.size()+equivalences.size())).length();
-        if(disjunctions != null && !disjunctions.isEmpty()) {
+        int size = (""+(disjunctions.size() + conjunctions.size()  +equivalences.size()) +
+                atleasts.size() + atmosts.size() + exactlys.size()).length();
+        if(!disjunctions.isEmpty()) {
             st.append("Disjunctions:\n");
             for(int[] clause : disjunctions) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(conjunctions != null && !conjunctions.isEmpty()) {
+        if(!conjunctions.isEmpty()) {
             st.append("Conjunctions:\n");
             for(int[] clause : conjunctions) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(xors != null && !xors.isEmpty()) {
-            st.append("Xor:\n");
-            for(int[] clause : xors)          {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(disjoints != null && !disjoints.isEmpty()) {
-            st.append("Disjoints:\n");
-            for(int[] clause : disjoints)    {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(equivalences != null && !equivalences.isEmpty()) {
+        if(!equivalences.isEmpty()) {
             st.append("Equivalences:\n");
             for(int[] clause : equivalences) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-
-        return st.toString();}
-
-
-     public String testString(String var) {
-         StringBuilder st = new StringBuilder();
-         st.append(info);
-         int counter = 0;
-         for(int[] clause : disjunctions) {
-             st.append(var);
-             st.append(".addClause(Utilities.makeClause(\"").append(Integer.toString(++counter)).append("\",\"");
-             for(int i = 2; i < clause.length; ++i) {
-                 st.append(Integer.toString(clause[i]));
-                 if(i < clause.length-1) st.append(",");}
-             st.append("\"));\n");}
+        if(!atleasts.isEmpty()) {
+            st.append("Atleast:\n");
+            for(int[] clause : atleasts)     {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+        if(!atmosts.isEmpty()) {
+            st.append("Atmost:\n");
+            for(int[] clause : atmosts)      {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+        if(!exactlys.isEmpty()) {
+            st.append("Exactly:\n");
+            for(int[] clause : exactlys)     {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
         return st.toString();}
 
 
