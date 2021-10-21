@@ -12,7 +12,7 @@ public class DisjointnessClause2ClauseTest {
     public void rule() {
         System.out.println(DisjointnessClause2Clause.rule);
     }
-
+/*
     @Test
     public void inference1() {
         System.out.println("basic clause");
@@ -32,5 +32,5 @@ public class DisjointnessClause2ClauseTest {
         DisjointnessClause2Clause inf = new DisjointnessClause2Clause(dc,c);
         System.out.println(inf.toString(null));
     }
-
+*/
 }

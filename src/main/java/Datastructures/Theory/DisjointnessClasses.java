@@ -131,7 +131,7 @@ public class DisjointnessClasses {
      */
     public void addDisjointnessClause(int[] basicClause) {
         assert basicClause.length > 4;
-        assert basicClause[1] == ClauseType.DISJOINT.ordinal() || basicClause[1] == ClauseType.XOR.ordinal();
+        //assert basicClause[1] == ClauseType.DISJOINT.ordinal() || basicClause[1] == ClauseType.XOR.ordinal();
         ++statistics.basicClauses;
         Clause clause = new Clause(problemSupervisor.nextClauseId(),basicClause);
         if(trackReasoning) {
@@ -163,7 +163,9 @@ public class DisjointnessClasses {
         if (monitoring) {
             monitor.print(monitorId, "In:   Disjointness " +
                     Symboltable.toString(literals, symboltable));}
-        Clause clause = new Clause(problemSupervisor.nextClauseId(), ClauseType.DISJOINT, literals);
+        // change
+        Clause clause = new Clause(problemSupervisor.nextClauseId(), ClauseType.ATLEAST, literals);
+
         clause.inferenceStep = inference;
         synchronized (this) {queue.add(new Task<>(TaskType.INSERTCLAUSE, clause, null));}}
 

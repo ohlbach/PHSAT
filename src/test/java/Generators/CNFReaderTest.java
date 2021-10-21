@@ -1,6 +1,10 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
+import Management.Controller;
+import Management.GlobalParameters;
+import Management.Monitor;
+import Management.ProblemSupervisor;
 import org.junit.Test;
 
 import java.io.File;
@@ -21,7 +25,7 @@ public class CNFReaderTest {
     }
 
     @Test
-    public void parseProblemParameters1() throws Exception {
+    public void parseProblemParameters1() {
         System.out.println("parseProblemParameters 1");
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
@@ -82,12 +86,23 @@ public class CNFReaderTest {
     }
 
 
+    private ProblemSupervisor prepare() {
+        StringBuffer errors = new StringBuffer();
+        StringBuffer warnings = new StringBuffer();
+        Controller controller = new Controller(null,null,null);
+        GlobalParameters globalParameters=new GlobalParameters();
+        globalParameters.trackReasoning = true;
+        HashMap<String,Object> problemParameters = new HashMap<>();
+        problemParameters.put("name","test");
+        return  new ProblemSupervisor(controller,globalParameters,problemParameters,null);}
 
 
 
-    @Test
+        @Test
     public void generate1() throws Exception {
         System.out.println("generate disjunctions");
+
+        ProblemSupervisor problemSupervisor = prepare();
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         String cnf = "c test1\n" +
@@ -103,18 +118,19 @@ public class CNFReaderTest {
         parameters.put("file",file.getAbsolutePath());
         ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals(1,pars.size());
-        BasicClauseList bcl = CNFReader.generate(pars.get(0),errors,warnings);
+        BasicClauseList bcl = CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings);
         file.delete();
         assertEquals("",errors.toString());
         assertEquals(" test1\n" +
                 " test2\n" +
                 "\n" +
                 "Disjunctions:\n" +
-                "1 : 1 | -5 | 3\n" +
-                "2 : -5 | 7 | 1 | 1\n" +
-                "3 : 4 | 5 | 6\n" +
-                "4 : 4\n" +
-                "5 : 5\n",bcl.toString());
+                "   1 : 1,-5,3\n" +
+                "   2 : -5,7,1,1\n" +
+                "   3 : 4,5,6\n" +
+                "Conjunctions:\n" +
+                "   4 : 4\n" +
+                "   5 : 5\n",bcl.toString());
         assertEquals(" test1\n test2\n",bcl.info);
 
     }
@@ -122,6 +138,7 @@ public class CNFReaderTest {
     @Test
     public void generate2() throws Exception {
         System.out.println("generate mixed");
+        ProblemSupervisor problemSupervisor = prepare();
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         String cnf = "c test1\n" +
@@ -138,7 +155,7 @@ public class CNFReaderTest {
         parameters.put("file",file.getAbsolutePath());
         ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals(1,pars.size());
-        BasicClauseList bcl =  CNFReader.generate(pars.get(0),errors,warnings);
+        BasicClauseList bcl =  CNFReader.generate(pars.get(0),problemSupervisor, errors,warnings);
         file.delete();
         assertEquals("",errors.toString());
         //System.out.println(pars.get(0).get("disjunctions"));

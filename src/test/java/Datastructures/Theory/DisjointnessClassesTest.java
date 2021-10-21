@@ -23,7 +23,7 @@ public class DisjointnessClassesTest {
     StringBuffer warnings = new StringBuffer();
     boolean monitoring = false;
 
-    int type = ClauseType.DISJOINT.ordinal();
+    int type = ClauseType.ATMOST.ordinal();
     int typeEQ = ClauseType.EQUIV.ordinal();
 
 
@@ -49,7 +49,7 @@ public class DisjointnessClassesTest {
     }
 
     private Clause make(int id,int... literals) {
-        return new Clause(id,ClauseType.DISJOINT, IntArrayList.wrap(literals));
+        return new Clause(id,ClauseType.ATMOST, IntArrayList.wrap(literals));
     }
 
 

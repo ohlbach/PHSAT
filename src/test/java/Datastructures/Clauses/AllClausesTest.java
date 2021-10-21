@@ -28,8 +28,8 @@ public class AllClausesTest {
     boolean monitoring = true;
 
     int typeOR = ClauseType.OR.ordinal();
-    int typeXOR = ClauseType.XOR.ordinal();
-    int typeDISJ = ClauseType.DISJOINT.ordinal();
+    int typeXOR = ClauseType.EXACTLY.ordinal();
+    int typeDISJ = ClauseType.ATMOST.ordinal();
     int typeEQ = ClauseType.EQUIV.ordinal();
 
 
@@ -62,7 +62,7 @@ public class AllClausesTest {
         return new Clause(id,ClauseType.OR, IntArrayList.wrap(literals));}
 
     private Clause maked(int id,int... literals) {
-        return new Clause(id,ClauseType.DISJOINT, IntArrayList.wrap(literals));}
+        return new Clause(id,ClauseType.ATMOST, IntArrayList.wrap(literals));}
 
     private Clause makee(int id,int... literals) {
         return new Clause(id,ClauseType.EQUIV, IntArrayList.wrap(literals));}

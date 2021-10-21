@@ -51,7 +51,7 @@ public final class CNFReader {
      * @param parameters  the parameters with the keys "file", "directory", "regExpr"
      * @param errors      for error messages
      * @param warnings    for warnings
-     * @return            a list of HashMaps with key "file" and value the corresponding File object.
+     * @return            a list of HashMaps with key "file" and value the corresponding File object, and 'name' with the filename
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
         for(String key : parameters.keySet()) {
@@ -111,14 +111,13 @@ public final class CNFReader {
      * @return a help-string
      */
     public static String help() {
-        StringBuilder st = new StringBuilder();
-        st.append("CNFReader for reading CNF-Files.\n");
-        st.append("The parameters are:\n");
-        st.append("  file:      A single filename or a comma-separated list of filenames.\n");
-        st.append("  directory: A single directory name or a comma-separated list of directory names.\n");
-        st.append("             All files in the directory ending with .cnf are loaded, unless regExpr is defined.\n");
-        st.append("  regExpr:   A regular expression to select files in the directory.\n\n");
-        st.append("A standard cnf-file has the following structure:\n" +
+        return "CNFReader for reading CNF-Files.\n" +
+                "The parameters are:\n" +
+                "  file:      A single filename or a comma-separated list of filenames.\n" +
+                "  directory: A single directory name or a comma-separated list of directory names.\n" +
+                "             All files in the directory ending with .cnf are loaded, unless regExpr is defined.\n" +
+                "  regExpr:   A regular expression to select files in the directory.\n\n" +
+                "A standard cnf-file has the following structure:\n" +
                 " c comment\n" +
                 " c comment\n" +
                 " p cnf predicates clauses [symbolic]\n" +
@@ -133,8 +132,7 @@ public final class CNFReader {
                 " 'e':  means equivalence: 'e 4 5 -6' means that these three literals are equivalent.\n" +
                 " '<=': means atleast:     '<= 2 p q r' means atleast two of p,q,r are true.\n" +
                 " '>=': means atmost:      '>= 2 p q r' means atmost two of p,q,r are true.\n" +
-                " '=':  means exactly:     '= 2 p q r' means exactly two of p,q,r are true.\n");
-        return st.toString();
+                " '=':  means exactly:     '= 2 p q r' means exactly two of p,q,r are true.\n";
     }
 
     /** reads the cnf-file
@@ -150,15 +148,16 @@ public final class CNFReader {
         StringBuilder info = new StringBuilder();
         File file = (File)parameters.get("file");
         String filename = file.getName();
-        String place = "CNFReader: file " + filename+": ";
-        BufferedReader reader = null;
+        String place =  "CNFReader: file " + filename+": ";
+        String prefix = "          ";
+        BufferedReader reader;
         try {reader = new BufferedReader(new FileReader(file));}
         catch (FileNotFoundException e) {
             errors.append(place + " not found");
             return null;}
         String line;
         BasicClauseList bcl = new BasicClauseList();
-        Integer predicates = null;
+        Integer predicates;
         Symboltable symboltable = null;
         boolean symbolic = false;
         try{
@@ -170,22 +169,26 @@ public final class CNFReader {
             if(line.startsWith("p")) { // p cnf predicates clauses symbolic
                 String[] parts = line.split("\\s*( |,)\\s*");
                 if(parts.length < 4) {
-                    errors.append(place + " illegal format of line " + line+"\n");
+                    errors.append(place + "Illegal format of line '" + line+ "'\n").append(prefix).
+                            append("It should be 'p cnf predicates clauses [symbolic]'\n");
                     return null;}
                 if(!parts[1].equals("cnf")) {
                     errors.append(place + "'" + line + "' " + "indicates no cnf file");
                     return null;}
                 predicates = Utilities.parseInteger(place, parts[2],errors);
                 if(predicates != null) {bcl.predicates = predicates;}
-                else {errors.append(place + " unknown number of predicates.\n");
+                else {errors.append(place + "Unknown number of predicates: '" + parts[2] +"'\n");
                       return null;}
-                if(parts.length == 5 && parts[4].equals("symbolic")) {
-                    symbolic = true;
-                    symboltable = new Symboltable(predicates);
-                    bcl.symboltable = symboltable;}
+                if(parts.length == 5) {
+                    if(parts[4].equals("symbolic")) {
+                        symbolic = true;
+                        symboltable = new Symboltable(predicates);
+                        bcl.symboltable = symboltable;}
+                    else {errors.append(place + "'"+parts[4] + "' should be 'symbolic'");
+                        return null;}}
                 continue;}
             if(!line.endsWith(" 0")) {
-                errors.append(place + " line does not end with '0': " + line + "\n");
+                errors.append(place + " line '" + line + "' does not end with '0'\n");
                 continue;}
             String[] parts = line.split("\\s*( |,)\\s*");
             int startParts = 1;

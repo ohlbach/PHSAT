@@ -276,13 +276,14 @@ public final class RandomClauseSetGenerator {
             for(int i = 0; i < literals.size(); ++i) {lits[i+2] = literals.get(i);}
             clauseList.addClause(lits);}
 
+        /*
         if(dBlocks != null) {
             clauseCounter = addClauses(predicates,ClauseType.DISJOINT,     clauseList,clauseCounter,dBlocks,dLength,rnd);}
         if(xBlocks != null) {
             clauseCounter = addClauses(predicates,ClauseType.XOR,clauseList,clauseCounter,xBlocks,xLength,rnd);}
         if(eBlocks != null) {
             clauseCounter = addClauses(predicates,ClauseType.EQUIV,   clauseList,clauseCounter,eBlocks,eLength,rnd);}
-
+*/
         return clauseList;}
 
     private static int addClauses(int predicates, ClauseType type, BasicClauseList clauseList,

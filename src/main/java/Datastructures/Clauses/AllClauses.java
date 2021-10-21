@@ -131,21 +131,29 @@ public class AllClauses {
     /** This method puts the disjointness clauses into the disjointness classes
      */
     private void initializeDisjoints() {
-        for(int[] clause : basicClauseList.disjoints) {
+        /* for(int[] clause : basicClauseList.disjoints) {
             disjointnessClasses.addDisjointnessClause(clause);
-            integrateBasicDisjointnessClause(clause);}}
+            integrateBasicDisjointnessClause(clause);}
+            */
+
+    }
 
     /** This method puts the xor clauses into the disjointness classes and the clauses
      *
      * @throws Result if a contradiction occurs.
      */
     private void initializeXors() throws Result {
+        /*
         for(int[] basicClause : basicClauseList.xors) {
             disjointnessClasses.addDisjointnessClause(basicClause);
             integrateBasicDisjointnessClause(basicClause);
             Clause clause = new Clause(basicClause[0],basicClause);
             if(trackReasoning) clause.inferenceStep = new ClauseCopy(basicClause,clause);
-            integrateClause(clause);}}
+            integrateClause(clause);}
+            */
+            }
+
+
 
     /** This method puts the disjunctions clauses into the clauses
      *

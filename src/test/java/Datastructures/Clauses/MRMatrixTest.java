@@ -25,7 +25,7 @@ import static org.junit.Assert.*;
 
 public class MRMatrixTest {
 
-    
+    /*
     static StringBuffer errors = new StringBuffer();
     static StringBuffer warnings = new StringBuffer();
     boolean monitoring = true;
@@ -507,5 +507,5 @@ public class MRMatrixTest {
         assertEquals("[A-0: -1]",oneLitClauses.toString());
     }
     
-
+*/
     }

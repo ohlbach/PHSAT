@@ -177,10 +177,11 @@ public class ProblemSupervisor {
     /** sends the disjoints and xors into the corresponding class queues
      */
     private void initializeDisjoints() {
+        /*
         for(int[] basicClause : basicClauseList.disjoints) {
             disjointnessClasses.addDisjointnessClause(basicClause);}
         for(int[] basicClause : basicClauseList.xors) {
-            disjointnessClasses.addDisjointnessClause(basicClause);} }
+            disjointnessClasses.addDisjointnessClause(basicClause);} */}
 
 
     /** This method is called when a solver has found a new true literal.
