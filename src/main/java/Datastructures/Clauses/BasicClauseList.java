@@ -97,7 +97,7 @@ public class BasicClauseList {
             start = 3;
             if(clause[2] <= 0 || clause[2] > size-3) {
                 return "Illegal quantifier: " + clause[2];}}
-        for(int i = start; i < size-1; ++i) {
+        for(int i = start; i < size; ++i) {
             int literal = clause[i];
             if(literal == 0 || (predicates > 0 && Math.abs(literal) > predicates)) {
                 return "Literal " + literal + " is not within the predicate boundaries";}}
@@ -141,9 +141,26 @@ public class BasicClauseList {
      * @return true if all literals are true in the model.
      */
     public static boolean conjunctionIsFalse(int[] clause, Model model) {
-        for(int i = 2; i < clause.length; ++i) {if(model.isFalse(clause[i])) {return true;}}
+        for(int i = 2; i < clause.length; ++i) {if(!model.isTrue(clause[i])) {return true;}}
         return false;}
-
+    /** checks if an equivalence is false in a model
+     *
+     * @param clause an equivalence clause
+     * @param model a model
+     * @return true if not either all literals are true or all literals are false in the model.
+     */
+    public static boolean equivalenceIsFalse(int[] clause, Model model) {
+        assert ClauseType.getType(clause[1]) == ClauseType.EQUIV;
+        int size = clause.length;
+        int trueLiterals = 0;
+        int falseLiterals = 0;
+        for(int i = 2; i < size; ++i) {
+            switch(model.status(clause[i])) {
+                case +1: ++trueLiterals; break;
+                case -1: ++falseLiterals;}}
+        size -= 2;
+        if(trueLiterals == size || falseLiterals == size) return false;
+        return true;}
 
     /** checks if a atleast-clause is false in a model
      *
@@ -190,23 +207,7 @@ public class BasicClauseList {
             if(model.isTrue(clause[i])) ++trueLiterals;}
         return trueLiterals != n;}
 
-    /** checks if an equivalence is false in a model
-     *
-     * @param clause an equivalence clause
-     * @param model a model
-     * @return true if not either all literals are true or all literals are false in the model.
-     */
-    public static boolean equivalenceIsFalse(int[] clause, Model model) {
-        assert ClauseType.getType(clause[1]) == ClauseType.EQUIV;
-        int size = clause.length;
-        int trueLiterals = 0;
-        int falseLiterals = 0;
-        for(int i = 2; i < size; ++i) {
-            switch(model.status(clause[i])) {
-                case +1: ++trueLiterals; break;
-                case -1: ++falseLiterals;}}
-        size -= 2;
-        return (trueLiterals != size || falseLiterals != size);}
+
 
 
     /** adds some parameters to the statistics

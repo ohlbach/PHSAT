@@ -71,11 +71,12 @@ public class Model {
 
     /** adds a literal to the model with null inference step and null thread
      *
-     * @param literal a literal
+     * @param literals some literals
      * @throws Unsatisfiable if a contradiction is found.
      */
-    public synchronized void add(int literal) throws Unsatisfiable {
-        add(literal,null,null);}
+    public synchronized void add(int... literals) throws Unsatisfiable {
+        for(int literal : literals) {
+            add(literal,null,null);}}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
      * If the literal is new to the model then the observers from a thread different to the
