@@ -7,10 +7,7 @@ import Management.ProblemSupervisor;
 import Utilities.Utilities;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -21,6 +18,7 @@ import java.util.regex.PatternSyntaxException;
  * A standard cnf-file has the following structure:<br>
  * c comment<br>
  * c comment<br>
+ * % ignored lines
  * p cnf predicates clauses [symbolic]<br>
  * clause1 0 <br>
  * clause2 0 <br>
@@ -29,7 +27,7 @@ import java.util.regex.PatternSyntaxException;
  * <br>
  * An extension of this format may contain clauses beginning with special characters:.<br>
  *
- * 'o':  means or:           'o 3 4 5' stands for 3 or 4 or 5.<br>
+ * 'o':  means or:           'o 3 4 5' stands for 3 or 4 or 5.  (actually not necessary)<br>
  * 'a':  means and:          'a 3 4 5' stands for 3 and 4 and 5.<br>
  * 'e':  means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br>
  * '<=': means atleast:      '<= 2 p q r' means atleast two of p,q,r are true.<br>
@@ -40,8 +38,7 @@ public final class CNFReader {
 
     private static final HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
-        Collections.addAll(keys, "problem", "type", "file", "directory", "regExpr");
-    }
+        Collections.addAll(keys, "problem", "type", "file", "directory", "regExpr");}
 
     /** parses a HashMap with key-value pairs:<br>
      * file: a comma separated list of pathnames<br>
@@ -120,6 +117,7 @@ public final class CNFReader {
                 "A standard cnf-file has the following structure:\n" +
                 " c comment\n" +
                 " c comment\n" +
+                " % ignored lines\n"+
                 " p cnf predicates clauses [symbolic]\n" +
                 " clause1 0\n" +
                 " clause2 0\n" +
@@ -128,19 +126,19 @@ public final class CNFReader {
                 " \n" +
                 " An extension of this format may contain clauses beginning with special characters:.\n" +
                 " 'a':  means and:         'a 3 4 5' stands for 3 and 4 and 5.\n" +
-                " 'o':  means or:          'o 3 4 5' stands for 3 or 4 or 5.\n" +
+                " 'o':  means or:          'o 3 4 5' stands for 3 or 4 or 5.  (actually not necessary)\n" +
                 " 'e':  means equivalence: 'e 4 5 -6' means that these three literals are equivalent.\n" +
                 " '<=': means atleast:     '<= 2 p q r' means atleast two of p,q,r are true.\n" +
                 " '>=': means atmost:      '>= 2 p q r' means atmost two of p,q,r are true.\n" +
-                " '=':  means exactly:     '= 2 p q r' means exactly two of p,q,r are true.\n";
+                " '=':  means exactly:     '= 2 p q r'  means exactly two of p,q,r are true.\n";
     }
 
     /** reads the cnf-file
      *
      * @param parameters a HashMap with key "file"
      * @param errors    for error massages
-     * @param warnings  for warnings
-     * @return  the new clauses
+     * @param warnings  for warnings (not used here)
+     * @return  null or the new clauses
      */
     public static BasicClauseList generate(HashMap<String,Object> parameters,
                                            ProblemSupervisor problemSupervisor,
@@ -148,6 +146,7 @@ public final class CNFReader {
         StringBuilder info = new StringBuilder();
         File file = (File)parameters.get("file");
         String filename = file.getName();
+        info.append("File ").append(filename).append("\n");
         String place =  "CNFReader: File " + filename+": ";
         String prefix = "          ";
         BufferedReader reader;
@@ -213,19 +212,20 @@ public final class CNFReader {
                 default: typnumber = ClauseType.OR.ordinal(); startParts = 0; break;}
             boolean isNumeric = ClauseType.isNumericType(typnumber);
 
-            int length = parts.length + 1 + (isNumeric ? 1 : 0);
             int literalCounter = 1;
-            int[] clause = new int[length];
-            clause[0] = problemSupervisor.nextClauseId();
-            clause[1] = typnumber;
+            Integer n = null;
             if(isNumeric) {
-                Integer n = Utilities.parseInteger (place + "line " + lineNumber +": ",parts[1],errors);
+                n = Utilities.parseInteger (place + "line " + lineNumber +": ",parts[1],errors);
                 if(n == null) {errors.append("\n"); continue;}
                 if(n < 1) {
                     errors.append(place + "line " + lineNumber  + ": '" + line + "' quantifier >= 1 required\n");
                     continue;}
-                literalCounter = 2;
-                clause[2] = n;}
+                startParts = 2;
+                literalCounter = 2;}
+            int [] clause = new int[parts.length-startParts+ (isNumeric ? 2 : 1)];
+            clause[0] = problemSupervisor.nextClauseId();
+            clause[1] = typnumber;
+            if(n != null) clause[2] = n;
 
             for(int i = startParts; i < parts.length-1; ++i) {
                 String part = parts[i];
@@ -249,13 +249,14 @@ public final class CNFReader {
                         clause[++literalCounter] = literal;}
                     else {errors.append("\n"); literalCounter = 0; break;}}}
             if(literalCounter == 0) continue;
-            bcl.addClause(clause);}
-        errors.append(bcl.syntaxErrors.toString());
+            String error = bcl.addClause(clause);
+            if(error != null) errors.append(place + "line " + lineNumber + " '"+  line + "' "+error);
+        }
         bcl.info = info.toString();}
         catch(IOException ex) {
             errors.append(place + " IOException\n");
             return null;}
-        return  bcl;}
+        return bcl;}
 
 
 }

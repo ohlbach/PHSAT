@@ -21,7 +21,7 @@ public class CNFReaderTest {
 
     @Test
     public void help() throws Exception {
-        //System.out.println(CNFReader.help());
+        System.out.println(CNFReader.help());
     }
 
     @Test
@@ -227,7 +227,7 @@ public class CNFReaderTest {
         ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals(1,pars.size());
         BasicClauseList bcl = CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings);
-        assertEquals("CNFReader: File test.cnf: 'p' is no integer",errors.toString());
+        assertEquals("CNFReader: File test.cnf: line 4: 'p' is no integer\n",errors.toString());
     }
 
     @Test
@@ -354,51 +354,71 @@ public class CNFReaderTest {
         assertEquals(1,pars.size());
         BasicClauseList bcl = CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings);
         assertEquals("",errors.toString());
-        System.out.println( bcl.toString());
-        assertEquals(" test1\n test2\n",bcl.info);
+        assertEquals("File test.cnf\n" +
+                " test1\n" +
+                " test2\n",bcl.info);
+        assertEquals("File test.cnf\n"+" test1\n test2\n\n"+
+                "Disjunctions:\n" +
+                "   1 : 1,-5,3\n" +
+                "   2 : -5,7,1,1\n" +
+                "   3 : 4,5,6\n" +
+                "Conjunctions:\n" +
+                "   4 : 4&-5\n" +
+                "Equivalences:\n" +
+                "   5 : 5=2\n" +
+                "Atleast:\n" +
+                "   6 : ATLEAST 2 1,2,3\n" +
+                "Atmost:\n" +
+                "   7 : ATMOST 3 4,5,6,7\n" +
+                "Exactly:\n" +
+                "   8 : EXACTLY 2 -2,-4,5\n", bcl.toString());
 
     }
 
     @Test
-    public void generate2() {
-        System.out.println("generate mixed");
+    public void generateSymbolically() {
+        System.out.println("generate symbolically");
+
         ProblemSupervisor problemSupervisor = prepare();
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         String cnf = "c test1\n" +
                 "c test2\n" +
-                "p cnf 10 5\n" +
-                "1 -5 3 0\n"+
-                "-5 7 1 1 0\n" +
-                "a 4 5 6 0\n" +
-                "x 4 0\n" +
-                "d 1 2 3 0\n" +
-                "e 1 2 3 0";
+                "% test3\n" +
+                "p cnf 10 5 symbolic\n" +
+                "1 -a b 0\n"+
+                "-e c d a a 0\n" +
+                "o e f -b 0\n" +
+                "a f -f 0\n" +
+                "e g c 0\n" +
+                "<= 2 a,b,c 0\n" +
+                ">= 3 d,e,f 0\n" +
+                "= 2 -a,-b,-c 0";
         HashMap<String,String> parameters = new HashMap<>();
-        File file = Utilities.writeTmpFile("CNFReader4", "test.cnf", cnf);
+        File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
         parameters.put("file",file.getAbsolutePath());
         ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
         assertEquals(1,pars.size());
-        BasicClauseList bcl =  CNFReader.generate(pars.get(0),problemSupervisor, errors,warnings);
-        file.delete();
+        BasicClauseList bcl = CNFReader.generate(pars.get(0),problemSupervisor,errors,warnings);
         assertEquals("",errors.toString());
-        //System.out.println(pars.get(0).get("disjunctions"));
-        assertEquals(" test1\n" +
-                " test2\n" +
-                "\n" +
+        assertEquals("File test.cnf\n test1\n test2\n",bcl.info);
+        assertEquals("File test.cnf\n"+" test1\n" +
+                " test2\n\n"+
                 "Disjunctions:\n" +
-                "1 : 1 | -5 | 3\n" +
-                "2 : -5 | 7 | 1 | 1\n" +
+                "   1 : 1,-a,b\n" +
+                "   2 : -e,c,d,a,a\n" +
+                "   3 : e,f,-b\n" +
                 "Conjunctions:\n" +
-                "3 : 4 & 5 & 6\n" +
-                "Xor:\n" +
-                "4 : 4\n" +
-                "Disjoints:\n" +
-                "5 : 1 /= 2 /= 3\n" +
+                "   4 : f&-f\n" +
                 "Equivalences:\n" +
-                "6 : 1 = 2 = 3\n",bcl.toString());
-        assertEquals(" test1\n test2\n",bcl.info);
-
+                "   5 : g=c\n" +
+                "Atleast:\n" +
+                "   6 : ATLEAST 2 a,b,c\n" +
+                "Atmost:\n" +
+                "   7 : ATMOST 3 d,e,f\n" +
+                "Exactly:\n" +
+                "   8 : EXACTLY 2 -a,-b,-c\n", bcl.toString());
     }
+
 
 }

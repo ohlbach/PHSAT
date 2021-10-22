@@ -69,6 +69,13 @@ public class Model {
     public synchronized void addObserver(Thread thread, BiConsumer<Integer, InferenceStep> observer) {
         observers.add(new Pair<>(thread, observer));}
 
+    /** adds a literal to the model with null inference step and null thread
+     *
+     * @param literal a literal
+     * @throws Unsatisfiable if a contradiction is found.
+     */
+    public synchronized void add(int literal) throws Unsatisfiable {
+        add(literal,null,null);}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
      * If the literal is new to the model then the observers from a thread different to the

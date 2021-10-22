@@ -22,7 +22,7 @@ public enum ClauseType {
         this.prefix = prefix;}
 
     public static ClauseType getType(int n) {
-        assert n >= 0 && n < 5;
+        assert n >= 0 && n < 6;
         switch(n) {
             case 0: return OR;
             case 1: return AND;

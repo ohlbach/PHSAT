@@ -14,20 +14,22 @@ import java.util.Arrays;
  * This class contains just the absolutely essential information about clauses.<br>
  * The clauses should be the original clauses from the clause source and must not be changed.<br>
  * They are used to check a candidate model against the original clause set.<br>
- * A clause is an integer-array [clause-number,clause-type,literal1,...]<br>
+ * A clause is an integer-array [clause-number,clause-type,[quantifier],literal1,...]<br>
  * The clause types are: <br>
- * '0': means disjunction:  '0 1 3 5'  means 1 or 3 or 5<br>
- * '1': means and:          '1 3 4 5'  stands for 3 and 4 and 5.<br>
- * '2': means exclusive-or: '2 3 4 5'  means 3 xor 4 xor 5 (exactly one of them must be true).<br>
- * '3': means disjoints   : '3 4 5 -6' means 4,5,-6 are disjoint literals (at most one of them can be true).<br>
- * '4': means equivalences: '4 4 5 -6' means that these three literals are equivalent.
- * <br>
- *  Clauses with double literals or complementary literals are considered syntactically wrong,
- *  and not added to the lists..
+ * '0': means disjunction:  '0 1 3 5'    means 1 or 3 or 5<br>
+ * '1': means and:          '1 3 4 5'    stands for 3 and 4 and 5.<br>
+ * '2': means equivalences: '2 4 5 -6'   means that these three literals are equivalent. <br>
+ * '3': means atleast:      '3 2 4 5 6'  means atleast 2 of 4,5,6 are true <br>
+ * '4': means atmost:       '4 2 4 5 6'  means atmost 2 of 4,5,6 are true <br>
+ * '5': means exactly:      '5 2 4 5 6'  means exactly 2 of 4,5,6 are true
  */
 public class BasicClauseList {
+    /** the maximum number of predicates */
     public int predicates = 0;
-
+    /** the largest clause length */
+    public int maxClauseLength = 0;
+    /** null or a symboltable */
+    public Symboltable symboltable = null;
     /** the original disjunctions */
     public ArrayList<int[]> disjunctions  = new ArrayList<>();
     /** the original conjunctions */
@@ -41,59 +43,41 @@ public class BasicClauseList {
     /** the original exactlys */
     public ArrayList<int[]> exactlys      = new ArrayList<>();
 
-
     /** an info-string about the origin of the clauses */
     public String info = null;
 
-    /** the largest clause length */
-    public int maxClauseLength = 0;
-
-    /** the largest clause index */
-    public int maxIndex = 0;
-
-    /** is set in the generators */
-    public Symboltable symboltable = null;
-
-    public StringBuffer syntaxErrors = new StringBuffer();
-
-    public boolean isNumericClause(int[] clause) {
-        return ClauseType.isNumericType(clause[1]);}
-
     /** adds the clauses to the corresponding lists.
-     * If a clause is syntactically wrong, error messages are appended to syntaxErrors.
-     * Double literals and complementary literals, although logically okay
-     * also count as syntactic errors (very likely this was not intended).
-     * These clauses are not added to the lists.
      *
      * @param clauses a list of clauses
+     * @return null or an error string if clauses are syntactically wrong.
      */
-    public void addClauses(int[]... clauses) {
-        for(int[] clause : clauses) {addClause(clause);}}
+    public String addClauses(int[]... clauses) {
+        StringBuilder errors = new StringBuilder();
+        for (int[] clause : clauses) {
+            String error = addClause(clause);
+            if (error != null)
+                errors.append(Arrays.toString(clause)).append(":").append(error).append("\n");}
+        return errors.length() == 0 ? null : errors.toString();}
 
 
     /** adds a clause to the corresponding lists.
-     * If the clause is syntactically wrong, error messages are appended to syntaxErrors.
-     * Double literals and complementary literals, although logically okay
-     * also count as syntactic errors (very likely this was not intended).
-     * These clauses are not added to the lists.
+     *  Erroneous clauses are not added to the lists
      *
      * @param clause a clause
+     * @return null or an error string
      */
-    public void addClause(int[] clause) {
-        if(!checkSyntax(clause)) {return;}
-        maxClauseLength = Math.max(maxClauseLength,clause.length-2);
-        maxIndex        = Math.max(clause[0],maxIndex);
+    public String addClause(int[] clause) {
+        String errors = checkSyntax(clause);
+        if(errors != null) return errors;
+        maxClauseLength = Math.max(maxClauseLength,clause.length - (ClauseType.isNumericType(clause[1]) ? 3 : 2));
         switch(ClauseType.getType(clause[1])) {
-            case OR:
-                if(clause.length == 3) {
-                    clause[1] = ClauseType.AND.ordinal();
-                    conjunctions.add(clause);}
-                else disjunctions.add(clause);       break;
+            case OR:       disjunctions.add(clause); break;
             case AND:      conjunctions.add(clause); break;
             case EQUIV:    equivalences.add(clause); break;
             case ATLEAST:  atleasts.add(clause);     break;
             case ATMOST:   atmosts.add(clause);      break;
             case EXACTLY:  exactlys.add(clause);     break;}
+        return null;
     }
 
     /** checks the clause's syntax.
@@ -103,29 +87,21 @@ public class BasicClauseList {
      * @param clause the clause to be checked
      * @return true if there is no syntax error.
      */
-    private boolean checkSyntax(int[] clause) {
+    private String checkSyntax(int[] clause) {
         int type = clause[1];
-        if(type < 0 || type > 5) {
-            syntaxErrors.append("Clause '").append(Arrays.toString(clause)).
-                    append("' contains illegal type ").append(type).append(".\n");
-            return false;}
+        if(type < 0 || type > 5) {return "Illegal type :"+type;}
         int start = 2;
         boolean isNumeric = ClauseType.isNumericType(type);
         int size = clause.length;
         if(isNumeric) {
             start = 3;
-            if(clause[2] <= 0 || clause[2] > size-3)
-                syntaxErrors.append("Clause '").append(clauseToString(0, clause, symboltable)).
-                append("' contains illegal number: ").append(clause[2]);
-            return false;}
+            if(clause[2] <= 0 || clause[2] > size-3) {
+                return "Illegal quantifier: " + clause[2];}}
         for(int i = start; i < size-1; ++i) {
             int literal = clause[i];
             if(literal == 0 || (predicates > 0 && Math.abs(literal) > predicates)) {
-                syntaxErrors.append("Clause '").append(clauseToString(0, clause, symboltable)).
-                        append("' contains illegal literal ").append(literal).
-                        append(".\n");
-                return false;}}
-        return true; }
+                return "Literal " + literal + " is not within the predicate boundaries";}}
+        return null; }
 
 
     /** computes a list of clauses which are false in a model.
@@ -287,15 +263,14 @@ public class BasicClauseList {
      * @return  a string representation of the clause.
      */
     public String toString() {
-        return toString(true);}
+        return toString(symboltable);}
 
     /** generates a string representation of the clause
      *
-     * @param withSymboltable if the symboltable is to be used
+     * @param symboltable null or a symboltable
      * @return  a string representation of the disjunctions.
      */
-    public String toString(boolean withSymboltable) {
-        Symboltable symboltable = withSymboltable ? this.symboltable : null;
+    public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         if(info != null) {st.append(info).append("\n");}
         int size = (""+(disjunctions.size() + conjunctions.size()  +equivalences.size()) +

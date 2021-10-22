@@ -12,7 +12,7 @@ import static org.junit.Assert.*;
  * Created by Ohlbach on 03.09.2018.
  */
 public class BasicClauseListTest {
-    /**
+
     @Test
     public void disjunctions() throws Exception {
         System.out.println("disjunctions");
@@ -22,16 +22,16 @@ public class BasicClauseListTest {
         clauses.addClause(clause1);
         clauses.addClause(clause2);
         assertEquals("Disjunctions:\n" +
-                "1 : 3 | -2 | 1\n" +
-                "2 : -3 | 1 | 2\n",clauses.toString());
+                "   1 : 3,-2,1\n" +
+                "   2 : -3,1,2\n",clauses.toString());
 
-        Model model = new Model(10,null,false);
+        Model model = new Model(10,null);
         model.add(-2); model.add(-1); model.add(3);
-        ArrayList<int[]> falseClauses = clauses.notTrueClausesInModel(model);
+        ArrayList<int[]> falseClauses = clauses.falseClausesInModel(model);
         assertEquals(1,falseClauses.size());
         assertEquals(clause2,falseClauses.get(0));
     }
-
+/**
     @Test
     public void conjunctions() throws Exception {
         System.out.println("conjunctions");

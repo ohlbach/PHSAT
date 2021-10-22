@@ -35,7 +35,7 @@ public class StringClauseSetGeneratorTest {
                 "-p,q\n" +
                 "Disjunctions:\n" +
                 "1 : p | q\n" +
-                "2 : -p | q\n", bcl.toString(true));
+                "2 : -p | q\n", bcl.toString());
     }
 
     @Test
@@ -69,7 +69,7 @@ public class StringClauseSetGeneratorTest {
                 "Disjoints:\n" +
                 "6 : q /= a\n" +
                 "Equivalences:\n" +
-                "5 : p = s\n", result.toString(true));
+                "5 : p = s\n", result.toString());
 
     }
 
