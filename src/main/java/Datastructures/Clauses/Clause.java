@@ -13,7 +13,7 @@ import java.util.*;
 import static Utilities.Utilities.sortIntArray;
 
 /** A clause is just a list of CLiterals.
- * It may represent disjunctions, conjunctions or any other logical list structure.
+ * It may represent clauses of type OR, AND, EQUIV, ATLEAST, ATMOST or EXACTLY
  *
  * Created by ohlbach on 13.09.2018.
  */
@@ -22,6 +22,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public int id;
     /** OR,DISJOINT, ... */
     public ClauseType clauseType;
+    /** for numeric types (atleast, atmost, exactly)*/
+    public int quantifier = 0;
     /** the literals */
     public ArrayList<CLiteral> cliterals;
     /** indicates that the clause has been removed */
@@ -68,8 +70,26 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param literals the list of literals
      */
     public Clause(int id, ClauseType clauseType, IntArrayList literals) {
+        assert !clauseType.isNumeric();
         this.id = id;
         this.clauseType = clauseType;
+        cliterals = new ArrayList<>(literals.size());
+        for(int i = 0; i < literals.size(); ++i) {
+            cliterals.add(new CLiteral(literals.getInt(i),this,i));}
+        inferenceStep = new Input(id);
+        setStructure();}
+
+    /** constructs a new clause with given literals
+     *
+     * @param id        the id of the new clause
+     * @param clauseType  a clause's type
+     * @param quantifier a quantifier for the clause (if its numeric)
+     * @param literals the list of literals
+     */
+    public Clause(int id, ClauseType clauseType, int quantifier, IntArrayList literals) {
+        this.id = id;
+        this.clauseType = clauseType;
+        this.quantifier = clauseType.isNumeric() ? quantifier : 0;
         cliterals = new ArrayList<>(literals.size());
         for(int i = 0; i < literals.size(); ++i) {
             cliterals.add(new CLiteral(literals.getInt(i),this,i));}
@@ -91,37 +111,78 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         inferenceStep = new Input(id);
         setStructure();}
 
+    /** constructs a new clause with given literals
+     * Notice that the quantifier is set to 0 if the clause type is not numeric
+     *
+     * @param id        the id of the new clause
+     * @param clauseType  the clause's type
+     * @param quantifier for numeric clause types
+     * @param cLiterals the list of CLiterals
+     */
+    public Clause(int id, ClauseType clauseType, int quantifier, ArrayList<CLiteral> cLiterals) {
+        this.id = id;
+        this.clauseType = clauseType;
+        this.quantifier = clauseType.isNumeric() ? quantifier : 0;
+        for(int i = 0; i < cLiterals.size(); ++i) {
+            cLiterals.get(i).setClause(this,i);}
+        cliterals = cLiterals;
+        inferenceStep = new Input(id);
+        setStructure();}
 
-    /** generates a clause from a basicClause (which should be a disjunction)
-     * double literals are removed
-     * complementary literals cause the structure to be TAUTOLOGY
+    /** generates a clause from a basicClause
      *
      * @param id           the name of the clause
      * @param basicClause  a basic clause [number,type,literal1,...]
      */
-    public Clause(int id, int[] basicClause) {
+    public Clause(int id, int[] basicClause) {   // depricated
         this.id = id;
-        clauseType = ClauseType.getType(basicClause[1]);
+        int typenumber = basicClause[1];
+        clauseType = ClauseType.getType(typenumber);
+        int start = 2;
+        int shift = 2;
+        if(ClauseType.isNumeric(typenumber)) {start = 3; shift = 3; quantifier = basicClause[2];}
         int length = basicClause.length;
-        cliterals = new ArrayList<>(length-2);
-        for(int i = 2; i < length; ++i) {
+        cliterals = new ArrayList<>(length - shift);
+        for(int i = start; i < length; ++i) {
             int literal = basicClause[i];
             cliterals.add(new CLiteral(literal,this,cliterals.size()));}
         inferenceStep = new Input(id);
         setStructure();}
 
-    /** creates a new clause with the two literals
+    /** generates a clause from a basicClause
+     * The new clause gets the same id as the basic clause
      *
-     * @param id       the new id
+     * @param basicClause  a basic clause [id,typenumber, [quantifier], literal1,...]
+     */
+    public Clause(int[] basicClause) {
+        id = basicClause[0];
+        int typenumber = basicClause[1];
+        clauseType = ClauseType.getType(typenumber);
+        int start = 2;
+        int shift = 2;
+        if(ClauseType.isNumeric(typenumber)) {start = 3; shift = 3; quantifier = basicClause[2];}
+        int length = basicClause.length;
+        cliterals = new ArrayList<>(length - shift);
+        for(int i = start; i < length; ++i) {
+            int literal = basicClause[i];
+            cliterals.add(new CLiteral(literal,this,cliterals.size()));}
+        inferenceStep = new Input(id);
+        setStructure();}
+
+    /** creates a new clause with the given literals
+     *
+     * @param id          the new id
      * @param clauseType  the clause's type
-     * @param literals a list of literals
+     * @param literals    [quantifier] a list of literals
      */
     public Clause(int id, ClauseType clauseType, int... literals) {
         this.id = id;
+        int start = 0;
+        if(clauseType.isNumeric()) {quantifier = literals[0]; start = 1;}
         this.clauseType = clauseType;
         cliterals = new ArrayList<>(literals.length);
-        for(int i = 0; i< literals.length; ++i) {
-            cliterals.add(new CLiteral(literals[i],this,i));}
+        for(int i = start; i< literals.length; ++i) {
+            cliterals.add(new CLiteral(literals[i],this,i-start));}
         inferenceStep = new Input(id);
         setStructure();}
 
@@ -133,6 +194,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public Clause clone(int id) {
         Clause clause = new Clause(id,this.clauseType);
+        clause.quantifier = quantifier;
         for(CLiteral cLiteral : cliterals) {clause.add(cLiteral.literal);}
         return clause;}
 
@@ -145,6 +207,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public Clause clone(int id, int ignorePosition) {
         Clause clause = new Clause(id,this.clauseType);
+        clause.quantifier = quantifier;
         for(int i = 0; i < size(); ++i) {
             if(i != ignorePosition) {clause.add(getLiteral(i));}}
         return clause;}
@@ -157,13 +220,13 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public Clause cloneExcept(int id, int ignoreLiteral) {
         Clause clause = new Clause(id,this.clauseType);
+        clause.quantifier = quantifier;
         for(int i = 0; i < size(); ++i) {
             int literal = getLiteral(i);
             if(literal != ignoreLiteral) {clause.add(literal);}}
         return clause;}
 
-
-    /** checks if the clause is positive, negative or mixed and sets the corresponding value for the structure.
+    /** checks if the clause is positive, negative or mixed and returns the corresponding value for the structure.
      */
     public ClauseStructure getStructure() {
         int positive = 0;
@@ -175,9 +238,10 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         else {if(negative == 0) {structure =  ClauseStructure.POSITIVE;}}
         return structure;}
 
+    /** computes and sets the structure of the clause
+     */
     public void setStructure() {
         structure = getStructure();}
-
 
     /** returns the list position, or -1
      *
@@ -191,11 +255,10 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public void setPosition(int position) {listPosition = position;}
 
-
-        /** return the current number of literals
-         *
-         * @return the current number of literals
-         */
+    /** return the current number of literals
+     *
+     * @return the current number of literals
+     */
     public int size() {return cliterals.size();}
 
     /** checks if the clause is empty
@@ -257,21 +320,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(lit == -literal) {return -1;}}
         return 0;}
 
-    /** checks if the literal is in the clause (except cliteral)
-     *
-     * @param literal a literal
-     * @param ignore  a cLiteral to be ignored.
-     * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
-     */
-    public int contains(int literal, CLiteral ignore) {
-        for(CLiteral cLiteral : this) {
-            if(cLiteral == ignore) continue;
-            int lit = cLiteral.literal;
-            if(lit ==  literal) {return +1;}
-            if(lit == -literal) {return -1;}}
-        return 0;}
-
-
     /** adds a cliteral to the end of the clause, without checking for double literals and tautologies.
      *
      * @param cliteral the literal to be added.
@@ -291,7 +339,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         CLiteral cliteral = new CLiteral(literal,this,position);
         cliterals.add(cliteral);
         setStructure();}
-
 
     /** removes a cliteral from the clause.
      *
@@ -314,13 +361,27 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         cliterals.remove(size-1);
         setStructure();}
 
+    /** checks if the literal is in the clause (except cliteral)
+     *
+     * @param literal a literal
+     * @param ignore  a cLiteral to be ignored.
+     * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
+     */
+    public int contains(int literal, CLiteral ignore) {
+        for(CLiteral cLiteral : this) {
+            if(cLiteral == ignore) continue;
+            int lit = cLiteral.literal;
+            if(lit ==  literal) {return +1;}
+            if(lit == -literal) {return -1;}}
+        return 0;}
 
     /** checks if the literals in this occur in clause2
      *
      * @param clause2 any other clause
-     * @return true if the literals in this, except cLiteral also occur in clause2
+     * @return true if the literals in this also occur in clause2
      */
     public boolean isSubset(Clause clause2) {
+        if(clauseType != clause2.clauseType) return false;
         for(CLiteral cl : cliterals) {
             if(clause2.contains(cl.literal) <= 0) {return false;}}
         return true;}
@@ -364,7 +425,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                     doubles = true;}}}
         return doubles;}
 
-
     /** sets the removed flag
      */
     public synchronized void setRemoved() {
@@ -377,14 +437,13 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public synchronized boolean isRemoved() {
         return removed;}
 
-
-
     /** checks if the two clauses overlap.
      *
      * @param clause a clause
-     * @return +1 if they overlap with a literal, -1 if they overlap complementary, otherwise 0
+     * @return [+1,literal] if they overlap with a literal, [-1,literal] if they overlap complementary, otherwise null
      */
     public int[] overlaps(Clause clause) {
+        if(clauseType != clause.clauseType) return null;
         for(CLiteral cLiteral1 : this) {
             int literal1 =cLiteral1.literal;
             for(CLiteral cLiteral2 : clause) {
@@ -392,20 +451,12 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 if(cLiteral2.literal == -literal1) return new int[]{-1,literal1};}}
         return null;}
 
-    /** removes from an array of clauses all removed clauses
+    /** returns the type-prefix with the clause id
      *
-     * @param clauses an array of clauses
-     * @return an array of clauses with the removed clauses removed.
+     * @return the type-prefix with the clause id
      */
-    public static Clause[] removeRemovedClauses(Clause[] clauses) {
-        int removed = 0;
-        for(Clause clause : clauses) {if(clause.isRemoved()) ++removed;}
-        if(removed == 0) return clauses;
-        Clause[] newClauses = new Clause[clauses.length-removed];
-        int i = 0;
-        for(Clause clause : clauses) {
-            if(!clause.isRemoved()) newClauses[i++] = clause;}
-        return newClauses;}
+    public String getName() {
+        return clauseType.prefix+id;}
 
     /** computes the maximum width of the clause ids.
      *
@@ -415,7 +466,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public static int clauseNameWidth(Clause[] clauses) {
         int width = 0;
         for(Clause clause : clauses) {
-            width = Math.max(width,Integer.toString(clause.id).length());}
+            width = Math.max(width,clause.getName().length());}
         return width;}
 
     /** generates a string: clause-number: literals
@@ -432,7 +483,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public String toNumbers() {
         return toString(0,null);}
 
-
     /** generates a string: clause-number: literals
      *
      * @param width: 0 or the width of the id-part.
@@ -443,8 +493,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         StringBuilder st = new StringBuilder();
         if(width > 0) {
             Formatter format = new Formatter(st, Locale.GERMANY);
-            format.format("%-"+(width+clauseType.prefix.length())+"s", clauseType.prefix+id+":");}
+            format.format("%-"+(width+clauseType.prefix.length())+"s", getName()+":");}
         else st.append(clauseType.prefix+id+": ");
+        if(clauseType.isNumeric()) st.append(clauseType.toString() + " " + quantifier + ": ");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(cliterals.get(position).literal,symboltable));
@@ -472,33 +523,41 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
 
 
     /** checks the clause and its literals for consistency.
-     * If an inconsistency is detected then an error message is printed and the entire system stops.
+     * Error messages are put into the StringBuilder
+     *
+     * @return true if the clause is okay
      */
-    public void check() {
-        if(removed) {return;}
+    public boolean check(StringBuilder errors) {
+        if(removed) {return true;}
+        String prefix = "Clause " + id + ": ";
+        boolean okay = true;
+
+        if(clauseType.isNumeric() && (quantifier <= 0 || quantifier > size())) {
+            errors.append(prefix).append("Quantifier " + quantifier + " is not between 1 and " + size()+"\n");
+            okay = false;}
+
         for(int i = 0; i < cliterals.size(); ++i) {
             CLiteral cliteral = cliterals.get(i);
             Clause clause = cliteral.clause;
             if(clause == null) {
-                System.out.println("Error in Clause.check: clause" + id + ", literal " +
-                        cliteral.literal + " has no clause");
-                System.exit(1);}
-            if(clause != this) {
-                System.out.println("Error in Clause.check: clause" + id + ", literal " +
-                        cliteral.literal + " has a different clause " + clause.id);
-                System.exit(1);}
+                errors.append(prefix).append("Literal " + cliteral.literal + " has no clause");
+                okay = false;}
+            else {
+                if(clause != this) {
+                    errors.append(prefix).append("Literal " + cliteral.literal + " has a different clause " + clause.id + "\n");
+                    okay = false;}}
             if(cliteral.clausePosition != i) {
-                System.out.println("Error in Clause.check: clause" + id + ", literal " +
-                        cliteral.literal + " has wrong position " + cliteral.clausePosition);
-                System.exit(1);}}
+                errors.append(prefix).append("Literal " + cliteral.literal +
+                        " has wrong position " + cliteral.clausePosition + " instead of " + i + "\n");
+                okay = false;}}
 
-        if(structure == null) {
-            System.out.println("Error in Clause.check: clause" + id + " has no structure");
-            System.exit(1);}
-
-        if(structure != getStructure()) {
-            System.out.println("Error in Clause.check: clause" + id + " has wrong structure: " + structure.toString());
-            System.exit(1);}
-        }
+        if(structure == null) {errors.append(prefix).append("Clause has no structure\n");}
+        else {
+            ClauseStructure struc = getStructure();
+            if(structure != struc) {
+                errors.append(prefix).append("Clause has wrong structure: " + structure.toString() +
+                        ", and not " + struc.toString() + "\n");
+                okay = false;}}
+        return okay;}
 
 }

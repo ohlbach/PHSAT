@@ -50,7 +50,8 @@ public final class CNFReader {
      * @param warnings    for warnings
      * @return            a list of HashMaps with key "file" and value the corresponding File object, and 'name' with the filename
      */
-    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
+                                                                    StringBuilder errors, StringBuilder warnings){
         for(String key : parameters.keySet()) {
             if(!keys.contains(key)) {warnings.append("CNFReader: unknown key in parameters: " + key + "\n");}}
 
@@ -130,7 +131,9 @@ public final class CNFReader {
                 " 'e':  means equivalence: 'e 4 5 -6' means that these three literals are equivalent.\n" +
                 " '<=': means atleast:     '<= 2 p q r' means atleast two of p,q,r are true.\n" +
                 " '>=': means atmost:      '>= 2 p q r' means atmost two of p,q,r are true.\n" +
-                " '=':  means exactly:     '= 2 p q r'  means exactly two of p,q,r are true.\n";
+                " '=':  means exactly:     '= 2 p q r'  means exactly two of p,q,r are true.\n\n" +
+                "Double literals are automatically removed.\n"+
+                "A corresponding warning is add to the warnings string.";
     }
 
     /** reads the cnf-file
@@ -142,7 +145,7 @@ public final class CNFReader {
      */
     public static BasicClauseList generate(HashMap<String,Object> parameters,
                                            ProblemSupervisor problemSupervisor,
-                                           StringBuffer errors, StringBuffer warnings) {
+                                           StringBuilder errors, StringBuilder warnings) {
         StringBuilder info = new StringBuilder();
         File file = (File)parameters.get("file");
         String filename = file.getName();
@@ -210,7 +213,7 @@ public final class CNFReader {
                 case '>': typnumber = ClauseType.ATMOST.ordinal();       break;
                 case '=': typnumber = ClauseType.EXACTLY.ordinal();      break;
                 default: typnumber = ClauseType.OR.ordinal(); startParts = 0; break;}
-            boolean isNumeric = ClauseType.isNumericType(typnumber);
+            boolean isNumeric = ClauseType.isNumeric(typnumber);
 
             int literalCounter = 1;
             Integer n = null;
@@ -249,12 +252,11 @@ public final class CNFReader {
                         clause[++literalCounter] = literal;}
                     else {errors.append("\n"); literalCounter = 0; break;}}}
             if(literalCounter == 0) continue;
-            String error = bcl.addClause(clause);
-            if(error != null) errors.append(place + "line " + lineNumber + " '"+  line + "' "+error);
+            bcl.addClause(clause, place + "line "+ lineNumber + ": ",errors,warnings);
         }
         bcl.info = info.toString();}
         catch(IOException ex) {
-            errors.append(place + " IOException\n");
+            errors.append(place + " IOException\n" +ex);
             return null;}
         return bcl;}
 

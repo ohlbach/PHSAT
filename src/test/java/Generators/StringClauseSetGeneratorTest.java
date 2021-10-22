@@ -20,8 +20,8 @@ public class StringClauseSetGeneratorTest {
     @Test
     public void generate1() throws Exception {
         System.out.println("generate 1");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String clauses =
                 "p,q\n" +
                 "-p,q";
@@ -41,8 +41,8 @@ public class StringClauseSetGeneratorTest {
     @Test
     public void generate2() throws Exception {
         System.out.println("generate complex");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String clauses =
                         "p q\n" +
                         "-p q\n" +

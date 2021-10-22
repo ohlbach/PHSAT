@@ -55,7 +55,7 @@ public final class RandomClauseSetGenerator {
      * @param warnings  for reporting warnings
      * @return an ArrayList of HashMaps with the translated parameters.
      */
-    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuilder errors, StringBuilder warnings){
         for(String key : parameters.keySet()) {
             if(!keys.contains(key)) {warnings.append("RandomClauseSetGenerator: unknown key in parameters: " + key + "\n");}}
 
@@ -235,7 +235,7 @@ public final class RandomClauseSetGenerator {
      * @param warnings for warnings
      * @return  the generated BasicClauseList
      */
-    public static BasicClauseList generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
+    public static BasicClauseList generate(HashMap<String,Object> parameters, StringBuilder errors, StringBuilder warnings) {
         int seed            = (Integer)parameters.get("seed");
         int predicates      = (Integer)parameters.get("predicates");
         int numberClauses   = (Integer)parameters.get("disjunctions");
@@ -274,7 +274,7 @@ public final class RandomClauseSetGenerator {
             lits[0] = ++clauseCounter;
             lits[1] = ClauseType.OR.ordinal();
             for(int i = 0; i < literals.size(); ++i) {lits[i+2] = literals.get(i);}
-            clauseList.addClause(lits);}
+            clauseList.addClause(lits,"",errors,warnings);}
 
         /*
         if(dBlocks != null) {
@@ -288,6 +288,8 @@ public final class RandomClauseSetGenerator {
 
     private static int addClauses(int predicates, ClauseType type, BasicClauseList clauseList,
                                   int clauseCounter, int blocks, int length, Random rnd) {
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         HashSet<Integer> preds = new HashSet();
         ArrayList<Integer> literals = new ArrayList<>();
         for(int block = 0; block < blocks; ++block) {
@@ -299,7 +301,7 @@ public final class RandomClauseSetGenerator {
                 preds.add(literal);
                 if(rnd.nextBoolean()) {literal = -literal;}
                 lits[i+2] = literal;}
-            clauseList.addClause(lits);}
+            clauseList.addClause(lits,"",errors,warnings);}
         return clauseCounter;
     }}
 

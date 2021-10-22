@@ -23,8 +23,8 @@ import java.util.HashMap;
 import static org.junit.Assert.*;
 
 public class AllClausesTest {
-    StringBuffer errors = new StringBuffer();
-    StringBuffer warnings = new StringBuffer();
+    StringBuilder errors = new StringBuilder();
+    StringBuilder warnings = new StringBuilder();
     boolean monitoring = true;
 
     int typeOR = ClauseType.OR.ordinal();

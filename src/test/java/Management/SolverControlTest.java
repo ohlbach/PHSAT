@@ -10,19 +10,19 @@ import java.util.HashMap;
  * Created by ohlbach on 10.09.2018.
  */
 public class SolverControlTest {
-    static StringBuffer st = new StringBuffer();
+    static StringBuilder st = new StringBuilder();
 
     public static class TestSolver {
         public TestSolver(Integer n) {}
 
         public static void solve(HashMap<String,Object> solverControl, HashMap<String,Object> problemControl, Model globalModel,
-                                 StringBuffer errors, StringBuffer warnings) {
+                                 StringBuilder errors, StringBuilder warnings) {
             st.append("SOLVED "+solverControl.get("ID")+ " " +problemControl.get("size")+"\n");}}
 
 
 
     static public class Generator{
-        public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+        public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuilder errors, StringBuilder warnings){
             ArrayList<HashMap<String,Object>> list = new ArrayList<>();
             String number = parameters.get("number");
             Integer n = Utilities.parseInteger("place",number,errors);
@@ -32,7 +32,7 @@ public class SolverControlTest {
                 list.add(control);}
             return list;}
 
-        public static void generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
+        public static void generate(HashMap<String,Object> parameters, StringBuilder errors, StringBuilder warnings) {
             parameters.put("number",10*(Integer)parameters.get("size"));}
     }
 /*

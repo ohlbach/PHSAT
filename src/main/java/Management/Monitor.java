@@ -34,7 +34,7 @@ public class Monitor {
      * @param errors for error messages.
      * @param warnings for warnings.
      */
-    public Monitor(File directory,String mode, StringBuffer errors, StringBuffer warnings) {
+    public Monitor(File directory,String mode, StringBuilder errors, StringBuilder warnings) {
         monitoring = true;
         if(mode.equals("true")) {return;}
         String[] parts = mode.split("\\s*(,| )\\s*");

@@ -24,7 +24,7 @@ public final class StringClauseSetGenerator  {
      * @return a HashMap with "clauseString"
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
-                                                                           StringBuffer errors, StringBuffer warnings){
+                                                                           StringBuilder errors, StringBuilder warnings){
         HashMap<String,Object> map = new HashMap<>();
         map.put("clauseString", parameters.get("disjunctions").trim());
         ArrayList<HashMap<String,Object>> list = new ArrayList<>();
@@ -53,7 +53,7 @@ public final class StringClauseSetGenerator  {
      * @param warnings no effect
      * @return  the new BasicClauseList object.
      */
-    public static  BasicClauseList generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
+    public static  BasicClauseList generate(HashMap<String,Object> parameters, StringBuilder errors, StringBuilder warnings) {
         String clausesString = (String)parameters.get("clauseString");
         HashMap<String,Integer> name2Int = new HashMap<>();
         String[] clausesStrings = clausesString.split("\\s*\\n\\s*");
@@ -94,7 +94,7 @@ public final class StringClauseSetGenerator  {
                 Integer number = name2Int.get(literal);
                 if(number == null) {number = ++predicates; name2Int.put(literal,number);}
                 lits[++n] = number*sign;}
-            bcl.addClause(lits);}
+            bcl.addClause(lits,"",errors,warnings);}
         Symboltable symboltable = new Symboltable(predicates);
         name2Int.forEach((name,predicate) -> symboltable.setName(predicate,name));
         bcl.symboltable = symboltable;

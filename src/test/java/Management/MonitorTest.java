@@ -18,8 +18,8 @@ public class MonitorTest {
     @Test
     public void hello() throws Exception {
         System.out.println("Mixed System.out");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         Monitor m = new Monitor(directory,"mixed",errors,warnings);
         m.print("T1", "Hello");
         m.print("T2", "Me too");
@@ -29,9 +29,9 @@ public class MonitorTest {
     @Test
     public void mixedFile() throws Exception {
         System.out.println("Mixed File");
-        StringBuffer errors = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
         String file = Utilities.tempFile("Monitor","file1");
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder warnings = new StringBuilder();
         Monitor m = new Monitor(null,"mixed " + file,errors,warnings);
         System.out.println(errors.toString());
         m.print("T1", "Hello");
@@ -43,8 +43,8 @@ public class MonitorTest {
     @Test
     public void separatedOut() throws Exception {
         System.out.println("Separated System.out");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         Monitor m = new Monitor(directory,"separated",errors,warnings);
         System.out.println(errors.toString());
         m.addThread("T1", "T1-Thread");
@@ -60,8 +60,8 @@ public class MonitorTest {
     @Test
     public void separatedFile() throws Exception {
         System.out.println("Separated File");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String file = Utilities.tempFile("Monitor","file1");
         Monitor m = new Monitor(null,"separated " + file,errors,warnings);
         System.out.println(errors.toString());

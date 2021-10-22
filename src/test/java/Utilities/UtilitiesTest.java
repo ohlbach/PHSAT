@@ -16,7 +16,7 @@ public class UtilitiesTest {
     @Test
     public void parseInteger() throws Exception {
         System.out.println("parseInteger");
-        StringBuffer errors = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
         Integer n = Utilities.parseInteger("test","55",errors);
         assertEquals(55,(int)n);
         n = Utilities.parseInteger("test","55a",errors);
@@ -27,7 +27,7 @@ public class UtilitiesTest {
     @Test
     public void parseRange1() throws Exception {
         System.out.println("parseIntRange 1: number, comma");
-        StringBuffer errors = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
         ArrayList<Integer> n = Utilities.parseIntRange("test","55",errors);
         assertEquals("[55]",n.toString());
 
@@ -41,7 +41,7 @@ public class UtilitiesTest {
     @Test
     public void parseRange2() throws Exception {
         System.out.println("parseIntRange 2: range");
-        StringBuffer errors = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
         ArrayList<Integer> n = Utilities.parseIntRange("test", "55 to 60", errors);
         assertEquals("[55, 56, 57, 58, 59, 60]", n.toString());
         n = Utilities.parseIntRange("test", "-3 to -1", errors);

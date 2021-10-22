@@ -22,8 +22,8 @@ public class GlobalParametersTest {
     public void constructor() {
         System.out.println("constructor");
         HashMap<String, String> pars = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         pars.put("directory","test");
         pars.put("parallel","3");
         pars.put("logging", "logging.log");

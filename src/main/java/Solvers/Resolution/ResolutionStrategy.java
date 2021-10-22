@@ -16,7 +16,7 @@ public enum ResolutionStrategy {
                 "   POSITIVE: resolvents with one parent from the positive clauses.\n" +
                 "   NEGATIVE: resolvents with one parent from the negative clauses.\n";}
 
-    public static ArrayList parseStrategies(String strategies, String place, StringBuffer errors, StringBuffer warnings) {
+    public static ArrayList parseStrategies(String strategies, String place, StringBuilder errors, StringBuilder warnings) {
         ArrayList<ResolutionStrategy> list = new ArrayList<>();
         for(String name : strategies.trim().split("(\\s+|\\s*,\\s*)")) {
             ResolutionStrategy strategy = null;

@@ -20,8 +20,8 @@ import static org.junit.Assert.*;
 
 public class EquivalenceClassesTest {
 
-    static StringBuffer errors=new StringBuffer();
-    static StringBuffer warnings=new StringBuffer();
+    static StringBuilder errors=new StringBuilder();
+    static StringBuilder warnings=new StringBuilder();
 
     boolean monitoring = false;
 

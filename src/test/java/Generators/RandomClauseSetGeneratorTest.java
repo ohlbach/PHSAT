@@ -22,8 +22,8 @@ public class RandomClauseSetGeneratorTest {
     public void parseProblemParameters1() throws Exception {
         System.out.println("parseProblemParameters 1");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10");
         parameters.put("disjunctions","30");
         parameters.put("length","3");
@@ -45,8 +45,8 @@ public class RandomClauseSetGeneratorTest {
     public void parseProblemParameters2() throws Exception {
         System.out.println("parseProblemParameters 2");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","100");
         parameters.put("cpRatio","4.3");
         parameters.put("length","3");
@@ -68,8 +68,8 @@ public class RandomClauseSetGeneratorTest {
     public void parseProblemParameters3() throws Exception {
         System.out.println("parseProblemParameters 3");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","100");
         parameters.put("disjunctions","400");
         parameters.put("length","3");
@@ -92,8 +92,8 @@ public class RandomClauseSetGeneratorTest {
     public void parseProblemParameters4() throws Exception {
         System.out.println("parseProblemParameters 4");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","100");
         parameters.put("disjunctions","400");
         parameters.put("length","3");
@@ -117,8 +117,8 @@ public class RandomClauseSetGeneratorTest {
     public void parseProblemParameters5() throws Exception {
         System.out.println("parseProblemParameters 5");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","100");
         parameters.put("disjunctions","400");
         parameters.put("length","3");
@@ -143,8 +143,8 @@ public class RandomClauseSetGeneratorTest {
     public void parseProblemParameters6() throws Exception {
         System.out.println("parseProblemParameters 6");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10,20");
         parameters.put("disjunctions","30");
         parameters.put("length","3");
@@ -174,8 +174,8 @@ public class RandomClauseSetGeneratorTest {
     public void parseProblemParameters7() throws Exception {
         System.out.println("parseProblemParameters 7");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10,20");
         parameters.put("disjunctions","30 to 40 step 5");
         parameters.put("length","3");
@@ -208,8 +208,8 @@ public class RandomClauseSetGeneratorTest {
     public void parseProblemParameters8() throws Exception {
         System.out.println("parseProblemParameters 8");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10,20");
         parameters.put("cpRatio","4 to 4.2 step 0.1");
         parameters.put("length","3");
@@ -245,8 +245,8 @@ public class RandomClauseSetGeneratorTest {
     public void parseProblemParameters9() throws Exception {
         System.out.println("parseProblemParameters 9");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10");
         parameters.put("disjunctions","30");
         parameters.put("length","3");
@@ -277,8 +277,8 @@ public class RandomClauseSetGeneratorTest {
     public void generate1() throws Exception {
         System.out.println("generate 1");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10");
         parameters.put("disjunctions","30");
         parameters.put("length","3");
@@ -293,8 +293,8 @@ public class RandomClauseSetGeneratorTest {
     public void generate2() throws Exception {
         System.out.println("generate 2");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10");
         parameters.put("disjunctions","30");
         parameters.put("length","3");
@@ -309,8 +309,8 @@ public class RandomClauseSetGeneratorTest {
     public void generate3() throws Exception {
         System.out.println("generate 3");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10");
         parameters.put("disjunctions","30");
         parameters.put("length","3");

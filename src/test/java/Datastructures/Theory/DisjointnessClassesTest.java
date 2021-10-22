@@ -19,8 +19,8 @@ import static org.junit.Assert.*;
 
 public class DisjointnessClassesTest {
 
-    StringBuffer errors = new StringBuffer();
-    StringBuffer warnings = new StringBuffer();
+    StringBuilder errors = new StringBuilder();
+    StringBuilder warnings = new StringBuilder();
     boolean monitoring = false;
 
     int type = ClauseType.ATMOST.ordinal();

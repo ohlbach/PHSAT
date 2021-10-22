@@ -32,7 +32,7 @@ public final class PidgeonHoleGenerator {
      * @return a list of HashMaps with "pidgeons" and "holes
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
-                                                                           StringBuffer errors, StringBuffer warnings){
+                                                                           StringBuilder errors, StringBuilder warnings){
         for(String key : parameters.keySet()) {
             if(!keys.contains(key)) {warnings.append("PidgeonHoleGenerator: unknown key in parameters: " + key + "\n");}}
 
@@ -79,7 +79,7 @@ public final class PidgeonHoleGenerator {
      * @return the new clauses
      */
     public static BasicClauseList generate(HashMap<String,Object> parameters,
-                                                  StringBuffer errors, StringBuffer warnings){
+                                                  StringBuilder errors, StringBuilder warnings){
         int holes = (Integer)parameters.get("holes");
         int pidgeons = (Integer)parameters.get("pidgeons");
         StringBuilder st = new StringBuilder();

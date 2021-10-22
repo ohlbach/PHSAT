@@ -10,8 +10,8 @@ import java.util.HashMap;
  * The generator classes generate SAT-Problems from different sources. <br>
  * Each generator class should provide the following static methods: <br>
  *  - public static help()  for producing a help text<br>
- *  - public static ArrayList&lt;HashMap&lt;String,Object&gt;&gt; parseParameters(HashMap&lt;String,String&gt; parameters, StringBuffer errors, StringBuffer warnings) <br>
- *  - public static HashMap&lt;String,Object&gt; generate(HashMap&lt;String,Object&gt; parameters, StringBuffer errors, StringBuffer warnings) <br>
+ *  - public static ArrayList&lt;HashMap&lt;String,Object&gt;&gt; parseParameters(HashMap&lt;String,String&gt; parameters, StringBuilder errors, StringBuilder warnings) <br>
+ *  - public static HashMap&lt;String,Object&gt; generate(HashMap&lt;String,Object&gt; parameters, StringBuilder errors, StringBuilder warnings) <br>
  * <br>
  * The parseParameters method turns parameters as strings into sequences of parameters as objects <br>
  * The generate method generates a BasicClauseList and puts it as parameter "clauses" into the parameters map.
@@ -84,11 +84,11 @@ public abstract class Generator {
      * @return           a list of key-value maps where the values are objects.
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(String name, HashMap<String,String> parameters,
-                                                                    StringBuffer errors, StringBuffer warnings) {
+                                                                    StringBuilder errors, StringBuilder warnings) {
         Class clazz = generatorClass(name);
         if(clazz == null) {errors.append("Unknown generator class: " + name+"\n"); return null;}
         try{
-            Method parser = clazz.getMethod("parseParameters",HashMap.class,StringBuffer.class, StringBuffer.class);
+            Method parser = clazz.getMethod("parseParameters",HashMap.class,StringBuilder.class, StringBuilder.class);
             return (ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
@@ -102,11 +102,11 @@ public abstract class Generator {
      * @return            the new BasicClauseList
      */
     public static BasicClauseList generate(String name, HashMap<String,Object> parameters,
-                                           StringBuffer errors, StringBuffer warnings) {
+                                           StringBuilder errors, StringBuilder warnings) {
         Class clazz = generatorClass(name);
         if(clazz == null) {errors.append("Unknown generator class: " + name+"\n"); return null;}
         try{
-            Method generator = clazz.getMethod("generate",HashMap.class,StringBuffer.class, StringBuffer.class);
+            Method generator = clazz.getMethod("generate",HashMap.class,StringBuilder.class, StringBuilder.class);
             return (BasicClauseList) generator.invoke(null,parameters,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}

@@ -20,8 +20,8 @@ import static org.junit.Assert.*;
 
 public class TwoLitClausesTest {
 
-    StringBuffer errors = new StringBuffer();
-    StringBuffer warnings = new StringBuffer();
+    StringBuilder errors = new StringBuilder();
+    StringBuilder warnings = new StringBuilder();
     boolean monitoring = false;
     
     int type = ClauseType.OR.ordinal();

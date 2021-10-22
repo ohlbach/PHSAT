@@ -31,8 +31,8 @@ public class GeneratorTest {
     public void parseParameters() throws Exception {
         System.out.println("parseParameters");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10");
         parameters.put("disjunctions","30");
         parameters.put("length","3");
@@ -43,8 +43,8 @@ public class GeneratorTest {
     public void generate() throws Exception {
         System.out.println("generate");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10");
         parameters.put("disjunctions","30");
         parameters.put("length","3");

@@ -28,7 +28,7 @@ public class Utilities {
      * @param errors for appending error messages
      * @return the parsed Integer, or null
      */
-    public static Integer parseInteger(String place, String value, StringBuffer errors) {
+    public static Integer parseInteger(String place, String value, StringBuilder errors) {
         if(value == null) {return null;}
         try{return Integer.parseInt(value);}
         catch(NumberFormatException ex) {errors.append(place+"'" + value + "' is no integer");}
@@ -41,7 +41,7 @@ public class Utilities {
      * @param errors for appending error messages
      * @return the parsed Float, or null
      */
-    public static Float parseFloat(String place, String value, StringBuffer errors) {
+    public static Float parseFloat(String place, String value, StringBuilder errors) {
         if(value == null) {return null;}
         try{return Float.parseFloat(value);}
         catch(NumberFormatException ex) {errors.append(place+": " + value + " is no float number.\n");}
@@ -49,7 +49,7 @@ public class Utilities {
 
 
 
-    public static ArrayList<Boolean> parseBoolean(String place, String value, StringBuffer errors) {
+    public static ArrayList<Boolean> parseBoolean(String place, String value, StringBuilder errors) {
         ArrayList<Boolean> bools = new ArrayList<>();
         if(value == null || value.equals("true")) {bools.add(true); return bools;}
         if(value.equals("false")) {bools.add(false); return bools;}
@@ -75,7 +75,7 @@ public class Utilities {
      * @param errors for appending error messages
      * @return the expanded integer list
      */
-    public static ArrayList<Integer> parseIntRange(String place, String value, StringBuffer errors) {
+    public static ArrayList<Integer> parseIntRange(String place, String value, StringBuilder errors) {
         if(value == null) {return null;}
         ArrayList<Integer> range = new ArrayList();
         try{Integer n =  Integer.parseInt(value);
@@ -125,7 +125,7 @@ public class Utilities {
      * @param errors for appending error messages
      * @return the expanded integer list
      */
-    public static ArrayList<Float> parseFloatRange(String place, String value, StringBuffer errors) {
+    public static ArrayList<Float> parseFloatRange(String place, String value, StringBuilder errors) {
         ArrayList<Float> range = new ArrayList();
         try{Float n =  Float.parseFloat(value);
             range.add(n);

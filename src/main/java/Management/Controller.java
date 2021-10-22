@@ -35,8 +35,8 @@ public class Controller {
     public ArrayList<ProblemSupervisor> problemSupervisors = null;
     public Thread[] threads = null;
 
-    private StringBuffer errors   = new StringBuffer();
-    private StringBuffer warnings = new StringBuffer();
+    private StringBuilder errors   = new StringBuilder();
+    private StringBuilder warnings = new StringBuilder();
 
     /** generates a new controller
      *
@@ -111,8 +111,8 @@ public class Controller {
             System.out.println("Warnings:");
             System.out.println(warnings.toString());
             System.out.println("Processing continues anyway.");}
-        errors = new StringBuffer();
-        warnings = new StringBuffer();
+        errors = new StringBuilder();
+        warnings = new StringBuilder();
         return true;}
 
     /** prints all results to the resultfile.*/
@@ -255,10 +255,10 @@ public class Controller {
         warnings.append(warning).append("\n");
     }
 
-    public synchronized void addError(StringBuffer error) {
+    public synchronized void addError(StringBuilder error) {
         errors.append(error);}
 
-    public synchronized void addWarning(StringBuffer warning) {
+    public synchronized void addWarning(StringBuilder warning) {
         warnings.append(warning);
     }
 }

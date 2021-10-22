@@ -23,7 +23,7 @@ public final class SingleModelGenerator {
      * @param warnings  for reporting warnings
      * @return an ArrayList of HashMaps with the translated parameters.
      */
-    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings) {
+    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuilder errors, StringBuilder warnings) {
         for (String key : parameters.keySet()) {
             if (!keys.contains(key)) {
                 warnings.append("SingleModelGenerator: unknown key in parameters: " + key + "\n");}}
@@ -118,7 +118,7 @@ public final class SingleModelGenerator {
      * @param warnings for warnings
      * @return  the generated BasicClauseList
      */
-    public static BasicClauseList generate(HashMap<String,Object> parameters, StringBuffer errors, StringBuffer warnings) {
+    public static BasicClauseList generate(HashMap<String,Object> parameters, StringBuilder errors, StringBuilder warnings) {
         int seed = (Integer) parameters.get("seed");
         int predicates = (Integer) parameters.get("predicates");
         int numberClauses = (Integer) parameters.get("clauses");
@@ -166,7 +166,7 @@ public final class SingleModelGenerator {
                     if(again) {continue;}
                     if(signs[lit] == 1) {lit = -lit;}
                     lits[i+2] = lit;}}
-            clauseList.addClause(lits);}
+            clauseList.addClause(lits,"",errors,warnings);}
 
         return clauseList;}
 

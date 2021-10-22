@@ -20,15 +20,15 @@ import static org.junit.Assert.*;
 public class CNFReaderTest {
 
     @Test
-    public void help() throws Exception {
+    public void help()  {
         System.out.println(CNFReader.help());
     }
 
     @Test
     public void parseProblemParameters1() {
         System.out.println("parseProblemParameters 1");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         HashMap<String,String> parameters = new HashMap<>();
         File file1 = Utilities.writeTmpFile("CNFReader", "test1.cnf", "test1");
         File file2 = Utilities.writeTmpFile("CNFReader", "test2.cnf", "test2");
@@ -44,8 +44,8 @@ public class CNFReaderTest {
     @Test
     public void parseProblemParameters2() {
         System.out.println("parseProblemParameters directory");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         HashMap<String,String> parameters = new HashMap<>();
         File file1 = Utilities.writeTmpFile("CNFReader1", "test1.cnf", "test1");
         File file2 = Utilities.writeTmpFile("CNFReader1", "test2.cnf", "test2");
@@ -61,8 +61,8 @@ public class CNFReaderTest {
     @Test
     public void parseProblemParameters3() {
         System.out.println("parseProblemParameters regExpr");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         HashMap<String,String> parameters = new HashMap<>();
         File file1 = Utilities.writeTmpFile("CNFReader2", "test1.cnf", "test1");
         File file2 = Utilities.writeTmpFile("CNFReader2", "test2.cnf", "test2");
@@ -87,14 +87,14 @@ public class CNFReaderTest {
 
 
     private ProblemSupervisor prepare() {
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         Controller controller = new Controller(null,null,null);
         GlobalParameters globalParameters=new GlobalParameters();
         globalParameters.trackReasoning = true;
         HashMap<String,Object> problemParameters = new HashMap<>();
         problemParameters.put("name","test");
-        return  new ProblemSupervisor(controller,globalParameters,problemParameters,null);}
+        return new ProblemSupervisor(controller,globalParameters,problemParameters,null);}
 
 
     @Test
@@ -102,8 +102,8 @@ public class CNFReaderTest {
         System.out.println("generate file not found");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n";
         HashMap<String,String> parameters = new HashMap<>();
         File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
@@ -120,8 +120,8 @@ public class CNFReaderTest {
         System.out.println("generate p-line missing");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "q cnf 10 6\n" +
@@ -141,8 +141,8 @@ public class CNFReaderTest {
         System.out.println("generate p line error");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cng 10 6";
@@ -160,8 +160,8 @@ public class CNFReaderTest {
         System.out.println("generate predicate error 1");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10a 6";
@@ -178,8 +178,8 @@ public class CNFReaderTest {
         System.out.println("generate predicate error 2");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf -10 6";
@@ -196,8 +196,8 @@ public class CNFReaderTest {
         System.out.println("generate predicate symbolic error");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10 6 sympolic";
@@ -215,8 +215,8 @@ public class CNFReaderTest {
         System.out.println("generate symbol error");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10 6\n" +
@@ -235,8 +235,8 @@ public class CNFReaderTest {
         System.out.println("generate zero end");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10 6\n" +
@@ -259,8 +259,8 @@ public class CNFReaderTest {
         System.out.println("generate too large predicate");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10 6\n" +
@@ -285,8 +285,8 @@ public class CNFReaderTest {
         System.out.println("generate symbolic errors");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 5 6 symbolic\n" +
@@ -308,8 +308,8 @@ public class CNFReaderTest {
         System.out.println("generate numeric errors");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10 6 symbolic\n" +
@@ -333,14 +333,14 @@ public class CNFReaderTest {
         System.out.println("generate numeric");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "c test2\n" +
                 "% test3\n" +
                 "p cnf 10 5\n" +
                 "1 -5 3 0\n"+
-                "-5 7 1 1 0\n" +
+                "-5 7 1  1 7 0\n" +
                 "o 4 5 6 0\n" +
                 "a 4 -5 0\n" +
                 "e 5 2 0\n" +
@@ -360,7 +360,7 @@ public class CNFReaderTest {
         assertEquals("File test.cnf\n"+" test1\n test2\n\n"+
                 "Disjunctions:\n" +
                 "   1 : 1,-5,3\n" +
-                "   2 : -5,7,1,1\n" +
+                "   2 : -5,7,1\n" +
                 "   3 : 4,5,6\n" +
                 "Conjunctions:\n" +
                 "   4 : 4&-5\n" +
@@ -372,7 +372,7 @@ public class CNFReaderTest {
                 "   7 : ATMOST 3 4,5,6,7\n" +
                 "Exactly:\n" +
                 "   8 : EXACTLY 2 -2,-4,5\n", bcl.toString());
-
+        System.out.println(warnings);
     }
 
     @Test
@@ -380,8 +380,8 @@ public class CNFReaderTest {
         System.out.println("generate symbolically");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String cnf = "c test1\n" +
                 "c test2\n" +
                 "% test3\n" +
@@ -406,7 +406,7 @@ public class CNFReaderTest {
                 " test2\n\n"+
                 "Disjunctions:\n" +
                 "   1 : 1,-a,b\n" +
-                "   2 : -e,c,d,a,a\n" +
+                "   2 : -e,c,d,a\n" +
                 "   3 : e,f,-b\n" +
                 "Conjunctions:\n" +
                 "   4 : f&-f\n" +

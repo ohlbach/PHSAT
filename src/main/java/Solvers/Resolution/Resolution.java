@@ -56,7 +56,7 @@ public abstract class Resolution extends Solver {
      * @param warnings    for warnings
      * @return            a list of HashMaps with keys "seed" and "sos", "limit".
      */
-    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings){
+    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuilder errors, StringBuilder warnings){
         for(String key : parameters.keySet()) {
             if(!keys.contains(key)) {warnings.append("Resolution: unknown key in parameters: " + key + "\n");}}
         ArrayList<HashMap<String,Object>> list = new ArrayList<>();

@@ -16,8 +16,8 @@ public class SingleModelGeneratorTest {
     public void parseParameters() throws Exception {
         System.out.println("parseProblemParameters 1");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10");
         parameters.put("clauses","30");
         parameters.put("length","3");
@@ -40,8 +40,8 @@ public class SingleModelGeneratorTest {
     public void generate1() throws Exception {
         System.out.println("generate 1");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         parameters.put("predicates","10");
         parameters.put("clauses","40");
         parameters.put("length","5");

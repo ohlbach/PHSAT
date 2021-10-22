@@ -21,8 +21,8 @@ public class PidgeonHoleGeneratorTest {
     @Test
     public void parseProblemParameters() throws Exception {
         System.out.println("parseProblemParameters");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         HashMap<String,String> params = new HashMap<>();
         params.put("holes","2 to 3");
         params.put("pidgeons", "3 to 4");
@@ -34,8 +34,8 @@ public class PidgeonHoleGeneratorTest {
     @Test
     public void generate() throws Exception {
         System.out.println("generate");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         HashMap<String,Object> params = new HashMap<>();
         params.put("pidgeons",5);
         params.put("holes",4);

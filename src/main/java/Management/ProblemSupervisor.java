@@ -103,7 +103,7 @@ public class ProblemSupervisor {
      */
     public boolean generateProblem() {
         String type = (String)problemParameters.get("type");
-        StringBuffer errors = new StringBuffer(); StringBuffer warnings = new StringBuffer();
+        StringBuilder errors = new StringBuilder(); StringBuilder warnings = new StringBuilder();
         basicClauseList = Generator.generate(type,problemParameters,errors,warnings);
         controller.addError(errors); controller.addWarning(warnings);
         return basicClauseList != null;}

@@ -4,9 +4,11 @@ package Datastructures.Clauses;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+
+import static Utilities.Utilities.addInt;
 
 /**
  * Created by Ohlbach on 03.09.2018.<br>
@@ -49,15 +51,16 @@ public class BasicClauseList {
     /** adds the clauses to the corresponding lists.
      *
      * @param clauses a list of clauses
-     * @return null or an error string if clauses are syntactically wrong.
+     * @return null or a string if clauses are syntactically wrong or contain double literals.
      */
     public String addClauses(int[]... clauses) {
-        StringBuilder errors = new StringBuilder();
+        StringBuilder errors   = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         for (int[] clause : clauses) {
-            String error = addClause(clause);
-            if (error != null)
-                errors.append(Arrays.toString(clause)).append(":").append(error).append("\n");}
-        return errors.length() == 0 ? null : errors.toString();}
+            clause = addClause(clause,"",errors,warnings);
+            if (clause == null) continue;}
+        if(errors.length() == 0  && warnings.length() == 0) return null;
+        return errors.toString() + warnings;}
 
 
     /** adds a clause to the corresponding lists.
@@ -66,10 +69,10 @@ public class BasicClauseList {
      * @param clause a clause
      * @return null or an error string
      */
-    public String addClause(int[] clause) {
-        String errors = checkSyntax(clause);
-        if(errors != null) return errors;
-        maxClauseLength = Math.max(maxClauseLength,clause.length - (ClauseType.isNumericType(clause[1]) ? 3 : 2));
+    public int[] addClause(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
+        clause = checkSyntax(clause,errorPrefix, errors, warnings);
+        if(clause == null) return null;
+        maxClauseLength = Math.max(maxClauseLength,clause.length - (ClauseType.isNumeric(clause[1]) ? 3 : 2));
         switch(ClauseType.getType(clause[1])) {
             case OR:       disjunctions.add(clause); break;
             case AND:      conjunctions.add(clause); break;
@@ -77,31 +80,72 @@ public class BasicClauseList {
             case ATLEAST:  atleasts.add(clause);     break;
             case ATMOST:   atmosts.add(clause);      break;
             case EXACTLY:  exactlys.add(clause);     break;}
-        return null;
+        return clause;
     }
 
     /** checks the clause's syntax.
-     *  Syntax errors are wrong clause type, wrong literal numbers or double or complementary literals.
+     *  Syntax errors are wrong clause type or wrong literal numbers
      *  These errors are appended to syntaxErrors.
+     *  Double literals are removed and a warning is added to warnings.
      *
      * @param clause the clause to be checked
-     * @return true if there is no syntax error.
+     * @param errorPrefix  a prefix for the warnings
+     * @param errors       for adding error messages
+     * @param warnings     for adding a warning
+     * @return null or the shortened clause
      */
-    private String checkSyntax(int[] clause) {
+    protected int[] checkSyntax(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
         int type = clause[1];
-        if(type < 0 || type > 5) {return "Illegal type :"+type;}
+        if(type < 0 || type > 5) {errors.append(errorPrefix).append("Clause type :"+type + " is not between 0 and 5\n"); return null;}
+        clause = removeDoubles(clause, errorPrefix, warnings);
         int start = 2;
-        boolean isNumeric = ClauseType.isNumericType(type);
+        boolean isNumeric = ClauseType.isNumeric(type);
         int size = clause.length;
         if(isNumeric) {
             start = 3;
-            if(clause[2] <= 0 || clause[2] > size-3) {
-                return "Illegal quantifier: " + clause[2];}}
+            if(clause[2] <= 0) {
+                {errors.append(errorPrefix).append("Quantifier: " + clause[2] + " < 1\n"); return null;}}
+            if(clause[2] > size-3) {
+                {errors.append(errorPrefix).append("Quantifier: " + clause[2] + " is larger than the clause\n"); return null;}}}
         for(int i = start; i < size; ++i) {
             int literal = clause[i];
             if(literal == 0 || (predicates > 0 && Math.abs(literal) > predicates)) {
-                return "Literal " + literal + " is not within the predicate boundaries";}}
-        return null; }
+                errors.append(errorPrefix).
+                        append("Literal " + literal + " is not within the predicate boundaries: " + predicates + "\n");
+                return null;}}
+        return clause;}
+
+    /** removed double literals from the clause.
+     * In case there are double literals a warning is added to the StringBuilder
+     *
+     * @param clause       a basic clause
+     * @param errorPrefix  a prefix for the warnings
+     * @param warnings     for adding a warning
+     * @return             the old or shortened new clause
+     */
+    protected int[] removeDoubles(int[] clause, String errorPrefix, StringBuilder warnings) {
+        int start = ClauseType.isNumeric(clause[1]) ? 3 : 2;
+        IntArrayList doubles = null;
+        int doubleCounter = 0;
+        for(int i = start+1; i < clause.length; ++i) {
+            int literal = clause[i];
+            for(int j = start; j < i; ++j) {
+                if(literal == clause[j]) {
+                    ++doubleCounter;
+                    doubles = addInt(doubles,literal);
+                    clause[i] = 0;
+                    break;}}}
+        if(doubleCounter == 0) return clause;
+        int[] newClause = new int[clause.length-doubleCounter];
+        newClause[0] = clause[0];
+        newClause[1] = clause[1];
+        int i = 1;
+        for(int j = 2; j < clause.length; ++j)
+            if(clause[j] != 0) newClause[++i] = clause[j];
+        warnings.append(errorPrefix+"double literals removed: ").append(doubles).
+                append(" (may be a typo) new clause: " + clauseToString(newClause) + "\n");
+        return newClause;
+    }
 
 
     /** computes a list of clauses which are false in a model.
@@ -248,7 +292,7 @@ public class BasicClauseList {
         int typeNumber = clause[1];
         ClauseType type = ClauseType.getType(typeNumber);
         int start = 2;
-        if(ClauseType.isNumericType(typeNumber)) {
+        if(ClauseType.isNumeric(typeNumber)) {
             start = 3;
             st.append(type.toString() + " " + clause[2] + " ");}
         String separator = type.separator;

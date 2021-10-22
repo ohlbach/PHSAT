@@ -66,7 +66,7 @@ public class GlobalParameters {
      * @param errors    for error messages
      * @param warnings  for warnings
      */
-    public GlobalParameters(HashMap<String,String> parameters, StringBuffer errors, StringBuffer warnings) {
+    public GlobalParameters(HashMap<String,String> parameters, StringBuilder errors, StringBuilder warnings) {
         for(Map.Entry<String,String> entry : parameters.entrySet()) {
             String key = entry.getKey();
             if(key.equals("global")) {continue;}

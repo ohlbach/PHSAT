@@ -505,9 +505,9 @@ public class EquivalenceClasses  {
 
 
     /** checks the consistency of the data. */
-    public void check() {
+    public void check(StringBuilder errors) {
         for(Clause clause : clauses) {
-            clause.check();
+            clause.check(errors);
             for(CLiteral cliteral : clause) {
                 if(literalIndex.get(cliteral.literal) == null) {
                     System.out.println("Literal Index:  Cliteral: " + cliteral.toString(symboltable) +

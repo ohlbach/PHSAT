@@ -92,11 +92,11 @@ public abstract class Solver {
      * @return           a list of key-value maps where the values are objects.
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(String solverName, HashMap<String,String> parameters,
-                                                                    StringBuffer errors, StringBuffer warnings) {
+                                                                    StringBuilder errors, StringBuilder warnings) {
         Class clazz = solverClass(solverName);
         if(clazz == null) {errors.append("Unknown solver class: " + solverName+"\n"); return null;}
         try{
-            Method parser = clazz.getMethod("parseParameters",HashMap.class,StringBuffer.class, StringBuffer.class);
+            Method parser = clazz.getMethod("parseParameters",HashMap.class,StringBuilder.class, StringBuilder.class);
             return (ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
