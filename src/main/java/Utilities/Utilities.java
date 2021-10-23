@@ -173,7 +173,7 @@ public class Utilities {
                     list = addCrossProduct(list,lists[i]);}
                 return list;}}
 
-    /** computes the cross product of two lists of integers
+    /** computes the cross product of two lists of objects
      *
      * @param list1 a list of integers
      * @param list2 a list of integers

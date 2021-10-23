@@ -1,6 +1,7 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
+import Management.ProblemSupervisor;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -11,7 +12,8 @@ import java.util.HashMap;
  * Each generator class should provide the following static methods: <br>
  *  - public static help()  for producing a help text<br>
  *  - public static ArrayList&lt;HashMap&lt;String,Object&gt;&gt; parseParameters(HashMap&lt;String,String&gt; parameters, StringBuilder errors, StringBuilder warnings) <br>
- *  - public static HashMap&lt;String,Object&gt; generate(HashMap&lt;String,Object&gt; parameters, StringBuilder errors, StringBuilder warnings) <br>
+ *  - public static HashMap&lt;String,Object&gt; generate(HashMap&lt;String,Object&gt; parameters,
+ *               ProblemSupervisor problemSupervisor, StringBuilder errors, StringBuilder warnings) <br>
  * <br>
  * The parseParameters method turns parameters as strings into sequences of parameters as objects <br>
  * The generate method generates a BasicClauseList and puts it as parameter "clauses" into the parameters map.
@@ -97,17 +99,19 @@ public abstract class Generator {
      *
      * @param name        the generator name
      * @param parameters  the parameters for the generator
+     * @param problemSupervisor for generating next clause id
      * @param errors      for collecting error messages
      * @param warnings    for collecting warning messages
      * @return            the new BasicClauseList
      */
     public static BasicClauseList generate(String name, HashMap<String,Object> parameters,
+                                           ProblemSupervisor problemSupervisor,
                                            StringBuilder errors, StringBuilder warnings) {
         Class clazz = generatorClass(name);
         if(clazz == null) {errors.append("Unknown generator class: " + name+"\n"); return null;}
         try{
-            Method generator = clazz.getMethod("generate",HashMap.class,StringBuilder.class, StringBuilder.class);
-            return (BasicClauseList) generator.invoke(null,parameters,errors,warnings);}
+            Method generator = clazz.getMethod("generate",HashMap.class, ProblemSupervisor.class,StringBuilder.class, StringBuilder.class);
+            return (BasicClauseList) generator.invoke(null,parameters,problemSupervisor,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
 
