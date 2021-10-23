@@ -99,7 +99,7 @@ public class Utilities {
                     Integer to = parseInteger(place,parts[1],errors);
                     Integer step = parseInteger(place,parts[2],errors);
                     if(from != null && to != null && step != null) {
-                        if(step < 0) {errors.append(place+": negative step " + step); return null;}
+                        if(step < 0) {errors.append(place+"negative step " + step); return null;}
                         if(to < from) {errors.append(place+ "to < from: " + value); return null;}
                         for(int n = from; n <= to; n += step) {range.add(n);}}
                     else {return null;}
@@ -108,7 +108,7 @@ public class Utilities {
                 Integer n = parseInteger(place,part,errors);
                 if(n != null) {range.add(n);}
                 else {
-                    errors.append(place + " The format should be: integer or comma separated integer or 'intger to integer'." );
+                    errors.append("\n  The format should be: integer or comma separated integer or 'integer to integer'." );
                     return null;
                     }}
             return range;}

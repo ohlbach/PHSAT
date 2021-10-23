@@ -50,7 +50,7 @@ public class GeneratorTest {
         parameters.put("length","3");
         parameters.put("precise", "true");
         HashMap<String,Object> map = Generator.parseParameters("random",parameters,errors,warnings).get(0);
-        System.out.println(Generator.generate("random",map,errors,warnings));
+        System.out.println(Generator.generate("random",map,null,errors,warnings));
     }
 
 }
