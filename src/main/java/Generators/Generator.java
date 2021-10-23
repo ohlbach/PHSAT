@@ -46,7 +46,7 @@ public abstract class Generator {
         switch (name) {
             case "random":       return Generators.RandomClauseSetGenerator.class;
             case "file":         return Generators.CNFReader.class;
-            case "pidgeonhole":  return Generators.PidgeonHoleGenerator.class;
+            case "pidgeonhole":  return PigeonHoleGenerator.class;
             case "single model": return Generators.SingleModelGenerator.class;
             case "string" :      return Generators.StringClauseSetGenerator.class;
             default: return null;}}

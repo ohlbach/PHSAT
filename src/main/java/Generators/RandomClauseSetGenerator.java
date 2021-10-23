@@ -336,6 +336,7 @@ public final class RandomClauseSetGenerator {
         if(exactlys != null)
             generateClauses(problemSupervisor,clauseList,predicates,5,exactlys,maxClauseLength,precise,rnd,
                     prefix,errors,warnings);
+        clauseList.info = "Randomly generated clauses with parameters:\n" + parameters.toString();
         return clauseList;}
 
 

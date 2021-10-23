@@ -25,7 +25,7 @@ public class RandomClauseSetGeneratorTest {
     @Test
     public void keys()  {
         System.out.println("keys");
-        assertEquals("[seed, cpRatio, length, type, atleasts, ors, ands, predicates, problem, equivs, exactlys, precise, atmosts]",
+        assertEquals("[precises, atleasts, ors, ands, predicates, lengths, equivs, exactlys, seeds, cpRatios, atmosts]",
                 RandomClauseSetGenerator.keys.toString());}
 
     @Test
@@ -168,7 +168,9 @@ public class RandomClauseSetGeneratorTest {
         HashMap<String,Object> problemParameters = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings).get(0);
         ProblemSupervisor problemSupervisor = prepare(problemParameters);
         BasicClauseList bcl = RandomClauseSetGenerator.generate(problemParameters,problemSupervisor,errors,warnings);
-        assertEquals("Disjunctions:\n" +
+        assertEquals("Randomly generated clauses with parameters:\n" +
+                "{atleasts=4, ors=7, ands=6, predicates=10, seed=0, equivs=5, exactlys=2, length=3, name=test, precise=false, atmosts=3}\n" +
+                "Disjunctions:\n" +
                 "    1 : 10\n" +
                 "    2 : 4,2,5\n" +
                 "    3 : -4,6,5\n" +
