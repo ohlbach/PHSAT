@@ -25,7 +25,7 @@ import java.util.HashMap;
  */
 public abstract class Generator {
 
-    public static String[] generators = new String[]{"random","file","pidgeonhole","single model","string"};
+    public static String[] generators = new String[]{"random","file","pidgeonhole","string"};
 
 
     /** checks if the name is a generator name
@@ -47,7 +47,6 @@ public abstract class Generator {
             case "random":       return Generators.RandomClauseSetGenerator.class;
             case "file":         return Generators.CNFReader.class;
             case "pidgeonhole":  return PigeonHoleGenerator.class;
-            case "single model": return Generators.SingleModelGenerator.class;
             case "string" :      return Generators.StringClauseSetGenerator.class;
             default: return null;}}
 

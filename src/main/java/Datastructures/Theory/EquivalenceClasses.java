@@ -267,7 +267,7 @@ public class EquivalenceClasses  {
                 Clause newClause = oldClause.clone(problemSupervisor.nextClauseId());
                 newClause.getCLiteral(cliteral.clausePosition).literal = newLiteral;
                 if(trackReasoning) {
-                    newClause.inferenceStep = new EquivalenceReplacements(oldClause,oldLiteral,newClause,newLiteral,
+                    newClause.inferenceStep = new EquivalenceReplacements1(oldClause,oldLiteral,newClause,newLiteral,
                             getEClause(oldLiteral));
                     if(monitoring) {monitor.print(monitorId,newClause.inferenceStep.toString(symboltable));}}
                 return replaceEquivalences(newClause);}}
