@@ -34,7 +34,7 @@ public class Input extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        return "Input " + origin;}
+        return "Input: Clause " + origin;}
 
     @Override
     public IntArrayList origins() {

@@ -40,11 +40,11 @@ public class EquivalentTrueLiterals extends InferenceStep{
     @Override
     public String toString(Symboltable symboltable) {
         String st = title + ": " + clause.toString(0,symboltable) +
-                "true(" + Symboltable.toString(trueLiteral,symboltable)+") -> true(";
+                " and true(" + Symboltable.toString(trueLiteral,symboltable)+") -> true(";
         int size = derivedLiterals.size();
         for(int i = 0; i < size; ++i) {
             st += Symboltable.toString(derivedLiterals.getInt(i),symboltable);
-            if(i < size+1) st += ",";}
+            if(i < size-1) st += ",";}
         return st + ")";}
 
     @Override

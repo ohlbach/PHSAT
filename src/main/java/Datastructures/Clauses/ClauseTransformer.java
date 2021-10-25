@@ -19,10 +19,10 @@ public class ClauseTransformer {
     private EquivalenceClasses equivalenceClasses;
     private boolean trackReasoning;
 
-    public ClauseTransformer(ProblemSupervisor problemSupervisor, Monitor moritor) {
+    public ClauseTransformer(ProblemSupervisor problemSupervisor, Monitor monitor) {
         this.problemSupervisor = problemSupervisor;
         this.monitor = monitor;
-        monitoring = moritor != null;
+        monitoring = monitor != null;
         model = problemSupervisor.model;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
@@ -36,9 +36,10 @@ public class ClauseTransformer {
      * @param thread where the clause is processed
      * @throws Unsatisfiable if the model finds an inconsistency
      */
-    public Clause analyseAnd(Clause clause, Thread thread) throws Unsatisfiable {
+    public Clause analyseAnd(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
         assert clause.clauseType == ClauseType.AND;
-        InferenceStep step = clause.inferenceStep;
+        InferenceStep step = new AndToModel(clause);
+        if(monitoring && step != null) {monitor.print(monitorId,step.toString());}
         for(CLiteral cLiteral : clause) {
             model.add(cLiteral.literal,step,thread);}
         return null;}
@@ -64,7 +65,7 @@ public class ClauseTransformer {
         assert clause.clauseType == ClauseType.OR;
         clause = replaceEquivalences(clause,monitorId);
         clause.removeDoubles(); // will not be monitored
-        clause = check01InOr(clause,thread);
+        clause = check01InOr(clause,monitorId,thread);
         if(clause == null) return null;
 
         int size = clause.size();
@@ -84,7 +85,7 @@ public class ClauseTransformer {
                                 " is a tautology");}
                     return null;}}}
         Clause newClause = deleteFalseLiteralsInOr(clause,monitorId);
-        return (newClause == clause) ? clause : check01InOr(newClause,thread);}
+        return (newClause == clause) ? clause : check01InOr(newClause,monitorId,thread);}
 
     /** checks if the clause is empty or contains just one literal
      *
@@ -93,11 +94,14 @@ public class ClauseTransformer {
      * @return either null or the unchanged clause
      * @throws Unsatisfiable if a unit clause causes a contradiction
      */
-    public Clause check01InOr(Clause clause, Thread thread) throws Unsatisfiable{
+    public Clause check01InOr(Clause clause, String monitorId, Thread thread) throws Unsatisfiable{
         switch(clause.size()) {
             case 0: throw new Unsatisfiable(clause.inferenceStep);
-            case 1: model.add(clause.getLiteral(0),clause.inferenceStep,thread);
-                    return null;}
+            case 1:
+                InferenceStep step = new AndToModel(clause);
+                if(monitoring) monitor.print(monitorId,step.toString());
+                model.add(clause.getLiteral(0),step,thread);
+                return null;}
         return clause;}
 
     /** replaces literals by equivalent literals, in any clause type
@@ -139,8 +143,8 @@ public class ClauseTransformer {
         int size = oldClause.size();
         for(int i = 0; i < size; ++i) {
             if(model.isFalse(oldClause.getLiteral(i))) {
-                positions = new IntArrayList();}
-                positions.add(i);}
+                if(positions == null) positions = new IntArrayList();
+                positions.add(i);}}
         if(positions == null) return oldClause;
         Clause newClause = new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,size-positions.size());
         for(int i = 0; i < size; ++i) {
@@ -177,8 +181,9 @@ public class ClauseTransformer {
 
         for(int i = 0; i < size; ++i) {        // check for p = -p  is unsatisfiable
             int literal1 = clause.getLiteral(i);
-            status = model.status(literal1);
-            if(status != 0) {literal = literal1;}
+            if(literal == 0) {
+                status = model.status(literal1);
+                if(status != 0) {literal = literal1;}}
             for(int j = i+1; j < size; ++j) {
                 int literal2 = clause.getLiteral(j);
                 if(literal1 == -literal2) {
@@ -335,7 +340,7 @@ public class ClauseTransformer {
                 InferenceStep step = new AtleastToAnd(clause,andClause);
                 andClause.inferenceStep = step;
                 if(monitoring) monitor.print(monitorId,step.toString());}
-            return analyseAnd(andClause,thread);}
+            return analyseAnd(andClause,monitorId,thread);}
 
         return clause;
     }

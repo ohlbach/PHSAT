@@ -44,6 +44,7 @@ public class Model {
     /** observers to be called when a new true literal is inserted */
     private final ArrayList<Pair<Thread, BiConsumer<Integer, InferenceStep>>> observers = new ArrayList<>();
 
+
     /** creates a model with a maximum number of predicates, together with a means of tracking the origins
      *
      * @param predicates the maximum number of predicates
@@ -239,6 +240,11 @@ public class Model {
      */
     public synchronized boolean isFull() {return model.size() == predicates;}
 
+    /** clears the data */
+    public void clear() {
+        model.clear();
+        inferenceSteps.clear();
+        for(int i = 0; i <= predicates; ++i) status[i] = 0;}
 
     /** returns the model as a comma separated string  (sorted)
      *

@@ -29,7 +29,7 @@ public class InferenceTest extends InferenceStep{
 
     @Override
     public IntArrayList origins() {
-        return IntArrayList.wrap(new int[]{3,2,1}); }
+        return IntArrayList.wrap(new int[]{-1,-2,-3}); }
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
