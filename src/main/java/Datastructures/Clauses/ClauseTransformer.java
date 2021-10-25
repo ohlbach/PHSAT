@@ -10,6 +10,9 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
+
 
 public class ClauseTransformer {
     private final ProblemSupervisor problemSupervisor;
@@ -19,6 +22,18 @@ public class ClauseTransformer {
     private final Symboltable symboltable;
     private final EquivalenceClasses equivalenceClasses;
     private final boolean trackReasoning;
+    private static Method atleastSimpleCases = null;
+    private static Method atmostSimpleCases = null;
+    private static Method exactlySimpleCases = null;
+    static {
+        try{atleastSimpleCases = ClauseTransformer.class.getDeclaredMethod("analyseAtleastSimpleCases",
+            Clause.class,String.class,Thread.class);
+            atmostSimpleCases = ClauseTransformer.class.getDeclaredMethod("analyseAtmostSimpleCases",
+                    Clause.class,String.class,Thread.class);
+            exactlySimpleCases = ClauseTransformer.class.getDeclaredMethod("analyseExactlySimpleCases",
+                Clause.class,String.class,Thread.class);}
+        catch(Exception ex) {}
+    }
 
     public ClauseTransformer(ProblemSupervisor problemSupervisor, Monitor monitor) {
         this.problemSupervisor = problemSupervisor;
@@ -237,92 +252,27 @@ public class ClauseTransformer {
         if(clause == null) return null;
         if(clause.clauseType != ClauseType.ATLEAST) return clause;
 
-        int quantifier = clause.quantifier;
-        int size = clause.size();
-
-
-        // atleast 2 p,q,r and true(p) -> atleast 1 q,r
-        // atleast 2 p,q,r and false(p) -> atleast 2 q,r
-
-        IntArrayList falseLiterals = null;
-        IntArrayList trueLiterals  = null;
-
-        for(int i = 0; i < size; ++i) {
-            int literal = clause.getLiteral(i);
-            switch(model.status(literal)) {
-                case -1: if(falseLiterals == null) falseLiterals = new IntArrayList();
-                        falseLiterals.add(i);
-                    break;
-                case +1: if(trueLiterals == null) trueLiterals = new IntArrayList();
-                        trueLiterals.add(i);}}
-
-        if(falseLiterals != null || trueLiterals != null) {
-            Clause newClause = new Clause(problemSupervisor.nextClauseId(),ClauseType.ATLEAST);
-            for(int i = 0; i < size; ++i) {
-                if((falseLiterals != null && falseLiterals.contains(i)) ||
-                        trueLiterals != null && trueLiterals.contains(i)) continue;
-                newClause.add(clause.getLiteral(i));}
-            newClause.quantifier = quantifier;
-            if(trueLiterals != null) newClause.quantifier -= trueLiterals.size();
-
-            InferenceStep step = null;
-            if(trackReasoning) {
-                step = new AtleastTrueFalse(clause,newClause,trueLiterals,falseLiterals,model);
-                if(monitoring) monitor.print(monitorId, step.toString(symboltable));}
-            newClause.inferenceStep = step;
-
-            newClause = analyseAtleastSimpleCases(newClause,monitorId,thread);
-            if(newClause == null) return null;
-            if(newClause.clauseType != ClauseType.ATLEAST) return newClause;
-            clause = newClause;}
-
         // atleast 2 p,-p q -> atleast 1 q
-        return analyseAtleastPNotP(clause,monitorId,thread);
-    }
+        clause = analysePNotP(clause,monitorId,thread,atleastSimpleCases);
+        if(clause == null) return null;
 
-    /** analyses complementary literals in atleast-clauses
-     *  atleast 2 p,-p,q,r -> atleast 1 q,r
-     *
-     * @param clause    the clause to be analysed
-     * @param monitorId  for monitoring the steps
-     * @param thread     which processes the clause
-     * @return           null or an or-clause or a shortened atleast-clause or the original clause
-     * @throws Unsatisfiable if a contradiction is detected
-     */
-    private Clause analyseAtleastPNotP(Clause clause, String monitorId, Thread thread) throws Unsatisfiable{
-        int size = clause.size();
-        for(int i = 0; i < size; ++i) {
-            int literal = clause.getLiteral(i);
-            for(int j = i+1; j < size; ++j) {
-                if(literal == -clause.getLiteral(j)) {
-                    Clause newClause = new Clause(problemSupervisor.nextClauseId(),ClauseType.ATLEAST);
-                    for(int k = 0; k < size; ++k) {
-                        if(k != i && k != j) newClause.add(clause.getLiteral(k));}
-                    newClause.quantifier = clause.quantifier-1;
-                    if(trackReasoning) {
-                        InferenceStep step = new AtleastPNotP(clause,newClause);
-                        newClause.inferenceStep = step;
-                        if(monitoring) {monitor.print(monitorId,step.toString(symboltable));}}
+        clause = analyseTrueFalse(clause,monitorId,thread,atleastSimpleCases);
 
-                    Clause nextClause = analyseAtleastSimpleCases(newClause,monitorId,thread);
-                    if(nextClause == null) return null;
-                    if(nextClause.clauseType != ClauseType.ATLEAST) return nextClause;
-                    // recursive call ir several p,-p literals are in the clause
-                    return analyseAtleastPNotP(nextClause,monitorId,thread);}}}
         return clause;}
 
-    /** analyses some simple cases of atleast-clauses
-     * - atleast 0 p,q,r is always true<br>
-     * - atleast 1 p,q,r is p | q | r<br>
-     * - atleast 3 p,q,r is p & q & r
-     * - atleast 2 p,p,q -> true(p)
-     *
-     * @param clause    the clause to be analysed
-     * @param monitorId for monitoring the step
-     * @param thread    which processes the clause
-     * @return null or an or-clause or the original clause
-     * @throws Unsatisfiable if a contradiction is detected
-     */
+
+            /** analyses some simple cases of atleast-clauses
+             * - atleast 0 p,q,r is always true<br>
+             * - atleast 1 p,q,r is p | q | r<br>
+             * - atleast 3 p,q,r is p & q & r
+             * - atleast 2 p,p,q -> true(p)
+             *
+             * @param clause    the clause to be analysed
+             * @param monitorId for monitoring the step
+             * @param thread    which processes the clause
+             * @return null or an or-clause or the original clause
+             * @throws Unsatisfiable if a contradiction is detected
+             */
     private Clause analyseAtleastSimpleCases(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
         int quantifier = clause.quantifier;
         if(quantifier == 0) return null; // atleast 0 p,q,r is always true
@@ -370,5 +320,262 @@ public class ClauseTransformer {
             return null;}
         return clause;
     }
+
+    // ATMOST-CLAUSES
+
+    /** analyses atmost clauses
+     * The following typical situations are treated:<br>
+     * - equivalent literals are replaced.<br>
+     * - atmost 0 p,q,r -> true(-p,-q,-r)<br>
+     * - atmost n p_1,...,p_n -> true<br>
+     * - atmost 3 p,-p,q,r -> atmost 2 q,r<br>
+     * - atmost 2 p,q,r and true(p) -> atmost 1 q,r<br>
+     * - atmost 2 p,q,r and false(p) -> atmost 2 q,r<br>
+     *
+     * Double literals are kept as they are
+     *
+     * @param clause     the clause to be analysed
+     * @param monitorId  for monitoring the steps
+     * @param thread     which processes the clause
+     * @return           null or an or-clause or a shortened atleast-clause or the original clause
+     * @throws Unsatisfiable if a contradiction is detected
+     */
+    public Clause analyseAtmost(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
+        assert clause.clauseType == ClauseType.ATMOST;
+        clause = replaceEquivalences(clause, monitorId);
+        clause = analyseAtmostSimpleCases(clause,monitorId,thread);
+        if(clause == null) return null;
+        clause = analysePNotP(clause,monitorId,thread, atmostSimpleCases);
+        if(clause == null) return null;
+        clause = analyseTrueFalse(clause,monitorId,thread, atmostSimpleCases);
+        return clause;
+    }
+    /** analyses simple cases of atmost clauses
+     * The following typical situations are treated:<br>
+     * - equivalent literals are replaced.<br>
+     * - atmost 0 p,q,r -> true(-p,-q,-r)<br>
+     * - atmost n p_1,...,p_n -> true<br>
+     * - atmost n p,..,p,Q -> false(p) and atmost n Q  if there are n+1 occurrences of p
+     *
+     * @param clause     the clause to be analysed
+     * @param monitorId  for monitoring the steps
+     * @param thread     which processes the clause
+     * @return           null or an or-clause or a shortened atleast-clause or the original clause
+     * @throws Unsatisfiable if a contradiction is detected
+     */
+    private Clause analyseAtmostSimpleCases(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
+        int quantifier = clause.quantifier;
+        int size = clause.size();
+        if(quantifier >= size) return null;  // is always true
+
+        if(quantifier == 0) { // all literals must be false
+            InferenceStep step = null;
+            if(trackReasoning) {
+                step = new AllToModel(clause,-1);
+                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
+            for(CLiteral cLiteral : clause) {model.add(-cLiteral.literal,step,thread);}
+            return null;}
+
+        if(clause.hasDoubles()) { //atmost n p,..,p,Q -> false(p) and atmost n Q  if there are n+1 occurrences of p
+            return analyseMultiples(clause,monitorId,thread,atmostSimpleCases);}
+        return clause;}
+
+    // ATMOST-CLAUSES
+
+    /** analyses exactly clauses
+     * The following typical situations are treated:<br>
+     * - equivalent literals are replaced.<br>
+     * - exactly 0 p,q,r -> true(-p,-q,-r)<br>
+     * - exactly n p_1,...,p_n -> true(p_1,...,p_n)<br>
+     * - exactly 3 p,-p,q,r -> exactly 2 q,r<br>
+     * - exactly 2 p,q,r and true(p) -> exactly 1 q,r<br>
+     * - exactly 2 p,q,r and false(p) -> exactly 2 q,r<br>
+     *
+     * Double literals are kept as they are
+     *
+     * @param clause     the clause to be analysed
+     * @param monitorId  for monitoring the steps
+     * @param thread     which processes the clause
+     * @return           null or an or-clause or a shortened atleast-clause or the original clause
+     * @throws Unsatisfiable if a contradiction is detected
+     */
+    public Clause analyseExactly(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
+        assert clause.clauseType == ClauseType.EXACTLY;
+        clause = replaceEquivalences(clause, monitorId);
+        clause = analyseExactlySimpleCases(clause,monitorId,thread);
+        if(clause == null) return null;
+        clause = analysePNotP(clause,monitorId,thread, exactlySimpleCases);
+        if(clause == null) return null;
+        clause = analyseTrueFalse(clause,monitorId,thread, exactlySimpleCases);
+        return clause;
+    }
+
+    /** analyses simple cases of exactly clauses
+     * The following typical situations are treated:<br>
+     * - equivalent literals are replaced.<br>
+     * - exactly 3 p,q -> false
+     * - exactly 0 p,q,r -> true(-p,-q,-r)<br>
+     * - exactly n p_1,...,p_n -> true(p_1,...,p_n)<br>
+     * - exactly n p,..,p,Q -> false(p) and exactly n Q  if there are n+1 occurrences of p
+     *
+     * @param clause     the clause to be analysed
+     * @param monitorId  for monitoring the steps
+     * @param thread     which processes the clause
+     * @return           null or an or-clause or a shortened atleast-clause or the original clause
+     * @throws Unsatisfiable if a contradiction is detected
+     */
+    private Clause analyseExactlySimpleCases(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
+        int quantifier = clause.quantifier;
+        int size = clause.size();
+        if(quantifier > size) quantifier = size; // exactly 3 p,q is the same as exactly 3 p,q,true
+        clause.quantifier = quantifier;          // is the same as exactly 2 p,q
+
+        int sign = 0;
+        if(quantifier == 0) {sign = -1;}         // exactly 0 p,q -> false(p,q)
+        else {if(quantifier == size) sign = +1;} // exactly 2 p,q -> true(p,q)
+
+        if(sign != 0) {
+            InferenceStep step = null;
+            if(trackReasoning) {
+                step = new AllToModel(clause,sign);
+                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
+            for(CLiteral cLiteral : clause) {model.add(sign*cLiteral.literal,step,thread);}
+            return null;}
+
+        if(clause.hasDoubles()) { //exactly n p,..,p,Q -> false(p) and atmost n Q  if there are n+1 occurrences of p
+            return analyseMultiples(clause,monitorId,thread,exactlySimpleCases);}
+        return clause;}
+
+
+    /** analyses complementary literals in numeric clauses
+     *  atleast 2 p,-p,q,r -> atleast 1 q,r<br>
+     *  atmost  2 p,-p,q,r -> atmost  1 q,r<br>
+     *  exactly 2 p,-p,q,r -> exactly 1 q,r<br>
+     *  simple cases are treated after each removal of complementary literals.
+     *
+     * @param clause     the clause to be analysed
+     * @param monitorId   for monitoring the steps
+     * @param thread      which processes the clause
+     * @param simpleCases method for treating simple cases
+     * @return           null or an or-clause or a shortened clause or the original clause
+     * @throws Unsatisfiable if a contradiction is detected
+     */
+    private Clause analysePNotP(Clause clause, String monitorId, Thread thread, Method simpleCases) throws Unsatisfiable{
+        ClauseType type = clause.clauseType;
+        int size = clause.size();
+        for(int i = 0; i < size; ++i) {
+            int literal = clause.getLiteral(i);
+            for(int j = i+1; j < size; ++j) {
+                if(literal == -clause.getLiteral(j)) { // complementary literals detected
+                    Clause newClause = new Clause(problemSupervisor.nextClauseId(),type);
+                    for(int k = 0; k < size; ++k) {  // add all the non-complementary literals to the new clause
+                        if(k != i && k != j) newClause.add(clause.getLiteral(k));}
+                    newClause.quantifier = clause.quantifier-1;     // one true pair is eliminated.
+                    if(trackReasoning) {
+                        InferenceStep step = new NumericPNotP(clause,newClause);
+                        newClause.inferenceStep = step;
+                        if(monitoring) {monitor.print(monitorId,step.toString(symboltable));}}
+                    Clause nextClause = null;
+                    try{nextClause = (Clause)simpleCases.invoke(this,newClause,monitorId,thread);}
+                    catch(Exception ex) {} // Method Invocation Error should not happen.
+                    if(nextClause == null) return null;
+                    if(nextClause.clauseType != type) return nextClause;
+                    // recursive call if several p,-p literals are in the clause
+                    return analysePNotP(nextClause,monitorId,thread, simpleCases);}}}
+        return clause;}
+
+    /** eliminates true and false literals from numeric clauses
+     * atleast 2 p,q,r and true(p) - > atleast 1 q,r
+     * atleast 2 p,q,r and false(p) -> atleast 2 q,r
+     *
+     * @param clause      a numeric clause
+     * @param monitorId   for monitoring the action
+     * @param thread      which processes the clause
+     * @param simpleCases Method for treating simple cases
+     * @return            null or a simplified clause or the original clause
+     * @throws Unsatisfiable if a contradiction is discovered
+     */
+    private Clause analyseTrueFalse(Clause clause, String monitorId, Thread thread, Method simpleCases) throws Unsatisfiable{
+
+        ClauseType type = clause.clauseType;
+        int size = clause.size();
+        int quantifier = clause.quantifier;
+
+        IntArrayList falseLiterals = null;
+        IntArrayList trueLiterals  = null;
+
+        for(int i = 0; i < size; ++i) { // find true and false literals
+            int literal = clause.getLiteral(i);
+            switch(model.status(literal)) {
+                case -1: if(falseLiterals == null) falseLiterals = new IntArrayList();
+                    falseLiterals.add(i);
+                    break;
+                case +1: if(trueLiterals == null) trueLiterals = new IntArrayList();
+                    trueLiterals.add(i);}}
+
+        if(falseLiterals != null || trueLiterals != null) {
+            Clause newClause = new Clause(problemSupervisor.nextClauseId(), type);
+            for (int i = 0; i < size; ++i) { // add the literals which have to truth value.
+                int literal = clause.getLiteral(i);
+                if(model.status(literal) == 0) newClause.add(literal);}
+
+            newClause.quantifier = quantifier;
+            if (trueLiterals != null) newClause.quantifier -= trueLiterals.size();
+
+            if (trackReasoning) {
+                InferenceStep  step = new NumericTrueFalse(clause, newClause, trueLiterals, falseLiterals, model);
+                newClause.inferenceStep = step;
+                if(monitoring) monitor.print(monitorId, step.toString(symboltable));}
+            try{newClause = (Clause)simpleCases.invoke(this,newClause,monitorId,thread);}
+            catch(Exception ex) {}
+            return newClause;}
+        return clause;}
+
+    /** simplifies some multiple occurrences of literals.
+     * Examples: <br>
+     * - atmost  2 ppp,q,r -> false(p) and atmost  2 q,r<br>
+     * - exactly 2 ppp,q,r -> false(p) and exactly 2 q,r<br>
+     * This is not possible with atleast-clauses
+     *   atleast 2 ppp,q,r -> true(p) OR atleast 2 q,r
+     *
+     * @param clause      a atmost- or exactly clause
+     * @param monitorId   for monitoring the action
+     * @param thread      which processes the clause
+     * @param simpleCases for treating simple cases
+     * @return            null or the smaller clause or the original clause
+     * @throws Unsatisfiable if a contradiction is discovered
+     */
+    private Clause analyseMultiples(Clause clause, String monitorId, Thread thread, Method simpleCases) throws Unsatisfiable {
+        assert clause.clauseType == ClauseType.ATMOST || clause.clauseType == ClauseType.EXACTLY;
+
+        int quantifier = clause.quantifier;
+        HashMap<Integer,Integer> occurrences = new HashMap<>();
+
+        // we collect the number of occurrences of the literals
+        for(CLiteral cLiteral : clause) {
+            int literal = cLiteral.literal;
+            Integer occ = occurrences.get(literal);
+            if(occ == null) occurrences.put(literal,1);
+            else            occurrences.put(literal,occ+1);}
+        IntArrayList literals = new IntArrayList();
+        occurrences.forEach((literal,occurrence) -> {if(occurrence > quantifier) literals.add((int)literal);});
+        if(literals.isEmpty()) return clause;  // no simplification possible
+
+        // now literals contains the literals with too many occurrences
+        Clause newClause = new Clause(problemSupervisor.nextClauseId(),clause.clauseType);
+        newClause.quantifier = quantifier;
+        InferenceStep step = null;
+        for(CLiteral cLiteral : clause) {
+            int literal = cLiteral.literal;
+            if(!literals.contains(literal)) newClause.add(literal);}
+        if(trackReasoning) {
+            step = new NumericMultipleP(clause,newClause,literals);
+            newClause.inferenceStep = step;
+            if(monitoring) monitor.print(monitorId,step.toString());}
+        for(int literal : literals) {model.add(-literal,step,thread);}
+
+        try{newClause = (Clause)simpleCases.invoke(this,newClause,monitorId,thread);}
+        catch(Exception ex) {}
+        return newClause;}
 
 }

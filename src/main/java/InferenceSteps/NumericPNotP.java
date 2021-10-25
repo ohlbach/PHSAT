@@ -6,17 +6,19 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
-/** Complementary literals: atleast 3 p,-p,q,r -> atleast 2 q,r */
-public class AtleastPNotP extends InferenceStep{
-    public static final String title = "Atleast p, not p";
+/** Complementary literals: atleast 3 p,-p,q,r -> atleast 2 q,r and atmost 3 p,-p,q,r -> atmost 2 q,r*/
+public class NumericPNotP extends InferenceStep{
+    public static final String title = "Atleast/Atmost/Exactly p, not p";
     public static final String rule =
-            title+": Example:\n"+
-                  "atleast 3 p,-p,q,r -> atleast 2 q,r";
+            title+": Examples:\n"+
+                    "atleast  3 p,-p,q,r -> atleast 2 q,r\n"+
+                    "atmost   3 p,-p,q,r -> atmost  2 q,r"+
+                    "exactly  3 p,-p,q,r -> axactly 2 q,r";
 
     private final Clause oldClause;
     private final Clause newClause;
 
-    public AtleastPNotP(Clause oldClause, Clause newClause) {
+    public NumericPNotP(Clause oldClause, Clause newClause) {
         this.oldClause = oldClause;
         this.newClause = newClause;}
 

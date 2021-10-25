@@ -11,13 +11,14 @@ import static Utilities.Utilities.joinIntArrays;
 
 /** Documents removal or true/false literals in atleast-clauses */
 
-public class AtleastTrueFalse extends InferenceStep{
+public class NumericTrueFalse extends InferenceStep{
 
-    public static final String title = "True/False Literals in Atleast-Clauses";
+    public static final String title = "True/False Literals in Numeric Clauses";
 
     public static final String rule = title + ": Examples:\n" +
-            "atleast 2 p,q,r and true(p) -> atleast 1 q,r\n" +
-            "atleast 2 p,q,r and false(p) -> atleast 2 q r";
+            "atleast 2 p,q,r and true(p)  -> atleast 1 q,r\n" +
+            "atleast 2 p,q,r and false(p) -> atleast 2 q r\n" +
+            "similar with atmost and exactly";
 
     private final Clause oldClause;
     private final Clause newClause;
@@ -25,7 +26,7 @@ public class AtleastTrueFalse extends InferenceStep{
     private final IntArrayList falseLiterals;
     private final Model model;
 
-    public AtleastTrueFalse(Clause oldClause, Clause newClause,
+    public NumericTrueFalse(Clause oldClause, Clause newClause,
                             IntArrayList trueLiterals, IntArrayList falseLiterals, Model model) {
         this.oldClause     = oldClause;
         this.newClause     = newClause;

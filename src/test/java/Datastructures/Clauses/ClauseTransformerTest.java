@@ -11,6 +11,7 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import org.junit.Test;
 
+import java.lang.reflect.Method;
 import java.util.HashMap;
 
 import static org.junit.Assert.*;
@@ -47,6 +48,8 @@ public class ClauseTransformerTest {
     int ctO = ClauseType.OR.ordinal();
     int ctE = ClauseType.EQUIV.ordinal();
     int ctL = ClauseType.ATLEAST.ordinal();
+    int ctM = ClauseType.ATMOST.ordinal();
+    int ctEx = ClauseType.EXACTLY.ordinal();
 
     @Test
     public void analyseAnd() throws Unsatisfiable {
@@ -230,4 +233,79 @@ public class ClauseTransformerTest {
         assertNull(ct.analyseAtleast(c1, "test 12", null));
         assertEquals("Model:\n5",model.toNumbers());
     }
-}
+
+    @Test
+    public void analyseAtmost() throws Unsatisfiable {
+        System.out.println("analyse Atmost");
+        ProblemSupervisor problemSupervisor = prepare();
+        Model model = problemSupervisor.model;
+        EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
+        Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
+        ClauseTransformer ct = new ClauseTransformer(problemSupervisor, monitor);
+
+        Clause c1 = new Clause(new int[]{1, ctM, 0, 1, 2});
+        assertNull(ct.analyseAtmost(c1, "test 1", null));
+        assertEquals("Model:\n-1,-2", model.toNumbers());
+        model.clear();
+
+        c1 = new Clause(new int[]{2, ctM, 3, 1, 2, -1, 3, -2, 4, 5});
+        Clause c2 = ct.analyseAtmost(c1, "test 1", null);
+        assertEquals("M-12: ATMOST 1: 3,4,5", c2.toNumbers());
+
+        model.add(2,new InferenceTest("test 2"),null);
+        model.add(3,new InferenceTest("test 3"),null);
+
+        c1 = new Clause(new int[]{3, ctM, 3, 1,2,-3,4,5});
+        c2 = ct.analyseAtmost(c1, "test 2", null);
+        assertEquals("M-13: ATMOST 2: 1,4,5",c2.toNumbers());
+
+        c1 = new Clause(new int[]{4, ctM, 1, 1,2,-3,4,5});
+        assertNull(ct.analyseAtmost(c1, "test 3", null));
+        assertEquals("Model:\n-1,2,3,-4,-5",model.toNumbers());
+
+        model.clear();
+        c1 = new Clause(new int[]{5, ctM, 2, 1,2,3,1,2,3,1,2,3,4,5,6,5});
+        c2 = ct.analyseAtmost(c1, "test 4", null);
+        assertEquals("M-15: ATMOST 2: 4,5,6,5",c2.toNumbers());
+        assertEquals("Model:\n-1,-2,-3",model.toNumbers());
+
+        model.clear();
+        c1 = new Clause(new int[]{6, ctM, 2, 1,2,3,1,2,3,1,2,3,4});
+        assertNull(ct.analyseAtmost(c1, "test 5", null));
+        assertEquals("Model:\n-1,-2,-3",model.toNumbers());
+    }
+
+    @Test
+    public void analyseExactly() throws Unsatisfiable {
+        System.out.println("analyse Exactly");
+        ProblemSupervisor problemSupervisor = prepare();
+        Model model = problemSupervisor.model;
+        EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
+        Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
+        ClauseTransformer ct = new ClauseTransformer(problemSupervisor, monitor);
+
+        Clause c1 = new Clause(new int[]{1, ctEx, 0, 1, 2});
+        assertNull(ct.analyseExactly(c1,"test 1",null));
+        assertEquals("Model:\n-1,-2",model.toNumbers());
+        model.clear();
+
+        c1 = new Clause(new int[]{2, ctEx, 3, 1, 2});
+        assertNull(ct.analyseExactly(c1,"test 2",null));
+        assertEquals("Model:\n1,2",model.toNumbers());
+        model.clear();
+
+        model.add(2,new InferenceTest("Test 1"),null);
+        model.add(3,new InferenceTest("Test 2"),null);
+        c1 = new Clause(new int[]{3, ctEx, 3, 1, 2,3,4});
+        Clause c2 = ct.analyseExactly(c1,"test 3",null);
+        assertEquals("X-11: EXACTLY 1: 1,4",c2.toNumbers());
+        model.clear();
+
+        eqc.addBasicEquivalenceClause(new int[]{4,ctE,1,2,3});
+        c1 = new Clause(new int[]{4, ctEx, 2, 1, 2,3,4,5,6});
+        c2 = ct.analyseExactly(c1,"test 4",null);
+        assertEquals("X-13: EXACTLY 2: 4,5,6",c2.toNumbers());
+
+    }
+
+    }
