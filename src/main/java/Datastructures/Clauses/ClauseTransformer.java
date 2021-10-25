@@ -2,6 +2,7 @@ package Datastructures.Clauses;
 
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import InferenceSteps.*;
@@ -9,21 +10,22 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import java.util.ArrayList;
 
 public class ClauseTransformer {
-    private ProblemSupervisor problemSupervisor;
-    private Monitor monitor;
-    private boolean monitoring;
-    private Model model;
-    private EquivalenceClasses equivalenceClasses;
-    private boolean trackReasoning;
+    private final ProblemSupervisor problemSupervisor;
+    private final Monitor monitor;
+    private final boolean monitoring;
+    private final Model model;
+    private final Symboltable symboltable;
+    private final EquivalenceClasses equivalenceClasses;
+    private final boolean trackReasoning;
 
     public ClauseTransformer(ProblemSupervisor problemSupervisor, Monitor monitor) {
         this.problemSupervisor = problemSupervisor;
         this.monitor = monitor;
         monitoring = monitor != null;
         model = problemSupervisor.model;
+        symboltable = model.symboltable;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
     }
@@ -38,8 +40,10 @@ public class ClauseTransformer {
      */
     public Clause analyseAnd(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
         assert clause.clauseType == ClauseType.AND;
-        InferenceStep step = new AndToModel(clause);
-        if(monitoring && step != null) {monitor.print(monitorId,step.toString());}
+        InferenceStep step = null;
+        if(trackReasoning) {
+            step = new AndToModel(clause);
+            if(monitoring) {monitor.print(monitorId,step.toString(symboltable));}}
         for(CLiteral cLiteral : clause) {
             model.add(cLiteral.literal,step,thread);}
         return null;}
@@ -72,7 +76,7 @@ public class ClauseTransformer {
         for(CLiteral cLiteral : clause) { // check for true literals
             if(model.isTrue(cLiteral.literal)) {
                 if(monitor != null) {
-                    monitor.print(monitorId,"Clause " + clause.toString(0, model.symboltable) +
+                    monitor.print(monitorId,"Clause " + clause.toString(0, symboltable) +
                     " is true in the current model");}
                 return null;}} // will be ignored
 
@@ -81,7 +85,7 @@ public class ClauseTransformer {
             for(int j = i+1; j < size; ++j) {
                 if(literal == -clause.getLiteral(j)) {
                     if(monitor != null) {
-                        monitor.print(monitorId,"Clause " + clause.toString(0, model.symboltable) +
+                        monitor.print(monitorId,"Clause " + clause.toString(0, symboltable) +
                                 " is a tautology");}
                     return null;}}}
         Clause newClause = deleteFalseLiteralsInOr(clause,monitorId);
@@ -99,7 +103,7 @@ public class ClauseTransformer {
             case 0: throw new Unsatisfiable(clause.inferenceStep);
             case 1:
                 InferenceStep step = new AndToModel(clause);
-                if(monitoring) monitor.print(monitorId,step.toString());
+                if(monitoring) monitor.print(monitorId,step.toString(symboltable));
                 model.add(clause.getLiteral(0),step,thread);
                 return null;}
         return clause;}
@@ -128,7 +132,7 @@ public class ClauseTransformer {
         if(trackReasoning) {
             InferenceStep step = new EquivalenceReplacements(oldClause,newClause,positions,equivalenceClasses);
             newClause.inferenceStep = step;
-            if(monitoring) monitor.print(monitorId,step.toString());}
+            if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
     return newClause;}
 
     /** delete false literals in OR-clauses
@@ -152,7 +156,7 @@ public class ClauseTransformer {
         if(trackReasoning) {
             InferenceStep step = new FalseLiteralDeletion(oldClause,newClause,positions,model);
             newClause.inferenceStep = step;
-            if(monitoring) monitor.print(monitorId,step.toString());}
+            if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
         return newClause;}
 
     // PROCESSING OF EQUIV-CLAUSES
@@ -199,7 +203,7 @@ public class ClauseTransformer {
             InferenceStep step = null;
             if(trackReasoning) {
                 step = new EquivalentTrueLiterals(clause,status*literal,trueLiterals,model);
-                if(monitoring) monitor.print(monitorId,step.toString());}
+                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
             for(int trueLiteral : trueLiterals) model.add(trueLiteral,step,thread);
             return null;}
         return clause;}
@@ -228,6 +232,7 @@ public class ClauseTransformer {
     public Clause analyseAtleast(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
         assert clause.clauseType == ClauseType.ATLEAST;
 
+        clause = replaceEquivalences(clause,monitorId);
         clause = analyseAtleastSimpleCases(clause,monitorId,thread);
         if(clause == null) return null;
         if(clause.clauseType != ClauseType.ATLEAST) return clause;
@@ -235,13 +240,13 @@ public class ClauseTransformer {
         int quantifier = clause.quantifier;
         int size = clause.size();
 
-        clause = replaceEquivalences(clause,monitorId);
 
         // atleast 2 p,q,r and true(p) -> atleast 1 q,r
         // atleast 2 p,q,r and false(p) -> atleast 2 q,r
 
         IntArrayList falseLiterals = null;
         IntArrayList trueLiterals  = null;
+
         for(int i = 0; i < size; ++i) {
             int literal = clause.getLiteral(i);
             switch(model.status(literal)) {
@@ -263,12 +268,12 @@ public class ClauseTransformer {
             InferenceStep step = null;
             if(trackReasoning) {
                 step = new AtleastTrueFalse(clause,newClause,trueLiterals,falseLiterals,model);
-                if(monitoring) monitor.print(monitorId, step.toString());}
+                if(monitoring) monitor.print(monitorId, step.toString(symboltable));}
             newClause.inferenceStep = step;
 
             newClause = analyseAtleastSimpleCases(newClause,monitorId,thread);
             if(newClause == null) return null;
-            if(newClause.clauseType != ClauseType.ATLEAST) return clause;
+            if(newClause.clauseType != ClauseType.ATLEAST) return newClause;
             clause = newClause;}
 
         // atleast 2 p,-p q -> atleast 1 q
@@ -297,7 +302,7 @@ public class ClauseTransformer {
                     if(trackReasoning) {
                         InferenceStep step = new AtleastPNotP(clause,newClause);
                         newClause.inferenceStep = step;
-                        if(monitoring) {monitor.print(monitorId,step.toString(model.symboltable));}}
+                        if(monitoring) {monitor.print(monitorId,step.toString(symboltable));}}
 
                     Clause nextClause = analyseAtleastSimpleCases(newClause,monitorId,thread);
                     if(nextClause == null) return null;
@@ -310,6 +315,7 @@ public class ClauseTransformer {
      * - atleast 0 p,q,r is always true<br>
      * - atleast 1 p,q,r is p | q | r<br>
      * - atleast 3 p,q,r is p & q & r
+     * - atleast 2 p,p,q -> true(p)
      *
      * @param clause    the clause to be analysed
      * @param monitorId for monitoring the step
@@ -339,9 +345,29 @@ public class ClauseTransformer {
             if(trackReasoning) {
                 InferenceStep step = new AtleastToAnd(clause,andClause);
                 andClause.inferenceStep = step;
-                if(monitoring) monitor.print(monitorId,step.toString());}
+                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
             return analyseAnd(andClause,monitorId,thread);}
 
+        if(quantifier == 2) { // atleast 2 pppq  -> p
+            int doubleLit = 0;
+            for(int i = 0; i < size; ++i) {
+                int literal = clause.getLiteral(i);
+                for(int j = i+1; j < size; ++j) {if(literal == clause.getLiteral(j)) {doubleLit = literal; break;}}
+                if(doubleLit != 0) break;}
+            if(doubleLit == 0) return clause;
+
+            int literals = 0;
+            for(int i = 0; i < size; ++i) {
+                int literal = clause.getLiteral(i);
+                if(literal != doubleLit) {
+                    if(literals++ == 1) return clause;}}
+
+            InferenceStep step = null;
+            if(trackReasoning) {
+                step = new AtleastPPQ(clause,doubleLit);
+                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
+            model.add(doubleLit,step,thread);
+            return null;}
         return clause;
     }
 

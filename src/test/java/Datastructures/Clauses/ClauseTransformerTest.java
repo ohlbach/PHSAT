@@ -34,10 +34,11 @@ public class ClauseTransformerTest {
         symboltable.setName(4,"s");
         symboltable.setName(5,"t");
         symboltable.setName(6,"u");
-        Model model = new Model(10,symboltable);
-        problemSupervisor.model = model;
-        EquivalenceClasses equivalenceClasses = new EquivalenceClasses(problemSupervisor);
-        problemSupervisor.equivalenceClasses = equivalenceClasses;
+        symboltable.setName(7,"v");
+        symboltable.setName(8,"w");
+        symboltable.setName(9,"x");
+        problemSupervisor.model = new Model(10,symboltable);
+        problemSupervisor.equivalenceClasses = new EquivalenceClasses(problemSupervisor);
         return problemSupervisor;}
 
     StringBuilder errors = new StringBuilder();
@@ -45,6 +46,7 @@ public class ClauseTransformerTest {
     int ctA = ClauseType.AND.ordinal();
     int ctO = ClauseType.OR.ordinal();
     int ctE = ClauseType.EQUIV.ordinal();
+    int ctL = ClauseType.ATLEAST.ordinal();
 
     @Test
     public void analyseAnd() throws Unsatisfiable {
@@ -134,7 +136,7 @@ public class ClauseTransformerTest {
         assertEquals("E-2: p=q=r",c2.toString(0,model.symboltable));
 
         c1 = new Clause( new int[]{3,ctE,1,2,1,-2,3,1});
-        try{c2 = ct.analyseEquiv(c1, "test 3", null);}
+        try{ct.analyseEquiv(c1, "test 3", null);}
         catch(Unsatisfiable uns) {if(monitoring) System.out.println(uns);}
 
         model.add(2,new InferenceTest("IT 1"),null);
@@ -167,6 +169,65 @@ public class ClauseTransformerTest {
     }
 
     @Test
-    public void analyseAtleast() {
+    public void analyseAtleast() throws Unsatisfiable{
+        System.out.println("analyse Atleast");
+        ProblemSupervisor problemSupervisor = prepare();
+        Model model = problemSupervisor.model;
+        EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
+        Monitor monitor = monitoring ? new Monitor(null,"true",errors,warnings) : null;
+        ClauseTransformer ct = new ClauseTransformer(problemSupervisor,monitor);
+        Clause c1 = new Clause( new int[]{1,ctL,0});
+        assertNull(ct.analyseAtleast(c1, "test 1", null));
+
+        c1 = new Clause( new int[]{2,ctL,1,2,3,4});
+        Clause c2 = ct.analyseAtleast(c1, "test 2", null);
+        assertEquals("2: 2,3,4",c2.toNumbers());
+
+        c1 = new Clause( new int[]{3,ctL,4,1,2,3});
+        assertNull(ct.analyseAtleast(c1, "test 3", null));
+        assertEquals("Model:\np,q,r",model.toString());
+
+        model.clear();
+        model.add(2,new InferenceTest("Test 4"),null);
+        c1 = new Clause( new int[]{4,ctL,3,1,2,3,-4});
+        c2 = ct.analyseAtleast(c1, "test 4", null);
+        assertEquals("L-12: ATLEAST 2: 1,3,-4",c2.toNumbers());
+
+        model.clear();
+        model.add(2,new InferenceTest("Test 5"),null);
+        model.add(4,new InferenceTest("Test 6"),null);
+        c1 = new Clause( new int[]{5,ctL,3,1,2,3,4,5});
+        c2 = ct.analyseAtleast(c1, "test 5", null);
+        assertEquals("13: 1,3,5",c2.toNumbers());
+
+        model.clear();
+        c1 = new Clause( new int[]{6,ctL,3,2,3,4,-2,5});
+        c2 = ct.analyseAtleast(c1, "test 7", null);
+        assertEquals("L-14: ATLEAST 2: 3,4,5",c2.toNumbers());
+
+
+        c1 = new Clause( new int[]{7,ctL,4,2,3,4,-2,5,-3,6});
+        c2 = ct.analyseAtleast(c1, "test 8", null);
+        assertEquals("L-16: ATLEAST 2: 4,5,6",c2.toNumbers());
+
+        c1 = new Clause( new int[]{8,ctL,3,2,3,4,-2,5,-3,6});
+        c2 = ct.analyseAtleast(c1, "test 9", null);
+        assertEquals("18: 4,5,6",c2.toNumbers());
+
+        eqc.addBasicEquivalenceClause(new int[]{100,ctE,1,2,3});
+        c1 = new Clause( new int[]{9,ctL,3,3,4,-3,5,6});
+        c2 = ct.analyseAtleast(c1, "test 10", null);
+        assertEquals("L-20: ATLEAST 2: 4,5,6",c2.toNumbers());
+
+        model.clear();
+        c1 = new Clause( new int[]{10,ctL,2,5,6,5,5});
+        assertNull(ct.analyseAtleast(c1, "test 11", null));
+        assertEquals("Model:\n5",model.toNumbers());
+
+        model.clear();
+        eqc.addBasicEquivalenceClause(new int[]{101,ctE,5,6,7,8});
+        c1 = new Clause( new int[]{11,ctL,2,7,8,9,6});
+        assertNull(ct.analyseAtleast(c1, "test 12", null));
+        assertEquals("Model:\n5",model.toNumbers());
     }
 }
