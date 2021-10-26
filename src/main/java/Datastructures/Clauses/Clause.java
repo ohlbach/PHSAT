@@ -226,6 +226,15 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(literal != ignoreLiteral) {clause.add(literal);}}
         return clause;}
 
+    /** copies the literals of the clause to an IntArrayList
+     *
+     * @return the literals as IntArrayList
+     */
+    public IntArrayList toArray() {
+        IntArrayList list = new IntArrayList(cliterals.size());
+        for(CLiteral cLiteral : cliterals) list.add(cLiteral.literal);
+        return list;}
+
     /** checks if the clause is positive, negative or mixed and returns the corresponding value for the structure.
      */
     public ClauseStructure getStructure() {

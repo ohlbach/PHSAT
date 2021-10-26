@@ -12,6 +12,7 @@ import Management.ProblemSupervisor;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import static org.junit.Assert.*;
@@ -122,6 +123,21 @@ public class ClauseTransformerTest {
         assertNull(ct.analyseOr(c1, "test", null));
         assertTrue(model.isEmpty());
     }
+
+
+    @Test
+    public void atleastToCNF()  {
+        System.out.println("atleast to CNF");
+        ProblemSupervisor problemSupervisor = prepare();
+        Model model = problemSupervisor.model;
+        EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
+        Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
+        ClauseTransformer ct = new ClauseTransformer(problemSupervisor, monitor);
+        Clause c1 = new Clause( new int[]{1,ctL,3,1,2,3,4,2});
+        ArrayList<Clause> cnf = ct.atLeastToCNF(c1,"test 1");
+        assertEquals("[11: 1,2, 12: 2,3, 13: 2,4, 14: 1,3,4]",cnf.toString());
+    }
+
 
     @Test
     public void analyseEquiv() throws Unsatisfiable{
@@ -276,6 +292,32 @@ public class ClauseTransformerTest {
     }
 
     @Test
+    public void atmostToCNF()  {
+        System.out.println("atmost to CNF");
+        ProblemSupervisor problemSupervisor = prepare();
+        Model model = problemSupervisor.model;
+        EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
+        Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
+        ClauseTransformer ct = new ClauseTransformer(problemSupervisor, monitor);
+        Clause c1 = new Clause( new int[]{1,ctM,2,1,2,3});
+        ArrayList<Clause> cnf = ct.atmostToCNF(c1,"test 1");
+        assertEquals("[11: -1,-2,-3]",cnf.toString());
+
+        c1 = new Clause( new int[]{2,ctM,2,1,2,3,4});
+        cnf = ct.atmostToCNF(c1,"test 2");
+        assertEquals("[12: -1,-2,-3, 13: -1,-2,-4, 14: -1,-3,-4, 15: -2,-3,-4]",cnf.toString());
+
+        c1 = new Clause( new int[]{3,ctM,2,1,2,3,3});
+        cnf = ct.atmostToCNF(c1,"test 3");
+        assertEquals("[16: -1,-3, 17: -2,-3]",cnf.toString());
+
+        c1 = new Clause( new int[]{4,ctM,3,1,2,3,4,5,6});
+        cnf = ct.atmostToCNF(c1,"test 4");
+        assertEquals("[18: -1,-2,-3,-4, 19: -1,-2,-3,-5, 20: -1,-2,-3,-6, 21: -1,-2,-4,-5, 22: -1,-2,-4,-6, 23: -1,-2,-5,-6, 24: -1,-3,-4,-5, 25: -1,-3,-4,-6, 26: -1,-3,-5,-6, 27: -1,-4,-5,-6, 28: -2,-3,-4,-5, 29: -2,-3,-4,-6, 30: -2,-3,-5,-6, 31: -2,-4,-5,-6, 32: -3,-4,-5,-6]",cnf.toString());
+
+    }
+
+    @Test
     public void analyseExactly() throws Unsatisfiable {
         System.out.println("analyse Exactly");
         ProblemSupervisor problemSupervisor = prepare();
@@ -306,6 +348,27 @@ public class ClauseTransformerTest {
         c2 = ct.analyseExactly(c1,"test 4",null);
         assertEquals("X-13: EXACTLY 2: 4,5,6",c2.toNumbers());
 
+    }
+
+    @Test
+    public void exactlyToCNF()  {
+        System.out.println("exactly to CNF");
+        ProblemSupervisor problemSupervisor = prepare();
+        Model model = problemSupervisor.model;
+        EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
+        Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
+        ClauseTransformer ct = new ClauseTransformer(problemSupervisor, monitor);
+        Clause c1 = new Clause( new int[]{1,ctEx,2,1,2,3});
+        ArrayList<Clause> cnf = ct.exactlyToCNF(c1,"test 1");
+        assertEquals("[11: -3,-2,-1, 12: 1,2, 13: 2,3, 14: 1,3]",cnf.toString());
+
+        c1 = new Clause( new int[]{1,ctEx,2,1,2,2});
+        cnf = ct.exactlyToCNF(c1,"test 2");
+        assertEquals("[15: -2,-1, 16: 2]",cnf.toString());
+
+        c1 = new Clause( new int[]{1,ctEx,2,1,2,3,4});
+        cnf = ct.exactlyToCNF(c1,"test 3");
+        assertEquals("[17: -3,-2,-1, 18: -4,-2,-1, 19: -4,-3,-1, 20: -4,-3,-2, 21: 1,2,3, 22: 2,3,4, 23: 1,3,4, 24: 1,2,4]",cnf.toString());
     }
 
     }

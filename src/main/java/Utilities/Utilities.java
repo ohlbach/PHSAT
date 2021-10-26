@@ -1053,10 +1053,10 @@ public class Utilities {
         ArrayList<IntArrayList> lists = new ArrayList<>();
         IntArrayList list1 = IntArrayList.wrap(new int[]{1,2});
         IntArrayList list2 = IntArrayList.wrap(new int[]{1,3});
-        IntArrayList list3 = IntArrayList.wrap(new int[]{-1,4});
-        IntArrayList list4 = IntArrayList.wrap(new int[]{2,3,5});
-        IntArrayList list5 = IntArrayList.wrap(new int[]{2,4,5});
-        IntArrayList list6 = IntArrayList.wrap(new int[]{3,4,5});
+        IntArrayList list3 = IntArrayList.wrap(new int[]{1,4});
+        IntArrayList list4 = IntArrayList.wrap(new int[]{2,3});
+        IntArrayList list5 = IntArrayList.wrap(new int[]{2,4});
+        IntArrayList list6 = IntArrayList.wrap(new int[]{3,4});
         lists.add(list1); lists.add(list2);lists.add(list3);
         lists.add(list4); lists.add(list5);lists.add(list6);
 

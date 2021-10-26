@@ -8,9 +8,11 @@ import Datastructures.Theory.Model;
 import InferenceSteps.*;
 import Management.Monitor;
 import Management.ProblemSupervisor;
+import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 
@@ -32,9 +34,16 @@ public class ClauseTransformer {
                     Clause.class,String.class,Thread.class);
             exactlySimpleCases = ClauseTransformer.class.getDeclaredMethod("analyseExactlySimpleCases",
                 Clause.class,String.class,Thread.class);}
-        catch(Exception ex) {}
-    }
+        catch(Exception ex) {
+            System.out.println(ex.toString());
+            System.exit(1);}}
 
+    /** generates a Clause Transformer.
+     * It can simplify all clause types and transform them into conjunctive normal form.
+     *
+     * @param problemSupervisor that supervises the problem solution
+     * @param monitor for monitoring the actions.
+     */
     public ClauseTransformer(ProblemSupervisor problemSupervisor, Monitor monitor) {
         this.problemSupervisor = problemSupervisor;
         this.monitor = monitor;
@@ -44,6 +53,20 @@ public class ClauseTransformer {
         equivalenceClasses = problemSupervisor.equivalenceClasses;
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
     }
+
+    /** turns one of the numeric clauses into conjunctive normal form
+     *
+     * @param clause     a numeric clause
+     * @param monitorId  a string
+     * @return           an ArrayList of OR-clauses
+     */
+    public ArrayList<Clause> toCNF(Clause clause, String monitorId) {
+        switch(clause.clauseType) {
+            case ATLEAST: return atLeastToCNF(clause,monitorId);
+            case ATMOST:  return atmostToCNF(clause,monitorId);
+            case EXACTLY: return exactlyToCNF(clause,monitorId);}
+        return null;}
+
 
     // PROCESSING OF AND-CLAUSES
 
@@ -123,32 +146,6 @@ public class ClauseTransformer {
                 return null;}
         return clause;}
 
-    /** replaces literals by equivalent literals, in any clause type
-     *
-     * @param oldClause the original clause
-     * @param monitorId for monitoring replacements
-     * @return either the unchanged old clause or a new clause with the replaced literals.
-     */
-    public Clause replaceEquivalences(Clause oldClause, String monitorId) {
-        if(equivalenceClasses.isEmpty()) return oldClause;
-        Clause newClause = null;
-        IntArrayList positions = null;
-        for(int i = 0; i < oldClause.size(); ++i) {
-            int oldLiteral = oldClause.getLiteral(i);
-            int newLiteral = equivalenceClasses.getRepresentative(oldLiteral);
-            if (oldLiteral == newLiteral) continue;
-            if(newClause == null) {
-                newClause = oldClause.clone(problemSupervisor.nextClauseId());
-                positions = new IntArrayList();}
-            newClause.getCLiteral(i).literal = newLiteral;
-            positions.add(i);}
-        if(newClause == null) return oldClause;
-
-        if(trackReasoning) {
-            InferenceStep step = new EquivalenceReplacements(oldClause,newClause,positions,equivalenceClasses);
-            newClause.inferenceStep = step;
-            if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-    return newClause;}
 
     /** delete false literals in OR-clauses
      *
@@ -321,6 +318,25 @@ public class ClauseTransformer {
         return clause;
     }
 
+    /** turns an atleast-clause into conjunctive normal form
+     *
+     * @param clause an atleast-Clause
+     * @return a list of OR-clauses as the conjunctive normal form of the atleast-clause
+     */
+    protected ArrayList<Clause> atLeastToCNF(Clause clause, String monitorId) {
+        assert clause.clauseType == ClauseType.ATLEAST;
+        ArrayList<Clause> clauses = new ArrayList<>();
+        for(IntArrayList literals : Utilities.crossProduct(
+                Utilities.combinations(clause.quantifier,clause.toArray(),
+                        true,true,true))) {
+            clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,literals));}
+        if(trackReasoning) {
+            for(Clause orClause : clauses) {
+                InferenceStep step = new AtleastToCNF(clause, orClause);
+                orClause.inferenceStep = step;
+                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}}
+    return clauses;}
+
     // ATMOST-CLAUSES
 
     /** analyses atmost clauses
@@ -380,7 +396,30 @@ public class ClauseTransformer {
             return analyseMultiples(clause,monitorId,thread,atmostSimpleCases);}
         return clause;}
 
-    // ATMOST-CLAUSES
+
+    /** turns an atmost-clause into conjunctive normal form
+     * Example: atmost 2 p,q,r,s -> -p,-q,-r & -p,-q,-s & -p,-r,-s & -q,-r,-s
+     *
+     * @param clause an atmost-Clause
+     * @return a list of OR-clauses as the conjunctive normal form of the atmost-clause
+     */
+    protected ArrayList<Clause> atmostToCNF(Clause clause, String monitorId) {
+        assert clause.clauseType == ClauseType.ATMOST;
+        ArrayList<Clause> clauses = new ArrayList<>();
+        IntArrayList negLiterals = new IntArrayList();
+        for(CLiteral cLiteral : clause) negLiterals.add(-cLiteral.literal);
+        for(IntArrayList literals :
+                Utilities.combinations(clause.quantifier+1,negLiterals,
+                        true,true,true)) {
+            clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,literals));}
+        if(trackReasoning) {
+            for(Clause orClause : clauses) {
+                InferenceStep step = new AtmostToCNF(clause, orClause);
+                orClause.inferenceStep = step;
+                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}}
+        return clauses;}
+
+    // EXACTLY-CLAUSES
 
     /** analyses exactly clauses
      * The following typical situations are treated:<br>
@@ -447,6 +486,63 @@ public class ClauseTransformer {
         return clause;}
 
 
+    /** turns an exactly-clause into conjunctive normal form
+     *
+     * @param clause an exactly-Clause
+     * @return a list of OR-clauses as the conjunctive normal form of the exactly-clause
+     */
+    protected ArrayList<Clause> exactlyToCNF(Clause clause, String monitorId) {
+        assert clause.clauseType == ClauseType.EXACTLY;
+        int size = clause.size();
+        IntArrayList literals = clause.toArray();
+        ArrayList<IntArrayList> dnf = new ArrayList<>();
+        for(int combination : Utilities.combinations(size,clause.quantifier)) {
+            IntArrayList lits = new IntArrayList();
+            for(int i = 0; i < size; ++i) {
+                int literal = literals.getInt(i);
+                lits.add((((1 << i) & combination) == 0) ? -literal : literal);}
+            dnf.add(lits);}
+        ArrayList<Clause> clauses = new ArrayList<>();
+        for(IntArrayList cnf : Utilities.crossProduct(dnf)) {
+            clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,cnf));}
+        if(trackReasoning) {
+            for(Clause orClause :clauses) {
+                InferenceStep step = new ExactlyToCNF(clause,orClause);
+                clause.inferenceStep = step;
+                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}}
+        return clauses;
+    }
+
+
+
+    /** replaces literals by equivalent literals, in any clause type
+     *
+     * @param oldClause the original clause
+     * @param monitorId for monitoring replacements
+     * @return either the unchanged old clause or a new clause with the replaced literals.
+     */
+    public Clause replaceEquivalences(Clause oldClause, String monitorId) {
+        if(equivalenceClasses.isEmpty()) return oldClause;
+        Clause newClause = null;
+        IntArrayList positions = null;
+        for(int i = 0; i < oldClause.size(); ++i) {
+            int oldLiteral = oldClause.getLiteral(i);
+            int newLiteral = equivalenceClasses.getRepresentative(oldLiteral);
+            if (oldLiteral == newLiteral) continue;
+            if(newClause == null) {
+                newClause = oldClause.clone(problemSupervisor.nextClauseId());
+                positions = new IntArrayList();}
+            newClause.getCLiteral(i).literal = newLiteral;
+            positions.add(i);}
+        if(newClause == null) return oldClause;
+
+        if(trackReasoning) {
+            InferenceStep step = new EquivalenceReplacements(oldClause,newClause,positions,equivalenceClasses);
+            newClause.inferenceStep = step;
+            if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
+        return newClause;}
+
+
     /** analyses complementary literals in numeric clauses
      *  atleast 2 p,-p,q,r -> atleast 1 q,r<br>
      *  atmost  2 p,-p,q,r -> atmost  1 q,r<br>
@@ -458,9 +554,8 @@ public class ClauseTransformer {
      * @param thread      which processes the clause
      * @param simpleCases method for treating simple cases
      * @return           null or an or-clause or a shortened clause or the original clause
-     * @throws Unsatisfiable if a contradiction is detected
      */
-    private Clause analysePNotP(Clause clause, String monitorId, Thread thread, Method simpleCases) throws Unsatisfiable{
+    private Clause analysePNotP(Clause clause, String monitorId, Thread thread, Method simpleCases) {
         ClauseType type = clause.clauseType;
         int size = clause.size();
         for(int i = 0; i < size; ++i) {
@@ -477,7 +572,9 @@ public class ClauseTransformer {
                         if(monitoring) {monitor.print(monitorId,step.toString(symboltable));}}
                     Clause nextClause = null;
                     try{nextClause = (Clause)simpleCases.invoke(this,newClause,monitorId,thread);}
-                    catch(Exception ex) {} // Method Invocation Error should not happen.
+                    catch(Exception ex) {
+                        System.out.println(ex.toString());
+                        System.exit(1);} // Method Invocation Error should not happen.
                     if(nextClause == null) return null;
                     if(nextClause.clauseType != type) return nextClause;
                     // recursive call if several p,-p literals are in the clause
@@ -493,9 +590,8 @@ public class ClauseTransformer {
      * @param thread      which processes the clause
      * @param simpleCases Method for treating simple cases
      * @return            null or a simplified clause or the original clause
-     * @throws Unsatisfiable if a contradiction is discovered
      */
-    private Clause analyseTrueFalse(Clause clause, String monitorId, Thread thread, Method simpleCases) throws Unsatisfiable{
+    private Clause analyseTrueFalse(Clause clause, String monitorId, Thread thread, Method simpleCases) {
 
         ClauseType type = clause.clauseType;
         int size = clause.size();
@@ -527,7 +623,9 @@ public class ClauseTransformer {
                 newClause.inferenceStep = step;
                 if(monitoring) monitor.print(monitorId, step.toString(symboltable));}
             try{newClause = (Clause)simpleCases.invoke(this,newClause,monitorId,thread);}
-            catch(Exception ex) {}
+            catch(Exception ex) {
+                System.out.println(ex.toString());
+                System.exit(1);}
             return newClause;}
         return clause;}
 
@@ -554,9 +652,8 @@ public class ClauseTransformer {
         // we collect the number of occurrences of the literals
         for(CLiteral cLiteral : clause) {
             int literal = cLiteral.literal;
-            Integer occ = occurrences.get(literal);
-            if(occ == null) occurrences.put(literal,1);
-            else            occurrences.put(literal,occ+1);}
+            occurrences.merge(literal, 1, Integer::sum);
+        }
         IntArrayList literals = new IntArrayList();
         occurrences.forEach((literal,occurrence) -> {if(occurrence > quantifier) literals.add((int)literal);});
         if(literals.isEmpty()) return clause;  // no simplification possible
@@ -575,7 +672,9 @@ public class ClauseTransformer {
         for(int literal : literals) {model.add(-literal,step,thread);}
 
         try{newClause = (Clause)simpleCases.invoke(this,newClause,monitorId,thread);}
-        catch(Exception ex) {}
+        catch(Exception ex) {
+            System.out.println(ex.toString());
+            System.exit(1);}
         return newClause;}
 
 }
