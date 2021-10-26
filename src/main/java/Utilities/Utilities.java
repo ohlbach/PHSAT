@@ -694,9 +694,6 @@ public class Utilities {
         System.out.println(s);
         for(long l : list) {System.out.println(Arrays.toString(toArray((int)l)));}}
 
-    public static void  main(String[] args) {
-        forSome(Integer.MIN_VALUE+1,(i-> {System.out.println(i); return false;}));
-    }
 
     /** checks if the string codes an integer
      *
@@ -929,24 +926,117 @@ public class Utilities {
             if(!contains) {return false;}}
         return true;}
 
+    /** computes n!
+     *
+     * @param n an integer >= 0
+     * @return n!
+     */
+    public static int factorial(int n) {
+        assert n >= 0;
+        int fact = 1;
+        for(int i = 2; i <= n; ++i) fact *= i;
+        return fact;}
 
-    public static void  mainA(String[] args) {
-        int a = toInt(new int[]{0,4});
-        int b = toInt(new int[]{1,3});
-        int n = 15;
-        long t = System.currentTimeMillis();
-        ArrayList<Integer> list = largestSubsetsInt(n,(l-> ((a & l) == a) && ((b & l) != b)));
-        System.out.println((System.currentTimeMillis()-t)+" ms");
+    /** computes m over n = (m! / (n! * (m-n)!)
+     *
+     * @param m nominator
+     * @param n denominator
+     * @return (m! / (n! * (m-n)!)
+     */
+    public static int over(int m, int n) {
+        assert m >= n && m > 0 && n > 0;
+        int nominator = 1;
+        for(int i =  Math.max(n,m-n) + 1; i <= m; ++i) nominator *= i;
+        int k = Math.min(n,m-n);
+        int denominator = 1;
+        for(int i = 2; i <= k; ++i) denominator *= i;
+        return nominator / denominator;
+    }
 
-        t = System.nanoTime();
-        ArrayList<Integer> list2 = largestSubsetsInt(n,(l-> ((a & l) == a) && ((b & l) != b)));
-        System.out.println((System.nanoTime()-t)+" ns");
+    /** computes all combinations of n ones within m bits.
+     * Example: combinations(3,2): 011,101,110 <br>
+     * Notice that the number of such combinations is m over n. <br>
+     * Example: 10 over 3  = 120
+     *
+     * @param m the number of bits
+     * @param n the number of ones
+     * @return the combinations as integers
+     */
+    public static IntArrayList combinations(int m, int n) {
+        assert m > 0 && n > 0 && m >= n;
+        IntArrayList com = new IntArrayList();
+        int end = m-n;
+        for(int i = 0; i <= end; ++i) {com.add((1 << i));}
+        for(int i = 1; i < n; ++i) {
+            ++end;
+            IntArrayList com1 = new IntArrayList();
+            for(int k : com) {
+                int last = m;
+                for(; last > 0; --last) {if(((1 << last) & k) != 0) break;}
+                for(int position = last+1; position <= end; ++position) {
+                    com1.add(k | (1<<position));}}
+            com = com1;}
+        return com;}
 
-        t = System.nanoTime();
-        ArrayList<Long> list1 = largestSubsetsLong(n,(l-> ((a & l) == a) && ((b & l) != b)));
-        System.out.println((System.nanoTime()-t)+" ns");
+    /** computes all combinations of n numbers out of the list
+     *
+     * @param n                    the size of the combination
+     * @param list                 a list of integers
+     * @param avoidDoubles         if true then double items are avoided
+     * @param avoidComplementaries if true then lists with complementary elements are avoided
+     * @param checkSubsumption     if true then subsumed lists are avoided.
+     * @return      an ArrayList of all combinations of n numbers out of the list.
+     */
+    public static ArrayList<IntArrayList> combinations(int n, IntArrayList list,
+                                                       boolean avoidDoubles,
+                                                       boolean avoidComplementaries,
+                                                       boolean checkSubsumption) {
+        assert n > 0 && n <= list.size();
+        ArrayList<IntArrayList> combinations = new ArrayList<>();
+        int size = list.size();
+        for(int c : combinations(size,n)) {
+            IntArrayList cmb = new IntArrayList();
+            boolean addItem = true;
+            for(int i = 0; i < size; ++i) {
+                if(((1 << i) & c) != 0) {
+                    int item = list.getInt(i);
+                    if(avoidDoubles && cmb.contains(item)) continue;
+                    if(avoidComplementaries && cmb.contains(-item)) {addItem = false; break;};
+                    cmb.add(item);}}
+            if(!addItem) continue;
+            if(!cmb.isEmpty())
+                if(checkSubsumption) addIfNotSubsumed(combinations,cmb);
+                else combinations.add(cmb);}
+        return combinations;
+    }
 
-        pll("L",list1);
+    /** adds items to the list of items there is nos subset of it in the list
+     * All list elements of which items is a subset of are removed
+     *
+     * @param lists a list of integer lists
+     * @param items an integer list
+     */
+    private static void addIfNotSubsumed(ArrayList<IntArrayList> lists, IntArrayList items) {
+        for(int i = 0; i < lists.size(); ++i) {
+            IntArrayList list = lists.get(i);
+            if(isSubset(list,items)) return;
+            if(isSubset(items,list)) lists.remove(i--);}
+        lists.add(items);}
+
+
+
+    public static void  main(String[] args) {
+        int n = 3;
+       /* IntArrayList l1 = IntArrayList.wrap(new int[]{1,2,3});
+        IntArrayList l2 = IntArrayList.wrap(new int[]{3,2,1});
+        System.out.println(subsumes(l1,l2));
+*/
+
+        IntArrayList list = IntArrayList.wrap(new int[]{4,5,6,6,-5,-4});
+        ArrayList<IntArrayList> com = combinations(n,list,true,true,
+                true);
+        for(IntArrayList l : com)
+            System.out.println(l);
     }
 
 
