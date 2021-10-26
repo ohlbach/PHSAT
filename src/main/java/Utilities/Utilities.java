@@ -1023,18 +1023,44 @@ public class Utilities {
             if(isSubset(items,list)) lists.remove(i--);}
         lists.add(items);}
 
+    /** computes the cross product of the list of int-lists.
+     * Double occurrences of items are avoided.<br>
+     * Lists with complementary items are avoided.<br>
+     * Superlists of other lists are avoided.
+     *
+     * @param lists a list of int-lists
+     * @return the optimized cross product of the list
+     */
+    public static ArrayList<IntArrayList> crossProduct(ArrayList<IntArrayList> lists) {
+        ArrayList<IntArrayList> product = new ArrayList<>();
+        for(int item : lists.get(0)) product.add(IntArrayList.wrap(new int[]{item}));
+        int size = lists.size();
+        for(int i = 1; i < size; ++i) {
+            ArrayList<IntArrayList> product1 = new ArrayList<>();
+            IntArrayList nextList = lists.get(i);
+            for(int item : nextList) {
+                for(IntArrayList lastList : product) {
+                    lastList = lastList.clone();
+                    if(lastList.contains(-item)) continue;
+                    if(!lastList.contains(item)) lastList.add(item);
+                    addIfNotSubsumed(product1,lastList);}}
+            product = product1;}
+        return product;}
+
 
 
     public static void  main(String[] args) {
-        int n = 3;
-       /* IntArrayList l1 = IntArrayList.wrap(new int[]{1,2,3});
-        IntArrayList l2 = IntArrayList.wrap(new int[]{3,2,1});
-        System.out.println(subsumes(l1,l2));
-*/
+        ArrayList<IntArrayList> lists = new ArrayList<>();
+        IntArrayList list1 = IntArrayList.wrap(new int[]{1,2});
+        IntArrayList list2 = IntArrayList.wrap(new int[]{1,3});
+        IntArrayList list3 = IntArrayList.wrap(new int[]{-1,4});
+        IntArrayList list4 = IntArrayList.wrap(new int[]{2,3,5});
+        IntArrayList list5 = IntArrayList.wrap(new int[]{2,4,5});
+        IntArrayList list6 = IntArrayList.wrap(new int[]{3,4,5});
+        lists.add(list1); lists.add(list2);lists.add(list3);
+        lists.add(list4); lists.add(list5);lists.add(list6);
 
-        IntArrayList list = IntArrayList.wrap(new int[]{4,5,6,6,-5,-4});
-        ArrayList<IntArrayList> com = combinations(n,list,true,true,
-                true);
+        ArrayList<IntArrayList> com = crossProduct(lists);
         for(IntArrayList l : com)
             System.out.println(l);
     }
