@@ -23,7 +23,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** OR,DISJOINT, ... */
     public ClauseType clauseType;
     /** for numeric types (atleast, atmost, exactly)*/
-    public int quantifier = 0;
+    public int quantifier = 1;
     /** the literals */
     public ArrayList<CLiteral> cliterals;
     /** indicates that the clause has been removed */
@@ -504,7 +504,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+(width+clauseType.prefix.length())+"s", getName()+":");}
         else st.append(clauseType.prefix+id+": ");
-        if(clauseType.isNumeric()) st.append(clauseType.toString() + " " + quantifier + ": ");
+        if(clauseType.isNumeric()) st.append(clauseType + " " + quantifier + ": ");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(cliterals.get(position).literal,symboltable));

@@ -11,7 +11,7 @@ import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
-import Solvers.Walker.Walker;
+import Solvers.Walker.WalkerOld;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.lang.reflect.Constructor;
@@ -52,7 +52,7 @@ public abstract class Solver {
      */
     public static Class solverClass(String solverName) {
         switch (solverName) {
-            case "walker":      return Walker.class;
+            case "walker":      return WalkerOld.class;
             case "resolution":  return Solvers.Resolution.Resolution.class;
             default: return null;}}
 

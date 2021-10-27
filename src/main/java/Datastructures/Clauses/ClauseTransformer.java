@@ -276,7 +276,6 @@ public class ClauseTransformer {
 
         if(quantifier == 1) {   // atleast 1 p,q,r is equivalent to p or q or r
             clause.clauseType = ClauseType.OR;
-            clause.quantifier = 0;
             return analyseOr(clause,monitorId,thread);}
 
         int size = clause.size();
@@ -288,7 +287,7 @@ public class ClauseTransformer {
         if(quantifier == size) { // atleast 3 p,q,r is equivalent to p & q & r
             Clause andClause = clause.clone(problemSupervisor.nextClauseId());
             andClause.clauseType = ClauseType.AND;
-            andClause.quantifier = 0;
+            andClause.quantifier = 1;
             if(trackReasoning) {
                 InferenceStep step = new AtleastToAnd(clause,andClause);
                 andClause.inferenceStep = step;
