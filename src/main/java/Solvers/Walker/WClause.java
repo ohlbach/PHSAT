@@ -3,6 +3,7 @@ package Solvers.Walker;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
 import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 
 import java.util.Arrays;
 import java.util.Formatter;
@@ -18,6 +19,7 @@ public class WClause {
     protected boolean isLocallyTrue  = false;
     protected boolean isGloballyTrue = false;
     protected boolean hasDoubles     = false;
+    protected Int2IntArrayMap multiplicities = null;
 
     /** copies a clause to the WClause-type
      *
@@ -31,11 +33,13 @@ public class WClause {
         for(int i = 0; i < clause.size(); ++i) literals[i] = clause.getLiteral(i);
         int size = literals.length;
         if(clauseType.isNumeric()) {
+            Int2IntArrayMap multiplicities = new Int2IntArrayMap(clause.size());
             for(int i = 0; i < size; ++i) {
                 int literal = literals[i];
-                for(int j = i+1; j < size; ++j) {
-                    if(literal == literals[j]) {hasDoubles = true; break;}}
-                if(hasDoubles) break;}}}
+                int mult = multiplicities.get(literal)+1;
+                multiplicities.put(literal,mult);
+                hasDoubles |= mult > 1;}
+            if(hasDoubles) this.multiplicities = multiplicities;}}
 
 
     /** generates a string: clause-id: literals GT LT  (for Globally True and Locally True)

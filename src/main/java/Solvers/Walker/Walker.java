@@ -18,10 +18,8 @@ public class Walker extends Solver {
     private final ArrayList<WClause> wClauses = new ArrayList<>();
     private final ArrayList<WClause>[] posOccurrences;
     private final ArrayList<WClause>[] negOccurrences;
-    private final int[] flipScores;
-    private final byte[] localModel;
-    private IntArrayList quantifiers;
-    private int maxQuantifier;
+    private final boolean[] localModel;
+    private IntArrayList quantifiers = new IntArrayList();
     private int falseClauses = 0;
     /** sorts the predicates according to the flipScore. predicates whose flip makes more clauses true come to the front.*/
     private final IntegerQueue predicateQueue;
@@ -41,8 +39,7 @@ public class Walker extends Solver {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             posOccurrences[predicate] = new ArrayList<>();
             negOccurrences[predicate] = new ArrayList<>();}
-        flipScores = new int[predicates+1];
-        localModel = new byte[predicates];
+        localModel = new boolean[predicates];
         predicateQueue = new IntegerQueue(predicates);
     }
 
@@ -70,8 +67,8 @@ public class Walker extends Solver {
         setInitialScores(posScores,negScores);
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             int status = model.status(predicate);
-            if(status != 0) {localModel[predicate] = (byte)status; continue;}
-            localModel[predicate] = (posScores[predicate] >= negScores[predicate]) ? (byte)+1 : (byte)-1;}}
+            if(status != 0) {localModel[predicate] = status == 1; continue;}
+            localModel[predicate] = (posScores[predicate] >= negScores[predicate]);}}
 
     /** computes the initial predicate scores.
      * The higher the score of a predicate the more likely it is to make clauses true.
@@ -174,14 +171,81 @@ public class Walker extends Solver {
             case EXACTLY: return trueLiterals == quantifier;}
         return false;}
 
+    private void setInitialFlipScores() {
+        for(WClause wClause : wClauses) {
+            if(wClause.isGloballyTrue) continue;
+            switch(wClause.clauseType) {
+                case OR:       setInitialFlipScoreOR(wClause);      break;
+                case ATLEAST:  setInitialFlipScoreATLEAST(wClause); break;
+            }
+        }
+    }
+
+    /** computes the contribution of the OR-clause to its predicates flip scores.
+     * If the clause is false then flipping any of the literals makes the clause true.<br>
+     * The flip scores of all literals are increased by 1.
+     * <br>
+     * If the clause is true because two or more literals are true then flipping any of the predicates does not
+     * make the clause false.
+     * <br>
+     * If the clause is true because only one literal is true then flipping this one makes the clause false.
+     * Its score contribution is -1. Flipping any of the other literals does not change the truth value of the clause.
+     *
+     * @param wClause an OR-Clause
+     */
+    private void setInitialFlipScoreOR(WClause wClause) {
+        if(wClause.isLocallyTrue) {
+            int trueLiteral = 0;
+            for(int literal : wClause.literals) {
+                if(isLocallyTrue(literal)) {
+                    if(trueLiteral != 0) { // there are at least two true literals.
+                                           // Flipping any of the literals does not make the clause false;
+                        trueLiteral = Integer.MAX_VALUE; break;}
+                    else trueLiteral = literal;}}
+            if(trueLiteral != Integer.MAX_VALUE) // flipping the only true literal makes the clause false.
+                predicateQueue.addScore(Math.abs(trueLiteral),-1);}
+        else { // all literals are false. Flipping each one of them makes the clause true
+            for(int literal : wClause.literals) predicateQueue.addScore(Math.abs(literal),1);}}
+
+    private void setInitialFlipScoreATLEAST(WClause wClause) {
+        if(wClause.hasDoubles) {setInitialFlipScoreATLEASTwithDoubles(wClause); return;}
+        int trueLiterals = 0;
+        for(int literal : wClause.literals) {if(isLocallyTrue(literal)) ++trueLiterals;}
+        int quantifier = wClause.quantifier;
+
+        if(wClause.isLocallyTrue) {
+            if(trueLiterals > quantifier) {return;} // flipping any of the literals does not change the clause's truth value
+            for(int literal : wClause.literals) {   // flipping a true literal makes the clause false
+                if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),-1);}}
+        else {
+            if(trueLiterals == quantifier-1) {
+                for(int literal : wClause.literals) {  // flipping a false literal makes the clause true
+                    if(!isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),1);}}}}
+
+
+    private void setInitialFlipScoreATLEASTwithDoubles(WClause wClause) {
+        int trueLiterals = 0;
+        for(int literal : wClause.literals) {if(isLocallyTrue(literal)) ++trueLiterals;}
+        int quantifier = wClause.quantifier;
+        if(wClause.isLocallyTrue) {
+            if(trueLiterals > quantifier) {return;} // flipping any of the literals does not change the clause's truth value
+            for(int literal : wClause.literals) { // flipping a true literal makes the clause false
+                if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),-1);}}
+        else {
+            if(trueLiterals == quantifier-1) { // flipping a false literal makes the clause true
+                for(int literal : wClause.literals) { // flipping a true literal makes the clause false
+                    if(!isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),1);}}}}
+
+
+
 
     /** returns +1 if the literal is true, otherwise -1
-     *
-     * @param literal a literal
-     * @return +1 if the literal is true, otherwise -1
-     */
+         *
+         * @param literal a literal
+         * @return +1 if the literal is true, otherwise -1
+         */
     private boolean isLocallyTrue(int literal) {
-        return (literal > 0) ? localModel[literal] == (byte)1 :localModel[-literal] == (byte)-1;}
+        return (literal > 0) ? localModel[literal] : !localModel[-literal];}
 
 
     private void addWClauseToIndex(WClause wClause) {

@@ -3,16 +3,14 @@ package Utilities;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
 import Datastructures.Literals.CLiteral;
-import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import sun.awt.image.ImageWatched;
 
 import java.io.*;
 import java.lang.reflect.Array;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -1059,19 +1057,11 @@ public class Utilities {
         return product;}
 
     public static void  main(String[] args) {
-        ArrayList<IntArrayList> lists = new ArrayList<>();
-        IntArrayList list1 = IntArrayList.wrap(new int[]{1,2});
-        IntArrayList list2 = IntArrayList.wrap(new int[]{1,3});
-        IntArrayList list3 = IntArrayList.wrap(new int[]{1,4});
-        IntArrayList list4 = IntArrayList.wrap(new int[]{2,3});
-        IntArrayList list5 = IntArrayList.wrap(new int[]{2,4});
-        IntArrayList list6 = IntArrayList.wrap(new int[]{3,4});
-        lists.add(list1); lists.add(list2);lists.add(list3);
-        lists.add(list4); lists.add(list5);lists.add(list6);
-
-        ArrayList<IntArrayList> com = crossProduct(lists);
-        for(IntArrayList l : com)
-            System.out.println(l);
+        Int2IntArrayMap m = new Int2IntArrayMap(5);
+        m.put(-5,7);
+        m.put(5,8);
+        System.out.println(m.get(-5));
+        System.out.println(m.get(-6));
     }
 
 
