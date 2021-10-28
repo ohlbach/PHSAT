@@ -1048,6 +1048,15 @@ public class Utilities {
         return product;}
 
 
+    /** multiplies the elements of the list
+     *
+     * @param list a list of integers
+     * @return the product of the list elements
+     */
+    public static int product(IntArrayList list) {
+        int product = 1;
+        for(int q : list) product *= q;
+        return product;}
 
     public static void  main(String[] args) {
         ArrayList<IntArrayList> lists = new ArrayList<>();
