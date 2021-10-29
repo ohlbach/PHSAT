@@ -389,11 +389,133 @@ public class Walker extends Solver {
             if(!isLocallyTrue(literal) && (falseLits + wClause.multiplicities.get(literal) == quantifier))
                     predicateQueue.addScore(Math.abs(literal),1);}}
 
+    private void updateFlipScores(int predicate) {
+        predicateQueue.setScore(predicate,0);
+        for(WClause wClause : posOccurrences[predicate]) {
+            if(wClause.isGloballyTrue) continue;
+            switch(wClause.clauseType) {
+                case OR:      updateFlipScoresOr(predicate, wClause); break;
+                case EXACTLY: updateFlipScoresEXACTLY(predicate,wClause); break;}
+        }
+        for(WClause wClause : negOccurrences[-predicate]) {
+            if(wClause.isGloballyTrue) continue;
+            switch(wClause.clauseType) {
+                case OR:      updateFlipScoresOr(-predicate, wClause); break;
+                case EXACTLY: updateFlipScoresEXACTLY(predicate,wClause); break;}
+        }
+
+
+    }
+
+    /** updates the flip score for an OR-clause which contains the flipped literal.
+     *
+     * @param flippedLiteral the flipped literal
+     * @param wClause an OR-clause containing the flipped literal
+     */
+    private void updateFlipScoresOr(int flippedLiteral, WClause wClause) {
+        if(wClause.isLocallyTrue) {
+            int trueLiterals = 0;
+            int trueLiteral = 0;
+            for(int literal : wClause.literals) {
+                if(wClause.isLocallyTrue) {
+                    if(literal != flippedLiteral) trueLiteral = literal;
+                    ++trueLiterals;}}
+
+            switch(trueLiterals) {
+                case 0: // The flippedLiteral was true and is false now
+                    ++falseClauses;
+                    wClause.isLocallyTrue = false;
+                    for (int literal : wClause.literals) // flipping any of the literals makes the clause true now
+                        predicateQueue.addScore(Math.abs(literal), +1);
+                    return;
+                case 1: // Some other literal must be true, otherwise wClause.isLocallyTrue = false
+                    // The flippedLiteral was true and is false now
+                    // Originally there were two or more true literals.
+                    // The contribution of all literals to the flip score was 0.
+                    // Flipping the only true literal can now make the clause false
+                    predicateQueue.addScore(Math.abs(trueLiteral), -1);
+                    return;
+                case 2: // 2 or more literals are true now
+                    if (isLocallyTrue(flippedLiteral)) {
+                        // The flipped literal was false and is true now.
+                        // Before there was exactly one true literal
+                        // Flipping this one has made the clause false, which is now no longer true
+                        predicateQueue.addScore(Math.abs(trueLiteral), 1);}
+                    // If the flipped literal was true and is false now, there were originally 3 true literals.
+                    // Flipping had no effect, and has now no effect.
+                    }
+                    // If there are more than 2 true literals, flipping had no effect and has now no effect.
+            }
+        else { // the clause was false, and by flipping the flippedLiteral, it became true
+            wClause.isLocallyTrue = true;
+            --falseClauses;
+            for(int literal : wClause.literals) // Flipping the flippedLiteral again makes the clause false
+                predicateQueue.addScore(Math.abs(literal),-1);}
+                    // Flipping the other predicates so far made the clause true, which is no longer valid.
+        }
+
+    /** updates the flip score for an Exactly-clause which contains the flipped literal.
+     *
+     * @param flippedLiteral the flipped literal
+     * @param wClause an Exactly-clause containing the flipped literal
+     */
+    private void updateFlipScoresEXACTLY(int flippedLiteral, WClause wClause) {
+        int quantifier = wClause.quantifier;
+        int trueLiterals = 0;
+        for(int literal : wClause.literals) {if(isLocallyTrue(literal)) ++trueLiterals;}
+
+        if(wClause.isLocallyTrue) { // the clause had exactly quantifier many true literals.
+            // since the flipped literal is flipped, there are either less of more than quantifier many literals
+            wClause.isLocallyTrue = false;
+            ++falseClauses;
+            if(trueLiterals < quantifier) {// the flipped literal was true and is false now
+                for(int literal : wClause.literals) // Flipping any of the literals makes the clause true
+                    predicateQueue.addScore(Math.abs(literal),+1);
+                return;}
+            // now there is trueLiterals = quantifier + 1
+            // The flipped literal was false and is true now
+            // Making any of the true literals false makes the clause true again
+            for(int literal : wClause.literals) {
+                if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),+1);}
+            return;}
+
+        // The clause was false before the flipping
+        if(trueLiterals == quantifier) { // now the clause became true
+            wClause.isLocallyTrue = true;
+            --falseClauses;
+            if(isLocallyTrue(flippedLiteral)) { // the flipped literal was false and became true
+                // There were quantifier -1 true literals.
+                // Flipping a false literal made the clause true. Score +1 must be undone.
+                // Flipping any of the literals makes the clause false.
+                for(int literal : wClause.literals) {
+                    if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),-1);
+                    else predicateQueue.addScore(Math.abs(literal),-2);}
+                return;}
+            // The flipped literal was true and became false.
+            // There were quantifier +1 true literals.
+            // Flipping a true literal made the clause true. Score +1 must be undone.
+            // Flipping any of the literals makes the clause false.
+            for(int literal : wClause.literals) {
+                if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),-2);
+                else predicateQueue.addScore(Math.abs(literal),-1);}
+            return;}
+            // The clause was false and still is false.
+            // We must undo scores which could make clauses true.
+            // This was the case when trueLiterals = quantifier - 1 or trueLiterals = quantifier + 1.
+            // In this case we have now trueLiterals = quantifier - 2 or trueLiterals = quantifier + 2.
+        if((trueLiterals == quantifier - 2 && !isLocallyTrue(flippedLiteral)) ||
+            // flippedLiteral was true and therefore it was trueLiterals == quantifier - 1
+           (trueLiterals == quantifier + 2 && isLocallyTrue(flippedLiteral))) {
+            // flippedLiteral was false and therefore it was trueLiterals == quantifier + 1
+            for(int literal : wClause.literals) {
+                if(literal != flippedLiteral) predicateQueue.addScore(Math.abs(literal),-1);}
+        }}
+
     /** returns +1 if the literal is true, otherwise -1
-         *
-         * @param literal a literal
-         * @return +1 if the literal is true, otherwise -1
-         */
+     *
+     * @param literal a literal
+     * @return +1 if the literal is true, otherwise -1
+     */
     private boolean isLocallyTrue(int literal) {
         return (literal > 0) ? localModel[literal] : !localModel[-literal];}
 
