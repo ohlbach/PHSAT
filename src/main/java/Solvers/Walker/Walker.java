@@ -2,8 +2,11 @@ package Solvers.Walker;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
+import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Statistics.Statistic;
+import Datastructures.Theory.Model;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;
@@ -11,12 +14,12 @@ import Utilities.IntegerQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Random;
 
 public class Walker extends Solver {
 
-    private final ArrayList<WClause> wClauses = new ArrayList<>();
+    private final ArrayList<WClause> wClauses;
     private final ArrayList<WClause>[] posOccurrences;
     private final ArrayList<WClause>[] negOccurrences;
     private final boolean[] localModel;
@@ -24,8 +27,19 @@ public class Walker extends Solver {
     private int falseClauses = 0;
     /** sorts the predicates according to the flipScore. predicates whose flip makes more clauses true come to the front.*/
     private final IntegerQueue predicateQueue;
+    private int jumpFrequency = 10;
+    private int maxFlips = Integer.MAX_VALUE;
 
+    /** collects statistical information */
+    public WalkerStatistics statistics;
 
+    private Random random;
+
+    public static String help() {
+        return "Random Walker: parameters:\n" +
+                "seed:   for the random number generator      (default: random)\n" +
+                "flips:  for restricting the number of flips  (default: Max_Integer).\n" +
+                "jumps:  frequency of random jumps            (default: 10)\n";}
 
     /** constructs a new Walker solver.
      *
@@ -40,22 +54,69 @@ public class Walker extends Solver {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             posOccurrences[predicate] = new ArrayList<>();
             negOccurrences[predicate] = new ArrayList<>();}
-        localModel = new boolean[predicates];
+        localModel     = new boolean[predicates];
         predicateQueue = new IntegerQueue(predicates);
-    }
+        Object seed    = solverParameters.get("seed");
+        random         = (seed != null) ? new Random((int)seed) : new Random(0);
+        Object flips   = solverParameters.get("flips");
+        maxFlips       = (flips != null) ? (int)flips : Integer.MAX_VALUE;
+        Object jumps   = solverParameters.get("jumps");
+        jumpFrequency  = (jumps != null) ? (int)jumps : 10;
+        statistics     = new WalkerStatistics(combinedId);
+        wClauses       = new ArrayList<WClause>();}
 
+    /** truansforms a clause to a WClause and adds it to the internal data
+     *
+     * @param clause a clause
+     */
     public void addClause(Clause clause) {
         WClause wClause = new WClause(clause);
         wClauses.add(wClause);
         addWClauseToIndex(wClause);
-        if(!quantifiers.contains(wClause.quantifier)) quantifiers.add(wClause.quantifier);
-    }
+        if(!quantifiers.contains(wClause.quantifier)) quantifiers.add(wClause.quantifier);}
 
     @Override
     public Result solve() {
+        globalParameters.log(solverId + " for problem " + problemId + " started");
+        super.initialize();
+        long time = System.currentTimeMillis();
+        initializeModel();
 
-        return null;
-    }
+        Result result =  walk();
+        statistics.elapsedTime = System.currentTimeMillis() - time;
+        problemSupervisor.finished(this, result, "done");
+        globalParameters.log(solverId + " for problem " + problemId + " finished");
+        return result;}
+
+
+    private Result walk() {
+        while(statistics.flips < maxFlips) {
+            if(Thread.interrupted()) {
+                globalParameters.log("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
+                break;}
+            int predicate = selectFlipPredicate();
+            flipPredicate(predicate);
+            if(falseClauses == 0) {return transferModel();}}
+        return new Aborted("Walker aborted after " + statistics.flips + " flips");}
+
+    /** flips the truth value of the predicate and updates the predicateQueue and the falseClauses counter
+     *
+     * @param predicate to be flipped
+     */
+    void flipPredicate(int predicate) {
+        ++statistics.flips;
+        localModel[predicate] = !localModel[predicate];
+        updateFlipScores(predicate);}
+
+    /** turns the local model into a new model and returns Satisfiable as result
+     *
+     * @return Satisfiable with the transferred local model.
+     */
+    private Satisfiable transferModel() {
+        Model model = new Model(predicates,this.model.symboltable);
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            model.addImmediately(localModel[predicate] ? predicate : -predicate);}
+        return new Satisfiable(model);}
 
     /** Initializes the local model.
      * A predicate is made true if it makes more clauses true than making the predicate false.
@@ -162,10 +223,9 @@ public class Walker extends Solver {
                 if(isLocallyTrue(literal)) {return true;} }
             return false;}
 
-        int trueLiterals = 0;
-        for(int literal : wClause.literals) {if(isLocallyTrue(literal)) ++trueLiterals;}
-
+        int trueLiterals = currentlyTrueLiterals(wClause);
         int quantifier = wClause.quantifier;
+
         switch (clauseType) {
             case ATLEAST: return trueLiterals >= quantifier;
             case ATMOST:  return trueLiterals <= quantifier;
@@ -179,280 +239,245 @@ public class Walker extends Solver {
     private void setInitialFlipScores() {
         for(WClause wClause : wClauses) {
             if(wClause.isGloballyTrue) continue;
+            boolean hasDoubles = wClause.hasDoubles;
+            int trueLiterals = currentlyTrueLiterals(wClause);
             switch(wClause.clauseType) {
-                case OR:       setInitialFlipScoreOR(wClause);      break;
-                case ATLEAST:  setInitialFlipScoreATLEAST(wClause); break;
-                case ATMOST:   setInitialFlipScoreATMOST(wClause);  break;
-                case EXACTLY:  setInitialFlipScoreEXACTLY(wClause); break;}}}
+                case OR:
+                    if(hasDoubles)
+                        addScoreAtleastWithDoubles(wClause,trueLiterals);
+                    else addScoreAtleast(wClause,trueLiterals);
+                        break;
+                case ATLEAST:
+                    if(hasDoubles)
+                        addScoreAtleastWithDoubles(wClause,trueLiterals);
+                    else addScoreAtleast(wClause,trueLiterals);
+                    break;
+                case ATMOST:
+                    if(hasDoubles)
+                        addScoreAtmostWithDoubles(wClause,trueLiterals);
+                    else addScoreAtmost(wClause,trueLiterals);
+                    break;
+                case EXACTLY:
+                    if(hasDoubles)
+                        addScoreExactlyWithDoubles(wClause,trueLiterals);
+                    else addScoreExactly(wClause,trueLiterals);
+                    break;}}}
 
-    /** computes the contribution of the OR-clause to its predicates flip scores.
-     * If the clause is false then flipping any of the literals makes the clause true.<br>
-     * The flip scores of all literals are increased by 1.
-     * <br>
-     * If the clause is true because two or more literals are true then flipping any of the predicates does not
-     * make the clause false.
-     * <br>
-     * If the clause is true because only one literal is true then flipping this one makes the clause false.
-     * Its score contribution is -1. Flipping any of the other literals does not change the truth value of the clause.
-     *
-     * @param wClause an OR-Clause
-     */
-    private void setInitialFlipScoreOR(WClause wClause) {
-        if(wClause.isLocallyTrue) {
-            int trueLiteral = 0;
-            for(int literal : wClause.literals) {
-                if(isLocallyTrue(literal)) {
-                    if(trueLiteral != 0) { // there are at least two true literals.
-                                           // Flipping any of the literals does not make the clause false;
-                        trueLiteral = Integer.MAX_VALUE; break;}
-                    else trueLiteral = literal;}}
-            if(trueLiteral != Integer.MAX_VALUE) // flipping the only true literal makes the clause false.
-                predicateQueue.addScore(Math.abs(trueLiteral),-1);}
-        else { // all literals are false. Flipping each one of them makes the clause true
-            for(int literal : wClause.literals) predicateQueue.addScore(Math.abs(literal),1);}}
 
-    /** adds the initial flip score to the literals in wClause.
-     * The flip score for a predicate p counts the net number of clauses which become true when flipping the
-     * truth-value of p, i.e. additional true clauses - new false clauses.
-     * <br>
-     * For a clause like atleast 2 p,q,r,s: <br>
-     * If 3 or more literals are true, then flipping the truth value of any of the predicates does not change anything <br>
-     * IF exactly 2 literals are true, the flipping one of the true literals makes the clause false.
-     * <br>
-     * If only 1 literal is true then flipping one of the false literals makes the clause true.
-     * <br>
-     * Special treatment is necessary if the clause contains multiple literals
-     * (which can happen if equivalent literals have been replaced by their representative)
-     *
-     * @param wClause an atleast-clause to be tested.
-     */
-    private void setInitialFlipScoreATLEAST(WClause wClause) {
-        if(wClause.hasDoubles) {setInitialFlipScoreATLEASTwithDoubles(wClause); return;}
-        int trueLiterals = 0;
-        for(int literal : wClause.literals) {if(isLocallyTrue(literal)) ++trueLiterals;}
-        int quantifier = wClause.quantifier;
-
-        if(wClause.isLocallyTrue) {
-            if(trueLiterals > quantifier) {return;} // flipping any of the literals does not change the clause's truth value
-            for(int literal : wClause.literals) {   // flipping a true literal makes the clause false
-                if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),-1);}}
-        else {
-            if(trueLiterals == quantifier-1) {
-                for(int literal : wClause.literals) {  // flipping a false literal makes the clause true
-                    if(!isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),1);}}}}
-
-    private IntArrayList trueLiterals = new IntArrayList();
-
-    /** adds the initial flip score to the literals in wClause with double literals.
-     * Flipping the truth value of a literal which occurs 2 or more times in a clause
-     * changes the counting of true literals by its multiplicity.
-     * This must be taken into account.
-     *
-     * @param wClause an atleast-clause to be tested.
-     */
-    private void setInitialFlipScoreATLEASTwithDoubles(WClause wClause) {
-        trueLiterals.clear();
-        int trueLits = 0;
-        for(int literal : wClause.literals) { // first we collect the true literals
-            if(isLocallyTrue(literal)) {
-                ++trueLits; // total number of true literals, with multiplicities
-                if(!trueLiterals.contains(literal)) trueLiterals.add(literal);}} // true literals without multiplicities
-
-        int quantifier = wClause.quantifier;
-        if(wClause.isLocallyTrue) {
-            for(int literal : trueLiterals) {
-                if(trueLits - wClause.multiplicities.get(literal) < quantifier) {
-                    predicateQueue.addScore(Math.abs(literal),-1);}}}
-        else {
-            int falseLits = wClause.literals.length - trueLits;
-            for(int literal : wClause.literals) {
-                if(!isLocallyTrue(literal) && (falseLits + wClause.multiplicities.get(literal) >= quantifier))
-                    predicateQueue.addScore(Math.abs(literal),1);}}
-}
-    /** adds the initial flip score to the literals in wClause.
-     * The flip score for a predicate p counts the net number of clauses which become true when flipping the
-     * truth-value of p, i.e. additional true clauses - new false clauses.
-     * <br>
-     * For a clause like atmost 3 p,q,r,s,t: <br>
-     * If 3 or less literals are true then flipping any of them does not change anything <br>
-     * If exactly 3 literals are true then flipping one of the false literals makes the clause false.<br>
-     * If 4 literals are true then flipping one of the true literals makes the clause false.<br>
-     * If more than 4 literals are true then nothing is changed by flipping a literal.
-     * <br>
-     * Special treatment is necessary if the clause contains multiple literals
-     * (which can happen if equivalent literals have been replaced by their representative)
-     *
-     * @param wClause an atmost-clause to be tested.
-     */
-    private void setInitialFlipScoreATMOST(WClause wClause) {
-        if(wClause.hasDoubles) {setInitialFlipScoreATMOSTwithDoubles(wClause); return;}
-        int trueLiterals = 0;
-        for(int literal : wClause.literals) {if(isLocallyTrue(literal)) ++trueLiterals;}
-        int quantifier = wClause.quantifier;
-
-        if(wClause.isLocallyTrue) {
-            if(trueLiterals < quantifier) {return;} // flipping any of the literals does not change the clause's truth value
-            for(int literal : wClause.literals) {   // flipping a false literal makes the clause false
-                if(!isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),-1);}}
-        else {
-            if(trueLiterals == quantifier+1) {
-                for(int literal : wClause.literals) {  // flipping a superfluous true literal makes the clause true
-                    if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),1);}}}}
-
-    /** adds the initial flip score to the literals in wClause with double literals.
-     * Flipping the truth value of a literal which occurs 2 or more times in a clause
-     * changes the counting of true literals by its multiplicity.
-     * This must be taken into account.
-     *
-     * @param wClause an atleast-clause to be tested.
-     */
-    private void setInitialFlipScoreATMOSTwithDoubles(WClause wClause) {
-        trueLiterals.clear();
-        int trueLits = 0;
-        for(int literal : wClause.literals) { // first we collect the true literals
-            if(isLocallyTrue(literal)) {
-                ++trueLits; // total number of true literals, with multiplicities
-                if(!trueLiterals.contains(literal)) trueLiterals.add(literal);}} // true literals without multiplicities
-
-        int quantifier = wClause.quantifier;
-        if(wClause.isLocallyTrue) { // too little true literals
-            int falseLits = wClause.literals.length - trueLits;
-            for(int literal : wClause.literals) {
-                if(!isLocallyTrue(literal) && (falseLits + wClause.multiplicities.get(literal) >= quantifier))
-                    predicateQueue.addScore(Math.abs(literal),-1);}}
-            else { // too many true literals. Some of them must become false to make the clause true
-                for(int literal : trueLiterals) {
-                    if(trueLits - wClause.multiplicities.get(literal) <= quantifier) {
-                        predicateQueue.addScore(Math.abs(literal),1);}}}}
-
-    /** adds the initial flip score to the literals in wClause.
-     * The flip score for a predicate p counts the net number of clauses which become true when flipping the
-     * truth-value of p, i.e. additional true clauses - new false clauses.
-     * <br>
-     * For a clause like exactly 3 p,q,r,s,t: <br>
-     * If exactly 3 literals are true then flipping any of the literals them makes the clause false.<br>
-     * If 4 literals are true then flipping one of the true literals makes the clause true.<br>
-     * If 3 literals are true then flipping one of the false literals makes the clause true.<br>
-     * In the other cases nothing changes.
-     * <br>
-     * Special treatment is necessary if the clause contains multiple literals
-     * (which can happen if equivalent literals have been replaced by their representative)
-     *
-     * @param wClause an atmost-clause to be tested.
-     */
-    private void setInitialFlipScoreEXACTLY(WClause wClause) {
-        if(wClause.hasDoubles) {setInitialFlipScoreEXACTLYwithDoubles(wClause); return;}
-        int trueLiterals = 0;
-        for(int literal : wClause.literals) {if(isLocallyTrue(literal)) ++trueLiterals;}
-        int quantifier = wClause.quantifier;
-
-        if(wClause.isLocallyTrue) { // exactly quantifier may literals are true
-            for(int literal : wClause.literals) {   // flipping any literal makes the clause false
-                predicateQueue.addScore(Math.abs(literal),-1);}}
-        else {
-            if(trueLiterals == quantifier-1) {
-                for(int literal : wClause.literals) {  // flipping a false literal makes the clause true
-                    if(!isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),1);}
-                return;}
-            if(trueLiterals == quantifier+1) {
-                for(int literal : wClause.literals) {  // flipping a true literal makes the clause true
-                    if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),1);}}}}
-
-    /** adds the initial flip score to the literals in wClause with double literals.
-     * Flipping the truth value of a literal which occurs 2 or more times in a clause
-     * changes the counting of true literals by its multiplicity.
-     * This must be taken into account.
-     *
-     * @param wClause an atleast-clause to be tested.
-     */
-    private void setInitialFlipScoreEXACTLYwithDoubles(WClause wClause) {
-        if(wClause.isLocallyTrue) { // exactly quantifier may literals are true
-            for(int literal : wClause.literals) {   // flipping any literal makes the clause false
-                predicateQueue.addScore(Math.abs(literal),-1);}
-            return;}
-
-        trueLiterals.clear();
-        int trueLits = 0;
-        for(int literal : wClause.literals) { // first we collect the true literals
-            if(isLocallyTrue(literal)) {
-                ++trueLits; // total number of true literals, with multiplicities
-                if(!trueLiterals.contains(literal)) trueLiterals.add(literal);}} // true literals without multiplicities
-
-        int quantifier = wClause.quantifier;
-        if(trueLits > quantifier) {
-            for(int literal : wClause.literals) {
-                if(isLocallyTrue(literal) && (trueLits - wClause.multiplicities.get(literal) == quantifier))
-                    predicateQueue.addScore(Math.abs(literal),1);}
-            return;}
-        int falseLits = wClause.literals.length - trueLits;
-        for(int literal : wClause.literals) {
-            if(!isLocallyTrue(literal) && (falseLits + wClause.multiplicities.get(literal) == quantifier))
-                    predicateQueue.addScore(Math.abs(literal),1);}}
-
-    private void updateFlipScores(int predicate) {
-        predicateQueue.setScore(predicate,0);
-        for(WClause wClause : posOccurrences[predicate]) {
+    private void updateFlipScores(int flippedLiteral) {
+        for(WClause wClause : getClauses(flippedLiteral)) {
             if(wClause.isGloballyTrue) continue;
+            boolean hasDoubles = wClause.hasDoubles;
             switch(wClause.clauseType) {
-                case OR:      updateFlipScoresOr(predicate, wClause); break;
-                case EXACTLY: updateFlipScoresEXACTLY(predicate,wClause); break;}
-        }
-        for(WClause wClause : negOccurrences[-predicate]) {
-            if(wClause.isGloballyTrue) continue;
-            switch(wClause.clauseType) {
-                case OR:      updateFlipScoresOr(-predicate, wClause); break;
-                case EXACTLY: updateFlipScoresEXACTLY(predicate,wClause); break;}
-        }
+                case OR:
+                    if(hasDoubles)
+                        updateFlipScoresATLEASTwithDoubles(flippedLiteral,wClause);
+                    else updateFlipScoresATLEAST(flippedLiteral,wClause);
+                    break;
+                case ATLEAST:
+                    if(hasDoubles)
+                        updateFlipScoresATLEASTwithDoubles(flippedLiteral,wClause);
+                    else updateFlipScoresATLEAST(flippedLiteral,wClause);
+                    break;
+                case ATMOST:
+                    if(hasDoubles)
+                        updateFlipScoresATMOSTwithDoubles(flippedLiteral,wClause);
+                    else updateFlipScoresATMOST(flippedLiteral,wClause);
+                    break;
+                case EXACTLY:
+                    if(hasDoubles)
+                        updateFlipScoresEXACTLYwithDoubles(flippedLiteral,wClause);
+                    else updateFlipScoresEXACTLY(flippedLiteral,wClause);
+                    break;}}}
 
 
-    }
 
-    /** updates the flip score for an OR-clause which contains the flipped literal.
+    /** updates the flip score for an Atleast-clause which contains the flipped literal.
      *
      * @param flippedLiteral the flipped literal
-     * @param wClause an OR-clause containing the flipped literal
+     * @param wClause an Atleast-clause containing the flipped literal
      */
-    private void updateFlipScoresOr(int flippedLiteral, WClause wClause) {
-        if(wClause.isLocallyTrue) {
-            int trueLiterals = 0;
-            int trueLiteral = 0;
+    private void updateFlipScoresATLEAST(int flippedLiteral, WClause wClause) {
+        int quantifier = wClause.quantifier;
+        int newTrueLiterals = currentlyTrueLiterals(wClause);
+        int oldTrueLiterals = isLocallyTrue(flippedLiteral) ? newTrueLiterals -1 : newTrueLiterals +1;
+        if(oldTrueLiterals < quantifier) --falseClauses;
+        if(newTrueLiterals < quantifier) ++falseClauses;
+        // undo old flip scores
+        if(oldTrueLiterals == quantifier) {
             for(int literal : wClause.literals) {
-                if(wClause.isLocallyTrue) {
-                    if(literal != flippedLiteral) trueLiteral = literal;
-                    ++trueLiterals;}}
-
-            switch(trueLiterals) {
-                case 0: // The flippedLiteral was true and is false now
-                    ++falseClauses;
-                    wClause.isLocallyTrue = false;
-                    for (int literal : wClause.literals) // flipping any of the literals makes the clause true now
-                        predicateQueue.addScore(Math.abs(literal), +1);
-                    return;
-                case 1: // Some other literal must be true, otherwise wClause.isLocallyTrue = false
-                    // The flippedLiteral was true and is false now
-                    // Originally there were two or more true literals.
-                    // The contribution of all literals to the flip score was 0.
-                    // Flipping the only true literal can now make the clause false
-                    predicateQueue.addScore(Math.abs(trueLiteral), -1);
-                    return;
-                case 2: // 2 or more literals are true now
-                    if (isLocallyTrue(flippedLiteral)) {
-                        // The flipped literal was false and is true now.
-                        // Before there was exactly one true literal
-                        // Flipping this one has made the clause false, which is now no longer true
-                        predicateQueue.addScore(Math.abs(trueLiteral), 1);}
-                    // If the flipped literal was true and is false now, there were originally 3 true literals.
-                    // Flipping had no effect, and has now no effect.
-                    }
-                    // If there are more than 2 true literals, flipping had no effect and has now no effect.
+                if(literal != flippedLiteral && isLocallyTrue(literal))   // flipping it made the clause false.
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: -1. Must be undone.
+        else {
+            if(oldTrueLiterals == quantifier-1) {
+                for(int literal : wClause.literals) {
+                    if(literal != flippedLiteral && !isLocallyTrue(literal))   // flipping it made the clause true.
+                        predicateQueue.addScore(Math.abs(literal),-1);}} // score: +1. Must be undone.
             }
-        else { // the clause was false, and by flipping the flippedLiteral, it became true
-            wClause.isLocallyTrue = true;
-            --falseClauses;
-            for(int literal : wClause.literals) // Flipping the flippedLiteral again makes the clause false
-                predicateQueue.addScore(Math.abs(literal),-1);}
-                    // Flipping the other predicates so far made the clause true, which is no longer valid.
+        addScoreAtleast(wClause,newTrueLiterals);}
+
+
+    private void addScoreAtleast(WClause wClause,int trueLiterals) {
+        int quantifier = wClause.quantifier;
+        if(trueLiterals == quantifier) {        // just enough true literals
+            for(int literal : wClause.literals) {
+                if(isLocallyTrue(literal))         // flipping a true literal makes the clause false.
+                    predicateQueue.addScore(Math.abs(literal),-1);} // score: -1.
+            return;}
+        if(trueLiterals == quantifier-1) {       // not enough true literals
+            for(int literal : wClause.literals) {
+                if(!isLocallyTrue(literal))         // flipping a false literal it makes the clause true.
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: +1.
+        } // all other cases do not change anything.
+
+    /** updates the flip score for an Atleast-clause with double literals which contains the flipped literal.
+     *
+     * @param flippedLiteral the flipped literal
+     * @param wClause an Atleast-clause containing the flipped literal
+     */
+    private void updateFlipScoresATLEASTwithDoubles(int flippedLiteral, WClause wClause) {
+        int quantifier = wClause.quantifier;
+        int newTrueLiterals = currentlyTrueLiterals(wClause);
+        int oldTrueLiterals = isLocallyTrue(flippedLiteral) ?
+                newTrueLiterals - wClause.multiplicity(flippedLiteral) :
+                newTrueLiterals + wClause.multiplicity(flippedLiteral);
+        if(oldTrueLiterals < quantifier) --falseClauses;
+        if(newTrueLiterals < quantifier) ++falseClauses;
+        int[] literals = wClause.literals;
+        int length = literals.length;
+
+        // undo old flip scores
+        if(oldTrueLiterals == quantifier) { // the clause was true
+            for(int i = 0; i < length; ++i) {
+                int literal = literals[i]; // flipping a true literal made the clause false.
+                if(literal != flippedLiteral && isLocallyTrue(literal) && !contains(literals,literal,i))
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: -1. Must be undone.
+        else {
+            if(oldTrueLiterals < quantifier) { // the clause was false
+                for(int i = 0; i < length; ++i) {
+                    int literal = literals[i]; // flipping a false literal with enough multiplicity made the clause true.
+                    if(literal != flippedLiteral && !isLocallyTrue(literal) &&
+                            (oldTrueLiterals + wClause.multiplicity(literal) > quantifier)  )
+                        predicateQueue.addScore(Math.abs(literal),-1);}} // score: +1. Must be undone.
         }
+        // new flip scores
+        addScoreAtleastWithDoubles(wClause,newTrueLiterals);}
+
+
+    private void addScoreAtleastWithDoubles(WClause wClause,int trueLiterals) {
+        int quantifier = wClause.quantifier;
+        int[] literals = wClause.literals;
+        int length = literals.length;
+
+        if(trueLiterals == quantifier) {        // clause ist true, just enough true literals
+            for(int i = 0; i < length; ++i) {
+                int literal = literals[i];
+                if(isLocallyTrue(literal) && !contains(literals,literal,i))         // flipping a true literal makes the clause false.
+                    predicateQueue.addScore(Math.abs(literal),-1);} // score: -1.
+            return;}
+        if(trueLiterals < quantifier) {       // clause is false, not enough true literals
+            for(int i = 0; i < length; ++i) {
+                int literal = literals[i]; // flipping a false literal with enough multiplicity made the clause true.
+                if(!isLocallyTrue(literal) && (trueLiterals + wClause.multiplicity(literal) > quantifier) &&
+                        !contains(literals,literal,i))
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: +1.
+    } // all other cases do not change anything.
+
+    /** updates the flip score for an Atmost-clause which contains the flipped literal.
+     *
+     * @param flippedLiteral the flipped literal
+     * @param wClause an Atmost-clause containing the flipped literal
+     */
+    private void updateFlipScoresATMOST(int flippedLiteral, WClause wClause) {
+        int quantifier = wClause.quantifier;
+        int newTrueLiterals = currentlyTrueLiterals(wClause);
+        int oldTrueLiterals = isLocallyTrue(flippedLiteral) ? newTrueLiterals -1 : newTrueLiterals +1;
+        if(oldTrueLiterals > quantifier) --falseClauses;
+        if(newTrueLiterals > quantifier) ++falseClauses;
+        // undo old flip scores
+        if(oldTrueLiterals == quantifier) {
+            for(int literal : wClause.literals) {
+                if(literal != flippedLiteral && !isLocallyTrue(literal))   // flipping it made the clause false.
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: -1. Must be undone.
+        else {
+            if(oldTrueLiterals == quantifier+1) {
+                for(int literal : wClause.literals) {
+                    if(literal != flippedLiteral && isLocallyTrue(literal))   // flipping it made the clause true.
+                        predicateQueue.addScore(Math.abs(literal),-1);}} // score: +1. Must be undone.
+        }
+        // new flip scores
+        addScoreAtmost(wClause,newTrueLiterals);}
+
+    private void addScoreAtmost(WClause wClause,int trueLiterals) {
+        int quantifier = wClause.quantifier;
+        int[] literals = wClause.literals;
+
+        if(trueLiterals == quantifier) {                // just enough true literals
+            for(int literal : wClause.literals) {
+                if(!isLocallyTrue(literal))                // flipping a false literal it makes the clause false.
+                    predicateQueue.addScore(Math.abs(literal),-1);} // score: -1.
+            return;}
+
+        if(trueLiterals == quantifier+1) {             // too many true literals
+            for(int literal : wClause.literals) {
+                if(isLocallyTrue(literal))                // flipping a true literal it makes the clause true.
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: +1.
+        } // all other cases do not change anything.
+
+    /** updates the flip score for an Atmost-clause with double literals which contains the flipped literal.
+     *
+     * @param flippedLiteral the flipped literal
+     * @param wClause an Atmost-clause containing the flipped literal
+     */
+    private void updateFlipScoresATMOSTwithDoubles(int flippedLiteral, WClause wClause) {
+        int quantifier = wClause.quantifier;
+        int newTrueLiterals = currentlyTrueLiterals(wClause);
+        int oldTrueLiterals = isLocallyTrue(flippedLiteral) ?
+                newTrueLiterals - wClause.multiplicity(flippedLiteral) :
+                newTrueLiterals + wClause.multiplicity(flippedLiteral);
+        if(oldTrueLiterals > quantifier) --falseClauses;
+        if(newTrueLiterals > quantifier) ++falseClauses;
+        int[] literals = wClause.literals;
+        int length = literals.length;
+
+        // undo old flip scores
+        if(oldTrueLiterals == quantifier) {      // the clause was true
+            for(int i = 0; i < length; ++i) {
+                int literal = literals[i];       // flipping a false literal made the clause false.
+                if(literal != flippedLiteral && !isLocallyTrue(literal) && !contains(literals,literal,i))
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: -1. Must be undone.
+        else {
+            if(oldTrueLiterals > quantifier) {     // the clause was false
+                for(int i = 0; i < length; ++i) {
+                    int literal = literals[i];    // flipping a true literal with enough multiplicity made the clause true.
+                    if(literal != flippedLiteral && isLocallyTrue(literal) &&
+                            (oldTrueLiterals - wClause.multiplicity(literal) <= quantifier) &&
+                            !contains(literals,literal,i))
+                        predicateQueue.addScore(Math.abs(literal),-1);}} // score: +1. Must be undone.
+        }
+        // new flip scores
+        addScoreAtmostWithDoubles(wClause,newTrueLiterals);}
+
+    private void addScoreAtmostWithDoubles(WClause wClause,int trueLiterals) {
+        int quantifier = wClause.quantifier;
+        int[] literals = wClause.literals;
+        int length = literals.length;
+
+        if(trueLiterals == quantifier) {     // the clause is true, just enough true literals
+            for(int i = 0; i < length; ++i) {
+                int literal = literals[i];
+                if(!isLocallyTrue(literal))                // flipping a false literal makes the clause false.
+                    predicateQueue.addScore(Math.abs(literal),-1);} // score: -1.
+            return;}
+
+        if(trueLiterals > quantifier) {     // the clause is false, too many true literals
+            for(int i = 0; i < length; ++i) {
+                int literal = literals[i];
+                if(isLocallyTrue(literal) && // flipping a true literal with enough multiplicity makes the clause true.
+                        (trueLiterals - wClause.multiplicity(literal) <= quantifier))
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: +1.
+    } // all other cases do not change anything.
+
 
     /** updates the flip score for an Exactly-clause which contains the flipped literal.
      *
@@ -461,55 +486,151 @@ public class Walker extends Solver {
      */
     private void updateFlipScoresEXACTLY(int flippedLiteral, WClause wClause) {
         int quantifier = wClause.quantifier;
+        int newTrueLiterals = currentlyTrueLiterals(wClause);
+        int oldTrueLiterals = isLocallyTrue(flippedLiteral) ? newTrueLiterals -1 : newTrueLiterals +1;
+        if(oldTrueLiterals != quantifier) --falseClauses;
+        if(newTrueLiterals != quantifier) ++falseClauses;
+        // undo old flip scores
+        if(oldTrueLiterals == quantifier) {
+            for(int literal : wClause.literals) {
+                if(literal != flippedLiteral)   // flipping it made the clause false.
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: -1. Must be undone.
+        else {
+            if(oldTrueLiterals == quantifier+1) {
+                for(int literal : wClause.literals) {
+                    if(literal != flippedLiteral && isLocallyTrue(literal))   // flipping it made the clause true.
+                        predicateQueue.addScore(Math.abs(literal),-1);}} // score: +1. Must be undone.else {
+            else {if(oldTrueLiterals == quantifier-1) {
+                    for(int literal : wClause.literals) {
+                        if(literal != flippedLiteral && !isLocallyTrue(literal))   // flipping it made the clause true.
+                            predicateQueue.addScore(Math.abs(literal),-1);}}} // score: +1. Must be undone.
+        }
+        // new flip scores
+        addScoreExactly(wClause,newTrueLiterals);}
+
+    private void addScoreExactly(WClause wClause,int trueLiterals) {
+        int quantifier = wClause.quantifier;
+
+        if(trueLiterals == quantifier) {             // the right number of true literals
+            for(int literal : wClause.literals) {       // flipping any literal makes the clause false.
+                predicateQueue.addScore(Math.abs(literal),-1);} // score: -1.
+            return;}
+
+        if(trueLiterals == quantifier+1) {      // too many true literals
+            for(int literal : wClause.literals) {
+                if(isLocallyTrue(literal))         // flipping a true literal makes the clause true.
+                    predicateQueue.addScore(Math.abs(literal),+1);}
+            return;}
+
+        if(trueLiterals == quantifier-1) {      // not enough true literals
+            for(int literal : wClause.literals) {
+                if(!isLocallyTrue(literal))        // flipping a false literal makes the clause true.
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: +1.
+        } // all other cases do not change anything.
+
+    /** updates the flip score for an Exactly-clause with doubles which contains the flipped literal.
+     *
+     * @param flippedLiteral the flipped literal
+     * @param wClause an Exactly-clause containing the flipped literal
+     */
+    private void updateFlipScoresEXACTLYwithDoubles(int flippedLiteral, WClause wClause) {
+        int quantifier = wClause.quantifier;
+        int newTrueLiterals = currentlyTrueLiterals(wClause);
+        int oldTrueLiterals = isLocallyTrue(flippedLiteral) ? newTrueLiterals -1 : newTrueLiterals +1;
+        if(oldTrueLiterals != quantifier) --falseClauses;
+        if(newTrueLiterals != quantifier) ++falseClauses;
+        int[] literals = wClause.literals;
+        int length = literals.length;
+        // undo old flip scores
+        if(oldTrueLiterals == quantifier) {
+            for(int i = 0; i < length; ++i) {
+                int literal = literals[i];
+                if(literal != flippedLiteral && !contains(literals,literal,i))   // flipping it made the clause false.
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: -1. Must be undone.
+        else {
+            if(oldTrueLiterals == quantifier+1) {
+                for(int i = 0; i < length; ++i) {
+                    int literal = literals[i];
+                    if(literal != flippedLiteral && isLocallyTrue(literal) && !contains(literals,literal,i))   // flipping it made the clause true.
+                        predicateQueue.addScore(Math.abs(literal),-1);}} // score: +1. Must be undone.else {
+            else {if(oldTrueLiterals == quantifier-1) {
+                for(int i = 0; i < length; ++i) {
+                    int literal = literals[i];
+                    if(literal != flippedLiteral && !isLocallyTrue(literal) && !contains(literals,literal,i))   // flipping it made the clause true.
+                        predicateQueue.addScore(Math.abs(literal),-1);}}} // score: +1. Must be undone.
+        }
+        // new flip scores
+        addScoreExactlyWithDoubles(wClause,newTrueLiterals);}
+
+    private void addScoreExactlyWithDoubles(WClause wClause,int trueLiterals) {
+        int quantifier = wClause.quantifier;
+        int[] literals = wClause.literals;
+        int length = literals.length;
+
+        if(trueLiterals == quantifier) {             // the right number of true literals
+            for(int i = 0; i < length; ++i) {
+                int literal = literals[i];       // flipping any literal makes the clause false.
+                if(!contains(literals,literal,i)) predicateQueue.addScore(Math.abs(literal),-1);} // score: -1.
+            return;}
+
+        if(trueLiterals == quantifier+1) {      // too many true literals
+            for(int i = 0; i < length; ++i) {
+                int literal = literals[i];
+                if(isLocallyTrue(literal) && !contains(literals,literal,i))    // flipping a true literal makes the clause true.
+                    predicateQueue.addScore(Math.abs(literal),+1);}
+            return;}
+
+        if(trueLiterals == quantifier-1) {      // not enough true literals
+            for(int i = 0; i < length; ++i) {
+                int literal = literals[i];
+                if(!isLocallyTrue(literal) && !contains(literals,literal,i))        // flipping a false literal makes the clause true.
+                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: +1.
+    } // all other cases do not change anything.
+
+
+    int oldPredicate,oldoldPredicate;
+
+    /** selects the next flip predicate.
+     * Normally the next flip predicate is the top of the predicateQueue.
+     * Only if the same flip predicate has been selected the last or second but last time,
+     * it is the second flip predicate in the predicateQueue.
+     *
+     * If the flips has reached a multiple of the jumpFrequency, then a random predicate is chosen.
+     * @return the next flip predicate.
+     */
+    int selectFlipPredicate() {
+        int predicate = 0;
+        if(statistics.flips % jumpFrequency == 0) {
+            predicate =  predicateQueue.getRandom(random,3);}
+        if(predicateQueue.getScore(predicate) <= 0) {predicate = predicateQueue.nthTopScore(2);}
+        else {
+            predicate = predicateQueue.topScore();
+            if(predicate == oldPredicate || predicate == oldoldPredicate) {
+                predicate = predicateQueue.nthTopScore(1);}}
+        oldoldPredicate = oldPredicate;
+        oldPredicate = predicate;
+        return predicate;}
+
+    /** checks if the given literal is in literals[0] ... literals[i-1]
+     *
+     * @param literals an array of literals
+     * @param literal a literal
+     * @param index an index into the array
+     * @return true if the given literal is in literals[0] ... literals[i-1]
+     */
+    private boolean contains(int[] literals, int literal, int index) {
+        for(int i = 0; i < index; ++i) {if(literals[i] == literal); return  true;}
+        return false;}
+
+    /** counts the number of loally true literals in the clause
+         *
+         * @param wClause a clause
+         * @return the number of true literals in the clause.
+         */
+    private int currentlyTrueLiterals(WClause wClause) {
         int trueLiterals = 0;
         for(int literal : wClause.literals) {if(isLocallyTrue(literal)) ++trueLiterals;}
-
-        if(wClause.isLocallyTrue) { // the clause had exactly quantifier many true literals.
-            // since the flipped literal is flipped, there are either less of more than quantifier many literals
-            wClause.isLocallyTrue = false;
-            ++falseClauses;
-            if(trueLiterals < quantifier) {// the flipped literal was true and is false now
-                for(int literal : wClause.literals) // Flipping any of the literals makes the clause true
-                    predicateQueue.addScore(Math.abs(literal),+1);
-                return;}
-            // now there is trueLiterals = quantifier + 1
-            // The flipped literal was false and is true now
-            // Making any of the true literals false makes the clause true again
-            for(int literal : wClause.literals) {
-                if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),+1);}
-            return;}
-
-        // The clause was false before the flipping
-        if(trueLiterals == quantifier) { // now the clause became true
-            wClause.isLocallyTrue = true;
-            --falseClauses;
-            if(isLocallyTrue(flippedLiteral)) { // the flipped literal was false and became true
-                // There were quantifier -1 true literals.
-                // Flipping a false literal made the clause true. Score +1 must be undone.
-                // Flipping any of the literals makes the clause false.
-                for(int literal : wClause.literals) {
-                    if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),-1);
-                    else predicateQueue.addScore(Math.abs(literal),-2);}
-                return;}
-            // The flipped literal was true and became false.
-            // There were quantifier +1 true literals.
-            // Flipping a true literal made the clause true. Score +1 must be undone.
-            // Flipping any of the literals makes the clause false.
-            for(int literal : wClause.literals) {
-                if(isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal),-2);
-                else predicateQueue.addScore(Math.abs(literal),-1);}
-            return;}
-            // The clause was false and still is false.
-            // We must undo scores which could make clauses true.
-            // This was the case when trueLiterals = quantifier - 1 or trueLiterals = quantifier + 1.
-            // In this case we have now trueLiterals = quantifier - 2 or trueLiterals = quantifier + 2.
-        if((trueLiterals == quantifier - 2 && !isLocallyTrue(flippedLiteral)) ||
-            // flippedLiteral was true and therefore it was trueLiterals == quantifier - 1
-           (trueLiterals == quantifier + 2 && isLocallyTrue(flippedLiteral))) {
-            // flippedLiteral was false and therefore it was trueLiterals == quantifier + 1
-            for(int literal : wClause.literals) {
-                if(literal != flippedLiteral) predicateQueue.addScore(Math.abs(literal),-1);}
-        }}
+        return trueLiterals;}
 
     /** returns +1 if the literal is true, otherwise -1
      *

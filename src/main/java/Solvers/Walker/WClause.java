@@ -41,6 +41,14 @@ public class WClause {
                 hasDoubles |= mult > 1;}
             if(hasDoubles) this.multiplicities = multiplicities;}}
 
+    /** returns the number of occurrences of the given literal within the clause
+     *
+     * @param literal a literal
+     * @return the number of occurrences within the clause.
+     */
+    public int multiplicity(int literal) {
+        return hasDoubles ? multiplicities.get(literal) : 1;}
+
 
     /** generates a string: clause-id: literals GT LT  (for Globally True and Locally True)
      *
