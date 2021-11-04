@@ -13,33 +13,70 @@ import Utilities.Utilities;
 import Utilities.IntegerQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 
 public class Walker extends Solver {
 
-    private final ArrayList<WClause> wClauses;
-    private final ArrayList<WClause>[] posOccurrences;
-    private final ArrayList<WClause>[] negOccurrences;
-    private final boolean[] localModel;
-    private IntArrayList quantifiers = new IntArrayList();
-    private int falseClauses = 0;
-    /** sorts the predicates according to the flipScore. predicates whose flip makes more clauses true come to the front.*/
-    private final IntegerQueue predicateQueue;
-    private int jumpFrequency = 10;
-    private int maxFlips = Integer.MAX_VALUE;
-
-    /** collects statistical information */
-    public WalkerStatistics statistics;
-
-    private Random random;
+    private final ArrayList<WClause> wClauses;         // collects all clauses
+    private final ArrayList[] posOccurrences; // maps predicates to clauses containing them positively
+    private final ArrayList[] negOccurrences; // maps predicates to clauses containing them negatively
+    private final boolean[] localModel;                // maps all predicates to a truth value
+    private int falseClauses = 0;                      // counts the clauses which are false in the model
+    private final IntegerQueue predicateQueue;         // sorts the predicates according to the flipScore.
+                                                       // predicates whose flip makes more clauses true come to the front
+    private static final int jumpFrequencyDefault = 10;
+    private final int jumpFrequency;                   // after jumpFrequency many flips, a random jump is inserted
+    private static final int maxFlipsDefault = Integer.MAX_VALUE;
+    private final int maxFlips;                        // maximum number of allowed flips
+    public WalkerStatistics statistics;                // collects statistical information
+    private final Random random;                       // random number generator for flip jumps
 
     public static String help() {
         return "Random Walker: parameters:\n" +
-                "seed:   for the random number generator      (default: random)\n" +
+                "seed:   for the random number generator      (default: 0)\n" +
                 "flips:  for restricting the number of flips  (default: Max_Integer).\n" +
                 "jumps:  frequency of random jumps            (default: 10)\n";}
+
+    private static final HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
+    static { // these are the allowed keys in the specification.
+        Collections.addAll(keys, "name", "seed", "flips", "jumps", "type", "solver");}
+
+    /** parses a HashMap with key-value pairs<br>
+     *
+     * @param parameters  the parameters with the keys "seed", "flips", "jumps"
+     * @param errors      for error messages
+     * @param warnings    for warnings
+     * @return            a list of HashMaps with these keys.
+     */
+    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuilder errors, StringBuilder warnings){
+        for(String key : parameters.keySet()) {
+            if(!keys.contains(key)) {
+                warnings.append("Walker: unknown key in parameters: " + key + "\n" +
+                                "        allowed keys: seed, flips, jumps.\n");}}
+        ArrayList<HashMap<String,Object>> list = new ArrayList<>();
+        String seeds = parameters.get("seed");
+        if(seeds == null) seeds = "0";
+        String flips = parameters.get("flips");
+        if(flips == null) flips = Integer.toString(maxFlipsDefault);
+        String jumps = parameters.get("jumps");
+        if(jumps == null) jumps = Integer.toString(jumpFrequencyDefault);
+
+        String place = "Walker: ";
+
+        ArrayList seed = Utilities.parseIntRange(place+"seed: ",seeds,errors);
+        ArrayList flip = Utilities.parseIntRange(place+"flips: ",flips,errors);
+        ArrayList jump = Utilities.parseIntRange(place+"jumps: ",jumps,errors);
+        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,flip,jump);
+        int counter = 0;
+        for(ArrayList<Object> p : pars ) {
+            HashMap<String,Object> map = new HashMap<>();
+            map.put("seed",p.get(0));
+            map.put("flips",p.get(1));
+            map.put("jumps",p.get(2));
+            map.put("name","W" + ++counter);
+            list.add(map);}
+        return list;}
+
 
     /** constructs a new Walker solver.
      *
@@ -49,6 +86,7 @@ public class Walker extends Solver {
      */
     public Walker(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
         super(solverNumber,solverParameters, problemSupervisor);
+        super.initialize();
         posOccurrences = new ArrayList[predicates+1];
         negOccurrences = new ArrayList[predicates+1];
         for(int predicate = 1; predicate <= predicates; ++predicate) {
@@ -56,16 +94,16 @@ public class Walker extends Solver {
             negOccurrences[predicate] = new ArrayList<>();}
         localModel     = new boolean[predicates];
         predicateQueue = new IntegerQueue(predicates);
-        Object seed    = solverParameters.get("seed");
-        random         = (seed != null) ? new Random((int)seed) : new Random(0);
-        Object flips   = solverParameters.get("flips");
-        maxFlips       = (flips != null) ? (int)flips : Integer.MAX_VALUE;
-        Object jumps   = solverParameters.get("jumps");
-        jumpFrequency  = (jumps != null) ? (int)jumps : 10;
+        random         = new Random((int)solverParameters.get("seed"));
+        maxFlips       = (int)solverParameters.get("flips");
+        jumpFrequency  = (int)solverParameters.get("jumps");
         statistics     = new WalkerStatistics(combinedId);
-        wClauses       = new ArrayList<WClause>();}
+        wClauses       = new ArrayList<>();}
 
-    /** truansforms a clause to a WClause and adds it to the internal data
+    /** collects the quantifiers, in order not to have fractional score values */
+    private final IntArrayList quantifiers = new IntArrayList();
+
+    /** transforms a clause to a WClause and adds it to the internal data
      *
      * @param clause a clause
      */
@@ -75,29 +113,65 @@ public class Walker extends Solver {
         addWClauseToIndex(wClause);
         if(!quantifiers.contains(wClause.quantifier)) quantifiers.add(wClause.quantifier);}
 
+    /** collects globally true literals which are inserted by other solvers  into the global model */
+    private final IntArrayList globallyTrueLiterals = new IntArrayList();
+
+    /** starts the solver
+     *
+     * @return the result of the solver
+     */
     @Override
     public Result solve() {
         globalParameters.log(solverId + " for problem " + problemId + " started");
-        super.initialize();
-        long time = System.currentTimeMillis();
+        long time = System.nanoTime();
         initializeModel();
-
+        model.addObserver(Thread.currentThread(),(literal,step) -> {
+                synchronized(this) {globallyTrueLiterals.add((int)literal);}});
         Result result =  walk();
-        statistics.elapsedTime = System.currentTimeMillis() - time;
+        statistics.elapsedTime = System.nanoTime() - time;
         problemSupervisor.finished(this, result, "done");
         globalParameters.log(solverId + " for problem " + problemId + " finished");
         return result;}
 
 
+    /** controls the search for a model.
+     *
+     * @return the result of the search
+     */
     private Result walk() {
         while(statistics.flips < maxFlips) {
             if(Thread.interrupted()) {
                 globalParameters.log("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
                 break;}
+            if(!globallyTrueLiterals.isEmpty()) integrateGloballyTrueLiterals();
             int predicate = selectFlipPredicate();
             flipPredicate(predicate);
-            if(falseClauses == 0) {return transferModel();}}
+            if(falseClauses == 0) {return localToGlobalModel();}}
         return new Aborted("Walker aborted after " + statistics.flips + " flips");}
+
+    /** a temporary local copy of the globally true literals */
+    private IntArrayList globallyTrueLiteralsCopy = new IntArrayList();
+
+    /** integrates globally true literals:
+     * - their scores are minimized <br>
+     * - clauses containing them positively are marked as true<br>
+     * - if the local model of such a literal is negative, it is flipped<br>
+     * Clauses with globally false literals are not touched.
+     */
+    private void integrateGloballyTrueLiterals() {
+        globallyTrueLiteralsCopy.clear();
+        synchronized (this) { // copy to local array in order not to hinder other threads for too long
+            for(int literal : globallyTrueLiterals) globallyTrueLiteralsCopy.add(literal);
+            globallyTrueLiterals.clear();} // can now be filled again
+
+        for(int literal : globallyTrueLiteralsCopy) {
+            predicateQueue.setScore(Math.abs(literal),Integer.MIN_VALUE / 2);
+            for(WClause wClause : getClauses(literal)) {
+                if(!wClause.isLocallyTrue) --falseClauses;
+                wClause.isLocallyTrue = true;
+                wClause.isGloballyTrue = true;}
+            if(!isLocallyTrue(literal)) flipPredicate(Math.abs(literal));}}
+
 
     /** flips the truth value of the predicate and updates the predicateQueue and the falseClauses counter
      *
@@ -112,13 +186,13 @@ public class Walker extends Solver {
      *
      * @return Satisfiable with the transferred local model.
      */
-    private Satisfiable transferModel() {
+    private Satisfiable localToGlobalModel() {
         Model model = new Model(predicates,this.model.symboltable);
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             model.addImmediately(localModel[predicate] ? predicate : -predicate);}
         return new Satisfiable(model);}
 
-    /** Initializes the local model.
+    /** Initializes the local model, together with the local and global truth values of the clauses.
      * A predicate is made true if it makes more clauses true than making the predicate false.
      * The number of true clauses when making a predicat true is estimated by its initial score.
      * Global truth value are transferred unchanged to the local model.
@@ -129,10 +203,15 @@ public class Walker extends Solver {
         setInitialScores(posScores,negScores);
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             int status = model.status(predicate);
-            if(status != 0) {localModel[predicate] = status == 1; continue;}
-            localModel[predicate] = (posScores[predicate] >= negScores[predicate]);}}
+            if(status != 0) {localModel[predicate] = (status == 1); continue;}
+            localModel[predicate] = (posScores[predicate] >= negScores[predicate]);}
 
-    /** computes the initial predicate scores.
+        for(WClause wClause: wClauses) {
+            if(!setInitialTruthValue(wClause)) ++falseClauses;
+            setInitialFlipScores(wClause);}
+    }
+
+    /** computes the initial predicate scores
      * The higher the score of a predicate the more likely it is to make clauses true.
      * If there are no numeric clause types then
      * posScore[5] = 10 means that it is very likely to make 10 clauses true, if the predicate is made true.<br>
@@ -148,7 +227,7 @@ public class Walker extends Solver {
      * In this case making a predicate true or false has the same chance to make the clause true or false.
      * The score is therefore not changed.
      * <br>
-     * In order to keep the scores an integer, they are multiplied by the prduct of all quantifiers.
+     * In order to keep the scores an integer, they are multiplied by the product of all quantifiers.
      *
      * @param posScores for setting the scores to make a predicate true.
      * @param negScores for setting the scores to make a predicate false.
@@ -158,19 +237,16 @@ public class Walker extends Solver {
         for(WClause wClause: wClauses) {
             ClauseType clauseType = wClause.clauseType;
             if(clauseType == ClauseType.EXACTLY) continue;
+
             int score = productQuantifier;
             switch(wClause.clauseType) {
                 case ATLEAST: score /=  wClause.quantifier; break;
                 case ATMOST:  score /= -wClause.quantifier; break;}
+
             for(int literal : wClause.literals) {
                 if(literal > 0) posScores[literal] += score;
                 else            negScores[literal] += score;}}}
 
-    /** sets the initial global and local truth values of the clauses and counts the number of false clauses
-     */
-    private void setInitialTruthValues () {
-        for(WClause wClause : wClauses) {
-            if(!setInitialTruthValue(wClause)) ++falseClauses;}}
 
     /** sets the initial global and local truth values of a given clause.
      *
@@ -179,6 +255,7 @@ public class Walker extends Solver {
      */
     private boolean setInitialTruthValue(WClause wClause) {
         ClauseType clauseType = wClause.clauseType;
+
         if(clauseType == ClauseType.OR) {
             for(int literal : wClause.literals) {
                 switch(model.status(literal)) {
@@ -232,63 +309,55 @@ public class Walker extends Solver {
             case EXACTLY: return trueLiterals == quantifier;}
         return false;}
 
-    /** computes the initial flip scores for all literals.
+    /** computes the initial flip scores for the literals of the given clause
      * The flip score for a predicate p counts the net number of clauses which become true when flipping the
      * truth-value of p, i.e. additional true clauses - new false clauses.
+     *
+     * @param wClause a clause
      */
-    private void setInitialFlipScores() {
-        for(WClause wClause : wClauses) {
-            if(wClause.isGloballyTrue) continue;
-            boolean hasDoubles = wClause.hasDoubles;
-            int trueLiterals = currentlyTrueLiterals(wClause);
-            switch(wClause.clauseType) {
-                case OR:
-                    if(hasDoubles)
-                        addScoreAtleastWithDoubles(wClause,trueLiterals);
-                    else addScoreAtleast(wClause,trueLiterals);
+    private void setInitialFlipScores(WClause wClause) {
+        if(wClause.isGloballyTrue) return;
+        boolean hasDoubles = wClause.hasDoubles;
+        int trueLiterals = currentlyTrueLiterals(wClause);
+        switch(wClause.clauseType) {
+            case OR:
+            case ATLEAST:
+                if(hasDoubles) addScoreAtleastWithDoubles(wClause,trueLiterals);
+                else addScoreAtleast(wClause,trueLiterals);
+                break;
+            case ATMOST:
+                if(hasDoubles) addScoreAtmostWithDoubles(wClause,trueLiterals);
+                else addScoreAtmost(wClause,trueLiterals);
+                break;
+            case EXACTLY:
+                if(hasDoubles) addScoreExactlyWithDoubles(wClause,trueLiterals);
+                else addScoreExactly(wClause,trueLiterals);
+                break;}}
+
+    /** updates the flip scores of the literals in the clauses containing the flipped literal.
+     *
+     * @param flippedPredicate the flipped predicate
+     */
+    private void updateFlipScores(int flippedPredicate) {
+        for(int sign = -1; sign <= +1; sign += 2) {
+            int flippedLiteral = sign * flippedPredicate;
+            for(WClause wClause : getClauses(flippedLiteral)) {
+                if(wClause.isGloballyTrue) continue;
+                boolean hasDoubles = wClause.hasDoubles;
+                switch(wClause.clauseType) {
+                    case OR:
+                    case ATLEAST:
+                        if(hasDoubles) updateFlipScoresATLEASTwithDoubles(flippedLiteral,wClause);
+                        else updateFlipScoresATLEAST(flippedLiteral,wClause);
                         break;
-                case ATLEAST:
-                    if(hasDoubles)
-                        addScoreAtleastWithDoubles(wClause,trueLiterals);
-                    else addScoreAtleast(wClause,trueLiterals);
-                    break;
-                case ATMOST:
-                    if(hasDoubles)
-                        addScoreAtmostWithDoubles(wClause,trueLiterals);
-                    else addScoreAtmost(wClause,trueLiterals);
-                    break;
-                case EXACTLY:
-                    if(hasDoubles)
-                        addScoreExactlyWithDoubles(wClause,trueLiterals);
-                    else addScoreExactly(wClause,trueLiterals);
-                    break;}}}
-
-
-    private void updateFlipScores(int flippedLiteral) {
-        for(WClause wClause : getClauses(flippedLiteral)) {
-            if(wClause.isGloballyTrue) continue;
-            boolean hasDoubles = wClause.hasDoubles;
-            switch(wClause.clauseType) {
-                case OR:
-                    if(hasDoubles)
-                        updateFlipScoresATLEASTwithDoubles(flippedLiteral,wClause);
-                    else updateFlipScoresATLEAST(flippedLiteral,wClause);
-                    break;
-                case ATLEAST:
-                    if(hasDoubles)
-                        updateFlipScoresATLEASTwithDoubles(flippedLiteral,wClause);
-                    else updateFlipScoresATLEAST(flippedLiteral,wClause);
-                    break;
-                case ATMOST:
-                    if(hasDoubles)
-                        updateFlipScoresATMOSTwithDoubles(flippedLiteral,wClause);
-                    else updateFlipScoresATMOST(flippedLiteral,wClause);
-                    break;
-                case EXACTLY:
-                    if(hasDoubles)
-                        updateFlipScoresEXACTLYwithDoubles(flippedLiteral,wClause);
-                    else updateFlipScoresEXACTLY(flippedLiteral,wClause);
-                    break;}}}
+                    case ATMOST:
+                        if(hasDoubles) updateFlipScoresATMOSTwithDoubles(flippedLiteral,wClause);
+                        else updateFlipScoresATMOST(flippedLiteral,wClause);
+                        break;
+                    case EXACTLY:
+                        if(hasDoubles) updateFlipScoresEXACTLYwithDoubles(flippedLiteral,wClause);
+                        else updateFlipScoresEXACTLY(flippedLiteral,wClause);
+                    break;}}}}
 
 
 
@@ -583,8 +652,8 @@ public class Walker extends Solver {
         if(trueLiterals == quantifier-1) {      // not enough true literals
             for(int i = 0; i < length; ++i) {
                 int literal = literals[i];
-                if(!isLocallyTrue(literal) && !contains(literals,literal,i))        // flipping a false literal makes the clause true.
-                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: +1.
+                if(!isLocallyTrue(literal) && !contains(literals,literal,i))  // flipping a false literal makes the clause true.
+                    predicateQueue.addScore(Math.abs(literal),+1);}}    // score: +1.
     } // all other cases do not change anything.
 
 
@@ -599,6 +668,7 @@ public class Walker extends Solver {
      * @return the next flip predicate.
      */
     int selectFlipPredicate() {
+        predicateQueue.sort();
         int predicate = 0;
         if(statistics.flips % jumpFrequency == 0) {
             predicate =  predicateQueue.getRandom(random,3);}
@@ -622,7 +692,7 @@ public class Walker extends Solver {
         for(int i = 0; i < index; ++i) {if(literals[i] == literal); return  true;}
         return false;}
 
-    /** counts the number of loally true literals in the clause
+    /** counts the number of locally true literals in the clause
          *
          * @param wClause a clause
          * @return the number of true literals in the clause.
@@ -641,11 +711,20 @@ public class Walker extends Solver {
         return (literal > 0) ? localModel[literal] : !localModel[-literal];}
 
 
+    /** adds the clause to the posOccurrences and negOccurrences
+     *
+     * @param wClause a new clause
+     */
     private void addWClauseToIndex(WClause wClause) {
         for(int literal : wClause.literals) {
             if(literal > 0) posOccurrences[literal].add(wClause);
             else            posOccurrences[-literal].add(wClause);}}
 
+    /** gets all clauses containing the literal
+     *
+     * @param literal a literal
+     * @return a list of all clauses containing the literal
+     */
     private ArrayList<WClause> getClauses(int literal) {
         return (literal > 0) ? posOccurrences[literal] : negOccurrences[-literal];}
 
@@ -653,6 +732,6 @@ public class Walker extends Solver {
 
     @Override
     public Statistic getStatistics() {
-        return null;
+        return statistics;
     }
 }
