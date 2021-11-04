@@ -12,7 +12,7 @@ import Datastructures.Theory.EquivalenceClasses;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;
-import Utilities.IntegerQueue;
+import Utilities.IntegerQueueOld;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
@@ -101,7 +101,7 @@ public abstract class WalkerOld extends Solver {
     protected int[] localModel;
 
     /** sorts the predicates according to the flipScore. predicates whose flip makes more clauses true come to the front.*/
-    protected IntegerQueue predicateQueue;
+    protected IntegerQueueOld predicateQueue;
 
 
     /** collects statistical information */
@@ -149,7 +149,7 @@ public abstract class WalkerOld extends Solver {
         jumpFrequency  = (Integer)solverParameters.get("jumps");
         localModel     = new int[predicates];
         statistics     = new WalkerStatistics(combinedId);
-        predicateQueue = new IntegerQueue(predicates);
+        predicateQueue = new IntegerQueueOld(predicates);
         clauses        = new ArrayList<Clause>();
         literalIndex   = new BucketSortedIndex<WLiteral>(predicates+1,
                 (cLiteral->cLiteral.literal),
@@ -254,7 +254,8 @@ public abstract class WalkerOld extends Solver {
             if(Thread.interrupted()) {throw new InterruptedException();}
             int predicate = selectFlipPredicate();
             flipPredicate(predicate);
-            if(statistics.falseClauses == 0) {return completeModel();}}
+            //if(falseClauses == 0) {return completeModel();
+            }
         return new Aborted("Walker aborted after " + statistics.flips + " flips");}
 
     /** initializes a model by making a predicate p true if p occurs more often than -p.*/
@@ -535,11 +536,11 @@ public abstract class WalkerOld extends Solver {
             transferLocalModel();
             //return new Unsatisfiable(null,null);
         } //model,literal,symboltable);}
-        ++statistics.importedUnitClauses;
+        ++statistics.importedTrueLiterals;
         model.addImmediately(literal);
         int predicate = Math.abs(literal);
         if(isLocallyTrue(-literal)) {flipPredicate(predicate);}
-        if(statistics.falseClauses == 0) {return completeModel();}
+        //if(statistics.falseClauses == 0) {return completeModel();}
         predicateQueue.setScore(predicate,Integer.MIN_VALUE);
         return null;}
 
@@ -589,7 +590,8 @@ public abstract class WalkerOld extends Solver {
         int position = clause.getPosition();
         if(position > 0) {return;}
         clause.setPosition(+1);
-        ++statistics.falseClauses;}
+        //++statistics.falseClauses;
+    }
 
     boolean isMarkedFalse(Clause clause) {
         return clause.getPosition() > 0;}
@@ -604,7 +606,8 @@ public abstract class WalkerOld extends Solver {
         int position = clause.getPosition();
         if(position < 0) {return;}
         clause.setPosition(-1);
-        --statistics.falseClauses;}
+        //--statistics.falseClauses;
+    }
 
     boolean isMarkedTrue(Clause clause) {
         return clause.getPosition() < 0;}

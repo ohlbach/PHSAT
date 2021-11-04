@@ -20,10 +20,7 @@ public class WalkerStatistics extends Statistic {
     @Description("Number of flips")
     public int flips  = 0;
 
-    @Description("Imported Unit clauses")
-    int importedUnitClauses = 0;
-
-    @Description("False clauses")
-    int falseClauses = 0;
+    @Description("Imported true literals")
+    int importedTrueLiterals = 0;
 
 }

@@ -18,8 +18,8 @@ import java.util.*;
 public class Walker extends Solver {
 
     private final ArrayList<WClause> wClauses;         // collects all clauses
-    private final ArrayList[] posOccurrences; // maps predicates to clauses containing them positively
-    private final ArrayList[] negOccurrences; // maps predicates to clauses containing them negatively
+    private final ArrayList<WClause>[] posOccurrences; // maps predicate to clauses containing them positively
+    private final ArrayList<WClause>[] negOccurrences; // maps predicate to clauses containing them negatively
     private final boolean[] localModel;                // maps all predicates to a truth value
     private int falseClauses = 0;                      // counts the clauses which are false in the model
     private final IntegerQueue predicateQueue;         // sorts the predicates according to the flipScore.
@@ -150,7 +150,7 @@ public class Walker extends Solver {
         return new Aborted("Walker aborted after " + statistics.flips + " flips");}
 
     /** a temporary local copy of the globally true literals */
-    private IntArrayList globallyTrueLiteralsCopy = new IntArrayList();
+    private final IntArrayList globallyTrueLiteralsCopy = new IntArrayList();
 
     /** integrates globally true literals:
      * - their scores are minimized <br>
@@ -165,6 +165,7 @@ public class Walker extends Solver {
             globallyTrueLiterals.clear();} // can now be filled again
 
         for(int literal : globallyTrueLiteralsCopy) {
+            ++statistics.importedTrueLiterals;
             predicateQueue.setScore(Math.abs(literal),Integer.MIN_VALUE / 2);
             for(WClause wClause : getClauses(literal)) {
                 if(!wClause.isLocallyTrue) --falseClauses;
@@ -199,7 +200,7 @@ public class Walker extends Solver {
      */
     private void initializeModel() {
         int[] posScores = new int[predicates+1];
-        int[] negScores = new int[predicates+1];;
+        int[] negScores = new int[predicates+1];
         setInitialScores(posScores,negScores);
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             int status = model.status(predicate);
@@ -423,11 +424,13 @@ public class Walker extends Solver {
                     predicateQueue.addScore(Math.abs(literal),+1);}} // score: -1. Must be undone.
         else {
             if(oldTrueLiterals < quantifier) { // the clause was false
-                for(int i = 0; i < length; ++i) {
-                    int literal = literals[i]; // flipping a false literal with enough multiplicity made the clause true.
-                    if(literal != flippedLiteral && !isLocallyTrue(literal) &&
-                            (oldTrueLiterals + wClause.multiplicity(literal) > quantifier)  )
-                        predicateQueue.addScore(Math.abs(literal),-1);}} // score: +1. Must be undone.
+                // flipping a false literal with enough multiplicity made the clause true.
+                for (int literal : literals) {
+                    if (literal != flippedLiteral && !isLocallyTrue(literal) &&
+                            (oldTrueLiterals + wClause.multiplicity(literal) > quantifier))
+                        predicateQueue.addScore(Math.abs(literal), -1);
+                }
+            } // score: +1. Must be undone.
         }
         // new flip scores
         addScoreAtleastWithDoubles(wClause,newTrueLiterals);}
@@ -479,7 +482,6 @@ public class Walker extends Solver {
 
     private void addScoreAtmost(WClause wClause,int trueLiterals) {
         int quantifier = wClause.quantifier;
-        int[] literals = wClause.literals;
 
         if(trueLiterals == quantifier) {                // just enough true literals
             for(int literal : wClause.literals) {
@@ -533,18 +535,19 @@ public class Walker extends Solver {
         int length = literals.length;
 
         if(trueLiterals == quantifier) {     // the clause is true, just enough true literals
-            for(int i = 0; i < length; ++i) {
-                int literal = literals[i];
-                if(!isLocallyTrue(literal))                // flipping a false literal makes the clause false.
-                    predicateQueue.addScore(Math.abs(literal),-1);} // score: -1.
+            for (int literal : literals) {
+                if (!isLocallyTrue(literal))                // flipping a false literal makes the clause false.
+                    predicateQueue.addScore(Math.abs(literal), -1);
+            } // score: -1.
             return;}
 
         if(trueLiterals > quantifier) {     // the clause is false, too many true literals
-            for(int i = 0; i < length; ++i) {
-                int literal = literals[i];
-                if(isLocallyTrue(literal) && // flipping a true literal with enough multiplicity makes the clause true.
+            for (int literal : literals) {
+                if (isLocallyTrue(literal) && // flipping a true literal with enough multiplicity makes the clause true.
                         (trueLiterals - wClause.multiplicity(literal) <= quantifier))
-                    predicateQueue.addScore(Math.abs(literal),+1);}} // score: +1.
+                    predicateQueue.addScore(Math.abs(literal), +1);
+            }
+        } // score: +1.
     } // all other cases do not change anything.
 
 
@@ -668,15 +671,11 @@ public class Walker extends Solver {
      * @return the next flip predicate.
      */
     int selectFlipPredicate() {
-        predicateQueue.sort();
-        int predicate = 0;
-        if(statistics.flips % jumpFrequency == 0) {
-            predicate =  predicateQueue.getRandom(random,3);}
-        if(predicateQueue.getScore(predicate) <= 0) {predicate = predicateQueue.nthTopScore(2);}
-        else {
-            predicate = predicateQueue.topScore();
-            if(predicate == oldPredicate || predicate == oldoldPredicate) {
-                predicate = predicateQueue.nthTopScore(1);}}
+        int predicate = (statistics.flips % jumpFrequency == 0) ?
+            predicateQueue.getRandom(random,3) :
+            predicateQueue.topScore();
+        if(predicate == oldPredicate || predicate == oldoldPredicate) {
+            predicate = predicateQueue.nthTopScore(1);}
         oldoldPredicate = oldPredicate;
         oldPredicate = predicate;
         return predicate;}
@@ -710,7 +709,6 @@ public class Walker extends Solver {
     private boolean isLocallyTrue(int literal) {
         return (literal > 0) ? localModel[literal] : !localModel[-literal];}
 
-
     /** adds the clause to the posOccurrences and negOccurrences
      *
      * @param wClause a new clause
@@ -727,8 +725,6 @@ public class Walker extends Solver {
      */
     private ArrayList<WClause> getClauses(int literal) {
         return (literal > 0) ? posOccurrences[literal] : negOccurrences[-literal];}
-
-
 
     @Override
     public Statistic getStatistics() {
