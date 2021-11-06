@@ -141,9 +141,9 @@ public abstract class Solver {
 
     public  int predicates;
 
-    protected Model model;
+    public Model model;
 
-    protected  Symboltable symboltable;
+    public  Symboltable symboltable;
 
     protected Integer solverNumber;
 
@@ -164,7 +164,7 @@ public abstract class Solver {
         trackReasoning          = problemSupervisor.globalParameters.trackReasoning;}
 
     protected void initialize() {
-        solverId                   = (String)solverParameters.get("solverId");
+        solverId                   = (String)solverParameters.get("name");
         problemId                  = problemSupervisor.problemId;
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
         globalParameters           = problemSupervisor.globalParameters;
@@ -172,7 +172,7 @@ public abstract class Solver {
         predicates                 = basicClauseList.predicates;
         symboltable                = basicClauseList.symboltable;
         monitor                    = globalParameters.monitor;
-        monitoring                 = monitor.monitoring;
+        monitoring                 = monitor != null && monitor.monitoring;
         model                      = new Model(predicates,null);
         if(monitoring) {
             monitor.addThread(combinedId,"Monitor for problem " + problemId + " and solver " + solverId);}}

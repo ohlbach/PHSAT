@@ -6,6 +6,7 @@ import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Statistics.Statistic;
+import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
@@ -20,8 +21,8 @@ public class Walker extends Solver {
     private final ArrayList<WClause> wClauses;         // collects all clauses
     private final ArrayList<WClause>[] posOccurrences; // maps predicate to clauses containing them positively
     private final ArrayList<WClause>[] negOccurrences; // maps predicate to clauses containing them negatively
-    private final boolean[] localModel;                // maps all predicates to a truth value
-    private int falseClauses = 0;                      // counts the clauses which are false in the model
+    protected final boolean[] localModel;              // maps all predicates to a truth value
+    protected int falseClauses = 0;                    // counts the clauses which are false in the model
     private final IntegerQueue predicateQueue;         // sorts the predicates according to the flipScore.
                                                        // predicates whose flip makes more clauses true come to the front
     private static final int jumpFrequencyDefault = 10;
@@ -29,6 +30,7 @@ public class Walker extends Solver {
     private static final int maxFlipsDefault = Integer.MAX_VALUE;
     private final int maxFlips;                        // maximum number of allowed flips
     public WalkerStatistics statistics;                // collects statistical information
+    private int seed;                                  // for the random number genwrator
     private final Random random;                       // random number generator for flip jumps
 
     public static String help() {
@@ -92,9 +94,10 @@ public class Walker extends Solver {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             posOccurrences[predicate] = new ArrayList<>();
             negOccurrences[predicate] = new ArrayList<>();}
-        localModel     = new boolean[predicates];
+        localModel     = new boolean[predicates+1];
         predicateQueue = new IntegerQueue(predicates);
-        random         = new Random((int)solverParameters.get("seed"));
+        seed           = (int)solverParameters.get("seed");
+        random         = new Random(seed);
         maxFlips       = (int)solverParameters.get("flips");
         jumpFrequency  = (int)solverParameters.get("jumps");
         statistics     = new WalkerStatistics(combinedId);
@@ -106,12 +109,14 @@ public class Walker extends Solver {
     /** transforms a clause to a WClause and adds it to the internal data
      *
      * @param clause a clause
+     * @return the generated wClause
      */
-    public void addClause(Clause clause) {
+    public WClause addClause(Clause clause) {
         WClause wClause = new WClause(clause);
         wClauses.add(wClause);
         addWClauseToIndex(wClause);
-        if(!quantifiers.contains(wClause.quantifier)) quantifiers.add(wClause.quantifier);}
+        if(!quantifiers.contains(wClause.quantifier)) quantifiers.add(wClause.quantifier);
+        return wClause;}
 
     /** collects globally true literals which are inserted by other solvers  into the global model */
     private final IntArrayList globallyTrueLiterals = new IntArrayList();
@@ -167,7 +172,7 @@ public class Walker extends Solver {
         for(int literal : globallyTrueLiteralsCopy) {
             ++statistics.importedTrueLiterals;
             predicateQueue.setScore(Math.abs(literal),Integer.MIN_VALUE / 2);
-            for(WClause wClause : getClauses(literal)) {
+            for(WClause wClause : getClauses(literal)) {  // quatsch
                 if(!wClause.isLocallyTrue) --falseClauses;
                 wClause.isLocallyTrue = true;
                 wClause.isGloballyTrue = true;}
@@ -181,6 +186,17 @@ public class Walker extends Solver {
     void flipPredicate(int predicate) {
         ++statistics.flips;
         localModel[predicate] = !localModel[predicate];
+
+        for(WClause wClause : getClauses(predicate)) {
+            if(!wClause.isLocallyTrue) --falseClauses;
+            wClause.isLocallyTrue = getTruthValue(wClause);
+            if(!wClause.isLocallyTrue) ++falseClauses;}
+
+        for(WClause wClause : getClauses(-predicate)) {
+            if(!wClause.isLocallyTrue) --falseClauses;
+            wClause.isLocallyTrue = getTruthValue(wClause);
+            if(!wClause.isLocallyTrue) ++falseClauses;}
+
         updateFlipScores(predicate);}
 
     /** turns the local model into a new model and returns Satisfiable as result
@@ -195,10 +211,10 @@ public class Walker extends Solver {
 
     /** Initializes the local model, together with the local and global truth values of the clauses.
      * A predicate is made true if it makes more clauses true than making the predicate false.
-     * The number of true clauses when making a predicat true is estimated by its initial score.
+     * The number of true clauses when making a predicate true is estimated by its initial score.
      * Global truth value are transferred unchanged to the local model.
      */
-    private void initializeModel() {
+    protected void initializeModel() {
         int[] posScores = new int[predicates+1];
         int[] negScores = new int[predicates+1];
         setInitialScores(posScores,negScores);
@@ -233,7 +249,7 @@ public class Walker extends Solver {
      * @param posScores for setting the scores to make a predicate true.
      * @param negScores for setting the scores to make a predicate false.
      */
-    private void setInitialScores(int[] posScores,int[] negScores) {
+    protected void setInitialScores(int[] posScores,int[] negScores) {
         int productQuantifier = Utilities.product(quantifiers);
         for(WClause wClause: wClauses) {
             ClauseType clauseType = wClause.clauseType;
@@ -246,45 +262,54 @@ public class Walker extends Solver {
 
             for(int literal : wClause.literals) {
                 if(literal > 0) posScores[literal] += score;
-                else            negScores[literal] += score;}}}
+                else            negScores[-literal] += score;}}}
 
 
     /** sets the initial global and local truth values of a given clause.
+     * A clause which is once true in the global model must remain true if the global model is extended.
+     * This is critical for atmost-clauses.
      *
      * @param wClause a clause
      * @return true if the clause is true (globally or locally)
      */
-    private boolean setInitialTruthValue(WClause wClause) {
+    protected boolean setInitialTruthValue(WClause wClause) {
         ClauseType clauseType = wClause.clauseType;
 
         if(clauseType == ClauseType.OR) {
-            for(int literal : wClause.literals) {
-                switch(model.status(literal)) {
-                    case +1: wClause.isGloballyTrue = true; return true;
-                    case -1: continue;}
-                if(isLocallyTrue(literal)) {wClause.isLocallyTrue = true; return true;} }
+            int[] literals = wClause.literals;
+            for(int literal : literals) {
+                if(model.isTrue(literal)) {
+                    wClause.isGloballyTrue = true;
+                    wClause.isLocallyTrue = true;
+                    return true;}}
+            for(int literal : literals) {
+                if(isLocallyTrue(literal)) {wClause.isLocallyTrue = true; return true;}}
             return false;}
 
         int globallyTrueLiterals = 0;
         int locallyTrueLiterals = 0;
+        int globallyUndefinedLiterals = 0;
         for(int literal : wClause.literals) {
             switch(model.status(literal)) {
                 case +1: ++globallyTrueLiterals; break;
-                case -1: continue;}
+                case 0:  ++globallyUndefinedLiterals;}
             if(isLocallyTrue(literal)) ++locallyTrueLiterals;}
 
-        int trueLiterals = globallyTrueLiterals + locallyTrueLiterals;
         int quantifier = wClause.quantifier;
         switch (clauseType) {
             case ATLEAST:
-                if(globallyTrueLiterals >= quantifier) {wClause.isGloballyTrue = true; return true;}
-                if(trueLiterals >= quantifier)         {wClause.isLocallyTrue = true;  return true;}
+                if(globallyTrueLiterals >= quantifier) {wClause.isGloballyTrue = true; wClause.isLocallyTrue = true; return true;}
+                if(locallyTrueLiterals >= quantifier)  {wClause.isLocallyTrue = true;  return true;}
+                break;
             case ATMOST:
-                if(globallyTrueLiterals <= quantifier) {wClause.isGloballyTrue = true; return true;}
-                if(trueLiterals <= quantifier)         {wClause.isLocallyTrue = true;  return true;}
+                if(globallyTrueLiterals <= quantifier &&
+                        (globallyTrueLiterals != 0 || globallyUndefinedLiterals != wClause.literals.length)){
+                    wClause.isGloballyTrue = true; wClause.isLocallyTrue = true; return true;}
+                if(locallyTrueLiterals <= quantifier)  {wClause.isLocallyTrue = true;  return true;}
+                break;
             case EXACTLY:
-                if(globallyTrueLiterals == quantifier) {wClause.isGloballyTrue = true; return true;}
-                if(trueLiterals == quantifier)         {wClause.isLocallyTrue = true;  return true;}}
+                if(globallyTrueLiterals == quantifier) {wClause.isGloballyTrue = true; wClause.isLocallyTrue = true; return true;}
+                if(locallyTrueLiterals == quantifier)  {wClause.isLocallyTrue = true;  return true;}}
         return false;}
 
     /** computes the truth value of a clause in the local (and global) model
@@ -371,8 +396,6 @@ public class Walker extends Solver {
         int quantifier = wClause.quantifier;
         int newTrueLiterals = currentlyTrueLiterals(wClause);
         int oldTrueLiterals = isLocallyTrue(flippedLiteral) ? newTrueLiterals -1 : newTrueLiterals +1;
-        if(oldTrueLiterals < quantifier) --falseClauses;
-        if(newTrueLiterals < quantifier) ++falseClauses;
         // undo old flip scores
         if(oldTrueLiterals == quantifier) {
             for(int literal : wClause.literals) {
@@ -411,8 +434,6 @@ public class Walker extends Solver {
         int oldTrueLiterals = isLocallyTrue(flippedLiteral) ?
                 newTrueLiterals - wClause.multiplicity(flippedLiteral) :
                 newTrueLiterals + wClause.multiplicity(flippedLiteral);
-        if(oldTrueLiterals < quantifier) --falseClauses;
-        if(newTrueLiterals < quantifier) ++falseClauses;
         int[] literals = wClause.literals;
         int length = literals.length;
 
@@ -464,8 +485,6 @@ public class Walker extends Solver {
         int quantifier = wClause.quantifier;
         int newTrueLiterals = currentlyTrueLiterals(wClause);
         int oldTrueLiterals = isLocallyTrue(flippedLiteral) ? newTrueLiterals -1 : newTrueLiterals +1;
-        if(oldTrueLiterals > quantifier) --falseClauses;
-        if(newTrueLiterals > quantifier) ++falseClauses;
         // undo old flip scores
         if(oldTrueLiterals == quantifier) {
             for(int literal : wClause.literals) {
@@ -506,8 +525,6 @@ public class Walker extends Solver {
         int oldTrueLiterals = isLocallyTrue(flippedLiteral) ?
                 newTrueLiterals - wClause.multiplicity(flippedLiteral) :
                 newTrueLiterals + wClause.multiplicity(flippedLiteral);
-        if(oldTrueLiterals > quantifier) --falseClauses;
-        if(newTrueLiterals > quantifier) ++falseClauses;
         int[] literals = wClause.literals;
         int length = literals.length;
 
@@ -532,7 +549,6 @@ public class Walker extends Solver {
     private void addScoreAtmostWithDoubles(WClause wClause,int trueLiterals) {
         int quantifier = wClause.quantifier;
         int[] literals = wClause.literals;
-        int length = literals.length;
 
         if(trueLiterals == quantifier) {     // the clause is true, just enough true literals
             for (int literal : literals) {
@@ -560,8 +576,6 @@ public class Walker extends Solver {
         int quantifier = wClause.quantifier;
         int newTrueLiterals = currentlyTrueLiterals(wClause);
         int oldTrueLiterals = isLocallyTrue(flippedLiteral) ? newTrueLiterals -1 : newTrueLiterals +1;
-        if(oldTrueLiterals != quantifier) --falseClauses;
-        if(newTrueLiterals != quantifier) ++falseClauses;
         // undo old flip scores
         if(oldTrueLiterals == quantifier) {
             for(int literal : wClause.literals) {
@@ -609,8 +623,6 @@ public class Walker extends Solver {
         int quantifier = wClause.quantifier;
         int newTrueLiterals = currentlyTrueLiterals(wClause);
         int oldTrueLiterals = isLocallyTrue(flippedLiteral) ? newTrueLiterals -1 : newTrueLiterals +1;
-        if(oldTrueLiterals != quantifier) --falseClauses;
-        if(newTrueLiterals != quantifier) ++falseClauses;
         int[] literals = wClause.literals;
         int length = literals.length;
         // undo old flip scores
@@ -701,10 +713,10 @@ public class Walker extends Solver {
         for(int literal : wClause.literals) {if(isLocallyTrue(literal)) ++trueLiterals;}
         return trueLiterals;}
 
-    /** returns +1 if the literal is true, otherwise -1
+    /** returns true if the literal is true in the local model
      *
      * @param literal a literal
-     * @return +1 if the literal is true, otherwise -1
+     * @return true if the literal is true in the local model
      */
     private boolean isLocallyTrue(int literal) {
         return (literal > 0) ? localModel[literal] : !localModel[-literal];}
@@ -728,6 +740,29 @@ public class Walker extends Solver {
 
     @Override
     public Statistic getStatistics() {
-        return statistics;
+        return statistics;}
+
+    public String localModelToString(Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            if (localModel[predicate]) st.append(Symboltable.toString(predicate,symboltable)).append(",");}
+        return st.toString();}
+
+    public String toString() {
+        return toString(null);}
+
+    public String toString(Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        st.append("Random Walker ").append(solverId).append( " on Problem ").append(problemId).append("\n");
+        st.append("Parameters:\n");
+        st.append("  seed:           ").append(seed).append("\n");
+        st.append("  flips:          ").append(statistics.flips).append(" of ").append(maxFlips).append("\n");
+        st.append("  jump frequency: ").append(jumpFrequency).append("\n\n");
+        st.append("Current model: ").append(localModelToString(symboltable)).append("\n");
+        st.append("Globally true clauses:\n");
+        for(WClause wClause : wClauses) {if(wClause.isGloballyTrue) st.append(wClause.toString(3,symboltable)).append("\n");}
+        st.append("False Clauses:\n");
+        for(WClause wClause : wClauses) {if(!wClause.isLocallyTrue) st.append(wClause.toString(3,symboltable)).append("\n");}
+    return st.toString();
     }
 }

@@ -45,7 +45,8 @@ public class IntegerQueue {
      * @param score  its score, e.g. the number of clauses made true when the predicate is flipped
      */
     public void setScore(int item, int score) {
-        scores[item] = score;}
+        scores[item] = score;
+        sorted = false;}
 
     /** adds the score for the given item
      *
@@ -53,7 +54,8 @@ public class IntegerQueue {
      * @param score  its score, e.g. the number of clauses made true when the predicate is flipped
      */
     public void addScore(int item, int score) {
-        scores[item] += score;}
+        scores[item] += score;
+        sorted = false;}
 
     /** gets the score for the given item
      *

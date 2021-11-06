@@ -89,7 +89,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public Clause(int id, ClauseType clauseType, int quantifier, IntArrayList literals) {
         this.id = id;
         this.clauseType = clauseType;
-        this.quantifier = clauseType.isNumeric() ? quantifier : 0;
+        this.quantifier = clauseType.isNumeric() ? quantifier : 1;
         cliterals = new ArrayList<>(literals.size());
         for(int i = 0; i < literals.size(); ++i) {
             cliterals.add(new CLiteral(literals.getInt(i),this,i));}
