@@ -4,6 +4,7 @@ import Datastructures.Clauses.AllClauses;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseType;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
@@ -308,6 +309,134 @@ public class WalkerTest {
         walker.setInitialTruthValue(wc2);
         assertFalse(wc2.isGloballyTrue);
         assertFalse(wc2.isLocallyTrue);
+    }
+
+    @Test
+    public void getLocalTruthValue1() {
+        System.out.println("getLocalTruthValue 1");
+        Walker walker = prepare(5, true, null);
+        Clause c1 = make(1, or, 1, 1, 2, 3);
+        WClause wc1 = walker.addClause(c1);
+        Clause c2 = make(2, al, 2, 1, 2, 3);
+        WClause wc2 = walker.addClause(c2);
+        Clause c3 = make(3, am, 2, 1, 2, 3);
+        WClause wc3 = walker.addClause(c3);
+        Clause c4 = make(4, ex, 2, 1, 2, 3);
+        WClause wc4 = walker.addClause(c4);
+
+        assertFalse(walker.getLocalTruthValue(wc1));
+        assertFalse(walker.getLocalTruthValue(wc2));
+        assertTrue(walker.getLocalTruthValue(wc3));
+        assertFalse(walker.getLocalTruthValue(wc4));
+
+        walker.localModel[3] = true;
+        assertTrue(walker.getLocalTruthValue(wc1));
+        assertFalse(walker.getLocalTruthValue(wc2));
+        assertTrue(walker.getLocalTruthValue(wc3));
+        assertFalse(walker.getLocalTruthValue(wc4));
+
+        walker.localModel[2] = true;
+        assertTrue(walker.getLocalTruthValue(wc1));  // or
+        assertTrue(walker.getLocalTruthValue(wc2));  // atleast 2
+        assertTrue(walker.getLocalTruthValue(wc3));  // atmost 2
+        assertTrue(walker.getLocalTruthValue(wc4));  // exactly 2
+
+        walker.localModel[1] = true;
+        assertTrue(walker.getLocalTruthValue(wc1));  // or
+        assertTrue(walker.getLocalTruthValue(wc2));  // atleast 2
+        assertFalse(walker.getLocalTruthValue(wc3));  // atmost 2
+        assertFalse(walker.getLocalTruthValue(wc4));  // exactly 2
+    }
+
+    @Test
+    public void getLocalTruthValue2() {
+        System.out.println("getLocalTruthValue 2");
+        Walker walker = prepare(5, true, null);
+        Clause c1 = make(1, or, 1, 1, -2, 3);
+        WClause wc1 = walker.addClause(c1);
+        Clause c2 = make(2, al, 2, 1, -2, 3);
+        WClause wc2 = walker.addClause(c2);
+        Clause c3 = make(3, am, 2, 1, -2, 3);
+        WClause wc3 = walker.addClause(c3);
+        Clause c4 = make(4, ex, 2, 1, -2, 3);
+        WClause wc4 = walker.addClause(c4);
+
+        assertTrue(walker.getLocalTruthValue(wc1));
+        assertFalse(walker.getLocalTruthValue(wc2));
+        assertTrue(walker.getLocalTruthValue(wc3));
+        assertFalse(walker.getLocalTruthValue(wc4));
+
+        walker.localModel[3] = true;
+        assertTrue(walker.getLocalTruthValue(wc1));  // or
+        assertTrue(walker.getLocalTruthValue(wc2));  // atleast 2
+        assertTrue(walker.getLocalTruthValue(wc3));  // atmost 2
+        assertTrue(walker.getLocalTruthValue(wc4));  // exactly 2
+
+        walker.localModel[2] = true;
+        assertTrue(walker.getLocalTruthValue(wc1));  // or
+        assertFalse(walker.getLocalTruthValue(wc2));  // atleast 2
+        assertTrue(walker.getLocalTruthValue(wc3));  // atmost 2
+        assertFalse(walker.getLocalTruthValue(wc4));  // exactly 2
+
+        walker.localModel[1] = true; // 1, -2, 3
+        assertTrue(walker.getLocalTruthValue(wc1));  // or
+        assertTrue(walker.getLocalTruthValue(wc2));  // atleast 2
+        assertTrue(walker.getLocalTruthValue(wc3));  // atmost 2
+        assertTrue(walker.getLocalTruthValue(wc4));  // exactly 2
+    }
+
+    @Test
+    public void getGlobalTruthValue1() throws Unsatisfiable {
+        System.out.println("getGlobalTruthValue 1");
+        Walker walker = prepare(5, true, null);
+        Model model = walker.model;
+        Clause c1 = make(1, or, 1, 1, 2, 3);
+        WClause wc1 = walker.addClause(c1);
+        Clause c2 = make(2, al, 2, 1, 2, 3);
+        WClause wc2 = walker.addClause(c2);
+        Clause c3 = make(3, am, 2, 1, 2, 3);
+        WClause wc3 = walker.addClause(c3);
+        Clause c4 = make(4, ex, 2, 1, 2, 3);
+        WClause wc4 = walker.addClause(c4);
+
+        assertFalse(walker.getGlobalTruthValue(wc1));  // or
+        assertFalse(walker.getGlobalTruthValue(wc2));  // atleast 2
+        assertFalse(walker.getGlobalTruthValue(wc3));  // atmost 2
+        assertFalse(walker.getGlobalTruthValue(wc4));  // exactly 2
+
+        model.addImmediately(3);
+        assertTrue(walker.getGlobalTruthValue(wc1));  // or
+        assertFalse(walker.getGlobalTruthValue(wc2));  // atleast 2
+        assertTrue(walker.getGlobalTruthValue(wc3));  // atmost 2
+        assertFalse(walker.getGlobalTruthValue(wc4));  // exactly 2
+
+        model.addImmediately(2);
+        assertTrue(walker.getGlobalTruthValue(wc1));  // or
+        assertTrue(walker.getGlobalTruthValue(wc2));  // atleast 2
+        assertTrue(walker.getGlobalTruthValue(wc3));  // atmost 2
+        assertTrue(walker.getGlobalTruthValue(wc4));  // exactly 2
+
+
+        model.addImmediately(1);
+        assertTrue(walker.getGlobalTruthValue(wc1));  // or
+        assertTrue(walker.getGlobalTruthValue(wc2));  // atleast 2
+        try {walker.getGlobalTruthValue(wc3);
+            assertTrue(false);}  // atmost 2
+        catch(Unsatisfiable uns) {
+            System.out.println(uns);}
+
+        try {walker.getGlobalTruthValue(wc4);
+            assertTrue(false);}  // exactly 2
+        catch(Unsatisfiable uns) {
+            System.out.println(uns);} // exactly 2
+
+        Clause c5 = make(5, ex, 2, 1, -2, -3);
+        WClause wc5 = walker.addClause(c5);
+        try {walker.getGlobalTruthValue(wc5);
+            assertTrue(false);}  // exactly 2
+        catch(Unsatisfiable uns) {
+            System.out.println(uns);} // exactly 2
+
     }
 
         @Test

@@ -5,6 +5,7 @@ import Datastructures.Clauses.ClauseType;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
@@ -13,7 +14,9 @@ import Solvers.Solver;
 import Utilities.Utilities;
 import Utilities.IntegerQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import jdk.nashorn.internal.runtime.Undefined;
 
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.*;
 
 public class Walker extends Solver {
@@ -148,7 +151,8 @@ public class Walker extends Solver {
             if(Thread.interrupted()) {
                 globalParameters.log("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
                 break;}
-            if(!globallyTrueLiterals.isEmpty()) integrateGloballyTrueLiterals();
+            try {if(!globallyTrueLiterals.isEmpty()) integrateGloballyTrueLiterals();}
+            catch(Unsatisfiable unsatisfiable) {return unsatisfiable;}
             int predicate = selectFlipPredicate();
             flipPredicate(predicate);
             if(falseClauses == 0) {return localToGlobalModel();}}
@@ -159,11 +163,12 @@ public class Walker extends Solver {
 
     /** integrates globally true literals:
      * - their scores are minimized <br>
-     * - clauses containing them positively are marked as true<br>
-     * - if the local model of such a literal is negative, it is flipped<br>
+     * - clauses which now become globally true are marked<br>
      * Clauses with globally false literals are not touched.
+     *
+     * @throws Unsatisfiable if the clause can never be made true (should actually never happen here)
      */
-    private void integrateGloballyTrueLiterals() {
+    private void integrateGloballyTrueLiterals() throws Unsatisfiable {
         globallyTrueLiteralsCopy.clear();
         synchronized (this) { // copy to local array in order not to hinder other threads for too long
             for(int literal : globallyTrueLiterals) globallyTrueLiteralsCopy.add(literal);
@@ -172,10 +177,12 @@ public class Walker extends Solver {
         for(int literal : globallyTrueLiteralsCopy) {
             ++statistics.importedTrueLiterals;
             predicateQueue.setScore(Math.abs(literal),Integer.MIN_VALUE / 2);
-            for(WClause wClause : getClauses(literal)) {  // quatsch
-                if(!wClause.isLocallyTrue) --falseClauses;
-                wClause.isLocallyTrue = true;
-                wClause.isGloballyTrue = true;}
+
+            for(WClause wClause : getClauses(literal)) { // update global truth
+                if(getGlobalTruthValue(wClause)) {
+                    if(!wClause.isLocallyTrue) --falseClauses;
+                    wClause.isGloballyTrue = true;
+                    wClause.isLocallyTrue = true;}}
             if(!isLocallyTrue(literal)) flipPredicate(Math.abs(literal));}}
 
 
@@ -189,12 +196,12 @@ public class Walker extends Solver {
 
         for(WClause wClause : getClauses(predicate)) {
             if(!wClause.isLocallyTrue) --falseClauses;
-            wClause.isLocallyTrue = getTruthValue(wClause);
+            wClause.isLocallyTrue = getLocalTruthValue(wClause);
             if(!wClause.isLocallyTrue) ++falseClauses;}
 
         for(WClause wClause : getClauses(-predicate)) {
             if(!wClause.isLocallyTrue) --falseClauses;
-            wClause.isLocallyTrue = getTruthValue(wClause);
+            wClause.isLocallyTrue = getLocalTruthValue(wClause);
             if(!wClause.isLocallyTrue) ++falseClauses;}
 
         updateFlipScores(predicate);}
@@ -317,7 +324,7 @@ public class Walker extends Solver {
      * @param wClause a clause
      * @return true if the clause is true in the local (and global) model
      */
-    private boolean getTruthValue(WClause wClause) {
+    protected boolean getLocalTruthValue(WClause wClause) {
         if(wClause.isGloballyTrue) return true;
         ClauseType clauseType = wClause.clauseType;
 
@@ -333,6 +340,47 @@ public class Walker extends Solver {
             case ATLEAST: return trueLiterals >= quantifier;
             case ATMOST:  return trueLiterals <= quantifier;
             case EXACTLY: return trueLiterals == quantifier;}
+        return false;}
+
+    /** computes the truth value of a clause in the global model
+     *
+     * @param wClause a clause
+     * @return true if the clause is true in the global model
+     * @throws Unsatisfiable if the clause can never be made true (should actually never happen here)
+     */
+    protected boolean getGlobalTruthValue(WClause wClause) throws Unsatisfiable {
+        int trueLiterals = 0;
+        int falseLiterals = 0;
+        int undefinedLiterals = 0;
+
+        for(int literal : wClause.literals) {
+            switch(model.status(literal)) {
+                case +1: ++trueLiterals;      break;
+                case  0: ++undefinedLiterals; break;
+                case -1: ++falseLiterals;     break;}}
+
+        ClauseType clauseType = wClause.clauseType;
+
+        int quantifier = wClause.quantifier;
+        int length = wClause.literals.length;
+
+        switch (clauseType) {
+            case OR:
+            case ATLEAST:
+                if(falseLiterals >= length - quantifier + 1) // not enough potentially true literals
+                    throw new Unsatisfiable(wClause,model,symboltable);
+                return trueLiterals >= quantifier;
+            case ATMOST:
+                if(trueLiterals == 0 && undefinedLiterals == length) return false;
+                if(trueLiterals > quantifier) // can never be made true
+                    throw new Unsatisfiable(wClause,model,symboltable);
+                return trueLiterals <= quantifier;
+            case EXACTLY:
+                if(trueLiterals > quantifier) // can never be made true
+                    throw new Unsatisfiable(wClause,model,symboltable);
+                if(falseLiterals >= length - quantifier + 1) // not enough potentially true literals
+                    throw new Unsatisfiable(wClause,model,symboltable);
+                return trueLiterals == quantifier;}
         return false;}
 
     /** computes the initial flip scores for the literals of the given clause

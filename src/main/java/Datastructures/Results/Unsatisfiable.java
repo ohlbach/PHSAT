@@ -1,8 +1,10 @@
 package Datastructures.Results;
 
 import Datastructures.Symboltable;
+import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import InferenceSteps.Input;
+import Solvers.Walker.WClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -33,6 +35,11 @@ public class Unsatisfiable extends Result {
     public Unsatisfiable(InferenceStep inferenceStep) {
         super();
         this.inferenceStep = inferenceStep;}
+
+    public Unsatisfiable(WClause wClause, Model model, Symboltable symboltable) {
+        super();
+        reason = "False Clause " + wClause.toString(0,symboltable) + " in the model " +
+                model.toString(symboltable);}
 
     /** returns the reason for the unsatisfiability, usually the entire proof
      *
