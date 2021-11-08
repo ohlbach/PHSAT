@@ -325,16 +325,16 @@ public class ClauseTransformer {
     protected ArrayList<Clause> atLeastToCNF(Clause clause, String monitorId) {
         assert clause.clauseType == ClauseType.ATLEAST;
         ArrayList<Clause> clauses = new ArrayList<>();
-        for(IntArrayList literals : Utilities.crossProduct(
-                Utilities.combinations(clause.quantifier,clause.toArray(),
-                        true,true,true))) {
+        for(IntArrayList literals :
+                Utilities.combinations(clause.size()- clause.quantifier+1,clause.toArray(),
+                        true,true,true)) {
             clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,literals));}
         if(trackReasoning) {
             for(Clause orClause : clauses) {
                 InferenceStep step = new AtleastToCNF(clause, orClause);
                 orClause.inferenceStep = step;
                 if(monitoring) monitor.print(monitorId,step.toString(symboltable));}}
-    return clauses;}
+        return clauses;}
 
     // ATMOST-CLAUSES
 
@@ -492,18 +492,18 @@ public class ClauseTransformer {
      */
     protected ArrayList<Clause> exactlyToCNF(Clause clause, String monitorId) {
         assert clause.clauseType == ClauseType.EXACTLY;
-        int size = clause.size();
         IntArrayList literals = clause.toArray();
-        ArrayList<IntArrayList> dnf = new ArrayList<>();
-        for(int combination : Utilities.combinations(size,clause.quantifier)) {
-            IntArrayList lits = new IntArrayList();
-            for(int i = 0; i < size; ++i) {
-                int literal = literals.getInt(i);
-                lits.add((((1 << i) & combination) == 0) ? -literal : literal);}
-            dnf.add(lits);}
         ArrayList<Clause> clauses = new ArrayList<>();
-        for(IntArrayList cnf : Utilities.crossProduct(dnf)) {
-            clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,cnf));}
+        for(IntArrayList posLiterals :
+                Utilities.combinations(clause.size()- clause.quantifier+1,literals,
+                        true,true,true)) {
+            clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,posLiterals));}
+        for(int i = 0; i < literals.size(); ++i) literals.set(i,-literals.getInt(i));
+        for(IntArrayList negLiterals :
+                Utilities.combinations(clause.quantifier+1,literals,
+                        true,true,true)) {
+            clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,negLiterals));}
+
         if(trackReasoning) {
             for(Clause orClause :clauses) {
                 InferenceStep step = new ExactlyToCNF(clause,orClause);
@@ -511,7 +511,6 @@ public class ClauseTransformer {
                 if(monitoring) monitor.print(monitorId,step.toString(symboltable));}}
         return clauses;
     }
-
 
 
     /** replaces literals by equivalent literals, in any clause type

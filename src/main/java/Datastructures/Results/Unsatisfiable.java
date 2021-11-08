@@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
+import static Utilities.Utilities.joinIntArrays;
 import static Utilities.Utilities.sortIntArray;
 
 /** This class represents the final reason for an unsatisfiability in the clauses.
@@ -16,6 +17,7 @@ import static Utilities.Utilities.sortIntArray;
  */
 public class Unsatisfiable extends Result {
     private String reason = null;
+    private IntArrayList origins = null;
 
 
     /** creates an Unsatisfiable object with a reason
@@ -38,6 +40,10 @@ public class Unsatisfiable extends Result {
 
     public Unsatisfiable(WClause wClause, Model model, Symboltable symboltable) {
         super();
+        origins = IntArrayList.wrap(new int[]{wClause.id});
+        for(int literal : wClause.literals) {
+            InferenceStep step = model.getInferenceStep(-literal);
+            if(step != null) joinIntArrays(origins,step.origins());}
         reason = "False Clause " + wClause.toString(0,symboltable) + " in the model " +
                 model.toString(symboltable);}
 
@@ -57,6 +63,13 @@ public class Unsatisfiable extends Result {
         StringBuilder st = new StringBuilder();
         st.append("UNSATISFIABLE:\n");
         if(reason != null) st.append(reason).append("\n");
+        String originsSt = null;
+        if(origins != null) {originsSt = sortIntArray(origins).toString();}
+        else {
+            if(inferenceStep != null) {
+                origins = inferenceStep.origins();
+                if(origins != null) originsSt = sortIntArray(inferenceStep.origins()).toString();}}
+        if(originsSt != null) st.append("\nParticipating Clauses: ").append(originsSt).append("\n");
         if(inferenceStep != null) {
             st.append("Sequence of Inference Steps:\n");
             ArrayList<InferenceStep> steps = new ArrayList<>();
@@ -65,8 +78,6 @@ public class Unsatisfiable extends Result {
             for(InferenceStep step : steps) {
                 if(step.getClass() != InferenceSteps.Input.class)
                     st.append(step.toString(symboltable)).append("\n");}
-            IntArrayList origins = inferenceStep.origins();
-            if(origins != null) st.append("\nParticipating Clauses: " + sortIntArray(inferenceStep.origins()).toString());
             st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:");
             for(String rule : inferenceStep.rules(steps)) {st.append("\n\n").append(rule);}}
         return st.toString();}

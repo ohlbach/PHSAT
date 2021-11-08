@@ -167,7 +167,9 @@ public class Model {
         assert predicate <= predicates;
         byte status = this.status[predicate];
         if(status == 0) {return null;}
-        return inferenceSteps.get(model.indexOf((status > 0) ? predicate : -predicate));}
+        int position = model.indexOf((status > 0) ? predicate : -predicate);
+        if(position >= inferenceSteps.size()) return null;
+        return inferenceSteps.get(position);}
 
 
     /** turns the status value into a string

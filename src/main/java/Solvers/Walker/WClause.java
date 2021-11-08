@@ -11,10 +11,10 @@ import java.util.Locale;
 /** This is a special clause type for the Walker solver */
 public class WClause {
 
-    protected final int id;                    // the clause identifier
+    public final int id;                       // the clause identifier
     protected final ClauseType clauseType;     // OR, ATLEAST, ATMOST or EXACTLY
     protected final int quantifier;            // the quantifier of numeric types
-    protected final int[] literals;            // the literals
+    public final int[] literals;               // the literals
     protected boolean isLocallyTrue  = false;  // truth in the local model
     protected boolean isGloballyTrue = false;  // truth in the global model
     protected boolean hasDoubles     = false;  // indicates that there are multiple occurrences in the literals

@@ -389,7 +389,7 @@ public class Walker extends Solver {
      *
      * @param wClause a clause
      */
-    private void setInitialFlipScores(WClause wClause) {
+    protected void setInitialFlipScores(WClause wClause) {
         if(wClause.isGloballyTrue) return;
         boolean hasDoubles = wClause.hasDoubles;
         int trueLiterals = currentlyTrueLiterals(wClause);
@@ -458,7 +458,7 @@ public class Walker extends Solver {
         addScoreAtleast(wClause,newTrueLiterals);}
 
 
-    private void addScoreAtleast(WClause wClause,int trueLiterals) {
+    protected void addScoreAtleast(WClause wClause,int trueLiterals) {
         int quantifier = wClause.quantifier;
         if(trueLiterals == quantifier) {        // just enough true literals
             for(int literal : wClause.literals) {
@@ -795,6 +795,13 @@ public class Walker extends Solver {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if (localModel[predicate]) st.append(Symboltable.toString(predicate,symboltable)).append(",");}
         return st.toString();}
+
+    /** turns the flips scores to a string.
+     *
+     * @return the flip scores as a string.
+     */
+    public String flipScoresToString() {
+        return predicateQueue.toString();}
 
     public String toString() {
         return toString(null);}

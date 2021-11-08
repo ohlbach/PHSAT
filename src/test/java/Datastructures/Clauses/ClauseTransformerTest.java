@@ -14,12 +14,13 @@ import org.junit.Test;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
+import Utilities.Utilities;
 
 import static org.junit.Assert.*;
 
 public class ClauseTransformerTest {
 
-    boolean monitoring = true;
+    boolean monitoring = false;
 
     private ProblemSupervisor prepare() {
         HashMap<String,Object> problemParameters = new HashMap<>();
@@ -135,8 +136,11 @@ public class ClauseTransformerTest {
         ClauseTransformer ct = new ClauseTransformer(problemSupervisor, monitor);
         Clause c1 = new Clause( new int[]{1,ctL,3,1,2,3,4,2});
         ArrayList<Clause> cnf = ct.atLeastToCNF(c1,"test 1");
-        assertEquals("[11: 1,2, 12: 2,3, 13: 2,4, 14: 1,3,4]",cnf.toString());
-    }
+        assertEquals("[11: 1,2, 12: 1,3,4, 13: 2,3, 14: 2,4]",cnf.toString());
+        Clause c2 = new Clause( new int[]{2,ctL,2,1,2,3,4,5,6});
+        cnf = ct.atLeastToCNF(c2,"test 1");
+        for(Clause c : cnf) System.out.println(c.toString(0, model.symboltable));
+        System.out.println(Utilities.over(4,3));}
 
 
     @Test
@@ -360,15 +364,25 @@ public class ClauseTransformerTest {
         ClauseTransformer ct = new ClauseTransformer(problemSupervisor, monitor);
         Clause c1 = new Clause( new int[]{1,ctEx,2,1,2,3});
         ArrayList<Clause> cnf = ct.exactlyToCNF(c1,"test 1");
-        assertEquals("[11: -3,-2,-1, 12: 1,2, 13: 2,3, 14: 1,3]",cnf.toString());
+        assertEquals("[11: 1,2, 12: 1,3, 13: 2,3, 14: -1,-2,-3]",cnf.toString());
 
         c1 = new Clause( new int[]{1,ctEx,2,1,2,2});
         cnf = ct.exactlyToCNF(c1,"test 2");
-        assertEquals("[15: -2,-1, 16: 2]",cnf.toString());
+        assertEquals("[15: 2, 16: -1,-2]",cnf.toString());
 
         c1 = new Clause( new int[]{1,ctEx,2,1,2,3,4});
         cnf = ct.exactlyToCNF(c1,"test 3");
-        assertEquals("[17: -3,-2,-1, 18: -4,-2,-1, 19: -4,-3,-1, 20: -4,-3,-2, 21: 1,2,3, 22: 2,3,4, 23: 1,3,4, 24: 1,2,4]",cnf.toString());
+        assertEquals("[17: 1,2,3, 18: 1,2,4, 19: 1,3,4, 20: 2,3,4, 21: -1,-2,-3, 22: -1,-2,-4, 23: -1,-3,-4, 24: -2,-3,-4]",cnf.toString());
+
+        c1 = new Clause( new int[]{1,ctEx,3,1,2,3,1,2,3});
+        long t1 = System.nanoTime();
+        cnf = ct.exactlyToCNF(c1,"test 3");
+        System.out.println(System.nanoTime()-t1);
+        System.out.println(cnf.size());
+        for(Clause c : cnf) System.out.println(c.toNumbers());
+
+        //System.out.println(Utilities.over(20,11));
+        //System.out.println(Utilities.over(5,4));
     }
 
     }

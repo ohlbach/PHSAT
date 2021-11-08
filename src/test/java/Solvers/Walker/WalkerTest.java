@@ -63,9 +63,6 @@ public class WalkerTest {
         bcl.symboltable = symboltable;
         problemSupervisor.basicClauseList = bcl;
         problemSupervisor.model = new Model(predicates,symboltable);
-        problemSupervisor.equivalenceClasses = new EquivalenceClasses(problemSupervisor);
-        problemSupervisor.disjointnessClasses =  new DisjointnessClasses(problemSupervisor);
-        problemSupervisor.twoLitClauses = new TwoLitClauses(problemSupervisor);
 
         return new Walker(1,solverParameters, problemSupervisor);
     }
@@ -439,14 +436,14 @@ public class WalkerTest {
 
     }
 
-        @Test
+    @Test
     public void intializeModel() {
         System.out.println("intializeModel");
-        Walker walker = prepare(5, true, null);
+        Walker walker = prepare(10, true, null);
         Clause c1 = make(1, or, 1, 1, -2, 3);
         WClause wc1 = walker.addClause(c1);
         walker.initializeModel();
-        assertEquals("1,3,4,5,",walker.localModelToString(null));
+        assertEquals("1,3,4,5,6,7,8,9,10,",walker.localModelToString(null));
         assertTrue(wc1.isLocallyTrue);
         assertFalse(wc1.isGloballyTrue);
         assertEquals(0,walker.falseClauses);
@@ -454,11 +451,30 @@ public class WalkerTest {
         Clause c2 = make(2, am, 1, 4,5);
         WClause wc2 = walker.addClause(c2);
         walker.initializeModel();
-        assertEquals("1,3,",walker.localModelToString(null));
+        assertEquals("1,3,6,7,8,9,10,",walker.localModelToString(null));
         assertTrue(wc2.isLocallyTrue);
         assertFalse(wc2.isGloballyTrue);
         assertEquals(0,walker.falseClauses);
-        System.out.println(walker.localModelToString(null));
+
+        Clause c3 = make(3, al, 2, -4,-5,6);
+        WClause wc3 = walker.addClause(c3);
+        walker.initializeModel();
+        assertEquals("1,3,6,7,8,9,10,",walker.localModelToString(null));
+        }
+
+    @Test
+    public void setInitialFlipScores() {
+        System.out.println("setInitialFlipScores");
+        Walker walker = prepare(10, true, null);
+        Clause c1 = make(1, or, 1, 1, 2, 3);
+        WClause wc1 = walker.addClause(c1);
+        walker.localModel[1] = true;
+        walker.setInitialTruthValue(wc1);
+        assertTrue(wc1.isLocallyTrue);
+        walker.setInitialFlipScores(wc1);
+        assertEquals("Integer Queue:  item: score\n" +
+                "0:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0, 1:-1, ",walker.flipScoresToString());
 
     }
+
     }

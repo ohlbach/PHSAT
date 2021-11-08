@@ -132,6 +132,7 @@ public class IntegerQueue {
      * @return a string representation of the data.
      */
     public String toString() {
+        if(!sorted) sort();
         StringBuilder st = new StringBuilder();
         st.append("Integer Queue:  item: score\n");
         for(int i = 0; i <= size; ++i) {
