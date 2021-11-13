@@ -1,7 +1,7 @@
 package Solvers.Walker;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Utilities.Utilities;
 
@@ -12,7 +12,7 @@ import java.util.Locale;
 public class WClause {
 
     public final int id;                       // the clause identifier
-    protected final ClauseType clauseType;     // OR, ATLEAST, ATMOST or EXACTLY
+    protected final Connective connective;     // OR, ATLEAST, ATMOST or EXACTLY
     protected final int quantifier;            // the quantifier of numeric types
     public final int[] literals;               // the literals
     protected boolean isLocallyTrue  = false;  // truth in the local model
@@ -26,8 +26,8 @@ public class WClause {
      */
     public WClause(Clause clause) {
         id = clause.id;
-        clauseType = clause.clauseType;
-        quantifier = clause.quantifier;
+        connective = clause.connective;
+        quantifier = clause.quAmount;
         literals = new int[clause.size()];
         for(int i = 0; i < clause.size(); ++i) literals[i] = clause.getLiteral(i);
         int size = literals.length;
@@ -81,13 +81,13 @@ public class WClause {
         StringBuilder st = new StringBuilder();
         if(width > 0) {
             Formatter format = new Formatter(st, Locale.GERMANY);
-            format.format("%-"+(width+clauseType.prefix.length())+"s", clauseType.prefix+id+":");}
-        else st.append(clauseType.prefix+id+": ");
-        if(clauseType.isNumeric()) st.append(clauseType + " " + quantifier + ": ");
+            format.format("%-"+(width+ connective.prefix.length())+"s", connective.prefix+id+":");}
+        else st.append(connective.prefix+id+": ");
+        if(connective.isQuantifier()) st.append(connective + " " + quantifier + ": ");
         int size = literals.length;
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(literals[position],symboltable));
-            if(position < size-1) {st.append(clauseType.separator);}}
+            if(position < size-1) {st.append(connective.separator);}}
         if(isGloballyTrue) st.append(" GT");
         if(isLocallyTrue)  st.append(" LT");
         return st.toString();}

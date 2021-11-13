@@ -1,7 +1,7 @@
 package Datastructures.Theory;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceTest;
@@ -25,7 +25,7 @@ public class EquivalenceClassesTest {
 
     boolean monitoring = false;
 
-    int type=ClauseType.EQUIV.ordinal();
+    int type= Connective.EQUIV.ordinal();
 
 
     EquivalenceClasses prepare(boolean monitoring, boolean withSymboltable) {
@@ -50,7 +50,7 @@ public class EquivalenceClassesTest {
     }
 
     private Clause make(int id,int... literals) {
-        return new Clause(id,ClauseType.EQUIV, IntArrayList.wrap(literals));
+        return new Clause(id, Connective.EQUIV, IntArrayList.wrap(literals));
     }
 
     @Test

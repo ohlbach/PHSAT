@@ -1,10 +1,10 @@
 package Datastructures.Clauses;
 
 
-/** The enumeration type specifies the possible clause types.
+/** The enumeration type specifies the allowed logical connectives.
  * Created by ohlbach on 14.09.2018.
  */
-public enum ClauseType {
+public enum Connective {
     OR("o", ",",""),
     AND("a","&","A-"),
     EQUIV("e","=","E-"),
@@ -19,7 +19,7 @@ public enum ClauseType {
     /** to be used for clause names */
     public String prefix;
 
-    ClauseType(String abbreviation, String separator, String prefix) {
+    Connective(String abbreviation, String separator, String prefix) {
         this.abbreviation = abbreviation;
         this.separator = separator;
         this.prefix = prefix;}
@@ -29,7 +29,7 @@ public enum ClauseType {
      * @param n any number
      * @return null or the corresponding type
      */
-    public static ClauseType getType(int n) {
+    public static Connective getType(int n) {
         switch(n) {
             case 0: return OR;
             case 1: return AND;
@@ -44,7 +44,7 @@ public enum ClauseType {
      * @param n any number
      * @return null or the corresponding type
      */
-    public static ClauseType getType(String n) {
+    public static Connective getType(String n) {
         switch(n) {
             case "o":  return OR;
             case "a":  return AND;
@@ -54,19 +54,19 @@ public enum ClauseType {
             case "=":  return EXACTLY;}
         return null;}
 
-    /** checks if the type is numeric (atleast, atmost, exactly)
+    /** checks if the connective is a quantifier (atleast, atmost, exactly)
      *
      * @param n any number
-     * @return true if it is one of the numeric type numbers
+     * @return true if it is one of the quantifier numbers
      */
-    public static boolean isNumeric(int n) {
+    public static boolean isQuantifier(int n) {
         return n >= 3 && n <= 5;}
 
-    /** checks if the type is numeric (atleast, atmost, exactly)
+    /** checks if the connective is a quantifier (atleast, atmost, exactly)
      *
-     * @return true if the type is numeric (atleast, atmost, exactly)
+     * @return true if the connective is a quantifier (atleast, atmost, exactly)
      */
-    public boolean isNumeric() {
+    public boolean isQuantifier() {
         return ordinal() >= 3;}
 
 

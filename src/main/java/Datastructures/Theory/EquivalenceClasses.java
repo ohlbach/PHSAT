@@ -1,7 +1,7 @@
 package Datastructures.Theory;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -178,7 +178,7 @@ public class EquivalenceClasses  {
      */
     public void addBasicEquivalenceClause(int[] basicClause) throws Unsatisfiable {
         assert basicClause.length > 3;
-        assert ClauseType.getType(basicClause[1]) == ClauseType.EQUIV;
+        assert Connective.getType(basicClause[1]) == Connective.EQUIV;
         statistics.basicClauses++;
         Clause clause = new Clause(basicClause[0],basicClause);
         if(trackReasoning) {clause.inferenceStep = new ClauseCopy(basicClause,clause);}
@@ -208,7 +208,7 @@ public class EquivalenceClasses  {
             monitor.print(monitorId,"In:   Equivalence " +
                     Symboltable.toString(literal1, symboltable) + " = " +
                     Symboltable.toString(literal2, symboltable));}
-        Clause clause = new Clause(problemSupervisor.nextClauseId(),ClauseType.EQUIV,literal1,literal2);
+        Clause clause = new Clause(problemSupervisor.nextClauseId(), Connective.EQUIV,literal1,literal2);
         clause.inferenceStep = inferenceStep;
         Task<TaskType> task = new Task<>(TaskType.EQUIVALENCE,clause,null);
         synchronized (this) {queue.add(task);}}

@@ -1,7 +1,7 @@
 package InferenceSteps;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import org.junit.Test;
 
 public class UnitResolutionTest {
@@ -13,10 +13,10 @@ public class UnitResolutionTest {
 
     @Test
     public void testToString() {
-        int[] bc1 = new int[]{1, ClauseType.OR.ordinal(),1,2,3,4};
+        int[] bc1 = new int[]{1, Connective.OR.ordinal(),1,2,3,4};
         Clause c1 = new Clause(2,bc1);
 
-        int[] bc2 = new int[]{3, ClauseType.OR.ordinal(),1,2,4};
+        int[] bc2 = new int[]{3, Connective.OR.ordinal(),1,2,4};
         Clause c2 = new Clause(4,bc2);
 
         UnitResolution inf = new UnitResolution(c1,-3,c2,null);

@@ -1,6 +1,6 @@
 package Datastructures.TwoLiteral;
 
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.DisjointnessClasses;
@@ -24,8 +24,8 @@ public class TwoLitClausesTest {
     StringBuilder warnings = new StringBuilder();
     boolean monitoring = false;
     
-    int type = ClauseType.OR.ordinal();
-    int typeEQ = ClauseType.EQUIV.ordinal();
+    int type = Connective.OR.ordinal();
+    int typeEQ = Connective.EQUIV.ordinal();
 
 
 

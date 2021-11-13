@@ -2,7 +2,7 @@ package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 
 import java.util.ArrayList;
@@ -74,11 +74,11 @@ public final class StringClauseSetGenerator  {
             String[] literals = clauseString.split("\\s*(,| )\\s*");
             int start = 0;
             int length = literals.length+2;
-            ClauseType type = ClauseType.OR;
+            Connective type = Connective.OR;
             if(literals[0].startsWith("$")) {
                 start = 1;
                 length = literals.length+1;
-                type = ClauseType.getType(literals[0].charAt(1));
+                type = Connective.getType(literals[0].charAt(1));
                 if(type == null) {
                     errors.append("Illegal ClauseType: '" + literals[0] + "' in " + clausesString + ".\n"+
                     "Should be one of a (and), x (xors), d (disjoint), e (equivalence)\n");

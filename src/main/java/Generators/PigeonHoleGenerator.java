@@ -1,7 +1,7 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Management.ProblemSupervisor;
 import Utilities.Utilities;
@@ -160,7 +160,7 @@ public final class PigeonHoleGenerator {
         for(int pigeon = 1; pigeon <= pigeons; ++pigeon) {
             int[] clause = new int[holes+3];
             clause[0] = problemSupervisor.nextClauseId();
-            clause[1] = ClauseType.EXACTLY.ordinal();
+            clause[1] = Connective.EXACTLY.ordinal();
             clause[2] = 1;
             for(int hole = 1; hole <= holes; ++hole) {
                 clause[hole+2] = symboltable.getPredicate("P"+pigeon+"H"+hole);}

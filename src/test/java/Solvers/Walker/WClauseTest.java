@@ -1,7 +1,7 @@
 package Solvers.Walker;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
@@ -10,12 +10,12 @@ import static org.junit.Assert.*;
 
 public class WClauseTest {
 
-    private static final ClauseType or = ClauseType.OR;
-    private static final ClauseType al = ClauseType.ATLEAST;
-    private static final ClauseType am = ClauseType.ATMOST;
-    private static final ClauseType ex = ClauseType.EXACTLY;
+    private static final Connective or = Connective.OR;
+    private static final Connective al = Connective.ATLEAST;
+    private static final Connective am = Connective.ATMOST;
+    private static final Connective ex = Connective.EXACTLY;
 
-    private static WClause make(int id, ClauseType type, int quantifier, int... literals) {
+    private static WClause make(int id, Connective type, int quantifier, int... literals) {
         Clause clause = new Clause(id,type,quantifier, IntArrayList.wrap(literals));
         return new WClause(clause);}
 

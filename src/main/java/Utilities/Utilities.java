@@ -1,7 +1,7 @@
 package Utilities;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -297,7 +297,7 @@ public class Utilities {
 
     public static Clause makeClause(int id, String literals) {
         String[] lits = literals.split("\\s*(,| )\\s*");
-        Clause clause = new Clause(id, ClauseType.OR,lits.length);
+        Clause clause = new Clause(id, Connective.OR,lits.length);
         for(String lit : lits) {
             clause.add(new CLiteral(Integer.parseInt(lit)));}
         clause.setStructure();

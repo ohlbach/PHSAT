@@ -1,7 +1,7 @@
 package Solvers.Walker;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
@@ -14,9 +14,7 @@ import Solvers.Solver;
 import Utilities.Utilities;
 import Utilities.IntegerQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import jdk.nashorn.internal.runtime.Undefined;
 
-import java.lang.reflect.UndeclaredThrowableException;
 import java.util.*;
 
 public class Walker extends Solver {
@@ -259,11 +257,11 @@ public class Walker extends Solver {
     protected void setInitialScores(int[] posScores,int[] negScores) {
         int productQuantifier = Utilities.product(quantifiers);
         for(WClause wClause: wClauses) {
-            ClauseType clauseType = wClause.clauseType;
-            if(clauseType == ClauseType.EXACTLY) continue;
+            Connective connective = wClause.connective;
+            if(connective == Connective.EXACTLY) continue;
 
             int score = productQuantifier;
-            switch(wClause.clauseType) {
+            switch(wClause.connective) {
                 case ATLEAST: score /=  wClause.quantifier; break;
                 case ATMOST:  score /= -wClause.quantifier; break;}
 
@@ -280,9 +278,9 @@ public class Walker extends Solver {
      * @return true if the clause is true (globally or locally)
      */
     protected boolean setInitialTruthValue(WClause wClause) {
-        ClauseType clauseType = wClause.clauseType;
+        Connective connective = wClause.connective;
 
-        if(clauseType == ClauseType.OR) {
+        if(connective == Connective.OR) {
             int[] literals = wClause.literals;
             for(int literal : literals) {
                 if(model.isTrue(literal)) {
@@ -303,7 +301,7 @@ public class Walker extends Solver {
             if(isLocallyTrue(literal)) ++locallyTrueLiterals;}
 
         int quantifier = wClause.quantifier;
-        switch (clauseType) {
+        switch (connective) {
             case ATLEAST:
                 if(globallyTrueLiterals >= quantifier) {wClause.isGloballyTrue = true; wClause.isLocallyTrue = true; return true;}
                 if(locallyTrueLiterals >= quantifier)  {wClause.isLocallyTrue = true;  return true;}
@@ -326,9 +324,9 @@ public class Walker extends Solver {
      */
     protected boolean getLocalTruthValue(WClause wClause) {
         if(wClause.isGloballyTrue) return true;
-        ClauseType clauseType = wClause.clauseType;
+        Connective connective = wClause.connective;
 
-        if(clauseType == ClauseType.OR) {
+        if(connective == Connective.OR) {
             for(int literal : wClause.literals) {
                 if(isLocallyTrue(literal)) {return true;} }
             return false;}
@@ -336,7 +334,7 @@ public class Walker extends Solver {
         int trueLiterals = currentlyTrueLiterals(wClause);
         int quantifier = wClause.quantifier;
 
-        switch (clauseType) {
+        switch (connective) {
             case ATLEAST: return trueLiterals >= quantifier;
             case ATMOST:  return trueLiterals <= quantifier;
             case EXACTLY: return trueLiterals == quantifier;}
@@ -359,12 +357,12 @@ public class Walker extends Solver {
                 case  0: ++undefinedLiterals; break;
                 case -1: ++falseLiterals;     break;}}
 
-        ClauseType clauseType = wClause.clauseType;
+        Connective connective = wClause.connective;
 
         int quantifier = wClause.quantifier;
         int length = wClause.literals.length;
 
-        switch (clauseType) {
+        switch (connective) {
             case OR:
             case ATLEAST:
                 if(falseLiterals >= length - quantifier + 1) // not enough potentially true literals
@@ -393,7 +391,7 @@ public class Walker extends Solver {
         if(wClause.isGloballyTrue) return;
         boolean hasDoubles = wClause.hasDoubles;
         int trueLiterals = currentlyTrueLiterals(wClause);
-        switch(wClause.clauseType) {
+        switch(wClause.connective) {
             case OR:
             case ATLEAST:
                 if(hasDoubles) addScoreAtleastWithDoubles(wClause,trueLiterals);
@@ -418,7 +416,7 @@ public class Walker extends Solver {
             for(WClause wClause : getClauses(flippedLiteral)) {
                 if(wClause.isGloballyTrue) continue;
                 boolean hasDoubles = wClause.hasDoubles;
-                switch(wClause.clauseType) {
+                switch(wClause.connective) {
                     case OR:
                     case ATLEAST:
                         if(hasDoubles) updateFlipScoresATLEASTwithDoubles(flippedLiteral,wClause);

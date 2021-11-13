@@ -54,7 +54,7 @@ public class AllClauses {
     private final Symboltable symboltable;
     private final MRMatrices mrMatrices;
 
-    private final ClauseType clauseType = ClauseType.OR;
+    private final Connective connective = Connective.OR;
 
     private enum TaskType {
         TRUELITERAL, EQUIVALENCE, DISJOINTNESS, INSERTCLAUSE, TWOLITCLAUSE, SIMPLIFYALL, SIMPLIFYOTHERS,
@@ -456,7 +456,7 @@ public class AllClauses {
         for(int i = 0; i < size; ++i) {
             int literal1 = -cliterals.get(i).literal;
             for(int j = i+1; j < size; ++j) {
-                Clause clause = new Clause(problemSupervisor.nextClauseId(),clauseType,literal1,-cliterals.get(j).literal);
+                Clause clause = new Clause(problemSupervisor.nextClauseId(), connective,literal1,-cliterals.get(j).literal);
                 if(trackReasoning) clause.inferenceStep = new DisjointnessClause2Clause(dClause,clause);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE, clause,null));}}}
 
@@ -469,7 +469,7 @@ public class AllClauses {
         for(int i = 2; i < size; ++i) {
             int literal1 = -basicClause[i];
             for(int j = i+1; j < size; ++j) {
-                Clause clause = new Clause(problemSupervisor.nextClauseId(),clauseType,literal1,-basicClause[j]);
+                Clause clause = new Clause(problemSupervisor.nextClauseId(), connective,literal1,-basicClause[j]);
                 if(trackReasoning) clause.inferenceStep = new DisjointnessClause2Clause(basicClause,clause);
                 queue.add(new Task<>(TaskType.INSERTCLAUSE, clause,null));}}}
 
@@ -530,7 +530,7 @@ public class AllClauses {
         replacementResolutionTwo(clause);
 
         if(keepClause[0]) {
-            Clause newClause = new Clause(clause.id,clauseType,literal1,literal2);
+            Clause newClause = new Clause(clause.id, connective,literal1,literal2);
             newClause.inferenceStep = clause.inferenceStep;
             insertClause(newClause);}}
 

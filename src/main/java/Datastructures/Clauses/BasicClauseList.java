@@ -72,8 +72,8 @@ public class BasicClauseList {
     public int[] addClause(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
         clause = checkSyntax(clause,errorPrefix, errors, warnings);
         if(clause == null) return null;
-        maxClauseLength = Math.max(maxClauseLength,clause.length - (ClauseType.isNumeric(clause[1]) ? 3 : 2));
-        switch(ClauseType.getType(clause[1])) {
+        maxClauseLength = Math.max(maxClauseLength,clause.length - (Connective.isQuantifier(clause[1]) ? 3 : 2));
+        switch(Connective.getType(clause[1])) {
             case OR:       disjunctions.add(clause); break;
             case AND:      conjunctions.add(clause); break;
             case EQUIV:    equivalences.add(clause); break;
@@ -99,7 +99,7 @@ public class BasicClauseList {
         if(type < 0 || type > 5) {errors.append(errorPrefix).append("Clause type :"+type + " is not between 0 and 5\n"); return null;}
         clause = removeDoubles(clause, errorPrefix, warnings);
         int start = 2;
-        boolean isNumeric = ClauseType.isNumeric(type);
+        boolean isNumeric = Connective.isQuantifier(type);
         int size = clause.length;
         if(isNumeric) {
             start = 3;
@@ -124,7 +124,7 @@ public class BasicClauseList {
      * @return             the old or shortened new clause
      */
     protected int[] removeDoubles(int[] clause, String errorPrefix, StringBuilder warnings) {
-        int start = ClauseType.isNumeric(clause[1]) ? 3 : 2;
+        int start = Connective.isQuantifier(clause[1]) ? 3 : 2;
         IntArrayList doubles = null;
         int doubleCounter = 0;
         for(int i = start+1; i < clause.length; ++i) {
@@ -173,7 +173,7 @@ public class BasicClauseList {
      * @return true if all literals are false in the model and the clause is not a tautology.
      */
     public static boolean disjunctionIsFalse(int[] clause, Model model) {
-        assert ClauseType.getType(clause[1]) == ClauseType.OR;
+        assert Connective.getType(clause[1]) == Connective.OR;
         for(int i = 2; i < clause.length; ++i) {if(!model.isFalse(clause[i])) {return false;}}
         return true;}
 
@@ -194,7 +194,7 @@ public class BasicClauseList {
      * @return true if not either all literals are true or all literals are false in the model.
      */
     public static boolean equivalenceIsFalse(int[] clause, Model model) {
-        assert ClauseType.getType(clause[1]) == ClauseType.EQUIV;
+        assert Connective.getType(clause[1]) == Connective.EQUIV;
         int size = clause.length;
         int trueLiterals = 0;
         int falseLiterals = 0;
@@ -213,7 +213,7 @@ public class BasicClauseList {
      * @return true if not atleast n literals are true in the model
      */
     public static boolean atleastIsFalse(int[] clause, Model model) {
-        assert ClauseType.getType(clause[1]) == ClauseType.ATLEAST;
+        assert Connective.getType(clause[1]) == Connective.ATLEAST;
         int n = clause[2];
         int size = clause.length;
         int trueLiterals = 0;
@@ -228,7 +228,7 @@ public class BasicClauseList {
      * @return true if not atleast n literals are true in the model
      */
     public static boolean atmostIsFalse(int[] clause, Model model) {
-        assert ClauseType.getType(clause[1]) == ClauseType.ATMOST;
+        assert Connective.getType(clause[1]) == Connective.ATMOST;
         int n = clause[2];
         int size = clause.length;
         int trueLiterals = 0;
@@ -243,7 +243,7 @@ public class BasicClauseList {
      * @return true if not atleast n literals are true in the model
      */
     public static boolean exactlyIsFalse(int[] clause, Model model) {
-        assert ClauseType.getType(clause[1]) == ClauseType.EXACTLY;
+        assert Connective.getType(clause[1]) == Connective.EXACTLY;
         int n = clause[2];
         int size = clause.length;
         int trueLiterals = 0;
@@ -290,9 +290,9 @@ public class BasicClauseList {
         if(size == 0) {size = Integer.toString(clause[0]).length();}
         st.append(String.format("%"+size+"d ",clause[0])).append(": ");
         int typeNumber = clause[1];
-        ClauseType type = ClauseType.getType(typeNumber);
+        Connective type = Connective.getType(typeNumber);
         int start = 2;
-        if(ClauseType.isNumeric(typeNumber)) {
+        if(Connective.isQuantifier(typeNumber)) {
             start = 3;
             st.append(type.toString() + " " + clause[2] + " ");}
         String separator = type.separator;

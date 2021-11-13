@@ -1,17 +1,23 @@
-package InferenceSteps;
+package Datastructures.Clauses.QuantifiedToCNF;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
+import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
-public class ExactlyToCNF extends InferenceStep{
+/** This class documents the transformation of exact-clauses to CNF */
+public class ExactlyToCNF extends InferenceStep {
 
     public static final String title = "Exactly-Clause to Conjunctive Normal Form";
 
-    public static final String rule = title+": Example:\n"+
-            "exactly 2 p,q,r -> cross-product((p&q&-r)|(p&-q&r)|(-p&q&r))";
+    public static final String rule = title+ ":\n"+
+            "exactly m p_1,...,p_n ->\n"+
+            "(n over n-m+1) clauses with combinations of n-m+1 positive literals +\n"+
+            "(n over m+1) clauses with combinations of m+1 negated literals.\n"+
+            "Example:\n"+
+            "exactly 2 1,2,3 -> [1: 1,2, 2: 1,3, 3: 2,3, 4: -1,-2,-3]";
 
     private final Clause exactlyClause;
     private final Clause orClause;
@@ -30,7 +36,7 @@ public class ExactlyToCNF extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title+"\n"+ exactlyClause.toString(0,symboltable) + " -> " +
+        return title+":\n"+ exactlyClause.toString(0,symboltable) + " -> " +
                 orClause.toString(0,symboltable);}
 
     @Override

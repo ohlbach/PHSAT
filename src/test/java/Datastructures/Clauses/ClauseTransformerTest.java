@@ -11,10 +11,8 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import org.junit.Test;
 
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
-import Utilities.Utilities;
 
 import static org.junit.Assert.*;
 
@@ -46,12 +44,12 @@ public class ClauseTransformerTest {
 
     StringBuilder errors = new StringBuilder();
     StringBuilder warnings = new StringBuilder();
-    int ctA = ClauseType.AND.ordinal();
-    int ctO = ClauseType.OR.ordinal();
-    int ctE = ClauseType.EQUIV.ordinal();
-    int ctL = ClauseType.ATLEAST.ordinal();
-    int ctM = ClauseType.ATMOST.ordinal();
-    int ctEx = ClauseType.EXACTLY.ordinal();
+    int ctA = Connective.AND.ordinal();
+    int ctO = Connective.OR.ordinal();
+    int ctE = Connective.EQUIV.ordinal();
+    int ctL = Connective.ATLEAST.ordinal();
+    int ctM = Connective.ATMOST.ordinal();
+    int ctEx = Connective.EXACTLY.ordinal();
 
     @Test
     public void analyseAnd() throws Unsatisfiable {
@@ -125,22 +123,6 @@ public class ClauseTransformerTest {
         assertTrue(model.isEmpty());
     }
 
-
-    @Test
-    public void atleastToCNF()  {
-        System.out.println("atleast to CNF");
-        ProblemSupervisor problemSupervisor = prepare();
-        Model model = problemSupervisor.model;
-        EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
-        Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
-        ClauseTransformer ct = new ClauseTransformer(problemSupervisor, monitor);
-        Clause c1 = new Clause( new int[]{1,ctL,3,1,2,3,4,2});
-        ArrayList<Clause> cnf = ct.atLeastToCNF(c1,"test 1");
-        assertEquals("[11: 1,2, 12: 1,3,4, 13: 2,3, 14: 2,4]",cnf.toString());
-        Clause c2 = new Clause( new int[]{2,ctL,2,1,2,3,4,5,6});
-        cnf = ct.atLeastToCNF(c2,"test 1");
-        for(Clause c : cnf) System.out.println(c.toString(0, model.symboltable));
-        System.out.println(Utilities.over(4,3));}
 
 
     @Test
@@ -296,32 +278,6 @@ public class ClauseTransformerTest {
     }
 
     @Test
-    public void atmostToCNF()  {
-        System.out.println("atmost to CNF");
-        ProblemSupervisor problemSupervisor = prepare();
-        Model model = problemSupervisor.model;
-        EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
-        Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
-        ClauseTransformer ct = new ClauseTransformer(problemSupervisor, monitor);
-        Clause c1 = new Clause( new int[]{1,ctM,2,1,2,3});
-        ArrayList<Clause> cnf = ct.atmostToCNF(c1,"test 1");
-        assertEquals("[11: -1,-2,-3]",cnf.toString());
-
-        c1 = new Clause( new int[]{2,ctM,2,1,2,3,4});
-        cnf = ct.atmostToCNF(c1,"test 2");
-        assertEquals("[12: -1,-2,-3, 13: -1,-2,-4, 14: -1,-3,-4, 15: -2,-3,-4]",cnf.toString());
-
-        c1 = new Clause( new int[]{3,ctM,2,1,2,3,3});
-        cnf = ct.atmostToCNF(c1,"test 3");
-        assertEquals("[16: -1,-3, 17: -2,-3]",cnf.toString());
-
-        c1 = new Clause( new int[]{4,ctM,3,1,2,3,4,5,6});
-        cnf = ct.atmostToCNF(c1,"test 4");
-        assertEquals("[18: -1,-2,-3,-4, 19: -1,-2,-3,-5, 20: -1,-2,-3,-6, 21: -1,-2,-4,-5, 22: -1,-2,-4,-6, 23: -1,-2,-5,-6, 24: -1,-3,-4,-5, 25: -1,-3,-4,-6, 26: -1,-3,-5,-6, 27: -1,-4,-5,-6, 28: -2,-3,-4,-5, 29: -2,-3,-4,-6, 30: -2,-3,-5,-6, 31: -2,-4,-5,-6, 32: -3,-4,-5,-6]",cnf.toString());
-
-    }
-
-    @Test
     public void analyseExactly() throws Unsatisfiable {
         System.out.println("analyse Exactly");
         ProblemSupervisor problemSupervisor = prepare();
@@ -354,35 +310,6 @@ public class ClauseTransformerTest {
 
     }
 
-    @Test
-    public void exactlyToCNF()  {
-        System.out.println("exactly to CNF");
-        ProblemSupervisor problemSupervisor = prepare();
-        Model model = problemSupervisor.model;
-        EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
-        Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
-        ClauseTransformer ct = new ClauseTransformer(problemSupervisor, monitor);
-        Clause c1 = new Clause( new int[]{1,ctEx,2,1,2,3});
-        ArrayList<Clause> cnf = ct.exactlyToCNF(c1,"test 1");
-        assertEquals("[11: 1,2, 12: 1,3, 13: 2,3, 14: -1,-2,-3]",cnf.toString());
 
-        c1 = new Clause( new int[]{1,ctEx,2,1,2,2});
-        cnf = ct.exactlyToCNF(c1,"test 2");
-        assertEquals("[15: 2, 16: -1,-2]",cnf.toString());
-
-        c1 = new Clause( new int[]{1,ctEx,2,1,2,3,4});
-        cnf = ct.exactlyToCNF(c1,"test 3");
-        assertEquals("[17: 1,2,3, 18: 1,2,4, 19: 1,3,4, 20: 2,3,4, 21: -1,-2,-3, 22: -1,-2,-4, 23: -1,-3,-4, 24: -2,-3,-4]",cnf.toString());
-
-        c1 = new Clause( new int[]{1,ctEx,3,1,2,3,1,2,3});
-        long t1 = System.nanoTime();
-        cnf = ct.exactlyToCNF(c1,"test 3");
-        System.out.println(System.nanoTime()-t1);
-        System.out.println(cnf.size());
-        for(Clause c : cnf) System.out.println(c.toNumbers());
-
-        //System.out.println(Utilities.over(20,11));
-        //System.out.println(Utilities.over(5,4));
-    }
 
     }

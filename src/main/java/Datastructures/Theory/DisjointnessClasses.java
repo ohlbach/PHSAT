@@ -2,7 +2,7 @@ package Datastructures.Theory;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.HashIndex;
 import Datastructures.Results.Unsatisfiable;
@@ -164,7 +164,7 @@ public class DisjointnessClasses {
             monitor.print(monitorId, "In:   Disjointness " +
                     Symboltable.toString(literals, symboltable));}
         // change
-        Clause clause = new Clause(problemSupervisor.nextClauseId(), ClauseType.ATLEAST, literals);
+        Clause clause = new Clause(problemSupervisor.nextClauseId(), Connective.ATLEAST, literals);
 
         clause.inferenceStep = inference;
         synchronized (this) {queue.add(new Task<>(TaskType.INSERTCLAUSE, clause, null));}}

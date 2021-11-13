@@ -2,7 +2,7 @@ package Datastructures.TwoLiteral;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Task;
@@ -156,7 +156,7 @@ public class TwoLitClauses {
      */
     public void addBasicClause(int[] basicClause) {
         assert basicClause.length == 4;
-        assert ClauseType.getType(basicClause[1]) == ClauseType.OR;
+        assert Connective.getType(basicClause[1]) == Connective.OR;
         if(monitoring) {
             monitor.print(monitorId,"In:   basic basicClause " +
                     BasicClauseList.clauseToString(0,basicClause, model.symboltable));}

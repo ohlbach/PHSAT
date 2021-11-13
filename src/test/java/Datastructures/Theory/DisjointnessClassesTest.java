@@ -1,7 +1,7 @@
 package Datastructures.Theory;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceTest;
@@ -23,8 +23,8 @@ public class DisjointnessClassesTest {
     StringBuilder warnings = new StringBuilder();
     boolean monitoring = false;
 
-    int type = ClauseType.ATMOST.ordinal();
-    int typeEQ = ClauseType.EQUIV.ordinal();
+    int type = Connective.ATMOST.ordinal();
+    int typeEQ = Connective.EQUIV.ordinal();
 
 
     private DisjointnessClasses prepare(boolean monitoring, boolean withSymboltable) {
@@ -49,7 +49,7 @@ public class DisjointnessClassesTest {
     }
 
     private Clause make(int id,int... literals) {
-        return new Clause(id,ClauseType.ATMOST, IntArrayList.wrap(literals));
+        return new Clause(id, Connective.ATMOST, IntArrayList.wrap(literals));
     }
 
 
@@ -114,7 +114,7 @@ public class DisjointnessClassesTest {
     public void normalizeClause() throws Unsatisfiable {
         System.out.println("normalizeClause");
         DisjointnessClasses dClasses = prepare(monitoring, false);
-        int[] c1 = new int[]{1,ClauseType.EQUIV.ordinal(),3,2,1};
+        int[] c1 = new int[]{1, Connective.EQUIV.ordinal(),3,2,1};
         dClasses.equivalenceClasses.addBasicEquivalenceClause(c1);
         Clause c2 = make(2, 2,3,4,5);
         Clause c3 = dClasses.normalizeClause(c2);
@@ -320,7 +320,7 @@ public class DisjointnessClassesTest {
         int[] clause1 = new int[]{1, type, 1, 2, 3};
         try {
             dClasses.integrateDisjointnessClause(new Clause(1,clause1));
-            dClasses.integrateEquivalence(new Clause(1,ClauseType.EQUIV,2,3));
+            dClasses.integrateEquivalence(new Clause(1, Connective.EQUIV,2,3));
         } catch (Unsatisfiable uns) {
             if(monitoring) System.out.println(uns);
             else System.out.println("UNSATISFIABLE");}}
@@ -333,7 +333,7 @@ public class DisjointnessClassesTest {
         dClasses.addObserver(observed::add);
         int[] clause1 = new int[]{dClasses.problemSupervisor.nextClauseId(), type, 1, 2, 3};
         int[] clause2 = new int[]{dClasses.problemSupervisor.nextClauseId(), type, 4,5,6};
-        Clause eqClause = new Clause(3,ClauseType.EQUIV,3,6);
+        Clause eqClause = new Clause(3, Connective.EQUIV,3,6);
         dClasses.integrateDisjointnessClause(new Clause(1,clause1));
         dClasses.integrateDisjointnessClause(new Clause(2,clause2));
         dClasses.equivalenceClasses.integrateEquivalence(eqClause,false);
@@ -371,7 +371,7 @@ public class DisjointnessClassesTest {
 
         IntArrayList literals = new IntArrayList();  literals.add(5); literals.add(6);
         dClasses.addDerivedDisjoints(literals,null);
-        Clause eqClause = new Clause(1,ClauseType.EQUIV,1,4);
+        Clause eqClause = new Clause(1, Connective.EQUIV,1,4);
         dClasses.equivalenceClasses.integrateEquivalence(eqClause,true);
         dClasses.model.add(6,null,null);
         //dClasses.addTrueLiteral(6,origins);

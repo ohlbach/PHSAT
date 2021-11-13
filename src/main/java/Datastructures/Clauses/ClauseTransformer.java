@@ -1,5 +1,8 @@
 package Datastructures.Clauses;
 
+import Datastructures.Clauses.QuantifiedToCNF.AtleastToCNF;
+import Datastructures.Clauses.QuantifiedToCNF.AtmostToCNF;
+import Datastructures.Clauses.QuantifiedToCNF.ExactlyToCNF;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -54,18 +57,7 @@ public class ClauseTransformer {
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
     }
 
-    /** turns one of the numeric clauses into conjunctive normal form
-     *
-     * @param clause     a numeric clause
-     * @param monitorId  a string
-     * @return           an ArrayList of OR-clauses
-     */
-    public ArrayList<Clause> toCNF(Clause clause, String monitorId) {
-        switch(clause.clauseType) {
-            case ATLEAST: return atLeastToCNF(clause,monitorId);
-            case ATMOST:  return atmostToCNF(clause,monitorId);
-            case EXACTLY: return exactlyToCNF(clause,monitorId);}
-        return null;}
+
 
 
     // PROCESSING OF AND-CLAUSES
@@ -77,7 +69,7 @@ public class ClauseTransformer {
      * @throws Unsatisfiable if the model finds an inconsistency
      */
     public Clause analyseAnd(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
-        assert clause.clauseType == ClauseType.AND;
+        assert clause.connective == Connective.AND;
         InferenceStep step = null;
         if(trackReasoning) {
             step = new AndToModel(clause);
@@ -104,7 +96,7 @@ public class ClauseTransformer {
      * @throws Unsatisfiable if a contradiction is found.
      */
     public Clause analyseOr(Clause clause,String monitorId,Thread thread) throws Unsatisfiable {
-        assert clause.clauseType == ClauseType.OR;
+        assert clause.connective == Connective.OR;
         clause = replaceEquivalences(clause,monitorId);
         clause.removeDoubles(); // will not be monitored
         clause = check01InOr(clause,monitorId,thread);
@@ -154,7 +146,7 @@ public class ClauseTransformer {
      * @return either the unchanged old clause or a new shorter clause.
      */
     public Clause deleteFalseLiteralsInOr(Clause oldClause, String monitorId) {
-        assert oldClause.clauseType == ClauseType.OR;
+        assert oldClause.connective == Connective.OR;
         IntArrayList positions = null;
         int size = oldClause.size();
         for(int i = 0; i < size; ++i) {
@@ -162,7 +154,7 @@ public class ClauseTransformer {
                 if(positions == null) positions = new IntArrayList();
                 positions.add(i);}}
         if(positions == null) return oldClause;
-        Clause newClause = new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,size-positions.size());
+        Clause newClause = new Clause(problemSupervisor.nextClauseId(), Connective.OR,size-positions.size());
         for(int i = 0; i < size; ++i) {
             if(!positions.contains(i)) newClause.add(oldClause.getLiteral(i));}
         if(trackReasoning) {
@@ -187,7 +179,7 @@ public class ClauseTransformer {
      * @throws Unsatisfiable if a contradiction is discovered
      */
     public Clause analyseEquiv(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
-        assert clause.clauseType == ClauseType.EQUIV;
+        assert clause.connective == Connective.EQUIV;
         clause = replaceEquivalences(clause,monitorId);
         clause.removeDoubles();             // will not be monitored
         int size = clause.size();
@@ -242,12 +234,12 @@ public class ClauseTransformer {
      * @throws Unsatisfiable if a contradiction is detected
      */
     public Clause analyseAtleast(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
-        assert clause.clauseType == ClauseType.ATLEAST;
+        assert clause.connective == Connective.ATLEAST;
 
         clause = replaceEquivalences(clause,monitorId);
         clause = analyseAtleastSimpleCases(clause,monitorId,thread);
         if(clause == null) return null;
-        if(clause.clauseType != ClauseType.ATLEAST) return clause;
+        if(clause.connective != Connective.ATLEAST) return clause;
 
         // atleast 2 p,-p q -> atleast 1 q
         clause = analysePNotP(clause,monitorId,thread,atleastSimpleCases);
@@ -271,23 +263,23 @@ public class ClauseTransformer {
              * @throws Unsatisfiable if a contradiction is detected
              */
     private Clause analyseAtleastSimpleCases(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
-        int quantifier = clause.quantifier;
+        int quantifier = clause.quAmount;
         if(quantifier == 0) return null; // atleast 0 p,q,r is always true
 
         if(quantifier == 1) {   // atleast 1 p,q,r is equivalent to p or q or r
-            clause.clauseType = ClauseType.OR;
+            clause.connective = Connective.OR;
             return analyseOr(clause,monitorId,thread);}
 
         int size = clause.size();
 
         if(quantifier > size) {      // atleast 3 p,q  is the same as atleast 3 p,q,true is the same as atleast 2 p,q
-            clause.quantifier = size;
+            clause.quAmount = size;
             quantifier = size;}
 
         if(quantifier == size) { // atleast 3 p,q,r is equivalent to p & q & r
             Clause andClause = clause.clone(problemSupervisor.nextClauseId());
-            andClause.clauseType = ClauseType.AND;
-            andClause.quantifier = 1;
+            andClause.connective = Connective.AND;
+            andClause.quAmount = 1;
             if(trackReasoning) {
                 InferenceStep step = new AtleastToAnd(clause,andClause);
                 andClause.inferenceStep = step;
@@ -317,24 +309,7 @@ public class ClauseTransformer {
         return clause;
     }
 
-    /** turns an atleast-clause into conjunctive normal form
-     *
-     * @param clause an atleast-Clause
-     * @return a list of OR-clauses as the conjunctive normal form of the atleast-clause
-     */
-    protected ArrayList<Clause> atLeastToCNF(Clause clause, String monitorId) {
-        assert clause.clauseType == ClauseType.ATLEAST;
-        ArrayList<Clause> clauses = new ArrayList<>();
-        for(IntArrayList literals :
-                Utilities.combinations(clause.size()- clause.quantifier+1,clause.toArray(),
-                        true,true,true)) {
-            clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,literals));}
-        if(trackReasoning) {
-            for(Clause orClause : clauses) {
-                InferenceStep step = new AtleastToCNF(clause, orClause);
-                orClause.inferenceStep = step;
-                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}}
-        return clauses;}
+
 
     // ATMOST-CLAUSES
 
@@ -356,7 +331,7 @@ public class ClauseTransformer {
      * @throws Unsatisfiable if a contradiction is detected
      */
     public Clause analyseAtmost(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
-        assert clause.clauseType == ClauseType.ATMOST;
+        assert clause.connective == Connective.ATMOST;
         clause = replaceEquivalences(clause, monitorId);
         clause = analyseAtmostSimpleCases(clause,monitorId,thread);
         if(clause == null) return null;
@@ -379,7 +354,7 @@ public class ClauseTransformer {
      * @throws Unsatisfiable if a contradiction is detected
      */
     private Clause analyseAtmostSimpleCases(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
-        int quantifier = clause.quantifier;
+        int quantifier = clause.quAmount;
         int size = clause.size();
         if(quantifier >= size) return null;  // is always true
 
@@ -395,28 +370,6 @@ public class ClauseTransformer {
             return analyseMultiples(clause,monitorId,thread,atmostSimpleCases);}
         return clause;}
 
-
-    /** turns an atmost-clause into conjunctive normal form
-     * Example: atmost 2 p,q,r,s -> -p,-q,-r & -p,-q,-s & -p,-r,-s & -q,-r,-s
-     *
-     * @param clause an atmost-Clause
-     * @return a list of OR-clauses as the conjunctive normal form of the atmost-clause
-     */
-    protected ArrayList<Clause> atmostToCNF(Clause clause, String monitorId) {
-        assert clause.clauseType == ClauseType.ATMOST;
-        ArrayList<Clause> clauses = new ArrayList<>();
-        IntArrayList negLiterals = new IntArrayList();
-        for(CLiteral cLiteral : clause) negLiterals.add(-cLiteral.literal);
-        for(IntArrayList literals :
-                Utilities.combinations(clause.quantifier+1,negLiterals,
-                        true,true,true)) {
-            clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,literals));}
-        if(trackReasoning) {
-            for(Clause orClause : clauses) {
-                InferenceStep step = new AtmostToCNF(clause, orClause);
-                orClause.inferenceStep = step;
-                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}}
-        return clauses;}
 
     // EXACTLY-CLAUSES
 
@@ -438,7 +391,7 @@ public class ClauseTransformer {
      * @throws Unsatisfiable if a contradiction is detected
      */
     public Clause analyseExactly(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
-        assert clause.clauseType == ClauseType.EXACTLY;
+        assert clause.connective == Connective.EXACTLY;
         clause = replaceEquivalences(clause, monitorId);
         clause = analyseExactlySimpleCases(clause,monitorId,thread);
         if(clause == null) return null;
@@ -463,10 +416,10 @@ public class ClauseTransformer {
      * @throws Unsatisfiable if a contradiction is detected
      */
     private Clause analyseExactlySimpleCases(Clause clause, String monitorId, Thread thread) throws Unsatisfiable {
-        int quantifier = clause.quantifier;
+        int quantifier = clause.quAmount;
         int size = clause.size();
         if(quantifier > size) quantifier = size; // exactly 3 p,q is the same as exactly 3 p,q,true
-        clause.quantifier = quantifier;          // is the same as exactly 2 p,q
+        clause.quAmount = quantifier;          // is the same as exactly 2 p,q
 
         int sign = 0;
         if(quantifier == 0) {sign = -1;}         // exactly 0 p,q -> false(p,q)
@@ -484,33 +437,6 @@ public class ClauseTransformer {
             return analyseMultiples(clause,monitorId,thread,exactlySimpleCases);}
         return clause;}
 
-
-    /** turns an exactly-clause into conjunctive normal form
-     *
-     * @param clause an exactly-Clause
-     * @return a list of OR-clauses as the conjunctive normal form of the exactly-clause
-     */
-    protected ArrayList<Clause> exactlyToCNF(Clause clause, String monitorId) {
-        assert clause.clauseType == ClauseType.EXACTLY;
-        IntArrayList literals = clause.toArray();
-        ArrayList<Clause> clauses = new ArrayList<>();
-        for(IntArrayList posLiterals :
-                Utilities.combinations(clause.size()- clause.quantifier+1,literals,
-                        true,true,true)) {
-            clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,posLiterals));}
-        for(int i = 0; i < literals.size(); ++i) literals.set(i,-literals.getInt(i));
-        for(IntArrayList negLiterals :
-                Utilities.combinations(clause.quantifier+1,literals,
-                        true,true,true)) {
-            clauses.add(new Clause(problemSupervisor.nextClauseId(),ClauseType.OR,negLiterals));}
-
-        if(trackReasoning) {
-            for(Clause orClause :clauses) {
-                InferenceStep step = new ExactlyToCNF(clause,orClause);
-                clause.inferenceStep = step;
-                if(monitoring) monitor.print(monitorId,step.toString(symboltable));}}
-        return clauses;
-    }
 
 
     /** replaces literals by equivalent literals, in any clause type
@@ -554,7 +480,7 @@ public class ClauseTransformer {
      * @return           null or an or-clause or a shortened clause or the original clause
      */
     private Clause analysePNotP(Clause clause, String monitorId, Thread thread, Method simpleCases) {
-        ClauseType type = clause.clauseType;
+        Connective type = clause.connective;
         int size = clause.size();
         for(int i = 0; i < size; ++i) {
             int literal = clause.getLiteral(i);
@@ -563,7 +489,7 @@ public class ClauseTransformer {
                     Clause newClause = new Clause(problemSupervisor.nextClauseId(),type);
                     for(int k = 0; k < size; ++k) {  // add all the non-complementary literals to the new clause
                         if(k != i && k != j) newClause.add(clause.getLiteral(k));}
-                    newClause.quantifier = clause.quantifier-1;     // one true pair is eliminated.
+                    newClause.quAmount = clause.quAmount -1;     // one true pair is eliminated.
                     if(trackReasoning) {
                         InferenceStep step = new NumericPNotP(clause,newClause);
                         newClause.inferenceStep = step;
@@ -574,7 +500,7 @@ public class ClauseTransformer {
                         System.out.println(ex.toString());
                         System.exit(1);} // Method Invocation Error should not happen.
                     if(nextClause == null) return null;
-                    if(nextClause.clauseType != type) return nextClause;
+                    if(nextClause.connective != type) return nextClause;
                     // recursive call if several p,-p literals are in the clause
                     return analysePNotP(nextClause,monitorId,thread, simpleCases);}}}
         return clause;}
@@ -591,9 +517,9 @@ public class ClauseTransformer {
      */
     private Clause analyseTrueFalse(Clause clause, String monitorId, Thread thread, Method simpleCases) {
 
-        ClauseType type = clause.clauseType;
+        Connective type = clause.connective;
         int size = clause.size();
-        int quantifier = clause.quantifier;
+        int quantifier = clause.quAmount;
 
         IntArrayList falseLiterals = null;
         IntArrayList trueLiterals  = null;
@@ -613,8 +539,8 @@ public class ClauseTransformer {
                 int literal = clause.getLiteral(i);
                 if(model.status(literal) == 0) newClause.add(literal);}
 
-            newClause.quantifier = quantifier;
-            if (trueLiterals != null) newClause.quantifier -= trueLiterals.size();
+            newClause.quAmount = quantifier;
+            if (trueLiterals != null) newClause.quAmount -= trueLiterals.size();
 
             if (trackReasoning) {
                 InferenceStep  step = new NumericTrueFalse(clause, newClause, trueLiterals, falseLiterals, model);
@@ -642,9 +568,9 @@ public class ClauseTransformer {
      * @throws Unsatisfiable if a contradiction is discovered
      */
     private Clause analyseMultiples(Clause clause, String monitorId, Thread thread, Method simpleCases) throws Unsatisfiable {
-        assert clause.clauseType == ClauseType.ATMOST || clause.clauseType == ClauseType.EXACTLY;
+        assert clause.connective == Connective.ATMOST || clause.connective == Connective.EXACTLY;
 
-        int quantifier = clause.quantifier;
+        int quantifier = clause.quAmount;
         HashMap<Integer,Integer> occurrences = new HashMap<>();
 
         // we collect the number of occurrences of the literals
@@ -657,8 +583,8 @@ public class ClauseTransformer {
         if(literals.isEmpty()) return clause;  // no simplification possible
 
         // now literals contains the literals with too many occurrences
-        Clause newClause = new Clause(problemSupervisor.nextClauseId(),clause.clauseType);
-        newClause.quantifier = quantifier;
+        Clause newClause = new Clause(problemSupervisor.nextClauseId(),clause.connective);
+        newClause.quAmount = quantifier;
         InferenceStep step = null;
         for(CLiteral cLiteral : clause) {
             int literal = cLiteral.literal;

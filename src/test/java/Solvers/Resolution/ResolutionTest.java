@@ -1,28 +1,5 @@
 package Solvers.Resolution;
 
-import Coordinator.Tasks.TaskQueue;
-import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
-import Datastructures.Literals.CLiteral;
-import Datastructures.Results.Result;
-import Datastructures.Statistics.Statistic;
-import Datastructures.Symboltable;
-import Datastructures.Theory.Model;
-import Management.Controller;
-import Management.ProblemSupervisor;
-import Utilities.BucketSortedIndex;
-import Utilities.BucketSortedList;
-import org.junit.Test;
-
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
-
-import static org.junit.Assert.*;
-
 /**
  * Created by ohlbach on 09.12.2019.
  */

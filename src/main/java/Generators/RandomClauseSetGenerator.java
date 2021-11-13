@@ -1,7 +1,7 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Management.ProblemSupervisor;
 import Utilities.Utilities;
 
@@ -360,12 +360,12 @@ public final class RandomClauseSetGenerator {
                                            int predicates, int typeNumber,
                                            int numberOfClauses, int maxClauseLength, boolean preciseClauseLength,
                                            Random rnd, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
-        boolean numeric = ClauseType.isNumeric(typeNumber);
+        boolean numeric = Connective.isQuantifier(typeNumber);
         int start = numeric ? 3 : 2;
         int counter = -1;
         while(++counter < numberOfClauses) {
             int clauseLength = preciseClauseLength ? maxClauseLength : rnd.nextInt(maxClauseLength)+1;
-            if(ClauseType.EQUIV.ordinal() == typeNumber && clauseLength == 1) {++clauseLength;}
+            if(Connective.EQUIV.ordinal() == typeNumber && clauseLength == 1) {++clauseLength;}
             int[] clause = new int[clauseLength+start];
             clause[0] = problemSupervisor.nextClauseId();
             clause[1] = typeNumber;

@@ -13,7 +13,7 @@ import java.util.*;
 import static Utilities.Utilities.sortIntArray;
 
 /** A clause is just a list of CLiterals.
- * It may represent clauses of type OR, AND, EQUIV, ATLEAST, ATMOST or EXACTLY
+ * It may represent clauses with connective OR, AND, EQUIV, ATLEAST, ATMOST or EXACTLY
  *
  * Created by ohlbach on 13.09.2018.
  */
@@ -21,9 +21,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** for identifying the clause */
     public int id;
     /** OR,DISJOINT, ... */
-    public ClauseType clauseType;
+    public Connective connective;
     /** for numeric types (atleast, atmost, exactly)*/
-    public int quantifier = 1;
+    public int quAmount = 1;
     /** the literals */
     public ArrayList<CLiteral> cliterals;
     /** indicates that the clause has been removed */
@@ -42,11 +42,11 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** constructs a new clause
      *
      * @param id         its identifier
-     * @param clauseType its type
+     * @param connective its connective
      */
-    public Clause(int id, ClauseType clauseType) {
+    public Clause(int id, Connective connective) {
         this.id = id;
-        this.clauseType = clauseType;
+        this.connective = connective;
         cliterals = new ArrayList<>();
         inferenceStep = new Input(id);
     }
@@ -54,25 +54,24 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** constructs a clause
      *
      * @param id   the clause problemId
-     * @param clauseType  the clause's type
+     * @param connective  the clause's connective
      * @param size  the estimated number of literals
      */
-    public Clause(int id, ClauseType clauseType, int size) {
+    public Clause(int id, Connective connective, int size) {
         this.id = id;
-        this.clauseType = clauseType;
+        this.connective = connective;
         cliterals = new ArrayList<>(size);
         inferenceStep = new Input(id);}
 
     /** constructs a new clause with given literals
      *
      * @param id        the id of the new clause
-     * @param clauseType  the clause's type
+     * @param connective  the clause's connective
      * @param literals the list of literals
      */
-    public Clause(int id, ClauseType clauseType, IntArrayList literals) {
-        assert !clauseType.isNumeric();
+    public Clause(int id, Connective connective, IntArrayList literals) {
         this.id = id;
-        this.clauseType = clauseType;
+        this.connective = connective;
         cliterals = new ArrayList<>(literals.size());
         for(int i = 0; i < literals.size(); ++i) {
             cliterals.add(new CLiteral(literals.getInt(i),this,i));}
@@ -82,14 +81,14 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** constructs a new clause with given literals
      *
      * @param id        the id of the new clause
-     * @param clauseType  a clause's type
-     * @param quantifier a quantifier for the clause (if its numeric)
+     * @param connective  a clause's connective
+     * @param quAmount a quantifier amount for the clause (if its a quantification)
      * @param literals the list of literals
      */
-    public Clause(int id, ClauseType clauseType, int quantifier, IntArrayList literals) {
+    public Clause(int id, Connective connective, int quAmount, IntArrayList literals) {
         this.id = id;
-        this.clauseType = clauseType;
-        this.quantifier = clauseType.isNumeric() ? quantifier : 1;
+        this.connective = connective;
+        this.quAmount = quAmount;
         cliterals = new ArrayList<>(literals.size());
         for(int i = 0; i < literals.size(); ++i) {
             cliterals.add(new CLiteral(literals.getInt(i),this,i));}
@@ -99,12 +98,12 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** constructs a new clause with given literals
      *
      * @param id        the id of the new clause
-     * @param clauseType  the clause's type
+     * @param connective  the clause's connective
      * @param cLiterals the list of CLiterals
      */
-    public Clause(int id, ClauseType clauseType, ArrayList<CLiteral> cLiterals) {
+    public Clause(int id, Connective connective, ArrayList<CLiteral> cLiterals) {
         this.id = id;
-        this.clauseType = clauseType;
+        this.connective = connective;
         for(int i = 0; i < cLiterals.size(); ++i) {
             cLiterals.get(i).setClause(this,i);}
         cliterals = cLiterals;
@@ -112,17 +111,17 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         setStructure();}
 
     /** constructs a new clause with given literals
-     * Notice that the quantifier is set to 0 if the clause type is not numeric
+     * Notice that the quAmount is set to 1 if the connective is not a quantification
      *
-     * @param id        the id of the new clause
-     * @param clauseType  the clause's type
-     * @param quantifier for numeric clause types
-     * @param cLiterals the list of CLiterals
+     * @param id          the id of the new clause
+     * @param connective  the clause's connective
+     * @param quAmount    for numeric quantifiers
+     * @param cLiterals   the list of CLiterals
      */
-    public Clause(int id, ClauseType clauseType, int quantifier, ArrayList<CLiteral> cLiterals) {
+    public Clause(int id, Connective connective, int quAmount, ArrayList<CLiteral> cLiterals) {
         this.id = id;
-        this.clauseType = clauseType;
-        this.quantifier = clauseType.isNumeric() ? quantifier : 0;
+        this.connective = connective;
+        this.quAmount = connective.isQuantifier() ? quAmount : 0;
         for(int i = 0; i < cLiterals.size(); ++i) {
             cLiterals.get(i).setClause(this,i);}
         cliterals = cLiterals;
@@ -132,15 +131,15 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** generates a clause from a basicClause
      *
      * @param id           the name of the clause
-     * @param basicClause  a basic clause [number,type,literal1,...]
+     * @param basicClause  a basic clause [number,connective,literal1,...]
      */
-    public Clause(int id, int[] basicClause) {   // depricated
+    public Clause(int id, int[] basicClause) {  // deprecated because id
         this.id = id;
-        int typenumber = basicClause[1];
-        clauseType = ClauseType.getType(typenumber);
+        connective = Connective.getType(basicClause[1]);
+        if(connective == null) return;
         int start = 2;
         int shift = 2;
-        if(ClauseType.isNumeric(typenumber)) {start = 3; shift = 3; quantifier = basicClause[2];}
+        if(connective.isQuantifier()) {start = 3; shift = 3; quAmount = basicClause[2];}
         int length = basicClause.length;
         cliterals = new ArrayList<>(length - shift);
         for(int i = start; i < length; ++i) {
@@ -156,11 +155,11 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public Clause(int[] basicClause) {
         id = basicClause[0];
-        int typenumber = basicClause[1];
-        clauseType = ClauseType.getType(typenumber);
+        connective = Connective.getType(basicClause[1]);
+        if(connective == null) return;
         int start = 2;
         int shift = 2;
-        if(ClauseType.isNumeric(typenumber)) {start = 3; shift = 3; quantifier = basicClause[2];}
+        if(connective.isQuantifier()) {start = 3; shift = 3; quAmount = basicClause[2];}
         int length = basicClause.length;
         cliterals = new ArrayList<>(length - shift);
         for(int i = start; i < length; ++i) {
@@ -172,14 +171,14 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** creates a new clause with the given literals
      *
      * @param id          the new id
-     * @param clauseType  the clause's type
+     * @param connective  the clause's type
      * @param literals    [quantifier] a list of literals
      */
-    public Clause(int id, ClauseType clauseType, int... literals) {
+    public Clause(int id, Connective connective, int... literals) {
         this.id = id;
         int start = 0;
-        if(clauseType.isNumeric()) {quantifier = literals[0]; start = 1;}
-        this.clauseType = clauseType;
+        if(connective.isQuantifier()) {quAmount = literals[0]; start = 1;}
+        this.connective = connective;
         cliterals = new ArrayList<>(literals.length);
         for(int i = start; i< literals.length; ++i) {
             cliterals.add(new CLiteral(literals[i],this,i-start));}
@@ -193,8 +192,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return the new clone
      */
     public Clause clone(int id) {
-        Clause clause = new Clause(id,this.clauseType);
-        clause.quantifier = quantifier;
+        Clause clause = new Clause(id,this.connective);
+        clause.quAmount = quAmount;
         for(CLiteral cLiteral : cliterals) {clause.add(cLiteral.literal);}
         return clause;}
 
@@ -206,8 +205,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return the new clone
      */
     public Clause clone(int id, int ignorePosition) {
-        Clause clause = new Clause(id,this.clauseType);
-        clause.quantifier = quantifier;
+        Clause clause = new Clause(id,this.connective);
+        clause.quAmount = quAmount;
         for(int i = 0; i < size(); ++i) {
             if(i != ignorePosition) {clause.add(getLiteral(i));}}
         return clause;}
@@ -219,8 +218,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return               the cloned clause
      */
     public Clause cloneExcept(int id, int ignoreLiteral) {
-        Clause clause = new Clause(id,this.clauseType);
-        clause.quantifier = quantifier;
+        Clause clause = new Clause(id,this.connective);
+        clause.quAmount = quAmount;
         for(int i = 0; i < size(); ++i) {
             int literal = getLiteral(i);
             if(literal != ignoreLiteral) {clause.add(literal);}}
@@ -390,7 +389,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return true if the literals in this also occur in clause2
      */
     public boolean isSubset(Clause clause2) {
-        if(clauseType != clause2.clauseType) return false;
+        if(connective != clause2.connective) return false;
         for(CLiteral cl : cliterals) {
             if(clause2.contains(cl.literal) <= 0) {return false;}}
         return true;}
@@ -452,7 +451,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return [+1,literal] if they overlap with a literal, [-1,literal] if they overlap complementary, otherwise null
      */
     public int[] overlaps(Clause clause) {
-        if(clauseType != clause.clauseType) return null;
+        if(connective != clause.connective) return null;
         for(CLiteral cLiteral1 : this) {
             int literal1 =cLiteral1.literal;
             for(CLiteral cLiteral2 : clause) {
@@ -465,7 +464,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return the type-prefix with the clause id
      */
     public String getName() {
-        return clauseType.prefix+id;}
+        return connective.prefix+id;}
 
     /** computes the maximum width of the clause ids.
      *
@@ -502,13 +501,13 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         StringBuilder st = new StringBuilder();
         if(width > 0) {
             Formatter format = new Formatter(st, Locale.GERMANY);
-            format.format("%-"+(width+clauseType.prefix.length())+"s", getName()+":");}
-        else st.append(clauseType.prefix+id+": ");
-        if(clauseType.isNumeric()) st.append(clauseType + " " + quantifier + ": ");
+            format.format("%-"+(width+ connective.prefix.length())+"s", getName()+":");}
+        else st.append(connective.prefix+id+": ");
+        if(connective.isQuantifier()) st.append(connective + " " + quAmount + ": ");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(cliterals.get(position).literal,symboltable));
-            if(position < size-1) {st.append(clauseType.separator);}}
+            if(position < size-1) {st.append(connective.separator);}}
         return st.toString();}
 
     /** generates a string: clause-number: literals [origins]
@@ -541,8 +540,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         String prefix = "Clause " + id + ": ";
         boolean okay = true;
 
-        if(clauseType.isNumeric() && (quantifier <= 0 || quantifier > size())) {
-            errors.append(prefix).append("Quantifier " + quantifier + " is not between 1 and " + size()+"\n");
+        if(connective.isQuantifier() && (quAmount <= 0 || quAmount > size())) {
+            errors.append(prefix).append("Quantifier " + quAmount + " is not between 1 and " + size()+"\n");
             okay = false;}
 
         for(int i = 0; i < cliterals.size(); ++i) {

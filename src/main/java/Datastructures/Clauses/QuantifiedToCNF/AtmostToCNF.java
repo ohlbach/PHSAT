@@ -1,16 +1,22 @@
-package InferenceSteps;
+package Datastructures.Clauses.QuantifiedToCNF;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
+import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
-public class AtmostToCNF  extends InferenceStep{
+/** This class documents the transformation of atmost-clauses to CNF */
+
+public class AtmostToCNF  extends InferenceStep {
 
     public static final String title = "Atmost-Clause to Conjunctive Normal Form";
 
-    public static final String rule = title+": Example:\n"+
+    public static final String rule = title+":\n" +
+            "atmost m q_1,...,q_n ->\n" +
+            "(n over m+1) clauses with m+1 combinations of negated literals.\n"+
+            "Example:\n"+
             "atmost 2 p,q,r,s -> -p,-q,-r & -p,-q,-s & -p,-r,-s & -q,-r,-s ";
 
     private final Clause atmostClause;

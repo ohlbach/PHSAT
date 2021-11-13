@@ -1,7 +1,7 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Management.ProblemSupervisor;
 import Utilities.Utilities;
@@ -206,14 +206,14 @@ public final class CNFReader {
             int startParts = 1;
             int typnumber;
             switch(line.charAt(0)) {
-                case 'a': typnumber = ClauseType.AND.ordinal();          break;
-                case 'o': typnumber = ClauseType.OR.ordinal();           break;
-                case 'e': typnumber = ClauseType.EQUIV.ordinal();        break;
-                case '<': typnumber = ClauseType.ATLEAST.ordinal();      break;
-                case '>': typnumber = ClauseType.ATMOST.ordinal();       break;
-                case '=': typnumber = ClauseType.EXACTLY.ordinal();      break;
-                default: typnumber = ClauseType.OR.ordinal(); startParts = 0; break;}
-            boolean isNumeric = ClauseType.isNumeric(typnumber);
+                case 'a': typnumber = Connective.AND.ordinal();          break;
+                case 'o': typnumber = Connective.OR.ordinal();           break;
+                case 'e': typnumber = Connective.EQUIV.ordinal();        break;
+                case '<': typnumber = Connective.ATLEAST.ordinal();      break;
+                case '>': typnumber = Connective.ATMOST.ordinal();       break;
+                case '=': typnumber = Connective.EXACTLY.ordinal();      break;
+                default: typnumber = Connective.OR.ordinal(); startParts = 0; break;}
+            boolean isNumeric = Connective.isQuantifier(typnumber);
 
             int literalCounter = 1;
             Integer n = null;

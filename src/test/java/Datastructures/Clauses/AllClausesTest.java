@@ -27,10 +27,10 @@ public class AllClausesTest {
     StringBuilder warnings = new StringBuilder();
     boolean monitoring = true;
 
-    int typeOR = ClauseType.OR.ordinal();
-    int typeXOR = ClauseType.EXACTLY.ordinal();
-    int typeDISJ = ClauseType.ATMOST.ordinal();
-    int typeEQ = ClauseType.EQUIV.ordinal();
+    int typeOR = Connective.OR.ordinal();
+    int typeXOR = Connective.EXACTLY.ordinal();
+    int typeDISJ = Connective.ATMOST.ordinal();
+    int typeEQ = Connective.EQUIV.ordinal();
 
 
     private AllClauses prepare(boolean monitoring, boolean withSymboltable) {
@@ -59,13 +59,13 @@ public class AllClausesTest {
     }
 
     private Clause make(int id,int... literals) {
-        return new Clause(id,ClauseType.OR, IntArrayList.wrap(literals));}
+        return new Clause(id, Connective.OR, IntArrayList.wrap(literals));}
 
     private Clause maked(int id,int... literals) {
-        return new Clause(id,ClauseType.ATMOST, IntArrayList.wrap(literals));}
+        return new Clause(id, Connective.ATMOST, IntArrayList.wrap(literals));}
 
     private Clause makee(int id,int... literals) {
-        return new Clause(id,ClauseType.EQUIV, IntArrayList.wrap(literals));}
+        return new Clause(id, Connective.EQUIV, IntArrayList.wrap(literals));}
 
 
 

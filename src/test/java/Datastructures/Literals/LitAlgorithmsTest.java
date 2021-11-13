@@ -1,13 +1,12 @@
 package Datastructures.Literals;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Utilities.BucketSortedIndex;
 import org.junit.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Stack;
 
 import static org.junit.Assert.*;
 
@@ -18,7 +17,7 @@ public class LitAlgorithmsTest {
 
 
     private Clause make(int id,BucketSortedIndex<CLiteral> literalIndex,int... literals) {
-        Clause cl = new Clause(id, ClauseType.OR, literals.length);
+        Clause cl = new Clause(id, Connective.OR, literals.length);
         int i = -1;
         for(int l:literals) {
             CLiteral lit = new CLiteral(l,cl,++i);

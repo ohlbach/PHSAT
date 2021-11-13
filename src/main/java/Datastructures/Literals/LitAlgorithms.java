@@ -1,11 +1,10 @@
 package Datastructures.Literals;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseType;
+import Datastructures.Clauses.Connective;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -151,7 +150,7 @@ public class LitAlgorithms {
     public static Clause resolve(int[] id, CLiteral literal1, CLiteral literal2) {
         Clause parent1 = literal1.clause; Clause parent2 = literal2.clause;
         int size = parent1.size()+parent2.size()-2;
-        Clause resolvent = new Clause(++id[0], ClauseType.OR, size);
+        Clause resolvent = new Clause(++id[0], Connective.OR, size);
         for(CLiteral lit1 : parent1) {if(lit1 != literal1) {resolvent.add(new CLiteral(lit1.literal));}}
         for(CLiteral lit2 : parent2) {
             if(lit2 == literal2) {continue;}
