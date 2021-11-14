@@ -165,19 +165,7 @@ public class ClauseSimplifier {
      * @throws Unsatisfiable if a contradiction is found.
      */
     protected Clause simplifyAtleastDestructively(Clause clause) throws Unsatisfiable {
-        for(int i = 0; i < clause.size(); ++i) {
-            int literal1 = clause.getLiteral(i);
-            switch (model.status(literal1)) {
-                case +1: --clause.quAmount; clause.removeAtPosition(i--); continue; // one true literal less
-                case -1: clause.removeAtPosition(i--); continue;}  // false literals don't count
-            for(int j = 0; j < i; ++j) {
-                int literal2 = clause.getLiteral(j);
-                if(literal1 == literal2) {--clause.quAmount; clause.removeAtPosition(i--); continue;}
-                if(literal1 == -literal2) {
-                    --clause.quAmount;                 // exactly one literal must be true
-                    clause.removeAtPosition(i);
-                    clause.removeAtPosition(j);
-                    i -= 2; continue;}}}
+        removeSuperfluousLiteralsDestructively(clause);
         int quAmount = clause.quAmount;
         if(quAmount <= 0) return null; // atleast 0 is always true
         if(quAmount > clause.size()) {throw new Unsatisfiable(clause);}
@@ -190,11 +178,169 @@ public class ClauseSimplifier {
 
     /** This is the version of simplifyAtleast which works at a clone of the clause
      *
-     * @param newClause the clause to be simplified
+     * @param clause the clause to be simplified
      * @return null or the orignal clause or a simplified clone
      * @throws Unsatisfiable if a contradiction is found.
      */
-    protected Clause simplifyAtleastCloning(Clause newClause) throws Unsatisfiable {
+    protected Clause simplifyAtleastCloning(Clause clause) throws Unsatisfiable {
+        clause = removeSuperfluousLiteralsCloning(clause);
+        int quAmount = clause.quAmount;
+        if(quAmount <= 0) return null;                      // atleast 0 is always true
+        if(quAmount > clause.size()) {throw new Unsatisfiable(clause);} // atleast 3 p,q is false
+        if(quAmount == clause.size()) {                  // atleast 3 p,q,r -> true(p,q,r)
+            for(CLiteral cLiteral : clause) {
+                model.add(cLiteral.literal,new QuantifiedToModel(clause,cLiteral.literal),thread);}
+            return null;}
+        if(quAmount == 1) {clause.connective = Connective.OR;}
+        return clause;}
+
+    /** simplifies and atmost clause
+     * - multiple occurrences of literals are removed: atmost m p,p,q,... -> atmost m-1 p,q,...<br>
+     * - tautologies are removed: atmost m p,-p,q,... -> atmost m-1 q,...  <br>
+     * - true literals are removed:  atmost m p,q,... and true(p) -> atmost m-1 q,...  <br>
+     * - false literals are removed atmost m p,q,... and false(p) -> atmost m q,... .
+     * - atmost 0 p_1,...p_m -> false(p_1,...,p_m)
+     * - atmost m p_1,...,p_m,q,... is always true
+     *
+     * If trackReasoning then the simplification are done on a clone of the clause,
+     * otherwise destructively at the original clause
+     *
+     * @param clause the clause to be simplified
+     * @return either the original clause or a simplified clause or null
+     * @throws Unsatisfiable if a contradiction was found.
+     */
+    protected Clause simplifyAtmost(Clause clause) throws Unsatisfiable  {
+        return trackReasoning ?
+                simplifyAtmostCloning(clause) :
+                simplifyAtmostDestructively(clause);}
+
+    /** This is the version of simplifyAtmost which works directly at the clause
+     *
+     * @param clause the clause to be simplified
+     * @return null or the clause, possibly simplified
+     * @throws Unsatisfiable if a contradiction is found.
+     */
+    protected Clause simplifyAtmostDestructively(Clause clause) throws Unsatisfiable {
+        removeSuperfluousLiteralsDestructively(clause);
+        int quAmount = clause.quAmount;
+        if(quAmount >= clause.size()) {return null;}  // atmost 3 p,q  is always true
+        if(quAmount <= 0) {                           // atmost 0 p,q -> false(p,q)
+            for(CLiteral cLiteral : clause) {
+                model.add(-cLiteral.literal,null,thread);}
+            return null;}
+        return clause;}
+
+    /** This is the version of simplifyAtmost which works at a clone og the clause
+     *
+     * @param clause the clause to be simplified
+     * @return null or the original clause or a simplified clone
+     * @throws Unsatisfiable if a contradiction is found.
+     */
+    protected Clause simplifyAtmostCloning(Clause clause) throws Unsatisfiable {
+        clause = removeSuperfluousLiteralsCloning(clause);
+        int quAmount = clause.quAmount;
+        if(quAmount >= clause.size()) {return null;}  // atmost 3 p,q  is always true
+        if(quAmount <= 0) {                           // atmost 0 p,q -> false(p,q)
+            for(CLiteral cLiteral : clause) {
+                model.add(-cLiteral.literal,new QuantifiedToModel(clause,-cLiteral.literal),thread);}
+            return null;}
+        return clause;}
+
+
+    /** simplifies and exactly clause
+     * - multiple occurrences of literals are removed: exactly m p,p,q,... -> exactly m-1 p,q,...<br>
+     * - tautologies are removed:    exactly m p,-p,q,... -> exactly m-1 q,...  <br>
+     * - true literals are removed:  exactly m p,q,... and true(p) -> exactly m-1 q,...  <br>
+     * - false literals are removed  exactly m p,q,... and false(p) -> exactly m q,... .
+     * - exactly 0 p_1,...p_m -> false(-p_1,...,-p_m)
+     * - exactly m p_1,...p_m -> true(p_1,...,p_m)
+     * - exactly m p_1,...,p_m,q,... is false
+     *
+     * If trackReasoning then the simplification are done on a clone of the clause,
+     * otherwise destructively at the original clause
+     *
+     * @param clause the clause to be simplified
+     * @return either the original clause or a simplified clause or null
+     * @throws Unsatisfiable if a contradiction was found.
+     */
+    protected Clause simplifyExactly(Clause clause) throws Unsatisfiable  {
+        return trackReasoning ?
+                simplifyExactlyCloning(clause) :
+                simplifyExactlyDestructively(clause);}
+
+    /** This is the version of simplifyExactly which works directly at the clause
+     *
+     * @param clause the clause to be simplified
+     * @return null or the clause, possibly simplified
+     * @throws Unsatisfiable if a contradiction is found.
+     */
+    protected Clause simplifyExactlyDestructively(Clause clause) throws Unsatisfiable {
+        removeSuperfluousLiteralsDestructively(clause);
+        int quAmount = clause.quAmount;
+        if(quAmount > clause.size()) {throw new Unsatisfiable(clause);} // exactly 3 p,q is false
+        if(quAmount == clause.size()) {     // exactly 3 p,q,r -> true(p,q,r)
+            for(CLiteral cLiteral : clause) {
+                model.add(cLiteral.literal,null,thread);}
+            return null;}
+        if(quAmount <= 0) {  // exactly 0 p,q,r -> false(p,q,r)
+            for(CLiteral cLiteral : clause) {
+                model.add(-cLiteral.literal,null,thread);}
+            return null;}
+        return clause;}
+
+    /** This is the version of simplifyExactly which works at a clone of the clause
+     *
+     * @param clause the clause to be simplified
+     * @return null or the clause, possibly simplified
+     * @throws Unsatisfiable if a contradiction is found.
+     */
+    protected Clause simplifyExactlyCloning(Clause clause) throws Unsatisfiable {
+        clause = removeSuperfluousLiteralsCloning(clause);
+        int quAmount = clause.quAmount;
+        if(quAmount > clause.size()) {throw new Unsatisfiable(clause);} // exactly 3 p,q is false
+        if(quAmount == clause.size()) {     // exactly 3 p,q,r -> true(p,q,r)
+            for(CLiteral cLiteral : clause) {
+                model.add(cLiteral.literal,new QuantifiedToModel(clause,cLiteral.literal),thread);}
+            return null;}
+        if(quAmount <= 0) {  // exactly 0 p,q,r -> false(p,q,r)
+            for(CLiteral cLiteral : clause) {
+                model.add(-cLiteral.literal,new QuantifiedToModel(clause,-cLiteral.literal),thread);}
+            return null;}
+        return clause;}
+
+
+    /** removes superfluous literals directly from the clause
+     * - multiple occurrences of literals are removed: exactly m p,p,q,... -> exactly m-1 p,q,...<br>
+     * - tautologies are removed:    exactly m p,-p,q,... -> exactly m-1 q,...  <br>
+     * - true literals are removed:  exactly m p,q,... and true(p) -> exactly m-1 q,...  <br>
+     * - false literals are removed  exactly m p,q,... and false(p) -> exactly m q,... .
+     *
+     * @param clause a clause
+     */
+    private void removeSuperfluousLiteralsDestructively(Clause clause) {
+        for(int i = 0; i < clause.size(); ++i) {
+            int literal1 = clause.getLiteral(i);
+            switch (model.status(literal1)) {
+                case +1: --clause.quAmount; clause.removeAtPosition(i--); continue; // one true literal less
+                case -1: clause.removeAtPosition(i--); continue;}  // false literals don't count
+            for(int j = 0; j < i; ++j) {
+                int literal2 = clause.getLiteral(j);
+                if(literal1 == literal2) {--clause.quAmount; clause.removeAtPosition(i--); continue;}
+                if(literal1 == -literal2) {
+                    --clause.quAmount;                 // exactly one literal must be true
+                    clause.removeAtPosition(i);
+                    clause.removeAtPosition(j);
+                    i -= 2; continue;}}}}
+
+    /** removes superfluous literals from a clone of the clause
+     * - multiple occurrences of literals are removed: exactly m p,p,q,... -> exactly m-1 p,q,...<br>
+     * - tautologies are removed:    exactly m p,-p,q,... -> exactly m-1 q,...  <br>
+     * - true literals are removed:  exactly m p,q,... and true(p) -> exactly m-1 q,...  <br>
+     * - false literals are removed  exactly m p,q,... and false(p) -> exactly m q,... .
+     *
+     * @param newClause a clause
+     */
+    protected Clause removeSuperfluousLiteralsCloning(Clause newClause) throws Unsatisfiable {
         Clause oldClause = newClause;
         intList1.clear();
         for(int i = 0; i < newClause.size(); ++i) { // remove true/false literals
@@ -231,47 +377,6 @@ public class ClauseSimplifier {
             InferenceStep step = new MultipleLiteralsQuantified(oldClause,newClause);
             newClause.inferenceStep = step;
             if(monitoring) {monitor.print(monitorId,step.toString(symboltable));}}
-
-        int quAmount = newClause.quAmount;
-        if(quAmount <= 0) return null;                      // atleast 0 is always true
-        if(quAmount > newClause.size()) {throw new Unsatisfiable(newClause);} // atleast 3 p,q is false
-        if(quAmount == newClause.size()) {                  // atleast 3 p,q,r -> true(p,q,r)
-            for(CLiteral cLiteral : newClause) {
-                model.add(cLiteral.literal,new AtleastToModel(newClause,cLiteral.literal),thread);}
-            return null;}
-        if(quAmount == 1) {newClause.connective = Connective.OR;}
         return newClause;}
 
-
-    /** This is the version of simplifyAtmost which works directly at the clause
-     *
-     * @param clause the clause to be simplified
-     * @return null or the clause, possibly simplified
-     * @throws Unsatisfiable if a contradiction is found.
-     */
-    protected Clause simplifyAtmostDestructively(Clause clause) throws Unsatisfiable {
-        removeSuperfluousLiteralsDestructively(clause);
-        int quAmount = clause.quAmount;
-        if(quAmount >= clause.size()) {return null;}  // atmost 2 p,q  is always true
-        if(quAmount <= 0) {                           // atmost 0 p,q -> false(p,q)
-            for(CLiteral cLiteral : clause) {
-                model.add(-cLiteral.literal,null,thread);}
-            return null;}
-        return clause;}
-
-
-    private void removeSuperfluousLiteralsDestructively(Clause clause) {
-        for(int i = 0; i < clause.size(); ++i) {
-            int literal1 = clause.getLiteral(i);
-            switch (model.status(literal1)) {
-                case +1: --clause.quAmount; clause.removeAtPosition(i--); continue; // one true literal less
-                case -1: clause.removeAtPosition(i--); continue;}  // false literals don't count
-            for(int j = 0; j < i; ++j) {
-                int literal2 = clause.getLiteral(j);
-                if(literal1 == literal2) {--clause.quAmount; clause.removeAtPosition(i--); continue;}
-                if(literal1 == -literal2) {
-                    --clause.quAmount;                 // exactly one literal must be true
-                    clause.removeAtPosition(i);
-                    clause.removeAtPosition(j);
-                    i -= 2; continue;}}}}
 }

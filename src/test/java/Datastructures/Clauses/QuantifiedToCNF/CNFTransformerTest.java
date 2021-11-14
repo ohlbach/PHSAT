@@ -1,12 +1,7 @@
 package Datastructures.Clauses.QuantifiedToCNF;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseTransformer;
 import Datastructures.Clauses.Connective;
-import Datastructures.Theory.EquivalenceClasses;
-import Datastructures.Theory.Model;
-import Management.Monitor;
-import Management.ProblemSupervisor;
 import org.junit.Test;
 
 import java.util.ArrayList;

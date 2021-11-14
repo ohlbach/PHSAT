@@ -9,17 +9,19 @@ import java.util.ArrayList;
 
 /** documents a transformation atleast m l_1,...,l_m -> true(l_1,...,l_m) */
 
-public class AtleastToModel extends InferenceStep {
+public class QuantifiedToModel extends InferenceStep {
 
-    public static final String title = "True Literals in Atleast-Clause";
+    public static final String title = "True Literals from Quantified-Clause";
 
     public static final String rule = title + ":\n" +
-            "atleast m l_1,...,l_m -> true(l_1,...,l_m)";
+            "atleast m l_1,...,l_m  -> true(l_1,...,l_m)\n"+
+            "atmost 0 l_1,...,l_m   -> true(-l_1,...,-l_m)\n"+
+            "exactly m l_1,...,l_m  -> true(l_1,...,l_m)\n";
 
     private final Clause clause;
     private final int literal;
 
-    public AtleastToModel(Clause clause, int literal) {
+    public QuantifiedToModel(Clause clause, int literal) {
         this.clause  = clause;
         this.literal = literal;}
 
