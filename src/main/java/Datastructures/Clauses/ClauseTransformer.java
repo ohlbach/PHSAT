@@ -1,8 +1,6 @@
 package Datastructures.Clauses;
 
-import Datastructures.Clauses.QuantifiedToCNF.AtleastToCNF;
-import Datastructures.Clauses.QuantifiedToCNF.AtmostToCNF;
-import Datastructures.Clauses.QuantifiedToCNF.ExactlyToCNF;
+import Datastructures.Clauses.Simplifiers.EquivalenceReplacements;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -11,11 +9,9 @@ import Datastructures.Theory.Model;
 import InferenceSteps.*;
 import Management.Monitor;
 import Management.ProblemSupervisor;
-import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 

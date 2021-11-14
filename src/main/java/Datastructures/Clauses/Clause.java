@@ -322,8 +322,17 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
      */
     public int contains(int literal) {
-        for(CLiteral cliteral : this) {
-            int lit = cliteral.literal;
+        return contains(literal,cliterals.size());}
+
+    /** checks if the literal is in the clause
+     *
+     * @param literal a literal
+     * @param end     where the iteration over the literals stops
+     * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
+     */
+    public int contains(int literal, int end) {
+        for(int i = 0; i < end; ++i) {
+            int lit = cliterals.get(i).literal;
             if(lit ==  literal) {return +1;}
             if(lit == -literal) {return -1;}}
         return 0;}
@@ -420,18 +429,18 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
 
     /** removes multiple occurrences of literals
      *
-     * @return true if there were multiple occurrences of literals
+     * @return the number of removed literals
      */
-    public boolean removeDoubles() {  // INDEX
-        boolean doubles = false;
+    public int removeDoubles() {
+        int doubled = 0;
         for(int i = 0; i < cliterals.size()-1; ++i) {
             int literal = cliterals.get(i).literal;
             for(int j = i+1; j < cliterals.size(); ++j) {
                 CLiteral cliteral = cliterals.get(j);
                 if(literal == cliteral.literal) {
                     removeAtPosition(j--);
-                    doubles = true;}}}
-        return doubles;}
+                    ++doubled ;}}}
+        return doubled;}
 
     /** sets the removed flag
      */

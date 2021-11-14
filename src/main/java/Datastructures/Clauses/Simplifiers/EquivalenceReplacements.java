@@ -1,10 +1,10 @@
-package InferenceSteps;
+package Datastructures.Clauses.Simplifiers;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
+import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 

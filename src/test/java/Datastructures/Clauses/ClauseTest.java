@@ -310,7 +310,7 @@ public class ClauseTest {
         Clause c1 = new Clause(1, Connective.OR, 5, -6, -5, -6, -6);
         assertTrue(c1.hasDoubles());
         assertTrue(c1.hasComplementaries());
-        assertTrue(c1.removeDoubles());
+        assertEquals(2,c1.removeDoubles());
         assertEquals("1: 5,-6,-5", c1.toString());
     }
 

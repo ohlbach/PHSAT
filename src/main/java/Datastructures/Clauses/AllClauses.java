@@ -311,7 +311,7 @@ public class AllClauses {
                 case -1:
                     newClause = clause.clone(problemSupervisor.nextClauseId(),i);
                     if(trackReasoning) {
-                        newClause.inferenceStep = new UnitResolution(clause,-literal,newClause,model.getInferenceStep(-literal));
+                        //newClause.inferenceStep = new UnitResolution(clause,-literal,newClause,model.getInferenceStep(-literal));
                         if(monitoring) {monitor.print(monitorId,newClause.inferenceStep.toString(symboltable));}}
                     clause = newClause;
                     --i;}}
@@ -419,7 +419,7 @@ public class AllClauses {
             ++statistics.unitResolutions;
             UnitResolution inf = null;
             if(trackReasoning) {
-                inf = new UnitResolution(cliteral.clause, cliteral.literal,resolvent, model.getInferenceStep(literal));
+                //inf = new UnitResolution(cliteral.clause, cliteral.literal,resolvent, model.getInferenceStep(literal));
                 resolvent.inferenceStep = inf;
                 if(monitoring) monitor.print(monitorId,inf.toString(symboltable));}
             if(resolvent.size() == 1) {

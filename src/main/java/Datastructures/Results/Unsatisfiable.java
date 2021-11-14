@@ -1,9 +1,9 @@
 package Datastructures.Results;
 
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
-import InferenceSteps.Input;
 import Solvers.Walker.WClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -18,7 +18,12 @@ import static Utilities.Utilities.sortIntArray;
 public class Unsatisfiable extends Result {
     private String reason = null;
     private IntArrayList origins = null;
+    private Clause falseClause = null;
 
+    public Unsatisfiable(Clause falseClause) {
+        super();
+        this.falseClause = falseClause;
+        this.inferenceStep = falseClause.inferenceStep;}
 
     /** creates an Unsatisfiable object with a reason
      *
@@ -62,6 +67,7 @@ public class Unsatisfiable extends Result {
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append("UNSATISFIABLE:\n");
+        if(falseClause != null) {st.append("False Clause: " + falseClause.toString(0,symboltable) + "\n");}
         if(reason != null) st.append(reason).append("\n");
         String originsSt = null;
         if(origins != null) {originsSt = sortIntArray(origins).toString();}
