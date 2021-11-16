@@ -1,5 +1,6 @@
 package Datastructures.Clauses;
 
+import Datastructures.Clauses.AllClauses.ClausesStatistics;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.Result;
@@ -27,7 +28,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 import static Utilities.Utilities.isSubset;
 import static Utilities.Utilities.multisetEquals;
 
-public class AllClauses {
+public class AllClausesOld {
 
     /** supervises the problem solution */
     public final ProblemSupervisor problemSupervisor;
@@ -48,7 +49,7 @@ public class AllClauses {
     private int maxClauseLength = 0;
     private final BucketSortedList<Clause> clauses;
     private final BucketSortedIndex<CLiteral> literalIndex;
-    private final AllClausesStatistics statistics;
+    private final ClausesStatistics statistics;
     private int timestamp = 1;
     private boolean clausesFinished;
     private final Symboltable symboltable;
@@ -91,9 +92,9 @@ public class AllClauses {
      *
      * @param problemSupervisor    coordinates several solvers.
      */
-    public AllClauses(ProblemSupervisor problemSupervisor) {
+    public AllClausesOld(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
-        problemSupervisor.allClauses = this;
+        //problemSupervisor.clauses = this;
         problemId = problemSupervisor.problemId;
         thread = Thread.currentThread();
         model = problemSupervisor.model;
@@ -110,7 +111,7 @@ public class AllClauses {
         literalIndex = new BucketSortedIndex<CLiteral>(model.predicates+1,
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));
-        statistics = new AllClausesStatistics(problemId);
+        statistics = new ClausesStatistics(problemId);
         mrMatrices = new MRMatrices((this));
 
         model.addObserver(thread,this::addTrueLiteral);
@@ -213,7 +214,7 @@ public class AllClauses {
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                     Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<>(AllClauses.TaskType.TRUELITERAL, literal, inference));}
+        queue.add(new Task<>(AllClausesOld.TaskType.TRUELITERAL, literal, inference));}
 
     /** puts an equivalence into the queue
      *
@@ -222,7 +223,7 @@ public class AllClauses {
     public void addEquivalence(Clause eClause) {
         if(monitoring) {
             monitor.print(monitorId,"In:   equivalence " + eClause.toString(0,model.symboltable));}
-        queue.add(new Task<>(AllClauses.TaskType.EQUIVALENCE,eClause,null));}
+        queue.add(new Task<>(AllClausesOld.TaskType.EQUIVALENCE,eClause,null));}
 
     /** puts a disjointness into the queue
      *
@@ -893,7 +894,7 @@ public class AllClauses {
      * @param clause  the clause to be inserted.
      */
     protected void insertClause(Clause clause) {
-        ++statistics.clauses;
+        ++statistics.orClauses;
         maxClauseLength = Math.max(maxClauseLength,clause.size());
         clause.setStructure();
         clauses.add(clause);
@@ -911,7 +912,7 @@ public class AllClauses {
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
-        --statistics.clauses;
+        --statistics.orClauses;
         for(CLiteral cliteral : clause) {literalIndex.remove(cliteral);}
         clauses.remove(clause);}
 
@@ -928,7 +929,7 @@ public class AllClauses {
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
-        --statistics.clauses;
+        --statistics.orClauses;
         iterator.remove();
         for(CLiteral clit : clause) if(clit != cliteral) literalIndex.remove(clit);
         clauses.remove(clause);
@@ -945,7 +946,7 @@ public class AllClauses {
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
-        --statistics.clauses;
+        --statistics.orClauses;
         clause.remove(cliteral);
         clause.setStructure();
         literalIndex.remove(cliteral);
@@ -966,7 +967,7 @@ public class AllClauses {
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
-        --statistics.clauses;
+        --statistics.orClauses;
         clause.remove(cliteral);
         clause.setStructure();
         iterator.remove();
@@ -998,7 +999,7 @@ public class AllClauses {
         switch(clause.structure) {
             case NEGATIVE: ++statistics.negativeClauses; break;
             case POSITIVE: ++statistics.positiveClauses; break;}
-        ++statistics.clauses;
+        ++statistics.orClauses;
         return true;}
 
     /** checks if the clauses are empty.

@@ -6,9 +6,9 @@ import Datastructures.TwoLiteral.TwoLitClause;
 import java.util.ArrayList;
 
 public class MRMatrices {
-    private AllClauses allClauses;
+    private AllClausesOld allClauses;
 
-    public MRMatrices(AllClauses allClauses) {
+    public MRMatrices(AllClausesOld allClauses) {
         this.allClauses = allClauses;}
 
     public void mrResolve(Clause[] disjointnessClauses, ArrayList<Clause> clauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable {

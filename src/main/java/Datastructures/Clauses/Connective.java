@@ -69,5 +69,9 @@ public enum Connective {
     public boolean isQuantifier() {
         return ordinal() >= 3;}
 
+    /** the number of connectives */
+    public static int size() {
+        return 6;}
+
 
 }

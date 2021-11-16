@@ -185,6 +185,35 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         inferenceStep = new Input(id);
         setStructure();}
 
+    /** checks if the clause is an OR-clause
+     *
+      * @return true if the clause is an OR-clause
+     */
+    public boolean clauseIsOr() {
+        return connective == Connective.OR;}
+
+    /** checks if the clause is an ATLEAST-clause
+     *
+     * @return true if the clause is an ATLEAST-clause
+     */
+    public boolean clauseIsAtleast() {
+        return connective == Connective.ATLEAST;}
+
+    /** checks if the clause is an ATMOST-clause
+     *
+     * @return true if the clause is an ATMOST-clause
+     */
+    public boolean clauseIsAtmost() {
+        return connective == Connective.ATMOST;}
+
+    /** checks if the clause is an EXACTLY-clause
+     *
+     * @return true if the clause is an EXACTLY-clause
+     */
+    public boolean clauseIsExactly() {
+        return connective == Connective.EXACTLY;}
+
+
     /** creates a clone of the clause.
      * Only the literals themselves are cloned
      *

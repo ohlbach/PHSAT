@@ -1,6 +1,7 @@
 package Management;
 
-import Datastructures.Clauses.AllClauses;
+import Datastructures.Clauses.AllClauses.Clauses;
+import Datastructures.Clauses.AllClausesOld;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
@@ -45,7 +46,7 @@ public class ProblemSupervisor {
     public TwoLitClauses twoLitClauses;
     public Thread twoLitThread;
 
-    public AllClauses allClauses;
+    public Clauses clauses;
     public Thread allClausesThread;
 
     public Thread supervisorThread;
@@ -112,7 +113,7 @@ public class ProblemSupervisor {
     public void solveProblem() throws Result {
         initializeClasses();
         initializeAndEqv();
-        allClauses = new AllClauses(this);
+        clauses = new Clauses(this);
         try{
             equivalenceThread = new Thread(()-> equivalenceClasses.run());
             equivalenceThread.start();
@@ -120,7 +121,7 @@ public class ProblemSupervisor {
             disjointnessThread.start();
             twoLitThread = new Thread(() -> twoLitClauses.run());
             twoLitThread.start();
-            allClausesThread = new Thread(() -> allClauses.run());
+            allClausesThread = new Thread(() -> clauses.run());
             allClausesThread.start();
 
 

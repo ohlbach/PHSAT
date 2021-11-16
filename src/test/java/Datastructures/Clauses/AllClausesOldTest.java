@@ -22,7 +22,7 @@ import java.util.HashMap;
 
 import static org.junit.Assert.*;
 
-public class AllClausesTest {
+public class AllClausesOldTest {
     StringBuilder errors = new StringBuilder();
     StringBuilder warnings = new StringBuilder();
     boolean monitoring = true;
@@ -33,7 +33,7 @@ public class AllClausesTest {
     int typeEQ = Connective.EQUIV.ordinal();
 
 
-    private AllClauses prepare(boolean monitoring, boolean withSymboltable) {
+    private AllClausesOld prepare(boolean monitoring, boolean withSymboltable) {
         Controller controller = new Controller(null,null,null);
         GlobalParameters globalParameters=new GlobalParameters();
         globalParameters.monitor = !monitoring ? null : new Monitor(null,"mixed",errors,warnings);
@@ -55,7 +55,7 @@ public class AllClausesTest {
         problemSupervisor.equivalenceClasses = new EquivalenceClasses(problemSupervisor);
         problemSupervisor.disjointnessClasses =  new DisjointnessClasses(problemSupervisor);
         problemSupervisor.twoLitClauses = new TwoLitClauses(problemSupervisor);
-        return new AllClauses(problemSupervisor);
+        return new AllClausesOld(problemSupervisor);
     }
 
     private Clause make(int id,int... literals) {
@@ -72,7 +72,7 @@ public class AllClausesTest {
     @Test
     public void replaceDoublesAndTautologies() {
         System.out.println("replaceDoublesAndTautologies");
-        AllClauses allClauses = prepare(monitoring,true);
+        AllClausesOld allClauses = prepare(monitoring,true);
         Clause clause1 = make(1,1,2,3);
         assertEquals("1: 1,2,3",allClauses.replaceDoublesAndTautologies(clause1).toString());
         Clause clause2 = make(2,1,2,1,3,2);
@@ -83,7 +83,7 @@ public class AllClausesTest {
     @Test
     public void replaceTruthValues() throws Unsatisfiable {
         System.out.println("replaceTruthValues");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         Clause clause1 = make(1, 1, 2, 3);
         assertEquals("1: 1,2,3", allClauses.replaceTruthValues(clause1).toString());
         allClauses.model.add(2,new InferenceTest("my test 1"),null);
@@ -97,7 +97,7 @@ public class AllClausesTest {
     @Test
     public void isSubsumed() {
         System.out.println("isSubsumed");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         Clause clause1 = make(1, 1, 2, 3);
         allClauses.insertClause(clause1);
         Clause clause2 = make(2, 1, -2, 3);
@@ -110,7 +110,7 @@ public class AllClausesTest {
     @Test
     public void removeSubsumedClauses() {
         System.out.println("removeSubsumedClauses");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         Clause clause1 = make(1, 1, 2, 3, 4 );
         allClauses.insertClause(clause1);
         Clause clause2 = make(2, 2, 3, 4, 5);
@@ -126,7 +126,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionBackwards1() throws Result {
         System.out.println("replacementResolutionBackwards 1");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         Clause clause1 = make(1, 1, 2, 3 );
         allClauses.insertClause(clause1);
         Clause clause2 = make(2, 1, -2, 4 );
@@ -144,7 +144,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionBackwards2() throws Result {
         System.out.println("replacementResolutionBackwards 2");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         Clause clause1 = make(1, 1, 2, 3);
         allClauses.insertClause(clause1);
         Clause clause2 = make(2, -3,2,5);
@@ -157,7 +157,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionBackwards3() throws Result {
         System.out.println("replacementResolutionBackwards 3");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         Clause clause1 = make(1, 1, 2, 3);
         allClauses.insertClause(clause1);
         Clause clause2 = make(2, -2, 3);
@@ -171,7 +171,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionBackwards4() throws Result {
         System.out.println("replacementResolutionBackwards 2LitClauses");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
         allClauses.twoLitClauses.integrateClause(clause1,false);
         Clause clause2 = make(2, 1, 2, 4);
@@ -183,7 +183,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionBackwards5() throws Exception {
         System.out.println("replacementResolutionBackwards 2LitClauses 2");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         TwoLitClause clause1 = new TwoLitClause(1,-2,-5);
         allClauses.twoLitClauses.integrateClause(clause1,false);
         TwoLitClause clause2 = new TwoLitClause(2,5,-3);
@@ -200,7 +200,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionBackwards6() throws Result {
         System.out.println("replacementResolutionBackwards double");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
         allClauses.twoLitClauses.integrateClause(clause1,false);
         Clause clause2 = make(2, 1, 2, 4);
@@ -215,7 +215,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionForward1() throws Exception{
         System.out.println("replacementResolutionForward 1");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         allClauses.problemSupervisor.clauseCounter = 9;
         Clause clause1 = make(1, 1, 2, 3);
         allClauses.insertClause(clause1);
@@ -234,7 +234,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionForward2() throws Exception{
         System.out.println("replacementResolutionForward 2");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         allClauses.problemSupervisor.clauseCounter = 9;
 
         TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
@@ -259,7 +259,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionForward3() throws Exception{
         System.out.println("replacementResolutionForward unit");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         allClauses.problemSupervisor.clauseCounter = 9;
         Clause clause1 = make(1, 1, 2);
         allClauses.insertClause(clause1);
@@ -272,7 +272,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionForward4() throws Exception{
         System.out.println("replacementResolutionForward 4");
-        AllClauses allClauses = prepare(monitoring, true);
+        AllClausesOld allClauses = prepare(monitoring, true);
         allClauses.problemSupervisor.clauseCounter = 9;
         Clause clause1 = make(1, 1, 2, 4, 5);
         allClauses.insertClause(clause1);
@@ -292,7 +292,7 @@ public class AllClausesTest {
     @Test
     public void replacementResolutionTwo1() throws Exception {
         System.out.println("replacementResolutionForward Two 1");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
         Clause clause2 = make(2, 1, 2, 4, 5);
@@ -316,7 +316,7 @@ public class AllClausesTest {
     @Test
     public void integrateClause() throws Exception {
         System.out.println("integrate Clause");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         Clause clause1 = make(1, 1, 2, 3);
         allClauses.integrateClause(clause1);
@@ -346,7 +346,7 @@ public class AllClausesTest {
     @Test
     public void integrateDerivedDisjointnessClass() throws Exception {
         System.out.println("integrateDerivedDisjointnessClass");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         Clause clause1 = maked(1, 1, 2, 3);
         allClauses.integrateDerivedDisjointnessClause(clause1);
@@ -362,7 +362,7 @@ public class AllClausesTest {
     @Test
     public void integrateBasicDisjointnessClause() throws Exception {
         System.out.println("integrateBasicDisjointnessClause");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         int[] clause1 = new int[]{1, typeDISJ, 1, 2, 3};
         allClauses.integrateBasicDisjointnessClause(clause1);
@@ -377,7 +377,7 @@ public class AllClausesTest {
     @Test
     public void integrateTwoLitClause1() throws Exception {
         System.out.println("integrateTwoLitClause 1");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         Clause clause1 = make(1,3,2,1);
         allClauses.insertClause(clause1);
@@ -392,7 +392,7 @@ public class AllClausesTest {
     @Test
     public void integrateTwoLitClause2() throws Exception {
         System.out.println("integrateTwoLitClause 2");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         Clause clause1 = make(1,3,2,1);
         allClauses.insertClause(clause1);
@@ -410,7 +410,7 @@ public class AllClausesTest {
     @Test
     public void integrateTwoLitClause3() throws Exception {
         System.out.println("integrateTwoLitClause 3");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         Clause clause1 = make(1,2,1,4);
         allClauses.insertClause(clause1);
@@ -427,7 +427,7 @@ public class AllClausesTest {
     @Test
     public void integrateEquivalence() throws Exception {
         System.out.println("integrateEquivalence");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         Clause clausee = makee(1,1,2,3);
         Clause clause1 = make(2,3,4,5);
@@ -444,7 +444,7 @@ public class AllClausesTest {
     @Test
     public void addFullDClause() throws Exception {
         System.out.println("addFullDClause");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         ArrayList<Clause[]> mrDClauses = new ArrayList<>();
         Clause dClause1 = maked(1, 1, 2, 3);
@@ -472,7 +472,7 @@ public class AllClausesTest {
     @Test
     public void addDClause() throws Exception {
         System.out.println("addDClause");
-        AllClauses allClauses = prepare(monitoring, false);
+        AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         ArrayList<Clause[]> mrDClauses = new ArrayList<>();
         Clause dClause1 = maked(1, 2,5,8);

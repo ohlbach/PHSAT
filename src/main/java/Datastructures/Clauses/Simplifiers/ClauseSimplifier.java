@@ -134,7 +134,10 @@ public class ClauseSimplifier {
             InferenceStep step = new UnitResolution(oldClause,newClause, intList1,model);
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-        if(newClause.size() == 0) throw new Unsatisfiable(newClause);
+        switch(newClause.size()) {
+            case 0: throw new Unsatisfiable(newClause);
+            case 1: model.add(newClause.getLiteral(0),newClause.inferenceStep,thread);
+                    return null;}
         return newClause;}
 
     /** simplifies and atleast clause

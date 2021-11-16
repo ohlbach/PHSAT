@@ -29,7 +29,7 @@ import static Utilities.Utilities.*;
  * There are other versions of multi-resolution where resolvents are created.
  */
 public class MRMatrix {
-    private final AllClauses allClauses;
+    private final AllClausesOld allClauses;
     public Clause[] disjointnessClauses;    // a list of Disjointness clauses
     private final ArrayList<CLiteral>[] dLiterals; // the rearranged list of CLiterals of the disjointness clauses
     private final ArrayList<CLiteral[]> matrix = new ArrayList<>(); // the matrix of clauses
@@ -47,7 +47,7 @@ public class MRMatrix {
      * @param allClauses          the "parent class"
      * @param disjointnessClauses an array of disjointness clauses.
      */
-    public MRMatrix(AllClauses allClauses, Clause[] disjointnessClauses) {
+    public MRMatrix(AllClausesOld allClauses, Clause[] disjointnessClauses) {
         this.allClauses = allClauses;
         this.disjointnessClauses = disjointnessClauses;
         columnSize = disjointnessClauses.length;

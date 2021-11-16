@@ -1,10 +1,11 @@
-package Datastructures.Clauses;
+package Datastructures.Clauses.AllClauses;
 
+import Datastructures.Clauses.Connective;
 import Datastructures.Statistics.Statistic;
 import Solvers.Resolution.ResolutionStatistics;
 import com.sun.org.glassfish.gmbal.Description;
 
-public class AllClausesStatistics extends Statistic {
+public class ClausesStatistics extends Statistic {
     static {
         Statistic.statisticsClasses.add(ResolutionStatistics.class);}
 
@@ -13,7 +14,7 @@ public class AllClausesStatistics extends Statistic {
      *
      * @param id an identifier.
      */
-    public AllClausesStatistics(String id) {
+    public ClausesStatistics(String id) {
         super(id);}
 
     @Description("number of derived unit clauses")
@@ -56,7 +57,7 @@ public class AllClausesStatistics extends Statistic {
     public int negativeClauses = 0;
 
     @Description("clauses")
-    public int clauses = 0;
+    public int[] clauses = new int[Connective.size()];
 
     @Description("tautologies")
     public int tautologies = 0;
