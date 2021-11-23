@@ -1,6 +1,6 @@
 package Datastructures.Clauses.Simplifiers;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -13,12 +13,11 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import org.junit.Test;
 
-import java.awt.event.WindowFocusListener;
 import java.util.HashMap;
 
 import static org.junit.Assert.*;
 
-public class ClauseSimplifierTest {
+public class ClauseOldSimplifierTest {
     boolean monitoring = false;
 
     private ProblemSupervisor prepare() {
@@ -60,17 +59,17 @@ public class ClauseSimplifierTest {
         ProblemSupervisor problemSupervisor = prepare();
         EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
         Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
-        ClauseSimplifier cs = new ClauseSimplifier(problemSupervisor, monitor, "test", null);
-        Clause c1 = new Clause(1, cO, 1, 2, 3, 4, 5, 6);
+        ClauseSimplifierOld cs = new ClauseSimplifierOld(problemSupervisor, monitor, "test", null);
+        ClauseOld c1 = new ClauseOld(1, cO, 1, 2, 3, 4, 5, 6);
         assertSame(c1, cs.replaceEquivalences(c1));
         cs.trackReasoning = true;
         problemSupervisor.equivalenceClasses.addBasicEquivalenceClause(new int[]{1, cE.ordinal(), 2, 3, 4});
         problemSupervisor.equivalenceClasses.addBasicEquivalenceClause(new int[]{1, cE.ordinal(), 5, 6});
-        Clause c2 = cs.replaceEquivalences(c1);
+        ClauseOld c2 = cs.replaceEquivalences(c1);
         assertEquals("11: 1,2,2,2,5,5", c2.toNumbers());
         assertEquals("1: 1,2,3,4,5,6", c1.toNumbers());
         cs.trackReasoning = false;
-        Clause c3 = cs.replaceEquivalences(c1);
+        ClauseOld c3 = cs.replaceEquivalences(c1);
         assertSame(c3, c1);
         assertEquals("1: 1,2,2,2,5,5", c1.toNumbers());
     }
@@ -81,14 +80,14 @@ public class ClauseSimplifierTest {
         ProblemSupervisor problemSupervisor = prepare();
         EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
         Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
-        ClauseSimplifier cs = new ClauseSimplifier(problemSupervisor, monitor, "test", null);
-        Clause c1 = new Clause(1, cO, 1, 2, 3, 4, 5, -3, 6);
+        ClauseSimplifierOld cs = new ClauseSimplifierOld(problemSupervisor, monitor, "test", null);
+        ClauseOld c1 = new ClauseOld(1, cO, 1, 2, 3, 4, 5, -3, 6);
         assertNull(cs.simplifyOr(c1));
-        Clause c2 = new Clause(2, cO, 1, 2, 3, 2, 1, 3, 4, 2);
-        Clause c3 = cs.simplifyOr(c2);
+        ClauseOld c2 = new ClauseOld(2, cO, 1, 2, 3, 2, 1, 3, 4, 2);
+        ClauseOld c3 = cs.simplifyOr(c2);
         assertSame(c2, c3);
         assertEquals("2: 1,2,3,4", c3.toNumbers());
-        try {cs.simplifyOr(new Clause(3, cO));
+        try {cs.simplifyOr(new ClauseOld(3, cO));
             assertTrue(false);}
         catch (Unsatisfiable uns) {
             System.out.println(uns.toString());}
@@ -101,25 +100,25 @@ public class ClauseSimplifierTest {
         EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
         Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
         Model model = problemSupervisor.model;
-        ClauseSimplifier cs = new ClauseSimplifier(problemSupervisor, monitor, "test", null);
+        ClauseSimplifierOld cs = new ClauseSimplifierOld(problemSupervisor, monitor, "test", null);
         model.add(3,new InferenceTest("test"),null);
-        Clause c1 = new Clause(1, cO, 1, 2, 3, 4, 5, -3, 6);
+        ClauseOld c1 = new ClauseOld(1, cO, 1, 2, 3, 4, 5, -3, 6);
         assertNull(cs.simplifyOr(c1));
 
-        Clause c2 = new Clause(2, cO, 1, 2, -3, 4, 5);
-        Clause c3 = cs.simplifyOr(c2);
+        ClauseOld c2 = new ClauseOld(2, cO, 1, 2, -3, 4, 5);
+        ClauseOld c3 = cs.simplifyOr(c2);
         assertEquals("11: 1,2,4,5",c3.toNumbers());
 
         model.add(5,new InferenceTest("test 2"),null);
-        Clause c4 = new Clause(4, cO, 1, 2, 2, -3, 4, 4, -5, -5);
-        Clause c5 = cs.simplifyOr(c4);
+        ClauseOld c4 = new ClauseOld(4, cO, 1, 2, 2, -3, 4, 4, -5, -5);
+        ClauseOld c5 = cs.simplifyOr(c4);
         assertEquals("12: 1,2,4",c5.toNumbers());
         cs.trackReasoning = false;
         assertSame(c4,cs.simplifyOr(c4));
         assertEquals("4: 1,2,4",c4.toNumbers());
 
         cs.trackReasoning = true;
-        Clause c6 = new Clause(6, cO, -3,-5,-3,-5,-5);
+        ClauseOld c6 = new ClauseOld(6, cO, -3,-5,-3,-5,-5);
         try{cs.simplifyOr(c6);
             assertTrue(false);}
         catch(Unsatisfiable uns) {
@@ -132,12 +131,12 @@ public class ClauseSimplifierTest {
         ProblemSupervisor problemSupervisor = prepare();
         EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
         Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
-        ClauseSimplifier cs = new ClauseSimplifier(problemSupervisor, monitor, "test", null);
-        Clause c1 = new Clause(1, cA, 1, -2, 3);
+        ClauseSimplifierOld cs = new ClauseSimplifierOld(problemSupervisor, monitor, "test", null);
+        ClauseOld c1 = new ClauseOld(1, cA, 1, -2, 3);
         cs.simplifyAnd(c1);
         assertEquals("Model:\n" +
                 "1,-2,3",problemSupervisor.model.toNumbers());
-        try {cs.simplifyAnd(new Clause(3, cA,4,2));
+        try {cs.simplifyAnd(new ClauseOld(3, cA,4,2));
             assertTrue(false);}
         catch (Unsatisfiable uns) {
             System.out.println(uns.toString());}}
@@ -149,49 +148,49 @@ public class ClauseSimplifierTest {
         EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
         Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
         Model model = problemSupervisor.model;
-        ClauseSimplifier cs = new ClauseSimplifier(problemSupervisor, monitor, "test", null);
-        Clause c1 = new Clause(1, atL, 2, 1, 2, 3);
-        Clause c2 = cs.simplifyAtleastDestructively(c1);
+        ClauseSimplifierOld cs = new ClauseSimplifierOld(problemSupervisor, monitor, "test", null);
+        ClauseOld c1 = new ClauseOld(1, atL, 2, 1, 2, 3);
+        ClauseOld c2 = cs.simplifyAtleastDestructively(c1);
         assertSame(c1,c2);
         assertEquals("L-1: ATLEAST 2: 1,2,3",c2.toNumbers());
 
         model.add(2,new InferenceTest("test 1"),null);
         model.add(4,new InferenceTest("test 2"),null);
 
-        c1 = new Clause(2, atL, 3, 1, 2, 3,4,5);
+        c1 = new ClauseOld(2, atL, 3, 1, 2, 3,4,5);
         c2 = cs.simplifyAtleastDestructively(c1);
         assertEquals("2: 1,3,5",c2.toNumbers());
 
-        c1 = new Clause(3, atL, 3, 1, -2, 3,-4,5,6);
+        c1 = new ClauseOld(3, atL, 3, 1, -2, 3,-4,5,6);
         c2 = cs.simplifyAtleastDestructively(c1);
         assertEquals("L-3: ATLEAST 3: 1,3,5,6",c2.toNumbers());
 
-        c1 = new Clause(4, atL, 3, 1, -2, 3,-4,5);
+        c1 = new ClauseOld(4, atL, 3, 1, -2, 3,-4,5);
         assertNull(cs.simplifyAtleastDestructively(c1));
         assertEquals("Model:\n" +
                 "1,2,3,4,5",model.toNumbers());
 
-        c1 = new Clause(5, atL, 4, 6,7,6,6,7,8,9);
+        c1 = new ClauseOld(5, atL, 4, 6,7,6,6,7,8,9);
         c2 = cs.simplifyAtleastDestructively(c1);
         assertEquals("5: 6,7,8,9",c2.toNumbers());
-        c1 = new Clause(6, atL, 3, 6,7,6,6,7);
+        c1 = new ClauseOld(6, atL, 3, 6,7,6,6,7);
         c2 = cs.simplifyAtleastDestructively(c1);
         assertNull(c2);
 
-        c1 = new Clause(7, atL, 3, 6,7,-6,6,7);
+        c1 = new ClauseOld(7, atL, 3, 6,7,-6,6,7);
         c2 = cs.simplifyAtleastDestructively(c1);
         assertEquals("7: 7,6",c2.toNumbers());
 
-        c1 = new Clause(8, atL, 3, 6,7,-6,6,-7,8);
+        c1 = new ClauseOld(8, atL, 3, 6,7,-6,6,-7,8);
         c2 = cs.simplifyAtleastDestructively(c1);
         assertEquals("8: 6,8",c2.toNumbers());
 
-        c1 = new Clause(9, atL, 4, 6,7,-6,6,-7);
+        c1 = new ClauseOld(9, atL, 4, 6,7,-6,6,-7);
         try{c2 = cs.simplifyAtleastDestructively(c1);
             assertTrue(false);}
         catch(Unsatisfiable uns) {System.out.println(uns.toString(model.symboltable));}
 
-        c1 = new Clause(10, atL, 2, 6,7,-6,-7);
+        c1 = new ClauseOld(10, atL, 2, 6,7,-6,-7);
         assertNull(cs.simplifyAtleastDestructively(c1));}
 
     @Test
@@ -201,9 +200,9 @@ public class ClauseSimplifierTest {
         EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
         Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
         Model model = problemSupervisor.model;
-        ClauseSimplifier cs = new ClauseSimplifier(problemSupervisor, monitor, "test", null);
-        Clause c1 = new Clause(1, atL, 2, 1, 2, 3);
-        Clause c2 = cs.simplifyAtleastCloning(c1);
+        ClauseSimplifierOld cs = new ClauseSimplifierOld(problemSupervisor, monitor, "test", null);
+        ClauseOld c1 = new ClauseOld(1, atL, 2, 1, 2, 3);
+        ClauseOld c2 = cs.simplifyAtleastCloning(c1);
         assertSame(c1, c2);
         assertEquals("L-1: ATLEAST 2: 1,2,3", c2.toNumbers());
 
@@ -211,40 +210,40 @@ public class ClauseSimplifierTest {
         model.add(2,new InferenceTest("test 1"),null);
         model.add(4,new InferenceTest("test 2"),null);
 
-        c1 = new Clause(2, atL, 3, 1, 2, 3,4,5);
+        c1 = new ClauseOld(2, atL, 3, 1, 2, 3,4,5);
         c2 = cs.simplifyAtleastCloning(c1);
         assertEquals("11: 1,3,5",c2.toNumbers());
 
-        c1 = new Clause(3, atL, 3, 1, -2, 3,-4,5,6);
+        c1 = new ClauseOld(3, atL, 3, 1, -2, 3,-4,5,6);
         c2 = cs.simplifyAtleastCloning(c1);
         assertEquals("L-12: ATLEAST 3: 1,3,5,6",c2.toNumbers());
 
-        c1 = new Clause(4, atL, 3, 1, -2, 3,-4,5);
+        c1 = new ClauseOld(4, atL, 3, 1, -2, 3,-4,5);
         assertNull(cs.simplifyAtleastCloning(c1));
         assertEquals("Model:\n" +
                 "1,2,3,4,5",model.toNumbers());
 
-        c1 = new Clause(5, atL, 4, 6,7,6,6,7,8,9);
+        c1 = new ClauseOld(5, atL, 4, 6,7,6,6,7,8,9);
         c2 = cs.simplifyAtleastCloning(c1);
         assertEquals("14: 6,7,8,9",c2.toNumbers());
-        c1 = new Clause(6, atL, 3, 6,7,6,6,7);
+        c1 = new ClauseOld(6, atL, 3, 6,7,6,6,7);
         c2 = cs.simplifyAtleastCloning(c1);
         assertNull(c2);
 
-        c1 = new Clause(7, atL, 3, 6,7,-6,6,7);
+        c1 = new ClauseOld(7, atL, 3, 6,7,-6,6,7);
         c2 = cs.simplifyAtleastCloning(c1);
         assertEquals("16: 7,6",c2.toNumbers());
 
-        c1 = new Clause(8, atL, 3, 6,7,-6,6,-7,8);
+        c1 = new ClauseOld(8, atL, 3, 6,7,-6,6,-7,8);
         c2 = cs.simplifyAtleastCloning(c1);
         assertEquals("17: 6,8",c2.toNumbers());
 
-        c1 = new Clause(9, atL, 4, 6,7,-6,6,-7);
+        c1 = new ClauseOld(9, atL, 4, 6,7,-6,6,-7);
         try{c2 = cs.simplifyAtleastCloning(c1);
             assertTrue(false);}
         catch(Unsatisfiable uns) {System.out.println(uns.toString(model.symboltable));}
 
-        c1 = new Clause(10, atL, 2, 6,7,-6,-7);
+        c1 = new ClauseOld(10, atL, 2, 6,7,-6,-7);
         assertNull(cs.simplifyAtleastCloning(c1));
     }
 
@@ -256,9 +255,9 @@ public class ClauseSimplifierTest {
         EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
         Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
         Model model = problemSupervisor.model;
-        ClauseSimplifier cs = new ClauseSimplifier(problemSupervisor, monitor, "test", null);
-        Clause c1 = new Clause(1, atM, 2, 1, 2, 3);
-        Clause c2 = cs.simplifyAtmostDestructively(c1);
+        ClauseSimplifierOld cs = new ClauseSimplifierOld(problemSupervisor, monitor, "test", null);
+        ClauseOld c1 = new ClauseOld(1, atM, 2, 1, 2, 3);
+        ClauseOld c2 = cs.simplifyAtmostDestructively(c1);
         assertSame(c1,c2);
         assertEquals("M-1: ATMOST 2: 1,2,3",c2.toNumbers());
 
@@ -266,41 +265,41 @@ public class ClauseSimplifierTest {
         model.add(2,new InferenceTest("test 1"),null);
         model.add(4,new InferenceTest("test 2"),null);
 
-        c1 = new Clause(2, atM, 3, 1, 2, 3,4,5);
+        c1 = new ClauseOld(2, atM, 3, 1, 2, 3,4,5);
         c2 = cs.simplifyAtmostDestructively(c1);
         assertEquals("M-2: ATMOST 1: 1,3,5",c2.toNumbers());
 
-        c1 = new Clause(3, atM, 3, 1, -2, 3,-4,5,6);
+        c1 = new ClauseOld(3, atM, 3, 1, -2, 3,-4,5,6);
         c2 = cs.simplifyAtmostDestructively(c1);
         assertEquals("M-3: ATMOST 3: 1,3,5,6",c2.toNumbers());
 
-        c1 = new Clause(4, atM, 2, 1, 2, 3,4,5);
+        c1 = new ClauseOld(4, atM, 2, 1, 2, 3,4,5);
         assertNull(cs.simplifyAtmostDestructively(c1));
         assertEquals("Model:\n" +
                 "-1,2,-3,4,-5",model.toNumbers());
 
-        c1 = new Clause(5, atM, 4, 6,7,6,6,7,8,9);
+        c1 = new ClauseOld(5, atM, 4, 6,7,6,6,7,8,9);
         c2 = cs.simplifyAtmostDestructively(c1);
         assertEquals("M-5: ATMOST 1: 6,7,8,9",c2.toNumbers());
-        c1 = new Clause(6, atM, 3, 6,7,6,6,7);
+        c1 = new ClauseOld(6, atM, 3, 6,7,6,6,7);
         c2 = cs.simplifyAtmostDestructively(c1);
         assertNull(c2);
         assertEquals("Model:\n" +
                 "-1,2,-3,4,-5,-6,-7",model.toNumbers());
 
-        c1 = new Clause(7, atM, 3, 6,7,-6,6,7);
+        c1 = new ClauseOld(7, atM, 3, 6,7,-6,6,7);
         c2 = cs.simplifyAtmostDestructively(c1);
         assertNull(c2);
 
 
-        c1 = new Clause(8, atM, 3, 6,7,-6,6,-7,8);
+        c1 = new ClauseOld(8, atM, 3, 6,7,-6,6,-7,8);
         c2 = cs.simplifyAtmostDestructively(c1);
         assertNull(c2);
 
-        c1 = new Clause(9, atM, 4, 6,7,-6,6,-7);
+        c1 = new ClauseOld(9, atM, 4, 6,7,-6,6,-7);
         assertNull(cs.simplifyAtmostDestructively(c1));
 
-        c1 = new Clause(10, atM, 2, 6,7,-6,-7);
+        c1 = new ClauseOld(10, atM, 2, 6,7,-6,-7);
         assertNull(cs.simplifyAtmostDestructively(c1));}
 
 
@@ -312,9 +311,9 @@ public class ClauseSimplifierTest {
         EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
         Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
         Model model = problemSupervisor.model;
-        ClauseSimplifier cs = new ClauseSimplifier(problemSupervisor, monitor, "test", null);
-        Clause c1 = new Clause(1, atM, 2, 1, 2, 3);
-        Clause c2 = cs.simplifyAtmostCloning(c1);
+        ClauseSimplifierOld cs = new ClauseSimplifierOld(problemSupervisor, monitor, "test", null);
+        ClauseOld c1 = new ClauseOld(1, atM, 2, 1, 2, 3);
+        ClauseOld c2 = cs.simplifyAtmostCloning(c1);
         assertSame(c1,c2);
         assertEquals("M-1: ATMOST 2: 1,2,3",c2.toNumbers());
 
@@ -322,41 +321,41 @@ public class ClauseSimplifierTest {
         model.add(2,new InferenceTest("test 1"),null);
         model.add(4,new InferenceTest("test 2"),null);
 
-        c1 = new Clause(2, atM, 3, 1, 2, 3,4,5);
+        c1 = new ClauseOld(2, atM, 3, 1, 2, 3,4,5);
         c2 = cs.simplifyAtmostCloning(c1);
         assertEquals("M-11: ATMOST 1: 1,3,5",c2.toNumbers());
 
-        c1 = new Clause(3, atM, 3, 1, -2, 3,-4,5,6);
+        c1 = new ClauseOld(3, atM, 3, 1, -2, 3,-4,5,6);
         c2 = cs.simplifyAtmostCloning(c1);
         assertEquals("M-12: ATMOST 3: 1,3,5,6",c2.toNumbers());
 
-        c1 = new Clause(4, atM, 2, 1, 2, 3,4,5);
+        c1 = new ClauseOld(4, atM, 2, 1, 2, 3,4,5);
         assertNull(cs.simplifyAtmostCloning(c1));
         assertEquals("Model:\n" +
                 "-1,2,-3,4,-5",model.toNumbers());
 
-        c1 = new Clause(5, atM, 4, 6,7,6,6,7,8,9);
+        c1 = new ClauseOld(5, atM, 4, 6,7,6,6,7,8,9);
         c2 = cs.simplifyAtmostCloning(c1);
         assertEquals("M-14: ATMOST 1: 6,7,8,9",c2.toNumbers());
-        c1 = new Clause(6, atM, 3, 6,7,6,6,7);
+        c1 = new ClauseOld(6, atM, 3, 6,7,6,6,7);
         c2 = cs.simplifyAtmostCloning(c1);
         assertNull(c2);
         assertEquals("Model:\n" +
                 "-1,2,-3,4,-5,-6,-7",model.toNumbers());
 
-        c1 = new Clause(7, atM, 3, 6,7,-6,6,7);
+        c1 = new ClauseOld(7, atM, 3, 6,7,-6,6,7);
         c2 = cs.simplifyAtmostCloning(c1);
         assertNull(c2);
 
 
-        c1 = new Clause(8, atM, 3, 6,7,-6,6,-7,8);
+        c1 = new ClauseOld(8, atM, 3, 6,7,-6,6,-7,8);
         c2 = cs.simplifyAtmostCloning(c1);
         assertNull(c2);
 
-        c1 = new Clause(9, atM, 4, 6,7,-6,6,-7);
+        c1 = new ClauseOld(9, atM, 4, 6,7,-6,6,-7);
         assertNull(cs.simplifyAtmostCloning(c1));
 
-        c1 = new Clause(10, atM, 2, 6,7,-6,-7);
+        c1 = new ClauseOld(10, atM, 2, 6,7,-6,-7);
         assertNull(cs.simplifyAtmostCloning(c1));}
 
 
@@ -367,9 +366,9 @@ public class ClauseSimplifierTest {
         EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
         Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
         Model model = problemSupervisor.model;
-        ClauseSimplifier cs = new ClauseSimplifier(problemSupervisor, monitor, "test", null);
-        Clause c1 = new Clause(1, ex, 2, 1, 2, 3);
-        Clause c2 = cs.simplifyExactlyDestructively(c1);
+        ClauseSimplifierOld cs = new ClauseSimplifierOld(problemSupervisor, monitor, "test", null);
+        ClauseOld c1 = new ClauseOld(1, ex, 2, 1, 2, 3);
+        ClauseOld c2 = cs.simplifyExactlyDestructively(c1);
         assertSame(c1, c2);
         assertEquals("X-1: EXACTLY 2: 1,2,3", c2.toNumbers());
 
@@ -377,35 +376,35 @@ public class ClauseSimplifierTest {
         model.add(2, new InferenceTest("test 1"), null);
         model.add(4, new InferenceTest("test 2"), null);
 
-        c1 = new Clause(2, ex, 3, 1, 2, 3, 4, 5);
+        c1 = new ClauseOld(2, ex, 3, 1, 2, 3, 4, 5);
         c2 = cs.simplifyExactlyDestructively(c1);
         assertEquals("X-2: EXACTLY 1: 1,3,5", c2.toNumbers());
 
-        c1 = new Clause(3, ex, 3, 1, -2, 3, -4, 5, 6);
+        c1 = new ClauseOld(3, ex, 3, 1, -2, 3, -4, 5, 6);
         c2 = cs.simplifyExactlyDestructively(c1);
         assertEquals("X-3: EXACTLY 3: 1,3,5,6", c2.toNumbers());
 
-        c1 = new Clause(4, ex, 2, 1, 2, 3, 4, 5);
+        c1 = new ClauseOld(4, ex, 2, 1, 2, 3, 4, 5);
         assertNull(cs.simplifyExactlyDestructively(c1));
         assertEquals("Model:\n" +
                 "-1,2,-3,4,-5", model.toNumbers());
 
-        c1 = new Clause(5, ex, 4, 6, 7, 6, 6, 7, 8, 9);
+        c1 = new ClauseOld(5, ex, 4, 6, 7, 6, 6, 7, 8, 9);
         c2 = cs.simplifyExactlyDestructively(c1);
         assertEquals("X-5: EXACTLY 1: 6,7,8,9", c2.toNumbers());
-        c1 = new Clause(6, ex, 3, 6, 7, 6, 6, 7);
+        c1 = new ClauseOld(6, ex, 3, 6, 7, 6, 6, 7);
         c2 = cs.simplifyExactlyDestructively(c1);
         assertNull(c2);
         assertEquals("Model:\n" +
                 "-1,2,-3,4,-5,-6,-7", model.toNumbers());
 
-        c1 = new Clause(7, ex, 3, 6, 7, -6, 6, 7);
+        c1 = new ClauseOld(7, ex, 3, 6, 7, -6, 6, 7);
         try {c2 = cs.simplifyExactlyDestructively(c1);
             assertTrue(false);}
         catch (Unsatisfiable uns) {
             System.out.println(uns.toString(model.symboltable));}
 
-        c1 = new Clause(8, ex, 3, 6, 7, -6, 6, -7, 8);
+        c1 = new ClauseOld(8, ex, 3, 6, 7, -6, 6, -7, 8);
         c2 = cs.simplifyExactlyDestructively(c1);
         assertNull(c2);
     }
@@ -418,9 +417,9 @@ public class ClauseSimplifierTest {
         EquivalenceClasses eqc = problemSupervisor.equivalenceClasses;
         Monitor monitor = monitoring ? new Monitor(null, "true", errors, warnings) : null;
         Model model = problemSupervisor.model;
-        ClauseSimplifier cs = new ClauseSimplifier(problemSupervisor, monitor, "test", null);
-        Clause c1 = new Clause(1, ex, 2, 1, 2, 3);
-        Clause c2 = cs.simplifyExactlyCloning(c1);
+        ClauseSimplifierOld cs = new ClauseSimplifierOld(problemSupervisor, monitor, "test", null);
+        ClauseOld c1 = new ClauseOld(1, ex, 2, 1, 2, 3);
+        ClauseOld c2 = cs.simplifyExactlyCloning(c1);
         assertSame(c1, c2);
         assertEquals("X-1: EXACTLY 2: 1,2,3", c2.toNumbers());
 
@@ -428,35 +427,35 @@ public class ClauseSimplifierTest {
         model.add(2, new InferenceTest("test 1"), null);
         model.add(4, new InferenceTest("test 2"), null);
 
-        c1 = new Clause(2, ex, 3, 1, 2, 3, 4, 5);
+        c1 = new ClauseOld(2, ex, 3, 1, 2, 3, 4, 5);
         c2 = cs.simplifyExactlyCloning(c1);
         assertEquals("X-11: EXACTLY 1: 1,3,5", c2.toNumbers());
 
-        c1 = new Clause(3, ex, 3, 1, -2, 3, -4, 5, 6);
+        c1 = new ClauseOld(3, ex, 3, 1, -2, 3, -4, 5, 6);
         c2 = cs.simplifyExactlyCloning(c1);
         assertEquals("X-12: EXACTLY 3: 1,3,5,6", c2.toNumbers());
 
-        c1 = new Clause(4, ex, 2, 1, 2, 3, 4, 5);
+        c1 = new ClauseOld(4, ex, 2, 1, 2, 3, 4, 5);
         assertNull(cs.simplifyExactlyCloning(c1));
         assertEquals("Model:\n" +
                 "-1,2,-3,4,-5", model.toNumbers());
 
-        c1 = new Clause(5, ex, 4, 6, 7, 6, 6, 7, 8, 9);
+        c1 = new ClauseOld(5, ex, 4, 6, 7, 6, 6, 7, 8, 9);
         c2 = cs.simplifyExactlyCloning(c1);
         assertEquals("X-14: EXACTLY 1: 6,7,8,9", c2.toNumbers());
-        c1 = new Clause(6, ex, 3, 6, 7, 6, 6, 7);
+        c1 = new ClauseOld(6, ex, 3, 6, 7, 6, 6, 7);
         c2 = cs.simplifyExactlyCloning(c1);
         assertNull(c2);
         assertEquals("Model:\n" +
                 "-1,2,-3,4,-5,-6,-7", model.toNumbers());
 
-        c1 = new Clause(7, ex, 3, 6, 7, -6, 6, 7);
+        c1 = new ClauseOld(7, ex, 3, 6, 7, -6, 6, 7);
         try {c2 = cs.simplifyExactlyCloning(c1);
             assertTrue(false);}
         catch (Unsatisfiable uns) {
             System.out.println(uns.toString(model.symboltable));}
 
-        c1 = new Clause(8, ex, 3, 6, 7, -6, 6, -7, 8);
+        c1 = new ClauseOld(8, ex, 3, 6, 7, -6, 6, -7, 8);
         c2 = cs.simplifyExactlyCloning(c1);
         assertNull(c2);
     }

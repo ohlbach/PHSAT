@@ -1,6 +1,6 @@
 package Datastructures.Links;
 
-import Datastructures.Literals.CLiteral;
+import Datastructures.Literals.CLiteralOld;
 
 import java.util.ArrayList;
 
@@ -8,13 +8,13 @@ import java.util.ArrayList;
  * Created by ohlbach on 29.08.2018.
  */
 public class LinkMultiple {
-    public ArrayList<CLiteral> literals;
+    public ArrayList<CLiteralOld> literals;
 
-    public void addLiteral(CLiteral literal) {
+    public void addLiteral(CLiteralOld literal) {
         literals.add(literal);
     }
 
-    public void removeLiteral(CLiteral literal) {
+    public void removeLiteral(CLiteralOld literal) {
         literals.remove(literal);
     }
 

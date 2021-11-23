@@ -1,8 +1,8 @@
 package Solvers.Walker;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
-import Datastructures.Literals.CLiteral;
+import Datastructures.Clauses.ClauseOld;
+import Datastructures.Literals.CLiteralOld;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
@@ -115,7 +115,7 @@ public abstract class WalkerOld extends Solver {
 
     private DisjointnessClasses disjointnessClasses;
 
-    private ArrayList<Clause> clauses ;
+    private ArrayList<ClauseOld> clauses ;
 
     private BucketSortedIndex<WLiteral> literalIndex;
 
@@ -150,7 +150,7 @@ public abstract class WalkerOld extends Solver {
         localModel     = new int[predicates];
         statistics     = new WalkerStatistics(combinedId);
         predicateQueue = new IntegerQueueOld(predicates);
-        clauses        = new ArrayList<Clause>();
+        clauses        = new ArrayList<ClauseOld>();
         literalIndex   = new BucketSortedIndex<WLiteral>(predicates+1,
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));
@@ -162,7 +162,7 @@ public abstract class WalkerOld extends Solver {
     /** This function is called when a new disjunction is to be inserted.
      *  It generates a simplifyBackwards task.
      */
-    private Consumer<Clause> insertHandler = (
+    private Consumer<ClauseOld> insertHandler = (
             clause -> {if(clause.size() == 1) {model.addImmediately(clause.getLiteral(0));}
                        else                   {insertClause(clause);}});
 
@@ -322,7 +322,7 @@ public abstract class WalkerOld extends Solver {
                 for(int lit : truths) { // literals which must be made true if the literal is made true.
                     iterator = literalIndex.popIterator(lit);
                     while(iterator.hasNext()) {
-                        Clause clause = iterator.next().clause;
+                        ClauseOld clause = iterator.next().clause;
                         if(clause.timestamp != timestamp) {++counter; clause.timestamp = timestamp;}}
                     literalIndex.pushIterator(lit,iterator);}}}
         ++timestamp;
@@ -334,8 +334,8 @@ public abstract class WalkerOld extends Solver {
      * @param clause the clause to be tested
      * @return true if the clause is false in the local model.
      */
-    boolean isFalse(Clause clause) {
-        for(CLiteral cLiteral : clause.cliterals) {
+    boolean isFalse(ClauseOld clause) {
+        for(CLiteralOld cLiteral : clause.cliterals) {
             if(isLocallyTrue(cLiteral.literal)) {return false;}}
         return true;}
 
@@ -351,27 +351,27 @@ public abstract class WalkerOld extends Solver {
      * (Flipping their truth value makes more clauses true).
      */
     void initializeScores() {
-        for(Clause clause : clauses) {
+        for(ClauseOld clause : clauses) {
             int trueLiterals = 0;
-            for(CLiteral cliteral : clause) {
+            for(CLiteralOld cliteral : clause) {
                 if(isLocallyTrue(cliteral.literal)) {++trueLiterals;}}
 
             if(trueLiterals == 0) {
                 markAsFalse(clause);
-                for(CLiteral cliteral : clause) {
+                for(CLiteralOld cliteral : clause) {
                     ((WLiteral)cliteral).score = 1; // flipping any literal makes the clause true.
                     predicateQueue.addScore(cliteral.literal,1);}
                 continue;}
 
             // some literal must be locally true
             if(posTruths == null) {   // simple case: no equivalences or disjointnesses
-                for(CLiteral cliteral : clause) {
+                for(CLiteralOld cliteral : clause) {
                     int literal = cliteral.literal;
                     if(isLocallyTrue(literal) && trueLiterals == 1) {
                         ((WLiteral)cliteral).score = -1; // flipping this literal makes the clause false.
                         predicateQueue.addScore(literal,-1);}}} // flipping the others does'nt change anything
             else {                                   // now we treat the case that flipping the truth value of
-                for(CLiteral cliteral : clause) {    // one literal in the clause causes flipping of another literal in the clause
+                for(CLiteralOld cliteral : clause) {    // one literal in the clause causes flipping of another literal in the clause
                     int literal = cliteral.literal;
                     if(isLocallyTrue(literal)) {
                         int predicate = Math.abs(literal);
@@ -433,7 +433,7 @@ public abstract class WalkerOld extends Solver {
             int pred = sign*predicate;
             BucketSortedList<WLiteral>.BucketIterator iterator = literalIndex.popIterator(pred);
             while(iterator.hasNext()) {
-                Clause clause = iterator.next().clause;
+                ClauseOld clause = iterator.next().clause;
                 updateClauseScore(clause, predicate);
                 clause.timestamp = timestamp;}
             literalIndex.pushIterator(pred,iterator);
@@ -442,7 +442,7 @@ public abstract class WalkerOld extends Solver {
                     int lit = sign*predic;
                     iterator = literalIndex.popIterator(lit);
                     while(iterator.hasNext()) {
-                        Clause clause = iterator.next().clause;
+                        ClauseOld clause = iterator.next().clause;
                         if(clause.timestamp == timestamp) {continue;}
                         clause.timestamp = timestamp;
                         updateClauseScore(clause, predicate);}
@@ -462,14 +462,14 @@ public abstract class WalkerOld extends Solver {
      * @param clause  the clause
      * @return the change in score for the given predicate
      */
-    void updateClauseScore(Clause clause, int predicate) {
+    void updateClauseScore(ClauseOld clause, int predicate) {
         int trueLiterals = 0;
-        for(CLiteral cliteral : clause) {
+        for(CLiteralOld cliteral : clause) {
             if(isLocallyTrue(cliteral.literal)) {++trueLiterals;}}
 
         if(trueLiterals == 0) { // flipping any of the literals makes the clause true.
             markAsFalse(clause);
-            for(CLiteral cliteral : clause) {
+            for(CLiteralOld cliteral : clause) {
                 int pred = Math.abs(cliteral.literal);
                 if(pred == predicate || dummyLiterals1.contains(pred)) {
                     flippedScores.addTo(pred,1);}
@@ -482,7 +482,7 @@ public abstract class WalkerOld extends Solver {
 
         // some literal must be locally true
         if(posTruths == null) {   // simple case: no equivalences or disjointnesses
-            for(CLiteral cliteral : clause) {
+            for(CLiteralOld cliteral : clause) {
                 int literal = cliteral.literal;
                 int change = (isLocallyTrue(literal) && trueLiterals == 1) ? -1 : 0; // flipping a single true literal makes the clause false
                 int pred = Math.abs(literal);                                        // all other cases cause no change
@@ -490,7 +490,7 @@ public abstract class WalkerOld extends Solver {
                 else                  {affectedScores.addTo(pred,change-((WLiteral)cliteral).score);}
                 ((WLiteral)cliteral).score = change;}}
         else {                                   // now we treat the case that flipping the truth value of
-            for(CLiteral cliteral : clause) {    // one literal in the clause causes flipping of another literal in the clause
+            for(CLiteralOld cliteral : clause) {    // one literal in the clause causes flipping of another literal in the clause
                 int literal = cliteral.literal;
                 int change = 0;
                 int pred = Math.abs(literal);
@@ -572,13 +572,13 @@ public abstract class WalkerOld extends Solver {
      *
      * @param clause  the clause to be inserted.
      */
-    void insertClause(Clause clause) {
+    void insertClause(ClauseOld clause) {
         if(clause.size() > 1) {
             ++statistics.clauses;
             maxClauseLength = Math.max(maxClauseLength,clause.size());
             clause.setPosition(clauses.size());
             clauses.add(clause);
-            for(CLiteral cliteral : clause) {literalIndex.add((WLiteral)cliteral);}}}
+            for(CLiteralOld cliteral : clause) {literalIndex.add((WLiteral)cliteral);}}}
 
     /** The method uses the position attribute to mark a clause as false or true.
      *  position = -1:  true <br>
@@ -586,14 +586,14 @@ public abstract class WalkerOld extends Solver {
      *
      * @param clause the clause to be marked
      */
-    void markAsFalse(Clause clause) {
+    void markAsFalse(ClauseOld clause) {
         int position = clause.getPosition();
         if(position > 0) {return;}
         clause.setPosition(+1);
         //++statistics.falseClauses;
     }
 
-    boolean isMarkedFalse(Clause clause) {
+    boolean isMarkedFalse(ClauseOld clause) {
         return clause.getPosition() > 0;}
 
     /** The method uses the position attribute to mark a clause as false or true.
@@ -602,14 +602,14 @@ public abstract class WalkerOld extends Solver {
      *
      * @param clause the clause to be marked
      */
-    void markAsTrue(Clause clause) {
+    void markAsTrue(ClauseOld clause) {
         int position = clause.getPosition();
         if(position < 0) {return;}
         clause.setPosition(-1);
         //--statistics.falseClauses;
     }
 
-    boolean isMarkedTrue(Clause clause) {
+    boolean isMarkedTrue(ClauseOld clause) {
         return clause.getPosition() < 0;}
 
 
@@ -623,7 +623,7 @@ public abstract class WalkerOld extends Solver {
         st.append("  jump frequency: ").append(Integer.toString(jumpFrequency)).append("\n\n");
         st.append("Current model: ").append(localModel.toString()).append("\n");
         st.append("False Clauses:\n");
-        for(Clause clause : clauses) {if(isMarkedFalse(clause)) st.append(clause.toString()).append("\n");}
+        for(ClauseOld clause : clauses) {if(isMarkedFalse(clause)) st.append(clause.toString()).append("\n");}
         st.append("\nPredicate Queue:\n").append(predicateQueue.toString()).append("\n");
         if(equivalenceClasses != null) {
             st.append("Equivalence Classes:\n").append(equivalenceClasses.toString()).append("\n");}

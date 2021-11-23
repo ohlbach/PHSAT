@@ -1,9 +1,7 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.TwoLiteral.TwoLitClause;
-import Datastructures.TwoLiteral.TwoLitClauses;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
 

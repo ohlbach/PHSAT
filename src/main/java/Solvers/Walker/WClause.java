@@ -1,6 +1,6 @@
 package Solvers.Walker;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Utilities.Utilities;
@@ -24,7 +24,7 @@ public class WClause {
      *
      * @param clause a clause
      */
-    public WClause(Clause clause) {
+    public WClause(ClauseOld clause) {
         id = clause.id;
         connective = clause.connective;
         quantifier = clause.quAmount;

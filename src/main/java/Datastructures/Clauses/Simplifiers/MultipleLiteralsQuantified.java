@@ -1,6 +1,6 @@
 package Datastructures.Clauses.Simplifiers;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -15,10 +15,10 @@ public class MultipleLiteralsQuantified extends InferenceStep {
             "Complementary Literals: Q m p,-p,q,... -> Q m-1 q,...\n"+
             "Q in atleast, atmost, exactly";
 
-    private final Clause oldClause;
-    private final Clause newClause;
+    private final ClauseOld oldClause;
+    private final ClauseOld newClause;
 
-    public MultipleLiteralsQuantified(Clause oldClause, Clause newClause) {
+    public MultipleLiteralsQuantified(ClauseOld oldClause, ClauseOld newClause) {
         this.oldClause = oldClause;
         this.newClause = newClause;}
 

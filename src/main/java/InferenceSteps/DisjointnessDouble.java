@@ -1,13 +1,13 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
 public class DisjointnessDouble extends InferenceStep {
-    private final Clause dClause;
+    private final ClauseOld dClause;
     private final int literal;
 
     public static final String title = "Disjointness Double";
@@ -15,7 +15,7 @@ public class DisjointnessDouble extends InferenceStep {
     public static final String rule = title + ":\n"+
             "p != p != ... -> -p";
 
-    public DisjointnessDouble(Clause dClause, int literal) {
+    public DisjointnessDouble(ClauseOld dClause, int literal) {
         this.dClause = dClause;
         this.literal = literal; }
 

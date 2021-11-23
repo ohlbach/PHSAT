@@ -1,6 +1,6 @@
 package Datastructures.Clauses.QuantifiedToCNF;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -19,10 +19,10 @@ public class ExactlyToCNF extends InferenceStep {
             "Example:\n"+
             "exactly 2 1,2,3 -> [1: 1,2, 2: 1,3, 3: 2,3, 4: -1,-2,-3]";
 
-    private final Clause exactlyClause;
-    private final Clause orClause;
+    private final ClauseOld exactlyClause;
+    private final ClauseOld orClause;
 
-    public ExactlyToCNF(Clause exactlyClause, Clause orClause) {
+    public ExactlyToCNF(ClauseOld exactlyClause, ClauseOld orClause) {
         this.exactlyClause = exactlyClause;
         this.orClause = orClause;}
 

@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import Datastructures.TwoLiteral.TwoLitClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -15,10 +15,10 @@ public class EquivalenceReplacements2 extends InferenceStep{
     private final TwoLitClause newClause;
     private final int literal1;
     private final int representative1;
-    private final Clause eClause1;
+    private final ClauseOld eClause1;
     private final int literal2;
     private final int representative2;
-    private final Clause eClause2;
+    private final ClauseOld eClause2;
 
     public static final String title = "Equivalence Replacement";
 
@@ -30,8 +30,8 @@ public class EquivalenceReplacements2 extends InferenceStep{
             " x,y";
 
     public EquivalenceReplacements2(TwoLitClause oldClause, TwoLitClause newClause,
-                                    int literal1, int representative1, Clause eClause1,
-                                    int literal2, int representative2, Clause eClause2) {
+                                    int literal1, int representative1, ClauseOld eClause1,
+                                    int literal2, int representative2, ClauseOld eClause2) {
         this.oldClause = oldClause;
         this.newClause = newClause;
         this.literal1  = literal1;

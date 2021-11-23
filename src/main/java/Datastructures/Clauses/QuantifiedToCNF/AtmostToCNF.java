@@ -1,6 +1,6 @@
 package Datastructures.Clauses.QuantifiedToCNF;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -19,10 +19,10 @@ public class AtmostToCNF  extends InferenceStep {
             "Example:\n"+
             "atmost 2 p,q,r,s -> -p,-q,-r & -p,-q,-s & -p,-r,-s & -q,-r,-s ";
 
-    private final Clause atmostClause;
-    private final Clause orClause;
+    private final ClauseOld atmostClause;
+    private final ClauseOld orClause;
 
-    public AtmostToCNF(Clause atmostClause, Clause orClause) {
+    public AtmostToCNF(ClauseOld atmostClause, ClauseOld orClause) {
         this.atmostClause = atmostClause;
         this.orClause = orClause;}
 

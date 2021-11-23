@@ -1,7 +1,7 @@
 package InferenceSteps;
 
 import Datastructures.Clauses.MRMatrix;
-import Datastructures.Literals.CLiteral;
+import Datastructures.Literals.CLiteralOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
@@ -31,11 +31,11 @@ public class MRSquare1 extends InferenceStep{
 
     private final MRMatrix mrMatrix;
     private final int[] colIndices;
-    private final ArrayList<CLiteral[]> block;
-    private final CLiteral dLiteral;
+    private final ArrayList<CLiteralOld[]> block;
+    private final CLiteralOld dLiteral;
     private final int colIndex;
 
-    public MRSquare1(MRMatrix mrMatrix, CLiteral dLiteral, int colIndex, int[] colIndices, ArrayList<CLiteral[]> block) {
+    public MRSquare1(MRMatrix mrMatrix, CLiteralOld dLiteral, int colIndex, int[] colIndices, ArrayList<CLiteralOld[]> block) {
         this.mrMatrix = mrMatrix;
         this.dLiteral = dLiteral;
         this.colIndex = colIndex;
@@ -55,25 +55,25 @@ public class MRSquare1 extends InferenceStep{
     public String toString(Symboltable symboltable) {
         return title + ":\n" + block2String(colIndices,block,symboltable);}
 
-    private String block2String(int[] colIndices, ArrayList<CLiteral[]> block, Symboltable symboltable) {
+    private String block2String(int[] colIndices, ArrayList<CLiteralOld[]> block, Symboltable symboltable) {
         int width = 0;
         for(int colIndex : colIndices) {
             width = Math.max(width,Integer.toString(mrMatrix.disjointnessClauses[colIndex].id).length());}
-        for(CLiteral[] row : block) {
+        for(CLiteralOld[] row : block) {
             for(int j = 0; j < row.length-1; ++j) {
-                CLiteral cLiteral = row[j];
+                CLiteralOld cLiteral = row[j];
                 width = Math.max(width, cLiteral == null ? 0 :
                     Symboltable.toString(cLiteral.literal, symboltable).length());}}
 
         StringBuilder st = new StringBuilder();
         Formatter format = new Formatter(st, Locale.GERMANY);
         int lineLength = 0;
-        for (CLiteral[] row : block) {
+        for (CLiteralOld[] row : block) {
             StringBuilder line = new StringBuilder();
             Formatter fLine = new Formatter(line, Locale.GERMANY);
             fLine.format("%" + width + "s:", mrMatrix.getClause(row).id);
             for (int j = 0; j < row.length - 1; ++j) {
-                CLiteral cLiteral = row[j];
+                CLiteralOld cLiteral = row[j];
                 fLine.format("%" + width + "s|", cLiteral == null ? " " :
                         Symboltable.toString(cLiteral.literal, symboltable));
             }
@@ -112,8 +112,8 @@ public class MRSquare1 extends InferenceStep{
             step = mrMatrix.disjointnessClauses[index].inferenceStep;
             if (step != null) origins = joinIntArrays(origins, step.origins());
         }
-        for(CLiteral[] row : block) {
-            for(CLiteral cLiteral : row) {
+        for(CLiteralOld[] row : block) {
+            for(CLiteralOld cLiteral : row) {
                 if(cLiteral != null) {
                     step = cLiteral.clause.inferenceStep;
                     if(step != null) origins = joinIntArrays(origins,step.origins());}}}
@@ -129,8 +129,8 @@ public class MRSquare1 extends InferenceStep{
             step = mrMatrix.disjointnessClauses[index].inferenceStep;
             if (step != null) step.inferenceSteps(steps);
         }
-        for(CLiteral[] row : block) {
-            for(CLiteral cLiteral : row) {
+        for(CLiteralOld[] row : block) {
+            for(CLiteralOld cLiteral : row) {
                 if(cLiteral != null) {
                     step = cLiteral.clause.inferenceStep;
                     if(step != null) step.inferenceSteps(steps);}}}

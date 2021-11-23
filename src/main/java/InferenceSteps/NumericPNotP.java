@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -15,10 +15,10 @@ public class NumericPNotP extends InferenceStep{
                     "atmost   3 p,-p,q,r -> atmost  2 q,r"+
                     "exactly  3 p,-p,q,r -> axactly 2 q,r";
 
-    private final Clause oldClause;
-    private final Clause newClause;
+    private final ClauseOld oldClause;
+    private final ClauseOld newClause;
 
-    public NumericPNotP(Clause oldClause, Clause newClause) {
+    public NumericPNotP(ClauseOld oldClause, ClauseOld newClause) {
         this.oldClause = oldClause;
         this.newClause = newClause;}
 

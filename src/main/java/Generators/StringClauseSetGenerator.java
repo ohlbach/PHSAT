@@ -1,7 +1,7 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 
@@ -67,7 +67,7 @@ public final class StringClauseSetGenerator  {
         BasicClauseList bcl = new BasicClauseList();
         bcl.info = "String-generated clauses:\n" + clausesString;
 
-        ArrayList<Clause> clauseList = new ArrayList<>();
+        ArrayList<ClauseOld> clauseList = new ArrayList<>();
         int clauseNumber = 0;
         for(String clauseString : clausesStrings) {
             if(clauseString.isEmpty()) {continue;}

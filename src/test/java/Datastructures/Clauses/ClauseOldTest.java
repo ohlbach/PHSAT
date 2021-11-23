@@ -1,6 +1,6 @@
 package Datastructures.Clauses;
 
-import Datastructures.Literals.CLiteral;
+import Datastructures.Literals.CLiteralOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 /**
  * Created by ohlbach on 26.08.2018.
  */
-public class ClauseTest {
+public class ClauseOldTest {
 
 
     private static Symboltable makeSymboltable() {
@@ -34,7 +34,7 @@ public class ClauseTest {
     @Test
     public void inference() {
         System.out.println("inference step");
-        Clause clause = new Clause(100, Connective.OR);
+        ClauseOld clause = new ClauseOld(100, Connective.OR);
         assertEquals(100, clause.id);
         assertEquals("Input 100", clause.inferenceStep.toString());
     }
@@ -44,7 +44,7 @@ public class ClauseTest {
         System.out.println("basicClause primitve features");
         Symboltable st = makeSymboltable();
         int[] basicClause = {10, 0, 1, 2, 3}; // OR
-        Clause clause = new Clause(basicClause);
+        ClauseOld clause = new ClauseOld(basicClause);
         assertEquals("10: 1,2,3", clause.toString());
         assertEquals("10:  a,b,c", clause.toString(5, st));
         assertSame(clause.structure, ClauseStructure.POSITIVE);
@@ -60,7 +60,7 @@ public class ClauseTest {
         assertEquals(3, clause.getCLiteral(2).literal);
 
         IntArrayList literals = new IntArrayList();
-        for (CLiteral cLiteral : clause) {
+        for (CLiteralOld cLiteral : clause) {
             literals.add(cLiteral.literal);
         }
         assertEquals("[1, 2, 3]", literals.toString());
@@ -72,11 +72,11 @@ public class ClauseTest {
 
         basicClause = new int[]{10, 0, -1, -2, -3}; // OR
 
-        clause = new Clause(basicClause);
+        clause = new ClauseOld(basicClause);
         assertSame(ClauseStructure.NEGATIVE, clause.structure);
 
         basicClause = new int[]{11, 0, -1, 2, -3}; // OR
-        clause = new Clause(basicClause);
+        clause = new ClauseOld(basicClause);
         assertEquals("11:  -a,b,-c", clause.toString(5, st));
         assertSame(ClauseStructure.MIXED, clause.structure);
     }
@@ -86,19 +86,19 @@ public class ClauseTest {
         System.out.println("basicClause differnt types");
         Symboltable st = makeSymboltable();
         int[] basicClause = {10, 1, 1, 2, 3}; // AND
-        Clause clause = new Clause(basicClause);
+        ClauseOld clause = new ClauseOld(basicClause);
         assertSame(Connective.AND, clause.connective);
         assertEquals("A-10: 1&2&3", clause.toString());
         assertEquals("A-10:  a&b&c", clause.toString(5, st));
 
         basicClause = new int[]{11, 2, 1, 2, 3}; // EQUIV
-        clause = new Clause(basicClause);
+        clause = new ClauseOld(basicClause);
         assertSame(Connective.EQUIV, clause.connective);
         assertEquals("E-11: 1=2=3", clause.toString());
         assertEquals("E-11:  a=b=c", clause.toString(5, st));
 
         basicClause = new int[]{12, 3, 2, 1, -2, 3}; // ATLEAST
-        clause = new Clause(basicClause);
+        clause = new ClauseOld(basicClause);
         assertEquals(2, clause.quAmount);
         assertSame(Connective.ATLEAST, clause.connective);
         assertEquals("L-12: ATLEAST 2: 1,-2,3", clause.toString());
@@ -106,14 +106,14 @@ public class ClauseTest {
 
 
         basicClause = new int[]{13, 4, 2, 1, -2, 3}; // ATMOST
-        clause = new Clause(basicClause);
+        clause = new ClauseOld(basicClause);
         assertEquals(2, clause.quAmount);
         assertSame(Connective.ATMOST, clause.connective);
         assertEquals("M-13: ATMOST 2: 1,-2,3", clause.toString());
         assertEquals("M-13:  ATMOST 2: a,-b,c", clause.toString(5, st));
 
         basicClause = new int[]{14, 5, 2, 1, -2, 3}; // EXACTLY
-        clause = new Clause(basicClause);
+        clause = new ClauseOld(basicClause);
         assertEquals(2, clause.quAmount);
         assertSame(Connective.EXACTLY, clause.connective);
         assertEquals("X-14: EXACTLY 2: 1,-2,3", clause.toString());
@@ -125,15 +125,15 @@ public class ClauseTest {
     @Test
     public void addCLiteral() {
         System.out.println("add");
-        Clause cl = new Clause(1, Connective.OR);
+        ClauseOld cl = new ClauseOld(1, Connective.OR);
         assertEquals(0, cl.size());
-        CLiteral lit = new CLiteral(5);
+        CLiteralOld lit = new CLiteralOld(5);
         cl.add(lit);
         assertEquals(1, cl.size());
-        CLiteral lit1 = new CLiteral(5);
+        CLiteralOld lit1 = new CLiteralOld(5);
         cl.add(lit1);
         assertEquals(2, cl.size());
-        CLiteral lit2 = new CLiteral(-5);
+        CLiteralOld lit2 = new CLiteralOld(-5);
         cl.add(lit2);
         cl.setStructure();
         assertEquals(3, cl.size());
@@ -151,7 +151,7 @@ public class ClauseTest {
         lits.add(1);
         lits.add(2);
         lits.add(3);
-        Clause cl = new Clause(1, Connective.ATLEAST, 2, lits);
+        ClauseOld cl = new ClauseOld(1, Connective.ATLEAST, 2, lits);
         assertEquals("L-1: ATLEAST 2: 1,2,3", cl.toString());
     }
 
@@ -162,18 +162,18 @@ public class ClauseTest {
         lits.add(1);
         lits.add(2);
         lits.add(3);
-        Clause cl = new Clause(1, Connective.AND, lits);
+        ClauseOld cl = new ClauseOld(1, Connective.AND, lits);
         assertEquals("A-1: 1&2&3", cl.toString());
     }
 
     @Test
     public void addCLiterals() {
         System.out.println("add CLiterals");
-        ArrayList<CLiteral> lits = new ArrayList<>();
-        lits.add(new CLiteral(1));
-        lits.add(new CLiteral(-2));
-        lits.add(new CLiteral(3));
-        Clause cl = new Clause(1, Connective.ATMOST, 2, lits);
+        ArrayList<CLiteralOld> lits = new ArrayList<>();
+        lits.add(new CLiteralOld(1));
+        lits.add(new CLiteralOld(-2));
+        lits.add(new CLiteralOld(3));
+        ClauseOld cl = new ClauseOld(1, Connective.ATMOST, 2, lits);
         assertEquals("M-1: ATMOST 2: 1,-2,3", cl.toString());
         assertSame(ClauseStructure.MIXED, cl.structure);
     }
@@ -181,11 +181,11 @@ public class ClauseTest {
     @Test
     public void addCLiteralsOR() {
         System.out.println("add CLiterals OR");
-        ArrayList<CLiteral> lits = new ArrayList<>();
-        lits.add(new CLiteral(1));
-        lits.add(new CLiteral(-2));
-        lits.add(new CLiteral(3));
-        Clause cl = new Clause(1, Connective.OR, lits);
+        ArrayList<CLiteralOld> lits = new ArrayList<>();
+        lits.add(new CLiteralOld(1));
+        lits.add(new CLiteralOld(-2));
+        lits.add(new CLiteralOld(3));
+        ClauseOld cl = new ClauseOld(1, Connective.OR, lits);
         assertEquals("1: 1,-2,3", cl.toString());
         assertSame(ClauseStructure.MIXED, cl.structure);
     }
@@ -193,10 +193,10 @@ public class ClauseTest {
     @Test
     public void addCLiteralsList() {
         System.out.println("add CLiterals ...");
-        Clause cl = new Clause(1, Connective.OR, -1, 2, -3);
+        ClauseOld cl = new ClauseOld(1, Connective.OR, -1, 2, -3);
         assertEquals("1: -1,2,-3", cl.toString());
         assertSame(ClauseStructure.MIXED, cl.structure);
-        cl = new Clause(1, Connective.ATLEAST, 2, -1, 2, -3);
+        cl = new ClauseOld(1, Connective.ATLEAST, 2, -1, 2, -3);
         assertEquals("L-1: ATLEAST 2: -1,2,-3", cl.toString());
         assertSame(ClauseStructure.MIXED, cl.structure);
     }
@@ -204,25 +204,25 @@ public class ClauseTest {
     @Test
     public void cloneTest() {
         System.out.println("clone");
-        Clause cl1 = new Clause(1, Connective.OR, 1, 2, 3);
-        Clause cl2 = cl1.clone(2);
+        ClauseOld cl1 = new ClauseOld(1, Connective.OR, 1, 2, 3);
+        ClauseOld cl2 = cl1.clone(2);
         assertEquals("2: 1,2,3", cl2.toString());
-        Clause cl3 = cl1.clone(3, 0);
+        ClauseOld cl3 = cl1.clone(3, 0);
         assertEquals("3: 2,3", cl3.toString());
-        Clause cl4 = cl1.clone(4, 1);
+        ClauseOld cl4 = cl1.clone(4, 1);
         assertEquals("4: 1,3", cl4.toString());
 
-        Clause cl5 = new Clause(5, Connective.EXACTLY, 2, -1, -2, -3);
-        Clause cl6 = cl5.clone(6, 2);
+        ClauseOld cl5 = new ClauseOld(5, Connective.EXACTLY, 2, -1, -2, -3);
+        ClauseOld cl6 = cl5.clone(6, 2);
         assertEquals("X-6: EXACTLY 2: -1,-2", cl6.toString());
-        Clause cl7 = cl5.cloneExcept(7, -2);
+        ClauseOld cl7 = cl5.cloneExcept(7, -2);
         assertEquals("X-7: EXACTLY 2: -1,-3", cl7.toString());
     }
 
     @Test
     public void contains() {
         System.out.println("contains");
-        Clause cl = new Clause(1, Connective.OR, 5, -6, 7);
+        ClauseOld cl = new ClauseOld(1, Connective.OR, 5, -6, 7);
 
         assertEquals(+1, cl.contains(5));
         assertEquals(-1, cl.contains(-5));
@@ -243,17 +243,17 @@ public class ClauseTest {
     public void isSubset() {
         System.out.println("isSubset");
 
-        Clause cl1 = new Clause(1, Connective.OR, 5, -6, 7);
-        Clause cl2 = new Clause(2, Connective.OR, 5, -6, 7);
+        ClauseOld cl1 = new ClauseOld(1, Connective.OR, 5, -6, 7);
+        ClauseOld cl2 = new ClauseOld(2, Connective.OR, 5, -6, 7);
         assertTrue(cl1.isSubset(cl2));
 
-        Clause cl3 = new Clause(2, Connective.OR, 7, 5);
+        ClauseOld cl3 = new ClauseOld(2, Connective.OR, 7, 5);
         assertTrue(cl3.isSubset(cl1));
         assertFalse(cl1.isSubset(cl3));
-        Clause cl4 = new Clause(2, Connective.OR, 5, 6, 7);
+        ClauseOld cl4 = new ClauseOld(2, Connective.OR, 5, 6, 7);
         assertFalse(cl1.isSubset(cl4));
 
-        Clause cl5 = new Clause(2, Connective.AND, 5, -6, 7);
+        ClauseOld cl5 = new ClauseOld(2, Connective.AND, 5, -6, 7);
         assertFalse(cl1.isSubset(cl5));
     }
 
@@ -261,15 +261,15 @@ public class ClauseTest {
     public void overlaps() {
         System.out.println("overlaps");
 
-        Clause cl1 = new Clause(1, Connective.OR, 1, 2, 3);
-        Clause cl2 = new Clause(2, Connective.OR, 4, 5, 6);
+        ClauseOld cl1 = new ClauseOld(1, Connective.OR, 1, 2, 3);
+        ClauseOld cl2 = new ClauseOld(2, Connective.OR, 4, 5, 6);
         assertNull(cl1.overlaps(cl2));
 
-        Clause cl3 = new Clause(3, Connective.OR, 3, 4, 5);
+        ClauseOld cl3 = new ClauseOld(3, Connective.OR, 3, 4, 5);
         assertEquals("[1, 3]", Arrays.toString(cl1.overlaps(cl3)));
         assertEquals("[1, 3]", Arrays.toString(cl3.overlaps(cl1)));
 
-        Clause cl4 = new Clause(4, Connective.OR, -2, -3, 4);
+        ClauseOld cl4 = new ClauseOld(4, Connective.OR, -2, -3, 4);
         assertEquals("[-1, 2]", Arrays.toString(cl1.overlaps(cl4)));
         assertEquals("[-1, -2]", Arrays.toString(cl4.overlaps(cl1)));
     }
@@ -278,7 +278,7 @@ public class ClauseTest {
     @Test
     public void removeLiteral() {
         System.out.println("remove");
-        Clause c1 = new Clause(1, Connective.OR, 1, 2, 3);
+        ClauseOld c1 = new ClauseOld(1, Connective.OR, 1, 2, 3);
         c1.remove(c1.getCLiteral(1));
         assertEquals("1: 1,3", c1.toString());
         c1.remove(c1.getCLiteral(1));
@@ -287,7 +287,7 @@ public class ClauseTest {
         assertEquals("1: ", c1.toString());
         assertTrue(c1.isEmpty());
 
-        c1 = new Clause(2, Connective.OR, 1, 2, 3);
+        c1 = new ClauseOld(2, Connective.OR, 1, 2, 3);
         c1.remove(c1.getCLiteral(2));
         assertEquals("2: 1,2", c1.toString());
         c1.remove(c1.getCLiteral(0));
@@ -297,17 +297,17 @@ public class ClauseTest {
     @Test
     public void removeAtPosition() {
         System.out.println("removeAtPosition");
-        Clause c1 = new Clause(1, Connective.OR, 1, 2, 3);
+        ClauseOld c1 = new ClauseOld(1, Connective.OR, 1, 2, 3);
         c1.removeAtPosition(1);
         assertEquals("1: 1,3", c1.toString());
-        CLiteral lit = c1.getCLiteral(1);
+        CLiteralOld lit = c1.getCLiteral(1);
         assertEquals(1, lit.clausePosition);
     }
 
     @Test
     public void doubles() {
         System.out.println("double tautology");
-        Clause c1 = new Clause(1, Connective.OR, 5, -6, -5, -6, -6);
+        ClauseOld c1 = new ClauseOld(1, Connective.OR, 5, -6, -5, -6, -6);
         assertTrue(c1.hasDoubles());
         assertTrue(c1.hasComplementaries());
         assertEquals(2,c1.removeDoubles());
@@ -317,7 +317,7 @@ public class ClauseTest {
     @Test
     public void infoString() {
         System.out.println("infoString");
-        Clause cl1 = new Clause(1, Connective.OR, 1, 2, 3);
+        ClauseOld cl1 = new ClauseOld(1, Connective.OR, 1, 2, 3);
         assertEquals("1: 1,2,3 [1]",cl1.infoString(0,null));
         Symboltable st = makeSymboltable();
         assertEquals("1:   a,b,c [1]",cl1.infoString(5,st));
@@ -327,22 +327,22 @@ public class ClauseTest {
     public void check() {
         System.out.println("check");
         StringBuilder errors = new StringBuilder();
-        Clause cl1 = new Clause(1, Connective.ATLEAST, 4, 1, 2, 3);
+        ClauseOld cl1 = new ClauseOld(1, Connective.ATLEAST, 4, 1, 2, 3);
         assertFalse(cl1.check(errors));
         assertEquals("Clause 1: Quantifier 4 is not between 1 and 3\n",errors.toString());
 
         errors = new StringBuilder();
-        cl1 = new Clause(1, Connective.ATLEAST, 2, 1, 2, 3);
+        cl1 = new ClauseOld(1, Connective.ATLEAST, 2, 1, 2, 3);
         cl1.structure = ClauseStructure.MIXED;
         assertFalse(cl1.check(errors));
         assertEquals("Clause 1: Clause has wrong structure: MIXED, and not POSITIVE\n",errors.toString());
 
         errors = new StringBuilder();
-        cl1 = new Clause(1, Connective.ATLEAST, 2, 1, 2, 3);
-        cl1.cliterals.set(2,new CLiteral(2,cl1,4));
+        cl1 = new ClauseOld(1, Connective.ATLEAST, 2, 1, 2, 3);
+        cl1.cliterals.set(2,new CLiteralOld(2,cl1,4));
         assertFalse(cl1.check(errors));
         assertEquals("Clause 1: Literal 2 has wrong position 4 instead of 2\n",errors.toString());
 
-        cl1 = new Clause(1, Connective.ATLEAST, 2, 1, 2, 3);
+        cl1 = new ClauseOld(1, Connective.ATLEAST, 2, 1, 2, 3);
         assertTrue(cl1.check(errors));}
 }

@@ -1,8 +1,8 @@
 package Solvers;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
-import Datastructures.Literals.CLiteral;
+import Datastructures.Clauses.ClauseOld;
+import Datastructures.Literals.CLiteralOld;
 import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
@@ -233,10 +233,10 @@ public abstract class Solver {
      * @param model   a model
      * @return +1 if all literals are true, -1 if all literals are false, otherwise 0.
      */
-    public int statusInModel(Clause clause, Model model) {
+    public int statusInModel(ClauseOld clause, Model model) {
         int trueLiterals = 0;
         int falseLiterals = 0;
-        for(CLiteral cliteral : clause) {
+        for(CLiteralOld cliteral : clause) {
             int status = model.status(cliteral.literal);
             if(status == 1) {++trueLiterals; continue;}
             if(status == 0) {++falseLiterals;}}
@@ -251,8 +251,8 @@ public abstract class Solver {
      * @param model   a model
      * @return true if the clause is true in the model
      */
-    public boolean trueInModel(Clause clause, Model model) {
-        for(CLiteral cliteral : clause) {
+    public boolean trueInModel(ClauseOld clause, Model model) {
+        for(CLiteralOld cliteral : clause) {
             if(model.isTrue(cliteral.literal)) {return true;} }
         return false;}
 

@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -18,12 +18,12 @@ public class EquivalentTrueLiterals extends InferenceStep{
             title + ": Example:\n" +
                     "p=q=r=s and true(p) -> true(q,r,s)";
 
-    private final Clause clause;
+    private final ClauseOld clause;
     private final int trueLiteral;
     private final IntArrayList derivedLiterals;
     private final Model model;
 
-    public EquivalentTrueLiterals(Clause clause, int trueLiteral, IntArrayList derivedLiterals, Model model) {
+    public EquivalentTrueLiterals(ClauseOld clause, int trueLiteral, IntArrayList derivedLiterals, Model model) {
         this.clause = clause;
         this.trueLiteral = trueLiteral;
         this.derivedLiterals = derivedLiterals;

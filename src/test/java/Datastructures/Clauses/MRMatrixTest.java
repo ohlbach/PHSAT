@@ -1,28 +1,5 @@
 package Datastructures.Clauses;
 
-import Datastructures.Literals.CLiteral;
-import Datastructures.Results.Unsatisfiable;
-import Datastructures.Symboltable;
-import Datastructures.Theory.DisjointnessClasses;
-import Datastructures.Theory.EquivalenceClasses;
-import Datastructures.Theory.Model;
-import Datastructures.TwoLiteral.TwoLitClause;
-import Datastructures.TwoLiteral.TwoLitClauses;
-import Management.Controller;
-import Management.GlobalParameters;
-import Management.Monitor;
-import Management.ProblemSupervisor;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Random;
-
-import static Utilities.Utilities.sortIntArray;
-import static org.junit.Assert.*;
-
 public class MRMatrixTest {
 
     /*

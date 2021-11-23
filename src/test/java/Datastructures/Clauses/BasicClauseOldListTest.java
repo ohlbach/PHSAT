@@ -11,7 +11,7 @@ import static org.junit.Assert.*;
 /**
  * Created by Ohlbach on 03.09.2018.
  */
-public class BasicClauseListTest {
+public class BasicClauseOldListTest {
 
     @Test
     public void removeDoubles()  {

@@ -1,7 +1,5 @@
 package Utilities;
 
-import Datastructures.Clauses.Clause;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Random;

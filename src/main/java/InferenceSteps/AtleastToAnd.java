@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -12,10 +12,10 @@ public class AtleastToAnd extends InferenceStep{
     public static final String rule = title + ": Example:\n"+
             "atleast 3 p,q,r -> p and q and r";
 
-    private final Clause atleastClause;
-    private final Clause andClause;
+    private final ClauseOld atleastClause;
+    private final ClauseOld andClause;
 
-    public AtleastToAnd(Clause atleastClause, Clause andClause) {
+    public AtleastToAnd(ClauseOld atleastClause, ClauseOld andClause) {
         this.atleastClause = atleastClause;
         this.andClause = andClause;}
 

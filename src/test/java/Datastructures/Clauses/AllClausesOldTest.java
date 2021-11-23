@@ -1,6 +1,6 @@
 package Datastructures.Clauses;
 
-import Datastructures.Literals.CLiteral;
+import Datastructures.Literals.CLiteralOld;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -58,14 +58,14 @@ public class AllClausesOldTest {
         return new AllClausesOld(problemSupervisor);
     }
 
-    private Clause make(int id,int... literals) {
-        return new Clause(id, Connective.OR, IntArrayList.wrap(literals));}
+    private ClauseOld make(int id, int... literals) {
+        return new ClauseOld(id, Connective.OR, IntArrayList.wrap(literals));}
 
-    private Clause maked(int id,int... literals) {
-        return new Clause(id, Connective.ATMOST, IntArrayList.wrap(literals));}
+    private ClauseOld maked(int id, int... literals) {
+        return new ClauseOld(id, Connective.ATMOST, IntArrayList.wrap(literals));}
 
-    private Clause makee(int id,int... literals) {
-        return new Clause(id, Connective.EQUIV, IntArrayList.wrap(literals));}
+    private ClauseOld makee(int id, int... literals) {
+        return new ClauseOld(id, Connective.EQUIV, IntArrayList.wrap(literals));}
 
 
 
@@ -73,52 +73,52 @@ public class AllClausesOldTest {
     public void replaceDoublesAndTautologies() {
         System.out.println("replaceDoublesAndTautologies");
         AllClausesOld allClauses = prepare(monitoring,true);
-        Clause clause1 = make(1,1,2,3);
+        ClauseOld clause1 = make(1,1,2,3);
         assertEquals("1: 1,2,3",allClauses.replaceDoublesAndTautologies(clause1).toString());
-        Clause clause2 = make(2,1,2,1,3,2);
+        ClauseOld clause2 = make(2,1,2,1,3,2);
         assertEquals("2: 1,2,3",allClauses.replaceDoublesAndTautologies(clause2).toString());
-        Clause clause3 = make(2,1,2,1,3,-2);
+        ClauseOld clause3 = make(2,1,2,1,3,-2);
         assertNull(allClauses.replaceDoublesAndTautologies(clause3));
     }
     @Test
     public void replaceTruthValues() throws Unsatisfiable {
         System.out.println("replaceTruthValues");
         AllClausesOld allClauses = prepare(monitoring, true);
-        Clause clause1 = make(1, 1, 2, 3);
+        ClauseOld clause1 = make(1, 1, 2, 3);
         assertEquals("1: 1,2,3", allClauses.replaceTruthValues(clause1).toString());
         allClauses.model.add(2,new InferenceTest("my test 1"),null);
         assertNull(allClauses.replaceTruthValues(clause1));
-        Clause clause2 = make(2, 1, -2, 3);
+        ClauseOld clause2 = make(2, 1, -2, 3);
         assertEquals("10: 1,3", allClauses.replaceTruthValues(clause2).toString());
         allClauses.model.add(4,new InferenceTest("my test 2"),null);
-        Clause clause3 = make(3, 1, -2, 3,-4,5);
+        ClauseOld clause3 = make(3, 1, -2, 3,-4,5);
         assertEquals("12: 1,3,5", allClauses.replaceTruthValues(clause3).toString());
     }
     @Test
     public void isSubsumed() {
         System.out.println("isSubsumed");
         AllClausesOld allClauses = prepare(monitoring, true);
-        Clause clause1 = make(1, 1, 2, 3);
+        ClauseOld clause1 = make(1, 1, 2, 3);
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2, 1, -2, 3);
+        ClauseOld clause2 = make(2, 1, -2, 3);
         assertFalse(allClauses.isSubsumed(clause2));
-        Clause clause3 = make(3, 3,2,1);
+        ClauseOld clause3 = make(3, 3,2,1);
         assertTrue(allClauses.isSubsumed(clause3));
-        Clause clause4 = make(4, 3,-4,2,1);
+        ClauseOld clause4 = make(4, 3,-4,2,1);
         assertTrue(allClauses.isSubsumed(clause4));
     }
     @Test
     public void removeSubsumedClauses() {
         System.out.println("removeSubsumedClauses");
         AllClausesOld allClauses = prepare(monitoring, true);
-        Clause clause1 = make(1, 1, 2, 3, 4 );
+        ClauseOld clause1 = make(1, 1, 2, 3, 4 );
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2, 2, 3, 4, 5);
+        ClauseOld clause2 = make(2, 2, 3, 4, 5);
         allClauses.insertClause(clause2);
-        Clause clause3 = make(3, 2, 3, -4, 5);
+        ClauseOld clause3 = make(3, 2, 3, -4, 5);
         allClauses.insertClause(clause3);
 
-        Clause clause4 = make(4, 2, 3, 4);
+        ClauseOld clause4 = make(4, 2, 3, 4);
         allClauses.removeSubsumedClauses(clause4);
         assertEquals("All Clauses of Problem test:\n" +
                 "3: 2,3,-4,5",allClauses.toNumbers());
@@ -127,17 +127,17 @@ public class AllClausesOldTest {
     public void replacementResolutionBackwards1() throws Result {
         System.out.println("replacementResolutionBackwards 1");
         AllClausesOld allClauses = prepare(monitoring, true);
-        Clause clause1 = make(1, 1, 2, 3 );
+        ClauseOld clause1 = make(1, 1, 2, 3 );
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2, 1, -2, 4 );
+        ClauseOld clause2 = make(2, 1, -2, 4 );
         assertSame(clause2,allClauses.replacementResolutionBackwards(clause2));
-        Clause clause3 = make(3, 1, -2 );
+        ClauseOld clause3 = make(3, 1, -2 );
         assertSame(clause3,allClauses.replacementResolutionBackwards(clause3));
-        Clause clause4 = make(4, 1, -2 ,3);
-        Clause clause5 = allClauses.replacementResolutionBackwards(clause4);
+        ClauseOld clause4 = make(4, 1, -2 ,3);
+        ClauseOld clause5 = allClauses.replacementResolutionBackwards(clause4);
         assertEquals("10: 1,3",clause5.toNumbers());
-        Clause clause6 = make(5, 1, -2 ,3,4);
-        Clause clause7 = allClauses.replacementResolutionBackwards(clause6);
+        ClauseOld clause6 = make(5, 1, -2 ,3,4);
+        ClauseOld clause7 = allClauses.replacementResolutionBackwards(clause6);
         assertEquals("11: 1,3,4",clause7.toNumbers());
     }
 
@@ -145,12 +145,12 @@ public class AllClausesOldTest {
     public void replacementResolutionBackwards2() throws Result {
         System.out.println("replacementResolutionBackwards 2");
         AllClausesOld allClauses = prepare(monitoring, true);
-        Clause clause1 = make(1, 1, 2, 3);
+        ClauseOld clause1 = make(1, 1, 2, 3);
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2, -3,2,5);
+        ClauseOld clause2 = make(2, -3,2,5);
         allClauses.insertClause(clause2);
-        Clause clause3 = make(3, -1,2,-4,3,5);
-        Clause clause4 = allClauses.replacementResolutionBackwards(clause3);
+        ClauseOld clause3 = make(3, -1,2,-4,3,5);
+        ClauseOld clause4 = allClauses.replacementResolutionBackwards(clause3);
         assertEquals("11: 2,-4,5",clause4.toNumbers());
     }
 
@@ -158,11 +158,11 @@ public class AllClausesOldTest {
     public void replacementResolutionBackwards3() throws Result {
         System.out.println("replacementResolutionBackwards 3");
         AllClausesOld allClauses = prepare(monitoring, true);
-        Clause clause1 = make(1, 1, 2, 3);
+        ClauseOld clause1 = make(1, 1, 2, 3);
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2, -2, 3);
+        ClauseOld clause2 = make(2, -2, 3);
         allClauses.insertClause(clause2);
-        Clause clause3 = make(3, -1, 2, 3);
+        ClauseOld clause3 = make(3, -1, 2, 3);
         assertNull(allClauses.replacementResolutionBackwards(clause3));
         assertEquals("Model:\n3",allClauses.model.toNumbers());
 
@@ -174,10 +174,10 @@ public class AllClausesOldTest {
         AllClausesOld allClauses = prepare(monitoring, true);
         TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
         allClauses.twoLitClauses.integrateClause(clause1,false);
-        Clause clause2 = make(2, 1, 2, 4);
+        ClauseOld clause2 = make(2, 1, 2, 4);
         allClauses.insertClause(clause2);
-        Clause clause3 = make(3, 1, 3,4);
-        Clause clause4 = allClauses.replacementResolutionBackwards(clause3);
+        ClauseOld clause3 = make(3, 1, 3,4);
+        ClauseOld clause4 = allClauses.replacementResolutionBackwards(clause3);
         assertEquals("10: 1,4",clause4.toNumbers());
     }
     @Test
@@ -191,10 +191,10 @@ public class AllClausesOldTest {
         Thread thread = new Thread(allClauses.twoLitClauses::run);
         thread.start(); Thread.sleep(20);
         thread.interrupt();
-        Clause clause3 = make(2, 1, 2, 4);
+        ClauseOld clause3 = make(2, 1, 2, 4);
         allClauses.insertClause(clause3);
-        Clause clause4 = make(3, 1, 3,4,6);
-        Clause clause5 = allClauses.replacementResolutionBackwards(clause4);
+        ClauseOld clause4 = make(3, 1, 3,4,6);
+        ClauseOld clause5 = allClauses.replacementResolutionBackwards(clause4);
         assertEquals("11: 1,4,6",clause5.toNumbers());
     }
     @Test
@@ -203,12 +203,12 @@ public class AllClausesOldTest {
         AllClausesOld allClauses = prepare(monitoring, true);
         TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
         allClauses.twoLitClauses.integrateClause(clause1,false);
-        Clause clause2 = make(2, 1, 2, 4);
+        ClauseOld clause2 = make(2, 1, 2, 4);
         allClauses.insertClause(clause2);
-        Clause clause3 = make(3, 1, -5, 6);
+        ClauseOld clause3 = make(3, 1, -5, 6);
         allClauses.insertClause(clause3);
-        Clause clause4 = make(4, 1, 3,4,5,6);
-        Clause clause5 = allClauses.replacementResolutionBackwards(clause4);
+        ClauseOld clause4 = make(4, 1, 3,4,5,6);
+        ClauseOld clause5 = allClauses.replacementResolutionBackwards(clause4);
         assertEquals("11: 1,4,6",clause5.toNumbers());
     }
 
@@ -217,13 +217,13 @@ public class AllClausesOldTest {
         System.out.println("replacementResolutionForward 1");
         AllClausesOld allClauses = prepare(monitoring, true);
         allClauses.problemSupervisor.clauseCounter = 9;
-        Clause clause1 = make(1, 1, 2, 3);
+        ClauseOld clause1 = make(1, 1, 2, 3);
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2, -1, 2, 4);
+        ClauseOld clause2 = make(2, -1, 2, 4);
         allClauses.replacementResolutionForward(clause2);
         assertEquals("All Clauses of Problem test:\n" +
                 "1: 1,2,3",allClauses.toNumbers());
-        Clause clause3 = make(3, -1, 2, 3);
+        ClauseOld clause3 = make(3, -1, 2, 3);
         allClauses.replacementResolutionForward(clause3);
         Thread thread = new Thread(allClauses::run);
         thread.start(); Thread.sleep(20);
@@ -242,12 +242,12 @@ public class AllClausesOldTest {
         TwoLitClause clause2 = new TwoLitClause(2,-2,-4);
         allClauses.twoLitClauses.integrateClause(clause2,false);
 
-        Clause clause3 = make(3, 1, 3, 4, 5);
+        ClauseOld clause3 = make(3, 1, 3, 4, 5);
         allClauses.insertClause(clause3);
-        Clause clause4 = make(4, 4, 6, 1, 5);
+        ClauseOld clause4 = make(4, 4, 6, 1, 5);
         allClauses.insertClause(clause4);
 
-        Clause clause5 = make(5, 1, 2, 5);
+        ClauseOld clause5 = make(5, 1, 2, 5);
         allClauses.replacementResolutionForward(clause5);
         Thread thread = new Thread(allClauses::run);
         thread.start(); Thread.sleep(20);
@@ -261,9 +261,9 @@ public class AllClausesOldTest {
         System.out.println("replacementResolutionForward unit");
         AllClausesOld allClauses = prepare(monitoring, true);
         allClauses.problemSupervisor.clauseCounter = 9;
-        Clause clause1 = make(1, 1, 2);
+        ClauseOld clause1 = make(1, 1, 2);
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2, -1, 2);
+        ClauseOld clause2 = make(2, -1, 2);
         allClauses.replacementResolutionForward(clause2);
         assertTrue(allClauses.isEmpty());
         assertEquals("Model:\n2",allClauses.model.toNumbers());
@@ -274,12 +274,12 @@ public class AllClausesOldTest {
         System.out.println("replacementResolutionForward 4");
         AllClausesOld allClauses = prepare(monitoring, true);
         allClauses.problemSupervisor.clauseCounter = 9;
-        Clause clause1 = make(1, 1, 2, 4, 5);
+        ClauseOld clause1 = make(1, 1, 2, 4, 5);
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2, 4, 2, 1, 6);
+        ClauseOld clause2 = make(2, 4, 2, 1, 6);
         allClauses.insertClause(clause2);
 
-        Clause clause3 = make(3, 1, -2, 4);
+        ClauseOld clause3 = make(3, 1, -2, 4);
         allClauses.replacementResolutionForward(clause3);
         Thread thread = new Thread(allClauses::run);
         thread.start(); Thread.sleep(20);
@@ -295,13 +295,13 @@ public class AllClausesOldTest {
         AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
         TwoLitClause clause1 = new TwoLitClause(1,-2,-3);
-        Clause clause2 = make(2, 1, 2, 4, 5);
+        ClauseOld clause2 = make(2, 1, 2, 4, 5);
         allClauses.insertClause(clause2);
-        Clause clause3 = make(3, 1, 3, 4, 5);
+        ClauseOld clause3 = make(3, 1, 3, 4, 5);
         allClauses.insertClause(clause3);
-        Clause clause4 = make(4, 1, 2, 6);
+        ClauseOld clause4 = make(4, 1, 2, 6);
         allClauses.insertClause(clause4);
-        Clause clause5 = make(5, 1, 3, 6, 7);
+        ClauseOld clause5 = make(5, 1, 3, 6, 7);
         allClauses.insertClause(clause5);
         allClauses.replacementResolutionTwo(clause1);
         Thread thread = new Thread(allClauses::run);
@@ -318,25 +318,25 @@ public class AllClausesOldTest {
         System.out.println("integrate Clause");
         AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
-        Clause clause1 = make(1, 1, 2, 3);
+        ClauseOld clause1 = make(1, 1, 2, 3);
         allClauses.integrateClause(clause1);
         assertEquals("All Clauses of Problem test:\n" +
                 "1: 1,2,3", allClauses.toNumbers());
-        Clause clause2 = make(2, 2, 3, 4);
+        ClauseOld clause2 = make(2, 2, 3, 4);
         allClauses.integrateClause(clause2);
         assertEquals("All Clauses of Problem test:\n" +
                 "1: 1,2,3\n" +
                 "2: 2,3,4", allClauses.toNumbers());
 
-        Clause clause3 = make(3, 2, 3);
+        ClauseOld clause3 = make(3, 2, 3);
         allClauses.integrateClause(clause3);
         assertEquals("All Clauses of Problem test:\n" +
                 "3: 2,3", allClauses.toNumbers());
 
 
-        Clause clause4 = make(4,5,6,7);
+        ClauseOld clause4 = make(4,5,6,7);
         allClauses.integrateClause(clause4);
-        Clause clause5 = make(5,5,-6,7);
+        ClauseOld clause5 = make(5,5,-6,7);
         allClauses.integrateClause(clause5);
         assertEquals("All Clauses of Problem test:\n" +
                 "3:  2,3\n" +
@@ -348,7 +348,7 @@ public class AllClausesOldTest {
         System.out.println("integrateDerivedDisjointnessClass");
         AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
-        Clause clause1 = maked(1, 1, 2, 3);
+        ClauseOld clause1 = maked(1, 1, 2, 3);
         allClauses.integrateDerivedDisjointnessClause(clause1);
         Thread thread = new Thread(allClauses::run);
         thread.start(); Thread.sleep(20);
@@ -379,9 +379,9 @@ public class AllClausesOldTest {
         System.out.println("integrateTwoLitClause 1");
         AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
-        Clause clause1 = make(1,3,2,1);
+        ClauseOld clause1 = make(1,3,2,1);
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2,2,1,4);
+        ClauseOld clause2 = make(2,2,1,4);
         allClauses.insertClause(clause2);
         TwoLitClause clause3 = new TwoLitClause(3, 1, 2);
         allClauses.integrateTwoLitClause(clause3);
@@ -394,9 +394,9 @@ public class AllClausesOldTest {
         System.out.println("integrateTwoLitClause 2");
         AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
-        Clause clause1 = make(1,3,2,1);
+        ClauseOld clause1 = make(1,3,2,1);
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2,2,1,4);
+        ClauseOld clause2 = make(2,2,1,4);
         allClauses.insertClause(clause2);
         TwoLitClause clause3 = new TwoLitClause(3, -1, 2);
         allClauses.integrateTwoLitClause(clause3);
@@ -412,9 +412,9 @@ public class AllClausesOldTest {
         System.out.println("integrateTwoLitClause 3");
         AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
-        Clause clause1 = make(1,2,1,4);
+        ClauseOld clause1 = make(1,2,1,4);
         allClauses.insertClause(clause1);
-        Clause clause2 = make(2,2,1);
+        ClauseOld clause2 = make(2,2,1);
         allClauses.insertClause(clause2);
         TwoLitClause clause3 = new TwoLitClause(3, -1, 2);
         allClauses.integrateTwoLitClause(clause3);
@@ -429,9 +429,9 @@ public class AllClausesOldTest {
         System.out.println("integrateEquivalence");
         AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
-        Clause clausee = makee(1,1,2,3);
-        Clause clause1 = make(2,3,4,5);
-        Clause clause2 = make(3,2,4,5);
+        ClauseOld clausee = makee(1,1,2,3);
+        ClauseOld clause1 = make(2,3,4,5);
+        ClauseOld clause2 = make(3,2,4,5);
         allClauses.integrateClause(clause1);
         allClauses.integrateClause(clause2);
         allClauses.equivalenceClasses.integrateEquivalence(clausee,true);
@@ -446,48 +446,48 @@ public class AllClausesOldTest {
         System.out.println("addFullDClause");
         AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
-        ArrayList<Clause[]> mrDClauses = new ArrayList<>();
-        Clause dClause1 = maked(1, 1, 2, 3);
-        Clause dClause2 = maked(2, 4, 5);
-        Clause dClause3 = maked(3, -6,-7,-8,-9);
-        Clause[] dClauses = new Clause[]{dClause1, dClause2};
+        ArrayList<ClauseOld[]> mrDClauses = new ArrayList<>();
+        ClauseOld dClause1 = maked(1, 1, 2, 3);
+        ClauseOld dClause2 = maked(2, 4, 5);
+        ClauseOld dClause3 = maked(3, -6,-7,-8,-9);
+        ClauseOld[] dClauses = new ClauseOld[]{dClause1, dClause2};
         allClauses.addFullDClause(mrDClauses, dClauses);
         assertEquals(1,mrDClauses.size());
-        Clause[] dClauses2 = new Clause[]{dClause2, dClause1};
+        ClauseOld[] dClauses2 = new ClauseOld[]{dClause2, dClause1};
         allClauses.addFullDClause(mrDClauses, dClauses2);
         assertEquals(1,mrDClauses.size());
-        Clause[] dClauses3 = new Clause[]{dClause1};
+        ClauseOld[] dClauses3 = new ClauseOld[]{dClause1};
         allClauses.addFullDClause(mrDClauses, dClauses3);
         assertEquals(2,mrDClauses.size());
-        Clause[] dClauses4 = new Clause[]{dClause2, dClause1,dClause3};
+        ClauseOld[] dClauses4 = new ClauseOld[]{dClause2, dClause1,dClause3};
         allClauses.addFullDClause(mrDClauses, dClauses4);
         assertEquals(3,mrDClauses.size());
-        Clause[] dClauses5 = new Clause[]{dClause3, dClause1,dClause2};
+        ClauseOld[] dClauses5 = new ClauseOld[]{dClause3, dClause1,dClause2};
         allClauses.addFullDClause(mrDClauses, dClauses5);
         assertEquals(3,mrDClauses.size());
     }
-    private Clause getDCl(Clause clause, int cl, int pos) {
-        return ((ArrayList<Clause[]>)clause.aux).get(cl)[pos];}
+    private ClauseOld getDCl(ClauseOld clause, int cl, int pos) {
+        return ((ArrayList<ClauseOld[]>)clause.aux).get(cl)[pos];}
 
     @Test
     public void addDClause() throws Exception {
         System.out.println("addDClause");
         AllClausesOld allClauses = prepare(monitoring, false);
         allClauses.problemSupervisor.clauseCounter = 9;
-        ArrayList<Clause[]> mrDClauses = new ArrayList<>();
-        Clause dClause1 = maked(1, 2,5,8);
-        Clause dClause2 = maked(2, 1,4,7);
-        Clause dClause3 = maked(3, 3,6,9);
-        Clause dClause4 = maked(4, 3,2,9);
-        Clause clause = make(10,1,2,3);
-        CLiteral cLiteral = clause.cliterals.get(1);
+        ArrayList<ClauseOld[]> mrDClauses = new ArrayList<>();
+        ClauseOld dClause1 = maked(1, 2,5,8);
+        ClauseOld dClause2 = maked(2, 1,4,7);
+        ClauseOld dClause3 = maked(3, 3,6,9);
+        ClauseOld dClause4 = maked(4, 3,2,9);
+        ClauseOld clause = make(10,1,2,3);
+        CLiteralOld cLiteral = clause.cliterals.get(1);
         assertNull(clause.aux);
         allClauses.addDClause(cLiteral,dClause1,mrDClauses);
-        assertEquals(1,((ArrayList<Clause[]>)clause.aux).size());
+        assertEquals(1,((ArrayList<ClauseOld[]>)clause.aux).size());
         assertNull(getDCl(clause,0,0));
         assertNull(getDCl(clause,0,2));
-        assertNull(((ArrayList<Clause[]>)clause.aux).get(0)[0]);
-        assertNull(((ArrayList<Clause[]>)clause.aux).get(0)[2]);
+        assertNull(((ArrayList<ClauseOld[]>)clause.aux).get(0)[0]);
+        assertNull(((ArrayList<ClauseOld[]>)clause.aux).get(0)[2]);
         assertSame(dClause1,getDCl(clause,0,1));
         cLiteral = clause.cliterals.get(0);
         allClauses.addDClause(cLiteral,dClause2,mrDClauses);

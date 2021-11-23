@@ -1,13 +1,11 @@
 package Utilities;
 
-import Datastructures.Literals.CLiteral;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Predicate;
 
 /** This class can be used to map items to item occurrences, for example literals to literal occurrences.
  * Created by ohlbach on 05.12.2019.

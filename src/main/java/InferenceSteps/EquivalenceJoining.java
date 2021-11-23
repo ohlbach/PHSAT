@@ -1,16 +1,16 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import org.apache.commons.lang3.StringUtils;
+
 import java.util.ArrayList;
 import static Utilities.Utilities.joinIntArrays;
 
 public class EquivalenceJoining  extends InferenceStep {
-    private final Clause clause1;
-    private final Clause clause2;
-    private final Clause joinedClause;
+    private final ClauseOld clause1;
+    private final ClauseOld clause2;
+    private final ClauseOld joinedClause;
     private final int literal;
 
     public static final String title = "Equivalence Joining";
@@ -23,7 +23,7 @@ public class EquivalenceJoining  extends InferenceStep {
             "p == q == ... == s == r == ... == t";
 
 
-    public EquivalenceJoining(Clause clause1, Clause clause2, int literal, Clause joinedClause) {
+    public EquivalenceJoining(ClauseOld clause1, ClauseOld clause2, int literal, ClauseOld joinedClause) {
         this.clause1 = clause1;
         this.clause2 = clause2;
         this.literal = literal;

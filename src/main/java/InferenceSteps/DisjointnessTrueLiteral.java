@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import static Utilities.Utilities.joinIntArrays;
 
 public class DisjointnessTrueLiteral extends InferenceStep{
-    private final Clause dClause;
+    private final ClauseOld dClause;
     private final int trueLiteral;
     private final int derivedLiteral;
     private final InferenceStep inferenceStep;
@@ -27,7 +27,7 @@ public class DisjointnessTrueLiteral extends InferenceStep{
      * @param derivedLiteral  the derived true literal
      * @param inferenceStep   which derived the true literal
      */
-    public DisjointnessTrueLiteral(Clause dClause, int trueLiteral, int derivedLiteral, InferenceStep inferenceStep) {
+    public DisjointnessTrueLiteral(ClauseOld dClause, int trueLiteral, int derivedLiteral, InferenceStep inferenceStep) {
         this.dClause = dClause;
         this.trueLiteral = trueLiteral;
         this.derivedLiteral = derivedLiteral;

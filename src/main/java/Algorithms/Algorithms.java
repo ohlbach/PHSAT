@@ -1,16 +1,9 @@
 package Algorithms;
 
-import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseList;
-import Datastructures.Literals.CLiteral;
-import Datastructures.Literals.LiteralIndex;
+import Datastructures.Literals.CLiteralOld;
 import Datastructures.Theory.ImplicationDAG;
-import org.omg.CORBA.TIMEOUT;
 
 import java.util.ArrayList;
-import java.util.TreeSet;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
 
 /**
  * Created by ohlbach on 18.09.2018.
@@ -148,9 +141,9 @@ public class Algorithms {
      * @param implicationDAG the implication DAG
      * @return               true if the clause is subsumed by the implication DAG
      */
-    public static boolean subsumedByID(ArrayList<CLiteral> clause, ImplicationDAG implicationDAG) {
-        for(CLiteral clit1 : clause) {
-            for(CLiteral clit2 : clause) {
+    public static boolean subsumedByID(ArrayList<CLiteralOld> clause, ImplicationDAG implicationDAG) {
+        for(CLiteralOld clit1 : clause) {
+            for(CLiteralOld clit2 : clause) {
                 return clit1 != clit2 && implicationDAG.implies(-clit1.literal,clit2.literal);}}
         return false;}
 
@@ -163,13 +156,13 @@ public class Algorithms {
      * @param implicationDAG the implication DAG
      * @return               the number of literal removals.
      */
-    public static int replacementResolutionWithID(ArrayList<CLiteral> clause, ImplicationDAG implicationDAG) {
+    public static int replacementResolutionWithID(ArrayList<CLiteralOld> clause, ImplicationDAG implicationDAG) {
         int removals = 0;
         boolean again = true;
         while(again) {
             again = false;
-            for(CLiteral clit1 : clause) {
-                for(CLiteral clit2 : clause) {
+            for(CLiteralOld clit1 : clause) {
+                for(CLiteralOld clit2 : clause) {
                     if(clit1 != clit2 && implicationDAG.implies(clit1.literal,clit2.literal)) {
                         clause.remove(clit1);
                         ++removals;

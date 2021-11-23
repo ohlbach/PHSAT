@@ -1,6 +1,6 @@
 package Datastructures.Clauses.QuantifiedToCNF;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -25,9 +25,9 @@ public class AtleastToCNF extends InferenceStep {
             "5: 1,3,4,5,6\n"+
             "6: 2,3,4,5,6";
 
-    private final Clause atleastClause;
-    private final Clause orClause;
-    public AtleastToCNF(Clause atleastClause, Clause orClause) {
+    private final ClauseOld atleastClause;
+    private final ClauseOld orClause;
+    public AtleastToCNF(ClauseOld atleastClause, ClauseOld orClause) {
         this.atleastClause = atleastClause;
         this.orClause = orClause;}
 

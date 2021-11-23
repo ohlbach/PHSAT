@@ -1,6 +1,6 @@
 package Datastructures.Clauses.Simplifiers;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -18,10 +18,10 @@ public class QuantifiedToModel extends InferenceStep {
             "atmost 0 l_1,...,l_m   -> true(-l_1,...,-l_m)\n"+
             "exactly m l_1,...,l_m  -> true(l_1,...,l_m)\n";
 
-    private final Clause clause;
+    private final ClauseOld clause;
     private final int literal;
 
-    public QuantifiedToModel(Clause clause, int literal) {
+    public QuantifiedToModel(ClauseOld clause, int literal) {
         this.clause  = clause;
         this.literal = literal;}
 

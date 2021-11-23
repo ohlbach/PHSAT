@@ -16,7 +16,7 @@ import static org.junit.Assert.*;
 /**
  * Created by ohlbach on 06.09.2018.
  */
-public class RandomClauseSetGeneratorTest {
+public class RandomClauseOldSetGeneratorTest {
     @Test
     public void help() {
         System.out.println(RandomClauseSetGenerator.help());

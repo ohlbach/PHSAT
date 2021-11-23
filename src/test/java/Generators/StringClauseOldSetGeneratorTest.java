@@ -10,7 +10,7 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by ohlbach on 27.08.2018.
  */
-public class StringClauseSetGeneratorTest {
+public class StringClauseOldSetGeneratorTest {
 
      @Test
      public void help() {

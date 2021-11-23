@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -13,10 +13,10 @@ public class AllToModel extends InferenceStep{
             "atmost 0 p,q,r  -> true(-p,-q,-r)\n"+
             "exactly 3 p,q,r -> true(p,q,r)  ";
 
-    private final Clause clause;
+    private final ClauseOld clause;
     private final int sign;
 
-    public AllToModel(Clause clause,int sign) {
+    public AllToModel(ClauseOld clause, int sign) {
         this.clause = clause;
         this.sign = sign;}
 

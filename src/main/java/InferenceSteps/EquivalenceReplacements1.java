@@ -1,26 +1,25 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 
 import static Utilities.Utilities.joinIntArrays;
 
 public class EquivalenceReplacements1 extends InferenceStep {
-    private final Clause oldClause;
-    private final Clause newClause;
+    private final ClauseOld oldClause;
+    private final ClauseOld newClause;
     private final int oldLiteral;
     private final int newLiteral;
-    private final Clause equivalenceClause;
+    private final ClauseOld equivalenceClause;
     public static final String title = "Equivalence Replacement";
 
     public static String rule = title + "\n" +
             "...,a,... and  a == b -> ...,b,...";
 
-    public EquivalenceReplacements1(Clause oldClause, int oldLiteral, Clause newClause, int newLiteral, Clause equivalenceClause) {
+    public EquivalenceReplacements1(ClauseOld oldClause, int oldLiteral, ClauseOld newClause, int newLiteral, ClauseOld equivalenceClause) {
         this.oldClause  = oldClause;
         this.oldLiteral = oldLiteral;
         this.newClause  = newClause;

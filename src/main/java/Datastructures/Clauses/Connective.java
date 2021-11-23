@@ -8,6 +8,7 @@ public enum Connective {
     OR("o", ",",""),
     AND("a","&","A-"),
     EQUIV("e","=","E-"),
+    INTERVAL("i",",","I-"),
     ATLEAST("<=", ",", "L-"),
     ATMOST(">=", ",","M-"),
     EXACTLY("=", ",","X-");
@@ -34,9 +35,10 @@ public enum Connective {
             case 0: return OR;
             case 1: return AND;
             case 2: return EQUIV;
-            case 3: return ATLEAST;
-            case 4: return ATMOST;
-            case 5: return EXACTLY;}
+            case 3: return INTERVAL;
+            case 4: return ATLEAST;
+            case 5: return ATMOST;
+            case 6: return EXACTLY;}
         return null;}
 
     /** returns for the given string the corresponding type
@@ -49,10 +51,14 @@ public enum Connective {
             case "o":  return OR;
             case "a":  return AND;
             case "e":  return EQUIV;
+            case "i":  return INTERVAL;
             case "<=": return ATLEAST;
             case ">=": return ATMOST;
             case "=":  return EXACTLY;}
         return null;}
+
+    public static boolean isInterval(int ordinal) {
+        return ordinal == 3;}
 
     /** checks if the connective is a quantifier (atleast, atmost, exactly)
      *
@@ -60,7 +66,7 @@ public enum Connective {
      * @return true if it is one of the quantifier numbers
      */
     public static boolean isQuantifier(int n) {
-        return n >= 3 && n <= 5;}
+        return n >= 4 && n <= 6;}
 
     /** checks if the connective is a quantifier (atleast, atmost, exactly)
      *

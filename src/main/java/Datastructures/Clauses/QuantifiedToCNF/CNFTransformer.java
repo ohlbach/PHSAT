@@ -1,8 +1,8 @@
 package Datastructures.Clauses.QuantifiedToCNF;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Clauses.Connective;
-import Datastructures.Literals.CLiteral;
+import Datastructures.Literals.CLiteralOld;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -30,7 +30,7 @@ public class CNFTransformer {
      * @param clause     a numeric clause
      * @return           an ArrayList of OR-clauses
      */
-    public ArrayList<Clause> toCNF(Clause clause) {
+    public ArrayList<ClauseOld> toCNF(ClauseOld clause) {
         switch(clause.connective) {
             case ATLEAST: return atLeastToCNF(clause);
             case ATMOST:  return atmostToCNF(clause);
@@ -42,16 +42,16 @@ public class CNFTransformer {
      * @param clause an atleast-Clause
      * @return a list of OR-clauses as the conjunctive normal form of the atleast-clause
      */
-    private ArrayList<Clause> atLeastToCNF(Clause clause) {
+    private ArrayList<ClauseOld> atLeastToCNF(ClauseOld clause) {
         assert clause.connective == Connective.ATLEAST;
-        ArrayList<Clause> clauses = new ArrayList<>();
+        ArrayList<ClauseOld> clauses = new ArrayList<>();
         boolean hasDoubles = clause.hasDoubles();
         for(IntArrayList literals :
                 Utilities.combinations(clause.size()- clause.quAmount +1,clause.toArray(),
                         hasDoubles,hasDoubles,hasDoubles)) {
-            clauses.add(new Clause(nextId.getAsInt(), Connective.OR,literals));}
+            clauses.add(new ClauseOld(nextId.getAsInt(), Connective.OR,literals));}
         if(trackReasoning) {
-            for(Clause orClause : clauses) {
+            for(ClauseOld orClause : clauses) {
                 orClause.inferenceStep = new AtleastToCNF(clause, orClause);}}
         return clauses;}
 
@@ -61,18 +61,18 @@ public class CNFTransformer {
      * @param clause an atmost-Clause
      * @return a list of OR-clauses as the conjunctive normal form of the atmost-clause
      */
-    private ArrayList<Clause> atmostToCNF(Clause clause) {
+    private ArrayList<ClauseOld> atmostToCNF(ClauseOld clause) {
         assert clause.connective == Connective.ATMOST;
-        ArrayList<Clause> clauses = new ArrayList<>();
+        ArrayList<ClauseOld> clauses = new ArrayList<>();
         IntArrayList negLiterals = new IntArrayList();
         boolean hasDoubles = clause.hasDoubles();
-        for(CLiteral cLiteral : clause) negLiterals.add(-cLiteral.literal);
+        for(CLiteralOld cLiteral : clause) negLiterals.add(-cLiteral.literal);
         for(IntArrayList literals :
                 Utilities.combinations(clause.quAmount +1,negLiterals,
                         hasDoubles,hasDoubles,hasDoubles)) {
-            clauses.add(new Clause(nextId.getAsInt(), Connective.OR,literals));}
+            clauses.add(new ClauseOld(nextId.getAsInt(), Connective.OR,literals));}
         if(trackReasoning) {
-            for(Clause orClause : clauses) {
+            for(ClauseOld orClause : clauses) {
                 orClause.inferenceStep = new AtmostToCNF(clause, orClause);}}
         return clauses;}
 
@@ -82,23 +82,23 @@ public class CNFTransformer {
      * @param clause an exactly-Clause
      * @return a list of OR-clauses as the conjunctive normal form of the exactly-clause
      */
-    private ArrayList<Clause> exactlyToCNF(Clause clause) {
+    private ArrayList<ClauseOld> exactlyToCNF(ClauseOld clause) {
         assert clause.connective == Connective.EXACTLY;
         IntArrayList literals = clause.toArray();
-        ArrayList<Clause> clauses = new ArrayList<>();
+        ArrayList<ClauseOld> clauses = new ArrayList<>();
         boolean hasDoubles = clause.hasDoubles();
         for(IntArrayList posLiterals :
                 Utilities.combinations(clause.size()- clause.quAmount +1,literals,
                         hasDoubles,hasDoubles,hasDoubles)) {
-            clauses.add(new Clause(nextId.getAsInt(), Connective.OR,posLiterals));}
+            clauses.add(new ClauseOld(nextId.getAsInt(), Connective.OR,posLiterals));}
         for(int i = 0; i < literals.size(); ++i) literals.set(i,-literals.getInt(i));
         for(IntArrayList negLiterals :
                 Utilities.combinations(clause.quAmount +1,literals,
                         hasDoubles,hasDoubles,hasDoubles)) {
-            clauses.add(new Clause(nextId.getAsInt(), Connective.OR,negLiterals));}
+            clauses.add(new ClauseOld(nextId.getAsInt(), Connective.OR,negLiterals));}
 
         if(trackReasoning) {
-            for(Clause orClause :clauses) {
+            for(ClauseOld orClause :clauses) {
                 orClause.inferenceStep = new ExactlyToCNF(clause,orClause);}}
         return clauses;
     }

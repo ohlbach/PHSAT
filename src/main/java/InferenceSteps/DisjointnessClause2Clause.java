@@ -1,7 +1,7 @@
 package InferenceSteps;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
@@ -13,8 +13,8 @@ import java.util.ArrayList;
  */
 public class DisjointnessClause2Clause  extends InferenceStep {
     private int[] basicClause = null;
-    private Clause disjointnessClause = null;
-    private final Clause clause;
+    private ClauseOld disjointnessClause = null;
+    private final ClauseOld clause;
     public static String title = "DisjointnessClause -> Two-Literal Clause";
 
     public static String rule =
@@ -31,7 +31,7 @@ public class DisjointnessClause2Clause  extends InferenceStep {
      * @param basicClause a basic disjointness clause
      * @param clause a two-literal clause
      */
-    public DisjointnessClause2Clause(int[] basicClause, Clause clause) {
+    public DisjointnessClause2Clause(int[] basicClause, ClauseOld clause) {
         this.basicClause = basicClause;
         this.clause = clause;}
 
@@ -40,7 +40,7 @@ public class DisjointnessClause2Clause  extends InferenceStep {
      * @param disjointnessClause a  disjointness clause
      * @param clause a two-literal clause
      */
-    public DisjointnessClause2Clause(Clause disjointnessClause, Clause clause) {
+    public DisjointnessClause2Clause(ClauseOld disjointnessClause, ClauseOld clause) {
         this.disjointnessClause = disjointnessClause;
         this.clause = clause;}
 

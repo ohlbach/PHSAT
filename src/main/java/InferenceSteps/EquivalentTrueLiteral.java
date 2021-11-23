@@ -1,16 +1,15 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 
 import static Utilities.Utilities.joinIntArrays;
 
 public class EquivalentTrueLiteral extends InferenceStep{
-    private final Clause eClause;
+    private final ClauseOld eClause;
     private final int trueLiteral;
     private final int derivedLiteral;
     private final InferenceStep inferenceStep;
@@ -27,7 +26,7 @@ public class EquivalentTrueLiteral extends InferenceStep{
      * @param derivedLiteral  the derived true literal
      * @param inferenceStep   which derived the true literal
      */
-    public EquivalentTrueLiteral(Clause eClause, int trueLiteral, int derivedLiteral, InferenceStep inferenceStep) {
+    public EquivalentTrueLiteral(ClauseOld eClause, int trueLiteral, int derivedLiteral, InferenceStep inferenceStep) {
         this.eClause = eClause;
         this.trueLiteral = trueLiteral;
         this.derivedLiteral = derivedLiteral;

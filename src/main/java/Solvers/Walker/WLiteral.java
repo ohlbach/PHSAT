@@ -1,12 +1,12 @@
 package Solvers.Walker;
 
-import Datastructures.Clauses.Clause;
-import Datastructures.Literals.CLiteral;
+import Datastructures.Clauses.ClauseOld;
+import Datastructures.Literals.CLiteralOld;
 
 /**
  * Created by ohlbach on 27.01.2020.
  */
-public class WLiteral extends CLiteral {
+public class WLiteral extends CLiteralOld {
 
     public int score = 0;
 
@@ -25,7 +25,7 @@ public class WLiteral extends CLiteral {
      * @param clause     the clause containing the literal
      * @param position   the clausePosition of the literal within the clause
      */
-    public WLiteral(int literal, Clause clause, int position) {
+    public WLiteral(int literal, ClauseOld clause, int position) {
         super(literal,clause,position);}
 
 }

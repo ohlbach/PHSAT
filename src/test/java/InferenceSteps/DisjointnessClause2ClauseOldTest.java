@@ -2,7 +2,7 @@ package InferenceSteps;
 
 import org.junit.Test;
 
-public class DisjointnessClause2ClauseTest {
+public class DisjointnessClause2ClauseOldTest {
 
     @Test
     public void rule() {

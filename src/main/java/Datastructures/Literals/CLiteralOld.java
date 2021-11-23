@@ -1,6 +1,6 @@
 package Datastructures.Literals;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import Utilities.Positioned;
 
@@ -13,9 +13,9 @@ import java.util.function.Function;
  * Besides the literal, it contains a pointer to the clause and the clausePosition within the clause.
  * A CLiteral can be subclassed to carry more information.
  */
-public class CLiteral implements Positioned {
+public class CLiteralOld implements Positioned {
     public int literal;                // the literal
-    public Clause clause = null;       // the clause
+    public ClauseOld clause = null;       // the clause
     public int clausePosition = -1;    // the clausePosition of the literal within the clause.
     public int indexPosition = -1;     // the position in a literal index.
     public int timestamp = 0;
@@ -25,7 +25,7 @@ public class CLiteral implements Positioned {
      *
      * @param literal the literal
      */
-    public CLiteral(int literal) {
+    public CLiteralOld(int literal) {
         this.literal = literal;}
 
     /** creates a CLiteral and sets the clause
@@ -34,7 +34,7 @@ public class CLiteral implements Positioned {
      * @param clause     the clause containing the literal
      * @param position   the clausePosition of the literal within the clause
      */
-    public CLiteral(int literal, Clause clause, int position) {
+    public CLiteralOld(int literal, ClauseOld clause, int position) {
         this.literal = literal;
         this.clause = clause;
         this.clausePosition = position;}
@@ -45,7 +45,7 @@ public class CLiteral implements Positioned {
      * @param clause    the clause
      * @param position  the clausePosition within the clause
      */
-    public void setClause(Clause clause, int position) {
+    public void setClause(ClauseOld clause, int position) {
         assert position >= 0;
         this.clause = clause;
         this.clausePosition = position;}
@@ -54,8 +54,8 @@ public class CLiteral implements Positioned {
      *
      * @return the clone.
      */
-    public CLiteral clone() {
-        return new CLiteral(literal);}
+    public CLiteralOld clone() {
+        return new CLiteralOld(literal);}
 
 
     /** sets the position in a literal index
@@ -85,7 +85,7 @@ public class CLiteral implements Positioned {
      *
      * @return the literal as a String.
      */
-    public String toString(Function<Clause,String> clauseString) {
+    public String toString(Function<ClauseOld,String> clauseString) {
         return Integer.toString(literal) + "@" + clauseString.apply(clause);}
 
     /** returns just  name of the literal.
@@ -93,7 +93,7 @@ public class CLiteral implements Positioned {
      * @param symboltable for mapping numbers to names
      * @return the literal name as a String.
      */
-    public String toString(Symboltable symboltable, Function<Clause,String> clauseString) {
+    public String toString(Symboltable symboltable, Function<ClauseOld,String> clauseString) {
         return ((symboltable == null) ? toString() : symboltable.toString(literal)) +"@" + clauseString.apply(clause);}
 
 

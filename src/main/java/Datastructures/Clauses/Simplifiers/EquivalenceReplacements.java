@@ -1,6 +1,7 @@
 package Datastructures.Clauses.Simplifiers;
 
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import InferenceSteps.InferenceStep;
@@ -28,7 +29,7 @@ public class EquivalenceReplacements extends InferenceStep {
     private final EquivalenceClasses equivalenceClasses;
 
     public EquivalenceReplacements(Clause oldClause, Clause newClause, IntArrayList positions,
-                                   EquivalenceClasses equivalenceClasses) {
+                                      EquivalenceClasses equivalenceClasses) {
         this.oldClause = oldClause;
         this.newClause = newClause;
         this.positions = positions;
@@ -71,3 +72,4 @@ public class EquivalenceReplacements extends InferenceStep {
             if(step != null) step.inferenceSteps(steps);}
         if(!steps.contains(this)) steps.add(this);}
 }
+

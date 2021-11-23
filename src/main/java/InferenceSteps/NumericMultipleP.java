@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -13,11 +13,11 @@ public class NumericMultipleP extends InferenceStep{
             "atmost  2 p,p,p,q,r -> false(p) and atmost 2 q,r"+
             "exactly 2 p,p,p,q,r -> false(p) and exactly 2 q,r";
 
-    private final Clause oldClause;
-    private final Clause newClause;
+    private final ClauseOld oldClause;
+    private final ClauseOld newClause;
     private final IntArrayList falseLiterals;
 
-    public NumericMultipleP(Clause oldClause, Clause newClause, IntArrayList falseLiterals) {
+    public NumericMultipleP(ClauseOld oldClause, ClauseOld newClause, IntArrayList falseLiterals) {
         this.oldClause = oldClause;
         this.newClause = newClause;
         this.falseLiterals = falseLiterals;}

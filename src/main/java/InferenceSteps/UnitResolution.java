@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -11,8 +11,8 @@ import static Utilities.Utilities.joinIntArrays;
 
 /** specifies a unit resolution step where a false literal is removed from a clause */
 public class UnitResolution extends InferenceStep{
-    private final Clause oldClause;
-    private final Clause newClause;
+    private final ClauseOld oldClause;
+    private final ClauseOld newClause;
     private final IntArrayList literals;
     private final ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
     public static final String title = "Unit Resolution";
@@ -30,7 +30,7 @@ public class UnitResolution extends InferenceStep{
      * @param newClause      the new clause without the false literal
      * @param model          the model
      */
-    public UnitResolution(Clause oldClause, Clause newClause, IntArrayList literals, Model model) {
+    public UnitResolution(ClauseOld oldClause, ClauseOld newClause, IntArrayList literals, Model model) {
         this.oldClause = oldClause;
         this.literals = literals;
         this.newClause = newClause;

@@ -17,6 +17,22 @@ public class Interval {
         this.min = min;
         this.max = max;}
 
+    /** clones the interval
+     *
+     * @return a clone of the interval
+     */
+    public Interval clone() {
+        return new Interval(min,max);}
+
+
+    /** checks the two intervals for equalit
+     *
+     * @param interval an interval
+     * @return true if the two intervals ar identical.
+     */
+    public boolean equals(Interval interval) {
+        return min == interval.min && max == interval.max;}
+
     /** computes the size of the interval.
      * Examples: [3,3] -> 1,  [3,4] -> 2
      *
@@ -34,8 +50,8 @@ public class Interval {
 
     /** decrements both bounds by 1 */
     public void decrement() {
-        assert min >= 1;
-        min -= 1;
+        assert max > 0;
+        min = Math.max(0,min-1);
         max -= 1;}
 
     /** decrements the upper bound by 1, if possible
@@ -43,7 +59,7 @@ public class Interval {
      * @return true if decrementing was possible
      */
     public boolean decrementMax() {
-        assert max >= 1;
+        assert max > 0;
         if(max > min) {max -= 1; return true;}
         return false;}
 

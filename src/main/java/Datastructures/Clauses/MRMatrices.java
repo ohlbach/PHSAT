@@ -11,11 +11,11 @@ public class MRMatrices {
     public MRMatrices(AllClausesOld allClauses) {
         this.allClauses = allClauses;}
 
-    public void mrResolve(Clause[] disjointnessClauses, ArrayList<Clause> clauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable {
+    public void mrResolve(ClauseOld[] disjointnessClauses, ArrayList<ClauseOld> clauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable {
         ArrayList<MRMatrix> matrices = new ArrayList<>();
         matrices.add(new MRMatrix(allClauses,disjointnessClauses));
         for(int i = 0; i < clauses.size(); ++i) {
-            Clause clause = clauses.get(i);
+            ClauseOld clause = clauses.get(i);
             boolean done = false;
             for(MRMatrix matrix : matrices) {
                 if(matrix.insertClause(clause)) {done = true; break;}}

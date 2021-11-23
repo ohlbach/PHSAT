@@ -1,7 +1,7 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.Clause;
-import Datastructures.Literals.CLiteral;
+import Datastructures.Clauses.ClauseOld;
+import Datastructures.Literals.CLiteralOld;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
@@ -11,10 +11,10 @@ import java.util.ArrayList;
 import static Utilities.Utilities.joinIntArrays;
 
 public class DisjointnessExtension extends InferenceStep {
-    private final Clause dClause;
+    private final ClauseOld dClause;
     private final int literal;
-    private final Clause extended;
-    private final ArrayList<CLiteral> cLiterals;
+    private final ClauseOld extended;
+    private final ArrayList<CLiteralOld> cLiterals;
 
     public static final String title = "Disjointness Extension";
 
@@ -27,7 +27,7 @@ public class DisjointnessExtension extends InferenceStep {
             "-------------------------\n"+
             "p != q != ... != s != a";
 
-    public DisjointnessExtension(Clause dClause, int literal, Clause extended, ArrayList<CLiteral> cLiterals) {
+    public DisjointnessExtension(ClauseOld dClause, int literal, ClauseOld extended, ArrayList<CLiteralOld> cLiterals) {
         this.dClause = dClause;
         this.literal = literal;
         this.extended = extended;
@@ -45,7 +45,7 @@ public class DisjointnessExtension extends InferenceStep {
     public String toString(Symboltable symboltable) {
         String st = dClause.toString(0,symboltable) + " extend by " + Symboltable.toString(literal,symboltable);
         int width = st.length();
-        for(CLiteral cliteral : cLiterals) {
+        for(CLiteralOld cliteral : cLiterals) {
             String s = Symboltable.toString(cliteral.literal,symboltable) + " in " + cliteral.clause.toString(0,symboltable);
             width = Math.max(width,s.length());
             st += "\n"+ s;}
@@ -57,7 +57,7 @@ public class DisjointnessExtension extends InferenceStep {
     public IntArrayList origins() {
         IntArrayList origins = null;
         if( dClause.inferenceStep != null) origins = dClause.inferenceStep.origins();
-        for(CLiteral step : cLiterals)
+        for(CLiteralOld step : cLiterals)
             origins = joinIntArrays(origins,
                     step.clause.inferenceStep == null ? null : step.clause.inferenceStep.origins());
         return origins;}
@@ -65,7 +65,7 @@ public class DisjointnessExtension extends InferenceStep {
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
         if(dClause.inferenceStep != null) dClause.inferenceStep.inferenceSteps(steps);
-        for(CLiteral cLiteral : this.cLiterals)
+        for(CLiteralOld cLiteral : this.cLiterals)
             if(cLiteral.clause.inferenceStep != null) cLiteral.clause.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}
 }

@@ -1,6 +1,6 @@
 package Datastructures.Results;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
@@ -18,9 +18,9 @@ import static Utilities.Utilities.sortIntArray;
 public class Unsatisfiable extends Result {
     private String reason = null;
     private IntArrayList origins = null;
-    private Clause falseClause = null;
+    private ClauseOld falseClause = null;
 
-    public Unsatisfiable(Clause falseClause) {
+    public Unsatisfiable(ClauseOld falseClause) {
         super();
         this.falseClause = falseClause;
         this.inferenceStep = falseClause.inferenceStep;}

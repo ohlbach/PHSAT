@@ -1,7 +1,7 @@
 package Datastructures.Results;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 
@@ -15,7 +15,7 @@ import java.util.ArrayList;
 public class Erraneous extends Result {
     public Model model;
     public ArrayList<int[]> falseClauses = null;
-    public Clause falseClause = null;
+    public ClauseOld falseClause = null;
     public Symboltable symboltable;
 
     /** creates an Erraneous object with a model and a list of false clauses
@@ -35,7 +35,7 @@ public class Erraneous extends Result {
      * @param falseClause a list of false clauses
      * @param symboltable  a symbol table (optional)
      */
-    public Erraneous(Model model, Clause falseClause, Symboltable symboltable) {
+    public Erraneous(Model model, ClauseOld falseClause, Symboltable symboltable) {
         this.model = model;
         this.falseClause = falseClause;
         this.symboltable = symboltable;}

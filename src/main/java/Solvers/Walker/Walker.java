@@ -1,6 +1,6 @@
 package Solvers.Walker;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
@@ -112,7 +112,7 @@ public class Walker extends Solver {
      * @param clause a clause
      * @return the generated wClause
      */
-    public WClause addClause(Clause clause) {
+    public WClause addClause(ClauseOld clause) {
         WClause wClause = new WClause(clause);
         wClauses.add(wClause);
         addWClauseToIndex(wClause);

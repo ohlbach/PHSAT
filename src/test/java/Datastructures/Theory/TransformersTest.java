@@ -1,16 +1,5 @@
 package Datastructures.Theory;
 
-import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
-import Datastructures.Symboltable;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.function.BiConsumer;
-
-import static org.junit.Assert.*;
-
 /**
  * Created by ohlbach on 08.12.2019.
  */
