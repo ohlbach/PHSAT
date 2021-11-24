@@ -1,7 +1,6 @@
 package Management;
 
 import Datastructures.Clauses.AllClauses.Clauses;
-import Datastructures.Clauses.AllClausesOld;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;

@@ -28,6 +28,9 @@ public class BasicClauseStatistics  extends Statistic{
     @Description("number of exactly clauses in the input clauses")
     public int exactlys    = 0;
 
+    @Description("number of interval clauses in the input clauses")
+    public int intervals    = 0;
+
     public BasicClauseStatistics(String id) {
         super(id);}
 

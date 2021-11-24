@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.TwoLiteral.TwoLitClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -11,14 +11,14 @@ import java.util.ArrayList;
 import static Utilities.Utilities.joinIntArrays;
 
 public class EquivalenceReplacements2 extends InferenceStep{
-    private final TwoLitClause oldClause;
+    private final TwoLitClause Clause;
     private final TwoLitClause newClause;
     private final int literal1;
     private final int representative1;
-    private final ClauseOld eClause1;
+    private final Clause eClause1;
     private final int literal2;
     private final int representative2;
-    private final ClauseOld eClause2;
+    private final Clause eClause2;
 
     public static final String title = "Equivalence Replacement";
 
@@ -29,10 +29,10 @@ public class EquivalenceReplacements2 extends InferenceStep{
             "-----\n"+
             " x,y";
 
-    public EquivalenceReplacements2(TwoLitClause oldClause, TwoLitClause newClause,
-                                    int literal1, int representative1, ClauseOld eClause1,
-                                    int literal2, int representative2, ClauseOld eClause2) {
-        this.oldClause = oldClause;
+    public EquivalenceReplacements2(TwoLitClause Clause, TwoLitClause newClause,
+                                    int literal1, int representative1, Clause eClause1,
+                                    int literal2, int representative2, Clause eClause2) {
+        this.Clause = Clause;
         this.newClause = newClause;
         this.literal1  = literal1;
         this.representative1 = representative1;
@@ -51,7 +51,7 @@ public class EquivalenceReplacements2 extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st1 = oldClause.toString("",symboltable) + "\n";
+        String st1 = Clause.toString("",symboltable) + "\n";
         String st2 = (eClause1 != null) ? (Symboltable.toString(literal1,symboltable) + " == " +
                 Symboltable.toString(representative1,symboltable) + " from " +
                 eClause1.toString(0,symboltable) +"\n") : "";
@@ -66,14 +66,14 @@ public class EquivalenceReplacements2 extends InferenceStep{
     @Override
     public IntArrayList origins() {
         IntArrayList origins = null;
-        if(oldClause.inferenceStep != null) origins = oldClause.inferenceStep.origins();
+        if(Clause.inferenceStep != null) origins = Clause.inferenceStep.origins();
         if(eClause1 != null) origins = joinIntArrays(origins,eClause1.inferenceStep.origins());
         if(eClause2 != null) origins = joinIntArrays(origins,eClause2.inferenceStep.origins());
         return origins;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        if(oldClause.inferenceStep != null) oldClause.inferenceStep.inferenceSteps(steps);
+        if(Clause.inferenceStep != null) Clause.inferenceStep.inferenceSteps(steps);
         if(eClause1 != null) eClause1.inferenceStep.inferenceSteps(steps);
         if(eClause2 != null) eClause2.inferenceStep.inferenceSteps(steps);
         if(!steps.contains(this)) steps.add(this);}

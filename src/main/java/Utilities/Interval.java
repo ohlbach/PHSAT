@@ -63,6 +63,14 @@ public class Interval {
         if(max > min) {max -= 1; return true;}
         return false;}
 
+    /** checks if this is a subset of interval
+     *
+     * @param interval an interval
+     * @return true if this is a subset of interval
+     */
+    public boolean isSubset(Interval interval) {
+        return min >= interval.min && max <= interval.max;}
+
     /** intersects the interval with another interval
      *
      * @param interval an interval
@@ -78,6 +86,6 @@ public class Interval {
      * @return a string representation, either just n, or [n,m]
      */
     public String toString() {
-        return min == max ? Integer.toString(min) : "["+min+","+max+"]";}
+        return min == max ? Integer.toString(min) : min+"-"+max;}
 
 }

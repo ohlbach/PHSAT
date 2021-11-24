@@ -1,10 +1,10 @@
 package Datastructures.Clauses.AllClauses;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
 import Datastructures.Clauses.Connective;
-import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
-import Datastructures.Literals.CLiteral;
+import Datastructures.Clauses.Simplifiers.ClauseSimplifierOld;
+import Datastructures.Literals.CLiteralOld;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
@@ -19,12 +19,13 @@ import InferenceSteps.Input;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
+import Utilities.BucketSortedList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
-public class Clauses extends Thread {
+public class ClausesOld extends Thread {
     /** supervises the problem solution */
     public final ProblemSupervisor problemSupervisor;
     private final String problemId;
@@ -38,14 +39,14 @@ public class Clauses extends Thread {
     protected final boolean trackReasoning;
     private final Symboltable symboltable;
     public TwoLitClauses twoLitClauses;
-    public ClauseSimplifier clauseSimplifier;
+    public ClauseSimplifierOld clauseSimplifier;
 
     private int maxClauseLength = 0;
     private int timestamp = 0;
     public ClausesStatistics statistics;
 
-    private final ArrayList<Clause>[] clauses = new ArrayList[Connective.size()];
-    private final BucketSortedIndex<CLiteral>[] literalIndex = new BucketSortedIndex[Connective.size()];
+    private final ArrayList<ClauseOld>[] clauses = new ArrayList[Connective.size()];
+    private final BucketSortedIndex<CLiteralOld>[] literalIndex = new BucketSortedIndex[Connective.size()];
 
 
     private enum TaskType {
@@ -58,14 +59,14 @@ public class Clauses extends Thread {
      * @param task the objects in the queue
      * @return the priority of the objects in the queue.
      */
-    private int getPriority(Task<Clauses.TaskType> task) {
+    private int getPriority(Task<ClausesOld.TaskType> task) {
         switch(task.taskType) {
             case TRUELITERAL:  return 0;
-            case INSERTCLAUSE: return ((Clause)task.a).size();
+            case INSERTCLAUSE: return ((ClauseOld)task.a).size();
             case EQUIVALENCE:  return 100;
             case DISJOINTNESS: return 101;
             case SIMPLIFYALL:  return 102;
-            case SIMPLIFYOTHERS: return 103 + ((Clause)task.a).size();
+            case SIMPLIFYOTHERS: return 103 + ((ClauseOld)task.a).size();
             case MRESOLUTION: return 200;
         }
         return -1;}
@@ -73,14 +74,14 @@ public class Clauses extends Thread {
     /** A queue of newly derived unit literals, newly derived binary equivalences and disjointness clauses
      * The unit literals are automatically put at the beginning of the queue.
      */
-    private final PriorityBlockingQueue<Task<Clauses.TaskType>> queue =
+    private final PriorityBlockingQueue<Task<ClausesOld.TaskType>> queue =
             new PriorityBlockingQueue<>(10, Comparator.comparingInt(this::getPriority));
 
     /** constructs a new AllClauses instance
      *
      * @param problemSupervisor    coordinates several solvers.
      */
-    public Clauses(ProblemSupervisor problemSupervisor) {
+    public ClausesOld(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
         problemSupervisor.clauses = this;
         problemId = problemSupervisor.problemId;
@@ -94,16 +95,16 @@ public class Clauses extends Thread {
         monitorId = problemId + "Clauses";
         statistics = new ClausesStatistics("Clauses");
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
-        clauseSimplifier = new ClauseSimplifier(problemSupervisor,monitor,"ClSimp",thread);
+        clauseSimplifier = new ClauseSimplifierOld(problemSupervisor,monitor,"ClSimp",thread);
 
         for(int i = 0; i < clauses.length; ++i) {
             clauses[i] = new ArrayList<>();
-            literalIndex[i] = new BucketSortedIndex<CLiteral>(model.predicates+1,
-                    (cLiteral->cLiteral.literal),
-                    (cLiteral->cLiteral.clause.size()));}
+            literalIndex[i] = new BucketSortedIndex<CLiteralOld>(model.predicates+1,
+                (cLiteral->cLiteral.literal),
+                (cLiteral->cLiteral.clause.size()));}
     }
 
-    public void integrateBasicClauses() throws Result {
+    public void integrateBasicClauses() throws Unsatisfiable {
         BasicClauseList basicClauses = problemSupervisor.basicClauseList;
         for(int[] basicClause : basicClauses.conjunctions) {
             integrateAnd(basicClause);}
@@ -113,9 +114,11 @@ public class Clauses extends Thread {
         equivalenceClasses.addObserver(this::addEquivalence);
         for(int[] basicClause : basicClauses.disjunctions) {
             integrateBasicClause(basicClause);}
-        for(int[] basicClause : basicClauses.quantifieds) {
+        for(int[] basicClause : basicClauses.atleasts) {
             integrateBasicClause(basicClause);}
-        for(int[] basicClause : basicClauses.intervals) {
+        for(int[] basicClause : basicClauses.atmosts) {
+            integrateBasicClause(basicClause);}
+        for(int[] basicClause : basicClauses.exactlys) {
             integrateBasicClause(basicClause);}}
 
     /** puts the literals of an AND-clause into the model
@@ -123,10 +126,10 @@ public class Clauses extends Thread {
      * @param basicClause a basic AND-clause [id,type,literal1,...]
      * @throws Unsatisfiable if there are contradictory literals
      */
-    private void integrateAnd(int[] basicClause) throws Unsatisfiable {
-        assert basicClause[1] == Connective.AND.ordinal();
-        for(int i = 2; i < basicClause.length; ++i) {
-            model.add(basicClause[i],new Input(basicClause[0]),thread);}}
+   private void integrateAnd(int[] basicClause) throws Unsatisfiable {
+       assert basicClause[1] == Connective.AND.ordinal();
+       for(int i = 2; i < basicClause.length; ++i) {
+           model.add(basicClause[i],new Input(basicClause[0]),thread);}}
 
 
     /** simplifies and integrates a basic Or-clause into the local data structures
@@ -134,13 +137,13 @@ public class Clauses extends Thread {
      * @param basicClause a basic or-clause
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    private void integrateBasicClause(int[] basicClause) throws Result {
-        Clause clause = new Clause(basicClause);
+    private void integrateBasicClause(int[] basicClause) throws Unsatisfiable {
+        ClauseOld clause = new ClauseOld(basicClause);
         clause = clauseSimplifier.simplify(clause);
         if(clause == null) return;
         if(isSubsumed(clause)) return;
         insertClause(clause);
-        if(clause.connective == Connective.OR && clause.size() == 2) {twoLitClauses.addDerivedClause(clause);}
+        if(clause.clauseIsOr() && clause.size() == 2) {twoLitClauses.addDerivedClause(clause);}
     }
 
     /** puts a true literal into the queue.
@@ -152,28 +155,28 @@ public class Clauses extends Thread {
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
                     Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<>(Clauses.TaskType.TRUELITERAL, literal, inference));}
+        queue.add(new Task<>(ClausesOld.TaskType.TRUELITERAL, literal, inference));}
 
     /** puts an equivalence into the queue
      *
      * @param eClause an equivalence clause
      */
-    public void addEquivalence(Clause eClause) {
+    public void addEquivalence(ClauseOld eClause) {
         if(monitoring) {
             monitor.print(monitorId,"In:   equivalence " + eClause.toString(0,model.symboltable));}
-        queue.add(new Task<>(Clauses.TaskType.EQUIVALENCE,eClause,null));}
+        queue.add(new Task<>(ClausesOld.TaskType.EQUIVALENCE,eClause,null));}
 
 
     /** inserts the clause into the local data structures.
      *
      * @param clause  the clause to be inserted.
      */
-    protected void insertClause(Clause clause) {
+    protected void insertClause(ClauseOld clause) {
         maxClauseLength = Math.max(maxClauseLength,clause.size());
         int type = clause.connective.ordinal();
         ++statistics.clauses[type];
         clauses[type].add(clause);
-        for(CLiteral cliteral : clause) {literalIndex[type].add(cliteral);}
+        for(CLiteralOld cliteral : clause) {literalIndex[type].add(cliteral);}
         switch(clause.structure) {
             case NEGATIVE: ++statistics.negativeClauses; break;
             case POSITIVE: ++statistics.positiveClauses; break;}}
@@ -185,15 +188,15 @@ public class Clauses extends Thread {
      * @param iterator an iterator over the literal index.
      * @return cliteral;
      */
-    private CLiteral removeClause(CLiteral cliteral, BucketSortedList<CLiteral>.BucketIterator iterator)  {
-        Clause clause = cliteral.clause;
+    private CLiteralOld removeClause(CLiteralOld cliteral, BucketSortedList<CLiteralOld>.BucketIterator iterator)  {
+        ClauseOld clause = cliteral.clause;
         int type = clause.connective.ordinal();
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
         --statistics.clauses[type];
         iterator.remove();
-        for(CLiteral clit : clause) if(clit != cliteral) literalIndex[type].remove(cliteral);
+        for(CLiteralOld clit : clause) if(clit != cliteral) literalIndex[type].remove(cliteral);
         clauses[type].remove(clause);
         return cliteral;}
 
@@ -209,14 +212,14 @@ public class Clauses extends Thread {
         while(!Thread.interrupted()) {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting:\n"+Task.queueToString(queue));}
-                Task<Clauses.TaskType> task = queue.take(); // waits if the queue is empty
+                Task<ClausesOld.TaskType> task = queue.take(); // waits if the queue is empty
                 if(monitoring) System.out.println("Next Task: " + task.toString());
                 switch (task.taskType) {
                     case TRUELITERAL:
                         integrateTrueLiteral((Integer)task.a);
                         break;
                     case EQUIVALENCE:
-                        integrateEquivalence((Clause)task.a);
+                        integrateEquivalence((ClauseOld)task.a);
                         break;
                 }
                 if(clausesFinished && queue.isEmpty()) {
@@ -240,16 +243,16 @@ public class Clauses extends Thread {
     private void integrateTrueLiteral(int literal) throws Unsatisfiable {
         // remove all orClauses with the literal
         int predicate = Math.abs(literal);
-        BucketSortedIndex<CLiteral> index = literalIndex[Connective.OR.ordinal()];
-        BucketSortedList<CLiteral>.BucketIterator iterator = index.popIterator(literal);
+        BucketSortedIndex<CLiteralOld> index = literalIndex[Connective.OR.ordinal()];
+        BucketSortedList<CLiteralOld>.BucketIterator iterator = index.popIterator(literal);
         while (iterator.hasNext()) {removeClause(iterator.next(), iterator);}
         index.pushIterator(literal, iterator);
 
         // remove from all orClauses -literal
         iterator = index.popIterator(-literal);
         while (iterator.hasNext()) {
-            CLiteral cLiteral = iterator.next();
-            Clause clause = cLiteral.clause;
+            CLiteralOld cLiteral = iterator.next();
+            ClauseOld clause = cLiteral.clause;
             removeClause(cLiteral, iterator);
             clause = clauseSimplifier.simplify(clause);
             if(clause != null) insertClause(clause);}
@@ -261,22 +264,22 @@ public class Clauses extends Thread {
             for(int sign = -1; sign <= +1; sign += 2) {
                 iterator = index.popIterator(sign*literal);
                 while (iterator.hasNext()) {
-                    CLiteral cLiteral = iterator.next();
-                    Clause clause = cLiteral.clause;
+                    CLiteralOld cLiteral = iterator.next();
+                    ClauseOld clause = cLiteral.clause;
                     removeClause(cLiteral, iterator);
                     clause = clauseSimplifier.simplify(clause);
                     if(clause != null) insertClause(clause);}
                 index.pushIterator(sign*literal, iterator);}
             index.clearBoth(predicate);}}
 
-    /** checks if the or-clause is subsumed by another clause
-     *
-     * @param clause an or-clause
-     * @return true if the clause is subsumed
-     */
-    protected boolean isSubsumed(Clause clause) {
+        /** checks if the or-clause is subsumed by another clause
+         *
+         * @param clause an or-clause
+         * @return true if the clause is subsumed
+         */
+    protected boolean isSubsumed(ClauseOld clause) {
         timestamp += maxClauseLength + 2;
-        Clause subsumer = LitAlgorithms.isSubsumed(clause,orIndex,timestamp);
+        ClauseOld subsumer = LitAlgorithms.isSubsumed(clause,orIndex,timestamp);
         timestamp += clause.size() + 2;
         if(subsumer != null) {
             ++statistics.forwardSubsumptions;
@@ -286,5 +289,4 @@ public class Clauses extends Thread {
             return true;}
         return false;}
 
-}
-
+    }

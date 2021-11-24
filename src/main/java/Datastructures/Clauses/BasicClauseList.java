@@ -4,11 +4,9 @@ package Datastructures.Clauses;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
-
-import static Utilities.Utilities.addInt;
+import java.util.Arrays;
 
 /**
  * Created by Ohlbach on 03.09.2018.<br>
@@ -38,12 +36,10 @@ public class BasicClauseList {
     public ArrayList<int[]> conjunctions  = new ArrayList<>();
     /** the original equivalences */
     public ArrayList<int[]> equivalences  = new ArrayList<>();
-    /** the original atleasts */
-    public ArrayList<int[]> atleasts      = new ArrayList<>();
-    /** the original atmosts */
-    public ArrayList<int[]> atmosts       = new ArrayList<>();
-    /** the original exactlys */
-    public ArrayList<int[]> exactlys      = new ArrayList<>();
+    /** the original quantifieds atleast, atmost, exactly */
+    public ArrayList<int[]> quantifieds   = new ArrayList<>();
+    /** the original intervals */
+    public ArrayList<int[]> intervals      = new ArrayList<>();
 
     /** an info-string about the origin of the clauses */
     public String info = null;
@@ -56,9 +52,7 @@ public class BasicClauseList {
     public String addClauses(int[]... clauses) {
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        for (int[] clause : clauses) {
-            clause = addClause(clause,"",errors,warnings);
-            if (clause == null) continue;}
+        for (int[] clause : clauses) addClause(clause,"",errors,warnings);
         if(errors.length() == 0  && warnings.length() == 0) return null;
         return errors.toString() + warnings;}
 
@@ -67,20 +61,27 @@ public class BasicClauseList {
      *  Erroneous clauses are not added to the lists
      *
      * @param clause a clause
-     * @return null or an error string
      */
-    public int[] addClause(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
+    public void addClause(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
         clause = checkSyntax(clause,errorPrefix, errors, warnings);
-        if(clause == null) return null;
-        maxClauseLength = Math.max(maxClauseLength,clause.length - (Connective.isQuantifier(clause[1]) ? 3 : 2));
-        switch(Connective.getType(clause[1])) {
+        if(clause == null) return;
+        Connective connective = Connective.getType(clause[1]);
+        if(connective == null) {
+            errors.append(errorPrefix).append("Clause " + Arrays.toString(clause) + " has unknown clause type "
+            + clause[1]);
+            return;}
+        int length = clause.length-2;
+        if(connective.isQuantifier()) length -= 1;
+        else {if(connective == Connective.INTERVAL) length -= 2;}
+        maxClauseLength = Math.max(maxClauseLength,length);
+        switch(connective) {
             case OR:       disjunctions.add(clause); break;
             case AND:      conjunctions.add(clause); break;
             case EQUIV:    equivalences.add(clause); break;
-            case ATLEAST:  atleasts.add(clause);     break;
-            case ATMOST:   atmosts.add(clause);      break;
-            case EXACTLY:  exactlys.add(clause);     break;}
-        return clause;
+            case ATLEAST:
+            case ATMOST:
+            case EXACTLY:  quantifieds.add(clause);  break;
+            default:       intervals.add(clause);    break;}
     }
 
     /** checks the clause's syntax.
@@ -97,7 +98,6 @@ public class BasicClauseList {
     protected int[] checkSyntax(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
         int type = clause[1];
         if(type < 0 || type > 5) {errors.append(errorPrefix).append("Clause type :"+type + " is not between 0 and 5\n"); return null;}
-        clause = removeDoubles(clause, errorPrefix, warnings);
         int start = 2;
         boolean isNumeric = Connective.isQuantifier(type);
         int size = clause.length;
@@ -115,37 +115,6 @@ public class BasicClauseList {
                 return null;}}
         return clause;}
 
-    /** removed double literals from the clause.
-     * In case there are double literals a warning is added to the StringBuilder
-     *
-     * @param clause       a basic clause
-     * @param errorPrefix  a prefix for the warnings
-     * @param warnings     for adding a warning
-     * @return             the old or shortened new clause
-     */
-    protected int[] removeDoubles(int[] clause, String errorPrefix, StringBuilder warnings) {
-        int start = Connective.isQuantifier(clause[1]) ? 3 : 2;
-        IntArrayList doubles = null;
-        int doubleCounter = 0;
-        for(int i = start+1; i < clause.length; ++i) {
-            int literal = clause[i];
-            for(int j = start; j < i; ++j) {
-                if(literal == clause[j]) {
-                    ++doubleCounter;
-                    doubles = addInt(doubles,literal);
-                    clause[i] = 0;
-                    break;}}}
-        if(doubleCounter == 0) return clause;
-        int[] newClause = new int[clause.length-doubleCounter];
-        newClause[0] = clause[0];
-        newClause[1] = clause[1];
-        int i = 1;
-        for(int j = 2; j < clause.length; ++j)
-            if(clause[j] != 0) newClause[++i] = clause[j];
-        warnings.append(errorPrefix+"double literals removed: ").append(doubles).
-                append(" (may be a typo) new clause: " + clauseToString(newClause) + "\n");
-        return newClause;
-    }
 
 
     /** computes a list of clauses which are false in a model.
@@ -157,12 +126,11 @@ public class BasicClauseList {
      */
     public ArrayList<int[]> falseClausesInModel(Model model) {
         ArrayList<int[]> falseClauses = new ArrayList<>();
-        for(int[] clause : disjunctions) {if(disjunctionIsFalse(clause,model)) {falseClauses.add(clause);}}
-        for(int[] clause : conjunctions) {if(conjunctionIsFalse(clause,model)) {falseClauses.add(clause);}}
-        for(int[] clause : equivalences) {if(equivalenceIsFalse(clause,model)) {falseClauses.add(clause);}}
-        for(int[] clause : atleasts)     {if(atleastIsFalse(clause,model))     {falseClauses.add(clause);}}
-        for(int[] clause : atmosts)      {if(atmostIsFalse(clause,model))      {falseClauses.add(clause);}}
-        for(int[] clause : exactlys)     {if(exactlyIsFalse(clause,model))     {falseClauses.add(clause);}}
+        for(int[] clause : disjunctions) {if(!disjunctionIsTrue(clause,model)) {falseClauses.add(clause);}}
+        for(int[] clause : conjunctions) {if(!conjunctionIsTrue(clause,model)) {falseClauses.add(clause);}}
+        for(int[] clause : equivalences) {if(!equivalenceIsTrue(clause,model)) {falseClauses.add(clause);}}
+        for(int[] clause : quantifieds)  {if(!quantifiedIsTrue(clause,model))  {falseClauses.add(clause);}}
+        for(int[] clause : intervals)    {if(!intervalIsTrue(clause,model))    {falseClauses.add(clause);}}
         return falseClauses.isEmpty() ? null : falseClauses;}
 
 
@@ -172,10 +140,10 @@ public class BasicClauseList {
      * @param model a model
      * @return true if all literals are false in the model and the clause is not a tautology.
      */
-    public static boolean disjunctionIsFalse(int[] clause, Model model) {
+    public static boolean disjunctionIsTrue(int[] clause, Model model) {
         assert Connective.getType(clause[1]) == Connective.OR;
-        for(int i = 2; i < clause.length; ++i) {if(!model.isFalse(clause[i])) {return false;}}
-        return true;}
+        for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return true;}}
+        return false;}
 
 
     /** checks if a conjunction is entirely false in a model
@@ -184,16 +152,16 @@ public class BasicClauseList {
      * @param model a possibly partial model
      * @return true if all literals are true in the model.
      */
-    public static boolean conjunctionIsFalse(int[] clause, Model model) {
-        for(int i = 2; i < clause.length; ++i) {if(!model.isTrue(clause[i])) {return true;}}
-        return false;}
+    public static boolean conjunctionIsTrue(int[] clause, Model model) {
+        for(int i = 2; i < clause.length; ++i) {if(model.isFalse(clause[i])) {return false;}}
+        return true;}
     /** checks if an equivalence is false in a model
      *
      * @param clause an equivalence clause
      * @param model a model
      * @return true if not either all literals are true or all literals are false in the model.
      */
-    public static boolean equivalenceIsFalse(int[] clause, Model model) {
+    public static boolean equivalenceIsTrue(int[] clause, Model model) {
         assert Connective.getType(clause[1]) == Connective.EQUIV;
         int size = clause.length;
         int trueLiterals = 0;
@@ -203,8 +171,7 @@ public class BasicClauseList {
                 case +1: ++trueLiterals; break;
                 case -1: ++falseLiterals;}}
         size -= 2;
-        if(trueLiterals == size || falseLiterals == size) return false;
-        return true;}
+        return (trueLiterals == size || falseLiterals == size);}
 
     /** checks if a atleast-clause is false in a model
      *
@@ -212,14 +179,17 @@ public class BasicClauseList {
      * @param model a model
      * @return true if not atleast n literals are true in the model
      */
-    public static boolean atleastIsFalse(int[] clause, Model model) {
-        assert Connective.getType(clause[1]) == Connective.ATLEAST;
+    public static boolean quantifiedIsTrue(int[] clause, Model model) {
         int n = clause[2];
         int size = clause.length;
         int trueLiterals = 0;
         for(int i = 3; i < size; ++i) {
             if(model.isTrue(clause[i])) ++trueLiterals;}
-        return trueLiterals < n;}
+        switch(Connective.getType(clause[1])) {
+            case ATLEAST: return trueLiterals >= n;
+            case ATMOST:  return trueLiterals <= n;
+            case EXACTLY: return trueLiterals == n;}
+        return false;}
 
     /** checks if a atmost-clause is false in a model
      *
@@ -227,31 +197,15 @@ public class BasicClauseList {
      * @param model a model
      * @return true if not atleast n literals are true in the model
      */
-    public static boolean atmostIsFalse(int[] clause, Model model) {
-        assert Connective.getType(clause[1]) == Connective.ATMOST;
-        int n = clause[2];
+    public static boolean intervalIsTrue(int[] clause, Model model) {
+        assert Connective.getType(clause[1]) == Connective.INTERVAL;
+        int min = clause[2];
+        int max = clause[3];
         int size = clause.length;
         int trueLiterals = 0;
         for(int i = 3; i < size; ++i) {
             if(model.isTrue(clause[i])) ++trueLiterals;}
-        return trueLiterals > n;}
-
-    /** checks if an exactly-clause is false in a model
-     *
-     * @param clause a atleast clause  [id,type,n,literal1,...]
-     * @param model a model
-     * @return true if not atleast n literals are true in the model
-     */
-    public static boolean exactlyIsFalse(int[] clause, Model model) {
-        assert Connective.getType(clause[1]) == Connective.EXACTLY;
-        int n = clause[2];
-        int size = clause.length;
-        int trueLiterals = 0;
-        for(int i = 3; i < size; ++i) {
-            if(model.isTrue(clause[i])) ++trueLiterals;}
-        return trueLiterals != n;}
-
-
+        return min <= trueLiterals && trueLiterals <= max;}
 
 
     /** adds some parameters to the statistics
@@ -264,9 +218,12 @@ public class BasicClauseList {
         statistics.disjunctions = disjunctions.size();
         statistics.conjunctions = conjunctions.size();
         statistics.equivalences = equivalences.size();
-        statistics.atleasts     = atleasts.size();
-        statistics.atmosts      = atmosts.size();
-        statistics.exactlys     = exactlys.size();
+        statistics.intervals    = intervals.size();
+        for(int[] clause : quantifieds) {
+            switch(Connective.getType(clause[1])) {
+                case ATLEAST: ++statistics.atleasts; break;
+                case ATMOST:  ++statistics.atmosts;  break;
+                case EXACTLY: ++statistics.exactlys; break;}}
         return statistics;}
 
     /** turns a clause into a string.
@@ -290,12 +247,17 @@ public class BasicClauseList {
         if(size == 0) {size = Integer.toString(clause[0]).length();}
         st.append(String.format("%"+size+"d ",clause[0])).append(": ");
         int typeNumber = clause[1];
-        Connective type = Connective.getType(typeNumber);
+        Connective connective = Connective.getType(typeNumber);
         int start = 2;
         if(Connective.isQuantifier(typeNumber)) {
             start = 3;
-            st.append(type.toString() + " " + clause[2] + " ");}
-        String separator = type.separator;
+            st.append(connective.prefix + " " + clause[2] + " ");}
+        else{if(connective == Connective.INTERVAL) {
+            start = 4;
+            st.append(connective.prefix + " ");
+            if(clause[2] == clause[3]) st.append(clause[2] + ": ");
+            else st.append(clause[2] + "-" + clause[3]+": ");}}
+        String separator = connective.separator;
         int length = clause.length;
         for(int i = start; i < length-1; ++i) {
             st.append(Symboltable.toString(clause[i],symboltable));
@@ -319,7 +281,7 @@ public class BasicClauseList {
         StringBuilder st = new StringBuilder();
         if(info != null) {st.append(info).append("\n");}
         int size = (""+(disjunctions.size() + conjunctions.size()  +equivalences.size()) +
-                atleasts.size() + atmosts.size() + exactlys.size()).length();
+                quantifieds.size() + intervals.size()).length();
         if(!disjunctions.isEmpty()) {
             st.append("Disjunctions:\n");
             for(int[] clause : disjunctions) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
@@ -329,15 +291,12 @@ public class BasicClauseList {
         if(!equivalences.isEmpty()) {
             st.append("Equivalences:\n");
             for(int[] clause : equivalences) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(!atleasts.isEmpty()) {
-            st.append("Atleast:\n");
-            for(int[] clause : atleasts)     {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(!atmosts.isEmpty()) {
-            st.append("Atmost:\n");
-            for(int[] clause : atmosts)      {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
-        if(!exactlys.isEmpty()) {
-            st.append("Exactly:\n");
-            for(int[] clause : exactlys)     {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+        if(!quantifieds.isEmpty()) {
+            st.append("Quantifieds:\n");
+            for(int[] clause : quantifieds)     {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+        if(!intervals.isEmpty()) {
+            st.append("Intervals:\n");
+            for(int[] clause : intervals)      {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
         return st.toString();}
 
 

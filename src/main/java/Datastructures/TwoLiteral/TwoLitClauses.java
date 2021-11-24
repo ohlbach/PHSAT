@@ -1,6 +1,7 @@
 package Datastructures.TwoLiteral;
 
 import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseOld;
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
@@ -169,7 +170,7 @@ public class TwoLitClauses {
      *
      * @param clause a two-literal clause
      */
-    public void addDerivedClause(ClauseOld clause) {
+    public void addDerivedClause(Clause clause) {
         if(monitoring) {monitor.print(monitorId,"In:   derived clause " + clause.toString(0,symboltable));}
         TwoLitClause clause2 = new TwoLitClause(clause.id, clause.getLiteral(0), clause.getLiteral(1));
         clause2.inferenceStep = clause.inferenceStep;
@@ -237,7 +238,7 @@ public class TwoLitClauses {
      *
      * @param eqClause an equivalence clause
      */
-    public void addEquivalence(ClauseOld eqClause)  {
+    public void addEquivalence(Clause eqClause)  {
         if(monitoring) {
             monitor.print(monitorId,"In:     equivalence " + eqClause.toString(2,model.symboltable));}
         for(int position = 1; position < eqClause.size(); ++position) {
@@ -278,8 +279,8 @@ public class TwoLitClauses {
         if(literal1 == representative1 && literal2 == representative2) return clause;
         TwoLitClause newClause = new TwoLitClause(problemSupervisor.nextClauseId(),representative1,representative2);
         if(trackReasoning) {
-            ClauseOld eClause1 = equivalenceClasses.getEClause(literal1);
-            ClauseOld eClause2 = equivalenceClasses.getEClause(literal2);
+            Clause eClause1 = equivalenceClasses.getEClause(literal1);
+            Clause eClause2 = equivalenceClasses.getEClause(literal2);
             EquivalenceReplacements2 er = new EquivalenceReplacements2(clause,newClause,literal1,representative1, eClause1,
                     literal2,representative2,eClause2);
             newClause.inferenceStep = er;

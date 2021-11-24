@@ -11,6 +11,9 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import java.util.function.IntSupplier;
+import java.util.function.IntUnaryOperator;
+
 public class ClauseSimplifier {
     private final ProblemSupervisor problemSupervisor;
     private final Monitor monitor;
@@ -21,6 +24,8 @@ public class ClauseSimplifier {
     private final Symboltable symboltable;
     private final EquivalenceClasses equivalenceClasses;
     protected boolean trackReasoning;
+    private  IntSupplier nextId;
+    private final IntUnaryOperator getRepresentative;
 
     /** generates a Clause Transformer.
      * It can simplify all clause types and transform them into conjunctive normal form.
@@ -38,6 +43,8 @@ public class ClauseSimplifier {
         symboltable = model.symboltable;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
+        if(trackReasoning) nextId = () -> problemSupervisor.nextClauseId();
+        getRepresentative = (int literal) -> equivalenceClasses.getRepresentative(literal);
     }
 
     public Clause simplify(Clause clause) throws Unsatisfiable {
