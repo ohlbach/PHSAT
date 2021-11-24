@@ -5,7 +5,6 @@ import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Results.*;
-import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;

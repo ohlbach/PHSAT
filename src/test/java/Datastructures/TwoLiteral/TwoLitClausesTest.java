@@ -3,7 +3,6 @@ package Datastructures.TwoLiteral;
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceTest;

@@ -57,8 +57,26 @@ public enum Connective {
             case "=":  return EXACTLY;}
         return null;}
 
+    /**
+     * @return the largest ordinal
+     */
+    public static int maxOrdinal() {
+        return 6;}
+
+    /** checks if the ordinal is the Interval connective
+     *
+     * @return true if it is the Interval connective
+     */
     public static boolean isInterval(int ordinal) {
         return ordinal == 3;}
+
+    /** checks if the connective is the Interval connective
+     *
+     * @return true if it is the Interval connective
+     */
+    public boolean isInterval() {
+        return this == Connective.INTERVAL;}
+
 
     /** checks if the connective is a quantifier (atleast, atmost, exactly)
      *
@@ -73,7 +91,7 @@ public enum Connective {
      * @return true if the connective is a quantifier (atleast, atmost, exactly)
      */
     public boolean isQuantifier() {
-        return ordinal() >= 3;}
+        return ordinal() >= 4;}
 
     /** the number of connectives */
     public static int size() {

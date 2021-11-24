@@ -1,7 +1,10 @@
 package Datastructures.Clauses.Simplifiers;
 
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Literals.CLiteralOld;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
@@ -52,6 +55,19 @@ public class ClauseSimplifier {
         return clause;
     }
 
+    /** adds the literals of an AND-clause to the model
+     *
+     * @param clause an AND-Clause
+     * @throws Unsatisfiable if the model finds an inconsistency
+     */
+    protected void simplifyAnd(ClauseOld clause) throws Unsatisfiable {
+        assert clause.connective == Connective.AND;
+        InferenceStep step = null;
+        if(trackReasoning) {
+            step = clause.inferenceStep;
+            if(monitoring) {monitor.print(monitorId,step.toString(symboltable));}}
+        for(CLiteralOld cLiteral : clause) {model.add(cLiteral.literal,step,thread);}}
+
     IntArrayList intList1 = new IntArrayList();
     IntArrayList intList2 = new IntArrayList();
 
@@ -64,26 +80,11 @@ public class ClauseSimplifier {
      */
     protected Clause replaceEquivalences(Clause oldClause) {
         if(equivalenceClasses.isEmpty()) return oldClause;
+        Clause newClause = oldClause.replaceEquivalences(getRepresentative,nextId, intList1);
+        if(newClause == oldClause) return oldClause;
+        InferenceStep step = new EquivalenceReplacements(oldClause,newClause, intList1,equivalenceClasses);
+        newClause.inferenceStep = step;
+        if(monitoring) monitor.print(monitorId,step.toString(symboltable));
+        return newClause;}
 
-        if(trackReasoning) {
-            intList1.clear();
-            Clause newClause = oldClause;
-            for(int i = 0; i < newClause.size(); ++i) {
-                int oldLiteral = newClause.getLiteral(i);
-                int newLiteral = equivalenceClasses.getRepresentative(oldLiteral);
-                if (oldLiteral == newLiteral) continue;
-                intList1.add(i);
-                if(newClause == oldClause) {
-                    newClause = oldClause.clone(problemSupervisor.nextClauseId());}
-                newClause.cliterals.get(i).literal = newLiteral;}
-            if(newClause == oldClause) return oldClause;
-
-            InferenceStep step = new EquivalenceReplacements(oldClause,newClause, intList1,equivalenceClasses);
-            newClause.inferenceStep = step;
-            if(monitoring) monitor.print(monitorId,step.toString(symboltable));
-            return newClause;}
-        else{
-            for(CLiteral cLiteral : oldClause) { // destructive replacements
-                cLiteral.literal = equivalenceClasses.getRepresentative(cLiteral.literal);}
-            return oldClause;}}
 }

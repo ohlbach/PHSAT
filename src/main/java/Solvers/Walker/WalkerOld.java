@@ -7,7 +7,6 @@ import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
-import Datastructures.Theory.DisjointnessClasses;
 import Datastructures.Theory.EquivalenceClasses;
 import Management.ProblemSupervisor;
 import Solvers.Solver;

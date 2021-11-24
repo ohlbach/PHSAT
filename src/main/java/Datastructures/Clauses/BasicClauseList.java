@@ -14,35 +14,41 @@ import java.util.Arrays;
  * This class contains just the absolutely essential information about clauses.<br>
  * The clauses should be the original clauses from the clause source and must not be changed.<br>
  * They are used to check a candidate model against the original clause set.<br>
- * A clause is an integer-array [clause-number,clause-type,[quantifier],literal1,...]<br>
+ * A clause is an integer-array [clause-number,clause-type,[min,max],literal1,...]<br>
  * The clause types are: <br>
- * '0': means disjunction:  '0 1 3 5'    means 1 or 3 or 5<br>
- * '1': means and:          '1 3 4 5'    stands for 3 and 4 and 5.<br>
- * '2': means equivalences: '2 4 5 -6'   means that these three literals are equivalent. <br>
- * '3': means atleast:      '3 2 4 5 6'  means atleast 2 of 4,5,6 are true <br>
- * '4': means atmost:       '4 2 4 5 6'  means atmost 2 of 4,5,6 are true <br>
- * '5': means exactly:      '5 2 4 5 6'  means exactly 2 of 4,5,6 are true
+ * '0': means disjunction:  '0 1 3 5'      means 1 or 3 or 5<br>
+ * '1': means and:          '1 3 4 5'      stands for 3 and 4 and 5.<br>
+ * '2': means equivalences: '2 4 5 -6'     means that these three literals are equivalent. <br>
+ * '3': means interval      '3 2 3 5 6 7 8 means between 2 and 3 literals among 5,6,7,8 are true<br>
+ * '4': means atleast:      '3 2 4 5 6'    means atleast 2 of 4,5,6 are true <br>
+ * '5': means atmost:       '4 2 4 5 6'    means atmost 2 of 4,5,6 are true <br>
+ * '6': means exactly:      '5 2 4 5 6'    means exactly 2 of 4,5,6 are true
  */
 public class BasicClauseList {
     /** the maximum number of predicates */
-    public int predicates = 0;
+    public final int predicates;
     /** the largest clause length */
-    public int maxClauseLength = 0;
+    public int maxClauseLength;
     /** null or a symboltable */
-    public Symboltable symboltable = null;
+    public final Symboltable symboltable;
     /** the original disjunctions */
-    public ArrayList<int[]> disjunctions  = new ArrayList<>();
+    public final ArrayList<int[]> disjunctions  = new ArrayList<>();
     /** the original conjunctions */
-    public ArrayList<int[]> conjunctions  = new ArrayList<>();
+    public final ArrayList<int[]> conjunctions  = new ArrayList<>();
     /** the original equivalences */
-    public ArrayList<int[]> equivalences  = new ArrayList<>();
+    public final ArrayList<int[]> equivalences  = new ArrayList<>();
     /** the original quantifieds atleast, atmost, exactly */
-    public ArrayList<int[]> quantifieds   = new ArrayList<>();
+    public final ArrayList<int[]> quantifieds   = new ArrayList<>();
     /** the original intervals */
-    public ArrayList<int[]> intervals      = new ArrayList<>();
+    public final ArrayList<int[]> intervals      = new ArrayList<>();
 
     /** an info-string about the origin of the clauses */
     public String info = null;
+
+    public BasicClauseList(int predicates, Symboltable symboltable, String info) {
+        this.predicates = predicates;
+        this.symboltable = symboltable;
+        this.info = info;}
 
     /** adds the clauses to the corresponding lists.
      *
@@ -60,16 +66,15 @@ public class BasicClauseList {
     /** adds a clause to the corresponding lists.
      *  Erroneous clauses are not added to the lists
      *
-     * @param clause a clause
+     * @param clause      a clause
+     * @param errorPrefix a prefix for error messages
+     * @param errors      for error messages
+     * @param warnings    for warnings
      */
     public void addClause(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
         clause = checkSyntax(clause,errorPrefix, errors, warnings);
         if(clause == null) return;
         Connective connective = Connective.getType(clause[1]);
-        if(connective == null) {
-            errors.append(errorPrefix).append("Clause " + Arrays.toString(clause) + " has unknown clause type "
-            + clause[1]);
-            return;}
         int length = clause.length-2;
         if(connective.isQuantifier()) length -= 1;
         else {if(connective == Connective.INTERVAL) length -= 2;}
@@ -78,10 +83,10 @@ public class BasicClauseList {
             case OR:       disjunctions.add(clause); break;
             case AND:      conjunctions.add(clause); break;
             case EQUIV:    equivalences.add(clause); break;
+            case INTERVAL: intervals.add(clause);    break;
             case ATLEAST:
             case ATMOST:
-            case EXACTLY:  quantifieds.add(clause);  break;
-            default:       intervals.add(clause);    break;}
+            case EXACTLY:  quantifieds.add(clause);  break;}
     }
 
     /** checks the clause's syntax.
@@ -93,27 +98,53 @@ public class BasicClauseList {
      * @param errorPrefix  a prefix for the warnings
      * @param errors       for adding error messages
      * @param warnings     for adding a warning
-     * @return null or the shortened clause
+     * @return null or the original clause
      */
     protected int[] checkSyntax(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
+        errorPrefix += "Clause " + Arrays.toString(clause) + ": ";
         int type = clause[1];
-        if(type < 0 || type > 5) {errors.append(errorPrefix).append("Clause type :"+type + " is not between 0 and 5\n"); return null;}
-        int start = 2;
-        boolean isNumeric = Connective.isQuantifier(type);
-        int size = clause.length;
-        if(isNumeric) {
-            start = 3;
-            if(clause[2] <= 0) {
-                {errors.append(errorPrefix).append("Quantifier: " + clause[2] + " < 1\n"); return null;}}
-            if(clause[2] > size-3) {
-                {errors.append(errorPrefix).append("Quantifier: " + clause[2] + " is larger than the clause\n"); return null;}}}
-        for(int i = start; i < size; ++i) {
-            int literal = clause[i];
-            if(literal == 0 || (predicates > 0 && Math.abs(literal) > predicates)) {
-                errors.append(errorPrefix).
-                        append("Literal " + literal + " is not within the predicate boundaries: " + predicates + "\n");
-                return null;}}
-        return clause;}
+        Connective connective = Connective.getType(type);
+        if(connective == null) {
+            errors.append(errorPrefix).append("Connective number :"+type + " is not between 0 and " +
+                    Connective.maxOrdinal() +"\n");
+            return null;}
+        int start = getStart(connective);
+        boolean erraneous = false;
+        for(int i = start; i < clause.length; ++i) {
+            int predicate = Math.abs(clause[i]);
+            if(predicate == 0 || predicate > predicates) {
+                errors.append(errorPrefix).append("Predicate " + predicate +
+                        " is not within the boundaries [0,"+predicates + "]\n");
+                erraneous = true;}}
+
+        if(connective == Connective.AND || connective == Connective.OR || connective == Connective.EQUIV)
+            return erraneous ? null : clause;
+
+        int size = clause.length-start;
+
+        if(clause[2] < 0) {
+            {errors.append(errorPrefix).append("Interval boundary: " + clause[2] + " < 0\n");
+                erraneous = true;}}
+        if(clause[2] > size) {
+            warnings.append(errorPrefix).append("Interval boundary: " + clause[2] + " > clause size "+ size+"\n");}
+
+        if(connective.isInterval()) {
+            if(clause[3] < 0) {
+                {errors.append(errorPrefix).append("Interval boundary: " + clause[3] + " < 0\n");
+                    erraneous = true;}}
+            if(clause[3] > size) {
+                warnings.append(errorPrefix).append("Interval boundary: " + clause[3] + " > clause size "+ size+"\n");}}
+        return erraneous ? null : clause;}
+
+    /** returns the start of the literal section in a basic clause
+     *
+     * @param connective one of the connectives
+     * @return the start of the literal section in a basic clause
+     */
+    private int getStart(Connective connective) {
+        if(connective.isInterval()) return 4;
+        if(connective.isQuantifier()) return 3;
+        return 2;}
 
 
 
@@ -183,8 +214,7 @@ public class BasicClauseList {
         int n = clause[2];
         int size = clause.length;
         int trueLiterals = 0;
-        for(int i = 3; i < size; ++i) {
-            if(model.isTrue(clause[i])) ++trueLiterals;}
+        for(int i = 3; i < size; ++i) {if(model.isTrue(clause[i])) ++trueLiterals;}
         switch(Connective.getType(clause[1])) {
             case ATLEAST: return trueLiterals >= n;
             case ATMOST:  return trueLiterals <= n;
@@ -293,10 +323,10 @@ public class BasicClauseList {
             for(int[] clause : equivalences) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
         if(!quantifieds.isEmpty()) {
             st.append("Quantifieds:\n");
-            for(int[] clause : quantifieds)     {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+            for(int[] clause : quantifieds)  {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
         if(!intervals.isEmpty()) {
             st.append("Intervals:\n");
-            for(int[] clause : intervals)      {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+            for(int[] clause : intervals)    {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
         return st.toString();}
 
 

@@ -392,20 +392,19 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         cliterals.remove(size-1);
         setStructure();}
 
-    public Clause replaceEquivalences(IntUnaryOperator getRepresentative, IntSupplier nextInt) {
+    public Clause replaceEquivalences(IntUnaryOperator getRepresentative, IntSupplier nextInt, IntArrayList replacements) {
         Clause clause = this;
-        boolean changed = false;
         ArrayList<CLiteral> cLits = cliterals;
         for(int i = 0; i < cLits.size(); ++i) {
             int oldLiteral = cLits.get(i).literal;
             int newLiteral = getRepresentative.applyAsInt(oldLiteral);
             if(oldLiteral == newLiteral) continue;
-            changed = true;
+            replacements.add(oldLiteral); replacements.add(newLiteral);
             if(clause == this && nextInt != null) {
                 clause = clone(nextInt.getAsInt());
                 cLits = clause.cliterals;}
             cLits.get(i).literal = newLiteral;}
-        return changed ? clause.simplify() : clause;}
+        return clause;}
 
     /** checks for multiple occurrences (in OR-clauses) and complementary literals
      *  Multiple occurrences of literals in OR-clauses are removed.<br>
