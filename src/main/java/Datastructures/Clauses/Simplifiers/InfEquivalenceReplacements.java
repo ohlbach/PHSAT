@@ -1,6 +1,6 @@
 package Datastructures.Clauses.Simplifiers;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import InferenceSteps.InferenceStep;
@@ -12,26 +12,26 @@ import static Utilities.Utilities.joinIntArrays;
 
 /** for documenting replacements of literals by equivalent literals
  */
-public class EquivalenceReplacementsOld extends InferenceStep {
+public class InfEquivalenceReplacements extends InferenceStep {
 
     public static final String title = "Equivalence Replacements";
 
     public static final String rule = title + ":\n" +
             "...,p,.......,q,...\n"+
-            "  p = x ... q = y\n"+
+            "  p -> x ... q -> y\n"+
             "-------------------\n" +
             "...,x,.......,y,...";
 
-    private final ClauseOld oldClause;
-    private final ClauseOld newClause;
-    private final IntArrayList positions;
+    private final Clause oldClause;
+    private final Clause newClause;
+    private final IntArrayList literals;
     private final EquivalenceClasses equivalenceClasses;
 
-    public EquivalenceReplacementsOld(ClauseOld oldClause, ClauseOld newClause, IntArrayList positions,
+    public InfEquivalenceReplacements(Clause oldClause, Clause newClause, IntArrayList literals,
                                       EquivalenceClasses equivalenceClasses) {
         this.oldClause = oldClause;
         this.newClause = newClause;
-        this.positions = positions;
+        this.literals = literals;
         this.equivalenceClasses = equivalenceClasses;
     }
 
@@ -46,28 +46,31 @@ public class EquivalenceReplacementsOld extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         String equations = "";
-        int size =positions.size();
-        for(int i = 0; i < size; ++i) {
-            int position = positions.getInt(i);
-            equations += Symboltable.toString(oldClause.getLiteral(position),symboltable) + "="+
-                    Symboltable.toString(newClause.getLiteral(position),symboltable);
-            if(i < size - 1) equations += ",";}
+        int size = literals.size();
+        for(int i = 0; i < size; i+=2) {
+            int oldLiteral = literals.getInt(i);
+            int newLiteral = literals.getInt(i+1);
+            equations += Symboltable.toString(oldLiteral,symboltable) + "->"+Symboltable.toString(newLiteral,symboltable);
+            if(i < size - 2) equations += ",";}
         return title +":\n" + oldClause.toString(0,symboltable) + " and " + equations +
                 " -> " + newClause.toString(0,symboltable);}
 
     @Override
     public IntArrayList origins() {
         IntArrayList origins = (oldClause.inferenceStep != null) ? oldClause.inferenceStep.origins() : null;
-        for(int position : positions) {
-            InferenceStep step = equivalenceClasses.getEClause(oldClause.getLiteral(position)).inferenceStep;
+        for(int i = 0; i < literals.size(); i+=2) {
+            int oldLiteral = literals.getInt(i);
+            InferenceStep step = equivalenceClasses.getEClause(oldLiteral).inferenceStep;
             if(step != null) joinIntArrays(origins,step.origins());}
         return origins;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
         if(oldClause.inferenceStep != null) oldClause.inferenceStep.inferenceSteps(steps);
-        for(int position : positions) {
-            InferenceStep step = equivalenceClasses.getEClause(oldClause.getLiteral(position)).inferenceStep;
+        for(int i = 0; i < literals.size(); i+=2) {
+            int oldLiteral = literals.getInt(i);
+            InferenceStep step = equivalenceClasses.getEClause(oldLiteral).inferenceStep;
             if(step != null) step.inferenceSteps(steps);}
         if(!steps.contains(this)) steps.add(this);}
 }
+

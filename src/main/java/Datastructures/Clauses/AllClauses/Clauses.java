@@ -19,6 +19,8 @@ import InferenceSteps.Input;
 import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
+import Utilities.BucketSortedList;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -125,8 +127,9 @@ public class Clauses extends Thread {
      */
     private void integrateAnd(int[] basicClause) throws Unsatisfiable {
         assert basicClause[1] == Connective.AND.ordinal();
+        InferenceStep step = new Input(basicClause[0]);
         for(int i = 2; i < basicClause.length; ++i) {
-            model.add(basicClause[i],new Input(basicClause[0]),thread);}}
+            model.add(basicClause[i],step,thread);}}
 
 
     /** simplifies and integrates a basic Or-clause into the local data structures

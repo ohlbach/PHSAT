@@ -177,7 +177,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         int min = interval.min;
         int max = interval.max;
         int length = cliterals.size();
-        if(min == max && max  == length) return Connective.AND;
+        if(min == max && max  == length && length > 0) return Connective.AND;
         if(min == max)                   return Connective.EXACTLY;
         if(max == length)                return Connective.ATLEAST;
         if(min == 0)                     return Connective.ATMOST;
@@ -194,6 +194,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public Clause clone(int id) {
         Clause clause = new Clause(id,connective,interval.clone(),cliterals.size());
         for(CLiteral cLiteral : cliterals) {clause.add(cLiteral.literal);}
+        clause.structure = structure;
         return clause;}
 
     /** creates a clone of the clause.
@@ -256,7 +257,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         for(CLiteral cLiteral : cliterals) {
             if(cLiteral.literal > 0) {++positive;} else {++negative;}}
         ClauseStructure structure = ClauseStructure.MIXED;
-        if(positive == 0) {structure =  ClauseStructure.NEGATIVE;}
+        if(positive == 0)       {structure =  ClauseStructure.NEGATIVE;}
         else {if(negative == 0) {structure =  ClauseStructure.POSITIVE;}}
         return structure;}
 
@@ -392,6 +393,15 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         cliterals.remove(size-1);
         setStructure();}
 
+    /** replaces literals by the representatives in an equivalence class.
+     * If nextInt != null then the replacement is done in a clone of the clause, otherwise in the original clause
+     *
+     *
+     * @param getRepresentative maps a literal to its representative in an equivalence class
+     * @param nextInt           null or a function that returns the next clause id for a clone of the clause
+     * @param replacements      collects pairs of replacements: oldLiteral -> newLiteral
+     * @return                  either the original clause or the clone with the replacements
+     */
     public Clause replaceEquivalences(IntUnaryOperator getRepresentative, IntSupplier nextInt, IntArrayList replacements) {
         Clause clause = this;
         ArrayList<CLiteral> cLits = cliterals;

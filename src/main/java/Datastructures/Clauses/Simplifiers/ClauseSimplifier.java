@@ -1,10 +1,8 @@
 package Datastructures.Clauses.Simplifiers;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseOld;
 import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
-import Datastructures.Literals.CLiteralOld;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
@@ -60,13 +58,13 @@ public class ClauseSimplifier {
      * @param clause an AND-Clause
      * @throws Unsatisfiable if the model finds an inconsistency
      */
-    protected void simplifyAnd(ClauseOld clause) throws Unsatisfiable {
+    protected void simplifyAnd(Clause clause) throws Unsatisfiable {
         assert clause.connective == Connective.AND;
         InferenceStep step = null;
         if(trackReasoning) {
             step = clause.inferenceStep;
             if(monitoring) {monitor.print(monitorId,step.toString(symboltable));}}
-        for(CLiteralOld cLiteral : clause) {model.add(cLiteral.literal,step,thread);}}
+        for(CLiteral cLiteral : clause) {model.add(cLiteral.literal,step,thread);}}
 
     IntArrayList intList1 = new IntArrayList();
     IntArrayList intList2 = new IntArrayList();
@@ -76,15 +74,21 @@ public class ClauseSimplifier {
      * otherwise in the original clause.
      *
      * @param oldClause the original clause
-     * @return either the unchanged old clause, or a new clause with the replaced literals.
+     * @return either the old clause, or a new clause with the replaced literals.
      */
-    protected Clause replaceEquivalences(Clause oldClause) {
+    protected Clause replaceEquivalences(Clause oldClause) throws Unsatisfiable{
         if(equivalenceClasses.isEmpty()) return oldClause;
-        Clause newClause = oldClause.replaceEquivalences(getRepresentative,nextId, intList1);
-        if(newClause == oldClause) return oldClause;
-        InferenceStep step = new EquivalenceReplacements(oldClause,newClause, intList1,equivalenceClasses);
+        intList1.clear();
+        Clause newClause = oldClause.replaceEquivalences(getRepresentative, nextId, intList1);
+        if(intList1.isEmpty()) return oldClause;
+        InferenceStep step = new InfEquivalenceReplacements(oldClause,newClause, intList1,equivalenceClasses);
         newClause.inferenceStep = step;
         if(monitoring) monitor.print(monitorId,step.toString(symboltable));
+        newClause.simplify();
+        if(newClause.connective == Connective.AND) {simplifyAnd(newClause); return null;}
+        if(newClause.isEmpty()) {
+            if(newClause.interval.min == 0) {return null;} // tautology
+            else throw new Unsatisfiable(newClause);}
         return newClause;}
 
 }
