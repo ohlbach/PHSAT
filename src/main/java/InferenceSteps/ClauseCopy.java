@@ -1,7 +1,7 @@
 package InferenceSteps;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.TwoLiteral.TwoLitClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -14,14 +14,14 @@ import java.util.ArrayList;
  */
 public class ClauseCopy extends InferenceStep {
     private int[] basicClause;
-    private ClauseOld clause = null;
+    private Clause clause = null;
     private TwoLitClause twoLitClause = null;
     public static String title = "Clause Copy";
 
     public static String rule = title + ":\n"+
             "Copies a basic clause like [id,type,literal1,...] to a Clause or TwoLitClause data structure";
 
-    public ClauseCopy(int[] basicClause, ClauseOld clause) {
+    public ClauseCopy(int[] basicClause, Clause clause) {
         this.basicClause = basicClause;
         this.clause = clause;}
 

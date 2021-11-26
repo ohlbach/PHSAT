@@ -19,13 +19,13 @@ public abstract class LiteralIndex {
      *
      * @param cliteral the literal to be added
      */
-    public abstract void addLiteral(CLiteralOld cliteral);
+    public abstract void addLiteral(CLiteral cliteral);
 
     /** removes the literal from the index (in constant time)
      *
      * @param cliteral the literal to be removed.
      */
-    public abstract void removeLiteral(CLiteralOld cliteral);
+    public abstract void removeLiteral(CLiteral cliteral);
 
 
     /** returns the CLiterals with the given literal (integer)
@@ -33,7 +33,7 @@ public abstract class LiteralIndex {
      * @param literal the literal (integer)
      * @return the list of occurrences (CLiterals)
      */
-    public abstract AbstractCollection<CLiteralOld> getLiterals(int literal);
+    public abstract AbstractCollection<CLiteral> getLiterals(int literal);
     /** returns the number of cLiterals indexed by this literal
      *
      * @param literal a literal
@@ -69,7 +69,7 @@ public abstract class LiteralIndex {
      * @param literal a literal
      * @return an iterator over all CLiterals (occurrences of the literal in the clauses).
      */
-    public abstract Iterator<CLiteralOld> iterator(int literal);
+    public abstract Iterator<CLiteral> iterator(int literal);
 
     /** comprises the index into a string
      *
@@ -83,22 +83,22 @@ public abstract class LiteralIndex {
      * @param literalString a function for mapping cLiterals to strings
      * @return the entire index as string.
      */
-    public String toString(Function<CLiteralOld,String> literalString) {
+    public String toString(Function<CLiteral,String> literalString) {
         StringBuilder st = new StringBuilder();
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             StringBuilder posString = null;
             StringBuilder negString = null;
-            Iterator<CLiteralOld> it = iterator(predicate);
+            Iterator<CLiteral> it = iterator(predicate);
             if(!isEmpty(predicate)) {
                 posString = new StringBuilder();
                 while(it.hasNext()) {
-                    CLiteralOld lit = it.next();
+                    CLiteral lit = it.next();
                     posString.append(literalString.apply(lit)).append("@"+lit.clausePosition).append(",");}}
             if(!isEmpty(-predicate)) {
                 negString = new StringBuilder();
                 it = iterator(-predicate);
                 while(it.hasNext()) {
-                    CLiteralOld lit = it.next();
+                    CLiteral lit = it.next();
                     posString.append(literalString.apply(lit)).append("@"+lit.clausePosition).append(",");}}
             if(posString != null) {
                 st.append(" ").append(Integer.toString(predicate)).append(": ").append(posString).append("\n");}

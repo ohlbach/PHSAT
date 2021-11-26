@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.TwoLiteral.TwoLitClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -13,12 +13,12 @@ import static Utilities.Utilities.*;
 /** documents a replacement resolution step
  */
 public class ReplacementResolution extends InferenceStep{
-    private ClauseOld parentClause1 = null;
+    private Clause parentClause1 = null;
     private TwoLitClause parent2Clause1 = null;
-    private final ClauseOld parentClause2;
+    private final Clause parentClause2;
     private TwoLitClause twoClause = null;
     private final int literal;
-    private final ClauseOld resolvent;
+    private final Clause resolvent;
 
     public static String title = "Replacement Resolution";
 
@@ -35,7 +35,7 @@ public class ReplacementResolution extends InferenceStep{
      * @param literal       the resolution literal
      * @param resolvent     the resolvent
      */
-    public ReplacementResolution(ClauseOld parentClause1, ClauseOld parentClause2, TwoLitClause twoClause, int literal, ClauseOld resolvent) {
+    public ReplacementResolution(Clause parentClause1, Clause parentClause2, TwoLitClause twoClause, int literal, Clause resolvent) {
         this.parentClause1 = parentClause1;
         this.parentClause2 = parentClause2;
         this.twoClause = twoClause;
@@ -49,7 +49,7 @@ public class ReplacementResolution extends InferenceStep{
      * @param literal       the resolution literal
      * @param resolvent     the resolvent
      */
-    public ReplacementResolution(TwoLitClause parent2Clause1, ClauseOld parentClause2, int literal, ClauseOld resolvent) {
+    public ReplacementResolution(TwoLitClause parent2Clause1, Clause parentClause2, int literal, Clause resolvent) {
         this.parent2Clause1 = parent2Clause1;
         this.parentClause2 = parentClause2;
         this.literal = literal;

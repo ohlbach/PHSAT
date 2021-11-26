@@ -54,8 +54,8 @@ public class CLiteral implements Positioned {
      *
      * @return the clone.
      */
-    public CLiteralOld clone() {
-        return new CLiteralOld(literal);}
+    public CLiteral clone() {
+        return new CLiteral(literal);}
 
 
     /** sets the position in a literal index

@@ -1,6 +1,6 @@
 package Solvers.Walker;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Utilities.Utilities;
@@ -24,10 +24,10 @@ public class WClause {
      *
      * @param clause a clause
      */
-    public WClause(ClauseOld clause) {
+    public WClause(Clause clause) {
         id = clause.id;
         connective = clause.connective;
-        quantifier = clause.quAmount;
+        quantifier = clause.interval.min;
         literals = new int[clause.size()];
         for(int i = 0; i < clause.size(); ++i) literals[i] = clause.getLiteral(i);
         int size = literals.length;

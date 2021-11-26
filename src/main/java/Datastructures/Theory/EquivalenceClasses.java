@@ -3,6 +3,7 @@ package Datastructures.Theory;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Task;
@@ -176,11 +177,11 @@ public class EquivalenceClasses  {
      * @param basicClause a basic equivalence basicClause
      * @throws Unsatisfiable if a contradictory truth value has been discovered.
      */
-    public void addBasicEquivalenceClause(int[] basicClause) throws Unsatisfiable {
+    public void addBasicEquivalenceClause(int[] basicClause) throws Result {
         assert basicClause.length > 3;
         assert Connective.getType(basicClause[1]) == Connective.EQUIV;
         statistics.basicClauses++;
-        Clause clause = new Clause(basicClause[0],basicClause);
+        Clause clause = new Clause(basicClause);
         if(trackReasoning) {clause.inferenceStep = new ClauseCopy(basicClause,clause);}
         integrateEquivalence(clause,false);}
 

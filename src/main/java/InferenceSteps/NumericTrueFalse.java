@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -20,13 +20,13 @@ public class NumericTrueFalse extends InferenceStep{
             "atleast 2 p,q,r and false(p) -> atleast 2 q r\n" +
             "similar with atmost and exactly";
 
-    private final ClauseOld oldClause;
-    private final ClauseOld newClause;
+    private final Clause oldClause;
+    private final Clause newClause;
     private final IntArrayList trueLiterals;
     private final IntArrayList falseLiterals;
     private final Model model;
 
-    public NumericTrueFalse(ClauseOld oldClause, ClauseOld newClause,
+    public NumericTrueFalse(Clause oldClause, Clause newClause,
                             IntArrayList trueLiterals, IntArrayList falseLiterals, Model model) {
         this.oldClause     = oldClause;
         this.newClause     = newClause;

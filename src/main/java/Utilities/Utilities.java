@@ -1,8 +1,8 @@
 package Utilities;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
-import Datastructures.Literals.CLiteralOld;
+import Datastructures.Literals.CLiteral;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -295,11 +295,11 @@ public class Utilities {
             System.out.printf(": ");
             System.out.println(message);});}
 
-    public static ClauseOld makeClause(int id, String literals) {
+    public static Clause makeClause(int id, String literals) {
         String[] lits = literals.split("\\s*(,| )\\s*");
-        ClauseOld clause = new ClauseOld(id, Connective.OR,lits.length);
+        Clause clause = new Clause(id, Connective.OR,lits.length);
         for(String lit : lits) {
-            clause.add(new CLiteralOld(Integer.parseInt(lit)));}
+            clause.add(new CLiteral(Integer.parseInt(lit)));}
         clause.setStructure();
         return clause;
     }

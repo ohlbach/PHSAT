@@ -1,6 +1,7 @@
 package Datastructures.TwoLiteral;
 
 import Datastructures.Clauses.Connective;
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
@@ -46,7 +47,6 @@ public class TwoLitClausesTest {
             symboltable.setName(6,"c");}
         problemSupervisor.model = new Model(20,symboltable);
         problemSupervisor.equivalenceClasses = new EquivalenceClasses(problemSupervisor);
-        problemSupervisor.disjointnessClasses =  new DisjointnessClasses(problemSupervisor);
         return new TwoLitClauses(problemSupervisor);
     }
     
@@ -59,7 +59,7 @@ public class TwoLitClausesTest {
 
 
     @Test
-    public void removeDoubles() throws Unsatisfiable{
+    public void removeDoubles() throws Result{
         System.out.println("remove doubles");
         TwoLitClauses clauses = prepare(monitoring,true);
         TwoLitClause clause1 = make(clauses,1,2);
@@ -78,7 +78,7 @@ public class TwoLitClausesTest {
             System.out.println(uns.toString());}
     }
     @Test
-    public void replaceEquivalentLiterals() throws Unsatisfiable {
+    public void replaceEquivalentLiterals() throws Result {
         System.out.println("replaceEquivalentLiterals");
         TwoLitClauses clauses = prepare(monitoring, true);
         int[] clauseeq = new int[]{1,typeEQ,1,2,3};
@@ -90,7 +90,7 @@ public class TwoLitClausesTest {
     }
 
     @Test
-    public void replaceTruthValues() throws Unsatisfiable {
+    public void replaceTruthValues() throws Result {
         System.out.println("replace truth values");
         TwoLitClauses clauses = prepare(monitoring, true);
         clauses.model.add(1,new InferenceTest("may test 1"),null);
@@ -109,7 +109,7 @@ public class TwoLitClausesTest {
     }
 
     @Test
-    public void normalize() throws Unsatisfiable {
+    public void normalize() throws Result {
         System.out.println("normalize");
         TwoLitClauses clauses = prepare(monitoring, true);
         TwoLitClause clause1 = make(clauses,1,2);
@@ -160,76 +160,11 @@ public class TwoLitClausesTest {
         assertEquals("[1, 2, 3]",clauses.findDisjointnesses(-1).toString());
     }
 
-    @Test
-    public void findDisjointnesses2() throws Exception {
-        System.out.println("find disjointnesses 5");
-        TwoLitClauses clauses = prepare(monitoring, true);
-        TwoLitClause clause1 = make(clauses, -1, -2);
-        clauses.integrateClause(clause1, false);
-        TwoLitClause clause2 = make(clauses, -1, -3);
-        clauses.integrateClause(clause2, false);
-        TwoLitClause clause3 = make(clauses, -1, -4);
-        clauses.integrateClause(clause3, false);
-        TwoLitClause clause4 = make(clauses, -1, -5);
-        clauses.integrateClause(clause4, false);
-        TwoLitClause clause5 = make(clauses, -2, -3);
-        clauses.integrateClause(clause5, false);
-        TwoLitClause clause6 = make(clauses, -2, -4);
-        clauses.integrateClause(clause6, false);
-        TwoLitClause clause7 = make(clauses, -2, -5);
-        clauses.integrateClause(clause7, false);
-        TwoLitClause clause8 = make(clauses, -3, -4);
-        clauses.integrateClause(clause8, false);
-        TwoLitClause clause9 = make(clauses, -3, -5);
-        clauses.integrateClause(clause9, false);
-        TwoLitClause clause10 = make(clauses, -4, -5);
-        clauses.integrateClause(clause10, false);
-        assertEquals("[1, 2, 3, 4, 5]",clauses.findDisjointnesses(-1).toString());
-        assertEquals("[5, 1, 2, 3, 4]",clauses.findDisjointnesses(-5).toString());
 
-        Thread thread = new Thread(clauses.disjointnessClasses::run);
-        thread.start(); Thread.sleep(100);
-        thread.interrupt();
-        assertEquals("Disjointness Clauses of Problem test:\n" +
-                "D-11: 1!=2!=3!=4!=5",clauses.disjointnessClasses.toString());
-    }
-
-    @Test
-    public void findAllDisjointnesses() throws Exception {
-        System.out.println("find all disjointnesses");
-        TwoLitClauses clauses = prepare(monitoring, true);
-        TwoLitClause clause1 = make(clauses, -1, -2);
-        clauses.integrateClause(clause1, false);
-        TwoLitClause clause2 = make(clauses, -1, -3);
-        clauses.integrateClause(clause2, false);
-        TwoLitClause clause3 = make(clauses, -1, -4);
-        clauses.integrateClause(clause3, false);
-        TwoLitClause clause4 = make(clauses, -1, -5);
-        clauses.integrateClause(clause4, false);
-        TwoLitClause clause5 = make(clauses, -2, -3);
-        clauses.integrateClause(clause5, false);
-        TwoLitClause clause6 = make(clauses, -2, -4);
-        clauses.integrateClause(clause6, false);
-        TwoLitClause clause7 = make(clauses, -2, -5);
-        clauses.integrateClause(clause7, false);
-        TwoLitClause clause8 = make(clauses, -3, -4);
-        clauses.integrateClause(clause8, false);
-        TwoLitClause clause9 = make(clauses, -3, -5);
-        clauses.integrateClause(clause9, false);
-        TwoLitClause clause10 = make(clauses, -4, -5);
-        clauses.integrateClause(clause10, false);
-        clauses.findAllDisjointnesses();
-
-        Thread thread = new Thread(clauses.disjointnessClasses::run);
-        thread.start(); Thread.sleep(10);
-        thread.interrupt();
-        assertEquals("Disjointness Clauses of Problem test:\n" +
-                "D-11: 1!=2!=3!=4!=5",clauses.disjointnessClasses.toString());
-    }
 
 
     @Test
-    public void addBasicClause1() throws Unsatisfiable{
+    public void addBasicClause1() throws Result{
         System.out.println("addBasicClause plain");
         TwoLitClauses clauses = prepare(monitoring,true);
 
@@ -244,7 +179,7 @@ public class TwoLitClausesTest {
     }
 
     @Test
-    public void addBasicClause2() throws Unsatisfiable{
+    public void addBasicClause2() throws Result{
         System.out.println("addBasicClause tautology and subsumed");
         TwoLitClauses clauses = prepare(monitoring,true);
 
@@ -260,7 +195,7 @@ public class TwoLitClausesTest {
         //System.out.println(clauses.infoString(symboltable));
     }
     @Test
-    public void addBasicClause3() throws Unsatisfiable{
+    public void addBasicClause3() throws Result{
         System.out.println("addBasicClause with model");
         TwoLitClauses clauses = prepare(monitoring,true);
         ArrayList<Object> observed = new ArrayList<>();
@@ -343,7 +278,6 @@ public class TwoLitClausesTest {
                 "  2-4: 5,6",clauses.toString());
         assertEquals("[3, 4]",observed.toString());
         assertEquals("Model:\n3,4",clauses.model.toNumbers());
-        System.out.println(clauses.disjointnessClasses.infoString(null));
         System.out.println(clauses.model.infoString(false));
     }
 
@@ -380,11 +314,9 @@ public class TwoLitClausesTest {
         TwoLitClauses clauses = prepare(monitoring,true);
 
         Thread eqthread = new Thread(clauses.equivalenceClasses::run);
-        Thread dthread  = new Thread(clauses.disjointnessClasses::run);
         Thread twothread = new Thread(clauses::run);
         eqthread.start();
         twothread.start();
-        dthread.start();
 
         int[] clause1 = new int[]{1,type,-1,2};
         int[] clause2 = new int[]{2,type,1,-2};
@@ -392,8 +324,8 @@ public class TwoLitClausesTest {
         clauses.addBasicClause(clause2);
 
         try{ Thread.sleep(20);} catch(Exception ex) {}
-        eqthread.interrupt(); dthread.interrupt(); twothread.interrupt();
-        eqthread.join();dthread.join();twothread.join();
+        eqthread.interrupt();  twothread.interrupt();
+        eqthread.join();twothread.join();
         assertEquals("Equivalence Classes of Problem test:\n" +
                 "E-1: 1=2", clauses.equivalenceClasses.toString());
         assertTrue(clauses.isEmpty());
@@ -405,11 +337,9 @@ public class TwoLitClausesTest {
         TwoLitClauses clauses = prepare(monitoring,false);
 
         Thread eqthread = new Thread(clauses.equivalenceClasses::run);
-        Thread dthread  = new Thread(clauses.disjointnessClasses::run);
         Thread twothread = new Thread(clauses::run);
         eqthread.start();
         twothread.start();
-        dthread.start();
 
         int[] clause1 = new int[]{1,type,-1,-2};
         int[] clause2 = new int[]{2,type,-1,-3};
@@ -420,10 +350,8 @@ public class TwoLitClausesTest {
         clauses.addDisjointnessFinder();
 
         try{ Thread.sleep(1000);} catch(Exception ex) {}
-        eqthread.interrupt(); dthread.interrupt(); twothread.interrupt();
-        eqthread.join();dthread.join();twothread.join();
-        assertEquals("Disjointness Clauses of Problem test:\n" +
-                "D-1: 1!=2!=3", clauses.disjointnessClasses.toString());
+        eqthread.interrupt();twothread.interrupt();
+        eqthread.join();twothread.join();
         assertEquals("Two-Literal clauses of problem test:\n" +
                 "  2-1: -1,-2\n" +
                 "  2-2: -1,-3\n" +

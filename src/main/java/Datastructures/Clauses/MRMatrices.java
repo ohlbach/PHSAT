@@ -1,21 +1,22 @@
 package Datastructures.Clauses;
 
+import Datastructures.Clauses.AllClauses.Clauses;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.TwoLiteral.TwoLitClause;
 
 import java.util.ArrayList;
 
 public class MRMatrices {
-    private AllClausesOld allClauses;
+    private Clauses allClauses;
 
-    public MRMatrices(AllClausesOld allClauses) {
+    public MRMatrices(Clauses allClauses) {
         this.allClauses = allClauses;}
 
-    public void mrResolve(ClauseOld[] disjointnessClauses, ArrayList<ClauseOld> clauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable {
+    public void mrResolve(Clause[] disjointnessClauses, ArrayList<Clause> clauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable {
         ArrayList<MRMatrix> matrices = new ArrayList<>();
         matrices.add(new MRMatrix(allClauses,disjointnessClauses));
         for(int i = 0; i < clauses.size(); ++i) {
-            ClauseOld clause = clauses.get(i);
+            Clause clause = clauses.get(i);
             boolean done = false;
             for(MRMatrix matrix : matrices) {
                 if(matrix.insertClause(clause)) {done = true; break;}}

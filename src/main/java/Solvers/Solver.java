@@ -1,8 +1,8 @@
 package Solvers;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.ClauseOld;
-import Datastructures.Literals.CLiteralOld;
+import Datastructures.Clauses.Clause;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
@@ -11,7 +11,7 @@ import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
-import Solvers.Walker.WalkerOld;
+import Solvers.Walker.Walker;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.lang.reflect.Constructor;
@@ -52,7 +52,7 @@ public abstract class Solver {
      */
     public static Class solverClass(String solverName) {
         switch (solverName) {
-            case "walker":      return WalkerOld.class;
+            case "walker":      return Walker.class;
             case "resolution":  return Solvers.Resolution.Resolution.class;
             default: return null;}}
 
@@ -233,10 +233,10 @@ public abstract class Solver {
      * @param model   a model
      * @return +1 if all literals are true, -1 if all literals are false, otherwise 0.
      */
-    public int statusInModel(ClauseOld clause, Model model) {
+    public int statusInModel(Clause clause, Model model) {
         int trueLiterals = 0;
         int falseLiterals = 0;
-        for(CLiteralOld cliteral : clause) {
+        for(CLiteral cliteral : clause) {
             int status = model.status(cliteral.literal);
             if(status == 1) {++trueLiterals; continue;}
             if(status == 0) {++falseLiterals;}}
@@ -251,8 +251,8 @@ public abstract class Solver {
      * @param model   a model
      * @return true if the clause is true in the model
      */
-    public boolean trueInModel(ClauseOld clause, Model model) {
-        for(CLiteralOld cliteral : clause) {
+    public boolean trueInModel(Clause clause, Model model) {
+        for(CLiteral cliteral : clause) {
             if(model.isTrue(cliteral.literal)) {return true;} }
         return false;}
 

@@ -9,10 +9,10 @@ import java.util.function.Function;
  * Created by ohlbach on 25.06.2019.
  */
 public class LiteralIndexSorted extends LiteralIndex {
-    private Function<CLiteralOld,Integer> bucketIndex = cliteral->cliteral.clause.size();
-    private BucketSortedList<CLiteralOld>[] posOccurrences;  // maps each positive predicate to the list of occurrences
-    private BucketSortedList<CLiteralOld>[] negOccurrences;  // maps each negative predicate to the list of occurrences
-    private ArrayList<CLiteralOld> emptyList = new ArrayList();
+    private Function<CLiteral,Integer> bucketIndex = cliteral->cliteral.clause.size();
+    private BucketSortedList<CLiteral>[] posOccurrences;  // maps each positive predicate to the list of occurrences
+    private BucketSortedList<CLiteral>[] negOccurrences;  // maps each negative predicate to the list of occurrences
+    private ArrayList<CLiteral> emptyList = new ArrayList();
 
     /** constructs an index for a given number of predicates
      *
@@ -28,7 +28,7 @@ public class LiteralIndexSorted extends LiteralIndex {
      *
      * @param predicates the number of predicates
      */
-    public LiteralIndexSorted(int predicates, Comparator<CLiteralOld> comparator) {
+    public LiteralIndexSorted(int predicates, Comparator<CLiteral> comparator) {
         super(predicates);
         posOccurrences = new BucketSortedList[predicates + 1];
         negOccurrences = new BucketSortedList[predicates + 1];
@@ -39,11 +39,11 @@ public class LiteralIndexSorted extends LiteralIndex {
      *
      * @param cliteral the literal to be added
      */
-    public void addLiteral(CLiteralOld cliteral) {
+    public void addLiteral(CLiteral cliteral) {
         int literal = cliteral.literal;
         int predicate = Math.abs(literal);
-        BucketSortedList<CLiteralOld>[] list = literal > 0 ? posOccurrences : negOccurrences;
-        BucketSortedList<CLiteralOld> lits = list[predicate];
+        BucketSortedList<CLiteral>[] list = literal > 0 ? posOccurrences : negOccurrences;
+        BucketSortedList<CLiteral> lits = list[predicate];
         if(lits == null) {
             lits = new BucketSortedList(bucketIndex);
             list[predicate] = lits;}
@@ -53,9 +53,9 @@ public class LiteralIndexSorted extends LiteralIndex {
      *
      * @param cliteral the literal to be removed.
      */
-    public void removeLiteral(CLiteralOld cliteral) {
+    public void removeLiteral(CLiteral cliteral) {
         int literal = cliteral.literal;
-        BucketSortedList<CLiteralOld> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        BucketSortedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         if(list == null) {return;}
         int size = list.size()-1;
         if(size == 0) {
@@ -88,9 +88,9 @@ public class LiteralIndexSorted extends LiteralIndex {
      * @param literal the literal (integer)
      * @return the list of occurrences (CLiterals)
      */
-    public AbstractCollection<CLiteralOld> getLiterals(int literal) {
+    public AbstractCollection<CLiteral> getLiterals(int literal) {
         assert literal != 0 && (Math.abs(literal) <= predicates);
-        BucketSortedList<CLiteralOld> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        BucketSortedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null ? emptyList : list.getAllItems();}
 
 
@@ -101,17 +101,17 @@ public class LiteralIndexSorted extends LiteralIndex {
      * @return the number of cLiterals indexed by this literal
      */
     public int size(int literal) {
-        BucketSortedList<CLiteralOld> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        BucketSortedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null ? 0 : list.size();}
 
 
 
     public boolean isEmpty(int literal) {
-        BucketSortedList<CLiteralOld> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+        BucketSortedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return list == null || list.isEmpty();}
 
-    public Iterator<CLiteralOld> iterator(int literal) {
-        BucketSortedList<CLiteralOld> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+    public Iterator<CLiteral> iterator(int literal) {
+        BucketSortedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return (list == null) ? emptyList.iterator() : list.iterator();}
 
 
@@ -119,16 +119,16 @@ public class LiteralIndexSorted extends LiteralIndex {
      *
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<CLiteralOld> iteratorFrom(int literal, int position) {
-        BucketSortedList<CLiteralOld> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+    public Iterator<CLiteral> iteratorFrom(int literal, int position) {
+        BucketSortedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return (list == null) ? emptyList.iterator() : list.iteratorFrom(position);}
 
     /** This method generates an iterator which iterates over the items in the bucket ending with bucket[position]
      *
      * @return an iterator for iterating over the items in the buckets.
      */
-    public Iterator<CLiteralOld> iteratorTo(int literal, int position) {
-        BucketSortedList<CLiteralOld> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
+    public Iterator<CLiteral> iteratorTo(int literal, int position) {
+        BucketSortedList<CLiteral> list =  literal > 0 ? posOccurrences[literal] : negOccurrences[-literal];
         return (list == null) ? emptyList.iterator() : list.iteratorTo(position);}
 
 

@@ -1,6 +1,7 @@
 package Datastructures.Clauses;
 
-import Datastructures.Literals.CLiteralOld;
+import Datastructures.Clauses.AllClauses.Clauses;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
@@ -29,10 +30,10 @@ import static Utilities.Utilities.*;
  * There are other versions of multi-resolution where resolvents are created.
  */
 public class MRMatrix {
-    private final AllClausesOld allClauses;
-    public ClauseOld[] disjointnessClauses;    // a list of Disjointness clauses
-    private final ArrayList<CLiteralOld>[] dLiterals; // the rearranged list of CLiterals of the disjointness clauses
-    private final ArrayList<CLiteralOld[]> matrix = new ArrayList<>(); // the matrix of clauses
+    private final Clauses allClauses;
+    public Clause[] disjointnessClauses;    // a list of Disjointness clauses
+    private final ArrayList<CLiteral>[] dLiterals; // the rearranged list of CLiterals of the disjointness clauses
+    private final ArrayList<CLiteral[]> matrix = new ArrayList<>(); // the matrix of clauses
     private final int columnSize;                  // disjointnessClauses.length
     public boolean trackReasoning;           // controls computation of origins
     private final Symboltable symboltable;         // null or a symboltable
@@ -47,7 +48,7 @@ public class MRMatrix {
      * @param allClauses          the "parent class"
      * @param disjointnessClauses an array of disjointness clauses.
      */
-    public MRMatrix(AllClausesOld allClauses, ClauseOld[] disjointnessClauses) {
+    public MRMatrix(Clauses allClauses, Clause[] disjointnessClauses) {
         this.allClauses = allClauses;
         this.disjointnessClauses = disjointnessClauses;
         columnSize = disjointnessClauses.length;
@@ -57,10 +58,10 @@ public class MRMatrix {
         model = allClauses.model;
         symboltable = model.symboltable;
         trackReasoning = allClauses.trackReasoning;
-        for(ClauseOld clause : disjointnessClauses) matrixDepth = Math.max(matrixDepth,clause.size());
+        for(Clause clause : disjointnessClauses) matrixDepth = Math.max(matrixDepth,clause.size());
         dLiterals = new ArrayList[disjointnessClauses.length];
         for(int i = 0; i < columnSize; ++i) {
-            dLiterals[i] = (ArrayList<CLiteralOld>) disjointnessClauses[i].cliterals.clone();
+            dLiterals[i] = (ArrayList<CLiteral>) disjointnessClauses[i].cliterals.clone();
             int size = dLiterals[i].size();
             for(int j = size; j < matrixDepth; ++j) dLiterals[i].add(null);}
     }
@@ -75,12 +76,12 @@ public class MRMatrix {
      * @param cClause a clause
      * @return true if the clause could be inserted.
      */
-    public boolean insertClause(ClauseOld cClause) {
+    public boolean insertClause(Clause cClause) {
         if(matrix.size() == matrixDepth) return false; // the clause cannot be part of a multi-resolution
         int row = matrix.size();
-        CLiteralOld[] matrixRow = new CLiteralOld[columnSize +1];
+        CLiteral[] matrixRow = new CLiteral[columnSize +1];
 
-        for(CLiteralOld cLiteral : cClause) {
+        for(CLiteral cLiteral : cClause) {
             int literal = cLiteral.literal;
             int column = getColumn(literal);
             if(column == columnSize && matrixRow[columnSize] != null) {return false;} // more than one external literal
@@ -110,8 +111,8 @@ public class MRMatrix {
      * @return true if the literal is already in the matrix at the given column
      */
     private boolean matrixContains(int literal, int column) {
-        for(CLiteralOld[] row : matrix) {
-            CLiteralOld cLiteral = row[column];
+        for(CLiteral[] row : matrix) {
+            CLiteral cLiteral = row[column];
             if(cLiteral != null && literal == cLiteral.literal) return true;}
         return false;}
 
@@ -122,10 +123,10 @@ public class MRMatrix {
      * @param column  a column number
      */
     private void setRow(int literal, int row, int column) {
-        ArrayList<CLiteralOld> dLiterals = this.dLiterals[column];
+        ArrayList<CLiteral> dLiterals = this.dLiterals[column];
         int oldRow = getRow(literal,dLiterals);
         if(oldRow == row) return;
-        CLiteralOld dummy = dLiterals.get(oldRow);
+        CLiteral dummy = dLiterals.get(oldRow);
         dLiterals.set(oldRow,dLiterals.get(row));
         dLiterals.set(row,dummy);}
 
@@ -135,9 +136,9 @@ public class MRMatrix {
      * @param dColumn  a column of CLiterals
      * @return the original row number where the literal should be put into
      */
-    private int getRow(int literal, ArrayList<CLiteralOld> dColumn) {
+    private int getRow(int literal, ArrayList<CLiteral> dColumn) {
         for(int row = 0; row < dColumn.size(); ++row) {
-            CLiteralOld dLiteral = dColumn.get(row);
+            CLiteral dLiteral = dColumn.get(row);
             if(dLiteral != null && literal == dLiteral.literal) return row;}
         return dColumn.size()-1;}
 
@@ -150,7 +151,7 @@ public class MRMatrix {
         int[] colIndices;
         for(int size = columnSize; size > 1; --size) {
             while((colIndices = findFirstColIndices(size)) != null) {
-                ArrayList<CLiteralOld[]> block = findBlock(colIndices);
+                ArrayList<CLiteral[]> block = findBlock(colIndices);
                 int rows = block.size();
                 if(rows < size) continue;
                 if(rows == size) {mrResolveSquare(colIndices,block,twoLitClauses); continue;}
@@ -184,21 +185,21 @@ public class MRMatrix {
      * @param twoLitClauses  for adding derived two-literal clauses.
      * @throws Unsatisfiable if a contradiction is found.
      */
-    protected void mrResolveSquare(int[] colIndices, ArrayList<CLiteralOld[]> block, ArrayList<TwoLitClause> twoLitClauses)
+    protected void mrResolveSquare(int[] colIndices, ArrayList<CLiteral[]> block, ArrayList<TwoLitClause> twoLitClauses)
             throws Unsatisfiable {
 
         int size = block.size();
-        CLiteralOld external = null;
-        for (CLiteralOld[] row : block) {
+        CLiteral external = null;
+        for (CLiteral[] row : block) {
             if(row[size] != null) {
                 if(external != null) return; // too many external literals. They would generate longer resolvents.
                 external = row[size];}} // extra literal in the clause which is not in the disjointness clause
 
         for(int i = 0; i < colIndices.length; ++i) {
-            for(CLiteralOld dLiteral : disjointnessClauses[colIndices[i]]) {  // now look for literals in the disjointness clauses which are
+            for(CLiteral dLiteral : disjointnessClauses[colIndices[i]]) {  // now look for literals in the disjointness clauses which are
                 int literal = dLiteral.literal;                            // not in the block. They generate resolvents.
                 boolean found = false;
-                for(CLiteralOld[] row : block) {
+                for(CLiteral[] row : block) {
                     if(row[i] != null && row[i].literal == literal) {found = true; break;}}
                 if(!found) {                // literal is not in the block
                     if(external == null) {  // generate unit literals
@@ -256,18 +257,18 @@ public class MRMatrix {
      * @param twoLitClauses  for adding derived two-literal clauses.
      * @throws Unsatisfiable if a contradiction is found.
      */
-    protected void mrResolveRectangle(int[] colIndices, ArrayList<CLiteralOld[]> block, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable{
+    protected void mrResolveRectangle(int[] colIndices, ArrayList<CLiteral[]> block, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable{
 
         int width = colIndices.length;
         int depth = block.size();
         int ignoreRows = depth - width - 1; // example: 3 columns, 5 rows: 1 row can be ignored
         if(ignoreRows < 0) return;
 
-        ArrayList<CLiteralOld> externals = new ArrayList<>();
+        ArrayList<CLiteral> externals = new ArrayList<>();
         IntArrayList externalRowIndices = new IntArrayList();
         for(int i = 0; i < depth; ++i) {
-            CLiteralOld[] row = block.get(i);
-            CLiteralOld external = row[width];
+            CLiteral[] row = block.get(i);
+            CLiteral external = row[width];
             if(external != null)
                 externalRowIndices.add(i);
                 externals.add(external);}
@@ -287,7 +288,7 @@ public class MRMatrix {
             case 1:
                 for(int i = 0; i < externalSize; ++i) {
                     int literal = externals.get(i).literal;
-                    ArrayList<CLiteralOld[]> newBlock = (ArrayList<CLiteralOld[]>)block.clone();
+                    ArrayList<CLiteral[]> newBlock = (ArrayList<CLiteral[]>)block.clone();
                     for(int j = externalSize - 1; j >= 0; --j) {
                         if(j != i) newBlock.remove(externalRowIndices.getInt(j));}
                     InferenceStep step = null;
@@ -302,7 +303,7 @@ public class MRMatrix {
                     for(int j = i + 1; j < externalSize; ++j) {
                         int literal2 = externals.get(j).literal;
                         if(contains(twoLitClauses,literal1,literal2))  continue;
-                        ArrayList<CLiteralOld[]> newBlock = (ArrayList<CLiteralOld[]>)block.clone();
+                        ArrayList<CLiteral[]> newBlock = (ArrayList<CLiteral[]>)block.clone();
                         for(int k = externalSize - 1; k >= 0; --k) {
                             if(k != i && k != j) newBlock.remove(externalRowIndices.getInt(k));}
                         InferenceStep step = null;
@@ -330,7 +331,7 @@ public class MRMatrix {
         return false;}
 
 
-    private final ArrayList<CLiteralOld[]> block = new ArrayList<>();
+    private final ArrayList<CLiteral[]> block = new ArrayList<>();
 
     /** finds a block in the matrix which matches colIndices.
      * Example: colIndices = [3,5,7] <br>
@@ -342,19 +343,19 @@ public class MRMatrix {
      * @param colIndices [colIndex1,...]
      * @return a list with elements [CLiteral1, ..., CLiteral_n, external CLiteral]
      */
-    protected ArrayList<CLiteralOld[]> findBlock(int[] colIndices) {
+    protected ArrayList<CLiteral[]> findBlock(int[] colIndices) {
         block.clear();
-        CLiteralOld[] cliterals = new CLiteralOld[colIndices.length+1];
+        CLiteral[] cliterals = new CLiteral[colIndices.length+1];
         boolean isEmpty = true;
         for(int row = 0; row < matrix.size(); ++row) {
             if(isEmpty) {for(int i = 0; i < cliterals.length; ++i) {cliterals[i] = null;}} // reuse it
-            else cliterals = new CLiteralOld[colIndices.length+1];
+            else cliterals = new CLiteral[colIndices.length+1];
             isEmpty = false;
-            CLiteralOld[] clause = matrix.get(row);  // candidate for the block
-            CLiteralOld extern = clause[columnSize];
+            CLiteral[] clause = matrix.get(row);  // candidate for the block
+            CLiteral extern = clause[columnSize];
             cliterals[colIndices.length] = extern;         // maybe null
             for(int col = 0; col < clause.length-1; ++col) { // find a non-null entry matching the colIndices
-                CLiteralOld cliteral = clause[col];
+                CLiteral cliteral = clause[col];
                 if(cliteral != null) {
                     boolean found = false;
                     int j = 0;
@@ -367,7 +368,7 @@ public class MRMatrix {
             if(!isEmpty) {block.add(cliterals);}}
         return block;}
 
-    public String block2String(int[] colIndices, ArrayList<CLiteralOld[]> block,
+    public String block2String(int[] colIndices, ArrayList<CLiteral[]> block,
                                Symboltable symboltable) {
         return block2String(colIndices,block,null,-1,-1,symboltable);
     }
@@ -378,14 +379,14 @@ public class MRMatrix {
      * @param symboltable null or a symboltable
      * @return            the block as string
      */
-    public String block2String(int[] colIndices, ArrayList<CLiteralOld[]> block,
+    public String block2String(int[] colIndices, ArrayList<CLiteral[]> block,
                                IntArrayList ignoreIndices, int keepIndex1, int keepIndex2,
                                Symboltable symboltable) {
         int width = 0;
         for(int colIndex : colIndices) {
             width = Math.max(width,Integer.toString(disjointnessClauses[colIndex].id).length());}
-        for(CLiteralOld[] row : block) {
-            for(CLiteralOld cliteral : row) {width = Math.max(width, cliteral == null ? 0 :
+        for(CLiteral[] row : block) {
+            for(CLiteral cliteral : row) {width = Math.max(width, cliteral == null ? 0 :
                         Symboltable.toString(cliteral.literal, symboltable).length());}}
 
         StringBuilder st = new StringBuilder();
@@ -398,9 +399,9 @@ public class MRMatrix {
         st.append(concatenateString("-", disjointnessClauses.length * (width+3))).append("\n");
         for(int i = 0; i < block.size(); ++i) {
             if(ignoreIndices == null || i == keepIndex1 || i == keepIndex2 || !ignoreIndices.contains(i)) {
-                CLiteralOld[] row = block.get(i);
+                CLiteral[] row = block.get(i);
                 format.format("%"+width+"s|",getClause(row).id);
-                for(CLiteralOld cLiteral : row) {
+                for(CLiteral cLiteral : row) {
                     format.format("%"+width+"s|",cLiteral == null ? " " :
                             Symboltable.toString(cLiteral.literal,symboltable));}}
             st.append("\n");}
@@ -418,7 +419,7 @@ public class MRMatrix {
      */
     protected int[] findFirstColIndices(int size) {
         for(int row = 0; row < matrix.size(); ++row) { // check all rows. Find the first matching row.
-            CLiteralOld[] clause = matrix.get(row);
+            CLiteral[] clause = matrix.get(row);
             if(clause[columnSize] != null) continue; // has an extra non core-literal.
             int counter = 0;
             for(int i = 0; i < columnSize; ++i){     // count the number of non-null entries
@@ -447,8 +448,8 @@ public class MRMatrix {
      * @param row a row in the matrix (the literals of the clause, possibly with nulls in between
      * @return the clause belonging to the row.
      */
-    public ClauseOld getClause(CLiteralOld[] row) {
-        for(CLiteralOld cLiteral : row) {
+    public Clause getClause(CLiteral[] row) {
+        for(CLiteral cLiteral : row) {
             if(cLiteral != null) return cLiteral.clause;}
         return null;}
 
@@ -457,12 +458,12 @@ public class MRMatrix {
         StringBuilder st = new StringBuilder();
         st.append("Multi-Resolution Matrix\nDisjointness Clauses:\n");
         int width = 0;
-        for(ClauseOld dClause : disjointnessClauses) {width = Math.max(width,Integer.toString(dClause.id).length());}
+        for(Clause dClause : disjointnessClauses) {width = Math.max(width,Integer.toString(dClause.id).length());}
 
-        for(ClauseOld dClause : disjointnessClauses) {st.append(dClause.toString(width,symboltable)).append("\n");}
+        for(Clause dClause : disjointnessClauses) {st.append(dClause.toString(width,symboltable)).append("\n");}
 
-        for(ClauseOld dClause : disjointnessClauses) {
-            for(CLiteralOld dLiteral : dClause)
+        for(Clause dClause : disjointnessClauses) {
+            for(CLiteral dLiteral : dClause)
                 width = Math.max(width,Symboltable.toString(dLiteral.literal,symboltable).length());}
 
         st.append("\n\nRearranged literals of the disjointness clauses:\n");
@@ -470,7 +471,7 @@ public class MRMatrix {
         combinationHeader(st,0,width,format);
         for(int row = 0; row <dLiterals[0].size(); ++row) {
             for(int i = 0; i < columnSize; ++i) {
-                CLiteralOld dLiteral = dLiterals[i].get(row);
+                CLiteral dLiteral = dLiterals[i].get(row);
                 format.format("%"+width+"s|",
                         (dLiteral == null ? " " : Symboltable.toString(dLiteral.literal,symboltable)));}
             st.append("\n");}
@@ -478,7 +479,7 @@ public class MRMatrix {
 
     private void combinationHeader(StringBuilder st, int prefix, int width, Formatter format) {
         if(prefix > 0) format.format("%"+prefix+"s "," ");
-        for(ClauseOld clause : disjointnessClauses) format.format("%"+width+"s|",clause.id);
+        for(Clause clause : disjointnessClauses) format.format("%"+width+"s|",clause.id);
         st.append("\n");
         st.append(concatenateString("-", disjointnessClauses.length * (width+3)));
         st.append("\n");}
@@ -488,21 +489,21 @@ public class MRMatrix {
     //public ArrayList<CLiteral[]> matrix = new ArrayList<>();
 
     public String toString(Symboltable symboltable) {
-        int dSize = ClauseOld.clauseNameWidth(disjointnessClauses) + 2;
+        int dSize = Clause.clauseNameWidth(disjointnessClauses) + 2;
         int cSize = 1;
-        for(CLiteralOld[] row : matrix) {
-            ClauseOld clause = getClause(row);
+        for(CLiteral[] row : matrix) {
+            Clause clause = getClause(row);
             if(clause != null) cSize = Math.max(cSize,Integer.toString(clause.id).length()+2);}
 
         StringBuilder st = new StringBuilder();
         st.append("Multi-Resolution Matrix:\n");
         Formatter format = new Formatter(st, Locale.GERMANY);
         combinationHeader(st,cSize,dSize,format);
-        for(CLiteralOld[] row : matrix) {
-            ClauseOld clause = getClause(row);
+        for(CLiteral[] row : matrix) {
+            Clause clause = getClause(row);
             if(clause == null) continue;
             format.format("%"+cSize+"s",clause.id);
-            for(CLiteralOld cLiteral : row) {
+            for(CLiteral cLiteral : row) {
                 format.format("|%"+dSize+"s",cLiteral == null ? " " :
                         Symboltable.toString(cLiteral.literal,symboltable));}
             st.append("\n");}

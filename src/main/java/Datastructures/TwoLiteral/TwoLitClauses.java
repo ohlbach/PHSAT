@@ -2,7 +2,6 @@ package Datastructures.TwoLiteral;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseOld;
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -47,9 +46,6 @@ public class TwoLitClauses {
 
     /** the global set of equivalence classes */
     public final EquivalenceClasses equivalenceClasses;
-
-    /** the global set of disjointness classes */
-    public final DisjointnessClasses disjointnessClasses;
 
     /** counts various aspects */
     private final TwoLitStatistics statistics;
@@ -104,7 +100,6 @@ public class TwoLitClauses {
         model = problemSupervisor.model;
         symboltable = model.symboltable;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
-        disjointnessClasses = problemSupervisor.disjointnessClasses;
         monitor = problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
         monitorId = problemId+"-2Lit";
@@ -470,7 +465,6 @@ public class TwoLitClauses {
             inf = new DisjointnessDerivation(literals,clauses);
             if(monitoring) monitor.print(monitorId,inf.toString(symboltable));}
         ++statistics.disjointnesses;
-        disjointnessClasses.addDerivedDisjoints(literals,inf);
         return literals;}
 
 

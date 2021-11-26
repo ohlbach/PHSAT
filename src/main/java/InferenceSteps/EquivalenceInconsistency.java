@@ -1,13 +1,13 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
 public class EquivalenceInconsistency extends InferenceStep {
-    private final ClauseOld eClause;
+    private final Clause eClause;
     private final int literal1;
     private final int literal2;
 
@@ -16,7 +16,7 @@ public class EquivalenceInconsistency extends InferenceStep {
     public static final String rule = title + ":\n"+
             "p == -p == q == ... -> false";
 
-    public EquivalenceInconsistency(ClauseOld eClause, int literal1, int literal2) {
+    public EquivalenceInconsistency(Clause eClause, int literal1, int literal2) {
         this.eClause = eClause;
         this.literal1 = literal1;
         this.literal2 = literal2; }

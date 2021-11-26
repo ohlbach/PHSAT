@@ -5,7 +5,6 @@ import com.sun.org.glassfish.gmbal.Description;
 
 public class EquivalenceStatistics extends Statistic {
 
-    static {Statistic.statisticsClasses.add(DisjointnessStatistics.class);}
 
     public EquivalenceStatistics(String id) {
         super(id);}

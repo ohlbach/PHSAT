@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -21,12 +21,12 @@ public class FalseLiteralDeletion extends InferenceStep{
             "----------\n"+
                "A,B,C";
 
-    private ClauseOld oldClause;
-    private ClauseOld newClause;
+    private Clause oldClause;
+    private Clause newClause;
     private IntArrayList positions;
     private Model model;
 
-    public FalseLiteralDeletion(ClauseOld oldClause, ClauseOld newClause, IntArrayList positions, Model model) {
+    public FalseLiteralDeletion(Clause oldClause, Clause newClause, IntArrayList positions, Model model) {
         this.oldClause = oldClause;
         this.newClause = newClause;
         this.positions = positions;

@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -12,9 +12,9 @@ public class AndToModel extends InferenceStep{
     public static final String rule = title + ": Example:\n"+
             "Clause p & q & r -> true(p,q,r)";
 
-    private final ClauseOld clause;
+    private final Clause clause;
 
-    public AndToModel(ClauseOld clause) {
+    public AndToModel(Clause clause) {
         this.clause = clause;}
 
     @Override

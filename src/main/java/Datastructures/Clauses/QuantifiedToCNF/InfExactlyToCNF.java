@@ -1,6 +1,6 @@
 package Datastructures.Clauses.QuantifiedToCNF;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -8,7 +8,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 
 /** This class documents the transformation of exact-clauses to CNF */
-public class ExactlyToCNF extends InferenceStep {
+public class InfExactlyToCNF extends InferenceStep {
 
     public static final String title = "Exactly-Clause to Conjunctive Normal Form";
 
@@ -19,10 +19,10 @@ public class ExactlyToCNF extends InferenceStep {
             "Example:\n"+
             "exactly 2 1,2,3 -> [1: 1,2, 2: 1,3, 3: 2,3, 4: -1,-2,-3]";
 
-    private final ClauseOld exactlyClause;
-    private final ClauseOld orClause;
+    private final Clause exactlyClause;
+    private final Clause orClause;
 
-    public ExactlyToCNF(ClauseOld exactlyClause, ClauseOld orClause) {
+    public InfExactlyToCNF(Clause exactlyClause, Clause orClause) {
         this.exactlyClause = exactlyClause;
         this.orClause = orClause;}
 

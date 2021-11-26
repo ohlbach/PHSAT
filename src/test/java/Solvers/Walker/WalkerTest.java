@@ -1,7 +1,7 @@
 package Solvers.Walker;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -9,6 +9,7 @@ import Datastructures.Theory.Model;
 import Management.Controller;
 import Management.GlobalParameters;
 import Management.ProblemSupervisor;
+import Utilities.Interval;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
@@ -28,8 +29,8 @@ public class WalkerTest {
     private static final Connective am = Connective.ATMOST;
     private static final Connective ex = Connective.EXACTLY;
 
-    private static ClauseOld make(int id, Connective type, int quantifier, int... literals) {
-        ClauseOld clause = new ClauseOld(id,type,quantifier, IntArrayList.wrap(literals));
+    private static Clause make(int id, Connective type, int quantifier, int... literals) {
+        Clause clause = new Clause(id,type, new Interval(1,literals.length),IntArrayList.wrap(literals));
         return clause;}
 
 
@@ -140,12 +141,12 @@ public class WalkerTest {
         Walker walker = prepare(5, true, null);
         walker.model.addImmediately(1);
 
-        ClauseOld c1 = make(1, or, 1, 1, -2, 3);
+        Clause c1 = make(1, or, 1, 1, -2, 3);
         WClause wc1 = walker.addClause(c1);
         walker.setInitialTruthValue(wc1);
         assertTrue(wc1.isGloballyTrue);
         assertTrue(wc1.isLocallyTrue);
-        ClauseOld c2 = make(2, or, 1, -4,-5);
+        Clause c2 = make(2, or, 1, -4,-5);
         WClause wc2 = walker.addClause(c2);
 
         walker.setInitialTruthValue(wc2);
@@ -162,7 +163,7 @@ public class WalkerTest {
         System.out.println("setInitialTruthValue ATLEAST");
         Walker walker = prepare(10, true, null);
 
-        ClauseOld c1 = make(1, al, 1, 1, -2, 3);
+        Clause c1 = make(1, al, 1, 1, -2, 3);
         WClause wc1 = walker.addClause(c1);
         walker.setInitialTruthValue(wc1);
         assertFalse(wc1.isGloballyTrue);
@@ -173,7 +174,7 @@ public class WalkerTest {
         assertTrue(wc1.isGloballyTrue);
         assertTrue(wc1.isLocallyTrue);
 
-        ClauseOld c2 = make(2, al, 2, -4,-5,-6);
+        Clause c2 = make(2, al, 2, -4,-5,-6);
         WClause wc2 = walker.addClause(c2);
 
         walker.setInitialTruthValue(wc2);
@@ -190,7 +191,7 @@ public class WalkerTest {
         assertTrue(wc2.isGloballyTrue);
         assertTrue(wc2.isLocallyTrue);
 
-        ClauseOld c3 = make(2, al, 2, 7,8,9);
+        Clause c3 = make(2, al, 2, 7,8,9);
         WClause wc3 = walker.addClause(c3);
         walker.setInitialTruthValue(wc3);
         assertFalse(wc3.isGloballyTrue);
@@ -209,7 +210,7 @@ public class WalkerTest {
         System.out.println("setInitialTruthValue ATMOST");
         Walker walker = prepare(10, true, null);
 
-        ClauseOld c1 = make(1, am, 1, 1, -2, -3);
+        Clause c1 = make(1, am, 1, 1, -2, -3);
         WClause wc1 = walker.addClause(c1);
         walker.setInitialTruthValue(wc1);
         assertFalse(wc1.isGloballyTrue);
@@ -227,7 +228,7 @@ public class WalkerTest {
         assertFalse(wc1.isGloballyTrue);
         assertFalse(wc1.isLocallyTrue);
 
-        ClauseOld c2 = make(2, am, 2, 4,5,6);
+        Clause c2 = make(2, am, 2, 4,5,6);
         WClause wc2 = walker.addClause(c2);
         walker.setInitialTruthValue(wc2);
         assertFalse(wc2.isGloballyTrue);
@@ -256,7 +257,7 @@ public class WalkerTest {
         System.out.println("setInitialTruthValue EXACTLY");
         Walker walker = prepare(10, true, null);
 
-        ClauseOld c1 = make(1, ex, 2, 1, -2, 3);
+        Clause c1 = make(1, ex, 2, 1, -2, 3);
         WClause wc1 = walker.addClause(c1);
         walker.setInitialTruthValue(wc1);
         assertFalse(wc1.isGloballyTrue);
@@ -279,7 +280,7 @@ public class WalkerTest {
         assertFalse(wc1.isGloballyTrue);
         assertFalse(wc1.isLocallyTrue);
 
-        ClauseOld c2 = make(2, ex, 2, 4,5,6);
+        Clause c2 = make(2, ex, 2, 4,5,6);
         WClause wc2 = walker.addClause(c2);
         walker.setInitialTruthValue(wc2);
         assertFalse(wc2.isGloballyTrue);
@@ -306,13 +307,13 @@ public class WalkerTest {
     public void getLocalTruthValue1() {
         System.out.println("getLocalTruthValue 1");
         Walker walker = prepare(5, true, null);
-        ClauseOld c1 = make(1, or, 1, 1, 2, 3);
+        Clause c1 = make(1, or, 1, 1, 2, 3);
         WClause wc1 = walker.addClause(c1);
-        ClauseOld c2 = make(2, al, 2, 1, 2, 3);
+        Clause c2 = make(2, al, 2, 1, 2, 3);
         WClause wc2 = walker.addClause(c2);
-        ClauseOld c3 = make(3, am, 2, 1, 2, 3);
+        Clause c3 = make(3, am, 2, 1, 2, 3);
         WClause wc3 = walker.addClause(c3);
-        ClauseOld c4 = make(4, ex, 2, 1, 2, 3);
+        Clause c4 = make(4, ex, 2, 1, 2, 3);
         WClause wc4 = walker.addClause(c4);
 
         assertFalse(walker.getLocalTruthValue(wc1));
@@ -343,13 +344,13 @@ public class WalkerTest {
     public void getLocalTruthValue2() {
         System.out.println("getLocalTruthValue 2");
         Walker walker = prepare(5, true, null);
-        ClauseOld c1 = make(1, or, 1, 1, -2, 3);
+        Clause c1 = make(1, or, 1, 1, -2, 3);
         WClause wc1 = walker.addClause(c1);
-        ClauseOld c2 = make(2, al, 2, 1, -2, 3);
+        Clause c2 = make(2, al, 2, 1, -2, 3);
         WClause wc2 = walker.addClause(c2);
-        ClauseOld c3 = make(3, am, 2, 1, -2, 3);
+        Clause c3 = make(3, am, 2, 1, -2, 3);
         WClause wc3 = walker.addClause(c3);
-        ClauseOld c4 = make(4, ex, 2, 1, -2, 3);
+        Clause c4 = make(4, ex, 2, 1, -2, 3);
         WClause wc4 = walker.addClause(c4);
 
         assertTrue(walker.getLocalTruthValue(wc1));
@@ -381,13 +382,13 @@ public class WalkerTest {
         System.out.println("getGlobalTruthValue 1");
         Walker walker = prepare(5, true, null);
         Model model = walker.model;
-        ClauseOld c1 = make(1, or, 1, 1, 2, 3);
+        Clause c1 = make(1, or, 1, 1, 2, 3);
         WClause wc1 = walker.addClause(c1);
-        ClauseOld c2 = make(2, al, 2, 1, 2, 3);
+        Clause c2 = make(2, al, 2, 1, 2, 3);
         WClause wc2 = walker.addClause(c2);
-        ClauseOld c3 = make(3, am, 2, 1, 2, 3);
+        Clause c3 = make(3, am, 2, 1, 2, 3);
         WClause wc3 = walker.addClause(c3);
-        ClauseOld c4 = make(4, ex, 2, 1, 2, 3);
+        Clause c4 = make(4, ex, 2, 1, 2, 3);
         WClause wc4 = walker.addClause(c4);
 
         assertFalse(walker.getGlobalTruthValue(wc1));  // or
@@ -421,7 +422,7 @@ public class WalkerTest {
         catch(Unsatisfiable uns) {
             System.out.println(uns);} // exactly 2
 
-        ClauseOld c5 = make(5, ex, 2, 1, -2, -3);
+        Clause c5 = make(5, ex, 2, 1, -2, -3);
         WClause wc5 = walker.addClause(c5);
         try {walker.getGlobalTruthValue(wc5);
             assertTrue(false);}  // exactly 2
@@ -434,7 +435,7 @@ public class WalkerTest {
     public void intializeModel() {
         System.out.println("intializeModel");
         Walker walker = prepare(10, true, null);
-        ClauseOld c1 = make(1, or, 1, 1, -2, 3);
+        Clause c1 = make(1, or, 1, 1, -2, 3);
         WClause wc1 = walker.addClause(c1);
         walker.initializeModel();
         assertEquals("1,3,4,5,6,7,8,9,10,",walker.localModelToString(null));
@@ -442,7 +443,7 @@ public class WalkerTest {
         assertFalse(wc1.isGloballyTrue);
         assertEquals(0,walker.falseClauses);
 
-        ClauseOld c2 = make(2, am, 1, 4,5);
+        Clause c2 = make(2, am, 1, 4,5);
         WClause wc2 = walker.addClause(c2);
         walker.initializeModel();
         assertEquals("1,3,6,7,8,9,10,",walker.localModelToString(null));
@@ -450,7 +451,7 @@ public class WalkerTest {
         assertFalse(wc2.isGloballyTrue);
         assertEquals(0,walker.falseClauses);
 
-        ClauseOld c3 = make(3, al, 2, -4,-5,6);
+        Clause c3 = make(3, al, 2, -4,-5,6);
         WClause wc3 = walker.addClause(c3);
         walker.initializeModel();
         assertEquals("1,3,6,7,8,9,10,",walker.localModelToString(null));
@@ -460,7 +461,7 @@ public class WalkerTest {
     public void setInitialFlipScores() {
         System.out.println("setInitialFlipScores");
         Walker walker = prepare(10, true, null);
-        ClauseOld c1 = make(1, or, 1, 1, 2, 3);
+        Clause c1 = make(1, or, 1, 1, 2, 3);
         WClause wc1 = walker.addClause(c1);
         walker.localModel[1] = true;
         walker.setInitialTruthValue(wc1);

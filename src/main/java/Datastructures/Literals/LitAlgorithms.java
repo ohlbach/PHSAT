@@ -1,6 +1,6 @@
 package Datastructures.Literals;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
@@ -21,14 +21,14 @@ public class LitAlgorithms {
      * @param timestamp     an incremented timestamp
      * @return              either a subsumer, or null
      */
-    public static ClauseOld isSubsumed(ClauseOld clause, BucketSortedIndex<CLiteralOld> literalIndex, int timestamp) {
+    public static Clause isSubsumed(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp) {
         int size = clause.size();
-        for(CLiteralOld cliteral : clause) {
+        for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
-            BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
             while(iterator.hasNext()) {
-                CLiteralOld otherLiteral = iterator.next();
-                ClauseOld otherClause = otherLiteral.clause;
+                CLiteral otherLiteral = iterator.next();
+                Clause otherClause = otherLiteral.clause;
                 if(clause == otherClause) {continue;}
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp; continue;}
                 if(otherClause.timestamp - timestamp == otherClause.size()-2) {
@@ -45,15 +45,15 @@ public class LitAlgorithms {
      * @param timestamp    an incremented timestamp
      * @param subsumed     collects all subsumed clauses
      */
-    public static void subsumes(ClauseOld clause, BucketSortedIndex<CLiteralOld> literalIndex, int timestamp, ArrayList<ClauseOld> subsumed) {
+    public static void subsumes(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp, ArrayList<Clause> subsumed) {
         int size = clause.size();
         int difference = size - 2;
-        for(CLiteralOld cliteral : clause) {
+        for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
-            BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIteratorFrom(literal,size);
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorFrom(literal,size);
             while(iterator.hasNext()) {
-                CLiteralOld otherLiteral = iterator.next();
-                ClauseOld otherClause = otherLiteral.clause;
+                CLiteral otherLiteral = iterator.next();
+                Clause otherClause = otherLiteral.clause;
                 if(clause == otherClause) {continue;}
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp; continue;}
                 if(otherClause.timestamp - timestamp == difference) {
@@ -70,24 +70,24 @@ public class LitAlgorithms {
      * @param timestamp     an incremented timestamp
      * @return              [cLiteral,otherClause], or null
      */
-    public static Object[] replacementResolutionBackwards(ClauseOld clause, BucketSortedIndex<CLiteralOld> literalIndex, int timestamp) {
+    public static Object[] replacementResolutionBackwards(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp) {
 
         int size = clause.size()+1;
-        for(CLiteralOld cliteral : clause) {
+        for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
-            BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
             while(iterator.hasNext()) {
-                CLiteralOld otherLiteral = iterator.next();
-                ClauseOld otherClause = otherLiteral.clause;
+                CLiteral otherLiteral = iterator.next();
+                Clause otherClause = otherLiteral.clause;
                 if(clause == otherClause) {continue;}
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp;}
                 else {++otherClause.timestamp;}}
             literalIndex.pushIterator(literal,iterator);}
-        for(CLiteralOld cliteral : clause) {
+        for(CLiteral cliteral : clause) {
             int literal = -cliteral.literal;
-            BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
             while(iterator.hasNext()) {
-                ClauseOld otherClause = iterator.next().clause;
+                Clause otherClause = iterator.next().clause;
                 int otherTimestamp = otherClause.timestamp;
                 if(otherTimestamp >= timestamp && otherTimestamp - timestamp == otherClause.size()-2) {
                     return new Object[]{cliteral,otherClause};}}
@@ -101,26 +101,26 @@ public class LitAlgorithms {
      * @param timestamp     an incremented timestamp
      * @param resolvents    a list of cLiterals to be removed.
      */
-    public static void replacementResolutionForward(ClauseOld clause, BucketSortedIndex<CLiteralOld> literalIndex, int timestamp,
-                                                    ArrayList<CLiteralOld> resolvents) {
+    public static void replacementResolutionForward(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp,
+                                                    ArrayList<CLiteral> resolvents) {
         int size = clause.size();
         int difference = size-2;
-        for(CLiteralOld cliteral : clause) {
+        for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
-            BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIteratorFrom(literal,size);
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorFrom(literal,size);
             while(iterator.hasNext()) {
-                CLiteralOld otherLiteral = iterator.next();
-                ClauseOld otherClause = otherLiteral.clause;
+                CLiteral otherLiteral = iterator.next();
+                Clause otherClause = otherLiteral.clause;
                 if(clause == otherClause) {continue;}
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp;}
                 else {++otherClause.timestamp;}}
             literalIndex.pushIterator(literal,iterator);}
-        for(CLiteralOld cliteral : clause) {
+        for(CLiteral cliteral : clause) {
             int literal = -cliteral.literal;
-            BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.iteratorFrom(literal,size);
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.iteratorFrom(literal,size);
             while(iterator.hasNext()) {
-                CLiteralOld otherLiteral = iterator.next();
-                ClauseOld otherClause = otherLiteral.clause;
+                CLiteral otherLiteral = iterator.next();
+                Clause otherClause = otherLiteral.clause;
                 int otherTimestamp = otherClause.timestamp;
                 if(otherTimestamp >= timestamp && otherTimestamp - timestamp == difference) {
                     resolvents.add(otherLiteral);
@@ -133,8 +133,8 @@ public class LitAlgorithms {
      * @param literal   a literal
      * @return +1 if cLiterals contains literal, -1 if cLiterals contains -literal, otherwise 0
      */
-    public static int contains(ArrayList<CLiteralOld> cLiterals, int literal) {
-        for(CLiteralOld cLit : cLiterals) {
+    public static int contains(ArrayList<CLiteral> cLiterals, int literal) {
+        for(CLiteral cLit : cLiterals) {
             int lit = cLit.literal;
             if(lit ==  literal) {return +1;}
             if(lit == -literal) {return -1;}}
@@ -147,16 +147,16 @@ public class LitAlgorithms {
      * @param literal2 the second parent literal
      * @return the new resolvent, or null if it would be a tautology
      */
-    public static ClauseOld resolve(int[] id, CLiteralOld literal1, CLiteralOld literal2) {
-        ClauseOld parent1 = literal1.clause; ClauseOld parent2 = literal2.clause;
+    public static Clause resolve(int[] id, CLiteral literal1, CLiteral literal2) {
+        Clause parent1 = literal1.clause; Clause parent2 = literal2.clause;
         int size = parent1.size()+parent2.size()-2;
-        ClauseOld resolvent = new ClauseOld(++id[0], Connective.OR, size);
-        for(CLiteralOld lit1 : parent1) {if(lit1 != literal1) {resolvent.add(new CLiteralOld(lit1.literal));}}
-        for(CLiteralOld lit2 : parent2) {
+        Clause resolvent = new Clause(++id[0], Connective.OR, size);
+        for(CLiteral lit1 : parent1) {if(lit1 != literal1) {resolvent.add(new CLiteral(lit1.literal));}}
+        for(CLiteral lit2 : parent2) {
             if(lit2 == literal2) {continue;}
             if(resolvent.contains(-lit2.literal) >= 0) {return null;} // tautology
             if(resolvent.contains(lit2.literal) < 0) {
-                    resolvent.add(new CLiteralOld(lit2.literal));}}
+                    resolvent.add(new CLiteral(lit2.literal));}}
         resolvent.setStructure();
         return resolvent;}
 
@@ -171,20 +171,20 @@ public class LitAlgorithms {
      * @param maxLevel      the maximum search depth
      * @return              null or the cLiteral which can be removed.
      */
-    public static CLiteralOld canBRemoved(ClauseOld clause, BucketSortedIndex<CLiteralOld> literalIndex,
-                                          int timestamp, int maxLevel, ArrayList<ClauseOld> usedClauses) {
+    public static CLiteral canBRemoved(Clause clause, BucketSortedIndex<CLiteral> literalIndex,
+                                          int timestamp, int maxLevel, ArrayList<Clause> usedClauses) {
         int level = 0;
-        for(CLiteralOld cliteral : clause) {
+        for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
             allowLiterals(literal,literalIndex, timestamp); // this allows merge of double literals
             blockClauses(-literal,literalIndex,timestamp);}  // this avoids tautologies
 
-        for(CLiteralOld cliteral1 : clause) {
+        for(CLiteral cliteral1 : clause) {
             int literal1 = cliteral1.literal;
             blockClauses(literal1, literalIndex, timestamp); // this avoids that a literal which is resolved away reappears
-            BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIterator(-literal1);
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(-literal1);
             while(iterator.hasNext()) {
-                CLiteralOld otherLiteral = iterator.next();
+                CLiteral otherLiteral = iterator.next();
                 if(replResRecursive(otherLiteral,literalIndex, timestamp, level,maxLevel,usedClauses)) {
                     literalIndex.pushIterator(-literal1,iterator);
                     return cliteral1;};}
@@ -202,11 +202,11 @@ public class LitAlgorithms {
      * @param maxLevel      the maximum search depth
      * @return              true if the literal, plus merge literals can be derived
      */
-    private static boolean replResRecursive(CLiteralOld cliteral, BucketSortedIndex<CLiteralOld> literalIndex,
-                                            int timestamp, int level, int maxLevel, ArrayList<ClauseOld> usedClauses) {
-        ClauseOld clause = cliteral.clause;
+    private static boolean replResRecursive(CLiteral cliteral, BucketSortedIndex<CLiteral> literalIndex,
+                                            int timestamp, int level, int maxLevel, ArrayList<Clause> usedClauses) {
+        Clause clause = cliteral.clause;
         boolean solved = true;
-        for(CLiteralOld cliteral1 : clause) { // is it entirely solved already?
+        for(CLiteral cliteral1 : clause) { // is it entirely solved already?
             if(cliteral == cliteral1 || cliteral1.timestamp >= timestamp) {continue;}
             solved = false;
             int literal1 = cliteral1.literal;
@@ -215,7 +215,7 @@ public class LitAlgorithms {
             cliteral1.timestamp = 0;}                         // this still must be solved
 
         if(solved || level == maxLevel) {
-            for(CLiteralOld cliteral1 : clause) {
+            for(CLiteral cliteral1 : clause) {
                 if(cliteral == cliteral1 || cliteral1.timestamp >= timestamp) {continue;}
                 int literal1 = cliteral1.literal;
                 unallowLiterals(literal1, literalIndex);
@@ -225,26 +225,26 @@ public class LitAlgorithms {
 
         solved = true;
         int usedClausesSize = (usedClauses != null) ? usedClauses.size() : 0;
-        for(CLiteralOld cliteral1 : clause) {
+        for(CLiteral cliteral1 : clause) {
             if(cliteral1 == cliteral ||  cliteral1.timestamp >= timestamp) {continue;} // they do merge
             int literal1 = cliteral1.literal;
             blockClauses(literal1, literalIndex, timestamp);   // to avoid reappearing literal1
             boolean found = false;
-            BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIterator(-literal1);
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(-literal1);
             while(iterator.hasNext()) {
-                CLiteralOld cliteral2 = iterator.next();
+                CLiteral cliteral2 = iterator.next();
                 if(cliteral2.clause.timestamp > timestamp) {continue;}   // blocked
                 if(replResRecursive(cliteral2,literalIndex, timestamp, level+1,maxLevel,usedClauses)) {
                     found = true; break;}}
             literalIndex.pushIterator(-literal1,iterator);
             if(!found) {
-                for(CLiteralOld cliteral2 : clause) {
+                for(CLiteral cliteral2 : clause) {
                     if(cliteral == cliteral2 || cliteral2.timestamp >= timestamp) {continue;}
                     unblockClauses(cliteral2.literal,literalIndex);
                     if(cliteral2 == cliteral1) break;}
                 solved = false; break;}}
 
-        for(CLiteralOld cliteral1 : clause) {
+        for(CLiteral cliteral1 : clause) {
             if(cliteral == cliteral1 || cliteral1.timestamp >= timestamp) {continue;}
             int literal1 = cliteral1.literal;
             unallowLiterals(literal1, literalIndex);
@@ -266,10 +266,10 @@ public class LitAlgorithms {
      * @param literalIndex the literal index
      * @param timestamp    the current timestamp
      */
-    private static void blockClauses(int literal, BucketSortedIndex<CLiteralOld> literalIndex, int timestamp) {
-        BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIterator(literal);
+    private static void blockClauses(int literal, BucketSortedIndex<CLiteral> literalIndex, int timestamp) {
+        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
-            ClauseOld clause = iterator.next().clause;
+            Clause clause = iterator.next().clause;
             if(clause.timestamp < timestamp) {clause.timestamp = timestamp;}
             else {++clause.timestamp;}}
         literalIndex.pushIterator(literal,iterator);}
@@ -279,10 +279,10 @@ public class LitAlgorithms {
      * @param literal      a literal
      * @param literalIndex the literal index
      */
-    private static void unblockClauses(int literal, BucketSortedIndex<CLiteralOld> literalIndex) {
-        BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIterator(literal);
+    private static void unblockClauses(int literal, BucketSortedIndex<CLiteral> literalIndex) {
+        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
-            ClauseOld clause = iterator.next().clause;
+            Clause clause = iterator.next().clause;
             --clause.timestamp;}
         literalIndex.pushIterator(literal,iterator);}
 
@@ -292,10 +292,10 @@ public class LitAlgorithms {
      * @param literalIndex the literal index
      * @param timestamp    the timestamp
      */
-    private static void allowLiterals(int literal, BucketSortedIndex<CLiteralOld> literalIndex, int timestamp) {
-        BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIterator(literal);
+    private static void allowLiterals(int literal, BucketSortedIndex<CLiteral> literalIndex, int timestamp) {
+        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
-            CLiteralOld cliteral = iterator.next();
+            CLiteral cliteral = iterator.next();
             if(cliteral.timestamp < timestamp) {cliteral.timestamp = timestamp;}
             else {++cliteral.timestamp;}
         }
@@ -306,10 +306,10 @@ public class LitAlgorithms {
      * @param literal      a literal
      * @param literalIndex the literal index
      */
-    private static void unallowLiterals(int literal, BucketSortedIndex<CLiteralOld> literalIndex) {
-        BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIterator(literal);
+    private static void unallowLiterals(int literal, BucketSortedIndex<CLiteral> literalIndex) {
+        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
-            CLiteralOld cliteral = iterator.next();
+            CLiteral cliteral = iterator.next();
             --cliteral.timestamp;}
         literalIndex.pushIterator(literal,iterator);}
 
@@ -328,18 +328,18 @@ public class LitAlgorithms {
      * @param usedClauses       is filled with the clauses which are used for the inferences
      * @return                  a literal, an array of literals or a CLiteral
      */
-    public static Object urResolution(ClauseOld clause, BucketSortedIndex<CLiteralOld> literalIndex, int timestamp, int maxClauseLength,
-                                      ArrayList<ClauseOld> usedClauses) {
+    public static Object urResolution(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp, int maxClauseLength,
+                                      ArrayList<Clause> usedClauses) {
         int size = clause.size();
-        HashMap<ClauseOld,ArrayList<ClauseOld>> usedClausesMap = null;
+        HashMap<Clause,ArrayList<Clause>> usedClausesMap = null;
         if(usedClauses != null) {usedClauses.clear(); usedClausesMap = new HashMap<>();}
         for(int k = 0; k < size; ++k) {
-            CLiteralOld cliteral = clause.getCLiteral(k);
+            CLiteral cliteral = clause.getCLiteral(k);
             if(findEmptyClause(-cliteral.literal,clause,null,literalIndex,timestamp,usedClausesMap)) {
                     if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
                 if(k == 0) {return -cliteral.literal;}}
             for(int i = 0; i < size; ++i) {
-                CLiteralOld cliteral1 = clause.getCLiteral(i);
+                CLiteral cliteral1 = clause.getCLiteral(i);
                 if(cliteral1 == cliteral) {continue;}
                 if(findEmptyClause(cliteral1.literal,clause,null,literalIndex,timestamp,usedClausesMap)) {
                     if(i == size-1 || (i == size-2 && k == size-1)) {
@@ -356,10 +356,10 @@ public class LitAlgorithms {
             timestamp += maxClauseLength +1;}
         return null;}
 
-    public static Object isDerivableBinaryClause(int literal1, int literal2, ClauseOld blockedClause, BucketSortedIndex<CLiteralOld> literalIndex, int timestamp,
-                                                 ArrayList<ClauseOld> usedClauses) {
+    public static Object isDerivableBinaryClause(int literal1, int literal2, Clause blockedClause, BucketSortedIndex<CLiteral> literalIndex, int timestamp,
+                                                 ArrayList<Clause> usedClauses) {
 
-        HashMap<ClauseOld,ArrayList<ClauseOld>> usedClausesMap = null;
+        HashMap<Clause,ArrayList<Clause>> usedClausesMap = null;
         if(usedClauses != null) {usedClauses.clear(); usedClausesMap = new HashMap<>();}
         if(findEmptyClause(-literal1,blockedClause,null,literalIndex,timestamp,usedClausesMap)) {
             if(usedClauses != null) {usedClauses.addAll(usedClausesMap.values().iterator().next());}
@@ -381,13 +381,13 @@ public class LitAlgorithms {
      * @param usedClauses     is filled with the clause which are used for the empty clause
      * @return                true if the empty clause is found
      */
-        private static boolean findEmptyClause(int literal, ClauseOld blockedClause, ClauseOld parentClause, BucketSortedIndex<CLiteralOld> literalIndex, int timestamp,
-                                               HashMap<ClauseOld,ArrayList<ClauseOld>> usedClauses) {
-        BucketSortedList<CLiteralOld>.BucketIterator iterator = literalIndex.popIterator(literal);
+        private static boolean findEmptyClause(int literal, Clause blockedClause, Clause parentClause, BucketSortedIndex<CLiteral> literalIndex, int timestamp,
+                                               HashMap<Clause,ArrayList<Clause>> usedClauses) {
+        BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIterator(literal);
         while(iterator.hasNext()) {
-            CLiteralOld cliteral = iterator.next();
+            CLiteral cliteral = iterator.next();
             if(cliteral.timestamp == timestamp) {continue;}
-            ClauseOld clause = cliteral.clause;
+            Clause clause = cliteral.clause;
             if(clause == blockedClause) {continue;}
             int size = clause.size();
             if(usedClauses != null) {joinUsedClauses(usedClauses,parentClause,clause);}
@@ -400,7 +400,7 @@ public class LitAlgorithms {
                 if(usedClauses != null) {clearUsedClauses(usedClauses,parentClause,clause);}
                 return true;}
             if(ts - timestamp == size-2) {
-                for(CLiteralOld cliteral1 : clause) {
+                for(CLiteral cliteral1 : clause) {
                     if(cliteral1 != cliteral && cliteral1.timestamp < timestamp) {
                         if(findEmptyClause(-cliteral1.literal, blockedClause, clause, literalIndex,timestamp,usedClauses)) {
                             literalIndex.pushIterator(literal,iterator);
@@ -415,9 +415,9 @@ public class LitAlgorithms {
      * @param parentClause  the parent clause in the search
      * @param clause        the current clause
      */
-    private static void joinUsedClauses(HashMap<ClauseOld,ArrayList<ClauseOld>> usedClauses, ClauseOld parentClause, ClauseOld clause) {
-        ArrayList<ClauseOld> parentClauses = usedClauses.get(parentClause);
-        ArrayList<ClauseOld> actualClauses = usedClauses.get(clause);
+    private static void joinUsedClauses(HashMap<Clause,ArrayList<Clause>> usedClauses, Clause parentClause, Clause clause) {
+        ArrayList<Clause> parentClauses = usedClauses.get(parentClause);
+        ArrayList<Clause> actualClauses = usedClauses.get(clause);
         if(actualClauses == null) {actualClauses = new ArrayList<>(); usedClauses.put(clause,actualClauses);}
         if(parentClauses != null) {actualClauses.addAll(parentClauses);}
         if(parentClause != null) {actualClauses.add(parentClause);}}
@@ -429,9 +429,9 @@ public class LitAlgorithms {
      * @param parentClause  the current parent clause
      * @param clause        the actual clause
      */
-    private static void clearUsedClauses(HashMap<ClauseOld,ArrayList<ClauseOld>> usedClauses, ClauseOld parentClause, ClauseOld clause) {
-        ArrayList<ClauseOld> parentClauses = usedClauses.get(parentClause);
-        ArrayList<ClauseOld> actualClauses = usedClauses.get(clause);
+    private static void clearUsedClauses(HashMap<Clause,ArrayList<Clause>> usedClauses, Clause parentClause, Clause clause) {
+        ArrayList<Clause> parentClauses = usedClauses.get(parentClause);
+        ArrayList<Clause> actualClauses = usedClauses.get(clause);
         if(actualClauses == null) {actualClauses = new ArrayList<>();}
         if(parentClauses != null) {actualClauses.addAll(parentClauses);}
         if(parentClause != null) {actualClauses.add(parentClause);}

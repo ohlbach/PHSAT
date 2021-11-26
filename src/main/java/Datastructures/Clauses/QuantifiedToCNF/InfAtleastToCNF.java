@@ -1,6 +1,6 @@
 package Datastructures.Clauses.QuantifiedToCNF;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -9,7 +9,7 @@ import java.util.ArrayList;
 
 /** This class documents the transformation of atleast-clauses to CNF.
  */
-public class AtleastToCNF extends InferenceStep {
+public class InfAtleastToCNF extends InferenceStep {
 
     public static final String title = "Atleast-Clause to Conjunctive Normal Form";
 
@@ -25,9 +25,9 @@ public class AtleastToCNF extends InferenceStep {
             "5: 1,3,4,5,6\n"+
             "6: 2,3,4,5,6";
 
-    private final ClauseOld atleastClause;
-    private final ClauseOld orClause;
-    public AtleastToCNF(ClauseOld atleastClause, ClauseOld orClause) {
+    private final Clause atleastClause;
+    private final Clause orClause;
+    public InfAtleastToCNF(Clause atleastClause, Clause orClause) {
         this.atleastClause = atleastClause;
         this.orClause = orClause;}
 

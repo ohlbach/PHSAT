@@ -1,6 +1,6 @@
 package Datastructures.Literals;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import org.junit.Test;
@@ -15,15 +15,15 @@ public class CLiteralTest {
     @Test
     public void getLiteral1()  {
         System.out.println("literal");
-        CLiteralOld lit = new CLiteralOld(3);
+        CLiteral lit = new CLiteral(3);
         assertEquals(3,lit.literal);
     }
 
     @Test
     public void clauseTest() throws Exception {
         System.out.println("getClause, getPosition");
-        ClauseOld cl = new ClauseOld(1, Connective.OR, 3);
-        CLiteralOld lit = new CLiteralOld(3,cl,2);
+        Clause cl = new Clause(1, Connective.OR, 3);
+        CLiteral lit = new CLiteral(3,cl,2);
         assertEquals(cl,lit.clause);
         assertEquals(2,lit.clausePosition);}
 
@@ -31,8 +31,8 @@ public class CLiteralTest {
     @Test
     public void setClause() throws Exception {
         System.out.println("setClause");
-        ClauseOld cl = new ClauseOld(1, Connective.OR,3);
-        CLiteralOld lit = new CLiteralOld(3);
+        Clause cl = new Clause(1, Connective.OR,3);
+        CLiteral lit = new CLiteral(3);
         lit.setClause(cl,2); assertEquals(cl,lit.clause);
         assertEquals(2,lit.clausePosition);}
 
@@ -43,8 +43,8 @@ public class CLiteralTest {
         stb.setName(1, "A");
         stb.setName(2, "B");
 
-        ClauseOld cl = new ClauseOld(1, Connective.OR, 3);
-        CLiteralOld lit = new CLiteralOld(1, cl, 1);
+        Clause cl = new Clause(1, Connective.OR, 3);
+        CLiteral lit = new CLiteral(1, cl, 1);
         assertEquals("1",lit.toString());
         assertEquals("A@1",lit.toString(stb,(cla->""+cla.id)));
 

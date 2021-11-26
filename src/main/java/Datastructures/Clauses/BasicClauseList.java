@@ -26,11 +26,11 @@ import java.util.Arrays;
  */
 public class BasicClauseList {
     /** the maximum number of predicates */
-    public final int predicates;
+    public int predicates;
     /** the largest clause length */
     public int maxClauseLength;
     /** null or a symboltable */
-    public final Symboltable symboltable;
+    public Symboltable symboltable;
     /** the original disjunctions */
     public final ArrayList<int[]> disjunctions  = new ArrayList<>();
     /** the original conjunctions */
@@ -49,6 +49,8 @@ public class BasicClauseList {
         this.predicates = predicates;
         this.symboltable = symboltable;
         this.info = info;}
+
+    public BasicClauseList() {}
 
     /** adds the clauses to the corresponding lists.
      *

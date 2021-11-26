@@ -1,7 +1,7 @@
 package InferenceSteps;
 
 import Datastructures.Clauses.MRMatrix;
-import Datastructures.Literals.CLiteralOld;
+import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
@@ -34,9 +34,9 @@ public class MRRectangle2 extends InferenceStep{
     private final int[] colIndices;
     private final int literal1;
     private final int literal2;
-    private final ArrayList<CLiteralOld[]> block;
+    private final ArrayList<CLiteral[]> block;
 
-    public MRRectangle2(MRMatrix mrMatrix, int[] colIndices, int literal1, int literal2, ArrayList<CLiteralOld[]> block) {
+    public MRRectangle2(MRMatrix mrMatrix, int[] colIndices, int literal1, int literal2, ArrayList<CLiteral[]> block) {
         this.mrMatrix = mrMatrix;
         this.colIndices = colIndices;
         this.literal1 = literal1;
@@ -60,20 +60,20 @@ public class MRRectangle2 extends InferenceStep{
         int width = 0;
         for(int colIndex : colIndices) {
             width = Math.max(width,Integer.toString(mrMatrix.disjointnessClauses[colIndex].id).length());}
-        for(CLiteralOld[] row : block) {
+        for(CLiteral[] row : block) {
             for(int j = 0; j < row.length-1; ++j) {
-                CLiteralOld cLiteral = row[j];
+                CLiteral cLiteral = row[j];
                 width = Math.max(width, cLiteral == null ? 0 :
                         Symboltable.toString(cLiteral.literal, symboltable).length());}}
 
         StringBuilder st = new StringBuilder();
         int lineLength = 0;
-        for (CLiteralOld[] row : block) {
+        for (CLiteral[] row : block) {
             StringBuilder line = new StringBuilder();
             Formatter fLine = new Formatter(line, Locale.GERMANY);
             fLine.format("%" + width + "s:", mrMatrix.getClause(row).id);
             for (int j = 0; j < row.length; ++j) {
-                CLiteralOld cLiteral = row[j];
+                CLiteral cLiteral = row[j];
                 fLine.format("%" + width + "s|", cLiteral == null ? " " :
                         Symboltable.toString(cLiteral.literal, symboltable));}
             String ln = line.toString();
@@ -92,8 +92,8 @@ public class MRRectangle2 extends InferenceStep{
         for (int index : colIndices) {
             step = mrMatrix.disjointnessClauses[index].inferenceStep;
             if (step != null) origins = joinIntArrays(origins, step.origins());}
-        for(CLiteralOld[] row : block) {
-            for(CLiteralOld cLiteral : row) {
+        for(CLiteral[] row : block) {
+            for(CLiteral cLiteral : row) {
                 if(cLiteral != null) {
                     step = cLiteral.clause.inferenceStep;
                     if(step != null) origins = joinIntArrays(origins,step.origins());}}}
@@ -106,8 +106,8 @@ public class MRRectangle2 extends InferenceStep{
         for (int index : colIndices) {
             step = mrMatrix.disjointnessClauses[index].inferenceStep;
             if (step != null) step.inferenceSteps(steps);}
-        for(CLiteralOld[] row : block) {
-            for(CLiteralOld cLiteral : row) {
+        for(CLiteral[] row : block) {
+            for(CLiteral cLiteral : row) {
                 if(cLiteral != null) {
                     step = cLiteral.clause.inferenceStep;
                     if(step != null) step.inferenceSteps(steps);}}}

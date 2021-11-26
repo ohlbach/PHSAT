@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -13,10 +13,10 @@ public class AtleastPPQ extends InferenceStep{
     public static final String rule = title+": Example:\n"+
             "atleast 2 p,p,q -> true(p)";
 
-    private final ClauseOld clause;
+    private final Clause clause;
     private final int literal;
 
-    public AtleastPPQ(ClauseOld clause, int literal) {
+    public AtleastPPQ(Clause clause, int literal) {
         this.clause = clause;
         this.literal = literal;}
 

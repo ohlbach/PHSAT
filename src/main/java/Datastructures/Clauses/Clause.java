@@ -2,7 +2,6 @@ package Datastructures.Clauses;
 
 
 import Datastructures.Literals.CLiteral;
-import Datastructures.Literals.CLiteralOld;
 import Datastructures.Results.Aborted;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
@@ -16,7 +15,6 @@ import java.util.*;
 import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 
-import static Utilities.Utilities.contains;
 import static Utilities.Utilities.sortIntArray;
 
 /** A clause is just a list of CLiterals.
@@ -604,7 +602,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+(width+ connective.prefix.length())+"s", getName()+":");}
         else st.append(connective.prefix+id+": ");
-        if(interval != null) st.append(interval).append(": ");
+        if(interval != null && connective != Connective.OR) st.append(interval).append(": ");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(cliterals.get(position).literal,symboltable));

@@ -38,7 +38,6 @@ public class ProblemSupervisor {
     public EquivalenceClasses equivalenceClasses;
     public Thread equivalenceThread;
 
-    public DisjointnessClasses disjointnessClasses;
     public Thread disjointnessThread;
 
     public TwoLitClauses twoLitClauses;
@@ -153,7 +152,6 @@ public class ProblemSupervisor {
         equivalenceClasses  = new EquivalenceClasses(this);
         //equivalenceClasses  = new EquivalenceClasses(model,problemId, globalParameters.monitor,supervisorThread);
 
-        disjointnessClasses = new DisjointnessClasses(this);
         twoLitClauses       = new TwoLitClauses(this);
     }
 
@@ -164,7 +162,7 @@ public class ProblemSupervisor {
      *
      * @throws Unsatisfiable if a contradiction occurs.
      */
-    private void initializeAndEqv() throws Unsatisfiable {
+    private void initializeAndEqv() throws Result {
         for(int[] basicClause : basicClauseList.conjunctions) {
             for(int i = 2; i < basicClause.length; ++i) {
                 IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);

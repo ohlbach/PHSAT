@@ -1,6 +1,6 @@
 package InferenceSteps;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.apache.commons.lang3.StringUtils;
@@ -12,10 +12,10 @@ import static Utilities.Utilities.joinIntArrays;
 /** Binary resolution works for disjunctions and disjointnesses in the same way. */
 
 public class BinaryResolution extends InferenceStep {
-    private final ClauseOld parent1;
-    private final ClauseOld parent2;
+    private final Clause parent1;
+    private final Clause parent2;
     private final int literal;
-    private final ClauseOld resolvent;
+    private final Clause resolvent;
 
     public static final String title = "Binary Resolution";
 
@@ -25,7 +25,7 @@ public class BinaryResolution extends InferenceStep {
             "---------------\n"+
             "a,...,e,f,...,k";
 
-    public BinaryResolution(ClauseOld parent1, ClauseOld parent2, int literal, ClauseOld resolvent) {
+    public BinaryResolution(Clause parent1, Clause parent2, int literal, Clause resolvent) {
         this.parent1 = parent1;
         this.parent2 = parent2;
         this.literal = literal;

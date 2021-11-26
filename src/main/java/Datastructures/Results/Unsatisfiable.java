@@ -1,7 +1,6 @@
 package Datastructures.Results;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseOld;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;

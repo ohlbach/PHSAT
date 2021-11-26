@@ -1,6 +1,6 @@
 package Datastructures.Clauses.Simplifiers;
 
-import Datastructures.Clauses.ClauseOld;
+import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
@@ -19,13 +19,13 @@ public class TrueFalseLiteralsQuantified extends InferenceStep {
             "Q m p,l_1,...,l_n and false(p) -> Q m l_1,...,l_n\n"+
             "where Q is one of atleast, atmost, exactly";
 
-    private final ClauseOld oldClause;
-    private final ClauseOld newClause;
+    private final Clause oldClause;
+    private final Clause newClause;
     private final IntArrayList trueLiterals;
     private final IntArrayList falseLiterals;
     private final Model model;
 
-    public TrueFalseLiteralsQuantified(ClauseOld oldClause, ClauseOld newClause,
+    public TrueFalseLiteralsQuantified(Clause oldClause, Clause newClause,
                                        IntArrayList trueLiterals, IntArrayList falseLiterals, Model model) {
         this.oldClause = oldClause;
         this.newClause = newClause;

@@ -2,6 +2,7 @@ package Datastructures.Theory;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceTest;
@@ -50,11 +51,11 @@ public class EquivalenceClassesTest {
     }
 
     private Clause make(int id, int... literals) {
-        return new Clause(id, Connective.EQUIV, IntArrayList.wrap(literals));
+        return new Clause(id, Connective.EQUIV, null, IntArrayList.wrap(literals));
     }
 
     @Test
-    public void removeDouble() throws Unsatisfiable {
+    public void removeDouble() throws Result {
         System.out.println("Remove Double and Inconsistency");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         Clause c1 = make(1,1,2,3);
@@ -82,7 +83,7 @@ public class EquivalenceClassesTest {
 
 
     @Test
-    public void replaceTruthValues() throws Unsatisfiable {
+    public void replaceTruthValues() throws Result {
         System.out.println("Replace Truth Values");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         InferenceTest inf = new InferenceTest("My Test");
@@ -106,7 +107,7 @@ public class EquivalenceClassesTest {
     }
 
     @Test
-    public void replaceEquivalences1() throws Unsatisfiable{
+    public void replaceEquivalences1() throws Result{
         System.out.println("Replace Equivalences 1");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         Clause c1 = make(1,3,2,1);
@@ -120,7 +121,7 @@ public class EquivalenceClassesTest {
         assertEquals("E-2: 4=5=-1",c5.toString());
     }
     @Test
-    public void replaceEquivalences2() throws Unsatisfiable{
+    public void replaceEquivalences2() throws Result{
         System.out.println("Replace Equivalences 2");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         Clause c1 = make(1,2,1);
@@ -135,7 +136,7 @@ public class EquivalenceClassesTest {
         assertEquals("E-2: 1=1=3=4=-4",c4.toString());
     }
     @Test
-    public void joinClause() throws Unsatisfiable{
+    public void joinClause() throws Result{
         System.out.println("Join Clause");
         EquivalenceClasses eqClasses = prepare(monitoring,false);
         Clause c1 = make(1, 1,2,3);
@@ -165,7 +166,7 @@ public class EquivalenceClassesTest {
             else System.out.println("Unsatisfiable"); }
     }
     @Test
-    public void normalizeClause() throws Unsatisfiable {
+    public void normalizeClause() throws Result {
         System.out.println("Normalize Clause");
         EquivalenceClasses eqClasses = prepare(monitoring, false);
         Clause c1 = make(1, 1, 2, 3);
@@ -179,7 +180,7 @@ public class EquivalenceClassesTest {
 
 
     @Test
-    public void addBasicEquivalenceClause1() throws Unsatisfiable {
+    public void addBasicEquivalenceClause1() throws Result {
         System.out.println("Add Basic Equivalence Clause no overlaps");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         int[] clause=new int[]{1,type,1,2,3};
@@ -221,7 +222,7 @@ public class EquivalenceClassesTest {
     }
 
     @Test
-    public void addBasicEquivalenceClause2() throws Unsatisfiable {
+    public void addBasicEquivalenceClause2() throws Result {
         System.out.println("Add Basic Equivalence Clause with overlaps");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         int[] clause=new int[]{1,type,2,3,4};
@@ -245,7 +246,7 @@ public class EquivalenceClassesTest {
     }
 
     @Test
-    public void addBasicEquivalenceClause3() throws Unsatisfiable {
+    public void addBasicEquivalenceClause3() throws Result {
         System.out.println("Add Basic Equivalence Clause with model ");
         EquivalenceClasses eqClasses =  prepare(monitoring,true);
         Model model=eqClasses.model;
@@ -280,7 +281,7 @@ public class EquivalenceClassesTest {
             else System.out.println("Unsatisfiable");}}
 
     @Test
-    public void addBasicEquivalenceClause4() throws Unsatisfiable{
+    public void addBasicEquivalenceClause4() throws Result{
         System.out.println("Add Basic Equivalence Clause internal error ");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         int[] clause=new int[]{1,type,2,3,4,3};
@@ -303,7 +304,7 @@ public class EquivalenceClassesTest {
             else System.out.println("Unsatisfiable");}}
 
     @Test
-    public void integrateTrueLiteral() throws Unsatisfiable {
+    public void integrateTrueLiteral() throws Result {
         System.out.println("Integrate True Literal ");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         Model model=eqClasses.model;
@@ -340,7 +341,7 @@ public class EquivalenceClassesTest {
         return st.toString(); }
 
     @Test
-    public void addDerived1() throws Unsatisfiable{
+    public void addDerived1() throws Result{
         System.out.println("add derived equivalence empty ");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         ArrayList<Clause> observed=new ArrayList<>();
@@ -351,7 +352,7 @@ public class EquivalenceClassesTest {
     }
 
     @Test
-    public void addDerived2() throws Unsatisfiable {
+    public void addDerived2() throws Result {
         System.out.println("add derived equivalence join one ");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         ArrayList<Clause> observed=new ArrayList<>();
@@ -366,7 +367,7 @@ public class EquivalenceClassesTest {
         assertEquals("[E-2: 3=4=5=-6 [1]]",info(observed));
     }
     @Test
-    public void addDerived3() throws Unsatisfiable {
+    public void addDerived3() throws Result {
         System.out.println("add derived equivalence join two  ");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         ArrayList<Clause> observed=new ArrayList<>();
@@ -384,7 +385,7 @@ public class EquivalenceClassesTest {
     }
 
     @Test
-    public void addDerived4() throws Unsatisfiable {
+    public void addDerived4() throws Result {
         System.out.println("add derived equivalence join three  ");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         eqClasses.model.symboltable = null;
@@ -399,7 +400,7 @@ public class EquivalenceClassesTest {
         eqClasses.addBasicEquivalenceClause(clause1);
         eqClasses.addBasicEquivalenceClause(clause2);
         eqClasses.addBasicEquivalenceClause(clause3);
-        eqClasses.integrateEquivalence(new Clause(4,new int[]{4,type,3,6,-9}),true);
+        eqClasses.integrateEquivalence(new Clause(4, null,new int[]{4,type,3,6,-9}),true);
 
         assertEquals("Equivalence Classes of Problem test:\nE-6: 1=2=3=4=5=6=-7=-8=-9",eqClasses.toString());
         assertEquals("[E-6: 1=2=3=4=5=6=-7=-8=-9 [1, 2, 3]]",info(observed));
@@ -408,7 +409,7 @@ public class EquivalenceClassesTest {
 
 
     @Test
-    public void threadtest() throws Unsatisfiable {
+    public void threadtest() throws Result {
         System.out.println("Thread ");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         Model model=eqClasses.model;
@@ -439,7 +440,7 @@ public class EquivalenceClassesTest {
     }
 
     @Test
-    public void completeModel () throws Unsatisfiable {
+    public void completeModel () throws Result {
         System.out.println("complete Model ");
         EquivalenceClasses eqClasses = prepare(monitoring, false);
         Model model = eqClasses.model;

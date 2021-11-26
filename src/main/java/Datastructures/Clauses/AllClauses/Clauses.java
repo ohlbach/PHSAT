@@ -1,3 +1,4 @@
+
 package Datastructures.Clauses.AllClauses;
 
 import Datastructures.Clauses.BasicClauseList;
@@ -20,7 +21,6 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -32,13 +32,13 @@ public class Clauses extends Thread {
     private final String problemId;
     private final Thread thread;
 
-    protected final Model model;
+    public final Model model;
     public EquivalenceClasses equivalenceClasses;
-    private final boolean monitoring;
-    protected final Monitor monitor;
-    protected final String monitorId;
-    protected final boolean trackReasoning;
-    private final Symboltable symboltable;
+    public final boolean monitoring;
+    public final Monitor monitor;
+    public final String monitorId;
+    public final boolean trackReasoning;
+    public final Symboltable symboltable;
     public TwoLitClauses twoLitClauses;
     public ClauseSimplifier clauseSimplifier;
 
@@ -141,7 +141,7 @@ public class Clauses extends Thread {
         Clause clause = new Clause(basicClause);
         clause = clauseSimplifier.simplify(clause);
         if(clause == null) return;
-        if(isSubsumed(clause)) return;
+       // if(isSubsumed(clause)) return;
         insertClause(clause);
         if(clause.connective == Connective.OR && clause.size() == 2) {twoLitClauses.addDerivedClause(clause);}
     }
@@ -208,6 +208,7 @@ public class Clauses extends Thread {
      * new equivalences <br>
      * new disjointnesses <br>
      */
+    /*
     public void run() {
         while(!Thread.interrupted()) {
             try {
@@ -228,7 +229,7 @@ public class Clauses extends Thread {
                     checkPurity();}}
             catch(InterruptedException ex) {return;}
             catch(Result result) {problemSupervisor.setResult(result,"AllClauses"); return;}}}
-
+*/
     private static int[] quantifierTypes = new int[]{
             Connective.ATLEAST.ordinal(),Connective.ATMOST.ordinal(),Connective.EXACTLY.ordinal()};
 
@@ -277,6 +278,7 @@ public class Clauses extends Thread {
      * @param clause an or-clause
      * @return true if the clause is subsumed
      */
+    /*
     protected boolean isSubsumed(Clause clause) {
         timestamp += maxClauseLength + 2;
         Clause subsumer = LitAlgorithms.isSubsumed(clause,orIndex,timestamp);
@@ -288,6 +290,8 @@ public class Clauses extends Thread {
                         " is subsumed by clause " + subsumer.toString(0,symboltable));
             return true;}
         return false;}
+        */
+
 
 }
 
