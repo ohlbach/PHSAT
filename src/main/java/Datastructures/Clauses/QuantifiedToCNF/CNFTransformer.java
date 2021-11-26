@@ -35,15 +35,18 @@ public class CNFTransformer {
         switch(clause.connective) {
             case ATLEAST: return atLeastToCNF(clause);
             case ATMOST:  return atmostToCNF(clause);
-            case EXACTLY: return exactlyToCNF(clause);}
+            case EXACTLY: return exactlyToCNF(clause);
+            case INTERVAL:return intervalToCNF(clause);}
         return null;}
 
 
-    private ArrayList<Clause> intervalToCNF(Clause clause) {
+    protected ArrayList<Clause> intervalToCNF(Clause clause) {
         IntArrayList cl = new IntArrayList(clause.size()+2);
         cl.add(clause.interval.min);
         cl.add(clause.interval.max);
         for(CLiteral cLiteral: clause) {cl.add(cLiteral.literal);}
+        cl = simplify(cl); // remove complementary literals
+        if(cl == null) return null;
         ArrayList<IntArrayList> cnf = intervalToCNF(cl);
         if(cnf == null) return null;
         ArrayList<Clause> clauses = new ArrayList<>();
@@ -55,31 +58,39 @@ public class CNFTransformer {
         return clauses;}
 
     private ArrayList<IntArrayList> intervalToCNF(IntArrayList clause) {
+        if(clause.size() == 1) { // empty clause
+            clause.clear();
+            ArrayList<IntArrayList> clauses = new ArrayList<>();
+            clauses.add(clause);
+            return clauses;}
         int min = clause.getInt(0);
         int max = clause.getInt(1);
         int size = clause.size()-2;
         if(min == 0) {
             if(max == 0) {
                 ArrayList<IntArrayList> clauses = new ArrayList<>();
-                for(int i = 2; i < size; ++i) {
-                    clauses.add(IntArrayList.wrap(new int[]{-clause.getInt(i)}));}
+                for(int i = 2; i < clause.size(); ++i) {
+                    int literal = clause.getInt(i);
+                    clauses.add(IntArrayList.wrap(new int[]{-literal}));}
                 return clauses;}
             else {if(max == size) return null;}} // tautology
         if (min == 1 && max == size) { // is already an or-clause
             ArrayList<IntArrayList> clauses = new ArrayList<>();
-            clause.removeInt(1); clause.removeInt(2);
+            clause.removeInt(1); clause.removeInt(0);
             clauses.add(clause);
             return clauses;}
 
         if(min == size && max == size) {  //exactly n
             ArrayList<IntArrayList> clauses = new ArrayList<>();
-            for(int i = 2; i < size; ++i) {
-                clauses.add(IntArrayList.wrap(new int[]{clause.getInt(i)}));}
+            for(int i = 2; i < clause.size(); ++i) {
+                int literal = clause.getInt(i);
+                clauses.add(IntArrayList.wrap(new int[]{literal}));}
             return clauses;}
 
         int literal = clause.getInt(clause.size()-1);
         IntArrayList posRemoved = remove(literal,clause.clone());
         IntArrayList negRemoved = remove(-literal,clause);
+
         if(posRemoved == null && negRemoved == null) return null; // tautology
 
         ArrayList<IntArrayList> posCNF = null;
@@ -88,6 +99,7 @@ public class CNFTransformer {
         if(negRemoved != null && !negRemoved.isEmpty()) negCNF = intervalToCNF(negRemoved);
 
         if(posCNF == null && negCNF == null) return null;
+
 
         ArrayList<IntArrayList> clauses = new ArrayList<>();
         if(posRemoved == null) {
@@ -118,11 +130,27 @@ public class CNFTransformer {
 
         for(IntArrayList posClause : posCNF) {
             if(isSubsumed(posClause,negCNF)) clauses.add(posClause);
-            else {posClause.add(-literal); clauses.add(posClause);}}
+            else {posClause = posClause.clone();
+                    posClause.add(-literal); clauses.add(posClause);}}
         for(IntArrayList negClause : negCNF) {
             if(isSubsumed(negClause,posCNF)) clauses.add(negClause);
             else {negClause.add(literal); clauses.add(negClause);}}
         return clauses;}
+
+    private IntArrayList simplify(IntArrayList clause) {
+        int min = clause.getInt(0);
+        int max = clause.getInt(1);
+        for(int i = 3; i < clause.size(); ++i) {
+            int literal = clause.getInt(i);
+            for(int j = 2; j < i; ++j) {
+                if(literal == -clause.getInt(j)) {
+                    clause.removeInt(i); clause.removeInt(j); i -= 2;
+                    --min; --max;
+                    break;}}}
+        if(max < 0) {return null;} // contradiction
+        clause.set(0,min);
+        clause.set(1,max);
+        return clause;}
 
     private boolean isSubsumed(IntArrayList clause, ArrayList<IntArrayList> clauses) {
         for(IntArrayList cl : clauses) {
@@ -136,13 +164,13 @@ public class CNFTransformer {
             int lit = clause.getInt(i);
             if(lit == -literal) {clause.removeInt(i--);}}
         max = Math.min(max,clause.size()-2);
-        if(max < min) {clause.clear(); return clause;} // empty clause
+        if(max < min) {clause.clear(); clause.add(-1); return clause;} // empty clause
 
         for(int i = 2; i < clause.size(); ++i) {
             int lit = clause.getInt(i);
-            if(lit == literal) {clause.removeInt(i--);} --min; --max;}
+            if(lit == literal) {clause.removeInt(i--); --min; --max;}}
         min = Math.max(0,min);
-        if(max < 0) {clause.clear(); return clause;}
+        if(max < 0) {clause.clear(); clause.clear(); clause.add(-1); return clause;}
         if(min == 0 && max == clause.size()-2) return null; // tautology
         clause.set(0,min);
         clause.set(1,max);
