@@ -78,12 +78,12 @@ public class ClauseSimplifier {
      */
     protected Clause replaceEquivalences(Clause oldClause) throws Unsatisfiable{
         if(equivalenceClasses.isEmpty()) return oldClause;
-        intList1.clear();
         Clause newClause = oldClause.replaceEquivalences(getRepresentative, nextId, intList1);
         if(intList1.isEmpty()) return oldClause;
-        InferenceStep step = new InfEquivalenceReplacements(oldClause,newClause, intList1,equivalenceClasses);
-        newClause.inferenceStep = step;
-        if(monitoring) monitor.print(monitorId,step.toString(symboltable));
+        if(trackReasoning) {
+            InferenceStep step = new InfEquivalenceReplacements(oldClause,newClause, intList1,equivalenceClasses);
+            newClause.inferenceStep = step;
+            if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
         newClause.simplify();
         if(newClause.connective == Connective.AND) {simplifyAnd(newClause); return null;}
         if(newClause.isEmpty()) {

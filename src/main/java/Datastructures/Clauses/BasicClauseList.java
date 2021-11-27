@@ -128,14 +128,16 @@ public class BasicClauseList {
             {errors.append(errorPrefix).append("Interval boundary: " + clause[2] + " < 0\n");
                 erraneous = true;}}
         if(clause[2] > size) {
-            warnings.append(errorPrefix).append("Interval boundary: " + clause[2] + " > clause size "+ size+"\n");}
+            warnings.append(errorPrefix).append("Interval boundary: " + clause[2] + " > clause size "+ size+"\n");
+            clause[2] = size;}
 
         if(connective.isInterval()) {
             if(clause[3] < 0) {
                 {errors.append(errorPrefix).append("Interval boundary: " + clause[3] + " < 0\n");
                     erraneous = true;}}
             if(clause[3] > size) {
-                warnings.append(errorPrefix).append("Interval boundary: " + clause[3] + " > clause size "+ size+"\n");}}
+                warnings.append(errorPrefix).append("Interval boundary: " + clause[3] + " > clause size "+ size+"\n");
+                clause[3] = size;}}
         return erraneous ? null : clause;}
 
     /** returns the start of the literal section in a basic clause

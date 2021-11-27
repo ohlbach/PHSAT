@@ -86,6 +86,6 @@ public class Interval {
      * @return a string representation, either just n, or [n,m]
      */
     public String toString() {
-        return min == max ? Integer.toString(min) : min+"-"+max;}
+        return min == max ? Integer.toString(min) : "["+min+","+max+"]";}
 
 }

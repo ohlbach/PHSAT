@@ -139,6 +139,9 @@ public class Clauses extends Thread {
      */
     private void integrateBasicClause(int[] basicClause) throws Result {
         Clause clause = new Clause(basicClause);
+        if(clause.connective == Connective.AND) {
+            for(CLiteral cLiteral : clause) model.add(cLiteral.literal,clause.inferenceStep,thread);
+            return;}
         clause = clauseSimplifier.simplify(clause);
         if(clause == null) return;
        // if(isSubsumed(clause)) return;
