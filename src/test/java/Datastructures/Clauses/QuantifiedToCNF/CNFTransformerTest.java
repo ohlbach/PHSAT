@@ -16,6 +16,27 @@ public class CNFTransformerTest {
     int ex = Connective.EXACTLY.ordinal();
     int intV = Connective.INTERVAL.ordinal();
 
+
+    @Test
+    public void experiment() throws Result {
+        System.out.println("experiment");
+        int[] ids = new int[]{0};
+        CNFTransformer ct = new CNFTransformer(true, (() -> ++ids[0]));
+        Clause c1 = new Clause(new int[]{1, intV, 3,3, 1,2,3,4,5,6,7,8,9,10});
+        long t1 = System.nanoTime();
+        ArrayList<Clause> cnf1 = ct.intervalToCNF(c1);
+        t1 = System.nanoTime()-t1;
+        System.out.println("Interval Time " + t1);
+
+        ids[0] = 0;
+        long t2 = System.nanoTime();
+        ArrayList<Clause> cnf2 = ct.toCNF(c1);
+        t2 = System.nanoTime()-t2;
+        System.out.println("Exactly Time " + t2);
+
+        for(Clause clause : cnf2) System.out.println(clause.toNumbers());
+    }
+
     @Test
     public void intervalToCNF1() throws Result {
         System.out.println("interval to CNF atleast");

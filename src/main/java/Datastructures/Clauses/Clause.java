@@ -10,11 +10,9 @@ import Utilities.Interval;
 import Utilities.Positioned;
 import Utilities.Sizable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-
 import java.util.*;
 import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
-
 import static Utilities.Utilities.sortIntArray;
 
 /** A clause is just a list of CLiterals.
@@ -419,10 +417,12 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      *  Complementary literals in OR-clauses are a tautology.<br>
      *
      *  Complementary literals in other clause types are removed.<br>
+     *  In this case interval.max < 0 is possible, which signals an inconsistency.<br>
+     *  This must be checked by the calling method.
      *
      * @return null if the clause became true, otherwise the simplified clause
      */
-    public Clause simplify() {
+    public Clause simplify()  {
         if(connective == Connective.OR) {
             for(int i = 0; i < cliterals.size(); ++i) {
                 int literal1 = getLiteral(i);

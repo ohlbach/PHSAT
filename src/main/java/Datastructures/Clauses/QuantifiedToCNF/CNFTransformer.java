@@ -40,6 +40,11 @@ public class CNFTransformer {
         return null;}
 
 
+    /** This method transforms an arbitrary quantified clause to CNF.
+     *
+     * @param clause any quantified clause
+     * @return null (tautology) or a list of or-clauses
+     */
     protected ArrayList<Clause> intervalToCNF(Clause clause) {
         IntArrayList cl = new IntArrayList(clause.size()+2);
         cl.add(clause.interval.min);
@@ -57,6 +62,11 @@ public class CNFTransformer {
             clauses.add(orClause);}
         return clauses;}
 
+    /** This method provides a recursive call to the CNF-transformation algorithm
+     *
+     * @param clause a simplified representation of a clause: [min,max,literal_1,...]
+     * @return null or a list of simplified clauses [literal_1,...]
+     */
     private ArrayList<IntArrayList> intervalToCNF(IntArrayList clause) {
         if(clause.size() == 1) { // empty clause
             clause.clear();
@@ -152,6 +162,12 @@ public class CNFTransformer {
         clause.set(1,max);
         return clause;}
 
+    /** checks if the clauseis subumed by one of the given clauses
+     *
+     * @param clause   a simplified representation of a clause
+     * @param clauses  a list of such clauses
+     * @return true if clause is a superset of one of the given clauses
+     */
     private boolean isSubsumed(IntArrayList clause, ArrayList<IntArrayList> clauses) {
         for(IntArrayList cl : clauses) {
             if(Utilities.isSubset(cl,clause)) return true;}
