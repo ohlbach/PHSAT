@@ -1,6 +1,7 @@
 package Datastructures.Clauses.Simplifiers;
 
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
@@ -25,7 +26,7 @@ public class ClauseSimplifier {
     private final Symboltable symboltable;
     private final EquivalenceClasses equivalenceClasses;
     protected boolean trackReasoning;
-    private  IntSupplier nextId;
+    protected IntSupplier nextId;
     private final IntUnaryOperator getRepresentative;
 
     /** generates a Clause Transformer.
@@ -76,7 +77,7 @@ public class ClauseSimplifier {
      * @param oldClause the original clause
      * @return either the old clause, or a new clause with the replaced literals.
      */
-    protected Clause replaceEquivalences(Clause oldClause) throws Unsatisfiable{
+    protected Clause replaceEquivalences(Clause oldClause){
         if(equivalenceClasses.isEmpty()) return oldClause;
         Clause newClause = oldClause.replaceEquivalences(getRepresentative, nextId, intList1);
         if(intList1.isEmpty()) return oldClause;
@@ -85,5 +86,30 @@ public class ClauseSimplifier {
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
         return newClause;}
+
+    /** removes double literals (from or-clauses) and complementary literals.
+     * The clause may become contradictory or a tautology, or and and-clause.
+     * The and-clause is inserted into the model.
+     *
+     * @param oldClause a clause
+     * @return null or the simplified clause
+     * @throws Unsatisfiable if a contradiction is discovered
+     */
+    protected Clause removeDoubleAndComplementaryLiterals(Clause oldClause) throws Unsatisfiable {
+        Clause newClause = oldClause.removeDoubleAndComplementaryLiterals(nextId,intList1,intList2);
+        if(newClause.structure == ClauseStructure.TAUTOLOGY) return null;
+        if(intList1.isEmpty() && intList2.isEmpty()) return newClause;
+        InferenceStep step = null;
+        if(trackReasoning) {
+            step = new InfDoubleAndComplementaryLiterals(oldClause,newClause,intList1,intList2);
+            newClause.inferenceStep = step;
+            if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
+        if(newClause.structure == ClauseStructure.CONTRADICTORY) {
+            throw new Unsatisfiable(newClause);}
+        if(newClause.connective == Connective.AND) {
+            for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step,thread);
+            return null;}
+        return newClause;}
+
 
 }

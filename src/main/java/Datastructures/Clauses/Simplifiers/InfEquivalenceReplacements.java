@@ -51,7 +51,7 @@ public class InfEquivalenceReplacements extends InferenceStep {
             int oldLiteral = literals.getInt(i);
             int newLiteral = literals.getInt(i+1);
             equations += Symboltable.toString(oldLiteral,symboltable) + "->"+Symboltable.toString(newLiteral,symboltable);
-            if(i < size - 2) equations += ",";}
+            if(i < size - 2) equations += " ,";}
         return title +":\n" + oldClause.toString(0,symboltable) + " and " + equations +
                 " -> " + newClause.toString(0,symboltable);}
 

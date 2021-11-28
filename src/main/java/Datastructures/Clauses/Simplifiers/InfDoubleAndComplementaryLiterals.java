@@ -7,7 +7,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
-public class MultipleLiteralsQuantified extends InferenceStep {
+public class InfDoubleAndComplementaryLiterals extends InferenceStep {
 
     private static final String title = "Multiple Literals in Quantified Clauses";
     private static final String rule = title + ":\n" +
@@ -17,10 +17,15 @@ public class MultipleLiteralsQuantified extends InferenceStep {
 
     private final Clause oldClause;
     private final Clause newClause;
+    private final IntArrayList doubleLiterals;
+    private final IntArrayList complementaryLiterals;
 
-    public MultipleLiteralsQuantified(Clause oldClause, Clause newClause) {
+    public InfDoubleAndComplementaryLiterals(Clause oldClause, Clause newClause,
+                                             IntArrayList doubleLiterals, IntArrayList complementaryLiterals) {
         this.oldClause = oldClause;
-        this.newClause = newClause;}
+        this.newClause = newClause;
+        this.doubleLiterals = doubleLiterals;
+        this.complementaryLiterals = complementaryLiterals;}
 
     @Override
     public String title() {

@@ -177,7 +177,7 @@ public class EquivalenceClasses  {
      * @param basicClause a basic equivalence basicClause
      * @throws Unsatisfiable if a contradictory truth value has been discovered.
      */
-    public void addBasicEquivalenceClause(int[] basicClause) throws Result {
+    public void addBasicEquivalenceClause(int[] basicClause) throws Unsatisfiable {
         assert basicClause.length > 3;
         assert Connective.getType(basicClause[1]) == Connective.EQUIV;
         statistics.basicClauses++;

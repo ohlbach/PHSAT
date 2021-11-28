@@ -2,6 +2,7 @@ package Management;
 
 import Datastructures.Clauses.AllClauses.Clauses;
 import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Results.*;
@@ -36,6 +37,7 @@ public class ProblemSupervisor {
 
     public Model model;
     public EquivalenceClasses equivalenceClasses;
+    public ClauseSimplifier clauseSimplifier;
     public Thread equivalenceThread;
 
     public Thread disjointnessThread;
