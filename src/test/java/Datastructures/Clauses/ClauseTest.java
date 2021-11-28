@@ -7,6 +7,9 @@ import Utilities.Interval;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
+import java.util.function.IntSupplier;
+import java.util.function.IntUnaryOperator;
+
 import static org.junit.Assert.*;
 
 public class ClauseTest {
@@ -247,9 +250,110 @@ public class ClauseTest {
         assertSame(c7,c5);
         assertEquals("I-5: [2,3]: -2,-3,-4,-5",c7.toNumbers());
         assertEquals("[2, -2, 4, -4, 5, -5]",replacements.toString());
+    }
 
+    @Test
+    public void removeTrueFalseLiterals() {
+        System.out.println("removeTrueFalseLiterals");
+        int[] id = new int[]{1};
+        IntSupplier nextInt = () -> ++id[0];
+        IntUnaryOperator getTruthStatus = (literal) -> literal > 4 ? (literal % 2 == 0 ? 1 : -1) : 0;
+        IntArrayList trueLiterals = new IntArrayList();
+        IntArrayList falseLiterals = new IntArrayList();
 
+        Clause c1 = new Clause(1, Connective.INTERVAL, 2, 3, 1, 4, 5, 6, 2, 3);
+        Clause c2 = c1.removeTrueFalseLiterals(getTruthStatus, nextInt, trueLiterals, falseLiterals);
+        assertEquals("[6]",trueLiterals.toString());
+        assertEquals("[5]",falseLiterals.toString());
+        assertEquals("I-2: [1,2]: 1,4,2,3",c2.toNumbers());
+        assertEquals(3,c2.getCLiteral(3).clausePosition);
+
+        Clause c3 = new Clause(2, Connective.INTERVAL, 2, 3, 5,7,9);
+        Clause c4 = c3.removeTrueFalseLiterals(getTruthStatus, null, trueLiterals, falseLiterals);
+        assertSame(c3,c4);
+        assertEquals("[]",trueLiterals.toString());
+        assertEquals("[5, 7, 9]",falseLiterals.toString());
+        assertEquals(ClauseStructure.CONTRADICTORY,c3.structure);
+
+        Clause c5 = new Clause(3, Connective.OR, 3,4,5,6);
+        Clause c6 = c5.removeTrueFalseLiterals(getTruthStatus, nextInt, trueLiterals, falseLiterals);
+        assertNotSame(c5,c6);
+        assertEquals("[6]",trueLiterals.toString());
+        assertEquals("[5]",falseLiterals.toString());
+        assertEquals(ClauseStructure.TAUTOLOGY,c6.structure);
+
+        Clause c7 = new Clause(4, Connective.OR, 3,4,6,5);
+        Clause c8 = c7.removeTrueFalseLiterals(getTruthStatus, nextInt, trueLiterals, falseLiterals);
+        assertNotSame(c7,c8);
+        assertEquals("[6]",trueLiterals.toString());
+        assertEquals("[]",falseLiterals.toString());
+        assertEquals(ClauseStructure.TAUTOLOGY,c8.structure);
+
+        Clause c9 = new Clause(5, Connective.INTERVAL, 2, 3, 1, 2, 3, 4, 5, 6,7,8);
+        Clause c10 = c9.removeTrueFalseLiterals(getTruthStatus, nextInt, trueLiterals, falseLiterals);
+        assertEquals("[6, 8]",trueLiterals.toString());
+        assertEquals("[5, 7]",falseLiterals.toString());
+        assertEquals("M-5: [0,1]: 1,2,3,4",c10.toNumbers());
+
+        Clause c11 = new Clause(5, Connective.EXACTLY, 2, 1, 2, 3, 4, 5, 6,7,8);
+        Clause c12 = c11.removeTrueFalseLiterals(getTruthStatus, nextInt, trueLiterals, falseLiterals);
+        assertEquals("[6, 8]",trueLiterals.toString());
+        assertEquals("[5, 7]",falseLiterals.toString());
+        assertEquals("A-6: -1&-2&-3&-4",c12.toNumbers());
     }
 
 
+    @Test
+    public void removeDoubles() {
+        System.out.println("removeDoubleAndComplementaryLiterals");
+        int[] id = new int[]{1};
+        IntSupplier nextInt = () -> ++id[0];
+        IntArrayList doubleLiterals = new IntArrayList();
+        IntArrayList complementaryLiterals = new IntArrayList();
+        Clause c1 = new Clause(1, Connective.OR, 3,4,6,3,4,3);
+        Clause c2 = c1.removeDoubleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
+        assertNotSame(c1,c2);
+        assertEquals("[3, 4]", doubleLiterals.toString());
+        assertEquals("2: 3,4,6",c2.toNumbers());
+        assertEquals(c2.structure,ClauseStructure.POSITIVE);
+
+        Clause c3 = new Clause(1, Connective.OR, 3,3,3);
+        Clause c4 = c3.removeDoubleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
+        assertNotSame(c3,c4);
+        assertEquals("[3]", doubleLiterals.toString());
+        assertEquals("A-3: 3",c4.toNumbers());
+
+        Clause c5 = c3.removeDoubleAndComplementaryLiterals(null,doubleLiterals,complementaryLiterals);
+        assertSame(c3,c5);
+        assertEquals("A-1: 3",c3.toNumbers());
+
+        Clause c6 = new Clause(1, Connective.OR, 3,3,-3);
+        Clause c7 = c6.removeDoubleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
+        assertNotSame(c6,c7);
+        assertEquals("[3]", doubleLiterals.toString());
+        assertEquals("[3]", complementaryLiterals.toString());
+        assertEquals(c7.structure,ClauseStructure.TAUTOLOGY);
+        assertEquals("4: 3,-3",c7.toNumbers());
+
+        Clause c8 = c6.removeDoubleAndComplementaryLiterals(null,doubleLiterals,complementaryLiterals);
+        assertSame(c6,c8);
+        assertEquals(c6.structure,ClauseStructure.TAUTOLOGY);
+
+        Clause c9 = new Clause(1, Connective.INTERVAL, 2,3, 3,3,-3);
+        Clause c10 = c9.removeDoubleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
+        assertNotSame(c9,c10);
+        assertEquals("[]", doubleLiterals.toString());
+        assertEquals("[3]", complementaryLiterals.toString());
+        assertEquals(c10.structure,ClauseStructure.CONTRADICTORY);
+        assertEquals("L-5: [2,1]: 3",c10.toNumbers());
+
+        Clause c11 = new Clause(1, Connective.INTERVAL, 2,3, 3,4,5,-3,-4,6,7);
+        Clause c12 = c11.removeDoubleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
+        assertNotSame(c11,c12);
+        assertEquals("[]", doubleLiterals.toString());
+        assertEquals("[3, 4]", complementaryLiterals.toString());
+        assertEquals(c12.structure,ClauseStructure.POSITIVE);
+        assertEquals("L-6: [2,3]: 5,6,7",c12.toNumbers());
+
+    }
 }

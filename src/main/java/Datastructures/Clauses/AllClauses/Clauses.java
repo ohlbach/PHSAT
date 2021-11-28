@@ -295,6 +295,5 @@ public class Clauses extends Thread {
         return false;}
         */
 
-
 }
 

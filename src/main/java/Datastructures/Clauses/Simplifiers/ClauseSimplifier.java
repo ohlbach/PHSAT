@@ -84,11 +84,6 @@ public class ClauseSimplifier {
             InferenceStep step = new InfEquivalenceReplacements(oldClause,newClause, intList1,equivalenceClasses);
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-        newClause.simplify();
-        if(newClause.connective == Connective.AND) {simplifyAnd(newClause); return null;}
-        if(newClause.isEmpty()) {
-            if(newClause.interval.min == 0) {return null;} // tautology
-            else throw new Unsatisfiable(newClause);}
         return newClause;}
 
 }

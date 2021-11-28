@@ -217,14 +217,13 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     private void setConnective() {
         if (connective == Connective.AND) {
             interval = null;
-            return;
-        }
+            return;}
         if (connective == Connective.OR) {
-            interval = null;
             if (cliterals.size() == 1) {
-                connective = Connective.AND;
-            }
-        }
+                interval = null;
+                connective = Connective.AND;}
+            return;}
+
         if (interval == null) return;
         interval.max = Math.min(interval.max, size());
         connective = detConnective();
@@ -455,8 +454,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public int getLiteral(int position) {
         assert position >= 0 && position < cliterals.size();
-        return cliterals.get(position).literal;
-    }
+        return cliterals.get(position).literal;}
 
     /**
      * converts the cLiterals into an array of integers
@@ -467,10 +465,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         int size = cliterals.size();
         int[] literals = new int[size];
         for (int i = 0; i < size; ++i) {
-            literals[i] = cliterals.get(i).literal;
-        }
-        return literals;
-    }
+            literals[i] = cliterals.get(i).literal;}
+        return literals;}
 
     /**
      * checks if the literal is in the clause
@@ -479,8 +475,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
      */
     public int contains(int literal) {
-        return contains(literal, cliterals.size());
-    }
+        return contains(literal, cliterals.size());}
 
     /**
      * checks if the literal is in the clause
@@ -492,15 +487,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public int contains(int literal, int end) {
         for (int i = 0; i < end; ++i) {
             int lit = cliterals.get(i).literal;
-            if (lit == literal) {
-                return +1;
-            }
-            if (lit == -literal) {
-                return -1;
-            }
-        }
-        return 0;
-    }
+            if (lit == literal)  {return +1;}
+            if (lit == -literal) {return -1;}}
+        return 0;}
 
     /**
      * adds a cliteral to the end of the clause, without checking for double literals and tautologies.
@@ -511,8 +500,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         int position = cliterals.size();
         cliterals.add(cliteral);
         cliteral.setClause(this, position);
-        setStructure();
-    }
+        setStructure();}
 
     /**
      * adds a new literal to the clause
@@ -536,6 +524,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     }
 
     /** removes a cliteral at the given clausePosition from the clause.
+     * Nothing else is done.
      *
      * @param position the clausePosition of the literal to be removed
      */
@@ -582,30 +571,33 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * The connective of the clause is adjusted at the new situation.
      *
      * @param getTruthStatus maps a literal to +1 (true), 0 (undefined) or -1 (false)
-     * @param nextInt        null or the identifier for a clone of the clause
-     * @param removedLiterals collects the removed literals
+     * @param nextInt        null or a supplier for the identifier for a clone of the clause
+     * @param removedTrueLiterals collects the removed true literals
+     * @param removedFalseLiterals collects the removed false literals
      * @return               either the original changed clause or a clone.
      */
-    public Clause removeTruthLiterals(IntUnaryOperator getTruthStatus, IntSupplier nextInt, IntArrayList removedLiterals) {
-        removedLiterals.clear();
+    public Clause removeTrueFalseLiterals(IntUnaryOperator getTruthStatus, IntSupplier nextInt,
+                                      IntArrayList removedTrueLiterals, IntArrayList removedFalseLiterals) {
+        removedTrueLiterals.clear();removedFalseLiterals.clear();
         Clause clause = this;
         ArrayList<CLiteral> cLits = cliterals;
         for (int i = 0; i < cLits.size(); ++i) {
             int literal = cLits.get(i).literal;
             int status = getTruthStatus.applyAsInt(literal);
             if(status == 0) continue;
-            if(status == 1 && connective == Connective.OR) {
-                clause.structure = ClauseStructure.TAUTOLOGY;
-                return clause;};
-            removedLiterals.add(literal);
             if (clause == this && nextInt != null) {
                 clause = clone(nextInt.getAsInt());
                 cLits = clause.cliterals;}
+            if(status == 1) {
+                removedTrueLiterals.add(literal);
+                if(connective == Connective.OR) {
+                    clause.structure = ClauseStructure.TAUTOLOGY;
+                    return clause;}}
+            else {removedFalseLiterals.add(literal);}
             clause.removeAtPosition(i--);
             if(connective == Connective.OR) continue; // removing the clause is sufficient
             if(interval == null) continue;
-            if(status == 1) clause.interval.decrement();
-            else --clause.interval.max;}
+            if(status == 1) clause.interval.decrement();}
 
         clause.interval.max = Math.min(clause.cliterals.size(),clause.interval.max);
         clause.setStructure();
@@ -617,36 +609,57 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** checks for multiple occurrences (in OR-clauses) and complementary literals
      *  Multiple occurrences of literals in OR-clauses are removed.<br>
      *  Complementary literals in OR-clauses are a tautology.<br>
-     *
      *  Complementary literals in other clause types are removed.<br>
-     *  In this case interval.max < 0 is possible, which signals an inconsistency.<br>
-     *  This must be checked by the calling method.
+     *  The clause's structure may become TAUTOLOGY or CONTRADICTORY
      *
-     * @return null if the clause became true, otherwise the simplified clause
+     *
+     * @param nextInt        null or a supplier for the identifier for a clone of the clause
+     * @param doubleLiterals collects the removed double literals
+     * @param complementaryLiterals collects the removed complementary literals
+     *
+     * @return the simplified clause, or a simplified clone
      */
-    public Clause simplify()  {
+    public Clause removeDoubleAndComplementaryLiterals(IntSupplier nextInt,
+                                                       IntArrayList doubleLiterals,
+                                                       IntArrayList complementaryLiterals)  {
+        doubleLiterals.clear();
+        complementaryLiterals.clear();
+        Clause clause = this;
+        ArrayList<CLiteral> cLits = cliterals;
         if(connective == Connective.OR) {
-            for(int i = 0; i < cliterals.size(); ++i) {
-                int literal1 = getLiteral(i);
+            for(int i = 0; i < cLits.size(); ++i) {
+                int literal1 = cLits.get(i).literal;
                 for(int j = 0; j < i; ++j) {
-                    int literal2 = getLiteral(j);
-                    if(literal1 == literal2) {removeAtPosition(i--); continue;}
-                    if(literal1 == -literal2) return null;}} // tautology
-            int size = cliterals.size();
-            if(size == 1) {connective = Connective.AND; interval = null; return this;}
-            interval.max = size;
-            return this;}
+                    int literal2 = cLits.get(j).literal;
+                    if(literal1 == literal2) {
+                        if(!doubleLiterals.contains(literal1)) doubleLiterals.add(literal1);
+                        if (clause == this && nextInt != null) {
+                            clause = clone(nextInt.getAsInt());
+                            cLits = clause.cliterals;}
+                        clause.removeAtPosition(i--); continue;}
+                    if(literal1 == -literal2) {
+                        complementaryLiterals.add(Math.abs(literal1));
+                        clause.structure = ClauseStructure.TAUTOLOGY;
+                        return clause;}}}
+            int size = cLits.size();
+            if(size == 1) {clause.connective = Connective.AND; clause.interval = null; return clause;}
+            clause.interval.max = size;
+            return clause;}
 
-        for(int i = 0; i < cliterals.size(); ++i) {
-            int literal = getLiteral(i);
+        for(int i = 0; i < cLits.size(); ++i) { // only complementary literals can be removed
+            int literal = cLits.get(i).literal;
             for(int j = 0; j < i; ++j) {
-                if(literal == -getLiteral(j)) {
-                    removeAtPosition(i); removeAtPosition(j); i -= 2;
+                if(literal == -cLits.get(j).literal) {
+                    complementaryLiterals.add(Math.abs(literal));
+                    if (clause == this && nextInt != null) {
+                        clause = clone(nextInt.getAsInt());
+                        cLits = clause.cliterals;}
+                    clause.removeAtPosition(i); clause.removeAtPosition(j); i -= 2;
                     interval.decrement();
                     break;}}}
-        setConnective();
-        setStructure();
-        return this;}
+        clause.setStructure();
+        clause.setConnective();
+        return clause;}
 
     /** removes all occurrences of the literal from the clause.
      * If nextInt != null, a new clause is created, otherwise the removal is destructive
