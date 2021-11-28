@@ -589,11 +589,11 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 clause = clone(nextInt.getAsInt());
                 cLits = clause.cliterals;}
             if(status == 1) {
-                removedTrueLiterals.add(literal);
+                if(!removedTrueLiterals.contains(literal)) removedTrueLiterals.add(literal);
                 if(connective == Connective.OR) {
                     clause.structure = ClauseStructure.TAUTOLOGY;
                     return clause;}}
-            else {removedFalseLiterals.add(literal);}
+            else {if(!removedFalseLiterals.contains(literal)) removedFalseLiterals.add(literal);}
             clause.removeAtPosition(i--);
             if(connective == Connective.OR) continue; // removing the clause is sufficient
             if(interval == null) continue;
@@ -619,9 +619,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      *
      * @return the simplified clause, or a simplified clone
      */
-    public Clause removeDoubleAndComplementaryLiterals(IntSupplier nextInt,
-                                                       IntArrayList doubleLiterals,
-                                                       IntArrayList complementaryLiterals)  {
+    public Clause removeMultipleAndComplementaryLiterals(IntSupplier nextInt,
+                                                         IntArrayList doubleLiterals,
+                                                         IntArrayList complementaryLiterals)  {
         doubleLiterals.clear();
         complementaryLiterals.clear();
         Clause clause = this;
@@ -655,7 +655,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                         clause = clone(nextInt.getAsInt());
                         cLits = clause.cliterals;}
                     clause.removeAtPosition(i); clause.removeAtPosition(j); i -= 2;
-                    interval.decrement();
+                    clause.interval.decrement();
                     break;}}}
         clause.setStructure();
         clause.setConnective();

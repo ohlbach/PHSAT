@@ -50,7 +50,6 @@ public class Interval {
 
     /** decrements both bounds by 1 */
     public void decrement() {
-        assert max > 0;
         min = Math.max(0,min-1);
         max -= 1;}
 

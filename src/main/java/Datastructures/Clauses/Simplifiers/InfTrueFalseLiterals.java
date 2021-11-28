@@ -12,7 +12,7 @@ import static Utilities.Utilities.joinIntArrays;
 
 /** This class documents the results of true and false literals in a quantified clause */
 
-public class TrueFalseLiteralsQuantified extends InferenceStep {
+public class InfTrueFalseLiterals extends InferenceStep {
     public static final String title = "True Literal in Quantified Clauses";
     public static final String rule = title + ":\n"+
             "Q m p,l_1,...,l_n and true(p)  -> Q (m-1) l_1,...,l_n\n"+
@@ -25,8 +25,8 @@ public class TrueFalseLiteralsQuantified extends InferenceStep {
     private final IntArrayList falseLiterals;
     private final Model model;
 
-    public TrueFalseLiteralsQuantified(Clause oldClause, Clause newClause,
-                                       IntArrayList trueLiterals, IntArrayList falseLiterals, Model model) {
+    public InfTrueFalseLiterals(Clause oldClause, Clause newClause,
+                                IntArrayList trueLiterals, IntArrayList falseLiterals, Model model) {
         this.oldClause = oldClause;
         this.newClause = newClause;
         this.trueLiterals = trueLiterals;

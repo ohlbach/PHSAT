@@ -28,6 +28,7 @@ public class ClauseSimplifier {
     protected boolean trackReasoning;
     protected IntSupplier nextId;
     private final IntUnaryOperator getRepresentative;
+    private final IntUnaryOperator getTruthStatus;
 
     /** generates a Clause Transformer.
      * It can simplify all clause types and transform them into conjunctive normal form.
@@ -47,6 +48,7 @@ public class ClauseSimplifier {
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
         if(trackReasoning) nextId = () -> problemSupervisor.nextClauseId();
         getRepresentative = (int literal) -> equivalenceClasses.getRepresentative(literal);
+        getTruthStatus    = (int literal) -> model.status(literal);
     }
 
     public Clause simplify(Clause clause) throws Unsatisfiable {
@@ -95,21 +97,36 @@ public class ClauseSimplifier {
      * @return null or the simplified clause
      * @throws Unsatisfiable if a contradiction is discovered
      */
-    protected Clause removeDoubleAndComplementaryLiterals(Clause oldClause) throws Unsatisfiable {
-        Clause newClause = oldClause.removeDoubleAndComplementaryLiterals(nextId,intList1,intList2);
+    protected Clause removeMultipleAndComplementaryLiterals(Clause oldClause) throws Unsatisfiable {
+        Clause newClause = oldClause.removeMultipleAndComplementaryLiterals(nextId,intList1,intList2);
         if(newClause.structure == ClauseStructure.TAUTOLOGY) return null;
         if(intList1.isEmpty() && intList2.isEmpty()) return newClause;
         InferenceStep step = null;
         if(trackReasoning) {
-            step = new InfDoubleAndComplementaryLiterals(oldClause,newClause,intList1,intList2);
+            step = new InfMultipleAndComplementaryLiterals(oldClause,newClause,intList1,intList2);
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-        if(newClause.structure == ClauseStructure.CONTRADICTORY) {
-            throw new Unsatisfiable(newClause);}
+        if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new Unsatisfiable(newClause);}
         if(newClause.connective == Connective.AND) {
             for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step,thread);
             return null;}
         return newClause;}
+
+    protected Clause removeTrueFalseLiterals(Clause oldClause) throws Unsatisfiable {
+        Clause newClause = oldClause.removeTrueFalseLiterals(getTruthStatus,nextId,intList1,intList2);
+        if(newClause.structure == ClauseStructure.TAUTOLOGY) return null;
+        if(intList1.isEmpty() && intList2.isEmpty()) return newClause;
+        InferenceStep step = null;
+        if(trackReasoning) {
+            step = new InfTrueFalseLiterals(oldClause,newClause,intList1,intList2,model);
+            newClause.inferenceStep = step;
+            if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
+        if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new Unsatisfiable(newClause);}
+        if(newClause.connective == Connective.AND) {
+            for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step,thread);
+            return null;}
+        return newClause;}
+
 
 
 }

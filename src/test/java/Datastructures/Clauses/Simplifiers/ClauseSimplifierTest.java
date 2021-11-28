@@ -1,11 +1,13 @@
 package Datastructures.Clauses.Simplifiers;
 
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
+import InferenceSteps.InferenceTest;
 import Management.Controller;
 import Management.GlobalParameters;
 import Management.Monitor;
@@ -68,4 +70,62 @@ public class ClauseSimplifierTest {
         assertSame(c3,c1);
         assertEquals("I-2: [2,3]: 2,2,2,5",c3.toNumbers());
     }
-}
+
+    @Test
+    public void MultipleAndComplementaryLiterals() throws Unsatisfiable {
+        System.out.println("MultipleAndComplementaryLiterals");
+        ProblemSupervisor ps = prepare(true, false);
+        ClauseSimplifier cs = ps.clauseSimplifier;
+        Clause c1 = new Clause(1, Connective.OR, 2, 3, 4, 3, 2, 4, 2, 5);
+        Clause c2 = cs.removeMultipleAndComplementaryLiterals(c1);
+        assertEquals("10: 2,3,4,5", c2.toNumbers());
+
+        c1 = new Clause(2, Connective.OR, 2, 3, 4, 3, 2, -4, 2, 5);
+        c2 = cs.removeMultipleAndComplementaryLiterals(c1);
+        assertNull(c2);
+
+        c1 = new Clause(1, Connective.OR, 2, 3, 4, 5);
+        c2 = cs.removeMultipleAndComplementaryLiterals(c1);
+        assertEquals("1: 2,3,4,5", c2.toNumbers());
+
+        c1 = new Clause(1, Connective.INTERVAL, 2,3, 2, 3, 4, -2,5);
+        c2 = cs.removeMultipleAndComplementaryLiterals(c1);
+        assertEquals("I-12: [1,2]: 3,4,5", c2.toNumbers());
+
+        c1 = new Clause(1, Connective.INTERVAL, 2,3, 2, 3, 4, -2);
+        c2 = cs.removeMultipleAndComplementaryLiterals(c1);
+        assertEquals("13: 3,4", c2.toNumbers());
+
+        c1 = new Clause(1, Connective.INTERVAL, 2,2, 2, 3, -2);
+        c2 = cs.removeMultipleAndComplementaryLiterals(c1);
+        assertNull(c2);
+        assertEquals("Model:\n" +
+                "3",ps.model.toNumbers());
+
+        c1 = new Clause(1, Connective.INTERVAL, 1,1, 2, 4, -2);
+        c2 = cs.removeMultipleAndComplementaryLiterals(c1);
+        assertNull(c2);
+        assertEquals("Model:\n" +"3,-4",ps.model.toNumbers());}
+
+    @Test
+    public void removeTrueFalseLiterals() throws Unsatisfiable {
+        System.out.println("removeTrueFalseLiterals");
+        ProblemSupervisor ps = prepare(true, false);
+        ClauseSimplifier cs = ps.clauseSimplifier;
+        Clause c1 = new Clause(1, Connective.OR, 2, 3, 4, 3, 2, 4, 2, 5);
+        Clause c2 = cs.removeTrueFalseLiterals(c1);
+        assertEquals("1: 2,3,4,3,2,4,2,5", c2.toNumbers());
+        ps.model.add(-3,new InferenceTest("My Test"),null);
+        c2 = cs.removeTrueFalseLiterals(c1);
+        assertEquals("10: 2,4,2,4,2,5", c2.toNumbers());
+
+        ps.model.add(5,new InferenceTest("My Test"),null);
+        c1 = new Clause(1, Connective.INTERVAL, 2, 3, 4, -3, 2, 4, 2, -5,6,7);
+        c2 = cs.removeTrueFalseLiterals(c1);
+        assertEquals("I-11: [1,2]: 4,2,4,2,6,7", c2.toNumbers());
+
+        c1 = new Clause(1, Connective.INTERVAL, 1,1, -3,5,6);
+        try{c2 = cs.removeTrueFalseLiterals(c1);}
+        catch(Unsatisfiable uns) {
+            System.out.println(uns.toString());}}
+    }

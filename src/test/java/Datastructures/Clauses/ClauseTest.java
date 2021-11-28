@@ -311,36 +311,36 @@ public class ClauseTest {
         IntArrayList doubleLiterals = new IntArrayList();
         IntArrayList complementaryLiterals = new IntArrayList();
         Clause c1 = new Clause(1, Connective.OR, 3,4,6,3,4,3);
-        Clause c2 = c1.removeDoubleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
+        Clause c2 = c1.removeMultipleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
         assertNotSame(c1,c2);
         assertEquals("[3, 4]", doubleLiterals.toString());
         assertEquals("2: 3,4,6",c2.toNumbers());
         assertEquals(c2.structure,ClauseStructure.POSITIVE);
 
         Clause c3 = new Clause(1, Connective.OR, 3,3,3);
-        Clause c4 = c3.removeDoubleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
+        Clause c4 = c3.removeMultipleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
         assertNotSame(c3,c4);
         assertEquals("[3]", doubleLiterals.toString());
         assertEquals("A-3: 3",c4.toNumbers());
 
-        Clause c5 = c3.removeDoubleAndComplementaryLiterals(null,doubleLiterals,complementaryLiterals);
+        Clause c5 = c3.removeMultipleAndComplementaryLiterals(null,doubleLiterals,complementaryLiterals);
         assertSame(c3,c5);
         assertEquals("A-1: 3",c3.toNumbers());
 
         Clause c6 = new Clause(1, Connective.OR, 3,3,-3);
-        Clause c7 = c6.removeDoubleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
+        Clause c7 = c6.removeMultipleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
         assertNotSame(c6,c7);
         assertEquals("[3]", doubleLiterals.toString());
         assertEquals("[3]", complementaryLiterals.toString());
         assertEquals(c7.structure,ClauseStructure.TAUTOLOGY);
         assertEquals("4: 3,-3",c7.toNumbers());
 
-        Clause c8 = c6.removeDoubleAndComplementaryLiterals(null,doubleLiterals,complementaryLiterals);
+        Clause c8 = c6.removeMultipleAndComplementaryLiterals(null,doubleLiterals,complementaryLiterals);
         assertSame(c6,c8);
         assertEquals(c6.structure,ClauseStructure.TAUTOLOGY);
 
         Clause c9 = new Clause(1, Connective.INTERVAL, 2,3, 3,3,-3);
-        Clause c10 = c9.removeDoubleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
+        Clause c10 = c9.removeMultipleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
         assertNotSame(c9,c10);
         assertEquals("[]", doubleLiterals.toString());
         assertEquals("[3]", complementaryLiterals.toString());
@@ -348,7 +348,7 @@ public class ClauseTest {
         assertEquals("L-5: [2,1]: 3",c10.toNumbers());
 
         Clause c11 = new Clause(1, Connective.INTERVAL, 2,3, 3,4,5,-3,-4,6,7);
-        Clause c12 = c11.removeDoubleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
+        Clause c12 = c11.removeMultipleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
         assertNotSame(c11,c12);
         assertEquals("[]", doubleLiterals.toString());
         assertEquals("[3, 4]", complementaryLiterals.toString());

@@ -7,24 +7,24 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
-public class InfDoubleAndComplementaryLiterals extends InferenceStep {
+public class InfMultipleAndComplementaryLiterals extends InferenceStep {
 
-    private static final String title = "Multiple Literals in Quantified Clauses";
+    private static final String title = "Multiple and Complementary Literal Removal";
     private static final String rule = title + ":\n" +
-            "Multiple Literals:      Q m p,p,q,... ->  Q m-1 p,q,...\n"+
-            "Complementary Literals: Q m p,-p,q,... -> Q m-1 q,...\n"+
-            "Q in atleast, atmost, exactly";
+            "Multiple Literals:      [1,n] p,p,q,... ->  [1,n-1] p,q,...\n"+
+            "Complementary Literals: [n,m] p,-p,q,... -> [n-1,m-1] q,...\n"+
+            "Multiple Literal Removal only in Or-Clauses";
 
     private final Clause oldClause;
     private final Clause newClause;
-    private final IntArrayList doubleLiterals;
+    private final IntArrayList multipleLiterals;
     private final IntArrayList complementaryLiterals;
 
-    public InfDoubleAndComplementaryLiterals(Clause oldClause, Clause newClause,
-                                             IntArrayList doubleLiterals, IntArrayList complementaryLiterals) {
+    public InfMultipleAndComplementaryLiterals(Clause oldClause, Clause newClause,
+                                               IntArrayList multipleLiterals, IntArrayList complementaryLiterals) {
         this.oldClause = oldClause;
         this.newClause = newClause;
-        this.doubleLiterals = doubleLiterals;
+        this.multipleLiterals = multipleLiterals;
         this.complementaryLiterals = complementaryLiterals;}
 
     @Override
@@ -37,7 +37,11 @@ public class InfDoubleAndComplementaryLiterals extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title + ":\n" + oldClause.toString(0,symboltable) + " -> " +
+        String st = "";
+        if(!multipleLiterals.isEmpty()) st = "Multiple Literals: " + multipleLiterals.toString() + " ";
+        if(!complementaryLiterals.isEmpty()) st += "Complementary Literals: " + complementaryLiterals.toString() + " ";
+        if(st.length() > 0) st += "\n";
+        return title + ":\n" + st + oldClause.toString(0,symboltable) + " -> " +
                 newClause.toString(0,symboltable);}
 
     @Override
