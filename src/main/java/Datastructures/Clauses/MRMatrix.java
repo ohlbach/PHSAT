@@ -282,7 +282,8 @@ public class MRMatrix {
             if(trackReasoning) {
                 step = new MRContradiction(this,colIndices,block);
                 if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-            throw new Unsatisfiable(step);}
+        //    throw new Unsatisfiable(step);
+        }
 
         switch(keepExternals) {
             case 1:

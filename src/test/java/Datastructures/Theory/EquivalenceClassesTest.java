@@ -78,7 +78,7 @@ public class EquivalenceClassesTest {
         catch(Unsatisfiable uns) {
             if(monitoring) {
                 System.out.println(uns);
-                System.out.println(uns.toString(eqClasses.symboltable));}
+                System.out.println(uns.toString());}
             else System.out.println("Unsatisfiable");}}
 
 

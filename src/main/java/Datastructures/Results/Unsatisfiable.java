@@ -1,90 +1,58 @@
 package Datastructures.Results;
 
-import Datastructures.Clauses.Clause;
+import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
-import Solvers.Walker.WClause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
-import static Utilities.Utilities.joinIntArrays;
 import static Utilities.Utilities.sortIntArray;
 
 /** This class represents the final reason for an unsatisfiability in the clauses.
  * Created by ohlbach on 14.09.2018.
  */
-public class Unsatisfiable extends Result {
-    private String reason = null;
-    private IntArrayList origins = null;
-    private Clause falseClause = null;
+public abstract class Unsatisfiable extends Result {
+    public Class solverClass = null;
+    public String solverId   = null;
+    public String problemId  = null;
+    public Symboltable symboltable = null;
+    public Statistic statistic = null;
 
-    public Unsatisfiable(Clause falseClause) {
-        super();
-        this.falseClause = falseClause;
-        this.inferenceStep = falseClause.inferenceStep;}
+    public abstract String description(Symboltable symboltable);
 
-    /** creates an Unsatisfiable object with a reason
+    /** joins the inference steps for the literals
      *
-     * @param reason for the unsatisfiability
-     * @param inferenceStep the step causing the unsatisfiability
+     * @param steps for adding the inference steps
      */
-    public Unsatisfiable(String reason, InferenceStep inferenceStep) {
-        super();
-        this.inferenceStep = inferenceStep;
-        this.reason = reason;}
+    public abstract void inferenceSteps(ArrayList<InferenceStep> steps);
 
-    /** creates an Unsatisfiable object with a reason
-     *
-     * @param inferenceStep the step causing the unsatisfiability
-     */
-    public Unsatisfiable(InferenceStep inferenceStep) {
-        super();
-        this.inferenceStep = inferenceStep;}
+    public abstract IntArrayList origins();
 
-    public Unsatisfiable(WClause wClause, Model model, Symboltable symboltable) {
-        super();
-        origins = IntArrayList.wrap(new int[]{wClause.id});
-        for(int literal : wClause.literals) {
-            InferenceStep step = model.getInferenceStep(-literal);
-            if(step != null) joinIntArrays(origins,step.origins());}
-        reason = "False Clause " + wClause.toString(0,symboltable) + " in the model " +
-                model.toString(symboltable);}
 
     /** returns the reason for the unsatisfiability, usually the entire proof
      *
      * @return the reason for the unsatisfiability
      */
     public String toString() {
-        return toString(null);}
-
-    /** returns the reason for the unsatisfiability, usually the entire proof
-     *
-     * @param symboltable null or a symboltable
-     * @return the reason for the unsatisfiability
-     */
-    public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        st.append("UNSATISFIABLE:\n");
-        if(falseClause != null) {st.append("False Clause: " + falseClause.toString(0,symboltable) + "\n");}
-        if(reason != null) st.append(reason).append("\n");
-        String originsSt = null;
-        if(origins != null) {originsSt = sortIntArray(origins).toString();}
-        else {
-            if(inferenceStep != null) {
-                origins = inferenceStep.origins();
-                if(origins != null) originsSt = sortIntArray(inferenceStep.origins()).toString();}}
-        if(originsSt != null) st.append("\nParticipating Clauses: ").append(originsSt).append("\n");
-        if(inferenceStep != null) {
+        st.append("CONTRADICTION FOUND: ");
+        if(solverClass != null) {
+            st.append( "by solver ").append(solverClass.getSimpleName()).append(": ").append(solverId);}
+        if(problemId != null) st.append(" in problem ").append(problemId);
+        st.append("\n").append(description(symboltable));
+        IntArrayList origins = origins();
+        if(origins != null) {
+            st.append("Contributing basic clauses: ").append(sortIntArray(origins).toString()).append("\n");}
+        ArrayList<InferenceStep> steps = new ArrayList<>();
+        inferenceSteps(steps);
+        if(!steps.isEmpty()) {
             st.append("Sequence of Inference Steps:\n");
-            ArrayList<InferenceStep> steps = new ArrayList<>();
-            inferenceStep.inferenceSteps(steps);
-            if(!steps.contains(inferenceStep)) steps.add(inferenceStep);
             for(InferenceStep step : steps) {
                 if(step.getClass() != InferenceSteps.Input.class)
                     st.append(step.toString(symboltable)).append("\n");}
-            st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:");
-            for(String rule : inferenceStep.rules(steps)) {st.append("\n\n").append(rule);}}
+
+            st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:\n");
+            for(String rule : InferenceStep.rules(steps)) {st.append("\n").append(rule).append("\n");}}
         return st.toString();}
 }

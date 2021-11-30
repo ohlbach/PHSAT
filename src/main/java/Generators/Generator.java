@@ -34,7 +34,7 @@ public abstract class Generator {
      * @return true if the name is the name of a generator.
      */
     public static boolean isGenerator(String name) {
-        for(String solver : generators) {if(name.equals(solver)) {return true;}}
+        for(String generator : generators) {if(name.equals(generator)) {return true;}}
         return false;}
 
     /** maps the generator names to the generator classes

@@ -44,7 +44,8 @@ public class Controller {
      * @param problemInputParameters  the problem specifications
      * @param solverInputParameters   the solver specifications
      */
-    public Controller(HashMap<String,String> globalInputParameters, ArrayList<HashMap<String,String>> problemInputParameters,
+    public Controller(HashMap<String,String> globalInputParameters,
+                      ArrayList<HashMap<String,String>> problemInputParameters,
                       ArrayList<HashMap<String,String>> solverInputParameters) {
         this.globalInputParameters  = globalInputParameters;
         this.problemInputParameters = problemInputParameters;
@@ -56,7 +57,7 @@ public class Controller {
      * @return true if the processing can continue, false if it should stop.
      */
     public boolean analyseParameters() {
-        if(globalInputParameters == null) {globalParameters = new GlobalParameters();}
+        if(globalInputParameters == null) {globalParameters = new GlobalParameters();} // default parameters
         else{globalParameters = new GlobalParameters(globalInputParameters,errors,warnings);}
         if(problemInputParameters == null) {errors.append("No problems specified.\n");}
         else {analyseProblemParameters();}

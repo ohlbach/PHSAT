@@ -289,7 +289,8 @@ public class EquivalenceClasses  {
                 if(literal == -otherLiteral) {
                     EquivalenceInconsistency eqi = trackReasoning ?
                             new EquivalenceInconsistency(clause,literal,otherLiteral) : null;
-                    throw new Unsatisfiable(eqi);}}}
+                    //throw new Unsatisfiable(eqi);
+                }}}
         return clause.size() > 1 ? clause : null;}
 
     /** a true literal causes the clause to be deleted, a false literal is removed.

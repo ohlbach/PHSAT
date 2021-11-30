@@ -10,7 +10,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-/** This class maintains the global parameters for controlling the PHSat system
+/** This class maintains the global parameters for controlling the QUSat system
  * Created by ohlbach on 12.10.2018.
  */
 public class GlobalParameters {
@@ -18,8 +18,6 @@ public class GlobalParameters {
     public File directory = new File(home);
     /** number of parallel threads for solving several problems. 0 (default) means sequential processing. */
     public int parallel             = 0;
-    /** length of clauses to be exchanged */
-    public int exchange = 1;
     /** for printing information about the working of the system */
     public PrintStream logstream    = null;
     /** just for the toString method */
@@ -30,14 +28,8 @@ public class GlobalParameters {
     public boolean statisticsText = true;
     public File resultFile = null;
     /** for monitoring the actions of the solvers */
-    public Monitor monitor        = new Monitor();
-
-    /** for controlling debugging output */
-    public boolean debug = false;
-
-    /** if true then the implicationDAG is observed for disjointnesses */
-    public boolean disjointnessesNeeded = true;
-
+    public Monitor monitor = new Monitor();
+    /** if false then many things are done destructively. Only the final results are needed. */
     public boolean trackReasoning = true;
 
 
@@ -144,12 +136,12 @@ public class GlobalParameters {
         String result =
                 "Global Parameters:\n" +
                 "  directory:          " + directory.getAbsolutePath()+"\n"+
-                "  parallel threads:   " + Integer.toString(parallel)+"\n" +
+                "  parallel threads:   " + parallel +"\n" +
                 "  logFile:            " + logFile +"\n" +
                 "  resultFile:         " + ((resultFile == null) ? "System.out" :resultFile.getAbsolutePath()) +"\n" +
                 "  monitor:            " + monitor.toString() + "\n"+
-                "  trackReasoning:     " + Boolean.toString(trackReasoning) +"\n" +
-                "  statisticsText:     " + Boolean.toString(statisticsText) +"\n";
+                "  trackReasoning:     " + trackReasoning +"\n" +
+                "  statisticsText:     " + statisticsText +"\n";
         if(statisticsTextFile != null) {result +=
                 "  statisticsTextFile: " + statisticsTextFile + "\n";}
         if(statisticsCSVFile != null) {result +=

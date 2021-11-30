@@ -214,7 +214,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * determines the connective that corresponds to the interval and changes it to the correct value.
      * A clause exactly 0 l1...ln is changed to and -l1...-ln
      */
-    private void setConnective() {
+    public void setConnective() {
         if (connective == Connective.AND) {
             interval = null;
             return;}

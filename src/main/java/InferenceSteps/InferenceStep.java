@@ -42,7 +42,7 @@ public abstract class InferenceStep {
      * @param steps a list of inference steps
      * @return the list of rules used for the steps.
      */
-    public ArrayList<String> rules(ArrayList<InferenceStep> steps) {
+    public static ArrayList<String> rules(ArrayList<InferenceStep> steps) {
         ArrayList<String> rules = new ArrayList<>();
         for(InferenceStep step : steps) {
             String rule = step.rule();

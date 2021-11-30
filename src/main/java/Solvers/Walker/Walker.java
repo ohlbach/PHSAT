@@ -362,6 +362,7 @@ public class Walker extends Solver {
         int quantifier = wClause.quantifier;
         int length = wClause.literals.length;
 
+        /*
         switch (connective) {
             case OR:
             case ATLEAST:
@@ -379,6 +380,8 @@ public class Walker extends Solver {
                 if(falseLiterals >= length - quantifier + 1) // not enough potentially true literals
                     throw new Unsatisfiable(wClause,model,symboltable);
                 return trueLiterals == quantifier;}
+                */
+
         return false;}
 
     /** computes the initial flip scores for the literals of the given clause

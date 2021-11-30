@@ -1,16 +1,19 @@
 package Datastructures.Clauses.Simplifiers;
 
+import Datastructures.Clauses.AllClauses.Clauses;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Results.UnsatisfiableClause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.Monitor;
 import Management.ProblemSupervisor;
+import Utilities.BucketSortedIndex;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.function.IntSupplier;
@@ -29,39 +32,48 @@ public class ClauseSimplifier {
     protected IntSupplier nextId;
     private final IntUnaryOperator getRepresentative;
     private final IntUnaryOperator getTruthStatus;
+    private final BucketSortedIndex<CLiteral> literalIndex;
+    private final Clauses clauses;
 
     /** generates a Clause Transformer.
      * It can simplify all clause types and transform them into conjunctive normal form.
      *
-     * @param problemSupervisor that supervises the problem solution
-     * @param monitor for monitoring the actions.
+     * @param clauses which keep all the clauses.
+     * @param thread the calling thread
      */
-    public ClauseSimplifier(ProblemSupervisor problemSupervisor, Monitor monitor, String monitorId, Thread thread) {
-        this.problemSupervisor = problemSupervisor;
-        this.monitor = monitor;
-        this.monitorId = monitorId;
+    public ClauseSimplifier(Clauses clauses,Thread thread) {
+        this.clauses = clauses;
+        problemSupervisor = clauses.problemSupervisor;
+        monitor = clauses.monitor;
+        monitorId = clauses.monitorId;
         monitoring = monitor != null;
-        model = problemSupervisor.model;
+        model = clauses.model;
         this.thread = thread;
         symboltable = model.symboltable;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
-        trackReasoning = problemSupervisor.globalParameters.trackReasoning;
-        if(trackReasoning) nextId = () -> problemSupervisor.nextClauseId();
-        getRepresentative = (int literal) -> equivalenceClasses.getRepresentative(literal);
-        getTruthStatus    = (int literal) -> model.status(literal);
+        this.literalIndex = clauses.literalIndex;
+        trackReasoning = clauses.trackReasoning;
+        if(trackReasoning) nextId = problemSupervisor::nextClauseId;
+        getRepresentative = equivalenceClasses::getRepresentative;
+        getTruthStatus    = model::status;
     }
 
     public Clause simplify(Clause clause) throws Unsatisfiable {
-        clause = replaceEquivalences(clause);
-        return clause;
-    }
+        if(!equivalenceClasses.isEmpty()) clause = replaceEquivalences(clause);
+        clause = removeMultipleAndComplementaryLiterals(clause);
+        if(clause.connective == Connective.AND) {
+            andToModel(clause); return null;}
+        clause = removeTrueFalseLiterals(clause);
+        if(clause.connective == Connective.AND) {
+            andToModel(clause); return null;}
+        return clause;}
 
     /** adds the literals of an AND-clause to the model
      *
      * @param clause an AND-Clause
      * @throws Unsatisfiable if the model finds an inconsistency
      */
-    protected void simplifyAnd(Clause clause) throws Unsatisfiable {
+    public void andToModel(Clause clause) throws Unsatisfiable {
         assert clause.connective == Connective.AND;
         InferenceStep step = null;
         if(trackReasoning) {
@@ -80,7 +92,6 @@ public class ClauseSimplifier {
      * @return either the old clause, or a new clause with the replaced literals.
      */
     protected Clause replaceEquivalences(Clause oldClause){
-        if(equivalenceClasses.isEmpty()) return oldClause;
         Clause newClause = oldClause.replaceEquivalences(getRepresentative, nextId, intList1);
         if(intList1.isEmpty()) return oldClause;
         if(trackReasoning) {
@@ -106,7 +117,7 @@ public class ClauseSimplifier {
             step = new InfMultipleAndComplementaryLiterals(oldClause,newClause,intList1,intList2);
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-        if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new Unsatisfiable(newClause);}
+        if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new UnsatisfiableClause(newClause);}
         if(newClause.connective == Connective.AND) {
             for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step,thread);
             return null;}
@@ -121,7 +132,7 @@ public class ClauseSimplifier {
             step = new InfTrueFalseLiterals(oldClause,newClause,intList1,intList2,model);
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-        if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new Unsatisfiable(newClause);}
+        if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new UnsatisfiableClause(newClause);}
         if(newClause.connective == Connective.AND) {
             for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step,thread);
             return null;}

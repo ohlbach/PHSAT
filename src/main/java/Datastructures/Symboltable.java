@@ -54,6 +54,18 @@ public class Symboltable {
         names[emptyPosition] = name;
         return emptyPosition;}
 
+    /** gets the name of the literal, or null if it is unknown
+     *
+     * @param literal a literal
+     * @return null or the name of the literal
+     */
+    public String getName(int literal) {
+        int predicate = Math.abs(literal);
+        assert 0 < predicate && predicate <= predicates;
+        String name = names[predicate];
+        if(name == null) return null;
+        return literal > 0 ? name : "-"+name;}
+
     /**
      * @param literal any positive or negative predicate
      * @return  the name of the literal (e.g. -A), or the literal as string

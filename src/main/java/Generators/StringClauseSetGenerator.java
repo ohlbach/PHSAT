@@ -1,12 +1,14 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+
+import static Utilities.Utilities.parseInteger;
 
 /**
  * Created by ohlbach on 27.08.2018.
@@ -37,13 +39,17 @@ public final class StringClauseSetGenerator  {
      */
     public static String help() {
         return "StringClauseSetGenerator just parses a string of clauses.\n" +
+                "It has to start with\n" +
+                "p predicates\n" +
                 "A clause is just a single line of literals.\n" +
                 "The literals in the clause may by any strings, possibly preceded by -.\n" +
-                "A clause starting with '$' indicates a special meaning of the clause:\n" +
-                "$a ... means conjunctions (all literals must be true).\n" +
-                "$x ... means xors          (excactly one literal must be true).\n" +
-                "$d ... means disjointness (at most one literal can be true).\n" +
-                "$e ... means equivalence  (either all literals are true, or all literals are false).";}
+                "A clause starting with a special symbol indicates a special meaning of the clause:\n" +
+                "& ...     conjunctions (all literals must be true).\n" +
+                "= ...     equivalence  (all literals are equivalent).\n" +
+                "<= n ...  at most n literals are true\n"+
+                ">= n ...  at least n literals are true\n"+
+                "[n,m] ... interval (between n and m literal are true).\n"+
+                "l1,...    or-clause";}
 
 
     /** parses the clause string and generates a BasicClauseList object.
@@ -56,50 +62,189 @@ public final class StringClauseSetGenerator  {
     public static  BasicClauseList generate(HashMap<String,Object> parameters, StringBuilder errors, StringBuilder warnings) {
         String clausesString = (String)parameters.get("clauseString");
         HashMap<String,Integer> name2Int = new HashMap<>();
-        String[] clausesStrings = clausesString.split("\\s*\\n\\s*");
-        int predicates = 0;
-        int clauseCounter = 0;
-
-        boolean disjointness = false;
-        for(String clauseString : clausesStrings) {
-            if(clauseString.trim().startsWith("disjoint")) {disjointness = true; break;}}
-
-        BasicClauseList bcl = new BasicClauseList();
-        bcl.info = "String-generated clauses:\n" + clausesString;
-
-        ArrayList<Clause> clauseList = new ArrayList<>();
-        int clauseNumber = 0;
-        for(String clauseString : clausesStrings) {
-            if(clauseString.isEmpty()) {continue;}
-            String[] literals = clauseString.split("\\s*(,| )\\s*");
-            int start = 0;
-            int length = literals.length+2;
-            Connective type = Connective.OR;
-            if(literals[0].startsWith("$")) {
-                start = 1;
-                length = literals.length+1;
-                type = Connective.getType(literals[0].charAt(1));
-                if(type == null) {
-                    errors.append("Illegal ClauseType: '" + literals[0] + "' in " + clausesString + ".\n"+
-                    "Should be one of a (and), x (xors), d (disjoint), e (equivalence)\n");
-                    continue;}}
-            int[] lits = new int[length];
-            lits[0] = ++clauseNumber;
-            lits[1] = type.ordinal();
-            int n = 1;
-            for(int i = start; i < literals.length; ++i) {
-                String literal = literals[i];
-                int sign = 1;
-                if(literal.startsWith("-")) {sign = -1; literal = literal.substring(1,literal.length());}
-                Integer number = name2Int.get(literal);
-                if(number == null) {number = ++predicates; name2Int.put(literal,number);}
-                lits[++n] = number*sign;}
-            bcl.addClause(lits,"",errors,warnings);}
+        String[] lines = clausesString.split("\\s*\\n\\s*");
+        String line = lines[0];
+        if(!line.startsWith("p")) {
+            errors.append("First line '" + line + "' does not start with p\n");
+            return null;}
+        String[] parts = line.split("\\s+");
+        if(parts.length != 2) {
+            errors.append("First line '" + line + "' does not contain predicates\n");
+            return null;}
+        Integer predicates = parseInteger(parts[1]);
+        if(predicates == null) {
+            errors.append("First line '" + line + "' does not contain predicates\n");
+            return null;}
         Symboltable symboltable = new Symboltable(predicates);
-        name2Int.forEach((name,predicate) -> symboltable.setName(predicate,name));
-        bcl.symboltable = symboltable;
-        bcl.predicates = predicates;
-        //errors.append(bcl.syntaxErrors.toString());
+        BasicClauseList bcl = new BasicClauseList(predicates,symboltable,"String Generator");
+        int id = 0;
+        for(int i = 1; i < lines.length; ++i) {
+            line = lines[i].trim();
+            if(line.isEmpty() || line.startsWith("%")) continue;
+            int[] clause = parseLine(line,id,symboltable,errors);
+            if(clause == null) continue;
+            ++id;
+            bcl.addClause(clause,"String Generator",errors,warnings);}
         return bcl;
     }
+
+    /** parses a single clause-line
+     *
+     * @param line        the line to be parsed
+     * @param id          the identifier for the new clause
+     * @param symboltable a symboltable
+     * @param errors      for appending error messages
+     * @return            the parsed clause
+     */
+    public static int[] parseLine(String line, int id, Symboltable symboltable, StringBuilder errors) {
+        switch(line.charAt(0)) {
+            case '&': return parseSingle(line.substring(1).trim(), id, Connective.AND, symboltable, errors);
+            case '=': return parseSingle(line.substring(1).trim(), id, Connective.EQUIV, symboltable, errors);
+            case '<': return parseWithQuantification(line.substring(2).trim(), id, Connective.ATMOST, symboltable, errors);
+            case '>': return parseWithQuantification(line.substring(2).trim(), id, Connective.ATLEAST, symboltable, errors);
+            case '[': return parseInterval(line, id, symboltable, errors);
+            default:  return parseOr(line, id, symboltable, errors);}}
+
+
+    /** parses an or-clause
+     *
+     * @param line        the line to be parsed
+     * @param id          the identifier for the clause
+     * @param symboltable a symboltable
+     * @param errors      for appending error messaes
+     * @return            the parsed clause
+     */
+    private static int[] parseOr(String line, int id, Symboltable symboltable,StringBuilder errors) {
+        String[] parts = line.split("\\s*[, ],\\s*");
+        int[] basicClause = new int[parts.length+1];
+        basicClause[0] = id;
+        basicClause[1] = Connective.OR.ordinal();
+        boolean okay = parseLiterals(parts,0,basicClause,2,symboltable,
+                "Line '" + line+"'",errors);
+        return okay ? basicClause : null;}
+
+    /** parses a clause without a quantification amount (& or =)
+     *
+     * @param line        the line to be parsed
+     * @param id          the identifier for the new clause
+     * @param connective  the connective for the new clause
+     * @param symboltable a symboltable
+     * @param errors      for appending error messages
+     * @return            the parse clause
+     */
+    private static int[] parseSingle(String line, int id, Connective connective, Symboltable symboltable,StringBuilder errors) {
+        String[] parts = line.split("\\s*[, ]\\s*");
+        int[] basicClause = new int[parts.length+2];
+        basicClause[0] = id;
+        basicClause[1] = connective.ordinal();
+        boolean okay = parseLiterals(parts,0,basicClause,2,symboltable,
+                "Line '" + line+"'",errors);
+        return okay ? basicClause : null;}
+
+
+    /** parses a clause with a quantification (at least, at most)
+     *
+     * @param line        the line to be parsed
+     * @param id          the identifier for the new clause
+     * @param connective  the connective for the new clause
+     * @param symboltable a symboltable
+     * @param errors      for appending error messages
+     * @return            the parse clause
+     */
+    private static int[] parseWithQuantification(String line, int id, Connective connective, Symboltable symboltable, StringBuilder errors) {
+        String[] parts = line.split("\\s*[, ]\\s*");
+        int[] basicClause = new int[parts.length+2];
+        basicClause[0] = id;
+        basicClause[1] = connective.ordinal();
+        Integer amount = parseInteger(parts[1]);
+        if(amount == null) {
+            errors.append("Line '" + line + "':  amount is not a number: " + parts[1]+"\n");
+            return null;}
+        basicClause[2] = amount;
+        boolean okay = parseLiterals(parts,2,basicClause,3,symboltable,
+                "Line '" + line + "'",errors);
+        return okay ? basicClause : null;}
+
+    /** parses a line with an interval connective
+     *
+     * @param line        the line to be parsed
+     * @param id          the identifier for the new clause
+     * @param symboltable a symboltable
+     * @param errors      for appending error messages
+     * @return            the parse clause
+     */
+    private static int[] parseInterval(String line, int id, Symboltable symboltable,StringBuilder errors) {
+        int position = line.indexOf("]");
+        boolean okay = true;
+        if(position < 0) {
+            errors.append("Line '" + line + "' '] not found\n");
+            return null;};
+        String[] parts = line.substring(position+1).split("\\s*[, ]\\s*");
+        int[] basicClause = new int[parts.length + 3];
+        basicClause[0] = id;
+        basicClause[1] = Connective.INTERVAL.ordinal();
+        String[] interval = line.substring(1,position).split("\\s*[, ]\\s*");
+        if(interval.length != 2) {
+            errors.append("Line '" + line + "' has no proper interval: '"+interval+"'\n");
+            okay = false;}
+        Integer min = parseInteger(interval[0]);
+        Integer max = parseInteger(interval[1]);
+        if(min == null) {
+            errors.append("Line '" + line + "' interval minimum is not a number: '"+interval[0]+"'\n");
+            okay = false;}
+        else {
+            if(min < 0) {errors.append("Line '" + line + "' interval minimum < 0: " + min + "\n"); okay = false;}
+            basicClause[2] = min;}
+        if(max == null) {
+            errors.append("Line '" + line + "' interval maximum is not a number: '"+interval[1]+"'\n");
+            okay = false;}
+        else {
+            if(max < 0) {errors.append("Line '" + line + "' interval maximum < 0: " + min + "\n"); okay = false;}
+            basicClause[3] = max;}
+        okay |= parseLiterals(parts,0,basicClause,4,symboltable,
+                "Line '" + line + "'",errors);
+        if(okay && max < min) {
+            errors.append("Line '" + line + "' interval maximum  < interval minimum: "+max + " < " + min + "\n");
+            okay = false;}
+        return okay ? basicClause : null;}
+
+
+
+
+
+        /** parses the literal-part of a clause line
+         *
+         * @param parts         the clause-line, split by , or blank
+         * @param startPart     where the literal start
+         * @param basicClause   where to put the parsed literals into
+         * @param positionBC    start index of the basicClause
+         * @param symboltable   a symboltable
+         * @param errorPrefix   for errors
+         * @param errors        for appending errors
+         * @return              true if the parsing was successful
+         */
+    private static boolean parseLiterals(String[] parts, int startPart, int[] basicClause,
+                                int positionBC, Symboltable symboltable,
+                                String errorPrefix, StringBuilder errors) {
+        boolean okay = true;
+        for(int i = startPart; i < parts.length; ++i) {
+            String part = parts[i];
+            Integer literal = parseInteger(part);
+            if(literal != null) {
+                symboltable.setName(Math.abs(literal),(part.startsWith("-") ? part.substring(1): part));
+                basicClause[positionBC++] = literal; continue;}
+
+            int sign = 1;
+            if(part.equals("-")) {sign = -1; part = parts[++i];}
+            else{if(part.startsWith("-")){sign = -1; part = part.substring(1);}}
+            if(!part.matches("[A-Za-z0-9]+")) {
+                errors.append(errorPrefix).append(": Literal '" + part + "' is not alphanumeric\n");
+                okay = false;}
+            int predicate = symboltable.getPredicate(part);
+            if(predicate == 0) {errors.append(errorPrefix).append(": Number of predicates: " + symboltable.predicates +
+                    " is too small for literal '" + part + "'\n"); okay = false; continue;}
+            basicClause[positionBC++] = sign*predicate;}
+        return okay;}
+
+
 }

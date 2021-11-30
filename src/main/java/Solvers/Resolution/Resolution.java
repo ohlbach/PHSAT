@@ -207,9 +207,9 @@ public abstract class Resolution extends Solver {
     /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.
      */
-    private BiConsumer<Integer,IntArrayList> contradictionHandler = ((reason,origin)->{
+    private BiConsumer<Integer,IntArrayList> contradictionHandler = null; /*((reason,origin)->{
         taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.toString(),null
-                )), (()->reason.toString())));});
+                )), (()->reason.toString())));});*/
 
     /** This function is called when a new disjunction is to be inserted.
      *  It generates a simplifyBackwards task.

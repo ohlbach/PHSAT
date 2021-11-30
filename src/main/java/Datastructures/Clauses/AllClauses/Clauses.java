@@ -10,6 +10,7 @@ import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Results.UnsatisfiableInterval;
 import Datastructures.Symboltable;
 import Datastructures.Task;
 import Datastructures.Theory.EquivalenceClasses;
@@ -21,9 +22,11 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
+import Utilities.Interval;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
 public class Clauses extends Thread {
@@ -43,11 +46,11 @@ public class Clauses extends Thread {
     public ClauseSimplifier clauseSimplifier;
 
     private int maxClauseLength = 0;
-    private int timestamp = 0;
+    private int timestamp = 1;
     public ClausesStatistics statistics;
 
-    private final ArrayList<Clause>[] clauses = new ArrayList[Connective.size()];
-    private final BucketSortedIndex<CLiteral>[] literalIndex = new BucketSortedIndex[Connective.size()];
+    private final HashMap<Integer,Clause> clauses = new HashMap<>();
+    public final BucketSortedIndex<CLiteral> literalIndex;
 
 
     private enum TaskType {
@@ -96,29 +99,34 @@ public class Clauses extends Thread {
         monitorId = problemId + "Clauses";
         statistics = new ClausesStatistics("Clauses");
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
-        clauseSimplifier = new ClauseSimplifier(problemSupervisor,monitor,"ClSimp",thread);
-
-        for(int i = 0; i < clauses.length; ++i) {
-            clauses[i] = new ArrayList<>();
-            literalIndex[i] = new BucketSortedIndex<CLiteral>(model.predicates+1,
-                    (cLiteral->cLiteral.literal),
-                    (cLiteral->cLiteral.clause.size()));}
+        literalIndex = new BucketSortedIndex<CLiteral>(model.predicates+1,
+                (cLiteral->cLiteral.literal),
+                (cLiteral->cLiteral.clause.size()));
+        clauseSimplifier = new ClauseSimplifier(this,thread);
     }
 
-    public void integrateBasicClauses() throws Result {
-        BasicClauseList basicClauses = problemSupervisor.basicClauseList;
-        for(int[] basicClause : basicClauses.conjunctions) {
-            integrateAnd(basicClause);}
-        for(int[] basicClause : basicClauses.equivalences) {
-            equivalenceClasses.addBasicEquivalenceClause(basicClause);}
-        model.addObserver(thread,this::addTrueLiteral);
-        equivalenceClasses.addObserver(this::addEquivalence);
-        for(int[] basicClause : basicClauses.disjunctions) {
-            integrateBasicClause(basicClause);}
-        for(int[] basicClause : basicClauses.quantifieds) {
-            integrateBasicClause(basicClause);}
-        for(int[] basicClause : basicClauses.intervals) {
-            integrateBasicClause(basicClause);}}
+    public void integrateBasicClauses() throws Unsatisfiable {
+        try{
+            BasicClauseList basicClauses = problemSupervisor.basicClauseList;
+            for(int[] basicClause : basicClauses.conjunctions) {
+                integrateAnd(basicClause);}
+            for(int[] basicClause : basicClauses.equivalences) {
+                equivalenceClasses.addBasicEquivalenceClause(basicClause);}
+            model.addObserver(thread,this::addTrueLiteral);
+            equivalenceClasses.addObserver(this::addEquivalence);
+            for(int[] basicClause : basicClauses.disjunctions) {
+                integrateBasicClause(basicClause);}
+            for(int[] basicClause : basicClauses.quantifieds) {
+                integrateBasicClause(basicClause);}
+            for(int[] basicClause : basicClauses.intervals) {
+                integrateBasicClause(basicClause);}}
+        catch(Unsatisfiable unsatisfiable) {
+             unsatisfiable.problemId   = problemId;
+             unsatisfiable.solverClass = Clauses.class;
+             unsatisfiable.solverId    = "Clauses";
+             unsatisfiable.statistic   = statistics;
+             unsatisfiable.symboltable = symboltable;
+             throw unsatisfiable;}}
 
     /** puts the literals of an AND-clause into the model
      *
@@ -132,19 +140,18 @@ public class Clauses extends Thread {
             model.add(basicClause[i],step,thread);}}
 
 
-    /** simplifies and integrates a basic Or-clause into the local data structures
+    /** simplifies and integrates a basic clause into the local data structures
      *
      * @param basicClause a basic or-clause
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    private void integrateBasicClause(int[] basicClause) throws Result {
+    private void integrateBasicClause(int[] basicClause) throws Unsatisfiable {
         Clause clause = new Clause(basicClause);
-        if(clause.connective == Connective.AND) {
-            for(CLiteral cLiteral : clause) model.add(cLiteral.literal,clause.inferenceStep,thread);
-            return;}
+        if(clause.connective == Connective.AND) {clauseSimplifier.andToModel(clause); return;}
         clause = clauseSimplifier.simplify(clause);
         if(clause == null) return;
-       // if(isSubsumed(clause)) return;
+        clause = forwardSubsumption(clause);
+        if(clause == null) return;
         insertClause(clause);
         if(clause.connective == Connective.OR && clause.size() == 2) {twoLitClauses.addDerivedClause(clause);}
     }
@@ -176,14 +183,24 @@ public class Clauses extends Thread {
      */
     protected void insertClause(Clause clause) {
         maxClauseLength = Math.max(maxClauseLength,clause.size());
-        int type = clause.connective.ordinal();
-        ++statistics.clauses[type];
-        clauses[type].add(clause);
-        for(CLiteral cliteral : clause) {literalIndex[type].add(cliteral);}
+        clauses.put(clause.id,clause);
+        for(CLiteral cliteral : clause) {literalIndex.add(cliteral);}
         switch(clause.structure) {
             case NEGATIVE: ++statistics.negativeClauses; break;
-            case POSITIVE: ++statistics.positiveClauses; break;}}
+            case POSITIVE: ++statistics.positiveClauses; break;}
+        ++statistics.clauses[clause.connective.ordinal()];}
 
+    /** removes a clause from the internal lists
+     *
+     * @param clause a clause to be removed
+     */
+    private void removeClause(Clause clause) {
+        switch(clause.structure) {
+            case NEGATIVE: --statistics.negativeClauses; break;
+            case POSITIVE: --statistics.positiveClauses; break;}
+        --statistics.clauses[clause.connective.ordinal()];
+        for(CLiteral cliteral : clause) literalIndex.remove(cliteral);
+        clauses.remove(clause.id);}
 
     /** removes the iterator's next clause from the index and the clauses
      *
@@ -193,15 +210,15 @@ public class Clauses extends Thread {
      */
     private CLiteral removeClause(CLiteral cliteral, BucketSortedList<CLiteral>.BucketIterator iterator)  {
         Clause clause = cliteral.clause;
-        int type = clause.connective.ordinal();
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
-        --statistics.clauses[type];
+        --statistics.clauses[clause.connective.ordinal()];
         iterator.remove();
-        for(CLiteral clit : clause) if(clit != cliteral) literalIndex[type].remove(cliteral);
-        clauses[type].remove(clause);
+        for(CLiteral clit : clause) if(clit != cliteral) literalIndex.remove(cliteral);
+        clauses.remove(clause.id);
         return cliteral;}
+
 
 
 
@@ -247,7 +264,7 @@ public class Clauses extends Thread {
     private void integrateTrueLiteral(int literal) throws Unsatisfiable {
         // remove all orClauses with the literal
         int predicate = Math.abs(literal);
-        BucketSortedIndex<CLiteral> index = literalIndex[Connective.OR.ordinal()];
+        BucketSortedIndex<CLiteral> index = literalIndex;
         BucketSortedList<CLiteral>.BucketIterator iterator = index.popIterator(literal);
         while (iterator.hasNext()) {removeClause(iterator.next(), iterator);}
         index.pushIterator(literal, iterator);
@@ -264,7 +281,7 @@ public class Clauses extends Thread {
         index.clearBoth(predicate);
 
         for(int quantifierType : quantifierTypes) {
-            index = literalIndex[quantifierType];
+            index = literalIndex;
             for(int sign = -1; sign <= +1; sign += 2) {
                 iterator = index.popIterator(sign*literal);
                 while (iterator.hasNext()) {
@@ -276,24 +293,55 @@ public class Clauses extends Thread {
                 index.pushIterator(sign*literal, iterator);}
             index.clearBoth(predicate);}}
 
-    /** checks if the or-clause is subsumed by another clause
+    /** checks subsumption and intersection between an old clause and a new clause
+     * The old clause subsumes the new one: ignore the new one <br>
+     * The new clause subsumes the old one: remove the old one <br>
+     * The literals are equal, but the intervals don't intersect: throw Unsatisfiable <br>
+     * The literals are equal and the interval of the new clause is a subset of the interval of the old clause:<br>
+     *   Remove the old clause </br>
+     * The literals are equal, and the intervals intersect:<br>
+     *   Remove the old clause, and either construct a new clause, or change the interval of the new clause.
      *
-     * @param clause an or-clause
-     * @return true if the clause is subsumed
+     * @param clause a new clause (not yet integrated)
+     * @return null (clause subsumed) or, the possibly cloned or modified, clause
      */
-    /*
-    protected boolean isSubsumed(Clause clause) {
-        timestamp += maxClauseLength + 2;
-        Clause subsumer = LitAlgorithms.isSubsumed(clause,orIndex,timestamp);
+
+    protected Clause forwardSubsumption(Clause clause) throws Unsatisfiable {
+        Clause subsumer = LitAlgorithms.isSubsumed(clause,literalIndex,timestamp);
         timestamp += clause.size() + 2;
-        if(subsumer != null) {
+
+        if(subsumer == null) return clause;
+        if(subsumer.interval.isSubset(clause.interval)) {
             ++statistics.forwardSubsumptions;
             if(monitoring)
                 monitor.print(monitorId, "Clause " + clause.toString(0,symboltable) +
                         " is subsumed by clause " + subsumer.toString(0,symboltable));
-            return true;}
-        return false;}
-        */
+            return null;}
+
+        if(clause.size() != subsumer.size()) return clause;
+
+        // Now the two clauses have the same literals
+        Interval interval = subsumer.interval.intersect(clause.interval);
+        if(interval == null) {throw new UnsatisfiableInterval(subsumer,clause);}
+
+        removeClause(subsumer);
+        if(clause.interval.isSubset(subsumer.interval)) {
+            ++statistics.backwardSubsumptions;
+            if(monitoring)
+                monitor.print(monitorId, "Clause " + subsumer.toString(0,symboltable) +
+                            " is subsumed by clause " + clause.toString(0,symboltable));
+            return clause;}
+        if(trackReasoning) {
+            Clause newClause = clause.clone(problemSupervisor.nextClauseId());
+            newClause.interval = interval;
+            newClause.setConnective();
+            InferenceStep step = new InfIntervalIntersection(subsumer,clause,newClause);
+            newClause.inferenceStep = step;
+            if(monitoring) {monitor.print(monitorId,step.toString(symboltable));
+            return newClause;}}
+        else {clause.interval = interval; clause.setConnective();}
+        return clause;}
+
 
 }
 

@@ -1,6 +1,7 @@
 package Datastructures.Theory;
 
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Results.UnsatisfiableLiteral;
 import Datastructures.Symboltable;
 import InferenceSteps.ContradictoryLiterals;
 import InferenceSteps.InferenceStep;
@@ -92,12 +93,7 @@ public class Model {
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
-        if(isFalse(literal)) {
-            throw new Unsatisfiable(
-                    "Supposed true literal " + Symboltable.toString(literal,symboltable) +
-                            " is already false in the model " + Symboltable.toString(model,symboltable),
-                    (inferenceStep == null) ? null :
-                            new ContradictoryLiterals(literal,inferenceStep,getInferenceStep(literal)));}
+        if(isFalse(literal)) {throw new UnsatisfiableLiteral(literal,getInferenceStep(literal),inferenceStep);}
         inferenceSteps.add(inferenceStep);
         model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
