@@ -156,12 +156,13 @@ public final class StringClauseSetGenerator  {
         int[] basicClause = new int[parts.length+2];
         basicClause[0] = id;
         basicClause[1] = connective.ordinal();
-        Integer amount = parseInteger(parts[1]);
+        Integer amount = parseInteger(parts[0]);
+        boolean okay = true;
         if(amount == null) {
-            errors.append("Line '" + line + "':  amount is not a number: " + parts[1]+"\n");
-            return null;}
-        basicClause[2] = amount;
-        boolean okay = parseLiterals(parts,2,basicClause,3,symboltable,
+            errors.append("Line '" + line + "':  amount is not a number: " + parts[0]+"\n");
+            okay = false;}
+        else basicClause[2] = amount;
+        okay &= parseLiterals(parts,1,basicClause,3,symboltable,
                 "Line '" + line + "'",errors);
         return okay ? basicClause : null;}
 
@@ -179,11 +180,11 @@ public final class StringClauseSetGenerator  {
         if(position < 0) {
             errors.append("Line '" + line + "' '] not found\n");
             return null;};
-        String[] parts = line.substring(position+1).split("\\s*[, ]\\s*");
-        int[] basicClause = new int[parts.length + 3];
+        String[] parts = line.substring(position+1).trim().split("\\s*[, ]\\s*");
+        int[] basicClause = new int[parts.length + 4];
         basicClause[0] = id;
         basicClause[1] = Connective.INTERVAL.ordinal();
-        String[] interval = line.substring(1,position).split("\\s*[, ]\\s*");
+        String[] interval = line.substring(1,position).trim().split("\\s*[, ]\\s*");
         if(interval.length != 2) {
             errors.append("Line '" + line + "' has no proper interval: '"+interval+"'\n");
             okay = false;}
@@ -201,10 +202,10 @@ public final class StringClauseSetGenerator  {
         else {
             if(max < 0) {errors.append("Line '" + line + "' interval maximum < 0: " + min + "\n"); okay = false;}
             basicClause[3] = max;}
-        okay |= parseLiterals(parts,0,basicClause,4,symboltable,
+        okay &= parseLiterals(parts,0,basicClause,4,symboltable,
                 "Line '" + line + "'",errors);
-        if(okay && max < min) {
-            errors.append("Line '" + line + "' interval maximum  < interval minimum: "+max + " < " + min + "\n");
+        if(max != null && min != null && max < min) {
+            errors.append("Line '" + line + "' interval minimum  > interval maximum: "+min + " > " + max + "\n");
             okay = false;}
         return okay ? basicClause : null;}
 
@@ -231,8 +232,12 @@ public final class StringClauseSetGenerator  {
             String part = parts[i];
             Integer literal = parseInteger(part);
             if(literal != null) {
-                symboltable.setName(Math.abs(literal),(part.startsWith("-") ? part.substring(1): part));
+                symboltable.symbolic = false;
                 basicClause[positionBC++] = literal; continue;}
+
+            if(!symboltable.symbolic) {
+                errors.append(errorPrefix).append(": Mixing symbolic an alphanumeric literals is not allowed");
+                return false;}
 
             int sign = 1;
             if(part.equals("-")) {sign = -1; part = parts[++i];}

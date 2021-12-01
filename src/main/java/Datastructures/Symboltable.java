@@ -13,6 +13,8 @@ import java.util.ArrayList;
  */
 
 public class Symboltable {
+    public boolean symbolic = true;
+
     /** number of predicates */
     public int predicates;
 

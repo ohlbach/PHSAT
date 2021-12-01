@@ -1,5 +1,6 @@
 package Generators;
 import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import org.junit.Test;
 
@@ -21,7 +22,7 @@ public class StringClauseSetGeneratorTest {
 
 
     @Test
-    public void parseLineSingle() throws Exception {
+    public void parseLineSingle()  {
         System.out.println("parseLine single");
         StringBuilder errors = new StringBuilder();
         Symboltable symboltable = new Symboltable(5);
@@ -37,6 +38,42 @@ public class StringClauseSetGeneratorTest {
 
         System.out.println("Errors");
         clause = StringClauseSetGenerator.parseLine("& p?,q;-r,-p",14,symboltable,errors);
+        System.out.println(errors);}
+
+    @Test
+    public void parseWithQuantification()  {
+        System.out.println("parseWithQuantification");
+        StringBuilder errors = new StringBuilder();
+        Symboltable symboltable = new Symboltable(5);
+        int[] clause = StringClauseSetGenerator.parseLine("<= 3 p,q, -r,-p", 10, symboltable, errors);
+        assertEquals(clause[1], Connective.ATMOST.ordinal());
+        assertEquals("[10, 5, 3, 1, 2, -3, -1]", Arrays.toString(clause));
+        symboltable = new Symboltable(5);
+        clause = StringClauseSetGenerator.parseLine(">= 3 4,5,-6", 11, symboltable, errors);
+        assertEquals("[11, 4, 3, 4, 5, -6]", Arrays.toString(clause));
+        System.out.println("Errors");
+        symboltable = new Symboltable(5);
+        clause = StringClauseSetGenerator.parseLine("<= 3 p,q, -r;-p", 12, symboltable, errors);
+        System.out.println(errors.toString());
+        errors = new StringBuilder();
+        clause = StringClauseSetGenerator.parseLine("<= 3a p,q, -r;-p", 13, symboltable, errors);
+        System.out.println(errors.toString());
+
+    }
+    @Test
+    public void parseInterval() {
+        System.out.println("parseInterval");
+        StringBuilder errors = new StringBuilder();
+        Symboltable symboltable = new Symboltable(5);
+        int[] clause = StringClauseSetGenerator.parseLine("[2,3] p,q, -r,-p", 10, symboltable, errors);
+        assertEquals(clause[1], Connective.INTERVAL.ordinal());
+        assertEquals("[10, 3, 2, 3, 1, 2, -3, -1]",Arrays.toString(clause));
+        symboltable = new Symboltable(5);
+        System.out.println("Errors");
+        clause = StringClauseSetGenerator.parseLine("[2a,3a] p,q, -r,-p", 10, symboltable, errors);
+        System.out.println(errors);
+        errors = new StringBuilder();
+        clause = StringClauseSetGenerator.parseLine("[3,2] p,q, -r; -p", 10, symboltable, errors);
         System.out.println(errors);
     }
 

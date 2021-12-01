@@ -9,8 +9,8 @@ public enum Connective {
     AND("a","&","A-"),
     EQUIV("e","=","E-"),
     INTERVAL("i",",","I-"),
-    ATLEAST("<=", ",", "L-"),
-    ATMOST(">=", ",","M-"),
+    ATLEAST(">=", ",", "L-"),
+    ATMOST("<=", ",","M-"),
     EXACTLY("=", ",","X-");
 
     /** to be used in the input clauses */
