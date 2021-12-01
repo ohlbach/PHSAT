@@ -116,28 +116,33 @@ public class BasicClauseList {
             int predicate = Math.abs(clause[i]);
             if(predicate == 0 || predicate > predicates) {
                 errors.append(errorPrefix).append("Predicate " + predicate +
-                        " is not within the boundaries [0,"+predicates + "]\n");
+                        " is not within the boundaries [1,"+predicates + "]\n");
                 erraneous = true;}}
 
         if(connective == Connective.AND || connective == Connective.OR || connective == Connective.EQUIV)
             return erraneous ? null : clause;
 
         int size = clause.length-start;
+        int min = clause[2];
 
-        if(clause[2] < 0) {
+        if(min < 0) {
             {errors.append(errorPrefix).append("Interval boundary: " + clause[2] + " < 0\n");
                 erraneous = true;}}
-        if(clause[2] > size) {
+        if(min > size) {
             warnings.append(errorPrefix).append("Interval boundary: " + clause[2] + " > clause size "+ size+"\n");
             clause[2] = size;}
 
         if(connective.isInterval()) {
-            if(clause[3] < 0) {
-                {errors.append(errorPrefix).append("Interval boundary: " + clause[3] + " < 0\n");
+            int max = clause[3];
+            if(max < 0) {
+                {errors.append(errorPrefix).append("Interval boundary: " + max + " < 0\n");
                     erraneous = true;}}
-            if(clause[3] > size) {
-                warnings.append(errorPrefix).append("Interval boundary: " + clause[3] + " > clause size "+ size+"\n");
-                clause[3] = size;}}
+            if(max > size) {
+                warnings.append(errorPrefix).append("Interval boundary: " + max + " > clause size "+ size+"\n");
+                max = size;
+                clause[3] = size;}
+            if(max < min) {errors.append(errorPrefix).append("Interval boundaries: min > max: " + min  + " > " + max+"\n");
+                erraneous = true;}}
         return erraneous ? null : clause;}
 
     /** returns the start of the literal section in a basic clause
@@ -278,17 +283,17 @@ public class BasicClauseList {
      */
     public static String clauseToString(int size, int[] clause, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        if(size == 0) {size = Integer.toString(clause[0]).length();}
-        st.append(String.format("%"+size+"d ",clause[0])).append(": ");
         int typeNumber = clause[1];
         Connective connective = Connective.getType(typeNumber);
+        if(size == 0) {size = (connective.prefix+Integer.toString(clause[0])).length();}
+        st.append(String.format("%"+size+"s",connective.prefix+clause[0])).append(": ");
+
         int start = 2;
         if(Connective.isQuantifier(typeNumber)) {
             start = 3;
-            st.append(connective.prefix + " " + clause[2] + " ");}
+            st.append(clause[2] + " ");}
         else{if(connective == Connective.INTERVAL) {
             start = 4;
-            st.append(connective.prefix + " ");
             if(clause[2] == clause[3]) st.append(clause[2] + ": ");
             else st.append(clause[2] + "-" + clause[3]+": ");}}
         String separator = connective.separator;

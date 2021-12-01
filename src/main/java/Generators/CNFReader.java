@@ -1,7 +1,6 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Management.ProblemSupervisor;
 import Utilities.Utilities;
@@ -27,12 +26,13 @@ import java.util.regex.PatternSyntaxException;
  * <br>
  * An extension of this format may contain clauses beginning with special characters:.<br>
  *
- * 'o':  means or:           'o 3 4 5' stands for 3 or 4 or 5.  (actually not necessary)<br>
- * 'a':  means and:          'a 3 4 5' stands for 3 and 4 and 5.<br>
+ * '&':  means and:          'a 3 4 5' stands for 3 and 4 and 5.<br>
  * 'e':  means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br>
  * '<=': means atleast:      '<= 2 p q r' means atleast two of p,q,r are true.<br>
  * '>=': means atleast:      '>= 2 p q r' means atmost two of p,q,r are true.<br>
  * '=':  means exactly:      '= 2 p q r' means exactly two of p,q,r are true.<br>
+ * '[min,max]':  means interval: '[2,4] p q r s t' means between 2 and 4 of p,q,r,s,t are true.<br>
+ * No special symbol means 'or' 3 4 5' stands for 3 or 4 or 5.
  */
 public final class CNFReader {
 
@@ -119,21 +119,20 @@ public final class CNFReader {
                 " c comment\n" +
                 " c comment\n" +
                 " % ignored lines\n"+
-                " p cnf predicates clauses [symbolic]\n" +
+                " p cnf predicates clauses\n" +
                 " clause1 0\n" +
                 " clause2 0\n" +
                 " ...\n" +
                 " A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0, or symbols).\n" +
                 " \n" +
                 " An extension of this format may contain clauses beginning with special characters:.\n" +
-                " 'a':  means and:         'a 3 4 5' stands for 3 and 4 and 5.\n" +
-                " 'o':  means or:          'o 3 4 5' stands for 3 or 4 or 5.  (actually not necessary)\n" +
-                " 'e':  means equivalence: 'e 4 5 -6' means that these three literals are equivalent.\n" +
-                " '<=': means atleast:     '<= 2 p q r' means atleast two of p,q,r are true.\n" +
-                " '>=': means atmost:      '>= 2 p q r' means atmost two of p,q,r are true.\n" +
-                " '=':  means exactly:     '= 2 p q r'  means exactly two of p,q,r are true.\n\n" +
-                "Double literals are automatically removed.\n"+
-                "A corresponding warning is add to the warnings string.";
+                " '&':  means and:          '& 3 4 5'     stands for 3 and 4 and 5.\n" +
+                " 'e':  means equivalence:  'e 4 5 -6'    means that these three literals are equivalent.\n" +
+                " '>=': means atleast:      '>= 2 p q r'  means at least two of p,q,r are true.\n" +
+                " '<=': means atmost:       '<= 2 p q r'  means at most two of p,q,r are true.\n" +
+                " [min,max]: means interval '[2,3] p,q,r' means between 2 and 3 of p,q,r are true.\n"+
+                " '=':  means exactly:      '= 2 p q r'   means exactly two of p,q,r are true.\n" +
+                "No special symbol means 'or': 'p,q,r' means p or q or r";
     }
 
     /** reads the cnf-file
@@ -150,22 +149,22 @@ public final class CNFReader {
         File file = (File)parameters.get("file");
         String filename = file.getName();
         info.append("File ").append(filename).append("\n");
-        String place =  "CNFReader: File " + filename+": ";
+        String place =  "CNFReader: File " + filename+", ";
         String prefix = "          ";
         BufferedReader reader;
         try {reader = new BufferedReader(new FileReader(file));}
         catch (FileNotFoundException e) {
-            errors.append(place + "not found");
+            errors.append(place + "not found\n");
             return null;}
         String line;
         BasicClauseList bcl = new BasicClauseList();
         Integer predicates = 0;
-        Symboltable symboltable = null;
-        boolean symbolic = false;
         int lineNumber = 0;
+        int id = 1;
         try{
         while((line = reader.readLine()) != null) {
             ++lineNumber;
+            String errorPrefix = place + "Line " + lineNumber + ": '" + line + "': ";
             line = line.trim();
             if(line.isEmpty()) {continue;}
             if(line.startsWith("%")){continue;}
@@ -173,90 +172,37 @@ public final class CNFReader {
             if(line.startsWith("p") && !line.endsWith("0")) { // p cnf predicates clauses symbolic
                 String[] parts = line.split("\\s*( |,)\\s*");
                 if(parts.length < 4) {
-                    errors.append(place + "Illegal format of line '" + line+ "'\n").append(prefix).
-                            append("It should be 'p cnf predicates clauses [symbolic]'\n");
+                    errors.append(errorPrefix).append("Illegal format of line '" + line+ "'\n").append(prefix).
+                            append("It should be 'p cnf predicates clauses'\n");
                     return null;}
                 if(!parts[1].equals("cnf")) {
-                    errors.append(place + "'" + line + "' " + "indicates no cnf file");
+                    errors.append(errorPrefix).append("indicates no cnf file\n");
                     return null;}
 
-                predicates = Utilities.parseInteger(place + "'"+line+"' ", parts[2],errors);
+                predicates = Utilities.parseInteger(errorPrefix, parts[2],errors);
                 if(predicates == null) {return null;}
                 if(predicates <= 0) {
-                    errors.append(place + "Negative number of predicates: '" + parts[2] +"'");
+                    errors.append(errorPrefix).append("Negative number of predicates: '" + parts[2] +"'\n");
                     return null;}
                 bcl.predicates = predicates;
-
-                if(parts.length == 5) {
-                    if(parts[4].equals("symbolic")) {
-                        symbolic = true;
-                        symboltable = new Symboltable(predicates);
-                        bcl.symboltable = symboltable;}
-                    else {errors.append(place + "End of line '"+ line + "' should be 'symbolic'");
-                        return null;}}
+                bcl.symboltable = new Symboltable(predicates);
                 continue;}
             if(predicates == 0) {
-                errors.append(place + "p-line missing: 'p cnf predicates clauses [symbolic]'");
+                errors.append(errorPrefix).append("p-line missing: 'p cnf predicates clauses'\n");
                 return null;}
 
             if(!line.endsWith(" 0")) {
-                errors.append(place + " line " + lineNumber + ": '" + line + "' does not end with '0'\n");
+                errors.append(errorPrefix).append("does not end with '0'\n");
                 continue;}
-            String[] parts = line.split("\\s*( |,)\\s*");
-            int startParts = 1;
-            int typnumber;
-            switch(line.charAt(0)) {
-                case 'a': typnumber = Connective.AND.ordinal();          break;
-                case 'o': typnumber = Connective.OR.ordinal();           break;
-                case 'e': typnumber = Connective.EQUIV.ordinal();        break;
-                case '<': typnumber = Connective.ATLEAST.ordinal();      break;
-                case '>': typnumber = Connective.ATMOST.ordinal();       break;
-                case '=': typnumber = Connective.EXACTLY.ordinal();      break;
-                default: typnumber = Connective.OR.ordinal(); startParts = 0; break;}
-            boolean isNumeric = Connective.isQuantifier(typnumber);
-
-            int literalCounter = 1;
-            Integer n = null;
-            if(isNumeric) {
-                n = Utilities.parseInteger (place + "line " + lineNumber +": ",parts[1],errors);
-                if(n == null) {errors.append("\n"); continue;}
-                if(n < 1) {
-                    errors.append(place + "line " + lineNumber  + ": '" + line + "' quantifier >= 1 required\n");
-                    continue;}
-                startParts = 2;
-                literalCounter = 2;}
-            int [] clause = new int[parts.length-startParts+ (isNumeric ? 2 : 1)];
-            clause[0] = problemSupervisor.nextClauseId();
-            clause[1] = typnumber;
-            if(n != null) clause[2] = n;
-
-            for(int i = startParts; i < parts.length-1; ++i) {
-                String part = parts[i];
-                if(symbolic) {
-                    int sign = 1;
-                    if(part.startsWith("-")) {sign = -1; part = part.substring(1);}
-                    int literal = sign * symboltable.getPredicate(part);
-                    if(literal == 0) {
-                        errors.append(place + "line "+ lineNumber + ": predicate overflow: " + parts[i] +"\n");
-                        literalCounter = 0; break;}
-                    else {clause[++literalCounter] = literal;}}
-                else {
-                    Integer literal = Utilities.parseInteger (place+"line " + lineNumber +": ", parts[i],errors);
-                    if(literal != null) {
-                        if(literal == 0) {
-                            errors.append(place + "line " + lineNumber + ": literal '" + literal + "' = 0\n");
-                            literalCounter = 0; break;}
-                        if(Math.abs(literal) > predicates) {
-                            errors.append(place + "line " + lineNumber + ": |literal| '" + literal + "' > " +predicates +"\n");
-                            literalCounter = 0; break;}
-                        clause[++literalCounter] = literal;}
-                    else {errors.append("\n"); literalCounter = 0; break;}}}
-            if(literalCounter == 0) continue;
-            bcl.addClause(clause, place + "line "+ lineNumber + ": ",errors,warnings);
+            int[] clause = StringClauseSetGenerator.parseLine(line.substring(0,line.length()-2).trim(),
+                    id,bcl.symboltable,errorPrefix,errors);
+            if(clause == null) continue;
+            ++id;
+            bcl.addClause(clause,errorPrefix,errors,warnings);
         }
         bcl.info = info.toString();}
         catch(IOException ex) {
-            errors.append(place + " IOException\n" +ex);
+            errors.append(place).append("IOException\n" +ex);
             return null;}
         return bcl;}
 

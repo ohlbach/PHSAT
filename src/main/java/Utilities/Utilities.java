@@ -29,7 +29,7 @@ public class Utilities {
     public static Integer parseInteger(String place, String value, StringBuilder errors) {
         if(value == null) {return null;}
         try{return Integer.parseInt(value);}
-        catch(NumberFormatException ex) {errors.append(place+"'" + value + "' is no integer");}
+        catch(NumberFormatException ex) {errors.append(place+"'" + value + "' is no integer\n");}
         return null;}
 
     /** trys to pars a string as integer.
