@@ -2,6 +2,9 @@ package Generators;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
+import Management.Controller;
+import Management.GlobalParameters;
+import Management.ProblemSupervisor;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -15,6 +18,16 @@ import static org.junit.Assert.assertEquals;
  */
 public class StringClauseSetGeneratorTest {
     String errorPrefix = "Error: ";
+
+    private ProblemSupervisor prepare() {
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
+        Controller controller = new Controller(null,null,null);
+        GlobalParameters globalParameters=new GlobalParameters();
+        globalParameters.trackReasoning = true;
+        HashMap<String,Object> problemParameters = new HashMap<>();
+        problemParameters.put("name","test");
+        return new ProblemSupervisor(controller,globalParameters,problemParameters,null);}
 
      @Test
      public void help() {
@@ -98,6 +111,7 @@ public class StringClauseSetGeneratorTest {
     @Test
     public void generate() throws Exception {
         System.out.println("generate");
+        ProblemSupervisor problemSupervisor = prepare();
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
         String clauses = "p 5\n" +
@@ -107,14 +121,13 @@ public class StringClauseSetGeneratorTest {
         HashMap<String,String> map = new HashMap<>();
         map.put("clauses",clauses);
         ArrayList<HashMap<String,Object>> params = StringClauseSetGenerator.parseParameters(map,errors,warnings);
-        BasicClauseList bcl = StringClauseSetGenerator.generate(params.get(0),errors,warnings);
-        //System.out.println(((BasicClauseList)result.get("disjunctions")).toString(true));
+        BasicClauseList bcl = StringClauseSetGenerator.generate(params.get(0), problemSupervisor, errors,warnings);
         assertEquals("String Generator\n" +
                 "Disjunctions:\n" +
-                "  1 : p,q\n" +
+                "  1: p,q\n" +
                 "Quantifieds:\n" +
-                "  2 : M- 2 -p,q,r\n" +
-                "  3 : L- 3 q,-r,s\n", bcl.toString());
+                "M-2: 2 -p,q,r\n" +
+                "L-3: 3 q,-r,s\n", bcl.toString());
     }
 
 }

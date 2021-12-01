@@ -5,6 +5,8 @@ import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Management.ProblemSupervisor;
 import Utilities.Utilities;
+import Utilities.Interval;
+import com.sun.prism.shader.Texture_RadialGradient_REFLECT_AlphaTest_Loader;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -36,8 +38,8 @@ public final class PigeonHoleGenerator {
                 "The keys are:\n"+
                 "pigeons:    range of pigeons\n" +
                 "holes:      range of holes.\n" +
-                "capacity:   range of hole capacities (default 1)\n" +
-                "quantifier: atleast, atmost, exactly\n"+
+                "capacity:   range of hole capacities (default 1), number or interval [min,max]\n" +
+                "quantifier: atleast, atmost, exactly, interval\n"+
                 "The numbers may be ranges like '4,5,6' or '5 to 10' or '5 to 11 step 2'.";
     }
 
@@ -78,8 +80,16 @@ public final class PigeonHoleGenerator {
 
         ArrayList capacities = null;
         if(capacity ==null) {ArrayList list = new ArrayList(); list.add(1);}
-        else {capacities = Utilities.parseIntRange(prefix+"capacity: ",capacity,errors);
-            if(capacities == null) {errors.append("\n"); erroneous = true;}}
+        else {
+            if(capacity.startsWith("[")) {
+                Interval interval = Interval.parseInterval(capacity);
+                if(interval == null) {
+                    errors.append(prefix).append("no proper intrval: '" + capacity + "'\n");
+                    erroneous = true;}
+                else {capacities = new ArrayList(); capacities.add(interval);}}
+            else {
+                capacities = Utilities.parseIntRange(prefix+"capacity: ",capacity,errors);
+                if(capacities == null) {errors.append("\n"); erroneous = true;}}}
 
         ArrayList quantifiers = null;
         if(quantifier == null) {quantifiers = new ArrayList(); quantifiers.add("exactly");}
@@ -94,16 +104,17 @@ public final class PigeonHoleGenerator {
         for(ArrayList<Object> p : list ) {
             int holesv         = (int)p.get(0);
             int pigeonsv       = (int)p.get(1);
-            int capacityv      = (int)p.get(2);
+            Object capacityv   = p.get(2);
             String quantifierv = (String)p.get(3);
             if(holesv <= 0) {
                 errors.append(prefix+"holes is not positive " + holesv); erroneous = true;}
             if(pigeonsv <= 0) {
                 errors.append(prefix+"pigeons is not positive " + pigeonsv); erroneous = true;}
-            if(capacityv <= 0) {
+            if(capacityv.getClass() == Integer.class && (Integer)capacityv <= 0) {
                 errors.append(prefix+"capacity is not positive " + capacityv); erroneous = true;}
-            if(!(quantifierv.equals("atleast") || quantifierv.equals("atmost") ||quantifierv.equals("exactly"))) {
-                errors.append(prefix + "quantifier ist not atleast, atmost or exactly: " + quantifierv);
+            if(!(quantifierv.equals("atleast") || quantifierv.equals("atmost") ||
+                    quantifierv.equals("exactly") || quantifierv.equals("interval"))) {
+                errors.append(prefix + "quantifier ist not atleast, atmost, exactly or interval: " + quantifierv);
                 erroneous = true;}
             if(erroneous) return null;
 
@@ -139,11 +150,13 @@ public final class PigeonHoleGenerator {
         String prefix = "Pigeon Hole Generator: ";
         int holes         = (Integer)parameters.get("holes");
         int pigeons       = (Integer)parameters.get("pigeons");
-        int capacity      = (Integer)parameters.get("capacity");
+        Object capacity   = parameters.get("capacity");
         String quantifier = (String)parameters.get("quantifier");
-        int clauseType = 3;
-        if(quantifier.equals("atmost"))  clauseType = 4;
-        if(quantifier.equals("exactly")) clauseType = 5;
+        int clauseType = Connective.ATLEAST.ordinal();
+        if(capacity.getClass() == Interval.class) {clauseType = Connective.INTERVAL.ordinal();}
+        else {
+            if(quantifier.equals("atmost"))  clauseType = Connective.ATMOST.ordinal();
+            if(quantifier.equals("exactly")) clauseType = Connective.EXACTLY.ordinal();}
 
         Symboltable symboltable = new Symboltable(pigeons*holes);
         int predicates = 0;
@@ -166,13 +179,19 @@ public final class PigeonHoleGenerator {
                 clause[hole+2] = symboltable.getPredicate("P"+pigeon+"H"+hole);}
             bcl.addClause(clause,prefix,errors,warnings);}
 
+        int shift = 2;
+        if(clauseType == Connective.INTERVAL.ordinal()) shift = 3;
         for(int hole = 1; hole <= holes; ++hole) {
-            int[] clause = new int[pigeons+3];
+            int[] clause = new int[pigeons+shift+1];
             clause[0] = problemSupervisor.nextClauseId();
             clause[1] = clauseType;
-            clause[2] = capacity;
+            if(clauseType == Connective.INTERVAL.ordinal()) {
+                shift = 3;
+                clause[2] = ((Interval)capacity).min;
+                clause[3] = ((Interval)capacity).max;}
+            else{clause[2] = (Integer)capacity;}
             for(int pigeon = 1; pigeon <= pigeons; ++pigeon) {
-                clause[pigeon+2] = symboltable.getPredicate("P"+pigeon+"H"+hole);}
+                clause[pigeon+shift] = symboltable.getPredicate("P"+pigeon+"H"+hole);}
             bcl.addClause(clause,prefix,errors,warnings);}
 
         return bcl;

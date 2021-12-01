@@ -204,6 +204,7 @@ public final class CNFReader {
         catch(IOException ex) {
             errors.append(place).append("IOException\n" +ex);
             return null;}
+        problemSupervisor.clauseCounter = id;
         return bcl;}
 
 

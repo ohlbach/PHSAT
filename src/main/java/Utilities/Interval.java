@@ -1,5 +1,8 @@
 package Utilities;
 
+import java.util.Arrays;
+import java.util.Locale;
+
 /** This class provides integer intervals with non-negative integers
  */
 public class Interval {
@@ -16,6 +19,24 @@ public class Interval {
         assert min <= max;
         this.min = min;
         this.max = max;}
+
+    /**parses an interval string [min,max]
+     *
+     * @param interval the interval string
+     * @return null (error) or an interval object
+     */
+    public static Interval parseInterval(String interval) {
+        interval = interval.trim();
+        if(!interval.startsWith("[")) return null;
+        if(!interval.endsWith("]")) return null;
+        String[] parts = interval.substring(1,interval.length()-1).split("\\s*( |,)\\s*");
+        if(parts.length != 2) return null;
+        Integer min = Utilities.parseInteger(parts[0]);
+        if(min == null) return null;
+        Integer max = Utilities.parseInteger(parts[1]);
+        if(max == null) return null;
+        if(min < 0 || max < 0 || min > max) return null;
+        return new Interval(min,max);}
 
     /** clones the interval
      *

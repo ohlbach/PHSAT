@@ -3,6 +3,7 @@ package Generators;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
+import Management.ProblemSupervisor;
 import Utilities.Utilities;
 
 import java.util.ArrayList;
@@ -62,7 +63,8 @@ public final class StringClauseSetGenerator  {
      * @param warnings no effect
      * @return  the new BasicClauseList object.
      */
-    public static  BasicClauseList generate(HashMap<String,Object> parameters, StringBuilder errors, StringBuilder warnings) {
+    public static  BasicClauseList generate(HashMap<String,Object> parameters,
+                                            ProblemSupervisor problemSupervisor, StringBuilder errors, StringBuilder warnings) {
         String clauses = (String)parameters.get("clauses");
         String[] lines = clauses.split("\\s*\\n\\s*");
         String line = lines[0];
@@ -88,6 +90,7 @@ public final class StringClauseSetGenerator  {
             if(clause == null) continue;
             ++id;
             bcl.addClause(clause,errorPrefix,errors,warnings);}
+        problemSupervisor.clauseCounter = id;
         return bcl;
     }
 
