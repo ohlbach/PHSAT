@@ -7,16 +7,14 @@ import Management.ProblemSupervisor;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Random;
 
 import static org.junit.Assert.*;
 
 /**
  * Created by ohlbach on 06.09.2018.
  */
-public class RandomClauseOldSetGeneratorTest {
+public class RandomClauseSetGeneratorTest {
     @Test
     public void help() {
         System.out.println(RandomClauseSetGenerator.help());
@@ -25,7 +23,7 @@ public class RandomClauseOldSetGeneratorTest {
     @Test
     public void keys()  {
         System.out.println("keys");
-        assertEquals("[precises, atleasts, ors, ands, predicates, lengths, equivs, exactlys, seeds, cpRatios, atmosts]",
+        assertEquals("[precises, atleasts, ors, ands, predicates, intervals, lengths, equivs, exactlys, seeds, cpRatios, atmosts]",
                 RandomClauseSetGenerator.keys.toString());}
 
     @Test
@@ -112,11 +110,12 @@ public class RandomClauseOldSetGeneratorTest {
         parameters.put("atleasts","13");
         parameters.put("atmosts","14");
         parameters.put("exactlys","15");
+        parameters.put("intervals","20");
         ArrayList<HashMap<String,Object>> result = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings);
         System.out.println(errors.toString());
         assertNotNull(result);
-        assertEquals("[{atleasts=13, ors=10, ands=11, predicates=5, seed=4, equivs=12, exactlys=15, length=2, name=RD452, precise=false, atmosts=14}, "+
-                "{atleasts=13, ors=10, ands=11, predicates=5, seed=4, equivs=12, exactlys=15, length=2, name=RD452, precise=true, atmosts=14}]",result.toString());
+        assertEquals("[{atleasts=13, ors=10, ands=11, predicates=5, intervals=20, seed=4, equivs=12, exactlys=15, length=2, name=RD452, precise=false, atmosts=14}, " +
+                "{atleasts=13, ors=10, ands=11, predicates=5, intervals=20, seed=4, equivs=12, exactlys=15, length=2, name=RD452, precise=true, atmosts=14}]",result.toString());
     }
 
 
@@ -142,12 +141,14 @@ public class RandomClauseOldSetGeneratorTest {
         HashMap<String,Object> problemParameters = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings).get(0);
         ProblemSupervisor problemSupervisor = prepare(problemParameters);
         BasicClauseList bcl = RandomClauseSetGenerator.generate(problemParameters,problemSupervisor,errors,warnings);
-        assertEquals("Disjunctions:\n" +
-                "   1 : 9,-8,4\n" +
-                "   2 : 2,5,-8\n" +
-                "   3 : -3,5,6\n" +
-                "   4 : 1,-9,-8\n" +
-                "   5 : -1,-3,4\n",bcl.toString());
+        assertEquals("Randomly generated clauses with parameters:\n" +
+                "{ors=5, predicates=10, seed=0, length=3, name=test, precise=true}\n" +
+                "Disjunctions:\n" +
+                "  1: 9,-8,4\n" +
+                "  2: 2,5,-8\n" +
+                "  3: -3,5,6\n" +
+                "  4: 1,-9,-8\n" +
+                "  5: -1,-3,4\n",bcl.toString());
     }
 
     @Test
@@ -163,46 +164,50 @@ public class RandomClauseOldSetGeneratorTest {
         parameters.put("atleasts","4");
         parameters.put("atmosts","3");
         parameters.put("exactlys","2");
+        parameters.put("intervals","4");
         parameters.put("lengths","3");
         parameters.put("precises", "false");
         HashMap<String,Object> problemParameters = RandomClauseSetGenerator.parseParameters(parameters,errors,warnings).get(0);
         ProblemSupervisor problemSupervisor = prepare(problemParameters);
         BasicClauseList bcl = RandomClauseSetGenerator.generate(problemParameters,problemSupervisor,errors,warnings);
         assertEquals("Randomly generated clauses with parameters:\n" +
-                "{atleasts=4, ors=7, ands=6, predicates=10, seed=0, equivs=5, exactlys=2, length=3, name=test, precise=false, atmosts=3}\n" +
+                "{atleasts=4, ors=7, ands=6, predicates=10, intervals=4, seed=0, equivs=5, exactlys=2, length=3, name=test, precise=false, atmosts=3}\n" +
                 "Disjunctions:\n" +
-                "    1 : 10\n" +
-                "    2 : 4,2,5\n" +
-                "    3 : -4,6,5\n" +
-                "    4 : 1\n" +
-                "    5 : -5,-3\n" +
-                "    6 : -3,4\n" +
-                "    7 : 8,-3,-6\n" +
+                "   1: 10\n" +
+                "   2: 4,2,5\n" +
+                "   3: -4,6,5\n" +
+                "   4: 1\n" +
+                "   5: -5,-3\n" +
+                "   6: -3,4\n" +
+                "   7: 8,-3,-6\n" +
                 "Conjunctions:\n" +
-                "    8 : 6&-1&2\n" +
-                "    9 : 3&-10\n" +
-                "   10 : 7\n" +
-                "   11 : 9\n" +
-                "   12 : -8&9&-3\n" +
-                "   13 : 7&8&6\n" +
+                " A-8: 6&-1&2\n" +
+                " A-9: 3&-10\n" +
+                "A-10: 7\n" +
+                "A-11: 9\n" +
+                "A-12: -8&9&-3\n" +
+                "A-13: 7&8&6\n" +
                 "Equivalences:\n" +
-                "   14 : 4=10\n" +
-                "   15 : -10=-2\n" +
-                "   16 : 1=-5\n" +
-                "   17 : -8=6=7\n" +
-                "   18 : 4=8\n" +
-                "Atleast:\n" +
-                "   19 : ATLEAST 1 -4\n" +
-                "   20 : ATLEAST 1 2,8\n" +
-                "   21 : ATLEAST 1 -2\n" +
-                "   22 : ATLEAST 1 6\n" +
-                "Atmost:\n" +
-                "   23 : ATMOST 1 3,-1\n" +
-                "   24 : ATMOST 1 6\n" +
-                "   25 : ATMOST 2 3,10\n" +
-                "Exactly:\n" +
-                "   26 : EXACTLY 1 -4,-9\n" +
-                "   27 : EXACTLY 1 -2\n",bcl.toString());
+                "E-14: 4=10\n" +
+                "E-15: -10=-2\n" +
+                "E-16: 1=-5\n" +
+                "E-17: -8=6=7\n" +
+                "E-18: 4=8\n" +
+                "Quantifieds:\n" +
+                "L-19: 1 -4\n" +
+                "L-20: 1 2,8\n" +
+                "L-21: 1 -2\n" +
+                "L-22: 1 6\n" +
+                "M-23: 1 3,-1\n" +
+                "M-24: 1 6\n" +
+                "M-25: 2 3,10\n" +
+                "X-26: 1 -4,-9\n" +
+                "X-27: 1 -2\n" +
+                "Intervals:\n" +
+                "I-28: 1-2: -9,7\n" +
+                "I-29: 1-3: -6,10,-6\n" +
+                "I-30: 2-3: 9,9,8\n" +
+                "I-31: 1-2: 2,2\n",bcl.toString());
     }
 
 }
