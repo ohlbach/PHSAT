@@ -12,11 +12,11 @@ import java.util.Locale;
 public class WClause {
 
     public final int id;                       // the clause identifier
-    protected final Connective connective;     // OR, ATLEAST, ATMOST or EXACTLY
-    protected final int quantifier;            // the quantifier of numeric types
+    protected final Connective connective;     // OR, ATLEAST, ATMOST or EXACTLY etc.
+    protected final int min;                   // the minimum of the interval
+    protected final int max;                   // the maximum of the interval
     public final int[] literals;               // the literals
     protected boolean isLocallyTrue  = false;  // truth in the local model
-    protected boolean isGloballyTrue = false;  // truth in the global model
     protected boolean hasDoubles     = false;  // indicates that there are multiple occurrences in the literals
     protected int[] multiplicities;            // maps literal positions to the number of literal occurrences
 
@@ -27,7 +27,8 @@ public class WClause {
     public WClause(Clause clause) {
         id = clause.id;
         connective = clause.connective;
-        quantifier = clause.interval.min;
+        min = clause.interval.min;
+        max = clause.interval.max;
         literals = new int[clause.size()];
         for(int i = 0; i < clause.size(); ++i) literals[i] = clause.getLiteral(i);
         int size = literals.length;
@@ -75,7 +76,7 @@ public class WClause {
      *
      * @param width: 0 or the width of the id-part.
      * @param symboltable for mapping numbers to names
-     * @return a string: clause-id: [type] literals GT LT  (for Globally True and Locally True)
+     * @return a string: clause-id: [type] min-max literals GT LT  (for Globally True and Locally True)
      */
     public String toString(int width, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
@@ -83,12 +84,11 @@ public class WClause {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+(width+ connective.prefix.length())+"s", connective.prefix+id+":");}
         else st.append(connective.prefix+id+": ");
-        if(connective.isQuantifier()) st.append(connective + " " + quantifier + ": ");
+        st.append(connective + " " + min + "-" + max + ":");
         int size = literals.length;
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(literals[position],symboltable));
             if(position < size-1) {st.append(connective.separator);}}
-        if(isGloballyTrue) st.append(" GT");
         if(isLocallyTrue)  st.append(" LT");
         return st.toString();}
 

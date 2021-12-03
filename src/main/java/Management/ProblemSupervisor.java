@@ -116,8 +116,6 @@ public class ProblemSupervisor {
         try{
             equivalenceThread = new Thread(()-> equivalenceClasses.run());
             equivalenceThread.start();
-            disjointnessThread = new Thread(()-> equivalenceClasses.run());
-            disjointnessThread.start();
             twoLitThread = new Thread(() -> twoLitClauses.run());
             twoLitThread.start();
             allClausesThread = new Thread(() -> clauses.run());

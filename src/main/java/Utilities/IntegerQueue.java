@@ -20,7 +20,7 @@ public class IntegerQueue {
     private final int size;
 
     /** the score for each item */
-    private final int[] scores;
+    private final float[] scores;
 
     /** the priority queue, i.e. queue[0] is the item with the top score */
     private final int[] queue;
@@ -35,7 +35,7 @@ public class IntegerQueue {
     public IntegerQueue(int size) {
         this.size = size;
         ++size;
-        scores    = new int[size];
+        scores    = new float[size];
         queue     = new int[size];
     }
 
@@ -44,7 +44,7 @@ public class IntegerQueue {
      * @param item   typically a predicate
      * @param score  its score, e.g. the number of clauses made true when the predicate is flipped
      */
-    public void setScore(int item, int score) {
+    public void setScore(int item, float score) {
         scores[item] = score;
         sorted = false;}
 
@@ -53,7 +53,7 @@ public class IntegerQueue {
      * @param item   typically a predicate
      * @param score  its score, e.g. the number of clauses made true when the predicate is flipped
      */
-    public void addScore(int item, int score) {
+    public void addScore(int item, float score) {
         scores[item] += score;
         sorted = false;}
 
@@ -62,7 +62,7 @@ public class IntegerQueue {
      * @param item  e.g. a predicate
      * @return its score
      */
-    public int getScore(int item) {
+    public float getScore(int item) {
         return scores[item];}
 
     /** returns the item with the larges score
@@ -88,8 +88,8 @@ public class IntegerQueue {
         for(int i = 0; i <= size; ++i) {queue[i] = i;}
         IntArrays.quickSort(queue,
                 ((i,j)-> {
-                    int sci = scores[i];
-                    int scj = scores[j];
+                    float sci = scores[i];
+                    float scj = scores[j];
                     if(sci == scj) {return 0;}
                     if(sci > scj) {return -1;}
                     return 1;}));
