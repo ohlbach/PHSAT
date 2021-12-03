@@ -192,20 +192,21 @@ public class RandomClauseSetGenerator {
         ArrayList<HashMap<String,Object>> control = new ArrayList<>();
         if(cpRatios == null) {
             ArrayList<ArrayList<Object>> list = Utilities.crossProduct(seeds,predicates,lengths, precises,
-                    orss,andss,equivss,atleastss,atmostss,exactlyss,intervalss);
+                    cpRatios, orss,andss,equivss,atleastss,atmostss,exactlyss,intervalss);
 
             for(ArrayList<Object> values : list) {
                 Integer seedv       = (Integer)values.get(0);
                 Integer predicatesv = (Integer)values.get(1);
                 Integer lengthv     = (Integer)values.get(2);
                 Boolean precisev    = (Boolean)values.get(3);
-                Integer orv         = (Integer)values.get(4);
-                Integer andv        = (Integer)values.get(5);
-                Integer equivv      = (Integer)values.get(6);
-                Integer atleastv    = (Integer)values.get(7);
-                Integer atmostv     = (Integer)values.get(8);
-                Integer exactlyv    = (Integer)values.get(9);
-                Integer intervalv   = (Integer)values.get(10);
+                Float   cpRatiov    = (Float)values.get(4);
+                Integer orv         = (Integer)values.get(5);
+                Integer andv        = (Integer)values.get(6);
+                Integer equivv      = (Integer)values.get(7);
+                Integer atleastv    = (Integer)values.get(8);
+                Integer atmostv     = (Integer)values.get(9);
+                Integer exactlyv    = (Integer)values.get(10);
+                Integer intervalv   = (Integer)values.get(11);
 
                 if(seedv < 0) {
                     errors.append(prefix+"Negative seed specified: " + seedv + "\n");
@@ -219,7 +220,7 @@ public class RandomClauseSetGenerator {
                 else {if(lengthv > predicatesv) {
                         errors.append(prefix+"Clause Length : " + lengthv + "> number of predicates " + predicatesv + "\n");
                         erraneous = true;}}
-                if(orv == null && andv == null && equivv == null &&
+                if(cpRatiov == null && orv == null && andv == null && equivv == null &&
                         atleastv == null && atmostv == null && exactlyv == null) {
                     errors.append(prefix+"No number of clauses specified\n");
                     erraneous = true;}
@@ -252,7 +253,8 @@ public class RandomClauseSetGenerator {
                 cntr.put("predicates",predicatesv);
                 cntr.put("length",   lengthv);
                 cntr.put("precise",  precisev);
-                if(orv != null)       cntr.put("ors", orv);
+                if(cpRatiov != null) cntr.put("ors",(int)predicatesv*cpRatiov);
+                else {if(orv != null)       cntr.put("ors", orv);}
                 if(andv != null)      cntr.put("ands", andv);
                 if(equivv != null)    cntr.put("equivs", equivv);
                 if(atleastv != null)  cntr.put("atleasts", atleastv);

@@ -156,8 +156,11 @@ public class Walker extends Solver {
         initializeModel();
         Result result =  walk();
         statistics.elapsedTime = System.nanoTime() - time;
-        problemSupervisor.finished(this, result, "done");
-        globalParameters.log(solverId + " for problem " + problemId + " finished");
+        System.out.println("Result " + result.toString());
+        System.out.println("Time " + statistics.elapsedTime);
+        System.out.println("Flips " + statistics.flips);
+        //problemSupervisor.finished(this, result, "done");
+        //globalParameters.log(solverId + " for problem " + problemId + " finished");
         return result;}
 
 
@@ -358,7 +361,7 @@ public class Walker extends Solver {
                 float scoreDiff = (float)sign/d * (isLocallyTrue(literal) ? -1 : 1);
                 predicateQueue.addScore(Math.abs(literal), scoreDiff);}
             return;}
-        if(trueLiterals > min) {  // too many true literals
+        if(trueLiterals > max) {  // too many true literals
             float d = trueLiterals - max;          // so many true literals must be made false
             for (int literal : wClause.literals) { // flipping a false literal makes the clause even 'more false'
                 float scoreDiff = (float)sign/d * (isLocallyTrue(literal) ? 1 : -1);

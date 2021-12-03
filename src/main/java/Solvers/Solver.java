@@ -130,7 +130,7 @@ public abstract class Solver {
     protected boolean monitoring = false;
 
     /** the supervisor which coordinates the work of all solvers or a given problem */
-    protected final ProblemSupervisor problemSupervisor;
+    public final ProblemSupervisor problemSupervisor;
 
     protected  GlobalParameters globalParameters;
 

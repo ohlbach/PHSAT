@@ -3,9 +3,12 @@ package Solvers.Walker;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
+import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import Generators.RandomClauseSetGenerator;
 import Management.Controller;
 import Management.GlobalParameters;
 import Management.ProblemSupervisor;
@@ -13,6 +16,7 @@ import Utilities.Interval;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
+import java.awt.image.RescaleOp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -58,7 +62,7 @@ public class WalkerTest {
             symboltable.setName(3,"r");
             symboltable.setName(4,"s");
             symboltable.setName(5,"t");}
-        problemSupervisor.clauseCounter = 9;
+        //problemSupervisor.clauseCounter = 9;
         BasicClauseList bcl = new BasicClauseList();
         bcl.predicates = predicates;
         bcl.symboltable = symboltable;
@@ -68,6 +72,11 @@ public class WalkerTest {
         return new Walker(1,solverParameters, problemSupervisor);
     }
 
+    private void add2Walker(Walker walker, BasicClauseList bcl) {
+        for(int[] clause : bcl.disjunctions) walker.addClause(new Clause(clause));
+        for(int[] clause : bcl.quantifieds) walker.addClause(new Clause(clause));
+        for(int[] clause : bcl.intervals) walker.addClause(new Clause(clause));
+    }
 
     @Test
     public void help() {
@@ -274,6 +283,30 @@ public class WalkerTest {
                 "1:1.0, 4:1.0, 5:1.0, 3:-1.0, 2:-1.0, 0:-2.14748365E9, ",walker.flipScoresToString());
     }
 
-    
+    @Test
+    public void random() {
+        System.out.println("random");
+        int predicates = 1000;
+        float cpRatio = (float)2.5;
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
+        Walker walker = prepare(predicates, true, null);
+        HashMap<String, String> pars = new HashMap<>();
+        pars.put("predicates", ""+predicates);
+        pars.put("lengths", "3");
+        pars.put("cpRatios", ""+cpRatio);
+        pars.put("seeds", "2");
+        ArrayList<HashMap<String, Object>> parameters = RandomClauseSetGenerator.parseParameters(pars,errors,warnings);
+        //System.out.println(parameters.get(0));
+        BasicClauseList bcl = RandomClauseSetGenerator.generate(parameters.get(0), walker.problemSupervisor, errors, warnings);
+        //System.out.println(bcl.toString());
+        add2Walker(walker,bcl);
+        //System.out.println(walker.toString());
+        Satisfiable result = (Satisfiable)walker.solve();
+        System.out.println(result.model);
+        System.out.println(bcl.falseClausesInModel(result.model));
+
+    }
+
 
     }
