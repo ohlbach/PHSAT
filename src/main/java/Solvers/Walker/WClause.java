@@ -4,6 +4,7 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Utilities.Utilities;
+import Utilities.Interval;
 
 import java.util.Formatter;
 import java.util.Locale;
@@ -27,8 +28,10 @@ public class WClause {
     public WClause(Clause clause) {
         id = clause.id;
         connective = clause.connective;
-        min = clause.interval.min;
-        max = clause.interval.max;
+        Interval interval = clause.interval;
+        if(interval == null) {min = 1; max = clause.cliterals.size();}
+        else {min = clause.interval.min;
+              max = clause.interval.max;}
         literals = new int[clause.size()];
         for(int i = 0; i < clause.size(); ++i) literals[i] = clause.getLiteral(i);
         int size = literals.length;
@@ -84,7 +87,7 @@ public class WClause {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+(width+ connective.prefix.length())+"s", connective.prefix+id+":");}
         else st.append(connective.prefix+id+": ");
-        st.append(connective + " " + min + "-" + max + ":");
+        st.append(min + "-" + max + ": ");
         int size = literals.length;
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(literals[position],symboltable));

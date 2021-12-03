@@ -16,6 +16,7 @@ import Utilities.IntegerQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
+import java.util.function.IntConsumer;
 
 public class Walker extends Solver {
 
@@ -31,7 +32,7 @@ public class Walker extends Solver {
     private static final int maxFlipsDefault = Integer.MAX_VALUE;
     private final int maxFlips;                        // maximum number of allowed flips
     public WalkerStatistics statistics;                // collects statistical information
-    private int seed;                                  // for the random number genwrator
+    private final int seed;                                  // for the random number generator
     private final Random random;                       // random number generator for flip jumps
 
     public static String help() {
@@ -97,6 +98,7 @@ public class Walker extends Solver {
             negOccurrences[predicate] = new ArrayList<>();}
         localModel     = new boolean[predicates+1];
         predicateQueue = new IntegerQueue(predicates);
+        predicateQueue.setScore(0,Integer.MIN_VALUE);
         seed           = (int)solverParameters.get("seed");
         random         = new Random(seed);
         maxFlips       = (int)solverParameters.get("flips");
@@ -119,7 +121,7 @@ public class Walker extends Solver {
      */
     private synchronized IntArrayList copyGloballyTrueLiterals() {
         globallyTrueLiteralsCopy.clear();
-        globallyTrueLiterals.forEach((int literal)->globallyTrueLiteralsCopy.add(literal));
+        globallyTrueLiterals.forEach((IntConsumer) globallyTrueLiteralsCopy::add);
         globallyTrueLiterals.clear();
         return globallyTrueLiteralsCopy;}
 
@@ -175,14 +177,12 @@ public class Walker extends Solver {
         return new Aborted("Walker aborted after " + statistics.flips + " flips");}
 
 
-    private ArrayList<WClause> globallyTrueClauses = new ArrayList<>();
+    private final ArrayList<WClause> globallyTrueClauses = new ArrayList<>();
 
     /** integrates globally true literals:
      * - their scores are minimized <br>
      * - clauses which now become globally true are marked<br>
      * Clauses with globally false literals are not touched.
-     *
-     * @throws Unsatisfiable if the clause can never be made true (should actually never happen here)
      */
     private void integrateGloballyTrueLiterals() {
         globallyTrueClauses.clear();
@@ -243,6 +243,8 @@ public class Walker extends Solver {
         float[] posScores = new float[predicates+1];
         float[] negScores = new float[predicates+1];
         setInitialScores(posScores,negScores);
+        //System.out.println("P "+Arrays.toString(posScores) );
+        //System.out.println("N "+Arrays.toString(negScores) );
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             int status = model.status(predicate);
             if(status != 0) {localModel[predicate] = (status == 1); continue;}
@@ -274,13 +276,14 @@ public class Walker extends Solver {
     protected void setInitialScores(float[] posScores,float[] negScores) {
         for(WClause wClause: wClauses) {
             int min = wClause.min;
+            float one = (float)1;
             if(min > 0) {
-                int score = 1/min;
+                float score = one/min;
                 for(int literal : wClause.literals) {
                     if(literal > 0) posScores[literal] += score;
                     else negScores[-literal] += score;}}
             else {
-                int score = 1/(wClause.literals.length-wClause.max); // can't be 1/0
+                float score = one/(wClause.literals.length-wClause.max); // can't be 1/0
                 for(int literal : wClause.literals) {
                     if(literal > 0) negScores[literal] += score;
                     else posScores[-literal] += score;}}}}
@@ -328,7 +331,7 @@ public class Walker extends Solver {
      * @param wClause the clause to be updated
      * @param sign -1 (removing old score) +1 (adding new score)
      */
-    private void updateFlipScores(WClause wClause, int sign) {
+    protected void updateFlipScores(WClause wClause, int sign) {
         int min = wClause.min;
         int max = wClause.max;
         int trueLiterals = 0;
@@ -359,8 +362,7 @@ public class Walker extends Solver {
             float d = trueLiterals - max;          // so many true literals must be made false
             for (int literal : wClause.literals) { // flipping a false literal makes the clause even 'more false'
                 float scoreDiff = (float)sign/d * (isLocallyTrue(literal) ? 1 : -1);
-                predicateQueue.addScore(Math.abs(literal), scoreDiff);}
-            return;}
+                predicateQueue.addScore(Math.abs(literal), scoreDiff);}}
     }
 
 
@@ -384,16 +386,6 @@ public class Walker extends Solver {
         oldPredicate = predicate;
         return predicate;}
 
-    /** checks if the given literal is in literals[0] ... literals[i-1]
-     *
-     * @param literals an array of literals
-     * @param literal a literal
-     * @param index an index into the array
-     * @return true if the given literal is in literals[0] ... literals[i-1]
-     */
-    private boolean contains(int[] literals, int literal, int index) {
-        for(int i = 0; i < index; ++i) {if(literals[i] == literal); return  true;}
-        return false;}
 
     /** counts the number of locally true literals in the clause
          *
@@ -468,8 +460,7 @@ public class Walker extends Solver {
         st.append("  flips:          ").append(statistics.flips).append(" of ").append(maxFlips).append("\n");
         st.append("  jump frequency: ").append(jumpFrequency).append("\n\n");
         st.append("Current model: ").append(localModelToString(symboltable)).append("\n");
-        st.append("Globally true clauses:\n");
-        st.append("False Clauses:\n");
+        st.append("False Clauses: " + falseClauses + "\n");
         for(WClause wClause : wClauses) {if(!wClause.isLocallyTrue) st.append(wClause.toString(3,symboltable)).append("\n");}
     return st.toString();
     }

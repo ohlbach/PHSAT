@@ -28,9 +28,15 @@ public class WalkerTest {
     private static final Connective al = Connective.ATLEAST;
     private static final Connective am = Connective.ATMOST;
     private static final Connective ex = Connective.EXACTLY;
+    private static final Connective iv = Connective.INTERVAL;
 
-    private static Clause make(int id, Connective type, int quantifier, int... literals) {
-        Clause clause = new Clause(id,type, new Interval(1,literals.length),IntArrayList.wrap(literals));
+    private static Clause make(int id, Connective connective, int... literals) {
+        int[] basicClause = new int[literals.length+2];
+        basicClause[0] = id;
+        basicClause[1] = connective.ordinal();
+        for(int i = 0; i < literals.length; ++i) {
+             basicClause[i+2] = literals[i];}
+        Clause clause = new Clause(basicClause);
         return clause;}
 
 
@@ -108,368 +114,166 @@ public class WalkerTest {
     public void setInitialScores() {
         System.out.println("setInitialScores");
         Walker walker = prepare(5, true, null);
-        walker.addClause(make(1, or, 1, 1, -2, 3));
+        walker.addClause(make(1, or, 1, -2, 3));
         float[] posScores = new float[6];
         float[] negScores = new float[6];
         walker.setInitialScores(posScores, negScores);
-        assertEquals("[0, 1, 0, 1, 0, 0]",Arrays.toString(posScores));
-        assertEquals("[0, 0, 1, 0, 0, 0]",Arrays.toString(negScores));
-
-        walker.addClause(make(2, al, 2, 1, -2, 3,4));
-
-        posScores = new float[6];
-        negScores = new float[6];
-        walker.setInitialScores(posScores, negScores);
-
-        assertEquals("[0, 3, 0, 3, 1, 0]",Arrays.toString(posScores));
-        assertEquals("[0, 0, 3, 0, 0, 0]",Arrays.toString(negScores));
+        assertEquals("[0.0, 1.0, 0.0, 1.0, 0.0, 0.0]",Arrays.toString(posScores));
+        assertEquals("[0.0, 0.0, 1.0, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
-        walker.addClause(make(2, am, 3, -2, -3,-4,5));
-
         posScores = new float[6];
         negScores = new float[6];
+        walker.addClause(make(2, iv, 1, 3, 1, -2, 3));
         walker.setInitialScores(posScores, negScores);
-        assertEquals("[0, 0, 0, 0, 0, -1]",Arrays.toString(posScores));
-        assertEquals("[0, 0, -1, -1, -1, 0]",Arrays.toString(negScores));
+        assertEquals("[0.0, 1.0, 0.0, 1.0, 0.0, 0.0]",Arrays.toString(posScores));
+        assertEquals("[0.0, 0.0, 1.0, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
+
+        walker = prepare(5, true, null);
+        posScores = new float[6];
+        negScores = new float[6];
+        walker.addClause(make(3, iv, 1, 3, 1, -2, 3, 4));
+        walker.setInitialScores(posScores, negScores);
+        assertEquals("[0.0, 1.0, 0.0, 1.0, 1.0, 0.0]",Arrays.toString(posScores));
+        assertEquals("[0.0, 0.0, 1.0, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
+
+        walker = prepare(5, true, null);
+        posScores = new float[6];
+        negScores = new float[6];
+        walker.addClause(make(3, iv, 2, 3, 1, -2, 3, 4));
+        walker.setInitialScores(posScores, negScores);
+        assertEquals("[0.0, 0.5, 0.0, 0.5, 0.5, 0.0]",Arrays.toString(posScores));
+        assertEquals("[0.0, 0.0, 0.5, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
+
+        walker = prepare(5, true, null);
+        posScores = new float[6];
+        negScores = new float[6];
+        walker.addClause(make(3, iv, 0, 2, 1, -2, 3, 4));
+        walker.setInitialScores(posScores, negScores);
+        assertEquals("[0.0, 0.0, 0.5, 0.0, 0.0, 0.0]",Arrays.toString(posScores));
+        assertEquals("[0.0, 0.5, 0.0, 0.5, 0.5, 0.0]",Arrays.toString(negScores));
+
+        walker = prepare(5, true, null);
+        posScores = new float[6];
+        negScores = new float[6];
+        walker.addClause(make(3, iv, 2, 3, 1, -2, 3, 4));
+        walker.addClause(make(4, iv, 0, 2, 1, -2, 3, 4));
+        walker.setInitialScores(posScores, negScores);
+        assertEquals("[0.0, 0.5, 0.5, 0.5, 0.5, 0.0]",Arrays.toString(posScores));
+        assertEquals("[0.0, 0.5, 0.5, 0.5, 0.5, 0.0]",Arrays.toString(negScores));
     }
 
 
     @Test
-    public void setInitialTruthValueOR() {
-        System.out.println("setInitialTruthValue OR");
+    public void getLocalTruthValue() {
+        System.out.println("getLocalTruthValue");
         Walker walker = prepare(5, true, null);
-        walker.model.addImmediately(1);
-
-        Clause c1 = make(1, or, 1, 1, -2, 3);
-        WClause wc1 = walker.addClause(c1);
-        walker.setInitialTruthValue(wc1);
-        assertTrue(wc1.isGloballyTrue);
-        assertTrue(wc1.isLocallyTrue);
-        Clause c2 = make(2, or, 1, -4,-5);
-        WClause wc2 = walker.addClause(c2);
-
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertTrue(wc2.isLocallyTrue);
-
-        walker.model.addImmediately(-5);
-        walker.setInitialTruthValue(wc2);
-        assertTrue(wc2.isGloballyTrue);
-        assertTrue(wc2.isLocallyTrue);
-    }
-    @Test
-    public void setInitialTruthValueATLEAST() {
-        System.out.println("setInitialTruthValue ATLEAST");
-        Walker walker = prepare(10, true, null);
-
-        Clause c1 = make(1, al, 1, 1, -2, 3);
-        WClause wc1 = walker.addClause(c1);
-        walker.setInitialTruthValue(wc1);
-        assertFalse(wc1.isGloballyTrue);
-        assertTrue(wc1.isLocallyTrue);
-
-        walker.model.addImmediately(1);
-        walker.setInitialTruthValue(wc1);
-        assertTrue(wc1.isGloballyTrue);
-        assertTrue(wc1.isLocallyTrue);
-
-        Clause c2 = make(2, al, 2, -4,-5,-6);
-        WClause wc2 = walker.addClause(c2);
-
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertTrue(wc2.isLocallyTrue);
-
-        walker.model.addImmediately(-5);
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertTrue(wc2.isLocallyTrue);
-
-        walker.model.addImmediately(-6);
-        walker.setInitialTruthValue(wc2);
-        assertTrue(wc2.isGloballyTrue);
-        assertTrue(wc2.isLocallyTrue);
-
-        Clause c3 = make(2, al, 2, 7,8,9);
-        WClause wc3 = walker.addClause(c3);
-        walker.setInitialTruthValue(wc3);
-        assertFalse(wc3.isGloballyTrue);
-        assertFalse(wc3.isLocallyTrue);
-        walker.localModel[8] = true;
-        walker.setInitialTruthValue(wc3);
-        assertFalse(wc3.isGloballyTrue);
-        assertFalse(wc3.isLocallyTrue);
-        walker.localModel[9] = true;
-        walker.setInitialTruthValue(wc3);
-        assertFalse(wc3.isGloballyTrue);
-        assertTrue(wc3.isLocallyTrue);
-  }
-    @Test
-    public void setInitialTruthValueATMOST() {
-        System.out.println("setInitialTruthValue ATMOST");
-        Walker walker = prepare(10, true, null);
-
-        Clause c1 = make(1, am, 1, 1, -2, -3);
-        WClause wc1 = walker.addClause(c1);
-        walker.setInitialTruthValue(wc1);
-        assertFalse(wc1.isGloballyTrue);
-        assertFalse(wc1.isLocallyTrue);
-
-        wc1 = walker.addClause(c1);
-        walker.model.addImmediately(1);
-        walker.setInitialTruthValue(wc1);
-        assertTrue(wc1.isGloballyTrue);
-        assertTrue(wc1.isLocallyTrue);
-
-        wc1 = walker.addClause(c1);
-        walker.model.addImmediately(-2);
-        walker.setInitialTruthValue(wc1);
-        assertFalse(wc1.isGloballyTrue);
-        assertFalse(wc1.isLocallyTrue);
-
-        Clause c2 = make(2, am, 2, 4,5,6);
-        WClause wc2 = walker.addClause(c2);
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertTrue(wc2.isLocallyTrue);
-
-        walker.localModel[5] = true;
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertTrue(wc2.isLocallyTrue);
-        walker.localModel[6] = true;
-
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertTrue(wc2.isLocallyTrue);
-        walker.localModel[4] = true;
-
-        wc2 = walker.addClause(c2);
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertFalse(wc2.isLocallyTrue);
-
-
-    }
-    @Test
-    public void setInitialTruthValueEXACTLY() {
-        System.out.println("setInitialTruthValue EXACTLY");
-        Walker walker = prepare(10, true, null);
-
-        Clause c1 = make(1, ex, 2, 1, -2, 3);
-        WClause wc1 = walker.addClause(c1);
-        walker.setInitialTruthValue(wc1);
-        assertFalse(wc1.isGloballyTrue);
-        assertFalse(wc1.isLocallyTrue);
-
-        walker.model.addImmediately(-2);
-        walker.setInitialTruthValue(wc1);
-        assertFalse(wc1.isGloballyTrue);
-        assertFalse(wc1.isLocallyTrue);
-
-        walker.model.addImmediately(1);
-        walker.setInitialTruthValue(wc1);
-        assertTrue(wc1.isGloballyTrue);
-        assertTrue(wc1.isLocallyTrue);
-
-
-        walker.model.addImmediately(3);
-        wc1 = walker.addClause(c1);
-        walker.setInitialTruthValue(wc1);
-        assertFalse(wc1.isGloballyTrue);
-        assertFalse(wc1.isLocallyTrue);
-
-        Clause c2 = make(2, ex, 2, 4,5,6);
-        WClause wc2 = walker.addClause(c2);
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertFalse(wc2.isLocallyTrue);
-
-        walker.localModel[6] = true;
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertFalse(wc2.isLocallyTrue);
-        walker.localModel[5] = true;
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertTrue(wc2.isLocallyTrue);
-
-
-        wc2 = walker.addClause(c2);
-        walker.localModel[4] = true;
-        walker.setInitialTruthValue(wc2);
-        assertFalse(wc2.isGloballyTrue);
-        assertFalse(wc2.isLocallyTrue);
-    }
-
-    @Test
-    public void getLocalTruthValue1() {
-        System.out.println("getLocalTruthValue 1");
-        Walker walker = prepare(5, true, null);
-        Clause c1 = make(1, or, 1, 1, 2, 3);
-        WClause wc1 = walker.addClause(c1);
-        Clause c2 = make(2, al, 2, 1, 2, 3);
-        WClause wc2 = walker.addClause(c2);
-        Clause c3 = make(3, am, 2, 1, 2, 3);
-        WClause wc3 = walker.addClause(c3);
-        Clause c4 = make(4, ex, 2, 1, 2, 3);
-        WClause wc4 = walker.addClause(c4);
-
-        assertFalse(walker.getLocalTruthValue(wc1));
-        assertFalse(walker.getLocalTruthValue(wc2));
-        assertTrue(walker.getLocalTruthValue(wc3));
-        assertFalse(walker.getLocalTruthValue(wc4));
-
-        walker.localModel[3] = true;
-        assertTrue(walker.getLocalTruthValue(wc1));
-        assertFalse(walker.getLocalTruthValue(wc2));
-        assertTrue(walker.getLocalTruthValue(wc3));
-        assertFalse(walker.getLocalTruthValue(wc4));
-
+        WClause c1 = new WClause(make(1, or, 1, 2, 3));
+        assertFalse(walker.getLocalTruthValue(c1));
+        WClause c2 = new WClause(make(2, iv, 0,1, 1, 2, 3));
+        assertTrue(walker.getLocalTruthValue(c2));
         walker.localModel[2] = true;
-        assertTrue(walker.getLocalTruthValue(wc1));  // or
-        assertTrue(walker.getLocalTruthValue(wc2));  // atleast 2
-        assertTrue(walker.getLocalTruthValue(wc3));  // atmost 2
-        assertTrue(walker.getLocalTruthValue(wc4));  // exactly 2
-
+        assertTrue(walker.getLocalTruthValue(c1));
+        assertTrue(walker.getLocalTruthValue(c2));
         walker.localModel[1] = true;
-        assertTrue(walker.getLocalTruthValue(wc1));  // or
-        assertTrue(walker.getLocalTruthValue(wc2));  // atleast 2
-        assertFalse(walker.getLocalTruthValue(wc3));  // atmost 2
-        assertFalse(walker.getLocalTruthValue(wc4));  // exactly 2
-    }
-
-    @Test
-    public void getLocalTruthValue2() {
-        System.out.println("getLocalTruthValue 2");
-        Walker walker = prepare(5, true, null);
-        Clause c1 = make(1, or, 1, 1, -2, 3);
-        WClause wc1 = walker.addClause(c1);
-        Clause c2 = make(2, al, 2, 1, -2, 3);
-        WClause wc2 = walker.addClause(c2);
-        Clause c3 = make(3, am, 2, 1, -2, 3);
-        WClause wc3 = walker.addClause(c3);
-        Clause c4 = make(4, ex, 2, 1, -2, 3);
-        WClause wc4 = walker.addClause(c4);
-
-        assertTrue(walker.getLocalTruthValue(wc1));
-        assertFalse(walker.getLocalTruthValue(wc2));
-        assertTrue(walker.getLocalTruthValue(wc3));
-        assertFalse(walker.getLocalTruthValue(wc4));
-
         walker.localModel[3] = true;
-        assertTrue(walker.getLocalTruthValue(wc1));  // or
-        assertTrue(walker.getLocalTruthValue(wc2));  // atleast 2
-        assertTrue(walker.getLocalTruthValue(wc3));  // atmost 2
-        assertTrue(walker.getLocalTruthValue(wc4));  // exactly 2
-
-        walker.localModel[2] = true;
-        assertTrue(walker.getLocalTruthValue(wc1));  // or
-        assertFalse(walker.getLocalTruthValue(wc2));  // atleast 2
-        assertTrue(walker.getLocalTruthValue(wc3));  // atmost 2
-        assertFalse(walker.getLocalTruthValue(wc4));  // exactly 2
-
-        walker.localModel[1] = true; // 1, -2, 3
-        assertTrue(walker.getLocalTruthValue(wc1));  // or
-        assertTrue(walker.getLocalTruthValue(wc2));  // atleast 2
-        assertTrue(walker.getLocalTruthValue(wc3));  // atmost 2
-        assertTrue(walker.getLocalTruthValue(wc4));  // exactly 2
+        assertFalse(walker.getLocalTruthValue(c2));
     }
-/*
+
     @Test
-    public void getGlobalTruthValue1() throws Unsatisfiable {
-        System.out.println("getGlobalTruthValue 1");
+    public void initializeModel() {
+        System.out.println("initializeModel");
         Walker walker = prepare(5, true, null);
-        Model model = walker.model;
-        Clause c1 = make(1, or, 1, 1, 2, 3);
-        WClause wc1 = walker.addClause(c1);
-        Clause c2 = make(2, al, 2, 1, 2, 3);
-        WClause wc2 = walker.addClause(c2);
-        Clause c3 = make(3, am, 2, 1, 2, 3);
-        WClause wc3 = walker.addClause(c3);
-        Clause c4 = make(4, ex, 2, 1, 2, 3);
-        WClause wc4 = walker.addClause(c4);
+        walker.addClause(make(1, or, 1, -2, 3,-4,-5));
+        walker.initializeModel();
+        assertEquals("1,3,",walker.localModelToString(null));
 
-        assertFalse(walker.getGlobalTruthValue(wc1));  // or
-        assertFalse(walker.getGlobalTruthValue(wc2));  // atleast 2
-        assertFalse(walker.getGlobalTruthValue(wc3));  // atmost 2
-        assertFalse(walker.getGlobalTruthValue(wc4));  // exactly 2
-
-        model.addImmediately(3);
-        assertTrue(walker.getGlobalTruthValue(wc1));  // or
-        assertFalse(walker.getGlobalTruthValue(wc2));  // atleast 2
-        assertTrue(walker.getGlobalTruthValue(wc3));  // atmost 2
-        assertFalse(walker.getGlobalTruthValue(wc4));  // exactly 2
-
-        model.addImmediately(2);
-        assertTrue(walker.getGlobalTruthValue(wc1));  // or
-        assertTrue(walker.getGlobalTruthValue(wc2));  // atleast 2
-        assertTrue(walker.getGlobalTruthValue(wc3));  // atmost 2
-        assertTrue(walker.getGlobalTruthValue(wc4));  // exactly 2
-
-
-        model.addImmediately(1);
-        assertTrue(walker.getGlobalTruthValue(wc1));  // or
-        assertTrue(walker.getGlobalTruthValue(wc2));  // atleast 2
-        try {walker.getGlobalTruthValue(wc3);
-            assertTrue(false);}  // atmost 2
-        catch(Unsatisfiable uns) {
-            System.out.println(uns);}
-
-        try {walker.getGlobalTruthValue(wc4);
-            assertTrue(false);}  // exactly 2
-        catch(Unsatisfiable uns) {
-            System.out.println(uns);} // exactly 2
-
-        Clause c5 = make(5, ex, 2, 1, -2, -3);
-        WClause wc5 = walker.addClause(c5);
-        try {walker.getGlobalTruthValue(wc5);
-            assertTrue(false);}  // exactly 2
-        catch(Unsatisfiable uns) {
-            System.out.println(uns);} // exactly 2
-
+        walker = prepare(5, true, null);
+        Clause c1 = make(2, iv, 2, 3 , 1,2, 3,-4,-5);
+        WClause w1 = walker.addClause(c1);
+        walker.initializeModel();
+        assertFalse(w1.isLocallyTrue);
+        assertEquals("1,2,3,",walker.localModelToString(null));
+        Clause c2 = make(3, iv, 3, 5 , 1,2, 3,-4,-5);
+        WClause w2 = walker.addClause(c2);
+        walker.initializeModel();
+        assertEquals("1,2,3,",walker.localModelToString(null));
+        assertFalse(w1.isLocallyTrue);
+        assertTrue(w2.isLocallyTrue);
     }
-*/
-    @Test
-    public void intializeModel() {
-        System.out.println("intializeModel");
-        Walker walker = prepare(10, true, null);
-        Clause c1 = make(1, or, 1, 1, -2, 3);
-        WClause wc1 = walker.addClause(c1);
-        walker.initializeModel();
-        assertEquals("1,3,4,5,6,7,8,9,10,",walker.localModelToString(null));
-        assertTrue(wc1.isLocallyTrue);
-        assertFalse(wc1.isGloballyTrue);
-        assertEquals(0,walker.falseClauses);
-
-        Clause c2 = make(2, am, 1, 4,5);
-        WClause wc2 = walker.addClause(c2);
-        walker.initializeModel();
-        assertEquals("1,3,6,7,8,9,10,",walker.localModelToString(null));
-        assertTrue(wc2.isLocallyTrue);
-        assertFalse(wc2.isGloballyTrue);
-        assertEquals(0,walker.falseClauses);
-
-        Clause c3 = make(3, al, 2, -4,-5,6);
-        WClause wc3 = walker.addClause(c3);
-        walker.initializeModel();
-        assertEquals("1,3,6,7,8,9,10,",walker.localModelToString(null));
-        }
 
     @Test
-    public void setInitialFlipScores() {
-        System.out.println("setInitialFlipScores");
-        Walker walker = prepare(10, true, null);
-        Clause c1 = make(1, or, 1, 1, 2, 3);
-        WClause wc1 = walker.addClause(c1);
-        walker.localModel[1] = true;
-        walker.setInitialTruthValue(wc1);
-        assertTrue(wc1.isLocallyTrue);
-        walker.setInitialFlipScores(wc1);
+    public void initializeModel1() {
+        System.out.println("initializeModel 1");
+        Walker walker = prepare(5, true, null);
+        walker.addClause(make(1, or, 1,2));
+        walker.addClause(make(2, or, 1,-2));
+        walker.addClause(make(3, or, -1,2));
+        walker.initializeModel();
+        assertEquals("1,2,3,4,5",walker.localModelToString(null));
+        assertEquals(0,walker.falseClauses);
+    }
+
+    @Test
+    public void initializeModel2() {
+        System.out.println("initializeModel 2");
+        Walker walker = prepare(5, true, null);
+        walker.addClause(make(1, or, 1,2,3));
+        //walker.addClause(make(2, or, 1,2,-3));
+        walker.addClause(make(3, or, 1,-2,3));
+        walker.addClause(make(4, or, 1,-2,-3));
+        walker.addClause(make(5, or, -1,2,3));
+        walker.addClause(make(6, or, -1,2,-3));
+        walker.addClause(make(7, or, -1,-2,3));
+        walker.addClause(make(8, or, -1,-2,-3));
+        walker.initializeModel();
+        //System.out.println(walker.toString());
+        assertEquals("3,4,5,",walker.localModelToString(null));
+        assertEquals(0,walker.falseClauses);
+    }
+
+    @Test
+    public void updateFlipScores() {
+        System.out.println("updateFlipScores");
+        Walker walker = prepare(5, true, null);
+        WClause w1 = walker.addClause(make(1, or, 1,2,3));
+        walker.updateFlipScores(w1,1);
         assertEquals("Integer Queue:  item: score\n" +
-                "0:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0, 1:-1, ",walker.flipScoresToString());
+                "1:1.0, 2:1.0, 3:1.0, 4:0.0, 5:0.0, 0:-2.14748365E9, ",walker.flipScoresToString());
 
+        walker = prepare(5, true, null);
+        w1 = walker.addClause(make(2, iv, 2,2,1,2,3));
+        walker.updateFlipScores(w1,1);
+        assertEquals("Integer Queue:  item: score\n" +
+                "1:0.5, 2:0.5, 3:0.5, 4:0.0, 5:0.0, 0:-2.14748365E9, ",walker.flipScoresToString());
+
+        walker = prepare(5, true, null);
+        w1 = walker.addClause(make(3, iv, 2,2,1,2,3,4,5));
+        walker.localModel[2] = true;
+        w1.isLocallyTrue=true;
+        walker.updateFlipScores(w1,1);
+        assertEquals("Integer Queue:  item: score\n" +
+                "1:-1.0, 2:-1.0, 3:-1.0, 4:-1.0, 5:-1.0, 0:-2.14748365E9, ",walker.flipScoresToString());
+
+        walker = prepare(5, true, null);
+        w1 = walker.addClause(make(3, iv, 2,3, 1,2,3,4,5));
+        walker.localModel[2] = true;
+        walker.localModel[3] = true;
+        walker.localModel[4] = true;
+        w1.isLocallyTrue=true;
+        walker.updateFlipScores(w1,1);
+        assertEquals("Integer Queue:  item: score\n" +
+                "2:0.0, 3:0.0, 4:0.0, 1:-1.0, 5:-1.0, 0:-2.14748365E9, ",walker.flipScoresToString());
+
+        walker = prepare(5, true, null);
+        w1 = walker.addClause(make(3, iv, 3,4, 1,2,3,4,5));
+        walker.localModel[2] = true;
+        walker.localModel[3] = true;
+        walker.updateFlipScores(w1,1);
+        assertEquals("Integer Queue:  item: score\n" +
+                "1:1.0, 4:1.0, 5:1.0, 3:-1.0, 2:-1.0, 0:-2.14748365E9, ",walker.flipScoresToString());
     }
+
+    
 
     }
