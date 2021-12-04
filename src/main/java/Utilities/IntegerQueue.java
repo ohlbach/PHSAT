@@ -20,13 +20,15 @@ public class IntegerQueue {
     private final int size;
 
     /** the score for each item */
-    private final float[] scores;
+    public final float[] scores;
 
     /** the priority queue, i.e. queue[0] is the item with the top score */
     private final int[] queue;
 
     /** indicates that the queue is sorted */
     private boolean sorted = false;
+
+    public Random random = new Random(0);
 
     /** generates a new (empty) priority queue of int-values
      *
@@ -37,6 +39,7 @@ public class IntegerQueue {
         ++size;
         scores    = new float[size];
         queue     = new int[size];
+        selected  = new short[size];
     }
 
     /** sets the score for the given item
@@ -71,7 +74,26 @@ public class IntegerQueue {
      */
     public int topScore() {
         if(!sorted) sort();
-        return queue[0];}
+
+        int scoreLimit = topScoreLimit(0);
+        if(scoreLimit > 2) {
+            int counter = 0;
+            while(++counter < scoreLimit) {
+                int item = queue[random.nextInt(scoreLimit)];
+                if(item == oldItem || item == oldoldItem) {continue;}
+                else {
+                    oldoldItem = oldItem;
+                    oldItem = item;
+                    return item;}}}
+
+        int item = 0;
+        for(int i = 0; i < queue.length; ++i) {
+            item = queue[i];
+            if(item == oldItem || item == oldoldItem) {continue;}
+            break;}
+        oldoldItem = oldItem;
+        oldItem = item;
+        return item;}
 
     /** returns the item with the nth largest score
      *
@@ -95,6 +117,42 @@ public class IntegerQueue {
                     return 1;}));
         sorted = true;}
 
+    public int oldItem = 0;
+    public int oldoldItem = 0;
+    short[] selected;
+
+    public int getTopItem(int threshold) {
+        if(!sorted) sort();
+        int startIndex = 0;
+        int scoreLimit = topScoreLimit(startIndex);
+        int item = 0;
+        try{
+        while(scoreLimit < queue.length) {
+            int counter = 0;
+            while(++counter <= scoreLimit-startIndex) {
+                item = queue[startIndex + random.nextInt(scoreLimit-startIndex)];
+                if(item == oldItem || item == oldoldItem) {continue;}
+                int flips = selected[item];
+                //System.out.println("S " + item + " " + counter + " " +startIndex + " " + scoreLimit + " " + flips);
+                if(flips >= 0) {
+                    if(flips == threshold) {selected[item] = -1; continue;}
+                    else {++selected[item]; return item;}}
+                if(flips == -threshold) {selected[item] = +1; return item;}
+                else {--selected[item]; continue;}}
+            startIndex = scoreLimit;
+            scoreLimit = topScoreLimit(startIndex);}}
+        finally {oldoldItem = oldItem; oldItem = item;}
+        return queue[0];}
+
+    private int selectInTopScore() {
+        int counter = 0;
+        int scoreLimit = topScoreLimit(0);
+        while(++counter < scoreLimit) {
+            int item = queue[random.nextInt(scoreLimit)];
+            if(item == oldItem || item == oldoldItem) continue;
+            return item;}
+        return 0;}
+
 
     /** gets an item with positive score in the queue which is defined by a random generator.
      * If exponent = 1, the chance is equal for every item<br>
@@ -105,27 +163,26 @@ public class IntegerQueue {
      * @param exponent for influencing the chances for items with higher score.
      * @return an item, according to the random process.
      */
-    public int getRandom(Random random, int exponent) {
+    public int getRandom(Random random, int exponent, int jumpDistance) {
         if(!sorted) sort();
-        int limit = lastPositive();
+        int limit = size*jumpDistance/100;
         if(limit == 0) {return queue[0];}
         for(int i = 0; i < exponent; ++i) {
             limit = random.nextInt(limit);
             if(limit == 0) {return queue[0];}}
         return queue[limit];}
 
-    /** gets the last item with a positive score
+    /** returns the first index of the queue, whose score is different to the top score.
      *
-     * @return the last item with a positive score
+     * @return the first index of the queue, whose score is different to the top score.
      */
-    public int lastPositive() {
-        int last = size;
-        if(scores[queue[last]] > 0) {return size;}
-        int half = last/2;
-        while(last-half > 1) {
-            if(scores[queue[half]] > 0 ) { half += (last-half)/2;}
-            else {last = half; half /=2;}}
-        return half;}
+    private int topScoreLimit(int startIndex) {
+        float topScore = scores[queue[startIndex]];
+        int length = queue.length;
+        for(int i = startIndex+1; i < length; ++i) {
+            float score = scores[queue[i]];
+            if(score != topScore) return i;}
+        return length+1;}
 
     /** turns the data into a string
      *
