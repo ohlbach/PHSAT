@@ -286,7 +286,7 @@ public class WalkerTest {
     @Test
     public void random() {
         System.out.println("random");
-        int predicates = 1500;
+        int predicates = 50;
         float cpRatio = (float)4;
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
@@ -295,18 +295,19 @@ public class WalkerTest {
         pars.put("predicates", ""+predicates);
         pars.put("lengths", "3");
         pars.put("cpRatios", ""+cpRatio);
-        pars.put("seeds", "3");
+        pars.put("seeds", "5");
         ArrayList<HashMap<String, Object>> parameters = RandomClauseSetGenerator.parseParameters(pars,errors,warnings);
         //System.out.println(parameters.get(0));
         BasicClauseList bcl = RandomClauseSetGenerator.generate(parameters.get(0), walker.problemSupervisor, errors, warnings);
         //System.out.println(bcl.toString());
         add2Walker(walker,bcl);
-       walker.print = true;
+        walker.print = true;
         walker.threshold = 4;
         walker.blocked = false;
         walker.jumpDistance = 40;
-        walker.jumpFrequency = 9;
+        walker.jumpFrequency = 10;
         walker.exponent = 3;
+        walker.maxFlips = 70;
         //System.out.println(walker.toString());
         Satisfiable result = (Satisfiable)walker.solve();
         System.out.println(result.model);

@@ -20,6 +20,8 @@ public class WClause {
     protected boolean isLocallyTrue  = false;  // truth in the local model
     protected boolean hasDoubles     = false;  // indicates that there are multiple occurrences in the literals
     protected int[] multiplicities;            // maps literal positions to the number of literal occurrences
+    protected int loopCounter = -1;
+    public int position = -1;
 
     /** copies a clause to the WClause-type
      *
@@ -67,6 +69,9 @@ public class WClause {
         if(multiplicities == null) return 1;
         return multiplicities[position];}
 
+    public int nextLiteral() {
+        return literals[++loopCounter % literals.length];}
+
 
     /** generates a string: clause-id: literals GT LT  (for Globally True and Locally True)
      *
@@ -87,7 +92,7 @@ public class WClause {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+(width+ connective.prefix.length())+"s", connective.prefix+id+":");}
         else st.append(connective.prefix+id+": ");
-        st.append(min + "-" + max + ": ");
+        if(connective != Connective.OR) st.append(min + "-" + max + ": ");
         int size = literals.length;
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(literals[position],symboltable));

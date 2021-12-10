@@ -2,6 +2,7 @@ package Utilities;
 
 
 import it.unimi.dsi.fastutil.ints.IntArrays;
+import sun.text.resources.CollationData;
 
 import java.util.Random;
 
@@ -68,10 +69,18 @@ public class IntegerQueue {
     public float getScore(int item) {
         return scores[item];}
 
-    /** returns the item with the larges score
-     *
-     * @return the item with the largest score.
-     */
+    public int topScore1() {
+        if(!sorted) sort();
+        int item = topScoreBasic();
+        if(item == oldItem || item == oldoldItem) {
+            for(int i = 0; i < queue.length; ++i) {
+                item = queue[i];
+                if(item != oldItem && item != oldoldItem) break;}}
+        //System.out.println("IT " + item + " " + oldItem + " " + oldoldItem);
+        oldoldItem = oldItem;
+        oldItem = item;
+        return item;}
+
     public int topScore() {
         if(!sorted) sort();
 
@@ -94,6 +103,20 @@ public class IntegerQueue {
         oldoldItem = oldItem;
         oldItem = item;
         return item;}
+
+    int topScoreCounter = 0;
+    /** returns the item with the larges score
+     *
+     * @return the item with the largest score.
+     */
+    public int topScoreBasic() {
+        int predicate0 = queue[0];
+        float score0 = scores[predicate0];
+        int predicate1 = queue[++topScoreCounter];
+        float score1 = scores[predicate1];
+        if(score1 == score0) {return predicate1;}
+        topScoreCounter = 0;
+        return predicate0;}
 
     /** returns the item with the nth largest score
      *
@@ -166,11 +189,15 @@ public class IntegerQueue {
     public int getRandom(Random random, int exponent, int jumpDistance) {
         if(!sorted) sort();
         int limit = size*jumpDistance/100;
-        if(limit == 0) {return queue[0];}
-        for(int i = 0; i < exponent; ++i) {
-            limit = random.nextInt(limit);
-            if(limit == 0) {return queue[0];}}
-        return queue[limit];}
+        int item = 0;
+        if(limit == 0) {item = queue[0];}
+        else {
+            for(int i = 0; i < exponent; ++i) {
+                limit = random.nextInt(limit);
+                if(limit == 0) {item = queue[0]; break;}}}
+        if(item == 0) item = queue[limit];
+        //oldoldItem = oldItem; oldItem = item;
+        return item;}
 
     /** returns the first index of the queue, whose score is different to the top score.
      *

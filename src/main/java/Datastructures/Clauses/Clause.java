@@ -2,20 +2,20 @@ package Datastructures.Clauses;
 
 
 import Datastructures.Literals.CLiteral;
-import Datastructures.Results.Aborted;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import InferenceSteps.Input;
-import Utilities.Interval;
 import Utilities.Positioned;
 import Utilities.Sizable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import java.util.*;
-import java.util.function.BinaryOperator;
+
+import java.util.ArrayList;
+import java.util.Formatter;
+import java.util.Iterator;
+import java.util.Locale;
 import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 
-import static Utilities.Utilities.makeClause;
 import static Utilities.Utilities.sortIntArray;
 
 /** A clause is just a list of CLiterals.
@@ -24,149 +24,134 @@ import static Utilities.Utilities.sortIntArray;
  * Created by ohlbach on 13.09.2018.
  */
 public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
-    /**
-     * for identifying the clause
-     */
+    /** for identifying the clause*/
     public int id;
-    /**
-     * the connective
-     */
+
+    /** the connective */
     public Connective connective;
-    /**
-     * the quantification interval
-     */
-    public Interval interval;
-    /**
-     * the literals
-     */
+
+    /** the quantification limit */
+    public int limit = 0;
+
+    /** the literals */
     public ArrayList<CLiteral> cliterals;
-    /**
-     * indicates that the clause has been removed
-     */
+
+    /** indicates that the clause has been removed */
     public boolean removed = false;
-    /**
-     * for sorting clauses, for example in a listPosition queue
-     */
+
+    /** for sorting clauses, for example in a listPosition queue */
     public int listPosition = -1;
-    /**
-     * positive, negative or mixed
-     */
+
+    /** positive, negative or mixed */
     public ClauseStructure structure = null;
-    /**
-     * a timestamp to be used by corresponding algorithms
-     */
+
+    /** a timestamp to be used by corresponding algorithms */
     public int timestamp = 0;
-    /**
-     * some auxiliary pointer
-     */
+
+    /** some auxiliary pointer */
     public Object aux = null;
-    /**
-     * the reason for deriving the clause
-     */
+
+    /** the reason for deriving the clause */
     public InferenceStep inferenceStep;
 
-    /**
-     * constructs a new clause
+    /** constructs a new clause
      *
-     * @param id its identifier
-     */
+     * @param id its identifier */
     public Clause(int id) {
         this.id = id;
         cliterals = new ArrayList<>();
         inferenceStep = new Input(id);
     }
 
-    /**
-     * constructs a clause
+    /** constructs a clause with an empty list of literals.
      *
      * @param id       the clause problemId
-     * @param interval the clause's interval
+     * @param limit    the quantification limit
      * @param size     the estimated number of literals
      */
-    public Clause(int id, Connective connective, Interval interval, int size) {
+    public Clause(int id, Connective connective, int limit, int size) {
         this.id = id;
         this.connective = connective;
-        this.interval = interval;
+        this.limit = limit;
         cliterals = new ArrayList<>(size);
         inferenceStep = new Input(id);
     }
 
-    /**
-     * constructs a new clause with given literals
+    /** constructs a new clause with given literals
      *
      * @param id       the id of the new clause
-     * @param interval the clause's interval
+     * @param limit    the quantification limit
      * @param literals the list of literals
      */
-    public Clause(int id, Connective connective, Interval interval, IntArrayList literals) {
+    public Clause(int id, Connective connective, int limit, IntArrayList literals) {
         this.id = id;
         this.connective = connective;
-        this.interval = interval;
+        this.limit = limit;
         cliterals = new ArrayList<>(literals.size());
         for (int i = 0; i < literals.size(); ++i) {
-            cliterals.add(new CLiteral(literals.getInt(i), this, i));
-        }
+            cliterals.add(new CLiteral(literals.getInt(i), this, i));}
         inferenceStep = new Input(id);
-        setConnective();
         setStructure();
     }
 
 
-    /**
-     * generates a clause from a basicClause
-     * The new clause gets the same id as the basic clause
+    /** generates a clause from a basicClause
+     * The constructor does not work for INTERVAL-type basic clauses.<br>
+     * The new clause gets the same id as the basic clause.<br>
+     * There is no semantic check.<br>
+     * That means the limits must be okay (checked in BasicClauseList),<br>
+     * and there msy still be multiple literals and tautologies in the clause.<br>
+     * The limit of clauses where there is no limit (AND, EQUIV) is set to -1 <br>
+     * Atmost-clauses like atmost 2 p,q,r are transformed into atleast 1 -p,-q,-r.<br>
+     * Atleast-clauses like atleast 3 p,q,r are transformed into and p,q,r<br>
+     * If the limit of ATLEAST-clauses is 1,the connective is set to OR.
+     * The clause's structure is set to POSITIVE,NEGATIVE or MIXED.
      *
-     * @param basicClause a basic clause [id,typenumber, [start,end], literal1,...]
-     * @throws Aborted if the clause type is unknown.
+     * @param basicClause a basic clause [id,typenumber, limit, literal1,...]
      */
     public Clause(int[] basicClause) {
         connective = Connective.getType(basicClause[1]);
+        assert(connective != null);
+
         id = basicClause[0];
         int length = basicClause.length;
         int start = 2;
         switch (connective) {
-            case OR:
-                interval = new Interval(1, length - start);
-                break;
+            case OR:      limit = 1; break;
             case AND:
-                interval = null;
-                break;
-            case EQUIV:
-                interval = null;
-                break;
-            case INTERVAL:
-                start = 4;
-                interval = new Interval(basicClause[2], basicClause[3]);
-                break;
-            case ATLEAST:
-                start = 3;
-                interval = new Interval(basicClause[2], length - start);
-                break;
-            case ATMOST:
-                start = 3;
-                interval = new Interval(0, basicClause[2]);
-                break;
-            case EXACTLY:
-                start = 3;
-                interval = new Interval(basicClause[2], basicClause[2]);
-                break;
-        }
+            case EQUIV:   limit = -1; break; // there is no limit
+            case ATLEAST: start = 3; limit = basicClause[2]; break;
+            case ATMOST:  start = 3; limit = basicClause.length - 3  - basicClause[2]; break;
+            default: assert(false);} // should not happen.
+
         cliterals = new ArrayList<>(length - start);
         for (int i = start; i < length; ++i) {
             int literal = basicClause[i];
-            cliterals.add(new CLiteral(literal, this, cliterals.size()));
-        }
+            if(connective == Connective.ATMOST) literal = -literal; // transformation to atleast
+            cliterals.add(new CLiteral(literal, this, cliterals.size()));}
+
+        if(connective == Connective.ATMOST) connective = Connective.ATLEAST;
+        if(connective == Connective.ATLEAST && limit == 1) connective = Connective.OR;
+        if(connective == Connective.ATLEAST && limit == cliterals.size()) {
+            connective = Connective.AND; limit = -1;}
         inferenceStep = new Input(id);
-        setConnective();
         setStructure();
     }
 
-    /**
-     * creates a new clause with the given literals
+    /** creates a new clause with the given literals
+     * The constructor does not work for INTERVAL-type basic clauses.<br>
+     * There is no semantic check.<br>
+     * That means the limits must be okay (checked in BasicClauseList),<br>
+     * and there msy still be multiple literals and tautologies in the clause.<br>
+     * The limit of clauses where there is no limit (AND, EQUIV) is set to -1 <br>
+     * Atmost-clauses like atmost 2 p,q,r are transformed into atleast 1 -p,-q,-r.<br>
+     * Atleast-clauses like atleast 3 p,q,r are transformed into and p,q,r<br>
+     * If the limit of ATLEAST-clauses is 1,the connective is set to OR.
+     * The clause's structure is set to POSITIVE,NEGATIVE or MIXED.
      *
      * @param id         the new id
-     * @param connective the clause's type
-     * @param literals   [quantifier] a list of literals
+     * @param connective the clause's type (no INTERVAL-type)
+     * @param literals   [limit] a list of literals
      */
     public Clause(int id, Connective connective, int... literals) {
         this.id = id;
@@ -174,175 +159,79 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         int start = 0;
         int length = literals.length;
         switch (connective) {
-            case OR:
-                interval = new Interval(1, length);
-                break;
+            case OR:      limit = 1; break;
             case AND:
-                interval = null;
-                break;
-            case EQUIV:
-                interval = null;
-                break;
-            case INTERVAL:
-                start = 2;
-                interval = new Interval(literals[0], literals[1]);
-                break;
-            case ATLEAST:
-                start = 1;
-                interval = new Interval(literals[0], length - start);
-                break;
+            case EQUIV:   limit = -1;break;
+            case ATLEAST: limit = literals[0];  start = 1;break;
             case ATMOST:
                 start = 1;
-                interval = new Interval(0, literals[0]);
+                limit = length - 1 - literals[0];
+                for(int i = 1; i < literals.length; ++i) literals[i] *= -1;
                 break;
-            case EXACTLY:
-                start = 1;
-                interval = new Interval(literals[0], literals[0]);
-                break;
-        }
-
+            default: assert(false);} // should not happen
         cliterals = new ArrayList<>(literals.length);
-        for (int i = start; i < literals.length; ++i) {
-            cliterals.add(new CLiteral(literals[i], this, i - start));
-        }
+        for (int i = start; i < length; ++i) {
+            cliterals.add(new CLiteral(literals[i], this, i - start));}
+
+        if(this.connective == Connective.ATMOST) this.connective = Connective.ATLEAST;
+        if(this.connective == Connective.ATLEAST && limit == 1) this.connective = Connective.OR;
+        if(this.connective == Connective.ATLEAST && limit == cliterals.size()) {
+            this.connective = Connective.AND; limit = -1;}
         inferenceStep = new Input(id);
-        setConnective();
-        setStructure();
-    }
+        setStructure();}
 
-    /**
-     * determines the connective that corresponds to the interval and changes it to the correct value.
-     * A clause exactly 0 l1...ln is changed to and -l1...-ln
-     */
-    public void setConnective() {
-        if (connective == Connective.AND) {
-            interval = null;
-            return;}
-        if (connective == Connective.OR) {
-            if (cliterals.size() == 1) {
-                interval = null;
-                connective = Connective.AND;}
-            return;}
-
-        if (interval == null) return;
-        interval.max = Math.min(interval.max, size());
-        connective = detConnective();
-        if (connective == Connective.AND) {
-            interval = null;
-            return;
-        }
-        if (connective == Connective.OR) {
-            interval = null;
-            if (cliterals.size() == 1) {
-                connective = Connective.AND;
-            }
-        }
-        if (connective == Connective.EXACTLY && interval.min == 0) {
-            for (CLiteral cLiteral : cliterals) {
-                cLiteral.literal *= -1;
-            }
-            connective = Connective.AND;
-            interval = null;
-        }
-    }
-
-    /**
-     * determines the connective from the size of the interval and the size of the literals
+    /** Transforms an INTERVAL-clause into (usually) two ATLEAST-clauses.
+     * Example: [2,4] p,q,r,s,t -> atleast 2 p,q,r,s,t and atleast 1 -p,-q,-r,-s,-t<br>
+     * Special cases are [0,m] p,... (actuall atmost m p,...) <br>
+     * and [n,k] p_1,..,p_k  (actually atleast n p_1,...) <br>
+     * They generate only one clause.
      *
-     * @return the corresponding connective.
+     * @param nextInt     for determinining the clause id
+     * @param basicClause a basic interval-clause
+     * @return            one or two new clauses
      */
-    public Connective detConnective() {
-        if (interval == null || connective == Connective.OR) return connective;
-        int min = interval.min;
-        int max = interval.max;
-        int length = cliterals.size();
-        if (min == 1 && max == length) return Connective.OR;
-        if (min == max && max == length && length > 0) return Connective.AND;
-        if (min == max) return Connective.EXACTLY;
-        if (max == length) return Connective.ATLEAST;
-        if (min == 0) return Connective.ATMOST;
-        return connective;
-    }
+    public ArrayList<Clause> intervalClause(IntSupplier nextInt, int[] basicClause) {
+        connective = Connective.getType(basicClause[1]);
+        assert(connective != Connective.INTERVAL);
+        ArrayList<Clause> clauses = new ArrayList<>();
+        int min = basicClause[2];
+        int max = basicClause[3];
+        int length = basicClause.length - 3;
+        int[] literals = new int[length+1];
+        System.arraycopy(basicClause, 4, literals, 1, basicClause.length - 4);
 
-    /**
-     * creates a clone of the clause.
+        if(min == 0) {
+            literals[0] = max;
+            clauses.add(new Clause(nextInt.getAsInt(),Connective.ATMOST,literals));
+            return clauses;}
+
+        if(max == length) {
+            literals[0] = min;
+            clauses.add(new Clause(nextInt.getAsInt(),Connective.ATLEAST,literals));
+            return clauses;}
+
+        literals[0] = min;
+        clauses.add(new Clause(nextInt.getAsInt(),Connective.ATLEAST,literals));
+
+        literals[0] = max;
+        clauses.add(new Clause(nextInt.getAsInt(),Connective.ATMOST,literals));
+        return clauses;}
+
+
+    /** creates a clone of the clause.
      * Only the literals themselves are cloned
      *
      * @param id the identifier for the new clone
      * @return the new clone
      */
     public Clause clone(int id) {
-        Interval intv = interval == null ? null : interval.clone();
-        Clause clause = new Clause(id, connective, intv, cliterals.size());
-        for (CLiteral cLiteral : cliterals) {
-            clause.add(cLiteral.literal);
-        }
+        Clause clause = new Clause(id, connective, limit, cliterals.size());
+        for (CLiteral cLiteral : cliterals) {clause.add(cLiteral.literal);}
         clause.structure = structure;
-        return clause;
-    }
+        return clause;}
 
-    /**
-     * creates a clone of the clause.
-     * Only the literals themselves are cloned
-     *
-     * @param id             the identifier for the new clone
-     * @param ignorePosition the position of a literal to be ignored
-     * @param truth          if true then the interval is reduced as if removing a true literal, otherwise a false literal
-     * @return the new clone
-     */
-    public Clause clone(int id, int ignorePosition, boolean truth) {
-        Clause clause = new Clause(id, connective, interval.clone(), cliterals.size() - 1);
-        for (int i = 0; i < size(); ++i) {
-            if (i != ignorePosition) {
-                clause.add(getLiteral(i));
-            }
-        }
-        clause.decrementInterval(truth, 1);
-        setConnective();
-        return clause;
-    }
 
-    /**
-     * decrements the interval in case a literal is removed.
-     *
-     * @param truth   true if a true literal is removed, false if a false literal is removed
-     * @param removed the number of removed occurrences of the literal
-     */
-    private void decrementInterval(boolean truth, int removed) {
-        for (int i = 0; i < removed; ++i) {
-            if (truth) {
-                interval.decrement();
-            } else {
-                interval.max = Math.min(interval.max, cliterals.size());
-            }
-        }
-    }
-
-    /**
-     * clones the clause except the given literal
-     *
-     * @param id            a new id of the clause
-     * @param ignoreLiteral a literal to be ignored
-     * @return the cloned clause
-     */
-    public Clause cloneExcept(int id, int ignoreLiteral, boolean truth) {
-        Clause clause = new Clause(id, connective, interval.clone(), cliterals.size() - 1);
-        int removed = 0;
-        for (int i = 0; i < size(); ++i) {
-            int literal = getLiteral(i);
-            if (literal == ignoreLiteral) {
-                ++removed;
-                continue;
-            }
-            clause.add(literal);
-        }
-        clause.decrementInterval(truth, removed);
-        clause.setConnective();
-        return clause;
-    }
-
-    /**
-     * copies the literals of the clause to an IntArrayList
+    /** copies the literals of the clause to an IntArrayList
      *
      * @return the literals as IntArrayList
      */
@@ -352,124 +241,101 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         return list;
     }
 
-    /**
-     * determines the clause's structure: if the clause is positive, negative or mixed
+    /** determines for an ATLEAST- or OR-clause the clause's structure:
+     * If the limit is too large: CONTRADICTORY<br>
+     * It the limit is 0: TAUTOLOGY,<br>
+     * otherwise if the clause has only positive literals (POSITIVE) or only negative literals (NEGATIVE)
+     * or mixed signs (MIXED)
      *
      * @return the corresponding value for the structure.
      */
     public ClauseStructure detStructure() {
-        if(interval != null) {
-            int min = interval.min;
-            int max = interval.max;
-            if(min < 0 || max < 0 || max < min || min > cliterals.size()) {
-                return ClauseStructure.CONTRADICTORY;}
-            if(interval.min == 0 && interval.max == cliterals.size()) {
-                return ClauseStructure.TAUTOLOGY;}}
+        assert(connective == Connective.OR || connective == Connective.ATLEAST);
+        if(limit > cliterals.size()) return ClauseStructure.CONTRADICTORY;
+        if(limit == 0) return ClauseStructure.TAUTOLOGY;
+        if(limit == cliterals.size()) {connective = Connective.AND; return structure;}
         int positive = 0;
         int negative = 0;
         for (CLiteral cLiteral : cliterals) {
             if (cLiteral.literal > 0) {++positive;}
             else {++negative;}}
-        ClauseStructure structure = ClauseStructure.MIXED;
-        if (positive == 0) {structure = ClauseStructure.NEGATIVE;}
-        else {if (negative == 0) {structure = ClauseStructure.POSITIVE;}}
-        return structure;}
+        if (positive == 0) {return ClauseStructure.NEGATIVE;}
+        if (negative == 0) {return ClauseStructure.POSITIVE;}
+        return ClauseStructure.MIXED;}
 
-    /**
-     * computes and sets the structure of the clause
-     */
+    /** computes and sets the structure of the clause */
     public void setStructure() {
         structure = detStructure();}
 
-    /**
-     * returns the list position, or -1
+    /** returns the list position, or -1
      *
-     * @return the list position, or -1
-     */
+     * @return the list position, or -1 */
     public int getPosition() {
         return listPosition;
     }
 
-    /**
-     * sets the list position
+    /** sets the list position
      *
-     * @param position a position within a list.
-     */
+     * @param position a position within a list. */
     public void setPosition(int position) {
         listPosition = position;
     }
 
-    /**
-     * return the current number of literals
+    /** return the current number of literals
      *
-     * @return the current number of literals
-     */
+     * @return the current number of literals */
     public int size() {
         return cliterals.size();
     }
 
-    /**
-     * checks if the clause is empty
+    /** checks if the clause is empty
      *
-     * @return true if the clause is empty.
-     */
+     * @return true if the clause is empty. */
     public boolean isEmpty() {
         return cliterals.isEmpty();
     }
 
-    /**
-     * checks if the clause has only positive literals
+    /** checks if the clause has only positive literals
      *
-     * @return true if the clause has only positive literals
-     */
+     * @return true if the clause has only positive literals */
     public boolean isPositive() {
         return structure == ClauseStructure.POSITIVE;
     }
 
-    /**
-     * checks if the clause has only negative literals
+    /** checks if the clause has only negative literals
      *
-     * @return true if the clause has only negative literals.
-     */
+     * @return true if the clause has only negative literals. */
     public boolean isNegative() {
         return structure == ClauseStructure.NEGATIVE;
     }
 
-    /**
-     * gets the literal at the given clausePosition
+    /** gets the literal at the given clausePosition
      *
      * @param position a literal clausePosition
-     * @return the cliteral at that clausePosition.
-     */
+     * @return the cliteral at that clausePosition. */
     public CLiteral getCLiteral(int position) {
         assert position >= 0 && position < cliterals.size();
         return cliterals.get(position);
     }
 
-    /**
-     * gets the literal at the given clausePosition
+    /** gets the literal at the given clausePosition
      *
      * @param position a literal clausePosition
-     * @return the literal at that clausePosition.
-     */
+     * @return the literal at that clausePosition.*/
     public int getLiteral(int position) {
         assert position >= 0 && position < cliterals.size();
         return cliterals.get(position).literal;}
 
-    /**
-     * converts the cLiterals into an array of integers
+    /** converts the cLiterals into an array of integers
      *
-     * @return the literals as integers.
-     */
+     * @return the literals as integers. */
     public int[] getLiterals() {
         int size = cliterals.size();
         int[] literals = new int[size];
-        for (int i = 0; i < size; ++i) {
-            literals[i] = cliterals.get(i).literal;}
+        for (int i = 0; i < size; ++i) {literals[i] = cliterals.get(i).literal;}
         return literals;}
 
-    /**
-     * checks if the literal is in the clause
+    /** checks if the literal is in the clause
      *
      * @param literal a literal
      * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
@@ -477,8 +343,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public int contains(int literal) {
         return contains(literal, cliterals.size());}
 
-    /**
-     * checks if the literal is in the clause
+    /** checks if the literal is in the clause
      *
      * @param literal a literal
      * @param end     where the iteration over the literals stops
@@ -491,31 +356,25 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if (lit == -literal) {return -1;}}
         return 0;}
 
-    /**
-     * adds a cliteral to the end of the clause, without checking for double literals and tautologies.
+    /** adds a cliteral to the end of the clause, without checking for double literals and tautologies.
      *
      * @param cliteral the literal to be added.
      */
     public void add(CLiteral cliteral) {
         int position = cliterals.size();
         cliterals.add(cliteral);
-        cliteral.setClause(this, position);
-        setStructure();}
+        cliteral.setClause(this, position);}
 
-    /**
-     * adds a new literal to the clause
+    /** adds a new literal to the clause
      *
      * @param literal a literal
      */
     public void add(int literal) {
         int position = cliterals.size();
         CLiteral cliteral = new CLiteral(literal, this, position);
-        cliterals.add(cliteral);
-        setStructure();
-    }
+        cliterals.add(cliteral);}
 
-    /**
-     * removes a cliteral from the clause.
+    /** removes a cliteral from the clause.
      *
      * @param cLiteral the literal to be removed.
      */
@@ -537,8 +396,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             cliterals.set(pos, nextliteral);}
         cliterals.remove(size - 1);}
 
-    /**
-     * replaces literals by the representatives in an equivalence class.
+    /** replaces literals by the representatives in an equivalence class.
      * If nextInt != null then the replacement is done in a clone of the clause, otherwise in the original clause
      * Besides the replacements, nothing is changed.
      *
@@ -590,28 +448,25 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 cLits = clause.cliterals;}
             if(status == 1) {
                 if(!removedTrueLiterals.contains(literal)) removedTrueLiterals.add(literal);
-                if(connective == Connective.OR) {
+                clause.limit -= 1;
+                if(clause.limit == 0) {
                     clause.structure = ClauseStructure.TAUTOLOGY;
                     return clause;}}
             else {if(!removedFalseLiterals.contains(literal)) removedFalseLiterals.add(literal);}
             clause.removeAtPosition(i--);
-            if(connective == Connective.OR) continue; // removing the clause is sufficient
-            if(interval == null) continue;
-            if(status == 1) clause.interval.decrement();}
-
-        clause.interval.max = Math.min(clause.cliterals.size(),clause.interval.max);
-        clause.setStructure();
-        if(clause.structure == ClauseStructure.CONTRADICTORY ||
-           clause.structure == ClauseStructure.TAUTOLOGY) return clause;
-        clause.setConnective();
+            if(clause.limit > clause.size()) {
+                clause.structure = ClauseStructure.CONTRADICTORY;
+                return clause;}
+            if(clause.limit == clause.size()) {
+                clause.connective = Connective.AND;
+                return clause;}}
         return clause;}
 
-    /** checks for multiple occurrences (in OR-clauses) and complementary literals
-     *  Multiple occurrences of literals in OR-clauses are removed.<br>
-     *  Complementary literals in OR-clauses are a tautology.<br>
-     *  Complementary literals in other clause types are removed.<br>
-     *  The clause's structure may become TAUTOLOGY or CONTRADICTORY
-     *
+    /** checks for multiple occurrences and complementary literals
+     *  Multiple occurrences of literals > limit are removed.<br>
+     *  Complementary literals in other clause types are removed and the limit decreased.<br>
+     *  The clause's structure may become TAUTOLOGY or CONTRADICTORY.
+     *  If nextInt != null then the clause itself is not modified, but a clone is created and modified.
      *
      * @param nextInt        null or a supplier for the identifier for a clone of the clause
      * @param doubleLiterals collects the removed double literals
@@ -622,43 +477,34 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public Clause removeMultipleAndComplementaryLiterals(IntSupplier nextInt,
                                                          IntArrayList doubleLiterals,
                                                          IntArrayList complementaryLiterals)  {
+        assert(connective == Connective.OR || connective == Connective.ATLEAST);
         doubleLiterals.clear();
         complementaryLiterals.clear();
         Clause clause = this;
         ArrayList<CLiteral> cLits = cliterals;
-        if(connective == Connective.OR) {
-            for(int i = 0; i < cLits.size(); ++i) {
-                int literal1 = cLits.get(i).literal;
-                for(int j = 0; j < i; ++j) {
-                    int literal2 = cLits.get(j).literal;
-                    if(literal1 == literal2) {
-                        if(!doubleLiterals.contains(literal1)) doubleLiterals.add(literal1);
-                        if (clause == this && nextInt != null) {
-                            clause = clone(nextInt.getAsInt());
-                            cLits = clause.cliterals;}
-                        clause.removeAtPosition(i--); continue;}
-                    if(literal1 == -literal2) {
-                        complementaryLiterals.add(Math.abs(literal1));
-                        clause.structure = ClauseStructure.TAUTOLOGY;
-                        return clause;}}}
-            int size = cLits.size();
-            if(size == 1) {clause.connective = Connective.AND; clause.interval = null; return clause;}
-            clause.interval.max = size;
-            return clause;}
-
-        for(int i = 0; i < cLits.size(); ++i) { // only complementary literals can be removed
-            int literal = cLits.get(i).literal;
+        int multipleLiteralsCounter = 0;
+        for(int i = 0; i < cLits.size(); ++i) {
+            int literal1 = cLits.get(i).literal;
             for(int j = 0; j < i; ++j) {
-                if(literal == -cLits.get(j).literal) {
-                    complementaryLiterals.add(Math.abs(literal));
+                int literal2 = cLits.get(j).literal;
+                if(literal1 == literal2) {
+                    ++multipleLiteralsCounter;
+                    if(multipleLiteralsCounter < clause.limit) break;
+                    if(!doubleLiterals.contains(literal1)) doubleLiterals.add(literal1);
                     if (clause == this && nextInt != null) {
                         clause = clone(nextInt.getAsInt());
                         cLits = clause.cliterals;}
+                    clause.removeAtPosition(i--); break;}
+                if(literal1 == -literal2) {
+                    if (clause == this && nextInt != null) {
+                        clause = clone(nextInt.getAsInt());
+                        cLits = clause.cliterals;}
+                    complementaryLiterals.add(Math.abs(literal1));
                     clause.removeAtPosition(i); clause.removeAtPosition(j); i -= 2;
-                    clause.interval.decrement();
+                    clause.limit -= 1;
+                    if(clause.limit == 0) {clause.structure = ClauseStructure.TAUTOLOGY; return clause;}
                     break;}}}
         clause.setStructure();
-        clause.setConnective();
         return clause;}
 
     /** removes all occurrences of the literal from the clause.
@@ -667,20 +513,21 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param literal the literal to be removed
      * @param nextInt if != null, it provides the next id for the new clause
      * @param truth   if true then a true literal is removed, otherwise a false literal
-     * @return null, if the clause became true, or the old or the new clause.
+     * @return        the old or the new clause.
      */
     public Clause removeLiteral(int literal, IntSupplier nextInt,  boolean truth) {
         Clause clause = this;
         ArrayList<CLiteral> cLits = cliterals;
         for(int i = 0; i < cLits.size(); ++i) {
             if(literal == cLits.get(i).literal) {
-                if(truth && connective == Connective.OR) return null;
+                if(truth && clause.limit == 1) return null;
                 if(clause == this && nextInt != null) {
-                    clause = clone(nextInt.getAsInt(),i,truth);
-                    cLits = clause.cliterals;
-                    --i;}}
-            else {cLits.remove(i--); decrementInterval(truth,1);}}
-        clause.setConnective();
+                    clause = clone(nextInt.getAsInt());
+                    cLits = clause.cliterals;}
+                cLits.remove(i--);
+                if(truth) clause.limit -= 1;
+                if(limit == 0) {clause.structure = ClauseStructure.TAUTOLOGY;break;}}}
+        clause.setStructure();
         return clause;}
 
     /** checks if the literal is in the clause (except cliteral)
@@ -703,7 +550,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return true if the literals in this also occur in clause2
      */
     public boolean isSubset(Clause clause2) {
-        if(!interval.isSubset(clause2.interval)) return false;
+        if(limit < clause2.limit) return false;
         for(CLiteral cl : cliterals) {
             if(clause2.contains(cl.literal) <= 0) {return false;}}
         return true;}
@@ -732,30 +579,13 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 if(literal == -cliterals.get(j).literal) {return true;}}}
         return false;}
 
-    /** removes multiple occurrences of literals
-     *
-     * @return the number of removed literals
-     */
-    public int removeDoubles() {
-        int doubled = 0;
-        for(int i = 0; i < cliterals.size()-1; ++i) {
-            int literal = cliterals.get(i).literal;
-            for(int j = i+1; j < cliterals.size(); ++j) {
-                CLiteral cliteral = cliterals.get(j);
-                if(literal == cliteral.literal) {
-                    removeAtPosition(j--);
-                    ++doubled ;}}}
-        return doubled;}
-
-    /** sets the removed flag
-     */
+    /** sets the removed flag */
     public synchronized void setRemoved() {
         removed = true;}
 
     /** returns the removed flag
      *
-     * @return the removed flag
-     */
+     * @return the removed flag*/
     public synchronized boolean isRemoved() {
         return removed;}
 
@@ -765,7 +595,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return [+1,literal] if they overlap with a literal, [-1,literal] if they overlap complementary, otherwise null
      */
     public int[] overlaps(Clause clause) {
-        if(!interval.equals(clause.interval)) return null;
         for(CLiteral cLiteral1 : this) {
             int literal1 =cLiteral1.literal;
             for(CLiteral cLiteral2 : clause) {
@@ -817,7 +646,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+(width+ connective.prefix.length())+"s", getName()+":");}
         else st.append(connective.prefix+id+": ");
-        if(interval != null && connective != Connective.OR) st.append(interval).append(": ");
+        if(limit > 1) st.append(limit).append(": ");
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(cliterals.get(position).literal,symboltable));
@@ -853,13 +682,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         if(removed) {return true;}
         String prefix = "Clause " + id + ": ";
         boolean okay = true;
-        Connective detConn = detConnective();
-        if(connective != detConn) {
-            errors.append(prefix).append("connective " + connective + " should be " + detConn+"\n");
-            okay = false;}
 
-        if(interval.max > size()) {
-            errors.append(prefix).append("Interval " + interval.toString() + " is not between 0 and " + size()+"\n");
+        if(limit > size()) {
+            errors.append(prefix).append("Limit " + limit + " is not between 0 and " + size()+"\n");
             okay = false;}
 
         for(int i = 0; i < cliterals.size(); ++i) {
@@ -886,5 +711,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 okay = false;}}
         return okay;}
 
+    public ArrayList<CLiteral> getCliterals() {
+        return cliterals;
+    }
 }
 

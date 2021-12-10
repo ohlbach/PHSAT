@@ -584,7 +584,7 @@ public abstract class ResolutionReduction extends Solver {
             if(model.isTrue(literal)) {return;}
             if(!model.isFalse(literal)) {clause.add(new CLiteral(literal));}}
         if(clause.hasComplementaries()) {return;}
-        clause.removeDoubles();
+        //clause.removeDoubles();
         if(clause.size() == 1) {
             int literal = clause.getLiteral(0);
             addTrueLiteralTask(literal,"Imported clause merged to " + literalName(literal)); return;}
