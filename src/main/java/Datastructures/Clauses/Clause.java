@@ -83,17 +83,24 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
 
     /** constructs a new clause with given literals
      *
-     * @param id       the id of the new clause
-     * @param limit    the quantification limit
-     * @param literals the list of literals
+     * @param id         the id of the new clause
+     * @param connective the connective for the clause
+     * @param limit      the quantification limit
+     * @param literals   the list of literals
      */
     public Clause(int id, Connective connective, int limit, IntArrayList literals) {
+        assert connective != Connective.OR || limit == 1;
         this.id = id;
-        this.connective = connective;
-        this.limit = limit;
+        if(connective == Connective.ATMOST) {
+            this.connective = Connective.ATLEAST;
+            this.limit = literals.size() - limit;}
+        else {this.connective = connective;
+            this.limit = limit;}
         cliterals = new ArrayList<>(literals.size());
         for (int i = 0; i < literals.size(); ++i) {
-            cliterals.add(new CLiteral(literals.getInt(i), this, i));}
+            int literal = literals.getInt(i);
+            if(connective == Connective.ATMOST) literal *= -1;
+            cliterals.add(new CLiteral(literal, this, i));}
         inferenceStep = new Input(id);
         setStructure();
     }
@@ -118,6 +125,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         assert(connective != null);
 
         id = basicClause[0];
+        inferenceStep = new Input(id);
         int length = basicClause.length;
         int start = 2;
         switch (connective) {
@@ -134,13 +142,10 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(connective == Connective.ATMOST) literal = -literal; // transformation to atleast
             cliterals.add(new CLiteral(literal, this, cliterals.size()));}
 
-        if(connective == Connective.ATMOST) connective = Connective.ATLEAST;
-        if(connective == Connective.ATLEAST && limit == 1) connective = Connective.OR;
-        if(connective == Connective.ATLEAST && limit == cliterals.size()) {
-            connective = Connective.AND; limit = -1;}
-        inferenceStep = new Input(id);
-        setStructure();
-    }
+        if(connective == Connective.ATMOST) {
+            connective = Connective.ATLEAST;
+            inferenceStep = new InfAtmostToAtleast(basicClause,this);}
+        setStructure();}
 
     /** creates a new clause with the given literals
      * The constructor does not work for INTERVAL-type basic clauses.<br>
@@ -159,6 +164,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public Clause(int id, Connective connective, int... literals) {
         this.id = id;
+        inferenceStep = new Input(id);
         this.connective = connective;
         int start = 0;
         int length = literals.length;
@@ -177,11 +183,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         for (int i = start; i < length; ++i) {
             cliterals.add(new CLiteral(literals[i], this, i - start));}
 
-        if(this.connective == Connective.ATMOST) this.connective = Connective.ATLEAST;
-        if(this.connective == Connective.ATLEAST && limit == 1) this.connective = Connective.OR;
-        if(this.connective == Connective.ATLEAST && limit == cliterals.size()) {
-            this.connective = Connective.AND; limit = -1;}
-        inferenceStep = new Input(id);
+        if(connective == Connective.ATMOST) connective = Connective.ATLEAST;
         setStructure();}
 
     /** Transforms an INTERVAL-clause into (usually) two ATLEAST-clauses.
@@ -255,10 +257,10 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return the corresponding value for the structure.
      */
     public ClauseStructure detStructure() {
-        assert(connective == Connective.OR || connective == Connective.ATLEAST);
         if(limit > cliterals.size()) return ClauseStructure.CONTRADICTORY;
         if(limit == 0) return ClauseStructure.TAUTOLOGY;
-        if(limit == cliterals.size()) {connective = Connective.AND; limit = -1; return structure;}
+        if(limit == cliterals.size()) {connective = Connective.AND; limit = -1;}
+        if(limit == 1) connective = Connective.OR;
         int positive = 0;
         int negative = 0;
         for (CLiteral cLiteral : cliterals) {
