@@ -325,7 +325,7 @@ public class Walker extends Solver {
      */
     protected void setInitialScores(float[] posScores,float[] negScores) {
         for(WClause wClause: wClauses) {
-            int min = wClause.min;
+            int min = wClause.limit;
             float one = (float)1;
             if(min > 0) {
                 float score = one/min;
@@ -333,7 +333,7 @@ public class Walker extends Solver {
                     if(literal > 0) posScores[literal] += score;
                     else negScores[-literal] += score;}}
             else {
-                float score = one/(wClause.literals.length-wClause.max); // can't be 1/0
+                float score = one/(wClause.literals.length-wClause.limit); // can't be 1/0
                 for(int literal : wClause.literals) {
                     if(literal > 0) negScores[literal] += score;
                     else posScores[-literal] += score;}}}}
@@ -355,8 +355,8 @@ public class Walker extends Solver {
             switch(model.status(literal)) {
                 case +1: ++globallyTrueLiterals; break;
                 case 0:  ++globallyUndefinedLiterals;}}
-        int min = wClause.min;
-        int max = wClause.max;
+        int min = wClause.limit;
+        int max = wClause.limit;
         if(globallyTrueLiterals < min || globallyTrueLiterals > max) return false;
         if(globallyUndefinedLiterals >= wClause.literals.length - max) return false;
         return true;}
@@ -374,7 +374,7 @@ public class Walker extends Solver {
             return false;}
 
         int trueLiterals = currentlyTrueLiterals(wClause);
-        return wClause.min <= trueLiterals && trueLiterals <= wClause.max;}
+        return wClause.limit <= trueLiterals && trueLiterals <= wClause.limit;}
 
     /** updates the flip scores of the literals in the clauses containing the flipped literal.
      *
@@ -382,8 +382,8 @@ public class Walker extends Solver {
      * @param sign -1 (removing old score) +1 (adding new score)
      */
     protected void updateFlipScores(WClause wClause, int sign) {
-        int min = wClause.min;
-        int max = wClause.max;
+        int min = wClause.limit;
+        int max = wClause.limit;
         int trueLiterals = 0;
         for(int literal : wClause.literals) {
             if(isLocallyTrue(literal)) ++trueLiterals;}

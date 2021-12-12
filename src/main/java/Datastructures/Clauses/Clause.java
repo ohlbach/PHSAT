@@ -1,12 +1,14 @@
 package Datastructures.Clauses;
 
 
+import Datastructures.Clauses.QuantifiedToCNF.InfAtleastToCNF;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import InferenceSteps.Input;
 import Utilities.Positioned;
 import Utilities.Sizable;
+import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -18,8 +20,10 @@ import java.util.function.IntUnaryOperator;
 
 import static Utilities.Utilities.sortIntArray;
 
-/** A clause is just a list of CLiterals.
- * It may represent clauses with quantification interval
+/** A clause is primarily a list of CLiterals.
+ * OR-Clauses and ATLEAST-clauses have an addition parameter limit:<br>
+ * 2:p,q,r  means atleast 2 literals must be truein order to make the clause true.
+ *
  *
  * Created by ohlbach on 13.09.2018.
  */
@@ -243,7 +247,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
 
     /** determines for an ATLEAST- or OR-clause the clause's structure:
      * If the limit is too large: CONTRADICTORY<br>
-     * It the limit is 0: TAUTOLOGY,<br>
+     * If the limit is 0: TAUTOLOGY,<br>
+     * If the limit is the clause's size then the connective is changed to AND, and the limit to -1<br>
      * otherwise if the clause has only positive literals (POSITIVE) or only negative literals (NEGATIVE)
      * or mixed signs (MIXED)
      *
@@ -253,7 +258,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         assert(connective == Connective.OR || connective == Connective.ATLEAST);
         if(limit > cliterals.size()) return ClauseStructure.CONTRADICTORY;
         if(limit == 0) return ClauseStructure.TAUTOLOGY;
-        if(limit == cliterals.size()) {connective = Connective.AND; return structure;}
+        if(limit == cliterals.size()) {connective = Connective.AND; limit = -1; return structure;}
         int positive = 0;
         int negative = 0;
         for (CLiteral cLiteral : cliterals) {
@@ -458,7 +463,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 clause.structure = ClauseStructure.CONTRADICTORY;
                 return clause;}
             if(clause.limit == clause.size()) {
-                clause.connective = Connective.AND;
+                clause.connective = Connective.AND; clause.limit = -1;
                 return clause;}}
         return clause;}
 
@@ -529,6 +534,27 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 if(limit == 0) {clause.structure = ClauseStructure.TAUTOLOGY;break;}}}
         clause.setStructure();
         return clause;}
+
+
+    /** turns an atleast-clause into conjunctive normal form
+     *
+     * @param nextId it provides the next id for the new clause
+     * @param trackReasoning if true then a corresponding inference step is attached to the new clauses
+     * @return a list of OR-clauses as the conjunctive normal form of the atleast-clause
+     */
+    private ArrayList<Clause> toCNF(IntSupplier nextId, boolean trackReasoning) {
+        ArrayList<Clause> clauses = new ArrayList<>();
+        if(connective == Connective.OR) {clauses.add(this); return clauses;}
+        assert connective == Connective.ATLEAST;
+        boolean hasDoubles = hasDoubles();
+        for(IntArrayList literals :
+                Utilities.combinations(size()- limit+1,toArray(),
+                        hasDoubles,hasDoubles,hasDoubles)) {
+            clauses.add(new Clause(nextId.getAsInt(), Connective.OR,1,literals));}
+        if(trackReasoning) {
+            for(Clause orClause : clauses) {
+                orClause.inferenceStep = new InfAtleastToCNF(this, orClause);}}
+        return clauses;}
 
     /** checks if the literal is in the clause (except cliteral)
      *

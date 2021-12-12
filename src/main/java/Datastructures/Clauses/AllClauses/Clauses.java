@@ -311,7 +311,7 @@ public class Clauses extends Thread {
         timestamp += clause.size() + 2;
 
         if(subsumer == null) return clause;
-        if(subsumer.interval.isSubset(clause.interval)) {
+        if(subsumer.limit >= clause.limit) {
             ++statistics.forwardSubsumptions;
             if(monitoring)
                 monitor.print(monitorId, "Clause " + clause.toString(0,symboltable) +
@@ -321,6 +321,8 @@ public class Clauses extends Thread {
         if(clause.size() != subsumer.size()) return clause;
 
         // Now the two clauses have the same literals
+
+        /*
         Interval interval = subsumer.interval.intersect(clause.interval);
         if(interval == null) {throw new UnsatisfiableInterval(subsumer,clause);}
 
@@ -340,6 +342,8 @@ public class Clauses extends Thread {
             if(monitoring) {monitor.print(monitorId,step.toString(symboltable));
             return newClause;}}
         else {clause.interval = interval; clause.setConnective();}
+        */
+
         return clause;}
 
 

@@ -13,9 +13,8 @@ import java.util.Locale;
 public class WClause {
 
     public final int id;                       // the clause identifier
-    protected final Connective connective;     // OR, ATLEAST, ATMOST or EXACTLY etc.
-    protected final int min;                   // the minimum of the interval
-    protected final int max;                   // the maximum of the interval
+    protected final Connective connective;     // OR, ATLEAST clause
+    protected final int limit;                 // the limit of the interval
     public final int[] literals;               // the literals
     protected boolean isLocallyTrue  = false;  // truth in the local model
     protected boolean hasDoubles     = false;  // indicates that there are multiple occurrences in the literals
@@ -30,10 +29,7 @@ public class WClause {
     public WClause(Clause clause) {
         id = clause.id;
         connective = clause.connective;
-        Interval interval = clause.interval;
-        if(interval == null) {min = 1; max = clause.cliterals.size();}
-        else {min = clause.interval.min;
-              max = clause.interval.max;}
+        limit = clause.limit;
         literals = new int[clause.size()];
         for(int i = 0; i < clause.size(); ++i) literals[i] = clause.getLiteral(i);
         int size = literals.length;
@@ -92,7 +88,7 @@ public class WClause {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+(width+ connective.prefix.length())+"s", connective.prefix+id+":");}
         else st.append(connective.prefix+id+": ");
-        if(connective != Connective.OR) st.append(min + "-" + max + ": ");
+        if(connective != Connective.OR) st.append("atlest " + limit + ": ");
         int size = literals.length;
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(literals[position],symboltable));

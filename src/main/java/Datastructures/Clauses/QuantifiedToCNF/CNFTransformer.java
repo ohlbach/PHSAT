@@ -4,7 +4,6 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
 import Utilities.Utilities;
-import Utilities.Interval;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -33,10 +32,11 @@ public class CNFTransformer {
      */
     public ArrayList<Clause> toCNF(Clause clause) {
         switch(clause.connective) {
-            case ATLEAST: return atLeastToCNF(clause);
+            case ATLEAST: return atleastToCNF(clause);
             case ATMOST:  return atmostToCNF(clause);
-            case EXACTLY: return exactlyToCNF(clause);
-            case INTERVAL:return intervalToCNF(clause);}
+           // case EXACTLY: return exactlyToCNF(clause);
+           // case INTERVAL:return intervalToCNF(clause);
+        }
         return null;}
 
 
@@ -45,6 +45,7 @@ public class CNFTransformer {
      * @param clause any quantified clause
      * @return null (tautology) or a list of or-clauses
      */
+    /*
     protected ArrayList<Clause> intervalToCNF(Clause clause) {
         IntArrayList cl = new IntArrayList(clause.size()+2);
         cl.add(clause.interval.min);
@@ -61,12 +62,13 @@ public class CNFTransformer {
             for(int literal : cla) orClause.add(literal);
             clauses.add(orClause);}
         return clauses;}
-
+*/
     /** This method provides a recursive call to the CNF-transformation algorithm
      *
      * @param clause a simplified representation of a clause: [min,max,literal_1,...]
      * @return null or a list of simplified clauses [literal_1,...]
      */
+    /*
     private ArrayList<IntArrayList> intervalToCNF(IntArrayList clause) {
         if(clause.size() == 1) { // empty clause
             clause.clear();
@@ -146,7 +148,7 @@ public class CNFTransformer {
             if(isSubsumed(negClause,posCNF)) clauses.add(negClause);
             else {negClause.add(literal); clauses.add(negClause);}}
         return clauses;}
-
+*/
     private IntArrayList simplify(IntArrayList clause) {
         int min = clause.getInt(0);
         int max = clause.getInt(1);
@@ -197,14 +199,14 @@ public class CNFTransformer {
      * @param clause an atleast-Clause
      * @return a list of OR-clauses as the conjunctive normal form of the atleast-clause
      */
-    private ArrayList<Clause> atLeastToCNF(Clause clause) {
+    private ArrayList<Clause> atleastToCNF(Clause clause) {
         assert clause.connective == Connective.ATLEAST;
         ArrayList<Clause> clauses = new ArrayList<>();
         boolean hasDoubles = clause.hasDoubles();
         for(IntArrayList literals :
                 Utilities.combinations(clause.size()- clause.limit+1,clause.toArray(),
                         hasDoubles,hasDoubles,hasDoubles)) {
-            clauses.add(new Clause(nextId.getAsInt(), Connective.OR,new Interval(1,literals.size()),literals));}
+            clauses.add(new Clause(nextId.getAsInt(), Connective.OR,1,literals));}
         if(trackReasoning) {
             for(Clause orClause : clauses) {
                 orClause.inferenceStep = new InfAtleastToCNF(clause, orClause);}}
@@ -223,9 +225,9 @@ public class CNFTransformer {
         boolean hasDoubles = clause.hasDoubles();
         for(CLiteral cLiteral : clause) negLiterals.add(-cLiteral.literal);
         for(IntArrayList literals :
-                Utilities.combinations(clause.interval.max +1,negLiterals,
+                Utilities.combinations(clause.limit +1,negLiterals,
                         hasDoubles,hasDoubles,hasDoubles)) {
-            clauses.add(new Clause(nextId.getAsInt(), Connective.OR, new Interval(1,literals.size()),
+            clauses.add(new Clause(nextId.getAsInt(), Connective.OR, 1,
                     literals));}
         if(trackReasoning) {
             for(Clause orClause : clauses) {
@@ -238,6 +240,7 @@ public class CNFTransformer {
      * @param clause an exactly-Clause
      * @return a list of OR-clauses as the conjunctive normal form of the exactly-clause
      */
+    /*
     private ArrayList<Clause> exactlyToCNF(Clause clause) {
         assert clause.connective == Connective.EXACTLY;
         IntArrayList literals = clause.toArray();
@@ -259,5 +262,5 @@ public class CNFTransformer {
                 orClause.inferenceStep = new InfExactlyToCNF(clause,orClause);}}
         return clauses;
     }
-
+*/
 }
