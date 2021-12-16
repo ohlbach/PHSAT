@@ -15,6 +15,7 @@ import java.util.function.Function;
  */
 public class CLiteral implements Positioned {
     public int literal;                // the literal
+    public short multiplicity = 1;     // the number of occurrences of the literal in the clause
     public Clause clause = null;       // the clause
     public int clausePosition = -1;    // the clausePosition of the literal within the clause.
     public int indexPosition = -1;     // the position in a literal index.
@@ -34,10 +35,11 @@ public class CLiteral implements Positioned {
      * @param clause     the clause containing the literal
      * @param position   the clausePosition of the literal within the clause
      */
-    public CLiteral(int literal, Clause clause, int position) {
+    public CLiteral(int literal, Clause clause, int position, short multiplicity) {
         this.literal = literal;
         this.clause = clause;
-        this.clausePosition = position;}
+        this.clausePosition = position;
+        this.multiplicity = multiplicity;}
 
 
     /** adds the pointer to the clause and the clausePosition within the clause

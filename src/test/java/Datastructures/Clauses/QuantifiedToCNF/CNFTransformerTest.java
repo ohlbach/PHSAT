@@ -15,10 +15,18 @@ public class CNFTransformerTest {
     int atM = Connective.ATMOST.ordinal();
     int ex = Connective.EXACTLY.ordinal();
     int intV = Connective.INTERVAL.ordinal();
-
-
-
     @Test
+    public void atleastToCNFTest() throws Result {
+        System.out.println("atleast to CNF Test");
+        int[] ids = new int[]{0};
+        CNFTransformer ct = new CNFTransformer(true, (() -> ++ids[0]));
+        Clause c1 = new Clause(new int[]{1, atL, 3, 1,1,2,2,3,4});
+        ArrayList<Clause> cnf = ct.toCNF(c1);
+        for(Clause cl :cnf) System.out.println(cl.toNumbers());
+    }
+
+
+        @Test
     public void atleastToCNF() throws Result {
         System.out.println("atleast to CNF");
         int[] ids = new int[]{0};
