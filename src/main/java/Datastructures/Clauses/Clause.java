@@ -4,6 +4,7 @@ package Datastructures.Clauses;
 import Datastructures.Clauses.QuantifiedToCNF.InfAtleastToCNF;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
+import Datastructures.Theory.EquivalenceClasses;
 import InferenceSteps.InferenceStep;
 import InferenceSteps.Input;
 import Utilities.Positioned;
@@ -273,23 +274,24 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 orClause.inferenceStep = new InfAtleastToCNF(this, orClause);}}
         return clauses;}
 
+    private final IntArrayList replacements = new IntArrayList();
+
     /** replaces literals by the representatives in an equivalence class.
      * If nextInt != null then the replacement is done in a clone of the clause, otherwise in the original clause
      * Besides the replacements, nothing is changed.
      *
-     * @param getRepresentative maps a literal to its representative in an equivalence class
+     * @param equivalenceClasses maps a literal to its representative in an equivalence class
      * @param nextId           null or a function that returns the next clause id for a clone of the clause
-     * @param replacements      collects pairs of replacements: oldLiteral -> newLiteral
-     * @return either the original clause or the clone with the replacements
+      * @return either the original clause or the clone with the replacements
      */
-    public Clause replaceEquivalences(IntUnaryOperator getRepresentative, IntSupplier nextId, IntArrayList replacements) {
+    public Clause replaceEquivalences(EquivalenceClasses equivalenceClasses, IntSupplier nextId) {
         replacements.clear();
         Clause clause = this;
         ArrayList<CLiteral> cLits = cliterals;
         for (int i = 0; i < cLits.size(); ++i) {
             CLiteral cLiterali = cLits.get(i);
             int oldLiteral = cLiterali.literal;
-            int newLiteral = getRepresentative.applyAsInt(oldLiteral);
+            int newLiteral = equivalenceClasses.getRepresentative(oldLiteral);
             if (oldLiteral == newLiteral) continue;
             replacements.add(oldLiteral);
             replacements.add(newLiteral);
@@ -306,7 +308,11 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                     break;}}
             if(!found) cLiterali.literal = newLiteral;}
         if (!replacements.isEmpty()) {clause.setStructure();}
+        if(clause != this) clause.inferenceStep = new InfEquivalenceReplacements(this,clause,replacements,equivalenceClasses);
         return clause;}
+
+    private final IntArrayList removedTrueLiterals  = new IntArrayList(3);
+    private final IntArrayList removedFalseLiterals = new IntArrayList(3);
 
     /** replaces all true and false literals in the clause.
      * If nextId != null then the replacements is done on a clone of the clause, otherwise on the clause itself.<br>
@@ -316,12 +322,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      *
      * @param getTruthStatus maps a literal to +1 (true), 0 (undefined) or -1 (false)
      * @param nextInt        null or a supplier for the identifier for a clone of the clause
-     * @param removedTrueLiterals collects the removed true literals
-     * @param removedFalseLiterals collects the removed false literals
      * @return               either the original changed clause or a clone.
      */
-    public Clause removeTrueFalseLiterals(IntUnaryOperator getTruthStatus, IntSupplier nextInt,
-                                          IntArrayList removedTrueLiterals, IntArrayList removedFalseLiterals) {
+    public Clause removeTrueFalseLiterals(IntUnaryOperator getTruthStatus, IntSupplier nextInt) {
         removedTrueLiterals.clear();removedFalseLiterals.clear();
         Clause clause = this;
         ArrayList<CLiteral> cLits = cliterals;
@@ -342,23 +345,23 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             else {if(!removedFalseLiterals.contains(literal)) removedFalseLiterals.add(literal);}
             clause.removeAtPosition(i--);}
         clause.setStructure();
+        if(clause != this) clause.inferenceStep = new InfTrueFalseLiterals(this,clause,removedTrueLiterals,removedFalseLiterals);
         return clause;}
 
+    private final IntArrayList complementaryLiterals = new IntArrayList();
     /** removes complementary literals from the clause.
      * If nextId != null then the clause is cloned before the literals are removed.
      * If the limit is reduced to 0 then the clause is marked as TAUTOLOGY
      *
      * @param nextId  null or a supplier for clause ids
-     * @param complementaryLiterals for adding the complementary literals
      * @return the possibly shortened clause (original or clone)
      */
-    public Clause removeComplementaryLiterals(IntSupplier nextId, IntArrayList complementaryLiterals) {
+    public Clause removeComplementaryLiterals(IntSupplier nextId) {
         assert (connective == Connective.OR || connective == Connective.ATLEAST);
         complementaryLiterals.clear();
         Clause clause = this;
         ArrayList<CLiteral> cliterals = clause.cliterals;
-        int size = cliterals.size();
-        for(int i = 0; i < size; ++i) {
+        for(int i = 0; i < cliterals.size(); ++i) {
             CLiteral cLiterali = cliterals.get(i);
             int literali = cLiterali.literal;
             for(int j = 0; j < i; ++j) {
@@ -382,14 +385,16 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                         clause.limit -= multiplicityi;
                         i -= 1;
                         break;}
-                    if(multiplicityi > multiplicityj) { // remove j
-                        cLiterali.multiplicity = (short)(multiplicityi-multiplicityj);
-                        clause.removeAtPosition(j);
-                        clause.limit -= multiplicityj;
-                        i -= 1;
-                        break;}}}
+                    // remove j
+                    cLiterali.multiplicity = (short)(multiplicityi-multiplicityj);
+                    clause.removeAtPosition(j);
+                    clause.limit -= multiplicityj;
+                    i -= 1;
+                    break;
+                }}
             if(clause.limit <= 0) {clause.structure = ClauseStructure.TAUTOLOGY; return clause;}}
         clause.setStructure();
+        if(clause != this) clause.inferenceStep = new InfComplementaryLiterals(this,clause,complementaryLiterals);
         return clause;}
 
     /** extracts OR-Clauses from the literals with multiplicities > 1.
@@ -400,7 +405,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param nextId for generating an id for the clauses
      * @return null or a list of OR-clauses.
      */
-    public ArrayList<Clause> splitOffMultiples(IntSupplier nextId) {
+    public ArrayList<Clause> splitOffMultiples(IntSupplier nextId, boolean trackReasoning) {
         int singleCounter = 0;
         for(CLiteral cLiteral : cliterals){if(cLiteral.multiplicity == 1) ++singleCounter;}
         if(singleCounter >= limit) return null;
@@ -414,7 +419,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         for(IntArrayList lits :
                 Utilities.combinations(literals.size()-(limit-singleCounter)+1,literals,
                         true,true,true)) {
-            clauses.add(new Clause(nextId.getAsInt(), Connective.OR,(short)1,lits));}
+            Clause clause = new Clause(nextId.getAsInt(), Connective.OR,(short)1,lits);
+            if(trackReasoning) clause.inferenceStep = new InfExtractMultiples(this,clause);
+            clauses.add(clause);}
         return clauses;}
 
 
@@ -440,7 +447,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return true if the clause is empty. */
     public boolean isEmpty() {
         return cliterals.isEmpty();}
-    
+
     /** computes the expanded size of the clause, with all multiple occurrences of literals counted
      *
      * @return  the expanded size of the clause
@@ -610,12 +617,11 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public Clause removeLiteral(int literal, IntSupplier nextId,  boolean truth) {
         Clause clause = this;
-        ArrayList<CLiteral> cLits = cliterals;
+        ArrayList<CLiteral> cLits = clause.cliterals;
         for(int i = 0; i < cLits.size(); ++i) {
             CLiteral cLiteral = cLits.get(i);
             if(literal == cLiteral.literal) {
-                if(clause == this && nextId != null) {
-                    clause = clone(nextId.getAsInt());}
+                if(nextId != null) {clause = clone(nextId.getAsInt());}
                 if(truth) clause.limit -= cLiteral.multiplicity;
                 clause.removeAtPosition(i);
                 clause.setStructure();

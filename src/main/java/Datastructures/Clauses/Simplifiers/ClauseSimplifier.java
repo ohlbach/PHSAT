@@ -4,6 +4,7 @@ import Datastructures.Clauses.AllClauses.Clauses;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.InfEquivalenceReplacements;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
@@ -92,7 +93,7 @@ public class ClauseSimplifier {
      * @return either the old clause, or a new clause with the replaced literals.
      */
     protected Clause replaceEquivalences(Clause oldClause){
-        Clause newClause = oldClause.replaceEquivalences(getRepresentative, nextId, intList1);
+        Clause newClause = oldClause.replaceEquivalences(equivalenceClasses, nextId);
         if(intList1.isEmpty()) return oldClause;
         if(trackReasoning) {
             InferenceStep step = new InfEquivalenceReplacements(oldClause,newClause, intList1,equivalenceClasses);
@@ -109,7 +110,7 @@ public class ClauseSimplifier {
      * @throws Unsatisfiable if a contradiction is discovered
      */
     protected Clause removeMultipleAndComplementaryLiterals(Clause oldClause) throws Unsatisfiable {
-        Clause newClause = oldClause.removeMultipleAndComplementaryLiterals(nextId,intList1,intList2);
+        Clause newClause = oldClause.removeComplementaryLiterals(nextId);
         if(newClause.structure == ClauseStructure.TAUTOLOGY) return null;
         if(intList1.isEmpty() && intList2.isEmpty()) return newClause;
         InferenceStep step = null;
@@ -124,7 +125,7 @@ public class ClauseSimplifier {
         return newClause;}
 
     protected Clause removeTrueFalseLiterals(Clause oldClause) throws Unsatisfiable {
-        Clause newClause = oldClause.removeTrueFalseLiterals(getTruthStatus,nextId,intList1,intList2);
+        Clause newClause = oldClause.removeTrueFalseLiterals(getTruthStatus,nextId);
         if(newClause.structure == ClauseStructure.TAUTOLOGY) return null;
         if(intList1.isEmpty() && intList2.isEmpty()) return newClause;
         InferenceStep step = null;
