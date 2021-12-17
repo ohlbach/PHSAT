@@ -206,7 +206,7 @@ public class CNFTransformer {
         for(IntArrayList literals :
                 Utilities.combinations(clause.size()- clause.limit+1,clause.toArray(),
                         hasDoubles,hasDoubles,hasDoubles)) {
-            clauses.add(new Clause(nextId.getAsInt(), Connective.OR,1,literals));}
+            clauses.add(new Clause(nextId.getAsInt(), Connective.OR,(short)1,literals));}
         if(trackReasoning) {
             for(Clause orClause : clauses) {
                 orClause.inferenceStep = new InfAtleastToCNF(clause, orClause);}}
@@ -227,7 +227,7 @@ public class CNFTransformer {
         for(IntArrayList literals :
                 Utilities.combinations(clause.limit +1,negLiterals,
                         hasDoubles,hasDoubles,hasDoubles)) {
-            clauses.add(new Clause(nextId.getAsInt(), Connective.OR, 1,
+            clauses.add(new Clause(nextId.getAsInt(), Connective.OR, (short)1,
                     literals));}
         if(trackReasoning) {
             for(Clause orClause : clauses) {

@@ -23,7 +23,7 @@ public class CLiteralTest {
     public void clauseTest() throws Exception {
         System.out.println("getClause, getPosition");
         Clause cl = new Clause(1, Connective.OR, 3);
-        CLiteral lit = new CLiteral(3,cl,2);
+        CLiteral lit = new CLiteral(3,cl,2,(short)1);
         assertEquals(cl,lit.clause);
         assertEquals(2,lit.clausePosition);}
 
@@ -44,7 +44,7 @@ public class CLiteralTest {
         stb.setName(2, "B");
 
         Clause cl = new Clause(1, Connective.OR, 3);
-        CLiteral lit = new CLiteral(1, cl, 1);
+        CLiteral lit = new CLiteral(1, cl, 1,(short)1);
         assertEquals("1",lit.toString());
         assertEquals("A@1",lit.toString(stb,(cla->""+cla.id)));
 

@@ -12,10 +12,7 @@ import Utilities.Sizable;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import java.util.ArrayList;
-import java.util.Formatter;
-import java.util.Iterator;
-import java.util.Locale;
+import java.util.*;
 import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 
@@ -91,16 +88,17 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public Clause(int id, Connective connective, short limit, IntArrayList literals) {
         assert connective != Connective.OR || limit == 1;
         this.id = id;
+        inferenceStep = new Input(id);
         if(connective == Connective.ATMOST) {
             this.connective = Connective.ATLEAST;
-            this.limit = (short)(literals.size() - limit);}
+            this.limit = (short)(literals.size() - limit);
+            inferenceStep = new InfAtmostToAtleast(id,limit,literals,this);}
         else {this.connective = connective;
             this.limit = limit;}
         cliterals = new ArrayList<>(literals.size());
         for (int i = 0; i < literals.size(); ++i) {
             int literal = literals.getInt(i);
             add(connective == Connective.ATMOST ? -literal : literal,(short)1);}
-        inferenceStep = new Input(id);
         setStructure();
     }
 
@@ -138,7 +136,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         cliterals = new ArrayList<>(length - start);
         for (int i = start; i < length; ++i) {
             int literal = basicClause[i];
-            if(connective == Connective.ATMOST) literal = -literal; // transformation to atleast
             add(connective == Connective.ATMOST ? -literal : literal,(short)1);}
 
         if(connective == Connective.ATMOST) {
@@ -174,6 +171,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             case ATLEAST: limit = (short)literals[0];  start = 1;break;
             case ATMOST:
                 start = 1;
+                inferenceStep = new InfAtmostToAtleast(id,(short)literals[0],
+                        IntArrayList.wrap(Arrays.copyOfRange(literals,1,literals.length)),this);
                 limit = (short)(length - 1 - literals[0]);
                 for(int i = 1; i < literals.length; ++i) literals[i] *= -1;
                 break;
@@ -194,13 +193,13 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param basicClause a basic interval-clause
      * @return            one or two new clauses
      */
-    public ArrayList<Clause> intervalClause(IntSupplier nextInt, int[] basicClause) {
-        connective = Connective.getType(basicClause[1]);
-        assert(connective != Connective.INTERVAL);
+    public static ArrayList<Clause> intervalClause(IntSupplier nextInt, int[] basicClause) {
+        Connective connective = Connective.getType(basicClause[1]);
+        assert(connective == Connective.INTERVAL);
         ArrayList<Clause> clauses = new ArrayList<>();
         int min = basicClause[2];
         int max = basicClause[3];
-        int length = basicClause.length - 3;
+        int length = basicClause.length - 4;
         int[] literals = new int[length+1];
         System.arraycopy(basicClause, 4, literals, 1, basicClause.length - 4);
 
@@ -244,9 +243,10 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public Clause toAtmost(int id) {
         assert connective == Connective.OR || connective == Connective.ATLEAST;
-        Clause clause = new Clause(id,Connective.ATMOST,expandedSize()-limit,cliterals.size());
+        Clause clause = new Clause(id,Connective.ATMOST,(short)(expandedSize()-limit),cliterals.size());
         for (CLiteral cLiteral : cliterals) {
             clause.add(-cLiteral.literal, cLiteral.multiplicity);}
+        if(inferenceStep != null) clause.inferenceStep = new InfAtleastToAtmost(this,clause);
         clause.structure = ClauseStructure.MIXED;
         switch(structure) {
             case POSITIVE: clause.structure = ClauseStructure.NEGATIVE; break;
@@ -259,7 +259,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param trackReasoning if true then a corresponding inference step is attached to the new clauses
      * @return a list of OR-clauses as the conjunctive normal form of the atleast-clause
      */
-    private ArrayList<Clause> toCNF(IntSupplier nextId, boolean trackReasoning) {
+    public ArrayList<Clause> toCNF(IntSupplier nextId, boolean trackReasoning) {
         ArrayList<Clause> clauses = new ArrayList<>();
         if(connective == Connective.OR) {clauses.add(this); return clauses;}
         assert connective == Connective.ATLEAST;
@@ -468,12 +468,12 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return the corresponding value for the structure.
      */
     public ClauseStructure detStructure() {
-        assert connective == Connective.OR || connective == Connective.ATLEAST;
-        int size = expandedSize();
-        if(limit > size) return ClauseStructure.CONTRADICTORY;
-        if(limit <= 0) return ClauseStructure.TAUTOLOGY;
-        if(limit == size) {connective = Connective.AND; limit = -1;}
-        if(limit == 1) connective = Connective.OR;
+        if(connective == Connective.OR || connective == Connective.ATLEAST) {
+            int size = expandedSize();
+            if(limit > size) return ClauseStructure.CONTRADICTORY;
+            if(limit <= 0) return ClauseStructure.TAUTOLOGY;
+            if(limit == size) {connective = Connective.AND; limit = -1;}
+            if(limit == 1) connective = Connective.OR;}
         int positive = 0;
         int negative = 0;
         for (CLiteral cLiteral : cliterals) {

@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
 import javax.xml.bind.annotation.adapters.CollapsedStringAdapter;
+import java.util.ArrayList;
 import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 
@@ -33,11 +34,14 @@ public class ClauseTest {
     int atm = Connective.ATMOST.ordinal();
     int eqv = Connective.EQUIV.ordinal();
     int and = Connective.AND.ordinal();
+    int itv = Connective.INTERVAL.ordinal();
+
+    short one = (short)1;
 
     @Test
-    public void constructor1() {
-        System.out.println("Constructor 1");
-        Clause clause = new Clause(1,Connective.OR,1,
+    public void constructorOR() {
+        System.out.println("Constructor OR");
+        Clause clause = new Clause(1,Connective.OR,(short)1,
                 IntArrayList.wrap(new int[]{2,-3,4}));
         assertEquals("1: 2,-3,4",clause.toNumbers());
         assertEquals("1:   q,-r,s",clause.toString(5,symboltable));
@@ -52,62 +56,62 @@ public class ClauseTest {
         assertSame(clause,clause.getCLiteral(0).clause);
         assertSame(clause,clause.getCLiteral(2).clause);
         assertEquals(1,clause.getCLiteral(1).clausePosition);
+
+        clause = new Clause(2,Connective.OR,(short)1,
+                IntArrayList.wrap(new int[]{2,-3,4,2,-3,4,4}));
+        assertEquals("2: 2,-3,4",clause.toNumbers());
+        assertEquals("2: 2,-3,4 [2]",clause.infoString(0,null));
+        assertEquals("Input: Clause 2",clause.inferenceStep.toString(symboltable));
     }
 
     @Test
-    public void constructor2() {
-        System.out.println("Constructor 2");
-        Clause clause = new Clause(1,Connective.ATLEAST,1,
+    public void constructorATLEAST() {
+        System.out.println("Constructor ATLEAST");
+        Clause clause = new Clause(1,Connective.ATLEAST,one,
                 IntArrayList.wrap(new int[]{2,3,4}));
         assertEquals("1: 2,3,4",clause.toNumbers());
         assertEquals("1: q,r,s",clause.toString(0,symboltable));
         assertEquals(Connective.OR,clause.connective);
         assertEquals(clause.structure,ClauseStructure.POSITIVE);
-    }
 
-    @Test
-    public void constructor3() {
-        System.out.println("Constructor 3");
-        Clause clause = new Clause(1,Connective.ATLEAST,3,
+        clause = new Clause(1,Connective.ATLEAST,(short)3,
                 IntArrayList.wrap(new int[]{-2,-3,-4}));
         assertEquals("A-1: -2&-3&-4",clause.toNumbers());
         assertEquals("A-1: -q&-r&-s",clause.toString(0,symboltable));
         assertEquals(Connective.AND,clause.connective);
         assertEquals(clause.structure,ClauseStructure.NEGATIVE);
-    }
 
-    @Test
-    public void constructor4() {
-        System.out.println("Constructor 4");
-        Clause clause = new Clause(1,Connective.ATLEAST,4,
+        clause = new Clause(1,Connective.ATLEAST,(short)4,
                 IntArrayList.wrap(new int[]{-2,-3,-4}));
         assertEquals(clause.structure,ClauseStructure.CONTRADICTORY);
+
+        clause = new Clause(2,Connective.ATLEAST,(short)2,
+                IntArrayList.wrap(new int[]{2,3,4,2,3,2,2,3,4,-5,4,4}));
+        assertEquals("L-2: 2: 2^2,3^2,4^2,-5",clause.toNumbers());
+        assertEquals("L-2: 2: 2^2,3^2,4^2,-5 [2]",clause.infoString(0,null));
+        assertEquals("Input: Clause 2",clause.inferenceStep.toString(symboltable));
     }
+
+
     @Test
-    public void constructor5() {
+    public void constructorATMOST() {
         System.out.println("Constructor Atmost");
-        Clause clause = new Clause(1,Connective.ATMOST,1,
+        Clause clause = new Clause(1,Connective.ATMOST,one,
                 IntArrayList.wrap(new int[]{2,3,4}));
         assertEquals("L-1: 2: -2,-3,-4",clause.toNumbers());
         assertEquals("L-1: 2: -q,-r,-s",clause.toString(0,symboltable));
         assertEquals(Connective.ATLEAST,clause.connective);
         assertEquals(clause.structure,ClauseStructure.NEGATIVE);
-    }
+        assertEquals("L-1: 2: -q,-r,-s [1]",clause.infoString(0,symboltable));
+        assertEquals("",clause.inferenceStep.toString(symboltable));
 
-    @Test
-    public void constructor6() {
-        System.out.println("Constructor Atmost 0");
-        Clause clause = new Clause(1,Connective.ATMOST,0,
+        clause = new Clause(1,Connective.ATMOST,(short)0,
                 IntArrayList.wrap(new int[]{2,3,4}));
         assertEquals("A-1: -2&-3&-4",clause.toNumbers());
         assertEquals(Connective.AND,clause.connective);
         assertEquals(clause.structure,ClauseStructure.NEGATIVE);
-    }
 
-    @Test
-    public void constructor7() {
-        System.out.println("Constructor Atmost all");
-        Clause clause = new Clause(1,Connective.ATMOST,3,
+        clause = new Clause(1,Connective.ATMOST,(short)3,
                 IntArrayList.wrap(new int[]{2,3,4}));
         assertEquals(clause.structure,ClauseStructure.TAUTOLOGY);
     }
@@ -120,6 +124,10 @@ public class ClauseTest {
         assertEquals("1: 2,3,4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
         assertEquals(1,cl.limit);
+
+        bc = new int[]{2, or, 2, 3, 4,3,3,4};
+        cl = new Clause(bc);
+        assertEquals("2: 2,3,4", cl.toNumbers());
     }
 
     @Test
@@ -145,6 +153,10 @@ public class ClauseTest {
         assertEquals("4: -2,-3,-4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.NEGATIVE);
 
+        bc = new int[]{5, atl, 2, 2,2,3,3,3,2,4,4,4,5};
+        cl = new Clause(bc);
+        assertEquals("L-5: 2: 2^2,3^2,4^2,5", cl.toNumbers());
+
     }
 
     @Test
@@ -155,6 +167,8 @@ public class ClauseTest {
         assertEquals("1: -2,-3,-4", cl.toNumbers());
         assertEquals(cl.connective, Connective.OR);
         assertEquals(cl.structure,ClauseStructure.NEGATIVE);
+        assertEquals("1: -q,-r,-s [1]",cl.infoString(0,symboltable));
+        assertEquals("M-1: 2 q,r,s -> 1: -q,-r,-s",cl.inferenceStep.toString(symboltable));
 
         bc = new int[]{2, atm, 0, 2, 3, 4};
         cl = new Clause(bc);
@@ -162,6 +176,15 @@ public class ClauseTest {
         bc = new int[]{2, atm, 3, 2, 3, 4};
         cl = new Clause(bc);
         assertEquals(cl.structure,ClauseStructure.TAUTOLOGY);
+
+        bc = new int[]{3, atm, 2, 2,2,3,3,4, 3, 4};
+        cl = new Clause(bc);
+        assertEquals("L-3: 5: -2^2,-3^3,-4^2", cl.toNumbers());
+
+        bc = new int[]{4, atm, 5, 2,2,3,3,4, 3, 4};
+        cl = new Clause(bc);
+        assertEquals("L-4: 2: -2^2,-3^2,-4^2", cl.toNumbers());
+
     }
     @Test
     public void constructorBCAnd() {
@@ -191,6 +214,9 @@ public class ClauseTest {
         assertEquals("1: 2,3,4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
         assertEquals(1,cl.limit);
+
+        cl = new Clause(2,Connective.OR,2,3,2,3,2,4);
+        assertEquals("2: 2,3,4", cl.toNumbers());
     }
 
     @Test
@@ -204,7 +230,19 @@ public class ClauseTest {
         assertEquals("A-1: 2&3&4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
         assertEquals(-1,cl.limit);
+        cl = new Clause(2,Connective.ATLEAST,2,2,3,2,2,2,4);
+        assertEquals("L-2: 2: 2^2,3,4", cl.toNumbers());
     }
+    @Test
+    public void constructorLitAtmost() {
+        System.out.println("Constructor Lit atmost");
+        Clause cl = new Clause(1, Connective.ATMOST, 2, 2, 3, 4, 5, 6);
+        assertEquals("L-1: 3: -2,-3,-4,-5,-6", cl.toNumbers());
+        assertEquals(cl.structure, ClauseStructure.NEGATIVE);
+        assertEquals("L-1: 3: -q,-r,-s,-t,-u [1]",cl.infoString(0,symboltable));
+        assertEquals("1: atmost 2: q,r,s,t,u -> L-1: 3: -q,-r,-s,-t,-u",cl.inferenceStep.toString(symboltable));
+    }
+
 
     @Test
     public void constructorLitAnd() {
@@ -224,14 +262,31 @@ public class ClauseTest {
         assertEquals(-1,cl.limit);
     }
 
+    @Test
+    public void intervalClause() {
+        System.out.println("intervalClause");
+        int[] id = new int[]{1};
+        int[] bc = new int[]{1, itv, 2, 4, 1, 2, 3, 4, 5};
+        ArrayList<Clause> cls = Clause.intervalClause(() -> ++id[0], bc);
+        assertEquals(2, cls.size());
+        assertEquals("L-2: 2: 1,2,3,4,5",cls.get(0).toNumbers());
+        assertEquals("Input: Clause 2",cls.get(0).inferenceStep.toString(null));
+        assertEquals("3: -1,-2,-3,-4,-5",cls.get(1).toNumbers());
+        assertEquals("3: atmost 4: 1,2,3,4,5 -> 3: -1,-2,-3,-4,-5",cls.get(1).inferenceStep.toString(null));
 
+        bc = new int[]{1, itv, 0, 4, 1, 2, 3, 4, 5};
+        cls = Clause.intervalClause(() -> ++id[0], bc);
+        assertEquals("4: -1,-2,-3,-4,-5",cls.get(0).toNumbers());
 
+        bc = new int[]{1, itv, 2, 5, 1, 2, 3, 4, 5};
+        cls = Clause.intervalClause(() -> ++id[0], bc);
+        assertEquals("L-5: 2: 1,2,3,4,5",cls.get(0).toNumbers());
+    }
 
-    /*
     @Test
     public void cloneTest() {
-        System.out.println("clone 1");
-        Clause c1 = new Clause(1, Connective.INTERVAL, 2, 3, 2, -3, 4, 5);
+        System.out.println("clone");
+        Clause c1 = new Clause(1, Connective.ATLEAST, 2, 2, -3, 4, 5);
         Clause c2 = c1.clone(1);
         assertEquals(c1.toNumbers(), c2.toNumbers());
         Clause c3 = new Clause(2, Connective.AND,  2, -3, 4, 5);
@@ -240,6 +295,35 @@ public class ClauseTest {
         Clause c5 = c3.clone(3);
         assertEquals("A-3: 2&-3&4&5",c5.toNumbers());
     }
+
+    @Test
+    public void toAtmost() {
+        System.out.println("toAtmost");
+        Clause c1 = new Clause(1, Connective.ATLEAST, 2, 2, -3, 4, 5,6);
+        Clause c2 = c1.toAtmost(2);
+        assertEquals("M-2: 3: -2,3,-4,-5,-6",c2.toNumbers());
+        assertEquals("M-2: 3: -q,r,-s,-t,-u [1]",c2.infoString(0,symboltable));
+        assertEquals("L-1: 2: q,-r,s,t,u -> M-2: 3: -q,r,-s,-t,-u",c2.inferenceStep.toString(symboltable));
+        assertEquals("Atleast to Atmost:\n" +
+                "atleast n l_1,...,l_k -> atmost k-n -l_1,...,-l_k",c2.inferenceStep.rule());
+    }
+    @Test
+    public void toCNF() {
+        System.out.println("toCNF");
+        int[] ids = new int[]{0};
+        Clause c1 = new Clause(new int[]{1, atl, 3, 1,1,2,2,3,4});
+        ArrayList<Clause> cnf = c1.toCNF(()->++ids[0],true);
+        for(Clause cl :cnf) System.out.println(cl.toNumbers());
+        assertEquals("1: 1,2",cnf.get(0).toNumbers());
+        assertEquals("2: 1,3,4",cnf.get(1).toNumbers());
+        assertEquals("3: 2,3,4",cnf.get(2).toNumbers());
+        assertEquals("Atleast-Clause to Conjunctive Normal Form\n" +
+                "L-1: 3: 1^2,2^2,3,4 -> 3: 2,3,4",cnf.get(2).inferenceStep.toString());
+
+    }
+
+
+    /*
     @Test
     public void replaceEquivalences() {
         System.out.println("replaceEquivalences");

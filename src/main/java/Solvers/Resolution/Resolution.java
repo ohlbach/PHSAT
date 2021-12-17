@@ -545,13 +545,13 @@ public abstract class Resolution extends Solver {
             Clause newClause = new Clause(++id[0], Connective.OR);
             ArrayList<CLiteral> newLiterals = new ArrayList<>();
             for(CLiteral literal : literals) {
-                if(literal.literal != eliminateLiteral) {newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size()));}}
+                if(literal.literal != eliminateLiteral) {newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size(),(short)1));}}
             for(CLiteral literal : otherClause.cliterals) {
                 if(literal.literal == -eliminateLiteral) {continue;}
                 int contained = LitAlgorithms.contains(newLiterals,literal.literal);
                 if(contained > 0) {continue;}
                 if(contained < 0) {tautology = true; break;}
-                newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size()));}
+                newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size(),(short)1));}
             if(tautology) {removeClause(otherClause,0); continue;}
             newClause.cliterals = newLiterals;
             newClause.setStructure();

@@ -51,7 +51,7 @@ public class EquivalenceClassesTest {
     }
 
     private Clause make(int id, int... literals) {
-        return new Clause(id, Connective.EQUIV,-1, IntArrayList.wrap(literals));
+        return new Clause(id, Connective.EQUIV,(short)-1, IntArrayList.wrap(literals));
     }
 
     @Test

@@ -1067,6 +1067,21 @@ public class Utilities {
         for(int q : list) product *= q;
         return product;}
 
+    /** turns an IntArrayList to a comma separated string
+     *
+     * @param list the list
+     * @param converter for converting integers to strings
+     * @return the list as comma separated string.
+     */
+    public static String intArrayListToString(IntArrayList list,Function<Integer,String> converter) {
+        StringBuilder st = new StringBuilder();
+        int size = list.size();
+        for(int i = 0; i < size; ++i) {
+            int item = list.getInt(i);
+            st.append(converter == null ? Integer.toString(item) : converter.apply(item));
+            if(i < size-1) st.append(",");}
+        return st.toString();}
+
     public static void  main(String[] args) {
         Int2IntArrayMap m = new Int2IntArrayMap(5);
         m.put(-5,7);

@@ -20,7 +20,7 @@ public class LitAlgorithmsTest {
         Clause cl = new Clause(id, Connective.OR, literals.length);
         int i = -1;
         for(int l:literals) {
-            CLiteral lit = new CLiteral(l,cl,++i);
+            CLiteral lit = new CLiteral(l,cl,++i,(short)1);
             cl.add(lit);}
         for(CLiteral lit : cl) {literalIndex.add(lit);}
         cl.setStructure();

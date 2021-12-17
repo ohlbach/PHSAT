@@ -332,7 +332,7 @@ public class EquivalenceClasses  {
                 int sign = result[0];
                 int literal = result[1];
                 Clause newClause = clause.clone(problemSupervisor.nextClauseId());
-                for(CLiteral cliteral : Clause) newClause.add(sign*cliteral.literal);
+                for(CLiteral cliteral : Clause) newClause.add(sign*cliteral.literal,(short)1);
                 if(trackReasoning) {
                     EquivalenceJoining eqj = new EquivalenceJoining(clause,Clause,literal,newClause);
                     newClause.inferenceStep = eqj;
