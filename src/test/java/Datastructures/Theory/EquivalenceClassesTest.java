@@ -54,33 +54,34 @@ public class EquivalenceClassesTest {
         return new Clause(id, Connective.EQUIV,(short)-1, IntArrayList.wrap(literals));
     }
 
+    /*
     @Test
     public void removeDouble() throws Result {
         System.out.println("Remove Double and Inconsistency");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         Clause c1 = make(1,1,2,3);
-        Clause c2 = eqClasses.removeDoublesAndInconsistencies(c1);
+        Clause c2 = eqClasses.checkForComplementaries(c1);
         assertSame(c1, c2);
         assertEquals("E-1: 1=2=3",c1.toString());
 
         Clause c3 = make(2,1,2,3,2);
-        Clause c4 = eqClasses.removeDoublesAndInconsistencies(c3);
+        Clause c4 = eqClasses.checkForComplementaries(c3);
         assertEquals("E-2: 1=2=3",c4.toString());
 
 
         Clause c5 = make(3,1,-2,3,-2,3);
-        Clause c6 = eqClasses.removeDoublesAndInconsistencies(c5);
+        Clause c6 = eqClasses.checkForComplementaries(c5);
         assertEquals("E-3: 1=-2=3",c6.toString());
 
         try{
             Clause c7 = make(4,1,2,3,2,-3);
-            eqClasses.removeDoublesAndInconsistencies(c7);}
+            eqClasses.checkForComplementaries(c7);}
         catch(Unsatisfiable uns) {
             if(monitoring) {
                 System.out.println(uns);
                 System.out.println(uns.toString());}
             else System.out.println("Unsatisfiable");}}
-
+*/
 
     @Test
     public void replaceTruthValues() throws Result {
@@ -88,53 +89,24 @@ public class EquivalenceClassesTest {
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         InferenceTest inf = new InferenceTest("My Test");
         Clause c1 = make(1,1,2,3);
-        Clause c2 = eqClasses.replaceTruthValues(c1);
+        Clause c2 = eqClasses.checkTruthValues(c1);
         assertSame(c1, c2);
         eqClasses.model.add(2,inf,null);
-        eqClasses.replaceTruthValues(c1);
+        eqClasses.checkTruthValues(c1);
         assertEquals("Model:\n1,2,3",eqClasses.model.toNumbers());
         //System.out.println(eqClasses.model.infoString(false));
         eqClasses.model.add(5,inf,null);
         Clause c4 = make(2,4,-5,-6);
-        assertNull(eqClasses.replaceTruthValues(c4));
+        assertNull(eqClasses.checkTruthValues(c4));
         assertEquals("Model:\n1,2,3,-4,5,6",eqClasses.model.toNumbers());
 
         Clause c6 = make(3,4,5);
-        try{eqClasses.replaceTruthValues(c6);}
+        try{eqClasses.checkTruthValues(c6);}
         catch(Unsatisfiable uns) {
             if(monitoring) System.out.println(uns);
             else System.out.println("Unsatisfiable");}
     }
 
-    @Test
-    public void replaceEquivalences1() throws Result{
-        System.out.println("Replace Equivalences 1");
-        EquivalenceClasses eqClasses=prepare(monitoring,true);
-        Clause c1 = make(1,3,2,1);
-        eqClasses.integrateEquivalence(c1,false);
-        //System.out.println(eqClasses.toString());
-        Clause c2 = make(2,4,5,3);
-        Clause c3 = eqClasses.replaceEquivalences(c2);
-        assertEquals("E-1: 4=5=1",c3.toString());
-        Clause c4 = make(3,4,5,-3);
-        Clause c5 = eqClasses.replaceEquivalences(c4);
-        assertEquals("E-2: 4=5=-1",c5.toString());
-    }
-    @Test
-    public void replaceEquivalences2() throws Result{
-        System.out.println("Replace Equivalences 2");
-        EquivalenceClasses eqClasses=prepare(monitoring,true);
-        Clause c1 = make(1,2,1);
-        eqClasses.integrateEquivalence(c1,false);
-        Clause c2 = make(2,4,5);
-        eqClasses.integrateEquivalence(c2,false);
-
-        //System.out.println(eqClasses);
-
-        Clause c3 = make(2,1,2,3,4,-5);
-        Clause c4 = eqClasses.replaceEquivalences(c3);
-        assertEquals("E-2: 1=1=3=4=-4",c4.toString());
-    }
     @Test
     public void joinClause() throws Result{
         System.out.println("Join Clause");
@@ -317,7 +289,7 @@ public class EquivalenceClassesTest {
         eqClasses.addBasicEquivalenceClause(clause);
         clause=new int[]{2,type,5,-6};
         eqClasses.addBasicEquivalenceClause(clause);
-        try{eqClasses.integrateTrueLiteral(6,null);}
+        try{eqClasses.integrateTrueLiteral(6);}
         catch(Unsatisfiable uns) {
             if(monitoring) System.out.println(uns);
             else System.out.println("Unsatisfiable");}

@@ -126,9 +126,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         int length = basicClause.length;
         int start = 2;
         switch (connective) {
-            case OR:      limit = 1; break;
+            case OR:
             case AND:
-            case EQUIV:   limit = -1; break; // there is no limit
+            case EQUIV:   limit = 1; break; // there is no limit
             case ATLEAST: start = 3; limit = (short)basicClause[2]; break;
             case ATMOST:  start = 3; limit = (short)(basicClause.length - 3  - basicClause[2]); break;
             default: assert(false);} // should not happen.
@@ -165,9 +165,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         int start = 0;
         int length = literals.length;
         switch (connective) {
-            case OR:      limit = 1; break;
+            case OR:
             case AND:
-            case EQUIV:   limit = -1;break;
+            case EQUIV:   limit = 1; break;
             case ATLEAST: limit = (short)literals[0];  start = 1;break;
             case ATMOST:
                 start = 1;
@@ -700,8 +700,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return [+1,literal] if they overlap with a literal, [-1,literal] if they overlap complementary, otherwise null
      */
     public int[] overlaps(Clause clause) {
-        for(CLiteral cLiteral1 : this) {
-            int literal1 =cLiteral1.literal;
+        for(CLiteral cLiteral1 : cliterals) {
+            int literal1 = cLiteral1.literal;
             for(CLiteral cLiteral2 : clause) {
                 if(cLiteral2.literal ==  literal1) return new int[]{+1,literal1};
                 if(cLiteral2.literal == -literal1) return new int[]{-1,literal1};}}

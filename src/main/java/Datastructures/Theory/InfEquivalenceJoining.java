@@ -1,29 +1,29 @@
-package InferenceSteps;
+package Datastructures.Theory;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
+import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import static Utilities.Utilities.joinIntArrays;
 
-public class EquivalenceJoining  extends InferenceStep {
+public class InfEquivalenceJoining extends InferenceStep {
     private final Clause clause1;
     private final Clause clause2;
     private final Clause joinedClause;
     private final int literal;
 
-    public static final String title = "Equivalence Joining";
+    public static final String title = "Joining of Overlapping Equivalences";
 
     public static final String rule = title + ":\n"+
-            "Joining two overlapping equivalence clauses.\n" +
             "          p == q == ... == s\n"+
             "          p == r == ... == t\n"+
             "-----------------------------------\n"+
             "p == q == ... == s == r == ... == t";
 
 
-    public EquivalenceJoining(Clause clause1, Clause clause2, int literal, Clause joinedClause) {
+    public InfEquivalenceJoining(Clause clause1, Clause clause2, int literal, Clause joinedClause) {
         this.clause1 = clause1;
         this.clause2 = clause2;
         this.literal = literal;

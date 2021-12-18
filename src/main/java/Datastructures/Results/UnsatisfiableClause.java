@@ -12,7 +12,7 @@ import java.util.ArrayList;
 public class UnsatisfiableClause extends Unsatisfiable {
     private final Clause clause;
 
-    /** constructs an Unsatisfiability from an unsatrisfiable clause
+    /** constructs an Unsatisfiability from an unsatisfiable clause
      *
      * @param clause an unsatisfiable clause
      */
