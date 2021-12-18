@@ -7,7 +7,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 
 public class InfTrueFalseLiterals extends InferenceStep {
-    public static final String title = "Removed Literals";
+    public static final String title = "Removed Literals with Truth Value";
 
     public static final String rule =
             "m: p^n,phi and true(p) -> m-n: phi\n"+
@@ -47,7 +47,7 @@ public class InfTrueFalseLiterals extends InferenceStep {
                 literals += Symboltable.toString(falseLiterals.getInt(i),symboltable);
                 if(i < falseLiterals.size()-1) literals += ",";}
             literals += ")";}
-        return oldClause.toString(0,symboltable) + " and " + literals +
+        return title + ":\n"+oldClause.toString(0,symboltable) + " and " + literals +
                 " -> " + newClause.toString(0,symboltable);}
 
     @Override

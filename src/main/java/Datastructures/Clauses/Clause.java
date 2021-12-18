@@ -235,6 +235,16 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         clause.structure = structure;
         return clause;}
 
+    public void compactify() {
+        for(int i = 0; i < cliterals.size(); ++i) {
+            int literal = cliterals.get(i).literal;
+            for(int j = 0; j < i; ++j) {
+                CLiteral cLiteral = cliterals.get(j);
+                if(literal == cLiteral.literal) {
+                    if(cLiteral.multiplicity < limit) ++cLiteral.multiplicity;
+                    removeAtPosition(i--);
+                    break;}}}}
+
 
     /** turns an atleast-clause into an atmost-clause
      *
@@ -297,17 +307,12 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             replacements.add(newLiteral);
             if (clause == this && nextId != null) {
                 clause = clone(nextId.getAsInt());
-                cLits = clause.cliterals;}
-            boolean found = false;
-            for(int j = 0; j < i; ++j) {
-                CLiteral cLiteralj = cLits.get(j);
-                if(cLiteralj.literal == newLiteral) {
-                    cLiteralj.multiplicity += cLiterali.multiplicity;
-                    clause.removeAtPosition(i--);
-                    found = true;
-                    break;}}
-            if(!found) cLiterali.literal = newLiteral;}
-        if (!replacements.isEmpty()) {clause.setStructure();}
+                cLits = clause.cliterals;
+                cLiterali = cLits.get(i);}
+            cLiterali.literal = newLiteral;}
+        if (!replacements.isEmpty()) {
+            clause.compactify();
+            clause.setStructure();}
         if(clause != this) clause.inferenceStep = new InfEquivalenceReplacements(this,clause,replacements,equivalenceClasses);
         return clause;}
 
@@ -335,7 +340,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(status == 0) continue;
             if (clause == this && nextInt != null) {
                 clause = clone(nextInt.getAsInt());
-                cLits = clause.cliterals;}
+                cLits = clause.cliterals;
+                cLiteral = cLits.get(i);}
             if(status == 1) {
                 if(!removedTrueLiterals.contains(literal)) removedTrueLiterals.add(literal);
                 clause.limit -= cLiteral.multiplicity;
@@ -369,7 +375,10 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 if(literali == -cLiteralj.literal) {
                     if(clause == this && nextId != null) {
                         clause = clone(nextId.getAsInt());
-                        cliterals = clause.cliterals;}
+                        cliterals = clause.cliterals;
+                        cLiterali = cliterals.get(i);
+                        cLiteralj = cliterals.get(j);
+                    }
                     complementaryLiterals.add(Math.abs(literali));
                     short multiplicityi = cLiterali.multiplicity;
                     short multiplicityj = cLiteralj.multiplicity;

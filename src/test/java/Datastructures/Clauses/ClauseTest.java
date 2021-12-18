@@ -1,14 +1,24 @@
 package Datastructures.Clauses;
 
+import Datastructures.Clauses.AllClauses.Clauses;
+import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Aborted;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.Model;
+import Management.Controller;
+import Management.GlobalParameters;
+import Management.Monitor;
+import Management.ProblemSupervisor;
 import Utilities.Interval;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
 import javax.xml.bind.annotation.adapters.CollapsedStringAdapter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 
@@ -103,7 +113,7 @@ public class ClauseTest {
         assertEquals(Connective.ATLEAST,clause.connective);
         assertEquals(clause.structure,ClauseStructure.NEGATIVE);
         assertEquals("L-1: 2: -q,-r,-s [1]",clause.infoString(0,symboltable));
-        assertEquals("",clause.inferenceStep.toString(symboltable));
+        assertEquals("1: atmost 1: q,r,s -> L-1: 2: -q,-r,-s",clause.inferenceStep.toString(symboltable));
 
         clause = new Clause(1,Connective.ATMOST,(short)0,
                 IntArrayList.wrap(new int[]{2,3,4}));
@@ -323,137 +333,96 @@ public class ClauseTest {
     }
 
 
-    /*
     @Test
-    public void replaceEquivalences() {
-        System.out.println("replaceEquivalences");
-        int[] id = new int[]{1};
-        Clause c1 = new Clause(1, Connective.INTERVAL, 2, 3, 2, -3, 4, 5);
-        IntArrayList replacements = new IntArrayList();
-        Clause c2 = c1.replaceEquivalences((literal)-> literal > 0 ? literal+10 : literal, ()->++id[0],replacements);
-        assertEquals("I-1: [2,3]: 2,-3,4,5",c1.toNumbers());
-        assertEquals("I-2: [2,3]: 12,-3,14,15",c2.toNumbers());
-        assertEquals("[2, 12, 4, 14, 5, 15]",replacements.toString());
+    public void removeComplementaryLiterals() {
+        System.out.println("removeComplementaryLiterals");
+        int[] ids = new int[]{0};
+        Clause c1 = new Clause(new int[]{1, atl, 3, 1,2,3,4});
+        Clause c2 = c1.removeComplementaryLiterals(()->++ids[0]);
+        assertSame(c1,c2);
+        c1 = new Clause(new int[]{1, atl, 3, 1,2,3,-2,-1});
+        c2 = c1.removeComplementaryLiterals(null);
+        assertSame(c1,c2);
+        assertEquals("A-1: 3",c1.toNumbers());
 
-        Clause c3 = new Clause(3, Connective.INTERVAL, 2, 3, -2, -3, -4, -5);
-        Clause c4 = c3.replaceEquivalences((literal)-> literal > 0 ? literal+10 : literal, ()->++id[0],replacements);
-        assertSame(c3,c4);
-        Clause c5 = new Clause(5, Connective.INTERVAL, 2, 3, 2, -3, 4, 5);
-        Clause c6 = c5.replaceEquivalences((literal)-> literal > 0 ? -literal : literal, ()->++id[0],replacements);
-        assertEquals("I-3: [2,3]: -2,-3,-4,-5",c6.toNumbers());
-        assertEquals("[2, -2, 4, -4, 5, -5]",replacements.toString());
-        assertTrue(c6.isNegative());
+        c1 = new Clause(new int[]{1, atl, 3, 1,2,3,-2,-1,2});
+        c2 = c1.removeComplementaryLiterals(()->++ids[0]);
+        assertNotSame(c1,c2);
+        assertEquals("L-1: 3: 1,2^2,3,-2,-1",c1.toNumbers());
+        assertEquals("1: 2,3",c2.toNumbers());
+        assertEquals("Complementary Literals:\n" +
+                "L-1: 3: 1,2^2,3,-2,-1 at 2,1 -> 1: 2,3",c2.inferenceStep.toString());
 
-        Clause c7 = c5.replaceEquivalences((literal)-> literal > 0 ? -literal : literal, null,replacements);
-        assertSame(c7,c5);
-        assertEquals("I-5: [2,3]: -2,-3,-4,-5",c7.toNumbers());
-        assertEquals("[2, -2, 4, -4, 5, -5]",replacements.toString());
+        c1 = new Clause(new int[]{1, atl, 3, 1,-2,3,-2,-1,2});
+        c2 = c1.removeComplementaryLiterals(()->++ids[0]);
+        assertNotSame(c1,c2);
+        assertEquals("2: -2,3",c2.toNumbers());
+
     }
-
     @Test
     public void removeTrueFalseLiterals() {
         System.out.println("removeTrueFalseLiterals");
-        int[] id = new int[]{1};
-        IntSupplier nextInt = () -> ++id[0];
-        IntUnaryOperator getTruthStatus = (literal) -> literal > 4 ? (literal % 2 == 0 ? 1 : -1) : 0;
-        IntArrayList trueLiterals = new IntArrayList();
-        IntArrayList falseLiterals = new IntArrayList();
+        int[] ids = new int[]{1};
+        IntUnaryOperator status = (int literal) -> {return literal > 3 ? (literal % 2 == 0 ? 1 : -1) : 0;};
+        Clause c1 = new Clause(new int[]{1, atl, 3, 1, 4, 2, 6, 3, 5});
+        Clause c2 = c1.removeTrueFalseLiterals(status,()->++ids[0]);
+        assertEquals("L-1: 3: 1,4,2,6,3,5",c1.toNumbers());
+        assertEquals("2: 1,2,3",c2.toNumbers());
+        assertEquals("Removed Literals with Truth Value:\n" +
+                "L-1: 3: 1,4,2,6,3,5 and true(4,6) and false(5) -> 2: 1,2,3",c2.inferenceStep.toString());
+        c2 = c1.removeTrueFalseLiterals(status,null);
+        assertEquals("1: 1,2,3",c1.toNumbers());}
 
-        Clause c1 = new Clause(1, Connective.INTERVAL, 2, 3, 1, 4, 5, 6, 2, 3);
-        Clause c2 = c1.removeTrueFalseLiterals(getTruthStatus, nextInt, trueLiterals, falseLiterals);
-        assertEquals("[6]",trueLiterals.toString());
-        assertEquals("[5]",falseLiterals.toString());
-        assertEquals("I-2: [1,2]: 1,4,2,3",c2.toNumbers());
-        assertEquals(3,c2.getCLiteral(3).clausePosition);
 
-        Clause c3 = new Clause(2, Connective.INTERVAL, 2, 3, 5,7,9);
-        Clause c4 = c3.removeTrueFalseLiterals(getTruthStatus, null, trueLiterals, falseLiterals);
-        assertSame(c3,c4);
-        assertEquals("[]",trueLiterals.toString());
-        assertEquals("[5, 7, 9]",falseLiterals.toString());
-        assertEquals(ClauseStructure.CONTRADICTORY,c3.structure);
+    EquivalenceClasses prepare() {
+        GlobalParameters globalParameters=new GlobalParameters();
+        HashMap<String,Object> problemParameters=new HashMap<>();
+        problemParameters.put("name","test");
 
-        Clause c5 = new Clause(3, Connective.OR, 3,4,5,6);
-        Clause c6 = c5.removeTrueFalseLiterals(getTruthStatus, nextInt, trueLiterals, falseLiterals);
-        assertNotSame(c5,c6);
-        assertEquals("[6]",trueLiterals.toString());
-        assertEquals("[5]",falseLiterals.toString());
-        assertEquals(ClauseStructure.TAUTOLOGY,c6.structure);
-
-        Clause c7 = new Clause(4, Connective.OR, 3,4,6,5);
-        Clause c8 = c7.removeTrueFalseLiterals(getTruthStatus, nextInt, trueLiterals, falseLiterals);
-        assertNotSame(c7,c8);
-        assertEquals("[6]",trueLiterals.toString());
-        assertEquals("[]",falseLiterals.toString());
-        assertEquals(ClauseStructure.TAUTOLOGY,c8.structure);
-
-        Clause c9 = new Clause(5, Connective.INTERVAL, 2, 3, 1, 2, 3, 4, 5, 6,7,8);
-        Clause c10 = c9.removeTrueFalseLiterals(getTruthStatus, nextInt, trueLiterals, falseLiterals);
-        assertEquals("[6, 8]",trueLiterals.toString());
-        assertEquals("[5, 7]",falseLiterals.toString());
-        assertEquals("M-5: [0,1]: 1,2,3,4",c10.toNumbers());
-
-        Clause c11 = new Clause(5, Connective.EXACTLY, 2, 1, 2, 3, 4, 5, 6,7,8);
-        Clause c12 = c11.removeTrueFalseLiterals(getTruthStatus, nextInt, trueLiterals, falseLiterals);
-        assertEquals("[6, 8]",trueLiterals.toString());
-        assertEquals("[5, 7]",falseLiterals.toString());
-        assertEquals("A-6: -1&-2&-3&-4",c12.toNumbers());
-    }
-
+        Controller controller=new Controller(null,null,null);
+        ProblemSupervisor problemSupervisor=new ProblemSupervisor(controller,globalParameters,problemParameters,null);
+        problemSupervisor.model=new Model(20,symboltable);
+        return new EquivalenceClasses(problemSupervisor);
+        }
 
     @Test
-    public void removeDoubles() {
-        System.out.println("removeDoubleAndComplementaryLiterals");
+    public void replaceEquivalences() throws Unsatisfiable {
+        System.out.println("replaceEquivalences");
+        EquivalenceClasses eqc = prepare();
+        eqc.addBasicEquivalenceClause(new int[]{10,eqv,1,3,5});
         int[] id = new int[]{1};
-        IntSupplier nextInt = () -> ++id[0];
-        IntArrayList doubleLiterals = new IntArrayList();
-        IntArrayList complementaryLiterals = new IntArrayList();
-        Clause c1 = new Clause(1, Connective.OR, 3,4,6,3,4,3);
-        Clause c2 = c1.removeMultipleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
-        assertNotSame(c1,c2);
-        assertEquals("[3, 4]", doubleLiterals.toString());
-        assertEquals("2: 3,4,6",c2.toNumbers());
-        assertEquals(c2.structure,ClauseStructure.POSITIVE);
+        Clause c1 = new Clause(1, Connective.ATLEAST, 3, 6,5,4,3,2,1);
+        Clause c2 = c1.replaceEquivalences(eqc, ()->++id[0]);
+        assertEquals("L-1: 3: 6,5,4,3,2,1",c1.toNumbers());
+        assertEquals("L-2: 3: 6,1^3,4,2",c2.toNumbers());
 
-        Clause c3 = new Clause(1, Connective.OR, 3,3,3);
-        Clause c4 = c3.removeMultipleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
-        assertNotSame(c3,c4);
-        assertEquals("[3]", doubleLiterals.toString());
-        assertEquals("A-3: 3",c4.toNumbers());
+        c1 = new Clause(1, Connective.ATLEAST, 2, 6,5,4,3,2,1);
+        c2 = c1.replaceEquivalences(eqc, ()->++id[0]);
+        assertEquals("L-1: 2: 6,5,4,3,2,1",c1.toNumbers());
+        assertEquals("L-3: 2: 6,1^2,4,2",c2.toNumbers());
+        c2 = c1.replaceEquivalences(eqc,null);
+        assertEquals("L-1: 2: 6,1^2,4,2",c1.toNumbers());
+    }
+    @Test
+    public void splitOffMultiples() {
+        System.out.println("splitOffMultiples");
+        int[] id = new int[]{1};
+        Clause c1 = new Clause(1, Connective.ATLEAST, 3, 1,1,2,2,3);
+        ArrayList<Clause> clauses = c1.splitOffMultiples(()->++id[0],true);
+        assertEquals("2: 1,2",clauses.get(0).toNumbers());
+        assertEquals("Extract CNF from Multiple Literals:\n" +
+                "L-1: 3: 1^2,2^2,3 -> 2: 1,2",clauses.get(0).inferenceStep.toString());
 
-        Clause c5 = c3.removeMultipleAndComplementaryLiterals(null,doubleLiterals,complementaryLiterals);
-        assertSame(c3,c5);
-        assertEquals("A-1: 3",c3.toNumbers());
-
-        Clause c6 = new Clause(1, Connective.OR, 3,3,-3);
-        Clause c7 = c6.removeMultipleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
-        assertNotSame(c6,c7);
-        assertEquals("[3]", doubleLiterals.toString());
-        assertEquals("[3]", complementaryLiterals.toString());
-        assertEquals(c7.structure,ClauseStructure.TAUTOLOGY);
-        assertEquals("4: 3,-3",c7.toNumbers());
-
-        Clause c8 = c6.removeMultipleAndComplementaryLiterals(null,doubleLiterals,complementaryLiterals);
-        assertSame(c6,c8);
-        assertEquals(c6.structure,ClauseStructure.TAUTOLOGY);
-
-        Clause c9 = new Clause(1, Connective.INTERVAL, 2,3, 3,3,-3);
-        Clause c10 = c9.removeMultipleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
-        assertNotSame(c9,c10);
-        assertEquals("[]", doubleLiterals.toString());
-        assertEquals("[3]", complementaryLiterals.toString());
-        assertEquals(c10.structure,ClauseStructure.CONTRADICTORY);
-        assertEquals("L-5: [2,1]: 3",c10.toNumbers());
-
-        Clause c11 = new Clause(1, Connective.INTERVAL, 2,3, 3,4,5,-3,-4,6,7);
-        Clause c12 = c11.removeMultipleAndComplementaryLiterals(nextInt,doubleLiterals,complementaryLiterals);
-        assertNotSame(c11,c12);
-        assertEquals("[]", doubleLiterals.toString());
-        assertEquals("[3, 4]", complementaryLiterals.toString());
-        assertEquals(c12.structure,ClauseStructure.POSITIVE);
-        assertEquals("L-6: [2,3]: 5,6,7",c12.toNumbers());
+        c1 = new Clause(2, Connective.ATLEAST, 4, 1,1,2,2,3,3,3,3,5);
+        clauses = c1.splitOffMultiples(()->++id[0],true);
+        assertEquals("3: 1,3",clauses.get(0).toNumbers());
+        assertEquals("4: 2,3",clauses.get(1).toNumbers());
+        assertEquals("Extract CNF from Multiple Literals:\n" +
+                "L-2: 4: 1^2,2^2,3^4,5 -> 3: 1,3",clauses.get(0).inferenceStep.toString());
+        //System.out.println(clauses.get(0).inferenceStep.rule());
 
     }
-    */
+
+
 
 }

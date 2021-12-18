@@ -28,7 +28,7 @@ public class InfExtractMultiples extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return originalClause.toString(0,symboltable) + " -> " + cnfClause.toString(0,symboltable);}
+        return title + ":\n"+originalClause.toString(0,symboltable) + " -> " + cnfClause.toString(0,symboltable);}
 
     @Override
     public IntArrayList origins() {

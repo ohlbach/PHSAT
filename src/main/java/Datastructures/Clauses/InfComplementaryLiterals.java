@@ -36,7 +36,7 @@ public class InfComplementaryLiterals extends InferenceStep {
         for(int i = 0; i < complementaryLiterals.size(); ++i) {
             literals += Symboltable.toString(complementaryLiterals.getInt(i),symboltable);
             if(i < complementaryLiterals.size()-1) literals += ",";}
-        return oldClause.toString(0,symboltable) + literals + " -> " + newClause.toString(0,symboltable);
+        return title + ":\n"+oldClause.toString(0,symboltable) + literals + " -> " + newClause.toString(0,symboltable);
     }
 
     @Override
