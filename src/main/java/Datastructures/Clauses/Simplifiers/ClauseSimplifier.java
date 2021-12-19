@@ -96,7 +96,7 @@ public class ClauseSimplifier {
         Clause newClause = oldClause.replaceEquivalences(equivalenceClasses, nextId);
         if(intList1.isEmpty()) return oldClause;
         if(trackReasoning) {
-            InferenceStep step = new InfEquivalenceReplacements(oldClause,newClause, intList1,equivalenceClasses);
+            InferenceStep step = null; //new InfEquivalenceReplacements(oldClause,newClause, intList1,equivalenceClasses);
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
         return newClause;}

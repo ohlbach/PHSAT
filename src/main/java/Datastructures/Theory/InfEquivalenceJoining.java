@@ -27,8 +27,7 @@ public class InfEquivalenceJoining extends InferenceStep {
         this.clause1 = clause1;
         this.clause2 = clause2;
         this.literal = literal;
-        this.joinedClause = joinedClause;
-    }
+        this.joinedClause = joinedClause;}
 
     @Override
     public String title() {

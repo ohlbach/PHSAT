@@ -284,7 +284,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 orClause.inferenceStep = new InfAtleastToCNF(this, orClause);}}
         return clauses;}
 
-    private final IntArrayList replacements = new IntArrayList();
+    private final ArrayList<Object> replacements = new ArrayList();
 
     /** replaces literals by the representatives in an equivalence class.
      * If nextInt != null then the replacement is done in a clone of the clause, otherwise in the original clause
@@ -305,6 +305,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if (oldLiteral == newLiteral) continue;
             replacements.add(oldLiteral);
             replacements.add(newLiteral);
+            replacements.add(equivalenceClasses.getEClause(oldLiteral).inferenceStep);
             if (clause == this && nextId != null) {
                 clause = clone(nextId.getAsInt());
                 cLits = clause.cliterals;

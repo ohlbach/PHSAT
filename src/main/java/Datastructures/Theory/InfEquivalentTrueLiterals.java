@@ -45,17 +45,18 @@ public class InfEquivalentTrueLiterals extends InferenceStep {
         for(CLiteral cLiteral : clause) {
             int lit = cLiteral.literal;
             if(Math.abs(lit) != Math.abs(literal))
-                literals += Symboltable.toString(sign*literal,symboltable)+",";}
+                literals += Symboltable.toString(sign*lit,symboltable)+",";}
         literals = literals.substring(0,literals.length()-1);
         return title + ":\n" + clause.toString(0,symboltable) +
-                " and true(" + Symboltable.toString(sign*literal,symboltable)+") -> true("
+                " and true(" + Symboltable.toString(literal,symboltable)+") -> true("
                 +literals + ")";}
 
     @Override
     public IntArrayList origins() {
         InferenceStep step = clause.inferenceStep;
         IntArrayList origins = (step == null) ? null : step.origins();
-        return joinIntArrays(origins,inferenceStep.origins());}
+        if(inferenceStep != null) origins = joinIntArrays(origins,inferenceStep.origins());
+        return origins;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

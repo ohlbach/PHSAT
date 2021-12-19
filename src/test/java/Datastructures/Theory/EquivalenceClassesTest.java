@@ -229,21 +229,25 @@ public class EquivalenceClassesTest {
         ArrayList<Object> observed=new ArrayList<>();
         model.addObserver(Thread.currentThread(),
                 ((literal, step) -> {
-                    observed.add(literal);
+                    observed.add("\n"+literal);
                     observed.add(step);}));
 
         int[] clause=new int[]{1,type,5,2,4};
         eqClasses.addBasicEquivalenceClause(clause);
         assertEquals("Equivalence Classes of Problem test:\n",eqClasses.toString());
-        assertEquals("[5, Equivalent True Literals:\n" +
-                "E-1: 5=2=4 and true(2) -> true(5), 4, Equivalent True Literals:\n" +
-                "E-1: 5=2=4 and true(2) -> true(4)]",observed.toString());
+        assertEquals("[\n" +
+                "5, Equivalent True Literals:\n" +
+                "E-1: 5=2=4 and true(2) -> true(5,4), \n" +
+                "4, Equivalent True Literals:\n" +
+                "E-1: 5=2=4 and true(2) -> true(5,4)]",observed.toString());
         observed.clear();
         clause=new int[]{2,type,6,7,-4};
         eqClasses.addBasicEquivalenceClause(clause);
-        assertEquals("[-6, Equivalent True Literals:\n" +
-                "E-2: 6=7=-4 and true(4) -> true(-6), -7, Equivalent True Literals:\n" +
-                "E-2: 6=7=-4 and true(4) -> true(-7)]",observed.toString());
+        assertEquals("[\n" +
+                "-6, Equivalent True Literals:\n" +
+                "E-2: 6=7=-4 and true(4) -> true(-6,-7), \n" +
+                "-7, Equivalent True Literals:\n" +
+                "E-2: 6=7=-4 and true(4) -> true(-6,-7)]",observed.toString());
         observed.clear();
         clause=new int[]{3,type,8,-6,-2};
         try{
@@ -255,20 +259,21 @@ public class EquivalenceClassesTest {
     @Test
     public void addBasicEquivalenceClause4() throws Result{
         System.out.println("Add Basic Equivalence Clause internal error ");
-        EquivalenceClasses eqClasses=prepare(monitoring,true);
+        EquivalenceClasses eqClasses=prepare(monitoring,false);
+        eqClasses.problemSupervisor.clauseCounter = 9;
         int[] clause=new int[]{1,type,2,3,4,3};
         eqClasses.addBasicEquivalenceClause(clause);
         assertEquals("Equivalence Classes of Problem test:\nE-1: 2=3=4",eqClasses.toString());
         clause=new int[]{2,type,2,3,4};
         eqClasses.addBasicEquivalenceClause(clause);
-        assertEquals("Equivalence Classes of Problem test:\nE-1: 2=3=4",eqClasses.toString());
+        assertEquals("Equivalence Classes of Problem test:\nE-11: 2=3=4",eqClasses.toString());
 
         clause=new int[]{3,type,5,3,4};
         eqClasses.addBasicEquivalenceClause(clause);
         assertEquals("Equivalence Classes of Problem test:\n" +
-                "E-5: 2=3=4=5 [1, 3]\n" +
+                "E-13: 2=3=4=5 [1, 2, 3]\n" +
                 "Literal Index:\n" +
-                " 2@5,3@5,4@5,5@5,",eqClasses.infoString(null));
+                " 2@13,3@13,4@13,5@13,",eqClasses.infoString(null));
         clause=new int[]{4,type,6,3,-4};
         try{eqClasses.addBasicEquivalenceClause(clause);}
         catch(Unsatisfiable uns) {
@@ -304,7 +309,7 @@ public class EquivalenceClassesTest {
                 "Equivalent True Literals:\n" +
                 "E-2: 5=-6 and true(6) -> true(-5)\n" +
                 "Origins: [2]\n" +
-                "Inference Steps: Clause Copy,Equivalent True Literals,",model.infoString(false));}
+                "Inference Steps: Input,Equivalent True Literals,",model.infoString(false));}
 
 
     public String info(ArrayList<Clause>clauses) {
@@ -320,7 +325,7 @@ public class EquivalenceClassesTest {
         eqClasses.addObserver(observed::add);
         eqClasses.integrateEquivalence(make(1,5,-3),true);
         assertEquals("Equivalence Classes of Problem test:\nE-1: 3=-5",eqClasses.toString());
-        assertEquals("[E-1: 3=-5]",info(observed));
+        assertEquals("[E-1: 3=-5 [1]]",info(observed));
     }
 
     @Test
@@ -336,7 +341,7 @@ public class EquivalenceClassesTest {
         eqClasses.integrateEquivalence(make(2,-5,6),true);
 
         assertEquals("Equivalence Classes of Problem test:\nE-2: 3=4=5=-6",eqClasses.toString(null));
-        assertEquals("[E-2: 3=4=5=-6 [1]]",info(observed));
+        assertEquals("[E-2: 3=4=5=-6 [1, 2]]",info(observed));
     }
     @Test
     public void addDerived3() throws Result {
@@ -352,8 +357,8 @@ public class EquivalenceClassesTest {
 
         eqClasses.integrateEquivalence(make(2,5,-7),true);
 
-        assertEquals("Equivalence Classes of Problem test:\nE-4: 3=4=5=-6=-7",eqClasses.toString());
-        assertEquals("[E-4: 3=4=5=-6=-7 [1, 2]]",info(observed));
+        assertEquals("Equivalence Classes of Problem test:\nE-3: 3=4=5=-6=-7",eqClasses.toString());
+        assertEquals("[E-3: 3=4=5=-6=-7 [1, 2]]",info(observed));
     }
 
     @Test
@@ -372,10 +377,10 @@ public class EquivalenceClassesTest {
         eqClasses.addBasicEquivalenceClause(clause1);
         eqClasses.addBasicEquivalenceClause(clause2);
         eqClasses.addBasicEquivalenceClause(clause3);
-        eqClasses.integrateEquivalence(new Clause(4, null,new int[]{4,type,3,6,-9}),true);
+        eqClasses.integrateEquivalence(new Clause(new int[]{4,type,3,6,-9}),true);
 
-        assertEquals("Equivalence Classes of Problem test:\nE-6: 1=2=3=4=5=6=-7=-8=-9",eqClasses.toString());
-        assertEquals("[E-6: 1=2=3=4=5=6=-7=-8=-9 [1, 2, 3]]",info(observed));
+        assertEquals("Equivalence Classes of Problem test:\nE-4: 1=2=3=4=5=6=-7=-8=-9",eqClasses.toString());
+        assertEquals("[E-4: 1=2=3=4=5=6=-7=-8=-9 [1, 2, 3, 4]]",info(observed));
     }
 
 

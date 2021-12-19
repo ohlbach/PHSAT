@@ -48,7 +48,7 @@ public class EquivalenceClasses  {
     public EquivalenceStatistics statistics;
 
     /** controls the computation of the clause's origins */
-    private final boolean trackReasoning;
+    public final boolean trackReasoning;
 
     /** The id of the current problem to be solved */
     private final String problemId;
@@ -77,6 +77,7 @@ public class EquivalenceClasses  {
     /** for distinguishing the monitoring areas */
     private String monitorId = null;
 
+    /** for computing the next clause id */
     private IntSupplier nextId = null;
 
 
@@ -186,7 +187,6 @@ public class EquivalenceClasses  {
         assert Connective.getType(basicClause[1]) == Connective.EQUIV;
         statistics.basicClauses++;
         Clause clause = new Clause(basicClause);
-        if(trackReasoning) {clause.inferenceStep = new ClauseCopy(basicClause,clause);}
         integrateEquivalence(clause,false);}
 
     /** adds a true literal to the queue
@@ -254,8 +254,8 @@ public class EquivalenceClasses  {
         Clause clause1 = clause.replaceEquivalences(this,nextId);
         if(clause1 != clause && monitoring) {
             monitor.print(monitorId,clause1.inferenceStep.toString(symboltable));
-            if(clause1.size() == 1) return null;
-            clause = clause1;}
+            if(clause1.size() == 1) return null;}
+        clause = clause1;
         if((clause = checkTruthValues(clause)) == null) return null;
         checkForComplementaries(clause);
         return clause;}
@@ -283,7 +283,7 @@ public class EquivalenceClasses  {
             if(sign != 0) {
                 InferenceStep step = null;
                 if(trackReasoning) {
-                    step = new InfEquivalentTrueLiterals(clause,literal1,sign, model.getInferenceStep(literal1));
+                    step = new InfEquivalentTrueLiterals(clause,sign*literal1,sign, model.getInferenceStep(literal1));
                     if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
                 for(CLiteral cLiteral2 : clause) {
                     if(cLiteral2 != cLiteral1) {
@@ -469,6 +469,7 @@ public class EquivalenceClasses  {
     public String infoString(@Nullable Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
         if(!clauses.isEmpty()) {string.append(toString(symboltable,true));}
+
         if(!literalIndex.isEmpty()) {
             string.append("\nLiteral Index:\n ");
             literalIndex.forEach((literal,cliteral) -> string.append(

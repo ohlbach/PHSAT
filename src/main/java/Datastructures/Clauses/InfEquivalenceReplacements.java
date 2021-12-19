@@ -24,10 +24,10 @@ public class InfEquivalenceReplacements extends InferenceStep {
 
     private final Clause oldClause;
     private final Clause newClause;
-    private final IntArrayList literals;
+    private final ArrayList<Object> literals;
     private final EquivalenceClasses equivalenceClasses;
 
-    public InfEquivalenceReplacements(Clause oldClause, Clause newClause, IntArrayList literals,
+    public InfEquivalenceReplacements(Clause oldClause, Clause newClause, ArrayList<Object> literals,
                                       EquivalenceClasses equivalenceClasses) {
         this.oldClause = oldClause;
         this.newClause = newClause;
@@ -47,9 +47,9 @@ public class InfEquivalenceReplacements extends InferenceStep {
     public String toString(Symboltable symboltable) {
         String equations = "";
         int size = literals.size();
-        for(int i = 0; i < size; i+=2) {
-            int oldLiteral = literals.getInt(i);
-            int newLiteral = literals.getInt(i+1);
+        for(int i = 0; i < size; i+=3) {
+            int oldLiteral = (Integer)literals.get(i);
+            int newLiteral = (Integer)literals.get(i+1);
             equations += Symboltable.toString(oldLiteral,symboltable) + "->"+Symboltable.toString(newLiteral,symboltable);
             if(i < size - 2) equations += " ,";}
         return title +":\n" + oldClause.toString(0,symboltable) + " and " + equations +
@@ -58,17 +58,17 @@ public class InfEquivalenceReplacements extends InferenceStep {
     @Override
     public IntArrayList origins() {
         IntArrayList origins = (oldClause.inferenceStep != null) ? oldClause.inferenceStep.origins() : null;
-        for(int i = 0; i < literals.size(); i+=2) {
-            int oldLiteral = literals.getInt(i);
-            InferenceStep step = equivalenceClasses.getEClause(oldLiteral).inferenceStep;
-            if(step != null) joinIntArrays(origins,step.origins());}
+        for(int i = 0; i < literals.size(); i+=3) {
+            InferenceStep step = (InferenceStep)literals.get(i+2);
+            if(step != null) origins = joinIntArrays(origins,step.origins());
+        }
         return origins;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
         if(oldClause.inferenceStep != null) oldClause.inferenceStep.inferenceSteps(steps);
-        for(int i = 0; i < literals.size(); i+=2) {
-            int oldLiteral = literals.getInt(i);
+        for(int i = 0; i < literals.size(); i+=3) {
+            int oldLiteral = (Integer)literals.get(i);
             InferenceStep step = equivalenceClasses.getEClause(oldLiteral).inferenceStep;
             if(step != null) step.inferenceSteps(steps);}
         if(!steps.contains(this)) steps.add(this);}

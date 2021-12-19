@@ -21,7 +21,7 @@ public class UnsatisfiableClause extends Unsatisfiable {
 
     @Override
     public String description(Symboltable symboltable) {
-        return "Unsatisfiable clause " + clause.toString(0,symboltable);}
+        return "Unsatisfiable clause " + clause.toString(0,symboltable)+"\n";}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
