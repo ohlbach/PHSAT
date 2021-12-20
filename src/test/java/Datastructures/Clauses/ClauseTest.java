@@ -49,7 +49,7 @@ public class ClauseTest {
     short one = (short)1;
 
     @Test
-    public void constructorOR() {
+    public void constructorOR() throws Unsatisfiable {
         System.out.println("Constructor OR");
         Clause clause = new Clause(1,Connective.OR,(short)1,
                 IntArrayList.wrap(new int[]{2,-3,4}));
@@ -75,7 +75,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void constructorATLEAST() {
+    public void constructorATLEAST() throws Unsatisfiable  {
         System.out.println("Constructor ATLEAST");
         Clause clause = new Clause(1,Connective.ATLEAST,one,
                 IntArrayList.wrap(new int[]{2,3,4}));
@@ -104,7 +104,7 @@ public class ClauseTest {
 
 
     @Test
-    public void constructorATMOST() {
+    public void constructorATMOST()  throws Unsatisfiable {
         System.out.println("Constructor Atmost");
         Clause clause = new Clause(1,Connective.ATMOST,one,
                 IntArrayList.wrap(new int[]{2,3,4}));
@@ -127,7 +127,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void constructorBCOr() {
+    public void constructorBCOr()  throws Unsatisfiable {
         System.out.println("Constructor BC or");
         int[] bc = new int[]{1, or, 2, 3, 4};
         Clause cl = new Clause(bc);
@@ -141,7 +141,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void constructorBCAtleast() {
+    public void constructorBCAtleast()  throws Unsatisfiable {
         System.out.println("Constructor BC atleast");
         int[] bc = new int[]{1, atl, 2, 2, 3, 4};
         Clause cl = new Clause(bc);
@@ -170,7 +170,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void constructorBCAtmost() {
+    public void constructorBCAtmost()  throws Unsatisfiable {
         System.out.println("Constructor BC atmost");
         int[] bc = new int[]{1, atm, 2, 2, 3, 4};
         Clause cl = new Clause(bc);
@@ -197,7 +197,7 @@ public class ClauseTest {
 
     }
     @Test
-    public void constructorBCAnd() {
+    public void constructorBCAnd()  throws Unsatisfiable {
         System.out.println("Constructor BC and");
         int[] bc = new int[]{1, and, 2, 3, 4};
         Clause cl = new Clause(bc);
@@ -207,7 +207,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void constructorBCEquiv() {
+    public void constructorBCEquiv()  throws Unsatisfiable {
         System.out.println("Constructor BC equiv");
         int[] bc = new int[]{1, eqv, 2, 3, 4};
         Clause cl = new Clause(bc);
@@ -218,7 +218,7 @@ public class ClauseTest {
 
 
     @Test
-    public void constructorLitOr() {
+    public void constructorLitOr()  throws Unsatisfiable {
         System.out.println("Constructor Lit or");
         Clause cl = new Clause(1,Connective.OR,2,3,4);
         assertEquals("1: 2,3,4", cl.toNumbers());
@@ -230,7 +230,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void constructorLitAtleast() {
+    public void constructorLitAtleast()  throws Unsatisfiable {
         System.out.println("Constructor Lit atleast");
         Clause cl = new Clause(1,Connective.ATLEAST,1,2,3,4);
         assertEquals("1: 2,3,4", cl.toNumbers());
@@ -244,7 +244,7 @@ public class ClauseTest {
         assertEquals("L-2: 2: 2^2,3,4", cl.toNumbers());
     }
     @Test
-    public void constructorLitAtmost() {
+    public void constructorLitAtmost()  throws Unsatisfiable {
         System.out.println("Constructor Lit atmost");
         Clause cl = new Clause(1, Connective.ATMOST, 2, 2, 3, 4, 5, 6);
         assertEquals("L-1: 3: -2,-3,-4,-5,-6", cl.toNumbers());
@@ -255,7 +255,7 @@ public class ClauseTest {
 
 
     @Test
-    public void constructorLitAnd() {
+    public void constructorLitAnd()  throws Unsatisfiable {
         System.out.println("Constructor Lit and");
         Clause cl = new Clause(1,Connective.AND,-2,-3,-4);
         assertEquals("A-1: -2&-3&-4", cl.toNumbers());
@@ -264,7 +264,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void constructorLitEquiv() {
+    public void constructorLitEquiv()  throws Unsatisfiable {
         System.out.println("Constructor Lit equiv");
         Clause cl = new Clause(1,Connective.EQUIV,-2,-3,-4);
         assertEquals("E-1: -2=-3=-4", cl.toNumbers());
@@ -273,7 +273,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void intervalClause() {
+    public void intervalClause() throws Unsatisfiable  {
         System.out.println("intervalClause");
         int[] id = new int[]{1};
         int[] bc = new int[]{1, itv, 2, 4, 1, 2, 3, 4, 5};
@@ -294,7 +294,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void cloneTest() {
+    public void cloneTest()  throws Unsatisfiable {
         System.out.println("clone");
         Clause c1 = new Clause(1, Connective.ATLEAST, 2, 2, -3, 4, 5);
         Clause c2 = c1.clone(1);
@@ -307,7 +307,7 @@ public class ClauseTest {
     }
 
     @Test
-    public void toAtmost() {
+    public void toAtmost()  throws Unsatisfiable {
         System.out.println("toAtmost");
         Clause c1 = new Clause(1, Connective.ATLEAST, 2, 2, -3, 4, 5,6);
         Clause c2 = c1.toAtmost(2);
@@ -318,7 +318,7 @@ public class ClauseTest {
                 "atleast n l_1,...,l_k -> atmost k-n -l_1,...,-l_k",c2.inferenceStep.rule());
     }
     @Test
-    public void toCNF() {
+    public void toCNF()  throws Unsatisfiable {
         System.out.println("toCNF");
         int[] ids = new int[]{0};
         Clause c1 = new Clause(new int[]{1, atl, 3, 1,1,2,2,3,4});
@@ -334,7 +334,7 @@ public class ClauseTest {
 
 
     @Test
-    public void removeComplementaryLiterals() {
+    public void removeComplementaryLiterals()  throws Unsatisfiable {
         System.out.println("removeComplementaryLiterals");
         int[] ids = new int[]{0};
         Clause c1 = new Clause(new int[]{1, atl, 3, 1,2,3,4});
@@ -360,7 +360,7 @@ public class ClauseTest {
 
     }
     @Test
-    public void removeTrueFalseLiterals() {
+    public void removeTrueFalseLiterals()  throws Unsatisfiable {
         System.out.println("removeTrueFalseLiterals");
         int[] ids = new int[]{1};
         IntUnaryOperator status = (int literal) -> {return literal > 3 ? (literal % 2 == 0 ? 1 : -1) : 0;};
@@ -404,7 +404,7 @@ public class ClauseTest {
         assertEquals("L-1: 2: 6,1^2,4,2",c1.toNumbers());
     }
     @Test
-    public void splitOffMultiples() {
+    public void splitOffMultiples()  throws Unsatisfiable {
         System.out.println("splitOffMultiples");
         int[] id = new int[]{1};
         Clause c1 = new Clause(1, Connective.ATLEAST, 3, 1,1,2,2,3);

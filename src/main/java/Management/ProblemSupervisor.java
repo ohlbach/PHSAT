@@ -166,7 +166,7 @@ public class ProblemSupervisor {
         for(int[] basicClause : basicClauseList.conjunctions) {
             for(int i = 2; i < basicClause.length; ++i) {
                 IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);
-                model.add(basicClause[i],null,supervisorThread);}}
+                model.add(basicClause[i],null);}}
 
         for(int[] clause : basicClauseList.equivalences) {
             equivalenceClasses.addBasicEquivalenceClause(clause);}}

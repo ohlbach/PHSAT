@@ -34,7 +34,7 @@ public class WalkerTest {
     private static final Connective ex = Connective.EXACTLY;
     private static final Connective iv = Connective.INTERVAL;
 
-    private static Clause make(int id, Connective connective, int... literals) {
+    private static Clause make(int id, Connective connective, int... literals)  throws Unsatisfiable{
         int[] basicClause = new int[literals.length+2];
         basicClause[0] = id;
         basicClause[1] = connective.ordinal();
@@ -72,7 +72,7 @@ public class WalkerTest {
         return new Walker(1,solverParameters, problemSupervisor);
     }
 
-    private void add2Walker(Walker walker, BasicClauseList bcl) {
+    private void add2Walker(Walker walker, BasicClauseList bcl)  throws Unsatisfiable {
         for(int[] clause : bcl.disjunctions) walker.addClause(new Clause(clause));
         for(int[] clause : bcl.quantifieds) walker.addClause(new Clause(clause));
         for(int[] clause : bcl.intervals) walker.addClause(new Clause(clause));
@@ -113,14 +113,14 @@ public class WalkerTest {
 
 
     @Test
-    public void addClause() {
+    public void addClause()  throws Unsatisfiable{
         System.out.println("addClause");
         Walker walker = prepare(10,true, null);
         walker.addClause(make(1, or, 1, 1, 2, 3));
         System.out.println(walker.toString(walker.symboltable));
     }
     @Test
-    public void setInitialScores() {
+    public void setInitialScores()  throws Unsatisfiable{
         System.out.println("setInitialScores");
         Walker walker = prepare(5, true, null);
         walker.addClause(make(1, or, 1, -2, 3));
@@ -174,7 +174,7 @@ public class WalkerTest {
 
 
     @Test
-    public void getLocalTruthValue() {
+    public void getLocalTruthValue()  throws Unsatisfiable{
         System.out.println("getLocalTruthValue");
         Walker walker = prepare(5, true, null);
         WClause c1 = new WClause(make(1, or, 1, 2, 3));
@@ -190,7 +190,7 @@ public class WalkerTest {
     }
 
     @Test
-    public void initializeModel() {
+    public void initializeModel()  throws Unsatisfiable{
         System.out.println("initializeModel");
         Walker walker = prepare(5, true, null);
         walker.addClause(make(1, or, 1, -2, 3,-4,-5));
@@ -212,7 +212,7 @@ public class WalkerTest {
     }
 
     @Test
-    public void initializeModel1() {
+    public void initializeModel1()  throws Unsatisfiable{
         System.out.println("initializeModel 1");
         Walker walker = prepare(5, true, null);
         walker.addClause(make(1, or, 1,2));
@@ -224,7 +224,7 @@ public class WalkerTest {
     }
 
     @Test
-    public void initializeModel2() {
+    public void initializeModel2()  throws Unsatisfiable{
         System.out.println("initializeModel 2");
         Walker walker = prepare(5, true, null);
         walker.addClause(make(1, or, 1,2,3));
@@ -242,7 +242,7 @@ public class WalkerTest {
     }
 
     @Test
-    public void updateFlipScores() {
+    public void updateFlipScores()  throws Unsatisfiable{
         System.out.println("updateFlipScores");
         Walker walker = prepare(5, true, null);
         WClause w1 = walker.addClause(make(1, or, 1,2,3));
@@ -284,7 +284,7 @@ public class WalkerTest {
     }
 
     @Test
-    public void random() {
+    public void random()  throws Unsatisfiable{
         System.out.println("random");
         int predicates = 50;
         float cpRatio = (float)4;

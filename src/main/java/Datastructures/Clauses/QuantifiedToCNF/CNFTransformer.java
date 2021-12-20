@@ -3,6 +3,7 @@ package Datastructures.Clauses.QuantifiedToCNF;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Results.Unsatisfiable;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -30,7 +31,7 @@ public class CNFTransformer {
      * @param clause     a numeric clause
      * @return           an ArrayList of OR-clauses
      */
-    public ArrayList<Clause> toCNF(Clause clause) {
+    public ArrayList<Clause> toCNF(Clause clause)  throws Unsatisfiable {
         switch(clause.connective) {
             case ATLEAST: return atleastToCNF(clause);
             case ATMOST:  return atmostToCNF(clause);
@@ -199,7 +200,7 @@ public class CNFTransformer {
      * @param clause an atleast-Clause
      * @return a list of OR-clauses as the conjunctive normal form of the atleast-clause
      */
-    private ArrayList<Clause> atleastToCNF(Clause clause) {
+    private ArrayList<Clause> atleastToCNF(Clause clause)  throws Unsatisfiable {
         assert clause.connective == Connective.ATLEAST;
         ArrayList<Clause> clauses = new ArrayList<>();
         boolean hasDoubles = clause.hasDoubles();
@@ -218,7 +219,7 @@ public class CNFTransformer {
      * @param clause an atmost-Clause
      * @return a list of OR-clauses as the conjunctive normal form of the atmost-clause
      */
-    private ArrayList<Clause> atmostToCNF(Clause clause) {
+    private ArrayList<Clause> atmostToCNF(Clause clause)  throws Unsatisfiable {
         assert clause.connective == Connective.ATMOST;
         ArrayList<Clause> clauses = new ArrayList<>();
         IntArrayList negLiterals = new IntArrayList();

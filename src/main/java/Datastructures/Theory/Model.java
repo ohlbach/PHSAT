@@ -43,7 +43,7 @@ public class Model {
     private byte[] status;
 
     /** observers to be called when a new true literal is inserted */
-    private final ArrayList<Pair<Thread, BiConsumer<Integer, InferenceStep>>> observers = new ArrayList<>();
+    private final ArrayList<BiConsumer<Integer, InferenceStep>> observers = new ArrayList<>();
 
 
     /** creates a model with a maximum number of predicates, together with a means of tracking the origins
@@ -65,11 +65,10 @@ public class Model {
      * is different to the thread that submitted the literal.
      * This avoids a ping pong effect.
      *
-     * @param thread      the target thread
      * @param observer a function (literal,origins)
      */
-    public synchronized void addObserver(Thread thread, BiConsumer<Integer, InferenceStep> observer) {
-        observers.add(new Pair<>(thread, observer));}
+    public synchronized void addObserver(BiConsumer<Integer, InferenceStep> observer) {
+        observers.add(observer);}
 
     /** adds a literal to the model with null inference step and null thread
      *
@@ -78,7 +77,7 @@ public class Model {
      */
     public synchronized void add(int... literals) throws Unsatisfiable {
         for(int literal : literals) {
-            add(literal,null,null);}}
+            add(literal,null);}}
 
     /** pushes a literal onto the model and checks if the literal is already in the model.
      * If the literal is new to the model then the observers from a thread different to the
@@ -86,10 +85,9 @@ public class Model {
      *
      * @param literal the literal for the model.
      * @param inferenceStep the ids of the basic clauses causing this truth
-     * @param thread the thread which generated the true literal.
      * @throws Unsatisfiable if a contradiction with an earlier entry in the model occurs.
      */
-    public synchronized void add(int literal, InferenceStep inferenceStep, Thread thread) throws Unsatisfiable {
+    public synchronized void add(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
@@ -98,8 +96,8 @@ public class Model {
         model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
 
-        for(Pair<Thread, BiConsumer<Integer, InferenceStep>> observer : observers) {
-            if(thread != observer.getKey()) {observer.getValue().accept(literal,inferenceStep);}}}
+        for(BiConsumer<Integer, InferenceStep> observer : observers) {
+            observer.accept(literal,inferenceStep);}}
 
 
     /** adds a literal immediately without any checks and transfers

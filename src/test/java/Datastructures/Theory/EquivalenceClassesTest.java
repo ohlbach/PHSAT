@@ -50,7 +50,7 @@ public class EquivalenceClassesTest {
         return new EquivalenceClasses(problemSupervisor);
     }
 
-    private Clause make(int id, int... literals) {
+    private Clause make(int id, int... literals) throws Unsatisfiable {
         return new Clause(id, Connective.EQUIV,(short)-1, IntArrayList.wrap(literals));
     }
 
@@ -91,11 +91,11 @@ public class EquivalenceClassesTest {
         Clause c1 = make(1,1,2,3);
         Clause c2 = eqClasses.checkTruthValues(c1);
         assertSame(c1, c2);
-        eqClasses.model.add(2,inf,null);
+        eqClasses.model.add(2,inf);
         eqClasses.checkTruthValues(c1);
         assertEquals("Model:\n1,2,3",eqClasses.model.toNumbers());
         //System.out.println(eqClasses.model.infoString(false));
-        eqClasses.model.add(5,inf,null);
+        eqClasses.model.add(5,inf);
         Clause c4 = make(2,4,-5,-6);
         assertNull(eqClasses.checkTruthValues(c4));
         assertEquals("Model:\n1,2,3,-4,5,6",eqClasses.model.toNumbers());
@@ -144,7 +144,7 @@ public class EquivalenceClassesTest {
         Clause c1 = make(1, 1, 2, 3);
         eqClasses.integrateEquivalence(c1, false);
         InferenceTest inf = new InferenceTest("My Test");
-        eqClasses.model.add(1,inf,null);
+        eqClasses.model.add(1,inf);
         Clause c2 = make(2, 3,5,4,3);
         eqClasses.normalizeClause(c2);
         assertEquals("Model:\n" +
@@ -223,11 +223,11 @@ public class EquivalenceClassesTest {
         EquivalenceClasses eqClasses =  prepare(monitoring,true);
         Model model=eqClasses.model;
         InferenceTest inf1 = new InferenceTest("INF TEST 1");
-        model.add(2, inf1, null);
+        model.add(2, inf1);
         InferenceTest inf2 = new InferenceTest("INF TEST 2");
-        model.add(-3,inf2,null);
+        model.add(-3,inf2);
         ArrayList<Object> observed=new ArrayList<>();
-        model.addObserver(Thread.currentThread(),
+        model.addObserver(
                 ((literal, step) -> {
                     observed.add("\n"+literal);
                     observed.add(step);}));
@@ -286,7 +286,7 @@ public class EquivalenceClassesTest {
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         Model model=eqClasses.model;
         ArrayList<Object> observed=new ArrayList<>();
-        model.addObserver(Thread.currentThread(),
+        model.addObserver(
                 ((literal, originals) -> {
                     observed.add(literal);
                     observed.add(originals);}));
@@ -401,7 +401,7 @@ public class EquivalenceClassesTest {
         thread1.start();
 
         eqClasses.addDerivedEquivalence(2,-5,null);
-        model.add(2, null, null);
+        model.add(2, null);
 
         try{Thread.sleep(20);}catch(Exception ex) {}
         thread1.interrupt();
@@ -423,15 +423,15 @@ public class EquivalenceClassesTest {
         Model model = eqClasses.model;
         int[] clause1 = new int[]{1, type, 1, 2, 3};
         eqClasses.addBasicEquivalenceClause(clause1);
-        model.add(2, null, null);
+        model.add(2, null);
         eqClasses.completeModel();
         assertEquals("Model:\n" +
                 "1,2,3", model.toNumbers());
 
         int[] clause2 = new int[]{1, type, 4, -5, 6};
         eqClasses.addBasicEquivalenceClause(clause2);
-        model.add(5, null, null);
-        model.add(6, null, null);
+        model.add(5, null);
+        model.add(6, null);
         try {eqClasses.completeModel();}
         catch (Unsatisfiable uns) {
             if(monitoring) System.out.println(uns);

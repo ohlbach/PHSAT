@@ -2,6 +2,7 @@ package Datastructures.Literals;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
+import Datastructures.Results.Unsatisfiable;
 import Utilities.BucketSortedIndex;
 import org.junit.Test;
 
@@ -16,7 +17,7 @@ import static org.junit.Assert.*;
 public class LitAlgorithmsTest {
 
 
-    private Clause make(int id, BucketSortedIndex<CLiteral> literalIndex, int... literals) {
+    private Clause make(int id, BucketSortedIndex<CLiteral> literalIndex, int... literals) throws Unsatisfiable {
         Clause cl = new Clause(id, Connective.OR, literals.length);
         int i = -1;
         for(int l:literals) {

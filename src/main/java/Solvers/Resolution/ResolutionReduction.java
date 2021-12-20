@@ -336,7 +336,7 @@ public abstract class ResolutionReduction extends Solver {
      *
      * @result a result or null
      */
-    Result purityAndElimination() throws InterruptedException {
+    Result purityAndElimination() throws InterruptedException, Unsatisfiable {
         boolean simplified = true;
         while(simplified) {
             if(Thread.interrupted()) {throw new InterruptedException();}
@@ -393,7 +393,7 @@ public abstract class ResolutionReduction extends Solver {
      *
      * @param eliminateLiteral the literal which occurs only once.
      */
-    void processElimination(int eliminateLiteral) {
+    void processElimination(int eliminateLiteral)  throws Unsatisfiable {
         int size01p = literalIndex.size01(eliminateLiteral);
         int size01n = literalIndex.size01(-eliminateLiteral);
         if(size01p != 1 || size01n == 0) {return;} // the situation may have changed when this method is called.
@@ -440,7 +440,8 @@ public abstract class ResolutionReduction extends Solver {
         ++statistics.importedBinaryClauses;
         taskQueue.add(new Task(priorityBinary,
                 (()-> {
-                    processBinaryClause(literal1,literal2); return null;}),
+                    //processBinaryClause(literal1,literal2);
+                    return null;}),
                 (()-> "Importing binary clause " + literal1 + " " + literal2)));}
 
     /** This method is called by the problemSupervisor to announce a longer clause.
@@ -449,11 +450,12 @@ public abstract class ResolutionReduction extends Solver {
      *
      * @param literals the literals of the clause
      */
-    public void importClause(int[] literals) {
+    public void importClause(int[] literals)  {
         ++statistics.importedOtherClauses;
         taskQueue.add(new Task(literals.length+priorityShift,
                 (()-> {
-                    processClause(literals); return null;}),
+                    //processClause(literals);
+                    return null;}),
                 (()-> "Importing clause " + Arrays.toString(literals))));}
 
 
@@ -550,7 +552,7 @@ public abstract class ResolutionReduction extends Solver {
      * @param literal1 the first literal of the clause
      * @param literal2 the second literal of the clause
      */
-    void processBinaryClause(int literal1, int literal2) {
+    void processBinaryClause(int literal1, int literal2)  throws Unsatisfiable {
         literal1 = equivalenceClasses.getRepresentative(literal1);
         literal2 = equivalenceClasses.getRepresentative(literal2);
         if(literal1 == literal2) {
@@ -576,7 +578,7 @@ public abstract class ResolutionReduction extends Solver {
      *
      * @param literals the clause sent by the ProblemSupervisor
      */
-    void processClause(int[] literals) {
+    void processClause(int[] literals) throws Unsatisfiable  {
         int size = literals.length;
         Clause clause = new Clause(++id[0], Connective.OR, literals.length);
         for(int i = 0; i < size; ++i) {
@@ -681,7 +683,7 @@ public abstract class ResolutionReduction extends Solver {
      * @param fromLiteral  the old literal
      * @param toLiteral    the new literal
      */
-    void replaceLiteralInAllClauses(int fromLiteral, int toLiteral) {
+    void replaceLiteralInAllClauses(int fromLiteral, int toLiteral)  throws Unsatisfiable {
         for(CLiteral cliteral : literalIndex.getAllItems(fromLiteral)) {
             Clause clause = cliteral.clause;
             Clause newClause = new Clause(++id[0], Connective.OR, clause.size());

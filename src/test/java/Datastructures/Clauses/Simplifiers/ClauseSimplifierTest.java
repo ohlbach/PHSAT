@@ -117,11 +117,11 @@ public class ClauseSimplifierTest {
         Clause c1 = new Clause(1, Connective.OR, 2, 3, 4, 3, 2, 4, 2, 5);
         Clause c2 = cs.removeTrueFalseLiterals(c1);
         assertEquals("1: 2,3,4,3,2,4,2,5", c2.toNumbers());
-        ps.model.add(-3,new InferenceTest("My Test"),null);
+        ps.model.add(-3,new InferenceTest("My Test"));
         c2 = cs.removeTrueFalseLiterals(c1);
         assertEquals("10: 2,4,2,4,2,5", c2.toNumbers());
 
-        ps.model.add(5,new InferenceTest("My Test"),null);
+        ps.model.add(5,new InferenceTest("My Test"));
         c1 = new Clause(1, Connective.INTERVAL, 2, 3, 4, -3, 2, 4, 2, -5,6,7);
         c2 = cs.removeTrueFalseLiterals(c1);
         assertEquals("I-11: [1,2]: 4,2,4,2,6,7", c2.toNumbers());

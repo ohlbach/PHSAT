@@ -2,6 +2,7 @@ package Datastructures.Literals;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
+import Datastructures.Results.Unsatisfiable;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
 
@@ -23,6 +24,7 @@ public class LitAlgorithms {
      */
     public static Clause isSubsumed(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp) {
         int size = clause.size();
+        short limit = clause.limit;
         for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
             BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
@@ -30,6 +32,7 @@ public class LitAlgorithms {
                 CLiteral otherLiteral = iterator.next();
                 Clause otherClause = otherLiteral.clause;
                 if(clause == otherClause) {continue;}
+                if(otherClause.limit < limit) continue;
                 if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp; continue;}
                 if(otherClause.timestamp - timestamp == otherClause.size()-2) {
                     literalIndex.pushIterator(literal,iterator);
@@ -147,7 +150,7 @@ public class LitAlgorithms {
      * @param literal2 the second parent literal
      * @return the new resolvent, or null if it would be a tautology
      */
-    public static Clause resolve(int[] id, CLiteral literal1, CLiteral literal2) {
+    public static Clause resolve(int[] id, CLiteral literal1, CLiteral literal2)  throws Unsatisfiable {
         Clause parent1 = literal1.clause; Clause parent2 = literal2.clause;
         int size = parent1.size()+parent2.size()-2;
         Clause resolvent = new Clause(++id[0], Connective.OR, size);

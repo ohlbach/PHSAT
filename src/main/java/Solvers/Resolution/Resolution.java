@@ -143,7 +143,7 @@ public abstract class Resolution extends Solver {
      *
      * @return the result of the resolution sequence.
      */
-    public Result solve() {
+    public Result solve()  {
         super.initialize();
         globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.currentTimeMillis();
@@ -154,6 +154,7 @@ public abstract class Resolution extends Solver {
         catch(InterruptedException ex) {
             globalParameters.log("Resolution " + combinedId + " interrupted after " + resolvents + " resolvents.\n");
             result = new Aborted("Resolution aborted after " + resolvents + " resolvents");}
+        catch(Unsatisfiable uns) {}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + result.toString());
         problemSupervisor.finished(this, result, "done");
@@ -215,7 +216,7 @@ public abstract class Resolution extends Solver {
      *  It generates a simplifyBackwards task.
      */
     private Consumer<Clause> insertHandler = (
-            clause -> {insertClause(clause,isPrimary(clause,true),"Initial clause");
+            clause -> {//insertClause(clause,isPrimary(clause,true),"Initial clause");
                 if(clause.size() > 1) {
                     taskQueue.add(new Task(basicClauseList.maxClauseLength-clause.size()+3, // longer clauses should be
                         (()-> {simplifyBackwards(clause); return null;}),    // checked first for subsumption and replacement resolution
@@ -267,7 +268,7 @@ public abstract class Resolution extends Solver {
      * @return the result of the search
      * @throws InterruptedException
      */
-    private Result resolve()  throws InterruptedException {
+    private Result resolve()  throws InterruptedException, Unsatisfiable{
         Result result = null;
         CLiteral[] parentLiterals = new CLiteral[2];
         while(resolvents <= resolutionLimit) {
@@ -530,7 +531,7 @@ public abstract class Resolution extends Solver {
 
     private ArrayList<Object[]> eliminatedLiterals = new ArrayList<>();
 
-    private void processElimination(int eliminateLiteral) {
+    private void processElimination(int eliminateLiteral) throws Unsatisfiable {
         int size01p = literalIndex.size01(eliminateLiteral);
         int size01n = literalIndex.size01(-eliminateLiteral);
         if(size01p != 1 || size01n == 0) {return;}
@@ -632,7 +633,7 @@ public abstract class Resolution extends Solver {
      * @param clause  the clause to be inserted.
      * @param primary determines whether the clause is inserted into primaryClauses or secondaryClauses.
      */
-    private void insertClause(Clause clause, boolean primary, String reason) {
+    private void insertClause(Clause clause, boolean primary, String reason) throws Unsatisfiable{
         switch(clause.size()) {
             case 1: addTrueLiteralTask(clause.getLiteral(0),true,reason); return;
             case 2: findEquivalence(clause);}
@@ -714,7 +715,7 @@ public abstract class Resolution extends Solver {
      * A literal p can be eliminated if it occurs only once in the clauses, say in clause C.
      * In this case all clauses with -p can be replaced with their resolvent with C.
      */
-    private void purityAndElimination() {
+    private void purityAndElimination() throws Unsatisfiable{
         while(literalIndex.size01(predicates,zeros,ones)) {
             for(int literal : zeros) {
                 int sizep = literalIndex.size01(literal);
@@ -746,7 +747,7 @@ public abstract class Resolution extends Solver {
      * @param clause the clause to be checked
      * @return true if an equivalence has been found.
      */
-    private boolean findEquivalence(Clause clause) {
+    private boolean findEquivalence(Clause clause) throws Unsatisfiable {
         if(!isEquivalence(clause)) {return false;}
         int literal1 = -clause.getCLiteral(0).literal;
         int literal2 =  clause.getCLiteral(1).literal;

@@ -93,7 +93,7 @@ public class TwoLitClausesTest {
     public void replaceTruthValues() throws Result {
         System.out.println("replace truth values");
         TwoLitClauses clauses = prepare(monitoring, true);
-        clauses.model.add(1,new InferenceTest("may test 1"),null);
+        clauses.model.add(1,new InferenceTest("may test 1"));
         TwoLitClause clause1 = make(clauses,2,3);
         assertEquals("2-1: 2,3",clauses.replaceTruthValues(clause1).toString());
         TwoLitClause clause2 = make(clauses,2,1);
@@ -118,7 +118,7 @@ public class TwoLitClausesTest {
         clauses.equivalenceClasses.addBasicEquivalenceClause(clauseeq);
         TwoLitClause clause2 = make(clauses,2,-3);
         assertNull(clauses.normalizeClause(clause2));
-        clauses.model.add(1,new InferenceTest("may test 1"),null);
+        clauses.model.add(1,new InferenceTest("may test 1"));
         TwoLitClause clause3 = make(clauses,-3,4);
         assertNull(clauses.normalizeClause(clause3));
         assertEquals("Model:\n1,4",clauses.model.toNumbers());
@@ -199,9 +199,9 @@ public class TwoLitClausesTest {
         System.out.println("addBasicClause with model");
         TwoLitClauses clauses = prepare(monitoring,true);
         ArrayList<Object> observed = new ArrayList<>();
-        clauses.model.addObserver(Thread.currentThread(),
+        clauses.model.addObserver(
                 ((literal, originals) -> observed.add(literal)));
-        clauses.model.add(2,null,null);
+        clauses.model.add(2,null);
 
         int[] clause1 = new int[]{1,type,2,3};
         int[] clause2 = new int[]{2,type,-2,4};
@@ -253,7 +253,7 @@ public class TwoLitClausesTest {
         TwoLitClauses clauses = prepare(monitoring,true);
         clauses.configure();
         ArrayList<Object> observed = new ArrayList<>();
-        clauses.model.addObserver(Thread.currentThread(),
+        clauses.model.addObserver(
                 ((literal, originals) -> observed.add(literal)));
         clauses.model.symboltable = null;
 

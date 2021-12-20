@@ -3,6 +3,8 @@ package Datastructures.Clauses;
 
 import Datastructures.Clauses.QuantifiedToCNF.InfAtleastToCNF;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Results.Unsatisfiable;
+import Datastructures.Results.UnsatisfiableClause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import InferenceSteps.InferenceStep;
@@ -85,7 +87,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param limit      the quantification limit
      * @param literals   the list of literals
      */
-    public Clause(int id, Connective connective, short limit, IntArrayList literals) {
+    public Clause(int id, Connective connective, short limit, IntArrayList literals)  throws Unsatisfiable  {
         assert connective != Connective.OR || limit == 1;
         this.id = id;
         inferenceStep = new Input(id);
@@ -117,7 +119,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      *
      * @param basicClause a basic clause [id,typenumber, limit, literal1,...]
      */
-    public Clause(int[] basicClause) {
+    public Clause(int[] basicClause)  throws Unsatisfiable {
         connective = Connective.getType(basicClause[1]);
         assert(connective != null);
 
@@ -158,7 +160,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param connective the clause's type (no INTERVAL-type)
      * @param literals   [limit] a list of literals
      */
-    public Clause(int id, Connective connective, int... literals) {
+    public Clause(int id, Connective connective, int... literals)  throws Unsatisfiable {
         this.id = id;
         inferenceStep = new Input(id);
         this.connective = connective;
@@ -193,7 +195,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param basicClause a basic interval-clause
      * @return            one or two new clauses
      */
-    public static ArrayList<Clause> intervalClause(IntSupplier nextInt, int[] basicClause) {
+    public static ArrayList<Clause> intervalClause(IntSupplier nextInt, int[] basicClause)  throws Unsatisfiable {
         Connective connective = Connective.getType(basicClause[1]);
         assert(connective == Connective.INTERVAL);
         ArrayList<Clause> clauses = new ArrayList<>();
@@ -269,7 +271,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param trackReasoning if true then a corresponding inference step is attached to the new clauses
      * @return a list of OR-clauses as the conjunctive normal form of the atleast-clause
      */
-    public ArrayList<Clause> toCNF(IntSupplier nextId, boolean trackReasoning) {
+    public ArrayList<Clause> toCNF(IntSupplier nextId, boolean trackReasoning)  throws Unsatisfiable {
         ArrayList<Clause> clauses = new ArrayList<>();
         if(connective == Connective.OR) {clauses.add(this); return clauses;}
         assert connective == Connective.ATLEAST;
@@ -294,7 +296,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param nextId           null or a function that returns the next clause id for a clone of the clause
       * @return either the original clause or the clone with the replacements
      */
-    public Clause replaceEquivalences(EquivalenceClasses equivalenceClasses, IntSupplier nextId) {
+    public Clause replaceEquivalences(EquivalenceClasses equivalenceClasses, IntSupplier nextId)  throws Unsatisfiable  {
         replacements.clear();
         Clause clause = this;
         ArrayList<CLiteral> cLits = cliterals;
@@ -330,7 +332,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param nextInt        null or a supplier for the identifier for a clone of the clause
      * @return               either the original changed clause or a clone.
      */
-    public Clause removeTrueFalseLiterals(IntUnaryOperator getTruthStatus, IntSupplier nextInt) {
+    public Clause removeTrueFalseLiterals(IntUnaryOperator getTruthStatus, IntSupplier nextInt)  throws Unsatisfiable {
         removedTrueLiterals.clear();removedFalseLiterals.clear();
         Clause clause = this;
         ArrayList<CLiteral> cLits = cliterals;
@@ -363,7 +365,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param nextId  null or a supplier for clause ids
      * @return the possibly shortened clause (original or clone)
      */
-    public Clause removeComplementaryLiterals(IntSupplier nextId) {
+    public Clause removeComplementaryLiterals(IntSupplier nextId)  throws Unsatisfiable {
         assert (connective == Connective.OR || connective == Connective.ATLEAST);
         complementaryLiterals.clear();
         Clause clause = this;
@@ -415,7 +417,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param nextId for generating an id for the clauses
      * @return null or a list of OR-clauses.
      */
-    public ArrayList<Clause> splitOffMultiples(IntSupplier nextId, boolean trackReasoning) {
+    public ArrayList<Clause> splitOffMultiples(IntSupplier nextId, boolean trackReasoning)  throws Unsatisfiable  {
         int singleCounter = 0;
         for(CLiteral cLiteral : cliterals){if(cLiteral.multiplicity == 1) ++singleCounter;}
         if(singleCounter >= limit) return null;
@@ -494,8 +496,10 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         return ClauseStructure.MIXED;}
 
     /** computes and sets the structure of the clause */
-    public void setStructure() {
-        structure = detStructure();}
+    public void setStructure() throws Unsatisfiable {
+        structure = detStructure();
+        if(structure == ClauseStructure.CONTRADICTORY) throw new UnsatisfiableClause(this);
+    }
 
     /** returns the list position, or -1
      *
@@ -625,7 +629,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param truth   if true then a true literal is removed, otherwise a false literal
      * @return        the old or the new clause.
      */
-    public Clause removeLiteral(int literal, IntSupplier nextId,  boolean truth) {
+    public Clause removeLiteral(int literal, IntSupplier nextId,  boolean truth)  throws Unsatisfiable  {
         Clause clause = this;
         ArrayList<CLiteral> cLits = clause.cliterals;
         for(int i = 0; i < cLits.size(); ++i) {

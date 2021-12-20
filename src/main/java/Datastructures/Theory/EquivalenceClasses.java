@@ -139,7 +139,7 @@ public class EquivalenceClasses  {
      * Must be called before the thread is started.
      */
     public void configure() {
-        model.addObserver(Thread.currentThread(),this::addTrueLiteral);}
+        model.addObserver(this::addTrueLiteral);}
 
 
 
@@ -207,7 +207,7 @@ public class EquivalenceClasses  {
      * @param literal1 a literal
      * @param literal2 an equivalent literal
      */
-    public void addDerivedEquivalence(int literal1, int literal2, InferenceStep inferenceStep) {
+    public void addDerivedEquivalence(int literal1, int literal2, InferenceStep inferenceStep) throws Unsatisfiable{
         ++statistics.derivedClasses;
         if(monitoring) {
             monitor.print(monitorId,"In:   Equivalence " +
@@ -288,7 +288,7 @@ public class EquivalenceClasses  {
                 for(CLiteral cLiteral2 : clause) {
                     if(cLiteral2 != cLiteral1) {
                         ++statistics.derivedTrueLiterals;
-                        model.add(sign*cLiteral2.literal,step,null);}}
+                        model.add(sign*cLiteral2.literal,step);}}
                 return null;}}
         return clause;}
 
@@ -339,7 +339,7 @@ public class EquivalenceClasses  {
                 if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
             removeClause(clause);
             for(CLiteral cLiteral : clause) {
-                if(cLiteral != cliteral) {model.add(sign*cLiteral.literal,step,null);}}}}
+                if(cLiteral != cliteral) {model.add(sign*cLiteral.literal,step);}}}}
 
 
     /** sorts the literals in the clause.

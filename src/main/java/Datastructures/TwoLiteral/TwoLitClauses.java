@@ -116,7 +116,7 @@ public class TwoLitClauses {
 
 
     public void configure() {
-        model.addObserver(Thread.currentThread(),this::addTrueLiteral);
+        model.addObserver(this::addTrueLiteral);
         equivalenceClasses.addObserver(this::addEquivalence);
     }
 
@@ -298,7 +298,7 @@ public class TwoLitClauses {
             if(monitoring) {
                 monitor.print(monitorId,"Clause " + clause.toString("",model.symboltable) + " -> " +
                         Symboltable.toString(literal1, model.symboltable));}
-            model.add(literal1,clause.inferenceStep,null); // send back to me
+            model.add(literal1,clause.inferenceStep); // send back to me
             return null;}
         return clause;}
 
@@ -317,7 +317,7 @@ public class TwoLitClauses {
                 if(trackReasoning) {
                     inf = new UnitResolution2(clause,literal1,model.getInferenceStep(literal1));
                     if(monitoring) monitor.print(monitorId,inf.toString(symboltable));}
-                model.add(literal2,inf,null);
+                model.add(literal2,inf);
                 ++statistics.unitClauses;
                 return null;}
             literal1 = clause.literal2;
@@ -329,7 +329,7 @@ public class TwoLitClauses {
      * @param clause a new clause (not yet internalized)
      * @return true if the clause survived.
      */
-    protected boolean findEquivalences(TwoLitClause clause) {
+    protected boolean findEquivalences(TwoLitClause clause) throws Unsatisfiable{
         TwoLitClause partner = findClause(-clause.literal1,-clause.literal2);
         if(partner != null) {
             EquivalenceDerivation eqd = null;
@@ -347,7 +347,7 @@ public class TwoLitClauses {
      *
      * @param clause a new two-literal clause
      */
-    private void insertClause(TwoLitClause clause){
+    private void insertClause(TwoLitClause clause) throws Unsatisfiable{
         if(!findEquivalences(clause)) return;
         clauses.add(clause);
         literalIndex.computeIfAbsent(clause.literal1, k -> new ArrayList<>()).add(clause);

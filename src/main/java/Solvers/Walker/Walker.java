@@ -109,7 +109,7 @@ public class Walker extends Solver {
         jumpFrequency  = (int)solverParameters.get("jumps");
         statistics     = new WalkerStatistics(combinedId);
         wClauses       = new ArrayList<>();
-        model.addObserver(Thread.currentThread(),(literal,step) -> {
+        model.addObserver((literal,step) -> {
             synchronized(this) {globallyTrueLiterals.add((int)literal);}});}
 
 

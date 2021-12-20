@@ -3,6 +3,7 @@ package Utilities;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
+import Datastructures.Results.Unsatisfiable;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -280,7 +281,7 @@ public class Utilities {
         return null;}
 
     public static String readFile(String filename) {
-        try {BufferedReader in = new BufferedReader(new FileReader(new File(filename)));
+        try {BufferedReader in = new BufferedReader(new FileReader(filename));
             StringBuilder st = new StringBuilder();
             String line;
             while((line = in.readLine()) != null) {st.append(line).append("\n");}
@@ -306,7 +307,7 @@ public class Utilities {
             System.out.printf(": ");
             System.out.println(message);});}
 
-    public static Clause makeClause(int id, String literals) {
+    public static Clause makeClause(int id, String literals)  throws Unsatisfiable {
         String[] lits = literals.split("\\s*(,| )\\s*");
         Clause clause = new Clause(id, Connective.OR,lits.length);
         for(String lit : lits) {

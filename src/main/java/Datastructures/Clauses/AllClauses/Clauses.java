@@ -3,13 +3,13 @@ package Datastructures.Clauses.AllClauses;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Clauses.Connective;
 import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
-import Datastructures.Results.Result;
-import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Results.UnsatisfiableClause;
 import Datastructures.Results.UnsatisfiableInterval;
 import Datastructures.Symboltable;
 import Datastructures.Task;
@@ -22,12 +22,12 @@ import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
-import Utilities.Interval;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.function.IntSupplier;
 
 public class Clauses extends Thread {
     /** supervises the problem solution */
@@ -44,6 +44,7 @@ public class Clauses extends Thread {
     public final Symboltable symboltable;
     public TwoLitClauses twoLitClauses;
     public ClauseSimplifier clauseSimplifier;
+    private IntSupplier nextId;
 
     private int maxClauseLength = 0;
     private int timestamp = 1;
@@ -97,6 +98,7 @@ public class Clauses extends Thread {
         monitor = problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
         monitorId = problemId + "Clauses";
+        if(monitoring) nextId = problemSupervisor::nextClauseId;
         statistics = new ClausesStatistics("Clauses");
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
         literalIndex = new BucketSortedIndex<CLiteral>(model.predicates+1,
@@ -109,17 +111,18 @@ public class Clauses extends Thread {
         try{
             BasicClauseList basicClauses = problemSupervisor.basicClauseList;
             for(int[] basicClause : basicClauses.conjunctions) {
-                integrateAnd(basicClause);}
+                integrateAnd(new Clause(basicClause));}
             for(int[] basicClause : basicClauses.equivalences) {
                 equivalenceClasses.addBasicEquivalenceClause(basicClause);}
-            model.addObserver(thread,this::addTrueLiteral);
+            model.addObserver(this::addTrueLiteral);
             equivalenceClasses.addObserver(this::addEquivalence);
             for(int[] basicClause : basicClauses.disjunctions) {
-                integrateBasicClause(basicClause);}
+                integrateClause(new Clause(basicClause));}
             for(int[] basicClause : basicClauses.quantifieds) {
-                integrateBasicClause(basicClause);}
+                integrateClause(new Clause(basicClause));}
             for(int[] basicClause : basicClauses.intervals) {
-                integrateBasicClause(basicClause);}}
+                for(Clause clause : Clause.intervalClause(problemSupervisor::nextClauseId,basicClause))
+                integrateClause(clause);}}
         catch(Unsatisfiable unsatisfiable) {
              unsatisfiable.problemId   = problemId;
              unsatisfiable.solverClass = Clauses.class;
@@ -130,28 +133,33 @@ public class Clauses extends Thread {
 
     /** puts the literals of an AND-clause into the model
      *
-     * @param basicClause a basic AND-clause [id,type,literal1,...]
+     * @param clause a basic AND-clause [id,type,literal1,...]
      * @throws Unsatisfiable if there are contradictory literals
      */
-    private void integrateAnd(int[] basicClause) throws Unsatisfiable {
-        assert basicClause[1] == Connective.AND.ordinal();
-        InferenceStep step = new Input(basicClause[0]);
-        for(int i = 2; i < basicClause.length; ++i) {
-            model.add(basicClause[i],step,thread);}}
+    private void integrateAnd(Clause clause) throws Unsatisfiable {
+        InferenceStep step = clause.inferenceStep;
+        for(CLiteral cLiteral : clause.cliterals) {
+            model.add(cLiteral.literal,step);}}
 
 
-    /** simplifies and integrates a basic clause into the local data structures
+    /** simplifies and integrates a clause into the local data structures
      *
-     * @param basicClause a basic or-clause
+     * @param clause a new clause
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    private void integrateBasicClause(int[] basicClause) throws Unsatisfiable {
-        Clause clause = new Clause(basicClause);
-        if(clause.connective == Connective.AND) {clauseSimplifier.andToModel(clause); return;}
-        clause = clauseSimplifier.simplify(clause);
-        if(clause == null) return;
-        clause = forwardSubsumption(clause);
-        if(clause == null) return;
+    private void integrateClause(Clause clause) throws Unsatisfiable {
+        clause = clause.replaceEquivalences(equivalenceClasses,nextId);
+        clause = clause.removeComplementaryLiterals(nextId);
+        if(clause.structure == ClauseStructure.TAUTOLOGY) return;
+        if(clause.connective == Connective.AND) {integrateAnd(clause); return;}
+        clause = clause.removeTrueFalseLiterals(model::status,nextId);
+        switch(clause.structure) {
+            case TAUTOLOGY: return;
+            case CONTRADICTORY: throw new UnsatisfiableClause(clause);}
+        if(clause.connective == Connective.AND) {integrateAnd(clause); return;}
+        if(isSubsumed(clause)) return;
+        ArrayList<Clause> clauses = clause.splitOffMultiples(nextId,trackReasoning);
+        if(clauses != null) {for(Clause cl : clauses) {integrateClause(cl);}}
         insertClause(clause);
         if(clause.connective == Connective.OR && clause.size() == 2) {twoLitClauses.addDerivedClause(clause);}
     }
@@ -159,13 +167,13 @@ public class Clauses extends Thread {
     /** puts a true literal into the queue.
      *
      * @param literal a true literal
-     * @param inference for making the literal true
+     * @param step the inference step for making the literal true
      */
-    public void addTrueLiteral(int literal, InferenceStep inference){
+    public void addTrueLiteral(int literal, InferenceStep step){
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
-                    Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<>(Clauses.TaskType.TRUELITERAL, literal, inference));}
+            Symboltable.toString(literal,model.symboltable));}
+        queue.add(new Task<>(Clauses.TaskType.TRUELITERAL, literal, step));}
 
     /** puts an equivalence into the queue
      *
@@ -295,56 +303,20 @@ public class Clauses extends Thread {
 
     /** checks subsumption and intersection between an old clause and a new clause
      * The old clause subsumes the new one: ignore the new one <br>
-     * The new clause subsumes the old one: remove the old one <br>
-     * The literals are equal, but the intervals don't intersect: throw Unsatisfiable <br>
-     * The literals are equal and the interval of the new clause is a subset of the interval of the old clause:<br>
-     *   Remove the old clause </br>
-     * The literals are equal, and the intervals intersect:<br>
-     *   Remove the old clause, and either construct a new clause, or change the interval of the new clause.
-     *
      * @param clause a new clause (not yet integrated)
      * @return null (clause subsumed) or, the possibly cloned or modified, clause
      */
 
-    protected Clause forwardSubsumption(Clause clause) throws Unsatisfiable {
+    protected boolean isSubsumed(Clause clause)  {
         Clause subsumer = LitAlgorithms.isSubsumed(clause,literalIndex,timestamp);
         timestamp += clause.size() + 2;
+        if(subsumer == null) return false;
+        ++statistics.forwardSubsumptions;
+        if(monitoring)
+            monitor.print(monitorId, "Clause " + clause.toString(0,symboltable) +
+                    " is subsumed by clause " + subsumer.toString(0,symboltable));
+        return true;}
 
-        if(subsumer == null) return clause;
-        if(subsumer.limit >= clause.limit) {
-            ++statistics.forwardSubsumptions;
-            if(monitoring)
-                monitor.print(monitorId, "Clause " + clause.toString(0,symboltable) +
-                        " is subsumed by clause " + subsumer.toString(0,symboltable));
-            return null;}
-
-        if(clause.size() != subsumer.size()) return clause;
-
-        // Now the two clauses have the same literals
-
-        /*
-        Interval interval = subsumer.interval.intersect(clause.interval);
-        if(interval == null) {throw new UnsatisfiableInterval(subsumer,clause);}
-
-        removeClause(subsumer);
-        if(clause.interval.isSubset(subsumer.interval)) {
-            ++statistics.backwardSubsumptions;
-            if(monitoring)
-                monitor.print(monitorId, "Clause " + subsumer.toString(0,symboltable) +
-                            " is subsumed by clause " + clause.toString(0,symboltable));
-            return clause;}
-        if(trackReasoning) {
-            Clause newClause = clause.clone(problemSupervisor.nextClauseId());
-            newClause.interval = interval;
-            newClause.setConnective();
-            InferenceStep step = new InfIntervalIntersection(subsumer,clause,newClause);
-            newClause.inferenceStep = step;
-            if(monitoring) {monitor.print(monitorId,step.toString(symboltable));
-            return newClause;}}
-        else {clause.interval = interval; clause.setConnective();}
-        */
-
-        return clause;}
 
 
 }

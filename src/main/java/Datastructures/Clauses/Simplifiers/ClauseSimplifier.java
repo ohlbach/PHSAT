@@ -80,7 +80,7 @@ public class ClauseSimplifier {
         if(trackReasoning) {
             step = clause.inferenceStep;
             if(monitoring) {monitor.print(monitorId,step.toString(symboltable));}}
-        for(CLiteral cLiteral : clause) {model.add(cLiteral.literal,step,thread);}}
+        for(CLiteral cLiteral : clause) {model.add(cLiteral.literal,step);}}
 
     IntArrayList intList1 = new IntArrayList();
     IntArrayList intList2 = new IntArrayList();
@@ -92,7 +92,7 @@ public class ClauseSimplifier {
      * @param oldClause the original clause
      * @return either the old clause, or a new clause with the replaced literals.
      */
-    protected Clause replaceEquivalences(Clause oldClause){
+    protected Clause replaceEquivalences(Clause oldClause)  throws Unsatisfiable {
         Clause newClause = oldClause.replaceEquivalences(equivalenceClasses, nextId);
         if(intList1.isEmpty()) return oldClause;
         if(trackReasoning) {
@@ -120,7 +120,7 @@ public class ClauseSimplifier {
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
         if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new UnsatisfiableClause(newClause);}
         if(newClause.connective == Connective.AND) {
-            for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step,thread);
+            for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step);
             return null;}
         return newClause;}
 
@@ -135,7 +135,7 @@ public class ClauseSimplifier {
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
         if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new UnsatisfiableClause(newClause);}
         if(newClause.connective == Connective.AND) {
-            for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step,thread);
+            for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step);
             return null;}
         return newClause;}
 
