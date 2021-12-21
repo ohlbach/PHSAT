@@ -15,55 +15,71 @@ public class LitAlgorithms {
 
 
 
-    /** This method checks if the given clause is subsumed by some other clause in the literal index
+    /** This method checks if the given subsumee is subsumed by some other subsumee in the literal index
      *
-     * @param clause        the clause to be checked
+     * @param subsumee        the subsumee to be checked
      * @param literalIndex  the index mapping literals to occurrences in clauses
      * @param timestamp     an incremented timestamp
      * @return              either a subsumer, or null
      */
-    public static Clause isSubsumed(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp) {
-        int size = clause.size();
-        short limit = clause.limit;
-        for(CLiteral cliteral : clause) {
-            int literal = cliteral.literal;
-            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(literal,size);
+    public static Clause isSubsumed(Clause subsumee, BucketSortedIndex<CLiteral> literalIndex, int timestamp) {
+        int size = subsumee.size();
+        short subsumeeLimit = subsumee.limit;
+        for(CLiteral cliteral : subsumee) {
+            int subsumeeLiteral = cliteral.literal;
+            short subsumeeMultiplicity = cliteral.multiplicity;
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorTo(subsumeeLiteral,size);
             while(iterator.hasNext()) {
-                CLiteral otherLiteral = iterator.next();
-                Clause otherClause = otherLiteral.clause;
-                if(clause == otherClause) {continue;}
-                if(otherClause.limit < limit) continue;
-                if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp; continue;}
-                if(otherClause.timestamp - timestamp == otherClause.size()-2) {
-                    literalIndex.pushIterator(literal,iterator);
-                    return otherClause;}
-                ++otherClause.timestamp;}
-            literalIndex.pushIterator(literal,iterator);}
+                CLiteral subsumerLiteral = iterator.next();
+                Clause subsumer = subsumerLiteral.clause;
+                if(subsumee == subsumer) {continue;}
+                if(subsumer.limit < subsumeeLimit) continue;
+                short subsumerMultiplicity = subsumerLiteral.multiplicity;
+                if(subsumerMultiplicity < subsumeeMultiplicity) continue;
+                if(subsumer.timestamp < timestamp) {
+                    subsumer.timestamp = timestamp +
+                            (subsumer.limit - subsumeeLimit) +
+                            (subsumeeMultiplicity-1);
+                    continue;}
+                subsumer.timestamp += subsumeeMultiplicity;
+                if(subsumer.timestamp - timestamp == subsumer.expandedSize()-1) {
+                    literalIndex.pushIterator(subsumeeLiteral,iterator);
+                    return subsumer;}}
+            literalIndex.pushIterator(subsumeeLiteral,iterator);}
         return null;}
 
-    /** This method searches all clauses in the literal index which are subsumed by the given clause
+    /** This method searches all clauses in the literal index which are subsumed by the given subsumer
      *
-     * @param clause       the subsumer clause
+     * @param subsumer     the subsumer clause
      * @param literalIndex an index mapping literals to occurrences in clauses
      * @param timestamp    an incremented timestamp
      * @param subsumed     collects all subsumed clauses
      */
-    public static void subsumes(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp, ArrayList<Clause> subsumed) {
-        int size = clause.size();
-        int difference = size - 2;
-        for(CLiteral cliteral : clause) {
-            int literal = cliteral.literal;
-            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorFrom(literal,size);
+    public static void subsumes(Clause subsumer, BucketSortedIndex<CLiteral> literalIndex, int timestamp, ArrayList<Clause> subsumed) {
+        int size = subsumer.size();
+        int difference = subsumer.expandedSize() - 1;
+        short subsumerLimit = subsumer.limit;
+        for(CLiteral cliteral : subsumer) {
+            int subsumerLiteral = cliteral.literal;
+            short subsumerMultiplicity = cliteral.multiplicity;
+            BucketSortedList<CLiteral>.BucketIterator iterator = literalIndex.popIteratorFrom(subsumerLiteral,size);
             while(iterator.hasNext()) {
-                CLiteral otherLiteral = iterator.next();
-                Clause otherClause = otherLiteral.clause;
-                if(clause == otherClause) {continue;}
-                if(otherClause.timestamp < timestamp) {otherClause.timestamp = timestamp; continue;}
-                if(otherClause.timestamp - timestamp == difference) {
-                    subsumed.add(otherClause);
-                    otherClause.timestamp = 0;}
-                ++otherClause.timestamp;}
-            literalIndex.pushIterator(literal,iterator);}}
+                CLiteral subsumeeCLiteral = iterator.next();
+                Clause subsumee = subsumeeCLiteral.clause;
+                if(subsumer == subsumee) {continue;}
+                if(subsumee.limit > subsumerLimit) continue;
+                short subsumeeMultiplicity = subsumeeCLiteral.multiplicity;
+                if(subsumeeMultiplicity > subsumerMultiplicity) continue;
+                if(subsumee.timestamp < timestamp) {
+                    subsumee.timestamp = timestamp +
+                            (subsumerLimit - subsumee.limit) +
+                            (subsumeeMultiplicity-1);
+                    continue;}
+                subsumee.timestamp += subsumeeMultiplicity;
+                if(subsumee.timestamp - timestamp == difference) {
+                    subsumed.add(subsumee);
+                    subsumee.timestamp = 0;}}
+            literalIndex.pushIterator(subsumerLiteral,iterator);}}
 
 
     /** This method checks if a literal in the given clause can be removed by replacement resolution with another clause in the literal index.
