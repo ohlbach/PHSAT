@@ -78,17 +78,20 @@ public class CLiteral implements Positioned {
      * @return the literal as a String.
      */
     public String toString() {
-        return Integer.toString(literal);}
+        String mult = multiplicity == 1 ? "" : "^"+multiplicity;
+        return Integer.toString(literal)+mult;}
 
     public String toString(Symboltable symboltable) {
-        return (symboltable == null) ? Integer.toString(literal) : symboltable.toString(literal);}
+        String mult = multiplicity == 1 ? "" : "^"+multiplicity;
+        return (symboltable == null) ? Integer.toString(literal)+mult : symboltable.toString(literal)+mult;}
 
     /** returns just the literal.
      *
      * @return the literal as a String.
      */
     public String toString(Function<Clause,String> clauseString) {
-        return Integer.toString(literal) + "@" + clauseString.apply(clause);}
+        String mult = multiplicity == 1 ? "" : "^"+multiplicity;
+        return Integer.toString(literal)+mult + "@" + clauseString.apply(clause);}
 
     /** returns just  name of the literal.
      *
@@ -96,7 +99,8 @@ public class CLiteral implements Positioned {
      * @return the literal name as a String.
      */
     public String toString(Symboltable symboltable, Function<Clause,String> clauseString) {
-        return ((symboltable == null) ? toString() : symboltable.toString(literal)) +"@" + clauseString.apply(clause);}
+        String mult = multiplicity == 1 ? "" : "^"+multiplicity;
+        return ((symboltable == null) ? toString() : symboltable.toString(literal))+mult +"@" + clauseString.apply(clause);}
 
 
 }

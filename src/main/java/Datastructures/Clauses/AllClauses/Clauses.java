@@ -242,15 +242,11 @@ public class Clauses extends Thread {
         return cliteral;}
 
 
-
-
-
     /** works off the queue
      * new true literals <br>
      * new equivalences <br>
      * new disjointnesses <br>
      */
-
     public void run() {
         while(!Thread.interrupted()) {
             try {
@@ -329,17 +325,16 @@ public class Clauses extends Thread {
 
     /** removes all clauses which are subsumed by the given clauses.
      *
-     * @param clause a potential subsumer
+     * @param subsumer a potential subsumer
      */
-    protected void removeSubsumedClauses(Clause clause) {
-        subsumedClauses.clear();
-        LitAlgorithms.subsumes(clause,literalIndex,timestamp, subsumedClauses);
+    protected void removeSubsumedClauses(Clause subsumer) {
+        LitAlgorithms.subsumes(subsumer,literalIndex,timestamp, subsumedClauses);
         timestamp += maxClauseLength+1;
         for(Clause subsumed : subsumedClauses) {
             removeClause(subsumed);
             ++statistics.backwardSubsumptions;
             if(trackReasoning) {
-                InferenceStep step = new InfSubsumption(clause,subsumed);
+                InferenceStep step = new InfSubsumption(subsumer,subsumed);
                 subsumed.inferenceStep = step;
                 if(monitoring) monitor.print(monitorId, step.toString(symboltable));}}}
 

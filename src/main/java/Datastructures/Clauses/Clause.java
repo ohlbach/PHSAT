@@ -760,9 +760,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             CLiteral cLiteral = cliterals.get(position);
-            short multiplicity = cLiteral.multiplicity;
-            String exp = (multiplicity > 1) ? "^"+multiplicity : "";
-            st.append(Symboltable.toString(cLiteral.literal,symboltable)).append(exp);
+            st.append(cLiteral.toString(symboltable));
             if(position < size-1) {st.append(connective.separator);}}
         return st.toString();}
 

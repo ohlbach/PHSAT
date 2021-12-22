@@ -56,6 +56,7 @@ public class LitAlgorithms {
      * @param subsumed     collects all subsumed clauses
      */
     public static void subsumes(Clause subsumer, BucketSortedIndex<CLiteral> literalIndex, int timestamp, ArrayList<Clause> subsumed) {
+        subsumed.clear();
         int size = subsumer.size();
         int difference = subsumer.expandedSize() - 1;
         short subsumerLimit = subsumer.limit;
