@@ -6,14 +6,14 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
-public class InfAtleastToAtmost extends InferenceStep {
-    public static final String title ="Atleast to Atmost";
-    public static final String rule = "atleast n l_1,...,l_k -> atmost k-n -l_1,...,-l_k";
+public class InfSwitchAtleastAtmost extends InferenceStep {
+    public static final String title ="Switch Atleast, Atmost";
+    public static final String rule = title+":\natleast n l_1,...,l_k -> atmost k-n -l_1,...,-l_k and vice versa";
 
     private final Clause atleastClause;
     private final Clause atmostClause;
 
-    public InfAtleastToAtmost(Clause atleastClause, Clause atmostClause) {
+    public InfSwitchAtleastAtmost(Clause atleastClause, Clause atmostClause) {
         this.atleastClause = atleastClause;
         this.atmostClause = atmostClause;}
 
@@ -23,7 +23,7 @@ public class InfAtleastToAtmost extends InferenceStep {
 
     @Override
     public String rule() {
-        return title + ":\n"+rule;}
+        return title;}
 
     @Override
     public String toString(Symboltable symboltable) {
