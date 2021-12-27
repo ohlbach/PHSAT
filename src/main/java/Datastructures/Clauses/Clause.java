@@ -243,15 +243,16 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             case ATLEAST:
                 clause = clause.removeComplementaryLiterals(nextId);
                 if (clause.structure == ClauseStructure.TAUTOLOGY) return clause;
-                if (limit > clause.expandedSize()) throw new UnsatisfiableClause(clause);
-                clause.setStructure();
+                int expandedSize = clause.expandedSize();
+                if (limit > expandedSize) throw new UnsatisfiableClause(clause);
+                if(limit == expandedSize) return clause.toAnd(nextId,+1);
                 DiophantineEquation eq = getDiophantineEquation();
                 int newLimit = eq.minSolution();
                 if(limit != newLimit) {
                     newClause = clause.clone(nextId.getAsInt());
                     newClause.limit = (short)newLimit;
                     newClause.inferenceStep = new InfIncreasedLimit(clause,newClause);
-                    return newClause;}
+                    return (newClause.limit == expandedSize) ? newClause.toAnd(nextId,+1): newClause;}
             case EXACTLY:
                 clause = clause.removeComplementaryLiterals(nextId);
                 if (clause.structure == ClauseStructure.TAUTOLOGY) return clause;
@@ -345,6 +346,27 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         switch(structure) {
             case POSITIVE: clause.structure = ClauseStructure.NEGATIVE; break;
             case NEGATIVE: clause.structure = ClauseStructure.POSITIVE;}
+        return clause;}
+
+    /** turns a clause to an AND-clause
+     *
+     * @param nextId for computing the next identifier
+     * @param sign +1 or -1
+     * @return either the  original clause (nextId == null) or a new AND-clause
+     */
+    public Clause toAnd(IntSupplier nextId, int sign) {
+        if(nextId == null) {
+            connective = Connective.AND;
+            limit = 1;
+            if(sign == -1) {
+                for(CLiteral cLiteral : cliterals) cLiteral.literal *= sign;}
+            return this;}
+        Clause clause = clone(nextId.getAsInt());
+        clause.connective = Connective.AND;
+        clause.limit = 1;
+        if(sign == -1) {
+            for(CLiteral cLiteral : clause.cliterals) cLiteral.literal *= sign;}
+        clause.inferenceStep = new InfToAnd(this,clause);
         return clause;}
 
     /** turns an atleast-clause into conjunctive normal form
