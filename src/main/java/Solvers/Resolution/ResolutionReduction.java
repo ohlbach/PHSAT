@@ -567,7 +567,7 @@ public abstract class ResolutionReduction extends Solver {
         Clause clause = new Clause(++id[0], Connective.OR, 2);
         clause.add(new CLiteral(literal1));
         clause.add(new CLiteral(literal2));
-        clause.setStructure();
+        clause.setPositiveNegative();
         simplifyBackwards(clause);
         if(clause.removed) {return;}
         insertClause(clause);
@@ -590,7 +590,7 @@ public abstract class ResolutionReduction extends Solver {
         if(clause.size() == 1) {
             int literal = clause.getLiteral(0);
             addTrueLiteralTask(literal,"Imported clause merged to " + literalName(literal)); return;}
-        clause.setStructure();
+        clause.setPositiveNegative();
         simplifyBackwards(clause);
         if(clause.removed) {return;}
         switch(clause.size()) {

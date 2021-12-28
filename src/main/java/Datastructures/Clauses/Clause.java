@@ -119,15 +119,14 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         id = basicClause[0];
         inferenceStep = new Input(id);
         int length = basicClause.length;
-        int start = 2;
-        limit = 1;
+        int start = 0;
         switch (connective) {
             case OR:
             case AND:
-            case EQUIV: break;
+            case EQUIV:   limit = 1; start = 2; break;
             case ATLEAST:
             case ATMOST:
-            case EXACTLY:  limit = (short)basicClause[2]; start = 3; break;
+            case EXACTLY: limit = (short)basicClause[2]; start = 3; break;
             default: assert(false);} // should not happen.
 
         cliterals = new ArrayList<>(length - start);
@@ -152,12 +151,11 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         this.id = id;
         inferenceStep = new Input(id);
         this.connective = connective;
-        limit = 1;
         int start = 0;
         switch (connective) {
             case OR:
             case AND:
-            case EQUIV:   break;
+            case EQUIV:   limit = 1; start = 0; break;
             case ATLEAST:
             case ATMOST:
             case EXACTLY: limit = (short)literals[0]; start = 1; break;
@@ -227,36 +225,45 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                     clause.connective = Connective.AND;
                     return clause;}
                 if (clause.size() == 0) throw new UnsatisfiableClause(clause);
-                setStructure();
+                setPositiveNegative();
                 return clause;
             case AND:
             case EQUIV:
                 if(clause.size() <= 1) clause.structure = ClauseStructure.TAUTOLOGY;
                 return clause;
             case ATMOST:
-                Clause newClause = new Clause(nextId.getAsInt(), Connective.ATLEAST, (short) (clause.expandedSize() - limit), clause.cliterals.size());
+                Clause newClause = new Clause(nextId.getAsInt(), Connective.ATLEAST,
+                        (short)(clause.expandedSize() - limit), clause.cliterals.size());
                 ArrayList<CLiteral> newCLiterals = newClause.cliterals;
                 for (CLiteral cLiteral : clause.cliterals)
-                    newCLiterals.add(new CLiteral(-cLiteral.literal, newClause, newCLiterals.size(), cLiteral.multiplicity));
+                    newCLiterals.add(new CLiteral(-cLiteral.literal, newClause, newCLiterals.size(),
+                            cLiteral.multiplicity));
                 newClause.inferenceStep = new InfAtmostToAtleast(clause, newClause);
                 clause = newClause;
             case ATLEAST:
                 clause = clause.removeComplementaryLiterals(nextId);
-                if (clause.structure == ClauseStructure.TAUTOLOGY) return clause;
+                if (clause.structure == ClauseStructure.TAUTOLOGY ||
+                        clause.connective != Connective.ATLEAST) return clause;
                 int expandedSize = clause.expandedSize();
                 if (limit > expandedSize) throw new UnsatisfiableClause(clause);
                 if(limit == expandedSize) return clause.toAnd(nextId,+1);
                 DiophantineEquation eq = getDiophantineEquation();
                 int newLimit = eq.minSolution();
                 if(limit != newLimit) {
-                    newClause = clause.clone(nextId.getAsInt());
-                    newClause.limit = (short)newLimit;
-                    newClause.inferenceStep = new InfIncreasedLimit(clause,newClause);
-                    return (newClause.limit == expandedSize) ? newClause.toAnd(nextId,+1): newClause;}
+                    if(nextId != null) {
+                        newClause = clause.clone(nextId.getAsInt());
+                        newClause.limit = (short)newLimit;
+                        newClause.inferenceStep = new InfIncreasedLimit(clause,newClause);
+                        clause = newClause;}
+                    else {clause.limit = (short)newLimit;}
+                    if(clause.limit == expandedSize) return clause.toAnd(nextId,+1);
+
+                    return clause.getNeededLiterals(clause.id+1,nextId,eq,clauses) ? null : clause;
+                }
             case EXACTLY:
                 clause = clause.removeComplementaryLiterals(nextId);
                 if (clause.structure == ClauseStructure.TAUTOLOGY) return clause;
-                clause.setStructure();
+                clause.setPositiveNegative();
                 eq = getDiophantineEquation();
                 if(!eq.isSolvable()) throw new UnsatisfiableClause(clause);
                 Clause atleastClause = clause.clone(nextId.getAsInt());
@@ -286,6 +293,40 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             else ++singletons;}
         return new DiophantineEquation(multiplicities, singletons, limit);
     }
+
+    /** checks if the clause implies true literals.
+     * Example: atleast 4: p^2,q^2,r enforces p and q to be true in order to get enough true literals
+     * The original clause is reduced be the true literal
+     *
+     *
+     * @param andId   an id for the new and-clause
+     * @param orId  0 or an id for the atleast-clause
+     * @param eq      the diophantine equation which investigated the satisfiability of the clause
+     * @param clauses for adding the new clauses
+     * @return        true if there were needed literals
+     */
+    private boolean getNeededLiterals(int andId, int orId, DiophantineEquation eq,
+                                      ArrayList<Clause> clauses) {
+        IntArrayList needed = eq.needed(limit);
+        if(needed == null) return false;
+        Clause andClause = new Clause(andId,Connective.AND,(short)1,needed.size());
+        int i = -1;
+        IntArrayList positions = new IntArrayList(needed.size());
+        for(CLiteral cLiteral : cliterals) {
+            if(cLiteral.multiplicity > 1) {++i;}
+            if(needed.contains(i)) {
+                andClause.add(cLiteral.literal,(short)1);
+                positions.add(cLiteral.clausePosition);}}
+        if(orId > 0) andClause.inferenceStep = new InfNeededLiterals(this,andClause);
+        clauses.add(andClause);
+        Clause clause = orId > 0 ? clone(orId) : this;
+        for(i = positions.size()-1; i >= 0; --i) {
+            int position = positions.getInt(i);
+            clause.limit -= clause.cliterals.get(position).multiplicity;
+            clause.removeAtPosition(position);}
+        if(clause.limit == 1) clause.connective = Connective.OR;
+        clauses.add(clause);
+        return true;}
 
 
 
@@ -348,7 +389,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             case NEGATIVE: clause.structure = ClauseStructure.POSITIVE;}
         return clause;}
 
-    /** turns a clause to an AND-clause
+    /** turns a clause to an AND-clause.
+     * The limit is set to a and the multiplicities are set to 1
      *
      * @param nextId for computing the next identifier
      * @param sign +1 or -1
@@ -358,14 +400,17 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         if(nextId == null) {
             connective = Connective.AND;
             limit = 1;
-            if(sign == -1) {
-                for(CLiteral cLiteral : cliterals) cLiteral.literal *= sign;}
+            for(CLiteral cLiteral : cliterals) {
+                cLiteral.literal *= sign;
+                cLiteral.multiplicity = 1;}
             return this;}
+
         Clause clause = clone(nextId.getAsInt());
         clause.connective = Connective.AND;
         clause.limit = 1;
-        if(sign == -1) {
-            for(CLiteral cLiteral : clause.cliterals) cLiteral.literal *= sign;}
+        for(CLiteral cLiteral : clause.cliterals) {
+            cLiteral.literal *= sign;
+            cLiteral.multiplicity = 1;}
         clause.inferenceStep = new InfToAnd(this,clause);
         return clause;}
 
@@ -419,7 +464,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             cLiterali.literal = newLiteral;}
         if (!replacements.isEmpty()) {
             clause.compactify();
-            clause.setStructure();}
+            clause.setPositiveNegative();}
         if(clause != this) clause.inferenceStep = new InfEquivalenceReplacements(this,clause,replacements,equivalenceClasses);
         return clause;}
 
@@ -457,11 +502,12 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                     return clause;}}
             else {if(!removedFalseLiterals.contains(literal)) removedFalseLiterals.add(literal);}
             clause.removeAtPosition(i--);}
-        clause.setStructure();
+        clause.setPositiveNegative();
         if(clause != this) clause.inferenceStep = new InfTrueFalseLiterals(this,clause,removedTrueLiterals,removedFalseLiterals);
         return clause;}
 
     private final IntArrayList complementaryLiterals = new IntArrayList();
+
     /** removes complementary literals from the clause.
      * If nextId != null then the clause is cloned before the literals are removed.
      * If the limit is reduced to 0 then the clause is marked as TAUTOLOGY
@@ -473,6 +519,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         assert (connective == Connective.OR || connective == Connective.ATLEAST);
         complementaryLiterals.clear();
         Clause clause = this;
+        boolean removed = false;
         ArrayList<CLiteral> cliterals = clause.cliterals;
         for(int i = 0; i < cliterals.size(); ++i) {
             CLiteral cLiterali = cliterals.get(i);
@@ -480,6 +527,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             for(int j = 0; j < i; ++j) {
                 CLiteral cLiteralj = cliterals.get(j);
                 if(literali == -cLiteralj.literal) {
+                    removed = true;
                     if(clause == this && nextId != null) {
                         clause = clone(nextId.getAsInt());
                         cliterals = clause.cliterals;
@@ -509,9 +557,11 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                     break;
                 }}
             if(clause.limit <= 0) {clause.structure = ClauseStructure.TAUTOLOGY; return clause;}}
-        clause.setStructure();
-        if(clause != this) clause.inferenceStep = new InfComplementaryLiterals(this,clause,complementaryLiterals);
-        return clause;}
+        if(!removed) return clause;
+        if(clause != this) clause.inferenceStep =
+                new InfComplementaryLiterals(this,clause,complementaryLiterals);
+        clause.setPositiveNegative();
+    return clause;}
 
     /** extracts OR-Clauses from the literals with multiplicities > 1.
      * Example: atleast 3 pp,qq,r<br>
@@ -583,7 +633,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      *
      * @return the corresponding value for the structure.
      */
-    public void setStructure() {
+    public void setPositiveNegative() {
         int positive = 0;
         int negative = 0;
         for (CLiteral cLiteral : cliterals) {
@@ -731,7 +781,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 if(nextId != null) {clause = clone(nextId.getAsInt());}
                 if(truth) clause.limit -= cLiteral.multiplicity;
                 clause.removeAtPosition(i);
-                clause.setStructure();
+                clause.setPositiveNegative();
                 break;}}
         return clause;}
 

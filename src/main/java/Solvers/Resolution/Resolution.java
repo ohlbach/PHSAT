@@ -555,7 +555,7 @@ public abstract class Resolution extends Solver {
                 newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size(),(short)1));}
             if(tautology) {removeClause(otherClause,0); continue;}
             newClause.cliterals = newLiterals;
-            newClause.setStructure();
+            newClause.setPositiveNegative();
             simplifyBackwards(newClause);
             if(newClause.removed) {removeClause(otherClause,0); continue;}
             boolean inp = inPrimary || primaryClauses.contains(otherClause);

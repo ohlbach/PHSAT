@@ -177,7 +177,7 @@ public class LitAlgorithms {
             if(resolvent.contains(-lit2.literal) >= 0) {return null;} // tautology
             if(resolvent.contains(lit2.literal) < 0) {
                     resolvent.add(new CLiteral(lit2.literal));}}
-        resolvent.setStructure();
+        resolvent.setPositiveNegative();
         return resolvent;}
 
 

@@ -2,6 +2,8 @@ package Utilities;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
+import javax.xml.bind.ValidationEvent;
+
 /** This class solves constrained diophantine equations of a particular size:
  *  n_1*x_1 + ... + n_k*x_k + y = z<br>
  *  where x_i are 0 or 1 and y is constrained by 0...n
@@ -10,6 +12,7 @@ public class DiophantineEquation {
     private final IntArrayList binaryVariables;
     private final int constrainedVariable;
     private int result;
+    public boolean allNeeded = false;
 
     /** constructs a diophantine equation
      *
@@ -39,6 +42,7 @@ public class DiophantineEquation {
         int size = binaryVariables.size();
         if(constrainedVariable >= result) return true;
         for(int n = 1; n <= size; ++n) {
+            if(n == size) allNeeded = true;
             int minValue = Integer.MAX_VALUE;
             for(int i : Utilities.combinations(size,n)) {
                 int value = 0;
@@ -46,8 +50,8 @@ public class DiophantineEquation {
                     if(((1 << j) & i) != 0) value += binaryVariables.getInt(j);}
                 minValue = Math.min(minValue,value);
                 int diff = result-value;
-                if(0 <= diff && diff <= constrainedVariable) return true;
-                if(minValue + constrainedVariable > result) return false;}}
+                if(0 <= diff && diff <= constrainedVariable) return true;}
+            if(minValue + constrainedVariable > result) return false;}
         return false;}
 
     /** computes the smallest value >= result the left side can take on.
@@ -61,6 +65,21 @@ public class DiophantineEquation {
                 if(isSolvable()) return result;}}
         finally{result = oldResult;}
         return -1;}
+
+    /** computes those variable indices whose value = 1 is needed for solving the equation
+     *
+     * @return null or the list of variable indices whose value = 1 is needed for solving the equation
+     */
+    public IntArrayList needed(int result) {
+        if(!allNeeded) return null;
+        IntArrayList needed = null;
+        int maxValue = maxValue();
+        for(int i = 0; i < binaryVariables.size(); ++i) {
+            int value = binaryVariables.getInt(i);
+            if(maxValue - value < result) {
+                if(needed == null) needed = new IntArrayList();
+                needed.add(i);}}
+        return needed;}
 
     /** returns the equation as string
      *

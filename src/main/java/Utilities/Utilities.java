@@ -312,7 +312,7 @@ public class Utilities {
         Clause clause = new Clause(id, Connective.OR,lits.length);
         for(String lit : lits) {
             clause.add(new CLiteral(Integer.parseInt(lit)));}
-        clause.setStructure();
+        clause.setPositiveNegative();
         return clause;
     }
 
