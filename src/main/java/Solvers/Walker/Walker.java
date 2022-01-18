@@ -5,7 +5,6 @@ import Datastructures.Clauses.Connective;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
-import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
@@ -14,9 +13,7 @@ import Solvers.Solver;
 import Utilities.Utilities;
 import Utilities.IntegerQueue;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import javafx.scene.web.WebView;
 
-import java.math.MathContext;
 import java.util.*;
 import java.util.function.IntConsumer;
 
@@ -34,10 +31,10 @@ public class Walker extends Solver {
     private static final int maxFlipsDefault = Integer.MAX_VALUE;
     public  int maxFlips;                        // maximum number of allowed flips
     public WalkerStatistics statistics;                // collects statistical information
-    private int seed;                                  // for the random number generator
-    private Random random;                       // random number generator for flip jumps
+    private final int seed;                                  // for the random number generator
+    private final Random random;                       // random number generator for flip jumps
 
-    private ArrayList<WClause> falseList = new ArrayList<>();
+    private final ArrayList<WClause> falseList = new ArrayList<>();
 
     public static String help() {
         return "Random Walker: parameters:\n" +
@@ -102,7 +99,7 @@ public class Walker extends Solver {
             negOccurrences[predicate] = new ArrayList<>();}
         localModel     = new boolean[predicates+1];
         predicateQueue = new IntegerQueue(predicates);
-        predicateQueue.setScore(0,Integer.MIN_VALUE);
+        predicateQueue.setScore(0,Short.MIN_VALUE);
         seed           = (int)solverParameters.get("seed");
         random         = new Random(seed);
         maxFlips       = (int)solverParameters.get("flips");
@@ -119,7 +116,7 @@ public class Walker extends Solver {
     /** a temporary local copy of the globally true literals */
     private final IntArrayList globallyTrueLiteralsCopy = new IntArrayList();
 
-    /** copies the globally true literals to a local copy, such that other thread could fill it anew
+    /** copies the globally true literals to a local copy, such that other threads could fill it anew
      *
      * @return a copy of the globally true literals
      */
@@ -160,7 +157,7 @@ public class Walker extends Solver {
         initializeModel();
         Result result =  walk();
         statistics.elapsedTime = System.nanoTime() - time;
-        System.out.println("Result " + result.toString());
+        System.out.println("Result " + result);
         System.out.println("Time " + statistics.elapsedTime);
         System.out.println("Flips " + statistics.flips);
         //problemSupervisor.finished(this, result, "done");
@@ -195,7 +192,7 @@ public class Walker extends Solver {
         globallyTrueClauses.clear();
         for(int literal : copyGloballyTrueLiterals()) {
             ++statistics.importedTrueLiterals;
-            predicateQueue.setScore(Math.abs(literal),Integer.MIN_VALUE);
+            predicateQueue.setScore(Math.abs(literal),Short.MIN_VALUE);
 
             for(WClause wClause : getClauses(literal)) { // update global truth
                 if(isGloballyTrue(wClause)) {
@@ -259,84 +256,50 @@ public class Walker extends Solver {
             model.addImmediately(localModel[predicate] ? predicate : -predicate);}
         return new Satisfiable(model);}
 
-    /** Initializes the local model, together with the local and global truth values of the clauses.
+    /** Initializes the local model, the local and global truth values of the clauses, the falseClauses list, and the initial flip scores.
      * A predicate is made true if it makes more clauses true than making the predicate false.
      * The number of true clauses when making a predicate true is estimated by its initial score.
+     * If the same number of clauses are made true/false the the truth value of the predicate is
+     * selected randomly.
      * Global truth value are transferred unchanged to the local model.
      */
-    protected void initializeModelOld() {
-        float[] posScores = new float[predicates+1];
-        float[] negScores = new float[predicates+1];
-        setInitialScores(posScores,negScores);
-        //System.out.println("P "+Arrays.toString(posScores) );
-        //System.out.println("N "+Arrays.toString(negScores) );
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            int status = model.status(predicate);
-            if(status != 0) {localModel[predicate] = (status == 1); continue;}
-            float posScore = posScores[predicate];
-            float negScore = negScores[predicate];
-            if(posScore == negScore) localModel[predicate] = random.nextBoolean();
-            else localModel[predicate] = (posScores[predicate] >= negScores[predicate]);
-            //localModel[predicate] = (posScores[predicate] >= negScores[predicate]);
-        }
-
-        falseClauses = 0;
-        for(WClause wClause: wClauses) {
-            if(getLocalTruthValue(wClause)) wClause.isLocallyTrue = true;
-            else addFalseClause(wClause);}
-        System.out.println("Initial False Clauses: " + falseList.size());}
-
     protected void initializeModel() {
-        float[] posScores = new float[predicates+1];
-        float[] negScores = new float[predicates+1];
-        setInitialScores(posScores,negScores);
-        //System.out.println("P "+Arrays.toString(posScores) );
-        //System.out.println("N "+Arrays.toString(negScores) );
+        int[] posScores = new int[predicates+1];
+        int[] negScores = new int[predicates+1];
+        initialScores(posScores,negScores);
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             int status = model.status(predicate);
             if(status != 0) {localModel[predicate] = (status == 1); continue;}
-            float posScore = posScores[predicate];
-            float negScore = negScores[predicate];
+            int posScore = posScores[predicate];
+            int negScore = negScores[predicate];
             if(posScore == negScore) localModel[predicate] = random.nextBoolean();
-            else localModel[predicate] = (posScores[predicate] >= negScores[predicate]);
-        }
+            else localModel[predicate] = (posScores[predicate] >= negScores[predicate]);}
+        
         for(WClause wClause: wClauses) {
             if(getLocalTruthValue(wClause)) wClause.isLocallyTrue = true;
             else addFalseClause(wClause);
             updateFlipScores(wClause,1);}
         System.out.println("Initial False Clauses: " + falseList.size());}
 
-    /** computes the initial predicate scores
-     * The higher the score of a predicate the more likely it is to make clauses true.
-     * The score contribution for a clause counts<br>
-     * how many predicates must be made true/false in order to make the clause true.<br>
-     * 1 predicate:  score += 1<br>
-     * 2 predicates: score += 1/2<br>
-     * etc. <br>
-     * If the literal is positive, then the score is added to posScores, otherwise to negScores.
-     * <br>
-     * For clauses [0,max] literals  the key factor is literals.length - max. <br>
-     * So many literals must be made false, in order to remain within the bounds [0,max]<br>
-     * Example: [0,2] p,q,r,s,t<br>
-     * Atleast 5-2 = 3 literals must be made false, otherwise more than 2 literals could become true.
+    /** computes the initial predicate scores.
+     * A contribution +1 of a literal l in a clause C means: making l true makes the entire clause C true.
+     * This applies to clauses with minLimit = 1 and to clauses with multiplicity[l] >= minLimit.
      *
      * @param posScores for setting the scores to make a predicate true.
      * @param negScores for setting the scores to make a predicate false.
      */
-    protected void setInitialScores(float[] posScores,float[] negScores) {
+    protected void initialScores(int[] posScores, int[] negScores) {
         for(WClause wClause: wClauses) {
-            int min = wClause.limit;
-            float one = (float)1;
-            if(min > 0) {
-                float score = one/min;
-                for(int literal : wClause.literals) {
-                    if(literal > 0) posScores[literal] += score;
-                    else negScores[-literal] += score;}}
-            else {
-                float score = one/(wClause.literals.length-wClause.limit); // can't be 1/0
-                for(int literal : wClause.literals) {
-                    if(literal > 0) negScores[literal] += score;
-                    else posScores[-literal] += score;}}}}
+            short minLimit = wClause.minLimit;
+            short maxLimit = wClause.maxLimit;
+            for(int position = 0; position < wClause.literals.length; ++position) {
+                int literal = wClause.literals[position];
+                short multiplicity = wClause.multiplicities == null ? 1 : wClause.multiplicities[position];
+                if(minLimit <= multiplicity && multiplicity <= maxLimit) {
+                    if(literal > 0) ++posScores[literal];
+                    else            ++negScores[-literal];}}}}
+
+
 
     /** checks if the clause is globally true in the current global model, and remains true.
      *  Counter example: [2,3] p,q,r,s.<br>
@@ -344,22 +307,24 @@ public class Walker extends Solver {
      *  If, however, s becomes true later on, the clause would become false.<br>
      *  In this case the method would return false.<br>
      *
-     * @param wClause a claus
+     * @param wClause a clause
      * @return true if the clause is permanently globally true
      */
     protected boolean isGloballyTrue(WClause wClause) {
         if(model.isEmpty()) return false;
+        if(wClause.connective == Connective.OR) {
+            for(int literal : wClause.literals) {if(model.isTrue(literal)) return true;}
+            return false;}
         int globallyTrueLiterals = 0;
         int globallyUndefinedLiterals = 0;
         for(int literal : wClause.literals) {
             switch(model.status(literal)) {
                 case +1: ++globallyTrueLiterals; break;
                 case 0:  ++globallyUndefinedLiterals;}}
-        int min = wClause.limit;
-        int max = wClause.limit;
+        int min = wClause.minLimit;
+        int max = wClause.maxLimit;
         if(globallyTrueLiterals < min || globallyTrueLiterals > max) return false;
-        if(globallyUndefinedLiterals >= wClause.literals.length - max) return false;
-        return true;}
+        return globallyTrueLiterals + globallyUndefinedLiterals <= max - min + 1;}
 
 
     /** computes the truth value of a clause in the local (and global) model
@@ -372,48 +337,54 @@ public class Walker extends Solver {
             for(int literal : wClause.literals) {
                 if(isLocallyTrue(literal)) {return true;} }
             return false;}
-
         int trueLiterals = currentlyTrueLiterals(wClause);
-        return wClause.limit <= trueLiterals && trueLiterals <= wClause.limit;}
+        return wClause.minLimit <= trueLiterals && trueLiterals <= wClause.maxLimit;}
 
     /** updates the flip scores of the literals in the clauses containing the flipped literal.
+     * A literal's score is changed if, by flipping it, it makes a true clause false or vice versa.
      *
      * @param wClause the clause to be updated
      * @param sign -1 (removing old score) +1 (adding new score)
      */
     protected void updateFlipScores(WClause wClause, int sign) {
-        int min = wClause.limit;
-        int max = wClause.limit;
-        int trueLiterals = 0;
-        for(int literal : wClause.literals) {
-            if(isLocallyTrue(literal)) ++trueLiterals;}
+        if(wClause.connective == Connective.OR) { // separate treatment is more efficient
+            if(wClause.isLocallyTrue) {
+                int trueLiteral = 0;
+                for(int literal : wClause.literals) {
+                    if(isLocallyTrue(literal)) {
+                        if(trueLiteral != 0) return; // if there are two true literals, nothing changes by flipping
+                        else trueLiteral = literal;}}
+                if(trueLiteral != 0) {// flipping the single true literal makes the clause false.
+                    predicateQueue.addScore(Math.abs(trueLiteral), -sign);
+                    return;}}
+            // all literals are false
+            for(int literal : wClause.literals) predicateQueue.addScore(Math.abs(literal), sign);
+            return;}
+
+        short min = wClause.minLimit;
+        short max = wClause.maxLimit;
         if(wClause.isLocallyTrue) {
             if (min == max) { // every flip makes the clause false
                 for (int literal : wClause.literals) predicateQueue.addScore(Math.abs(literal), -sign);
                 return;}
-            if(trueLiterals == min) { // flipping a true literal -> not enough true literals any more
-                for (int literal : wClause.literals) { // flipping a false literal changes nothing
-                    if (isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal), -sign);}
-                return;}
-            if(trueLiterals == max) { // flipping a false literal -> too many true literals
-                for (int literal : wClause.literals) { // flipping a true literal changes nothing
-                    if (!isLocallyTrue(literal)) predicateQueue.addScore(Math.abs(literal), -sign);}
-                return;}
+            // a flip can bring the number of true literals outside the range [min,max]
+            short trueLiterals = currentlyTrueLiterals(wClause);
+            for(int position = 0; position < wClause.literals.length; ++position) {
+                int literal = wClause.literals[position];
+                if(isLocallyTrue(literal)) {
+                    short newTrueLiterals = (short)(trueLiterals - (wClause.multiplicities == null ? 1: wClause.multiplicities[position]));
+                    if((newTrueLiterals < min) || (newTrueLiterals > max))
+                        predicateQueue.addScore(Math.abs(literal), -sign);}}
             return;}
-
-        // clause is locally false now
-        if(trueLiterals < min) { // not enough true literals
-            float d = min - trueLiterals;          // so many false literals must be made true
-            for (int literal : wClause.literals) {  // flipping a true literal makes the clause even 'more false'
-                float scoreDiff = (float)sign/d * (isLocallyTrue(literal) ? (float)-1 : (float)1);
-                predicateQueue.addScore(Math.abs(literal), scoreDiff);}
-            return;}
-        if(trueLiterals > max) {  // too many true literals
-            float d = trueLiterals - max;          // so many true literals must be made false
-            for (int literal : wClause.literals) { // flipping a false literal makes the clause even 'more false'
-                float scoreDiff = (float)sign/d * (isLocallyTrue(literal) ? 1 : -1);
-                predicateQueue.addScore(Math.abs(literal), scoreDiff);}}
-    }
+        // the clause is false now
+        // a flip can bring the number of true literals into the range [min,max]
+        short trueLiterals = currentlyTrueLiterals(wClause);
+        for(int position = 0; position < wClause.literals.length; ++position) {
+            int literal = wClause.literals[position];
+            if (!isLocallyTrue(literal)) {
+                short newTrueLiterals = (short)(trueLiterals + (wClause.multiplicities == null ? 1: wClause.multiplicities[position]));
+                if((min <= newTrueLiterals) && (newTrueLiterals <= max))
+                    predicateQueue.addScore(Math.abs(literal), sign);}}}
 
 
     /** selects the next flip predicate.
@@ -445,8 +416,8 @@ public class Walker extends Solver {
 
     int selectFlipPredicate() {
         int predicate = blocked ? predicateQueue.getTopItem(threshold) : predicateQueue.topScore();
-        float score = predicateQueue.scores[predicate];
-        if(score <= 0.0 && falseList.size() < 3) {
+        int score = predicateQueue.scores[predicate];
+        if(score <= 0 && falseList.size() < 3) {
             int[] literals = falseList.get(random.nextInt(falseList.size())).literals;
             predicate = Math.abs(literals[random.nextInt(literals.length)]);}
         if(print) System.out.println("S " + predicate + " " + statistics.flips + " " + falseList.size() + " " + predicateQueue.scores[predicate]);
@@ -488,14 +459,18 @@ public class Walker extends Solver {
 
 
 
-    /** counts the number of locally true literals in the clause
-         *
-         * @param wClause a clause
-         * @return the number of true literals in the clause.
-         */
-    private int currentlyTrueLiterals(WClause wClause) {
-        int trueLiterals = 0;
-        for(int literal : wClause.literals) {if(isLocallyTrue(literal)) ++trueLiterals;}
+    /** counts the number of locally true literals in the clause, including multiplicities.
+     * Example: p^2,q^3,r with true(p,q) yields 5.
+     *
+     * @param wClause a clause
+     * @return the number of true literals in the clause, including multiplicities.
+     */
+    private short currentlyTrueLiterals(WClause wClause) {
+        short trueLiterals = 0;
+        for(int position = 0; position < wClause.literals.length; ++position) {
+            int literal = wClause.literals[position];
+            if(isLocallyTrue(literal))
+                trueLiterals += wClause.multiplicities == null ? 1 : wClause.multiplicities[position];}
         return trueLiterals;}
 
     /** returns true if the literal is true in the local model
@@ -524,11 +499,20 @@ public class Walker extends Solver {
             if(literal > 0) posOccurrences[literal].remove(wClause);
             else            posOccurrences[-literal].remove(wClause);}}
 
+    /** adds a false clause to the falseClauses list and stores its position in the clause's position slot. 
+     * 
+     * @param falseClause a false clause
+     */
     private void addFalseClause(WClause falseClause) {
         int position = falseList.size();
         falseClause.position = position;
         falseList.add(falseClause);}
 
+    /** removes a false clause from the list. The last clause in the list takes its position.
+     * The operation is constant in time.
+     * 
+     * @param falseClause a clause to be removed.
+     */
     private void removeFalseClause(WClause falseClause) {
         int position = falseClause.position;
         if(position < 0) return;

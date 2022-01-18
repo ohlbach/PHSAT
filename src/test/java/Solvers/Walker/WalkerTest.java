@@ -3,7 +3,6 @@ package Solvers.Walker;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
-import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -12,11 +11,8 @@ import Generators.RandomClauseSetGenerator;
 import Management.Controller;
 import Management.GlobalParameters;
 import Management.ProblemSupervisor;
-import Utilities.Interval;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
-import java.awt.image.RescaleOp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -124,50 +120,50 @@ public class WalkerTest {
         System.out.println("setInitialScores");
         Walker walker = prepare(5, true, null);
         walker.addClause(make(1, or, 1, -2, 3));
-        float[] posScores = new float[6];
-        float[] negScores = new float[6];
-        walker.setInitialScores(posScores, negScores);
+        int[] posScores = new int[6];
+        int[] negScores = new int[6];
+        walker.initialScores(posScores, negScores);
         assertEquals("[0.0, 1.0, 0.0, 1.0, 0.0, 0.0]",Arrays.toString(posScores));
         assertEquals("[0.0, 0.0, 1.0, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
-        posScores = new float[6];
-        negScores = new float[6];
+        posScores = new int[6];
+        negScores = new int[6];
         walker.addClause(make(2, iv, 1, 3, 1, -2, 3));
-        walker.setInitialScores(posScores, negScores);
+        walker.initialScores(posScores, negScores);
         assertEquals("[0.0, 1.0, 0.0, 1.0, 0.0, 0.0]",Arrays.toString(posScores));
         assertEquals("[0.0, 0.0, 1.0, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
-        posScores = new float[6];
-        negScores = new float[6];
+        posScores = new int[6];
+        negScores = new int[6];
         walker.addClause(make(3, iv, 1, 3, 1, -2, 3, 4));
-        walker.setInitialScores(posScores, negScores);
+        walker.initialScores(posScores, negScores);
         assertEquals("[0.0, 1.0, 0.0, 1.0, 1.0, 0.0]",Arrays.toString(posScores));
         assertEquals("[0.0, 0.0, 1.0, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
-        posScores = new float[6];
-        negScores = new float[6];
+        posScores = new int[6];
+        negScores = new int[6];
         walker.addClause(make(3, iv, 2, 3, 1, -2, 3, 4));
-        walker.setInitialScores(posScores, negScores);
+        walker.initialScores(posScores, negScores);
         assertEquals("[0.0, 0.5, 0.0, 0.5, 0.5, 0.0]",Arrays.toString(posScores));
         assertEquals("[0.0, 0.0, 0.5, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
-        posScores = new float[6];
-        negScores = new float[6];
+        posScores = new int[6];
+        negScores = new int[6];
         walker.addClause(make(3, iv, 0, 2, 1, -2, 3, 4));
-        walker.setInitialScores(posScores, negScores);
+        walker.initialScores(posScores, negScores);
         assertEquals("[0.0, 0.0, 0.5, 0.0, 0.0, 0.0]",Arrays.toString(posScores));
         assertEquals("[0.0, 0.5, 0.0, 0.5, 0.5, 0.0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
-        posScores = new float[6];
-        negScores = new float[6];
+        posScores = new int[6];
+        negScores = new int[6];
         walker.addClause(make(3, iv, 2, 3, 1, -2, 3, 4));
         walker.addClause(make(4, iv, 0, 2, 1, -2, 3, 4));
-        walker.setInitialScores(posScores, negScores);
+        walker.initialScores(posScores, negScores);
         assertEquals("[0.0, 0.5, 0.5, 0.5, 0.5, 0.0]",Arrays.toString(posScores));
         assertEquals("[0.0, 0.5, 0.5, 0.5, 0.5, 0.0]",Arrays.toString(negScores));
     }
@@ -246,13 +242,13 @@ public class WalkerTest {
         System.out.println("updateFlipScores");
         Walker walker = prepare(5, true, null);
         WClause w1 = walker.addClause(make(1, or, 1,2,3));
-        walker.updateFlipScores(w1,1);
+        walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
                 "1:1.0, 2:1.0, 3:1.0, 4:0.0, 5:0.0, 0:-2.14748365E9, ",walker.flipScoresToString());
 
         walker = prepare(5, true, null);
         w1 = walker.addClause(make(2, iv, 2,2,1,2,3));
-        walker.updateFlipScores(w1,1);
+        walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
                 "1:0.5, 2:0.5, 3:0.5, 4:0.0, 5:0.0, 0:-2.14748365E9, ",walker.flipScoresToString());
 
@@ -260,7 +256,7 @@ public class WalkerTest {
         w1 = walker.addClause(make(3, iv, 2,2,1,2,3,4,5));
         walker.localModel[2] = true;
         w1.isLocallyTrue=true;
-        walker.updateFlipScores(w1,1);
+        walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
                 "1:-1.0, 2:-1.0, 3:-1.0, 4:-1.0, 5:-1.0, 0:-2.14748365E9, ",walker.flipScoresToString());
 
@@ -270,7 +266,7 @@ public class WalkerTest {
         walker.localModel[3] = true;
         walker.localModel[4] = true;
         w1.isLocallyTrue=true;
-        walker.updateFlipScores(w1,1);
+        walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
                 "2:0.0, 3:0.0, 4:0.0, 1:-1.0, 5:-1.0, 0:-2.14748365E9, ",walker.flipScoresToString());
 
@@ -278,7 +274,7 @@ public class WalkerTest {
         w1 = walker.addClause(make(3, iv, 3,4, 1,2,3,4,5));
         walker.localModel[2] = true;
         walker.localModel[3] = true;
-        walker.updateFlipScores(w1,1);
+        walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
                 "1:1.0, 4:1.0, 5:1.0, 3:-1.0, 2:-1.0, 0:-2.14748365E9, ",walker.flipScoresToString());
     }

@@ -1,25 +1,18 @@
 package Datastructures.Clauses;
 
-import Datastructures.Clauses.AllClauses.Clauses;
-import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
 import Datastructures.Literals.CLiteral;
-import Datastructures.Results.Aborted;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Management.Controller;
 import Management.GlobalParameters;
-import Management.Monitor;
 import Management.ProblemSupervisor;
-import Utilities.Interval;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
-import javax.xml.bind.annotation.adapters.CollapsedStringAdapter;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 
 import static org.junit.Assert.*;
@@ -133,7 +126,7 @@ public class ClauseTest {
         Clause cl = new Clause(bc);
         assertEquals("1: 2,3,4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
-        assertEquals(1,cl.limit);
+        assertEquals(1,cl.minLimit);
 
         bc = new int[]{2, or, 2, 3, 4,3,3,4};
         cl = new Clause(bc);
@@ -147,12 +140,12 @@ public class ClauseTest {
         Clause cl = new Clause(bc);
         assertEquals("L-1: 2: 2,3,4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
-        assertEquals(2,cl.limit);
+        assertEquals(2,cl.minLimit);
 
         bc = new int[]{2, atl, 3, 2, 3, 4};
         cl = new Clause(bc);
         assertEquals("A-2: 2&3&4", cl.toNumbers());
-        assertEquals(-1,cl.limit);
+        assertEquals(-1,cl.minLimit);
 
         bc = new int[]{3, atl, 0, 2, 3, 4};
         cl = new Clause(bc);
@@ -203,7 +196,7 @@ public class ClauseTest {
         Clause cl = new Clause(bc);
         assertEquals("A-1: 2&3&4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
-        assertTrue(cl.limit < 0);
+        assertTrue(cl.minLimit < 0);
     }
 
     @Test
@@ -213,7 +206,7 @@ public class ClauseTest {
         Clause cl = new Clause(bc);
         assertEquals("E-1: 2=3=4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
-        assertTrue(cl.limit < 0);
+        assertTrue(cl.minLimit < 0);
     }
 
 
@@ -223,7 +216,7 @@ public class ClauseTest {
         Clause cl = new Clause(1,Connective.OR,2,3,4);
         assertEquals("1: 2,3,4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
-        assertEquals(1,cl.limit);
+        assertEquals(1,cl.minLimit);
 
         cl = new Clause(2,Connective.OR,2,3,2,3,2,4);
         assertEquals("2: 2,3,4", cl.toNumbers());
@@ -235,11 +228,11 @@ public class ClauseTest {
         Clause cl = new Clause(1,Connective.ATLEAST,1,2,3,4);
         assertEquals("1: 2,3,4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
-        assertEquals(1,cl.limit);
+        assertEquals(1,cl.minLimit);
         cl = new Clause(1,Connective.ATLEAST,3,2,3,4);
         assertEquals("A-1: 2&3&4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
-        assertEquals(-1,cl.limit);
+        assertEquals(-1,cl.minLimit);
         cl = new Clause(2,Connective.ATLEAST,2,2,3,2,2,2,4);
         assertEquals("L-2: 2: 2^2,3,4", cl.toNumbers());
     }
@@ -260,7 +253,7 @@ public class ClauseTest {
         Clause cl = new Clause(1,Connective.AND,-2,-3,-4);
         assertEquals("A-1: -2&-3&-4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.NEGATIVE);
-        assertEquals(-1,cl.limit);
+        assertEquals(-1,cl.minLimit);
     }
 
     @Test
@@ -269,7 +262,7 @@ public class ClauseTest {
         Clause cl = new Clause(1,Connective.EQUIV,-2,-3,-4);
         assertEquals("E-1: -2=-3=-4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.NEGATIVE);
-        assertEquals(-1,cl.limit);
+        assertEquals(-1,cl.minLimit);
     }
 
     @Test

@@ -17,7 +17,8 @@ public class InfTrueFalseLiterals extends InferenceStep {
     private final IntArrayList trueLiterals;
     private final IntArrayList falseLiterals;
 
-    public InfTrueFalseLiterals(Clause oldClause, Clause newClause, IntArrayList trueLiterals,IntArrayList falseLiterals) {
+    public InfTrueFalseLiterals(Clause oldClause, Clause newClause,
+                                IntArrayList trueLiterals,IntArrayList falseLiterals) {
         this.oldClause = oldClause;
         this.newClause = newClause;
         this.trueLiterals = trueLiterals;
@@ -41,7 +42,7 @@ public class InfTrueFalseLiterals extends InferenceStep {
                 if(i < trueLiterals.size()-1) literals += ",";}
             literals += ")";
             if(!falseLiterals.isEmpty()) literals += " and ";}
-        if(!falseLiterals.isEmpty()) {
+        if(falseLiterals != null && !falseLiterals.isEmpty()) {
             literals += "false(";
             for(int i = 0; i < falseLiterals.size(); ++i) {
                 literals += Symboltable.toString(falseLiterals.getInt(i),symboltable);

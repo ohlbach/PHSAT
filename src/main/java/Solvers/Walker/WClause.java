@@ -4,7 +4,6 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Utilities.Utilities;
-import Utilities.Interval;
 
 import java.util.Formatter;
 import java.util.Locale;
@@ -13,12 +12,13 @@ import java.util.Locale;
 public class WClause {
 
     public final int id;                       // the clause identifier
-    protected final Connective connective;     // OR, ATLEAST clause
-    protected final int limit;                 // the limit of the interval
+    protected final Connective connective;     // OR, ATLEAST ASTMOST, INTERVAL
+    protected final short minLimit;              // the left limit of the interval
+    protected final short maxLimit;              // the right limit of the interval
     public final int[] literals;               // the literals
     protected boolean isLocallyTrue  = false;  // truth in the local model
     protected boolean hasDoubles     = false;  // indicates that there are multiple occurrences in the literals
-    protected int[] multiplicities;            // maps literal positions to the number of literal occurrences
+    protected short[] multiplicities;            // maps literal positions to the number of literal occurrences
     protected int loopCounter = -1;
     public int position = -1;
 
@@ -29,18 +29,15 @@ public class WClause {
     public WClause(Clause clause) {
         id = clause.id;
         connective = clause.connective;
-        limit = clause.limit;
-        literals = new int[clause.size()];
-        for(int i = 0; i < clause.size(); ++i) literals[i] = clause.getLiteral(i);
-        int size = literals.length;
-        multiplicities = new int[clause.size()];
+        minLimit = clause.minLimit;
+        maxLimit = clause.maxLimit;
+        int size = clause.size();
+        literals = new int[size];
+        multiplicities = new short[size];
         for(int i = 0; i < size; ++i) {
-            int literal = literals[i];
-            multiplicities[i] = 1;
-            for(int j = 0; j < i; ++j) {
-                if(literal == literals[j]) {
-                    ++multiplicities[j]; ++multiplicities[i];
-                    hasDoubles = true;}}}
+            literals[i] = clause.getLiteral(i);
+            multiplicities[i] = clause.getCLiteral(i).multiplicity;
+            hasDoubles |= multiplicities[i] > 1;}
         if(!hasDoubles) multiplicities = null;} // if !hasDoubles: garbage collection
 
     /** returns the number of occurrences of the given literal within the clause
@@ -88,7 +85,7 @@ public class WClause {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+(width+ connective.prefix.length())+"s", connective.prefix+id+":");}
         else st.append(connective.prefix+id+": ");
-        if(connective != Connective.OR) st.append("atlest " + limit + ": ");
+        if(connective != Connective.OR) st.append("atlest " + minLimit + ": ");
         int size = literals.length;
         for(int position = 0; position < size; ++position) {
             st.append(Symboltable.toString(literals[position],symboltable));

@@ -2,13 +2,12 @@ package Utilities;
 
 
 import it.unimi.dsi.fastutil.ints.IntArrays;
-import sun.text.resources.CollationData;
 
 import java.util.Random;
 
 /** This class provides an alternative to PriorityQueue.
  * It keeps an int-queue, sorted by int-values which are defined separately.
- * An example is: the flips-scores for predicates in the walker solver.
+ * An example is: the flip-scores for predicates in the walker solver.
  * The higher the score for a predicate, the more clauses are made true by flipping the truth value of the predicate.
  * The differences to PriorityQueue is: <br>
  *  - the queue is entirely sorted. Therefore, one can access all elements according to the sorting. <br>
@@ -21,7 +20,7 @@ public class IntegerQueue {
     private final int size;
 
     /** the score for each item */
-    public final float[] scores;
+    public final int[] scores;
 
     /** the priority queue, i.e. queue[0] is the item with the top score */
     private final int[] queue;
@@ -38,9 +37,9 @@ public class IntegerQueue {
     public IntegerQueue(int size) {
         this.size = size;
         ++size;
-        scores    = new float[size];
+        scores    = new int[size];
         queue     = new int[size];
-        selected  = new short[size];
+        selected  = new int[size];
     }
 
     /** sets the score for the given item
@@ -48,7 +47,7 @@ public class IntegerQueue {
      * @param item   typically a predicate
      * @param score  its score, e.g. the number of clauses made true when the predicate is flipped
      */
-    public void setScore(int item, float score) {
+    public void setScore(int item, int score) {
         scores[item] = score;
         sorted = false;}
 
@@ -57,25 +56,19 @@ public class IntegerQueue {
      * @param item   typically a predicate
      * @param score  its score, e.g. the number of clauses made true when the predicate is flipped
      */
-    public void addScore(int item, float score) {
+    public void addScore(int item, int score) {
         scores[item] += score;
         sorted = false;}
-
-    /** gets the score for the given item
-     *
-     * @param item  e.g. a predicate
-     * @return its score
-     */
-    public float getScore(int item) {
-        return scores[item];}
 
     public int topScore1() {
         if(!sorted) sort();
         int item = topScoreBasic();
         if(item == oldItem || item == oldoldItem) {
-            for(int i = 0; i < queue.length; ++i) {
-                item = queue[i];
-                if(item != oldItem && item != oldoldItem) break;}}
+            for (int j : queue) {
+                item = j;
+                if (j != oldItem && j != oldoldItem) break;
+            }
+        }
         //System.out.println("IT " + item + " " + oldItem + " " + oldoldItem);
         oldoldItem = oldItem;
         oldItem = item;
@@ -96,53 +89,37 @@ public class IntegerQueue {
                     return item;}}}
 
         int item = 0;
-        for(int i = 0; i < queue.length; ++i) {
-            item = queue[i];
-            if(item == oldItem || item == oldoldItem) {continue;}
+        for (int j : queue) {
+            item = j;
+            if (item == oldItem || item == oldoldItem) {continue;}
             break;}
         oldoldItem = oldItem;
         oldItem = item;
         return item;}
 
     int topScoreCounter = 0;
-    /** returns the item with the larges score
+    /** returns the item with the largest score
      *
      * @return the item with the largest score.
      */
     public int topScoreBasic() {
         int predicate0 = queue[0];
-        float score0 = scores[predicate0];
+        int score0 = scores[predicate0];
         int predicate1 = queue[++topScoreCounter];
-        float score1 = scores[predicate1];
+        int score1 = scores[predicate1];
         if(score1 == score0) {return predicate1;}
         topScoreCounter = 0;
         return predicate0;}
 
-    /** returns the item with the nth largest score
-     *
-     * @param n an index
-     * @return the item with the nth largest score
-     */
-    public int nthTopScore(int n) {
-        if(!sorted) sort();
-        return queue[n];}
-
-    /** sorts the queue, such that the item with the largest score comes first.
-     */
+    /** sorts the queue, such that the item with the largest score comes first. */
     public void sort() {
         for(int i = 0; i <= size; ++i) {queue[i] = i;}
-        IntArrays.quickSort(queue,
-                ((i,j)-> {
-                    float sci = scores[i];
-                    float scj = scores[j];
-                    if(sci == scj) {return 0;}
-                    if(sci > scj) {return -1;}
-                    return 1;}));
+        IntArrays.quickSort(queue,((i,j)-> {return Integer.compare(scores[j], scores[i]);}));
         sorted = true;}
 
     public int oldItem = 0;
     public int oldoldItem = 0;
-    short[] selected;
+    int[] selected;
 
     public int getTopItem(int threshold) {
         if(!sorted) sort();
@@ -160,7 +137,7 @@ public class IntegerQueue {
                 if(flips >= 0) {
                     if(flips == threshold) {selected[item] = -1; continue;}
                     else {++selected[item]; return item;}}
-                if(flips == -threshold) {selected[item] = +1; return item;}
+                if(flips == -threshold) {selected[item] = 1; return item;}
                 else {--selected[item]; continue;}}
             startIndex = scoreLimit;
             scoreLimit = topScoreLimit(startIndex);}}
@@ -204,10 +181,10 @@ public class IntegerQueue {
      * @return the first index of the queue, whose score is different to the top score.
      */
     private int topScoreLimit(int startIndex) {
-        float topScore = scores[queue[startIndex]];
+        int topScore = scores[queue[startIndex]];
         int length = queue.length;
         for(int i = startIndex+1; i < length; ++i) {
-            float score = scores[queue[i]];
+            int score = scores[queue[i]];
             if(score != topScore) return i;}
         return length+1;}
 

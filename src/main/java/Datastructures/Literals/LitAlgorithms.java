@@ -24,7 +24,7 @@ public class LitAlgorithms {
      */
     public static Clause isSubsumed(Clause subsumee, BucketSortedIndex<CLiteral> literalIndex, int timestamp) {
         int size = subsumee.size();
-        short subsumeeLimit = subsumee.limit;
+        short subsumeeLimit = subsumee.minLimit;
         for(CLiteral cliteral : subsumee) {
             int subsumeeLiteral = cliteral.literal;
             short subsumeeMultiplicity = cliteral.multiplicity;
@@ -33,12 +33,12 @@ public class LitAlgorithms {
                 CLiteral subsumerLiteral = iterator.next();
                 Clause subsumer = subsumerLiteral.clause;
                 if(subsumee == subsumer) {continue;}
-                if(subsumer.limit < subsumeeLimit) continue;
+                if(subsumer.minLimit < subsumeeLimit) continue;
                 short subsumerMultiplicity = subsumerLiteral.multiplicity;
                 if(subsumerMultiplicity < subsumeeMultiplicity) continue;
                 if(subsumer.timestamp < timestamp) {
                     subsumer.timestamp = timestamp +
-                            (subsumer.limit - subsumeeLimit) +
+                            (subsumer.minLimit - subsumeeLimit) +
                             (subsumeeMultiplicity-1);
                     continue;}
                 subsumer.timestamp += subsumeeMultiplicity;
@@ -59,7 +59,7 @@ public class LitAlgorithms {
         subsumed.clear();
         int size = subsumer.size();
         int difference = subsumer.expandedSize() - 1;
-        short subsumerLimit = subsumer.limit;
+        short subsumerLimit = subsumer.minLimit;
         for(CLiteral cliteral : subsumer) {
             int subsumerLiteral = cliteral.literal;
             short subsumerMultiplicity = cliteral.multiplicity;
@@ -68,12 +68,12 @@ public class LitAlgorithms {
                 CLiteral subsumeeCLiteral = iterator.next();
                 Clause subsumee = subsumeeCLiteral.clause;
                 if(subsumer == subsumee) {continue;}
-                if(subsumee.limit > subsumerLimit) continue;
+                if(subsumee.minLimit > subsumerLimit) continue;
                 short subsumeeMultiplicity = subsumeeCLiteral.multiplicity;
                 if(subsumeeMultiplicity > subsumerMultiplicity) continue;
                 if(subsumee.timestamp < timestamp) {
                     subsumee.timestamp = timestamp +
-                            (subsumerLimit - subsumee.limit) +
+                            (subsumerLimit - subsumee.minLimit) +
                             (subsumeeMultiplicity-1);
                     continue;}
                 subsumee.timestamp += subsumeeMultiplicity;

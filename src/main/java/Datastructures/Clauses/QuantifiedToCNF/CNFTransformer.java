@@ -205,7 +205,7 @@ public class CNFTransformer {
         ArrayList<Clause> clauses = new ArrayList<>();
         boolean hasDoubles = clause.hasDoubles();
         for(IntArrayList literals :
-                Utilities.combinations(clause.size()- clause.limit+1,clause.toArray(),
+                Utilities.combinations(clause.size()- clause.minLimit +1,clause.toArray(),
                         hasDoubles,hasDoubles,hasDoubles)) {
             clauses.add(new Clause(nextId.getAsInt(), Connective.OR,(short)1,literals));}
         if(trackReasoning) {
@@ -226,7 +226,7 @@ public class CNFTransformer {
         boolean hasDoubles = clause.hasDoubles();
         for(CLiteral cLiteral : clause) negLiterals.add(-cLiteral.literal);
         for(IntArrayList literals :
-                Utilities.combinations(clause.limit +1,negLiterals,
+                Utilities.combinations(clause.minLimit +1,negLiterals,
                         hasDoubles,hasDoubles,hasDoubles)) {
             clauses.add(new Clause(nextId.getAsInt(), Connective.OR, (short)1,
                     literals));}
