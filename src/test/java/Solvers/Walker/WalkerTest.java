@@ -274,7 +274,9 @@ public class WalkerTest {
         w1.isLocallyTrue=true;
         walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
-                "2:0, 3:0, 4:0, 1:-1, 5:-1, 0:-2.14748365E9, ",walker.flipScoresToString());
+                "  2  3  4  1  5\n" +
+                "  0  0  0 -1 -1\n" +
+                "\n",walker.flipScoresToString());
 
         walker = prepare(5, true, null);
         w1 = walker.addClause(make(3, iv, 3,4, 1,2,3,4,5));
@@ -282,7 +284,9 @@ public class WalkerTest {
         walker.localModel[3] = true;
         walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
-                "1:1, 4:1, 5:1, 3:-1, 2:-1, 0:-2.14748365E9, ",walker.flipScoresToString());
+                " 1 4 5 3 2\n" +
+                " 1 1 1 0 0\n" +
+                "\n",walker.flipScoresToString());
     }
 
     @Test

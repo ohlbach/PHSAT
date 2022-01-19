@@ -353,20 +353,20 @@ public class Walker extends Solver {
             short trueLiterals = currentlyTrueLiterals(wClause);
             for(int position = 0; position < wClause.literals.length; ++position) {
                 int literal = wClause.literals[position];
-                if(isLocallyTrue(literal)) {
-                    short newTrueLiterals = (short)(trueLiterals - wClause.multiplicity(position));
-                    if((newTrueLiterals < min) || (newTrueLiterals > max)) // no longer true
-                        predicateQueue.addScore(Math.abs(literal), -sign);}}
+                short newTrueLiterals = (short)(trueLiterals +
+                        (isLocallyTrue(literal) ? -wClause.multiplicity(position) : wClause.multiplicity(position)));
+                if((newTrueLiterals < min) || (newTrueLiterals > max)) // no longer true
+                    predicateQueue.addScore(Math.abs(literal), -sign);}
             return;}
         // the clause is false now
         // a flip can bring the number of true literals into the range [min,max]
         short trueLiterals = currentlyTrueLiterals(wClause);
         for(int position = 0; position < wClause.literals.length; ++position) {
             int literal = wClause.literals[position];
-            if (!isLocallyTrue(literal)) {
-                short newTrueLiterals = (short)(trueLiterals + wClause.multiplicity(position));
-                if((min <= newTrueLiterals) && (newTrueLiterals <= max)) // now true
-                    predicateQueue.addScore(Math.abs(literal), sign);}}}
+            short newTrueLiterals = (short)(trueLiterals +
+                    (isLocallyTrue(literal) ? -wClause.multiplicity(position) : wClause.multiplicity(position)));
+            if((min <= newTrueLiterals) && (newTrueLiterals <= max)) // now true
+                predicateQueue.addScore(Math.abs(literal), sign);}}
 
 
     /** counts the number of locally true literals in the clause, including multiplicities.
