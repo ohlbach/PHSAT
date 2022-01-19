@@ -123,49 +123,49 @@ public class WalkerTest {
         int[] posScores = new int[6];
         int[] negScores = new int[6];
         walker.initialScores(posScores, negScores);
-        assertEquals("[0.0, 1.0, 0.0, 1.0, 0.0, 0.0]",Arrays.toString(posScores));
-        assertEquals("[0.0, 0.0, 1.0, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
+        assertEquals("[0, 1, 0, 1, 0, 0]",Arrays.toString(posScores));
+        assertEquals("[0, 0, 1, 0, 0, 0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
         posScores = new int[6];
         negScores = new int[6];
         walker.addClause(make(2, iv, 1, 3, 1, -2, 3));
         walker.initialScores(posScores, negScores);
-        assertEquals("[0.0, 1.0, 0.0, 1.0, 0.0, 0.0]",Arrays.toString(posScores));
-        assertEquals("[0.0, 0.0, 1.0, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
+        assertEquals("[0, 1, 0, 1, 0, 0]",Arrays.toString(posScores));
+        assertEquals("[0, 0, 1, 0, 0, 0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
         posScores = new int[6];
         negScores = new int[6];
         walker.addClause(make(3, iv, 1, 3, 1, -2, 3, 4));
         walker.initialScores(posScores, negScores);
-        assertEquals("[0.0, 1.0, 0.0, 1.0, 1.0, 0.0]",Arrays.toString(posScores));
-        assertEquals("[0.0, 0.0, 1.0, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
+        assertEquals("[0, 1, 0, 1, 1, 0]",Arrays.toString(posScores));
+        assertEquals("[0, 0, 1, 0, 0, 0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
         posScores = new int[6];
         negScores = new int[6];
         walker.addClause(make(3, iv, 2, 3, 1, -2, 3, 4));
         walker.initialScores(posScores, negScores);
-        assertEquals("[0.0, 0.5, 0.0, 0.5, 0.5, 0.0]",Arrays.toString(posScores));
-        assertEquals("[0.0, 0.0, 0.5, 0.0, 0.0, 0.0]",Arrays.toString(negScores));
+        assertEquals("[0, 0, 0, 0, 0, 0]",Arrays.toString(posScores));
+        assertEquals("[0, 0, 0, 0, 0, 0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
         posScores = new int[6];
         negScores = new int[6];
         walker.addClause(make(3, iv, 0, 2, 1, -2, 3, 4));
         walker.initialScores(posScores, negScores);
-        assertEquals("[0.0, 0.0, 0.5, 0.0, 0.0, 0.0]",Arrays.toString(posScores));
-        assertEquals("[0.0, 0.5, 0.0, 0.5, 0.5, 0.0]",Arrays.toString(negScores));
+        assertEquals("[0, 0, 0, 0, 0, 0]",Arrays.toString(posScores));
+        assertEquals("[0, 0, 0, 0, 0, 0]",Arrays.toString(negScores));
 
         walker = prepare(5, true, null);
         posScores = new int[6];
         negScores = new int[6];
-        walker.addClause(make(3, iv, 2, 3, 1, -2, 3, 4));
+        walker.addClause(make(3, iv, 1, 3, 1, -2, 3, 4));
         walker.addClause(make(4, iv, 0, 2, 1, -2, 3, 4));
         walker.initialScores(posScores, negScores);
-        assertEquals("[0.0, 0.5, 0.5, 0.5, 0.5, 0.0]",Arrays.toString(posScores));
-        assertEquals("[0.0, 0.5, 0.5, 0.5, 0.5, 0.0]",Arrays.toString(negScores));
+        assertEquals("[0, 1, 0, 1, 1, 0]",Arrays.toString(posScores));
+        assertEquals("[0, 0, 1, 0, 0, 0]",Arrays.toString(negScores));
     }
 
 
@@ -194,16 +194,16 @@ public class WalkerTest {
         assertEquals("1,3,",walker.localModelToString(null));
 
         walker = prepare(5, true, null);
-        Clause c1 = make(2, iv, 2, 3 , 1,2, 3,-4,-5);
+        Clause c1 = make(2, iv, 2, 5 , 1,2,2,-4,-4);
         WClause w1 = walker.addClause(c1);
         walker.initializeModel();
-        assertFalse(w1.isLocallyTrue);
+        assertTrue(w1.isLocallyTrue);
         assertEquals("1,2,3,",walker.localModelToString(null));
         Clause c2 = make(3, iv, 3, 5 , 1,2, 3,-4,-5);
         WClause w2 = walker.addClause(c2);
         walker.initializeModel();
         assertEquals("1,2,3,",walker.localModelToString(null));
-        assertFalse(w1.isLocallyTrue);
+        assertTrue(w1.isLocallyTrue);
         assertTrue(w2.isLocallyTrue);
     }
 
@@ -215,7 +215,7 @@ public class WalkerTest {
         walker.addClause(make(2, or, 1,-2));
         walker.addClause(make(3, or, -1,2));
         walker.initializeModel();
-        assertEquals("1,2,3,4,5",walker.localModelToString(null));
+        assertEquals("1,2,3,4,",walker.localModelToString(null));
         assertEquals(0,walker.falseClauses);
     }
 
@@ -244,13 +244,17 @@ public class WalkerTest {
         WClause w1 = walker.addClause(make(1, or, 1,2,3));
         walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
-                "1:1.0, 2:1.0, 3:1.0, 4:0.0, 5:0.0, 0:-2.14748365E9, ",walker.flipScoresToString());
+                " 1 2 3 4 5\n" +
+                " 1 1 1 0 0\n" +
+                "\n",walker.flipScoresToString());
 
         walker = prepare(5, true, null);
         w1 = walker.addClause(make(2, iv, 2,2,1,2,3));
         walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
-                "1:0.5, 2:0.5, 3:0.5, 4:0.0, 5:0.0, 0:-2.14748365E9, ",walker.flipScoresToString());
+                " 1 2 3 4 5\n" +
+                " 0 0 0 0 0\n" +
+                "\n",walker.flipScoresToString());
 
         walker = prepare(5, true, null);
         w1 = walker.addClause(make(3, iv, 2,2,1,2,3,4,5));
@@ -258,7 +262,9 @@ public class WalkerTest {
         w1.isLocallyTrue=true;
         walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
-                "1:-1.0, 2:-1.0, 3:-1.0, 4:-1.0, 5:-1.0, 0:-2.14748365E9, ",walker.flipScoresToString());
+                "  1  2  3  4  5\n" +
+                " -1 -1 -1 -1 -1\n" +
+                "\n",walker.flipScoresToString());
 
         walker = prepare(5, true, null);
         w1 = walker.addClause(make(3, iv, 2,3, 1,2,3,4,5));
@@ -268,7 +274,7 @@ public class WalkerTest {
         w1.isLocallyTrue=true;
         walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
-                "2:0.0, 3:0.0, 4:0.0, 1:-1.0, 5:-1.0, 0:-2.14748365E9, ",walker.flipScoresToString());
+                "2:0, 3:0, 4:0, 1:-1, 5:-1, 0:-2.14748365E9, ",walker.flipScoresToString());
 
         walker = prepare(5, true, null);
         w1 = walker.addClause(make(3, iv, 3,4, 1,2,3,4,5));
@@ -276,7 +282,7 @@ public class WalkerTest {
         walker.localModel[3] = true;
         walker.updateFlipScores(w1,(short)1);
         assertEquals("Integer Queue:  item: score\n" +
-                "1:1.0, 4:1.0, 5:1.0, 3:-1.0, 2:-1.0, 0:-2.14748365E9, ",walker.flipScoresToString());
+                "1:1, 4:1, 5:1, 3:-1, 2:-1, 0:-2.14748365E9, ",walker.flipScoresToString());
     }
 
     @Test
@@ -297,12 +303,7 @@ public class WalkerTest {
         BasicClauseList bcl = RandomClauseSetGenerator.generate(parameters.get(0), walker.problemSupervisor, errors, warnings);
         //System.out.println(bcl.toString());
         add2Walker(walker,bcl);
-        walker.print = true;
-        walker.threshold = 4;
-        walker.blocked = false;
-        walker.jumpDistance = 40;
         walker.jumpFrequency = 10;
-        walker.exponent = 3;
         walker.maxFlips = 70;
         //System.out.println(walker.toString());
         Satisfiable result = (Satisfiable)walker.solve();

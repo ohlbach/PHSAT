@@ -124,16 +124,17 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         int length = basicClause.length;
         int start = 0;
         switch (connective) {
-            case OR:
+            case OR:       minLimit = 1; start = 2; maxLimit = (short)(length - start); break;
             case AND:
-            case EQUIV:   minLimit = 1; start = 2; break;
-            case ATLEAST:
-            case ATMOST:
-            case EXACTLY: minLimit = (short)basicClause[2]; start = 3; break;
+            case EQUIV:    minLimit = 1; start = 2; break;
+            case ATLEAST:  minLimit = (short)basicClause[2]; start = 3; maxLimit = (short)(length - start); break;
+            case ATMOST:   minLimit = 0; maxLimit = (short)basicClause[2]; start = 3; break;
+            case EXACTLY:  minLimit = (short)basicClause[2]; maxLimit = minLimit; start = 3; break;
+            case INTERVAL: minLimit = (short)basicClause[2]; maxLimit = (short)basicClause[3]; start = 4; break;
             default: assert(false);} // should not happen.
 
         cliterals = new ArrayList<>(length - start);
-        for (int i = start; i < length; ++i) cliterals.add(new CLiteral(basicClause[i],this,cliterals.size(),(short)1));}
+        for (int i = start; i < length; ++i) add(basicClause[i],(short)1);}
 
     /** creates a new clause with the given literals
      * The constructor does not work for INTERVAL-type basic clauses.<br>
@@ -725,16 +726,18 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
 
     /** adds a new literal to the clause
      * If the literal is already in the clause, its multiplicity is incremented,
-     * but only up to the limit.
+     * but only up to minLimit, if minLimit > 0.
      *
      * @param literal a literal
      */
     public void add(int literal, short multiplicity) {
         for (CLiteral cLiteral : cliterals) {
             if (literal == cLiteral.literal) {
-                cLiteral.multiplicity = (short) Math.min(minLimit, multiplicity + cLiteral.multiplicity);
+                cLiteral.multiplicity = (short) (multiplicity + cLiteral.multiplicity);
+                if(minLimit > 0) cLiteral.multiplicity = (short)Math.min(minLimit,cLiteral.multiplicity);
                 return;}}
         int position = cliterals.size();
+        if(minLimit > 0) multiplicity = (short)Math.min(minLimit,multiplicity);
         CLiteral cLiteral = new CLiteral(literal, this, position,multiplicity);
         cliterals.add(cLiteral);}
 
@@ -895,7 +898,13 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+(width+ connective.prefix.length())+"s", getName()+":");}
         else st.append(connective.prefix+id+": ");
-        if(minLimit > 1) st.append(minLimit).append(": ");
+        switch(connective) {
+            case OR:
+            case AND:
+            case EQUIV:    break;
+            case ATLEAST:  st.append(minLimit).append(": "); break;
+            case ATMOST:   st.append(maxLimit).append(": "); break;
+            case INTERVAL: st.append("[").append(minLimit).append(",").append(maxLimit).append("]: ");}
         int size = cliterals.size();
         for(int position = 0; position < size; ++position) {
             CLiteral cLiteral = cliterals.get(position);

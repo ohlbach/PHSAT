@@ -3,6 +3,8 @@ package Utilities;
 
 import it.unimi.dsi.fastutil.ints.IntArrays;
 
+import javax.security.auth.callback.TextOutputCallback;
+import java.util.Arrays;
 import java.util.Random;
 
 /** This class provides an alternative to PriorityQueue.
@@ -28,8 +30,6 @@ public class IntegerQueue {
     /** indicates that the queue is sorted */
     private boolean sorted = false;
 
-    public Random random = new Random(0);
-
     /** generates a new (empty) priority queue of int-values
      *
      * @param size e.g. the number of predicates in the walker-solver
@@ -39,7 +39,8 @@ public class IntegerQueue {
         ++size;
         scores    = new int[size];
         queue     = new int[size];
-        selected  = new int[size];
+        for(int i = 0; i < size; ++i) {queue[i] = i;}
+        scores[0] = Short.MIN_VALUE;
     }
 
     /** sets the score for the given item
@@ -60,98 +61,18 @@ public class IntegerQueue {
         scores[item] += score;
         sorted = false;}
 
-    public int topScore1() {
-        if(!sorted) sort();
-        int item = topScoreBasic();
-        if(item == oldItem || item == oldoldItem) {
-            for (int j : queue) {
-                item = j;
-                if (j != oldItem && j != oldoldItem) break;
-            }
-        }
-        //System.out.println("IT " + item + " " + oldItem + " " + oldoldItem);
-        oldoldItem = oldItem;
-        oldItem = item;
-        return item;}
-
-    public int topScore() {
-        if(!sorted) sort();
-
-        int scoreLimit = topScoreLimit(0);
-        if(scoreLimit > 2) {
-            int counter = 0;
-            while(++counter < scoreLimit) {
-                int item = queue[random.nextInt(scoreLimit)];
-                if(item == oldItem || item == oldoldItem) {continue;}
-                else {
-                    oldoldItem = oldItem;
-                    oldItem = item;
-                    return item;}}}
-
-        int item = 0;
-        for (int j : queue) {
-            item = j;
-            if (item == oldItem || item == oldoldItem) {continue;}
-            break;}
-        oldoldItem = oldItem;
-        oldItem = item;
-        return item;}
-
-    int topScoreCounter = 0;
-    /** returns the item with the largest score
+    /** returns the top item of the sorted queue.
      *
-     * @return the item with the largest score.
+     * @return the top item of the sorted queue
      */
-    public int topScoreBasic() {
-        int predicate0 = queue[0];
-        int score0 = scores[predicate0];
-        int predicate1 = queue[++topScoreCounter];
-        int score1 = scores[predicate1];
-        if(score1 == score0) {return predicate1;}
-        topScoreCounter = 0;
-        return predicate0;}
+    public int topItem() {
+        if(!sorted) sort();
+        return queue[0];}
 
     /** sorts the queue, such that the item with the largest score comes first. */
     public void sort() {
-        for(int i = 0; i <= size; ++i) {queue[i] = i;}
         IntArrays.quickSort(queue,((i,j)-> {return Integer.compare(scores[j], scores[i]);}));
         sorted = true;}
-
-    public int oldItem = 0;
-    public int oldoldItem = 0;
-    int[] selected;
-
-    public int getTopItem(int threshold) {
-        if(!sorted) sort();
-        int startIndex = 0;
-        int scoreLimit = topScoreLimit(startIndex);
-        int item = 0;
-        try{
-        while(scoreLimit < queue.length) {
-            int counter = 0;
-            while(++counter <= scoreLimit-startIndex) {
-                item = queue[startIndex + random.nextInt(scoreLimit-startIndex)];
-                if(item == oldItem || item == oldoldItem) {continue;}
-                int flips = selected[item];
-                //System.out.println("S " + item + " " + counter + " " +startIndex + " " + scoreLimit + " " + flips);
-                if(flips >= 0) {
-                    if(flips == threshold) {selected[item] = -1; continue;}
-                    else {++selected[item]; return item;}}
-                if(flips == -threshold) {selected[item] = 1; return item;}
-                else {--selected[item]; continue;}}
-            startIndex = scoreLimit;
-            scoreLimit = topScoreLimit(startIndex);}}
-        finally {oldoldItem = oldItem; oldItem = item;}
-        return queue[0];}
-
-    private int selectInTopScore() {
-        int counter = 0;
-        int scoreLimit = topScoreLimit(0);
-        while(++counter < scoreLimit) {
-            int item = queue[random.nextInt(scoreLimit)];
-            if(item == oldItem || item == oldoldItem) continue;
-            return item;}
-        return 0;}
 
 
     /** gets an item with positive score in the queue which is defined by a random generator.
@@ -176,29 +97,26 @@ public class IntegerQueue {
         //oldoldItem = oldItem; oldItem = item;
         return item;}
 
-    /** returns the first index of the queue, whose score is different to the top score.
-     *
-     * @return the first index of the queue, whose score is different to the top score.
-     */
-    private int topScoreLimit(int startIndex) {
-        int topScore = scores[queue[startIndex]];
-        int length = queue.length;
-        for(int i = startIndex+1; i < length; ++i) {
-            int score = scores[queue[i]];
-            if(score != topScore) return i;}
-        return length+1;}
-
     /** turns the data into a string
      *
      * @return a string representation of the data.
      */
     public String toString() {
         if(!sorted) sort();
+        int length = Integer.toString(size).length();
+        for(int i = 1; i < scores.length; ++i) length = Math.max(length,Integer.toString(scores[i]).length());
         StringBuilder st = new StringBuilder();
         st.append("Integer Queue:  item: score\n");
-        for(int i = 0; i <= size; ++i) {
-            st.append(queue[i]).append(":").append(scores[queue[i]]).append(", ");
-            if(i > 0 && i % 10 == 0) st.append("\n");}
+        int blocks = 10;
+        int i = 0;
+        while(i < size) {
+            String items = ""; String scos = "";
+            for(int j = i; j < i + blocks; ++j) {
+                if(j == size) break;
+                items += String.format(" %"+length+"d",queue[j]);
+                scos += String.format(" %"+length+"d",scores[queue[j]]);}
+            st.append(items).append("\n").append(scos).append("\n\n");
+            i += blocks;}
         return st.toString();
     }
 }
