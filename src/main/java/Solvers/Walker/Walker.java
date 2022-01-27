@@ -23,7 +23,6 @@ public class Walker extends Solver {
     private final ArrayList<WClause>[] posOccurrences; // maps predicate to clauses containing them positively
     private final ArrayList<WClause>[] negOccurrences; // maps predicate to clauses containing them negatively
     protected final boolean[] localModel;              // maps all predicates to a truth value
-    protected int falseClauses = 0;                    // counts the clauses which are false in the model
     private final IntegerQueue predicateQueue;         // sorts the predicates according to the flipScore.
                                                        // predicates whose flip makes more clauses true come to the front
     private static final int jumpFrequencyDefault = 10;
@@ -33,8 +32,16 @@ public class Walker extends Solver {
     public WalkerStatistics statistics;                // collects statistical information
     private final int seed;                                  // for the random number generator
     private final Random random;                       // random number generator for flip jumps
+    private int idWidth = 0;
 
-    private final ArrayList<WClause> falseList = new ArrayList<>();
+    private int flipHistoryLength = 5;
+    private int[] flipHistory = new int[flipHistoryLength];
+    private int flipHistoryIndex = 0;
+    private int flipHistoryEnd = 0;
+
+    protected final ArrayList<WClause> falseClauses = new ArrayList<>();
+
+    private boolean monitoring = false;
 
     public static String help() {
         return "Random Walker: parameters:\n" +
@@ -133,9 +140,11 @@ public class Walker extends Solver {
      */
     public WClause addClause(Clause clause) {
         WClause wClause = new WClause(clause);
+        idWidth = Math.max(idWidth,Integer.toString(wClause.id).length());
         if(isGloballyTrue(wClause)) return null;
         wClauses.add(wClause);
         addToIndex(wClause);
+        if(monitoring) System.out.println("CL: " + wClause.toString());
         return wClause;}
 
     /** removes a wClause from the internal lists
@@ -163,80 +172,6 @@ public class Walker extends Solver {
         //problemSupervisor.finished(this, result, "done");
         //globalParameters.log(solverId + " for problem " + problemId + " finished");
         return result;}
-
-
-    /** controls the search for a model.
-     *
-     * @return the result of the search
-     */
-    private Result walk() {
-        while(statistics.flips < maxFlips) {
-            if(Thread.interrupted()) {
-                globalParameters.log("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
-                break;}
-            integrateGloballyTrueLiterals();
-            int predicate = selectFlipPredicate();
-            flipPredicate(predicate);
-            if(falseList.size() == 0) {return localToGlobalModel();}}
-        return new Aborted("Walker aborted after " + statistics.flips + " flips");}
-
-
-    private final ArrayList<WClause> globallyTrueClauses = new ArrayList<>();
-
-    /** integrates globally true literals:
-     * - their scores are minimized <br>
-     * - clauses which now become globally true are marked<br>
-     * Clauses with globally false literals are not touched.
-     */
-    private void integrateGloballyTrueLiterals() {
-        globallyTrueClauses.clear();
-        for(int literal : copyGloballyTrueLiterals()) {
-            ++statistics.importedTrueLiterals;
-            predicateQueue.setScore(Math.abs(literal),Short.MIN_VALUE);
-
-            for(WClause wClause : getClauses(literal)) { // update global truth
-                if(isGloballyTrue(wClause)) {
-                    globallyTrueClauses.add(wClause);
-                    if(!wClause.isLocallyTrue) --falseClauses;
-                    wClause.isLocallyTrue = true;}}
-            if(!isLocallyTrue(literal)) flipPredicate(Math.abs(literal));}
-        for(WClause wClause : globallyTrueClauses) removeClause(wClause);}
-
-    private int selectFlipPredicate() {
-        return predicateQueue.topItem();}
-
-
-    private WClause falseClause = null;
-
-    /** flips the truth value of the predicate and updates the predicateQueue and the falseClauses counter
-     *
-     * @param predicate to be flipped
-     */
-    void flipPredicate(int predicate) {
-        ++statistics.flips;
-        for(WClause wClause : getClauses(predicate)) updateFlipScores(wClause,-1);
-        for(WClause wClause : getClauses(-predicate)) updateFlipScores(wClause,-1);
-
-        localModel[predicate] = !localModel[predicate];
-
-        for(int sign = -1; sign <= 1; sign += 2) {
-            for(WClause wClause : getClauses(sign*predicate)) {
-                if(!wClause.isLocallyTrue) removeFalseClause(wClause);
-                wClause.isLocallyTrue = getLocalTruthValue(wClause);
-                if(!wClause.isLocallyTrue) {addFalseClause(wClause);}
-                updateFlipScores(wClause,1);}}}
-
-
-    /** turns the local model into a new model and returns Satisfiable as result
-     *
-     * @return Satisfiable with the transferred local model.
-     */
-    private Satisfiable localToGlobalModel() {
-        Model model = new Model(predicates,this.model.symboltable);
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            model.addImmediately(localModel[predicate] ? predicate : -predicate);}
-        return new Satisfiable(model);}
-
     /** Initializes the local model, the local and global truth values of the clauses, the falseClauses list, and the initial flip scores.
      * A predicate is made true if it makes more clauses true than making the predicate false.
      * The number of true clauses when making a predicate true is estimated by its initial score.
@@ -255,12 +190,12 @@ public class Walker extends Solver {
             int negScore = negScores[predicate];
             if(posScore == negScore) localModel[predicate] = random.nextBoolean();
             else localModel[predicate] = (posScores[predicate] >= negScores[predicate]);}
-        
+
         for(WClause wClause: wClauses) {
-            if(getLocalTruthValue(wClause)) wClause.isLocallyTrue = true;
-            else {addFalseClause(wClause); ++falseClauses;}
+            if(isLocallyTrue(wClause)) wClause.isLocallyTrue = true;
+            else {addFalseClause(wClause);}
             updateFlipScores(wClause,1);}
-        System.out.println("Initial False Clauses: " + falseList.size());}
+        if(monitoring) System.out.println("Initial Data:\n" + toString());}
 
     /** computes the initial predicate scores.
      * A contribution +1 of a literal l in a clause C means: making l true makes the entire clause C true.
@@ -280,6 +215,164 @@ public class Walker extends Solver {
                 if(minLimit <= multiplicity && multiplicity <= maxLimit) {
                     if(literal > 0) ++posScores[literal];
                     else            ++negScores[-literal];}}}}
+
+
+
+    /** controls the search for a model.
+     *
+     * @return the result of the search
+     */
+    private Result walk() {
+        while(statistics.flips < maxFlips) {
+            if(Thread.interrupted()) {
+                globalParameters.log("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
+                break;}
+            integrateGloballyTrueLiterals();
+            int predicate = selectFlipPredicate();
+            if(monitoring) System.out.println("Flip " + predicate);
+            flipPredicate(predicate);
+            if(monitoring)System.out.println(toString());
+            if(falseClauses.size() == 0) {return localToGlobalModel();}}
+        return new Aborted("Walker aborted after " + statistics.flips + " flips");}
+
+
+    private final ArrayList<WClause> globallyTrueClauses = new ArrayList<>();
+
+    /** integrates globally true literals:
+     * - their scores are minimized <br>
+     * - clauses which now become globally true are marked<br>
+     * Clauses with globally false literals are not touched.
+     */
+    private void integrateGloballyTrueLiterals() {
+        globallyTrueClauses.clear();
+        for(int literal : copyGloballyTrueLiterals()) {
+            ++statistics.importedTrueLiterals;
+            predicateQueue.setScore(Math.abs(literal),Short.MIN_VALUE);
+
+            for(WClause wClause : getClauses(literal)) { // update global truth
+                if(isGloballyTrue(wClause)) {
+                    globallyTrueClauses.add(wClause);
+                    wClause.isLocallyTrue = true;}}
+            if(!isLocallyTrue(literal)) flipPredicate(Math.abs(literal));}
+        for(WClause wClause : globallyTrueClauses) removeClause(wClause);}
+
+    /** selects a predicate to be flipped.
+     * The priorities are: <br>
+     * 1. predicate with top score > 0
+     * 2. predicate in false clause with score = 0. <br>
+     *    The predicate must occur in another clause togehter with another predicate with score = 0. <br>
+     *    This predicate is flipped first<br>
+     * 3. predicate in false clause with rop score<br>
+     * 4. randomly chosen predicate.<br>
+     * Predicates in the flip history list are not chosen.
+     * @return a predicate to be flipped next.
+     */
+    private int selectFlipPredicate() {
+        int predicate = predicateQueue.topItem();
+        int topScore = predicateQueue.scores[predicate];
+        if(topScore > 0) return predicate;
+        if(topScore == 0) {
+            predicate = select0InFalseClause();
+            if(predicate != 0) return predicate;}
+        predicate = selectTopInFalseClauses();
+        if(predicate != 0) return predicate;
+        return selectRandomPredicate();}
+
+
+    /** selects a predicate in a false clause with score = 0.
+     *  The predicate must occur in another clause togehter with another predicate with score = 0. <br>
+     *  This predicate is flipped first<br>
+     *
+     * @return 0 or the predicate to be flipped.
+     */
+    private int select0InFalseClause() {
+        for(WClause wClause : falseClauses) {
+            for(int literal : wClause.literals) {
+                int predicate = Math.abs(literal);
+                if(isInFlipHistory(predicate)) continue;
+                if(predicateQueue.scores[predicate] == 0 && flipOtherPredicate(wClause,predicate))
+                    return predicate;}}
+        return 0;}
+
+    /** flips a predicate in another clause containing the selected predicate
+     *
+     * @param wClause   a false clause
+     * @param predicate a predicate in this clause with score = 0.
+     * @return true if a predicate has been found and flipped.
+     */
+    private boolean flipOtherPredicate(WClause wClause, int predicate) {
+        localModel[predicate] = !localModel[predicate];
+        for(int sign = -1; sign <= +1; sign +=2) {
+            for(WClause otherClause : getClauses(sign*predicate)) {
+                if(otherClause == wClause) continue;
+                if(!isLocallyTrue(wClause)) continue;
+                for(int literal : otherClause.literals) {
+                    int otherPredicate = Math.abs(literal);
+                    if(otherPredicate == predicate) continue;
+                    if(wClause.contains(otherPredicate)) continue;
+                    if(predicateQueue.scores[otherPredicate] == 0) {
+                        localModel[predicate] = !localModel[predicate];
+                        if(monitoring) System.out.println("Other Flip " + otherPredicate);
+                        flipPredicate(otherPredicate);
+                        return true;}}}}
+        localModel[predicate] = !localModel[predicate];
+        return false;}
+
+    /** selects the predicate in the false clauses with top score, an which is not in the flip history
+     *
+     * @return 0 or the predicate in the false clauses with top score, an which is not in the flip history
+     */
+    private int selectTopInFalseClauses() {
+        int topScore = Integer.MIN_VALUE;
+        int topPredicate = 0;
+        for(WClause wClause : falseClauses) {
+            for(int literal : wClause.literals) {
+                int predicate = Math.abs(literal);
+                if(isInFlipHistory(predicate)) continue;
+                int score = predicateQueue.scores[predicate];
+                if(score > topScore) {topScore = score; topPredicate = predicate;}}}
+        return topPredicate;}
+
+    /** selects a predicate randomly among the 50% predicates with best scores.
+     *
+     * @return a randomly selected predicate
+     */
+    private int selectRandomPredicate() {
+        int predicate = predicateQueue.queue[random.nextInt(predicates/2)+1];
+        int counter = 0;
+        while(isInFlipHistory(predicate) && ++counter < 10) {
+            predicate = predicateQueue.queue[random.nextInt(predicates/2)+1];}
+        return predicate;}
+
+    /** flips the truth value of the predicate and updates the predicateQueue and the falseClauses list
+     *
+     * @param predicate to be flipped
+     */
+    void flipPredicate(int predicate) {
+        ++statistics.flips;
+        addToFlipHistory(predicate);
+        for(WClause wClause : getClauses(predicate)) updateFlipScores(wClause,-1);
+        for(WClause wClause : getClauses(-predicate)) updateFlipScores(wClause,-1);
+
+        localModel[predicate] = !localModel[predicate];
+
+        for(int sign = -1; sign <= 1; sign += 2) {
+            for(WClause wClause : getClauses(sign*predicate)) {
+                if(!wClause.isLocallyTrue) removeFalseClause(wClause);
+                wClause.isLocallyTrue = isLocallyTrue(wClause);
+                if(!wClause.isLocallyTrue) {addFalseClause(wClause);}
+                updateFlipScores(wClause,1);}}}
+
+
+    /** turns the local model into a new model and returns Satisfiable as result
+     *
+     * @return Satisfiable with the transferred local model.
+     */
+    private Satisfiable localToGlobalModel() {
+        Model model = new Model(predicates,this.model.symboltable);
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            model.addImmediately(localModel[predicate] ? predicate : -predicate);}
+        return new Satisfiable(model);}
 
 
 
@@ -314,7 +407,7 @@ public class Walker extends Solver {
      * @param wClause a clause
      * @return true if the clause is true in the local (and global) model
      */
-    protected boolean getLocalTruthValue(WClause wClause) {
+    protected boolean isLocallyTrue(WClause wClause) {
         if(wClause.connective == Connective.OR) {
             for(int literal : wClause.literals) {
                 if(isLocallyTrue(literal)) {return true;} }
@@ -413,8 +506,8 @@ public class Walker extends Solver {
      * @param falseClause a false clause
      */
     private void addFalseClause(WClause falseClause) {
-        falseClause.position = falseList.size();
-        falseList.add(falseClause);}
+        falseClause.position = falseClauses.size();
+        falseClauses.add(falseClause);}
 
     /** removes a false clause from the list. The last clause in the list takes its position.
      * The operation is constant in time.
@@ -424,13 +517,13 @@ public class Walker extends Solver {
     private void removeFalseClause(WClause falseClause) {
         int position = falseClause.position;
         if(position < 0) return;
-        int lastPosition = falseList.size()-1;
+        int lastPosition = falseClauses.size()-1;
         if(position < lastPosition) {
-            WClause lastClause = falseList.get(lastPosition);
-            falseList.set(position,lastClause);
+            WClause lastClause = falseClauses.get(lastPosition);
+            falseClauses.set(position,lastClause);
             lastClause.position = position;}
         falseClause.position = -1;
-        falseList.remove(lastPosition);}
+        falseClauses.remove(lastPosition);}
 
     /** gets all clauses containing the literal
      *
@@ -440,10 +533,36 @@ public class Walker extends Solver {
     private ArrayList<WClause> getClauses(int literal) {
         return (literal > 0) ? posOccurrences[literal] : negOccurrences[-literal];}
 
+
+    /** adds the flipped predicate to the flip history
+     *
+     * @param predicate the flipped predicate
+     */
+    private void addToFlipHistory(int predicate) {
+        if(flipHistoryEnd < flipHistoryLength) {flipHistory[flipHistoryEnd++] = predicate; return;}
+        flipHistory[flipHistoryIndex] = predicate;
+        flipHistoryIndex = (flipHistoryIndex +1) % flipHistoryLength;}
+
+
+    /** checks if a predicate is in the flip history
+     *
+     * @param predicate a predicate
+     * @return true if the prediate is in the flip history.
+     */
+    private boolean isInFlipHistory(int predicate) {
+        for(int i = 0; i < flipHistoryEnd; ++i) {
+            if(predicate == flipHistory[i]) return true;}
+        return false;}
+
     @Override
     public Statistic getStatistics() {
         return statistics;}
 
+    /** lists the true predicates in the local model a comma separated string.
+     *
+     * @param symboltable null or a symboltable
+     * @return the true predicates in the local model a comma separated string.
+     */
     public String localModelToString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         for(int predicate = 1; predicate <= predicates; ++predicate) {
@@ -466,10 +585,12 @@ public class Walker extends Solver {
         st.append("Parameters:\n");
         st.append("  seed:           ").append(seed).append("\n");
         st.append("  flips:          ").append(statistics.flips).append(" of ").append(maxFlips).append("\n");
-        st.append("  jump frequency: ").append(jumpFrequency).append("\n\n");
+        st.append("  history: ").append(Arrays.toString(flipHistory)).append("\n\n");
         st.append("Current model: ").append(localModelToString(symboltable)).append("\n");
-        st.append("False Clauses: " + falseClauses + "\n");
-        for(WClause wClause : wClauses) {if(!wClause.isLocallyTrue) st.append(wClause.toString(3,symboltable)).append("\n");}
+        st.append("False Clauses: " + falseClauses.size() + "\n");
+        for(WClause wClause : wClauses) {
+            if(!wClause.isLocallyTrue) st.append(wClause.toString(idWidth+2,symboltable)).append("\n");}
+        st.append(predicateQueue.toString());
     return st.toString();
     }
 }

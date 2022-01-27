@@ -174,15 +174,15 @@ public class WalkerTest {
         System.out.println("getLocalTruthValue");
         Walker walker = prepare(5, true, null);
         WClause c1 = new WClause(make(1, or, 1, 2, 3));
-        assertFalse(walker.getLocalTruthValue(c1));
+        assertFalse(walker.isLocallyTrue(c1));
         WClause c2 = new WClause(make(2, iv, 0,1, 1, 2, 3));
-        assertTrue(walker.getLocalTruthValue(c2));
+        assertTrue(walker.isLocallyTrue(c2));
         walker.localModel[2] = true;
-        assertTrue(walker.getLocalTruthValue(c1));
-        assertTrue(walker.getLocalTruthValue(c2));
+        assertTrue(walker.isLocallyTrue(c1));
+        assertTrue(walker.isLocallyTrue(c2));
         walker.localModel[1] = true;
         walker.localModel[3] = true;
-        assertFalse(walker.getLocalTruthValue(c2));
+        assertFalse(walker.isLocallyTrue(c2));
     }
 
     @Test
@@ -216,7 +216,7 @@ public class WalkerTest {
         walker.addClause(make(3, or, -1,2));
         walker.initializeModel();
         assertEquals("1,2,3,4,",walker.localModelToString(null));
-        assertEquals(0,walker.falseClauses);
+        assertEquals(0,walker.falseClauses.size());
     }
 
     @Test
@@ -234,7 +234,7 @@ public class WalkerTest {
         walker.initializeModel();
         //System.out.println(walker.toString());
         assertEquals("3,4,5,",walker.localModelToString(null));
-        assertEquals(0,walker.falseClauses);
+        assertEquals(0,walker.falseClauses.size());
     }
 
     @Test
@@ -292,7 +292,7 @@ public class WalkerTest {
     @Test
     public void random()  throws Unsatisfiable{
         System.out.println("random");
-        int predicates = 50;
+        int predicates = 10;
         float cpRatio = (float)4;
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
@@ -301,14 +301,14 @@ public class WalkerTest {
         pars.put("predicates", ""+predicates);
         pars.put("lengths", "3");
         pars.put("cpRatios", ""+cpRatio);
-        pars.put("seeds", "5");
+        pars.put("seeds", "4");
         ArrayList<HashMap<String, Object>> parameters = RandomClauseSetGenerator.parseParameters(pars,errors,warnings);
         //System.out.println(parameters.get(0));
         BasicClauseList bcl = RandomClauseSetGenerator.generate(parameters.get(0), walker.problemSupervisor, errors, warnings);
         //System.out.println(bcl.toString());
         add2Walker(walker,bcl);
         walker.jumpFrequency = 10;
-        walker.maxFlips = 70;
+        walker.maxFlips = 20;
         //System.out.println(walker.toString());
         Satisfiable result = (Satisfiable)walker.solve();
         System.out.println(result.model);

@@ -25,7 +25,7 @@ public class IntegerQueue {
     public final int[] scores;
 
     /** the priority queue, i.e. queue[0] is the item with the top score */
-    private final int[] queue;
+    public final int[] queue;
 
     /** indicates that the queue is sorted */
     private boolean sorted = false;
@@ -107,7 +107,7 @@ public class IntegerQueue {
         for(int i = 1; i < scores.length; ++i) length = Math.max(length,Integer.toString(scores[i]).length());
         StringBuilder st = new StringBuilder();
         st.append("Integer Queue:  item: score\n");
-        int blocks = 10;
+        int blocks = 30;
         int i = 0;
         while(i < size) {
             String items = ""; String scos = "";

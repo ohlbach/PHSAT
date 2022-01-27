@@ -48,6 +48,16 @@ public class WClause {
         if(multiplicities == null) return 1;
         return multiplicities[position];}
 
+    /** checks if the clause contains the predicate
+     *
+     * @param predicate a predicate
+     * @return true if the clause contains the predicate
+     */
+    public boolean contains(int predicate) {
+        for(int literal : literals) {
+            if(Math.abs(literal) == predicate) return true;}
+        return false;}
+
     /** generates a string: clause-id: literals GT LT  (for Globally True and Locally True)
      *
      * @return a string: clause-id: literals GT LT  (for Globally True and Locally True)
