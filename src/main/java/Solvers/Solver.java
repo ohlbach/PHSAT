@@ -224,6 +224,8 @@ public abstract class Solver {
      */
     public abstract Result solve();
 
+    public abstract void prepare();
+
     public abstract Statistic getStatistics();
 
 

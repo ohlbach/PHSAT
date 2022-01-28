@@ -112,9 +112,7 @@ public class Walker extends Solver {
         maxFlips       = (int)solverParameters.get("flips");
         jumpFrequency  = (int)solverParameters.get("jumps");
         statistics     = new WalkerStatistics(combinedId);
-        wClauses       = new ArrayList<>();
-        model.addObserver((literal,step) -> {
-            synchronized(this) {globallyTrueLiterals.add((int)literal);}});}
+        wClauses       = new ArrayList<>();}
 
 
     /** collects globally true literals which are inserted by other solvers  into the global model */
@@ -172,6 +170,14 @@ public class Walker extends Solver {
         //problemSupervisor.finished(this, result, "done");
         //globalParameters.log(solverId + " for problem " + problemId + " finished");
         return result;}
+
+    @Override
+    public void prepare() {
+        model.addObserver((literal,step) -> {
+            synchronized(this) {globallyTrueLiterals.add((int)literal);}});
+
+    }
+
     /** Initializes the local model, the local and global truth values of the clauses, the falseClauses list, and the initial flip scores.
      * A predicate is made true if it makes more clauses true than making the predicate false.
      * The number of true clauses when making a predicate true is estimated by its initial score.

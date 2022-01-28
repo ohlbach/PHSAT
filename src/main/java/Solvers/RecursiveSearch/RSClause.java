@@ -1,7 +1,6 @@
 package Solvers.RecursiveSearch;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
 
@@ -11,60 +10,53 @@ import java.util.Locale;
 
 public class RSClause {
     public final int id;
-    public final short limit;
-    public final int[] literals;
+    public final short minLimit;
+    public final RSLiteral[] rsLiterals;
 
-    public RSClause(int id, short limit, int[] literals) {
+    public RSClause(int id, short minLimit, RSLiteral[] rsLiterals) {
         this.id = id;
-        this.limit = limit;
-        this.literals = literals;
+        this.minLimit = minLimit;
+        this.rsLiterals = rsLiterals;
     }
 
-    public void newRSClauses(Clause clause, ArrayList<RSClause> rsClauses) {
+    public static void newRSClauses(Clause clause, ArrayList<RSClause> rsClauses) {
         rsClauses.clear();
+        RSClause rsClause;
         int size = clause.cliterals.size();
-        int[] literals = new int[3*size];
+        RSLiteral[] literals = new RSLiteral[size];
         switch(clause.connective) {
             case OR:
             case ATLEAST:
+                rsClause = new RSClause(clause.id,clause.minLimit,literals);
                 for(int i = 0; i < size; ++i) {
                     CLiteral cLiteral = clause.cliterals.get(i);
-                    int j = 3*i;
-                    literals[j] = 0;
-                    literals[j+1] = cLiteral.literal;
-                    literals[j+2] = cLiteral.multiplicity;}
-                 rsClauses.add(new RSClause(clause.id,clause.minLimit,literals));
+                    literals[i] = new RSLiteral(cLiteral.literal,cLiteral.multiplicity,rsClause);}
+                 rsClauses.add(rsClause);
                 break;
             case ATMOST:
+                rsClause = new RSClause(clause.id,(short)(clause.expandedSize()-clause.maxLimit),literals);
                 for(int i = 0; i < size; ++i) {
                     CLiteral cLiteral = clause.cliterals.get(i);
-                    int j = 3*i;
-                    literals[j] = 0;
-                    literals[j+1] = -cLiteral.literal;
-                    literals[j+2] = cLiteral.multiplicity;}
-                rsClauses.add(new RSClause(clause.id,(short)(clause.expandedSize()-clause.maxLimit),literals));
+                    literals[i] = new RSLiteral(-cLiteral.literal,cLiteral.multiplicity,rsClause);}
+                rsClauses.add(rsClause);
                 break;
             case INTERVAL:
+                rsClause = new RSClause(clause.id,clause.minLimit,literals);
                 for(int i = 0; i < size; ++i) {
                     CLiteral cLiteral = clause.cliterals.get(i);
-                    int j = 3*i;
-                    literals[j] = 0;
-                    literals[j+1] = cLiteral.literal;
-                    literals[j+2] = cLiteral.multiplicity;}
-                rsClauses.add(new RSClause(-clause.id,clause.minLimit,literals));
+                    literals[i] = new RSLiteral(cLiteral.literal,cLiteral.multiplicity,rsClause);}
+                rsClauses.add(rsClause);
+                rsClause = new RSClause(clause.id,(short)(clause.expandedSize()-clause.maxLimit),literals);
                 for(int i = 0; i < size; ++i) {
                     CLiteral cLiteral = clause.cliterals.get(i);
-                    int j = 3*i;
-                    literals[j] = 0;
-                    literals[j+1] = -cLiteral.literal;
-                    literals[j+2] = cLiteral.multiplicity;}
-                rsClauses.add(new RSClause(clause.id,(short)(clause.expandedSize()-clause.maxLimit),literals));
+                    literals[i] = new RSLiteral(-cLiteral.literal,cLiteral.multiplicity,rsClause);}
+                rsClauses.add(rsClause);
                 break;}}
 
     public void blockLiteral(int literal, int nodeLiteral, boolean truth) {
         assert contains(literal);
-        if(limit == 1) {literals[0] = nodeLiteral; return;}
-        
+        //if(limit == 1) {literals[0] = nodeLiteral; return;}
+
     }
 
     /** checks if the literal is in the clause
@@ -73,9 +65,9 @@ public class RSClause {
      * @return true if the literal is in the clause
      */
     public boolean contains(int literal) {
-        int size = literals.length;
+        int size = rsLiterals.length;
         for(int i = 0; i < size; i += 3) {
-            if(literals[i+1] == literal) return true;}
+            if(rsLiterals[i+1].literal == literal) return true;}
         return false;}
 
     /** turns the clause into a string
@@ -97,15 +89,10 @@ public class RSClause {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+width+"d:",id);}
         else st.append(id+": ");
-        if(limit != 1) st.append(">= "+limit);
-        int size = literals.length;
-        for(int i = 0; i < size; i += 3) {
-            int nodeLiteral = literals[i];
-            int literal = literals[i+1];
-            int multiplicity = literals[i+2];
-            if(nodeLiteral != 0) st.append("|"+Symboltable.toString(nodeLiteral,symboltable)+"|");
-            st.append(Symboltable.toString(literal,symboltable));
-            if(multiplicity > 1) st.append("^"+multiplicity);
+        if(minLimit != 1) st.append(">= "+ minLimit);
+        int size = rsLiterals.length;
+        for(int i = 0; i < size; ++i) {
+            st.append(rsLiterals[i].toString(symboltable));
             if(i < size-3) st.append(",");}
         return st.toString();}
 
