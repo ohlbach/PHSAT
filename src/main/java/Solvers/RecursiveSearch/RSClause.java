@@ -10,7 +10,7 @@ import java.util.Locale;
 
 public class RSClause {
     public final int id;
-    public final short minLimit;
+    public short minLimit;
     public final RSLiteral[] rsLiterals;
 
     public RSClause(int id, short minLimit, RSLiteral[] rsLiterals) {
@@ -53,11 +53,50 @@ public class RSClause {
                 rsClauses.add(rsClause);
                 break;}}
 
-    public void blockLiteral(int literal, int nodeLiteral, boolean truth) {
-        assert contains(literal);
-        //if(limit == 1) {literals[0] = nodeLiteral; return;}
+    /** computes the number of unblocked literals
+     *
+     * @return the number of unblocked literals
+     */
+    protected int unblockedSize() {
+        int length = rsLiterals.length;
+        for(int i = 0; i < length; ++i) {
+            if(rsLiterals[i].rsNode != null) return i;}
+        return length;}
 
-    }
+    /** computes the number of unblocked literals
+     *
+     * @return the number of unblocked literals
+     */
+    protected int expandedSize() {
+        int size = 0;
+        int length = rsLiterals.length;
+        for(int i = 0; i < length; ++i) {
+            RSLiteral rsLiteral = rsLiterals[i];
+            if(rsLiteral.rsNode == null) size += rsLiteral.multiplicity;
+            else break;}
+        return size;}
+
+
+    protected void blockClause(RSLiteral rsLiteral, RSNode rsNode) {
+        if(rsLiteral.multiplicity <= minLimit) {
+            rsLiteral = rsLiterals[0];
+            rsLiteral.rsNode = rsNode;
+            rsNode.addRSLiteral(rsLiteral);
+            return;}
+        rsLiteral.rsNode = rsNode;
+        move(rsLiteral);
+        minLimit -= rsLiteral.multiplicity;
+        rsNode.addRSLiteral(rsLiteral);}
+
+    protected void move(RSLiteral rsLiteral) {
+        int pos1 = 0;
+        for(int i = 0; i < rsLiterals.length; ++i) {
+            if(rsLiterals[i] == rsLiteral) pos1 = i;
+            if(rsLiterals[i].rsNode != null)  {
+                rsLiterals[pos1] = rsLiterals[i-1];
+                rsLiterals[i-1] = rsLiteral;
+                return;}}}
+
 
     /** checks if the literal is in the clause
      *

@@ -1,5 +1,7 @@
 package Solvers.RecursiveSearch;
 
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.ArrayList;
 import java.util.Stack;
 
@@ -17,21 +19,25 @@ public class RSNode {
 
     protected RSNode superNode = null;
     protected RSNode subNode = null;
-    protected int literal;
+    protected IntArrayList literals = new IntArrayList();
 
     private ArrayList<RSLiteral> rsLiterals = new ArrayList<>();
 
     protected void initialize(int literal, RSNode superNode) {
-        this.literal = literal;
+        literals.clear();
+        literals.add(literal);
         this.superNode = superNode;
         if(superNode != null) {superNode.subNode = this;}
         rsLiterals.clear();}
 
+    protected void addLiteral(int literal) {
+        literals.add(literal);}
+
     protected void addRSLiteral(RSLiteral rsLiteral) {
-        rsLiteral.node = this;
+        rsLiteral.rsNode = this;
         rsLiterals.add(rsLiteral);}
 
     protected void pop() {
-        for(RSLiteral rsLiteral: rsLiterals) {rsLiteral.node = null;}}
+        for(RSLiteral rsLiteral: rsLiterals) {rsLiteral.rsNode = null;}}
 
 }

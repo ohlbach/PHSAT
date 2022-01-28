@@ -103,6 +103,34 @@ public class RecursiveSearcher  extends Solver {
         return null;
     }
 
+    private RSNode blockLiteral(int literal, RSNode rsNode) {
+        for(RSLiteral rsLiteral : (literal > 0 ? posOccurrences[literal] : negOccurrences[-literal])) {
+            rsLiteral.clause.blockClause(rsLiteral,rsNode);}
+        for(RSLiteral rsLiteral : (literal > 0 ? negOccurrences[literal] : posOccurrences[-literal])) {
+            RSClause emptyCLause = rsLiteral.blockLiteral(rsNode);
+            if(emptyCLause != null) {return backtrack(emptyCLause,rsNode);}}
+        return null;}
+
+    private void unblockLiterals(RSNode rsNode) {
+
+    }
+
+    private RSNode backtrack(RSClause emptyClause, RSNode rsNode) {
+        RSNode supernode = null;
+        for(int i = 1; i < emptyClause.rsLiterals.length; ++i) {
+            supernode = emptyClause.rsLiterals[i].rsNode;
+            if(supernode != null) break;}
+        if(supernode == null) {
+            unblockLiterals(rsNode);
+            supernode = rsNode.superNode;
+            RSNode.pushRSNodeReserve(rsNode);
+            return supernode;}
+        while(rsNode != supernode) {
+            unblockLiterals(rsNode);
+            RSNode.pushRSNodeReserve(rsNode);
+            rsNode = rsNode.superNode;}
+        return supernode;}
+
     private void integrateGloballyTrueLiterals() {
         copyGloballyTrueLiterals();
         if(globallyTrueLiteralsCopy.isEmpty()) return;
