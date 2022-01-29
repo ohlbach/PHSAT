@@ -38,8 +38,11 @@ public class RSNode {
      *
      * @param literal a temporarily true literal
      */
-    protected void addLiteral(int literal) {
+    protected void addTrueLiteral(int literal) {
         literals.add(literal);}
+
+    protected int selectedLiteral() {
+        return literals.getInt(0);}
 
     private int literalIndex = 1;
 

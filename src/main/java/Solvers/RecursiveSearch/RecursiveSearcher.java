@@ -108,7 +108,7 @@ public class RecursiveSearcher  extends Solver {
         for(RSLiteral rsLiteral : (literal > 0 ? posOccurrences[literal] : negOccurrences[-literal])) {
             rsLiteral.clause.blockClause(rsLiteral,rsNode);}
         for(RSLiteral rsLiteral : (literal > 0 ? negOccurrences[literal] : posOccurrences[-literal])) {
-            RSClause emptyCLause = rsLiteral.blockLiteral(rsNode);
+            RSClause emptyCLause = rsLiteral.declareFalse(rsNode);
             if(emptyCLause != null) {return backtrack(emptyCLause,rsNode);}}
         return null;}
 
@@ -131,7 +131,7 @@ public class RecursiveSearcher  extends Solver {
      *  2. n &ge; m <br>
      *  3. The sum of the multiplicity differences k - l for p^k in phi and p^l in psi &le; n-m, <br>
      *     for those multiplicities where l &lt; k
-     * 
+     *
      * @param rsClause a subsumer
      * @param rsNode  the current search node.
      */

@@ -8,18 +8,58 @@ import java.util.ArrayList;
 import java.util.Formatter;
 import java.util.Locale;
 
+/** This class models clauses for the RecursiveSearch solver.
+ * A clause is essentially a list of literals, represented as RSLiteral data structures.
+ * Once created, a clause will never be changed.
+ *
+ * The clauses represent atleast-clauses. E.g. atleast 2 p,q^2,r<br>
+ * Ordinary disjunctions are a special case with minLimit = 1.
+ *
+ * However, its literals can be blocked, which has the same meaning as removing a literal.
+ * The difference is that the literals can be unblocked at backtracking.
+ *
+ * When a literal is blocked, it is moved to the back of the list in a way which represents the
+ * search tree. <br>
+ * Example: Clause C: p,q,r,s <br>
+ * Search Node -q (q is false now)<br>
+ * C becomes: p,r,s,|-q|,q (-q) represents the choice in the search tree<br>
+ * Suppose a consequence of -q is that r becomes false<br>
+ * C becomes: p,s,|-q|r,|-q|q <br>
+ * Suppose now -p is chosen. <br>
+ * C becomes: s,|-p|,p,|-q|r,|-q|q <br>
+ * etc.<br>
+ * On backtracking, p, is unblocked first and <br>
+ * C becomes: s,p,|-q|r,|-q|q <br>
+ * etc.
+ */
 public class RSClause {
-    public final int id;
-    public short minLimit;
-    public final RSLiteral[] rsLiterals;
-    protected int timestamp = 0;
+    protected final int id;        // the clause's identifier
+    protected short minLimit;      // the limit, e.g. atleast limit p,q,r,s ...
+    protected int timestamp = 0;   // to be used in subsumption and replacement resolution algorithms.
+    protected final RSLiteral[] rsLiterals; // the list of literals
 
+    /** constructs a clause
+     *
+     * @param id          its identifier
+     * @param minLimit    its limit
+     * @param rsLiterals  its literals
+     */
     public RSClause(int id, short minLimit, RSLiteral[] rsLiterals) {
         this.id = id;
         this.minLimit = minLimit;
-        this.rsLiterals = rsLiterals;
-    }
+        this.rsLiterals = rsLiterals;}
 
+    /** turns clauses in the Clause data structure to RSClauses.
+     *  - or- and atleast clauses are just copied.<br>
+     *  - atmost clauses are turned into atleast clauses.<br>
+     *    Example: atmost 2 p,q,r^2,s,t -> atleast 3 -p,-q,-r^2,-s,-t<br>
+     *    Interval clauses become two atleast clauses.
+     *    Example: [2,4] p,q,r,s,t -> atleast 2 p,q,r,s,t and atleast 1 -p,-q,-r,-s,-t<br>
+     *    Notice that the second clause gets a negative id.
+     *
+     * @param clause    a clause in the Clause data structure
+     * @param rsClauses for adding the generated RSClauses.
+     */
     public static void newRSClauses(Clause clause, ArrayList<RSClause> rsClauses) {
         rsClauses.clear();
         RSClause rsClause;
@@ -33,21 +73,24 @@ public class RSClause {
                     CLiteral cLiteral = clause.cliterals.get(i);
                     literals[i] = new RSLiteral(cLiteral.literal,cLiteral.multiplicity,rsClause);}
                  rsClauses.add(rsClause);
-                break;
+                return;
             case ATMOST:
                 rsClause = new RSClause(clause.id,(short)(clause.expandedSize()-clause.maxLimit),literals);
                 for(int i = 0; i < size; ++i) {
                     CLiteral cLiteral = clause.cliterals.get(i);
                     literals[i] = new RSLiteral(-cLiteral.literal,cLiteral.multiplicity,rsClause);}
                 rsClauses.add(rsClause);
-                break;
+                return;
             case INTERVAL:
+            case EXACTLY:
                 rsClause = new RSClause(clause.id,clause.minLimit,literals);
                 for(int i = 0; i < size; ++i) {
                     CLiteral cLiteral = clause.cliterals.get(i);
                     literals[i] = new RSLiteral(cLiteral.literal,cLiteral.multiplicity,rsClause);}
                 rsClauses.add(rsClause);
-                rsClause = new RSClause(clause.id,(short)(clause.expandedSize()-clause.maxLimit),literals);
+
+                literals = new RSLiteral[size];
+                rsClause = new RSClause(-clause.id,(short)(clause.expandedSize()-clause.maxLimit),literals);
                 for(int i = 0; i < size; ++i) {
                     CLiteral cLiteral = clause.cliterals.get(i);
                     literals[i] = new RSLiteral(-cLiteral.literal,cLiteral.multiplicity,rsClause);}
@@ -64,16 +107,14 @@ public class RSClause {
             if(rsLiterals[i].rsNode != null) return i;}
         return length;}
 
-    /** computes the number of unblocked literals
+    /** computes the number of unblocked literals with multiplicities
      *
      * @return the number of unblocked literals
      */
     protected int expandedSize() {
         int size = 0;
-        int length = rsLiterals.length;
-        for(int i = 0; i < length; ++i) {
-            RSLiteral rsLiteral = rsLiterals[i];
-            if(rsLiteral.rsNode == null) size += rsLiteral.multiplicity;
+        for (RSLiteral rsLiteral : rsLiterals) {
+            if (rsLiteral.rsNode == null) size += rsLiteral.multiplicity;
             else break;}
         return size;}
 
@@ -90,6 +131,10 @@ public class RSClause {
         minLimit -= rsLiteral.multiplicity;
         rsNode.addRSLiteral(rsLiteral);}
 
+    /** This method blocks the clause entirely, for example because of subsumption
+     *
+     * @param rsNode the current search node.
+     */
     protected void block(RSNode rsNode) {
         rsLiterals[0].rsNode = rsNode;
         rsNode.addRSLiteral(rsLiterals[0]);}
