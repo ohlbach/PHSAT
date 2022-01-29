@@ -40,8 +40,8 @@ public class RSLiteral {
             this.rsNode = null;
             RSLiteral rsLiteral = clause.rsLiterals[0];
             rsLiteral.rsNode = rsNode;
-            rsNode.addRSLiteral(rsLiteral);
-            return clause; }
+            rsNode.changeLastRSLiteral(rsLiteral);
+            return clause;}
         return null;}
 
     /** turns the clause into a string

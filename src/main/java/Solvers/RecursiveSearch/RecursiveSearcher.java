@@ -24,6 +24,7 @@ public class RecursiveSearcher  extends Solver {
     private final IntArrayList globallyTrueLiterals = new IntArrayList();
     /** a temporary local copy of the globally true literals */
     private final IntArrayList globallyTrueLiteralsCopy = new IntArrayList();
+    private int timestamp = 1;
 
     public static String help() {
         return "Recursive Searcher: parameters:\n" +
@@ -111,16 +112,79 @@ public class RecursiveSearcher  extends Solver {
             if(emptyCLause != null) {return backtrack(emptyCLause,rsNode);}}
         return null;}
 
-    private void unblockLiterals(RSNode rsNode) {
+    /** blocks all literals which are stored as temporary true literals in the rsNode
+     *
+     * @param rsNode the current search node
+     * @return null or, in case a clause became contradictious: the supernode after backtracking.
+     */
+    private RSNode unitSnowball(RSNode rsNode) {
+        int literal = 0;
+        while((literal = rsNode.nextTrueLiteral()) != 0) {
+            RSNode supernode = blockLiteral(literal,rsNode);
+            if(supernode != null) return supernode;}
+        return null;}
 
+    /** The method blocks all clauses which are subsumed by the given clause.
+     *  A subsumer C: atleast n phi subsumes a <br>
+     *  sumsumee   D: atleast m psi iff <br>
+     *  1. phi subseteq psi <br>
+     *  2. n &ge; m <br>
+     *  3. The sum of the multiplicity differences k - l for p^k in phi and p^l in psi &le; n-m, <br>
+     *     for those multiplicities where l &lt; k
+     * 
+     * @param rsClause a subsumer
+     * @param rsNode  the current search node.
+     */
+    private void backwardSubsumption(RSClause rsClause, RSNode rsNode) {
+        RSLiteral rsLiteral = rsClause.rsLiterals[0];
+        int literal = rsLiteral.literal;
+        int minLimit = rsClause.minLimit;
+        short multiplicity = rsLiteral.multiplicity;
+        for (RSLiteral otherRSLiteral : (literal > 0 ? posOccurrences[literal] : negOccurrences[-literal])) {
+            RSClause otherClause = otherRSLiteral.clause;
+            if(otherClause.isBlocked() || otherClause.minLimit > minLimit) continue;
+            short otherMultiplicity = otherRSLiteral.multiplicity;
+            if(otherMultiplicity > multiplicity) otherClause.timestamp = timestamp + 1;
+            else {otherClause.timestamp = timestamp + 1 + multiplicity - otherMultiplicity;}}
+
+        int length  = rsClause.rsLiterals.length;
+        boolean last = false;
+        int size = 0;
+        for(int i = 1; i < length; ++i) {
+            rsLiteral = rsClause.rsLiterals[i];
+            if(rsLiteral.rsNode != null) {last = true; size = i+1;}
+            else {
+                last = i == length-1; size = length;
+                literal = rsLiteral.literal;
+                for (RSLiteral otherRSLiteral : (literal > 0 ? posOccurrences[literal] : negOccurrences[-literal])) {
+                    RSClause otherClause = otherRSLiteral.clause;
+                    if(otherClause.timestamp < timestamp) continue;
+                    short otherMultiplicity = otherRSLiteral.multiplicity;
+                    if(otherMultiplicity > multiplicity) otherClause.timestamp += 1;
+                    else {otherClause.timestamp += 1 + multiplicity - otherMultiplicity;}
+                    if(last && otherClause.timestamp - timestamp == size)
+                        declareSubsumption(rsClause, otherClause,rsNode);}}}
+        timestamp += rsClause.rsLiterals.length + 1;}
+
+    private void declareSubsumption(RSClause subsumer, RSClause subsumee, RSNode rsNode) {
+        subsumee.block(rsNode);
+        ++statistics.subsumptions;
     }
+
+
+    /** unblocks all rsLiterals stored in the rsNode.
+     *
+     * @param rsNode an rsNode which became superfluous
+     */
+    private void unblockLiterals(RSNode rsNode) {
+        for(RSLiteral rsLiteral : rsNode.rsLiterals) rsLiteral.rsNode = null;}
 
     private RSNode backtrack(RSClause emptyClause, RSNode rsNode) {
         RSNode supernode = null;
         for(int i = 1; i < emptyClause.rsLiterals.length; ++i) {
             supernode = emptyClause.rsLiterals[i].rsNode;
             if(supernode != null) break;}
-        if(supernode == null) {
+        if(supernode == null) { // example: atleast 3 p,q,r^2 and false(r)
             unblockLiterals(rsNode);
             supernode = rsNode.superNode;
             RSNode.pushRSNodeReserve(rsNode);

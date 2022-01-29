@@ -12,6 +12,7 @@ public class RSClause {
     public final int id;
     public short minLimit;
     public final RSLiteral[] rsLiterals;
+    protected int timestamp = 0;
 
     public RSClause(int id, short minLimit, RSLiteral[] rsLiterals) {
         this.id = id;
@@ -78,15 +79,23 @@ public class RSClause {
 
 
     protected void blockClause(RSLiteral rsLiteral, RSNode rsNode) {
+        RSLiteral firstRSLiteral = rsLiterals[0];
+        if(firstRSLiteral.rsNode != null) return;
         if(rsLiteral.multiplicity <= minLimit) {
-            rsLiteral = rsLiterals[0];
-            rsLiteral.rsNode = rsNode;
-            rsNode.addRSLiteral(rsLiteral);
+            firstRSLiteral.rsNode = rsNode;
+            rsNode.addRSLiteral(firstRSLiteral);
             return;}
         rsLiteral.rsNode = rsNode;
         move(rsLiteral);
         minLimit -= rsLiteral.multiplicity;
         rsNode.addRSLiteral(rsLiteral);}
+
+    protected void block(RSNode rsNode) {
+        rsLiterals[0].rsNode = rsNode;
+        rsNode.addRSLiteral(rsLiterals[0]);}
+
+    protected boolean isBlocked() {
+        return rsLiterals[0].rsNode != null;}
 
     protected void move(RSLiteral rsLiteral) {
         int pos1 = 0;

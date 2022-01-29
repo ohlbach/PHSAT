@@ -13,4 +13,7 @@ public class RSStatistics  extends Statistic {
     @Description("Number of backtrackings")
     public int backtrackings = 0;
 
+    @Description("Number of subsumptions")
+    public int subsumptions = 0;
+
 }

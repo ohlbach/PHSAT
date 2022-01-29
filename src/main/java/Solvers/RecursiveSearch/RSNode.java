@@ -21,7 +21,7 @@ public class RSNode {
     protected RSNode subNode = null;
     protected IntArrayList literals = new IntArrayList();
 
-    private ArrayList<RSLiteral> rsLiterals = new ArrayList<>();
+    protected ArrayList<RSLiteral> rsLiterals = new ArrayList<>();
 
     protected void initialize(int literal, RSNode superNode) {
         literals.clear();
@@ -30,12 +30,25 @@ public class RSNode {
         if(superNode != null) {superNode.subNode = this;}
         rsLiterals.clear();}
 
-    protected void addLiteral(int literal) {
-        literals.add(literal);}
-
     protected void addRSLiteral(RSLiteral rsLiteral) {
         rsLiteral.rsNode = this;
         rsLiterals.add(rsLiteral);}
+
+    /** adds a literal which became temporarily true because of the node's first literal
+     *
+     * @param literal a temporarily true literal
+     */
+    protected void addLiteral(int literal) {
+        literals.add(literal);}
+
+    private int literalIndex = 1;
+
+    protected int nextTrueLiteral() {
+        if(literalIndex == literals.size()) return 0;
+        return literals.getInt(literalIndex++);}
+
+    protected void changeLastRSLiteral(RSLiteral rsLiteral) {
+        rsLiterals.set(rsLiterals.size()-1,rsLiteral);}
 
     protected void pop() {
         for(RSLiteral rsLiteral: rsLiterals) {rsLiteral.rsNode = null;}}
