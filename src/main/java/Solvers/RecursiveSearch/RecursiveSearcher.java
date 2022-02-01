@@ -99,14 +99,13 @@ public class RecursiveSearcher  extends Solver {
     public Result solve() {
         integrateGloballyTrueLiterals();
         int literal = findStartLiteral();
-        RSNode rsNode = RSNode.popRSNodeReserve();
-        rsNode.initialize(literal,null);
+        RSNode rsNode = RSNode.popRSNodeReserve(literal,null);
         return null;
     }
 
     private RSNode blockLiteral(int literal, RSNode rsNode) {
         for(RSLiteral rsLiteral : (literal > 0 ? posOccurrences[literal] : negOccurrences[-literal])) {
-            rsLiteral.clause.blockClause(rsLiteral,rsNode);}
+            rsLiteral.declareTrue(rsNode);}
         for(RSLiteral rsLiteral : (literal > 0 ? negOccurrences[literal] : posOccurrences[-literal])) {
             RSClause emptyCLause = rsLiteral.declareFalse(rsNode);
             if(emptyCLause != null) {return backtrack(emptyCLause,rsNode);}}
@@ -152,7 +151,7 @@ public class RecursiveSearcher  extends Solver {
         int size = 0;
         for(int i = 1; i < length; ++i) {
             rsLiteral = rsClause.rsLiterals[i];
-            if(rsLiteral.rsNode != null) {last = true; size = i+1;}
+            if(rsLiteral.blockingRSNode != null) {last = true; size = i+1;}
             else {
                 last = i == length-1; size = length;
                 literal = rsLiteral.literal;
@@ -177,12 +176,12 @@ public class RecursiveSearcher  extends Solver {
      * @param rsNode an rsNode which became superfluous
      */
     private void unblockLiterals(RSNode rsNode) {
-        for(RSLiteral rsLiteral : rsNode.rsLiterals) rsLiteral.rsNode = null;}
+        for(RSLiteral rsLiteral : rsNode.falseRSLiterals) rsLiteral.blockingRSNode = null;}
 
     private RSNode backtrack(RSClause emptyClause, RSNode rsNode) {
         RSNode supernode = null;
         for(int i = 1; i < emptyClause.rsLiterals.length; ++i) {
-            supernode = emptyClause.rsLiterals[i].rsNode;
+            supernode = emptyClause.rsLiterals[i].blockingRSNode;
             if(supernode != null) break;}
         if(supernode == null) { // example: atleast 3 p,q,r^2 and false(r)
             unblockLiterals(rsNode);

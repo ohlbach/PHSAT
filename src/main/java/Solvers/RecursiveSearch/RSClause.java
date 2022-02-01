@@ -33,10 +33,11 @@ import java.util.Locale;
  * etc.
  */
 public class RSClause {
-    protected final int id;        // the clause's identifier
-    protected short minLimit;      // the limit, e.g. atleast limit p,q,r,s ...
-    protected int timestamp = 0;   // to be used in subsumption and replacement resolution algorithms.
+    protected final int id;                 // the clause's identifier
+    protected short minLimit;               // the limit, e.g. atleast limit p,q,r,s ...
+    protected int timestamp = 0;            // to be used in subsumption and replacement resolution algorithms.
     protected final RSLiteral[] rsLiterals; // the list of literals
+    protected RSNode blockingRSNode = null;  // the node which blocked the clause
 
     /** constructs a clause
      *
@@ -49,7 +50,7 @@ public class RSClause {
         this.minLimit = minLimit;
         this.rsLiterals = rsLiterals;}
 
-    /** turns clauses in the Clause data structure to RSClauses.
+    /** turns clauses from the Clause data structure to RSClauses.
      *  - or- and atleast clauses are just copied.<br>
      *  - atmost clauses are turned into atleast clauses.<br>
      *    Example: atmost 2 p,q,r^2,s,t -> atleast 3 -p,-q,-r^2,-s,-t<br>
@@ -104,63 +105,65 @@ public class RSClause {
     protected int unblockedSize() {
         int length = rsLiterals.length;
         for(int i = 0; i < length; ++i) {
-            if(rsLiterals[i].rsNode != null) return i;}
+            if(rsLiterals[i].blockingRSNode != null) return i;}
         return length;}
 
-    /** computes the number of unblocked literals with multiplicities
+    /** computes the number of unblocked literals with multiplicities.
+     * The multiplicities are automatically reduced minLimit.
      *
-     * @return the number of unblocked literals
+     * @return the number of unblocked literals with multiplicities
      */
     protected int expandedSize() {
         int size = 0;
         for (RSLiteral rsLiteral : rsLiterals) {
-            if (rsLiteral.rsNode == null) size += rsLiteral.multiplicity;
+            if (rsLiteral.blockingRSNode == null) size += Math.min(minLimit,rsLiteral.multiplicity);
             else break;}
         return size;}
 
-
-    protected void blockClause(RSLiteral rsLiteral, RSNode rsNode) {
-        RSLiteral firstRSLiteral = rsLiterals[0];
-        if(firstRSLiteral.rsNode != null) return;
-        if(rsLiteral.multiplicity <= minLimit) {
-            firstRSLiteral.rsNode = rsNode;
-            rsNode.addRSLiteral(firstRSLiteral);
-            return;}
-        rsLiteral.rsNode = rsNode;
-        move(rsLiteral);
-        minLimit -= rsLiteral.multiplicity;
-        rsNode.addRSLiteral(rsLiteral);}
-
-    /** This method blocks the clause entirely, for example because of subsumption
+    /** This method blocks the clause entirely, for example because it is temporarily true or because of subsumption
+     * The clause is added to the rsNode's clause list (for backtracking)
      *
      * @param rsNode the current search node.
      */
     protected void block(RSNode rsNode) {
-        rsLiterals[0].rsNode = rsNode;
-        rsNode.addRSLiteral(rsLiterals[0]);}
+        this.blockingRSNode = rsNode;
+        rsNode.addBlockedRSClause(this);}
 
+    /** unblocks the clause*/
+    protected void unblock(){
+        blockingRSNode = null;}
+
+    /** checks if the clause is blocked
+     *
+     * @return true if the clause is blocked.
+     */
     protected boolean isBlocked() {
-        return rsLiterals[0].rsNode != null;}
+        return blockingRSNode != null;}
 
+    /** moves the literal at the end of the unblocked literals
+     *
+     * @param rsLiteral an rsLiteral in the clause.
+     */
     protected void move(RSLiteral rsLiteral) {
+        int length = rsLiterals.length;
         int pos1 = 0;
-        for(int i = 0; i < rsLiterals.length; ++i) {
+        for(int i = 0; i < length; ++i) {
             if(rsLiterals[i] == rsLiteral) pos1 = i;
-            if(rsLiterals[i].rsNode != null)  {
+            if(rsLiterals[i].blockingRSNode != null || i == length-1)  {
                 rsLiterals[pos1] = rsLiterals[i-1];
                 rsLiterals[i-1] = rsLiteral;
                 return;}}}
 
 
-    /** checks if the literal is in the clause
+    /** checks if the literal is in the unblocked part of the clause
      *
      * @param literal a literal
      * @return true if the literal is in the clause
      */
     public boolean contains(int literal) {
-        int size = rsLiterals.length;
-        for(int i = 0; i < size; i += 3) {
-            if(rsLiterals[i+1].literal == literal) return true;}
+        for(RSLiteral rsLiteral : rsLiterals) {
+            if(rsLiteral.blockingRSNode != null) return false;
+            if(rsLiteral.literal == literal) return true;}
         return false;}
 
     /** turns the clause into a string
