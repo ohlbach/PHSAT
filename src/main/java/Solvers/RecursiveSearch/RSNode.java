@@ -40,7 +40,8 @@ public class RSNode {
 
     protected RSNode superNode;       // the node's supernode (if there is one)
     protected RSNode subNode = null;  // the node's subnode (there is at most one)
-    protected IntArrayList literals = new IntArrayList(); // the true literals
+    protected int selectedLiteral;
+    protected ArrayList<IntArrayList> literals = new ArrayList<>(); // the true literals
 
     protected ArrayList<RSLiteral> falseRSLiterals = new ArrayList<>();  // the blocked false literals
     protected ArrayList<RSLiteral> trueRSLiterals  = new ArrayList<>();  // the blocked true literals
@@ -48,26 +49,26 @@ public class RSNode {
 
     /** creates a new RSNode
      *
-     * @param literal    the chosen literal in the search tree
+     * @param selectedLiteral    the chosen literal in the search tree
      * @param superNode  null or the node's supernode
      */
-    public RSNode(int literal, RSNode superNode) {
-        literals.add(literal);
+    public RSNode(int selectedLiteral, RSNode superNode) {
+        this.selectedLiteral = selectedLiteral;
         this.superNode = superNode;
         if(superNode != null) {superNode.subNode = this;}}
 
     /** initializes an RSNode which has been used earlier
      *
-     * @param literal    the chosen literal in the search tree
+     * @param selectedLiteral    the chosen literal in the search tree
      * @param superNode  null or the node's supernode
      *
      * @return   The rsNode itself
      */
-    protected RSNode initialize(int literal, RSNode superNode) {
-        literals.clear();
-        literals.add(literal);
+    protected RSNode initialize(int selectedLiteral, RSNode superNode) {
+        this.selectedLiteral = selectedLiteral;
         this.superNode = superNode;
         if(superNode != null) {superNode.subNode = this;}
+        literals.clear();
         falseRSLiterals.clear();
         trueRSLiterals.clear();
         blockedRSClauses.clear();
@@ -99,17 +100,78 @@ public class RSNode {
 
     /** adds a literal which became temporarily true because of the node's first literal
      *
-     * @param literal a temporarily true literal
+     * @param derivedLiterals a temporarily true literal with its dependent literals
      */
-    protected void addTrueLiteral(int literal) {
-        literals.add(literal);}
+    protected RSNode addTrueLiteral(IntArrayList derivedLiterals) {
+        int literal = derivedLiterals.getInt(0);
+        for(int i = 0; i < literals.size(); ++i) {
+            IntArrayList otherLiterals = literals.get(i);
+            int otherLiteral = otherLiterals.getInt(0);
+            if(literal == otherLiteral){
+                literals.set(i, highestNodeLiterals(derivedLiterals,otherLiterals));
+                return null;}
+            if(literal == -otherLiteral) { // contradiction backtracking
+                return backtrack(derivedLiterals,otherLiterals);}}
+        literals.add(derivedLiterals);
+        return null;}
 
-    /** returns the literal which has been selected for this node
+    /** finds the literals with the highest RSNode belonging to literals1[1] and literals2[1]
+     * This enables the longest backjump when backtracking
      *
-     * @return the literal which has been selected for this node
+     * @param literals1  a list of derived literals with literals1[0] the selected literal
+     * @param literals2  a list of derived literals with literals2[0] the selected literal
+     * @return the literals with the highest RSNode belonging to literals1[1] and literals2[1]
      */
-    protected int selectedLiteral() {
-        return literals.getInt(0);}
+    private IntArrayList highestNodeLiterals(IntArrayList literals1, IntArrayList literals2) {
+        RSNode superNode1 = nextSupernode(literals1);
+        if(superNode1 == null) return literals1;
+        RSNode superNode2 = nextSupernode(literals2);
+        if(superNode2 == null) return literals2;
+        return underRSNode(superNode2,superNode1) ? literals1 : literals2;}
+
+    /** finds the RSNode belonging to literals[1]
+     *
+     * @param literals a list of derived literals with literals[0] the selected literal
+     * @return either null, if literals[1] does not exist, or the RSNode belonging to literals[1]
+     */
+    private RSNode nextSupernode(IntArrayList literals) {
+        int size = literals.size();
+        if(size == 1) return null;
+        int literal = literals.getInt(1);
+        RSNode supNode = superNode;
+        while(supNode.selectedLiteral != literal) supNode = supNode.superNode;
+        return supNode;}
+
+    /** checks ir rsNode1 is equal or below rsNode2
+     *
+     * @param rsNode1 an RSNode
+     * @param rsNode2 an RSNode
+     * @return true if rsNode1 is equal or below rsNode2
+     */
+    private boolean underRSNode(RSNode rsNode1, RSNode rsNode2) {
+        if(rsNode1 == rsNode2) return true;
+        RSNode supNode = rsNode1.superNode;
+        while(supNode != null) {
+            if(supNode == rsNode2) return true;
+            supNode = supNode.superNode;}
+        return false;}
+
+    /** backtracks to the lowest RSNode belonging to literals1[1] and literals2[1}
+     *
+     * @param literals1 a list of derived literals with literals1[0] the selected literal
+     * @param literals2 a list of derived literals with literals2[0] the selected literal
+     * @return the lowest RSNode belonging to literals1[1] and literals2[1}
+     */
+    private RSNode backtrack(IntArrayList literals1, IntArrayList literals2) {
+        RSNode rsNode1 = nextSupernode(literals1);
+        RSNode rsNode2 = nextSupernode(literals2);
+        rsNode1 = underRSNode(rsNode1,rsNode2) ? rsNode1 : rsNode2;
+        RSNode supNode = superNode;
+        pop();
+        while(supNode != rsNode1) {
+            supNode.pop();
+            supNode = supNode.superNode;}
+        return rsNode1;}
 
     private int literalIndex = 1; // helps simulating an iterator
 
@@ -117,9 +179,9 @@ public class RSNode {
      *
      * @return the next true literal, or 0
      */
-    protected int nextTrueLiteral() {
-        if(literalIndex == literals.size()) return 0;
-        return literals.getInt(literalIndex++);}
+    protected IntArrayList nextTrueLiteral() {
+        if(literalIndex == literals.size()) return null;
+        return literals.get(literalIndex++);}
 
     /** pops the node, i.e. unblocks the blocked literals and clauses and returns the node to the nodeReserve
      */
@@ -136,8 +198,8 @@ public class RSNode {
     public String toString(){
         StringBuilder st = new StringBuilder();
         st.append("Node: ").append(literals).append("\n");
-        if(superNode != null) st.append("Supernode: ").append(superNode.selectedLiteral()).append("\n");
-        if(subNode != null)   st.append("Subnode:   ").append(subNode.selectedLiteral()).append("\n");
+        if(superNode != null) st.append("Supernode: ").append(superNode.selectedLiteral).append("\n");
+        if(subNode != null)   st.append("Subnode:   ").append(subNode.selectedLiteral).append("\n");
         if(!falseRSLiterals.isEmpty()) {
             st.append("False Literals: ");
             for(RSLiteral rsLiteral : falseRSLiterals) st.append(rsLiteral.literal).append(",");

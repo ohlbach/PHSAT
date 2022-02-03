@@ -20,6 +20,25 @@ import java.util.function.Predicate;
  */
 public class Utilities {
 
+
+    /** for storing unused IntArrayLists.*/
+    private static final Stack<IntArrayList> listReserve = new Stack<>();
+
+    /** returns a free IntArrayList
+     *
+     * @return a free IntArrayList
+     */
+    public static IntArrayList popIntArrayList() {
+        synchronized (listReserve) {
+            if(listReserve.isEmpty()) return new IntArrayList();
+            IntArrayList list = listReserve.pop();
+            list.clear();
+            return list;}}
+
+    /** pushs a free IntArrayList to the stack */
+    public static void pushIntArrayList(IntArrayList list) {
+        synchronized (listReserve) {listReserve.push(list);}}
+
     /** parses a string-representation of an integer
      *
      * @param place for error reporting
