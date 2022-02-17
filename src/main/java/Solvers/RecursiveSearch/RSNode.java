@@ -38,10 +38,12 @@ public class RSNode {
         if(supernode != null) supernode.subNode = null;
         synchronized (nodeReserve) {nodeReserve.push(rsNode);}}
 
+    protected int searchDepth = 0;    // the node's search depth
+    protected long blockingNodeId = 0;
     protected RSNode superNode;       // the node's supernode (if there is one)
     protected RSNode subNode = null;  // the node's subnode (there is at most one)
     protected int selectedLiteral;
-    protected ArrayList<IntArrayList> literals = new ArrayList<>(); // the true literals
+    protected ArrayList<long[]> literals = new ArrayList<>(); // the true literals
 
     protected ArrayList<RSLiteral> falseRSLiterals = new ArrayList<>();  // the blocked false literals
     protected ArrayList<RSLiteral> trueRSLiterals  = new ArrayList<>();  // the blocked true literals
@@ -55,7 +57,10 @@ public class RSNode {
     public RSNode(int selectedLiteral, RSNode superNode) {
         this.selectedLiteral = selectedLiteral;
         this.superNode = superNode;
-        if(superNode != null) {superNode.subNode = this;}}
+        if(superNode != null) {
+            superNode.subNode = this;
+            searchDepth = superNode.searchDepth+1;
+            blockingNodeId = (long)1 << searchDepth;}}
 
     /** initializes an RSNode which has been used earlier
      *
@@ -67,7 +72,10 @@ public class RSNode {
     protected RSNode initialize(int selectedLiteral, RSNode superNode) {
         this.selectedLiteral = selectedLiteral;
         this.superNode = superNode;
-        if(superNode != null) {superNode.subNode = this;}
+        if(superNode != null) {
+            superNode.subNode = this;
+            searchDepth = superNode.searchDepth+1;
+            blockingNodeId = (long)1 << searchDepth;}
         literals.clear();
         falseRSLiterals.clear();
         trueRSLiterals.clear();
@@ -79,7 +87,6 @@ public class RSNode {
      * @param rsLiteral the blocked false RSLiteral.
      */
     protected void addFalseRSLiteral(RSLiteral rsLiteral) {
-        rsLiteral.blockingRSNode = this;
         falseRSLiterals.add(rsLiteral);}
 
     /** adds a blocked true RSLiteral.
@@ -87,7 +94,6 @@ public class RSNode {
      * @param rsLiteral the blocked true RSLiteral.
      */
     protected void addTrueRSLiteral(RSLiteral rsLiteral) {
-        rsLiteral.blockingRSNode = this;
         trueRSLiterals.add(rsLiteral);}
 
     /** adds a blocked true RSClause.
@@ -95,83 +101,51 @@ public class RSNode {
      * @param rsClause the blocked true RSClause.
      */
     protected void addBlockedRSClause(RSClause rsClause) {
-        rsClause.blockingRSNode = this;
         blockedRSClauses.add(rsClause);}
 
     /** adds a literal which became temporarily true because of the node's first literal
      *
-     * @param derivedLiterals a temporarily true literal with its dependent literals
      */
-    protected RSNode addTrueLiteral(IntArrayList derivedLiterals) {
-        int literal = derivedLiterals.getInt(0);
+    protected RSNode addTrueLiteral(int literal, long blockingNodeIds) {
         for(int i = 0; i < literals.size(); ++i) {
-            IntArrayList otherLiterals = literals.get(i);
-            int otherLiteral = otherLiterals.getInt(0);
+            long[] otherNodeIds = literals.get(i);
+            int otherLiteral = (int)otherNodeIds[0];
             if(literal == otherLiteral){
-                literals.set(i, highestNodeLiterals(derivedLiterals,otherLiterals));
+                otherNodeIds[1] = highestBlockingNodeIds(blockingNodeIds,otherNodeIds[1]);
                 return null;}
             if(literal == -otherLiteral) { // contradiction backtracking
-                return backtrack(derivedLiterals,otherLiterals);}}
-        literals.add(derivedLiterals);
+                return backtrack(blockingNodeIds | otherNodeIds[1]);}}
+        literals.add(new long[]{literal,blockingNodeIds});
         return null;}
 
     /** finds the literals with the highest RSNode belonging to literals1[1] and literals2[1]
      * This enables the longest backjump when backtracking
      *
-     * @param literals1  a list of derived literals with literals1[0] the selected literal
-     * @param literals2  a list of derived literals with literals2[0] the selected literal
+     * @param blockingNodeIds1  a bitlist of node-bits for the derivation of a literal
+     * @param blockingNodeIds2  a bitlist of node-bits for the derivation of a literal
      * @return the literals with the highest RSNode belonging to literals1[1] and literals2[1]
      */
-    private IntArrayList highestNodeLiterals(IntArrayList literals1, IntArrayList literals2) {
-        RSNode superNode1 = nextSupernode(literals1);
-        if(superNode1 == null) return literals1;
-        RSNode superNode2 = nextSupernode(literals2);
-        if(superNode2 == null) return literals2;
-        return underRSNode(superNode2,superNode1) ? literals1 : literals2;}
-
-    /** finds the RSNode belonging to literals[1]
-     *
-     * @param literals a list of derived literals with literals[0] the selected literal
-     * @return either null, if literals[1] does not exist, or the RSNode belonging to literals[1]
-     */
-    private RSNode nextSupernode(IntArrayList literals) {
-        int size = literals.size();
-        if(size == 1) return null;
-        int literal = literals.getInt(1);
+    private long highestBlockingNodeIds(long blockingNodeIds1, long blockingNodeIds2) {
         RSNode supNode = superNode;
-        while(supNode.selectedLiteral != literal) supNode = supNode.superNode;
-        return supNode;}
-
-    /** checks ir rsNode1 is equal or below rsNode2
-     *
-     * @param rsNode1 an RSNode
-     * @param rsNode2 an RSNode
-     * @return true if rsNode1 is equal or below rsNode2
-     */
-    private boolean underRSNode(RSNode rsNode1, RSNode rsNode2) {
-        if(rsNode1 == rsNode2) return true;
-        RSNode supNode = rsNode1.superNode;
         while(supNode != null) {
-            if(supNode == rsNode2) return true;
+            if((blockingNodeIds1 & supNode.blockingNodeId) != 0) return blockingNodeIds2;
+            if((blockingNodeIds2 & supNode.blockingNodeId) != 0) return blockingNodeIds1;
             supNode = supNode.superNode;}
-        return false;}
+        return blockingNodeIds1;}
+
 
     /** backtracks to the lowest RSNode belonging to literals1[1] and literals2[1}
      *
-     * @param literals1 a list of derived literals with literals1[0] the selected literal
-     * @param literals2 a list of derived literals with literals2[0] the selected literal
+     * @param blockingNodeIds a list of derived literals with literals1[0] the selected literal
      * @return the lowest RSNode belonging to literals1[1] and literals2[1}
      */
-    private RSNode backtrack(IntArrayList literals1, IntArrayList literals2) {
-        RSNode rsNode1 = nextSupernode(literals1);
-        RSNode rsNode2 = nextSupernode(literals2);
-        rsNode1 = underRSNode(rsNode1,rsNode2) ? rsNode1 : rsNode2;
+    protected RSNode backtrack(long blockingNodeIds) {
         RSNode supNode = superNode;
         pop();
-        while(supNode != rsNode1) {
+        while((supNode.blockingNodeId & blockingNodeIds) == 0) {
             supNode.pop();
             supNode = supNode.superNode;}
-        return rsNode1;}
+        return supNode;}
 
     private int literalIndex = 1; // helps simulating an iterator
 
@@ -179,7 +153,7 @@ public class RSNode {
      *
      * @return the next true literal, or 0
      */
-    protected IntArrayList nextTrueLiteral() {
+    protected long[] nextTrueLiteral() {
         if(literalIndex == literals.size()) return null;
         return literals.get(literalIndex++);}
 
@@ -190,6 +164,13 @@ public class RSNode {
         for(RSLiteral rsLiteral: trueRSLiterals)   {rsLiteral.unblockTrue();}
         for(RSClause  rsClause:  blockedRSClauses) {rsClause.unblock();}
         nodeReserve.push(this);}
+
+    protected RSNode propagateUnits(RecursiveSearcher recursiveSearcher) {
+        for(int i = 0; i  < literals.size(); ++i) {
+            long[] literal = literals.get(i);
+             RSNode backtrackedNode = recursiveSearcher.blockLiteral((int)literal[0],this);
+             if(backtrackedNode != null) return backtrackedNode;}
+        return null;}
 
     /** turns the node into a string
      *

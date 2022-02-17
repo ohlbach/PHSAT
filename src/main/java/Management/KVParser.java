@@ -17,22 +17,44 @@ import java.util.Map;
  * The result ist a HashMap, one entry for each top-key, an ArrayList of HashMaps.<br>
  * Each of these HashMaps contains the key-value pairs (as Strings).
  *<br><br>
- * Empty lines are ignored. Comments can be added after //
+ * Empty lines are ignored. Comments can be added after %
  * The first block can be preceded by arbitrarily many header-strings.
  *<br><br>
  * The result of the parsing can be accessed by the public variables: header and kvList.
  *<br><br>
- * The class is used mainly for parsing specifications with all the control parameters for the PHSat system.
+ * The class is used mainly for parsing specifications with all the control parameters for the QUSat system.
  *
+ * Example: <br>
+ * problem<br>
+ *     type = random<br>
+ *     predicates = 100<br>
+ *     cpRatio = 4<br>
+ *     length = 3<br>
+ *     precise = true<br>
+ *     seed = 1<br>
+ *<br>
+ * solver<br>
+ *    type = walker<br>
+ *    flips = 50000<br>
+ *    monitor = 0<br>
+ *    seed = 1<br>
+ * <br>
+ * solver<br>
+ *    type = reduction<br>
+ *    strategy = INPUT<br>
+ *    limit = 20<br>
+ *    seed = 0<br>
+ *    percentageOfSOSClauses = 50
  */
 public class KVParser {
     /** The header lines before the first top-key.*/
-    public StringBuilder header = new StringBuilder();
+    public final StringBuilder header = new StringBuilder();
 
     /** The map of block-lists with the key-value pairs. */
-    public HashMap<String,ArrayList<HashMap<String,String>>> kvList = new HashMap<>();
+    public final HashMap<String,ArrayList<HashMap<String,String>>> kvList = new HashMap<>();
 
-    private HashSet<String> topKeys = new HashSet<>();
+    /** the topKeys, like "global", "problem", "simplifier", "solver"*/
+    private final HashSet<String> topKeys = new HashSet<>();
 
     /** creates a parser
      *
@@ -43,7 +65,8 @@ public class KVParser {
             topKeys.add(key);
             kvList.put(key,new ArrayList<>());}}
 
-    /** returns the entry of one of the top-keys
+    /** returns the entry of one of the top-keys, a list of HashMaps for the given key.
+     * Example: key = "solver": a list of HashMaps with keys for the different solver types.
      *
      * @param key a top.key
      * @return the entries for the top-key.
@@ -51,28 +74,38 @@ public class KVParser {
     public ArrayList<HashMap<String,String>> get(String key) {
         return kvList.get(key);}
 
+    /** sets the list of HashMaps for the given key, for example from a default file.
+     *
+     * @param key        a top key
+     * @param parameters the list of HashMaps with the parameters for the given key.
+     */
     public void set(String key, ArrayList<HashMap<String,String>> parameters) {
         kvList.put(key,parameters);}
 
-    private boolean inHeader = true;
-    private HashMap<String,String> currentMap = null;
+    private boolean inHeader = true;                  // true if the lines are currently in the header area
+    private HashMap<String,String> currentMap = null; // the current HashMap to be filled
 
     /** parses a single line
+     * Empty and comment lines are ignored. <br>
+     * If the line is just a topKey, a new currentMap is created to be filled at the next addLine calls.<br>
+     * Otherwise the line is split at the first occurrences of either = , : or space.<br>
+     * The key-value pair is put into the currentMap. <br>
+     * If there is just a key then the value is "true".
      *
      * @param line the line to be parsed.
      */
     public void addLine(String line) {
         line = line.trim();
         if(line.isEmpty() || line.startsWith("%")) {return;}
-        String[] parts = line.split("\\s*//",2)[0].split("\\s*[=,:, ]+\\s*",2);
-        String key = parts[0];
+        String[] parts = line.split("\\s*//",2)[0].split("\\s*[=,: ]+\\s*",2);
+        String key = parts[0].trim();
         if(topKeys.contains(key)){inHeader = false;}
-        if(inHeader) {header.append(line+"\n"); return;}
+        if(inHeader) {header.append(line).append("\n"); return;}
 
         if(topKeys.contains(key)) {
             currentMap = new HashMap<>();
             kvList.get(key).add(currentMap);}
-        currentMap.put(key,parts.length > 1 ? parts[1] : "true");}
+        currentMap.put(key,parts.length > 1 ? parts[1].trim() : "true");}
 
     /** reads and parses the lines from an InputStream.
      * IO-Error leads to System.exit
@@ -84,7 +117,6 @@ public class KVParser {
         String line;
         try{while((line = reader.readLine())!= null) {addLine(line);}}
         catch (IOException e) {e.printStackTrace(); System.exit(1);}}
-
 
     /** Parses a file.
      * IO-Error leads to System.exit
@@ -100,7 +132,7 @@ public class KVParser {
             System.exit(1);}
         return true;}
 
-    /** parses an entire string.
+    /** parses an entire string of "\\n"-separated lines.
      *
      * @param lines the string to be parsed.
      */
@@ -113,9 +145,9 @@ public class KVParser {
      */
     public String toString() {
         StringBuilder st = new StringBuilder();
-        st.append("Top-Keys: ").append(topKeys.toString()).append("\n\n");
+        st.append("Top-Keys: ").append(topKeys).append("\n\n");
         st.append("HEADER\n");
-        st.append(header.toString());
+        st.append(header);
         st.append("KEY-VALUES:\n");
         for(Map.Entry<String,ArrayList<HashMap<String,String>>> entry : kvList.entrySet()) {
             ArrayList<HashMap<String,String>> list = entry.getValue();

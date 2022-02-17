@@ -1,5 +1,6 @@
 package Solvers;
 
+import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
@@ -11,6 +12,7 @@ import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor;
 import Management.ProblemSupervisor;
+import Solvers.RecursiveSearch.RecursiveSearcher;
 import Solvers.Walker.Walker;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -22,7 +24,7 @@ import java.util.HashMap;
 /** This is the superclass of all solver classes.
  * Its static methods maintain information about all solver classes
  *
- * Its instance methods proved the interface to the ProblemSupevisor.
+ * Its instance methods proved the interface to the ProblemSupervisor.
  *
  * Created by ohlbach on 09.10.2018.
  */
@@ -32,7 +34,7 @@ public abstract class Solver {
        *********************** */
 
     /** the list of all solver types */
-    public static String[] solvers = new String[]{"walker","resolution"};
+    public static String[] solvers = new String[]{"simplifier","walker","recursiveSearch"};
 
     /** checks if the name is a solver name
      *
@@ -52,8 +54,10 @@ public abstract class Solver {
      */
     public static Class solverClass(String solverName) {
         switch (solverName) {
-            case "walker":      return Walker.class;
-            case "resolution":  return Solvers.Resolution.Resolution.class;
+            case "simplifier":      return InitializerSimplifier.class;
+            case "walker":          return Walker.class;
+            case "recursiveSearch": return RecursiveSearcher.class;
+            case "resolution":      return Solvers.Resolution.Resolution.class;
             default: return null;}}
 
     /** collects all the help-strings for all solver classes
@@ -85,18 +89,18 @@ public abstract class Solver {
 
     /** parses the string-type parameters into sequences of objects
      *
-     * @param solverName       the solver name
+     * @param solverName the solver name
      * @param parameters a key-value map with parameters as strings
      * @param errors     for collecting error messages
      * @param warnings   for collecting warning messages
      * @return           a list of key-value maps where the values are objects.
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(String solverName, HashMap<String,String> parameters,
-                                                                    StringBuilder errors, StringBuilder warnings) {
+                                                                    Monitor errors, Monitor warnings) {
         Class clazz = solverClass(solverName);
-        if(clazz == null) {errors.append("Unknown solver class: " + solverName+"\n"); return null;}
+        if(clazz == null) {errors.print("Unknown solver class: " + solverName+"\n"); return null;}
         try{
-            Method parser = clazz.getMethod("parseParameters",HashMap.class,StringBuilder.class, StringBuilder.class);
+            Method parser = clazz.getMethod("parseParameters",HashMap.class,Monitor.class, Monitor.class);
             return (ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
@@ -174,8 +178,7 @@ public abstract class Solver {
         monitor                    = globalParameters.monitor;
         monitoring                 = monitor != null && monitor.monitoring;
         model                      = new Model(predicates,null);
-        if(monitoring) {
-            monitor.addThread(combinedId,"Monitor for problem " + problemId + " and solver " + solverId);}}
+        }
 
 
     /** This method is called when another solver found a new true literal.

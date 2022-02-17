@@ -1,8 +1,7 @@
 package Datastructures.Clauses.Simplifiers;
 
-import Datastructures.Clauses.AllClauses.Clauses;
+import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -47,7 +46,7 @@ public class ClauseSimplifierTest {
             symboltable.setName(6,"c");}
         problemSupervisor.model=new Model(20,symboltable);
         problemSupervisor.equivalenceClasses = new EquivalenceClasses(problemSupervisor);
-        Clauses clauses = new Clauses(problemSupervisor);
+        InitializerSimplifier clauses = new InitializerSimplifier(problemSupervisor);
         problemSupervisor.clauseSimplifier = new ClauseSimplifier(clauses,null);
         problemSupervisor.clauseCounter = 9;
         return problemSupervisor;}

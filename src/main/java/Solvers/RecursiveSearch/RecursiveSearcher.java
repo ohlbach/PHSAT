@@ -8,6 +8,7 @@ import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import it.unimi.dsi.fastutil.ints.IntArrays;
 
 import java.util.*;
 import java.util.function.IntConsumer;
@@ -18,6 +19,8 @@ public class RecursiveSearcher  extends Solver {
     private final ArrayList<RSLiteral>[] negOccurrences; // maps predicate to clauses containing them negatively
     private Model localModel = null;
     public RSStatistics statistics;
+    private boolean[] blockedPredicates;
+    private int[] literalsForSelection;
     private final int seed;                             // for the random number generator
     private final Random random;                       // random number generator for flip jumps
     /** collects globally true literals which are inserted by other solvers  into the global model */
@@ -73,9 +76,16 @@ public class RecursiveSearcher  extends Solver {
         super.initialize();
         posOccurrences = new ArrayList[predicates+1];
         negOccurrences = new ArrayList[predicates+1];
+        blockedPredicates = new boolean[predicates+1];
+        blockedPredicates[0] = true;
         statistics = new RSStatistics(combinedId);
         seed = (int) solverParameters.get("seed");
         random = new Random(seed);
+        literalsForSelection = new int[2*predicates+1];
+        int counter = 0;
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            literalsForSelection[++counter] = predicate;
+            literalsForSelection[++counter] = -predicate;}
     }
 
     private ArrayList<RSClause> dummyClauses = new ArrayList<>(2);
@@ -100,28 +110,26 @@ public class RecursiveSearcher  extends Solver {
         integrateGloballyTrueLiterals();
         int literal = findStartLiteral();
         RSNode rsNode = RSNode.popRSNodeReserve(literal,null);
+        while(rsNode != null) {
+            rsNode = blockLiteral(literal,rsNode);
+            if(rsNode == null) rsNode = RSNode.popRSNodeReserve(literal,null);
+            literal = findStartLiteral();
+            statistics.deepestSearchDepth = Math.max(statistics.deepestSearchDepth,rsNode.searchDepth);
+        }
         return null;
     }
 
-    private RSNode blockLiteral(int literal, RSNode rsNode) {
+    protected RSNode blockLiteral(int literal, RSNode rsNode) {
         for(RSLiteral rsLiteral : (literal > 0 ? posOccurrences[literal] : negOccurrences[-literal])) {
-            rsLiteral.declareTrue(rsNode);}
+            if(!rsLiteral.clause.isBlocked()) rsLiteral.declareTrue(rsNode);}
         for(RSLiteral rsLiteral : (literal > 0 ? negOccurrences[literal] : posOccurrences[-literal])) {
-            RSClause emptyCLause = rsLiteral.declareFalse(rsNode);
-            if(emptyCLause != null) {return backtrack(emptyCLause,rsNode);}}
+            if(!rsLiteral.clause.isBlocked()){
+                RSNode backtrackedNode = rsLiteral.declareFalse(rsNode);
+                if(backtrackedNode != null) return backtrackedNode;}}
+        RSNode backtrackedNode = rsNode.propagateUnits(this);
+        if(backtrackedNode != null) return backtrackedNode;
         return null;}
 
-    /** blocks all literals which are stored as temporary true literals in the rsNode
-     *
-     * @param rsNode the current search node
-     * @return null or, in case a clause became contradictious: the supernode after backtracking.
-     */
-    private RSNode unitSnowball(RSNode rsNode) {
-        int literal = 0;
-        while((literal = rsNode.nextTrueLiteral()) != 0) {
-            RSNode supernode = blockLiteral(literal,rsNode);
-            if(supernode != null) return supernode;}
-        return null;}
 
     /** The method blocks all clauses which are subsumed by the given clause.
      *  A subsumer C: atleast n phi subsumes a <br>
@@ -151,7 +159,7 @@ public class RecursiveSearcher  extends Solver {
         int size = 0;
         for(int i = 1; i < length; ++i) {
             rsLiteral = rsClause.rsLiterals[i];
-            if(rsLiteral.blockingRSNode != null) {last = true; size = i+1;}
+            if(rsLiteral.blockingNodeIds != 0) {last = true; size = i+1;}
             else {
                 last = i == length-1; size = length;
                 literal = rsLiteral.literal;
@@ -171,34 +179,12 @@ public class RecursiveSearcher  extends Solver {
     }
 
 
-    /** unblocks all rsLiterals stored in the rsNode.
-     *
-     * @param rsNode an rsNode which became superfluous
-     */
-    private void unblockLiterals(RSNode rsNode) {
-        for(RSLiteral rsLiteral : rsNode.falseRSLiterals) rsLiteral.blockingRSNode = null;}
-
-    private RSNode backtrack(RSClause emptyClause, RSNode rsNode) {
-        RSNode supernode = null;
-        for(int i = 1; i < emptyClause.rsLiterals.length; ++i) {
-            supernode = emptyClause.rsLiterals[i].blockingRSNode;
-            if(supernode != null) break;}
-        if(supernode == null) { // example: atleast 3 p,q,r^2 and false(r)
-            unblockLiterals(rsNode);
-            supernode = rsNode.superNode;
-            RSNode.pushRSNodeReserve(rsNode);
-            return supernode;}
-        while(rsNode != supernode) {
-            unblockLiterals(rsNode);
-            RSNode.pushRSNodeReserve(rsNode);
-            rsNode = rsNode.superNode;}
-        return supernode;}
-
     private void integrateGloballyTrueLiterals() {
         copyGloballyTrueLiterals();
         if(globallyTrueLiteralsCopy.isEmpty()) return;
         for(int literal : globallyTrueLiteralsCopy) {
-            integrateGloballyTrueLiteral(literal);}}
+            integrateGloballyTrueLiteral(literal);
+            blockedPredicates[Math.abs(literal)] = true;}}
 
     private void integrateGloballyTrueLiteral(int literal) {
 
@@ -215,25 +201,17 @@ public class RecursiveSearcher  extends Solver {
         return globallyTrueLiteralsCopy;}
 
 
-    /** returns a randomly selected literal of those literals which occur most
+    /** returns a randomly selected unblocked literal of those literals which occur most
      *
      * @return a literal which occurs most as start literal for the search
      */
     private int findStartLiteral() {
-        IntArrayList literals = new IntArrayList();
-        int occurrences = 0;
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            ArrayList<RSLiteral> posLiterals = posOccurrences[predicates];
-            if(posLiterals != null) {
-                int occ = posLiterals.size();
-                if(occ > occurrences) {occurrences = occ; literals.clear(); literals.add(predicate);}
-                else {if(occ == occurrences) literals.add(predicate);}}
-            ArrayList<RSLiteral> negLiterals = negOccurrences[predicates];
-            if(negLiterals != null) {
-                int occ = negLiterals.size();
-                if(occ > occurrences) {occurrences = occ; literals.clear(); literals.add(-predicate);}
-                else {if(occ == occurrences) literals.add(-predicate);}}}
-        return literals.getInt(random.nextInt(literals.size()));}
+        IntArrays.quickSort(literalsForSelection,((i, j)-> { // can be optimized by storing unblockedLiterals
+            return Integer.compare(unblockedLiterals(j),unblockedLiterals(i));}));
+        int counter = unblockedLiterals(literalsForSelection[0]);
+        for(int i = 0; i < literalsForSelection.length; ++i) {
+            if(unblockedLiterals(literalsForSelection[i]) != counter) break;}
+        return literalsForSelection[random.nextInt(counter)];}
 
     @Override
     public Statistic getStatistics() {return statistics;}
@@ -258,4 +236,18 @@ public class RecursiveSearcher  extends Solver {
                     negLiterals = new ArrayList<>();
                     negOccurrences[predicates] = negLiterals;}
                 negOccurrences[-literal].add(rsLiteral);}}}
+
+    /** returns the current number of unblocked literals
+     *
+     * @param literal
+     * @return the current number of unblocked literals
+     */
+    private int unblockedLiterals(int literal) {
+        if(blockedPredicates[Math.abs(literal)]) return 0;
+        ArrayList<RSLiteral> rsLiterals = (literal > 0) ? posOccurrences[literal] : negOccurrences[-literal];
+        int counter = 0;
+        for(RSLiteral rsLiteral :rsLiterals) {
+            if(rsLiteral.blockingNodeIds == 0 && !rsLiteral.clause.isBlocked()) ++counter;}
+        return counter;}
+
 }

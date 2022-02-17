@@ -2,6 +2,7 @@ package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Symboltable;
+import Management.Monitor;
 import Management.ProblemSupervisor;
 import Utilities.Utilities;
 
@@ -51,9 +52,9 @@ public final class CNFReader {
      * @return            a list of HashMaps with key "file" and value the corresponding File object, and 'name' with the filename
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
-                                                                    StringBuilder errors, StringBuilder warnings){
+                                                                    Monitor errors, Monitor warnings){
         for(String key : parameters.keySet()) {
-            if(!keys.contains(key)) {warnings.append("CNFReader: unknown key in parameters: " + key + "\n");}}
+            if(!keys.contains(key)) {warnings.print("CNFReader", "Unknown key in parameters: " + key + "\n");}}
 
         String files       = parameters.get("file");
         String directories = parameters.get("directory");
@@ -65,7 +66,7 @@ public final class CNFReader {
         if(files != null) {
             for(String filename : files.split("\\s*[, ]\\s*")) {
                 File file = new File(filename);
-                if(!file.exists()) {errors.append("CNFReader: unknown file: " +filename+"\n");}
+                if(!file.exists()) {errors.print("CNFReader", "Unknown file: " +filename+"\n");}
                 else {HashMap<String,Object> map = new HashMap<>();
                       map.put("file",file);
                       map.put("name",file.getName());
@@ -75,7 +76,7 @@ public final class CNFReader {
             for(String directoryname : directories.split("\\s*,\\s*")) {
                 File directory = new File(directoryname);
                 if(!(directory.exists() && directory.isDirectory())) {
-                    errors.append("CNFReader: unknown directory: " +directoryname+"\n");}
+                    errors.print("CNFReader", "Unknown directory: " +directoryname+"\n");}
                 else {
                     for(File file : directory.listFiles()) {
                         if(file != null && file.isFile() && file.getName().endsWith(".cnf")) {
@@ -85,16 +86,16 @@ public final class CNFReader {
                             control.add(map);}}}} }
 
         if(regExprs != null) {
-            if(directories == null) {errors.append("CNFReader: a directory must be specified for " + regExprs +"\n");}
+            if(directories == null) {errors.print("CNFReader", "A directory must be specified for " + regExprs +"\n");}
             for(String directoryname : directories.split("\\s*,\\s*")) {
                 File directory = new File(directoryname);
                 if(!(directory.exists() && directory.isDirectory())) {
-                    errors.append("CNFReader: unknown directory: " +directoryname+"\n");}
+                    errors.print("CNFReader", "Unknown directory: " +directoryname+"\n");}
                 else{
                     Pattern pattern;
                     try {pattern = Pattern.compile(regExprs);}
                     catch(PatternSyntaxException ex) {
-                        errors.append("CNFReader: " + ex);
+                        errors.print("CNFReader", ex.toString());
                         continue;}
                     for(File file: directory.listFiles(pathname -> pattern.matcher(pathname.getName()).matches())) {
                         HashMap<String,Object> map = new HashMap<>();
@@ -144,17 +145,18 @@ public final class CNFReader {
      */
     public static BasicClauseList generate(HashMap<String,Object> parameters,
                                            ProblemSupervisor problemSupervisor,
-                                           StringBuilder errors, StringBuilder warnings) {
+                                           Monitor errors, Monitor warnings) {
+        String name = "CNFeader";
         StringBuilder info = new StringBuilder();
         File file = (File)parameters.get("file");
         String filename = file.getName();
         info.append("File ").append(filename).append("\n");
-        String place =  "CNFReader: File " + filename+", ";
+        String place =  "File " + filename;
         String prefix = "          ";
         BufferedReader reader;
         try {reader = new BufferedReader(new FileReader(file));}
         catch (FileNotFoundException e) {
-            errors.append(place + "not found\n");
+            errors.print(name,place," not found");
             return null;}
         String line;
         BasicClauseList bcl = new BasicClauseList();
@@ -164,7 +166,7 @@ public final class CNFReader {
         try{
         while((line = reader.readLine()) != null) {
             ++lineNumber;
-            String errorPrefix = place + "Line " + lineNumber + ": '" + line + "': ";
+            String errorPrefix = place + ", line " + lineNumber + ": '" + line + "': ";
             line = line.trim();
             if(line.isEmpty()) {continue;}
             if(line.startsWith("%")){continue;}
@@ -172,27 +174,27 @@ public final class CNFReader {
             if(line.startsWith("p") && !line.endsWith("0")) { // p cnf predicates clauses symbolic
                 String[] parts = line.split("\\s*( |,)\\s*");
                 if(parts.length < 4) {
-                    errors.append(errorPrefix).append("Illegal format of line '" + line+ "'\n").append(prefix).
-                            append("It should be 'p cnf predicates clauses'\n");
+                    errors.println(name,errorPrefix,"illegal format of line",
+                            "It should be 'p cnf predicates clauses'");
                     return null;}
                 if(!parts[1].equals("cnf")) {
-                    errors.append(errorPrefix).append("indicates no cnf file\n");
+                    errors.print(name,errorPrefix," indicates no cnf file\n");
                     return null;}
 
-                predicates = Utilities.parseInteger(errorPrefix, parts[2],errors);
+                predicates = Utilities.parseInteger(name,errorPrefix, parts[2],errors);
                 if(predicates == null) {return null;}
                 if(predicates <= 0) {
-                    errors.append(errorPrefix).append("Negative number of predicates: '" + parts[2] +"'\n");
+                    errors.print(name,errorPrefix," Negative number of predicates: '", parts[2],"'");
                     return null;}
                 bcl.predicates = predicates;
                 bcl.symboltable = new Symboltable(predicates);
                 continue;}
             if(predicates == 0) {
-                errors.append(errorPrefix).append("p-line missing: 'p cnf predicates clauses'\n");
+                errors.print(name,errorPrefix," p-line missing: 'p cnf predicates clauses'");
                 return null;}
 
             if(!line.endsWith(" 0")) {
-                errors.append(errorPrefix).append("does not end with '0'\n");
+                errors.print(name,errorPrefix," does not end with '0'");
                 continue;}
             int[] clause = StringClauseSetGenerator.parseLine(line.substring(0,line.length()-2).trim(),
                     id,bcl.symboltable,errorPrefix,errors);
@@ -202,7 +204,7 @@ public final class CNFReader {
         }
         bcl.info = info.toString();}
         catch(IOException ex) {
-            errors.append(place).append("IOException\n" +ex);
+            errors.print(name, place,"IOException\n" +ex);
             return null;}
         problemSupervisor.clauseCounter = id;
         return bcl;}

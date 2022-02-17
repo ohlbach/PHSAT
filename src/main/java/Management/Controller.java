@@ -9,6 +9,7 @@ import Utilities.Utilities;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -18,144 +19,72 @@ import java.util.HashMap;
  * This class controls the processing of the problems. <br>
  * It <br>
  * - analyses the input parameters <br>
- * - reads or generates the SAT-problems<br>
+ * - reads or generates the QUSAT-problems<br>
  * - distributes them over several threads <br>
  * - activates the solvers <br>
  * - collects the results and statistics
  */
 public class Controller {
-    public HashMap<String,String>            globalInputParameters = null;
-    public ArrayList<HashMap<String,String>> problemInputParameters = null;
-    public ArrayList<HashMap<String,String>> solverInputParameters = null;
+    public String jobname;
 
-    public GlobalParameters                  globalParameters  = null;
-    public ArrayList<HashMap<String,Object>> problemParameters = null;
-    public ArrayList<HashMap<String,Object>> solverParameters  = null;
+    public final GlobalParameters                  globalParameters;
+    public final HashMap<String,Object>            initializeParameters;
+    public final ArrayList<HashMap<String,Object>> problemParameters;
+    public final ArrayList<HashMap<String,Object>> solverParameters;
 
     public ArrayList<ProblemSupervisor> problemSupervisors = null;
     public Thread[] threads = null;
 
-    private StringBuilder errors   = new StringBuilder();
-    private StringBuilder warnings = new StringBuilder();
 
     /** generates a new controller
      *
-     * @param globalInputParameters   for global control
-     * @param problemInputParameters  the problem specifications
-     * @param solverInputParameters   the solver specifications
+     * @param globalParameters   for global control
+     * @param problemParameters  the problem specifications
+     * @param solverParameters   the solver specifications
      */
-    public Controller(HashMap<String,String> globalInputParameters,
-                      ArrayList<HashMap<String,String>> problemInputParameters,
-                      ArrayList<HashMap<String,String>> solverInputParameters) {
-        this.globalInputParameters  = globalInputParameters;
-        this.problemInputParameters = problemInputParameters;
-        this.solverInputParameters  = solverInputParameters;}
+    public Controller(String jobname,
+                      GlobalParameters globalParameters,
+                      HashMap<String,Object> initializeParameters,
+                      ArrayList<HashMap<String,Object>> problemParameters,
+                      ArrayList<HashMap<String,Object>> solverParameters) {
+        this.jobname = jobname;
+        this.globalParameters  = globalParameters;
+        this.initializeParameters = initializeParameters;
+        this.problemParameters = problemParameters;
+        this.solverParameters  = solverParameters;}
 
 
-    /** analyses the input specifications and turns them into internal data structures.
-     *
-     * @return true if the processing can continue, false if it should stop.
-     */
-    public boolean analyseParameters() {
-        if(globalInputParameters == null) {globalParameters = new GlobalParameters();} // default parameters
-        else{globalParameters = new GlobalParameters(globalInputParameters,errors,warnings);}
-        if(problemInputParameters == null) {errors.append("No problems specified.\n");}
-        else {analyseProblemParameters();}
-        if(solverInputParameters == null) {errors.append("No solvers specified.\n");}
-        else {analyseSolverParameters();}
-        return reportErrors();}
-
-
-
-    /** analyses the problemParameters and turns them into sequences of objectParameters.
-     * Since the input parameters may specify ranges, each single input parameter may expand to a sequence of parsed parameters*/
-    private void analyseProblemParameters() {
-        problemParameters = new ArrayList<>();
-        for(HashMap<String,String> parameters : problemInputParameters) {
-            String type = parameters.get("type");
-            if(type == null) {errors.append("No problem type specified.\n"); return;}
-            ArrayList<HashMap<String,Object>> pars = Generator.parseParameters(type,parameters,errors,warnings);
-            if(pars != null) {
-                for(HashMap<String,Object> map :pars) {map.put("type",type);}
-                problemParameters.addAll(pars);}}}
-
-    /** analyses the solverParameters and turns them into sequences of objectParameters.
-     * Since the input parameters may specify ranges, each single input parameter may expand to a sequence of parsed parameters*/
-    private void analyseSolverParameters() {
-        solverParameters = new ArrayList<>();
-        for(HashMap<String,String> parameters : solverInputParameters) {
-            String type = parameters.get("type");
-            if(type == null) {errors.append("No solver type specified.\n"); return;}
-            ArrayList<HashMap<String,Object>> pars = Solver.parseParameters(type,parameters,errors,warnings);
-            if(pars != null) {
-                for(HashMap<String,Object> map :pars) {map.put("type",type);}
-                if(pars.size() > 1) {
-                    for(int i = 0; i < pars.size(); ++i) {pars.get(i).put("solverId",type+"_"+i);}}
-                else {pars.get(0).put("solverId",type);}
-                solverParameters.addAll(pars);}}}
-
-
-    /** prints errors and warnings
-     *
-     * @return true if the processing can continue, false if it should stop
-     */
-    private boolean reportErrors() {
-        if(errors.length() != 0) {
-            System.out.println("Errors:");
-            System.out.println(errors.toString());
-            if(warnings.length() != 0) {
-                System.out.println("Warnings:");
-                System.out.println(warnings.toString());}
-            System.out.println("System stops");
-            return false;}
-        if(warnings.length() != 0) {
-            System.out.println("Warnings:");
-            System.out.println(warnings.toString());
-            System.out.println("Processing continues anyway.");}
-        errors = new StringBuilder();
-        warnings = new StringBuilder();
-        return true;}
-
-    /** prints all results to the resultfile.*/
-    private void reportResults() {
-        File file = globalParameters.resultFile;
-        PrintStream stream = System.out;
-        if(file != null) {
-            try {stream = new PrintStream(file);}
-            catch(FileNotFoundException ex) {
-                System.out.println("Resultfile "+ file.getAbsolutePath() + " cannot be opened. Printing to System.out");}}
-        try{
-            stream.println("\n\nResults");
-            stream.println("*******");
-            for(ProblemSupervisor supervisor : problemSupervisors) {
-                supervisor.reportResult(stream);}}
-        finally{if(stream != System.out) {stream.close();}}}
-
-
-    /** initiates the solution of the problems.
+    /** controls the solution of the problems.
      * A ProblemSupervisor is generated for each problem.
-     * It takes care of invoking the solvers
-     *
-     * @return true if the problem was solved
+     * The problemSupervisors are distributed among some threads.
+     * Each problemSupervisor generates the problem and invokes the different solvers.
+     * The results are printed to the various streams.
      */
-    public boolean solve() throws Result {
+    public void solveProblems() {
+        globalParameters.logstream.println("Starting job " + jobname + " at " + LocalDateTime.now());
         problemSupervisors = new ArrayList<>();
-        for(int i = 0; i < problemParameters.size(); ++i) {
-            HashMap<String,Object> parameters = problemParameters.get(i);
-            problemSupervisors.add(new ProblemSupervisor(this,globalParameters, parameters,solverParameters));}
+        for (HashMap<String, Object> parameters : problemParameters) {
+            problemSupervisors.add(
+                    new ProblemSupervisor(this, globalParameters, parameters, solverParameters));}
+        long start = System.nanoTime();
         distributeProblems();
-        if(globalParameters.monitor.monitoring) {globalParameters.monitor.flush();}
-        if(reportErrors()) {reportResults(); return true;}
-        return false;}
+        long end = System.nanoTime(); // only the elapsed solution time is reported.
+        reportResults();
+        globalParameters.logstream.println("Ending job   " + jobname + " at " + LocalDateTime.now());
+        globalParameters.logstream.println("Elapsed time" + (float)(end-start)/1000.0 + " ms");
+        globalParameters.logstream.close();
+        }
 
 
     /** distributes the problems to different threads.
      */
-    private void distributeProblems() throws Result {
+    private void distributeProblems(){
+        Monitor errors = new Monitor("Generator Errors for job " + jobname,null,null);
+        Monitor warnings = new Monitor("Generator Warnings for job " + jobname, null,null);
         int nthreads = globalParameters.parallel; // parallel = 5 means: 5 threads work on the problems in parallel
         if(nthreads <= 1) {
             Thread.currentThread().setName("T0");
-            solveProblems(0,problemSupervisors.size()); // sequential processing
+            solveProblems(0,problemSupervisors.size(),errors,warnings); // sequential processing
             return;}
         int nproblems = problemSupervisors.size();
         int groupSize = nproblems / nthreads;
@@ -165,10 +94,12 @@ public class Controller {
         int group = -1;
         for(int thread = 0; thread < nthreads; ++thread) {
             int start = group++ * groupsize;
-            threads[thread] = new Thread(()->solveProblems(start,groupsize),"T"+thread);}
+            threads[thread] = new Thread(()->solveProblems(start,groupsize,errors,warnings),"T"+thread);}
         for(int n = 0; n < nthreads; ++n) {threads[n].start();}
         for(int n = 0; n < nthreads; ++n) {
-            try {threads[n].join();} catch (InterruptedException e) {}}}
+            try {threads[n].join();} catch (InterruptedException e) {}}
+        errors.flush();
+        warnings.flush();}
 
 
     /** solves a group of problems
@@ -176,14 +107,9 @@ public class Controller {
      * @param start the index of the first problem to be solved.
      * @param size the number of problems to be solved sequentially
      */
-     private void solveProblems(int start, int size)  {
-         try{
+     private void solveProblems(int start, int size, Monitor errors, Monitor warnings)  {
         for(int i = start; i < start+size; ++i) {
-            if(i < problemSupervisors.size())  {
-                ProblemSupervisor supervisor = problemSupervisors.get(i);
-                if(supervisor.generateProblem()) {
-                    supervisor.solveProblem();}}}}
-        catch(Result res) {}}
+            if(i < problemSupervisors.size())  problemSupervisors.get(i).solveProblem(errors,warnings);}}
 
     /** collects and prints all statistics
      */
@@ -246,20 +172,19 @@ public class Controller {
         Utilities.printIndented(out,indent,
                 Statistic.statisticToString(Statistic.combineDifferentStatistics(sts,false)));}
 
-    public void close() {
-         globalParameters.close();}
 
-    public synchronized void addError(String error) {
-        errors.append(error).append("\n");}
-
-    public synchronized void addWarning(String warning) {
-        warnings.append(warning).append("\n");
-    }
-
-    public synchronized void addError(StringBuilder error) {
-        errors.append(error);}
-
-    public synchronized void addWarning(StringBuilder warning) {
-        warnings.append(warning);
-    }
+    /** prints all results to the resultfile.*/
+    private void reportResults() {
+        File file = globalParameters.resultFile;
+        PrintStream stream = System.out;
+        if(file != null) {
+            try {stream = new PrintStream(file);}
+            catch(FileNotFoundException ex) {
+                System.out.println("Resultfile "+ file.getAbsolutePath() + " cannot be opened. Printing to System.out");}}
+        try{
+            stream.println("\n\nResults");
+            stream.println("*******");
+            for(ProblemSupervisor supervisor : problemSupervisors) {
+                supervisor.reportResult(stream);}}
+        finally{if(stream != System.out) {stream.close();}}}
 }

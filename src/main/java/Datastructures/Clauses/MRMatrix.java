@@ -1,6 +1,6 @@
 package Datastructures.Clauses;
 
-import Datastructures.Clauses.AllClauses.Clauses;
+import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -30,7 +30,7 @@ import static Utilities.Utilities.*;
  * There are other versions of multi-resolution where resolvents are created.
  */
 public class MRMatrix {
-    private final Clauses allClauses;
+    private final InitializerSimplifier allClauses;
     public Clause[] disjointnessClauses;    // a list of Disjointness clauses
     private final ArrayList<CLiteral>[] dLiterals; // the rearranged list of CLiterals of the disjointness clauses
     private final ArrayList<CLiteral[]> matrix = new ArrayList<>(); // the matrix of clauses
@@ -48,7 +48,7 @@ public class MRMatrix {
      * @param allClauses          the "parent class"
      * @param disjointnessClauses an array of disjointness clauses.
      */
-    public MRMatrix(Clauses allClauses, Clause[] disjointnessClauses) {
+    public MRMatrix(InitializerSimplifier allClauses, Clause[] disjointnessClauses) {
         this.allClauses = allClauses;
         this.disjointnessClauses = disjointnessClauses;
         columnSize = disjointnessClauses.length;

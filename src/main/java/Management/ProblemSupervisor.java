@@ -1,6 +1,6 @@
 package Management;
 
-import Datastructures.Clauses.AllClauses.Clauses;
+import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
 import Datastructures.Results.Result;
@@ -11,7 +11,6 @@ import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
 import Generators.Generator;
 import Solvers.Solver;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -21,6 +20,7 @@ import java.util.HashMap;
  * Created by ohlbach on 09.10.2018.
  */
 public class ProblemSupervisor {
+    public String jobname;
     public String problemId;
 
     public BasicClauseList basicClauseList;
@@ -40,12 +40,10 @@ public class ProblemSupervisor {
     public ClauseSimplifier clauseSimplifier;
     public Thread equivalenceThread;
 
-    public Thread disjointnessThread;
-
     public TwoLitClauses twoLitClauses;
     public Thread twoLitThread;
 
-    public Clauses clauses;
+    public InitializerSimplifier clauses;
     public Thread allClausesThread;
 
     public Thread supervisorThread;
@@ -54,15 +52,16 @@ public class ProblemSupervisor {
     private String monitorId;
     private boolean monitoring;
 
-    public int clauseCounter = 0;
 
     public SupervisorStatistics statistics = null;
 
-    public ProblemSupervisor(Controller controller,GlobalParameters globalParameters,
+    public ProblemSupervisor(Controller controller,
+                             GlobalParameters globalParameters,
                              HashMap<String,Object> problemParameters,
                              ArrayList<HashMap<String,Object>> solverParameters) {
         this.controller             = controller;
-        this.problemId              = (String)problemParameters.get("name");
+        jobname                     = controller.jobname;
+        problemId                   = (String)problemParameters.get("name");
         this.globalParameters       = globalParameters;
         this.problemParameters      = problemParameters;
         this.solverParameters       = solverParameters;
@@ -73,8 +72,55 @@ public class ProblemSupervisor {
         monitorId                   = problemId+"PS";
     }
 
+    public int clauseCounter = 0;
+
     public synchronized int nextClauseId() {
         return ++clauseCounter;}
+
+    public void solveProblem(Monitor errors, Monitor warnings)  {
+        if(!generateProblem(errors, warnings)) return;
+        clauses = new InitializerSimplifier(1,null,this);
+        try{
+            equivalenceThread = new Thread(()-> equivalenceClasses.run());
+            equivalenceThread.start();
+            twoLitThread = new Thread(() -> twoLitClauses.run());
+            twoLitThread.start();
+            allClausesThread = new Thread(() -> clauses.run());
+            allClausesThread.start();
+
+
+            if(result != null) {return;}
+            numberOfSolvers = solverParameters.size();
+            solvers = new Solver[numberOfSolvers];
+            statistics.solvers = numberOfSolvers;
+            Statistic[] solverStatistics = new Statistic[numberOfSolvers];
+            for(int i = 0; i < numberOfSolvers; ++i) {
+                HashMap<String,Object> solverParameter = solverParameters.get(i);
+                solvers[i] = Solver.construct((String)solverParameter.get("type"),i,solverParameter,this);}
+            threads = new Thread[numberOfSolvers];
+            results = new Result[numberOfSolvers];
+            for(int i = 0; i < numberOfSolvers; ++i) {
+                int j = i;
+                threads[i] = new Thread(() -> {results[j] = solvers[j].solve();});}
+            for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
+            for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
+        catch (InterruptedException e) {}
+
+        for(Solver solver : solvers) {
+            System.out.println(solver.getStatistics().toString(false));
+        }
+        globalParameters.log("Solvers finished for problem " + problemId);}
+
+
+    /** reads or generates the SAT-clauses
+     *
+     * @return true if method succeeded, false if an error has occurred
+     */
+    public boolean generateProblem(Monitor errors, Monitor warnings) {
+        String type = (String)problemParameters.get("type");
+        basicClauseList = Generator.generate(type,problemParameters,this,errors,warnings);
+        return basicClauseList != null;}
+
 
     /** a thread which found a solution calls this method to set the result and interrupt all other threads
      *
@@ -92,151 +138,11 @@ public class ProblemSupervisor {
     private void interruptAll() {
         supervisorThread.interrupt();
         if(equivalenceThread != null)  equivalenceThread.interrupt();
-        if(disjointnessThread != null) disjointnessThread.interrupt();
         if(twoLitThread != null)       twoLitThread.interrupt();
         if(allClausesThread != null)   allClausesThread.interrupt();
     }
 
-    /** reads or generates the SAT-clauses
-     *
-     * @return true if method succeeded, false if an error has occurred
-     */
-    public boolean generateProblem() {
-        String type = (String)problemParameters.get("type");
-        StringBuilder errors = new StringBuilder(); StringBuilder warnings = new StringBuilder();
-        basicClauseList = Generator.generate(type,problemParameters,this,errors,warnings);
-        controller.addError(errors); controller.addWarning(warnings);
-        return basicClauseList != null;}
 
-
-    public void solveProblem() throws Result {
-        initializeClasses();
-        initializeAndEqv();
-        clauses = new Clauses(this);
-        try{
-            equivalenceThread = new Thread(()-> equivalenceClasses.run());
-            equivalenceThread.start();
-            twoLitThread = new Thread(() -> twoLitClauses.run());
-            twoLitThread.start();
-            allClausesThread = new Thread(() -> clauses.run());
-            allClausesThread.start();
-
-
-        if(result != null) {return;}
-        numberOfSolvers = solverParameters.size();
-        solvers = new Solver[numberOfSolvers];
-        statistics.solvers = numberOfSolvers;
-        Statistic[] solverStatistics = new Statistic[numberOfSolvers];
-        for(int i = 0; i < numberOfSolvers; ++i) {
-            HashMap<String,Object> solverParameter = solverParameters.get(i);
-            solvers[i] = Solver.construct((String)solverParameter.get("type"),i,solverParameter,this);}
-        threads = new Thread[numberOfSolvers];
-        results = new Result[numberOfSolvers];
-        for(int i = 0; i < numberOfSolvers; ++i) {
-            int j = i;
-            threads[i] = new Thread(() -> {results[j] = solvers[j].solve();});}
-        for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
-        for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
-        catch (InterruptedException e) {}
-
-        for(Solver solver : solvers) {
-            System.out.println(solver.getStatistics().toString(false));
-        }
-        globalParameters.log("Solvers finished for problem " + problemId);}
-
-
-    /** initializes the model, the equivalenceClasses, the disjointnessClasses and the twoLitClauses
-     */
-    private void initializeClasses() {
-        model               = new Model(basicClauseList.predicates,basicClauseList.symboltable);
-        equivalenceClasses  = new EquivalenceClasses(this);
-        //equivalenceClasses  = new EquivalenceClasses(model,problemId, globalParameters.monitor,supervisorThread);
-
-        twoLitClauses       = new TwoLitClauses(this);
-    }
-
-    /** This method initially fills up the model and the equivalenceClasses.
-     * The initial model comes from the conjunctions and the disjunctions with one literal.
-     * The initial equivalence classes come from the basic equivalence clauses.
-     * At this stage there is no further interaction with other parts.
-     *
-     * @throws Unsatisfiable if a contradiction occurs.
-     */
-    private void initializeAndEqv() throws Result {
-        for(int[] basicClause : basicClauseList.conjunctions) {
-            for(int i = 2; i < basicClause.length; ++i) {
-                IntArrayList origin = new IntArrayList(); origin.add(basicClause[0]);
-                model.add(basicClause[i],null);}}
-
-        for(int[] clause : basicClauseList.equivalences) {
-            equivalenceClasses.addBasicEquivalenceClause(clause);}}
-
-    /** sends the disjoints and xors into the corresponding class queues
-     */
-    private void initializeDisjoints() {
-        /*
-        for(int[] basicClause : basicClauseList.disjoints) {
-            disjointnessClasses.addDisjointnessClause(basicClause);}
-        for(int[] basicClause : basicClauseList.xors) {
-            disjointnessClasses.addDisjointnessClause(basicClause);} */}
-
-
-    /** This method is called when a solver has found a new true literal.
-     *  It forwards the literal to all other solvers.
-     *
-     * @param solver   which found the literal
-     * @param literal  the new true literal.
-     */
-    public Result forwardTrueLiteral(Solver solver,int literal) {
-        Result result = null;
-        for(Solver solv : solvers) {
-            if(solv != solver) {
-                result = solv.importTrueLiteral(literal);}
-                if(result.getClass() == Unsatisfiable.class || result.getClass() == Satisfiable.class) {return result;}}
-        return null;}
-
-    /** This method is called when a solver found a new equivalence p == q
-     * It forwards the clause to all other solvers.
-     *
-     * @param solver    which found the equivalence
-     * @param literal1  the first literal of the equivalence
-     * @param literal2  the second literal of the equivalence
-     * @param origins    null or the ids of the basicClauses which imply the equivalence
-     */
-    public void forwardEquivalence(Solver solver, int literal1, int literal2, IntArrayList origins) {
-        for(Solver solv : solvers) {if(solv != solver) solv.importEquivalence(literal1,literal2,origins);}}
-
-    /** This method is called when a solver found a new disjointness p != q
-     * It forwards the clause to all other solvers.
-     *
-     * @param solver    which found the disjointness
-     * @param predicate1  the first literal of the equivalence
-     * @param predicate2  the second literal of the equivalence
-     * @param origins    null or the ids of the basicClauses which imply the disjointness
-     */
-    public void forwardDisjointness(Solver solver, int predicate1, int predicate2, IntArrayList origins) {
-        for(Solver solv : solvers) {if(solv != solver) solv.importDisjointness(predicate1,predicate2,origins);}}
-
-
-
-    /** This method is called when a solver found a new binary clause.
-     * It forwards the clause to all other solvers.
-     *
-     * @param solver    which found the clause
-     * @param literal1  the first literal of the clause
-     * @param literal2  the second literal of the clause
-     */
-    public void forwardBinaryClause(Solver solver, int literal1,int literal2) {
-        for(Solver solv : solvers) {if(solv != solver) solv.importBinaryClause(literal1,literal2);}}
-
-    /** This method is called when a solver found a new clause.
-     * It forwards the clause to all other solvers.
-     *
-     * @param solver    which found the clause
-     * @param literals  the literals of the clause
-     */
-    public void forwardClause(Solver solver, int[] literals) {
-        for(Solver solv : solvers) {if(solv != solver) solv.importClause(literals);}}
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.
      * If the solver succeeded (satisfiable or unsatisfiable) then all other solvers are interrupted. <br>

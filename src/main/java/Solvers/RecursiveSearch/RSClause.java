@@ -105,7 +105,7 @@ public class RSClause {
     protected int unblockedSize() {
         int length = rsLiterals.length;
         for(int i = 0; i < length; ++i) {
-            if(rsLiterals[i].blockingRSNode != null) return i;}
+            if(rsLiterals[i].blockingNodeIds != 0) return i;}
         return length;}
 
     /** computes the number of unblocked literals with multiplicities.
@@ -116,7 +116,7 @@ public class RSClause {
     protected int expandedSize() {
         int size = 0;
         for (RSLiteral rsLiteral : rsLiterals) {
-            if (rsLiteral.blockingRSNode == null) size += Math.min(minLimit,rsLiteral.multiplicity);
+            if (rsLiteral.blockingNodeIds == 0) size += Math.min(minLimit,rsLiteral.multiplicity);
             else break;}
         return size;}
 
@@ -149,7 +149,7 @@ public class RSClause {
         int pos1 = 0;
         for(int i = 0; i < length; ++i) {
             if(rsLiterals[i] == rsLiteral) pos1 = i;
-            if(rsLiterals[i].blockingRSNode != null || i == length-1)  {
+            if(rsLiterals[i].blockingNodeIds != 0 || i == length-1)  {
                 rsLiterals[pos1] = rsLiterals[i-1];
                 rsLiterals[i-1] = rsLiteral;
                 return;}}}
@@ -162,9 +162,14 @@ public class RSClause {
      */
     public boolean contains(int literal) {
         for(RSLiteral rsLiteral : rsLiterals) {
-            if(rsLiteral.blockingRSNode != null) return false;
+            if(rsLiteral.blockingNodeIds != 0) return false;
             if(rsLiteral.literal == literal) return true;}
         return false;}
+
+    protected long blockingNodeIds() {
+        long blockingNodeIds = 0;
+        for(RSLiteral rsLiteral : rsLiterals) blockingNodeIds |= rsLiteral.blockingNodeIds;
+        return blockingNodeIds;}
 
     /** turns the clause into a string
      *

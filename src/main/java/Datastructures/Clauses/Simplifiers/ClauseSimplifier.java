@@ -1,10 +1,9 @@
 package Datastructures.Clauses.Simplifiers;
 
-import Datastructures.Clauses.AllClauses.Clauses;
+import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Clauses.Connective;
-import Datastructures.Clauses.InfEquivalenceReplacements;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
@@ -34,7 +33,7 @@ public class ClauseSimplifier {
     private final IntUnaryOperator getRepresentative;
     private final IntUnaryOperator getTruthStatus;
     private final BucketSortedIndex<CLiteral> literalIndex;
-    private final Clauses clauses;
+    private final InitializerSimplifier clauses;
 
     /** generates a Clause Transformer.
      * It can simplify all clause types and transform them into conjunctive normal form.
@@ -42,7 +41,7 @@ public class ClauseSimplifier {
      * @param clauses which keep all the clauses.
      * @param thread the calling thread
      */
-    public ClauseSimplifier(Clauses clauses,Thread thread) {
+    public ClauseSimplifier(InitializerSimplifier clauses, Thread thread) {
         this.clauses = clauses;
         problemSupervisor = clauses.problemSupervisor;
         monitor = clauses.monitor;

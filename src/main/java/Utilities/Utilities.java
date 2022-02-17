@@ -4,6 +4,7 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
+import Management.Monitor;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -41,15 +42,16 @@ public class Utilities {
 
     /** parses a string-representation of an integer
      *
+     * @param title for error reporting
      * @param place for error reporting
      * @param value the string to be parsed
      * @param errors for appending error messages
      * @return the parsed Integer, or null
      */
-    public static Integer parseInteger(String place, String value, StringBuilder errors) {
+    public static Integer parseInteger(String title, String place, String value, Monitor errors) {
         if(value == null) {return null;}
         try{return Integer.parseInt(value);}
-        catch(NumberFormatException ex) {errors.append(place+"'" + value + "' is no integer\n");}
+        catch(NumberFormatException ex) {errors.print(title,place+" '" + value + "' is no integer\n");}
         return null;}
 
     /** trys to pars a string as integer.
@@ -104,7 +106,7 @@ public class Utilities {
      * @param errors for appending error messages
      * @return the expanded integer list
      */
-    public static ArrayList<Integer> parseIntRange(String place, String value, StringBuilder errors) {
+    public static ArrayList<Integer> parseIntRange(String title, String place, String value, Monitor errors) {
         if(value == null) {return null;}
         ArrayList<Integer> range = new ArrayList();
         try{Integer n =  Integer.parseInt(value);
@@ -115,29 +117,29 @@ public class Utilities {
             if(value.contains("to")) {
                 if(!value.contains("step")) {// 3-5
                     parts = value.split("\\s*to\\s*",2);
-                    Integer from = parseInteger(place,parts[0],errors);
-                    Integer to = parseInteger(place,parts[1],errors);
+                    Integer from = parseInteger(title,place,parts[0],errors);
+                    Integer to = parseInteger(title,place,parts[1],errors);
                     if(from != null && to != null ) {
-                        if(to < from) {errors.append(place+ "to < from: " + value);}
+                        if(to < from) {errors.print(title,place+ " to < from: " + value);}
                         for(int n = from; n <= to; ++n) {range.add(n);}}
                     else {return null;}
                     return range;}
                 else {  // 3-10 step 2
                     parts = value.split("\\s*(to|step)\\s*",3);
-                    Integer from = parseInteger(place,parts[0],errors);
-                    Integer to = parseInteger(place,parts[1],errors);
-                    Integer step = parseInteger(place,parts[2],errors);
+                    Integer from = parseInteger(title,place,parts[0],errors);
+                    Integer to = parseInteger(title,place,parts[1],errors);
+                    Integer step = parseInteger(title,place,parts[2],errors);
                     if(from != null && to != null && step != null) {
-                        if(step < 0) {errors.append(place+"negative step " + step); return null;}
-                        if(to < from) {errors.append(place+ "to < from: " + value); return null;}
+                        if(step < 0) {errors.print(title,place+"negative step " + step); return null;}
+                        if(to < from) {errors.print(title,place+ "to < from: " + value); return null;}
                         for(int n = from; n <= to; n += step) {range.add(n);}}
                     else {return null;}
                     return range;}}}
             for(String part : value.split("(\\s+|\\s*,\\s*)")) {
-                Integer n = parseInteger(place,part,errors);
+                Integer n = parseInteger(title,place,part,errors);
                 if(n != null) {range.add(n);}
                 else {
-                    errors.append("\n  The format should be: integer or comma separated integer or 'integer to integer'." );
+                    errors.print(title, "The format should be: integer or comma separated integer or 'integer to integer'." );
                     return null;
                     }}
             return range;}

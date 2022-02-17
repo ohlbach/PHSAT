@@ -12,7 +12,7 @@ public class RSLiteral {
     protected final int literal;             // the literal itself
     protected final short multiplicity;      // its multiplicity (p^n)
     protected final RSClause clause;         // the clause containing the literal
-    protected RSNode blockingRSNode = null;  // a node in the recursive search which blocks the literal
+    protected long blockingNodeIds = 0;     // a node in the recursive search which blocks the literal
 
     /** constructs a new RS-literal
      *
@@ -43,28 +43,27 @@ public class RSLiteral {
      * @param rsNode the current search node.
      * @return null or the now empty or contradictory clause.
      */
-    protected RSClause declareFalse(RSNode rsNode) {
-        this.blockingRSNode = rsNode;
+    protected RSNode declareFalse(RSNode rsNode) {
         clause.move(this);
+        blockingNodeIds = rsNode.blockingNodeId;
         rsNode.addFalseRSLiteral(this);
 
         if(clause.minLimit == 1) {
             switch(clause.unblockedSize()) {
-                case 0: clause.block(rsNode); return clause; // empty clause
-                case 1: clause.block(rsNode); rsNode.addTrueLiteral(clause.rsLiterals[0].literal);
+                case 0: clause.block(rsNode); return rsNode.backtrack(clause.blockingNodeIds()); // empty clause
+                case 1: clause.block(rsNode); rsNode.addTrueLiteral(literal,clause.blockingNodeIds());
             return null;}}
 
         int expandedSize = clause.expandedSize();
         if(expandedSize == clause.minLimit) { // atleast 3 p^2,q -> true(p,q)
             for(RSLiteral rsLiteral : clause.rsLiterals) {
-                if(rsLiteral.blockingRSNode != null) break;
-                rsNode.addTrueLiteral(rsLiteral.literal);}
+                if(rsLiteral.blockingNodeIds != 0) break;
+                rsNode.addTrueLiteral(literal,clause.blockingNodeIds());}
             clause.block(rsNode);
             return null;}
 
         if(expandedSize > clause.minLimit) {// contradiction like atleast 3 p,q
-            clause.block(rsNode);
-            return clause;}
+            return rsNode.backtrack(clause.blockingNodeIds());}
         return null;}
 
     /** declares the literal being temporarily true.
@@ -84,7 +83,7 @@ public class RSLiteral {
         if(multiplicity >= clause.minLimit) {clause.block(rsNode); return;}
         clause.minLimit -= multiplicity;
         clause.move(this);
-        blockingRSNode = rsNode;
+        blockingNodeIds = rsNode.blockingNodeId;
         rsNode.addTrueRSLiteral(this); // can be unblocked(true)
         assert clause.expandedSize() > clause.minLimit;}
 
@@ -93,13 +92,13 @@ public class RSLiteral {
      */
     protected void unblockTrue() {
         clause.minLimit += multiplicity;
-        blockingRSNode = null;}
+        blockingNodeIds = 0;}
 
     /** unblocks the false literal on backtracking.
      * If the literal was true then the clause's minLimit is increased by its multiplicity.
      */
     protected void unblockFalse() {
-        blockingRSNode = null;}
+        blockingNodeIds = 0;}
 
 
     /** turns the clause into a string
@@ -116,9 +115,7 @@ public class RSLiteral {
      * @return             the literal as string
      */
     public String toString(Symboltable symboltable) {
-        StringBuilder st = new StringBuilder();
-            if(blockingRSNode != null) st.append("|"+Symboltable.toString(blockingRSNode.selectedLiteral(),symboltable)+"|");
-            st.append(Symboltable.toString(literal,symboltable));
+        StringBuilder st = new StringBuilder();st.append(Symboltable.toString(literal,symboltable));
             if(multiplicity > 1) st.append("^"+multiplicity);
         return st.toString();}
 }

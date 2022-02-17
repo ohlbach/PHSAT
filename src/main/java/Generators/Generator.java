@@ -1,6 +1,7 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
+import Management.Monitor;
 import Management.ProblemSupervisor;
 
 import java.lang.reflect.Method;
@@ -11,9 +12,9 @@ import java.util.HashMap;
  * The generator classes generate SAT-Problems from different sources. <br>
  * Each generator class should provide the following static methods: <br>
  *  - public static help()  for producing a help text<br>
- *  - public static ArrayList&lt;HashMap&lt;String,Object&gt;&gt; parseParameters(HashMap&lt;String,String&gt; parameters, StringBuilder errors, StringBuilder warnings) <br>
+ *  - public static ArrayList&lt;HashMap&lt;String,Object&gt;&gt; parseParameters(HashMap&lt;String,String&gt; parameters, Monitor errors, Monitor warnings) <br>
  *  - public static HashMap&lt;String,Object&gt; generate(HashMap&lt;String,Object&gt; parameters,
- *               ProblemSupervisor problemSupervisor, StringBuilder errors, StringBuilder warnings) <br>
+ *               ProblemSupervisor problemSupervisor, Monitor errors, Monitor warnings) <br>
  * <br>
  * The parseParameters method turns parameters as strings into sequences of parameters as objects <br>
  * The generate method generates a BasicClauseList and puts it as parameter "clauses" into the parameters map.
@@ -85,11 +86,11 @@ public abstract class Generator {
      * @return           a list of key-value maps where the values are objects.
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(String name, HashMap<String,String> parameters,
-                                                                    StringBuilder errors, StringBuilder warnings) {
+                                                                    Monitor errors, Monitor warnings) {
         Class clazz = generatorClass(name);
-        if(clazz == null) {errors.append("Unknown generator class: " + name+"\n"); return null;}
+        if(clazz == null) {errors.print("Problem Generator","Unknown generator class: " + name); return null;}
         try{
-            Method parser = clazz.getMethod("parseParameters",HashMap.class,StringBuilder.class, StringBuilder.class);
+            Method parser = clazz.getMethod("parseParameters",HashMap.class,Monitor.class, Monitor.class);
             return (ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
@@ -105,11 +106,11 @@ public abstract class Generator {
      */
     public static BasicClauseList generate(String name, HashMap<String,Object> parameters,
                                            ProblemSupervisor problemSupervisor,
-                                           StringBuilder errors, StringBuilder warnings) {
+                                           Monitor errors, Monitor warnings) {
         Class clazz = generatorClass(name);
-        if(clazz == null) {errors.append("Unknown generator class: " + name+"\n"); return null;}
+        if(clazz == null) {errors.print("Problem Generator","Unknown generator class: " + name); return null;}
         try{
-            Method generator = clazz.getMethod("generate",HashMap.class, ProblemSupervisor.class,StringBuilder.class, StringBuilder.class);
+            Method generator = clazz.getMethod("generate",HashMap.class, ProblemSupervisor.class,Monitor.class, Monitor.class);
             return (BasicClauseList) generator.invoke(null,parameters,problemSupervisor,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}

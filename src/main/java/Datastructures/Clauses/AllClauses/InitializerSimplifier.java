@@ -11,6 +11,7 @@ import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
+import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Task;
 import Datastructures.Theory.EquivalenceClasses;
@@ -19,16 +20,15 @@ import Datastructures.TwoLiteral.TwoLitClauses;
 import InferenceSteps.InferenceStep;
 import Management.Monitor;
 import Management.ProblemSupervisor;
+import Solvers.Solver;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.*;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.IntSupplier;
 
-public class Clauses extends Thread {
+public class InitializerSimplifier extends Solver {
     /** supervises the problem solution */
     public final ProblemSupervisor problemSupervisor;
     private final String problemId;
@@ -52,6 +52,83 @@ public class Clauses extends Thread {
     private final HashMap<Integer,Clause> clauses = new HashMap<>();
     public final BucketSortedIndex<CLiteral> literalIndex;
 
+    // static methods for the initializer part
+    public static String helpInitializer() {
+        return "Simplifier: parameters:\n" +
+                "seed:   for the random number generator      (default: 0)\n";}
+
+    private static final HashSet<String> keysInitializer = new HashSet<>(); // contains the allowed keys in the specification.
+    static { // these are the allowed keys in the specification.
+        Collections.addAll(keysInitializer, "name", "seed", "flips", "jumps", "type", "solver");}
+
+    /** parses a HashMap with key-value pairs<br>
+     *
+     * @param parameters  the parameters with the keys "seed", "flips", "jumps"
+     * @param errors      for error messages
+     * @param warnings    for warnings
+     * @return            a list of HashMaps with these keys.
+     */
+    public static HashMap<String,Object> parseParametersInitializer(HashMap<String,String> parameters, Monitor errors, Monitor warnings) {
+        for (String key : parameters.keySet()) {
+            if (!keysInitializer.contains(key)) {
+                warnings.print("test","Simplifier: unknown key in parameters: " + key + "\n" +
+                        "        allowed keys: seed, flips, jumps.\n");
+            }
+        }
+        HashMap<String, Object> list = new HashMap();
+        String seeds = parameters.get("seed");
+        if (seeds == null) seeds = "0";
+        return list;
+    }
+
+
+    // static methods for the simplifier part
+    public static String help() {
+        return "Simplifier: parameters:\n" +
+                "seed:   for the random number generator      (default: 0)\n";}
+
+    private static final HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
+    static { // these are the allowed keys in the specification.
+        Collections.addAll(keys, "name", "seed", "flips", "jumps", "type", "solver");}
+
+    /** parses a HashMap with key-value pairs<br>
+     *
+     * @param parameters  the parameters with the keys "seed", "flips", "jumps"
+     * @param errors      for error messages
+     * @param warnings    for warnings
+     * @return            a list of HashMaps with these keys.
+     */
+    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuilder errors, StringBuilder warnings) {
+        for (String key : parameters.keySet()) {
+            if (!keys.contains(key)) {
+                warnings.append("Simplifier: unknown key in parameters: " + key + "\n" +
+                        "        allowed keys: seed, flips, jumps.\n");
+            }
+        }
+        ArrayList<HashMap<String, Object>> list = new ArrayList<>();
+        String seeds = parameters.get("seed");
+        if (seeds == null) seeds = "0";
+        return list;
+    }
+
+
+
+
+        @Override
+    public Result solve() {
+        return null;
+    }
+
+    @Override
+    public void prepare() {
+
+    }
+
+    @Override
+    public Statistic getStatistics() {
+        return null;
+    }
+
 
     private enum TaskType {
         TRUELITERAL, EQUIVALENCE, INTEGRATE_CLAUSE, INTEGRATE_SHORTENED_CLAUSE, TWOLITCLAUSE, SIMPLIFYALL, SIMPLIFYOTHERS,
@@ -63,7 +140,7 @@ public class Clauses extends Thread {
      * @param task the objects in the queue
      * @return the priority of the objects in the queue.
      */
-    private int getPriority(Task<Clauses.TaskType> task) {
+    private int getPriority(Task<InitializerSimplifier.TaskType> task) {
         switch(task.taskType) {
             case TRUELITERAL:  return 0;
             case INTEGRATE_SHORTENED_CLAUSE: return ((Clause)task.a).size();
@@ -78,14 +155,15 @@ public class Clauses extends Thread {
     /** A queue of newly derived unit literals, newly derived binary equivalences and disjointness clauses
      * The unit literals are automatically put at the beginning of the queue.
      */
-    private final PriorityBlockingQueue<Task<Clauses.TaskType>> queue =
+    private final PriorityBlockingQueue<Task<InitializerSimplifier.TaskType>> queue =
             new PriorityBlockingQueue<>(10, Comparator.comparingInt(this::getPriority));
 
     /** constructs a new AllClauses instance
      *
      * @param problemSupervisor    coordinates several solvers.
      */
-    public Clauses(ProblemSupervisor problemSupervisor) {
+    public InitializerSimplifier(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
+        super(solverNumber,solverParameters, problemSupervisor);
         this.problemSupervisor = problemSupervisor;
         problemSupervisor.clauses = this;
         problemId = problemSupervisor.problemId;
@@ -124,7 +202,7 @@ public class Clauses extends Thread {
                 integrateClause(clause);}}
         catch(Unsatisfiable unsatisfiable) {
              unsatisfiable.problemId   = problemId;
-             unsatisfiable.solverClass = Clauses.class;
+             unsatisfiable.solverClass = InitializerSimplifier.class;
              unsatisfiable.solverId    = "Clauses";
              unsatisfiable.statistic   = statistics;
              unsatisfiable.symboltable = symboltable;
@@ -187,7 +265,7 @@ public class Clauses extends Thread {
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
             Symboltable.toString(literal,model.symboltable));}
-        queue.add(new Task<>(Clauses.TaskType.TRUELITERAL, literal, step));}
+        queue.add(new Task<>(InitializerSimplifier.TaskType.TRUELITERAL, literal, step));}
 
     /** puts an equivalence into the queue
      *
@@ -251,7 +329,7 @@ public class Clauses extends Thread {
         while(!Thread.interrupted()) {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting:\n"+Task.queueToString(queue));}
-                Task<Clauses.TaskType> task = queue.take(); // waits if the queue is empty
+                Task<InitializerSimplifier.TaskType> task = queue.take(); // waits if the queue is empty
                 if(monitoring) System.out.println("Next Task: " + task.toString());
                 switch (task.taskType) {
                     case TRUELITERAL:

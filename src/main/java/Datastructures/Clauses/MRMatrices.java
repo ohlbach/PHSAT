@@ -1,15 +1,15 @@
 package Datastructures.Clauses;
 
-import Datastructures.Clauses.AllClauses.Clauses;
+import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.TwoLiteral.TwoLitClause;
 
 import java.util.ArrayList;
 
 public class MRMatrices {
-    private Clauses allClauses;
+    private InitializerSimplifier allClauses;
 
-    public MRMatrices(Clauses allClauses) {
+    public MRMatrices(InitializerSimplifier allClauses) {
         this.allClauses = allClauses;}
 
     public void mrResolve(Clause[] disjointnessClauses, ArrayList<Clause> clauses, ArrayList<TwoLitClause> twoLitClauses) throws Unsatisfiable {

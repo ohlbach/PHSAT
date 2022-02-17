@@ -4,6 +4,7 @@ package Datastructures.Clauses;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import Management.Monitor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,19 +53,6 @@ public class BasicClauseList {
 
     public BasicClauseList() {}
 
-    /** adds the clauses to the corresponding lists.
-     *
-     * @param clauses a list of clauses
-     * @return null or a string if clauses are syntactically wrong or contain double literals.
-     */
-    public String addClauses(int[]... clauses) {
-        StringBuilder errors   = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
-        for (int[] clause : clauses) addClause(clause,"",errors,warnings);
-        if(errors.length() == 0  && warnings.length() == 0) return null;
-        return errors.toString() + warnings;}
-
-
     /** adds a clause to the corresponding lists.
      *  Erroneous clauses are not added to the lists
      *
@@ -73,7 +61,7 @@ public class BasicClauseList {
      * @param errors      for error messages
      * @param warnings    for warnings
      */
-    public void addClause(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
+    public void addClause(int[] clause, String errorPrefix, Monitor errors, Monitor warnings) {
         clause = checkSyntax(clause,errorPrefix, errors, warnings);
         if(clause == null) return;
         Connective connective = Connective.getType(clause[1]);
@@ -102,7 +90,7 @@ public class BasicClauseList {
      * @param warnings     for adding a warning
      * @return null or the original clause
      */
-    protected int[] checkSyntax(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
+    protected int[] checkSyntax(int[] clause, String errorPrefix, Monitor errors, Monitor warnings) {
         errorPrefix += "Clause " + Arrays.toString(clause) + ": ";
         int type = clause[1];
         Connective connective = Connective.getType(type);
