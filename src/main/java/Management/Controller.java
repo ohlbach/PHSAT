@@ -9,6 +9,7 @@ import Utilities.Utilities;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,6 +35,8 @@ public class Controller {
 
     public ArrayList<ProblemSupervisor> problemSupervisors = null;
     public Thread[] threads = null;
+    public final Monitor errors;
+    public final Monitor warnings;
 
 
     /** generates a new controller
@@ -46,12 +49,15 @@ public class Controller {
                       GlobalParameters globalParameters,
                       HashMap<String,Object> initializeParameters,
                       ArrayList<HashMap<String,Object>> problemParameters,
-                      ArrayList<HashMap<String,Object>> solverParameters) {
+                      ArrayList<HashMap<String,Object>> solverParameters,
+                      Monitor errors, Monitor warnings) {
         this.jobname = jobname;
         this.globalParameters  = globalParameters;
         this.initializeParameters = initializeParameters;
         this.problemParameters = problemParameters;
-        this.solverParameters  = solverParameters;}
+        this.solverParameters  = solverParameters;
+        this.errors            = errors;
+        this.warnings          = warnings;}
 
 
     /** controls the solution of the problems.
@@ -68,6 +74,8 @@ public class Controller {
                     new ProblemSupervisor(this, globalParameters, parameters, solverParameters));}
         long start = System.nanoTime();
         distributeProblems();
+        errors.flush(true);
+        warnings.flush(true);
         long end = System.nanoTime(); // only the elapsed solution time is reported.
         reportResults();
         globalParameters.logstream.println("Ending job   " + jobname + " at " + LocalDateTime.now());
@@ -79,12 +87,10 @@ public class Controller {
     /** distributes the problems to different threads.
      */
     private void distributeProblems(){
-        Monitor errors = new Monitor("Generator Errors for job " + jobname,null,null);
-        Monitor warnings = new Monitor("Generator Warnings for job " + jobname, null,null);
         int nthreads = globalParameters.parallel; // parallel = 5 means: 5 threads work on the problems in parallel
         if(nthreads <= 1) {
             Thread.currentThread().setName("T0");
-            solveProblems(0,problemSupervisors.size(),errors,warnings); // sequential processing
+            solveProblems(0,problemSupervisors.size()); // sequential processing
             return;}
         int nproblems = problemSupervisors.size();
         int groupSize = nproblems / nthreads;
@@ -94,12 +100,10 @@ public class Controller {
         int group = -1;
         for(int thread = 0; thread < nthreads; ++thread) {
             int start = group++ * groupsize;
-            threads[thread] = new Thread(()->solveProblems(start,groupsize,errors,warnings),"T"+thread);}
+            threads[thread] = new Thread(()->solveProblems(start,groupsize),"T"+thread);}
         for(int n = 0; n < nthreads; ++n) {threads[n].start();}
         for(int n = 0; n < nthreads; ++n) {
-            try {threads[n].join();} catch (InterruptedException e) {}}
-        errors.flush();
-        warnings.flush();}
+            try {threads[n].join();} catch (InterruptedException e) {}}}
 
 
     /** solves a group of problems
@@ -107,13 +111,14 @@ public class Controller {
      * @param start the index of the first problem to be solved.
      * @param size the number of problems to be solved sequentially
      */
-     private void solveProblems(int start, int size, Monitor errors, Monitor warnings)  {
+     private void solveProblems(int start, int size)  {
         for(int i = start; i < start+size; ++i) {
             if(i < problemSupervisors.size())  problemSupervisors.get(i).solveProblem(errors,warnings);}}
 
     /** collects and prints all statistics
      */
     public void printStatistics() {
+        /*
         ArrayList<Statistic[]> statistics = new ArrayList<>();  // problem,preProcessor,centralProcessor,solvers...
         for(ProblemSupervisor supervisor : problemSupervisors) {statistics.add(supervisor.collectStatistics());}
         PrintStream textStream = null;
@@ -127,6 +132,8 @@ public class Controller {
             printIndividualTextStatistics(textStream,statistics);
             if(statistics.size() > 1) {printCombinedTextStatistics(textStream,statistics);}
             if(textStream != System.out) {textStream.close();}}
+            */
+
      }
 
     /** prints for each problem separately all statistics
@@ -175,12 +182,12 @@ public class Controller {
 
     /** prints all results to the resultfile.*/
     private void reportResults() {
-        File file = globalParameters.resultFile;
         PrintStream stream = System.out;
-        if(file != null) {
+        if(globalParameters.directory != null) {
+            File file = Paths.get(globalParameters.directory.toString(),jobname+"-results.txt").toFile();
             try {stream = new PrintStream(file);}
             catch(FileNotFoundException ex) {
-                System.out.println("Resultfile "+ file.getAbsolutePath() + " cannot be opened. Printing to System.out");}}
+                System.out.println("Resultfile "+ file + " cannot be opened. Printing to System.out");}}
         try{
             stream.println("\n\nResults");
             stream.println("*******");

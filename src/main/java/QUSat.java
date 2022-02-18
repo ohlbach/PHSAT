@@ -7,6 +7,7 @@ import Management.Monitor;
 import Solvers.Solver;
 
 import java.io.*;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,8 +40,10 @@ import java.util.HashMap;
 public class QUSat {
 
     /** This is a file with default parameters for 'global' and 'solver'. */
-    private static final File DefaultFile = Paths.get(System.getProperties().get("user.dir").toString(),
-            "src","main","resources","DefaultParameters.phs").toFile();
+    private static final File defaultFile = Paths.get(System.getProperties().get("user.dir").toString(),
+            "src","main","resources","DefaultParameters.qsat").toFile();
+
+    private static final String homeDirectory = System.getenv("USERPROFILE");
 
     public String jobname;
     private Monitor errors;
@@ -54,6 +57,8 @@ public class QUSat {
 
 
     /** The main method can be called with or without arguments. <br>
+     * If there are no arguments then the control parameters are read from System.in<br>
+     * In this case the first line must either be a help command or a jobname.<br>
      * If the first argument is 'help' then help-strings are printed
      * - help global:           prints the global help strings<br>
      * - help initialize:       prints the initializer help strings<br>
@@ -61,9 +66,11 @@ public class QUSat {
      * - help [solver name]:    prints the help strings of the solver<br>
      * - help:                  prints all help strings.
      * <br>
-     * In the other case args[0] is the jobname (any string) and args[1]
-     * must be a filename. The parameters are read from this file.<br>
-     * If the filename ends with .cnf then this is a clause file. <br>
+     * In the other cases the default control parameters are first read from the defaultFile. <br>
+     * The other parameters may overwirte the default parameters.<br>
+     * args[0] is the jobname (any string) and args[1]
+     * must be a pathname relative to the homedirectory. The parameters are read from this file.<br>
+     * If the pathname ends with .cnf then this is a clause file. <br>
      * The file is not read here, but in the corresponding generator.<br>
      * If only a .cnf file is given then all control parameters are read from a default file.
      * <br>
@@ -74,19 +81,20 @@ public class QUSat {
     public static void  main(String[] args) {
         //args = new String[]{"help","global"};
         //args = new String[]{Utilities.resourceFile("Purity.cnf")};
-        if(args.length > 0 && args[0].trim().equals("help")) {help(args); return;}
+        KVParser kvParser = new KVParser("global", "problem", "initialize", "solver");
 
-        if(args.length < 2) {
-            System.out.println("Not enough arguments. At least a jobname is necessary");
+         if(args.length == 0) {
+             String jobname = parseInStream(kvParser); // Input from System.in.
+            if(jobname != null) {                      // it was no help command
+                QUSat quSat = new QUSat(jobname, kvParser);
+                if(quSat.controller != null) quSat.controller.solveProblems();}
             return;}
 
-        QUSat quSat = new QUSat(args);
-        if(quSat.controller == null) return;
-        long start = System.nanoTime();
-        quSat.controller.solveProblems();
-        long end = System.nanoTime();
-        quSat.globalParameters.logstream.println("Solver Time: " + (float)(end-start)/1000.0 + " ms");
-    }
+        if(args[0].trim().equals("help")) {help(args); return;}
+
+        readParameters(args[1], kvParser); // may produce an exception and stop
+        QUSat quSat = new QUSat(args[0], kvParser);
+        if(quSat.controller != null) quSat.controller.solveProblems();}
 
     /** This method calls the help()-methods and prints the results.
      * - help global:           prints the global help strings<br>
@@ -114,24 +122,34 @@ public class QUSat {
         System.out.println(Solver.help());}
 
 
-    /** Constructs a QUSat object, which reads and parses the arguments.
+    /** Constructs a QUSat object, which parses the arguments.
      * Finally, it creates a Controller, which can control the entire processing of the problem.
-     * args[0] is the jobname (any string) and args[1]
-     * must be a filename. The parameters are read from this file.<br>
-     * If the filename ends with .cnf then this is a clause file. <br>
-     * The file is not read here, but in the corresponding generator.<br>
-     * If only a .cnf file is given then all control parameters are read from a default file.
      *
-     * @param args for the commands
+     * @param jobname the name of the job
+     * @param kvParser the filled key-value parser
      */
-    private QUSat(String[] args) {
-        jobname = args[0];
-        KVParser kvParser = new KVParser("global", "problem", "initialize", "solver");
-        if(!readParameters(args, kvParser)) return;
-        errors   = new Monitor("Parameter Errors",null,"mixed");
-        warnings = new Monitor("Parameter Warnings",null,"mixed");
-
+    private QUSat(String jobname, KVParser kvParser) {
+        this.jobname = jobname;
         ArrayList<HashMap<String,String>> globalParameterList = kvParser.get("global");
+        HashMap<String,String> globalInputParameters =
+                ((globalParameterList != null && !globalParameterList.isEmpty()) ?
+                globalParameterList.get(0) : null);
+
+        File errorFile = null;
+        File warningFile = null;
+        boolean live = true;
+
+        if(globalInputParameters != null) {
+            String directory = globalInputParameters.get("directory");
+            Path path = (directory == null) ? Paths.get(homeDirectory) :
+                    Paths.get(homeDirectory,directory);
+            errorFile   = Paths.get(path.toString(),jobname+"-errors.txt").toFile();
+            warningFile = Paths.get(path.toString(),jobname+"-warnings.txt").toFile();
+            live = globalInputParameters.get("errors2File") == null;}
+
+        errors   = new Monitor("Parameter Errors",errorFile,live);
+        warnings = new Monitor("Parameter Warnings",warningFile,live);
+
         if(globalParameterList != null && globalParameterList.size() > 1) {
             warnings.print("Global Parameters",
                     "There should be only one set. The superfluous sets are ignored.");}
@@ -139,45 +157,42 @@ public class QUSat {
         if(initializeParameterList != null && initializeParameterList.size() > 1) {
             warnings.print("Initialize Parameters",
                     "There should be only one set. The superfluous sets are ignored.");}
-
-        analyseParameters(((globalParameterList != null && !globalParameterList.isEmpty()) ?
-                    globalParameterList.get(0) : null),
+        analyseParameters(globalInputParameters,
                 ((initializeParameterList != null && !initializeParameterList.isEmpty()) ?
                     initializeParameterList.get(0) : null),
                 kvParser.get("problem"),
                 kvParser.get("solver"));
         if(errors.filled) {
-            errors.flush();
-            warnings.flush();
+            errors.flush(true);
+            warnings.flush(true);
             return;}      // parameters have errors. Stop the process.
-        controller = new Controller(jobname,globalParameters,initializeParameters,problemParameters, solverParameters);
+        controller = new Controller(jobname,globalParameters,initializeParameters,problemParameters, solverParameters, errors,warnings);
     }
 
 
 
-    /** reads the parameters for the current job and fills the kvParser
-     * If args.length = 1 then the parameters are read from system.in <br>
-     * Otherwise args[1] must be a filename. The parameters are read from this file.<br>
-     * If the filename ends with .cnf then this is a clause file. <br>
-     * The file is not read here, but in the corresponding generator.<br>
-     * If only a .cnf file is given then all control parameters are read from a default file.
+    /** reads the commands for the current job and fills the kvParser
+     * All default parameters are first read from the default file.
+     * If filename ends with .cnf then this is noticed in the kvParser.
+     * The file itself is read in the generator.
+     * Otherwise the file must contain the control parameters which overwrite the defaults.
      *
-     * @param args     the input strings
+     * A read error causes an exception which stops the program.
+     *
+     * @param filename a filename
      * @param kvParser a key-value parser
-     * @return true    if it was not a help command
      */
-    private static boolean readParameters(String[] args, KVParser kvParser) {
-        if(args.length == 2) {
-            if(args[1].endsWith(".cnf")) {
-                kvParser.addLine("problem");
-                kvParser.addLine("type = file");
-                kvParser.addLine("file = " + args[0]);}
-            else{kvParser.parseFile(args[1]);} // may produce an exception and stop
-            readDefaults(kvParser);            // may produce an exception and stop
-            return true;}
-        if(!parseInStream(kvParser)) return false;
-        readDefaults(kvParser);
-        return true;}
+    private static void readParameters(String filename, KVParser kvParser) {
+        kvParser.parseFile(defaultFile.getAbsolutePath());  // may produce an exception and stop
+        if(filename.endsWith(".cnf")) {
+            kvParser.addLine("problem");
+            kvParser.addLine("type = file");
+            kvParser.addLine("file = " + filename);}
+        else{
+            String homeDirectory = System.getenv("USERPROFILE");
+            kvParser.parseFile(Paths.get(homeDirectory,filename).toString());} // may produce an exception and stop
+    }
+
 
     /** analyses the input specifications and turns them into internal data structures.
      */
@@ -203,7 +218,7 @@ public class QUSat {
         for(HashMap<String,String> parameters : problemInputParameters) {
             String type = parameters.get("type");
             if(type == null) {
-                errors.print("Problem Parameter",
+                errors.print("Problem Parameters",
                         "No problem type specified\n"+ parameters);
                 continue;}
             ArrayList<HashMap<String,Object>> pars = Generator.parseParameters(type,parameters,errors,warnings);
@@ -235,34 +250,23 @@ public class QUSat {
      * @param kvParser for parsing the specification
      * @return true if it was no help command and the parsing succeeded
      */
-    private static boolean parseInStream(KVParser kvParser) {
+    private static String parseInStream(KVParser kvParser) {
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         String line;
         try {  // check if it is a help-command
             line = reader.readLine();
             if (line.startsWith("help")) {
                 help(line.trim().split("\\s*[=,: ]\\s*"));
-                return false;}
-            kvParser.addLine(line);          // it was no help command.
+                return null;}
+            String jobname = line;
+            kvParser.parseFile(defaultFile.getAbsolutePath());
             kvParser.parseStream(System.in); // the rest must be parsed.
-            return true;}
+            return jobname;}
         catch(IOException ex) {
+            System.out.println(ex);
             ex.printStackTrace();
             System.exit(1);}
-        return false;}
+        return null;}
 
-
-    /** This method reads missing parameter types, 'global' and 'solver' from a default file.
-     * The missing parameters are added to the kvParser's data.
-     *
-     * @param kvParser the parser with possibly missing 'global' and 'solver' parameters.
-     */
-    private static void readDefaults(KVParser kvParser) {
-        if(!kvParser.get("global").isEmpty() &&  !kvParser.get("solver").isEmpty()) {return;}
-        KVParser defaultParser = new KVParser("global", "problem", "initialize", "solver");
-        defaultParser.parseFile(DefaultFile.getAbsolutePath());
-        if(kvParser.get("global").isEmpty())     {kvParser.set("global",defaultParser.get("global"));}
-        if(kvParser.get("solver").isEmpty())     {kvParser.set("solver",defaultParser.get("solver"));}
-        if(kvParser.get("initialize").isEmpty()) {kvParser.set("initialize",defaultParser.get("initialize"));}}
 
 }

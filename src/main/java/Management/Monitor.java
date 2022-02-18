@@ -3,7 +3,6 @@ package Management;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,13 +12,13 @@ import java.util.Map;
  * Created by ohlbach on 12.10.2018.
  */
 public class Monitor {
-    public boolean monitoring  = false;      // if false then all messages are ignored
-    private boolean live  = false;      // if true then the messages are collected and printed at flush
-    private File file          = null;       // a file where to print the messages
-    private PrintStream out    = System.out; // a stream where to print the messages
+    public boolean monitoring  = false;   // if false then all messages are ignored
+    public boolean live  = false;         // if true then the messages are collected and printed at flush
+    public File file     = null;          // a file where to print the messages
+    private PrintStream out = System.out; // a stream where to print the messages
     private final HashMap<String,ArrayList<String>> buffers = new HashMap<>(); // collects the separated messages
-    private String title;                    // a title for the messages
-    public boolean filled = false;           // becomes true with the first call of print or println
+    public String title;                   // a title for the messages
+    public boolean filled = false;         // becomes true with the first call of print or println
 
     /** creates a monitor which does nothing at all*/
     public Monitor() {}
@@ -40,89 +39,70 @@ public class Monitor {
         this.file = file;
         this.live = live;
         monitoring = true;
-        if(file == null) {out = System.out; return;}
+        if(file == null) return;
         try{out = new PrintStream(file);}
         catch(Exception ex) {
             out = System.out;
             System.out.println(title+ ": File '"+ file.getName() + "' cannot be opened. Printing to System.out\n");}}
-/*
-   public Monitor(String title, File directory, String mode) {
-        this.title = title;
-        monitoring = true;
-        if(mode.equals("true")) {return;}
-        String[] parts = mode.split("\\s*[, ]\\s*");
-        if(parts[0].equals("separated")) {separated = true;}
-        else {if(parts[0].equals("mixed")) {separated = false;}
-            else {monitoring = false;
-                System.out.println(title + ": '" + parts[0] + "' is unknown. Use 'separated' or 'mixed'.\n");}}
-        if(parts.length > 1) {
-            file = (directory == null) ? new File(parts[1]) : Paths.get(directory.getAbsolutePath(),parts[1]).toFile();
-            if(!separated){
-                try{out = new PrintStream(file);}
-                catch(Exception ex) {
-                    out = System.out;
-                    System.out.println(title+ ": File '"+ parts[1] + "' cannot be opened. Printing to System.out\n");}}}}
 
- */
     /** either prints or collects the messages
      *
      * @param id      for identifying and separating the messages
      * @param messages to be printed.
      */
-    public synchronized void print(String id, String... messages) {
+    public void print(String id, String... messages) {
         filled = true;
         if(monitoring) {
-            String m = "";
-            for(String message : messages) m += message;
-            if(live) {
-                out.printf(title," ",id,": ");
-                out.println(m);}
-            else {
-                ArrayList<String> strings = buffers.get(id);
-                if(strings == null) {
-                    strings = new ArrayList<>();
-                    buffers.put(id,strings);}
-                strings.add(m);}}}
+            String string = "";
+            for(String message : messages) string += message;
+            printString(id,string);}}
 
     /** either prints or collects the messages with "\n" appended
      *
      * @param id      for identifying and separating the messages
      * @param messages to be printed.
      */
-    public synchronized void println(String id, String... messages) {
+    public void println(String id, String... messages) {
         filled = true;
         if(monitoring) {
-            String m = "";
+            String string = "";
             for(int i = 0; i < messages.length; ++i) {
-                m += messages[i];
-                if(i < messages.length-1) m += "\n";}
-            if(live) {
-                out.printf(title," ",id,": ");
-                out.println(m);}
-            else {
-                ArrayList<String> strings = buffers.get(id);
-                if(strings == null) {
-                    strings = new ArrayList<>();
-                    buffers.put(id,strings);}
-                strings.add(m);}}}
+                string += messages[i];
+                if(i < messages.length-1) string += "\n";}
+            printString(id,string);}}
 
-
-    /** In 'separated' mode, the messages are now printed.
+    /** either prints the string to out, or collects it
+     *
+     * @param id     an identifier
+     * @param string a string
      */
-    public synchronized void flush() {
+    private synchronized void printString(String id,String string) {
+        if(live) {
+            out.printf(title," ",id,": ");
+            out.println(string);}
+        else {buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(string);}}
+
+
+    /** In '!live' mode, the messages are now printed, either to System.out, or to the file
+     * The buffers are cleared, and the monitor can be used again.
+     */
+    public synchronized void flush(boolean close) {
         if(monitoring && filled) {
-            if(live) {if(out != System.out){out.close();}}
-            else {
-                out = System.out;
-                if(file != null) {
-                    try{out = new PrintStream(file);}
-                    catch(FileNotFoundException ex) {
-                        out.println("File not found " + file.getAbsolutePath());}}
-                out.println(title);
-                out.println("*******");
-                for(Map.Entry<String,ArrayList<String>> entry : buffers.entrySet()) {
-                    out.println(entry.getKey()+":");
-                    for(String st : entry.getValue()) {out.println(st);}}}}}
+            if(live) return;
+            out = System.out;
+            if(file != null) {
+                try{out = new PrintStream(file);}
+                catch(FileNotFoundException ex) {
+                    out.println("File not found " + file.getAbsolutePath());}}
+            out.println(title);
+            out.println("*******");
+            for(Map.Entry<String,ArrayList<String>> entry : buffers.entrySet()) {
+                out.println(entry.getKey()+":");
+                for(String st : entry.getValue()) {out.println(st);}}
+            buffers.clear();
+            filled = false;
+            if(close && out != System.out) out.close();}}
+
 
     /** returns some information about the monitor
      *
