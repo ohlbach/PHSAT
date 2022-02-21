@@ -61,7 +61,7 @@ public class BasicClauseList {
      * @param errors      for error messages
      * @param warnings    for warnings
      */
-    public void addClause(int[] clause, String errorPrefix, Monitor errors, Monitor warnings) {
+    public void addClause(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
         clause = checkSyntax(clause,errorPrefix, errors, warnings);
         if(clause == null) return;
         Connective connective = Connective.getType(clause[1]);
@@ -90,7 +90,7 @@ public class BasicClauseList {
      * @param warnings     for adding a warning
      * @return null or the original clause
      */
-    protected int[] checkSyntax(int[] clause, String errorPrefix, Monitor errors, Monitor warnings) {
+    protected int[] checkSyntax(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
         errorPrefix += "Clause " + Arrays.toString(clause) + ": ";
         int type = clause[1];
         Connective connective = Connective.getType(type);

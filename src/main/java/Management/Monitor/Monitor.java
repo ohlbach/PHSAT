@@ -1,8 +1,10 @@
 package Management.Monitor;
 
-public interface Monitor {
-    void print(String id, String... messages);
-    void println(String id, String... messages);
-    boolean wasFilled();
-    void flush(boolean close);
+public abstract class Monitor {
+    public boolean monitoring = false;
+    public abstract void print(String id, String... messages);
+    public  abstract void println(String id, String... messages);
+    public abstract void print(String id, StringBuilder messages);
+    public abstract boolean wasFilled();
+    public abstract void flush(boolean close);
 }

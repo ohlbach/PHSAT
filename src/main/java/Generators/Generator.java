@@ -107,9 +107,9 @@ public abstract class Generator {
      */
     public static BasicClauseList generate(String name, HashMap<String,Object> parameters,
                                            ProblemSupervisor problemSupervisor,
-                                           Monitor errors, Monitor warnings) {
+                                           StringBuilder errors, StringBuilder warnings) {
         Class clazz = generatorClass(name);
-        if(clazz == null) {errors.print("Problem Generator","Unknown generator class: " + name); return null;}
+        if(clazz == null) {errors.append("Problem Generator"+"Unknown generator class: " + name); return null;}
         try{
             Method generator = clazz.getMethod("generate",HashMap.class, ProblemSupervisor.class, MonitorLife.class, MonitorLife.class);
             return (BasicClauseList) generator.invoke(null,parameters,problemSupervisor,errors,warnings);}

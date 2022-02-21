@@ -140,13 +140,15 @@ public final class CNFReader {
     /** reads the cnf-file
      *
      * @param parameters a HashMap with key "file"
-     * @param errors    for error massages
-     * @param warnings  for warnings (not used here)
+     * @param errorMonitor    for error massages
+     * @param warningMonitor  for warnings (not used here)
      * @return  null or the new clauses
      */
     public static BasicClauseList generate(HashMap<String,Object> parameters,
                                            ProblemSupervisor problemSupervisor,
-                                           Monitor errors, Monitor warnings) {
+                                           Monitor errorMonitor, Monitor warningMonitor) {
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String name = "CNFeader";
         StringBuilder info = new StringBuilder();
         File file = (File)parameters.get("file");
@@ -157,7 +159,7 @@ public final class CNFReader {
         BufferedReader reader;
         try {reader = new BufferedReader(new FileReader(file));}
         catch (FileNotFoundException e) {
-            errors.print(name,place," not found");
+            errors.append(place+" not found");
             return null;}
         String line;
         BasicClauseList bcl = new BasicClauseList();
@@ -175,27 +177,27 @@ public final class CNFReader {
             if(line.startsWith("p") && !line.endsWith("0")) { // p cnf predicates clauses symbolic
                 String[] parts = line.split("\\s*( |,)\\s*");
                 if(parts.length < 4) {
-                    errors.println(name,errorPrefix,"illegal format of line",
-                            "It should be 'p cnf predicates clauses'");
+                    errors.append(errorPrefix+" illegal format of line").
+                            append("It should be 'p cnf predicates clauses'");
                     return null;}
                 if(!parts[1].equals("cnf")) {
-                    errors.print(name,errorPrefix," indicates no cnf file\n");
+                    errors.append(errorPrefix+" indicates no cnf file\n");
                     return null;}
 
-                predicates = Utilities.parseInteger(name,errorPrefix, parts[2],errors);
+                predicates = Utilities.parseInteger(errorPrefix, parts[2],errors);
                 if(predicates == null) {return null;}
                 if(predicates <= 0) {
-                    errors.print(name,errorPrefix," Negative number of predicates: '", parts[2],"'");
+                    errors.append(errorPrefix+" Negative number of predicates: '"+ parts[2]+"'");
                     return null;}
                 bcl.predicates = predicates;
                 bcl.symboltable = new Symboltable(predicates);
                 continue;}
             if(predicates == 0) {
-                errors.print(name,errorPrefix," p-line missing: 'p cnf predicates clauses'");
+                errors.append(errorPrefix+" p-line missing: 'p cnf predicates clauses'");
                 return null;}
 
             if(!line.endsWith(" 0")) {
-                errors.print(name,errorPrefix," does not end with '0'");
+                errors.append(errorPrefix+" does not end with '0'");
                 continue;}
             int[] clause = StringClauseSetGenerator.parseLine(line.substring(0,line.length()-2).trim(),
                     id,bcl.symboltable,errorPrefix,errors);
@@ -205,7 +207,7 @@ public final class CNFReader {
         }
         bcl.info = info.toString();}
         catch(IOException ex) {
-            errors.print(name, place,"IOException\n" +ex);
+            errors.append(place+" IOException\n" +ex);
             return null;}
         problemSupervisor.clauseCounter = id;
         return bcl;}

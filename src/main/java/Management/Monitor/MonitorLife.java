@@ -1,9 +1,10 @@
 package Management.Monitor;
 
+import java.util.ArrayList;
+
 /** This class implements Monitor by printing the messages to System.out*/
 
-public class MonitorLife implements Monitor {
-    public boolean monitoring  = false;  // if false then all messages are ignored
+public class MonitorLife extends Monitor {
     public String title;                 // a title for the messages
     public boolean filled = false;       // becomes true with the first call of print or println
 
@@ -42,6 +43,21 @@ public class MonitorLife implements Monitor {
             System.out.printf(title,",",id,": ");
             for(String message: messages) System.out.println(message);}}
 
+    /** fills the messages into the buffer
+     *
+     * @param id        an id for the message
+     * @param messages messages
+     */
+    public void print(String id, StringBuilder messages) {
+        filled = true;
+        if(monitoring) {
+            System.out.printf(title,",",id,":\n");
+            System.out.println(messages);}}
+
+    /** returns true if the monitor was filled.
+     *
+     * @return true if the monitor was filled.
+     */
     public boolean wasFilled() {
         return filled;}
 

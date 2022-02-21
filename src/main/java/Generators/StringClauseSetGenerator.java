@@ -64,20 +64,20 @@ public final class StringClauseSetGenerator  {
      * @return  the new BasicClauseList object.
      */
     public static  BasicClauseList generate(HashMap<String,Object> parameters,
-                                            ProblemSupervisor problemSupervisor, MonitorLife errors, MonitorLife warnings) {
+                                            ProblemSupervisor problemSupervisor, StringBuilder errors, StringBuilder warnings) {
         String clauses = (String)parameters.get("clauses");
         String[] lines = clauses.split("\\s*\\n\\s*");
         String line = lines[0];
         if(!line.startsWith("p")) {
-            errors.print("First line '" + line + "' does not start with p\n");
+            errors.append("First line '" + line + "' does not start with p\n");
             return null;}
         String[] parts = line.split("\\s+");
         if(parts.length != 2) {
-            errors.print("First line '" + line + "' does not contain predicates\n");
+            errors.append("First line '" + line + "' does not contain predicates\n");
             return null;}
         Integer predicates = parseInteger(parts[1]);
         if(predicates == null) {
-            errors.print("First line '" + line + "' does not contain predicates\n");
+            errors.append("First line '" + line + "' does not contain predicates\n");
             return null;}
         Symboltable symboltable = new Symboltable(predicates);
         BasicClauseList bcl = new BasicClauseList(predicates,symboltable,"String Generator");
@@ -102,7 +102,7 @@ public final class StringClauseSetGenerator  {
      * @param errors      for appending error messages
      * @return            the parsed clause
      */
-    public static int[] parseLine(String line, int id, Symboltable symboltable,  String errorPrefix, MonitorLife errors) {
+    public static int[] parseLine(String line, int id, Symboltable symboltable,  String errorPrefix, StringBuilder errors) {
         switch(line.charAt(0)) {
             case '&': return parseSingle(line.substring(1).trim(), id, Connective.AND, symboltable, errorPrefix, errors);
             case 'e': return parseSingle(line.substring(1).trim(), id, Connective.EQUIV, symboltable, errorPrefix, errors);
@@ -177,11 +177,11 @@ public final class StringClauseSetGenerator  {
      * @param errors      for appending error messages
      * @return            the parse clause
      */
-    private static int[] parseInterval(String line, int id, Symboltable symboltable, String errorPrefix, MonitorLife errors) {
+    private static int[] parseInterval(String line, int id, Symboltable symboltable, String errorPrefix, StringBuilder errors) {
         int position = line.indexOf("]");
         boolean okay = true;
         if(position < 0) {
-            errors.print(errorPrefix).append("'] not found\n");
+            errors.append(errorPrefix).append("'] not found\n");
             return null;};
         String[] parts = line.substring(position+1).trim().split("\\s*[, ]\\s*");
         int[] basicClause = new int[parts.length + 4];

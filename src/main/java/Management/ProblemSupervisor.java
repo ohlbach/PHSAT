@@ -116,9 +116,13 @@ public class ProblemSupervisor {
      *
      * @return true if method succeeded, false if an error has occurred
      */
-    public boolean generateProblem(Monitor errors, Monitor warnings) {
+    public boolean generateProblem(Monitor errorMonitor, Monitor warningMonitor) {
+        StringBuilder errors   = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
         String type = (String)problemParameters.get("type");
         basicClauseList = Generator.generate(type,problemParameters,this,errors,warnings);
+        if(errors.length() != 0)   errorMonitor.print(type,errors);
+        if(warnings.length() != 0) warningMonitor.print(type,errors);
         return basicClauseList != null;}
 
 

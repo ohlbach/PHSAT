@@ -149,10 +149,10 @@ public class QUSat {
             warningFile = Paths.get(path.toString(),jobname+"-warnings.txt").toFile();
             live = globalInputParameters.get("errors2File") == null;}
 
-        errors   = live ? new MonitorLife("Parameter Errors") :
-                    new MonitorFile("Parameter Errors",errorFile);
-        warnings = live ? new MonitorLife("Parameter Warnings") :
-                    new MonitorFile("Parameter Warnings",warningFile);
+        errors   = live ? new MonitorLife("Input Errors") :
+                    new MonitorFile("Input Errors",errorFile);
+        warnings = live ? new MonitorLife("Input Warnings") :
+                    new MonitorFile("Input Warnings",warningFile);
 
         if(globalParameterList != null && globalParameterList.size() > 1) {
             warnings.print("Global Parameters",

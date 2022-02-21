@@ -7,8 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MonitorFile implements Monitor {
-    public boolean monitoring  = false;   // if false then all messages are ignored
+public class MonitorFile extends Monitor {
     private final HashMap<String, ArrayList<String>> buffers = new HashMap<>(); // collects the separated messages
     public String title;                   // a title for the messages
     public boolean filled = false;         // becomes true with the first call of print or println
@@ -33,6 +32,7 @@ public class MonitorFile implements Monitor {
      * @param id      for identifying and separating the messages
      * @param messages to be printed.
      */
+    @Override
     public void print(String id, String... messages) {
         filled = true;
         if(monitoring) {
@@ -40,11 +40,24 @@ public class MonitorFile implements Monitor {
             for(String message : messages) string += message;
             buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(string);}}
 
+    /** fills the messages into the buffer
+     *
+     * @param id        an id for the message
+     * @param messages messages
+     */
+    @Override
+    public void print(String id, StringBuilder messages) {
+        filled = true;
+        if(monitoring) {
+            buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(messages.toString());}}
+
+
     /** collects the messages for later printing them one per line to a file
      *
      * @param id      for identifying and separating the messages
      * @param messages to be printed.
      */
+    @Override
     public void println(String id, String... messages) {
         filled = true;
         if(monitoring) {
@@ -58,6 +71,7 @@ public class MonitorFile implements Monitor {
      *
      * @return true if the monitor was filled.
      */
+    @Override
     public boolean wasFilled() {
         return filled;}
 
@@ -65,6 +79,7 @@ public class MonitorFile implements Monitor {
     /** In '!live' mode, the messages are now printed, either to System.out, or to the file
      * The buffers are cleared, and the monitor can be used again.
      */
+    @Override
     public synchronized void flush(boolean close) {
         if(monitoring && filled) {
             PrintStream out = System.out;
@@ -76,7 +91,8 @@ public class MonitorFile implements Monitor {
             out.println("*******");
             for(Map.Entry<String,ArrayList<String>> entry : buffers.entrySet()) {
                 out.println(entry.getKey()+":");
-                for(String st : entry.getValue()) {out.println(st);}}
+                for(String st : entry.getValue()) {out.printf(st);}
+                out.println();}
             buffers.clear();
             filled = false;
             if(close && out != System.out) out.close();}}

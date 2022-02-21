@@ -1,4 +1,4 @@
-package Management;
+package Management.Monitor;
 
 import Management.Monitor.Monitor;
 
@@ -6,8 +6,7 @@ import javax.swing.*;
 
 /** implements a monitor which prints to a JFrame
  */
-public class MonitorFrame implements Monitor {
-    public boolean monitoring  = false;  // if false then all messages are ignored
+public class MonitorFrame extends Monitor {
     public String title;                 // a title for the messages
     public boolean filled = false;       // becomes true with the first call of print or println
     private JFrame frame;                // a frame
@@ -42,6 +41,7 @@ public class MonitorFrame implements Monitor {
      * @param id      for identifying and separating the messages
      * @param messages to be printed.
      */
+    @Override
     public void print(String id, String... messages) {
         if(monitoring) {
             if(!filled) {frame.setVisible(true);}
@@ -55,6 +55,7 @@ public class MonitorFrame implements Monitor {
      * @param id      for identifying and separating the messages
      * @param messages to be printed.
      */
+    @Override
     public void println(String id, String... messages) {
         if(monitoring) {
             if(!filled) {frame.setVisible(true);}
@@ -62,14 +63,29 @@ public class MonitorFrame implements Monitor {
             for(String message: messages) {area.append(message);area.append("\n");}}
         filled = true;}
 
+    /** either prints the messages one per line
+     *
+     * @param id      for identifying and separating the messages
+     * @param messages to be printed.
+     */
+    @Override
+    public void print(String id, StringBuilder messages) {
+        if(monitoring) {
+            if(!filled) {frame.setVisible(true);}
+            area.append(title); area.append(","); area.append(id); area.append(":\n");
+            area.append(messages.toString());area.append("\n");}
+        filled = true;}
+
     /** returns true if the frame was filled at least once
      *
      * @return true if the frame was filled at least once
      */
+    @Override
     public boolean wasFilled() {
         return filled;}
 
     /** Sets 'filled' to false. The monitor can be reused.*/
+    @Override
     public synchronized void flush(boolean close) {
         filled = false;
         if(close) {frame.dispose(); return;}

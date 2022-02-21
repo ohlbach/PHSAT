@@ -131,7 +131,7 @@ public abstract class Solver {
 
     public String combinedId = "combinedId";
 
-    public MonitorLife monitor = null;
+    public Monitor monitor = null;
     protected boolean monitoring = false;
 
     /** the supervisor which coordinates the work of all solvers or a given problem */
