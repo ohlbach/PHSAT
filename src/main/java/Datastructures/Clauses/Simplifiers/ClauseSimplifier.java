@@ -11,7 +11,7 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
-import Management.Monitor;
+import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import Utilities.BucketSortedIndex;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -21,7 +21,7 @@ import java.util.function.IntUnaryOperator;
 
 public class ClauseSimplifier {
     private final ProblemSupervisor problemSupervisor;
-    private final Monitor monitor;
+    private final MonitorLife monitor;
     private final boolean monitoring;
     private final String monitorId;
     private final Model model;

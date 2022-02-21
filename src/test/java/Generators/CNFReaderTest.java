@@ -3,7 +3,6 @@ package Generators;
 import Datastructures.Clauses.BasicClauseList;
 import Management.Controller;
 import Management.GlobalParameters;
-import Management.Monitor;
 import Management.ProblemSupervisor;
 import org.junit.Test;
 

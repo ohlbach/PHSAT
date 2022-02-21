@@ -1,7 +1,8 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
-import Management.Monitor;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 
 import java.lang.reflect.Method;
@@ -90,7 +91,7 @@ public abstract class Generator {
         Class clazz = generatorClass(name);
         if(clazz == null) {errors.print("Problem Generator","Unknown generator class: " + name); return null;}
         try{
-            Method parser = clazz.getMethod("parseParameters",HashMap.class,Monitor.class, Monitor.class);
+            Method parser = clazz.getMethod("parseParameters",HashMap.class, MonitorLife.class, MonitorLife.class);
             return (ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
@@ -110,7 +111,7 @@ public abstract class Generator {
         Class clazz = generatorClass(name);
         if(clazz == null) {errors.print("Problem Generator","Unknown generator class: " + name); return null;}
         try{
-            Method generator = clazz.getMethod("generate",HashMap.class, ProblemSupervisor.class,Monitor.class, Monitor.class);
+            Method generator = clazz.getMethod("generate",HashMap.class, ProblemSupervisor.class, MonitorLife.class, MonitorLife.class);
             return (BasicClauseList) generator.invoke(null,parameters,problemSupervisor,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}

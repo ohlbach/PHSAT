@@ -7,7 +7,7 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClause;
 import InferenceSteps.*;
-import Management.Monitor;
+import Management.Monitor.MonitorLife;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ public class MRMatrix {
     private final int columnSize;                  // disjointnessClauses.length
     public boolean trackReasoning;           // controls computation of origins
     private final Symboltable symboltable;         // null or a symboltable
-    private final Monitor monitor;                 // null or a monitor
+    private final MonitorLife monitor;                 // null or a monitor
     private final boolean monitoring;              // monitor != null
     private final String monitorId;                // a monitor id
     private final Model model;                     // the global model

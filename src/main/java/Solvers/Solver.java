@@ -10,7 +10,8 @@ import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
-import Management.Monitor;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import Solvers.RecursiveSearch.RecursiveSearcher;
 import Solvers.Walker.Walker;
@@ -100,7 +101,7 @@ public abstract class Solver {
         Class clazz = solverClass(solverName);
         if(clazz == null) {errors.print("Unknown solver class: " + solverName+"\n"); return null;}
         try{
-            Method parser = clazz.getMethod("parseParameters",HashMap.class,Monitor.class, Monitor.class);
+            Method parser = clazz.getMethod("parseParameters",HashMap.class, MonitorLife.class, MonitorLife.class);
             return (ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
@@ -130,7 +131,7 @@ public abstract class Solver {
 
     public String combinedId = "combinedId";
 
-    public Monitor monitor = null;
+    public MonitorLife monitor = null;
     protected boolean monitoring = false;
 
     /** the supervisor which coordinates the work of all solvers or a given problem */
@@ -175,7 +176,7 @@ public abstract class Solver {
         basicClauseList            = problemSupervisor.basicClauseList;
         predicates                 = basicClauseList.predicates;
         symboltable                = basicClauseList.symboltable;
-        monitor                    = globalParameters.monitor;
+        monitor                    = null; //globalParameters.monitor;
         monitoring                 = monitor != null && monitor.monitoring;
         model                      = new Model(predicates,null);
         }

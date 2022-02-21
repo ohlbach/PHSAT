@@ -4,7 +4,8 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
-import Management.Monitor;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -106,7 +107,7 @@ public class Utilities {
      * @param errors for appending error messages
      * @return the expanded integer list
      */
-    public static ArrayList<Integer> parseIntRange(String title, String place, String value, Monitor errors) {
+    public static ArrayList<Integer> parseIntRange(String title, String place, String value, MonitorLife errors) {
         if(value == null) {return null;}
         ArrayList<Integer> range = new ArrayList();
         try{Integer n =  Integer.parseInt(value);

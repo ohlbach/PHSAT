@@ -10,8 +10,11 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
 import Generators.Generator;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import Solvers.Solver;
 
+import javax.swing.*;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,7 +51,7 @@ public class ProblemSupervisor {
 
     public Thread supervisorThread;
 
-    private Monitor monitor;
+    private MonitorLife monitor;
     private String monitorId;
     private boolean monitoring;
 
@@ -67,9 +70,6 @@ public class ProblemSupervisor {
         this.solverParameters       = solverParameters;
         statistics                  = new SupervisorStatistics(problemId);
         supervisorThread            = Thread.currentThread();
-        monitor                     = globalParameters.monitor;
-        monitoring                  = monitor != null;
-        monitorId                   = problemId+"PS";
     }
 
     public int clauseCounter = 0;
@@ -109,7 +109,7 @@ public class ProblemSupervisor {
         for(Solver solver : solvers) {
             System.out.println(solver.getStatistics().toString(false));
         }
-        globalParameters.log("Solvers finished for problem " + problemId);}
+        globalParameters.logstream.println("Solvers finished for problem " + problemId);}
 
 
     /** reads or generates the SAT-clauses
@@ -154,8 +154,8 @@ public class ProblemSupervisor {
      */
     public synchronized void finished(Solver solver, Result result, String message) {
         this.result = result;
-        globalParameters.log("Solver " + solver.solverId + " finished  work at problem " + problemId);
-        if(message != null && !message.isEmpty()) {globalParameters.log(message);}
+        globalParameters.logstream.println("Solver " + solver.solverId + " finished  work at problem " + problemId);
+        if(message != null && !message.isEmpty()) {globalParameters.logstream.println(message);}
         if(result instanceof Satisfiable || result instanceof Unsatisfiable) {
             for(Thread thread : threads) {thread.interrupt();}
             return;}

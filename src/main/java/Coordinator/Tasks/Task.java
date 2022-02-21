@@ -1,9 +1,7 @@
 package Coordinator.Tasks;
 
 import Datastructures.Results.Result;
-import Management.Monitor;
 
-import java.util.ArrayList;
 import java.util.function.Supplier;
 
 /** The purpose of this class and its subclasses is to fill a Priority Chain with prioritizes tasks to be executed.

@@ -18,7 +18,8 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
 import InferenceSteps.InferenceStep;
-import Management.Monitor;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.BucketSortedIndex;
@@ -37,7 +38,7 @@ public class InitializerSimplifier extends Solver {
     public final Model model;
     public EquivalenceClasses equivalenceClasses;
     public final boolean monitoring;
-    public final Monitor monitor;
+    public final MonitorLife monitor;
     public final String monitorId;
     public final boolean trackReasoning;
     public final Symboltable symboltable;
@@ -172,7 +173,7 @@ public class InitializerSimplifier extends Solver {
         symboltable = model.symboltable;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
         twoLitClauses = problemSupervisor.twoLitClauses;
-        monitor = problemSupervisor.globalParameters.monitor;
+        monitor = null; //problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
         monitorId = problemId + "Clauses";
         if(monitoring) nextId = problemSupervisor::nextClauseId;

@@ -2,7 +2,8 @@ package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Symboltable;
-import Management.Monitor;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import Utilities.Utilities;
 
@@ -52,7 +53,7 @@ public final class CNFReader {
      * @return            a list of HashMaps with key "file" and value the corresponding File object, and 'name' with the filename
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
-                                                                    Monitor errors, Monitor warnings){
+                                                                    MonitorLife errors, MonitorLife warnings){
         for(String key : parameters.keySet()) {
             if(!keys.contains(key)) {warnings.print("CNFReader", "Unknown key in parameters: " + key + "\n");}}
 

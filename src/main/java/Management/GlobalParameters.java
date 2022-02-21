@@ -1,5 +1,7 @@
 package Management;
 
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import Utilities.Utilities;
 
 import java.io.File;

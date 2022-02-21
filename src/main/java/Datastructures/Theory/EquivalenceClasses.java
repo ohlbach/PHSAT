@@ -8,7 +8,7 @@ import Datastructures.Results.UnsatisfiableClause;
 import Datastructures.Symboltable;
 import Datastructures.Task;
 import InferenceSteps.*;
-import Management.Monitor;
+import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import com.sun.istack.internal.Nullable;
 
@@ -69,7 +69,7 @@ public class EquivalenceClasses  {
     public Symboltable symboltable;
 
     /** for logging the actions of this class */
-    private final Monitor monitor;
+    private final MonitorLife monitor;
 
     /** indicates monitoring is on */
     private boolean monitoring = false;

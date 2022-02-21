@@ -1,7 +1,7 @@
 package Coordinator.Tasks;
 
 import Datastructures.Results.Result;
-import Management.Monitor;
+import Management.Monitor.MonitorLife;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -25,13 +25,13 @@ public class TaskQueue {
             new PriorityBlockingQueue<Task>(10, Comparator.comparingInt(task->task.priority));
 
     /** controls printing new tasks and tasks to be executed */
-    private Monitor monitor = null;
+    private MonitorLife monitor = null;
 
     /** constructs a new TaskQueue threads
      *
      * @param monitor controls printing added tasks and tasks to be executed
      */
-    public TaskQueue(String id, Monitor monitor) {
+    public TaskQueue(String id, MonitorLife monitor) {
         this.id = id;
         this.monitor = monitor;}
 

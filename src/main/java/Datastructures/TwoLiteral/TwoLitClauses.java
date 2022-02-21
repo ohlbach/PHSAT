@@ -8,7 +8,7 @@ import Datastructures.Symboltable;
 import Datastructures.Task;
 import Datastructures.Theory.*;
 import InferenceSteps.*;
-import Management.Monitor;
+import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -51,7 +51,7 @@ public class TwoLitClauses {
     private final TwoLitStatistics statistics;
 
     /** for monitoring actions */
-    private final Monitor monitor;
+    private final MonitorLife monitor;
 
     /** An identifier for the monitor */
     private final String monitorId;

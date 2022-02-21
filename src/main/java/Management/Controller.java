@@ -1,9 +1,8 @@
 package Management;
 
-import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
-import Generators.Generator;
-import Solvers.Solver;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import Utilities.Utilities;
 
 import java.io.File;

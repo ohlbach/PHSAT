@@ -3,7 +3,9 @@ import Generators.Generator;
 import Management.Controller;
 import Management.GlobalParameters;
 import Management.KVParser;
-import Management.Monitor;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorFile;
+import Management.Monitor.MonitorLife;
 import Solvers.Solver;
 
 import java.io.*;
@@ -46,8 +48,8 @@ public class QUSat {
     private static final String homeDirectory = System.getenv("USERPROFILE");
 
     public String jobname;
-    private Monitor errors;
-    private Monitor warnings;
+    private final Monitor errors;
+    private final Monitor warnings;
 
     public GlobalParameters                  globalParameters  = null;
     public HashMap<String,Object>            initializeParameters  = null;
@@ -147,8 +149,10 @@ public class QUSat {
             warningFile = Paths.get(path.toString(),jobname+"-warnings.txt").toFile();
             live = globalInputParameters.get("errors2File") == null;}
 
-        errors   = new Monitor("Parameter Errors",errorFile,live);
-        warnings = new Monitor("Parameter Warnings",warningFile,live);
+        errors   = live ? new MonitorLife("Parameter Errors") :
+                    new MonitorFile("Parameter Errors",errorFile);
+        warnings = live ? new MonitorLife("Parameter Warnings") :
+                    new MonitorFile("Parameter Warnings",warningFile);
 
         if(globalParameterList != null && globalParameterList.size() > 1) {
             warnings.print("Global Parameters",
@@ -162,7 +166,7 @@ public class QUSat {
                     initializeParameterList.get(0) : null),
                 kvParser.get("problem"),
                 kvParser.get("solver"));
-        if(errors.filled) {
+        if(errors.wasFilled()) {
             errors.flush(true);
             warnings.flush(true);
             return;}      // parameters have errors. Stop the process.

@@ -3,12 +3,11 @@ package Generators;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
-import Management.Monitor;
+import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import Utilities.Utilities;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 
 import static Utilities.Utilities.parseInteger;
@@ -29,7 +28,7 @@ public final class StringClauseSetGenerator  {
      * @return a HashMap with "clauseString"
      */
     public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
-                                                                           Monitor errors, Monitor warnings){
+                                                                    MonitorLife errors, MonitorLife warnings){
         HashMap<String,Object> map = new HashMap<>();
         map.put("clauses", parameters.get("clauses").trim());
         ArrayList<HashMap<String,Object>> list = new ArrayList<>();
@@ -65,7 +64,7 @@ public final class StringClauseSetGenerator  {
      * @return  the new BasicClauseList object.
      */
     public static  BasicClauseList generate(HashMap<String,Object> parameters,
-                                            ProblemSupervisor problemSupervisor, Monitor errors, Monitor warnings) {
+                                            ProblemSupervisor problemSupervisor, MonitorLife errors, MonitorLife warnings) {
         String clauses = (String)parameters.get("clauses");
         String[] lines = clauses.split("\\s*\\n\\s*");
         String line = lines[0];
@@ -103,7 +102,7 @@ public final class StringClauseSetGenerator  {
      * @param errors      for appending error messages
      * @return            the parsed clause
      */
-    public static int[] parseLine(String line, int id, Symboltable symboltable,  String errorPrefix, Monitor errors) {
+    public static int[] parseLine(String line, int id, Symboltable symboltable,  String errorPrefix, MonitorLife errors) {
         switch(line.charAt(0)) {
             case '&': return parseSingle(line.substring(1).trim(), id, Connective.AND, symboltable, errorPrefix, errors);
             case 'e': return parseSingle(line.substring(1).trim(), id, Connective.EQUIV, symboltable, errorPrefix, errors);
@@ -178,7 +177,7 @@ public final class StringClauseSetGenerator  {
      * @param errors      for appending error messages
      * @return            the parse clause
      */
-    private static int[] parseInterval(String line, int id, Symboltable symboltable, String errorPrefix,Monitor errors) {
+    private static int[] parseInterval(String line, int id, Symboltable symboltable, String errorPrefix, MonitorLife errors) {
         int position = line.indexOf("]");
         boolean okay = true;
         if(position < 0) {
