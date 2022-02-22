@@ -32,8 +32,13 @@ public class MonitorFrame extends Monitor {
         frame.setVisible(true);
         frame.setLocation(xOffset,yOffset);
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        area = new JTextArea();
-        frame.add(area);
+        area = new JTextArea("",20,50);
+        area.setLineWrap(true);
+        JScrollPane scroll = new JScrollPane(area);
+        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+        frame.getContentPane().add(scroll);
+        frame.pack();
     }
 
     /** either prints or collects the messages into a single line

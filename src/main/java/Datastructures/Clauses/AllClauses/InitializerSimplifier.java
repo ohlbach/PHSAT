@@ -11,7 +11,6 @@ import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
-import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Task;
 import Datastructures.Theory.EquivalenceClasses;
@@ -21,7 +20,6 @@ import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
-import Solvers.Solver;
 import Utilities.BucketSortedIndex;
 import Utilities.BucketSortedList;
 
@@ -29,7 +27,7 @@ import java.util.*;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.IntSupplier;
 
-public class InitializerSimplifier extends Solver {
+public class InitializerSimplifier {
     /** supervises the problem solution */
     public final ProblemSupervisor problemSupervisor;
     private final String problemId;
@@ -114,23 +112,6 @@ public class InitializerSimplifier extends Solver {
 
 
 
-
-        @Override
-    public Result solve() {
-        return null;
-    }
-
-    @Override
-    public void prepare() {
-
-    }
-
-    @Override
-    public Statistic getStatistics() {
-        return null;
-    }
-
-
     private enum TaskType {
         TRUELITERAL, EQUIVALENCE, INTEGRATE_CLAUSE, INTEGRATE_SHORTENED_CLAUSE, TWOLITCLAUSE, SIMPLIFYALL, SIMPLIFYOTHERS,
         MRESOLUTION
@@ -164,8 +145,7 @@ public class InitializerSimplifier extends Solver {
      * @param problemSupervisor    coordinates several solvers.
      */
     public InitializerSimplifier(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
-        super(solverNumber,solverParameters, problemSupervisor);
-        this.problemSupervisor = problemSupervisor;
+         this.problemSupervisor = problemSupervisor;
         problemSupervisor.clauses = this;
         problemId = problemSupervisor.problemId;
         thread = Thread.currentThread();
@@ -183,6 +163,10 @@ public class InitializerSimplifier extends Solver {
                 (cLiteral->cLiteral.literal),
                 (cLiteral->cLiteral.clause.size()));
         clauseSimplifier = new ClauseSimplifier(this,thread);
+    }
+
+    public Result initialize() {
+        return null;
     }
 
     public void integrateBasicClauses() throws Unsatisfiable {
@@ -353,7 +337,7 @@ public class InitializerSimplifier extends Solver {
             */
             }
             catch(InterruptedException ex) {return;}
-            catch(Result result) {problemSupervisor.setResult(result,"AllClauses"); return;}}}
+            catch(Result result) {problemSupervisor.announceResult(result,"AllClauses"); return;}}}
 
     private static int[] quantifierTypes = new int[]{
             Connective.ATLEAST.ordinal(),Connective.ATMOST.ordinal(),Connective.EXACTLY.ordinal()};

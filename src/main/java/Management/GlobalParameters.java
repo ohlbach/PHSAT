@@ -34,6 +34,10 @@ public class GlobalParameters {
     public String monitorMode = null;
     /** if false then many things are done destructively. Only the final results are needed. */
     public boolean trackReasoning = false;
+    /** if true then equivalences are treated in a separate thread */
+    public boolean equivalenceThread = true;
+    /** if true then two-literal clauses are treated in a separate thread */
+    public boolean twoLiteralThread = true;
 
 
     /** @return a help-string which describes the parameters */
@@ -49,7 +53,9 @@ public class GlobalParameters {
                 "             'live':    just print out as the messages come.\n" +
                 "              If the file is not specified then the messages are printed to System.out\n" +
                 "              default: no monitoring.\n" +
-                " - trackReasoning (default false) tracks reasons for all derivations.";}
+                " - trackReasoning (default false) tracks reasons for all derivations.\n"+
+                " - equivalences (default false): if true then equivalences are treated in a separate thread.\n"+
+                " - twoLiterals  (default false): if true then two-literal clauses are treated in a separate thread.";}
 
 
     /** generates the default parameters */
@@ -101,7 +107,11 @@ public class GlobalParameters {
                     if(!(value.equals("live") || value.equals("collect"))) {
                         errors.print(title,"monitor '" + value + "' is not one of 'live','collect");}
                     break;
-                case "errors2File": errors2File = true;
+                case "errors2File":  errors2File = true;
+                    break;
+                case "equivalences": equivalenceThread = true;
+                    break;
+                case "twoLiterals":  twoLiteralThread = true;
                     break;
                 default: warnings.print(title,"Unknown parameter: " + key);
             }}}
@@ -117,7 +127,9 @@ public class GlobalParameters {
                 "  logFile:            " + logFile +"\n" +
                 "  errors2File         " + errors2File + "\n" +
                 "  monitor:            " + (monitorMode == null ? "null" : monitorMode) +"\n"+
-                "  trackReasoning:     " + trackReasoning +"\n";}
+                "  trackReasoning:     " + trackReasoning +"\n" +
+                "  equivalences:       " + equivalenceThread + "\n"+
+                "  twoLiterals:        " + twoLiteralThread;}
 
 }
 

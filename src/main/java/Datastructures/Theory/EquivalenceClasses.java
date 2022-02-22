@@ -168,7 +168,7 @@ public class EquivalenceClasses  {
                             toString(symboltable,false));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
-                problemSupervisor.setResult(unsatisfiable,"EquivalenceClasses");
+                problemSupervisor.announceResult(unsatisfiable,"EquivalenceClasses");
                 return;}}}
 
 

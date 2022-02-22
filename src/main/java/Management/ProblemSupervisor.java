@@ -29,7 +29,9 @@ public class ProblemSupervisor {
     public BasicClauseList basicClauseList;
     public GlobalParameters globalParameters;
     public HashMap<String,Object> problemParameters;
+    public HashMap<String,Object> initializeParameters;
     public ArrayList<HashMap<String,Object>> solverParameters;
+    public InitializerSimplifier initializer;
     public Result result = null;
     private String solver = null;
     Thread[] threads;
@@ -51,9 +53,6 @@ public class ProblemSupervisor {
 
     public Thread supervisorThread;
 
-    private MonitorLife monitor;
-    private String monitorId;
-    private boolean monitoring;
 
 
     public SupervisorStatistics statistics = null;
@@ -61,11 +60,13 @@ public class ProblemSupervisor {
     public ProblemSupervisor(Controller controller,
                              GlobalParameters globalParameters,
                              HashMap<String,Object> problemParameters,
+                             HashMap<String,Object> initializeParameters,
                              ArrayList<HashMap<String,Object>> solverParameters) {
         this.controller             = controller;
         jobname                     = controller.jobname;
         problemId                   = (String)problemParameters.get("name");
         this.globalParameters       = globalParameters;
+        this.initializeParameters   = initializeParameters;
         this.problemParameters      = problemParameters;
         this.solverParameters       = solverParameters;
         statistics                  = new SupervisorStatistics(problemId);
@@ -79,21 +80,13 @@ public class ProblemSupervisor {
 
     public void solveProblem(Monitor errors, Monitor warnings)  {
         if(!generateProblem(errors, warnings)) return;
-        clauses = new InitializerSimplifier(1,null,this);
+        initializer = new InitializerSimplifier(1,initializeParameters,this);
+        result = initializer.initialize();
+        if(result != null) return;
         try{
-            equivalenceThread = new Thread(()-> equivalenceClasses.run());
-            equivalenceThread.start();
-            twoLitThread = new Thread(() -> twoLitClauses.run());
-            twoLitThread.start();
-            allClausesThread = new Thread(() -> clauses.run());
-            allClausesThread.start();
-
-
-            if(result != null) {return;}
             numberOfSolvers = solverParameters.size();
             solvers = new Solver[numberOfSolvers];
             statistics.solvers = numberOfSolvers;
-            Statistic[] solverStatistics = new Statistic[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) {
                 HashMap<String,Object> solverParameter = solverParameters.get(i);
                 solvers[i] = Solver.construct((String)solverParameter.get("type"),i,solverParameter,this);}
@@ -104,12 +97,9 @@ public class ProblemSupervisor {
                 threads[i] = new Thread(() -> {results[j] = solvers[j].solve();});}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
-        catch (InterruptedException e) {}
-
-        for(Solver solver : solvers) {
-            System.out.println(solver.getStatistics().toString(false));
-        }
+        catch(Exception ex) {}
         globalParameters.logstream.println("Solvers finished for problem " + problemId);}
+
 
 
     /** reads or generates the SAT-clauses
@@ -124,28 +114,6 @@ public class ProblemSupervisor {
         if(errors.length() != 0)   errorMonitor.print(type,errors);
         if(warnings.length() != 0) warningMonitor.print(type,errors);
         return basicClauseList != null;}
-
-
-    /** a thread which found a solution calls this method to set the result and interrupt all other threads
-     *
-     * @param result of the search
-     * @param solver who found the solution.
-     */
-    public synchronized void setResult(Result result, String solver) {
-        interruptAll();
-        this.result = result;
-        this.solver = solver;
-        if(monitoring) {
-            monitor.print(monitorId,"Result of solver " + solver + ":\n" + result.toString());}}
-
-    /** interrupts all threads */
-    private void interruptAll() {
-        supervisorThread.interrupt();
-        if(equivalenceThread != null)  equivalenceThread.interrupt();
-        if(twoLitThread != null)       twoLitThread.interrupt();
-        if(allClausesThread != null)   allClausesThread.interrupt();
-    }
-
 
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.

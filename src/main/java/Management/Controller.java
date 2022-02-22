@@ -68,9 +68,9 @@ public class Controller {
     public void solveProblems() {
         globalParameters.logstream.println("Starting job " + jobname + " at " + LocalDateTime.now());
         problemSupervisors = new ArrayList<>();
-        for (HashMap<String, Object> parameters : problemParameters) {
+        for (HashMap<String, Object> problemParameter : problemParameters) {
             problemSupervisors.add(
-                    new ProblemSupervisor(this, globalParameters, parameters, solverParameters));}
+                    new ProblemSupervisor(this, globalParameters, problemParameter, initializeParameters, solverParameters));}
         long start = System.nanoTime();
         distributeProblems();
         errors.flush(true);
