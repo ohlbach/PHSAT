@@ -1,14 +1,10 @@
 package Management.Monitor;
 
-import Management.Monitor.Monitor;
-
 import javax.swing.*;
 
-/** implements a monitor which prints to a JFrame
+/** This class implements a monitor which prints to a JFrame
  */
 public class MonitorFrame extends Monitor {
-    public String title;                 // a title for the messages
-    public boolean filled = false;       // becomes true with the first call of print or println
     private JFrame frame;                // a frame
     private JTextArea area;              // its text area
 

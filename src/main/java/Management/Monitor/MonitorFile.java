@@ -7,24 +7,31 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+/** This monitor prints messages to files.
+ * The messages are separated by their identifiers and collected in buffers.
+ * The 'flush' method prints them, either to a given file, or to System.out.
+ */
 public class MonitorFile extends Monitor {
     private final HashMap<String, ArrayList<String>> buffers = new HashMap<>(); // collects the separated messages
-    public String title;                   // a title for the messages
-    public boolean filled = false;         // becomes true with the first call of print or println
-    private File file;
+    private File file; // null or the file where to print the messages
+    private String pathname = null; // the absolute pathname of the file.
+
+    // If the monitor is flushed it can be reused and prints to a file whose name is extended with a number
+    private int filenumber = 0;
 
     /** creates a monitor which does nothing at all*/
     public MonitorFile() {}
 
-    /** creates a monitor according to the mode.
+    /** creates a monitor for later printing messages to a file.
      * If the filename is not given or cannot be opened then the messages are printed to System.out.
      *
      * @param title like "Messages", "Errors", "Warnings"
-     * @param file where to print the messages.
+     * @param file where to print the messages, or null if the messages are to be printed to System.out
      */
     public MonitorFile(String title, File file) {
         this.title = title;
         this.file = file;
+        if(file != null) pathname = file.getAbsolutePath();
         monitoring = true;}
 
     /** collects the messages for later printing them as a single line to a file
@@ -67,17 +74,11 @@ public class MonitorFile extends Monitor {
                 if(i < messages.length-1) string += "\n";}
             buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(string);}}
 
-    /** returns true if the monitor was filled.
+
+    /** The messages are now printed, either to System.out, or to the file
+     * The buffers are cleared, and the monitor may be used again.
      *
-     * @return true if the monitor was filled.
-     */
-    @Override
-    public boolean wasFilled() {
-        return filled;}
-
-
-    /** In '!live' mode, the messages are now printed, either to System.out, or to the file
-     * The buffers are cleared, and the monitor can be used again.
+     * @param close if true then the file (if != null) is closed and another file whose name is extended by a number is used.
      */
     @Override
     public synchronized void flush(boolean close) {
@@ -95,7 +96,9 @@ public class MonitorFile extends Monitor {
                 out.println();}
             buffers.clear();
             filled = false;
-            if(close && out != System.out) out.close();}}
+            if(close && out != System.out) {
+                out.close();
+                file = new File(pathname + (filenumber++));}}}
 
 
     /** returns some information about the monitor
