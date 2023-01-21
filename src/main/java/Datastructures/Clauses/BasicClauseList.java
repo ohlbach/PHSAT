@@ -4,7 +4,6 @@ package Datastructures.Clauses;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
-import Management.Monitor.Monitor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,6 +30,9 @@ public class BasicClauseList {
     /** the largest clause length */
     public int maxClauseLength;
     /** null or a symboltable */
+    
+    public int nextId = 0;
+    
     public Symboltable symboltable;
     /** the original disjunctions */
     public final ArrayList<int[]> disjunctions  = new ArrayList<>();

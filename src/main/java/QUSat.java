@@ -35,19 +35,21 @@ import java.util.HashMap;
  *  The system can process several problems sequentially or in parallel and collect and print
  *  the corresponding statistics.
  *  <br>
- *  QUSat-problems can be generated, either randomly or with special algorithms (pigeon hole problems),
+ *  QUSat-problems can be generated, either randomly or with special algorithms (pigeonhole problems),
  *  or read from a cnf-file. The syntax of cnf-files is an extension of the syntax of cnf-files
  *  for standard propositional logic.
  */
 public class QUSat {
 
     /** This is a file with default parameters for 'global' and 'solver'. */
-    private static final File defaultFile = Paths.get(System.getProperties().get("user.dir").toString(),
-            "src","main","resources","DefaultParameters.qsat").toFile();
+    private static final String defaultFile = Paths.get(System.getProperties().get("user.dir").toString(),
+            "src","main","resources","DefaultParameters.qsat").toString();
 
     private static final String homeDirectory = System.getenv("USERPROFILE");
 
-    public String jobname;
+    private static final String parameters = null;
+
+    public static String jobname;
     private final Monitor errors;
     private final Monitor warnings;
 
@@ -82,20 +84,28 @@ public class QUSat {
      */
     public static void  main(String[] args) {
         //args = new String[]{"help","global"};
-        //args = new String[]{Utilities.resourceFile("Purity.cnf")};
+        if(args.length == 0) {help(args); return;}
         KVParser kvParser = new KVParser("global", "problem", "initialize", "solver");
+        kvParser.parseFile(defaultFile);
+        switch(args[0]) {
+            case "help": help(args); return;
+            case "main": for(int i = 1; i < args.length; ++i) kvParser.addLine(args[i]); break;
+            case "file": kvParser.parseFile(Paths.get(homeDirectory,args[1]).toString()); break; // may produce an exception and stop;
+            case "in":   kvParser.parseStream(System.in); break; // may produce an exception and stop;
+            case "string": { // for test purposes
+                if(parameters == null) {System.out.println("No parameters specified in QUSat class"); return;}
+                kvParser.parseString(parameters);
+                break;}
+            default:
+                System.out.println("Unknown keyword in main method: "+ args[0]+ "\nIt should be one of:");
+                System.out.println("help, main, file, in, string");
+                return;}
 
-         if(args.length == 0) {
-             String jobname = parseInStream(kvParser); // Input from System.in.
-            if(jobname != null) {                      // it was no help command
-                QUSat quSat = new QUSat(jobname, kvParser);
-                if(quSat.controller != null) quSat.controller.solveProblems();}
-            return;}
+        StringBuilder errors   = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
+        GlobalParameters globalParameters= new GlobalParameters(kvParser.get("global"),errors,warnings);
 
-        if(args[0].trim().equals("help")) {help(args); return;}
-
-        readParameters(args[1], kvParser); // may produce an exception and stop
-        QUSat quSat = new QUSat(args[0], kvParser);
+        QUSat quSat = new QUSat(kvParser);
         if(quSat.controller != null) quSat.controller.solveProblems();}
 
     /** This method calls the help()-methods and prints the results.
@@ -127,34 +137,28 @@ public class QUSat {
     /** Constructs a QUSat object, which parses the arguments.
      * Finally, it creates a Controller, which can control the entire processing of the problem.
      *
-     * @param jobname the name of the job
      * @param kvParser the filled key-value parser
      */
-    private QUSat(String jobname, KVParser kvParser) {
-        this.jobname = jobname;
-        ArrayList<HashMap<String,String>> globalParameterList = kvParser.get("global");
-        HashMap<String,String> globalInputParameters =
-                ((globalParameterList != null && !globalParameterList.isEmpty()) ?
-                globalParameterList.get(0) : null);
+    private QUSat(KVParser kvParser) {
+        HashMap<String,String> globalParameters = kvParser.get("global").get(0);
+        jobname = globalParameters.get("jobname"); // The default is "Test"
 
         File errorFile = null;
         File warningFile = null;
         boolean live = true;
-
-        if(globalInputParameters != null) {
-            String directory = globalInputParameters.get("directory");
-            Path path = (directory == null) ? Paths.get(homeDirectory) :
-                    Paths.get(homeDirectory,directory);
-            errorFile   = Paths.get(path.toString(),jobname+"-errors.txt").toFile();
-            warningFile = Paths.get(path.toString(),jobname+"-warnings.txt").toFile();
-            live = globalInputParameters.get("errors2File") == null;}
+        String directory = globalParameters.get("directory");
+        Path path = (directory == null) ? Paths.get(homeDirectory) :
+                Paths.get(homeDirectory,directory);
+        errorFile   = Paths.get(path.toString(),jobname+"-errors.txt").toFile();
+        warningFile = Paths.get(path.toString(),jobname+"-warnings.txt").toFile();
+        live = globalParameters.get("errors2File") == null;
 
         errors   = live ? new MonitorLife("Input Errors") :
                     new MonitorFile("Input Errors",errorFile);
         warnings = live ? new MonitorLife("Input Warnings") :
                     new MonitorFile("Input Warnings",warningFile);
 
-        if(globalParameterList != null && globalParameterList.size() > 1) {
+        if(globalParameters != null && globalParameters.size() > 1) {
             warnings.print("Global Parameters",
                     "There should be only one set. The superfluous sets are ignored.");}
         ArrayList<HashMap<String,String>> initializeParameterList = kvParser.get("initialize");
@@ -175,27 +179,6 @@ public class QUSat {
 
 
 
-    /** reads the commands for the current job and fills the kvParser
-     * All default parameters are first read from the default file.
-     * If filename ends with .cnf then this is noticed in the kvParser.
-     * The file itself is read in the generator.
-     * Otherwise the file must contain the control parameters which overwrite the defaults.
-     *
-     * A read error causes an exception which stops the program.
-     *
-     * @param filename a filename
-     * @param kvParser a key-value parser
-     */
-    private static void readParameters(String filename, KVParser kvParser) {
-        kvParser.parseFile(defaultFile.getAbsolutePath());  // may produce an exception and stop
-        if(filename.endsWith(".cnf")) {
-            kvParser.addLine("problem");
-            kvParser.addLine("type = file");
-            kvParser.addLine("file = " + filename);}
-        else{
-            String homeDirectory = System.getenv("USERPROFILE");
-            kvParser.parseFile(Paths.get(homeDirectory,filename).toString());} // may produce an exception and stop
-    }
 
 
     /** analyses the input specifications and turns them into internal data structures.
@@ -248,29 +231,6 @@ public class QUSat {
 
 
 
-    /** The method reads the specification from System.in and parses it with the kvParser.
-     * An IOException causes the system to stop.
-     *
-     * @param kvParser for parsing the specification
-     * @return true if it was no help command and the parsing succeeded
-     */
-    private static String parseInStream(KVParser kvParser) {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        String line;
-        try {  // check if it is a help-command
-            line = reader.readLine();
-            if (line.startsWith("help")) {
-                help(line.trim().split("\\s*[=,: ]\\s*"));
-                return null;}
-            String jobname = line;
-            kvParser.parseFile(defaultFile.getAbsolutePath());
-            kvParser.parseStream(System.in); // the rest must be parsed.
-            return jobname;}
-        catch(IOException ex) {
-            System.out.println(ex);
-            ex.printStackTrace();
-            System.exit(1);}
-        return null;}
 
 
 }

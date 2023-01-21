@@ -4,9 +4,8 @@ import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Management.ProblemSupervisor;
-import Utilities.Utilities;
 import Utilities.Interval;
-import com.sun.prism.shader.Texture_RadialGradient_REFLECT_AlphaTest_Loader;
+import Utilities.Utilities;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,7 +42,7 @@ public final class PigeonHoleGenerator {
                 "The numbers may be ranges like '4,5,6' or '5 to 10' or '5 to 11 step 2'.";
     }
 
-    /** generates for a range of pigeons and a range of holes a sequence of pigeon hole specifications.
+    /** generates for a range of pigeons and a range of holes a sequence of pigeonhole specifications.
      * The pigeons and holes may be ranges like '4,5,6' or '5 to 10' or '5 to 11 step 2'.
      *
      * @param parameters a HashMap with keys "pigeons" and "holes" and "capacity" and "quantifier"

@@ -1,7 +1,5 @@
 package Management;
 
-import Management.Monitor.Monitor;
-import Management.Monitor.MonitorLife;
 import Utilities.Utilities;
 
 import java.io.File;
@@ -9,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -67,25 +66,29 @@ public class GlobalParameters {
      * @param errors    for error messages
      * @param warnings  for warnings
      */
-    public GlobalParameters(HashMap<String,String> parameters, Monitor errors, Monitor warnings) {
+    public GlobalParameters(ArrayList<HashMap<String,String>> parameters, StringBuilder errors, StringBuilder warnings) {
         String title = "Global Parameters";
-        for(Map.Entry<String,String> entry : parameters.entrySet()) {
-            String key = entry.getKey();
-            if(key.equals("global")) {continue;}
-            String value = entry.getValue();
+        for(HashMap<String,String> pars :parameters) {
+            for(Map.Entry<String,String> entry : pars.entrySet()) {
+                String key = entry.getKey();
+                String value = entry.getValue();
             switch(key) {
+                case "jobname": jobname = value;
+                break;
                 case "directory" :
                     directory = Paths.get(homeDirectory,value).toFile();
                     if(directory.exists()) {
                         if(!directory.isDirectory()) {
-                            errors.print(title,"Directory " + directory + " is not a directory");}}
+                            errors.append(title+"Directory " + directory + " is not a directory");}}
                     else {
                         if(!directory.mkdirs()){
-                            errors.print(title,"Directory " + directory + " cannot be created");}}
+                            errors.append(title+"Directory " + directory + " cannot be created");}}
                     break;
                 case "parallel":
                     if(value.equals("true")) {parallel = Runtime.getRuntime().availableProcessors(); break;}
-                    Integer par = Utilities.parseInteger(title, "parallel", value,errors);
+                    StringBuilder err = new StringBuilder();
+                    Integer par = Utilities.parseInteger(title, value,err);
+                    if(par == null) {errors.append(title+err);}   // überarbeiten
                     if(par != null) {parallel = par;}
                     break;
                 case "trackReasoning" : trackReasoning = value.equals("true");
@@ -97,7 +100,7 @@ public class GlobalParameters {
                         logFile =  path.toFile().toString();
                         logstream = new PrintStream(path.toFile());}
                     catch(FileNotFoundException ex) {
-                        warnings.println(title,"Logfile "+ logFile + " cannot be opened.",
+                        warnings.append(title+"Logfile "+ logFile + " cannot be opened."+
                                 "Printing to System.out instead.");
                         logFile = "System.out";
                         logstream = System.out;}
@@ -105,7 +108,7 @@ public class GlobalParameters {
                 case "monitor":
                     monitorMode = value;
                     if(!(value.equals("live") || value.equals("collect"))) {
-                        errors.print(title,"monitor '" + value + "' is not one of 'live','collect");}
+                        errors.append(title+"monitor '" + value + "' is not one of 'live','collect");}
                     break;
                 case "errors2File":  errors2File = true;
                     break;
@@ -113,8 +116,8 @@ public class GlobalParameters {
                     break;
                 case "twoLiterals":  twoLiteralThread = true;
                     break;
-                default: warnings.print(title,"Unknown parameter: " + key);
-            }}}
+                default: warnings.append(title+"Unknown parameter: " + key);
+            }}}}
 
 
     /** returns a description of the parameters */

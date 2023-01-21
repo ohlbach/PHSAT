@@ -3,15 +3,18 @@ package Generators;
 import Datastructures.Clauses.BasicClauseList;
 import Management.Controller;
 import Management.GlobalParameters;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
+import Utilities.Utilities;
 import org.junit.Test;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import Utilities.Utilities;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 /**
  * Created by ohlbach on 06.09.2018.
@@ -26,8 +29,8 @@ public class CNFReaderTest {
     @Test
     public void parseProblemParameters1() {
         System.out.println("parseProblemParameters 1");
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();
+        Monitor warnings = new MonitorLife();
         HashMap<String,String> parameters = new HashMap<>();
         File file1 = Utilities.writeTmpFile("CNFReader", "test1.cnf", "test1");
         File file2 = Utilities.writeTmpFile("CNFReader", "test2.cnf", "test2");
@@ -43,8 +46,8 @@ public class CNFReaderTest {
     @Test
     public void parseProblemParameters2() {
         System.out.println("parseProblemParameters directory");
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         HashMap<String,String> parameters = new HashMap<>();
         File file1 = Utilities.writeTmpFile("CNFReader1", "test1.cnf", "test1");
         File file2 = Utilities.writeTmpFile("CNFReader1", "test2.cnf", "test2");
@@ -60,8 +63,8 @@ public class CNFReaderTest {
     @Test
     public void parseProblemParameters3() {
         System.out.println("parseProblemParameters regExpr");
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         HashMap<String,String> parameters = new HashMap<>();
         File file1 = Utilities.writeTmpFile("CNFReader2", "test1.cnf", "test1");
         File file2 = Utilities.writeTmpFile("CNFReader2", "test2.cnf", "test2");
@@ -86,14 +89,14 @@ public class CNFReaderTest {
 
 
     private ProblemSupervisor prepare() {
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
-        Controller controller = new Controller(null,null,null);
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
+        Controller controller = new Controller(null,null,null,null,null, errors, warnings);
         GlobalParameters globalParameters=new GlobalParameters();
         globalParameters.trackReasoning = true;
         HashMap<String,Object> problemParameters = new HashMap<>();
         problemParameters.put("name","test");
-        return new ProblemSupervisor(controller,globalParameters,problemParameters,null);}
+        return new ProblemSupervisor(controller,globalParameters,problemParameters,null,null);}
 
 
     @Test
@@ -101,8 +104,8 @@ public class CNFReaderTest {
         System.out.println("generate file not found");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n";
         HashMap<String,String> parameters = new HashMap<>();
         File file = Utilities.writeTmpFile("CNFReader3", "test.cnf", cnf);
@@ -119,8 +122,8 @@ public class CNFReaderTest {
         System.out.println("generate p-line missing");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "q cnf 10 6\n" +
@@ -140,8 +143,8 @@ public class CNFReaderTest {
         System.out.println("generate p line error");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cng 10 6";
@@ -159,8 +162,8 @@ public class CNFReaderTest {
         System.out.println("generate predicate error 1");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10a 6";
@@ -177,8 +180,8 @@ public class CNFReaderTest {
         System.out.println("generate predicate error 2");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf -10 6";
@@ -196,8 +199,8 @@ public class CNFReaderTest {
         System.out.println("generate symbol error");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10 6\n" +
@@ -220,8 +223,8 @@ public class CNFReaderTest {
         System.out.println("generate zero end");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10 6\n" +
@@ -244,8 +247,8 @@ public class CNFReaderTest {
         System.out.println("generate too large predicate");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10 6\n" +
@@ -270,8 +273,8 @@ public class CNFReaderTest {
         System.out.println("generate symbolic errors");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 5 6\n" +
@@ -293,8 +296,8 @@ public class CNFReaderTest {
         System.out.println("generate numeric errors");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "% comment\n" +
                 "p cnf 10 6\n" +
@@ -318,8 +321,8 @@ public class CNFReaderTest {
         System.out.println("generate numeric");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "c test2\n" +
                 "% test3\n" +
@@ -366,8 +369,8 @@ public class CNFReaderTest {
         System.out.println("generate symbolically");
 
         ProblemSupervisor problemSupervisor = prepare();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();;
+        Monitor warnings = new MonitorLife();;
         String cnf = "c test1\n" +
                 "c test2\n" +
                 "% test3\n" +

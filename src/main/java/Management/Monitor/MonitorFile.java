@@ -31,8 +31,7 @@ public class MonitorFile extends Monitor {
     public MonitorFile(String title, File file) {
         this.title = title;
         this.file = file;
-        if(file != null) pathname = file.getAbsolutePath();
-        monitoring = true;}
+        if(file != null) pathname = file.getAbsolutePath();}
 
     /** collects the messages for later printing them as a single line to a file
      *
@@ -42,10 +41,9 @@ public class MonitorFile extends Monitor {
     @Override
     public void print(String id, String... messages) {
         filled = true;
-        if(monitoring) {
-            String string = "";
-            for(String message : messages) string += message;
-            buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(string);}}
+        String string = "";
+        for(String message : messages) string += message;
+        buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(string);}
 
     /** fills the messages into the buffer
      *
@@ -55,8 +53,7 @@ public class MonitorFile extends Monitor {
     @Override
     public void print(String id, StringBuilder messages) {
         filled = true;
-        if(monitoring) {
-            buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(messages.toString());}}
+        buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(messages.toString());}
 
 
     /** collects the messages for later printing them one per line to a file
@@ -67,12 +64,11 @@ public class MonitorFile extends Monitor {
     @Override
     public void println(String id, String... messages) {
         filled = true;
-        if(monitoring) {
-            String string = "";
-            for(int i = 0; i < messages.length; ++i) {
-                string += messages[i];
-                if(i < messages.length-1) string += "\n";}
-            buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(string);}}
+        String string = "";
+        for(int i = 0; i < messages.length; ++i) {
+            string += messages[i];
+            if(i < messages.length-1) string += "\n";}
+        buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(string);}
 
 
     /** The messages are now printed, either to System.out, or to the file
@@ -82,7 +78,7 @@ public class MonitorFile extends Monitor {
      */
     @Override
     public synchronized void flush(boolean close) {
-        if(monitoring && filled) {
+        if(filled) {
             PrintStream out = System.out;
             if(file != null) {
                 try{out = new PrintStream(file);}
@@ -106,15 +102,15 @@ public class MonitorFile extends Monitor {
      * @return some information about the monitor
      */
     public String toString() {
-        if(!monitoring) {return title + ": monitoring deactivated.";}
-            StringBuilder st = new StringBuilder();
-            st.append(title).append(": ");
-            st.append("separated printing");
-            for(Map.Entry<String,ArrayList<String>> entry : buffers.entrySet()) {
-                st.append(entry.getKey()).append(",");}
-            st.append(" to ");
-            st.append((file == null) ? "System.out" : file.getAbsolutePath());
-            return st.toString();}
+        if(!filled) {return title + ": The monitor is empty.";}
+        StringBuilder st = new StringBuilder();
+        st.append(title).append(": ");
+        st.append("separated printing");
+        for(Map.Entry<String,ArrayList<String>> entry : buffers.entrySet()) {
+            st.append(entry.getKey()).append(",");}
+        st.append(" to ");
+        st.append((file == null) ? "System.out" : file.getAbsolutePath());
+        return st.toString();}
 
 
 }

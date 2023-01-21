@@ -14,7 +14,7 @@ import java.util.Map;
  * Each of these  top-keys introduces a block of key-value pairs.<br>
  * There may be arbitrary many of these blocks, arbitrarily intermixed.
  *<br><br>
- * The result ist a HashMap, one entry for each top-key, an ArrayList of HashMaps.<br>
+ * The result is a HashMap, one entry for each top-key, an ArrayList of HashMaps.<br>
  * Each of these HashMaps contains the key-value pairs (as Strings).
  *<br><br>
  * Empty lines are ignored. Comments can be added after %
@@ -90,6 +90,7 @@ public class KVParser {
      * If the line is just a topKey, a new currentMap is created to be filled at the next addLine calls.<br>
      * Otherwise the line is split at the first occurrences of either = , : or space.<br>
      * The key-value pair is put into the currentMap. <br>
+     * Existing key-value pairs are overwritten.<br>
      * If there is just a key then the value is "true".
      *
      * @param line the line to be parsed.

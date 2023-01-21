@@ -1,6 +1,7 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
+import Management.KVParser;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
@@ -29,6 +30,7 @@ public abstract class Generator {
 
     public static String[] generators = new String[]{"random","file","pidgeonhole","string"};
 
+    BasicClauseList basicClauseList = null;
 
     /** checks if the name is a generator name
      *
@@ -80,21 +82,23 @@ public abstract class Generator {
 
     /** parses the string-type parameters into sequences of objects
      *
-     * @param name       the generator name
-     * @param parameters a key-value map with parameters as strings
+     * @param kvParser   the KeyValue parser, which contains the parameters
      * @param errors     for collecting error messages
      * @param warnings   for collecting warning messages
-     * @return           a list of key-value maps where the values are objects.
+     * @return           a list of generators
      */
-    public static ArrayList<HashMap<String,Object>> parseParameters(String name, HashMap<String,String> parameters,
-                                                                    Monitor errors, Monitor warnings) {
-        Class clazz = generatorClass(name);
-        if(clazz == null) {errors.print("Problem Generator","Unknown generator class: " + name); return null;}
-        try{
-            Method parser = clazz.getMethod("parseParameters",HashMap.class, MonitorLife.class, MonitorLife.class);
-            return (ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings);}
-        catch(Exception ex) {ex.printStackTrace();System.exit(1);}
-        return null;}
+    public static ArrayList<Generator> parseParameters(KVParser kvParser,StringBuilder errors, StringBuilder warnings) {
+        ArrayList<Generator> generators = new ArrayList<>();
+        for(HashMap<String,String> parameters: kvParser.get("generator")) {
+            String type = parameters.get("generator");
+            if(type == null) continue;
+            Class clazz = generatorClass(type);
+            if(clazz == null) {errors.append("Problem Generator: Unknown generator class: " + type); continue;}
+            try{
+                Method parser = clazz.getMethod("parseParameters",HashMap.class, String.class, ArrayList.class, StringBuilder.class, StringBuilder.class);
+                parser.invoke(null,parameters,generators,errors,warnings);}
+            catch(Exception ex) {ex.printStackTrace();System.exit(1);}}
+        return generators;}
 
     /** generates the clauses as BasicClauseList and puts then with key "clauses" into the parametes map.
      *
@@ -107,9 +111,9 @@ public abstract class Generator {
      */
     public static BasicClauseList generate(String name, HashMap<String,Object> parameters,
                                            ProblemSupervisor problemSupervisor,
-                                           StringBuilder errors, StringBuilder warnings) {
+                                           Monitor errors, Monitor warnings) {
         Class clazz = generatorClass(name);
-        if(clazz == null) {errors.append("Problem Generator"+"Unknown generator class: " + name); return null;}
+        if(clazz == null) {errors.print("Problem Generator","Unknown generator class: " + name); return null;}
         try{
             Method generator = clazz.getMethod("generate",HashMap.class, ProblemSupervisor.class, MonitorLife.class, MonitorLife.class);
             return (BasicClauseList) generator.invoke(null,parameters,problemSupervisor,errors,warnings);}

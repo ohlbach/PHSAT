@@ -1,4 +1,5 @@
 global
+ jobname = Test
  parallel = 1
  //monitor
  logging

@@ -1,5 +1,7 @@
 package Generators;
 
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -31,8 +33,8 @@ public class GeneratorTest {
     public void parseParameters() throws Exception {
         System.out.println("parseParameters");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();
+        Monitor warnings = new MonitorLife();
         parameters.put("predicates","10");
         parameters.put("disjunctions","30");
         parameters.put("length","3");
@@ -43,8 +45,8 @@ public class GeneratorTest {
     public void generate() throws Exception {
         System.out.println("generate");
         HashMap<String,String> parameters = new HashMap<>();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+        Monitor errors = new MonitorLife();
+        Monitor warnings = new MonitorLife();
         parameters.put("predicates","10");
         parameters.put("disjunctions","30");
         parameters.put("length","3");

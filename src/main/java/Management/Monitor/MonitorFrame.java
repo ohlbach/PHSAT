@@ -22,7 +22,6 @@ public class MonitorFrame extends Monitor {
 
     public MonitorFrame(String title, int width, int height, int xOffset, int yOffset) {
         this.title = title;
-        monitoring = true;
         frame = new JFrame(title);
         frame.setSize(width,height);
         frame.setVisible(true);
@@ -44,11 +43,10 @@ public class MonitorFrame extends Monitor {
      */
     @Override
     public void print(String id, String... messages) {
-        if(monitoring) {
-            if(!filled) {frame.setVisible(true);}
-            area.append(title); area.append(","); area.append(id); area.append(": ");
-            for(String message: messages) area.append(message);
-            area.append("\n");}
+        if(!filled) {frame.setVisible(true);}
+        area.append(title); area.append(","); area.append(id); area.append(": ");
+        for(String message: messages) area.append(message);
+        area.append("\n");
         filled = true;}
 
     /** either prints the messages one per line
@@ -58,10 +56,9 @@ public class MonitorFrame extends Monitor {
      */
     @Override
     public void println(String id, String... messages) {
-        if(monitoring) {
-            if(!filled) {frame.setVisible(true);}
-            area.append(title); area.append(","); area.append(id); area.append(": ");
-            for(String message: messages) {area.append(message);area.append("\n");}}
+        if(!filled) {frame.setVisible(true);}
+        area.append(title); area.append(","); area.append(id); area.append(": ");
+        for(String message: messages) {area.append(message);area.append("\n");}
         filled = true;}
 
     /** either prints the messages one per line
@@ -71,10 +68,9 @@ public class MonitorFrame extends Monitor {
      */
     @Override
     public void print(String id, StringBuilder messages) {
-        if(monitoring) {
-            if(!filled) {frame.setVisible(true);}
-            area.append(title); area.append(","); area.append(id); area.append(":\n");
-            area.append(messages.toString());area.append("\n");}
+        if(!filled) {frame.setVisible(true);}
+        area.append(title); area.append(","); area.append(id); area.append(":\n");
+        area.append(messages.toString());area.append("\n");
         filled = true;}
 
     /** returns true if the frame was filled at least once
@@ -100,7 +96,6 @@ public class MonitorFrame extends Monitor {
      * @return some information about the monitor
      */
     public String toString() {
-        if(!monitoring) {return title + ": monitoring deactivated.";}
         return title + ": Immediate printing to frame";}
 
 }

@@ -10,10 +10,7 @@ package Management.Monitor;
 public abstract class Monitor {
 
     /**  A title like "Messages", "Errors", "Warnings"*/
-    public String title;
-
-    /** If the flag is false then the messages are ignored */
-    public boolean monitoring = false;
+    public String title = "Monitor";
 
     /** becomes true after the first call to print pr println */
     public boolean filled = false;
@@ -44,7 +41,7 @@ public abstract class Monitor {
      * @return true if messages have been printed/collected
      */
     public boolean wasFilled() {
-        return monitoring && filled;}
+        return filled;}
 
     /** prints previously collected messages and clears buffers.
      *
