@@ -19,6 +19,9 @@ public class GlobalParameters {
     public String homeDirectory = System.getenv("USERPROFILE");
     /** the name of the current job. It is used as prefix for all generated files */
     public String jobname = "Test";
+
+    public String basicDirectory = System.getenv("USERPROFILE");
+
     /** the directory where to print the files. Default: null (System.out) */
     public File directory = null;
     /** number of parallel threads for solving several problems. 0 (default) means sequential processing. */

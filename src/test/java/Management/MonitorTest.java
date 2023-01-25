@@ -20,7 +20,7 @@ public class MonitorTest {
         System.out.println("Mixed System.out");
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        MonitorLife m = new MonitorLife(directory,"mixed",errors,warnings);
+        MonitorLife m = new MonitorLife();
         m.print("T1", "Hello");
         m.print("T2", "Me too");
         m.flush(true);
@@ -32,7 +32,7 @@ public class MonitorTest {
         StringBuilder errors = new StringBuilder();
         String file = Utilities.tempFile("Monitor","file1");
         StringBuilder warnings = new StringBuilder();
-        MonitorLife m = new MonitorLife(null,"mixed " + file,errors,warnings);
+        MonitorLife m = new MonitorLife();
         System.out.println(errors.toString());
         m.print("T1", "Hello");
         m.print("T2", "Me too");
@@ -45,10 +45,8 @@ public class MonitorTest {
         System.out.println("Separated System.out");
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        MonitorLife m = new MonitorLife(directory,"separated",errors,warnings);
+        MonitorLife m = new MonitorLife();
         System.out.println(errors.toString());
-        m.addThread("T1", "T1-Thread");
-        m.addThread("T2", "T2-Thread");
         System.out.println(m.toString());
         m.print("T1", "Hello");
         m.print("T2", "Me too");
@@ -63,10 +61,8 @@ public class MonitorTest {
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
         String file = Utilities.tempFile("Monitor","file1");
-        MonitorLife m = new MonitorLife(null,"separated " + file,errors,warnings);
+        MonitorLife m = new MonitorLife();
         System.out.println(errors.toString());
-        m.addThread("T1", "T1-Thread");
-        m.addThread("T2", "T2-Thread");
         System.out.println(m.toString());
         m.print("T1", "Hello");
         m.print("T2", "Me too");

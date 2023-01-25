@@ -1,6 +1,7 @@
 package Generators;
 
 import Datastructures.Clauses.BasicClauseList;
+import Management.GlobalParameters;
 import Management.KVParser;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
@@ -82,21 +83,23 @@ public abstract class Generator {
 
     /** parses the string-type parameters into sequences of objects
      *
-     * @param kvParser   the KeyValue parser, which contains the parameters
+     * @param pars       the generator parameters
      * @param errors     for collecting error messages
      * @param warnings   for collecting warning messages
      * @return           a list of generators
      */
-    public static ArrayList<Generator> parseParameters(KVParser kvParser,StringBuilder errors, StringBuilder warnings) {
+    public static ArrayList<Generator> parseParameters(ArrayList<HashMap<String,String>> pars, GlobalParameters globalParameters,
+                                                       StringBuilder errors, StringBuilder warnings) {
         ArrayList<Generator> generators = new ArrayList<>();
-        for(HashMap<String,String> parameters: kvParser.get("generator")) {
+        for(HashMap<String,String> parameters: pars) {
             String type = parameters.get("generator");
             if(type == null) continue;
             Class clazz = generatorClass(type);
             if(clazz == null) {errors.append("Problem Generator: Unknown generator class: " + type); continue;}
             try{
-                Method parser = clazz.getMethod("parseParameters",HashMap.class, String.class, ArrayList.class, StringBuilder.class, StringBuilder.class);
-                parser.invoke(null,parameters,generators,errors,warnings);}
+                Method parser = clazz.getMethod("parseParameters",HashMap.class, GlobalParameters.class,
+                        ArrayList.class, StringBuilder.class, StringBuilder.class);
+                parser.invoke(null,parameters,globalParameters,generators,errors,warnings);}
             catch(Exception ex) {ex.printStackTrace();System.exit(1);}}
         return generators;}
 
@@ -119,6 +122,25 @@ public abstract class Generator {
             return (BasicClauseList) generator.invoke(null,parameters,problemSupervisor,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
+
+    /** extracts the type-specific parameters from the kvParser
+     *
+     * @param kvParser  contains all control parameters
+     * @param type      one of the generator types
+     * @return the parameters for the given type
+     */
+    public static HashMap<String,String> getParameters(KVParser kvParser, String type) {
+        for(HashMap<String,String> parameters: kvParser.get("generator")) {
+            if(type.equals(parameters.get("type"))) return parameters;}
+        return null;}
+
+    /** generates a BasicClauseList
+     *
+     * @param errorMonitor    for error massages
+     * @param warningMonitor  for warnings
+     * @return true if there was no error.
+     */
+    public abstract boolean generate(Monitor errorMonitor, Monitor warningMonitor);
 
 
 }

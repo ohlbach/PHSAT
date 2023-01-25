@@ -59,12 +59,8 @@ public class BasicClauseList {
      *  Erroneous clauses are not added to the lists
      *
      * @param clause      a clause
-     * @param errorPrefix a prefix for error messages
-     * @param errors      for error messages
-     * @param warnings    for warnings
      */
-    public void addClause(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
-        clause = checkSyntax(clause,errorPrefix, errors, warnings);
+    public void addClause(int[] clause) {
         if(clause == null) return;
         Connective connective = Connective.getType(clause[1]);
         int length = clause.length-2;
@@ -92,7 +88,7 @@ public class BasicClauseList {
      * @param warnings     for adding a warning
      * @return null or the original clause
      */
-    protected int[] checkSyntax(int[] clause, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
+    public static int[] checkSyntax(int[] clause, int predicates, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
         errorPrefix += "Clause " + Arrays.toString(clause) + ": ";
         int type = clause[1];
         Connective connective = Connective.getType(type);
@@ -140,7 +136,7 @@ public class BasicClauseList {
      * @param connective one of the connectives
      * @return the start of the literal section in a basic clause
      */
-    private int getStart(Connective connective) {
+    private static int getStart(Connective connective) {
         if(connective.isInterval()) return 4;
         if(connective.isQuantifier()) return 3;
         return 2;}

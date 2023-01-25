@@ -3,8 +3,8 @@ package Generators;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
-import Management.Monitor.MonitorLife;
-import Management.ProblemSupervisor;
+import Management.GlobalParameters;
+import Management.Monitor.Monitor;
 import Utilities.Utilities;
 
 import java.util.ArrayList;
@@ -14,26 +14,28 @@ import static Utilities.Utilities.parseInteger;
 
 /**
  * Created by ohlbach on 27.08.2018.
- *
  * This generator creates a clause set from literal names.
  * This is basically for test purposes.
  */
-public final class StringClauseSetGenerator  {
+public final class StringClauseSetGenerator extends Generator {
 
     /** transfers the disjunctions (String) unchanged to the result
      *
-     * @param parameters a HashMap with key "clauses"
+     * @param parameters   contains all control parameters
+     * @param globalParameters not used
      * @param errors    no effect
      * @param warnings  no effect
-     * @return a HashMap with "clauseString"
      */
-    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
-                                                                    MonitorLife errors, MonitorLife warnings){
-        HashMap<String,Object> map = new HashMap<>();
-        map.put("clauses", parameters.get("clauses").trim());
-        ArrayList<HashMap<String,Object>> list = new ArrayList<>();
-        list.add(map);
-        return list;}
+    public static void parseParameters(HashMap<String,String> parameters, GlobalParameters globalParameters,
+                                       ArrayList<Generator> generators,
+                                       StringBuilder errors, StringBuilder warnings){
+        assert parameters != null;
+        generators.add(new StringClauseSetGenerator(parameters.get("clauses").trim()));}
+
+    private final String clauses;
+
+    public StringClauseSetGenerator(String clauses) {
+        this.clauses = clauses;}
 
     /** generates a help string
      *
@@ -58,29 +60,28 @@ public final class StringClauseSetGenerator  {
 
     /** parses the clause string and generates a BasicClauseList object.
      *
-     * @param parameters the HashMap with key "clauseString"
-     * @param errors   for error messages
-     * @param warnings no effect
-     * @return  the new BasicClauseList object.
+     * @param errorMonitor   for error messages
+     * @param warningMonitor no effect
+     * @return  true if there was no error.
      */
-    public static  BasicClauseList generate(HashMap<String,Object> parameters,
-                                            ProblemSupervisor problemSupervisor, StringBuilder errors, StringBuilder warnings) {
-        String clauses = (String)parameters.get("clauses");
+    @Override
+    public  boolean generate(Monitor errorMonitor, Monitor warningMonitor) {
+        StringBuilder errors = new StringBuilder();
         String[] lines = clauses.split("\\s*\\n\\s*");
         String line = lines[0];
         if(!line.startsWith("p")) {
-            errors.append("First line '" + line + "' does not start with p\n");
-            return null;}
+            errorMonitor.print("StringClauseSetGenerator","First line '", line, "' does not start with p\n");
+            return false;}
         String[] parts = line.split("\\s+");
         if(parts.length != 2) {
-            errors.append("First line '" + line + "' does not contain predicates\n");
-            return null;}
+            errorMonitor.print("StringClauseSetGenerator","First line '", line, "' does not contain predicates\n");
+            return false;}
         Integer predicates = parseInteger(parts[1]);
         if(predicates == null) {
-            errors.append("First line '" + line + "' does not contain predicates\n");
-            return null;}
+            errorMonitor.print("StringClauseSetGenerator","First line '", line, "' does not contain predicates\n");
+            return false;}
         Symboltable symboltable = new Symboltable(predicates);
-        BasicClauseList bcl = new BasicClauseList(predicates,symboltable,"String Generator");
+        basicClauseList = new BasicClauseList(predicates,symboltable,"String Generator");
         int id = 1;
         for(int i = 1; i < lines.length; ++i) {
             String errorPrefix = "Line " + i + ": '"+line + "'";
@@ -89,9 +90,10 @@ public final class StringClauseSetGenerator  {
             int[] clause = parseLine(line,id,symboltable,errorPrefix,errors);
             if(clause == null) continue;
             ++id;
-            bcl.addClause(clause,errorPrefix,errors,warnings);}
-        problemSupervisor.clauseCounter = id;
-        return bcl;
+            basicClauseList.addClause(clause);}
+        basicClauseList.nextId = id;
+        if(errors.length() > 0) {errorMonitor.println("StringClauseSetGenerator",errors.toString()); return false;}
+        return true;
     }
 
     /** parses a single clause-line
@@ -182,7 +184,7 @@ public final class StringClauseSetGenerator  {
         boolean okay = true;
         if(position < 0) {
             errors.append(errorPrefix).append("'] not found\n");
-            return null;};
+            return null;}
         String[] parts = line.substring(position+1).trim().split("\\s*[, ]\\s*");
         int[] basicClause = new int[parts.length + 4];
         basicClause[0] = id;
@@ -210,7 +212,7 @@ public final class StringClauseSetGenerator  {
         /** parses the literal-part of a clause line
          *
          * @param parts         the clause-line, split by , or blank
-         * @param startPart     where the literal start
+         * @param startPart     where the literals start
          * @param basicClause   where to put the parsed literals into
          * @param positionBC    start index of the basicClause
          * @param symboltable   a symboltable

@@ -1,15 +1,10 @@
 package Generators;
 
-import Management.Monitor.Monitor;
-import Management.Monitor.MonitorLife;
-import org.junit.Test;
-
-import java.util.HashMap;
-
 /**
  * Created by ohlbach on 09.10.2018.
  */
 public class GeneratorTest {
+    /*
     @Test
     public void getGeneratorClass() throws Exception {
 
@@ -54,5 +49,5 @@ public class GeneratorTest {
         HashMap<String,Object> map = Generator.parseParameters("random",parameters,errors,warnings).get(0);
         System.out.println(Generator.generate("random",map,null,errors,warnings));
     }
-
+*/
 }

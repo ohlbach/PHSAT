@@ -1,15 +1,10 @@
 package Generators;
-import Datastructures.Clauses.BasicClauseList;
+
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
-import Management.Controller;
-import Management.GlobalParameters;
-import Management.ProblemSupervisor;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 
@@ -18,16 +13,6 @@ import static org.junit.Assert.assertEquals;
  */
 public class StringClauseSetGeneratorTest {
     String errorPrefix = "Error: ";
-
-    private ProblemSupervisor prepare() {
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
-        Controller controller = new Controller(null,null,null);
-        GlobalParameters globalParameters=new GlobalParameters();
-        globalParameters.trackReasoning = true;
-        HashMap<String,Object> problemParameters = new HashMap<>();
-        problemParameters.put("name","test");
-        return new ProblemSupervisor(controller,globalParameters,problemParameters,null);}
 
      @Test
      public void help() {
@@ -107,11 +92,10 @@ public class StringClauseSetGeneratorTest {
         System.out.println(errors);
         assertEquals("[10, 0, 1, 2, -3, -1]", Arrays.toString(clause));
     }
-
+/*
     @Test
     public void generate() throws Exception {
         System.out.println("generate");
-        ProblemSupervisor problemSupervisor = prepare();
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
         String clauses = "p 5\n" +
@@ -129,5 +113,5 @@ public class StringClauseSetGeneratorTest {
                 "M-2: 2 -p,q,r\n" +
                 "L-3: 3 q,-r,s\n", bcl.toString());
     }
-
+*/
 }

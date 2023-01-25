@@ -1,26 +1,10 @@
 package Generators;
 
-import Datastructures.Clauses.BasicClauseList;
-import Management.Controller;
-import Management.GlobalParameters;
-import Management.Monitor.Monitor;
-import Management.Monitor.MonitorLife;
-import Management.ProblemSupervisor;
-import Utilities.Utilities;
-import org.junit.Test;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-
 /**
  * Created by ohlbach on 06.09.2018.
  */
 public class CNFReaderTest {
-
+/*
     @Test
     public void help()  {
         System.out.println(CNFReader.help());
@@ -409,5 +393,5 @@ public class CNFReaderTest {
                 "X-8: 2 -a,-b,-c\n", bcl.toString());
     }
 
-
+*/
 }

@@ -1,13 +1,9 @@
 package Management;
 
-import Generators.StringClauseSetGenerator;
-import jdk.nashorn.internal.objects.Global;
 import org.junit.Test;
 
-import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
-
-import static org.junit.Assert.*;
 
 /**
  * Created by ohlbach on 02.11.2018.
@@ -30,8 +26,9 @@ public class GlobalParametersTest {
         pars.put("monitor", "mixed "+ "monitor");
         pars.put("results","results.res");
         pars.put("statistics","stat.sta");
-
-        GlobalParameters glb = new GlobalParameters(pars,errors,warnings);
+        ArrayList<HashMap<String,String>> parameters = new ArrayList<>();
+        parameters.add(pars);
+        GlobalParameters glb = new GlobalParameters(parameters,errors,warnings);
         System.out.println("Errors\n" + errors);
         System.out.println("Warnings\n" + warnings);
         System.out.println(glb.toString());

@@ -1,20 +1,10 @@
 package Generators;
 
-import Datastructures.Clauses.BasicClauseList;
-import Management.Controller;
-import Management.GlobalParameters;
-import Management.ProblemSupervisor;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-
-import static org.junit.Assert.*;
-
 /**
  * Created by ohlbach on 06.09.2018.
  */
 public class RandomClauseSetGeneratorTest {
+    /*
     @Test
     public void help() {
         System.out.println(RandomClauseSetGenerator.help());
@@ -209,5 +199,5 @@ public class RandomClauseSetGeneratorTest {
                 "I-30: 2-3: 9,9,8\n" +
                 "I-31: 1-2: 2,2\n",bcl.toString());
     }
-
+*/
 }

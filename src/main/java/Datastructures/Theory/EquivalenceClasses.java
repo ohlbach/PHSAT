@@ -69,7 +69,7 @@ public class EquivalenceClasses  {
     public Symboltable symboltable;
 
     /** for logging the actions of this class */
-    private final MonitorLife monitor;
+    private  MonitorLife monitor;
 
     /** indicates monitoring is on */
     private boolean monitoring = false;
@@ -120,11 +120,14 @@ public class EquivalenceClasses  {
         statistics   = new EquivalenceStatistics(problemId);
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
         if(trackReasoning) nextId = problemSupervisor::nextClauseId;
-        monitor = problemSupervisor.globalParameters.monitor;
+       /* monitor = problemSupervisor.globalParameters.monitor;
         if(monitor != null) {
             monitoring = true;
             monitorId = problemId+"-EQV";
-            monitor.addThread(monitorId,"EquivalenceClasses");}}
+            monitor.addThread(monitorId,"EquivalenceClasses");}
+            */
+
+    }
 
     /** Any solver which is interested to know about newly derived equivalences can add an observer.
      * The observer is called with (literal1, literal2, origins) as soon as new equivalences
@@ -168,7 +171,7 @@ public class EquivalenceClasses  {
                             toString(symboltable,false));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
-                problemSupervisor.announceResult(unsatisfiable,"EquivalenceClasses");
+                //problemSupervisor.announceResult(unsatisfiable,"EquivalenceClasses");
                 return;}}}
 
 

@@ -3,7 +3,8 @@ package Generators;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
-import Management.ProblemSupervisor;
+import Management.GlobalParameters;
+import Management.Monitor.Monitor;
 import Utilities.Interval;
 import Utilities.Utilities;
 
@@ -15,7 +16,7 @@ import java.util.HashSet;
 /**
  * Created by ohlbach on 09.09.2018.<br>
  *
- * This class is for generating variations of pigeon hole problems of arbitrary size.<br>
+ * This class is for generating variations of pigeonhole problems of arbitrary size.<br>
  * There are n holes and m pigeons <br>
  * Each pigeon must be placed into exactly one hole. <br>
  * Each hole, however, may have different capacities: <br>
@@ -23,13 +24,27 @@ import java.util.HashSet;
  *   atmost  n pigeons may be put into a hole <br>
  *   exactly n pigeons may be put into a hole.
  */
-public final class PigeonHoleGenerator {
+public final class PigeonHoleGenerator extends Generator{
 
     private static final HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
         Collections.addAll(keys, "pigeons", "holes", "capacity", "quantifier");
-
     }
+
+    private final int pigeons;
+    private final int holes;
+    private final Object capacity;
+    private final String quantifier;
+
+    public PigeonHoleGenerator(int pigeons, int holes, Object capacity, String quantifier) {
+        this.pigeons = pigeons;
+        this.holes = holes;
+        this.capacity = capacity;
+        this.quantifier = quantifier;
+    }
+
+
+
     public static String help() {
         return "Pigeon Hole Generator for putting a number of pigeons into a number or holes\n" +
                 "Each pigeon must be put into exactly one hole\n"+
@@ -45,20 +60,21 @@ public final class PigeonHoleGenerator {
     /** generates for a range of pigeons and a range of holes a sequence of pigeonhole specifications.
      * The pigeons and holes may be ranges like '4,5,6' or '5 to 10' or '5 to 11 step 2'.
      *
-     * @param parameters a HashMap with keys "pigeons" and "holes" and "capacity" and "quantifier"
+     * @param parameters  contains a HashMap with keys "pigeons" and "holes" and "capacity" and "quantifier"
+     * @param globalParameters not used
      * @param errors    for error messages
      * @param warnings  for warnings
-     * @return a list of HashMaps with "pigeons" and "holes", "capacity", "quantifier"
      */
-    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters,
-                                                                           StringBuilder errors, StringBuilder warnings){
+    public static void parseParameters(HashMap<String,String> parameters, GlobalParameters globalParameters,
+                                       ArrayList<Generator> generators,
+                                       StringBuilder errors, StringBuilder warnings){
+        assert parameters != null;
         String prefix = "Pigeon Hole Generator: ";
         for(String key : parameters.keySet()) {
             if(key.equals("type") || key.equals("name")) continue;
             if(!keys.contains(key)) {
                 warnings.append(prefix+"Unknown key in parameters: " + key + "\n").
-                        append("Allowed keys: ").append(keys.toString()).append("\n");}}
-
+                        append("Allowed keys: ").append(keys).append("\n");}}
 
         String hole       = parameters.get("holes");
         String pigeon     = parameters.get("pigeons");
@@ -96,7 +112,7 @@ public final class PigeonHoleGenerator {
             quantifiers = new ArrayList();
             for(String part : parts) quantifiers.add(part);}
 
-        if(erroneous) {return null;}
+        if(erroneous) {return;}
 
         ArrayList<HashMap<String,Object>> params = new ArrayList<>();
         ArrayList<ArrayList> list = Utilities.crossProduct(holes,pigeons,capacities,quantifiers);
@@ -115,16 +131,9 @@ public final class PigeonHoleGenerator {
                     quantifierv.equals("exactly") || quantifierv.equals("interval"))) {
                 errors.append(prefix + "quantifier ist not atleast, atmost, exactly or interval: " + quantifierv);
                 erroneous = true;}
-            if(erroneous) return null;
-
-            HashMap<String,Object> spec = new HashMap<>();
-            spec.put("holes",holesv);
-            spec.put("pigeons",pigeonsv);
-            spec.put("capacity", capacityv);
-            spec.put("quantifier",quantifierv);
-            spec.put("name","PH"+pigeonsv+""+holesv);
-            params.add(spec);}
-        return params;}
+            if(erroneous) return;
+            generators.add(new PigeonHoleGenerator(holesv,pigeonsv,capacityv,quantifierv));}
+}
 
 
 
@@ -139,18 +148,11 @@ public final class PigeonHoleGenerator {
      *  atmost 2 P1H2, P2H2, P3H2<br>
      *  atmost 2 P1H3, P2H3, P3H3<br>
      *
-     * @param parameters a HashMap with keys "holes" and "pidgeons"
      * @param errors    no effect
      * @param warnings  no effect
-     * @return the new clauses
+     * @return true if there was no error
      */
-    public static BasicClauseList generate(HashMap<String,Object> parameters,ProblemSupervisor problemSupervisor,
-                                                  StringBuilder errors, StringBuilder warnings){
-        String prefix = "Pigeon Hole Generator: ";
-        int holes         = (Integer)parameters.get("holes");
-        int pigeons       = (Integer)parameters.get("pigeons");
-        Object capacity   = parameters.get("capacity");
-        String quantifier = (String)parameters.get("quantifier");
+    public boolean generate(Monitor errors, Monitor warnings){
         int clauseType = Connective.ATLEAST.ordinal();
         if(capacity.getClass() == Interval.class) {clauseType = Connective.INTERVAL.ordinal();}
         else {
@@ -163,26 +165,25 @@ public final class PigeonHoleGenerator {
             for(int hole = 1; hole <= holes; ++hole) {
                 symboltable.setName(++predicates,"P"+pigeon+"H"+hole);}}
 
-        BasicClauseList bcl = new BasicClauseList();
-        bcl.predicates = predicates;
-        bcl.info = "Pigeon Hole example with " + pigeons + " pigeons in " + holes + " holes\n"+
+        String info = "Pigeon Hole example with " + pigeons + " pigeons in " + holes + " holes\n"+
                     "capacity: " + quantifier + " " + capacity + " pigeons in a hole.";
-        bcl.symboltable = symboltable;
+        basicClauseList = new BasicClauseList(predicates,symboltable,info);
 
+        int id = 0;
         for(int pigeon = 1; pigeon <= pigeons; ++pigeon) {
             int[] clause = new int[holes+3];
-            clause[0] = problemSupervisor.nextClauseId();
+            clause[0] = ++id;
             clause[1] = Connective.EXACTLY.ordinal();
             clause[2] = 1;
             for(int hole = 1; hole <= holes; ++hole) {
                 clause[hole+2] = symboltable.getPredicate("P"+pigeon+"H"+hole);}
-            bcl.addClause(clause,prefix,errors,warnings);}
+            basicClauseList.addClause(clause);}
 
         int shift = 2;
         if(clauseType == Connective.INTERVAL.ordinal()) shift = 3;
         for(int hole = 1; hole <= holes; ++hole) {
             int[] clause = new int[pigeons+shift+1];
-            clause[0] = problemSupervisor.nextClauseId();
+            clause[0] = ++id;
             clause[1] = clauseType;
             if(clauseType == Connective.INTERVAL.ordinal()) {
                 shift = 3;
@@ -191,9 +192,10 @@ public final class PigeonHoleGenerator {
             else{clause[2] = (Integer)capacity;}
             for(int pigeon = 1; pigeon <= pigeons; ++pigeon) {
                 clause[pigeon+shift] = symboltable.getPredicate("P"+pigeon+"H"+hole);}
-            bcl.addClause(clause,prefix,errors,warnings);}
+            basicClauseList.addClause(clause);}
 
-        return bcl;
+        basicClauseList.nextId = ++id;
+        return true;
     }
 
 

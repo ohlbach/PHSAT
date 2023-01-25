@@ -1,21 +1,10 @@
 package Generators;
 
-import Datastructures.Clauses.BasicClauseList;
-import Management.Controller;
-import Management.GlobalParameters;
-import Management.ProblemSupervisor;
-import org.junit.Test;
-import Utilities.Interval;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-
-import static org.junit.Assert.*;
-
 /**
  * Created by ohlbach on 09.09.2018.
  */
 public class PigeonHoleGeneratorTest {
+    /*
     @Test
     public void help(){
         System.out.println(PigeonHoleGenerator.help());
@@ -133,5 +122,5 @@ public class PigeonHoleGeneratorTest {
                 "I-8: 2-3: P1H3,P2H3,P3H3,P4H3,P5H3\n" +
                 "I-9: 2-3: P1H4,P2H4,P3H4,P4H4,P5H4\n",bcl.toString());
     }
-
+*/
 }

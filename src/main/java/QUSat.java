@@ -4,12 +4,9 @@ import Management.Controller;
 import Management.GlobalParameters;
 import Management.KVParser;
 import Management.Monitor.Monitor;
-import Management.Monitor.MonitorFile;
 import Management.Monitor.MonitorLife;
 import Solvers.Solver;
 
-import java.io.*;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,10 +47,8 @@ public class QUSat {
     private static final String parameters = null;
 
     public static String jobname;
-    private final Monitor errors;
-    private final Monitor warnings;
 
-    public GlobalParameters                  globalParameters  = null;
+    public static GlobalParameters globalParameters  = null;
     public HashMap<String,Object>            initializeParameters  = null;
     public ArrayList<HashMap<String,Object>> problemParameters = null;
     public ArrayList<HashMap<String,Object>> solverParameters  = null;
@@ -103,10 +98,9 @@ public class QUSat {
 
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        GlobalParameters globalParameters= new GlobalParameters(kvParser.get("global"),errors,warnings);
-
-        QUSat quSat = new QUSat(kvParser);
-        if(quSat.controller != null) quSat.controller.solveProblems();}
+        globalParameters= new GlobalParameters(kvParser.get("global"),errors,warnings);
+        ArrayList<Generator> generators = Generator.parseParameters(kvParser.get("generator"),globalParameters,errors,warnings);
+}
 
     /** This method calls the help()-methods and prints the results.
      * - help global:           prints the global help strings<br>
@@ -134,89 +128,14 @@ public class QUSat {
         System.out.println(Solver.help());}
 
 
-    /** Constructs a QUSat object, which parses the arguments.
-     * Finally, it creates a Controller, which can control the entire processing of the problem.
-     *
-     * @param kvParser the filled key-value parser
-     */
-    private QUSat(KVParser kvParser) {
-        HashMap<String,String> globalParameters = kvParser.get("global").get(0);
-        jobname = globalParameters.get("jobname"); // The default is "Test"
-
-        File errorFile = null;
-        File warningFile = null;
-        boolean live = true;
-        String directory = globalParameters.get("directory");
-        Path path = (directory == null) ? Paths.get(homeDirectory) :
-                Paths.get(homeDirectory,directory);
-        errorFile   = Paths.get(path.toString(),jobname+"-errors.txt").toFile();
-        warningFile = Paths.get(path.toString(),jobname+"-warnings.txt").toFile();
-        live = globalParameters.get("errors2File") == null;
-
-        errors   = live ? new MonitorLife("Input Errors") :
-                    new MonitorFile("Input Errors",errorFile);
-        warnings = live ? new MonitorLife("Input Warnings") :
-                    new MonitorFile("Input Warnings",warningFile);
-
-        if(globalParameters != null && globalParameters.size() > 1) {
-            warnings.print("Global Parameters",
-                    "There should be only one set. The superfluous sets are ignored.");}
-        ArrayList<HashMap<String,String>> initializeParameterList = kvParser.get("initialize");
-        if(initializeParameterList != null && initializeParameterList.size() > 1) {
-            warnings.print("Initialize Parameters",
-                    "There should be only one set. The superfluous sets are ignored.");}
-        analyseParameters(globalInputParameters,
-                ((initializeParameterList != null && !initializeParameterList.isEmpty()) ?
-                    initializeParameterList.get(0) : null),
-                kvParser.get("problem"),
-                kvParser.get("solver"));
-        if(errors.wasFilled()) {
-            errors.flush(true);
-            warnings.flush(true);
-            return;}      // parameters have errors. Stop the process.
-        controller = new Controller(jobname,globalParameters,initializeParameters,problemParameters, solverParameters, errors,warnings);
-    }
 
 
-
-
-
-    /** analyses the input specifications and turns them into internal data structures.
-     */
-    public void analyseParameters(
-            HashMap<String,String> globalInputParameters,
-            HashMap<String,String> initializeInputParameters,
-            ArrayList<HashMap<String,String>> problemInputParameters,
-            ArrayList<HashMap<String,String>> solverInputParameters) {
-        if(globalInputParameters == null) {globalParameters = new GlobalParameters();} // default parameters
-        else{globalParameters = new GlobalParameters(globalInputParameters,errors,warnings);}
-        initializeParameters = InitializerSimplifier.parseParametersInitializer(initializeInputParameters,errors,warnings);
-        if(problemInputParameters == null) {errors.print(jobname,"No problems specified.\n");}
-        else {analyseProblemParameters(problemInputParameters);}
-        if(solverInputParameters == null) {errors.print(jobname,"No solvers specified.\n");}
-        else {analyseSolverParameters(solverInputParameters);}}
-
-
-
-    /** analyses the problemParameters and turns them into sequences of objectParameters.
-     * Since the input parameters may specify ranges, each single input parameter may expand to a sequence of parsed parameters*/
-    private void analyseProblemParameters(ArrayList<HashMap<String,String>> problemInputParameters) {
-        problemParameters = new ArrayList<>();
-        for(HashMap<String,String> parameters : problemInputParameters) {
-            String type = parameters.get("type");
-            if(type == null) {
-                errors.print("Problem Parameters",
-                        "No problem type specified\n"+ parameters);
-                continue;}
-            ArrayList<HashMap<String,Object>> pars = Generator.parseParameters(type,parameters,errors,warnings);
-            if(pars != null) {
-                for(HashMap<String,Object> map :pars) {map.put("type",type);}
-                problemParameters.addAll(pars);}}}
 
     /** analyses the solverParameters and turns them into sequences of objectParameters.
      * Since the input parameters may specify ranges, each single input parameter may expand to a sequence of parsed parameters*/
     private void analyseSolverParameters(ArrayList<HashMap<String,String>> solverInputParameters) {
         solverParameters = new ArrayList<>();
+        Monitor errors = new MonitorLife(); Monitor warnings = new MonitorLife();
         for(HashMap<String,String> parameters : solverInputParameters) {
             String type = parameters.get("type");
             if(type == null) {errors.print(jobname,"No solver type specified.\n"); return;}
