@@ -3,7 +3,7 @@ package Datastructures.Clauses.AllClauses;
 import Datastructures.Clauses.Connective;
 import Datastructures.Statistics.Statistic;
 import Solvers.Resolution.ResolutionStatistics;
-import com.sun.org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.Description;
 
 public class ClausesStatistics extends Statistic {
     static {

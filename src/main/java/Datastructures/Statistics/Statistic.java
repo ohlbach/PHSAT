@@ -2,7 +2,7 @@ package Datastructures.Statistics;
 
 import Solvers.Solver;
 import Utilities.Utilities;
-import com.sun.org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.Description;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;

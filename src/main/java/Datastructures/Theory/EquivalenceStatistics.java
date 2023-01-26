@@ -1,7 +1,7 @@
 package Datastructures.Theory;
 
 import Datastructures.Statistics.Statistic;
-import com.sun.org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.Description;
 
 public class EquivalenceStatistics extends Statistic {
 

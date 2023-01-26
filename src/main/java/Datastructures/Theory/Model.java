@@ -3,10 +3,8 @@ package Datastructures.Theory;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableLiteral;
 import Datastructures.Symboltable;
-import InferenceSteps.ContradictoryLiterals;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import javafx.util.Pair;
 
 import java.util.ArrayList;
 import java.util.function.BiConsumer;

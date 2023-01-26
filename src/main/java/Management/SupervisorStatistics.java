@@ -1,7 +1,7 @@
 package Management;
 
 import Datastructures.Statistics.Statistic;
-import com.sun.org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.Description;
 
 /**
  * Created by ohlbach on 30.11.2019.

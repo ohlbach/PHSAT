@@ -1,7 +1,7 @@
 package Solvers.RecursiveSearch;
 
 import Datastructures.Statistics.Statistic;
-import com.sun.org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.Description;
 
 public class RSStatistics  extends Statistic {
 

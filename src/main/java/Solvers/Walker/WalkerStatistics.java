@@ -1,7 +1,7 @@
 package Solvers.Walker;
 
 import Datastructures.Statistics.Statistic;
-import com.sun.org.glassfish.gmbal.Description;
+import org.glassfish.gmbal.Description;
 
 /**
  * Created by ohlbach on 17.10.2018.

@@ -1,16 +1,11 @@
 package Datastructures;
 
-import InferenceSteps.InferenceStep;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /** A Task class for priority queues
  *
- * @param <TaskType>
+ * @param <TaskType> Type of task
  */
 public class Task<TaskType> {
     public TaskType taskType;

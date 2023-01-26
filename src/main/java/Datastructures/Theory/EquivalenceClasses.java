@@ -10,7 +10,7 @@ import Datastructures.Task;
 import InferenceSteps.*;
 import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
-import com.sun.istack.internal.Nullable;
+//import com.sun.istack.internal.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -442,7 +442,7 @@ public class EquivalenceClasses  {
      * @param symboltable or null
      * @return a string representation of the equivalence classes.
      */
-    public String toString(@Nullable Symboltable symboltable) {
+    public String toString(Symboltable symboltable) {
         return toString(symboltable,false);}
 
 
@@ -452,7 +452,7 @@ public class EquivalenceClasses  {
      * @param info  if true then the origins are added.
      * @return a string representation of the equivalence classes.
      */
-    public String toString(@Nullable Symboltable symboltable, boolean info) {
+    public String toString(Symboltable symboltable, boolean info) {
         StringBuilder string = new StringBuilder();
         string.append("Equivalence Classes of Problem " + problemId + ":\n");
         int width = Integer.toString(problemSupervisor.clauseCounter).length()+2;
@@ -469,7 +469,7 @@ public class EquivalenceClasses  {
      * @param symboltable or null
      * @return a string representation of the equivalence class with the origins.
      */
-    public String infoString(@Nullable Symboltable symboltable) {
+    public String infoString(Symboltable symboltable) {
         StringBuilder string = new StringBuilder();
         if(!clauses.isEmpty()) {string.append(toString(symboltable,true));}
 

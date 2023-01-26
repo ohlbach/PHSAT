@@ -31,10 +31,10 @@ import java.util.regex.PatternSyntaxException;
  * <br>
  * An extension of this format may contain clauses beginning with special characters:.<br>
  *
- * '&':  means and:          'a 3 4 5' stands for 3 and 4 and 5.<br>
+ * '&amp;':  means and:          'a 3 4 5' stands for 3 and 4 and 5.<br>
  * 'e':  means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br>
- * '<=': means atleast:      '<= 2 p q r' means atleast two of p,q,r are true.<br>
- * '>=': means atleast:      '>= 2 p q r' means atmost two of p,q,r are true.<br>
+ * '&lt;=': means atleast:      '&lt;= 2 p q r' means atleast two of p,q,r are true.<br>
+ * '&gt;=': means atleast:      '&gt;= 2 p q r' means atmost two of p,q,r are true.<br>
  * '=':  means exactly:      '= 2 p q r' means exactly two of p,q,r are true.<br>
  * '[min,max]':  means interval: '[2,4] p q r s t' means between 2 and 4 of p,q,r,s,t are true.<br>
  * No special symbol means 'or' 3 4 5' stands for 3 or 4 or 5.
