@@ -3,18 +3,14 @@ package Management;
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.BasicClauseList;
 import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
-import Datastructures.Results.Result;
-import Datastructures.Statistics.Statistic;
 import Datastructures.Results.*;
+import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
-import Generators.Generator;
 import Management.Monitor.Monitor;
-import Management.Monitor.MonitorLife;
 import Solvers.Solver;
 
-import javax.swing.*;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -110,7 +106,7 @@ public class ProblemSupervisor {
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
         String type = (String)problemParameters.get("type");
-        basicClauseList = Generator.generate(type,problemParameters,this,errors,warnings);
+        //basicClauseList = Generator.generate(type,problemParameters,this,errors,warnings);
         if(errors.length() != 0)   errorMonitor.print(type,errors);
         if(warnings.length() != 0) warningMonitor.print(type,errors);
         return basicClauseList != null;}
@@ -159,6 +155,6 @@ public class ProblemSupervisor {
         else {out.println("  "+result.toString());}}
 
 
-
+    public void announceResult(Result unsatisfiable,String source) {};
 
 }

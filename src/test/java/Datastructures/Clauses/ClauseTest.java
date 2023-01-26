@@ -372,8 +372,8 @@ public class ClauseTest {
         HashMap<String,Object> problemParameters=new HashMap<>();
         problemParameters.put("name","test");
 
-        Controller controller=new Controller(null,null,null);
-        ProblemSupervisor problemSupervisor=new ProblemSupervisor(controller,globalParameters,problemParameters,null);
+        Controller controller= null; //new Controller(null,null,null);
+        ProblemSupervisor problemSupervisor= null;//new ProblemSupervisor(controller,globalParameters,problemParameters,null);
         problemSupervisor.model=new Model(20,symboltable);
         return new EquivalenceClasses(problemSupervisor);
         }

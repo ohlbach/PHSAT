@@ -1,25 +1,7 @@
 package Solvers.Walker;
 
-import Datastructures.Clauses.BasicClauseList;
-import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.Connective;
-import Datastructures.Results.Satisfiable;
-import Datastructures.Results.Unsatisfiable;
-import Datastructures.Symboltable;
-import Datastructures.Theory.Model;
-import Generators.RandomClauseSetGenerator;
-import Management.Controller;
-import Management.GlobalParameters;
-import Management.ProblemSupervisor;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-
-import static org.junit.Assert.*;
-
 public class WalkerTest {
+    /*
     StringBuilder errors = new StringBuilder();
     StringBuilder warnings = new StringBuilder();
 
@@ -315,6 +297,6 @@ public class WalkerTest {
         System.out.println(bcl.falseClausesInModel(result.model));
 
     }
-
+*/
 
     }

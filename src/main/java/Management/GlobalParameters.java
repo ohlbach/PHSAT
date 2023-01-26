@@ -1,5 +1,6 @@
 package Management;
 
+import Management.Monitor.MonitorLife;
 import Utilities.Utilities;
 
 import java.io.File;
@@ -40,6 +41,8 @@ public class GlobalParameters {
     public boolean equivalenceThread = true;
     /** if true then two-literal clauses are treated in a separate thread */
     public boolean twoLiteralThread = true;
+
+    public MonitorLife monitor;
 
 
     /** @return a help-string which describes the parameters */

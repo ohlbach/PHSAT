@@ -131,14 +131,14 @@ public abstract class ResolutionReduction extends Solver {
      */
     public Result solve() {
         super.initialize();
-        globalParameters.log(solverId + " for problem " + problemId + " started");
+        //globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.currentTimeMillis();
         initializeData();
         Result result = null;
         try{result = initializeClauses();
             if(result == null) {result = doTheWork();}}
         catch(InterruptedException ex) {
-            globalParameters.log(combinedId + " interrupted.\n");
+            //globalParameters.log(combinedId + " interrupted.\n");
             result = new Aborted(combinedId + " aborted after ");}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + ((result == null) ? " none" : result.toString()));
@@ -464,27 +464,26 @@ public abstract class ResolutionReduction extends Solver {
      * @param clause a unit clause
      */
     void exportUnitClause(Clause clause) {
-        if(!initializing) {problemSupervisor.forwardTrueLiteral(this,clause.getLiteral(0));}}
-
+        //ifnitializing) {problemSupervisor.forwardTrueLiteral(this,clause.getLiteral(0));}}
+}
 
     /** except in the initializing phase, a true literal is forwarded to the other solvers.
      *
      * @param literal a true literal
      */
     void exportUnitClause(int literal) {
-        if(!initializing) {problemSupervisor.forwardTrueLiteral(this,literal);}}
-
+        //(!initializing) {problemSupervisor.forwardTrueLiteral(this,literal);}
+}
 
     /** except in the initializing phase, a binary clause is forwarded to the other solvers.
      *
      * @param clause a binary clause
      */
     void exportBinaryClause(Clause clause) {
-        if(!initializing) {
-            problemSupervisor.forwardBinaryClause(this,
-                    clause.getLiteral(0),
-                    clause.getLiteral(1));}}
-
+     // if(!initializing) prmSupervisor.forwardBinaryClause(this,
+    //              clause.getLiteral(0),
+      //            clause.getLiteral(1));}}
+}
     /** except in the initializing phase, a longer clause is forwarded to the other solvers.
      *
      * @param clause a longer clause
@@ -494,8 +493,8 @@ public abstract class ResolutionReduction extends Solver {
             int size = clause.size();
             int [] literals = new int[size];
             for(int i = 0; i < size; ++i) {literals[i] = clause.getLiteral(i);}
-            problemSupervisor.forwardClause(this,literals);}}
-
+            //oblemSupervisor.forwardClause(this,literals);}
+}}
     /** except in the initializing phase, a clause is forwarded to the other solvers.
      *
      * @param clause a clause

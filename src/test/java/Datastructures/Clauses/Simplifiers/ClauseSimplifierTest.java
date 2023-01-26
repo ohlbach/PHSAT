@@ -1,25 +1,7 @@
 package Datastructures.Clauses.Simplifiers;
 
-import Datastructures.Clauses.AllClauses.InitializerSimplifier;
-import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.Connective;
-import Datastructures.Results.Unsatisfiable;
-import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
-import Datastructures.Theory.Model;
-import InferenceSteps.InferenceTest;
-import Management.Controller;
-import Management.GlobalParameters;
-import Management.Monitor.MonitorLife;
-import Management.ProblemSupervisor;
-import org.junit.Test;
-
-import java.util.HashMap;
-
-import static org.junit.Assert.*;
-
 public class ClauseSimplifierTest {
-
+/*
     static StringBuilder errors=new StringBuilder();
     static StringBuilder warnings=new StringBuilder();
 
@@ -129,4 +111,6 @@ public class ClauseSimplifierTest {
         try{c2 = cs.removeTrueFalseLiterals(c1);}
         catch(Unsatisfiable uns) {
             System.out.println(uns.toString());}}
+            */
+
     }

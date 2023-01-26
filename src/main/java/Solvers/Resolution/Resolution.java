@@ -145,14 +145,14 @@ public abstract class Resolution extends Solver {
      */
     public Result solve()  {
         super.initialize();
-        globalParameters.log(solverId + " for problem " + problemId + " started");
+        //globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.currentTimeMillis();
         initializeData();
         Result result = null;
         try{result = initializeClauses();
             if(result == null) {result = resolve();}}
         catch(InterruptedException ex) {
-            globalParameters.log("Resolution " + combinedId + " interrupted after " + resolvents + " resolvents.\n");
+            //globalParameters.log("Resolution " + combinedId + " interrupted after " + resolvents + " resolvents.\n");
             result = new Aborted("Resolution aborted after " + resolvents + " resolvents");}
         catch(Unsatisfiable uns) {}
         statistics.elapsedTime = System.currentTimeMillis() - time;
@@ -197,7 +197,7 @@ public abstract class Resolution extends Solver {
         literalIndex           = new BucketSortedIndex<CLiteral>(predicates+1,
                                     (cLiteral->cLiteral.literal),
                                     (cLiteral->cLiteral.clause.size()));
-        taskQueue = new TaskQueue(combinedId,monitor);}
+        taskQueue = new TaskQueue(combinedId,null);} //monitor);}
 
     /** EquivalenceClasses manage equivalent literals.
      *  In each equivalence class the literals are mapped to their representatives,
@@ -489,7 +489,8 @@ public abstract class Resolution extends Solver {
                 (()->processTrueLiteral(literal)),
                 (()->reason + ": " + (symboltable == null ? literal : symboltable.toString(literal)))));
         ++statistics.derivedUnitClauses;
-        if(forward && !initializing) problemSupervisor.forwardTrueLiteral(this,literal);}
+        //if(forward && !initializing) problemSupervisor.forwardTrueLiteral(this,literal);
+    }
 
     /** computes the consequences of a new true literal
      * - all clauses with this literal are removed <br>

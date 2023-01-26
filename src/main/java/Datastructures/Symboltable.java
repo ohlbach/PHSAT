@@ -1,24 +1,26 @@
 package Datastructures;
 
-import com.sun.istack.internal.Nullable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-
-import java.util.ArrayList;
 
 /**
  * Created by ohlbach on 25.08.2018.
- * The symboltable maps predicates to names.
- * A predicate is a positive integer.
- * A literal is a positive or negative integer.
+ * The symboltable maps predicate names to integers.<br>
+ *
+ * In source files with clauses one may use symbolic names for predicates, but
+ * internally a predicate is a positive integer and
+ * a literal is a positive or negative integer.<br>
+ * The class guarantees injectivity of the mapping.
+ * This means that different symbolic names are always mapped to different integers.
  */
 
 public class Symboltable {
+    /** indicates that symbolic predicate names are used. */
     public boolean symbolic = true;
 
     /** number of predicates */
     public int predicates;
 
-    /** This array maps predicates to names */
+    /** This array maps predicates (integers) to their names */
     private String[] names;
 
     /** creates a new symboltable for a given number of prediates.
@@ -26,6 +28,7 @@ public class Symboltable {
      * @param predicates the number of predicates.
      */
     public Symboltable(int predicates) {
+        assert predicates > 0;
         this.predicates = predicates;
         names = new String[predicates + 1];}
 
@@ -38,21 +41,20 @@ public class Symboltable {
         assert predicate > 0 && predicate <= predicates;
         names[predicate] = name;}
 
-    /** returns for a given predicate name the corresponding number.
-     * If the name is new, it gets the first empty number
+    /** the index of the first position in the names array which is empty. */
+    private int emptyPosition = 0;
+
+    /** returns for a given predicate name the corresponding integer.
+     * If the name is new, it gets the first empty integer.
      *
      * @param name of a predicate
-     * @return its number, or 0 if there is no free number any more.
+     * @return its number, or 0 if there is no free number anymore.
      */
     public int getPredicate(String name) {
-        int emptyPosition = 0;
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            String pred = names[predicate];
-            if(pred == null) {
-                if(emptyPosition == 0) {emptyPosition = predicate;}
-                continue;}
-            if(pred.equals(name)) return predicate;}
-        if(emptyPosition == 0) return 0;
+        for(int predicate = 1; predicate <= emptyPosition; ++predicate) {
+            if(names[predicate].equals(name)) return predicate;}
+        emptyPosition += 1;
+        assert emptyPosition <= predicates;
         names[emptyPosition] = name;
         return emptyPosition;}
 
@@ -88,7 +90,8 @@ public class Symboltable {
      * @return the name of the literal as string.
      */
     public static String toString(int literal, Symboltable symboltable) {
-        return (symboltable == null) ? Integer.toString(literal) : symboltable.toString(literal); }
+        return (symboltable == null || !symboltable.symbolic) ?
+                Integer.toString(literal) : symboltable.toString(literal); }
 
     /** turns a list of literals into a comma separated string of literal names
      *

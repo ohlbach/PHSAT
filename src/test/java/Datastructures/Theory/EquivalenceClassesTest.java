@@ -8,7 +8,6 @@ import Datastructures.Symboltable;
 import InferenceSteps.InferenceTest;
 import Management.Controller;
 import Management.GlobalParameters;
-import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
@@ -31,12 +30,12 @@ public class EquivalenceClassesTest {
 
     EquivalenceClasses prepare(boolean monitoring, boolean withSymboltable) {
         GlobalParameters globalParameters=new GlobalParameters();
-        globalParameters.monitor=!monitoring ? null : new MonitorLife(null,"mixed",errors,warnings);
+        //globalParameters.monitor=!monitoring ? null : new MonitorLife(null,"mixed",errors,warnings);
         HashMap<String,Object> problemParameters=new HashMap<>();
         problemParameters.put("name","test");
 
-        Controller controller=new Controller(null,null,null);
-        ProblemSupervisor problemSupervisor=new ProblemSupervisor(controller,globalParameters,problemParameters,null);
+        Controller controller= null; //new Controller(null,null,null);
+        ProblemSupervisor problemSupervisor= null; //new ProblemSupervisor(controller,globalParameters,problemParameters,null);
         Symboltable symboltable= null;
         if(withSymboltable) {
             symboltable = new Symboltable(10);

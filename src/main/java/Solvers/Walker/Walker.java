@@ -159,7 +159,7 @@ public class Walker extends Solver {
      */
     @Override
     public Result solve() {
-        globalParameters.log(solverId + " for problem " + problemId + " started");
+     //   globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.nanoTime();
         initializeModel();
         Result result =  walk();
@@ -231,7 +231,7 @@ public class Walker extends Solver {
     private Result walk() {
         while(statistics.flips < maxFlips) {
             if(Thread.interrupted()) {
-                globalParameters.log("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
+              //  globalParameters.log("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
                 break;}
             integrateGloballyTrueLiterals();
             int predicate = selectFlipPredicate();
