@@ -14,17 +14,17 @@ import java.util.Arrays;
  * This class contains just the absolutely essential information about clauses.<br>
  * The clauses should be the original clauses from the clause source and must not be changed.<br>
  * They are in particular used to check a candidate model against the original clause set.<br>
- * A clause is an integer-array [clause-number,clause-type,[min,max],literal1,...]<br>
- * The clause types are: <br>
- * '0': means disjunction:  '0 1 3 5'      means 1 or 3 or 5<br>
- * '1': means and:          '1 3 4 5'      stands for 3 and 4 and 5.<br>
- * '2': means equivalences: '2 4 5 -6'     means that these three literals are equivalent. <br>
- * '3': means interval      '3 2 3 5 6 7 8 means between 2 and 3 literals among 5,6,7,8 are true<br>
- * '4': means atleast:      '3 2 4 5 6'    means atleast 2 of 4,5,6 are true <br>
- * '5': means atmost:       '4 2 4 5 6'    means atmost 2 of 4,5,6 are true <br>
- * '6': means exactly:      '5 2 4 5 6'    means exactly 2 of 4,5,6 are true
+ * A clause is an integer-array [clause-number,connective,[min,max],literal1,...]<br>
+ * The connectives are: <br>
+ * '0': means disjunction:  '10 0 3 5'      means 1 or 3 or 5<br>
+ * '1': means and:          '11 1 4 5'      means 3 and 4 and 5.<br>
+ * '2': means equivalences: '12 2 5 -6'     means that these three literals are equivalent. <br>
+ * '3': means interval      '13 3 3 5 6 7 8 means between 2 and 3 literals among 5,6,7,8 are true<br>
+ * '4': means atleast:      '14 4 4 5 6'    means atleast 2 of 4,5,6 are true <br>
+ * '5': means atmost:       '15 5 4 5 6'    means atmost 2 of 4,5,6 are true <br>
+ * '6': means exactly:      '16 6 4 5 6'    means exactly 2 of 4,5,6 are true
  */
-public class BasicClauseList {
+public class InputClauses {
     /** the maximum number of predicates */
     public int predicates;
 
@@ -37,7 +37,7 @@ public class BasicClauseList {
     /** the next free number to be used as identifier for a clause */
     public int nextId = 0;
 
-    /** the length of the largest clause*/
+    /** the number of literals in the largest clause*/
     public int maxClauseLength;
 
     /** the original disjunctions */
@@ -49,20 +49,28 @@ public class BasicClauseList {
     /** the original equivalences */
     public final ArrayList<int[]> equivalences  = new ArrayList<>();
 
-    /** the original quantifieds atleast, atmost, exactly */
+    /** the original quantified clauses atleast, atmost, exactly */
     public final ArrayList<int[]> quantifieds   = new ArrayList<>();
 
-    /** the original intervals */
+    /** the original interval clauses */
     public final ArrayList<int[]> intervals      = new ArrayList<>();
 
 
-
-    public BasicClauseList(int predicates, Symboltable symboltable, String info) {
+    /** constructs a new input clause list.
+     *
+     * @param predicates  the number of predicates which are allowed in the clauses.
+     * @param symboltable null or a symboltable.
+     * @param info        some information about the origin of the clause set.
+     */
+    public InputClauses(int predicates, Symboltable symboltable, String info) {
         this.predicates = predicates;
         this.symboltable = symboltable;
         this.info = info;}
 
-    public BasicClauseList() {}
+    /** constructs a new input clause list without any extra information.
+     *
+     */
+    public InputClauses() {}
 
     /** adds a clause to the corresponding lists.
      *  Erroneous clauses are not added to the lists
@@ -73,17 +81,14 @@ public class BasicClauseList {
         if(clause == null) return;
         Connective connective = Connective.getConnective(clause[1]);
         int length = clause.length-2;
-        if(connective.isQuantifier()) length -= 1;
-        else {if(connective == Connective.INTERVAL) length -= 2;}
-        maxClauseLength = Math.max(maxClauseLength,length);
         switch(connective) {
-            case OR:       disjunctions.add(clause); break;
-            case AND:      conjunctions.add(clause); break;
-            case EQUIV:    equivalences.add(clause); break;
-            case INTERVAL: intervals.add(clause);    break;
+            case OR:       disjunctions.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
+            case AND:      conjunctions.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
+            case EQUIV:    equivalences.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
+            case INTERVAL: intervals.add(clause);    maxClauseLength = Math.max(maxClauseLength,length-2); break;
             case ATLEAST:
             case ATMOST:
-            case EXACTLY:  quantifieds.add(clause);  break;}
+            case EXACTLY:  quantifieds.add(clause);  maxClauseLength = Math.max(maxClauseLength,length-1);  break;}
     }
 
     /** checks the clause's syntax.
@@ -105,7 +110,7 @@ public class BasicClauseList {
             errors.append(errorPrefix).append("Connective number :"+type + " is not between 0 and " +
                     Connective.size() +"\n");
             return null;}
-        int start = getStart(connective);
+        int start = getFirstLiteralIndex(connective);
         boolean erraneous = false;
         for(int i = start; i < clause.length; ++i) {
             int predicate = Math.abs(clause[i]);
@@ -145,7 +150,7 @@ public class BasicClauseList {
      * @param connective one of the connectives
      * @return the start of the literal section in a basic clause
      */
-    private static int getStart(Connective connective) {
+    private static int getFirstLiteralIndex(Connective connective) {
         if(connective.isInterval()) return 4;
         if(connective.isQuantifier()) return 3;
         return 2;}
@@ -161,24 +166,65 @@ public class BasicClauseList {
      */
     public ArrayList<int[]> falseClausesInModel(Model model) {
         ArrayList<int[]> falseClauses = new ArrayList<>();
-        for(int[] clause : disjunctions) {if(!disjunctionIsTrue(clause,model)) {falseClauses.add(clause);}}
-        for(int[] clause : conjunctions) {if(!conjunctionIsTrue(clause,model)) {falseClauses.add(clause);}}
-        for(int[] clause : equivalences) {if(!equivalenceIsTrue(clause,model)) {falseClauses.add(clause);}}
-        for(int[] clause : quantifieds)  {if(!quantifiedIsTrue(clause,model))  {falseClauses.add(clause);}}
-        for(int[] clause : intervals)    {if(!intervalIsTrue(clause,model))    {falseClauses.add(clause);}}
+        for(int[] clause : disjunctions) {if(disjunctionIsFalse(clause,model)) {falseClauses.add(clause);}}
+        for(int[] clause : conjunctions) {if(conjunctionIsFalse(clause,model)) {falseClauses.add(clause);}}
+        for(int[] clause : equivalences) {if(equivalenceIsFalse(clause,model)) {falseClauses.add(clause);}}
+        for(int[] clause : quantifieds)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
+        for(int[] clause : intervals)    {if(intervalIsFalse(clause,model))    {falseClauses.add(clause);}}
         return falseClauses.isEmpty() ? null : falseClauses;}
 
 
-       /** checks if a disjunction is entirely false in a model.
+    /** checks if a disjunction is entirely false in a model.
      *
      * @param clause a disjunctive clause
      * @param model a model
      * @return true if all literals are false in the model and the clause is not a tautology.
      */
-    public static boolean disjunctionIsTrue(int[] clause, Model model) {
+    public static boolean disjunctionIsFalse(int[] clause, Model model) {
         assert Connective.getConnective(clause[1]) == Connective.OR;
-        for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return true;}}
+        for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return false;}}
+        return !containsComplementaryLiterals(clause);} // p or -p is always true
+
+    /** checks if the clause contains literals p,-p.
+     *
+     * @param clause a clause.
+     * @return true if the clause does not contain literals p,-p.
+     */
+    public static boolean containsComplementaryLiterals(int[] clause) {
+        int length = clause.length;
+        for(int i = 2; i < length; ++i){
+            int literal = clause[i];
+            for(int j = i; j < length; ++j) {
+                if(literal == -clause[j]) return true;}}
         return false;}
+
+    /** counts the number of complementary pairs p,-p, which have no truth value.
+     *
+     * @param clause a clause.
+     * @param model a model.
+     * @return true if the clause does not contain literals p,-p.
+     */
+    public static int numberOfComplementaryPairs(int[] clause, Model model) {
+        int shift = Integer.MAX_VALUE/2;
+        int length = clause.length;
+        int pairs = 0;
+        for(int i = 2; i < length; ++i){
+            int literal1 = clause[i];
+            if(model.status(literal1) != 0) continue;
+            if(literal1 > shift) continue;
+            for(int j = i; j < length; ++j) {
+                int literal2 = clause[j];
+                if(literal2 > shift) continue;
+                if(literal2 == -literal1) {
+                    ++pairs;
+                    if(literal2 > 0) clause[j] += shift; else {clause[j] -= shift;}
+                    break;}}}
+        if(pairs > 0) {
+            for(int i = 2; i < length; ++i){
+                int literal = clause[i];
+                if(literal < shift) continue;
+                if(literal > 0) clause[i] -= shift; else clause[i] += shift;}}
+        return pairs;}
 
 
     /** checks if a conjunction is entirely false in a model
@@ -187,16 +233,18 @@ public class BasicClauseList {
      * @param model a possibly partial model
      * @return true if all literals are true in the model.
      */
-    public static boolean conjunctionIsTrue(int[] clause, Model model) {
-        for(int i = 2; i < clause.length; ++i) {if(model.isFalse(clause[i])) {return false;}}
-        return true;}
+    public static boolean conjunctionIsFalse(int[] clause, Model model) {
+        assert Connective.getConnective(clause[1]) == Connective.AND;
+        for(int i = 2; i < clause.length; ++i) {if(!model.isTrue(clause[i])) {return true;}}
+        return containsComplementaryLiterals(clause);} // p and -p is always false.
+
     /** checks if an equivalence is false in a model
      *
      * @param clause an equivalence clause
      * @param model a model
      * @return true if not either all literals are true or all literals are false in the model.
      */
-    public static boolean equivalenceIsTrue(int[] clause, Model model) {
+    public static boolean equivalenceIsFalse(int[] clause, Model model) {
         assert Connective.getConnective(clause[1]) == Connective.EQUIV;
         int size = clause.length;
         int trueLiterals = 0;
@@ -206,32 +254,33 @@ public class BasicClauseList {
                 case +1: ++trueLiterals; break;
                 case -1: ++falseLiterals;}}
         size -= 2;
-        return (trueLiterals == size || falseLiterals == size);}
+        return (trueLiterals == size || falseLiterals == size || containsComplementaryLiterals(clause));} // p == -p is always false
 
-    /** checks if a atleast-clause is false in a model
+    /** checks if an atleast-clause is false in a model
      *
-     * @param clause a atleast clause  [id,type,n,literal1,...]
+     * @param clause an atleast clause  [id,type,n,literal1,...]
      * @param model a model
      * @return true if not atleast n literals are true in the model
      */
-    public static boolean quantifiedIsTrue(int[] clause, Model model) {
+    public static boolean quantifiedIsFalse(int[] clause, Model model) {
         int n = clause[2];
         int size = clause.length;
         int trueLiterals = 0;
         for(int i = 3; i < size; ++i) {if(model.isTrue(clause[i])) ++trueLiterals;}
+        trueLiterals -= numberOfComplementaryPairs(clause,model);
         switch(Connective.getConnective(clause[1])) {
             case ATLEAST: return trueLiterals >= n;
             case ATMOST:  return trueLiterals <= n;
             case EXACTLY: return trueLiterals == n;}
         return false;}
 
-    /** checks if a atmost-clause is false in a model
+    /** checks if an interval-clause is false in a model
      *
-     * @param clause a atleast clause  [id,type,n,literal1,...]
+     * @param clause an interval clause  [id,type,min,max,literal1,...]
      * @param model a model
-     * @return true if not atleast n literals are true in the model
+     * @return true if not between min and max literals are true in the model
      */
-    public static boolean intervalIsTrue(int[] clause, Model model) {
+    public static boolean intervalIsFalse(int[] clause, Model model) {
         assert Connective.getConnective(clause[1]) == Connective.INTERVAL;
         int min = clause[2];
         int max = clause[3];
@@ -239,6 +288,7 @@ public class BasicClauseList {
         int trueLiterals = 0;
         for(int i = 3; i < size; ++i) {
             if(model.isTrue(clause[i])) ++trueLiterals;}
+        trueLiterals += numberOfComplementaryPairs(clause,model);
         return min <= trueLiterals && trueLiterals <= max;}
 
 

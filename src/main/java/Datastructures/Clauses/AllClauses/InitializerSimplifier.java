@@ -1,7 +1,7 @@
 
 package Datastructures.Clauses.AllClauses;
 
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Clauses.Connective;
@@ -171,7 +171,7 @@ public class InitializerSimplifier {
 
     public void integrateBasicClauses() throws Unsatisfiable {
         try{
-            BasicClauseList basicClauses = problemSupervisor.basicClauseList;
+            InputClauses basicClauses = problemSupervisor.inputClauses;
             for(int[] basicClause : basicClauses.conjunctions) {
                 integrateAnd(new Clause(basicClause));}
             for(int[] basicClause : basicClauses.equivalences) {

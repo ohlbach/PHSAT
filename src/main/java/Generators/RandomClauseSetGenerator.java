@@ -1,6 +1,6 @@
 package Generators;
 
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Connective;
 import Management.GlobalParameters;
 import Management.Monitor.Monitor;
@@ -325,7 +325,7 @@ public class RandomClauseSetGenerator extends Generator {
      */
     public boolean generate(Monitor errors, Monitor warnings) {
         String info = "Randomly generated clauses";
-        basicClauseList = new BasicClauseList(predicates,null,info);
+        inputClauses = new InputClauses(predicates,null,info);
         Random rnd = new Random(seed);
         int[] id = {0};
         if(ors       != 0) generateClauses(id,Connective.OR,ors,rnd);
@@ -336,8 +336,8 @@ public class RandomClauseSetGenerator extends Generator {
         if(exactly   != 0) generateClauses(id,Connective.EXACTLY,exactly,rnd);
         if(intervals != 0) generateClauses(id,Connective.INTERVAL,intervals,rnd);
 
-        basicClauseList.info = "Randomly generated clauses:\n";
-        basicClauseList.nextId = id[0]+1;
+        inputClauses.info = "Randomly generated clauses:\n";
+        inputClauses.nextId = id[0]+1;
         return true;}
 
 
@@ -376,7 +376,7 @@ public class RandomClauseSetGenerator extends Generator {
                 for(int j = start; j < i; ++j) {if(literal == clause[j] || -literal == clause[j]) {found = true; break;}}
                 if(found) {--i; continue;}
                 clause[i] = literal;}
-            basicClauseList.addClause(clause);}
+            inputClauses.addClause(clause);}
     }
 }
 

@@ -1,7 +1,7 @@
 package Management;
 
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
 import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
@@ -22,7 +22,7 @@ public class ProblemSupervisor {
     public String jobname;
     public String problemId;
 
-    public BasicClauseList basicClauseList;
+    public InputClauses inputClauses;
     public GlobalParameters globalParameters;
     public HashMap<String,Object> problemParameters;
     public HashMap<String,Object> initializeParameters;
@@ -109,7 +109,7 @@ public class ProblemSupervisor {
         //basicClauseList = Generator.generate(type,problemParameters,this,errors,warnings);
         if(errors.length() != 0)   errorMonitor.print(type,errors);
         if(warnings.length() != 0) warningMonitor.print(type,errors);
-        return basicClauseList != null;}
+        return inputClauses != null;}
 
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.
@@ -140,7 +140,7 @@ public class ProblemSupervisor {
     public Statistic[] collectStatistics() {
         Statistic[] statistics = new Statistic[2+solvers.length];
         statistics[0] = this.statistics;
-        statistics[1] = basicClauseList.getStatistics(problemId);
+        statistics[1] = inputClauses.getStatistics(problemId);
         for(int i = 0; i < solvers.length; ++i) {statistics[i+2] = solvers[i].getStatistics();}
         return statistics;
     }

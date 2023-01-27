@@ -1,6 +1,6 @@
 package Datastructures.TwoLiteral;
 
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
@@ -155,7 +155,7 @@ public class TwoLitClauses {
         assert Connective.getConnective(basicClause[1]) == Connective.OR;
         if(monitoring) {
             monitor.print(monitorId,"In:   basic basicClause " +
-                    BasicClauseList.clauseToString(0,basicClause, symboltable));}
+                    InputClauses.clauseToString(0,basicClause, symboltable));}
         TwoLitClause clause = new TwoLitClause(basicClause[0], basicClause[2],basicClause[3]);
         if(trackReasoning) {clause.inferenceStep = new ClauseCopy(basicClause,clause);}
         synchronized (this) {queue.add(new Task<>(TaskType.TWOLITCLAUSE, clause, false));}}

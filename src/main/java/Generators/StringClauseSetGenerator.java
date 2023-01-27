@@ -1,6 +1,6 @@
 package Generators;
 
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Management.GlobalParameters;
@@ -81,7 +81,7 @@ public final class StringClauseSetGenerator extends Generator {
             errorMonitor.print("StringClauseSetGenerator","First line '", line, "' does not contain predicates\n");
             return false;}
         Symboltable symboltable = new Symboltable(predicates);
-        basicClauseList = new BasicClauseList(predicates,symboltable,"String Generator");
+        inputClauses = new InputClauses(predicates,symboltable,"String Generator");
         int id = 1;
         for(int i = 1; i < lines.length; ++i) {
             String errorPrefix = "Line " + i + ": '"+line + "'";
@@ -90,8 +90,8 @@ public final class StringClauseSetGenerator extends Generator {
             int[] clause = parseLine(line,id,symboltable,errorPrefix,errors);
             if(clause == null) continue;
             ++id;
-            basicClauseList.addClause(clause);}
-        basicClauseList.nextId = id;
+            inputClauses.addClause(clause);}
+        inputClauses.nextId = id;
         if(errors.length() > 0) {errorMonitor.println("StringClauseSetGenerator",errors.toString()); return false;}
         return true;
     }

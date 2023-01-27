@@ -1,6 +1,6 @@
 package Generators;
 
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Symboltable;
 import Management.GlobalParameters;
 import Management.Monitor.Monitor;
@@ -168,7 +168,7 @@ public final class CNFReader extends Generator {
         try {
             reader = new BufferedReader(new FileReader(file));
             String line;
-            basicClauseList = new BasicClauseList();
+            inputClauses = new InputClauses();
             Integer predicates = 0;
             int lineNumber = 0;
             while((line = reader.readLine()) != null) {
@@ -193,9 +193,9 @@ public final class CNFReader extends Generator {
                     if(predicates <= 0) {
                         errors.append(errorPrefix+" Negative number of predicates: '"+ parts[2]+"'\n");
                         return false;}
-                    basicClauseList.predicates = predicates;
-                    basicClauseList.symboltable = new Symboltable(predicates);
-                    if(parts.length > 4) basicClauseList.symboltable.symbolic = true;
+                    inputClauses.predicates = predicates;
+                    inputClauses.symboltable = new Symboltable(predicates);
+                    if(parts.length > 4) inputClauses.symboltable.symbolic = true;
                     continue;}
                 if(predicates == 0) {
                     errors.append(errorPrefix+" p-line missing: 'p cnf predicates clauses [symbolic]'\n");
@@ -205,22 +205,22 @@ public final class CNFReader extends Generator {
                     errors.append(errorPrefix+" does not end with '0'\n");
                     continue;}
                 int[] clause = StringClauseSetGenerator.parseLine(line.substring(0,line.length()-2).trim(),
-                        id,basicClauseList.symboltable,errorPrefix,errors);
+                        id, inputClauses.symboltable,errorPrefix,errors);
                 if(clause == null) continue;
-                clause = BasicClauseList.checkSyntax(clause,predicates,errorPrefix,errors,warnings);
+                clause = InputClauses.checkSyntax(clause,predicates,errorPrefix,errors,warnings);
                 if(clause == null) continue;
                 ++id;
-                basicClauseList.addClause(clause);}}
+                inputClauses.addClause(clause);}}
         catch (FileNotFoundException e) {
             errors.append(place+" not found");}
         catch(IOException ex) {
             errors.append(place+" IOException\n" +ex);}
         finally{
             if(warnings.length()> 0) {warningMonitor.print(place,warnings);}
-            if(errors.length() > 0) {errorMonitor.print(place,errors); basicClauseList = null; return false;}}
+            if(errors.length() > 0) {errorMonitor.print(place,errors); inputClauses = null; return false;}}
 
-        basicClauseList.info = info.toString();
-        basicClauseList.nextId = id;
+        inputClauses.info = info.toString();
+        inputClauses.nextId = id;
         return true;}
 
     /** turns the file and, if already filled, the basicClauseList into a string.
@@ -229,7 +229,7 @@ public final class CNFReader extends Generator {
      */
     public String toString() {
         String st = "CNFReader for file " + file;
-        if(basicClauseList != null) st += "\n"+ basicClauseList;
+        if(inputClauses != null) st += "\n"+ inputClauses;
         return st;}
 
 

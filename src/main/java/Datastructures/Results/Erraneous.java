@@ -1,6 +1,6 @@
 package Datastructures.Results;
 
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
@@ -52,7 +52,7 @@ public class Erraneous extends Result {
         if(falseClause != null) {st.append(falseClause.toString(0,symboltable)).append("\n");}
         else{int size = 0;
             for(int[] clause :falseClauses) {size = Math.max(size, (""+clause[0]).length());}
-            for(int[] clause :falseClauses) {st.append(BasicClauseList.clauseToString(size,clause,symboltable)).append("\n");}}
+            for(int[] clause :falseClauses) {st.append(InputClauses.clauseToString(size,clause,symboltable)).append("\n");}}
         return st.toString();}
 
 }

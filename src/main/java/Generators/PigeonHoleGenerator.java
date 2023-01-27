@@ -1,6 +1,6 @@
 package Generators;
 
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import Management.GlobalParameters;
@@ -167,7 +167,7 @@ public final class PigeonHoleGenerator extends Generator{
 
         String info = "Pigeon Hole example with " + pigeons + " pigeons in " + holes + " holes\n"+
                     "capacity: " + quantifier + " " + capacity + " pigeons in a hole.";
-        basicClauseList = new BasicClauseList(predicates,symboltable,info);
+        inputClauses = new InputClauses(predicates,symboltable,info);
 
         int id = 0;
         for(int pigeon = 1; pigeon <= pigeons; ++pigeon) {
@@ -177,7 +177,7 @@ public final class PigeonHoleGenerator extends Generator{
             clause[2] = 1;
             for(int hole = 1; hole <= holes; ++hole) {
                 clause[hole+2] = symboltable.getPredicate("P"+pigeon+"H"+hole);}
-            basicClauseList.addClause(clause);}
+            inputClauses.addClause(clause);}
 
         int shift = 2;
         if(clauseType == Connective.INTERVAL.ordinal()) shift = 3;
@@ -192,9 +192,9 @@ public final class PigeonHoleGenerator extends Generator{
             else{clause[2] = (Integer)capacity;}
             for(int pigeon = 1; pigeon <= pigeons; ++pigeon) {
                 clause[pigeon+shift] = symboltable.getPredicate("P"+pigeon+"H"+hole);}
-            basicClauseList.addClause(clause);}
+            inputClauses.addClause(clause);}
 
-        basicClauseList.nextId = ++id;
+        inputClauses.nextId = ++id;
         return true;
     }
 

@@ -218,7 +218,7 @@ public abstract class Resolution extends Solver {
     private Consumer<Clause> insertHandler = (
             clause -> {//insertClause(clause,isPrimary(clause,true),"Initial clause");
                 if(clause.size() > 1) {
-                    taskQueue.add(new Task(basicClauseList.maxClauseLength-clause.size()+3, // longer clauses should be
+                    taskQueue.add(new Task(inputClauses.maxClauseLength-clause.size()+3, // longer clauses should be
                         (()-> {simplifyBackwards(clause); return null;}),    // checked first for subsumption and replacement resolution
                         (()-> "Simplify initial clause " + clause.toString())));}});
 
@@ -310,7 +310,7 @@ public abstract class Resolution extends Solver {
             return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");
             }
         if(result.getClass() == Satisfiable.class) {
-            ArrayList<int[]> falseClauses = basicClauseList.falseClausesInModel(((Satisfiable)result).model);
+            ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(((Satisfiable)result).model);
             if(falseClauses == null) {return result;}
             System.out.println(toString());
             return new Erraneous(((Satisfiable)result).model,falseClauses,symboltable);}
@@ -510,12 +510,12 @@ public abstract class Resolution extends Solver {
             case +1: return null;}
         model.addImmediately(literal);
         if(false) {
-            ArrayList<int[]> falseClauses = basicClauseList.falseClausesInModel(model);
+            ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(model);
             if(falseClauses != null) {
                 System.out.println("ErrorCheck: the following basic clauses are false in the model");
                 System.out.println(model.toString());
                 for(int[] clause : falseClauses) {
-                    System.out.println(basicClauseList.clauseToString(clause));}
+                    System.out.println(inputClauses.clauseToString(clause));}
                 System.exit(1);}}
         Iterator<CLiteral> iterator = literalIndex.iterator(literal);
         while(iterator.hasNext()) {

@@ -1,7 +1,7 @@
 package Solvers;
 
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Clause;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Erraneous;
@@ -142,7 +142,7 @@ public abstract class Solver {
     /** all control parameters for the solvers */
     protected  HashMap<String,Object> solverParameters;
 
-    protected  BasicClauseList basicClauseList;
+    protected InputClauses inputClauses;
 
     public  int predicates;
 
@@ -173,9 +173,9 @@ public abstract class Solver {
         problemId                  = problemSupervisor.problemId;
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
         globalParameters           = problemSupervisor.globalParameters;
-        basicClauseList            = problemSupervisor.basicClauseList;
-        predicates                 = basicClauseList.predicates;
-        symboltable                = basicClauseList.symboltable;
+        inputClauses = problemSupervisor.inputClauses;
+        predicates                 = inputClauses.predicates;
+        symboltable                = inputClauses.symboltable;
         monitor                    = null; //globalParameters.monitor;
         monitoring                 = monitor != null; //&& monitor.monitoring;
         model                      = new Model(predicates);
@@ -267,7 +267,7 @@ public abstract class Solver {
      * @return null or an Erraneous Result
      */
     public Result checkModel(Model model) {
-        ArrayList<int[]> falseClauses = basicClauseList.falseClausesInModel(model);
+        ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(model);
         if(falseClauses != null) {return new Erraneous(model,falseClauses,symboltable);}
         else {return null;}}
 

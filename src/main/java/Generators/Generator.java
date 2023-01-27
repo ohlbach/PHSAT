@@ -1,6 +1,6 @@
 package Generators;
 
-import Datastructures.Clauses.BasicClauseList;
+import Datastructures.Clauses.InputClauses;
 import Management.GlobalParameters;
 import Management.KVParser;
 import Management.Monitor.Monitor;
@@ -31,7 +31,7 @@ public abstract class Generator {
 
     public static String[] generators = new String[]{"random","file","pidgeonhole","string"};
 
-    BasicClauseList basicClauseList = null;
+    InputClauses inputClauses = null;
 
     /** checks if the name is a generator name
      *
@@ -112,14 +112,14 @@ public abstract class Generator {
      * @param warnings    for collecting warning messages
      * @return            the new BasicClauseList
      */
-    public static BasicClauseList generate(String name, HashMap<String,Object> parameters,
-                                           ProblemSupervisor problemSupervisor,
-                                           Monitor errors, Monitor warnings) {
+    public static InputClauses generate(String name, HashMap<String,Object> parameters,
+                                        ProblemSupervisor problemSupervisor,
+                                        Monitor errors, Monitor warnings) {
         Class clazz = generatorClass(name);
         if(clazz == null) {errors.print("Problem Generator","Unknown generator class: " + name); return null;}
         try{
             Method generator = clazz.getMethod("generate",HashMap.class, ProblemSupervisor.class, MonitorLife.class, MonitorLife.class);
-            return (BasicClauseList) generator.invoke(null,parameters,problemSupervisor,errors,warnings);}
+            return (InputClauses) generator.invoke(null,parameters,problemSupervisor,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
 
