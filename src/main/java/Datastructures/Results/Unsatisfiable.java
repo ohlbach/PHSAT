@@ -38,7 +38,7 @@ public abstract class Unsatisfiable extends Result {
         StringBuilder st = new StringBuilder();
         st.append("CONTRADICTION FOUND: ");
         if(solverClass != null) {
-            st.append( "by solver ").append(solverClass.getSimpleName()).append(": ").append(solverId);}
+            st.append( "by solver ").append(solverClass.getSimpleName()).append(": ").append(solverId).append("\n");}
         if(problemId != null) st.append(" in problem ").append(problemId);
         st.append("\n").append(description(symboltable));
         IntArrayList origins = origins();

@@ -17,24 +17,24 @@ import java.util.function.BiConsumer;
  * <br>
  * Besides the mapping of literals to true/false, this class provides the following services to the system:
  * <ul>
- *     <li>Each literal in the model is accompanied by the inference step that caused the literal to be true.
+ *     <li>Each literal in the model is accompanied by the inference step that caused the literal to be true.<br>
  *     This allows one to reconstruct the results of the search for a model or the unsatisfiability of the clauses.</li>
  *     <li>One can install observers. These are functions which get automatically called when a new
- *     true literal is added to the model.
+ *     true literal is added to the model.<br>
  *     The observers distribute the information about the literal to the other reasoners.</li>
  * </ul>
  * Critical methods in the model are synchronized such that they can be called from different threats.
  */
 public class Model {
-    /** the maximum number of predicates */
+    /** the maximum number of predicates. */
     public int predicates;
 
     /** the current model. It collects the true literals.*/
-    private IntArrayList model;
+    public IntArrayList model;
 
     /** the inference steps which caused the truth of the literals. The positions in the array are the same
      * as the positions of the true literal in the model-array.*/
-    private ArrayList<InferenceStep> inferenceSteps;
+    public ArrayList<InferenceStep> inferenceSteps;
 
     /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined).
      * It provides the fastest lookup of a literals status in the model.*/
@@ -46,7 +46,7 @@ public class Model {
 
     /** creates a model with a maximum number of predicates.
      *
-     * @param predicates the maximum number of predicates
+     * @param predicates the maximum number of predicates.
      */
     public Model(int predicates) {
         assert predicates > 0;
@@ -66,7 +66,7 @@ public class Model {
 
     /** adds a literal to the model with null inference step.
      *
-     * @param literals some literals
+     * @param literals some literals.
      * @throws Unsatisfiable if a contradiction is found.
      */
     public synchronized void add(int... literals) throws Unsatisfiable {
@@ -130,7 +130,7 @@ public class Model {
 
     /** returns the status of the literal in the model.
      *
-     * @param literal the literal to be checked
+     * @param literal the literal to be checked.
      * @return +1 if the literal is true in the model, -1 if it is false in the model, otherwise 0.
      */
     public synchronized int status(int literal) {
@@ -155,10 +155,10 @@ public class Model {
         return inferenceSteps.get(position);}
 
 
-    /** turns the status value into a string
+    /** turns the status value into a string.
      *
-     * @param status -1,0,+1
-     * @return the corresponding name
+     * @param status -1,0,+1.
+     * @return the corresponding name.
      */
     public synchronized static String toString(int status) {
         switch(status) {
@@ -172,7 +172,7 @@ public class Model {
 
     /** clones the model (without observers)
      *
-     * @return a clone of the model
+     * @return a clone of the model.
      */
     public Model clone() {
         Model newModel = new Model(predicates);
@@ -184,7 +184,7 @@ public class Model {
 
     /** checks if the literal is in the model.
      *
-     * @param literal a literal
+     * @param literal a literal.
      * @return true if the model contains the literal.
      */
     public synchronized boolean contains(int literal) {
@@ -194,13 +194,13 @@ public class Model {
 
     /** returns the current size of the model.
      *
-     * @return the current size of the model
+     * @return the current size of the model.
      */
     public synchronized int size() {return model.size();}
 
     /** checks if the model is empty.
      *
-     * @return true if the model is empty
+     * @return true if the model is empty.
      */
     public synchronized boolean isEmpty() {return model.isEmpty();}
 
@@ -211,9 +211,9 @@ public class Model {
         inferenceSteps.clear();
         for(int i = 0; i <= predicates; ++i) status[i] = 0;}
 
-    /** returns the model as a comma separated string of numbers (sorted)
+    /** returns the model as a comma separated string of numbers (sorted).
      *
-     * @return the model as a comma separated string of numbers (sorted)
+     * @return the model as a comma separated string of numbers (sorted).
      */
     public String toString() {
         return toString(null);}

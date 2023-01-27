@@ -26,7 +26,7 @@ public class UnsatisfiableLiteral extends Unsatisfiable {
 
     @Override
     public String description(Symboltable symboltable) {
-        return "Contradictory literal derived: " + Symboltable.toString(literal,symboltable);}
+        return "Contradictory literal derived: " + Symboltable.toString(literal,symboltable)+"\n";}
 
     /** joins the inference steps for the literals
      *
