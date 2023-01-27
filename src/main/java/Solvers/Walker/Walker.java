@@ -375,7 +375,7 @@ public class Walker extends Solver {
      * @return Satisfiable with the transferred local model.
      */
     private Satisfiable localToGlobalModel() {
-        Model model = new Model(predicates,this.model.symboltable);
+        Model model = new Model(predicates);
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             model.addImmediately(localModel[predicate] ? predicate : -predicate);}
         return new Satisfiable(model);}

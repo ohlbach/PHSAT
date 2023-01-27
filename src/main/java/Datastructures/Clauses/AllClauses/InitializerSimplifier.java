@@ -150,7 +150,7 @@ public class InitializerSimplifier {
         problemId = problemSupervisor.problemId;
         thread = Thread.currentThread();
         model = problemSupervisor.model;
-        symboltable = model.symboltable;
+        symboltable = null; //model.symboltable;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
         twoLitClauses = problemSupervisor.twoLitClauses;
         monitor = null; //problemSupervisor.globalParameters.monitor;
@@ -249,7 +249,7 @@ public class InitializerSimplifier {
     public void addTrueLiteral(int literal, InferenceStep step){
         if(monitoring) {
             monitor.print(monitorId,"In:   Unit literal " +
-            Symboltable.toString(literal,model.symboltable));}
+            Symboltable.toString(literal,null));}; //model.symboltable));}
         queue.add(new Task<>(InitializerSimplifier.TaskType.TRUELITERAL, literal, step));}
 
     /** puts an equivalence into the queue
@@ -258,7 +258,8 @@ public class InitializerSimplifier {
      */
     public void addEquivalence(Clause eClause) {
         if(monitoring) {
-            monitor.print(monitorId,"In:   equivalence " + eClause.toString(0,model.symboltable));}
+            monitor.print(monitorId,
+                    "In:   equivalence " + eClause.toString(0,null));}//model.symboltable));}
         queue.add(new Task<>(TaskType.EQUIVALENCE,eClause,null));}
 
 

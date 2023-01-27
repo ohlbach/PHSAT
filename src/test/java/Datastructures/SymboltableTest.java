@@ -50,5 +50,36 @@ public class SymboltableTest {
         assertEquals("1 = -2 = 3",Symboltable.toString(list," = ",null));
         assertEquals("A = -B = 3",Symboltable.toString(list, " = ",st));}
 
+    @Test
+    public void toString4() throws Exception {
+        System.out.println("toString()");
+        Symboltable st = new Datastructures.Symboltable(5);
+        st.setName(1,"A"); st.setName(3,"B");
+        assertEquals("1:A,3:B,",st.toString());}
+
+    @Test
+    public void getPredicate() throws Exception {
+        System.out.println("getPredicate");
+        Symboltable st = new Datastructures.Symboltable(5);
+        int a = st.getPredicate("A");
+        assertEquals(1, a);
+        int b = st.getPredicate("A");
+        assertEquals(1, b);
+        int c = st.getPredicate("B");
+        assertEquals(2, c);
+        assertEquals(a,st.getPredicate("A"));}
+
+    @Test
+    public void getName() throws Exception {
+        System.out.println("getName");
+        Symboltable st = new Datastructures.Symboltable(5);
+        int a = st.getPredicate("A");
+        assertEquals("A", st.getLiteral(a));
+        assertEquals("-A", st.getLiteral(-a));
+        assertNull(st.getLiteral(2));
+    }
+
+
+
 
     }

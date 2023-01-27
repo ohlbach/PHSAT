@@ -116,7 +116,7 @@ public class EquivalenceClasses  {
         this.problemSupervisor = problemSupervisor;
         problemId = problemSupervisor.problemId;
         model = problemSupervisor.model;
-        symboltable = model.symboltable;
+        symboltable = null; //model.symboltable;
         statistics   = new EquivalenceStatistics(problemId);
         trackReasoning = problemSupervisor.globalParameters.trackReasoning;
         if(trackReasoning) nextId = problemSupervisor::nextClauseId;
@@ -187,7 +187,7 @@ public class EquivalenceClasses  {
      */
     public void addBasicEquivalenceClause(int[] basicClause) throws Unsatisfiable {
         assert basicClause.length > 3;
-        assert Connective.getType(basicClause[1]) == Connective.EQUIV;
+        assert Connective.getConnective(basicClause[1]) == Connective.EQUIV;
         statistics.basicClauses++;
         Clause clause = new Clause(basicClause);
         integrateEquivalence(clause,false);}

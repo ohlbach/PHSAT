@@ -178,7 +178,7 @@ public abstract class Solver {
         symboltable                = basicClauseList.symboltable;
         monitor                    = null; //globalParameters.monitor;
         monitoring                 = monitor != null; //&& monitor.monitoring;
-        model                      = new Model(predicates,null);
+        model                      = new Model(predicates);
         }
 
 

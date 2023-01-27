@@ -49,7 +49,7 @@ public class ClauseSimplifier {
         monitoring = monitor != null;
         model = clauses.model;
         this.thread = thread;
-        symboltable = model.symboltable;
+        symboltable = null; //model.symboltable;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
         this.literalIndex = clauses.literalIndex;
         trackReasoning = clauses.trackReasoning;

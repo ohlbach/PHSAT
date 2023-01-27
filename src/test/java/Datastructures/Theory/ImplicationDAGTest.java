@@ -1,7 +1,6 @@
 package Datastructures.Theory;
 
 import org.junit.Test;
-import org.omg.CORBA.IMP_LIMIT;
 
 import java.util.Arrays;
 
@@ -302,7 +301,7 @@ public class ImplicationDAGTest {
         id.addClause(-5, 6);
         id.addClause(-5, 7);
         id.addClause(-8, 4);
-        Model model = new Model(10,null);
+        Model model = new Model(10);
         id.completeModel(model);
         assertEquals("[4, 5, 6, 7, 3]",model.toString());
     }
@@ -318,7 +317,7 @@ public class ImplicationDAGTest {
         id.addClause(-5, 6);
         id.addClause(-5, 7);
         id.addClause(-8, 4);
-        Model model = new Model(10,null);
+        Model model = new Model(10);
         id.completeModel(model);
         assertEquals("[4, 5, 6, 7, 3]",model.toString());}
     }

@@ -44,7 +44,7 @@ public class TwoLitClausesTest {
             symboltable.setName(4,"a");
             symboltable.setName(5,"b");
             symboltable.setName(6,"c");}
-        problemSupervisor.model = new Model(20,symboltable);
+        problemSupervisor.model = new Model(20);
         problemSupervisor.equivalenceClasses = new EquivalenceClasses(problemSupervisor);
         return new TwoLitClauses(problemSupervisor);
     }
@@ -69,7 +69,7 @@ public class TwoLitClausesTest {
         TwoLitClause clause3 = make(clauses,1,1);
         clause3.inferenceStep = new InferenceTest("my test 2");
         assertNull(clauses.removeDoubles(clause3));
-        assertEquals("Model:\n1",clauses.model.toNumbers());
+        assertEquals("Model:\n1",clauses.model.toString());
         TwoLitClause clause4 = make(clauses,-1,-1);
         clause4.inferenceStep = new InferenceTest("my test 3");
         try{assertNull(clauses.removeDoubles(clause4));}
@@ -104,7 +104,7 @@ public class TwoLitClausesTest {
         TwoLitClause clause5 = make(clauses,-1,2);
         clause5.inferenceStep = new InferenceTest("may test 2");
         assertNull(clauses.replaceTruthValues(clause5));
-        assertEquals("Model:\n1,2",clauses.model.toNumbers());
+        assertEquals("Model:\n1,2",clauses.model.toString());
     }
 
     @Test
@@ -120,7 +120,7 @@ public class TwoLitClausesTest {
         clauses.model.add(1,new InferenceTest("may test 1"));
         TwoLitClause clause3 = make(clauses,-3,4);
         assertNull(clauses.normalizeClause(clause3));
-        assertEquals("Model:\n1,4",clauses.model.toNumbers());
+        assertEquals("Model:\n1,4",clauses.model.toString());
     }
 
     @Test
@@ -226,7 +226,6 @@ public class TwoLitClausesTest {
         int[] clause1 = new int[]{2,type,2,3};
         int[] clause2 = new int[]{3,type,-2,4};
         int[] clause3 = new int[]{4,type,5,-2};
-        clauses.model.symboltable = null;
 
         clauses.addBasicClause(clause1);
         clauses.addBasicClause(clause2);
@@ -254,7 +253,6 @@ public class TwoLitClausesTest {
         ArrayList<Object> observed = new ArrayList<>();
         clauses.model.addObserver(
                 ((literal, originals) -> observed.add(literal)));
-        clauses.model.symboltable = null;
 
         Thread eqthread = new Thread(clauses.equivalenceClasses::run);
         Thread twothread = new Thread(clauses::run);
@@ -276,8 +274,7 @@ public class TwoLitClausesTest {
         assertEquals("Two-Literal clauses of problem test:\n" +
                 "  2-4: 5,6",clauses.toString());
         assertEquals("[3, 4]",observed.toString());
-        assertEquals("Model:\n3,4",clauses.model.toNumbers());
-        System.out.println(clauses.model.infoString(false));
+        assertEquals("Model:\n3,4",clauses.model.toString());
     }
 
     @Test
@@ -286,7 +283,6 @@ public class TwoLitClausesTest {
         TwoLitClauses clauses = prepare(monitoring,true);
         clauses.configure();
         //globalParameters.monitor.addPrintId("test-TwoLit");
-        clauses.model.symboltable = null;
         Thread eqthread = new Thread(clauses.equivalenceClasses::run);
         Thread twothread = new Thread(clauses::run);
         eqthread.start();

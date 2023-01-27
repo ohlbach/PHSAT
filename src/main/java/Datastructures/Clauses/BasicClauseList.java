@@ -13,7 +13,7 @@ import java.util.Arrays;
  *
  * This class contains just the absolutely essential information about clauses.<br>
  * The clauses should be the original clauses from the clause source and must not be changed.<br>
- * They are used to check a candidate model against the original clause set.<br>
+ * They are in particular used to check a candidate model against the original clause set.<br>
  * A clause is an integer-array [clause-number,clause-type,[min,max],literal1,...]<br>
  * The clause types are: <br>
  * '0': means disjunction:  '0 1 3 5'      means 1 or 3 or 5<br>
@@ -27,26 +27,35 @@ import java.util.Arrays;
 public class BasicClauseList {
     /** the maximum number of predicates */
     public int predicates;
-    /** the largest clause length */
-    public int maxClauseLength;
+
     /** null or a symboltable */
-    
-    public int nextId = 0;
-    
     public Symboltable symboltable;
-    /** the original disjunctions */
-    public final ArrayList<int[]> disjunctions  = new ArrayList<>();
-    /** the original conjunctions */
-    public final ArrayList<int[]> conjunctions  = new ArrayList<>();
-    /** the original equivalences */
-    public final ArrayList<int[]> equivalences  = new ArrayList<>();
-    /** the original quantifieds atleast, atmost, exactly */
-    public final ArrayList<int[]> quantifieds   = new ArrayList<>();
-    /** the original intervals */
-    public final ArrayList<int[]> intervals      = new ArrayList<>();
 
     /** an info-string about the origin of the clauses */
     public String info = null;
+
+    /** the next free number to be used as identifier for a clause */
+    public int nextId = 0;
+
+    /** the length of the largest clause*/
+    public int maxClauseLength;
+
+    /** the original disjunctions */
+    public final ArrayList<int[]> disjunctions  = new ArrayList<>();
+
+    /** the original conjunctions */
+    public final ArrayList<int[]> conjunctions  = new ArrayList<>();
+
+    /** the original equivalences */
+    public final ArrayList<int[]> equivalences  = new ArrayList<>();
+
+    /** the original quantifieds atleast, atmost, exactly */
+    public final ArrayList<int[]> quantifieds   = new ArrayList<>();
+
+    /** the original intervals */
+    public final ArrayList<int[]> intervals      = new ArrayList<>();
+
+
 
     public BasicClauseList(int predicates, Symboltable symboltable, String info) {
         this.predicates = predicates;
@@ -62,7 +71,7 @@ public class BasicClauseList {
      */
     public void addClause(int[] clause) {
         if(clause == null) return;
-        Connective connective = Connective.getType(clause[1]);
+        Connective connective = Connective.getConnective(clause[1]);
         int length = clause.length-2;
         if(connective.isQuantifier()) length -= 1;
         else {if(connective == Connective.INTERVAL) length -= 2;}
@@ -91,10 +100,10 @@ public class BasicClauseList {
     public static int[] checkSyntax(int[] clause, int predicates, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
         errorPrefix += "Clause " + Arrays.toString(clause) + ": ";
         int type = clause[1];
-        Connective connective = Connective.getType(type);
+        Connective connective = Connective.getConnective(type);
         if(connective == null) {
             errors.append(errorPrefix).append("Connective number :"+type + " is not between 0 and " +
-                    Connective.maxOrdinal() +"\n");
+                    Connective.size() +"\n");
             return null;}
         int start = getStart(connective);
         boolean erraneous = false;
@@ -167,7 +176,7 @@ public class BasicClauseList {
      * @return true if all literals are false in the model and the clause is not a tautology.
      */
     public static boolean disjunctionIsTrue(int[] clause, Model model) {
-        assert Connective.getType(clause[1]) == Connective.OR;
+        assert Connective.getConnective(clause[1]) == Connective.OR;
         for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return true;}}
         return false;}
 
@@ -188,7 +197,7 @@ public class BasicClauseList {
      * @return true if not either all literals are true or all literals are false in the model.
      */
     public static boolean equivalenceIsTrue(int[] clause, Model model) {
-        assert Connective.getType(clause[1]) == Connective.EQUIV;
+        assert Connective.getConnective(clause[1]) == Connective.EQUIV;
         int size = clause.length;
         int trueLiterals = 0;
         int falseLiterals = 0;
@@ -210,7 +219,7 @@ public class BasicClauseList {
         int size = clause.length;
         int trueLiterals = 0;
         for(int i = 3; i < size; ++i) {if(model.isTrue(clause[i])) ++trueLiterals;}
-        switch(Connective.getType(clause[1])) {
+        switch(Connective.getConnective(clause[1])) {
             case ATLEAST: return trueLiterals >= n;
             case ATMOST:  return trueLiterals <= n;
             case EXACTLY: return trueLiterals == n;}
@@ -223,7 +232,7 @@ public class BasicClauseList {
      * @return true if not atleast n literals are true in the model
      */
     public static boolean intervalIsTrue(int[] clause, Model model) {
-        assert Connective.getType(clause[1]) == Connective.INTERVAL;
+        assert Connective.getConnective(clause[1]) == Connective.INTERVAL;
         int min = clause[2];
         int max = clause[3];
         int size = clause.length;
@@ -245,7 +254,7 @@ public class BasicClauseList {
         statistics.equivalences = equivalences.size();
         statistics.intervals    = intervals.size();
         for(int[] clause : quantifieds) {
-            switch(Connective.getType(clause[1])) {
+            switch(Connective.getConnective(clause[1])) {
                 case ATLEAST: ++statistics.atleasts; break;
                 case ATMOST:  ++statistics.atmosts;  break;
                 case EXACTLY: ++statistics.exactlys; break;}}
@@ -270,7 +279,7 @@ public class BasicClauseList {
     public static String clauseToString(int size, int[] clause, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         int typeNumber = clause[1];
-        Connective connective = Connective.getType(typeNumber);
+        Connective connective = Connective.getConnective(typeNumber);
         if(size == 0) {size = (connective.prefix+Integer.toString(clause[0])).length();}
         st.append(String.format("%"+size+"s",connective.prefix+clause[0])).append(": ");
 

@@ -56,7 +56,7 @@ public class MRMatrix {
         monitorId = allClauses.monitorId;
         monitoring = monitor != null;
         model = allClauses.model;
-        symboltable = model.symboltable;
+        symboltable = null; //model.symboltable;
         trackReasoning = allClauses.trackReasoning;
         for(Clause clause : disjointnessClauses) matrixDepth = Math.max(matrixDepth,clause.size());
         dLiterals = new ArrayList[disjointnessClauses.length];

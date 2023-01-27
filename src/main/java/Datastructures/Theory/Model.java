@@ -9,81 +9,77 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
 
-import static Utilities.Utilities.sortIntArray;
-
 
 /** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
- * Each literal in the model is accompanied by the origins, i.e. the list of basic clause ids which
- * caused the derivation of the truth of the literal.
- * <br>
- * When a literal is added to the model, and its negation is already in the model then
- * an Unsatisfiable exception is thrown.
- * This may terminate the search process. <br>
- * Adding a non-contradictory literal to the model causes all observers to be called.
- * They distribute the information about the literal to the other reasoners.
  *
- * Created by ohlbach on 12.09.2018.
+ * When a literal is added to the model, and its negation is already in the model then
+ * an Unsatisfiable exception is thrown. This usually terminates the search.
+ * <br>
+ * Besides the mapping of literals to true/false, this class provides the following services to the system:
+ * <ul>
+ *     <li>Each literal in the model is accompanied by the inference step that caused the literal to be true.
+ *     This allows one to reconstruct the results of the search for a model or the unsatisfiability of the clauses.</li>
+ *     <li>One can install observers. These are functions which get automatically called when a new
+ *     true literal is added to the model.
+ *     The observers distribute the information about the literal to the other reasoners.</li>
+ * </ul>
+ * Critical methods in the model are synchronized such that they can be called from different threats.
  */
 public class Model {
     /** the maximum number of predicates */
     public int predicates;
 
-    /** the symboltable for the literals */
-    public Symboltable symboltable;
-
-    /** the current model */
+    /** the current model. It collects the true literals.*/
     private IntArrayList model;
 
-    /** The inference steps which caused the truth of the literals */
+    /** the inference steps which caused the truth of the literals. The positions in the array are the same
+     * as the positions of the true literal in the model-array.*/
     private ArrayList<InferenceStep> inferenceSteps;
 
-    /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined) */
+    /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined).
+     * It provides the fastest lookup of a literals status in the model.*/
     private byte[] status;
 
-    /** observers to be called when a new true literal is inserted */
+    /** functions to be called when a new true literal is inserted. */
     private final ArrayList<BiConsumer<Integer, InferenceStep>> observers = new ArrayList<>();
 
 
-    /** creates a model with a maximum number of predicates, together with a means of tracking the origins
+    /** creates a model with a maximum number of predicates.
      *
      * @param predicates the maximum number of predicates
-     * @param symboltable the symboltable for the literals (mostly for error messages).
      */
-    public Model(int predicates, Symboltable symboltable) {
+    public Model(int predicates) {
         assert predicates > 0;
         this.predicates  = predicates;
-        this.symboltable = symboltable;
-        model   = new IntArrayList(predicates);
+        model          = new IntArrayList(predicates);
         inferenceSteps = new ArrayList<>(predicates);
-        status  = new byte[predicates+1];}
+        status         = new byte[predicates+1];}
 
 
-    /** add a new observer which gets called when a new true literal is inserted.
-     * Submitting a thread causes the observers to be called only if this thread
-     * is different to the thread that submitted the literal.
-     * This avoids a ping pong effect.
+    /** adds a new observer which gets called when a new true literal is inserted.
+     * An observer is a function to be called for the true literal and the corresponding inference step.
      *
-     * @param observer a function (literal,origins)
+     * @param observer a function (literal,inference-step)
      */
     public synchronized void addObserver(BiConsumer<Integer, InferenceStep> observer) {
         observers.add(observer);}
 
-    /** adds a literal to the model with null inference step and null thread
+    /** adds a literal to the model with null inference step.
      *
      * @param literals some literals
      * @throws Unsatisfiable if a contradiction is found.
      */
     public synchronized void add(int... literals) throws Unsatisfiable {
-        for(int literal : literals) {
-            add(literal,null);}}
+        for(int literal : literals) add(literal,null);}
 
-    /** pushes a literal onto the model and checks if the literal is already in the model.
-     * If the literal is new to the model then the observers from a thread different to the
-     * submitting thread are called.
+    /** adds a literal to the model and checks if the literal is already in the model.
+     * If the literal is new to the model then all observers are called.
+     * If the literal is already false in the model then an UnsatisfiableLiteral exception is thrown
+     * with the literal, the old inference step and the new inference step.
      *
      * @param literal the literal for the model.
-     * @param inferenceStep the ids of the basic clauses causing this truth
-     * @throws Unsatisfiable if a contradiction with an earlier entry in the model occurs.
+     * @param inferenceStep  the inference step that caused the truth of the model.
+     * @throws UnsatisfiableLiteral if a contradiction with an earlier entry in the model occurs.
      */
     public synchronized void add(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
         int predicate = Math.abs(literal);
@@ -98,20 +94,15 @@ public class Model {
             observer.accept(literal,inferenceStep);}}
 
 
-    /** adds a literal immediately without any checks and transfers
+    /** adds a literal immediately without any checks and inference step.
+     * No observers are called.
+     * This method is useful for algorithms which work with candidate models and backtracking.
      *
      * @param literal a literal
      */
     public void addImmediately(int literal) {
         model.add(literal);
         status[Math.abs(literal)] = literal > 0 ? (byte)1: (byte)-1;}
-
-        /** returns the entire model, i.e. the list of true literals.
-         * Access to the list, however is not synchronized.
-         *
-         * @return the model
-         */
-    public IntArrayList getModel() {return model;}
 
     /** checks if the literal is true in the model.
      *
@@ -148,10 +139,10 @@ public class Model {
         short status = this.status[predicate];
         return literal > 0 ? status : -status;}
 
-    /** returns the origins of a model entry
+    /** returns null or the inference step which caused the truth of the literal in the model.
      *
-     * @param literal a literal
-     * @return null or the origins of the literal entry
+     * @param literal a literal.
+     * @return null or the inference step which caused the truth of the literal in the model.
      */
     public synchronized InferenceStep getInferenceStep(int literal) {
         if(inferenceSteps == null) {return null;}
@@ -177,21 +168,6 @@ public class Model {
         return "error";}
 
 
-    //  Unklar
-
-    /** sets the logical status of the literal.
-     *
-     * @param literal a literal
-     * @param status +1 (for true) and -1 (for false)
-     */
-    public synchronized void setStatus(int literal, int status) {
-        if(literal < 0) {literal = -literal; status = (byte)-status;}
-        assert this.status[literal] == 0 || this.status[literal] == status;
-        if(this.status[literal] == 0) {
-            this.status[literal] = (byte)status;
-            model.add(status > 0 ? literal : -literal);}}
-
-
     // unklar
 
     /** clones the model (without observers)
@@ -199,7 +175,7 @@ public class Model {
      * @return a clone of the model
      */
     public Model clone() {
-        Model newModel = new Model(predicates, symboltable);
+        Model newModel = new Model(predicates);
         newModel.inferenceSteps = new ArrayList<>();
         newModel.inferenceSteps.addAll(inferenceSteps);
         newModel.status = status.clone();
@@ -228,11 +204,6 @@ public class Model {
      */
     public synchronized boolean isEmpty() {return model.isEmpty();}
 
-    /** checks if the model is full.
-     *
-     * @return true if the model is full
-     */
-    public synchronized boolean isFull() {return model.size() == predicates;}
 
     /** clears the data */
     public void clear() {
@@ -240,70 +211,28 @@ public class Model {
         inferenceSteps.clear();
         for(int i = 0; i <= predicates; ++i) status[i] = 0;}
 
-    /** returns the model as a comma separated string  (sorted)
-     *
-     * @return the model as a comma separated string  (sorted)
-     */
-    public String toString() {
-        return toString(symboltable);}
-
     /** returns the model as a comma separated string of numbers (sorted)
      *
      * @return the model as a comma separated string of numbers (sorted)
      */
-    public String toNumbers() {
+    public String toString() {
         return toString(null);}
 
-    /** returns the model as a comma separated string of names (sorted)
+    /** returns the model as a comma separated string of names or numbers (sorted).
      *
-     * @return the model as a comma separated string of names (sorted)
+     * @param symboltable null or a symboltable.
+     * @return the model as a comma separated string of names or numbers (sorted).
      */
     public String toString(Symboltable symboltable) {
-        IntArrayList model = new IntArrayList();
+        IntArrayList sortedModel = new IntArrayList(model.size());
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-            int status = status(predicate);
-            if(status != 0) model.add(status*predicate);}
-        if(model.isEmpty()) return "";
+            byte state = status[predicate];
+            if(state != 0) {sortedModel.add(state == 1 ? predicate : -predicate);}}
+        if(sortedModel.isEmpty()) return "";
         StringBuilder st = new StringBuilder();
-        st.append("Model:\n");
-        for(int i = 0; i < model.size()-1; ++i)
-            st.append(Symboltable.toString(model.getInt(i),symboltable)).append(",");
-        st.append(Symboltable.toString(model.getInt(model.size()-1),symboltable));
+        for(int i = 0; i < sortedModel.size()-1; ++i)
+            st.append(Symboltable.toString(sortedModel.getInt(i),symboltable)).append(",");
+        st.append(Symboltable.toString(sortedModel.getInt(sortedModel.size()-1),symboltable));
         return st.toString();}
-
-
-    /** turns the model and the inference steps into a string of names or numbers
-     *
-     * @return the model together with the inference steps as string.
-     */
-    public String infoString(boolean withSymboltable) {
-        Symboltable symboltable = withSymboltable ? this.symboltable : null;
-        if(inferenceSteps.isEmpty())  return toString(symboltable);
-
-        IntArrayList model = new IntArrayList();
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            int status = status(predicate);
-            if(status != 0) model.add(status*predicate);}
-        if(model.isEmpty()) return "";
-
-        StringBuilder st = new StringBuilder();
-        st.append("Model:\n");
-        int size = model.size()-1;
-        for(int i = 0; i <= size; ++i) {
-            int literal = model.getInt(i);
-            st.append(Symboltable.toString(literal,symboltable));
-            InferenceStep step = getInferenceStep(literal);
-            if(step != null) {
-                st.append("\n").append(step.toString(symboltable));
-                IntArrayList origins = step.origins();
-                if(origins != null) st.append("\nOrigins: ").append(sortIntArray(origins).toString());
-                ArrayList<InferenceStep> steps = new ArrayList<>();
-                step.inferenceSteps(steps);
-                if(!steps.isEmpty()) {
-                    st.append("\nInference Steps: ");
-                    for(InferenceStep stp : steps) st.append(stp.title()).append(",");}}
-            if(i < size) st.append("\n");}
-        return st.toString();}
-
 
 }

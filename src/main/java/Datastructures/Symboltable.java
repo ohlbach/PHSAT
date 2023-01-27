@@ -2,8 +2,8 @@ package Datastructures;
 
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-/**
- * Created by ohlbach on 25.08.2018.
+/** Created by ohlbach on 25.08.2018.<br>
+ *
  * The symboltable maps predicate names to integers.<br>
  *
  * In source files with clauses one may use symbolic names for predicates, but
@@ -14,16 +14,17 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
  */
 
 public class Symboltable {
-    /** indicates that symbolic predicate names are used. */
+
+    /** Indicates that symbolic predicate names are used. */
     public boolean symbolic = true;
 
-    /** number of predicates */
+    /** Number of predicates */
     public int predicates;
 
     /** This array maps predicates (integers) to their names */
-    private String[] names;
+    private final String[] names;
 
-    /** creates a new symboltable for a given number of prediates.
+    /** Creates a new symboltable for a given number of predicates.
      *
      * @param predicates the number of predicates.
      */
@@ -32,7 +33,7 @@ public class Symboltable {
         this.predicates = predicates;
         names = new String[predicates + 1];}
 
-    /** sets the name of the predicate
+    /** Sets the name of the predicate.
      *
      * @param predicate any predicate
      * @param name  the name of the predicate
@@ -41,11 +42,11 @@ public class Symboltable {
         assert predicate > 0 && predicate <= predicates;
         names[predicate] = name;}
 
-    /** the index of the first position in the names array which is empty. */
+    /** The index of the first position in the names array which is empty. */
     private int emptyPosition = 0;
 
-    /** returns for a given predicate name the corresponding integer.
-     * If the name is new, it gets the first empty integer.
+    /** The method returns for a given predicate name the corresponding integer.
+     * If the name is new, it gets the index of the first empty position in the names-array.
      *
      * @param name of a predicate
      * @return its number, or 0 if there is no free number anymore.
@@ -58,19 +59,20 @@ public class Symboltable {
         names[emptyPosition] = name;
         return emptyPosition;}
 
-    /** gets the name of the literal, or null if it is unknown
+    /** The method gets the name of the literal, or null if it is unknown.
      *
      * @param literal a literal
-     * @return null or the name of the literal
+     * @return        null or the name of the literal
      */
-    public String getName(int literal) {
+    public String getLiteral(int literal) {
         int predicate = Math.abs(literal);
         assert 0 < predicate && predicate <= predicates;
         String name = names[predicate];
         if(name == null) return null;
         return literal > 0 ? name : "-"+name;}
 
-    /**
+    /** Turns the integer into a string, either the name of the literal, or the integer as string.
+     *
      * @param literal any positive or negative predicate
      * @return  the name of the literal (e.g. -A), or the literal as string
      */
@@ -83,7 +85,7 @@ public class Symboltable {
         name = names[-literal];
         return name == null ? Integer.toString(literal) : "-"+name;}
 
-    /** yields the name of the literal as string
+    /** Yields the name of the literal as string.
      *
      * @param literal     a literal
      * @param symboltable a symboltable, or null
@@ -93,7 +95,7 @@ public class Symboltable {
         return (symboltable == null || !symboltable.symbolic) ?
                 Integer.toString(literal) : symboltable.toString(literal); }
 
-    /** turns a list of literals into a comma separated string of literal names
+    /** Turns a list of literals into a comma separated string of literal names.
      *
      * @param literals    a list of literals
      * @param symboltable null or a symboltable
@@ -104,10 +106,10 @@ public class Symboltable {
 
 
 
-    /** turns a list of literals into a separator separated string of literal names
+    /** The method turns a list of literals into a separator separated string of literal names.
      *
      * @param literals    a list of literals
-     * @param separator a string
+     * @param separator   a string
      * @param symboltable null or a symboltable
      * @return the list as string
      */
@@ -122,7 +124,8 @@ public class Symboltable {
 
 
 
-    /**
+    /** The method turns the entire symboltable into a string.
+     *
      * @return the contents of the symboltable
      */
     public String toString() {

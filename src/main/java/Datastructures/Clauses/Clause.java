@@ -117,7 +117,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @param basicClause a basic clause [id,typenumber, limit, literal1,...]
      */
     public Clause(int[] basicClause) {
-        connective = Connective.getType(basicClause[1]);
+        connective = Connective.getConnective(basicClause[1]);
         assert(connective != null);
         id = basicClause[0];
         inferenceStep = new Input(id);
@@ -179,7 +179,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return            one or two new clauses
      */
     public static ArrayList<Clause> intervalClause(IntSupplier nextId, int[] basicClause)  throws Unsatisfiable {
-        Connective connective = Connective.getType(basicClause[1]);
+        Connective connective = Connective.getConnective(basicClause[1]);
         assert(connective == Connective.INTERVAL);
         ArrayList<Clause> clauses = new ArrayList<>();
         int min = basicClause[2];

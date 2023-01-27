@@ -45,7 +45,7 @@ public class EquivalenceClassesTest {
             symboltable.setName(4,"a");
             symboltable.setName(5,"b");
             symboltable.setName(6,"c");}
-        problemSupervisor.model=new Model(20,symboltable);
+        problemSupervisor.model=new Model(20);
         return new EquivalenceClasses(problemSupervisor);
     }
 
@@ -92,12 +92,12 @@ public class EquivalenceClassesTest {
         assertSame(c1, c2);
         eqClasses.model.add(2,inf);
         eqClasses.checkTruthValues(c1);
-        assertEquals("Model:\n1,2,3",eqClasses.model.toNumbers());
+        assertEquals("Model:\n1,2,3",eqClasses.model.toString());
         //System.out.println(eqClasses.model.infoString(false));
         eqClasses.model.add(5,inf);
         Clause c4 = make(2,4,-5,-6);
         assertNull(eqClasses.checkTruthValues(c4));
-        assertEquals("Model:\n1,2,3,-4,5,6",eqClasses.model.toNumbers());
+        assertEquals("Model:\n1,2,3,-4,5,6",eqClasses.model.toString());
 
         Clause c6 = make(3,4,5);
         try{eqClasses.checkTruthValues(c6);}
@@ -147,7 +147,7 @@ public class EquivalenceClassesTest {
         Clause c2 = make(2, 3,5,4,3);
         eqClasses.normalizeClause(c2);
         assertEquals("Model:\n" +
-                "1,4,5",eqClasses.model.toNumbers());}
+                "1,4,5",eqClasses.model.toString());}
 
 
     @Test
@@ -308,7 +308,7 @@ public class EquivalenceClassesTest {
                 "Equivalent True Literals:\n" +
                 "E-2: 5=-6 and true(6) -> true(-5)\n" +
                 "Origins: [2]\n" +
-                "Inference Steps: Input,Equivalent True Literals,",model.infoString(false));}
+                "Inference Steps: Input,Equivalent True Literals,",model.toString());}
 
 
     public String info(ArrayList<Clause>clauses) {
@@ -364,7 +364,6 @@ public class EquivalenceClassesTest {
     public void addDerived4() throws Result {
         System.out.println("add derived equivalence join three  ");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
-        eqClasses.model.symboltable = null;
         ArrayList<Clause> observed=new ArrayList<>();
         eqClasses.addObserver(observed::add);
 
@@ -389,7 +388,6 @@ public class EquivalenceClassesTest {
         System.out.println("Thread ");
         EquivalenceClasses eqClasses=prepare(monitoring,true);
         Model model=eqClasses.model;
-        model.symboltable = null;
         int[] clause1=new int[]{1,type,2,3,4};
         int[] clause2=new int[]{2,type,5,6,7};
         eqClasses.addBasicEquivalenceClause(clause1);
@@ -409,9 +407,9 @@ public class EquivalenceClassesTest {
         if(monitoring) {
             System.out.println("Result: " + eqClasses.problemSupervisor.result);
             System.out.println("CLASS " + eqClasses);
-            System.out.println("MODEL " + model.toNumbers());
+            System.out.println("MODEL " + model.toString());
             System.out.println("MODEL " + model);}
-        assertEquals("Model:\n2,3,4,-5,-6,-7",model.toNumbers());
+        assertEquals("Model:\n2,3,4,-5,-6,-7",model.toString());
 
     }
 
@@ -425,7 +423,7 @@ public class EquivalenceClassesTest {
         model.add(2, null);
         eqClasses.completeModel();
         assertEquals("Model:\n" +
-                "1,2,3", model.toNumbers());
+                "1,2,3", model.toString());
 
         int[] clause2 = new int[]{1, type, 4, -5, 6};
         eqClasses.addBasicEquivalenceClause(clause2);

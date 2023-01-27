@@ -374,7 +374,7 @@ public class ClauseTest {
 
         Controller controller= null; //new Controller(null,null,null);
         ProblemSupervisor problemSupervisor= null;//new ProblemSupervisor(controller,globalParameters,problemParameters,null);
-        problemSupervisor.model=new Model(20,symboltable);
+        problemSupervisor.model=new Model(20);
         return new EquivalenceClasses(problemSupervisor);
         }
 
