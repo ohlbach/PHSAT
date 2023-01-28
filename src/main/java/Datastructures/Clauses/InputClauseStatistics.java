@@ -6,9 +6,9 @@ import org.glassfish.gmbal.Description;
 /**
  * Created by ohlbach on 30.11.2019.
  */
-public class BasicClauseStatistics  extends Statistic{
+public class InputClauseStatistics extends Statistic{
     static {
-        Statistic.statisticsClasses.add(BasicClauseStatistics.class);}
+        Statistic.statisticsClasses.add(InputClauseStatistics.class);}
 
     @Description("number of disjunctions in the input clauses")
     public int disjunctions = 0;
@@ -31,7 +31,7 @@ public class BasicClauseStatistics  extends Statistic{
     @Description("number of interval clauses in the input clauses")
     public int intervals    = 0;
 
-    public BasicClauseStatistics(String id) {
+    public InputClauseStatistics(String id) {
         super(id);}
 
 }

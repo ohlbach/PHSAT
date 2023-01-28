@@ -68,7 +68,6 @@ public class InputClauses {
         this.info = info;}
 
     /** constructs a new input clause list without any extra information.
-     *
      */
     public InputClauses() {}
 
@@ -80,6 +79,7 @@ public class InputClauses {
     public void addClause(int[] clause) {
         if(clause == null) return;
         Connective connective = Connective.getConnective(clause[1]);
+        assert connective != null;
         int length = clause.length-2;
         switch(connective) {
             case OR:       disjunctions.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
@@ -107,16 +107,16 @@ public class InputClauses {
         int type = clause[1];
         Connective connective = Connective.getConnective(type);
         if(connective == null) {
-            errors.append(errorPrefix).append("Connective number :"+type + " is not between 0 and " +
-                    Connective.size() +"\n");
+            errors.append(errorPrefix).append("Connective number '"+type + "' is not between 0 and " +
+                    (Connective.size()-1) +"\n");
             return null;}
         int start = getFirstLiteralIndex(connective);
         boolean erraneous = false;
         for(int i = start; i < clause.length; ++i) {
             int predicate = Math.abs(clause[i]);
             if(predicate == 0 || predicate > predicates) {
-                errors.append(errorPrefix).append("Predicate " + predicate +
-                        " is not within the boundaries [1,"+predicates + "]\n");
+                errors.append(errorPrefix).append("Literal "+clause[i] + ": predicate " +
+                        "is not within the boundaries [1,"+predicates + "]\n");
                 erraneous = true;}}
 
         if(connective == Connective.AND || connective == Connective.OR || connective == Connective.EQUIV)
@@ -174,23 +174,13 @@ public class InputClauses {
         return falseClauses.isEmpty() ? null : falseClauses;}
 
 
-    /** checks if a disjunction is entirely false in a model.
-     *
-     * @param clause a disjunctive clause
-     * @param model a model
-     * @return true if all literals are false in the model and the clause is not a tautology.
-     */
-    public static boolean disjunctionIsFalse(int[] clause, Model model) {
-        assert Connective.getConnective(clause[1]) == Connective.OR;
-        for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return false;}}
-        return !containsComplementaryLiterals(clause);} // p or -p is always true
-
     /** checks if the clause contains literals p,-p.
      *
-     * @param clause a clause.
+     * @param clause an and-, or-, equiv-clause.
      * @return true if the clause does not contain literals p,-p.
      */
     public static boolean containsComplementaryLiterals(int[] clause) {
+        assert clause[1] <= 2;  // and-, or-, equiv- clauses
         int length = clause.length;
         for(int i = 2; i < length; ++i){
             int literal = clause[i];
@@ -200,18 +190,19 @@ public class InputClauses {
 
     /** counts the number of complementary pairs p,-p, which have no truth value.
      *
-     * @param clause a clause.
+     * @param clause a quantified clause.
      * @param model a model.
-     * @return true if the clause does not contain literals p,-p.
+     * @return the number of complementary literal pairs p,-p.
      */
     public static int numberOfComplementaryPairs(int[] clause, Model model) {
+        assert clause[1] > 2; // quantified clauses
         int shift = Integer.MAX_VALUE/2;
         int length = clause.length;
+        int start = clause[1] == Connective.INTERVAL.ordinal() ? 4 : 3;
         int pairs = 0;
-        for(int i = 2; i < length; ++i){
+        for(int i = start; i < length; ++i){
             int literal1 = clause[i];
-            if(model.status(literal1) != 0) continue;
-            if(literal1 > shift) continue;
+            if(Math.abs(literal1) > shift || model.status(literal1) != 0 ) continue;
             for(int j = i; j < length; ++j) {
                 int literal2 = clause[j];
                 if(literal2 > shift) continue;
@@ -219,13 +210,25 @@ public class InputClauses {
                     ++pairs;
                     if(literal2 > 0) clause[j] += shift; else {clause[j] -= shift;}
                     break;}}}
-        if(pairs > 0) {
-            for(int i = 2; i < length; ++i){
+        if(pairs > 0) { // undo the shifts
+            for(int i = start; i < length; ++i){
                 int literal = clause[i];
-                if(literal < shift) continue;
+                if(Math.abs(literal) < shift) continue;
                 if(literal > 0) clause[i] -= shift; else clause[i] += shift;}}
         return pairs;}
 
+
+    /** checks if a disjunction is entirely false in a model.
+     *
+     * @param clause a disjunctive clause
+     * @param model a model
+     * @return true if all literals are false in the model and the clause is not a tautology.
+     */
+    public static boolean disjunctionIsFalse(int[] clause, Model model) {
+        assert Connective.getConnective(clause[1]) == Connective.OR;
+        for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return false;}}
+        if(model.isComplete()) return true; // there can't be complementary literals
+        return !containsComplementaryLiterals(clause);} // p or -p is always true
 
     /** checks if a conjunction is entirely false in a model
      *
@@ -236,7 +239,8 @@ public class InputClauses {
     public static boolean conjunctionIsFalse(int[] clause, Model model) {
         assert Connective.getConnective(clause[1]) == Connective.AND;
         for(int i = 2; i < clause.length; ++i) {if(!model.isTrue(clause[i])) {return true;}}
-        return containsComplementaryLiterals(clause);} // p and -p is always false.
+        if(model.isComplete()) return true; // there can't be complementary literals
+        return !containsComplementaryLiterals(clause);} // p and -p is always false.
 
     /** checks if an equivalence is false in a model
      *
@@ -254,7 +258,9 @@ public class InputClauses {
                 case +1: ++trueLiterals; break;
                 case -1: ++falseLiterals;}}
         size -= 2;
-        return (trueLiterals == size || falseLiterals == size || containsComplementaryLiterals(clause));} // p == -p is always false
+        if(trueLiterals == size || falseLiterals == size) return false;
+        if(model.isComplete()) return true;
+        return containsComplementaryLiterals(clause);} // p == -p is always false
 
     /** checks if an atleast-clause is false in a model
      *
@@ -267,8 +273,10 @@ public class InputClauses {
         int size = clause.length;
         int trueLiterals = 0;
         for(int i = 3; i < size; ++i) {if(model.isTrue(clause[i])) ++trueLiterals;}
-        trueLiterals -= numberOfComplementaryPairs(clause,model);
-        switch(Connective.getConnective(clause[1])) {
+        trueLiterals -= model.isComplete() ? 0 : numberOfComplementaryPairs(clause,model);
+        Connective connective = Connective.getConnective(clause[1]);
+        assert connective != null;
+        switch(connective) {
             case ATLEAST: return trueLiterals >= n;
             case ATMOST:  return trueLiterals <= n;
             case EXACTLY: return trueLiterals == n;}
@@ -288,59 +296,61 @@ public class InputClauses {
         int trueLiterals = 0;
         for(int i = 3; i < size; ++i) {
             if(model.isTrue(clause[i])) ++trueLiterals;}
-        trueLiterals += numberOfComplementaryPairs(clause,model);
+        trueLiterals += model.isComplete() ? 0 : numberOfComplementaryPairs(clause,model);
         return min <= trueLiterals && trueLiterals <= max;}
 
 
     /** adds some parameters to the statistics
      *
      * @param problemId the problem identifier
-     * @return the BasicClauseStatistics
+     * @return the InputClauseStatistics
      */
     public Statistic getStatistics(String problemId) {
-        BasicClauseStatistics statistics = new BasicClauseStatistics(problemId);
+        InputClauseStatistics statistics = new InputClauseStatistics(problemId);
         statistics.disjunctions = disjunctions.size();
         statistics.conjunctions = conjunctions.size();
         statistics.equivalences = equivalences.size();
         statistics.intervals    = intervals.size();
         for(int[] clause : quantifieds) {
-            switch(Connective.getConnective(clause[1])) {
+            Connective connective = Connective.getConnective(clause[1]);
+            assert connective != null;
+            switch(connective) {
                 case ATLEAST: ++statistics.atleasts; break;
                 case ATMOST:  ++statistics.atmosts;  break;
                 case EXACTLY: ++statistics.exactlys; break;}}
         return statistics;}
 
-    /** turns a clause into a string.
+    /** turns a clause into a string, without using a symboltable.
      *
      * @param clause     the clause
      * @return the clause as string
      */
-    public String clauseToString(int[] clause) {
-        return clauseToString((""+clause[0]).length(),clause,null);}
+    public static String toString(int[] clause) {
+        return toString((""+clause[0]).length()+2,clause,null);}
 
 
     /** turns a clause into a string.
      *
-     * @param size       the length for the number string
+     * @param size       the length for the identifier string
      * @param clause     the clause
      * @param symboltable a symboltable or null
      * @return the clause as string
      */
-    public static String clauseToString(int size, int[] clause, Symboltable symboltable) {
+    public static String toString(int size, int[] clause, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        int typeNumber = clause[1];
-        Connective connective = Connective.getConnective(typeNumber);
-        if(size == 0) {size = (connective.prefix+Integer.toString(clause[0])).length();}
+        int connectiveNumber = clause[1];
+        Connective connective = Connective.getConnective(connectiveNumber);
+        assert connective != null;
+        if(size == 0) {size = (connective.prefix+ clause[0]).length();}
         st.append(String.format("%"+size+"s",connective.prefix+clause[0])).append(": ");
-
         int start = 2;
-        if(Connective.isQuantifier(typeNumber)) {
+        if(Connective.isQuantifier(connectiveNumber) && connective != Connective.INTERVAL) {
             start = 3;
+            st.append(connective.abbreviation).append(" ");
             st.append(clause[2] + " ");}
         else{if(connective == Connective.INTERVAL) {
             start = 4;
-            if(clause[2] == clause[3]) st.append(clause[2] + ": ");
-            else st.append(clause[2] + "-" + clause[3]+": ");}}
+            st.append(clause[2] + "-" + clause[3]+": ");}}
         String separator = connective.separator;
         int length = clause.length;
         for(int i = start; i < length-1; ++i) {
@@ -356,10 +366,10 @@ public class InputClauses {
     public String toString() {
         return toString(symboltable);}
 
-    /** generates a string representation of the clause
+    /** generates a string representation of the clauses
      *
      * @param symboltable null or a symboltable
-     * @return  a string representation of the disjunctions.
+     * @return  a string representation of the clauses.
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
@@ -368,19 +378,19 @@ public class InputClauses {
                 quantifieds.size() + intervals.size()).length();
         if(!disjunctions.isEmpty()) {
             st.append("Disjunctions:\n");
-            for(int[] clause : disjunctions) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+            for(int[] clause : disjunctions) {st.append(toString(size,clause,symboltable)).append("\n");}}
         if(!conjunctions.isEmpty()) {
             st.append("Conjunctions:\n");
-            for(int[] clause : conjunctions) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+            for(int[] clause : conjunctions) {st.append(toString(size,clause,symboltable)).append("\n");}}
         if(!equivalences.isEmpty()) {
             st.append("Equivalences:\n");
-            for(int[] clause : equivalences) {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+            for(int[] clause : equivalences) {st.append(toString(size,clause,symboltable)).append("\n");}}
         if(!quantifieds.isEmpty()) {
             st.append("Quantifieds:\n");
-            for(int[] clause : quantifieds)  {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+            for(int[] clause : quantifieds)  {st.append(toString(size,clause,symboltable)).append("\n");}}
         if(!intervals.isEmpty()) {
             st.append("Intervals:\n");
-            for(int[] clause : intervals)    {st.append(clauseToString(size,clause,symboltable)).append("\n");}}
+            for(int[] clause : intervals)    {st.append(toString(size,clause,symboltable)).append("\n");}}
         return st.toString();}
 
 

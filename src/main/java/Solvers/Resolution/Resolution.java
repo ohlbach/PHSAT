@@ -515,7 +515,7 @@ public abstract class Resolution extends Solver {
                 System.out.println("ErrorCheck: the following basic clauses are false in the model");
                 System.out.println(model.toString());
                 for(int[] clause : falseClauses) {
-                    System.out.println(inputClauses.clauseToString(clause));}
+                    System.out.println(inputClauses.toString(clause));}
                 System.exit(1);}}
         Iterator<CLiteral> iterator = literalIndex.iterator(literal);
         while(iterator.hasNext()) {

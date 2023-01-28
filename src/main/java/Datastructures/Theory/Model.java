@@ -204,6 +204,12 @@ public class Model {
      */
     public synchronized boolean isEmpty() {return model.isEmpty();}
 
+    /** checks if all predicates have a truth value.
+     *
+     * @return true if all predicates have a truth value.
+     */
+    public synchronized boolean isComplete() {return model.size() == predicates;}
+
 
     /** clears the data */
     public void clear() {

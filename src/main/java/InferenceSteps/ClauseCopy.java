@@ -39,7 +39,7 @@ public class ClauseCopy extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st = title + ":\n" + InputClauses.clauseToString(0,basicClause,symboltable);
+        String st = title + ":\n" + InputClauses.toString(0,basicClause,symboltable);
         int width = st.length();
         return st + "\n" + StringUtils.repeat('-',width) + "\n" +
                 (clause != null ? clause.toString(0,symboltable) : twoLitClause.toString("",symboltable));}
