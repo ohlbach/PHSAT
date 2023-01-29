@@ -2,10 +2,9 @@ package Generators;
 
 import Datastructures.Clauses.InputClauses;
 import Management.GlobalParameters;
-import Management.KVParser;
 import Management.Monitor.Monitor;
-import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
+import Utilities.KVParser;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -20,7 +19,7 @@ import java.util.HashMap;
  *               ProblemSupervisor problemSupervisor, Monitor errors, Monitor warnings) <br>
  * <br>
  * The parseParameters method turns parameters as strings into sequences of parameters as objects <br>
- * The generate method generates a BasicClauseList and puts it as parameter "clauses" into the parameters map.
+ * The generate method generates InputClausees and puts them as parameter "clauses" into the parameters map.
  * <br>
  * One can add a new generator class by extending the variable 'generators' and the method 'generatorClass'.
  * <br>
@@ -88,7 +87,8 @@ public abstract class Generator {
      * @param warnings   for collecting warning messages
      * @return           a list of generators
      */
-    public static ArrayList<Generator> parseParameters(ArrayList<HashMap<String,String>> pars, GlobalParameters globalParameters,
+    public static ArrayList<Generator> parseParameters(ArrayList<HashMap<String,String>> pars,
+                                                       GlobalParameters globalParameters,
                                                        StringBuilder errors, StringBuilder warnings) {
         ArrayList<Generator> generators = new ArrayList<>();
         for(HashMap<String,String> parameters: pars) {
@@ -118,8 +118,8 @@ public abstract class Generator {
         Class clazz = generatorClass(name);
         if(clazz == null) {errors.print("Problem Generator","Unknown generator class: " + name); return null;}
         try{
-            Method generator = clazz.getMethod("generate",HashMap.class, ProblemSupervisor.class, MonitorLife.class, MonitorLife.class);
-            return (InputClauses) generator.invoke(null,parameters,problemSupervisor,errors,warnings);}
+            Method generator = clazz.getMethod("generate", Monitor.class, Monitor.class);
+            return (InputClauses) generator.invoke(null,errors,warnings);}
         catch(Exception ex) {ex.printStackTrace();System.exit(1);}
         return null;}
 

@@ -2,7 +2,7 @@ import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Generators.Generator;
 import Management.Controller;
 import Management.GlobalParameters;
-import Management.KVParser;
+import Utilities.KVParser;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
 import Solvers.Solver;

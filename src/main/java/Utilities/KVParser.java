@@ -1,4 +1,4 @@
-package Management;
+package Utilities;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -11,8 +11,10 @@ import java.util.Map;
  * <br>
  * This parser reads and splits grouped  key-value pairs.<br>
  * The groups are indicated by special top-keys, for example "global", "problem", "solver".<br>
- * Each of these  top-keys introduces a block of key-value pairs.<br>
+ * Each of these  top-keys introduces a block of key-value pairs (one per line).<br>
  * There may be arbitrary many of these blocks, arbitrarily intermixed.
+ * <br><br>
+ * Each key-value pair may be followed by comments. The comments are separated by //. They will be ignored.
  *<br><br>
  * The result is a HashMap, one entry for each top-key, an ArrayList of HashMaps.<br>
  * Each of these HashMaps contains the key-value pairs (as Strings).
@@ -23,37 +25,34 @@ import java.util.Map;
  * The result of the parsing can be accessed by the public variables: header and kvList.
  *<br><br>
  * The class is used mainly for parsing specifications with all the control parameters for the QUSat system.
- *
+ *<br>
  * Example: <br>
- * problem<br>
- *     type = random<br>
+ * problem random<br>
  *     predicates = 100<br>
  *     cpRatio = 4<br>
  *     length = 3<br>
  *     precise = true<br>
  *     seed = 1<br>
  *<br>
- * solver<br>
- *    type = walker<br>
+ * solver walker<br>
  *    flips = 50000<br>
  *    monitor = 0<br>
  *    seed = 1<br>
  * <br>
- * solver<br>
- *    type = reduction<br>
+ * solver reduction<br>
  *    strategy = INPUT<br>
  *    limit = 20<br>
  *    seed = 0<br>
  *    percentageOfSOSClauses = 50
  */
 public class KVParser {
-    /** The header lines before the first top-key.*/
+    /** the header lines before the first top-key.*/
     public final StringBuilder header = new StringBuilder();
 
-    /** The map of block-lists with the key-value pairs. */
+    /** the map of block-lists with the key-value pairs. */
     public final HashMap<String,ArrayList<HashMap<String,String>>> kvList = new HashMap<>();
 
-    /** the topKeys, like "global", "problem", "simplifier", "solver"*/
+    /** the topKeys, like "global", "problem", "simplifier", "solver".*/
     private final HashSet<String> topKeys = new HashSet<>();
 
     /** creates a parser
@@ -68,8 +67,8 @@ public class KVParser {
     /** returns the entry of one of the top-keys, a list of HashMaps for the given key.
      * Example: key = "solver": a list of HashMaps with keys for the different solver types.
      *
-     * @param key a top.key
-     * @return the entries for the top-key.
+     * @param key a top.key.
+     * @return the entries for the top-key, or null.
      */
     public ArrayList<HashMap<String,String>> get(String key) {
         return kvList.get(key);}
@@ -82,8 +81,11 @@ public class KVParser {
     public void set(String key, ArrayList<HashMap<String,String>> parameters) {
         kvList.put(key,parameters);}
 
-    private boolean inHeader = true;                  // true if the lines are currently in the header area
-    private HashMap<String,String> currentMap = null; // the current HashMap to be filled
+    /** true if the lines are currently in the header area.*/
+    private boolean inHeader = true;
+
+    /** the current HashMap to be filled. */
+    private HashMap<String,String> currentMap = null; //
 
     /** parses a single line
      * Empty and comment lines are ignored. <br>
@@ -91,7 +93,8 @@ public class KVParser {
      * Otherwise the line is split at the first occurrences of either = , : or space.<br>
      * The key-value pair is put into the currentMap. <br>
      * Existing key-value pairs are overwritten.<br>
-     * If there is just a key then the value is "true".
+     * If there is just a key then the value is "true"<br>
+     * Strings after // are comments. They are ignored.
      *
      * @param line the line to be parsed.
      */
@@ -123,15 +126,13 @@ public class KVParser {
      * IO-Error leads to System.exit
      *
      * @param filename of the file to be parsed.
-     * @return true
      */
-    public boolean parseFile(String filename) {
+    public void parseFile(String filename) {
         try {parseStream(new FileInputStream(filename));}
         catch (FileNotFoundException e) {
             System.err.println("Cannot read from file " + filename);
             e.printStackTrace();
-            System.exit(1);}
-        return true;}
+            System.exit(1);}}
 
     /** parses an entire string of "\\n"-separated lines.
      *
