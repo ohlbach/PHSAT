@@ -94,15 +94,16 @@ public class Model {
             observer.accept(literal,inferenceStep);}}
 
 
-    /** adds a literal immediately without any checks and inference step.
+    /** adds the literals immediately without any checks and inference step.
      * No observers are called.
      * This method is useful for algorithms which work with candidate models and backtracking.
      *
-     * @param literal a literal
+     * @param literals a literal
      */
-    public void addImmediately(int literal) {
-        model.add(literal);
-        status[Math.abs(literal)] = literal > 0 ? (byte)1: (byte)-1;}
+    public void addImmediately(int... literals) {
+        for(int literal : literals) {
+            model.add(literal);
+            status[Math.abs(literal)] = literal > 0 ? (byte)1: (byte)-1;}}
 
     /** checks if the literal is true in the model.
      *

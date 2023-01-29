@@ -14,45 +14,45 @@ import java.util.Arrays;
  * This class contains just the absolutely essential information about clauses.<br>
  * The clauses should be the original clauses from the clause source and must not be changed.<br>
  * They are in particular used to check a candidate model against the original clause set.<br>
- * A clause is an integer-array [clause-number,connective,[min,max],literal1,...]<br>
+ * A clause is an integer-array [clause-number,connective,[min,max],literal1,...].<br>
  * The connectives are: <br>
- * '0': means disjunction:  '10 0 3 5'      means 1 or 3 or 5<br>
+ * '0': means disjunction:  '10 0 3 5'      means 1 or 3 or 5.<br>
  * '1': means and:          '11 1 4 5'      means 3 and 4 and 5.<br>
  * '2': means equivalences: '12 2 5 -6'     means that these three literals are equivalent. <br>
- * '3': means interval      '13 3 3 5 6 7 8 means between 2 and 3 literals among 5,6,7,8 are true<br>
- * '4': means atleast:      '14 4 4 5 6'    means atleast 2 of 4,5,6 are true <br>
- * '5': means atmost:       '15 5 4 5 6'    means atmost 2 of 4,5,6 are true <br>
- * '6': means exactly:      '16 6 4 5 6'    means exactly 2 of 4,5,6 are true
+ * '3': means interval      '13 3 3 5 6 7 8 means between 2 and 3 literals among 5,6,7,8 are true.<br>
+ * '4': means atleast:      '14 4 4 5 6'    means atleast 2 of 4,5,6 are true. <br>
+ * '5': means atmost:       '15 5 4 5 6'    means atmost 2 of 4,5,6 are true. <br>
+ * '6': means exactly:      '16 6 4 5 6'    means exactly 2 of 4,5,6 are true.
  */
 public class InputClauses {
-    /** the maximum number of predicates */
+    /** the maximum number of predicates. */
     public int predicates;
 
-    /** null or a symboltable */
+    /** null or a symboltable. */
     public Symboltable symboltable;
 
-    /** an info-string about the origin of the clauses */
+    /** an info-string about the origin of the clauses. */
     public String info = null;
 
-    /** the next free number to be used as identifier for a clause */
+    /** the next free number to be used as identifier for a clause. */
     public int nextId = 0;
 
-    /** the number of literals in the largest clause*/
+    /** the number of literals in the largest clause.*/
     public int maxClauseLength;
 
-    /** the original disjunctions */
+    /** the original disjunctions. */
     public final ArrayList<int[]> disjunctions  = new ArrayList<>();
 
-    /** the original conjunctions */
+    /** the original conjunctions. */
     public final ArrayList<int[]> conjunctions  = new ArrayList<>();
 
-    /** the original equivalences */
+    /** the original equivalences. */
     public final ArrayList<int[]> equivalences  = new ArrayList<>();
 
-    /** the original quantified clauses atleast, atmost, exactly */
+    /** the original quantified clauses atleast, atmost, exactly. */
     public final ArrayList<int[]> quantifieds   = new ArrayList<>();
 
-    /** the original interval clauses */
+    /** the original interval clauses. */
     public final ArrayList<int[]> intervals      = new ArrayList<>();
 
 
@@ -72,35 +72,36 @@ public class InputClauses {
     public InputClauses() {}
 
     /** adds a clause to the corresponding lists.
-     *  Erroneous clauses are not added to the lists
+     *  Erroneous clauses are not added to the lists.
      *
-     * @param clause      a clause
+     * @param clauses      some clauses.
      */
-    public void addClause(int[] clause) {
-        if(clause == null) return;
-        Connective connective = Connective.getConnective(clause[1]);
-        assert connective != null;
-        int length = clause.length-2;
-        switch(connective) {
-            case OR:       disjunctions.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
-            case AND:      conjunctions.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
-            case EQUIV:    equivalences.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
-            case INTERVAL: intervals.add(clause);    maxClauseLength = Math.max(maxClauseLength,length-2); break;
-            case ATLEAST:
-            case ATMOST:
-            case EXACTLY:  quantifieds.add(clause);  maxClauseLength = Math.max(maxClauseLength,length-1);  break;}
+    public void addClause(int[]... clauses) {
+        for(int[] clause : clauses) {
+            Connective connective = Connective.getConnective(clause[1]);
+            assert connective != null;
+            int length = clause.length-2;
+            switch(connective) {
+                case OR:       disjunctions.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
+                case AND:      conjunctions.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
+                case EQUIV:    equivalences.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
+                case INTERVAL: intervals.add(clause);    maxClauseLength = Math.max(maxClauseLength,length-2); break;
+                case ATLEAST:
+                case ATMOST:
+                case EXACTLY:  quantifieds.add(clause);  maxClauseLength = Math.max(maxClauseLength,length-1);  break;}}
     }
 
     /** checks the clause's syntax.
-     *  Syntax errors are wrong clause type or wrong literal numbers
+     *  Syntax errors are wrong clause type or wrong literal numbers.
      *  These errors are appended to syntaxErrors.
      *  Double literals are removed and a warning is added to warnings.
      *
-     * @param clause the clause to be checked
-     * @param errorPrefix  a prefix for the warnings
-     * @param errors       for adding error messages
-     * @param warnings     for adding a warning
-     * @return null or the original clause
+     * @param clause the   clause to be checked.
+     * @param predicates   the number of predicates in the clause set.
+     * @param errorPrefix  a prefix for the warnings.
+     * @param errors       for adding error messages.
+     * @param warnings     for adding a warning.
+     * @return null or the original clause.
      */
     public static int[] checkSyntax(int[] clause, int predicates, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
         errorPrefix += "Clause " + Arrays.toString(clause) + ": ";
@@ -145,10 +146,10 @@ public class InputClauses {
                 erraneous = true;}}
         return erraneous ? null : clause;}
 
-    /** returns the start of the literal section in a basic clause
+    /** returns the start of the literal section in a basic clause.
      *
-     * @param connective one of the connectives
-     * @return the start of the literal section in a basic clause
+     * @param connective one of the connectives.
+     * @return the start of the literal section in a basic clause.
      */
     private static int getFirstLiteralIndex(Connective connective) {
         if(connective.isInterval()) return 4;
@@ -161,7 +162,7 @@ public class InputClauses {
      *  This indicates that something went terribly wrong.
      *  If the model is partial, clauses whose truth value is not determined are not listed.
      *
-     * @param model a model for the literals of the clause
+     * @param model a model for the literals of the clause.
      * @return null or a list of false clauses.
      */
     public ArrayList<int[]> falseClausesInModel(Model model) {
@@ -220,9 +221,9 @@ public class InputClauses {
 
     /** checks if a disjunction is entirely false in a model.
      *
-     * @param clause a disjunctive clause
-     * @param model a model
-     * @return true if all literals are false in the model and the clause is not a tautology.
+     * @param clause a disjunctive clause.
+     * @param model a model.
+     * @return true if all literals are either false or undefined in the model and the clause is not a tautology.
      */
     public static boolean disjunctionIsFalse(int[] clause, Model model) {
         assert Connective.getConnective(clause[1]) == Connective.OR;
@@ -230,22 +231,21 @@ public class InputClauses {
         if(model.isComplete()) return true; // there can't be complementary literals
         return !containsComplementaryLiterals(clause);} // p or -p is always true
 
-    /** checks if a conjunction is entirely false in a model
+    /** checks if a conjunction is entirely false in a model.
      *
-     * @param clause a conjunctive clause
-     * @param model a possibly partial model
-     * @return true if all literals are true in the model.
+     * @param clause a conjunctive clause.
+     * @param model a possibly partial model.
+     * @return true if one literal is false or undefined in the model.
      */
     public static boolean conjunctionIsFalse(int[] clause, Model model) {
         assert Connective.getConnective(clause[1]) == Connective.AND;
         for(int i = 2; i < clause.length; ++i) {if(!model.isTrue(clause[i])) {return true;}}
-        if(model.isComplete()) return true; // there can't be complementary literals
-        return !containsComplementaryLiterals(clause);} // p and -p is always false.
+        return false;}
 
-    /** checks if an equivalence is false in a model
+    /** checks if an equivalence is false in a model.
      *
-     * @param clause an equivalence clause
-     * @param model a model
+     * @param clause an equivalence clause.
+     * @param model a model.
      * @return true if not either all literals are true or all literals are false in the model.
      */
     public static boolean equivalenceIsFalse(int[] clause, Model model) {
@@ -255,38 +255,37 @@ public class InputClauses {
         int falseLiterals = 0;
         for(int i = 2; i < size; ++i) {
             switch(model.status(clause[i])) {
+                case 0: return true;
                 case +1: ++trueLiterals; break;
                 case -1: ++falseLiterals;}}
         size -= 2;
-        if(trueLiterals == size || falseLiterals == size) return false;
-        if(model.isComplete()) return true;
-        return containsComplementaryLiterals(clause);} // p == -p is always false
+        return !(trueLiterals == size || falseLiterals == size);}
 
-    /** checks if an atleast-clause is false in a model
+    /** checks if an atleast-clause is false in a model.
      *
-     * @param clause an atleast clause  [id,type,n,literal1,...]
-     * @param model a model
-     * @return true if not atleast n literals are true in the model
+     * @param clause an atleast clause  [id,type,n,literal1,...].
+     * @param model a model.
+     * @return true if not atleast n literals are true in the model.
      */
     public static boolean quantifiedIsFalse(int[] clause, Model model) {
         int n = clause[2];
         int size = clause.length;
         int trueLiterals = 0;
         for(int i = 3; i < size; ++i) {if(model.isTrue(clause[i])) ++trueLiterals;}
-        trueLiterals -= model.isComplete() ? 0 : numberOfComplementaryPairs(clause,model);
+        trueLiterals += model.isComplete() ? 0 : numberOfComplementaryPairs(clause,model);
         Connective connective = Connective.getConnective(clause[1]);
         assert connective != null;
         switch(connective) {
-            case ATLEAST: return trueLiterals >= n;
-            case ATMOST:  return trueLiterals <= n;
-            case EXACTLY: return trueLiterals == n;}
+            case ATLEAST: return trueLiterals < n;
+            case ATMOST:  return trueLiterals > n;
+            case EXACTLY: return trueLiterals != n;}
         return false;}
 
-    /** checks if an interval-clause is false in a model
+    /** checks if an interval-clause is false in a model.
      *
-     * @param clause an interval clause  [id,type,min,max,literal1,...]
-     * @param model a model
-     * @return true if not between min and max literals are true in the model
+     * @param clause an interval clause  [id,type,min,max,literal1,...].
+     * @param model a model.
+     * @return true if not between min and max literals are true in the model.
      */
     public static boolean intervalIsFalse(int[] clause, Model model) {
         assert Connective.getConnective(clause[1]) == Connective.INTERVAL;
@@ -294,16 +293,16 @@ public class InputClauses {
         int max = clause[3];
         int size = clause.length;
         int trueLiterals = 0;
-        for(int i = 3; i < size; ++i) {
+        for(int i = 4; i < size; ++i) {
             if(model.isTrue(clause[i])) ++trueLiterals;}
         trueLiterals += model.isComplete() ? 0 : numberOfComplementaryPairs(clause,model);
-        return min <= trueLiterals && trueLiterals <= max;}
+        return !(min <= trueLiterals && trueLiterals <= max);}
 
 
-    /** adds some parameters to the statistics
+    /** adds some parameters to the statistics.
      *
-     * @param problemId the problem identifier
-     * @return the InputClauseStatistics
+     * @param problemId the problem identifier.
+     * @return the InputClauseStatistics.
      */
     public Statistic getStatistics(String problemId) {
         InputClauseStatistics statistics = new InputClauseStatistics(problemId);
@@ -322,19 +321,36 @@ public class InputClauses {
 
     /** turns a clause into a string, without using a symboltable.
      *
-     * @param clause     the clause
-     * @return the clause as string
+     * @param clause     the clause.
+     * @return the clause as string.
      */
     public static String toString(int[] clause) {
         return toString((""+clause[0]).length()+2,clause,null);}
 
+    /** collects the list of clauses in a string.
+     *
+     * @param clauses     a list of clauses.
+     * @param symboltable null or a symboltable.
+     * @return the list of clauses as a string.
+     */
+    public static String toString(ArrayList<int[]> clauses, Symboltable symboltable) {
+        int size = 0;
+        for(int[] clause : clauses) {size = Math.max(size, Integer.toString(clause[0]).length());}
+        size += 3;
+        StringBuilder st = new StringBuilder();
+        for(int i = 0; i < clauses.size()-1; ++i) {
+            st.append(toString(size,clauses.get(i),symboltable)).append("\n");}
+        st.append(toString(size,clauses.get(clauses.size()-1),symboltable));
+        return st.toString();
+    }
+
 
     /** turns a clause into a string.
      *
-     * @param size       the length for the identifier string
-     * @param clause     the clause
-     * @param symboltable a symboltable or null
-     * @return the clause as string
+     * @param size       the length for the identifier string.
+     * @param clause     the clause.
+     * @param symboltable a symboltable or null.
+     * @return the clause as string.
      */
     public static String toString(int size, int[] clause, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
@@ -359,23 +375,23 @@ public class InputClauses {
         st.append(Symboltable.toString(clause[length-1],symboltable));
         return st.toString();}
 
-    /** generates a string representation of the clause
+    /** generates a string representation of the clause.
      *
      * @return  a string representation of the clause.
      */
     public String toString() {
         return toString(symboltable);}
 
-    /** generates a string representation of the clauses
+    /** generates a string representation of the clauses.
      *
-     * @param symboltable null or a symboltable
+     * @param symboltable null or a symboltable.
      * @return  a string representation of the clauses.
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         if(info != null) {st.append(info).append("\n");}
         int size = (""+(disjunctions.size() + conjunctions.size()  +equivalences.size()) +
-                quantifieds.size() + intervals.size()).length();
+                quantifieds.size() + intervals.size()).length()+2;
         if(!disjunctions.isEmpty()) {
             st.append("Disjunctions:\n");
             for(int[] clause : disjunctions) {st.append(toString(size,clause,symboltable)).append("\n");}}
