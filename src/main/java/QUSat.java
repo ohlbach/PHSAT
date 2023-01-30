@@ -1,5 +1,5 @@
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
-import Generators.Generator;
+import ProblemGenerators.ProblemGenerator;
 import Management.Controller;
 import Management.GlobalParameters;
 import Utilities.KVParser;
@@ -99,7 +99,7 @@ public class QUSat {
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
         globalParameters= new GlobalParameters(kvParser.get("global"),errors,warnings);
-        ArrayList<Generator> generators = Generator.parseParameters(kvParser.get("generator"),globalParameters,errors,warnings);
+        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeProblemGenerator(kvParser.get("generator"),globalParameters,errors,warnings);
 }
 
     /** This method calls the help()-methods and prints the results.
@@ -116,14 +116,14 @@ public class QUSat {
             String name = args[1];
             if(name.equals("global"))       {System.out.println(GlobalParameters.help()); return;}
             if(name.equals("initialize"))   {System.out.println(InitializerSimplifier.helpInitializer()); return;}
-            if(Generator.isGenerator(name)) {System.out.println(Generator.help(name));    return;}
+            if(ProblemGenerator.isProblemGenerator(name)) {System.out.println(ProblemGenerator.help(name));    return;}
             if(Solver.isSolver(name))       {System.out.println(Solver.help(name));       return;}
             System.out.println("Unknown name '"+ name + "'. The available names are:");
-            System.out.println("Generators: " + Arrays.toString(Generator.generators));
+            System.out.println("Generators: " + Arrays.toString(ProblemGenerator.problemGeneratorNames));
             System.out.println("Solvers:    " + Arrays.toString(Solver.solvers));
             return;}
         System.out.println(GlobalParameters.help());
-        System.out.println(Generator.help());
+        System.out.println(ProblemGenerator.help());
         System.out.println(InitializerSimplifier.helpInitializer());
         System.out.println(Solver.help());}
 

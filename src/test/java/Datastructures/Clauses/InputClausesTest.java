@@ -19,14 +19,14 @@ public class InputClausesTest extends TestCase {
     
     public void testToStringOR() {
         System.out.println("ToString OR");
-        InputClauses clauses = new InputClauses(5,null,"test");
+        InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.OR.ordinal(),1,-2,3};
         assertEquals("   10: 1,-2,3",InputClauses.toString(5,clause,null));
         assertEquals("   10: p,-q,r",InputClauses.toString(5,clause,symboltable));
     }
     public void testToStringAND() {
         System.out.println("ToString AND");
-        InputClauses clauses = new InputClauses(5,null,"test");
+        InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.AND.ordinal(),1,-2,3};
         assertEquals(" A-10: 1&-2&3",InputClauses.toString(5,clause,null));
         assertEquals(" A-10: p&-q&r",InputClauses.toString(5,clause,symboltable));
@@ -34,7 +34,7 @@ public class InputClausesTest extends TestCase {
 
     public void testToStringEQUIV() {
         System.out.println("ToString EQUIV");
-        InputClauses clauses = new InputClauses(5,null,"test");
+        InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.EQUIV.ordinal(),1,-2,3};
         assertEquals(" E-10: 1=-2=3",InputClauses.toString(5,clause,null));
         assertEquals(" E-10: p=-q=r",InputClauses.toString(5,clause,symboltable));
@@ -42,7 +42,7 @@ public class InputClausesTest extends TestCase {
 
     public void testToStringATLEAST() {
         System.out.println("ToString ATLEAST");
-        InputClauses clauses = new InputClauses(5,null,"test");
+        InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.ATLEAST.ordinal(),2,1,-2,3};
         assertEquals(" L-10: >= 2 1,-2,3",InputClauses.toString(5,clause,null));
         assertEquals(" L-10: >= 2 p,-q,r",InputClauses.toString(5,clause,symboltable));
@@ -50,7 +50,7 @@ public class InputClausesTest extends TestCase {
 
     public void testToStringATMOST() {
         System.out.println("ToString ATMOST");
-        InputClauses clauses = new InputClauses(5,null,"test");
+        InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.ATMOST.ordinal(),2,1,-2,3};
         assertEquals(" M-10: <= 2 1,-2,3",InputClauses.toString(5,clause,null));
         assertEquals(" M-10: <= 2 p,-q,r",InputClauses.toString(5,clause,symboltable));
@@ -58,7 +58,7 @@ public class InputClausesTest extends TestCase {
 
     public void testToStringEXACTLY() {
         System.out.println("ToString EXACTLY");
-        InputClauses clauses = new InputClauses(5,null,"test");
+        InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.EXACTLY.ordinal(),2,1,-2,3};
         assertEquals(" X-10: = 2 1,-2,3",InputClauses.toString(5,clause,null));
         assertEquals(" X-10: = 2 p,-q,r",InputClauses.toString(5,clause,symboltable));
@@ -66,7 +66,7 @@ public class InputClausesTest extends TestCase {
 
     public void testToStringINTERVAL() {
         System.out.println("ToString INTERVAL");
-        InputClauses clauses = new InputClauses(5,null,"test");
+        InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.INTERVAL.ordinal(),2,3,1,-2,3};
         assertEquals(" I-10: 2-3: 1,-2,3",InputClauses.toString(5,clause,null));
         assertEquals(" I-10: 2-3: p,-q,r",InputClauses.toString(5,clause,symboltable));
@@ -323,7 +323,7 @@ public class InputClausesTest extends TestCase {
         int[] clause6 = {15, Connective.EXACTLY.ordinal(), 2, 1,2,3};
         int[] clause7 = {16, Connective.INTERVAL.ordinal(), 2,3, 1,2,3};
 
-        InputClauses clauses = new InputClauses(3,null,"Test");
+        InputClauses clauses = new InputClauses("Input",3,null,"Test");
         clauses.addClause(clause1,clause2,clause3,clause4,clause5,clause6,clause7);
         //System.out.println(clauses.toString());
         ArrayList<int[]> falseClauses = clauses.falseClausesInModel(model);

@@ -25,6 +25,10 @@ import java.util.Arrays;
  * '6': means exactly:      '16 6 4 5 6'    means exactly 2 of 4,5,6 are true.
  */
 public class InputClauses {
+
+    /** the name of the problem */
+    public String name = null;
+
     /** the maximum number of predicates. */
     public int predicates;
 
@@ -58,11 +62,13 @@ public class InputClauses {
 
     /** constructs a new input clause list.
      *
+     * @param name the name of the problem.
      * @param predicates  the number of predicates which are allowed in the clauses.
      * @param symboltable null or a symboltable.
      * @param info        some information about the origin of the clause set.
      */
-    public InputClauses(int predicates, Symboltable symboltable, String info) {
+    public InputClauses(String name, int predicates, Symboltable symboltable, String info) {
+        this.name = name;
         this.predicates = predicates;
         this.symboltable = symboltable;
         this.info = info;}
@@ -389,7 +395,8 @@ public class InputClauses {
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        if(info != null) {st.append(info).append("\n");}
+        if(name != null) st.append("Problem ").append(name).append("\n");
+        if(info != null) st.append(info).append("\n");
         int size = (""+(disjunctions.size() + conjunctions.size()  +equivalences.size()) +
                 quantifieds.size() + intervals.size()).length()+2;
         if(!disjunctions.isEmpty()) {

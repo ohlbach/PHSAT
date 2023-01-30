@@ -1,4 +1,4 @@
-package Generators;
+package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Connective;
@@ -19,7 +19,7 @@ import java.util.*;
  * - ATMOST  (numeric: atmost 2, p,q,r: atmost two of them are true)<br>
  * - EXACTLY (numeric: exactly 2, p,q,r: exactly two of them are true)
  */
-public class RandomClauseSetGenerator extends Generator {
+public class RandomClauseSetGenerator extends ProblemGenerator {
 
     protected static final HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
@@ -133,7 +133,7 @@ public class RandomClauseSetGenerator extends Generator {
      * @param warnings  for reporting warnings
      */
     public static void parseParameters(HashMap<String,String> parameters, GlobalParameters ignoredGlobalParameters,
-                                       ArrayList<Generator> generators, StringBuilder errors, StringBuilder warnings){
+                                       ArrayList<ProblemGenerator> generators, StringBuilder errors, StringBuilder warnings){
         String prefix = "RandomClauseSetGenerator: ";
         boolean erraneous = false;
         for(String key : parameters.keySet()) {
@@ -323,7 +323,7 @@ public class RandomClauseSetGenerator extends Generator {
      * @param warnings for warnings
      * @return  true
      */
-    public boolean generate(Monitor errors, Monitor warnings) {
+    public boolean generateProblem(Monitor errors, Monitor warnings) {
         String info = "Randomly generated clauses";
         inputClauses = new InputClauses(predicates,null,info);
         Random rnd = new Random(seed);

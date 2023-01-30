@@ -1,4 +1,4 @@
-package Generators;
+package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Symboltable;
@@ -39,7 +39,7 @@ import java.util.regex.PatternSyntaxException;
  * '[min,max]':  means interval: '[2,4] p q r s t' means between 2 and 4 of p,q,r,s,t are true.<br>
  * No special symbol means 'or' 3 4 5' stands for 3 or 4 or 5.
  */
-public final class CNFReader extends Generator {
+public final class CNFReader extends ProblemGenerator {
 
     private static final HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
@@ -58,7 +58,7 @@ public final class CNFReader extends Generator {
      * @param warnings    for warnings
      * */
     public static void parseParameters(HashMap<String,String> parameters, GlobalParameters globalParameters,
-                                       ArrayList<Generator> generators,
+                                       ArrayList<ProblemGenerator> generators,
                                        StringBuilder errors, StringBuilder warnings){
         for(String key : parameters.keySet()) {
             if(!keys.contains(key)) {warnings.append("CNFReader: Unknown key in parameters: " + key + "\n");}}
@@ -153,10 +153,9 @@ public final class CNFReader extends Generator {
     /** reads the cnf-file and generates a BasicClauseList
      *
      * @param errorMonitor    for error massages
-     * @param warningMonitor  for warnings
      * @return true if there was no error.
      */
-    public boolean generate(Monitor errorMonitor, Monitor warningMonitor) {
+    public InputClauses generateProblem(Monitor errorMonitor) {
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
         StringBuilder info = new StringBuilder();
@@ -183,29 +182,29 @@ public final class CNFReader extends Generator {
                     if(parts.length < 4) {
                         errors.append(errorPrefix+" illegal format of line").
                                 append("It should be 'p cnf predicates clauses [symbolic]'\n");
-                        return false;}
+                        return null;}
                     if(!parts[1].equals("cnf")) {
                         errors.append(errorPrefix+" indicates no cnf file\n");
-                        return false;}
+                        return null;}
 
                     predicates = Utilities.parseInteger(errorPrefix, parts[2],errors);
-                    if(predicates == null) {return false;}
+                    if(predicates == null) {return null;}
                     if(predicates <= 0) {
                         errors.append(errorPrefix+" Negative number of predicates: '"+ parts[2]+"'\n");
-                        return false;}
+                        return null;}
                     inputClauses.predicates = predicates;
                     inputClauses.symboltable = new Symboltable(predicates);
                     if(parts.length > 4) inputClauses.symboltable.symbolic = true;
                     continue;}
                 if(predicates == 0) {
                     errors.append(errorPrefix+" p-line missing: 'p cnf predicates clauses [symbolic]'\n");
-                    return false;}
+                    return null;}
 
                 if(!line.endsWith(" 0")) {
                     errors.append(errorPrefix+" does not end with '0'\n");
                     continue;}
                 int[] clause = StringClauseSetGenerator.parseLine(line.substring(0,line.length()-2).trim(),
-                        id, inputClauses.symboltable,errorPrefix,errors);
+                        id, inputClauses.symboltable,errors);
                 if(clause == null) continue;
                 clause = InputClauses.checkSyntax(clause,predicates,errorPrefix,errors,warnings);
                 if(clause == null) continue;
@@ -216,12 +215,12 @@ public final class CNFReader extends Generator {
         catch(IOException ex) {
             errors.append(place+" IOException\n" +ex);}
         finally{
-            if(warnings.length()> 0) {warningMonitor.print(place,warnings);}
-            if(errors.length() > 0) {errorMonitor.print(place,errors); inputClauses = null; return false;}}
+            if(warnings.length()> 0) {errorMonitor.print(place,warnings);}
+            if(errors.length() > 0) {errorMonitor.print(place,errors); inputClauses = null; return null;}}
 
         inputClauses.info = info.toString();
         inputClauses.nextId = id;
-        return true;}
+        return inputClauses;}
 
     /** turns the file and, if already filled, the basicClauseList into a string.
      *

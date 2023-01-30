@@ -55,7 +55,7 @@ public class Symboltable {
         for(int predicate = 1; predicate <= emptyPosition; ++predicate) {
             if(names[predicate].equals(name)) return predicate;}
         emptyPosition += 1;
-        assert emptyPosition <= predicates;
+        if(emptyPosition > predicates) return 0;
         names[emptyPosition] = name;
         return emptyPosition;}
 

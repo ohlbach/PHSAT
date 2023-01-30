@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="dc.created" content="2023-01-26">
-<meta name="description" content="declaration: package: Generators, class: RandomClauseSetGenerator">
+<meta name="description" content="declaration: package: ProblemGenerators, class: RandomClauseSetGenerator">
 <meta name="generator" content="javadoc/ClassWriterImpl">
 <link rel="stylesheet" type="text/css" href="../stylesheet.css" title="Style">
 <link rel="stylesheet" type="text/css" href="../script-dir/jquery-ui.min.css" title="Style">
@@ -87,18 +87,18 @@ loadScripts(document, 'script');</script>
 <main role="main">
 <!-- ======== START OF CLASS DATA ======== -->
 <div class="header">
-<div class="sub-title"><span class="package-label-in-type">Package</span>&nbsp;<a href="package-summary.html">Generators</a></div>
+<div class="sub-title"><span class="package-label-in-type">Package</span>&nbsp;<a href="package-summary.html">ProblemGenerators</a></div>
 <h1 title="Class RandomClauseSetGenerator" class="title">Class RandomClauseSetGenerator</h1>
 </div>
 <div class="inheritance" title="Inheritance Tree"><a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">java.lang.Object</a>
-<div class="inheritance"><a href="Generator.html" title="class in Generators">Generators.Generator</a>
-<div class="inheritance">Generators.RandomClauseSetGenerator</div>
+<div class="inheritance"><a href="Generator.html" title="class in ProblemGenerators">ProblemGenerators.ProblemGenerator</a>
+<div class="inheritance">ProblemGenerators.RandomClauseSetGenerator</div>
 </div>
 </div>
 <section class="class-description" id="class-description">
 <hr>
 <div class="type-signature"><span class="modifiers">public class </span><span class="element-name type-name-label">RandomClauseSetGenerator</span>
-<span class="extends-implements">extends <a href="Generator.html" title="class in Generators">Generator</a></span></div>
+<span class="extends-implements">extends <a href="Generator.html" title="class in ProblemGenerators">Generator</a></span></div>
 <div class="block">Created by ohlbach on 26.08.2018.
  This generator generates clause sets with randomly generated literals.<br>
  It can generate the following types of clauses:<br>
@@ -158,7 +158,7 @@ loadScripts(document, 'script');</script>
 <div class="col-last odd-row-color">&nbsp;</div>
 </div>
 <div class="inherited-list">
-<h3 id="fields-inherited-from-class-Generators.Generator">Fields inherited from class&nbsp;Generators.<a href="Generator.html" title="class in Generators">Generator</a></h3>
+<h3 id="fields-inherited-from-class-Generators.Generator">Fields inherited from class&nbsp;ProblemGenerators.<a href="Generator.html" title="class in ProblemGenerators">Generator</a></h3>
 <code><a href="Generator.html#basicClauseList">basicClauseList</a>, <a href="Generator.html#generators">generators</a></code></div>
 </section>
 </li>
@@ -219,7 +219,7 @@ loadScripts(document, 'script');</script>
 <div class="col-first odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>static void</code></div>
 <div class="col-second odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#parseParameters(java.util.HashMap,Management.GlobalParameters,java.util.ArrayList,java.lang.StringBuilder,java.lang.StringBuilder)" class="member-name-link">parseParameters</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/util/HashMap.html" title="class or interface in java.util" class="external-link">HashMap</a>&lt;<a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>,<wbr><a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&gt;&nbsp;parameters,
  <a href="../Management/GlobalParameters.html" title="class in Management">GlobalParameters</a>&nbsp;ignoredGlobalParameters,
- <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/util/ArrayList.html" title="class or interface in java.util" class="external-link">ArrayList</a>&lt;<a href="Generator.html" title="class in Generators">Generator</a>&gt;&nbsp;generators,
+ <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/util/ArrayList.html" title="class or interface in java.util" class="external-link">ArrayList</a>&lt;<a href="Generator.html" title="class in ProblemGenerators">Generator</a>&gt;&nbsp;generators,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/StringBuilder.html" title="class or interface in java.lang" class="external-link">StringBuilder</a>&nbsp;errors,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/StringBuilder.html" title="class or interface in java.lang" class="external-link">StringBuilder</a>&nbsp;warnings)</code></div>
 <div class="col-last odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4">
@@ -229,7 +229,7 @@ loadScripts(document, 'script');</script>
 </div>
 </div>
 <div class="inherited-list">
-<h3 id="methods-inherited-from-class-Generators.Generator">Methods inherited from class&nbsp;Generators.<a href="Generator.html" title="class in Generators">Generator</a></h3>
+<h3 id="methods-inherited-from-class-Generators.Generator">Methods inherited from class&nbsp;ProblemGenerators.<a href="Generator.html" title="class in ProblemGenerators">Generator</a></h3>
 <code><a href="Generator.html#generate(java.lang.String,java.util.HashMap,Management.ProblemSupervisor,Management.Monitor.Monitor,Management.Monitor.Monitor)">generate</a>, <a href="Generator.html#generatorClass(java.lang.String)">generatorClass</a>, <a href="Generator.html#getParameters(Management.KVParser,java.lang.String)">getParameters</a>, <a href="Generator.html#help(java.lang.String)">help</a>, <a href="Generator.html#isGenerator(java.lang.String)">isGenerator</a>, <a href="Generator.html#parseParameters(java.util.ArrayList,Management.GlobalParameters,java.lang.StringBuilder,java.lang.StringBuilder)">parseParameters</a></code></div>
 <div class="inherited-list">
 <h3 id="methods-inherited-from-class-java.lang.Object">Methods inherited from class&nbsp;java.lang.<a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/Object.html" title="class or interface in java.lang" class="external-link">Object</a></h3>
@@ -365,7 +365,7 @@ loadScripts(document, 'script');</script>
 <h3>parseParameters</h3>
 <div class="member-signature"><span class="modifiers">public static</span>&nbsp;<span class="return-type">void</span>&nbsp;<span class="element-name">parseParameters</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/util/HashMap.html" title="class or interface in java.util" class="external-link">HashMap</a>&lt;<a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>,<wbr><a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&gt;&nbsp;parameters,
  <a href="../Management/GlobalParameters.html" title="class in Management">GlobalParameters</a>&nbsp;ignoredGlobalParameters,
- <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/util/ArrayList.html" title="class or interface in java.util" class="external-link">ArrayList</a>&lt;<a href="Generator.html" title="class in Generators">Generator</a>&gt;&nbsp;generators,
+ <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/util/ArrayList.html" title="class or interface in java.util" class="external-link">ArrayList</a>&lt;<a href="Generator.html" title="class in ProblemGenerators">Generator</a>&gt;&nbsp;generators,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/StringBuilder.html" title="class or interface in java.lang" class="external-link">StringBuilder</a>&nbsp;errors,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/StringBuilder.html" title="class or interface in java.lang" class="external-link">StringBuilder</a>&nbsp;warnings)</span></div>
 <div class="block">The method translates the string-valued parameters in the HashMap to objects for controlling the generator.
@@ -409,7 +409,7 @@ loadScripts(document, 'script');</script>
 <div class="block">generates the clause set</div>
 <dl class="notes">
 <dt>Specified by:</dt>
-<dd><code><a href="Generator.html#generate(Management.Monitor.Monitor,Management.Monitor.Monitor)">generate</a></code>&nbsp;in class&nbsp;<code><a href="Generator.html" title="class in Generators">Generator</a></code></dd>
+<dd><code><a href="Generator.html#generate(Management.Monitor.Monitor,Management.Monitor.Monitor)">generate</a></code>&nbsp;in class&nbsp;<code><a href="Generator.html" title="class in ProblemGenerators">Generator</a></code></dd>
 <dt>Parameters:</dt>
 <dd><code>errors</code> - for error messages</dd>
 <dd><code>warnings</code> - for warnings</dd>

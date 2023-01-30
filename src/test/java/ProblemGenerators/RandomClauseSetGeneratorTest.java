@@ -1,4 +1,4 @@
-package Generators;
+package ProblemGenerators;
 
 /**
  * Created by ohlbach on 06.09.2018.

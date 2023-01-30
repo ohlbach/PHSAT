@@ -1,4 +1,4 @@
-package Generators;
+package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Connective;
@@ -24,7 +24,7 @@ import java.util.HashSet;
  *   atmost  n pigeons may be put into a hole <br>
  *   exactly n pigeons may be put into a hole.
  */
-public final class PigeonHoleGenerator extends Generator{
+public final class PigeonHoleGenerator extends ProblemGenerator {
 
     private static final HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
@@ -66,7 +66,7 @@ public final class PigeonHoleGenerator extends Generator{
      * @param warnings  for warnings
      */
     public static void parseParameters(HashMap<String,String> parameters, GlobalParameters globalParameters,
-                                       ArrayList<Generator> generators,
+                                       ArrayList<ProblemGenerator> generators,
                                        StringBuilder errors, StringBuilder warnings){
         assert parameters != null;
         String prefix = "Pigeon Hole Generator: ";
@@ -152,7 +152,7 @@ public final class PigeonHoleGenerator extends Generator{
      * @param warnings  no effect
      * @return true if there was no error
      */
-    public boolean generate(Monitor errors, Monitor warnings){
+    public boolean generateProblem(Monitor errors, Monitor warnings){
         int clauseType = Connective.ATLEAST.ordinal();
         if(capacity.getClass() == Interval.class) {clauseType = Connective.INTERVAL.ordinal();}
         else {
