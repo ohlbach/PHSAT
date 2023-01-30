@@ -320,12 +320,11 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
     /** generates the clause set
      *
      * @param errors for error messages
-     * @param warnings for warnings
      * @return  true
      */
-    public boolean generateProblem(Monitor errors, Monitor warnings) {
+    public InputClauses generateProblem(Monitor errors) {
         String info = "Randomly generated clauses";
-        inputClauses = new InputClauses(predicates,null,info);
+        inputClauses = new InputClauses("",predicates,null,info);
         Random rnd = new Random(seed);
         int[] id = {0};
         if(ors       != 0) generateClauses(id,Connective.OR,ors,rnd);
@@ -338,7 +337,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
 
         inputClauses.info = "Randomly generated clauses:\n";
         inputClauses.nextId = id[0]+1;
-        return true;}
+        return inputClauses;}
 
 
 

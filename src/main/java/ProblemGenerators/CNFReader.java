@@ -204,7 +204,7 @@ public final class CNFReader extends ProblemGenerator {
                     errors.append(errorPrefix+" does not end with '0'\n");
                     continue;}
                 int[] clause = StringClauseSetGenerator.parseLine(line.substring(0,line.length()-2).trim(),
-                        id, inputClauses.symboltable,errors);
+                        id, inputClauses.symboltable,errorPrefix,errors);
                 if(clause == null) continue;
                 clause = InputClauses.checkSyntax(clause,predicates,errorPrefix,errors,warnings);
                 if(clause == null) continue;

@@ -3,10 +3,10 @@ package ProblemGenerators;
 import Datastructures.Clauses.InputClauses;
 import Management.GlobalParameters;
 import Management.Monitor.Monitor;
+import Utilities.StringIterator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 
 /**
  * Created by ohlbach on 27.08.2018.
@@ -74,25 +74,6 @@ public final class StringClauseSetGenerator extends ProblemGenerator {
                 "The literals may be names or integers != 0\n"+
                 "Each clause may have a '0' at the end.";}
 
-    class LineIterator implements Iterator<String> {
-
-        String[] lines;
-        int length;
-        int position = 0;
-
-        public LineIterator(String clauses) {
-            lines = clauses.split("\\n");
-            length = lines.length;}
-        @Override
-        public boolean hasNext() {
-            return position < length;
-        }
-        @Override
-        public String next() {
-            return lines[position++];
-        }
-    }
-
     /** parses the clause string and generates a BasicClauseList object.
      *
      * @param errorMonitor   for error messages
@@ -102,8 +83,7 @@ public final class StringClauseSetGenerator extends ProblemGenerator {
     public InputClauses generateProblem(Monitor errorMonitor) {
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        LineIterator lineIterator = new LineIterator(clauses);
-        InputClauses inputClauses = parseClauses(name,lineIterator,errors,warnings);
+        InputClauses inputClauses = parseClauses(name,new StringIterator(clauses,"\\n"),errors,warnings);
         if(warnings.length() > 0) {
             errorMonitor.println("Warnings when parsing clauses "+name + "\n"+errors.toString());}
         if(errors.length() > 0) {

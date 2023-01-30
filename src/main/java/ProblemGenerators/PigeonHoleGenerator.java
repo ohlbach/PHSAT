@@ -149,10 +149,9 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
      *  atmost 2 P1H3, P2H3, P3H3<br>
      *
      * @param errors    no effect
-     * @param warnings  no effect
      * @return true if there was no error
      */
-    public boolean generateProblem(Monitor errors, Monitor warnings){
+    public InputClauses generateProblem(Monitor errors){
         int clauseType = Connective.ATLEAST.ordinal();
         if(capacity.getClass() == Interval.class) {clauseType = Connective.INTERVAL.ordinal();}
         else {
@@ -167,7 +166,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
 
         String info = "Pigeon Hole example with " + pigeons + " pigeons in " + holes + " holes\n"+
                     "capacity: " + quantifier + " " + capacity + " pigeons in a hole.";
-        inputClauses = new InputClauses(predicates,symboltable,info);
+        inputClauses = new InputClauses("",predicates,symboltable,info);
 
         int id = 0;
         for(int pigeon = 1; pigeon <= pigeons; ++pigeon) {
@@ -195,7 +194,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
             inputClauses.addClause(clause);}
 
         inputClauses.nextId = ++id;
-        return true;
+        return inputClauses;
     }
 
 
