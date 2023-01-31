@@ -52,10 +52,10 @@ public class Symboltable {
      * @return its number, or 0 if there is no free number anymore.
      */
     public int getPredicate(String name) {
+        if(emptyPosition >= predicates) return 0;
         for(int predicate = 1; predicate <= emptyPosition; ++predicate) {
             if(names[predicate].equals(name)) return predicate;}
         emptyPosition += 1;
-        if(emptyPosition > predicates) return 0;
         names[emptyPosition] = name;
         return emptyPosition;}
 

@@ -10,6 +10,7 @@ import Utilities.Utilities;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -33,8 +34,13 @@ import static Utilities.Utilities.parseInteger;
  */
 public abstract class ProblemGenerator {
 
+    /** the constructor is never used */
+    public ProblemGenerator() {}
+
+    /** the list of problem generator names */
     public static String[] problemGeneratorNames = new String[]{"random","file","pidgeonhole","string"};
 
+    /** takes the parse input clauses */
     InputClauses inputClauses = null;
 
     /** checks if the name is a generator name
@@ -88,6 +94,7 @@ public abstract class ProblemGenerator {
     /** parses the string-type parameters into sequences of objects
      *
      * @param pars       the generator parameters
+     * @param globalParameters the global parameters
      * @param errors     for collecting error messages
      * @param warnings   for collecting warning messages
      * @return           a list of generators
@@ -122,8 +129,8 @@ public abstract class ProblemGenerator {
 
     /** generates a BasicClauseList
      *
-     * @param errorMonitor    for error massages
-     * @return true if there was no error.
+     * @param errorMonitor    for error massages.
+     * @return null or the new InputClauses.
      */
     public abstract InputClauses generateProblem(Monitor errorMonitor);
 
@@ -149,11 +156,11 @@ public abstract class ProblemGenerator {
         while(lineIterator.hasNext()) {
             String line = lineIterator.next();
             ++lineNumber;
-            String errorPrefix = "    line " + lineNumber + ": '" + line + "':\n    ";
+            String errorPrefix = problemName + ": line " + lineNumber + ": '" + line + "':\n    ";
             line = line.trim();
             if(line.isEmpty()) {continue;}
             if(line.startsWith("%")){continue;}
-            if(line.startsWith("c") && inHeader) {info.append(line.substring(1)).append("\n"); continue;}
+            if(line.startsWith("c")) {info.append(line.substring(1)).append("\n"); continue;}
             if(line.startsWith("p") && inHeader) { // p cnf predicates ...
                 inHeader = false;
                 String[] parts = line.split("\\s*[ ,]\\s*");
@@ -161,26 +168,27 @@ public abstract class ProblemGenerator {
                     errors.append(errorPrefix+"Illegal format of line. It should be 'p cnf predicates ...'\n");
                     return null;}
                 if(!parts[1].equals("cnf")) {
-                    errors.append(errorPrefix+"This indicates no cnf file\n");
+                    errors.append(errorPrefix).append("This indicates no cnf file\n");
                     return null;}
 
                 predicates = Utilities.parseInteger(errorPrefix, parts[2],errors);
                 if(predicates == null) {return null;}
                 if(predicates <= 0) {
-                    errors.append(errorPrefix+"Negative number of predicates: '"+ parts[2]+"'\n");
+                    errors.append(errorPrefix).append("Negative number of predicates: '"+ parts[2]+"'\n");
                     return null;}
                 inputClauses.predicates = predicates;
                 inputClauses.symboltable = new Symboltable(predicates);
                 continue;}
+            if(inHeader) {info.append(line).append("\n"); continue;}
 
-            if(predicates == 0) {
+            if(predicates == null) {
                 errors.append(errorPrefix+" p-line missing: 'p cnf predicates ...'\n");
                 return null;}
 
             if(!firstClauseLineChecked) {
                 String firstLiteral = getFirstLiteral(line);
-                if(firstLiteral == null) {errors.append(errorPrefix).append("malformed interval clause.\n"); return null;}
-                if(parseInteger(firstLiteral) != null) {
+                if(firstLiteral == null) {errors.append(errorPrefix).append("malformed first literal.\n"); return null;}
+                if(parseInteger(firstLiteral) == null) {
                     symboltable = new Symboltable(predicates);
                     inputClauses.symboltable = symboltable;}
                 firstClauseLineChecked = true;}
@@ -191,6 +199,7 @@ public abstract class ProblemGenerator {
             if(clause == null) continue;
             ++id;
             inputClauses.addClause(clause);}
+        if(info.length() > 0) inputClauses.info = info.toString();
         return inputClauses;}
 
     /** extracts the first literal in the line.
@@ -218,16 +227,17 @@ public abstract class ProblemGenerator {
      * @param line        the line to be parsed.
      * @param id          the identifier for the new clause.
      * @param symboltable null or a symboltable
+     * @param errorPrefix a prefix for the error messages
      * @param errors      for appending error messages.
      * @return            the new inputClause or null if errors have been detected.
      */
     protected static int[] parseLine(String line, int id, Symboltable symboltable, String errorPrefix, StringBuilder errors) {
         switch(line.charAt(0)) {
-            case '&': return parseAndEquiv(line.substring(1).trim(), id, Connective.AND, symboltable, errorPrefix,errors);
-            case 'e': return parseAndEquiv(line.substring(1).trim(), id, Connective.EQUIV, symboltable, errorPrefix,errors);
-            case '<': return parseWithQuantification(line.substring(2).trim(), id, Connective.ATMOST, symboltable, errorPrefix,errors);
-            case '>': return parseWithQuantification(line.substring(2).trim(), id, Connective.ATLEAST, symboltable, errorPrefix,errors);
-            case '=': return parseWithQuantification(line.substring(1).trim(), id, Connective.EXACTLY, symboltable, errorPrefix, errors);
+            case '&': return parseAndEquiv(line.trim(), id, Connective.AND, symboltable, errorPrefix,errors);
+            case 'e': return parseAndEquiv(line.trim(), id, Connective.EQUIV, symboltable, errorPrefix,errors);
+            case '<': return parseWithQuantification(line.trim(), id, Connective.ATMOST, symboltable, errorPrefix,errors);
+            case '>': return parseWithQuantification(line.trim(), id, Connective.ATLEAST, symboltable, errorPrefix,errors);
+            case '=': return parseWithQuantification(line.trim(), id, Connective.EXACTLY, symboltable, errorPrefix, errors);
             case '[': return parseInterval(line, id, symboltable, errorPrefix,errors);
             default:  return parseOr(line.trim(), id, symboltable, errorPrefix,errors);}}
 
@@ -239,12 +249,15 @@ public abstract class ProblemGenerator {
      * @param line        the line to be parsed.
      * @param id          the identifier for the clause.
      * @param symboltable null or a symboltable.
+     * @param errorPrefix a prefix for the error messages
      * @param errors      for appending error messages
      * @return            the new inputClause or null if errors have been detected.
      */
     protected static int[] parseOr(String line, int id, Symboltable symboltable, String errorPrefix, StringBuilder errors) {
         String[] clause = line.split("\\s*[, ]\\s*");
-        int[] inputClause = new int[clause.length+2];
+        int length = clause.length;
+        length = clause[length-1].equals("0")? length+1: length+2;
+        int[] inputClause = new int[length];
         inputClause[0] = id;
         inputClause[1] = Connective.OR.ordinal();
         boolean okay = parseLiterals(clause,0,inputClause,2,symboltable,errorPrefix,errors);
@@ -261,16 +274,19 @@ public abstract class ProblemGenerator {
      * @param id          the identifier for the new clause.
      * @param connective  the connective for the new clause.
      * @param symboltable null or a symboltable.
+     * @param errorPrefix a prefix for the error messages
      * @param errors      for appending error messages.
      * @return            the new inputClause or null if errors have been detected.
      */
     protected static int[] parseAndEquiv(String line, int id, Connective connective, Symboltable symboltable,
                                          String errorPrefix, StringBuilder errors) {
         String[] parts = line.split("\\s*[, ]\\s*");
-        int[] inputClause = new int[parts.length+2];
+        int length = parts.length;
+        length = parts[length-1].equals("0")? length: length+1;
+        int[] inputClause = new int[length];
         inputClause[0] = id;
         inputClause[1] = connective.ordinal();
-        boolean okay = parseLiterals(parts,0,inputClause,2,symboltable,errorPrefix,errors);
+        boolean okay = parseLiterals(parts,1,inputClause,2,symboltable,errorPrefix,errors);
         return okay ? inputClause : null;}
 
 
@@ -283,22 +299,25 @@ public abstract class ProblemGenerator {
      * @param id          the identifier for the new clause.
      * @param connective  the connective for the new clause.
      * @param symboltable null or a symboltable.
+     * @param errorPrefix a prefix for the error messages
      * @param errors      for appending error messages.
      * @return            the new inputClause or null if errors have been detected.
      */
     protected static int[] parseWithQuantification(String line, int id, Connective connective,
                                                    Symboltable symboltable, String errorPrefix, StringBuilder errors) {
         String[] clause = line.split("\\s*[, ]\\s*");
-        int[] inputClause = new int[clause.length+2];
+        int length = clause.length;
+        length = clause[length-1].equals("0")? length: length+1;
+        int[] inputClause = new int[length];
         inputClause[0] = id;
         inputClause[1] = connective.ordinal();
-        Integer amount = parseInteger(clause[0]);
+        Integer amount = parseInteger(clause[1]);
         boolean okay = true;
         if(amount == null) {
-            errors.append("   Quantification amount " + clause[0] + "is no number in line\n    ").append(line).append("\n");
+            errors.append(errorPrefix).append("Quantification amount " + clause[1] + " is no number\n");
             okay = false;}
         else inputClause[2] = amount;
-        okay &= parseLiterals(clause,1,inputClause,3,symboltable,errorPrefix, errors);
+        okay &= parseLiterals(clause,2,inputClause,3,symboltable,errorPrefix, errors);
         return okay ? inputClause : null;}
 
 
@@ -311,34 +330,37 @@ public abstract class ProblemGenerator {
      * @param line        the line to be parsed
      * @param id          the identifier for the new clause
      * @param symboltable a symboltable
+     * @param errorPrefix a prefix for the error messages
      * @param errors      for appending error messages
      * @return            the parse clause
      */
     protected static int[] parseInterval(String line, int id, Symboltable symboltable, String errorPrefix, StringBuilder errors) {
         int position = line.indexOf("]");
         if(position < 0) {
-            errors.append("   ']' is missing in line ").append(line).append("\n");
+            errors.append(errorPrefix).append("']' is missing");
             return null;}
         String[] parts = line.substring(position+1).trim().split("\\s*[, ]\\s*");
-        int[] inputClause = new int[parts.length + 4];
+        int length = parts.length;
+        length = parts[length-1].equals("0")? length+3: length+4;
+        int[] inputClause = new int[length];
         boolean okay = parseLiterals(parts,0,inputClause,4,symboltable,errorPrefix,errors);
         inputClause[0] = id;
         inputClause[1] = Connective.INTERVAL.ordinal();
         String[] interval = line.substring(1,position).trim().split("\\s*[, ]\\s*");
         if(interval.length != 2) {
-            errors.append("Line ").append(line).append("has no proper interval: '"+interval+"'\n");
+            errors.append(errorPrefix).append("Line has no proper interval: '"+ Arrays.toString(interval)+"'\n");
             return null;}
 
         Integer min = parseInteger(interval[0]);
         Integer max = parseInteger(interval[1]);
 
         if(min == null) {
-            errors.append("Line ").append(line).append("has no proper interval: '"+interval+"'\n");
+            errors.append(errorPrefix).append("Line has no proper interval: '"+Arrays.toString(interval)+"'\n");
             okay = false;}
         else{inputClause[2] = min;}
 
         if(max == null) {
-            errors.append("Line ").append(line).append("has no proper interval: '"+interval+"'\n");
+            errors.append(errorPrefix).append("Line has no proper interval: '"+Arrays.toString(interval)+"'\n");
             okay = false;}
         else{inputClause[3] = max;}
         return okay ? inputClause : null;}
@@ -352,6 +374,7 @@ public abstract class ProblemGenerator {
      * @param inputClause         where to put the parsed literals into.
      * @param startIndexClause    start index of the inputClause.
      * @param symboltable         a symboltable or null.
+     * @param errorPrefix a prefix for the error messages
      * @param errors              for appending error messages.
      * @return                    true if the parsing was successful.
      */
@@ -371,13 +394,13 @@ public abstract class ProblemGenerator {
                         okay = false; continue;}
                     else {inputClause[startIndexClause++] = literal; continue;}}
                 else {errors.append(errorPrefix).append("Mixing symbolic an alphanumeric literals is not allowed.\n");
-                    okay = false; continue;}}
+                    okay = false; startIndexClause++;continue;}}
 
             int sign = 1;
             if(part.startsWith("-")) {sign = -1; part = part.substring(1);}
             int predicate = symboltable.getPredicate(part);
             if(predicate == 0) {errors.append(errorPrefix).append("Number of predicates: " + symboltable.predicates +
-                    " is too small for literal '" + part+"'\n"); okay = false; continue;}
+                    " is too small for literal '" + part+"'\n"); okay = false; startIndexClause++; continue;}
             inputClause[startIndexClause++] = sign*predicate;}
         return okay;}
 
