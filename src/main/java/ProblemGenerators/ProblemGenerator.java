@@ -377,7 +377,7 @@ public abstract class ProblemGenerator {
             if(part.startsWith("-")) {sign = -1; part = part.substring(1);}
             int predicate = symboltable.getPredicate(part);
             if(predicate == 0) {errors.append(errorPrefix).append("Number of predicates: " + symboltable.predicates +
-                    " is too small for literal '" + part+"\n"); okay = false; continue;}
+                    " is too small for literal '" + part+"'\n"); okay = false; continue;}
             inputClause[startIndexClause++] = sign*predicate;}
         return okay;}
 

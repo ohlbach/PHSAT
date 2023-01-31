@@ -1,5 +1,6 @@
 package ProblemGenerators;
 
+import Datastructures.Symboltable;
 import junit.framework.TestCase;
 
 import java.util.Arrays;
@@ -60,17 +61,23 @@ public class ProblemGeneratorTest extends TestCase {
 
     public void testParseInterval() {
     }
-//arseLiterals(String[] clause, int startIndex, int[] inputClause,
-//                                         int startIndexClause, Symboltable symboltable, StringBuilder errors) {
+
     public void testParseLiterals() {
         System.out.println("parseLiterals");
         StringBuilder errors = new StringBuilder();
         String clause = "1,2,3";
         int[] inputClause = new int[5];
         ProblemGenerator.parseLiterals(clause.split("\\s*[, ]\\s*"),
-                0,inputClause,2,null,"prefix",errors);
-        System.out.println(errors.toString());
-        System.out.println(Arrays.toString(inputClause));
+                0,inputClause,2,null,"prefix: ",errors);
+        //System.out.println(errors.toString());
+        assertEquals("[0, 0, 1, 2, 3]",Arrays.toString(inputClause));
 
+        Symboltable symboltable = new Symboltable(5);
+        clause = "p,-q,r";
+        inputClause = new int[5];
+        ProblemGenerator.parseLiterals(clause.split("\\s*[, ]\\s*"),
+                0,inputClause,2,symboltable,"prefix: ",errors);
+        //System.out.println(errors.toString());
+        assertEquals("[0, 0, 1, -2, 3]",Arrays.toString(inputClause));
     }
 }
