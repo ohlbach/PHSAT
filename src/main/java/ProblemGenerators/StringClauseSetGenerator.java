@@ -83,17 +83,22 @@ public final class StringClauseSetGenerator extends ProblemGenerator {
     public InputClauses generateProblem(Monitor errorMonitor) {
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        InputClauses inputClauses = parseClauses(name,new StringIterator(clauses,"\\n"),errors,warnings);
-        if(warnings.length() > 0) {
-            errorMonitor.println("Warnings when parsing clauses "+name + "\n"+errors.toString());}
-        if(errors.length() > 0) {
-            errorMonitor.println("Errors when parsing clauses "+name + "\n"+errors.toString()); return null;}
+        InputClauses inputClauses = parseClauses(name,new StringIterator(clauses,"\n"),errors,warnings);
+        if(errorMonitor != null) {
+            if(warnings.length() > 0) {
+                errorMonitor.println("Warnings when parsing clauses "+name + "\n"+errors.toString());}
+            if(errors.length() > 0) {
+                errorMonitor.println("Errors when parsing clauses "+name + "\n"+errors.toString()); return null;}}
         return inputClauses;
     }
 
 
-
-
+    /** returns the name and the clauses.
+     *
+     * @return the name and the clauses
+     */
+    public String toString() {
+        return "StringClauseSetGenerator for " + name + "\nClauses:\n"+clauses;}
 
 
 
