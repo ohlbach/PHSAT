@@ -53,11 +53,17 @@ public class InputClauses {
     /** the original equivalences. */
     public final ArrayList<int[]> equivalences  = new ArrayList<>();
 
-    /** the original quantified clauses atleast, atmost, exactly. */
-    public final ArrayList<int[]> quantifieds   = new ArrayList<>();
+    /** the original atleast clauses. */
+    public final ArrayList<int[]> atleasts      = new ArrayList<>();
+
+    /** the original atmost clauses. */
+    public final ArrayList<int[]> atmosts       = new ArrayList<>();
+
+    /** the original exactly clauses. */
+    public final ArrayList<int[]> exacltys      = new ArrayList<>();
 
     /** the original interval clauses. */
-    public final ArrayList<int[]> intervals      = new ArrayList<>();
+    public final ArrayList<int[]> intervals     = new ArrayList<>();
 
 
     /** constructs a new input clause list.
@@ -92,9 +98,9 @@ public class InputClauses {
                 case AND:      conjunctions.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
                 case EQUIV:    equivalences.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
                 case INTERVAL: intervals.add(clause);    maxClauseLength = Math.max(maxClauseLength,length-2); break;
-                case ATLEAST:
-                case ATMOST:
-                case EXACTLY:  quantifieds.add(clause);  maxClauseLength = Math.max(maxClauseLength,length-1);  break;}}
+                case ATLEAST:  atleasts.add(clause);     maxClauseLength = Math.max(maxClauseLength,length-1);  break;
+                case ATMOST:   atmosts.add(clause);      maxClauseLength = Math.max(maxClauseLength,length-1);  break;
+                case EXACTLY:  exacltys.add(clause);     maxClauseLength = Math.max(maxClauseLength,length-1);  break;}}
     }
 
     /** checks the clause's syntax.
@@ -176,7 +182,9 @@ public class InputClauses {
         for(int[] clause : disjunctions) {if(disjunctionIsFalse(clause,model)) {falseClauses.add(clause);}}
         for(int[] clause : conjunctions) {if(conjunctionIsFalse(clause,model)) {falseClauses.add(clause);}}
         for(int[] clause : equivalences) {if(equivalenceIsFalse(clause,model)) {falseClauses.add(clause);}}
-        for(int[] clause : quantifieds)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
+        for(int[] clause : atleasts)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
+        for(int[] clause : atmosts)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
+        for(int[] clause : exacltys)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
         for(int[] clause : intervals)    {if(intervalIsFalse(clause,model))    {falseClauses.add(clause);}}
         return falseClauses.isEmpty() ? null : falseClauses;}
 
@@ -316,13 +324,9 @@ public class InputClauses {
         statistics.conjunctions = conjunctions.size();
         statistics.equivalences = equivalences.size();
         statistics.intervals    = intervals.size();
-        for(int[] clause : quantifieds) {
-            Connective connective = Connective.getConnective(clause[1]);
-            assert connective != null;
-            switch(connective) {
-                case ATLEAST: ++statistics.atleasts; break;
-                case ATMOST:  ++statistics.atmosts;  break;
-                case EXACTLY: ++statistics.exactlys; break;}}
+        statistics.atleasts     = atleasts.size();
+        statistics.atmosts      = atmosts.size();
+        statistics.exactlys     = exacltys.size();
         return statistics;}
 
     /** turns a clause into a string, without using a symboltable.
@@ -398,7 +402,7 @@ public class InputClauses {
         if(name != null) st.append("Problem ").append(name).append("\n");
         if(info != null) st.append(info).append("\n");
         int size = (""+(disjunctions.size() + conjunctions.size()  +equivalences.size()) +
-                quantifieds.size() + intervals.size()).length()+2;
+                atleasts.size() + atmosts.size() +exacltys.size() +intervals.size()).length()+2;
         if(!disjunctions.isEmpty()) {
             st.append("Disjunctions:\n");
             for(int[] clause : disjunctions) {st.append(toString(size,clause,symboltable)).append("\n");}}
@@ -408,9 +412,15 @@ public class InputClauses {
         if(!equivalences.isEmpty()) {
             st.append("Equivalences:\n");
             for(int[] clause : equivalences) {st.append(toString(size,clause,symboltable)).append("\n");}}
-        if(!quantifieds.isEmpty()) {
-            st.append("Quantifieds:\n");
-            for(int[] clause : quantifieds)  {st.append(toString(size,clause,symboltable)).append("\n");}}
+        if(!atleasts.isEmpty()) {
+            st.append("Atleasts:\n");
+            for(int[] clause : atleasts)  {st.append(toString(size,clause,symboltable)).append("\n");}}
+        if(!atmosts.isEmpty()) {
+            st.append("Atmosts:\n");
+            for(int[] clause : atmosts)  {st.append(toString(size,clause,symboltable)).append("\n");}}
+        if(!exacltys.isEmpty()) {
+            st.append("Exactlys:\n");
+            for(int[] clause : exacltys)  {st.append(toString(size,clause,symboltable)).append("\n");}}
         if(!intervals.isEmpty()) {
             st.append("Intervals:\n");
             for(int[] clause : intervals)    {st.append(toString(size,clause,symboltable)).append("\n");}}

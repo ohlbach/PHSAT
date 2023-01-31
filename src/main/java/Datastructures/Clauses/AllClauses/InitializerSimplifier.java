@@ -180,7 +180,11 @@ public class InitializerSimplifier {
             equivalenceClasses.addObserver(this::addEquivalence);
             for(int[] basicClause : basicClauses.disjunctions) {
                 integrateClause(new Clause(basicClause));}
-            for(int[] basicClause : basicClauses.quantifieds) {
+            for(int[] basicClause : basicClauses.atleasts) {
+                integrateClause(new Clause(basicClause));}
+            for(int[] basicClause : basicClauses.atmosts) {
+                integrateClause(new Clause(basicClause));}
+            for(int[] basicClause : basicClauses.exacltys) {
                 integrateClause(new Clause(basicClause));}
             for(int[] basicClause : basicClauses.intervals) {
                 for(Clause clause : Clause.intervalClause(problemSupervisor::nextClauseId,basicClause))
