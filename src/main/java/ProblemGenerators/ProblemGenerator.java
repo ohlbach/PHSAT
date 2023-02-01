@@ -145,7 +145,7 @@ public abstract class ProblemGenerator {
     protected static InputClauses parseClauses(String problemName, Iterator<String> lineIterator,
                                                StringBuilder errors, StringBuilder warnings) {
         InputClauses inputClauses = new InputClauses();
-        inputClauses.name = problemName;
+        inputClauses.problemName = problemName;
         Integer predicates = 0;
         int lineNumber = 0;
         Symboltable symboltable = null;
@@ -160,7 +160,7 @@ public abstract class ProblemGenerator {
             line = line.trim();
             if(line.isEmpty()) {continue;}
             if(line.startsWith("%")){continue;}
-            if(line.startsWith("c")) {info.append(line.substring(1)).append("\n"); continue;}
+            if(line.startsWith("#")) {info.append(line.substring(1)).append("\n"); continue;}
             if(line.startsWith("p") && inHeader) { // p cnf predicates ...
                 inHeader = false;
                 String[] parts = line.split("\\s*[ ,]\\s*");

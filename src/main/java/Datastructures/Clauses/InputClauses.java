@@ -27,7 +27,7 @@ import java.util.Arrays;
 public class InputClauses {
 
     /** the name of the problem */
-    public String name = null;
+    public String problemName = null;
 
     /** the maximum number of predicates. */
     public int predicates;
@@ -68,13 +68,13 @@ public class InputClauses {
 
     /** constructs a new input clause list.
      *
-     * @param name the name of the problem.
+     * @param problemName the name of the problem.
      * @param predicates  the number of predicates which are allowed in the clauses.
      * @param symboltable null or a symboltable.
      * @param info        some information about the origin of the clause set.
      */
-    public InputClauses(String name, int predicates, Symboltable symboltable, String info) {
-        this.name = name;
+    public InputClauses(String problemName, int predicates, Symboltable symboltable, String info) {
+        this.problemName = problemName;
         this.predicates = predicates;
         this.symboltable = symboltable;
         this.info = info;}
@@ -399,7 +399,7 @@ public class InputClauses {
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        if(name != null) st.append("Problem ").append(name).append("\n");
+        if(problemName != null) st.append("Problem ").append(problemName).append("\n");
         if(info != null) st.append(info).append("\n");
         int size = (""+(disjunctions.size() + conjunctions.size()  +equivalences.size()) +
                 atleasts.size() + atmosts.size() +exacltys.size() +intervals.size()).length()+2;

@@ -23,11 +23,11 @@ public class StringClauseSetGeneratorTest {
         String clauses = "Info1\n" +
                 "Info2\n" +
                 "% test\n" +
-                "c comment\n" +
+                "# comment\n" +
                 "\n" +
                 "p cnf 20\n" +
                 "p,q,r\n" +
-                "c Info3 \n"+
+                "# Info3 \n"+
                 "% testttt\n"+
                 "& a,b,-c\n" +
                 "e r s t\n" +

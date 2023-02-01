@@ -4,13 +4,11 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
-import Management.Monitor.Monitor;
-import Management.Monitor.MonitorLife;
-import it.unimi.dsi.fastutil.ints.Int2IntArrayMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.*;
 import java.lang.reflect.Array;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -266,6 +264,16 @@ public class Utilities {
             clones.add(n);
             list.add(clones);}
         return list;}
+
+    /** extends a pathname with the user's homedirectory.
+     *
+     * @param pathname a pathname, possibly starting with 'home'
+     * @return a Path where 'home' is replaced by the user's homedirectory.
+     */
+    public static Path pathWithHome(String pathname) {
+        return pathname.startsWith("home") ?
+            Paths.get(System.getProperty("user.home"),pathname.substring(4)) :
+            Paths.get(pathname); }
 
     /** creates a temporary file in a temporary directory and writes the text into that file.
      *  An existing file with that name is deleted.
@@ -1105,11 +1113,7 @@ public class Utilities {
         return st.toString();}
 
     public static void  main(String[] args) {
-        Int2IntArrayMap m = new Int2IntArrayMap(5);
-        m.put(-5,7);
-        m.put(5,8);
-        System.out.println(m.get(-5));
-        System.out.println(m.get(-6));
+        System.out.println(pathWithHome("home/xy/abc/def").toString());
     }
 
 

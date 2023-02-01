@@ -6,9 +6,9 @@ package Datastructures.Clauses;
  */
 public enum Connective {
     /** logical or-connective */
-    OR("o", ",",""),
+    OR("", ",",""),
     /** logical and-connective */
-    AND("a","&","A-"),
+    AND("&","&","A-"),
     /** equivalence of predicates */
     EQUIV("e","=","E-"),
     /** interval connective, example: [2,4] p,q,r,s  (between 2 and 4 literals must be true) */
