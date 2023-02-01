@@ -128,7 +128,6 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      *
      *
      * @param parameters the input parameters
-     * @param ignoredGlobalParameters not used
      * @param errors    for reporting syntax errors
      * @param warnings  for reporting warnings
      */

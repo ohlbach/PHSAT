@@ -1,13 +1,11 @@
 package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
-import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Utilities.FileIterator;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,79 +41,21 @@ import static Utilities.Utilities.pathWithHome;
  */
 public final class CNFReader extends ProblemGenerator {
 
-    private static final HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
+    //*// contains the allowed keys in the specification.*/
+    private static final HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
         Collections.addAll(keys, "generator", "file", "directory", "regExpr");}
 
+    /** the cnf file */
     private final File file;
 
-    /** parses a HashMap with key-value pairs of a CNF-Reader:<br>
-     * file:      a comma separated list of pathnames<br>
-     * directory: a comma separated list of directories (all .cnf files in this directory are addressed) <br>
-     * regExpr:   a regular expression: All files in the directories matching the expression are addressed
+
+    /** creates a CNFReader for the given file
      *
-     * @param parameters   contains all control parameters
-     * @param globalParameters contains the global parameters.
-     * @param generators  for adding new CNFReaders
-     * @param errors      for error messages
-     * @param warnings    for warnings
-     * */
-
-    public static void makeProblemGenerator(HashMap<String,String> parameters, GlobalParameters globalParameters,
-                         ArrayList<ProblemGenerator> generators,
-                         StringBuilder errors, StringBuilder warnings){
-        for(String key : parameters.keySet()) {
-            if(!keys.contains(key)) {
-                warnings.append("CNFReader: Unknown key in parameters: ").append(key).append("\n");}}
-
-        String files       = parameters.get("file");
-        String directories = parameters.get("directory");
-        String regExprs    = parameters.get("regExpr");
-        String basicDirectory = globalParameters.basicDirectory;
-        if(files != null) {
-            for(String filename : files.split("\\s*[, ]\\s*")) {
-                if(!filename.endsWith(".cnf")) {
-                    warnings.append("CNFReader: Filename ").append(filename).append(" does not end with .cnf. The file is ignored.\n");
-                    continue;}
-                File file = pathWithHome(filename).toFile();
-                if(!file.exists()) {
-                    warnings.append("CNFReader: Unknown file: ").append(file.getAbsolutePath()).append(". The file is ignored.\n");}
-                else {generators.add(new CNFReader(file));}}}
-
-        if(directories != null && regExprs == null) {
-            for(String directoryname : directories.split("\\s*,\\s*")) {
-                if(basicDirectory != null) {directoryname = Paths.get(basicDirectory,directoryname).toString();}
-                File directory = new File(directoryname);
-                if(!(directory.exists() && directory.isDirectory())) {
-                    errors.append("CNFReader: Unknown directory: ").append(directoryname).append(". The directory is ignored.\n");}
-                else {
-                    File[] fileList = directory.listFiles();
-                    if(fileList == null || fileList.length == 0) {
-                        warnings.append("CNFReader: Directory ").append(directoryname).append(" is empty.\n");}
-                    else {
-                        for(File file : fileList) {
-                            if(file != null && file.isFile() && file.getName().endsWith(".cnf"))
-                                generators.add(new CNFReader(file));}}}}
-            return;}
-
-        if(regExprs != null) {
-            if(directories == null) {
-                errors.append("CNFReader: A directory must be specified for ").append(regExprs).append("\n");
-                return;}
-            for(String directoryname : directories.split("\\s*,\\s*")) {
-                File directory = pathWithHome(directoryname).toFile();
-                if(!(directory.exists() && directory.isDirectory())) {
-                    errors.append("CNFReader: Unknown directory: ").append(directory.getAbsolutePath()).append(". The directory is ignored.\n");}
-                else{
-                    Pattern pattern;
-                    try {pattern = Pattern.compile(regExprs);}
-                    catch(PatternSyntaxException ex) {
-                        errors.append("CNFReader: ").append(ex);
-                        continue;}
-                    File[] fileList = directory.listFiles(pathname -> pattern.matcher(pathname.getName()).matches());
-                    if(fileList == null || fileList.length == 0) {
-                        warnings.append("CNFReader: Directory ").append(directoryname).append(" contains no matched files.\n");}
-                    else {for(File file: fileList) generators.add(new CNFReader(file));}}}}}
+     * @param file a cnf file.
+     */
+    public CNFReader(File file) {
+        this.file = file;}
 
     /** generates a help-string
      *
@@ -132,7 +72,7 @@ public final class CNFReader extends ProblemGenerator {
                 " # comment\n" +
                 " # comment\n" +
                 " % ignored lines\n"+
-                " p cnf predicates clauses [symbolic]\n" +
+                " p cnf predicates ...\n" +
                 " clause1 0\n" +
                 " clause2 0\n" +
                 " ...\n" +
@@ -148,8 +88,74 @@ public final class CNFReader extends ProblemGenerator {
                 "No special symbol means 'or': 'p,q,r' means p or q or r";
     }
 
-    public CNFReader(File file) {
-        this.file = file;}
+    /** parses a HashMap with key-value pairs of a CNF-Reader:<br>
+     * file:      a comma separated list of pathnames<br>
+     * *          a pathname may start with 'home'. It stands for the user's homedirectory.
+     * directory: a comma separated list of directories (all .cnf files in this directory are addressed) <br>
+     * regExpr:   a regular expression: All files in the directories matching the expression are addressed
+     *
+     * @param parameters   contains all control parameters.
+     * @param generators  for adding new CNFReaders
+     * @param errors      for error messages
+     * @param warnings    for warnings
+     */
+    public static void makeProblemGenerator(HashMap<String,String> parameters,
+                         ArrayList<ProblemGenerator> generators,
+                         StringBuilder errors, StringBuilder warnings){
+        for(String key : parameters.keySet()) {
+            if(!keys.contains(key)) {
+                warnings.append("CNFReader: Unknown key in parameters: ").append(key).append("\n");}}
+
+        String files       = parameters.get("file");
+        String directories = parameters.get("directory");
+        String regExprs    = parameters.get("regExpr");
+        if(files != null) {
+            for(String filename : files.split("\\s*[, ]\\s*")) {
+                if(!filename.endsWith(".cnf")) {
+                    warnings.append("CNFReader: Filename ").append(filename).append(" does not end with .cnf. The file is ignored.\n");
+                    continue;}
+                File file = pathWithHome(filename).toFile();
+                if(!file.exists()) {
+                    warnings.append("CNFReader: Unknown file: ").append(file.getAbsolutePath()).append(". The file is ignored.\n");}
+                else {generators.add(new CNFReader(file));}}}
+
+        if(directories != null && regExprs == null) {
+            for(String directoryname : directories.split("\\s*[, ]\\s*")) {
+                File directory = pathWithHome(directoryname).toFile();
+                if(!(directory.exists() && directory.isDirectory())) {
+                    errors.append("CNFReader: Unknown directory: ").append(directoryname).append(". The directory is ignored.\n");}
+                else {
+                    File[] fileList = directory.listFiles();
+                    if(fileList == null || fileList.length == 0) {
+                        warnings.append("CNFReader: Directory ").append(directoryname).append(" is empty.\n");}
+                    else {
+                        for(File file : fileList) {
+                            if(file != null && file.isFile() && file.getName().endsWith(".cnf"))
+                                generators.add(new CNFReader(file));}}}}
+            return;}
+
+        if(regExprs != null) {
+            if(directories == null) {
+                errors.append("CNFReader: A directory must be specified for regulare expression: ").append(regExprs).append("\n");
+                return;}
+            for(String directoryname : directories.split("\\s*[, ]\\s*")) {
+                File directory = pathWithHome(directoryname).toFile();
+                if(!(directory.exists() && directory.isDirectory())) {
+                    errors.append("CNFReader: Unknown directory: ").append(directory.getAbsolutePath()).
+                            append(". The directory is ignored.\n");}
+                else{
+                    Pattern pattern;
+                    try {pattern = Pattern.compile(regExprs);}
+                    catch(PatternSyntaxException ex) {
+                        errors.append("CNFReader: ").append(ex);
+                        continue;}
+                    File[] fileList = directory.listFiles(pathname -> pattern.matcher(pathname.getName()).matches());
+                    if(fileList == null || fileList.length == 0) {
+                        warnings.append("CNFReader: Directory ").append(directoryname).append(" contains no matched files.\n");}
+                    else {for(File file: fileList) generators.add(new CNFReader(file));}}}}}
+
+
+
 
     /** reads the cnf-file and generates a BasicClauseList
      *
@@ -159,19 +165,20 @@ public final class CNFReader extends ProblemGenerator {
     public InputClauses generateProblem(Monitor errorMonitor) {
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        InputClauses inputClauses;
+        InputClauses inputClauses = null;
         String problemName = file.getName();
         try{
-            inputClauses = parseClauses(problemName,new FileIterator(file.toString()),errors,warnings);}
+            inputClauses = parseClauses(problemName,new FileIterator(file.getAbsolutePath()),errors,warnings);}
         catch (FileNotFoundException ex){
-            errors.append("File ").append(file).append("was not found"); return null;}
+            errors.append("CNFReader: File ").append(file).append(" was not found");}
         if(errorMonitor != null) {
             if(warnings.length() > 0) {
                 errorMonitor.println("Warnings when parsing clauses "+problemName + "\n"+ errors);}
             if(errors.length() > 0) {
-                errorMonitor.println("Errors when parsing clauses "+problemName + "\n"+ errors);
-                return null;}}
-        assert inputClauses != null;
+                errorMonitor.println("Errors when parsing clauses "+problemName + "\n"+ errors);}}
+        System.out.println(errors.toString());
+        System.out.println(warnings.toString());
+        if(inputClauses == null) return null;
         inputClauses.problemName = problemName;
         return inputClauses;}
 
@@ -180,7 +187,7 @@ public final class CNFReader extends ProblemGenerator {
      * @return the filename and, if already filled, the basicClauseList
      */
     public String toString() {
-        String st = "CNFReader for file " + file;
+        String st = "CNFReader for file " + file.getAbsolutePath();
         if(inputClauses != null) st += "\n"+ inputClauses;
         return st;}
 

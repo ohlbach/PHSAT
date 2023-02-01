@@ -41,7 +41,7 @@ public class StringClauseSetGeneratorTest {
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        StringClauseSetGenerator.makeProblemGenerator(parameters,null,generators,errors,warnings);
+        StringClauseSetGenerator.makeProblemGenerator(parameters,generators,errors,warnings);
         System.out.println(errors);
         System.out.println(warnings);
         ProblemGenerator generator = generators.get(0);

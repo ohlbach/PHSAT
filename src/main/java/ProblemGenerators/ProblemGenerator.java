@@ -3,7 +3,6 @@ package ProblemGenerators;
 import Datastructures.Clauses.Connective;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Symboltable;
-import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Utilities.KVParser;
 import Utilities.Utilities;
@@ -94,13 +93,11 @@ public abstract class ProblemGenerator {
     /** parses the string-type parameters into sequences of objects
      *
      * @param pars       the generator parameters
-     * @param globalParameters the global parameters
      * @param errors     for collecting error messages
      * @param warnings   for collecting warning messages
      * @return           a list of generators
      */
     public static ArrayList<ProblemGenerator> makeProblemGenerator(ArrayList<HashMap<String,String>> pars,
-                                                                   GlobalParameters globalParameters,
                                                                    StringBuilder errors, StringBuilder warnings) {
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
         for(HashMap<String,String> parameters: pars) {
@@ -109,9 +106,9 @@ public abstract class ProblemGenerator {
             Class clazz = generatorClass(type);
             if(clazz == null) {errors.append("Problem Generator: Unknown generator class: " + type); continue;}
             try{
-                Method factory = clazz.getMethod("makeProblemGenerator",HashMap.class, GlobalParameters.class,
+                Method factory = clazz.getMethod("makeProblemGenerator",HashMap.class,
                         ArrayList.class, StringBuilder.class, StringBuilder.class);
-                factory.invoke(null,parameters,globalParameters,generators,errors,warnings);}
+                factory.invoke(null,parameters,generators,errors,warnings);}
             catch(Exception ex) {ex.printStackTrace();System.exit(1);}}
         return generators;}
 

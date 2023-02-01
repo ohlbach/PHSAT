@@ -1,7 +1,6 @@
 package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
-import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Utilities.StringIterator;
 
@@ -36,12 +35,11 @@ public final class StringClauseSetGenerator extends ProblemGenerator {
      * The parameters are taken unchanged from 'parameters'.
      *
      * @param parameters   contains the keys "name" (optional) and "clauses" (required).
-     * @param globalParameters not used.
      * @param generators for adding the new StringClauseSetGenerator.
      * @param errors    for adding error messages.
      * @param warnings  no effect.
      */
-    public static void makeProblemGenerator(HashMap<String,String> parameters, GlobalParameters globalParameters,
+    public static void makeProblemGenerator(HashMap<String,String> parameters,
                                        ArrayList<ProblemGenerator> generators,
                                        StringBuilder errors, StringBuilder warnings){
         assert parameters != null;

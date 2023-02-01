@@ -99,7 +99,7 @@ public class QUSat {
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
         globalParameters= new GlobalParameters(kvParser.get("global"),errors,warnings);
-        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeProblemGenerator(kvParser.get("generator"),globalParameters,errors,warnings);
+        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeProblemGenerator(kvParser.get("generator"),errors,warnings);
 }
 
     /** This method calls the help()-methods and prints the results.

@@ -1,32 +1,61 @@
 package ProblemGenerators;
 
+import Datastructures.Clauses.InputClauses;
+import Utilities.Utilities;
+import org.junit.Test;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+
 /**
  * Created by ohlbach on 06.09.2018.
  */
 public class CNFReaderTest {
-/*
-    @Test
-    public void help()  {
-        System.out.println(CNFReader.help());
-    }
 
     @Test
-    public void parseProblemParameters1() {
-        System.out.println("parseProblemParameters 1");
-        Monitor errors = new MonitorLife();
-        Monitor warnings = new MonitorLife();
-        HashMap<String,String> parameters = new HashMap<>();
-        File file1 = Utilities.writeTmpFile("CNFReader", "test1.cnf", "test1");
-        File file2 = Utilities.writeTmpFile("CNFReader", "test2.cnf", "test2");
-        parameters.put("file",file1.getAbsolutePath()+","+file2.getAbsolutePath());
-        ArrayList<HashMap<String,Object>> pars = CNFReader.parseParameters(parameters,errors,warnings);
-        file1.delete();
-        file2.delete();
-        assertEquals("",errors.toString());
-        assertEquals(2,pars.size());
-        assertEquals(file1.getAbsolutePath(),pars.get(0).get("file").toString());
-        assertEquals(file2.getAbsolutePath(),pars.get(1).get("file").toString());
+    public void help()  {
+        //System.out.println(CNFReader.help());
     }
+//  public static void makeProblemGenerator(HashMap<String,String> parameters, GlobalParameters globalParameters,
+//                         ArrayList<ProblemGenerator> generators,
+//                         StringBuilder errors, StringBuilder warnings){
+//
+    @Test
+    public void makeProblemGenerator1() {
+        System.out.println("makeProblemGenerator File");
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
+        ArrayList<ProblemGenerator> generators = new ArrayList<>();
+        HashMap<String,String> parameters = new HashMap<>();
+        String test = "# test1\n" +
+                "# test2\n" +
+                "% test3\n" +
+                "p cnf 10 5\n" +
+                "1 -5 3 0\n"+
+                "-5 7 1  1 7 0\n" +
+                "4 5 6 0\n" +
+                "& 4 -5 0\n" +
+                "e 5 2 0\n" +
+                "<= 2 1,2,3 0\n" +
+                ">= 3 4,5,6,7 0\n" +
+                "= 2 -2,-4 5 0\n"+
+                "[2,4] 3 4 5 6 0";
+        File file = Utilities.writeTmpFile("CNFReader", "test.cnf", test);
+        parameters.put("file",file.getAbsolutePath());
+        CNFReader.makeProblemGenerator(parameters,generators,errors,warnings);
+        System.out.println(errors);
+        System.out.println(warnings);
+        ProblemGenerator generator = generators.get(0);
+        System.out.println(generator);
+        System.out.println(Utilities.readFile(file.getAbsolutePath()));
+
+        InputClauses inputClauses = generator.generateProblem(null);
+        System.out.println(inputClauses.toString());
+        file.delete();
+
+    }
+    /*
     @Test
     public void parseProblemParameters2() {
         System.out.println("parseProblemParameters directory");
