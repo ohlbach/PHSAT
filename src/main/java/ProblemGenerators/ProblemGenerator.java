@@ -37,10 +37,10 @@ public abstract class ProblemGenerator {
     public ProblemGenerator() {}
 
     /** the list of problem generator names */
-    public static String[] problemGeneratorNames = new String[]{"random","file","pidgeonhole","string"};
+    public static String[] problemGeneratorNames = new String[]{"random","file","pigeonhole","string"};
 
-    /** takes the parse input clauses */
-    InputClauses inputClauses = null;
+    /** takes the parsed input clauses */
+    public InputClauses inputClauses = null;
 
     /** checks if the name is a generator name
      *
@@ -60,7 +60,7 @@ public abstract class ProblemGenerator {
         switch (name) {
             case "random":       return ProblemGenerators.RandomClauseSetGenerator.class;
             case "file":         return ProblemGenerators.CNFReader.class;
-            case "pidgeonhole":  return ProblemGenerators.PigeonHoleGenerator.class;
+            case "pigeonhole":   return ProblemGenerators.PigeonHoleGenerator.class;
             case "string" :      return ProblemGenerators.StringClauseSetGenerator.class;
             default: return null;}}
 
@@ -70,16 +70,16 @@ public abstract class ProblemGenerator {
      */
     public static String help() {
         StringBuilder st = new StringBuilder();
-        st.append("The following problem generator types are available:\n");
+        st.append("The following problem generator types are available:\n\n");
         for(String generatorName : problemGeneratorNames) {
-            st.append(generatorName).append(":\n");
-            st.append(help(generatorName)).append("\n");}
+            st.append("Problem Generator ").append(generatorName).append(":\n");
+            st.append(help(generatorName)).append("\n\n");}
         return st.toString();}
 
     /** returns the help-string for the generator with the given name
      *
      * @param name a generator name
-     * @return its hel-string
+     * @return its help-string
      */
     public static String help(String name) {
         Class clazz = generatorClass(name);
@@ -92,23 +92,24 @@ public abstract class ProblemGenerator {
 
     /** parses the string-type parameters into sequences of objects
      *
-     * @param pars       the generator parameters
-     * @param errors     for collecting error messages
-     * @param warnings   for collecting warning messages
-     * @return           a list of generators
+     * @param parameterList the parameters
+     * @param errors        for collecting error messages
+     * @param warnings      for collecting warning messages
+     * @return              a list of generators
      */
-    public static ArrayList<ProblemGenerator> makeProblemGenerator(ArrayList<HashMap<String,String>> pars,
+    public static ArrayList<ProblemGenerator> makeProblemGenerator(ArrayList<HashMap<String,String>> parameterList,
                                                                    StringBuilder errors, StringBuilder warnings) {
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
-        for(HashMap<String,String> parameters: pars) {
+        for(HashMap<String,String> parameters: parameterList) {
             String type = parameters.get("generator");
             if(type == null) continue;
             Class clazz = generatorClass(type);
-            if(clazz == null) {errors.append("Problem Generator: Unknown generator class: " + type); continue;}
+            if(clazz == null) {
+                errors.append("Problem Generator: Unknown generator class: ").append(type); continue;}
             try{
-                Method factory = clazz.getMethod("makeProblemGenerator",HashMap.class,
+                Method makeProblemGenerator = clazz.getMethod("makeProblemGenerator",HashMap.class,
                         ArrayList.class, StringBuilder.class, StringBuilder.class);
-                factory.invoke(null,parameters,generators,errors,warnings);}
+                makeProblemGenerator.invoke(null,parameters,generators,errors,warnings);}
             catch(Exception ex) {ex.printStackTrace();System.exit(1);}}
         return generators;}
 
@@ -162,7 +163,7 @@ public abstract class ProblemGenerator {
                 inHeader = false;
                 String[] parts = line.split("\\s*[ ,]\\s*");
                 if(parts.length < 3) {
-                    errors.append(errorPrefix+"Illegal format of line. It should be 'p cnf predicates ...'\n");
+                    errors.append(errorPrefix).append("Illegal format of line. It should be 'p cnf predicates ...'\n");
                     return null;}
                 if(!parts[1].equals("cnf")) {
                     errors.append(errorPrefix).append("This indicates no cnf file\n");
@@ -171,7 +172,7 @@ public abstract class ProblemGenerator {
                 predicates = Utilities.parseInteger(errorPrefix, parts[2],errors);
                 if(predicates == null) {return null;}
                 if(predicates <= 0) {
-                    errors.append(errorPrefix).append("Negative number of predicates: '"+ parts[2]+"'\n");
+                    errors.append(errorPrefix).append("Negative number of predicates: '").append(parts[2]).append("'\n");
                     return null;}
                 inputClauses.predicates = predicates;
                 inputClauses.symboltable = new Symboltable(predicates);
@@ -179,7 +180,7 @@ public abstract class ProblemGenerator {
             if(inHeader) {info.append(line).append("\n"); continue;}
 
             if(predicates == null) {
-                errors.append(errorPrefix+" p-line missing: 'p cnf predicates ...'\n");
+                errors.append(errorPrefix).append(" p-line missing: 'p cnf predicates ...'\n");
                 return null;}
 
             if(!firstClauseLineChecked) {
@@ -194,7 +195,6 @@ public abstract class ProblemGenerator {
             if(clause == null) continue;
             clause = InputClauses.checkSyntax(clause,predicates,errorPrefix,errors,warnings);
             if(clause == null) continue;
-            ++id;
             inputClauses.addClause(clause);}
         if(info.length() > 0) inputClauses.info = info.toString();
         inputClauses.nextId = id+1;
@@ -312,7 +312,7 @@ public abstract class ProblemGenerator {
         Integer amount = parseInteger(clause[1]);
         boolean okay = true;
         if(amount == null) {
-            errors.append(errorPrefix).append("Quantification amount " + clause[1] + " is no number\n");
+            errors.append(errorPrefix).append("Quantification amount ").append(clause[1]).append(" is no number\n");
             okay = false;}
         else inputClause[2] = amount;
         okay &= parseLiterals(clause,2,inputClause,3,symboltable,errorPrefix, errors);
@@ -346,19 +346,19 @@ public abstract class ProblemGenerator {
         inputClause[1] = Connective.INTERVAL.ordinal();
         String[] interval = line.substring(1,position).trim().split("\\s*[, ]\\s*");
         if(interval.length != 2) {
-            errors.append(errorPrefix).append("Line has no proper interval: '"+ Arrays.toString(interval)+"'\n");
+            errors.append(errorPrefix).append("Line has no proper interval: '").append(Arrays.toString(interval)).append("'\n");
             return null;}
 
         Integer min = parseInteger(interval[0]);
         Integer max = parseInteger(interval[1]);
 
         if(min == null) {
-            errors.append(errorPrefix).append("Line has no proper interval: '"+Arrays.toString(interval)+"'\n");
+            errors.append(errorPrefix).append("Line has no proper interval: '").append(Arrays.toString(interval)).append("'\n");
             okay = false;}
         else{inputClause[2] = min;}
 
         if(max == null) {
-            errors.append(errorPrefix).append("Line has no proper interval: '"+Arrays.toString(interval)+"'\n");
+            errors.append(errorPrefix).append("Line has no proper interval: '").append(Arrays.toString(interval)).append("'\n");
             okay = false;}
         else{inputClause[3] = max;}
         return okay ? inputClause : null;}
@@ -397,8 +397,9 @@ public abstract class ProblemGenerator {
             int sign = 1;
             if(part.startsWith("-")) {sign = -1; part = part.substring(1);}
             int predicate = symboltable.getPredicate(part);
-            if(predicate == 0) {errors.append(errorPrefix).append("Number of predicates: " + symboltable.predicates +
-                    " is too small for literal '" + part+"'\n"); okay = false; startIndexClause++; continue;}
+            if(predicate == 0) {
+                errors.append(errorPrefix).append("Number of predicates: ").append(symboltable.predicates).
+                        append(" is too small for literal '").append(part).append("'\n"); okay = false; startIndexClause++; continue;}
             inputClause[startIndexClause++] = sign*predicate;}
         return okay;}
 
