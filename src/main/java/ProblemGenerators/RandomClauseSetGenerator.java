@@ -21,28 +21,61 @@ import java.util.*;
  */
 public class RandomClauseSetGenerator extends ProblemGenerator {
 
+    /** all allowed keys in the parameters */
     protected static final HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
         Collections.addAll(keys,"generator", "seeds", "predicates", "cpRatios", "lengths", "precises",
-                "redundant", "ors", "ands", "equivs", "atleasts", "atmosts", "exactlys", "intervals");
+                "redundants", "ors", "ands", "equivs", "atleasts", "atmosts", "exactlys", "intervals");
     }
 
+    /** the original parameters (for documentation only. */
+    private final HashMap<String,String> parameters;
+    /** the seed for the random number generator */
     private final int seed;
+    /** the number of predicates */
     private final int predicates;
+    /** the clause length */
     private final int length;
+    /** if false then the clause length may be smaller */
     private final boolean precise;
+    /** if true then complementary and double literals are allowed */
     private final boolean redundant;
+
+    /** number of disjumctions (or) */
     private final int ors;
+    /** number of conjunctions (and) */
     private final int ands;
+    /** number of equivalences */
     private final int equivs;
+    /** number of atleast clauses */
     private final int atleasts;
+    /** number of atmost clauses */
     private final int atmosts;
+    /** number of exactly clauses */
     private final int exactly;
+    /** number of interval clauses */
     private final int intervals;
 
-    public RandomClauseSetGenerator(int seed, int predicates, int length, boolean precise, boolean redundant,
+    /** constructs a random clause set generator.
+     *
+     * @param parameters   the original specification (only for documentation).
+     * @param seed         the seed for the random number generator.
+     * @param predicates   the number of predicates.
+     * @param length       the clause length.
+     * @param precise      if false then the clause length may be less than 'length'.
+     * @param redundant    if true then complementary and double literals are allowed.
+     * @param ors          the number of disjunctions (or).
+     * @param ands         the number of conjunctions (and).
+     * @param equivs       the number of equivalences.
+     * @param atleasts     the number of atleast clauses.
+     * @param atmosts      the number of atmost clauses.
+     * @param exactly      the number of exactly clauses.
+     * @param intervals    the number of interval clauses.
+     */
+    public RandomClauseSetGenerator(HashMap<String,String> parameters, int seed, int predicates, int length, boolean precise, boolean redundant,
                                     int ors, int ands, int equivs, int  atleasts, int atmosts, int exactly,
                                     int intervals) {
+        this.parameters = parameters;
         this.seed       = seed;
         this.predicates = predicates;
         this.length     = length;
@@ -75,10 +108,10 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                 "INTERVAL ([2,4] p,q,r,s: between 2 and 4 of them are true)\n\n"+
                 "The parameters are:\n" +
                 "predicates: an integer > 0, specifies the number of predicates in the clause set.\n" +
-                "length:     an integer > 0, specifies the maximum number of literals per clause.\n" +
-                "precise:    a boolean, if true then the clauses have exactly the specified length (default true).\n" +
-                "redundant:  a boolean, if false then tautologies and doubble literals are avoided (default false).\n"+
-                "seed:       an integer >= 0 for starting the random number generator (default 0).\n" +
+                "lengths:    an integer > 0, specifies the maximum number of literals per clause.\n" +
+                "precises:   a boolean, if true then the clauses have exactly the specified length (default true).\n" +
+                "redundants: a boolean, if false then tautologies and doubble literals are avoided (default false).\n"+
+                "seeds:      an integer >= 0 for starting the random number generator (default 0).\n" +
                 "\n" +
                 "ors:        an integer >= 0, specifies the number of disjunctions to be generated.\n" +
                 "ands:       an integer >= 0, specifies the number of conjunctions to be generated.\n" +
@@ -105,7 +138,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
 
 
 
-    /** The method translates the string-valued parameters in the HashMap to objects for controlling the generator.
+    /** The method translates the string-valued parameters in the HashMap to generators.
      * The allowed parameters are: <br>
      * predicates: an integer > 0, specifies the number of predicates in the clause set.<br>
      * lengths:    an integer > 0, specifies the maximum number of literals per clause.<br>
@@ -131,9 +164,10 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      * Boolean values are for example \'true\', \'false\' of both \'true,false\'.<br>
      *
      *
-     * @param parameters the input parameters
-     * @param errors    for reporting syntax errors
-     * @param warnings  for reporting warnings
+     * @param parameters the input parameters.
+     * @param generators for adding new generators.
+     * @param errors     for reporting syntax errors.
+     * @param warnings   for reporting warnings.
      */
     public static void makeProblemGenerator(HashMap<String,String> parameters,
                                             ArrayList<ProblemGenerator> generators,
@@ -145,12 +179,12 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                 warnings.append(prefix).append("unknown key in parameters: ").append(key).append("\n");
                 warnings.append("  The allowed keys are\n  ").append(keys).append("\n");}}
 
-        String seedS      = parameters.get("seed");
+        String seedS      = parameters.get("seeds");
         String predicateS = parameters.get("predicates");
-        String cpRatioS   = parameters.get("cpRatio");
-        String lengthS    = parameters.get("length");
-        String preciseS   = parameters.get("precise");
-        String redundantS  = parameters.get("redundant");
+        String cpRatioS   = parameters.get("cpRatios");
+        String lengthS    = parameters.get("lengths");
+        String preciseS   = parameters.get("precises");
+        String redundantS = parameters.get("redundants");
         String orsS       = parameters.get("ors");
         String andsS      = parameters.get("ands");
         String equivsS    = parameters.get("equivs");
@@ -168,31 +202,27 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         ArrayList lengthA = null;
         if(lengthS == null) {
             errors.append(prefix).append("no clause length defined.");}
-        else {lengthA = Utilities.parseIntRange(prefix+"length: ",lengthS,errors);}
+        else {lengthA = Utilities.parseIntRange(prefix+"lengths: ",lengthS,errors);}
         if(lengthA == null) {erraneous = true; errors.append("\n");}
 
-        ArrayList seedA = null;
+        ArrayList seedA;
         if(seedS == null) {seedA = new ArrayList<>(); seedA.add(0);}
-        else {seedA = Utilities.parseIntRange(prefix+"seed: ",seedS,errors);
-             if(seedA == null) {
-                 errors.append("\n");
-                 seedA = new ArrayList<>();
-                 seedA.add(0);
-                 warnings.append(prefix).append("assuming seeds = 0");}}
+        else {seedA = Utilities.parseIntRange(prefix+"seeds: ",seedS,errors);
+             if(seedA == null) errors.append("\n");}
 
         ArrayList cpRatioA = null;
         if(cpRatioS != null) {
-            cpRatioA = Utilities.parseFloatRange(prefix+"cpRatio: ",cpRatioS,errors);
+            cpRatioA = Utilities.parseFloatRange(prefix+"cpRatios: ",cpRatioS,errors);
             if(cpRatioA == null) {errors.append("\n"); erraneous = true;}}
 
-        ArrayList preciseA = null;
+        ArrayList preciseA;
         if(preciseS == null) {preciseA = new ArrayList(); preciseA.add(true);}
         else {preciseA = Utilities.parseBoolean(prefix+"precise: ", preciseS,errors);
              if(preciseA == null) {errors.append("\n"); erraneous = true;}}
 
-        ArrayList redundantA = null;
+        ArrayList redundantA;
         if(redundantS == null) {redundantA = new ArrayList(); redundantA.add(false);}
-        else {redundantA = Utilities.parseBoolean(prefix+"redundant: ", redundantS,errors);
+        else {redundantA = Utilities.parseBoolean(prefix+"redundants: ", redundantS,errors);
             if(redundantA == null) {errors.append("\n"); erraneous = true;}}
 
         ArrayList orsA = null;
@@ -236,97 +266,91 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                     cpRatioA, orsA,andsA,equivsA,atleastsA,atmostsA,exactlysA,intervalsA);
 
             for(ArrayList<Object> values : list) {
-                Integer seedv       = (Integer)values.get(0);
-                Integer predicatesv = (Integer)values.get(1);
-                Integer lengthv     = (Integer)values.get(2);
-                Boolean precisev    = (Boolean)values.get(3);
-                Boolean redundantv    = (Boolean)values.get(4);
-                Float   cpRatiov    = (Float)values.get(5);
-                Integer orsv         = (Integer)values.get(6);
-                Integer andsv        = (Integer)values.get(7);
-                Integer equivsv      = (Integer)values.get(8);
-                Integer atleastsv    = (Integer)values.get(9);
-                Integer atmostsv     = (Integer)values.get(10);
-                Integer exactlysv    = (Integer)values.get(11);
-                Integer intervalsv   = (Integer)values.get(12);
+                Integer seedv        = (Integer)values.get(0);  if(seedv       == null) seedv       = 0;
+                Integer predicatesv  = (Integer)values.get(1);  if(predicatesv == null) predicatesv = 0;
+                Integer lengthv      = (Integer)values.get(2);  if(lengthv     == null) lengthv     = 0;
+                Boolean precisev     = (Boolean)values.get(3);  if(precisev    == null) precisev    = true;
+                Boolean redundantv   = (Boolean)values.get(4);  if(redundantv  == null) redundantv  = false;
+                Float   cpRatiov     = (Float)values.get(5);    if(cpRatiov    == null) cpRatiov    = 0.0f;
+                Integer orsv         = (Integer)values.get(6);  if(orsv        == null) orsv        = 0;
+                Integer andsv        = (Integer)values.get(7);  if(andsv       == null) andsv       = 0;
+                Integer equivsv      = (Integer)values.get(8);  if(equivsv     == null) equivsv     = 0;
+                Integer atleastsv    = (Integer)values.get(9);  if(atleastsv   == null) atleastsv   = 0;
+                Integer atmostsv     = (Integer)values.get(10); if(atmostsv    == null) atmostsv    = 0;
+                Integer exactlysv    = (Integer)values.get(11); if(exactlysv   == null) exactlysv   = 0;
+                Integer intervalsv   = (Integer)values.get(12); if(intervalsv  == null) intervalsv  = 0;
 
                 if(seedv < 0) {
-                    errors.append(prefix).append("Negative seed specified: ").append(seedv).append("\n");
+                    errors.append(prefix).append("negative seed specified: ").append(seedv).append("\n");
                     erraneous = true;}
                 if(lengthv <= 0) {
-                    errors.append(prefix).append("No positive clause length specified: ").append(lengthv).append("\n");
+                    errors.append(prefix).append("length of clauses is not positive: ").append(lengthv).append("\n");
                     erraneous = true;}
                 if(predicatesv <= 0) {
-                    errors.append(prefix).append("Wrong number of predicates specified: ").append(predicatesv).append("\n");
+                    errors.append(prefix).append("number of predicates is not positive: ").append(predicatesv).append("\n");
                     erraneous = true;}
                 else {if(lengthv > predicatesv) {
-                        errors.append(prefix).append("Clause Length : ").append(lengthv).append("> number of predicates ").append(predicatesv).append("\n");
+                        errors.append(prefix).append("clause Length : ").append(lengthv).append("> number of predicates ").append(predicatesv).append("\n");
                         erraneous = true;}}
-                if(cpRatiov == null && orsv == null && andsv == null && equivsv == null &&
-                        atleastsv == null && atmostsv == null && exactlysv == null) {
-                    errors.append(prefix).append("No number of clauses specified\n");
+                if(cpRatiov == 0.0f && orsv == 0 && andsv == 0 && equivsv == 0 &&
+                        atleastsv == 0 && atmostsv == 0 && exactlysv == 0) {
+                    errors.append(prefix).append("no number of clauses specified\n");
                     erraneous = true;}
-                if(orsv != null && orsv < 0) {
+                if(orsv < 0) {
                     errors.append(prefix).append("negative number of ors specified: ").append(orsv).append("\n");
                     erraneous = true;}
-                if(andsv != null && andsv < 0) {
+                if(andsv < 0) {
                     errors.append(prefix).append("negative number of ands specified: ").append(andsv).append("\n");
                     erraneous = true;}
-                if(equivsv != null && equivsv < 0) {
+                if(equivsv < 0) {
                     errors.append(prefix).append("negative number of equivs specified: ").append(equivsv).append("\n");
                     erraneous = true;}
-                if(atleastsv != null && atleastsv < 0) {
+                if(atleastsv < 0) {
                     errors.append(prefix).append("negative number of atleasts specified: ").append(atleastsv).append("\n");
                     erraneous = true;}
-                if(atmostsv != null && atmostsv < 0) {
+                if(atmostsv < 0) {
                     errors.append(prefix).append("negative number of atmosts specified: ").append(atmostsv).append("\n");
                     erraneous = true;}
-                if(exactlysv != null && exactlysv < 0) {
+                if(exactlysv < 0) {
                     errors.append(prefix).append("negative number of exactlys specified: ").append(exactlysv).append("\n");
                     erraneous = true;}
-                if(intervalsv != null && intervalsv < 0) {
+                if(intervalsv < 0) {
                     errors.append(prefix).append("negative number of intervals specified: ").append(intervalsv).append("\n");
                     erraneous = true;}
 
                 if(erraneous) return;
-                generators.add(new RandomClauseSetGenerator(seedv,predicatesv,lengthv,precisev,redundantv,orsv,
-                        andsv,equivsv,atleastsv,atmostsv,exactlysv,intervalsv));}
+                generators.add(new RandomClauseSetGenerator(parameters,(int)seedv,(int)predicatesv,(int)lengthv,(boolean)precisev,
+                        (boolean)redundantv,(int)orsv,(int)andsv,(int)equivsv,(int)atleastsv,(int)atmostsv,
+                        (int)exactlysv,(int)intervalsv));}
             return;}
 
         // with cpRation > 0
         ArrayList<ArrayList<Object>> list = Utilities.crossProduct(seedA,predicatesA,lengthA, preciseA,redundantA,cpRatioA);
         for(ArrayList<Object> values : list) {
-            Integer seedv = (Integer) values.get(0);
-            if (seedv == null) seedv = 0;
-            Integer predicatesv = (Integer) values.get(1);
-            Integer lengthv = (Integer) values.get(2);
-            Boolean precisev = (Boolean) values.get(3);
-            Boolean redundantv = (Boolean)values.get(4);
-            if (precisev == null) precisev = true;
-            if(redundantv = null) redundantv = false;
-            Float cpRatiov = (Float)values.get(4);
+            Integer seedv       = (Integer)values.get(0); if(seedv       == null) seedv       = 0;
+            Integer predicatesv = (Integer)values.get(1); if(predicatesv == null) predicatesv = 0;
+            Integer lengthv     = (Integer)values.get(2); if(lengthv     == null) lengthv     = 0;
+            Boolean precisev    = (Boolean)values.get(3); if(precisev    == null) precisev    = true;
+            Boolean redundantv  = (Boolean)values.get(4); if(redundantv  == null) redundantv  = false;
+            Float   cpRatiov    = (Float)values.get(5);  if(cpRatiov     == null) cpRatiov    = 0.0f;
             if(seedv < 0) {
-                errors.append(prefix).append("Negative seed specified: ").append(seedv).append("\n");
+                errors.append(prefix).append("negative seed specified: ").append(seedv).append("\n");
                 erraneous = true;}
-            if(lengthv == null) {
-                errors.append(prefix).append("No clause length specified\n");
-                erraneous = true;}
-            else {
-                if(lengthv <= 0) {
-                    errors.append(prefix).append("No positive clause length specified ").append(lengthv).append("\n");}}
+            if(lengthv <= 0) {
+                errors.append(prefix).append("Clause Length is not positive\n").append(lengthv).append("\n");}
             if(predicatesv <= 0) {
-                errors.append(prefix).append("Wrong number of predicates specified: ").append(predicatesv).append("\n");
+                errors.append(prefix).append("number of predicates is not positive: ").append(predicatesv).append("\n");
                 erraneous = true;}
-            else {if(lengthv != null &&  lengthv > predicatesv) {
-                errors.append(prefix).append("Clause Length : ").append(lengthv).append("> number of predicates ").append(predicatesv).append("\n");
+            else {if(lengthv > predicatesv) {
+                errors.append(prefix).append("clause Length : ").append(lengthv).append("> number of predicates ").append(predicatesv).append("\n");
                 erraneous = true;}}
-            if(cpRatiov < 0) {
-                errors.append(prefix).append("Negative cpRatio: ").append(cpRatiov).append("\n");
+            if(cpRatiov < 0.0f) {
+                errors.append(prefix).append("negative cpRatio: ").append(cpRatiov).append("\n");
                 erraneous = true;}
             if(erraneous) return;
 
-            generators.add(new RandomClauseSetGenerator(seedv,predicatesv,lengthv,precisev,redundantv,Math.round(predicatesv*cpRatiov),
-                    0,0,0,0,0,0));}
+            generators.add(new RandomClauseSetGenerator(parameters,seedv,predicatesv,lengthv,precisev,redundantv,
+                    Math.round(predicatesv*cpRatiov),0,0,0,0,0,0));}
         }
 
 
@@ -336,37 +360,51 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      * @return  true
      */
     public InputClauses generateProblem(Monitor errors) {
-        String info = "Randomly generated clauses";
+        String problemName = "RND:";
+        String info = "Randomly generated clauses with parameters:" + parameters.toString()+":\n";
         InputClauses inputClauses = new InputClauses("",predicates,null,info);
         Random rnd = new Random(seed);
         int[] id = {0};
-        if(ors       != 0) generateClauses(inputClauses,id,Connective.OR,ors,rnd);
-        if(ands      != 0) generateClauses(inputClauses,id,Connective.AND,ands,rnd);
-        if(equivs    != 0) generateClauses(inputClauses,id,Connective.EQUIV,equivs,rnd);
-        if(atleasts  != 0) generateClauses(inputClauses,id,Connective.ATLEAST,atleasts,rnd);
-        if(atmosts   != 0) generateClauses(inputClauses,id,Connective.ATMOST,atmosts,rnd);
-        if(exactly   != 0) generateClauses(inputClauses,id,Connective.EXACTLY,exactly,rnd);
-        if(intervals != 0) generateClauses(inputClauses,id,Connective.INTERVAL,intervals,rnd);
+        if(ors       != 0) {generateClauses(inputClauses,id,Connective.OR,ors,rnd);
+            problemName += " o:" +ors;
+            info += "\ndisjunctions:" + ors;}
+        if(ands      != 0) {generateClauses(inputClauses,id,Connective.AND,ands,rnd);
+            problemName += " &:" +ands;
+            info += "\nconjunctions:" + ands;}
+        if(equivs    != 0) {generateClauses(inputClauses,id,Connective.EQUIV,equivs,rnd);
+            problemName += " e:" +equivs;
+            info += "\nequivlences:" + equivs;}
+        if(atleasts  != 0) {generateClauses(inputClauses,id,Connective.ATLEAST,atleasts,rnd);
+            problemName += " >=:"+atleasts;
+            info += "\natleasts:" + atleasts;}
+        if(atmosts   != 0) {generateClauses(inputClauses,id,Connective.ATMOST,atmosts,rnd);
+            problemName += " <=:"+atmosts;
+            info += "\natmosts:" + atmosts;}
+        if(exactly   != 0) {generateClauses(inputClauses,id,Connective.EXACTLY,exactly,rnd);
+            problemName += " =:" +exactly;
+            info += "\nexactlys:" + exactly;}
+        if(intervals != 0) {generateClauses(inputClauses,id,Connective.INTERVAL,intervals,rnd);
+            problemName += " []:"+intervals;
+            info += "\nintervals:" + intervals;}
 
-        inputClauses.info = "Randomly generated clauses:\n";
-        inputClauses.nextId = id[0]+1;
+        inputClauses.problemName = problemName;
+        inputClauses.info        = info;
+        inputClauses.nextId      = id[0]+1;
         return inputClauses;}
 
 
 
-    /** generates random clauses of the give type
-     * Double literals and complementary literals are avoided.
+    /** generates random clauses of the give type.
      *
-     * @param inputClauses for adding the new clauses
-     * @param id   for generating next clause id
+     * @param inputClauses        for adding the new clauses
+     * @param id                  for generating next clause id
      * @param connective          AND etc.
      * @param numberOfClauses     number of clauses to be generated
      * @param rnd                 random number generator
      */
-    protected void generateClauses(InputClauses inputClauses, int[] id,Connective connective, int numberOfClauses,
-                                   Random rnd) {
-        boolean numeric = connective.isQuantifier();
-        int start = numeric ? 3 : 2;
+    protected void generateClauses(InputClauses inputClauses, int[] id, Connective connective,
+                                   int numberOfClauses,Random rnd) {
+        int start = connective.isQuantifier() ? 3 : 2;
         if(connective == Connective.INTERVAL) start = 4;
         int counter = -1;
         while(++counter < numberOfClauses) {
@@ -375,23 +413,47 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
             int[] clause = new int[clauseLength+start];
             clause[0] = ++id[0];
             clause[1] = connective.ordinal();
+            if(connective.isQuantifier()) clause[2] = rnd.nextInt(clauseLength)+1;
             if(connective == Connective.INTERVAL) {
-                int min = rnd.nextInt(clauseLength)+1;
+                int min = clause[2];
                 int max = rnd.nextInt(clauseLength)+1;
-                if(min <= max) {clause[2] = min; clause[3] = max;}
+                if(min <= max) {clause[3] = max;}
                 else {clause[2] = max; clause[3] = min;}}
-            else {if(numeric) {clause[2] = rnd.nextInt(clauseLength)+1;}}
 
             for(int i = start; i < clauseLength+start; ++i) {
                 int sign = rnd.nextBoolean() ? +1 : -1;
                 int literal = sign*(rnd.nextInt(predicates)+1);
-                if(numeric) {clause[i] = literal; continue;}
-                if(redundant) clause[i] = literal;
+                if(redundant) clause[i] = literal; // tautologies and double literals allowed
                 else {
                     boolean found = false;
                     for(int j = start; j < i; ++j) {if(literal == clause[j] || -literal == clause[j]) {found = true; break;}}
-                    if(found) {--i; continue;}}}
+                    if(found) {--i; continue;} else clause[i] = literal;}}
             inputClauses.addClause(clause);}
+    }
+
+    /** generates a description of the generator.
+     *
+     * @return a description of the generator.
+     */
+    public String toString() {
+        StringBuilder st = new StringBuilder();
+        st.append("Random Clause Set Generator\n");
+        st.append("Parameters:    ").append(parameters.toString()).append("\n");
+        st.append("predicates:    ").append(predicates).append("\n");
+        st.append("seed:          ").append(seed).append("\n");
+        st.append("clause length: ").append(length);
+        if(precise) st.append(" precisely");
+        st.append("\n");
+        if(redundant) st.append("complementary and double literals allowed\n");
+        if(ors       != 0) st.append("disjunctions:   ").append(ors).append("\n");
+        if(ands      != 0) st.append("conjunctions: ").append(ands).append("\n");
+        if(equivs    != 0) st.append("equivalences:  ").append(equivs).append("\n");
+        if(atleasts  != 0) st.append("atleasts:      ").append(atleasts).append("\n");
+        if(atmosts   != 0) st.append("atmosts:       ").append(atmosts).append("\n");
+        if(exactly   != 0) st.append("exactlys:      ").append(exactly).append("\n");
+        if(intervals != 0) st.append("intervals:     ").append(intervals).append("\n");
+        if(ors != 0) st.append("cp-ratio for disjunctions: ").append((float)ors/(float)predicates);
+        return st.toString();
     }
 }
 

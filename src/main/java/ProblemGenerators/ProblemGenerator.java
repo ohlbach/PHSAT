@@ -124,7 +124,7 @@ public abstract class ProblemGenerator {
             if(type.equals(parameters.get("type"))) return parameters;}
         return null;}
 
-    /** generates a BasicClauseList
+    /** generates the InputClauses
      *
      * @param errorMonitor    for error massages.
      * @return null or the new InputClauses.
