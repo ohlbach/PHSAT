@@ -1,35 +1,44 @@
 package ProblemGenerators;
 
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import static org.junit.Assert.assertEquals;
+
 /**
  * Created by ohlbach on 06.09.2018.
  */
 public class RandomClauseSetGeneratorTest {
-    /*
+
     @Test
     public void help() {
-        System.out.println(RandomClauseSetGenerator.help());
+        //System.out.println(RandomClauseSetGenerator.help());
     }
 
     @Test
     public void keys()  {
         System.out.println("keys");
-        assertEquals("[precises, atleasts, ors, ands, predicates, intervals, lengths, equivs, exactlys, seeds, cpRatios, atmosts]",
+        assertEquals("[seeds, generator, redundant, precises, atleasts, ors, ands, predicates, intervals, lengths, equivs, exactlys, cpRatios, atmosts]",
                 RandomClauseSetGenerator.keys.toString());}
 
+
     @Test
-    public void parseProblemParametersErrors1() {
-        System.out.println("parseProblemParameters Errors 1");
+    public void makeProblemGeneratorErrors1() {
+        System.out.println("makeProblemGenerator Errors 1");
         HashMap<String,String> parameters = new HashMap<>();
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
         parameters.put("predicate","10"); // illegal key, missing predicates
         parameters.put("lengths","3-4a");
         parameters.put("seeds", "seed");
-        assertNull(RandomClauseSetGenerator.parseParameters(parameters,errors,warnings));
+        ArrayList<ProblemGenerator> generators = new ArrayList();
+        RandomClauseSetGenerator.makeProblemGenerator(parameters,generators,errors,warnings);
         System.out.println("Errors\n"+errors.toString());
         System.out.println("Warnings\n"+warnings.toString());
     }
-
+/*
     @Test
     public void parseProblemParametersErrors2() {
         System.out.println("parseProblemParameters Errors no cpRatio");

@@ -20,8 +20,8 @@ import static Utilities.Utilities.pathWithHome;
  * <p>
  * This class is for reading cnf-files. <br>
  * A standard cnf-file has the following structure:<br>
- * c comment<br>
- * c comment<br>
+ * # comment<br>
+ * # comment<br>
  * % ignored lines
  * p cnf predicates clauses [symbolic]<br>
  * clause1 0 <br>
@@ -31,7 +31,7 @@ import static Utilities.Utilities.pathWithHome;
  * <br>
  * An extension of this format may contain clauses beginning with special characters:.<br>
  *
- * '&amp;':  means and:          '& 3 4 5' stands for 3 and 4 and 5.<br>
+ * '&#38;':  means and:          '&#38; 3 4 5' stands for 3 and 4 and 5.<br>
  * 'e':  means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br>
  * '&lt;=': means atleast:      '&lt;= 2 p q r' means atleast two of p,q,r are true.<br>
  * '&gt;=': means atleast:      '&gt;= 2 p q r' means atmost two of p,q,r are true.<br>
@@ -41,7 +41,7 @@ import static Utilities.Utilities.pathWithHome;
  */
 public final class CNFReader extends ProblemGenerator {
 
-    //*// contains the allowed keys in the specification.*/
+    /** contains the allowed keys in the specification.*/
     private static final HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
         Collections.addAll(keys, "generator", "file", "directory", "regExpr");}
@@ -157,7 +157,7 @@ public final class CNFReader extends ProblemGenerator {
 
 
 
-    /** reads the cnf-file and generates a BasicClauseList
+    /** reads the cnf-file and generates a InputClauses
      *
      * @param errorMonitor    for error massages
      * @return null or the new InputClauses.
@@ -176,15 +176,13 @@ public final class CNFReader extends ProblemGenerator {
                 errorMonitor.println("Warnings when parsing clauses "+problemName + "\n"+ errors);}
             if(errors.length() > 0) {
                 errorMonitor.println("Errors when parsing clauses "+problemName + "\n"+ errors);}}
-        System.out.println(errors.toString());
-        System.out.println(warnings.toString());
         if(inputClauses == null) return null;
         inputClauses.problemName = problemName;
         return inputClauses;}
 
-    /** turns the file and, if already filled, the basicClauseList into a string.
+    /** turns the file and, if already filled, the InputClauses into a string.
      *
-     * @return the filename and, if already filled, the basicClauseList
+     * @return the filename and, if already filled, the InputClauses
      */
     public String toString() {
         String st = "CNFReader for file " + file.getAbsolutePath();

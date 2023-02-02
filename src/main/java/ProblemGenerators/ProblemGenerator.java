@@ -147,7 +147,7 @@ public abstract class ProblemGenerator {
         int lineNumber = 0;
         Symboltable symboltable = null;
         StringBuilder info = new StringBuilder();
-        int id = 1;
+        int id = 0;
         boolean inHeader = true;
         boolean firstClauseLineChecked = false;
         while(lineIterator.hasNext()) {
@@ -190,13 +190,14 @@ public abstract class ProblemGenerator {
                     inputClauses.symboltable = symboltable;}
                 firstClauseLineChecked = true;}
 
-            int[] clause = parseLine(line.trim(),id, symboltable,errorPrefix,errors);
+            int[] clause = parseLine(line.trim(),++id, symboltable,errorPrefix,errors);
             if(clause == null) continue;
             clause = InputClauses.checkSyntax(clause,predicates,errorPrefix,errors,warnings);
             if(clause == null) continue;
             ++id;
             inputClauses.addClause(clause);}
         if(info.length() > 0) inputClauses.info = info.toString();
+        inputClauses.nextId = id+1;
         return inputClauses;}
 
     /** extracts the first literal in the line.
