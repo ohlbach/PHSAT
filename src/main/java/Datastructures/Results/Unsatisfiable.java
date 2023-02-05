@@ -2,6 +2,7 @@ package Datastructures.Results;
 
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
+import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -49,7 +50,7 @@ public abstract class Unsatisfiable extends Result {
         if(!steps.isEmpty()) {
             st.append("Sequence of Inference Steps:\n");
             for(InferenceStep step : steps) {
-                if(step.getClass() != InferenceSteps.Input.class)
+                if(step.getClass() != InfInputClause.class)
                     st.append(step.toString(symboltable)).append("\n");}
 
             st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:\n");

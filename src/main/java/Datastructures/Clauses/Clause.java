@@ -8,7 +8,7 @@ import Datastructures.Results.UnsatisfiableClause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses;
 import InferenceSteps.InferenceStep;
-import InferenceSteps.Input;
+import InferenceSteps.InfInputClause;
 import Utilities.Positioned;
 import Utilities.Sizable;
 import Utilities.Utilities;
@@ -67,7 +67,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public Clause(int id) {
         this.id = id;
         cliterals = new ArrayList<>();
-        inferenceStep = new Input(id);
+        inferenceStep = new InfInputClause(id);
     }
 
     /** constructs a clause with an empty list of literals.
@@ -81,7 +81,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         this.connective = connective;
         this.minLimit = minLimit;
         cliterals = new ArrayList<>(size);
-        inferenceStep = new Input(id);
+        inferenceStep = new InfInputClause(id);
     }
 
     /** constructs a new clause with given literals
@@ -96,7 +96,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         this.id = id;
         this.connective = connective;
         this.minLimit = minLimit;
-        inferenceStep = new Input(id);
+        inferenceStep = new InfInputClause(id);
         cliterals = new ArrayList<>(literals.size());
         for (int i = 0; i < literals.size(); ++i) cliterals.add(new CLiteral(literals.getInt(i),this,cliterals.size(),(short)1));
         }
@@ -120,7 +120,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         connective = Connective.getConnective(inputClause[1]);
         assert(connective != null);
         id = inputClause[0];
-        inferenceStep = new Input(id);
+        inferenceStep = new InfInputClause(id);
         int length = inputClause.length;
         int start = 0;
         switch (connective) {
@@ -153,7 +153,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public Clause(int id, Connective connective, int... literals) {
         this.id = id;
-        inferenceStep = new Input(id);
+        inferenceStep = new InfInputClause(id);
         this.connective = connective;
         int start = 0;
         switch (connective) {

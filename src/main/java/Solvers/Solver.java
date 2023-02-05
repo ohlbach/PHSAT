@@ -143,7 +143,7 @@ public abstract class Solver {
     protected boolean monitoring = false;
 
     /** the supervisor which coordinates the work of all solvers or a given problem */
-    public final ProblemSupervisor problemSupervisor;
+    public ProblemSupervisor problemSupervisor;
 
     protected  GlobalParameters globalParameters;
 
@@ -176,6 +176,7 @@ public abstract class Solver {
         this.problemSupervisor  = problemSupervisor;
         trackReasoning          = problemSupervisor.globalParameters.trackReasoning;}
 
+    public Solver() {}
     protected void initialize() {
         solverId                   = (String)solverParameters.get("name");
         problemId                  = problemSupervisor.problemId;

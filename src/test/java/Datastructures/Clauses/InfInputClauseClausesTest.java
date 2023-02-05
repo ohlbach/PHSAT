@@ -7,7 +7,7 @@ import junit.framework.TestCase;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class InputClausesTest extends TestCase {
+public class InfInputClauseClausesTest extends TestCase {
     static Symboltable symboltable = new Symboltable(10);
     static {
         symboltable.setName(1,"p");

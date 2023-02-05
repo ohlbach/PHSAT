@@ -2,6 +2,7 @@ package Datastructures.Theory;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
@@ -40,7 +41,6 @@ import java.util.function.IntSupplier;
  * The first literal (with the smallest predicate) is the representative of the equivalence class. <br>
  * The representative is always positive.
  */
-
 public class EquivalenceClasses  {
     public final ProblemSupervisor problemSupervisor;
 
@@ -58,14 +58,14 @@ public class EquivalenceClasses  {
 
     /** maps literals to the literal occurrences in clauses.
      * It exploits that equivalence classes are disjoint.
-     * Therefore a literal can occur in only a single equivalence clause.
+     * Therefor a literal can occur in only a single equivalence clause.
      */
     private final HashMap<Integer, CLiteral> literalIndex = new HashMap<>();
 
     /** the global model of true literals */
     public final Model model;
 
-    /** null or a the global symboltable */
+    /** null or the global symboltable */
     public Symboltable symboltable;
 
     /** for logging the actions of this class */
@@ -79,6 +79,8 @@ public class EquivalenceClasses  {
 
     /** for computing the next clause id */
     private IntSupplier nextId = null;
+
+    public ArrayList<EquivalenceClass> equivalenceClasses;
 
 
     /** These two types can occur in the task queue */
@@ -112,8 +114,8 @@ public class EquivalenceClasses  {
      * @param problemSupervisor         the problem supervisor
      */
     public EquivalenceClasses(ProblemSupervisor problemSupervisor) {
-        problemSupervisor.equivalenceClasses = this;
         this.problemSupervisor = problemSupervisor;
+        InputClauses inputClauses = problemSupervisor.inputClauses;
         problemId = problemSupervisor.problemId;
         model = problemSupervisor.model;
         symboltable = null; //model.symboltable;
@@ -128,6 +130,16 @@ public class EquivalenceClasses  {
             */
 
     }
+
+    /** turns all equivalences from the input clauses into EquivalenceClass objects.
+     *
+     * @param equivalences the equivalence classes from the input clauses
+     * @throws Unsatisfiable if a contradiction is discovered.
+     */
+    public void equivalenceClauses2Class(ArrayList<int[]> equivalences) throws Unsatisfiable {
+        for(int[] equivalence : equivalences) {
+            EquivalenceClass equivalenceClass = EquivalenceClass.makeEquivalenceClass(equivalence,model,trackReasoning);
+            if(equivalenceClass != null) equivalenceClasses.add(equivalenceClass);}}
 
     /** Any solver which is interested to know about newly derived equivalences can add an observer.
      * The observer is called with (literal1, literal2, origins) as soon as new equivalences

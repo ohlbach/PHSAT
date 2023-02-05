@@ -2,16 +2,18 @@ package Solvers.Walker;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import Management.ErrorReporter;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
-import Utilities.Utilities;
 import Utilities.IntegerQueue;
+import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
@@ -19,11 +21,13 @@ import java.util.function.IntConsumer;
 
 public class Walker extends Solver {
 
-    private final ArrayList<WClause> wClauses;         // collects all clauses
-    private final ArrayList<WClause>[] posOccurrences; // maps predicate to clauses containing them positively
-    private final ArrayList<WClause>[] negOccurrences; // maps predicate to clauses containing them negatively
-    protected final boolean[] localModel;              // maps all predicates to a truth value
-    private final IntegerQueue predicateQueue;         // sorts the predicates according to the flipScore.
+    private ArrayList<Solver> workerSolvers = new ArrayList<>();
+
+    private ArrayList<WClause> wClauses;         // collects all clauses
+    private ArrayList<WClause>[] posOccurrences; // maps predicate to clauses containing them positively
+    private ArrayList<WClause>[] negOccurrences; // maps predicate to clauses containing them negatively
+    protected boolean[] localModel;              // maps all predicates to a truth value
+    private IntegerQueue predicateQueue;         // sorts the predicates according to the flipScore.
                                                        // predicates whose flip makes more clauses true come to the front
     private static final int jumpFrequencyDefault = 10;
     public  int jumpFrequency;                   // after jumpFrequency many flips, a random jump is inserted
@@ -31,7 +35,7 @@ public class Walker extends Solver {
     public  int maxFlips;                        // maximum number of allowed flips
     public WalkerStatistics statistics;                // collects statistical information
     private final int seed;                                  // for the random number generator
-    private final Random random;                       // random number generator for flip jumps
+    private  Random random;                       // random number generator for flip jumps
     private int idWidth = 0;
 
     private int flipHistoryLength = 5;
@@ -45,26 +49,25 @@ public class Walker extends Solver {
 
     public static String help() {
         return "Random Walker: parameters:\n" +
-                "seed:   for the random number generator      (default: 0)\n" +
+                "seeds:  for the random number generator      (default: 0)\n" +
                 "flips:  for restricting the number of flips  (default: Max_Integer).\n" +
                 "jumps:  frequency of random jumps            (default: 10)\n";}
 
     private static final HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
     static { // these are the allowed keys in the specification.
-        Collections.addAll(keys, "name", "seed", "flips", "jumps", "type", "solver");}
+        Collections.addAll(keys, "seeds", "flips", "jumps", "solver");}
 
     /** parses a HashMap with key-value pairs<br>
      *
      * @param parameters  the parameters with the keys "seed", "flips", "jumps"
-     * @param errors      for error messages
-     * @param warnings    for warnings
-     * @return            a list of HashMaps with these keys.
+     * @return            a list of Walker solvers
      */
-    public static ArrayList<HashMap<String,Object>> parseParameters(HashMap<String,String> parameters, StringBuilder errors, StringBuilder warnings){
+    public static ArrayList<Solver> makeSolvers(HashMap<String,String> parameters){
         for(String key : parameters.keySet()) {
             if(!keys.contains(key)) {
-                warnings.append("Walker: unknown key in parameters: " + key + "\n" +
+                ErrorReporter.reportWarning("Walker: unknown key in parameters: " + key + "\n" +
                                 "        allowed keys: seed, flips, jumps.\n");}}
+        StringBuilder errors = new StringBuilder();
         ArrayList<HashMap<String,Object>> list = new ArrayList<>();
         String seeds = parameters.get("seed");
         if(seeds == null) seeds = "0";
@@ -72,32 +75,33 @@ public class Walker extends Solver {
         if(flips == null) flips = Integer.toString(maxFlipsDefault);
         String jumps = parameters.get("jumps");
         if(jumps == null) jumps = Integer.toString(jumpFrequencyDefault);
-
         String place = "Walker: ";
-
-        ArrayList seed = Utilities.parseIntRange(place+"seed: ",seeds,errors);
-        ArrayList flip = Utilities.parseIntRange(place+"flips: ",flips,errors);
-        ArrayList jump = Utilities.parseIntRange(place+"jumps: ",jumps,errors);
-        ArrayList<ArrayList> pars = Utilities.crossProduct(seed,flip,jump);
-        int counter = 0;
+        ArrayList seedA = Utilities.parseIntRange(place+"seed: ",seeds,errors);
+        ArrayList flipA = Utilities.parseIntRange(place+"flips: ",flips,errors);
+        ArrayList jumpA = Utilities.parseIntRange(place+"jumps: ",jumps,errors);
+        if(errors.length() > 0) ErrorReporter.reportErrorAndStop("Check walker parameters!");
+        ArrayList<ArrayList> pars = Utilities.crossProduct(seedA,flipA,jumpA);
+        ArrayList<Solver> solvers = new ArrayList<>();
         for(ArrayList<Object> p : pars ) {
-            HashMap<String,Object> map = new HashMap<>();
-            map.put("seed",p.get(0));
-            map.put("flips",p.get(1));
-            map.put("jumps",p.get(2));
-            map.put("name","W" + ++counter);
-            list.add(map);}
-        return list;}
+            int seedV  = (int)p.get(0);
+            int flipsV = (int)p.get(1);
+            int jumpsV = (int) p.get(2);
+            if(seedV < 0)   errors.append("Walker: seed < 0: ").append(seedV).append("\n");
+            if(flipsV <= 0) errors.append("Walker: flips <= 0: ").append(flipsV).append("\n");
+            if(jumpsV <= 0) errors.append("Walker: jumps <= 0: ").append(jumpsV).append("\n");
+            if(errors.length() > 0) ErrorReporter.reportErrorAndStop("Check walker parameters!");
+            solvers.add(new Walker(seedV,flipsV,jumpsV));}
+        return solvers;}
+
+    public Walker(int seed, int maxFlips, int jumpFrequency) {
+        this.seed = seed;
+        this.maxFlips = maxFlips;
+        this.jumpFrequency = jumpFrequency;}
 
 
-    /** constructs a new Walker solver.
-     *
-     * @param solverNumber         for distinguishing different solvers of the same type, but different parameters
-     * @param solverParameters     contains the parameters for controlling the solver
-     * @param problemSupervisor    coordinates several solvers.
+    /** initializes the walker
      */
-    public Walker(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
-        super(solverNumber,solverParameters, problemSupervisor);
+    public void initialize() {
         super.initialize();
         posOccurrences = new ArrayList[predicates+1];
         negOccurrences = new ArrayList[predicates+1];
@@ -107,13 +111,20 @@ public class Walker extends Solver {
         localModel     = new boolean[predicates+1];
         predicateQueue = new IntegerQueue(predicates);
         predicateQueue.setScore(0,Short.MIN_VALUE);
-        seed           = (int)solverParameters.get("seed");
         random         = new Random(seed);
-        maxFlips       = (int)solverParameters.get("flips");
-        jumpFrequency  = (int)solverParameters.get("jumps");
         statistics     = new WalkerStatistics(combinedId);
         wClauses       = new ArrayList<>();}
 
+    /** clones the Walker, such that it can work at different problems.
+     *
+     * @param problemSupervisor for the actual problem
+     * @return a cloned Walker solver.
+     */
+    public Solver clone(ProblemSupervisor problemSupervisor) {
+        Walker walker = new Walker(seed,jumpFrequency,maxFlips);
+        walker.problemSupervisor = problemSupervisor;
+        workerSolvers.add(walker);
+        return walker;}
 
     /** collects globally true literals which are inserted by other solvers  into the global model */
     private final IntArrayList globallyTrueLiterals = new IntArrayList();
@@ -158,7 +169,7 @@ public class Walker extends Solver {
      * @return the result of the solver
      */
     @Override
-    public Result solve() {
+    public Result solveProblem(InputClauses inputClauses) {
      //   globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.nanoTime();
         initializeModel();

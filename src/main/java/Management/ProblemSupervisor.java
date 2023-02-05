@@ -1,6 +1,7 @@
 package Management;
 
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
+import Datastructures.Clauses.Connective;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
 import Datastructures.Results.*;
@@ -8,6 +9,7 @@ import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
+import InferenceSteps.InfInputClause;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
 
@@ -53,22 +55,31 @@ public class ProblemSupervisor {
     public SupervisorStatistics statistics = null;
     private ProblemGenerator problemGenerator;
 
+    private boolean trackReasoning;
+
     public ProblemSupervisor(GlobalParameters globalParameters, ProblemGenerator problemGenerator,
                              ArrayList<Solver> solvers) {
         this.globalParameters = globalParameters;
         jobname               = globalParameters.jobname;
+        trackReasoning        = globalParameters.trackReasoning;
         problemId             = (String)problemParameters.get("name");
         this.problemGenerator = problemGenerator;
         this.solvers          = solvers;
     }
 
+    int predicates;
     public int clauseCounter = 0;
 
     public synchronized int nextClauseId() {
         return ++clauseCounter;}
 
     public void solveProblem()  {
-        try{
+        try {
+            inputClauses = problemGenerator.generateProblem(null);
+            model = new Model(inputClauses.predicates);
+            conjunctions2Model(inputClauses.conjunctions);
+            equivalenceClasses = new EquivalenceClasses(this);
+            equivalenceClasses.equivalenceClauses2Class(inputClauses.equivalences);
             numberOfSolvers = solvers.size();
             statistics.solvers = numberOfSolvers;
             threads = new Thread[numberOfSolvers];
@@ -78,10 +89,20 @@ public class ProblemSupervisor {
                 threads[i] = new Thread(() -> {results[j] = solvers.get(j).solveProblem(inputClauses);});}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
+        catch(Unsatisfiable uns) {}
         catch(Exception ex) {}
         globalParameters.logstream.println("Solvers finished for problem " + problemId);}
 
-
+    /** inserts the initial conjunctions (if any) into the model
+     *
+     * @param conjunctions a list of input clauses
+     * @throws Unsatisfiable if the conjunctions are contradictory
+     */
+    private void conjunctions2Model(ArrayList<int[]> conjunctions) throws Unsatisfiable {
+        for(int[] inputClause : conjunctions) {
+            assert inputClause[1] == Connective.AND.ordinal();
+            for(int i = 2; i < inputClause.length; ++i) {
+                model.add(inputClause[i],trackReasoning ? new InfInputClause(inputClause[0]) : null);}}}
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.
      * If the solver succeeded (satisfiable or unsatisfiable) then all other solvers are interrupted. <br>

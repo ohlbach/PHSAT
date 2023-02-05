@@ -9,7 +9,7 @@ import java.util.ArrayList;
  * Instead it documents that the clause comes from some input.
  *
  */
-public class Input extends InferenceStep{
+public class InfInputClause extends InferenceStep{
 
     public static String title = "Input";
 
@@ -21,7 +21,7 @@ public class Input extends InferenceStep{
      *
      * @param origin
      */
-    public Input(int origin) {
+    public InfInputClause(int origin) {
         this.origin = origin;}
 
     @Override
