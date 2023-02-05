@@ -171,22 +171,22 @@ public class InitializerSimplifier {
 
     public void integrateBasicClauses() throws Unsatisfiable {
         try{
-            InputClauses basicClauses = problemSupervisor.inputClauses;
-            for(int[] basicClause : basicClauses.conjunctions) {
+            InputClauses inputClauses = problemSupervisor.inputClauses;
+            for(int[] basicClause : inputClauses.conjunctions) {
                 integrateAnd(new Clause(basicClause));}
-            for(int[] basicClause : basicClauses.equivalences) {
+            for(int[] basicClause : inputClauses.equivalences) {
                 equivalenceClasses.addBasicEquivalenceClause(basicClause);}
             model.addObserver(this::addTrueLiteral);
             equivalenceClasses.addObserver(this::addEquivalence);
-            for(int[] basicClause : basicClauses.disjunctions) {
+            for(int[] basicClause : inputClauses.disjunctions) {
                 integrateClause(new Clause(basicClause));}
-            for(int[] basicClause : basicClauses.atleasts) {
+            for(int[] basicClause : inputClauses.atleasts) {
                 integrateClause(new Clause(basicClause));}
-            for(int[] basicClause : basicClauses.atmosts) {
+            for(int[] basicClause : inputClauses.atmosts) {
                 integrateClause(new Clause(basicClause));}
-            for(int[] basicClause : basicClauses.exacltys) {
+            for(int[] basicClause : inputClauses.exacltys) {
                 integrateClause(new Clause(basicClause));}
-            for(int[] basicClause : basicClauses.intervals) {
+            for(int[] basicClause : inputClauses.intervals) {
                 for(Clause clause : Clause.intervalClause(problemSupervisor::nextClauseId,basicClause))
                 integrateClause(clause);}}
         catch(Unsatisfiable unsatisfiable) {

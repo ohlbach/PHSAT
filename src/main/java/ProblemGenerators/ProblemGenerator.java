@@ -19,18 +19,13 @@ import static Utilities.Utilities.parseInteger;
  * The generator classes generate SAT-Problems from different sources. <br>
  * Each generator class should provide the following static methods: <br>
  *  - public static help()  for producing a help text<br>
- *  - public static ArrayList&lt;HashMap&lt;String,Object&gt;&gt; parseParameters(HashMap&lt;String,String&gt; parameters, Monitor errors, Monitor warnings) <br>
- *  - public static HashMap&lt;String,Object&gt; generate(HashMap&lt;String,Object&gt; parameters,
- *               ProblemSupervisor problemSupervisor, Monitor errors, Monitor warnings) <br>
+ *  - public static void makeProblemGenerator(HashMap&lt;String,String&gt; parameters,
+ *                                             ArrayList&lt;ProblemGenerator&gt; generators,
+ *                                             StringBuilder errors, StringBuilder warnings) <br>
+ *  - public InputClauses generateProblem(Monitor errorMonitor); <br>
  * <br>
- * The parseParameters method turns parameters as strings into sequences of parameters as objects <br>
- * The generate method generates InputClausees and puts them as parameter "clauses" into the parameters map.
- * <br>
- * One can add a new generator class by extending the variable 'generators' and the method 'generatorClass'.
- * <br>
- * The class has only static methods" <br>
- * Created by ohlbach on 09.10.2018.
- */
+ * The makeProblemGenerator method turns parameters as strings into a ProblemGenerator object which then can generate the problem. <br>
+  */
 public abstract class ProblemGenerator {
 
     /** the constructor is never used */

@@ -44,7 +44,7 @@ public final class CNFReader extends ProblemGenerator {
     /** contains the allowed keys in the specification.*/
     private static final HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
-        Collections.addAll(keys, "generator", "file", "directory", "regExpr");}
+        Collections.addAll(keys, "generator", "files", "directories", "regExprs");}
 
     /** the cnf file */
     private final File file;
@@ -64,10 +64,10 @@ public final class CNFReader extends ProblemGenerator {
     public static String help() {
         return "CNFReader for reading CNF-Files.\n" +
                 "The parameters are:\n" +
-                "  file:      A single filename or a comma-separated list of filenames.\n" +
-                "  directory: A single directory name or a comma-separated list of directory names.\n" +
-                "             All files in the directory ending with .cnf are loaded, unless regExpr is defined.\n" +
-                "  regExpr:   A regular expression to select files in the directory.\n\n" +
+                "  files:       A single filename or a comma-separated list of filenames.\n" +
+                "  directories: A single directory name or a comma-separated list of directory names.\n" +
+                "               All files in the directory ending with .cnf are loaded, unless regExpr is defined.\n" +
+                "  regExprs:    A regular expression to select files in the directory.\n\n" +
                 "A standard cnf-file has the following structure:\n" +
                 " # comment\n" +
                 " # comment\n" +
@@ -106,9 +106,9 @@ public final class CNFReader extends ProblemGenerator {
             if(!keys.contains(key)) {
                 warnings.append("CNFReader: Unknown key in parameters: ").append(key).append("\n");}}
 
-        String files       = parameters.get("file");
-        String directories = parameters.get("directory");
-        String regExprs    = parameters.get("regExpr");
+        String files       = parameters.get("files");
+        String directories = parameters.get("directories");
+        String regExprs    = parameters.get("regExprs");
         if(files != null) {
             for(String filename : files.split("\\s*[, ]\\s*")) {
                 if(!filename.endsWith(".cnf")) {

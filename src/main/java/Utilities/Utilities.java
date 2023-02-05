@@ -156,6 +156,7 @@ public class Utilities {
      */
     public static ArrayList<Float> parseFloatRange(String place, String value, StringBuilder errors) {
         ArrayList<Float> range = new ArrayList();
+        float factor = 1000;
         try{Float n =  Float.parseFloat(value);
             range.add(n);
             return range;}
@@ -169,10 +170,10 @@ public class Utilities {
                     if(from != null && to != null && step != null) {
                         if(step < 0) {errors.append(place+": negative step " + step); return null;}
                         if(to < from) {errors.append(place+ "to < from: " + value); return null;}
-                        for(float n = from; n <= to; n += step) {range.add(n);}}
+                        for(float n = from*factor; n <= to*factor; n += step*factor) {range.add(n/factor);}}
                     else {return null;}
                     return range;}
-            for(String part : value.split("\\s*,\\s*")) {
+            for(String part : value.split("\\s*[, ]\\s*")) {
                 Float n = parseFloat(place,part,errors);
                 if(n != null) {range.add(n);}
                 else {return null;}}

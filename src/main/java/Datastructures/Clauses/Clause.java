@@ -102,7 +102,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         }
 
 
-    /** generates a clause from a basicClause
+    /** generates a clause from a inputClause
      * The constructor does not work for INTERVAL-type basic clauses.<br>
      * The new clause gets the same id as the basic clause.<br>
      * There is no semantic check.<br>
@@ -114,27 +114,27 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * If the limit of ATLEAST-clauses is 1,the connective is set to OR.
      * The clause's structure is set to POSITIVE,NEGATIVE or MIXED.
      *
-     * @param basicClause a basic clause [id,typenumber, limit, literal1,...]
+     * @param inputClause a basic clause [id,typenumber, limit, literal1,...]
      */
-    public Clause(int[] basicClause) {
-        connective = Connective.getConnective(basicClause[1]);
+    public Clause(int[] inputClause) {
+        connective = Connective.getConnective(inputClause[1]);
         assert(connective != null);
-        id = basicClause[0];
+        id = inputClause[0];
         inferenceStep = new Input(id);
-        int length = basicClause.length;
+        int length = inputClause.length;
         int start = 0;
         switch (connective) {
             case OR:       minLimit = 1; start = 2; maxLimit = (short)(length - start); break;
             case AND:
             case EQUIV:    minLimit = 1; start = 2; break;
-            case ATLEAST:  minLimit = (short)basicClause[2]; start = 3; maxLimit = (short)(length - start); break;
-            case ATMOST:   minLimit = 0; maxLimit = (short)basicClause[2]; start = 3; break;
-            case EXACTLY:  minLimit = (short)basicClause[2]; maxLimit = minLimit; start = 3; break;
-            case INTERVAL: minLimit = (short)basicClause[2]; maxLimit = (short)basicClause[3]; start = 4; break;
+            case ATLEAST:  minLimit = (short)inputClause[2]; start = 3; maxLimit = (short)(length - start); break;
+            case ATMOST:   minLimit = 0; maxLimit = (short)inputClause[2]; start = 3; break;
+            case EXACTLY:  minLimit = (short)inputClause[2]; maxLimit = minLimit; start = 3; break;
+            case INTERVAL: minLimit = (short)inputClause[2]; maxLimit = (short)inputClause[3]; start = 4; break;
             default: assert(false);} // should not happen.
 
         cliterals = new ArrayList<>(length - start);
-        for (int i = start; i < length; ++i) add(basicClause[i],(short)1);}
+        for (int i = start; i < length; ++i) add(inputClause[i],(short)1);}
 
     /** creates a new clause with the given literals
      * The constructor does not work for INTERVAL-type basic clauses.<br>

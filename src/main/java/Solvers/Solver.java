@@ -1,8 +1,8 @@
 package Solvers;
 
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
-import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
@@ -11,7 +11,6 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor.Monitor;
-import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import Solvers.RecursiveSearch.RecursiveSearcher;
 import Solvers.Walker.Walker;
@@ -35,7 +34,7 @@ public abstract class Solver {
        *********************** */
 
     /** the list of all solver types */
-    public static String[] solvers = new String[]{"simplifier","walker","recursiveSearch"};
+    public static String[] solvers = new String[]{"simplifier","walker","recursiveSearch","resolution"};
 
     /** checks if the name is a solver name
      *
@@ -90,21 +89,30 @@ public abstract class Solver {
 
     /** parses the string-type parameters into sequences of objects
      *
-     * @param solverName the solver name
-     * @param parameters a key-value map with parameters as strings
-     * @param errors     for collecting error messages
-     * @param warnings   for collecting warning messages
-     * @return           a list of key-value maps where the values are objects.
+     * @param parameterList the parameters
+     * @param errors        for collecting error messages
+     * @param warnings      for collecting warning messages
+     * @return              a list of solvers
      */
-    public static ArrayList<HashMap<String,Object>> parseParameters(String solverName, HashMap<String,String> parameters,
-                                                                    Monitor errors, Monitor warnings) {
-        Class clazz = solverClass(solverName);
-        if(clazz == null) {errors.print("Unknown solver class: " + solverName+"\n"); return null;}
-        try{
-            Method parser = clazz.getMethod("parseParameters",HashMap.class, MonitorLife.class, MonitorLife.class);
-            return (ArrayList<HashMap<String,Object>>)parser.invoke(null,parameters,errors,warnings);}
-        catch(Exception ex) {ex.printStackTrace();System.exit(1);}
-        return null;}
+    public static ArrayList<Solver> makeSolver(ArrayList<HashMap<String,String>> parameterList,
+                                               StringBuilder errors, StringBuilder warnings) {
+        ArrayList<Solver> solvers = new ArrayList<>();
+        for(HashMap<String,String> parameters: parameterList) {
+            String type = parameters.get("solver");
+            if(type == null) continue;
+            Class clazz = solverClass(type);
+            if(clazz == null) {
+                errors.append("Solver: Unknown solver class: ").append(type); continue;}
+            try{
+                Method makeSolver = clazz.getMethod("makeSolver",HashMap.class,
+                        ArrayList.class, StringBuilder.class, StringBuilder.class);
+                makeSolver.invoke(null,parameters,solvers,errors,warnings);}
+            catch(Exception ex) {ex.printStackTrace();System.exit(1);}}
+        return solvers;}
+
+
+
+
 
     /** constructs a new solver of the given type
      *
@@ -226,7 +234,7 @@ public abstract class Solver {
      *
      * @return Un/Satisfiable or null
      */
-    public abstract Result solve();
+    public abstract Result solveProblem(InputClauses inputClauses);
 
     public abstract void prepare();
 

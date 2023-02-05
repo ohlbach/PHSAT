@@ -1,8 +1,8 @@
 package Management;
 
 import Datastructures.Statistics.Statistic;
-import Management.Monitor.Monitor;
-import Management.Monitor.MonitorLife;
+import ProblemGenerators.ProblemGenerator;
+import Solvers.Solver;
 import Utilities.Utilities;
 
 import java.io.File;
@@ -11,108 +11,93 @@ import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 /**
  * Created by Ohlbach on 03.09.2018.<br>
  *
  * This class controls the processing of the problems. <br>
  * It <br>
- * - analyses the input parameters <br>
  * - reads or generates the QUSAT-problems<br>
  * - distributes them over several threads <br>
  * - activates the solvers <br>
  * - collects the results and statistics
  */
 public class Controller {
-    public String jobname;
 
-    public final GlobalParameters                  globalParameters;
-    public final HashMap<String,Object>            initializeParameters;
-    public final ArrayList<HashMap<String,Object>> problemParameters;
-    public final ArrayList<HashMap<String,Object>> solverParameters;
+    /** The global parameters */
+    public final GlobalParameters globalParameters;
 
-    public ArrayList<ProblemSupervisor> problemSupervisors = null;
-    public Thread[] threads = null;
-    public final Monitor errors;
-    public final Monitor warnings;
+    /** collects the problem supervisors */
+    public ArrayList<ProblemSupervisor> problemSupervisors = new ArrayList<>();
+
+    /** The problem solvers */
+    public final ArrayList<Solver> solvers;
+
+    /** index of the next problem supervisor */
+    private int nextProblemSupervisor = 0;
 
 
     /** generates a new controller
      *
-     * @param globalParameters   for global control
-     * @param problemParameters  the problem specifications
-     * @param solverParameters   the solver specifications
+     * @param globalParameters   for global control parameters
+     * @param problemGenerators  the problem generators
+     * @param solvers            the solvers
      */
-    public Controller(String jobname,
-                      GlobalParameters globalParameters,
-                      HashMap<String,Object> initializeParameters,
-                      ArrayList<HashMap<String,Object>> problemParameters,
-                      ArrayList<HashMap<String,Object>> solverParameters,
-                      Monitor errors, Monitor warnings) {
-        this.jobname = jobname;
+    public Controller(GlobalParameters globalParameters, ArrayList<ProblemGenerator> problemGenerators,
+                      ArrayList<Solver> solvers) {
         this.globalParameters  = globalParameters;
-        this.initializeParameters = initializeParameters;
-        this.problemParameters = problemParameters;
-        this.solverParameters  = solverParameters;
-        this.errors            = errors;
-        this.warnings          = warnings;}
+        this.solvers = solvers;
+        for(ProblemGenerator problemGenerator : problemGenerators) {
+            problemSupervisors.add(new ProblemSupervisor(globalParameters,problemGenerator,solvers));}
+    }
 
+    /** The method can be called from different threads to get the next unprocessed ProblemSupervisor.
+     *
+     * @return null or the next ProblemSupervisor which has not yet been processed.
+     */
+    private synchronized ProblemSupervisor getNextProblemSupervisor() {
+        return (nextProblemSupervisor == problemSupervisors.size()) ?
+                null : problemSupervisors.get(nextProblemSupervisor++);}
 
-    /** controls the solution of the problems.
-     * A ProblemSupervisor is generated for each problem.
-     * The problemSupervisors are distributed among some threads.
-     * Each problemSupervisor generates the problem and invokes the different solvers.
-     * The results are printed to the various streams.
+    /** gets and processes the unprocessed ProblemSupervisors.
+     * The method can be called from different threads to get then next unprocessed ProblemSupervisor and calls
+     * its solveProblem() method.
+     */
+    private void processProblems() {
+        ProblemSupervisor problemSupervisor;
+        while ((problemSupervisor = getNextProblemSupervisor()) != null) problemSupervisor.solveProblem();}
+
+    /** creates threads which call the solveProblem() methods of the ProblemSupervisors.
+     * The number of threads is determined such that all but one core gets busy
+     * and there are free cores for each solver.
+     * Each thread then fetches the next unprocessed ProblemSupervisor and calls its solveProblem() method.
      */
     public void solveProblems() {
+        String jobname = globalParameters.jobname;
         globalParameters.logstream.println("Starting job " + jobname + " at " + LocalDateTime.now());
-        problemSupervisors = new ArrayList<>();
-        for (HashMap<String, Object> problemParameter : problemParameters) {
-            problemSupervisors.add(
-                    new ProblemSupervisor(this, globalParameters, problemParameter, initializeParameters, solverParameters));}
         long start = System.nanoTime();
-        distributeProblems();
-        errors.flush(true);
-        warnings.flush(true);
+        int numberOfCores = Runtime.getRuntime().availableProcessors() - 1; // one core as spare
+        int numberOfSolvers = solvers.size();
+        int simultaneousProblems = Math.max(1, numberOfCores / numberOfSolvers);
+        Thread[] threads = new Thread[simultaneousProblems];
+        for (int i = 0; i < simultaneousProblems; ++i) {
+            Thread thread = new Thread(this::processProblems);
+            threads[i] = thread;
+            thread.start();}
+        try {for (int i = 0; i < simultaneousProblems; ++i) threads[i].join();}
+        catch (InterruptedException ex) {
+            ErrorReporter.reportErrorAndStop(ex.toString());}
         long end = System.nanoTime(); // only the elapsed solution time is reported.
         reportResults();
         globalParameters.logstream.println("Ending job   " + jobname + " at " + LocalDateTime.now());
         globalParameters.logstream.println("Elapsed time" + (float)(end-start)/1000.0 + " ms");
         globalParameters.logstream.close();
-        }
+    }
 
 
-    /** distributes the problems to different threads.
-     */
-    private void distributeProblems(){
-        int nthreads = globalParameters.parallel; // parallel = 5 means: 5 threads work on the problems in parallel
-        if(nthreads <= 1) {
-            Thread.currentThread().setName("T0");
-            solveProblems(0,problemSupervisors.size()); // sequential processing
-            return;}
-        int nproblems = problemSupervisors.size();
-        int groupSize = nproblems / nthreads;
-        if(nproblems % nthreads != 0) {++groupSize;}
-        int groupsize = groupSize;
-        threads = new Thread[nthreads];
-        int group = -1;
-        for(int thread = 0; thread < nthreads; ++thread) {
-            int start = group++ * groupsize;
-            threads[thread] = new Thread(()->solveProblems(start,groupsize),"T"+thread);}
-        for(int n = 0; n < nthreads; ++n) {threads[n].start();}
-        for(int n = 0; n < nthreads; ++n) {
-            try {threads[n].join();} catch (InterruptedException e) {}}}
 
 
-    /** solves a group of problems
-     *
-     * @param start the index of the first problem to be solved.
-     * @param size the number of problems to be solved sequentially
-     */
-     private void solveProblems(int start, int size)  {
-        for(int i = start; i < start+size; ++i) {
-            if(i < problemSupervisors.size())  problemSupervisors.get(i).solveProblem(errors,warnings);}}
+
 
     /** collects and prints all statistics
      */
@@ -181,6 +166,7 @@ public class Controller {
 
     /** prints all results to the resultfile.*/
     private void reportResults() {
+        String jobname = globalParameters.jobname;
         PrintStream stream = System.out;
         if(globalParameters.directory != null) {
             File file = Paths.get(globalParameters.directory.toString(),jobname+"-results.txt").toFile();

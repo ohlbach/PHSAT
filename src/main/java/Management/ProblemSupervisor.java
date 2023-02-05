@@ -8,7 +8,7 @@ import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
-import Management.Monitor.Monitor;
+import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
 
 import java.io.PrintStream;
@@ -31,7 +31,6 @@ public class ProblemSupervisor {
     public Result result = null;
     private String solver = null;
     Thread[] threads;
-    Solver[] solvers;
     Result[] results;
     int numberOfSolvers;
     public Controller controller;
@@ -49,24 +48,18 @@ public class ProblemSupervisor {
 
     public Thread supervisorThread;
 
-
+    private ArrayList<Solver> solvers;
 
     public SupervisorStatistics statistics = null;
+    private ProblemGenerator problemGenerator;
 
-    public ProblemSupervisor(Controller controller,
-                             GlobalParameters globalParameters,
-                             HashMap<String,Object> problemParameters,
-                             HashMap<String,Object> initializeParameters,
-                             ArrayList<HashMap<String,Object>> solverParameters) {
-        this.controller             = controller;
-        jobname                     = controller.jobname;
-        problemId                   = (String)problemParameters.get("name");
-        this.globalParameters       = globalParameters;
-        this.initializeParameters   = initializeParameters;
-        this.problemParameters      = problemParameters;
-        this.solverParameters       = solverParameters;
-        statistics                  = new SupervisorStatistics(problemId);
-        supervisorThread            = Thread.currentThread();
+    public ProblemSupervisor(GlobalParameters globalParameters, ProblemGenerator problemGenerator,
+                             ArrayList<Solver> solvers) {
+        this.globalParameters = globalParameters;
+        jobname               = globalParameters.jobname;
+        problemId             = (String)problemParameters.get("name");
+        this.problemGenerator = problemGenerator;
+        this.solvers          = solvers;
     }
 
     public int clauseCounter = 0;
@@ -74,42 +67,20 @@ public class ProblemSupervisor {
     public synchronized int nextClauseId() {
         return ++clauseCounter;}
 
-    public void solveProblem(Monitor errors, Monitor warnings)  {
-        if(!generateProblem(errors, warnings)) return;
-        initializer = new InitializerSimplifier(1,initializeParameters,this);
-        result = initializer.initialize();
-        if(result != null) return;
+    public void solveProblem()  {
         try{
-            numberOfSolvers = solverParameters.size();
-            solvers = new Solver[numberOfSolvers];
+            numberOfSolvers = solvers.size();
             statistics.solvers = numberOfSolvers;
-            for(int i = 0; i < numberOfSolvers; ++i) {
-                HashMap<String,Object> solverParameter = solverParameters.get(i);
-                solvers[i] = Solver.construct((String)solverParameter.get("type"),i,solverParameter,this);}
             threads = new Thread[numberOfSolvers];
             results = new Result[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) {
                 int j = i;
-                threads[i] = new Thread(() -> {results[j] = solvers[j].solve();});}
+                threads[i] = new Thread(() -> {results[j] = solvers.get(j).solveProblem(inputClauses);});}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
         catch(Exception ex) {}
         globalParameters.logstream.println("Solvers finished for problem " + problemId);}
 
-
-
-    /** reads or generates the SAT-clauses
-     *
-     * @return true if method succeeded, false if an error has occurred
-     */
-    public boolean generateProblem(Monitor errorMonitor, Monitor warningMonitor) {
-        StringBuilder errors   = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
-        String type = (String)problemParameters.get("type");
-        //basicClauseList = Generator.generate(type,problemParameters,this,errors,warnings);
-        if(errors.length() != 0)   errorMonitor.print(type,errors);
-        if(warnings.length() != 0) warningMonitor.print(type,errors);
-        return inputClauses != null;}
 
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.
@@ -138,10 +109,10 @@ public class ProblemSupervisor {
      * @return the array of Statistics objects.
      */
     public Statistic[] collectStatistics() {
-        Statistic[] statistics = new Statistic[2+solvers.length];
+        Statistic[] statistics = new Statistic[2+solvers.size()];
         statistics[0] = this.statistics;
         statistics[1] = inputClauses.getStatistics(problemId);
-        for(int i = 0; i < solvers.length; ++i) {statistics[i+2] = solvers[i].getStatistics();}
+        for(int i = 0; i < solvers.size(); ++i) {statistics[i+2] = solvers.get(i).getStatistics();}
         return statistics;
     }
 

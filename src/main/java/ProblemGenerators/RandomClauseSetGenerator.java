@@ -25,7 +25,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
     protected static final HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
         Collections.addAll(keys,"generator", "seeds", "predicates", "cpRatios", "lengths", "precises",
-                "redundants", "ors", "ands", "equivs", "atleasts", "atmosts", "exactlys", "intervals");
+                "redundants", "ors", "ands", "equivs", "atleasts", "atmosts", "exactlies", "intervals");
     }
 
     /** the original parameters (for documentation only. */
@@ -69,11 +69,11 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      * @param equivs       the number of equivalences.
      * @param atleasts     the number of atleast clauses.
      * @param atmosts      the number of atmost clauses.
-     * @param exactly      the number of exactly clauses.
+     * @param exactlies      the number of exactlies clauses.
      * @param intervals    the number of interval clauses.
      */
     public RandomClauseSetGenerator(HashMap<String,String> parameters, int seed, int predicates, int length, boolean precise, boolean redundant,
-                                    int ors, int ands, int equivs, int  atleasts, int atmosts, int exactly,
+                                    int ors, int ands, int equivs, int  atleasts, int atmosts, int exactlies,
                                     int intervals) {
         this.parameters = parameters;
         this.seed       = seed;
@@ -86,7 +86,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         this.equivs     = equivs;
         this.atleasts   = atleasts;
         this.atmosts    = atmosts;
-        this.exactly    = exactly;
+        this.exactly    = exactlies;
         this.intervals  = intervals;
     }
 
@@ -118,7 +118,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                 "equivs:     an integer >= 0, specifies the number of equivalences to be generated.\n" +
                 "atleasts:   an integer >= 0, specifies the number of atleast clauses to be generated.\n" +
                 "atmosts:    an integer >= 0, specifies the number of atmost clauses  to be generated.\n" +
-                "exactlys:   an integer >= 0, specifies the number of exactly clauses to be generated.\n" +
+                "exactlies:  an integer >= 0, specifies the number of exactly clauses to be generated.\n" +
                 "intervals:  an integer >= 0, specifies the number of interval clauses to be generated.\n" +
                 "\n" +
                 "cpRatio:    a float > 0, specifies the clause/predicate ratio.\n" +
@@ -150,7 +150,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      * equivs:     an integer >= 0, specifies the number of equivalences to be generated.<br>
      * atleasts:   an integer >= 0, specifies the number of atleast clauses to be generated.<br>
      * atmosts:    an integer >= 0, specifies the number of atmost clauses  to be generated.<br>
-     * exactlys:   an integer >= 0, specifies the number of exactly clauses to be generated.<br>
+     * exactlies:  an integer >= 0, specifies the number of exactly clauses to be generated.<br>
      * intervals:  an integer >= 0, specifies the number of interval clauses to be generated.<br>
      *<br>
      *
@@ -190,7 +190,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         String equivsS    = parameters.get("equivs");
         String atleastsS  = parameters.get("atleasts");
         String atmostsS   = parameters.get("atmosts");
-        String exactlysS  = parameters.get("exactlys");
+        String exactlysS  = parameters.get("exactlies");
         String intervalsS = parameters.get("intervals");
 
         ArrayList predicatesA = null;
@@ -252,7 +252,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
 
         ArrayList exactlysA = null;
         if(exactlysS != null) {
-            exactlysA = Utilities.parseIntRange(prefix+"exactlys: ",exactlysS,errors);
+            exactlysA = Utilities.parseIntRange(prefix+"exactlies: ",exactlysS,errors);
             if(exactlysA == null) {errors.append("\n"); erraneous = true;}}
 
         ArrayList intervalsA = null;
@@ -312,7 +312,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                     errors.append(prefix).append("negative number of atmosts specified: ").append(atmostsv).append("\n");
                     erraneous = true;}
                 if(exactlysv < 0) {
-                    errors.append(prefix).append("negative number of exactlys specified: ").append(exactlysv).append("\n");
+                    errors.append(prefix).append("negative number of exactlies specified: ").append(exactlysv).append("\n");
                     erraneous = true;}
                 if(intervalsv < 0) {
                     errors.append(prefix).append("negative number of intervals specified: ").append(intervalsv).append("\n");
@@ -382,7 +382,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
             info += "\natmosts:" + atmosts;}
         if(exactly   != 0) {generateClauses(inputClauses,id,Connective.EXACTLY,exactly,rnd);
             problemName += " =:" +exactly;
-            info += "\nexactlys:" + exactly;}
+            info += "\nexactlies:" + exactly;}
         if(intervals != 0) {generateClauses(inputClauses,id,Connective.INTERVAL,intervals,rnd);
             problemName += " []:"+intervals;
             info += "\nintervals:" + intervals;}
@@ -445,12 +445,12 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         if(precise) st.append(" precisely");
         st.append("\n");
         if(redundant) st.append("complementary and double literals allowed\n");
-        if(ors       != 0) st.append("disjunctions:   ").append(ors).append("\n");
-        if(ands      != 0) st.append("conjunctions: ").append(ands).append("\n");
+        if(ors       != 0) st.append("disjunctions:  ").append(ors).append("\n");
+        if(ands      != 0) st.append("conjunctions:  ").append(ands).append("\n");
         if(equivs    != 0) st.append("equivalences:  ").append(equivs).append("\n");
         if(atleasts  != 0) st.append("atleasts:      ").append(atleasts).append("\n");
         if(atmosts   != 0) st.append("atmosts:       ").append(atmosts).append("\n");
-        if(exactly   != 0) st.append("exactlys:      ").append(exactly).append("\n");
+        if(exactly   != 0) st.append("exactlies:     ").append(exactly).append("\n");
         if(intervals != 0) st.append("intervals:     ").append(intervals).append("\n");
         if(ors != 0) st.append("cp-ratio for disjunctions: ").append((float)ors/(float)predicates);
         return st.toString();

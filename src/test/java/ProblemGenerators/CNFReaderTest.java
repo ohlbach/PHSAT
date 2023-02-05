@@ -19,10 +19,6 @@ public class CNFReaderTest {
     public void help()  {
         //System.out.println(CNFReader.help());
     }
-//  public static void makeProblemGenerator(HashMap<String,String> parameters, GlobalParameters globalParameters,
-//                         ArrayList<ProblemGenerator> generators,
-//                         StringBuilder errors, StringBuilder warnings){
-//
     @Test
     public void makeProblemGeneratorFile() {
         System.out.println("makeProblemGenerator Single File");
@@ -44,7 +40,7 @@ public class CNFReaderTest {
                 "= 2 -2,-4 5 0\n"+
                 "[2,4] 3 4 5 6 0";
         File file = Utilities.writeTmpFile("CNFReader", "test.cnf", test);
-        parameters.put("file",file.getAbsolutePath());
+        parameters.put("files",file.getAbsolutePath());
         CNFReader.makeProblemGenerator(parameters,generators,errors,warnings);
         //System.out.println(errors);
         //System.out.println(warnings);
@@ -103,7 +99,7 @@ public class CNFReaderTest {
                     "1 2 3 0";
             File file2 = Utilities.writeTmpFile("CNFReader", "test2.cnf", test2);
 
-            parameters.put("file",file1.getAbsolutePath()+","+file2.getAbsolutePath());
+            parameters.put("files",file1.getAbsolutePath()+","+file2.getAbsolutePath());
             CNFReader.makeProblemGenerator(parameters,generators,errors,warnings);
             assertEquals(2,generators.size());
             //System.out.println(errors);
@@ -152,7 +148,7 @@ public class CNFReaderTest {
                 "p cnf 10 6\n" +
                 "1 2 3";
         File file2 = Utilities.writeTmpFile("CNFReader1", "test2.cnf", test2);
-        parameters.put("directory",file1.getParent());
+        parameters.put("directories",file1.getParent());
         CNFReader.makeProblemGenerator(parameters,generators,errors,warnings);
         //System.out.println(errors);
         //System.out.println(warnings);
@@ -198,8 +194,8 @@ public class CNFReaderTest {
                 "p cnf 10 6\n" +
                 "1 2 3";
         File file2 = Utilities.writeTmpFile("CNFReader2", "test2.cnf", test2);
-        parameters.put("directory",file1.getParent());
-        parameters.put("regExpr",".*2.*");
+        parameters.put("directories",file1.getParent());
+        parameters.put("regExprs",".*2.*");
         CNFReader.makeProblemGenerator(parameters,generators,errors,warnings);
         //System.out.println(errors);
         //System.out.println(warnings);
