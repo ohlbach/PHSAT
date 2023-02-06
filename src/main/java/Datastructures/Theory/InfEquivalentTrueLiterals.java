@@ -1,67 +1,84 @@
 package Datastructures.Theory;
 
-import Datastructures.Clauses.Clause;
-import Datastructures.Literals.CLiteral;
 import Datastructures.Symboltable;
-import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
-import static Utilities.Utilities.joinIntArrays;
-
-/** documents truth of equivalent literals */
+/** documents truth of equivalent literals.
+ * As soon as a literal in an equivalence class becomes true, all equivalent literals also become true.*/
 public class InfEquivalentTrueLiterals extends InferenceStep {
 
+    /** title of the rule */
     public static final String title = "Equivalent True Literals";
 
+    /** specifies the rule */
     public static final String rule =
             title + ":\n" +
                     "p=q=...=s and true/false(p) -> true/false(q,...,s)";
 
-    private final Clause clause;
-    private final int literal;
-    private final int sign;
+    /** the id of the EQUIV input clause */
+    private final int origin;
+
+    /** a literal which is true in the model */
+    private final int oldTrueLiteral;
+
+    /** a literal which was inferred to be true. */
+    private final int newTrueLiteral;
+
+    /** null or the inference step which cause the truth of oldTrueLiteral */
     private final InferenceStep inferenceStep;
 
-    public InfEquivalentTrueLiterals(Clause clause, int literal, int sign, InferenceStep inferenceStep) {
-        this.clause = clause;
-        this.literal = literal;
-        this.sign = sign;
-        this.inferenceStep = inferenceStep;}
+    /** constructs the instance of the class
+     *
+     * @param origin          the id of the EQUIV input clause.
+     * @param oldTrueLiteral  the literal which was true in the model.
+     * @param newTrueLiteral  the equivalent literal which became true
+     * @param inferenceStep   null or the inference step which caused the truth of the oldTrueLiteral
+     */
+    public InfEquivalentTrueLiterals(int origin, int oldTrueLiteral, int newTrueLiteral, InferenceStep inferenceStep) {
+        this.origin = origin;
+        this.oldTrueLiteral = oldTrueLiteral;
+        this.newTrueLiteral = newTrueLiteral;
+        this.inferenceStep  = inferenceStep;}
 
+    /** the title of the rule */
     @Override
     public String title() {
         return title;}
 
+    /** the rule itself */
     @Override
     public String rule() {
         return rule;}
 
+    /** turns the inference into a string
+     *
+     * @param symboltable null or a symboltable.
+     * @return the inference as a string.
+     */
     @Override
     public String toString(Symboltable symboltable) {
-        String literals = "";
-        for(CLiteral cLiteral : clause) {
-            int lit = cLiteral.literal;
-            if(Math.abs(lit) != Math.abs(literal))
-                literals += Symboltable.toString(sign*lit,symboltable)+",";}
-        literals = literals.substring(0,literals.length()-1);
-        return title + ":\n" + clause.toString(0,symboltable) +
-                " and true(" + Symboltable.toString(literal,symboltable)+") -> true("
-                +literals + ")";}
+        String oldLiteral = Symboltable.toString(oldTrueLiteral,symboltable);
+        String newLiteral = Symboltable.toString(newTrueLiteral,symboltable);
+        return title + ":\n" + oldLiteral + " = " + newLiteral +
+                " and true("+ oldLiteral + ") yields true(" + newLiteral +")";}
 
+    /** the ids of all the input clauses which caused the truth of newTrueLiteral.
+     *
+     * @return the ids of all the input clauses which caused the truth of newTrueLiteral.
+     */
     @Override
     public IntArrayList origins() {
-        InferenceStep step = clause.inferenceStep;
-        IntArrayList origins = (step == null) ? null : step.origins();
-        if(inferenceStep != null) origins = joinIntArrays(origins,inferenceStep.origins());
+        if(inferenceStep == null) return null;
+        IntArrayList origins = inferenceStep.origins().clone();
+        origins.add(origin);
         return origins;}
 
+    /** adds this to the inference steps
+     */
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        InferenceStep step = clause.inferenceStep;
-        if(step != null) step.inferenceSteps(steps);
-        if(inferenceStep != null) inferenceStep.inferenceSteps(steps);
-        if(!steps.contains(this)) steps.add(this);}
+        if(steps != null && !steps.contains(this)) steps.add(this);}
 }
