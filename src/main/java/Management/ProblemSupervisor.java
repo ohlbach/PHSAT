@@ -10,6 +10,7 @@ import Datastructures.Theory.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
 import InferenceSteps.InfInputClause;
+import Management.Monitor.Monitor;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
 
@@ -57,6 +58,8 @@ public class ProblemSupervisor {
 
     private boolean trackReasoning;
 
+    public Monitor monitor;
+
     public ProblemSupervisor(GlobalParameters globalParameters, ProblemGenerator problemGenerator,
                              ArrayList<Solver> solvers) {
         this.globalParameters = globalParameters;
@@ -67,6 +70,7 @@ public class ProblemSupervisor {
         this.solvers          = solvers;
     }
 
+
     int predicates;
     public int clauseCounter = 0;
 
@@ -74,21 +78,25 @@ public class ProblemSupervisor {
         return ++clauseCounter;}
 
     public void solveProblem()  {
+        monitor = globalParameters.getMonitor(problemId);
         try {
             inputClauses = problemGenerator.generateProblem(null);
             model = new Model(inputClauses.predicates);
             conjunctions2Model(inputClauses.conjunctions);
-            equivalenceClasses = new EquivalenceClasses(this);
-            equivalenceClasses.equivalenceClauses2Class(inputClauses.equivalences);
+            equivalenceClasses = new EquivalenceClasses(this,monitor);
+            equivalenceClasses.integrateEQUIVClauses(inputClauses.equivalences);
+            equivalenceThread = new Thread(()->equivalenceClasses.run());
+            equivalenceThread.start();
             numberOfSolvers = solvers.size();
             statistics.solvers = numberOfSolvers;
             threads = new Thread[numberOfSolvers];
             results = new Result[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) {
                 int j = i;
-                threads[i] = new Thread(() -> {results[j] = solvers.get(j).solveProblem(inputClauses);});}
+                threads[i] = new Thread(() -> {results[j] = solvers.get(j).solveProblem(inputClauses);});} // ???
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
-            for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
+            for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}
+            equivalenceThread.interrupt();}
         catch(Unsatisfiable uns) {}
         catch(Exception ex) {}
         globalParameters.logstream.println("Solvers finished for problem " + problemId);}
@@ -112,9 +120,9 @@ public class ProblemSupervisor {
      * @param result    the result of the solver's work.
      * @param message   an extra message to explain the result.
      */
-    public synchronized void finished(Solver solver, Result result, String message) {
+    public synchronized void finished(String solver, Result result, String message) {
         this.result = result;
-        globalParameters.logstream.println("Solver " + solver.solverId + " finished  work at problem " + problemId);
+        globalParameters.logstream.println("Solver " + solver + " finished  work at problem " + problemId);
         if(message != null && !message.isEmpty()) {globalParameters.logstream.println(message);}
         if(result instanceof Satisfiable || result instanceof Unsatisfiable) {
             for(Thread thread : threads) {thread.interrupt();}

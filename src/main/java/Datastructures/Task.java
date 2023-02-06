@@ -12,6 +12,19 @@ public class Task<TaskType> {
     public int priority;
     public Object a;
     public Object b;
+    public Object c;
+
+    /** creates a new task
+     *
+     * @param taskType       the type of the task
+     * @param a              customary
+     */
+    public Task(TaskType taskType, Object a) {
+        this.taskType = taskType;
+        this.a = a;
+        this.b = null;
+        this.c = null;
+    }
 
     /** creates a new task
      *
@@ -23,8 +36,22 @@ public class Task<TaskType> {
         this.taskType = taskType;
         this.a = a;
         this.b = b;
+        this.c = null;
     }
 
+    /** creates a new task
+     *
+     * @param taskType       the type of the task
+     * @param a              customary
+     * @param b              customary
+     * @param c              customary
+     */
+    public Task(TaskType taskType, Object a, Object b, Object c) {
+        this.taskType = taskType;
+        this.a = a;
+        this.b = b;
+        this.c = c;
+    }
     /** turns the task into a string.
      *
      * @return a string

@@ -81,7 +81,7 @@ public class TwoLitClausesTest {
         System.out.println("replaceEquivalentLiterals");
         TwoLitClauses clauses = prepare(monitoring, true);
         int[] clauseeq = new int[]{1,typeEQ,1,2,3};
-        clauses.equivalenceClasses.addBasicEquivalenceClause(clauseeq);
+        clauses.equivalenceClasses.integreateEQUIVClause(clauseeq);
         TwoLitClause clause1 = make(clauses,2,3);
         assertEquals("2-2: 1,1",clauses.replaceEquivalentLiterals(clause1).toString());
         TwoLitClause clause2 = make(clauses,2,4);
@@ -114,7 +114,7 @@ public class TwoLitClausesTest {
         TwoLitClause clause1 = make(clauses,1,2);
         assertEquals("2-1: 1,2",clauses.normalizeClause(clause1).toString());
         int[] clauseeq = new int[]{2,typeEQ,1,2,3};
-        clauses.equivalenceClasses.addBasicEquivalenceClause(clauseeq);
+        clauses.equivalenceClasses.integreateEQUIVClause(clauseeq);
         TwoLitClause clause2 = make(clauses,2,-3);
         assertNull(clauses.normalizeClause(clause2));
         clauses.model.add(1,new InferenceTest("may test 1"));
@@ -221,7 +221,7 @@ public class TwoLitClausesTest {
         clauses.configure();
 
         int[] clauseeq = new int[]{1,typeEQ,1,2};
-        clauses.equivalenceClasses.addBasicEquivalenceClause(clauseeq);
+        clauses.equivalenceClasses.integreateEQUIVClause(clauseeq);
 
         int[] clause1 = new int[]{2,type,2,3};
         int[] clause2 = new int[]{3,type,-2,4};

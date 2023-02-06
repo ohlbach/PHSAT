@@ -174,10 +174,9 @@ public class InitializerSimplifier {
             InputClauses inputClauses = problemSupervisor.inputClauses;
             for(int[] basicClause : inputClauses.conjunctions) {
                 integrateAnd(new Clause(basicClause));}
-            for(int[] basicClause : inputClauses.equivalences) {
-                equivalenceClasses.addBasicEquivalenceClause(basicClause);}
+
             model.addObserver(this::addTrueLiteral);
-            equivalenceClasses.addObserver(this::addEquivalence);
+            //equivalenceClasses.addObserver(this::addEquivalence);
             for(int[] basicClause : inputClauses.disjunctions) {
                 integrateClause(new Clause(basicClause));}
             for(int[] basicClause : inputClauses.atleasts) {

@@ -2,9 +2,12 @@ package Datastructures.Theory;
 
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
+import com.sun.tools.javac.comp.Infer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+import Utilities.TriConsumer;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -49,7 +52,7 @@ public class EquivalenceClass {
         if(literals.size() < 1) return null; // clauses like p = p are redundant.
         return new EquivalenceClass(representative,literals,inferenceSteps);}
 
-    /** each literal in an equivalence with is true/false in the model causes the equivalent literals to become true/false.
+    /** each literal in an equivalence which is true/false in the model causes the equivalent literals to become true/false.
      * It is very unlikely that this happens. Just to be on the safe side.
      *
      * @param inputClause     an equivalence clause
@@ -107,7 +110,7 @@ public class EquivalenceClass {
      * @param inferenceStep   which derived the equivalence
      * @throws Unsatisfiable if the negated literal is already in the class.
      */
-    public void addNewEquivalence(int literal1, int literal2, InferenceStep inferenceStep) throws Unsatisfiable{
+    public void addNewEquivalence(int literal1, int literal2, InferenceStep inferenceStep,ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers) throws Unsatisfiable{
         if(literal1 == representative) return;
         if(literal1 == -representative) throw new UnsatContradictoryEquivalence();
         InferenceStep oldInferenceStep = null;
@@ -120,17 +123,19 @@ public class EquivalenceClass {
         if(inferenceSteps != null)
             inferenceSteps.add(new InfJoinedEquivalence(literal1,literal2,inferenceStep,oldInferenceStep));}
 
-    public void joinEquivalenceClass(EquivalenceClass eqClass, int sign) throws Unsatisfiable {
+    public EquivalenceClass joinEquivalenceClass(EquivalenceClass eqClass, int sign,
+                                                 ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers) throws Unsatisfiable {
         EquivalenceClass eqClass1 = this;
         EquivalenceClass eqClass2 = eqClass;
         if(eqClass2.representative < eqClass1.representative) {eqClass1 = eqClass; eqClass2 = this;}
         // now we join eqClass2 into eqClass1
         eqClass1.addLiteral(sign*eqClass2.representative);
         for(int i = 0; i < eqClass2.literals.size(); ++i) {
-            eqClass1.addLiteral(sign*eqClass2.literals.getInt(i));}}
+            eqClass1.addLiteral(sign*eqClass2.literals.getInt(i));}
+        return eqClass1;}
 
-    protected void addLiteral(int literal) {
-        if(literal == representative) return;
+    protected void addTrueLiteral(int literal, InferenceStep inferenceStep,ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers) {
+        if(literal == representative) return ;
         if(literal == -representative) throw new UnsatContradictoryEquivalence();
         for(int i = 0; i < literals.size(); ++i) {
             int literal1 = literals.getInt(i);
@@ -138,4 +143,11 @@ public class EquivalenceClass {
             if(literal1 == -literal1) throw new UnsatContradictoryEquivalence();
             if(inferenceSteps != null ) oldInferenceStep = inferenceSteps.get(i);}
     }
+
+    public String toString(Symboltable symboltable) {
+        return "";
+    }
+
+    public String toString() {
+        return toString(null);}
 }

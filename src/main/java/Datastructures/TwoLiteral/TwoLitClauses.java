@@ -117,7 +117,7 @@ public class TwoLitClauses {
 
     public void configure() {
         model.addObserver(this::addTrueLiteral);
-        equivalenceClasses.addObserver(this::addEquivalence);
+        //equivalenceClasses.addObserver(this::addEquivalence);
     }
 
     /** This method is started as thread.
@@ -267,7 +267,7 @@ public class TwoLitClauses {
      * @return the old or the new clause with the replacements.
      */
     protected TwoLitClause replaceEquivalentLiterals(TwoLitClause clause) {
-        int literal1 = clause.literal1;
+        /*int literal1 = clause.literal1;
         int literal2 = clause.literal2;
         int representative1 = equivalenceClasses.getRepresentative(literal1);
         int representative2 = equivalenceClasses.getRepresentative(literal2);
@@ -280,7 +280,9 @@ public class TwoLitClauses {
                     literal2,representative2,eClause2);
             newClause.inferenceStep = er;
             if(monitoring) monitor.print(monitorId,er.toString(symboltable));}
-        return newClause;}
+            */
+
+        return null;}// newClause;}
 
     /** checks the clause for double or complementary literals.
      * p,p merges to p\n
@@ -336,7 +338,7 @@ public class TwoLitClauses {
             if(trackReasoning) {
                 eqd = new EquivalenceDerivation(clause,partner);
                 if(monitoring) monitor.print(monitorId,eqd.toString(symboltable));}
-            equivalenceClasses.addDerivedEquivalence(-clause.literal1, clause.literal2,eqd);
+          // equivalenceClasses.integrateEquivalence(-clause.literal1, clause.literal2,eqd);
             removeClause(partner);
             ++statistics.equivalences;
             return false;}

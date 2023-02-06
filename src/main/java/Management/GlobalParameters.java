@@ -1,5 +1,8 @@
 package Management;
 
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorFile;
+import Management.Monitor.MonitorFrame;
 import Management.Monitor.MonitorLife;
 import Utilities.Utilities;
 
@@ -43,7 +46,14 @@ public class GlobalParameters {
     public boolean twoLiteralThread = true;
 
     public MonitorLife monitor;
+    public File monitorFile;
 
+    public Monitor getMonitor(String title) {
+        switch (monitorMode) {
+            case "collect": return new MonitorFile(title,monitorFile);
+            case "live":    return new MonitorLife(title);
+            case "frame":   return new MonitorFrame(title, 1000,1000,100,100);}
+        return null;}
 
     /** @return a help-string which describes the parameters */
     public static String help() {

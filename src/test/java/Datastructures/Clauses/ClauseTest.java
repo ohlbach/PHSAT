@@ -382,7 +382,7 @@ public class ClauseTest {
     public void replaceEquivalences() throws Unsatisfiable {
         System.out.println("replaceEquivalences");
         EquivalenceClasses eqc = prepare();
-        eqc.addBasicEquivalenceClause(new int[]{10,eqv,1,3,5});
+        eqc.integreateEQUIVClause(new int[]{10,eqv,1,3,5});
         int[] id = new int[]{1};
         Clause c1 = new Clause(1, Connective.ATLEAST, 3, 6,5,4,3,2,1);
         Clause c2 = c1.replaceEquivalences(eqc, ()->++id[0]);

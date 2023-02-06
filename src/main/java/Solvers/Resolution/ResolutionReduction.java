@@ -142,7 +142,7 @@ public abstract class ResolutionReduction extends Solver {
             result = new Aborted(combinedId + " aborted after ");}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + ((result == null) ? " none" : result.toString()));
-        problemSupervisor.finished(this, result, "done");
+        problemSupervisor.finished(this.solverId, result, "done");
         return result;}
 
     /** This function is called when a new disjunction is to be inserted.
@@ -661,7 +661,7 @@ public abstract class ResolutionReduction extends Solver {
             addTrueLiteralTask((toStatus == 1 ? fromLiteral : -fromLiteral),
                     "equivalent literals " + fromLiteral + " " + toLiteral);
             return null;}
-        equivalenceClasses.addDerivedEquivalence(fromLiteral,toLiteral,null);
+        equivalenceClasses.integrateEquivalence(fromLiteral,toLiteral,null);
         replacedClauses.clear();
         replaceLiteralInAllClauses(fromLiteral,toLiteral);
         replaceLiteralInAllClauses(-fromLiteral,-toLiteral);
