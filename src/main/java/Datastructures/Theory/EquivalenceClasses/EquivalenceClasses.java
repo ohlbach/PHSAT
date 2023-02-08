@@ -1,8 +1,9 @@
-package Datastructures.Theory;
+package Datastructures.Theory.EquivalenceClasses;
 
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Task;
+import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
@@ -61,6 +62,7 @@ public class EquivalenceClasses  {
     /** for distinguishing the monitoring areas */
     private String monitorId = null;
 
+    /** The list of equivalence classes */
     public ArrayList<EquivalenceClass> equivalenceClasses;
 
 
@@ -138,8 +140,8 @@ public class EquivalenceClasses  {
 
 
     /** Any solver which is interested to know about newly derived equivalences can add an observer.
-     * The observer is called with (literal1, literal2, origins) as soon as new equivalences
-     * literal1 == literal2 are derived.
+     * The observer is called with (representative, literal, inferenceStep) as soon as new equivalences
+     * representative == literal are derived.
      *
      * @param observer a TriConsumer for transferring newly derived equivalences.
      */
@@ -224,16 +226,20 @@ public class EquivalenceClasses  {
         EquivalenceClass equivalenceClass2 = null;
         int sign1 = 0;
         int sign2 = 0;
+        int sign = 0;
         for(EquivalenceClass equivalenceClass : equivalenceClasses) {
-            sign1 = equivalenceClass.containsLiteral(literal1);
-            if(sign1 == 0) sign1 = equivalenceClass.containsLiteral(literal2);
-            if(sign1 != 0) equivalenceClass1 = equivalenceClass;
-
-            sign2 = equivalenceClass.containsLiteral(literal1);
-            if(sign2 == 0) sign2 = equivalenceClass.containsLiteral(literal2);
-            if(sign2 != 0) equivalenceClass2 = equivalenceClass;}
-        if(sign1 != 0) equivalenceClass1.addNewEquivalence(literal1,literal2,inferenceStep,observers);
-        if(sign2 != 0) equivalenceClass2.addNewEquivalence(literal1,literal2,inferenceStep,observers);
+            sign = equivalenceClass.containsLiteral(literal1);
+            if(sign != 0) {
+                equivalenceClass.addNewEquivalence(sign*literal1,sign*literal2,inferenceStep,observers);}
+            else {
+                sign = equivalenceClass.containsLiteral(literal2);
+                if(sign != 0) {
+                    equivalenceClass.addNewEquivalence(sign*literal2,sign*literal1,inferenceStep,observers);}}
+            if(sign != 0) {
+                if(sign1 == 0) {
+                    sign1 = sign; equivalenceClass1 = equivalenceClass;}
+                else {sign2 = sign; equivalenceClass2 = equivalenceClass;}
+                continue;}}
 
         if(sign1 != 0 && sign2 != 0) {
             EquivalenceClass equivalenceClass = equivalenceClass1.joinEquivalenceClass(equivalenceClass2,sign1,observers);
@@ -246,14 +252,15 @@ public class EquivalenceClasses  {
      * @throws Unsatisfiable if a contradiction occurs.
      */
     protected void applyTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
-        if(monitoring) {
-            monitor.print(monitorId,"Exec: True literal " +
-                    Symboltable.toString(literal, symboltable));}
         for(EquivalenceClass equivalenceClass : equivalenceClasses) {
             int sign = equivalenceClass.containsLiteral(literal);
             if(sign != 0) {
-                equivalenceClass.addTrueLiteral(literal,inferenceStep,observers);
+                equivalenceClass.applyTrueLiteral(literal, sign,inferenceStep,model);
                 equivalenceClasses.remove(equivalenceClass);
+                if(monitoring) {
+                    monitor.print(monitorId,"EquivalenceClasses: True literal " +
+                            Symboltable.toString(literal, symboltable) + " applied to equivalence class\n" +
+                            equivalenceClass.toString(symboltable));} // the classes are disjoint.
                 return;}}
         }
 

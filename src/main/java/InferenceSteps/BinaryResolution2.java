@@ -44,10 +44,10 @@ public class BinaryResolution2 extends InferenceStep {
         return title + ":\n" + st1 + "\n" + st2 + "\n" +StringUtils.repeat('-',width) + "\n" + st3;}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         return joinIntArrays(
-                parent1.inferenceStep == null ? null : parent1.inferenceStep.origins(),
-                parent2.inferenceStep == null ? null : parent2.inferenceStep.origins());}
+                parent1.inferenceStep == null ? null : parent1.inferenceStep.inputClauseIds(),
+                parent2.inferenceStep == null ? null : parent2.inferenceStep.inputClauseIds());}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

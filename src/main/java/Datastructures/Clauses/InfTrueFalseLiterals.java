@@ -52,9 +52,9 @@ public class InfTrueFalseLiterals extends InferenceStep {
                 " -> " + newClause.toString(0,symboltable);}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         InferenceStep step = oldClause.inferenceStep;
-        return (step != null) ? step.origins() : null;}
+        return (step != null) ? step.inputClauseIds() : null;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

@@ -8,7 +8,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;

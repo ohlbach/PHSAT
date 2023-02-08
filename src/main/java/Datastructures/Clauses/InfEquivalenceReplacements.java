@@ -1,8 +1,7 @@
 package Datastructures.Clauses;
 
-import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -56,11 +55,11 @@ public class InfEquivalenceReplacements extends InferenceStep {
                 " -> " + newClause.toString(0,symboltable);}
 
     @Override
-    public IntArrayList origins() {
-        IntArrayList origins = (oldClause.inferenceStep != null) ? oldClause.inferenceStep.origins() : null;
+    public IntArrayList inputClauseIds() {
+        IntArrayList origins = (oldClause.inferenceStep != null) ? oldClause.inferenceStep.inputClauseIds() : null;
         for(int i = 0; i < literals.size(); i+=3) {
             InferenceStep step = (InferenceStep)literals.get(i+2);
-            if(step != null) origins = joinIntArrays(origins,step.origins());
+            if(step != null) origins = joinIntArrays(origins,step.inputClauseIds());
         }
         return origins;}
 

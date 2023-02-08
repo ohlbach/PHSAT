@@ -28,7 +28,7 @@ public class InferenceTest extends InferenceStep{
     }
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         return IntArrayList.wrap(new int[]{-1,-2,-3}); }
 
     @Override

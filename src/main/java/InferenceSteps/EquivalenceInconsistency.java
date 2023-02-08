@@ -36,8 +36,8 @@ public class EquivalenceInconsistency extends InferenceStep {
                         Symboltable.toString(literal2,symboltable) + " -> false";}
 
     @Override
-    public IntArrayList origins() {
-        return (eClause.inferenceStep != null) ? eClause.inferenceStep.origins() : null;}
+    public IntArrayList inputClauseIds() {
+        return (eClause.inferenceStep != null) ? eClause.inferenceStep.inputClauseIds() : null;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

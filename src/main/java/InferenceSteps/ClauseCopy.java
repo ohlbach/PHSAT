@@ -45,7 +45,7 @@ public class ClauseCopy extends InferenceStep {
                 (clause != null ? clause.toString(0,symboltable) : twoLitClause.toString("",symboltable));}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         return IntArrayList.wrap(new int[]{basicClause[0]});}
 
     /** adds this to steps

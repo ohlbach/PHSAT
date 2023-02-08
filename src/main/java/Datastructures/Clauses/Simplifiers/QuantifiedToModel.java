@@ -39,9 +39,9 @@ public class QuantifiedToModel extends InferenceStep {
                 clause.toString(0,symboltable) + " -> true("+ Symboltable.toString(literal,symboltable)+")";}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         InferenceStep step = clause.inferenceStep;
-        return step == null ? null : step.origins();}
+        return step == null ? null : step.inputClauseIds();}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

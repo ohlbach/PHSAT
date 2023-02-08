@@ -38,9 +38,9 @@ public class AllToModel extends InferenceStep{
         return title + ":\n" + clause.toString(0,symboltable) + " -> true(" + st + ")";}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         InferenceStep step = clause.inferenceStep;
-        return step == null ? null : step.origins();}
+        return step == null ? null : step.inputClauseIds();}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

@@ -81,18 +81,18 @@ public class MRContradiction extends InferenceStep {
                 StringUtils.repeat('-',lineLength) + "\n" +StringUtils.center("false",lineLength);}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         if(!mrMatrix.trackReasoning) return null;
         InferenceStep step;
         IntArrayList origins = new IntArrayList();
         for (int index : colIndices) {
             step = mrMatrix.disjointnessClauses[index].inferenceStep;
-            if (step != null) origins = joinIntArrays(origins, step.origins());}
+            if (step != null) origins = joinIntArrays(origins, step.inputClauseIds());}
         for(CLiteral[] row : block) {
             for(CLiteral cLiteral : row) {
                 if(cLiteral != null) {
                     step = cLiteral.clause.inferenceStep;
-                    if(step != null) origins = joinIntArrays(origins,step.origins());}}}
+                    if(step != null) origins = joinIntArrays(origins,step.inputClauseIds());}}}
         return origins;}
 
 

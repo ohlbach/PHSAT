@@ -3,7 +3,7 @@ package Datastructures.Clauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Management.Controller;
 import Management.GlobalParameters;

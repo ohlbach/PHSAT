@@ -36,9 +36,9 @@ public class NumericPNotP extends InferenceStep{
                 newClause.toString(0,symboltable);}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         InferenceStep step = oldClause.inferenceStep;
-        return step == null ? null : step.origins();}
+        return step == null ? null : step.inputClauseIds();}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

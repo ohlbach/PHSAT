@@ -39,10 +39,10 @@ public class EquivalenceDerivation extends InferenceStep {
                 Symboltable.toString(literal1,symboltable) + " == " + Symboltable.toString(literal2,symboltable);}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         return joinIntArrays(
-                (clause1.inferenceStep != null) ? clause1.inferenceStep.origins() : null,
-                (clause2.inferenceStep != null) ? clause2.inferenceStep.origins() : null);}
+                (clause1.inferenceStep != null) ? clause1.inferenceStep.inputClauseIds() : null,
+                (clause2.inferenceStep != null) ? clause2.inferenceStep.inputClauseIds() : null);}
 
 
     @Override

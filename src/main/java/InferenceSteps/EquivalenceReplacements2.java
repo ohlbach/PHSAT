@@ -64,11 +64,11 @@ public class EquivalenceReplacements2 extends InferenceStep{
                 StringUtils.repeat('-',width) + "\n" + st4;}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         IntArrayList origins = null;
-        if(Clause.inferenceStep != null) origins = Clause.inferenceStep.origins();
-        if(eClause1 != null) origins = joinIntArrays(origins,eClause1.inferenceStep.origins());
-        if(eClause2 != null) origins = joinIntArrays(origins,eClause2.inferenceStep.origins());
+        if(Clause.inferenceStep != null) origins = Clause.inferenceStep.inputClauseIds();
+        if(eClause1 != null) origins = joinIntArrays(origins,eClause1.inferenceStep.inputClauseIds());
+        if(eClause2 != null) origins = joinIntArrays(origins,eClause2.inferenceStep.inputClauseIds());
         return origins;}
 
     @Override

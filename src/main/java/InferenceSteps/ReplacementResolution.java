@@ -75,13 +75,13 @@ public class ReplacementResolution extends InferenceStep{
                 resolvent.toString(0,symboltable);}
 
     @Override
-    public IntArrayList origins() {
-        IntArrayList origins = parentClause2.inferenceStep == null ? null : parentClause2.inferenceStep.origins();
+    public IntArrayList inputClauseIds() {
+        IntArrayList origins = parentClause2.inferenceStep == null ? null : parentClause2.inferenceStep.inputClauseIds();
         if(twoClause != null && twoClause.inferenceStep != null)
-            origins = joinIntArrays(origins,twoClause.inferenceStep.origins());
+            origins = joinIntArrays(origins,twoClause.inferenceStep.inputClauseIds());
         if(parentClause1 != null)
-             origins = joinIntArrays(origins,parentClause1.inferenceStep == null ? null : parentClause1.inferenceStep.origins());
-        else origins = joinIntArrays(origins,parent2Clause1.inferenceStep == null ? null : parent2Clause1.inferenceStep.origins());
+             origins = joinIntArrays(origins,parentClause1.inferenceStep == null ? null : parentClause1.inferenceStep.inputClauseIds());
+        else origins = joinIntArrays(origins,parent2Clause1.inferenceStep == null ? null : parent2Clause1.inferenceStep.inputClauseIds());
         return  origins;}
 
     @Override

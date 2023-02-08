@@ -49,7 +49,7 @@ public class TwoLitClause {
      */
     public String infoString(String prefix,Symboltable symboltable) {
         String st = toString(prefix,symboltable);
-        if(inferenceStep != null) st += "@"+sortIntArray(inferenceStep.origins()).toString();
+        if(inferenceStep != null) st += "@"+sortIntArray(inferenceStep.inputClauseIds()).toString();
         return st;}
     }
 

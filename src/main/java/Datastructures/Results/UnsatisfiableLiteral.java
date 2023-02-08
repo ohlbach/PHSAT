@@ -46,9 +46,9 @@ public class UnsatisfiableLiteral extends Unsatisfiable {
      * @return the basic clause ids of the clauses contributing to the unsatisfiability
      */
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         IntArrayList origins = null;
-        if(stepLiteral1 != null) {origins = stepLiteral1.origins();}
-        if(stepLiteral2 != null) {return joinIntArrays(origins,stepLiteral2.origins());}
+        if(stepLiteral1 != null) {origins = stepLiteral1.inputClauseIds();}
+        if(stepLiteral2 != null) {return joinIntArrays(origins,stepLiteral2.inputClauseIds());}
         return origins;}
 }

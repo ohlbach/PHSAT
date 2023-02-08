@@ -33,9 +33,9 @@ public class InfSubsumption extends InferenceStep {
                 subsumee.toString(0,symboltable);}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         InferenceStep step = subsumer.inferenceStep;
-        return step != null ? step.origins() : null;}
+        return step != null ? step.inputClauseIds() : null;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

@@ -12,7 +12,7 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.BucketSortedIndex;

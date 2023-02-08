@@ -56,9 +56,9 @@ public class UnitResolution extends InferenceStep{
                 newClause.toString(0,symboltable);}
 
     @Override
-    public IntArrayList origins() {
-        IntArrayList origins = oldClause.inferenceStep.origins();
-        for(InferenceStep step : inferenceSteps) joinIntArrays(origins,step.origins());
+    public IntArrayList inputClauseIds() {
+        IntArrayList origins = oldClause.inferenceStep.inputClauseIds();
+        for(InferenceStep step : inferenceSteps) joinIntArrays(origins,step.inputClauseIds());
         return origins;}
 
     @Override

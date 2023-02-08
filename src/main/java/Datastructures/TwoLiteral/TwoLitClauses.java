@@ -7,6 +7,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Task;
 import Datastructures.Theory.*;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import InferenceSteps.*;
 import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;

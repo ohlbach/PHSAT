@@ -39,11 +39,11 @@ public class UnsatisfiableInterval extends Unsatisfiable{
         if(step2 != null) step2.inferenceSteps(steps);}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         InferenceStep step1 = clause1.inferenceStep;
         InferenceStep step2 = clause2.inferenceStep;
         IntArrayList origins = null;
-        if(step1 != null) origins = step1.origins();
-        if(step2 != null) origins = joinIntArrays(origins,step2.origins());
+        if(step1 != null) origins = step1.inputClauseIds();
+        if(step2 != null) origins = joinIntArrays(origins,step2.inputClauseIds());
         return origins;}
 }

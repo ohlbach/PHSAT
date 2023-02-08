@@ -53,11 +53,11 @@ public class DisjointnessDerivation extends InferenceStep{
         return result + StringUtils.repeat('-',width) + "\n" + st4;}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         IntArrayList origins = null;
         for(TwoLitClause clause : clauses)
             if(clause.inferenceStep != null)
-                origins  = joinIntArrays(origins,clause.inferenceStep.origins());
+                origins  = joinIntArrays(origins,clause.inferenceStep.inputClauseIds());
         return origins;}
 
     @Override

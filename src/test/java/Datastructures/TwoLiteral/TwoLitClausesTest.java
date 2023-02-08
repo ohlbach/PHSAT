@@ -4,7 +4,7 @@ import Datastructures.Clauses.Connective;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceTest;
 import Management.Controller;

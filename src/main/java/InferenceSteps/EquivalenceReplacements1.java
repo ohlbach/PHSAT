@@ -43,9 +43,9 @@ public class EquivalenceReplacements1 extends InferenceStep {
 
 
     @Override
-    public IntArrayList origins() {
-        return joinIntArrays(oldClause.inferenceStep == null ? null : oldClause.inferenceStep.origins(),
-                equivalenceClause.inferenceStep == null ? null : equivalenceClause.inferenceStep.origins());}
+    public IntArrayList inputClauseIds() {
+        return joinIntArrays(oldClause.inferenceStep == null ? null : oldClause.inferenceStep.inputClauseIds(),
+                equivalenceClause.inferenceStep == null ? null : equivalenceClause.inferenceStep.inputClauseIds());}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

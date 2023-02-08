@@ -8,7 +8,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.MonitorLife;

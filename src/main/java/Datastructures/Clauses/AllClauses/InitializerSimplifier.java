@@ -13,7 +13,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
 import Datastructures.Symboltable;
 import Datastructures.Task;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
 import InferenceSteps.InferenceStep;

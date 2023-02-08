@@ -53,13 +53,13 @@ public class FalseLiteralDeletion extends InferenceStep{
                 " -> " + newClause.toString(0,symboltable);}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         IntArrayList origins = null;
         InferenceStep step = oldClause.inferenceStep;
-        if(step != null) origins = step.origins();
+        if(step != null) origins = step.inputClauseIds();
         for(int position : positions) {
             step = model.getInferenceStep(oldClause.getLiteral(position));
-            if(step != null) {origins = joinIntArrays(origins,step.origins());}}
+            if(step != null) {origins = joinIntArrays(origins,step.inputClauseIds());}}
         return origins;}
 
     @Override

@@ -6,7 +6,7 @@ import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
 import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClauses;
 import InferenceSteps.InfInputClause;

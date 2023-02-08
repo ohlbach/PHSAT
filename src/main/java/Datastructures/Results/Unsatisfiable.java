@@ -28,7 +28,7 @@ public abstract class Unsatisfiable extends Result {
      */
     public abstract void inferenceSteps(ArrayList<InferenceStep> steps);
 
-    public abstract IntArrayList origins();
+    public abstract IntArrayList inputClauseIds();
 
 
     /** returns the reason for the unsatisfiability, usually the entire proof
@@ -42,9 +42,9 @@ public abstract class Unsatisfiable extends Result {
             st.append( "by solver ").append(solverClass.getSimpleName()).append(": ").append(solverId).append("\n");}
         if(problemId != null) st.append(" in problem ").append(problemId);
         st.append("\n").append(description(symboltable));
-        IntArrayList origins = origins();
-        if(origins != null) {
-            st.append("Contributing basic clauses: ").append(sortIntArray(origins).toString()).append("\n");}
+        IntArrayList inputClauseIds = inputClauseIds();
+        if(inputClauseIds != null) {
+            st.append("Contributing basic clauses: ").append(sortIntArray(inputClauseIds).toString()).append("\n");}
         ArrayList<InferenceStep> steps = new ArrayList<>();
         inferenceSteps(steps);
         if(!steps.isEmpty()) {

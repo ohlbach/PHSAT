@@ -1,4 +1,4 @@
-package Datastructures.Theory;
+package Datastructures.Theory.EquivalenceClasses;
 
 import Datastructures.Statistics.Statistic;
 import org.glassfish.gmbal.Description;

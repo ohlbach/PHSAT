@@ -44,6 +44,6 @@ public class UnsatInputClause extends Unsatisfiable {
      * @return the id of the input clause wrapped into an IntArrayList.
      */
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         return IntArrayList.wrap(new int[]{inputClause[0]});}
 }

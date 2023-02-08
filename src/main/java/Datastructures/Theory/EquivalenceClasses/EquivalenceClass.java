@@ -1,8 +1,10 @@
-package Datastructures.Theory;
+package Datastructures.Theory.EquivalenceClasses;
 
 import Datastructures.Clauses.Connective;
+import Datastructures.Results.UnsatInputClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -49,7 +51,7 @@ public class EquivalenceClass {
      */
     public static EquivalenceClass makeEquivalenceClass(int[] inputClause, Model model, boolean trackReasoning) throws Unsatisfiable {
         assert(inputClause[1] == Connective.EQUIV.ordinal());
-        if(!model.isEmpty() && isAlreadyTrueInModel(inputClause,model,trackReasoning)) return null;
+        if(!model.isEmpty() && isAlreadyTrueInModel(inputClause,model,trackReasoning)) return null; // new model entries may be generated
 
         // the smallest literal becomes the representative.
         int length = inputClause.length;
@@ -60,20 +62,25 @@ public class EquivalenceClass {
         int sign = (representative < 0) ? -1 : +1;
         representative *= sign;
 
-        ArrayList<InferenceStep> inferenceSteps = trackReasoning ? new ArrayList<>(length-3) : null;
+        // check for double literals and complementary literals
+        ArrayList<InferenceStep> inferenceSteps = null;
+        InferenceStep inferenceStep = null;
+        if(trackReasoning) {
+            inferenceSteps = new ArrayList<>(length-3);
+            inferenceStep  = new InfInputClause(inputClause[1]);}
         IntArrayList literals = new IntArrayList(length-3);
         for(int i = 3; i < length; ++i) {
             int literal1 = inputClause[i];
-            if(literal1 == representative) continue;
+            if(literal1 == sign*representative) continue;
             boolean found = false;
             for(int j = 3; j < length; ++j) {
                 int literal2 = inputClause[j];
                 if(literal1 == literal2) {found = true; break;}
-                if(literal1 == -literal2) {throw new UnsatContradictoryEquivalenceClass(inputClause);}}
-            if(found) continue;
+                if(literal1 == -literal2) {throw new UnsatInputClause(inputClause);}}
+            if(found) continue; // double literals can be ignored
             literals = new IntArrayList(length-3);
             literals.add(sign*literal1);
-            if(trackReasoning) inferenceSteps.add(new InfInputClause(inputClause[1]));}
+            if(trackReasoning) inferenceSteps.add(inferenceStep);} // the same inference step for each literal.
         if(literals.size() < 1) return null; // clauses like p = p are redundant.
         return new EquivalenceClass(representative,literals,inferenceSteps);}
 
@@ -83,7 +90,7 @@ public class EquivalenceClass {
      * @param inputClause     an equivalence clause
      * @param model           the model
      * @param trackReasoning  true if the inferences are to be tracked
-     * @return                true if the equivalent literals all became true/false
+     * @return                true if the equivalent literals all became true/false and the clause can be ignored.
      * @throws Unsatisfiable  if a contradiction was discovered.
      */
     private static boolean isAlreadyTrueInModel(int[] inputClause, Model model, boolean trackReasoning) throws Unsatisfiable {
@@ -95,11 +102,11 @@ public class EquivalenceClass {
                 for(int j = 2; j < length; ++j) {
                     if(i == j) continue;
                     int newTrueLiteral = inputClause[j];
-                    if(model.status(newTrueLiteral) == status) continue;
+                    if(model.status(newTrueLiteral) == status) continue; // literal is already true/false
                     model.add(status*newTrueLiteral, trackReasoning ? // may become unsatisfiable.
                             new InfEquivalentTrueLiterals(inputClause[0],status*oldTrueLiteral,status*newTrueLiteral,
                                         model.getInferenceStep(oldTrueLiteral)) : null);}
-                return true;}}
+                return true;}} // clause can be ignored from now on.
         return false;}
 
     /** checks if the equivalence class contains the literal.
@@ -131,26 +138,45 @@ public class EquivalenceClass {
 
 
     /** adds a new equivalence to the equivalence class.
-     * There must be a newly derived equivalence literal1 == literal2 where literal2 is already in the class,
-     * (with the right sign). In this case the literal1 is added to the class.
+     * There must be a newly derived equivalence oldLiteral == newLiteral where oldLiteral is already in the class,
+     * (with the right sign). In this case the newLiteral is added to the class.
      *
-     * @param literal1         a literal which is equivalent to one of the literals in the class
-     * @param inferenceStep   which derived the equivalence
-     * @throws Unsatisfiable if the negated literal is already in the class.
+     * @param oldLiteral         a literal which is already contained in the equivalence class.
+     * @param newLiteral         a new equivalent literal.
+     * @param newInferenceStep   which derived the equivalence oldLiteral = newLiteral.
+     * @throws Unsatisfiable     if the newLiteral is already in the class.
      */
-    public void addNewEquivalence(int literal1, int literal2, InferenceStep inferenceStep,
+    public void addNewEquivalence(int oldLiteral, int newLiteral, InferenceStep newInferenceStep,
                                   ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers) throws Unsatisfiable{
-        if(literal1 == representative) return;
-        if(literal1 == -representative) throw new UnsatContradictoryEquivalence();
+        if(representative == newLiteral) return;
+        if(representative == -newLiteral)
+            throw new UnsatContradictoryEquivalence(oldLiteral,representative,
+                getInferenceStep(oldLiteral),newInferenceStep);
         InferenceStep oldInferenceStep = null;
         for(int i = 0; i < literals.size(); ++i) {
-            int literal3 = literals.getInt(i);
-            if(literal3 == literal1) return;
-            if(literal3 == -literal1) throw new UnsatContradictoryEquivalence();
-            if(inferenceSteps != null && literal2 == literal3) oldInferenceStep = inferenceSteps.get(i);}
-        literals.add(literal1);
+            int literal = literals.getInt(i);
+            if(literal == newLiteral) return;
+            if(literal == -newLiteral)
+                throw new UnsatContradictoryEquivalence(oldLiteral,literal,
+                        getInferenceStep(oldLiteral),newInferenceStep);
+            if(inferenceSteps != null && oldLiteral == literal) oldInferenceStep = inferenceSteps.get(i);}
+        literals.add(newLiteral);
         if(inferenceSteps != null)
-            inferenceSteps.add(new InfJoinedEquivalence(literal1,literal2,inferenceStep,oldInferenceStep));}
+            inferenceSteps.add(new InfAddedLiteral(representative, literals,newLiteral,oldLiteral,newInferenceStep,oldInferenceStep));
+        for(TriConsumer<Integer,Integer,InferenceStep> observer : observers)
+            observer.accept(representative,newLiteral,newInferenceStep);
+    }
+
+    /** finds the inference step that caused representative = literal
+     *
+     * @param literal a literal in the literals
+     * @return null or the inferenceStep that caused representative = literal
+     */
+    public InferenceStep getInferenceStep(int literal) {
+        if(inferenceSteps == null) return null;
+        for(int i = 0; i < inferenceSteps.size(); ++i) {
+            if(literals.getInt(i) == literal) return inferenceSteps.get(i);}
+        return null;}
 
     public EquivalenceClass joinEquivalenceClass(EquivalenceClass eqClass, int sign,
                                                  ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers) throws Unsatisfiable {
@@ -163,15 +189,27 @@ public class EquivalenceClass {
             eqClass1.addLiteral(sign*eqClass2.literals.getInt(i));}
         return eqClass1;}
 
-    protected void addTrueLiteral(int literal, InferenceStep inferenceStep,ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers) {
-        if(literal == representative) return ;
-        if(literal == -representative) throw new UnsatContradictoryEquivalence();
+    /** If a literal has turned out to be true/false then all other literals in the class must also be true/false.
+     *
+     * @param trueLiteral        a literal which has become true.
+     * @param sign               +1 if all literal are to become true, -1 if they are to become false.
+     * @param trueInferenceStep  which caused the truth of the literal
+     * @param model              the global model
+     * @throws Unsatisfiable     if a contradiction is encountered.
+     */
+    protected void applyTrueLiteral(int trueLiteral, int sign, InferenceStep trueInferenceStep, Model model) throws Unsatisfiable {
+        int literalInClass = sign*trueLiteral;
+        InferenceStep equivInferenceStep = getInferenceStep(literalInClass);
+        InferenceStep literalInferenceStep = null;
+        if(literalInClass != representative) {
+            model.add(representative*sign,(trueInferenceStep == null) ? null :
+                    new InfApplyTrueLiteral(trueLiteral,representative*sign,trueInferenceStep,equivInferenceStep,null));}
         for(int i = 0; i < literals.size(); ++i) {
-            int literal1 = literals.getInt(i);
-            if(literal1 == literal) return;
-            if(literal1 == -literal1) throw new UnsatContradictoryEquivalence();
-            if(inferenceSteps != null ) oldInferenceStep = inferenceSteps.get(i);}
-    }
+            int literal = literals.getInt(i);
+            if(literal == literalInClass) continue;
+            if(inferenceSteps != null) literalInferenceStep = inferenceSteps.get(i);
+            model.add(literal*sign,(trueInferenceStep == null) ? null :
+                    new InfApplyTrueLiteral(trueLiteral,literal*sign,trueInferenceStep,equivInferenceStep,literalInferenceStep));}}
 
     public String toString(Symboltable symboltable) {
         return "";
@@ -179,4 +217,8 @@ public class EquivalenceClass {
 
     public String toString() {
         return toString(null);}
+
+    public ArrayList<InferenceStep> getInferenceSteps() {
+        return inferenceSteps;
+    }
 }

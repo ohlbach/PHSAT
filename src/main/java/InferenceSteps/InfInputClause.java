@@ -37,7 +37,7 @@ public class InfInputClause extends InferenceStep{
         return "Input: Clause " + origin;}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         return IntArrayList.wrap(new int[]{origin});}
 
     @Override

@@ -71,17 +71,17 @@ public class NumericTrueFalse extends InferenceStep{
     }
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         InferenceStep step = oldClause.inferenceStep;
-        IntArrayList origins = (step == null) ? null : step.origins();
+        IntArrayList origins = (step == null) ? null : step.inputClauseIds();
         if(trueLiterals != null) {
             for(int position : trueLiterals) {
                 step = model.getInferenceStep(oldClause.getLiteral(position));
-                if(step != null) joinIntArrays(origins, step.origins());}}
+                if(step != null) joinIntArrays(origins, step.inputClauseIds());}}
         if(falseLiterals != null) {
             for(int position : falseLiterals) {
                 step = model.getInferenceStep(oldClause.getLiteral(position));
-                if(step != null) joinIntArrays(origins, step.origins());}}
+                if(step != null) joinIntArrays(origins, step.inputClauseIds());}}
         return origins;}
 
     @Override

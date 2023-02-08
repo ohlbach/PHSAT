@@ -1,4 +1,4 @@
-package Datastructures.Theory;
+package Datastructures.Theory.EquivalenceClasses;
 
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
@@ -70,9 +70,9 @@ public class InfEquivalentTrueLiterals extends InferenceStep {
      * @return the ids of all the input clauses which caused the truth of newTrueLiteral.
      */
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         if(inferenceStep == null) return null;
-        IntArrayList origins = inferenceStep.origins().clone();
+        IntArrayList origins = inferenceStep.inputClauseIds().clone();
         origins.add(origin);
         return origins;}
 

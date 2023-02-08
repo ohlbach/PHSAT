@@ -29,8 +29,8 @@ public class UnsatisfiableClause extends Unsatisfiable {
         if(step != null) steps.add(step);}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         InferenceStep step = clause.inferenceStep;
-        if(step != null) return step.origins();
+        if(step != null) return step.inputClauseIds();
         return null;}
 }

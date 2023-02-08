@@ -1,4 +1,4 @@
-package Datastructures.Theory;
+package Datastructures.Theory.EquivalenceClasses;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
@@ -44,10 +44,10 @@ public class InfEquivalenceJoining extends InferenceStep {
         joinedClause.toString(0,symboltable);}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         return joinIntArrays(
-                (clause1.inferenceStep != null) ? clause1.inferenceStep.origins() : null,
-                (clause2.inferenceStep != null) ? clause2.inferenceStep.origins() : null);}
+                (clause1.inferenceStep != null) ? clause1.inferenceStep.inputClauseIds() : null,
+                (clause2.inferenceStep != null) ? clause2.inferenceStep.inputClauseIds() : null);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

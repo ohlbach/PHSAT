@@ -2,7 +2,6 @@ package InferenceSteps;
 
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 
@@ -38,10 +37,10 @@ public class ContradictoryLiterals extends InferenceStep{
         return title + ":\n" + st1 + " and " + st2  + " -> false";}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         return joinIntArrays(
-                step1 == null ? null : step1.origins(),
-                step2 == null ? null : step2.origins());}
+                step1 == null ? null : step1.inputClauseIds(),
+                step2 == null ? null : step2.inputClauseIds());}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

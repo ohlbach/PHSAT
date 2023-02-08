@@ -104,21 +104,21 @@ public class MRSquare1 extends InferenceStep{
         return st + body;}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         if(!mrMatrix.trackReasoning) return null;
         InferenceStep step;
         IntArrayList origins = new IntArrayList();
         for (int index : colIndices) {
             step = mrMatrix.disjointnessClauses[index].inferenceStep;
-            if (step != null) origins = joinIntArrays(origins, step.origins());
+            if (step != null) origins = joinIntArrays(origins, step.inputClauseIds());
         }
         for(CLiteral[] row : block) {
             for(CLiteral cLiteral : row) {
                 if(cLiteral != null) {
                     step = cLiteral.clause.inferenceStep;
-                    if(step != null) origins = joinIntArrays(origins,step.origins());}}}
+                    if(step != null) origins = joinIntArrays(origins,step.inputClauseIds());}}}
         step = dLiteral.clause.inferenceStep;
-        if(step != null) origins = joinIntArrays(origins,step.origins());
+        if(step != null) origins = joinIntArrays(origins,step.inputClauseIds());
         return origins;}
 
     @Override

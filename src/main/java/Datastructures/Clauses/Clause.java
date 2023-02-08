@@ -6,7 +6,7 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import InferenceSteps.InferenceStep;
 import InferenceSteps.InfInputClause;
 import Utilities.Positioned;
@@ -920,7 +920,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public String infoString(int width, Symboltable symboltable) {
         String st = toString(width,symboltable);
-        if(inferenceStep != null) st += " " + sortIntArray(inferenceStep.origins()).toString();
+        if(inferenceStep != null) st += " " + sortIntArray(inferenceStep.inputClauseIds()).toString();
         return st;}
 
     /** gets an iterator over the literals

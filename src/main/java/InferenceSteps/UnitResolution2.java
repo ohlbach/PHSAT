@@ -40,10 +40,10 @@ public class UnitResolution2 extends InferenceStep{
                 ") -> true(" +Symboltable.toString(resolvent,symboltable) + ")";}
 
     @Override
-    public IntArrayList origins() {
+    public IntArrayList inputClauseIds() {
         return joinIntArrays(
-                clause.inferenceStep != null ? clause.inferenceStep.origins() : null,
-                inferenceStep.origins());}
+                clause.inferenceStep != null ? clause.inferenceStep.inputClauseIds() : null,
+                inferenceStep.inputClauseIds());}
 
 
     @Override
