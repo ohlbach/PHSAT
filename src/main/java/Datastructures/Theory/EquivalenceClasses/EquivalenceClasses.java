@@ -266,13 +266,6 @@ public class EquivalenceClasses  {
 
 
 
-
-
-
-
-
-
-
     /** If a literal in an equivalence class is true, then all other literals are also made true
      * This method is called when a partial model is found, which is supposed to be extendable to a complete model.
      *

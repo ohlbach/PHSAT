@@ -192,7 +192,7 @@ public class EquivalenceClass {
     /** If a literal has turned out to be true/false then all other literals in the class must also be true/false.
      *
      * @param trueLiteral        a literal which has become true.
-     * @param sign               +1 if all literal are to become true, -1 if they are to become false.
+     * @param sign               +1 if all literals are to become true, -1 if they are to become false.
      * @param trueInferenceStep  which caused the truth of the literal
      * @param model              the global model
      * @throws Unsatisfiable     if a contradiction is encountered.
@@ -211,14 +211,24 @@ public class EquivalenceClass {
             model.add(literal*sign,(trueInferenceStep == null) ? null :
                     new InfApplyTrueLiteral(trueLiteral,literal*sign,trueInferenceStep,equivInferenceStep,literalInferenceStep));}}
 
+    /** returns the equivalence class as a string 'representative = literal1 = ...'
+     *  If the symboltable is provided, it will be used.
+     *
+     * @param symboltable null or a symboltable.
+     * @return the equivalence class as a string 'representative = literal1 = ...'
+     */
     public String toString(Symboltable symboltable) {
-        return "";
-    }
+        StringBuilder st = new StringBuilder();
+        st.append(Symboltable.toString(representative,symboltable));
+        for(int literal : literals) st.append(" = ").append(Symboltable.toString(literal,symboltable));
+        return st.toString();}
 
+    /** returns the equivalence class as a string 'representative = literal1 = ...'
+     * without a symboltable.
+     *
+     * @return the equivalence class as a string 'representative = literal1 = ...'
+     */
     public String toString() {
         return toString(null);}
 
-    public ArrayList<InferenceStep> getInferenceSteps() {
-        return inferenceSteps;
-    }
 }

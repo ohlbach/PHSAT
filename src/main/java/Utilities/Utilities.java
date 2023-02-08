@@ -810,6 +810,18 @@ public class Utilities {
         for(int item : list2) {if(!list1.contains(item)) list1.add(item);}
         return list1;}
 
+    /** computes the union of the IntArrayLists.
+     *
+     * @param intArrayLists some IntArrayLists.
+     * @return null or the union of all the lists.
+     */
+    public static IntArrayList unionIntArrayLists(IntArrayList... intArrayLists) {
+        IntArrayList newList = new IntArrayList();
+        for(IntArrayList list : intArrayLists) {
+            if(list != null) {
+                for(int item : list) {if(!newList.contains(item)) newList.add(item);}}}
+        return newList.isEmpty() ? null : newList;}
+
     /** adds the item to the list, if it is not yet contained in the list
      *
      * @param list an IntArrayList
