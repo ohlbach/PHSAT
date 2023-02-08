@@ -112,23 +112,29 @@ public class EquivalenceClasses  {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     public void integrateEQUIVClauses(ArrayList<int[]> equivalences) throws Unsatisfiable {
-        for(int[] equivalence : equivalences) {
-            EquivalenceClass equivalenceClass = EquivalenceClass.makeEquivalenceClass(equivalence,model,trackReasoning);
-            if(equivalenceClass != null) equivalenceClasses.add(equivalenceClass);}
+        try{
+            for(int[] equivalence : equivalences) {
+                EquivalenceClass equivalenceClass = EquivalenceClass.makeEquivalenceClass(equivalence,model,trackReasoning);
+                if(equivalenceClass != null) equivalenceClasses.add(equivalenceClass);}
 
-        // Now we must join overlapping equivalence classes.
-        // This should actually not be necessary, but it is logically possible and allowed.
-        int length = equivalenceClasses.size();
-        for(int i = 0; i < length; ++i) {
-            EquivalenceClass ec1 = equivalenceClasses.get(i);
-            for(int j = i+1; j < length; ++j) {
-                EquivalenceClass ec2 = equivalenceClasses.get(j);
-                int sign = ec1.overlaps(ec2);
-                if(sign != 0) {
-                    EquivalenceClass ec = ec1.joinEquivalenceClass(ec2,sign,observers);
-                    --length;
-                    if(ec == ec1) {equivalenceClasses.remove(i--); break;}
-                    else{equivalenceClasses.remove(j--);}}}}}
+            // Now we must join overlapping equivalence classes.
+            // This should actually not be necessary, but it is logically possible and allowed.
+            int length = equivalenceClasses.size();
+            for(int i = 0; i < length; ++i) {
+                EquivalenceClass ec1 = equivalenceClasses.get(i);
+                for(int j = i+1; j < length; ++j) {
+                    EquivalenceClass ec2 = equivalenceClasses.get(j);
+                    int sign = ec1.overlaps(ec2);
+                    if(sign != 0) {
+                        EquivalenceClass ec = ec1.joinEquivalenceClass(ec2,sign,observers);
+                        --length;
+                        if(ec == ec1) {equivalenceClasses.remove(i--); break;}
+                        else{equivalenceClasses.remove(j--);}}}}}
+        catch(Unsatisfiable unsatifiable) {
+            unsatifiable.solverClass = EquivalenceClasses.class;
+            unsatifiable.solverId    = "EquivalenceClasses";
+            unsatifiable.problemId   = problemId;
+            throw unsatifiable;}}
 
 
     /** Any solver which is interested to know about newly derived equivalences can add an observer.
