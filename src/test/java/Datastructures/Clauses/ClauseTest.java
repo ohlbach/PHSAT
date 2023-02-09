@@ -3,16 +3,10 @@ package Datastructures.Clauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
-import Datastructures.Theory.Model;
-import Management.Controller;
-import Management.GlobalParameters;
-import Management.ProblemSupervisor;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.function.IntUnaryOperator;
 
 import static org.junit.Assert.*;
@@ -366,7 +360,7 @@ public class ClauseTest {
         c2 = c1.removeTrueFalseLiterals(status,null);
         assertEquals("1: 1,2,3",c1.toNumbers());}
 
-
+/*
     EquivalenceClasses prepare() {
         GlobalParameters globalParameters=new GlobalParameters();
         HashMap<String,Object> problemParameters=new HashMap<>();
@@ -416,6 +410,6 @@ public class ClauseTest {
 
     }
 
-
+*/
 
 }

@@ -1,6 +1,7 @@
 package Solvers.RecursiveSearch;
 
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.Model;
@@ -88,6 +89,11 @@ public class RecursiveSearcher  extends Solver {
             literalsForSelection[++counter] = -predicate;}
     }
 
+    @Override
+    public Result solveProblem(InputClauses inputClauses) {
+        return null;
+    }
+
     private ArrayList<RSClause> dummyClauses = new ArrayList<>(2);
 
     public void addClause(Clause clause) {
@@ -105,7 +111,6 @@ public class RecursiveSearcher  extends Solver {
 
 
 
-    @Override
     public Result solve() {
         integrateGloballyTrueLiterals();
         int literal = findStartLiteral();

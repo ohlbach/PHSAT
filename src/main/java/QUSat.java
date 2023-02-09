@@ -139,7 +139,7 @@ public class QUSat {
         for(HashMap<String,String> parameters : solverInputParameters) {
             String type = parameters.get("type");
             if(type == null) {errors.print(jobname,"No solver type specified.\n"); return;}
-            ArrayList<HashMap<String,Object>> pars = Solver.parseParameters(type,parameters,errors,warnings);
+            ArrayList<HashMap<String,Object>> pars = null; //Solver.parseParameters(type,parameters,errors,warnings);
             if(pars != null) {
                 for(HashMap<String,Object> map :pars) {map.put("type",type);}
                 if(pars.size() > 1) {

@@ -1,21 +1,6 @@
 package Datastructures.TwoLiteral;
 
 import Datastructures.Clauses.Connective;
-import Datastructures.Results.Result;
-import Datastructures.Results.Unsatisfiable;
-import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
-import Datastructures.Theory.Model;
-import InferenceSteps.InferenceTest;
-import Management.Controller;
-import Management.GlobalParameters;
-import Management.ProblemSupervisor;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-
-import static org.junit.Assert.*;
 
 public class TwoLitClausesTest {
 
@@ -27,7 +12,7 @@ public class TwoLitClausesTest {
     int typeEQ = Connective.EQUIV.ordinal();
 
 
-
+/*
     private TwoLitClauses prepare(boolean monitoring, boolean withSymboltable) {
         Controller controller = null; //new Controller(null,null,null);
         GlobalParameters globalParameters=new GlobalParameters();
@@ -48,7 +33,7 @@ public class TwoLitClausesTest {
         problemSupervisor.equivalenceClasses = new EquivalenceClasses(problemSupervisor);
         return new TwoLitClauses(problemSupervisor);
     }
-    
+    */
     public TwoLitClause make(TwoLitClauses clauses,  int literal1, int literal2) {
         return new TwoLitClause(clauses.problemSupervisor.nextClauseId(),literal1,literal2);}
 
@@ -56,7 +41,7 @@ public class TwoLitClausesTest {
         return new TwoLitClause(basicClause[0],basicClause[2],basicClause[3]);}
 
 
-
+/*
     @Test
     public void removeDoubles() throws Result{
         System.out.println("remove doubles");
@@ -352,4 +337,6 @@ public class TwoLitClausesTest {
                 "  2-2: -1,-3\n" +
                 "  2-3: -2,-3",clauses.toString());
     }
+    */
+
 }

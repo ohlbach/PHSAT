@@ -41,7 +41,7 @@ public abstract class Unsatisfiable extends Result {
         if(solverClass != null) {
             st.append( "by solver ").append(solverClass.getSimpleName()).append(": ").append(solverId).append("\n");}
         if(problemId != null) st.append(" in problem ").append(problemId);
-        st.append("\n").append(description(symboltable));
+        st.append("\n").append(description(symboltable)).append("\n");
         IntArrayList inputClauseIds = inputClauseIds();
         if(inputClauseIds != null) {
             st.append("Contributing basic clauses: ").append(sortIntArray(inputClauseIds).toString()).append("\n");}

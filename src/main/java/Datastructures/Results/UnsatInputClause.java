@@ -28,7 +28,7 @@ public class UnsatInputClause extends Unsatisfiable {
      */
     @Override
     public String description(Symboltable symboltable) {
-        return "Contradictory clause " + InputClauses.toString(0, inputClause,symboltable)+"\n";}
+        return "Contradictory clause " + InputClauses.toString(0, inputClause,symboltable);}
 
     /** adds InfInputClause to the inference steps.
      *

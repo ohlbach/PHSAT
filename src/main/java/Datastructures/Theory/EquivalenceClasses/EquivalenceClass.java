@@ -80,16 +80,15 @@ public class EquivalenceClass {
             inferenceSteps = new ArrayList<>(length-3);
             inferenceStep  = new InfInputClause(inputClause[0]);}
         IntArrayList literals = new IntArrayList(length-3);
-        for(int i = 3; i < length; ++i) {
+        for(int i = 2; i < length; ++i) {
             int literal1 = inputClause[i];
             if(literal1 == sign*representative) continue;
             boolean found = false;
-            for(int j = 3; j < length; ++j) {
+            for(int j = 2; j < i; ++j) {
                 int literal2 = inputClause[j];
                 if(literal1 == literal2) {found = true; break;}
                 if(literal1 == -literal2) {throw new UnsatInputClause(inputClause);}}
             if(found) continue; // double literals can be ignored
-            literals = new IntArrayList(length-3);
             literals.add(sign*literal1);
             if(trackReasoning) inferenceSteps.add(inferenceStep);} // the same inference step for each literal.
         if(literals.size() < 1) return null; // clauses like p = p are redundant.
@@ -104,7 +103,7 @@ public class EquivalenceClass {
      * @return                true if the equivalent literals all became true/false and the clause can be ignored.
      * @throws Unsatisfiable  if a contradiction was discovered.
      */
-    private static boolean isAlreadyTrueInModel(int[] inputClause, Model model, boolean trackReasoning) throws Unsatisfiable {
+    protected static boolean isAlreadyTrueInModel(int[] inputClause, Model model, boolean trackReasoning) throws Unsatisfiable {
         int length = inputClause.length;
         for(int i = 2; i < length; ++i) {
             int oldTrueLiteral = inputClause[i];
@@ -114,8 +113,10 @@ public class EquivalenceClass {
                     if(i == j) continue;
                     int newTrueLiteral = inputClause[j];
                     if(model.status(newTrueLiteral) == status) continue; // literal is already true/false
+                    System.out.println("MM " + status*newTrueLiteral + " "+ model.getInferenceStep(oldTrueLiteral));
                     model.add(status*newTrueLiteral, trackReasoning ? // may become unsatisfiable.
-                            new InfEquivalentTrueLiterals(inputClause[0],status*oldTrueLiteral,status*newTrueLiteral,
+                            new InfEquivalentTrueLiterals(inputClause[0],status*oldTrueLiteral,
+                                    status*newTrueLiteral,
                                         model.getInferenceStep(oldTrueLiteral)) : null);}
                 return true;}} // clause can be ignored from now on.
         return false;}

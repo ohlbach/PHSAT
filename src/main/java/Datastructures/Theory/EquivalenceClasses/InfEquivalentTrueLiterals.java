@@ -19,7 +19,7 @@ public class InfEquivalentTrueLiterals extends InferenceStep {
                     "p=q=...=s and true/false(p) -> true/false(q,...,s)";
 
     /** the id of the EQUIV input clause */
-    private final int origin;
+    private final int inputClauseId;
 
     /** a literal which is true in the model */
     private final int oldTrueLiteral;
@@ -32,13 +32,13 @@ public class InfEquivalentTrueLiterals extends InferenceStep {
 
     /** constructs the instance of the class
      *
-     * @param origin          the id of the EQUIV input clause.
+     * @param inputClauseId          the id of the EQUIV input clause.
      * @param oldTrueLiteral  the literal which was true in the model.
      * @param newTrueLiteral  the equivalent literal which became true
      * @param inferenceStep   null or the inference step which caused the truth of the oldTrueLiteral
      */
-    public InfEquivalentTrueLiterals(int origin, int oldTrueLiteral, int newTrueLiteral, InferenceStep inferenceStep) {
-        this.origin = origin;
+    public InfEquivalentTrueLiterals(int inputClauseId, int oldTrueLiteral, int newTrueLiteral, InferenceStep inferenceStep) {
+        this.inputClauseId = inputClauseId;
         this.oldTrueLiteral = oldTrueLiteral;
         this.newTrueLiteral = newTrueLiteral;
         this.inferenceStep  = inferenceStep;}
@@ -62,7 +62,7 @@ public class InfEquivalentTrueLiterals extends InferenceStep {
     public String toString(Symboltable symboltable) {
         String oldLiteral = Symboltable.toString(oldTrueLiteral,symboltable);
         String newLiteral = Symboltable.toString(newTrueLiteral,symboltable);
-        return title + ":\n" + oldLiteral + " = " + newLiteral +
+        return title + ":\nClause " + inputClauseId + ": " + oldLiteral + " = " + newLiteral +
                 " and true("+ oldLiteral + ") yields true(" + newLiteral +")";}
 
     /** the ids of all the input clauses which caused the truth of newTrueLiteral.
@@ -72,9 +72,9 @@ public class InfEquivalentTrueLiterals extends InferenceStep {
     @Override
     public IntArrayList inputClauseIds() {
         if(inferenceStep == null) return null;
-        IntArrayList origins = inferenceStep.inputClauseIds().clone();
-        origins.add(origin);
-        return origins;}
+        IntArrayList inputClauseIds = inferenceStep.inputClauseIds().clone();
+        inputClauseIds.add(inputClauseId);
+        return inputClauseIds;}
 
     /** adds this to the inference steps
      */
