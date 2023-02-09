@@ -228,23 +228,26 @@ public class EquivalenceClasses  {
         int sign2 = 0;
         int sign = 0;
         for(EquivalenceClass equivalenceClass : equivalenceClasses) {
-            sign = equivalenceClass.containsLiteral(literal1);
-            if(sign != 0) {
-                equivalenceClass.addNewEquivalence(sign*literal1,sign*literal2,inferenceStep,observers);}
-            else {
-                sign = equivalenceClass.containsLiteral(literal2);
-                if(sign != 0) {
-                    equivalenceClass.addNewEquivalence(sign*literal2,sign*literal1,inferenceStep,observers);}}
-            if(sign != 0) {
-                if(sign1 == 0) {
-                    sign1 = sign; equivalenceClass1 = equivalenceClass;}
-                else {sign2 = sign; equivalenceClass2 = equivalenceClass;}
-                continue;}}
+            sign1 = equivalenceClass.containsLiteral(literal1);
+            if(sign1 != 0) {equivalenceClass1 = equivalenceClass; break;}}
+        for(EquivalenceClass equivalenceClass : equivalenceClasses) {
+            sign2 = equivalenceClass.containsLiteral(literal2);
+            if(sign2 != 0) {equivalenceClass2 = equivalenceClass; break;}}
 
         if(sign1 != 0 && sign2 != 0) {
-            EquivalenceClass equivalenceClass = equivalenceClass1.joinEquivalenceClass(equivalenceClass2,sign1,observers);
-            equivalenceClasses.remove(equivalenceClass);}
-        }
+            EquivalenceClass equivalenceClass =
+                    equivalenceClass1.joinEquivalenceClass(equivalenceClass2,
+                            sign1*literal1, sign2*literal2,sign1*sign2, inferenceStep, observers);
+            equivalenceClasses.remove(equivalenceClass1);equivalenceClasses.remove(equivalenceClass2);
+            equivalenceClasses.add(equivalenceClass);
+            return;}
+        if(sign1 != 0) {
+            equivalenceClass1.addNewEquivalence(sign*literal1,sign*literal2,inferenceStep,observers);
+            return;}
+        if(sign2 != 0) {
+            equivalenceClass2.addNewEquivalence(sign*literal2,sign*literal1,inferenceStep,observers);
+            return;}}
+
 
     /** A true literal causes all other equivalent literals to become true.
      *

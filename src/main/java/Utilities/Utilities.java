@@ -552,6 +552,20 @@ public class Utilities {
         for(int i = 0; i < array.length; ++i) {if(array[i] == item) {return i;}}
         return -1;}
 
+    /** checks if the array contains the item.
+     *
+     * @param array an int-array.
+     * @param item an integer.
+     * @return +1 if the item is contained in the array, -1 if -item is contained in the array, otherwise 0.
+     */
+    public static int contains(IntArrayList array, int item) {
+        for(int i = 0; i < array.size(); ++i) {
+            int item1 = array.getInt(i);
+            if(item == item1) return +1;
+            if(item == -item1) return -1;}
+        return 0;}
+
+
     /** maps a filename to the entire path in IntelliJ's resources directory
      *
      * @param filename a filename
