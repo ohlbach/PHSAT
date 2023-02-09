@@ -13,8 +13,13 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 
 /** This class represents an equivalence class of literals.
+ * Equivalence classes can come from the input clauses.
+ * They also can be derived, for example from two-literal clauses, for example: p,q and -p,-q.
+ * A class can be extended, when new equivalences are derived, for example: p=q=r and r=s yields p=q=r=s.
+ *
+ * The equivalence class selects one literal as representative.
  * Initially the smallest predicate is selected as representative.
- * This may change if further equivalent literals are added.
+ * The representative remains fixed, even if further equivalences with smaller predicates are added.
  */
 public class EquivalenceClass {
     /** the representative of the equivalence class. */
@@ -41,7 +46,7 @@ public class EquivalenceClass {
         this.literals        = literals;
         this.inferenceSteps = inferenceSteps;}
 
-    /** clones the equivalence class
+    /** clones the equivalence class.
      *
      * @return a clone of the equivalence class.
      */
@@ -156,6 +161,7 @@ public class EquivalenceClass {
      * @param oldLiteral         a literal which is already contained in the equivalence class.
      * @param newLiteral         a new equivalent literal.
      * @param newInferenceStep   which derived the equivalence oldLiteral = newLiteral.
+     * @param observers          function which are called to signal new equivalences.
      * @throws Unsatisfiable     if the newLiteral is already in the class.
      */
     public void addNewEquivalence(int oldLiteral, int newLiteral, InferenceStep newInferenceStep,

@@ -4,6 +4,7 @@ package Datastructures.Results;
  * Created by ohlbach on 21.05.2019.
  */
 public class Aborted extends Result {
+    /** the reason why the program has been aborted */
     private String reason; // why it was aborted
 
     /** is not okay

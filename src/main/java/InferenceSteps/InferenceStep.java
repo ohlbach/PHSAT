@@ -8,6 +8,10 @@ import java.util.ArrayList;
  */
 public abstract class InferenceStep {
 
+    /** the title of the inference step.
+     *
+     * @return the title of the inference step.
+     */
     public abstract String title();
 
     /** returns a description of the inference steps

@@ -12,6 +12,7 @@ import java.util.ArrayList;
  * for example an equivalence p == -p.
   */
 public class UnsatInputClause extends Unsatisfiable {
+    /** This is the contradictory input clause */
     private final int[] inputClause;
 
     /** constructs an Unsatisfiability from an unsatisfiable clause

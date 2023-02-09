@@ -20,6 +20,11 @@ public abstract class Unsatisfiable extends Result {
     public Symboltable symboltable = null;
     public Statistic statistic = null;
 
+    /** must generate a short description of the unsatisfiability
+     *
+     * @param symboltable  null or a symboltable
+     * @return a short description of the unsatisfiability
+     */
     public abstract String description(Symboltable symboltable);
 
     /** joins the inference steps for the literals
@@ -28,6 +33,10 @@ public abstract class Unsatisfiable extends Result {
      */
     public abstract void inferenceSteps(ArrayList<InferenceStep> steps);
 
+    /** must return the list of input clause Ids which are responsible for the unsatrisfiability.
+     *
+     * @return the list of input clause Ids which are responsible for the unsatrisfiability.
+     */
     public abstract IntArrayList inputClauseIds();
 
 

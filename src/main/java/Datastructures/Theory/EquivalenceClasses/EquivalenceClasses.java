@@ -28,12 +28,8 @@ import java.util.concurrent.PriorityBlockingQueue;
  * The literals in the equivalence clauses are analysed and new equivalence classes are generated.
  * New unit clauses are put into the model.
  * <br>
- * Search phase as thread: <br>
- * It gets its input from the model and from the TwoLiteral module.
- * <br>
- * Equivalences are stored as clauses with sorted literals
- * The first literal (with the smallest predicate) is the representative of the equivalence class. <br>
- * The representative is always positive.
+ * In the search phase the class works as a parallel thread.
+ * It gets input from other threads and can derive new true literals and new equivalences.
  */
 public class EquivalenceClasses  {
     public final ProblemSupervisor problemSupervisor;
@@ -239,6 +235,7 @@ public class EquivalenceClasses  {
      * @param literal1 a literal
      * @param literal2 a literal with literal1 = literal2
      * @param inferenceStep which caused the equivalence
+     * @throws Unsatisfiable when a contradiction is found.
      */
     protected void addEquivalence(int literal1, int literal2, InferenceStep inferenceStep) throws Unsatisfiable {
         if(monitoring) {
@@ -274,6 +271,7 @@ public class EquivalenceClasses  {
     /** A true literal causes all other equivalent literals to become true.
      *
      * @param literal a true literal
+     * @param inferenceStep the inference that caused the truth of the literal.
      * @throws Unsatisfiable if a contradiction occurs.
      */
     protected void applyTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
