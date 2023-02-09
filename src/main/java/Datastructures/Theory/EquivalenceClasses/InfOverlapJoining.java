@@ -4,11 +4,10 @@ import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
-
 import java.util.ArrayList;
 import static Utilities.Utilities.joinIntArrays;
 
-public class InfEquivalenceJoining extends InferenceStep {
+public class InfOverlapJoining extends InferenceStep {
     private final Clause clause1;
     private final Clause clause2;
     private final Clause joinedClause;
@@ -23,7 +22,7 @@ public class InfEquivalenceJoining extends InferenceStep {
             "p == q == ... == s == r == ... == t";
 
 
-    public InfEquivalenceJoining(Clause clause1, Clause clause2, int literal, Clause joinedClause) {
+    public InfOverlapJoining(Clause clause1, Clause clause2, int literal, Clause joinedClause) {
         this.clause1 = clause1;
         this.clause2 = clause2;
         this.literal = literal;
@@ -40,8 +39,8 @@ public class InfEquivalenceJoining extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         return title + ":\n" + clause1.toString(0,symboltable) + " and " +
-        clause2.toString(0,symboltable) + " at " + Symboltable.toString(literal,symboltable) + " -> " +
-        joinedClause.toString(0,symboltable);}
+                clause2.toString(0,symboltable) + " at " + Symboltable.toString(literal,symboltable) + " -> " +
+                joinedClause.toString(0,symboltable);}
 
     @Override
     public IntArrayList inputClauseIds() {

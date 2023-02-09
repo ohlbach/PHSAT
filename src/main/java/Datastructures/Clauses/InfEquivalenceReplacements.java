@@ -68,7 +68,7 @@ public class InfEquivalenceReplacements extends InferenceStep {
         if(oldClause.inferenceStep != null) oldClause.inferenceStep.inferenceSteps(steps);
         for(int i = 0; i < literals.size(); i+=3) {
             int oldLiteral = (Integer)literals.get(i);
-            InferenceStep step = equivalenceClasses.getEClause(oldLiteral).inferenceStep;
+            InferenceStep step = null; //equivalenceClasses.getEClause(oldLiteral).inferenceStep;
             if(step != null) step.inferenceSteps(steps);}
         if(!steps.contains(this)) steps.add(this);}
 }

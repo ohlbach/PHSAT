@@ -7,9 +7,8 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
-import Utilities.Utilities;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import Utilities.TriConsumer;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
@@ -27,7 +26,7 @@ public class EquivalenceClass {
     /** null or the inference steps which produced the equivalence.
      * The literals-array and the inferenceSteps array are kept synchronized.
      */
-    public ArrayList<InferenceStep> inferenceSteps = null;
+    public ArrayList<InferenceStep> inferenceSteps ;
 
     /** creates an equivalence class.
      * A new equivalence class is not directly created here from an inputClause because it must be analysed first and
@@ -50,8 +49,7 @@ public class EquivalenceClass {
         IntArrayList newLiterals = literals.clone();
         ArrayList<InferenceStep> newSteps = null;
         if(inferenceSteps != null) {
-            newSteps = new ArrayList<>();
-            newSteps.addAll(inferenceSteps);}
+            newSteps = new ArrayList<>(inferenceSteps);}
         return new EquivalenceClass(representative,newLiterals,newSteps);}
 
     /** analyses an input clause of type EQUIV and generates an equivalence class.
@@ -80,7 +78,7 @@ public class EquivalenceClass {
         InferenceStep inferenceStep = null;
         if(trackReasoning) {
             inferenceSteps = new ArrayList<>(length-3);
-            inferenceStep  = new InfInputClause(inputClause[1]);}
+            inferenceStep  = new InfInputClause(inputClause[0]);}
         IntArrayList literals = new IntArrayList(length-3);
         for(int i = 3; i < length; ++i) {
             int literal1 = inputClause[i];
@@ -192,6 +190,40 @@ public class EquivalenceClass {
             if(literals.getInt(i) == literal) return inferenceSteps.get(i);}
         return null;}
 
+    /** joins two overlapping clauses from the input into one equivalence class
+     *
+     * @param eqClass the equivalence class to be joined
+     * @param sign    +1 or -1
+     * @return a new equivalence class
+     * @throws Unsatisfiable if the two classes contain contradictory literals.
+     */
+    public EquivalenceClass joinOverlappingClasses(EquivalenceClass eqClass, int sign) throws Unsatisfiable {
+        EquivalenceClass eqClass1 = this;
+        EquivalenceClass eqClass2 = eqClass;
+        if(eqClass2.representative < eqClass1.representative) {
+            eqClass1 = eqClass; eqClass2 = this;}
+        EquivalenceClass joinedClass = eqClass1.clone();
+        IntArrayList literals = joinedClass.literals;
+        int representative2 = eqClass2.representative;
+        int sign1 = joinedClass.containsLiteral(sign*representative2);
+        if(sign1 == -1) throw new UnsatJoinedOverlaps(eqClass1,eqClass2);
+        if(sign1 == 0) literals.add(sign*representative2);
+        for(int literal2 : eqClass2.literals) {
+            sign1 = joinedClass.containsLiteral(sign*literal2);
+            if(sign1 == -1) throw new UnsatJoinedOverlaps(eqClass1,eqClass2);
+            if(sign1 == 0) literals.add(sign*literal2);
+        }
+        if(eqClass1.inferenceSteps != null) {
+            IntArrayList inputClauseIds = Utilities.Utilities.unionIntArrayLists(
+                    eqClass1.inferenceSteps.get(0).inputClauseIds(),
+                    eqClass2.inferenceSteps.get(0).inputClauseIds());
+            InferenceStep joinedStep = new InfInputClause(inputClauseIds);
+            ArrayList<InferenceStep> inferenceSteps = new ArrayList<>(literals.size());
+            for(int i = 0; i < literals.size(); ++i) inferenceSteps.set(i,joinedStep);
+            joinedClass.inferenceSteps = inferenceSteps;}
+        return joinedClass;
+    }
+
     /** joins the given equivalence class into 'this'
      * Example: this = p,q,r and eqClass = a,b,c <br>
      * Because r = c, (see inference step) the resulting class is p,q,r,a,b,c
@@ -203,8 +235,7 @@ public class EquivalenceClass {
      * @param sign          +1 or -1, the sign for the second class.
      * @param inferenceStep which caused the equivalence of literal1 == literal2.
      * @param observers     for noticing the new equivalences.
-     * @return              the surviving class.
-     * @throws Unsatisfiable if the resulting class contains complementary literals.
+     * @return              the new joined class.
      */
 
     public EquivalenceClass joinEquivalenceClass(EquivalenceClass eqClass, int literal1, int literal2, int sign, InferenceStep inferenceStep,
@@ -216,25 +247,26 @@ public class EquivalenceClass {
             lit1 = literal2; lit2 = literal1;}
 
         EquivalenceClass joinedClass = eqClass1.clone();
-        // now we join eqClass2 into eqClass1
-        InferenceStep step1 = null;
-        InferenceStep step2 = null;
-        if(inferenceSteps != null) {step1 = eqClass1.getInferenceStep(lit1); step2 = eqClass2.getInferenceStep(lit2);}
+        // now we join eqClass2 into a clone of eqClass1
+        // we can exploit that the equivalence classes are disjoint.
         joinedClass.literals.add(sign*eqClass2.representative);
-        if(inferenceSteps != null) {
-            joinedClass.inferenceSteps.add(new InfEquivalenceJoining(step1,inferenceStep,step2));}
-        IntArrayList literals1 = joinedClass.literals;
         for(int i = 0; i < eqClass2.literals.size(); ++i) {
-            literals1.add(sign*eqClass2.literals.getInt(i));
-            if(inferenceSteps != null) {
-                joinedClass.inferenceSteps.add(new InfEquivalenceJoining(step1,inferenceStep,step2,
+            joinedClass.literals.add(sign*eqClass2.literals.getInt(i));}
+
+        if(inferenceSteps != null) {
+            InferenceStep step1 = eqClass1.getInferenceStep(lit1);
+            InferenceStep step2 = eqClass2.getInferenceStep(lit2);
+            joinedClass.inferenceSteps.add(new InfConnectedJoining(eqClass1,eqClass2,lit1,lit2,joinedClass, step1,inferenceStep,step2));
+            for(int i = 0; i < eqClass2.literals.size(); ++i) {
+                joinedClass.inferenceSteps.add(new InfConnectedJoining(eqClass1,eqClass2,lit1,lit2,joinedClass,step1,inferenceStep,step2,
                         eqClass2.inferenceSteps.get(i)));}}
+
         if(observers != null) {
             for(TriConsumer<Integer,Integer,InferenceStep> observer : observers) {
                 for(int i = eqClass1.literals.size(); i < joinedClass.literals.size(); ++i) {
                     observer.accept(joinedClass.representative,joinedClass.literals.getInt(i),
                             ((inferenceSteps == null) ? null : joinedClass.inferenceSteps.get(i)));}}}
-        return eqClass1;}
+        return joinedClass;}
 
     /** If a literal has turned out to be true/false then all other literals in the class must also be true/false.
      *

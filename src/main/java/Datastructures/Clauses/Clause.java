@@ -453,7 +453,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if (oldLiteral == newLiteral) continue;
             replacements.add(oldLiteral);
             replacements.add(newLiteral);
-            replacements.add(equivalenceClasses.getEClause(oldLiteral).inferenceStep);
+            //replacements.add(equivalenceClasses.getEClause(oldLiteral).inferenceStep);
             if (clause == this && nextId != null) {
                 clause = clone(nextId.getAsInt());
                 cLits = clause.cliterals;

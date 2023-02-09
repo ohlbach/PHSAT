@@ -121,17 +121,17 @@ public class EquivalenceClasses  {
 
             // Now we must join overlapping equivalence classes.
             // This should actually not be necessary, but it is logically possible and allowed.
-            int length = equivalenceClasses.size();
-            for(int i = 0; i < length; ++i) {
+            for(int i = 0; i < equivalenceClasses.size(); ++i) {
                 EquivalenceClass ec1 = equivalenceClasses.get(i);
-                for(int j = i+1; j < length; ++j) {
+                for(int j = i+1; j < equivalenceClasses.size(); ++j) {
                     EquivalenceClass ec2 = equivalenceClasses.get(j);
                     int sign = ec1.overlaps(ec2);
                     if(sign != 0) {
-                        EquivalenceClass ec = ec1.joinEquivalenceClass(ec2,sign,observers);
-                        --length;
-                        if(ec == ec1) {equivalenceClasses.remove(i--); break;}
-                        else{equivalenceClasses.remove(j--);}}}}}
+                        EquivalenceClass ec = ec1.joinOverlappingClasses(ec2,sign);
+                        equivalenceClasses.remove(j);
+                        equivalenceClasses.remove(i--);
+                        equivalenceClasses.add(ec);
+                        break;}}}}
         catch(Unsatisfiable unsatifiable) {
             unsatifiable.solverClass = EquivalenceClasses.class;
             unsatifiable.solverId    = "EquivalenceClasses";
@@ -176,6 +176,28 @@ public class EquivalenceClasses  {
             catch(Unsatisfiable unsatisfiable) {
                 problemSupervisor.finished("EquivalenceClasses", unsatisfiable,"Contradiction like p = -p found.");
                 return;}}}
+
+    /** finds the representative for the class containing the literal.
+     *
+     * @param literal a literal
+     * @return 0 or the representative for the literal
+     */
+    public int getRepresentative(int literal) {
+        for(EquivalenceClass equivalenceClass : equivalenceClasses) {
+            int sign = equivalenceClass.containsLiteral(literal);
+            if(sign != 0) return sign*equivalenceClass.representative;}
+        return  0;}
+
+    /** finds the equivalence class containing the literal.
+     *
+     * @param literal a literal.
+     * @return null or the equivalence class.
+     */
+    public EquivalenceClass getEClause(int literal) {
+        for(EquivalenceClass equivalenceClass : equivalenceClasses) {
+            if(equivalenceClass.containsLiteral(literal) != 0)
+                return equivalenceClass;}
+        return null;}
 
     /** adds a true literal to the queue
      *
