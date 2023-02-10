@@ -59,7 +59,7 @@ public class EquivalenceClasses  {
     private String monitorId = null;
 
     /** The list of equivalence classes */
-    public ArrayList<EquivalenceClass> equivalenceClasses;
+    public ArrayList<EquivalenceClass> equivalenceClasses = new ArrayList<>();
 
 
     /** These two types can occur in the task queue */
@@ -127,7 +127,8 @@ public class EquivalenceClasses  {
                         equivalenceClasses.remove(j);
                         equivalenceClasses.remove(i--);
                         equivalenceClasses.add(ec);
-                        break;}}}}
+                        break;}}}
+            statistics.inputClasses = equivalenceClasses.size();}
         catch(Unsatisfiable unsatifiable) {
             unsatifiable.solverClass = EquivalenceClasses.class;
             unsatifiable.solverId    = "EquivalenceClasses";
@@ -259,13 +260,23 @@ public class EquivalenceClasses  {
                             sign1*literal1, sign2*literal2,sign1*sign2, inferenceStep, observers);
             equivalenceClasses.remove(equivalenceClass1);equivalenceClasses.remove(equivalenceClass2);
             equivalenceClasses.add(equivalenceClass);
+            ++statistics.joinedClasses;
             return;}
         if(sign1 != 0) {
             equivalenceClass1.addNewEquivalence(sign*literal1,sign*literal2,inferenceStep,observers);
             return;}
         if(sign2 != 0) {
             equivalenceClass2.addNewEquivalence(sign*literal2,sign*literal1,inferenceStep,observers);
-            return;}}
+            return;}
+
+        ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
+        inferenceSteps.add(inferenceStep);
+        int representative = literal1; int literal = literal2;
+        if(Math.abs(literal) < Math.abs(representative)) {representative = literal2; literal = literal1;}
+        if(representative < 0) {representative *=-1; literal *= -1;}
+        equivalenceClasses.add(new EquivalenceClass(representative,IntArrayList.wrap(new int[]{literal}),inferenceSteps));
+        ++statistics.derivedClasses;
+    }
 
 
     /** A true literal causes all other equivalent literals to become true.
@@ -275,10 +286,11 @@ public class EquivalenceClasses  {
      * @throws Unsatisfiable if a contradiction occurs.
      */
     protected void applyTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
+        ++statistics.importedTrueLiterals;
         for(EquivalenceClass equivalenceClass : equivalenceClasses) {
             int sign = equivalenceClass.containsLiteral(literal);
             if(sign != 0) {
-                equivalenceClass.applyTrueLiteral(literal, sign,inferenceStep,model);
+                equivalenceClass.applyTrueLiteral(literal, sign,inferenceStep,model,statistics);
                 equivalenceClasses.remove(equivalenceClass);
                 if(monitoring) {
                     monitor.print(monitorId,"EquivalenceClasses: True literal " +

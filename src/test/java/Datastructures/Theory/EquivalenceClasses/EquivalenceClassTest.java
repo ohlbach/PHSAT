@@ -5,6 +5,7 @@ import Datastructures.Results.UnsatInputClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import InferenceSteps.InferenceTest;
 import junit.framework.TestCase;
 
 public class EquivalenceClassTest extends TestCase {
@@ -54,11 +55,26 @@ public class EquivalenceClassTest extends TestCase {
         System.out.println("isAlreadyTrueInModel");
         Model model = new Model(10);
         int[] clause1 = new int[]{10,eqv,2,-1,3};
+        assertFalse(EquivalenceClass.isAlreadyTrueInModel(clause1,model,true));
         //model.add(-2,new InferenceTest("MyTest"));
         model.addImmediately(-2);
         assertTrue(EquivalenceClass.isAlreadyTrueInModel(clause1,model,true));
         assertEquals("1,-2,-3",model.toString());
-        System.out.println(model.getInferenceStep(1).toString());
+        //System.out.println(model.getInferenceStep(1).toString());
+
+        model = new Model(10);
+        model.add(2,new InferenceTest("MyTest 2"));
+        assertTrue(EquivalenceClass.isAlreadyTrueInModel(clause1,model,true));
+        assertEquals("-1,2,3",model.toString());
+
+        model.add(-3,new InferenceTest("MyTest -3"));
+        try{
+            assertTrue(EquivalenceClass.isAlreadyTrueInModel(clause1,model,true));
+            assertTrue(false);}
+        catch(Unsatisfiable unsatisfiable) {
+            System.out.println(unsatisfiable.toString());
+        }
+
     }
 
     public void testContainsLiteral() {

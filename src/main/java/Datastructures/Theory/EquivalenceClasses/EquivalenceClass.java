@@ -118,7 +118,6 @@ public class EquivalenceClass {
                     if(i == j) continue;
                     int newTrueLiteral = inputClause[j];
                     if(model.status(newTrueLiteral) == status) continue; // literal is already true/false
-                    System.out.println("MM " + status*newTrueLiteral + " "+ model.getInferenceStep(oldTrueLiteral));
                     model.add(status*newTrueLiteral, trackReasoning ? // may become unsatisfiable.
                             new InfEquivalentTrueLiterals(inputClause[0],status*oldTrueLiteral,
                                     status*newTrueLiteral,
@@ -281,9 +280,11 @@ public class EquivalenceClass {
      * @param sign               +1 if all literals are to become true, -1 if they are to become false.
      * @param trueInferenceStep  which caused the truth of the literal
      * @param model              the global model
+     * @param statistics         the statistics object.
      * @throws Unsatisfiable     if a contradiction is encountered.
      */
-    protected void applyTrueLiteral(int trueLiteral, int sign, InferenceStep trueInferenceStep, Model model) throws Unsatisfiable {
+    protected void applyTrueLiteral(int trueLiteral, int sign, InferenceStep trueInferenceStep,
+                                    Model model, EquivalenceStatistics statistics) throws Unsatisfiable {
         int literalInClass = sign*trueLiteral;
         InferenceStep equivInferenceStep = getInferenceStep(literalInClass);
         InferenceStep literalInferenceStep = null;
@@ -294,8 +295,10 @@ public class EquivalenceClass {
             int literal = literals.getInt(i);
             if(literal == literalInClass) continue;
             if(inferenceSteps != null) literalInferenceStep = inferenceSteps.get(i);
-            model.add(literal*sign,(trueInferenceStep == null) ? null :
-                    new InfApplyTrueLiteral(trueLiteral,literal*sign,trueInferenceStep,equivInferenceStep,literalInferenceStep));}}
+            if(model.status(literal) != 0) {++statistics.derivedTrueLiterals;}
+            model.add(literal*sign,(trueInferenceStep == null) ? null :  // may find a contradiction
+                    new InfApplyTrueLiteral(trueLiteral,literal*sign,trueInferenceStep,equivInferenceStep,
+                            literalInferenceStep));}}
 
     /** returns the equivalence class as a string 'representative = literal1 = ...'
      *  If the symboltable is provided, it will be used.

@@ -47,8 +47,8 @@ public class UnsatisfiableLiteral extends Unsatisfiable {
      */
     @Override
     public IntArrayList inputClauseIds() {
-        IntArrayList origins = null;
-        if(stepLiteral1 != null) {origins = stepLiteral1.inputClauseIds();}
-        if(stepLiteral2 != null) {return joinIntArrays(origins,stepLiteral2.inputClauseIds());}
-        return origins;}
+        IntArrayList inputClauseIds = null;
+        if(stepLiteral1 != null) {inputClauseIds = stepLiteral1.inputClauseIds();}
+        if(stepLiteral2 != null) {inputClauseIds = joinIntArrays(inputClauseIds,stepLiteral2.inputClauseIds());}
+        return inputClauseIds;}
 }

@@ -53,12 +53,16 @@ public abstract class Unsatisfiable extends Result {
         st.append("\n").append(description(symboltable)).append("\n");
         IntArrayList inputClauseIds = inputClauseIds();
         if(inputClauseIds != null) {
-            st.append("Contributing basic clauses: ").append(sortIntArray(inputClauseIds).toString()).append("\n");}
+            st.append("Contributing input clauses: ").append(sortIntArray(inputClauseIds).toString()).append("\n");}
         ArrayList<InferenceStep> steps = new ArrayList<>();
         inferenceSteps(steps);
         if(!steps.isEmpty()) {
             st.append("Sequence of Inference Steps:\n");
-            for(InferenceStep step : steps) {
+            for(int i = 0; i < steps.size(); ++i) {
+                InferenceStep step = steps.get(i);
+                boolean found = false;
+                for(int j = 0; j < i; ++j) {if(step == steps.get(j)) {found = true; break;}}
+                if(found) continue;
                 if(step.getClass() != InfInputClause.class)
                     st.append(step.toString(symboltable)).append("\n");}
 

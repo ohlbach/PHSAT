@@ -102,6 +102,7 @@ public class Model {
      */
     public void addImmediately(int... literals) {
         for(int literal : literals) {
+            inferenceSteps.add(null);
             model.add(literal);
             status[Math.abs(literal)] = literal > 0 ? (byte)1: (byte)-1;}}
 
