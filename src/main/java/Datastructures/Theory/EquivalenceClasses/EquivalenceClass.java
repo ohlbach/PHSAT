@@ -144,10 +144,10 @@ public class EquivalenceClass {
      * @return +1 if there is a positive overlap, -1 if there is a negative overlap, 0 if there is no overlap.
      */
     public int overlaps(EquivalenceClass eqClass) {
-        if(representative == eqClass.representative) return +1;
-        if(representative == -eqClass.representative) return -1;
+        int sign = containsLiteral(eqClass.representative);
+        if(sign != 0) return sign;
         for(int literal: eqClass.literals) {
-            int sign = containsLiteral(literal);
+            sign = containsLiteral(literal);
             if(sign != 0) return sign;}
         return 0;}
 
@@ -177,11 +177,12 @@ public class EquivalenceClass {
                 throw new UnsatContradictoryEquivalence(oldLiteral,literal,
                         getInferenceStep(oldLiteral),newInferenceStep);
             if(inferenceSteps != null && oldLiteral == literal) oldInferenceStep = inferenceSteps.get(i);}
-        literals.add(newLiteral);
         if(inferenceSteps != null)
             inferenceSteps.add(new InfAddedLiteral(representative, literals,newLiteral,oldLiteral,newInferenceStep,oldInferenceStep));
-        for(TriConsumer<Integer,Integer,InferenceStep> observer : observers)
-            observer.accept(representative,newLiteral,newInferenceStep);
+        literals.add(newLiteral);
+        if(observers != null) {
+            for(TriConsumer<Integer,Integer,InferenceStep> observer : observers)
+                observer.accept(representative,newLiteral,newInferenceStep);}
     }
 
     /** finds the inference step that caused representative = literal

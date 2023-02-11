@@ -44,7 +44,7 @@ public class InfAddedLiteral  extends InferenceStep {
             st.append(" = ").append(Symboltable.toString(literal,symboltable));
         String clause = st.toString();
         st.append("\n").append(Symboltable.toString(oldLiteral,symboltable)).append(" = ").
-                append(Symboltable.toString(newLiteral,symboltable));
+                append(Symboltable.toString(newLiteral,symboltable)).append("\n");
         int length = st.length();
         for(int i = 0; i < length; ++i) st.append("-");
         st.append("\n");

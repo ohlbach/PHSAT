@@ -77,17 +77,47 @@ public class EquivalenceClassTest extends TestCase {
 
     }
 
-    public void testContainsLiteral() {
+    public void testContainsLiteral() throws Unsatisfiable {
+        System.out.println("contains literal");
+        Model model = new Model(10);
+        int[] clause1 = new int[]{10,eqv,2,-1,3};
+        EquivalenceClass eq1 = EquivalenceClass.makeEquivalenceClass(clause1,model,true);
+        assertEquals(1,eq1.containsLiteral(-3));
+        assertEquals(-1,eq1.containsLiteral(3));
+        assertEquals(1,eq1.containsLiteral(1));
+        assertEquals(-1,eq1.containsLiteral(-1));
+        assertEquals(0,eq1.containsLiteral(4));
     }
 
-    public void testOverlaps() {
+    public void testOverlaps() throws Unsatisfiable{
+        System.out.println("overlaps");
+        Model model = new Model(10);
+        int[] clause1 = new int[]{10,eqv,1,2,5};
+        int[] clause2 = new int[]{11,eqv,2,4,6};
+        int[] clause3 = new int[]{12,eqv,-4,3,-6};
+        EquivalenceClass eq1 = EquivalenceClass.makeEquivalenceClass(clause1,model,true);
+        EquivalenceClass eq2 = EquivalenceClass.makeEquivalenceClass(clause2,model,true);
+        EquivalenceClass eq3 = EquivalenceClass.makeEquivalenceClass(clause3,model,true);
+        assertEquals(1,eq1.overlaps(eq2));
+        assertEquals(0,eq1.overlaps(eq3));
+        assertEquals(-1,eq2.overlaps(eq3));
     }
 
-    public void testAddNewEquivalence() {
+    public void testAddNewEquivalence() throws Unsatisfiable {
+        System.out.println("addNewEquivalence");
+        Model model = new Model(10);
+        int[] clause1 = new int[]{10,eqv,1,2,3};
+        EquivalenceClass eq1 = EquivalenceClass.makeEquivalenceClass(clause1,model,true);
+        eq1.addNewEquivalence(2,3,null,null);
+        assertEquals("1 = 2 = 3",eq1.toString());
+        eq1.addNewEquivalence(2,4,new InferenceTest("Add 4"),null);
+        assertEquals("1 = 2 = 3 = 4",eq1.toString());
+        assertEquals("1 = 2 = 3\n" +
+                "2 = 4\n" +
+                "----------------\n" +
+                "1 = 2 = 3 = 4",eq1.getInferenceStep(4).toString());
     }
 
-    public void testGetInferenceStep() {
-    }
 
     public void testJoinOverlappingClasses() {
     }
