@@ -5,8 +5,12 @@ import Datastructures.Results.UnsatInputClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import InferenceSteps.InferenceStep;
 import InferenceSteps.InferenceTest;
+import Utilities.TriConsumer;
 import junit.framework.TestCase;
+
+import java.util.ArrayList;
 
 public class EquivalenceClassTest extends TestCase {
     static Symboltable symboltable= new Symboltable(10);
@@ -116,10 +120,51 @@ public class EquivalenceClassTest extends TestCase {
                 "2 = 4\n" +
                 "----------------\n" +
                 "1 = 2 = 3 = 4",eq1.getInferenceStep(4).toString());
+
+        ArrayList<Object[]> observed = new ArrayList<>();
+        ArrayList<TriConsumer<Integer,Integer, InferenceStep>> observers = new ArrayList<>();
+        observers.add((reference,literal,inference) -> observed.add(new Object[]{reference,literal,inference}));
+        eq1.addNewEquivalence(3,5,new InferenceTest("Add 5"),observers);
+        assertEquals(1,observed.get(0)[0]);
+        assertEquals(5,observed.get(0)[1]);
+        assertEquals("Test Inference:\n" +
+                "Add 5",observed.get(0)[2].toString());
+        try{
+            eq1.addNewEquivalence(2,-3,new InferenceTest("Add -3"),null);
+            assertTrue(false);}
+        catch(Unsatisfiable unsatisfiable) {
+            //System.out.println(unsatisfiable.toString());
+        }
     }
 
 
-    public void testJoinOverlappingClasses() {
+    public void testJoinOverlappingClasses() throws Unsatisfiable {
+        System.out.println("JoinOverlappingClasses");
+        Model model = new Model(10);
+        int[] clause1 = new int[]{10,eqv,1,2,3};
+        int[] clause2 = new int[]{11,eqv,4,2,3};
+        EquivalenceClass eq1 = EquivalenceClass.makeEquivalenceClass(clause1,model,true);
+        EquivalenceClass eq2 = EquivalenceClass.makeEquivalenceClass(clause2,model,true);
+        EquivalenceClass eq3 = eq1.joinOverlappingClasses(eq2,1);
+        assertEquals("1 = 2 = 3 = 4",eq3.toString());
+        assertEquals("Input: Clauses 10,11",eq3.getInferenceStep(3).toString());
+
+        int[] clause3 = new int[]{12,eqv,1,3,5};
+        int[] clause4 = new int[]{13,eqv,2,4,-5};
+        EquivalenceClass eq4 = EquivalenceClass.makeEquivalenceClass(clause3,model,true);
+        EquivalenceClass eq5 = EquivalenceClass.makeEquivalenceClass(clause4,model,true);
+        EquivalenceClass eq6 = eq4.joinOverlappingClasses(eq5,-1);
+        assertEquals("1 = 3 = 5 = -2 = -4",eq6.toString());
+
+        int[] clause5 = new int[]{14,eqv,2,3,-5};
+        EquivalenceClass eq7 = EquivalenceClass.makeEquivalenceClass(clause5,model,true);
+        try{
+            EquivalenceClass eq8 = eq4.joinOverlappingClasses(eq7,-1);
+            assertTrue(false);
+        }
+        catch(Unsatisfiable unsatisfiable) {
+            System.out.println(unsatisfiable.toString());
+        }
     }
 
     public void testJoinEquivalenceClass() {
@@ -128,6 +173,4 @@ public class EquivalenceClassTest extends TestCase {
     public void testApplyTrueLiteral() {
     }
 
-    public void testTestToString() {
-    }
 }

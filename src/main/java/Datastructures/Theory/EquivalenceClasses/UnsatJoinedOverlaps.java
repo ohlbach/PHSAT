@@ -33,5 +33,5 @@ public class UnsatJoinedOverlaps extends Unsatisfiable {
     public IntArrayList inputClauseIds() {
         if(eqClass1.inferenceSteps == null) return null;
         return Utilities.unionIntArrayLists(eqClass1.inferenceSteps.get(0).inputClauseIds(),
-                eqClass1.inferenceSteps.get(0).inputClauseIds());}
+                eqClass2.inferenceSteps.get(0).inputClauseIds());}
 }

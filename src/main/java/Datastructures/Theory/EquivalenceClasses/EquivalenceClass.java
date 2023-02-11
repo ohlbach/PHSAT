@@ -226,7 +226,7 @@ public class EquivalenceClass {
                     eqClass2.inferenceSteps.get(0).inputClauseIds());
             InferenceStep joinedStep = new InfInputClause(inputClauseIds);
             ArrayList<InferenceStep> inferenceSteps = new ArrayList<>(literals.size());
-            for(int i = 0; i < literals.size(); ++i) inferenceSteps.set(i,joinedStep);
+            for(int i = 0; i < literals.size(); ++i) inferenceSteps.add(joinedStep);
             joinedClass.inferenceSteps = inferenceSteps;}
         return joinedClass;
     }

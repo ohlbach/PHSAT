@@ -58,7 +58,7 @@ public class InfInputClause extends InferenceStep {
     public String toString(Symboltable symboltable) {
         String st = "" + inputClauseIds.getInt(0);
         if(inputClauseIds.size() == 1) return "Input Clause Id: " + st;
-        for(int i = 2; i < inputClauseIds.size(); ++i) st += "," + inputClauseIds.getInt(i);
+        for(int i = 1; i < inputClauseIds.size(); ++i) st += "," + inputClauseIds.getInt(i);
         return "Input: Clauses " + st;}
 
     @Override
