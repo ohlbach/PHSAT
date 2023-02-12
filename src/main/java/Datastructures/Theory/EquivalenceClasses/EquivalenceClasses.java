@@ -50,13 +50,13 @@ public class EquivalenceClasses  {
     public Symboltable symboltable;
 
     /** for logging the actions of this class */
-    private Monitor monitor = null;
+    private Monitor monitor;
 
     /** indicates monitoring is on */
-    private boolean monitoring = false;
+    private boolean monitoring;
 
     /** for distinguishing the monitoring areas */
-    private String monitorId = "Monitor";
+    private String monitorId;
 
     /** The list of equivalence classes */
     public ArrayList<EquivalenceClass> equivalenceClasses = new ArrayList<>();
@@ -88,13 +88,6 @@ public class EquivalenceClasses  {
      * They are not called for the EQUIV inputClauses.*/
     private final ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers = new ArrayList<>();
 
-    /** creates equivalence classes for test purposes.
-     */
-    public EquivalenceClasses(int predicates){
-        model = new Model(predicates);
-        statistics = new EquivalenceStatistics("TestStatistics");
-        problemId = "TestProblem";
-    }
 
     /** creates the EquivalenceClasses instance
      *
@@ -104,10 +97,16 @@ public class EquivalenceClasses  {
     public EquivalenceClasses(ProblemSupervisor problemSupervisor, Monitor monitor) {
         this.problemSupervisor = problemSupervisor;
         this.monitor = monitor;
-        problemId = problemSupervisor.problemId;
-        model = problemSupervisor.model;
+        if(problemSupervisor != null) {
+            problemId      = problemSupervisor.problemId;
+            model          =  problemSupervisor.model;
+            trackReasoning = problemSupervisor.globalParameters.trackReasoning;}
+        else {    // for test purposes.
+            problemId      = "TestProblem";
+            model          =  new Model(20);
+            trackReasoning = true;}
         statistics   = new EquivalenceStatistics(problemId);
-        trackReasoning = problemSupervisor.globalParameters.trackReasoning;
+
         if(monitor != null) {
             monitoring = true;
             monitorId = problemId+"-EQV";}}
@@ -329,6 +328,14 @@ public class EquivalenceClasses  {
      */
     public synchronized boolean isEmpty() {
         return equivalenceClasses.isEmpty();}
+
+    /** returns the number of equivalence classes
+     *
+     * @return the number of equivalence classes.
+     */
+    public synchronized int size() {
+        return equivalenceClasses.size();
+    }
 
     /** turns the equivalence classes into a string "representative =  literal1 = literal2 = ... [origins]".
      * No symboltable is used.
