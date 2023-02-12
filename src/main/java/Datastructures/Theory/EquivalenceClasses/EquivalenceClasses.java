@@ -22,35 +22,36 @@ import java.util.concurrent.PriorityBlockingQueue;
  *
  * Initial phase: <br>
  * It is called after the unit clauses are put into the model.
- * The input ist:
- *      1. the model with the initial unit clauses.<br>
- *      2. the basic equivalence clauses one by one. <br>
- * The literals in the equivalence clauses are analysed and new equivalence classes are generated.
+ * The input ist:<br>
+ *      1. the model with the initial unit clauses,<br>
+ *      2. the input equivalence clauses. <br>
+ * The literals in the equivalence clauses are analysed and new equivalence classes are generated.<br>
  * New unit clauses are put into the model.
  * <br>
  * In the search phase the class works as a parallel thread.
  * It gets input from other threads and can derive new true literals and new equivalences.
  */
 public class EquivalenceClasses  {
-    public ProblemSupervisor problemSupervisor = null;
+    /** the problem supervisor */
+    public ProblemSupervisor problemSupervisor;
 
     /** for collecting statistics */
     public EquivalenceStatistics statistics;
 
     /** controls the computation of the clause's origins */
-    public boolean trackReasoning = false;
+    public boolean trackReasoning;
 
     /** The id of the current problem to be solved */
-    private String problemId = "";
+    private final String problemId;
 
     /** the global model of true literals */
-    public Model model = null;
+    public Model model;
 
     /** null or the global symboltable */
     public Symboltable symboltable;
 
     /** for logging the actions of this class */
-    private Monitor monitor;
+    private final Monitor monitor;
 
     /** indicates monitoring is on */
     private boolean monitoring;
@@ -64,8 +65,10 @@ public class EquivalenceClasses  {
 
     /** These two types can occur in the task queue */
     private enum TaskType {
-        TRUELITERAL, // a new true literal is obtained from the model
-        EQUIVALENCE} // a new binary equivalence is found in the TwoLiteral module.
+        /** a new true literal is obtained from the model */
+        TRUELITERAL, 
+        /** a new binary equivalence is found in the TwoLiteral module. */
+        EQUIVALENCE}
 
     /** gets the priority for the objects in the queue.
      *
@@ -99,11 +102,11 @@ public class EquivalenceClasses  {
         this.monitor = monitor;
         if(problemSupervisor != null) {
             problemId      = problemSupervisor.problemId;
-            model          =  problemSupervisor.model;
+            model          = problemSupervisor.model;
             trackReasoning = problemSupervisor.globalParameters.trackReasoning;}
         else {    // for test purposes.
             problemId      = "TestProblem";
-            model          =  new Model(20);
+            model          = new Model(20);
             trackReasoning = true;}
         statistics   = new EquivalenceStatistics(problemId);
 
