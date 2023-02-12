@@ -13,13 +13,21 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 
 /** This class represents an equivalence class of literals.
- * Equivalence classes can come from the input clauses.
- * They also can be derived, for example from two-literal clauses, for example: p,q and -p,-q.
+ * Equivalence classes can come from the input clauses.<br>
+ * They also can be derived, for example from two-literal clauses, for example: p,q and -p,-q.<br>
  * A class can be extended, when new equivalences are derived, for example: p=q=r and r=s yields p=q=r=s.
- *
- * The equivalence class selects one literal as representative.
- * Initially the smallest predicate is selected as representative.
+ *<br>
+ * The equivalence class selects one literal as representative.<br>
+ * Initially the smallest predicate is selected as representative.<br>
  * The representative remains fixed, even if further equivalences with smaller predicates are added.
+ * <br>
+ * Although this should not happen, the initial equivalence clauses which come from the input
+ * can show redundancies and contradictions: <br>
+ * - double literals p = p<br>
+ * - complementary literals p = -p <br>
+ * - overlapping equivalence classes: p = q and q = r
+ * <br>
+ * They are either eliminated or cause an Unsatisfiable exception to be thrown.
  */
 public class EquivalenceClass {
     /** the representative of the equivalence class. */
@@ -290,13 +298,14 @@ public class EquivalenceClass {
         InferenceStep equivInferenceStep = getInferenceStep(literalInClass);
         InferenceStep literalInferenceStep = null;
         if(literalInClass != representative) {
+            if(model.status(representative) == 0) ++statistics.derivedTrueLiterals;
             model.add(representative*sign,(trueInferenceStep == null) ? null :
                     new InfApplyTrueLiteral(trueLiteral,representative*sign,trueInferenceStep,equivInferenceStep,null));}
         for(int i = 0; i < literals.size(); ++i) {
             int literal = literals.getInt(i);
             if(literal == literalInClass) continue;
             if(inferenceSteps != null) literalInferenceStep = inferenceSteps.get(i);
-            if(model.status(literal) != 0) {++statistics.derivedTrueLiterals;}
+            if(model.status(literal) == 0) ++statistics.derivedTrueLiterals;
             model.add(literal*sign,(trueInferenceStep == null) ? null :  // may find a contradiction
                     new InfApplyTrueLiteral(trueLiteral,literal*sign,trueInferenceStep,equivInferenceStep,
                             literalInferenceStep));}}

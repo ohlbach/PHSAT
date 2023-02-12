@@ -71,12 +71,14 @@ public class EquivalenceClassTest extends TestCase {
         assertTrue(EquivalenceClass.isAlreadyTrueInModel(clause1,model,true));
         assertEquals("-1,2,3",model.toString());
 
-        model.add(-3,new InferenceTest("MyTest -3"));
+        model = new Model(10);
+        model.add(1,new InferenceTest("MyTest 1"));
+        model.add(3,new InferenceTest("MyTest -3"));
         try{
             assertTrue(EquivalenceClass.isAlreadyTrueInModel(clause1,model,true));
             assertTrue(false);}
         catch(Unsatisfiable unsatisfiable) {
-            System.out.println(unsatisfiable.toString());
+            //System.out.println(unsatisfiable.toString());
         }
 
     }
@@ -163,14 +165,63 @@ public class EquivalenceClassTest extends TestCase {
             assertTrue(false);
         }
         catch(Unsatisfiable unsatisfiable) {
-            System.out.println(unsatisfiable.toString());
+           // System.out.println(unsatisfiable.toString());
         }
     }
 
-    public void testJoinEquivalenceClass() {
+    public void testJoinEquivalenceClass() throws Unsatisfiable{
+        System.out.println("joinEquivalenceClass");
+        Model model = new Model(10);
+        int[] clause1 = new int[]{10,eqv,1,2,3};
+        int[] clause2 = new int[]{11,eqv,5,6,7};
+        EquivalenceClass eq1 = EquivalenceClass.makeEquivalenceClass(clause1,model,true);
+        EquivalenceClass eq2 = EquivalenceClass.makeEquivalenceClass(clause2,model,true);
+        ArrayList<Object[]> observed = new ArrayList<>();
+        ArrayList<TriConsumer<Integer,Integer, InferenceStep>> observers = new ArrayList<>();
+        observers.add((reference,literal,inference) -> observed.add(new Object[]{reference,literal,inference}));
+        EquivalenceClass jeq1 = eq1.joinEquivalenceClass(eq2,3,7,1,new InferenceTest("Mytest 3 7"),observers);
+        assertEquals("1 = 2 = 3 = 5 = 6 = 7",jeq1.toString());
+        assertEquals(3,observed.size());
+        assertEquals(5,observed.get(0)[1]);
+        assertEquals("Joining of Connected Equivalences:\n" +
+                "1 = 2 = 3\n" +
+                "5 = 6 = 7 and 3 = 7\n" +
+                "-------------------\n" +
+                "1 = 2 = 3 = 5 = 6 = 7",observed.get(1)[2].toString());
+
+        EquivalenceClass jeq2 = eq2.joinEquivalenceClass(eq1,3,-7,-1,new InferenceTest("Mytest 3 -7"),observers);
+        assertEquals("1 = 2 = 3 = -5 = -6 = -7",jeq2.toString());
     }
 
-    public void testApplyTrueLiteral() {
+
+
+    public void testApplyTrueLiteral() throws Unsatisfiable{
+        System.out.println("applyTrueLiteral");
+        Model model = new Model(20);
+        EquivalenceStatistics statistics = new EquivalenceStatistics("test");
+        int[] clause1 = new int[]{10,eqv,1,2,3};
+        EquivalenceClass eq1 = EquivalenceClass.makeEquivalenceClass(clause1,model,true);
+        eq1.applyTrueLiteral(1,1,new InferenceTest("Test 1"),model,statistics);
+        assertEquals("2,3",model.toString());
+        assertEquals(2,statistics.derivedTrueLiterals);
+
+        int[] clause2 = new int[]{11,eqv,6,5,4};
+        EquivalenceClass eq2 = EquivalenceClass.makeEquivalenceClass(clause2,model,true);
+        eq2.applyTrueLiteral(-5,-1,new InferenceTest("Test 2"),model,statistics);
+        assertEquals("2,3,-4,-6",model.toString());
+
+
+
+        model = new Model(20);
+        int[] clause3 = new int[]{12,eqv,7,8,2};
+        EquivalenceClass eq3 = EquivalenceClass.makeEquivalenceClass(clause3,model,true);
+        model.add(2,new InferenceTest("Model 2"));
+        try{
+            eq3.applyTrueLiteral(-8,-1,new InferenceTest("Test 3"),model,statistics);
+            assertTrue(false);}
+        catch(Unsatisfiable unsatisfiable) {
+        //System.out.println(unsatisfiable.toString());
+        }
     }
 
 }

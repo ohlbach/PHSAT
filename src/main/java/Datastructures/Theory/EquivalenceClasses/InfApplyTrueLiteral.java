@@ -54,15 +54,15 @@ public class InfApplyTrueLiteral extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return Symboltable.toString(oldTrueLiteral,symboltable) + " = " + Symboltable.toString(oldTrueLiteral,symboltable) +
-                " and true("+Symboltable.toString(oldTrueLiteral,symboltable)+ ") -> "+
-                Symboltable.toString(newTrueLiteral,symboltable);}
+        return Symboltable.toString(oldTrueLiteral,symboltable) + " = " + Symboltable.toString(newTrueLiteral,symboltable) +
+                " and true("+Symboltable.toString(oldTrueLiteral,symboltable)+ ") -> true("+
+                Symboltable.toString(newTrueLiteral,symboltable)+")";}
 
     @Override
     public IntArrayList inputClauseIds() {
-        IntArrayList oldIds = oldInferenceStep.inputClauseIds();
-        IntArrayList newIds = newInferenceStep.inputClauseIds();
-        IntArrayList ids    = trueInferenceStep.inputClauseIds();
+        IntArrayList oldIds = (oldInferenceStep == null) ? null : oldInferenceStep.inputClauseIds();
+        IntArrayList newIds = (newInferenceStep == null) ? null : newInferenceStep.inputClauseIds();
+        IntArrayList ids    = (trueInferenceStep == null) ? null: trueInferenceStep.inputClauseIds();
         return Utilities.Utilities.unionIntArrayLists(oldIds,newIds,ids);}
 
     @Override
