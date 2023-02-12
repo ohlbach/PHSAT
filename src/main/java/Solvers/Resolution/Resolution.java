@@ -754,7 +754,7 @@ public abstract class Resolution extends Solver {
         int literal2 =  clause.getCLiteral(1).literal;
         if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
         int fromliteral = literal1; int toliteral = literal2;
-        equivalenceClasses.integrateEquivalence(fromliteral,toliteral,null);
+        equivalenceClasses.addEquivalence(fromliteral,toliteral,null);
        // taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
        //         (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
         ++statistics.equivalences;

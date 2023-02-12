@@ -32,31 +32,31 @@ import java.util.concurrent.PriorityBlockingQueue;
  * It gets input from other threads and can derive new true literals and new equivalences.
  */
 public class EquivalenceClasses  {
-    public final ProblemSupervisor problemSupervisor;
+    public ProblemSupervisor problemSupervisor = null;
 
     /** for collecting statistics */
     public EquivalenceStatistics statistics;
 
     /** controls the computation of the clause's origins */
-    public final boolean trackReasoning;
+    public boolean trackReasoning = false;
 
     /** The id of the current problem to be solved */
-    private final String problemId;
+    private String problemId = "";
 
     /** the global model of true literals */
-    public final Model model;
+    public Model model = null;
 
     /** null or the global symboltable */
     public Symboltable symboltable;
 
     /** for logging the actions of this class */
-    private final Monitor monitor;
+    private Monitor monitor = null;
 
     /** indicates monitoring is on */
     private boolean monitoring = false;
 
     /** for distinguishing the monitoring areas */
-    private String monitorId = null;
+    private String monitorId = "Monitor";
 
     /** The list of equivalence classes */
     public ArrayList<EquivalenceClass> equivalenceClasses = new ArrayList<>();
@@ -87,6 +87,14 @@ public class EquivalenceClasses  {
     /** These observers are called for new equivalences: (representative,literal,inferenceStep)
      * They are not called for the EQUIV inputClauses.*/
     private final ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers = new ArrayList<>();
+
+    /** creates equivalence classes for test purposes.
+     */
+    public EquivalenceClasses(int predicates){
+        model = new Model(predicates);
+        statistics = new EquivalenceStatistics("TestStatistics");
+        problemId = "TestProblem";
+    }
 
     /** creates the EquivalenceClasses instance
      *
@@ -166,7 +174,7 @@ public class EquivalenceClasses  {
                 task = queue.take(); // waits if the queue is empty
                 switch(task.taskType){
                     case TRUELITERAL: applyTrueLiteral((Integer)task.a,(InferenceStep)task.b); break;
-                    case EQUIVALENCE: addEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;}
+                    case EQUIVALENCE: applyEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;}
                 if(monitoring) {
                     monitor.print(monitorId,"Current equivalences:\n" + toString(symboltable));}}
             catch(InterruptedException ex) {return;}
@@ -185,16 +193,6 @@ public class EquivalenceClasses  {
             if(sign != 0) return sign*equivalenceClass.representative;}
         return  0;}
 
-    /** finds the equivalence class containing the literal.
-     *
-     * @param literal a literal.
-     * @return null or the equivalence class.
-     */
-    public EquivalenceClass getEClause(int literal) {
-        for(EquivalenceClass equivalenceClass : equivalenceClasses) {
-            if(equivalenceClass.containsLiteral(literal) != 0)
-                return equivalenceClass;}
-        return null;}
 
     /** adds a true literal to the queue
      *
@@ -215,7 +213,7 @@ public class EquivalenceClasses  {
      * @param literal2      an equivalent literal.
      * @param inferenceStep which caused the equivalence.
      */
-    public void integrateEquivalence(int literal1, int literal2, InferenceStep inferenceStep) {
+    public void addEquivalence(int literal1, int literal2, InferenceStep inferenceStep) {
         ++statistics.derivedClasses;
         if(monitoring) {
             monitor.print(monitorId,"In:   Equivalence " +
@@ -223,60 +221,6 @@ public class EquivalenceClasses  {
                     Symboltable.toString(literal2, symboltable));}
         Task<TaskType> task = new Task<>(TaskType.EQUIVALENCE,literal1,literal2,inferenceStep);
         synchronized (this) {queue.add(task);}}
-
-
-    /** integrates a clause into the equivalence classes.
-     * Literals are replaced by representatives of other equivalence classes (if necessary) <br>
-     * True and false literals cause all equivalent literals to become true/false <br>
-     * Double literals are removed. <br>
-     * Complementary literals cause Unsatisfiable to be thrown. <br>
-     * Overlapping equivalences are joined to the new clause (the  clauses are removed).<br>
-     * All observers are applied to derived clauses.
-     *
-     * @param literal1 a literal
-     * @param literal2 a literal with literal1 = literal2
-     * @param inferenceStep which caused the equivalence
-     * @throws Unsatisfiable when a contradiction is found.
-     */
-    protected void addEquivalence(int literal1, int literal2, InferenceStep inferenceStep) throws Unsatisfiable {
-        if(monitoring) {
-            monitor.print(monitorId,"Exec: equivalence: " + Symboltable.toString(literal1,symboltable) +
-                    " = " + Symboltable.toString(literal2,symboltable));}
-        EquivalenceClass equivalenceClass1 = null;
-        EquivalenceClass equivalenceClass2 = null;
-        int sign1 = 0;
-        int sign2 = 0;
-        int sign = 0;
-        for(EquivalenceClass equivalenceClass : equivalenceClasses) {
-            sign1 = equivalenceClass.containsLiteral(literal1);
-            if(sign1 != 0) {equivalenceClass1 = equivalenceClass; break;}}
-        for(EquivalenceClass equivalenceClass : equivalenceClasses) {
-            sign2 = equivalenceClass.containsLiteral(literal2);
-            if(sign2 != 0) {equivalenceClass2 = equivalenceClass; break;}}
-
-        if(sign1 != 0 && sign2 != 0) {
-            EquivalenceClass equivalenceClass =
-                    equivalenceClass1.joinEquivalenceClass(equivalenceClass2,
-                            sign1*literal1, sign2*literal2,sign1*sign2, inferenceStep, observers);
-            equivalenceClasses.remove(equivalenceClass1);equivalenceClasses.remove(equivalenceClass2);
-            equivalenceClasses.add(equivalenceClass);
-            ++statistics.joinedClasses;
-            return;}
-        if(sign1 != 0) {
-            equivalenceClass1.addNewEquivalence(sign*literal1,sign*literal2,inferenceStep,observers);
-            return;}
-        if(sign2 != 0) {
-            equivalenceClass2.addNewEquivalence(sign*literal2,sign*literal1,inferenceStep,observers);
-            return;}
-
-        ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
-        inferenceSteps.add(inferenceStep);
-        int representative = literal1; int literal = literal2;
-        if(Math.abs(literal) < Math.abs(representative)) {representative = literal2; literal = literal1;}
-        if(representative < 0) {representative *=-1; literal *= -1;}
-        equivalenceClasses.add(new EquivalenceClass(representative,IntArrayList.wrap(new int[]{literal}),inferenceSteps));
-        ++statistics.derivedClasses;
-    }
 
 
     /** A true literal causes all other equivalent literals to become true.
@@ -297,8 +241,60 @@ public class EquivalenceClasses  {
                             Symboltable.toString(literal, symboltable) + " applied to equivalence class\n" +
                             equivalenceClass.toString(symboltable));} // the classes are disjoint.
                 return;}}
-        }
+    }
 
+
+    /** integrates a clause into the equivalence classes.
+     * Literals are replaced by representatives of other equivalence classes (if necessary) <br>
+     * True and false literals cause all equivalent literals to become true/false <br>
+     * Double literals are removed. <br>
+     * Complementary literals cause Unsatisfiable to be thrown. <br>
+     * Overlapping equivalences are joined to the new clause (the  clauses are removed).<br>
+     * All observers are applied to derived clauses.
+     *
+     * @param literal1 a literal
+     * @param literal2 a literal with literal1 = literal2
+     * @param inferenceStep which caused the equivalence
+     * @throws Unsatisfiable when a contradiction is found.
+     */
+    protected void applyEquivalence(int literal1, int literal2, InferenceStep inferenceStep) throws Unsatisfiable {
+        if(monitoring) {
+            monitor.print(monitorId,"Exec: equivalence: " + Symboltable.toString(literal1,symboltable) +
+                    " = " + Symboltable.toString(literal2,symboltable));}
+        EquivalenceClass equivalenceClass1 = null;
+        EquivalenceClass equivalenceClass2 = null;
+        int sign1 = 0;
+        int sign2 = 0;
+        for(EquivalenceClass equivalenceClass : equivalenceClasses) {
+            sign1 = equivalenceClass.containsLiteral(literal1);
+            if(sign1 != 0) {equivalenceClass1 = equivalenceClass; break;}}
+        for(EquivalenceClass equivalenceClass : equivalenceClasses) {
+            sign2 = equivalenceClass.containsLiteral(literal2);
+            if(sign2 != 0) {equivalenceClass2 = equivalenceClass; break;}}
+
+        if(sign1 != 0 && sign2 != 0) {
+            EquivalenceClass equivalenceClass =
+                    equivalenceClass1.joinEquivalenceClass(equivalenceClass2,
+                            sign1*literal1, sign2*literal2,sign1*sign2, inferenceStep, observers);
+            equivalenceClasses.remove(equivalenceClass1);equivalenceClasses.remove(equivalenceClass2);
+            equivalenceClasses.add(equivalenceClass);
+            ++statistics.joinedClasses;
+            return;}
+        if(sign1 != 0) {
+            equivalenceClass1.addNewEquivalence(sign1*literal1,sign1*literal2,inferenceStep,observers);
+            return;}
+        if(sign2 != 0) {
+            equivalenceClass2.addNewEquivalence(sign2*literal2,sign2*literal1,inferenceStep,observers);
+            return;}
+
+        ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
+        inferenceSteps.add(inferenceStep);
+        int representative = literal1; int literal = literal2;
+        if(Math.abs(literal) < Math.abs(representative)) {representative = literal2; literal = literal1;}
+        if(representative < 0) {representative *=-1; literal *= -1;}
+        equivalenceClasses.add(new EquivalenceClass(representative,IntArrayList.wrap(new int[]{literal}),inferenceSteps));
+        ++statistics.derivedClasses;
+    }
 
 
     /** If a literal in an equivalence class is true, then all other literals are also made true

@@ -26,8 +26,8 @@ public class UnsatJoinedOverlaps extends Unsatisfiable {
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        steps.add(eqClass1.inferenceSteps.get(0));
-        steps.add(eqClass2.inferenceSteps.get(0));}
+        if(eqClass1.inferenceSteps != null) steps.add(eqClass1.inferenceSteps.get(0));
+        if(eqClass2.inferenceSteps != null) steps.add(eqClass2.inferenceSteps.get(0));}
 
     @Override
     public IntArrayList inputClauseIds() {
