@@ -47,6 +47,9 @@ public class InputClauses {
     /** the original disjunctions. */
     public final ArrayList<int[]> disjunctions  = new ArrayList<>();
 
+    /** without multiple occurrences of literals and complementary literals */
+    public ArrayList<int[]> purifiedDisjunctions = disjunctions;
+
     /** the original conjunctions. */
     public final ArrayList<int[]> conjunctions  = new ArrayList<>();
 
@@ -56,14 +59,26 @@ public class InputClauses {
     /** the original atleast clauses. */
     public final ArrayList<int[]> atleasts      = new ArrayList<>();
 
+    /** without multiple occurrences of literals and complementary literals */
+    public ArrayList<int[]> purifiedAtleasts    = atleasts;
+
     /** the original atmost clauses. */
     public final ArrayList<int[]> atmosts       = new ArrayList<>();
+
+    /** without multiple occurrences of literals and complementary literals */
+    public ArrayList<int[]> purifiedAtmosts     = atmosts;
 
     /** the original exactly clauses. */
     public final ArrayList<int[]> exacltys      = new ArrayList<>();
 
+    /** without multiple occurrences of literals and complementary literals */
+    public ArrayList<int[]> purifiedExactlys    = exacltys;
+
     /** the original interval clauses. */
     public final ArrayList<int[]> intervals     = new ArrayList<>();
+
+    /** without multiple occurrences of literals and complementary literals */
+    public ArrayList<int[]> purifiedIntervals   = intervals;
 
 
     /** constructs a new input clause list.

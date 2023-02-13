@@ -152,7 +152,7 @@ public class EquivalenceClasses  {
      *
      * @param observer a TriConsumer for transferring newly derived equivalences.
      */
-    public void addObserver(TriConsumer<Integer,Integer,InferenceStep> observer) {
+    public synchronized void addObserver(TriConsumer<Integer,Integer,InferenceStep> observer) {
         observers.add(observer);}
 
 
@@ -295,6 +295,8 @@ public class EquivalenceClasses  {
         if(Math.abs(literal) < Math.abs(representative)) {representative = literal2; literal = literal1;}
         if(representative < 0) {representative *=-1; literal *= -1;}
         equivalenceClasses.add(new EquivalenceClass(representative,IntArrayList.wrap(new int[]{literal}),inferenceSteps));
+        for(TriConsumer<Integer,Integer,InferenceStep> observer : observers)
+            observer.accept(representative,literal,inferenceStep);
         ++statistics.derivedClasses;
     }
 

@@ -58,7 +58,7 @@ public class EquivalenceClass {
      *
      * @return a clone of the equivalence class.
      */
-    public EquivalenceClass clone() {
+    protected EquivalenceClass clone() {
         IntArrayList newLiterals = literals.clone();
         ArrayList<InferenceStep> newSteps = null;
         if(inferenceSteps != null) {
@@ -73,7 +73,7 @@ public class EquivalenceClass {
      * @return               null or a new equivalence class.
      * @throws Unsatisfiable if the class is contradictory (p == -p)
      */
-    public static EquivalenceClass makeEquivalenceClass(int[] inputClause, Model model, boolean trackReasoning) throws Unsatisfiable {
+    protected static EquivalenceClass makeEquivalenceClass(int[] inputClause, Model model, boolean trackReasoning) throws Unsatisfiable {
         assert(inputClause[1] == Connective.EQUIV.ordinal());
         if(!model.isEmpty() && isAlreadyTrueInModel(inputClause,model,trackReasoning)) return null; // new model entries may be generated
 
@@ -138,7 +138,7 @@ public class EquivalenceClass {
      * @param literal a literal.
      * @return +1 if the literal is with the same sign, -1 if it is with opposite sign, 0 if it is not contained in the class.
      */
-    public int containsLiteral(int literal) {
+    protected int containsLiteral(int literal) {
         if(literal == representative)  return +1;
         if(literal == -representative) return -1;
         for(int literal1 : literals) {
@@ -151,7 +151,7 @@ public class EquivalenceClass {
      * @param eqClass another equivalence class
      * @return +1 if there is a positive overlap, -1 if there is a negative overlap, 0 if there is no overlap.
      */
-    public int overlaps(EquivalenceClass eqClass) {
+    protected int overlaps(EquivalenceClass eqClass) {
         int sign = containsLiteral(eqClass.representative);
         if(sign != 0) return sign;
         for(int literal: eqClass.literals) {
@@ -171,7 +171,7 @@ public class EquivalenceClass {
      * @param observers          function which are called to signal new equivalences.
      * @throws Unsatisfiable     if the newLiteral is already in the class.
      */
-    public void addNewEquivalence(int oldLiteral, int newLiteral, InferenceStep newInferenceStep,
+    protected void addNewEquivalence(int oldLiteral, int newLiteral, InferenceStep newInferenceStep,
                                   ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers) throws Unsatisfiable{
         if(representative == newLiteral) return;
         if(representative == -newLiteral)
@@ -198,7 +198,7 @@ public class EquivalenceClass {
      * @param literal a literal in the literals
      * @return null or the inferenceStep that caused representative = literal
      */
-    public InferenceStep getInferenceStep(int literal) {
+    protected InferenceStep getInferenceStep(int literal) {
         if(inferenceSteps == null) return null;
         if(literal == representative) return null;
         for(int i = 0; i < inferenceSteps.size(); ++i) {
@@ -212,7 +212,7 @@ public class EquivalenceClass {
      * @return a new equivalence class
      * @throws Unsatisfiable if the two classes contain contradictory literals.
      */
-    public EquivalenceClass joinOverlappingClasses(EquivalenceClass eqClass, int sign) throws Unsatisfiable {
+    protected EquivalenceClass joinOverlappingClasses(EquivalenceClass eqClass, int sign) throws Unsatisfiable {
         EquivalenceClass eqClass1 = this;
         EquivalenceClass eqClass2 = eqClass;
         if(eqClass2.representative < eqClass1.representative) {
@@ -253,7 +253,7 @@ public class EquivalenceClass {
      * @return              the new joined class.
      */
 
-    public EquivalenceClass joinEquivalenceClass(EquivalenceClass eqClass, int literal1, int literal2, int sign, InferenceStep inferenceStep,
+    protected EquivalenceClass joinEquivalenceClass(EquivalenceClass eqClass, int literal1, int literal2, int sign, InferenceStep inferenceStep,
                                                  ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers)  {
         EquivalenceClass eqClass1 = this;    int lit1 = literal1;
         EquivalenceClass eqClass2 = eqClass; int lit2 = literal2;
