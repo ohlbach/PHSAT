@@ -2,6 +2,7 @@ package Solvers;
 
 import Datastructures.Clauses.Connective;
 import Datastructures.Clauses.InputClauses;
+import Datastructures.Results.UnsatInputClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
@@ -120,68 +121,110 @@ public class ClausePurifier {
      * @throws Unsatisfiable if inserting literals into the model causes a contradiction.
      */
     protected static int[] purifyAtleast(int[] clause, Model model) throws Unsatisfiable {
-        boolean original = true;
-        int length = clause.length;
         int quantifier = clause[2];
+        if(quantifier == 0) return null;  // atleast 0 ... is always true
+        int intLength = clause.length;    // length of the array
+        int clauseLength = intLength - 3; // number of literals
+        if(quantifier > clauseLength) throw new UnsatInputClause(clause); // atleast n l1... ln-k is unsatifiable
+
+        boolean original = true;
+
         int zeros = 0;
 
         // first of all we eliminate contradictory pairs of literals and reduce the quantifier.
-        for(int i = 3; i < length; ++i) {
+        for(int i = 3; i < intLength; ++i) {
             int literal1 = clause[i];
-            for(int j = i+1; j < length; ++j) {
+            for(int j = i+1; j < intLength; ++j) {
                 int literal2 = clause[j];
                 if(literal2 == 0) continue;
                 if(literal1 == -literal2) {
                     if(original) {
                         original = false;
-                        clause = Arrays.copyOf(clause,length);} // the original clause remains unchanged.
+                        clause = Arrays.copyOf(clause,intLength);} // the original clause remains unchanged.
                     zeros += 2;
-                    if(--quantifier == 0) return null;
+                    if(--quantifier == 0) return null; // atleast 0 is always true.
                     clause[i] = 0;
                     clause[j] = 0;
                     break;}}}
 
         // if quantifier == number of surviving literals then all literals must be true.
-        if(length-zeros == quantifier + 3){
-            for(int i = 3; i < length; ++i) {
+        if(intLength-zeros == quantifier + 3){
+            for(int i = 3; i < intLength; ++i) {
                 if(clause[i] != 0) model.add(clause[i],new InfInputClause(clause[0]));}
             return null;}
 
         // now we have to reduce multiple occurrences of literals. At most 'quantifier' many are allowed.
-        for(int i = 3; i < length; ++i) {
-            int literal1 = clause[i];
-            if(literal1 == 0) continue;
-            int counter = 1;
-            for(int j = i+1; j < length; ++j) {
-                if(literal1 == clause[j]) ++counter;}
-            if(counter > quantifier) {
-                if(original) {
-                    original = false;
-                    clause = Arrays.copyOf(clause,length);}
-                for(int j = i; j < length; ++j) {
-                    if(literal1 == clause[j]) {
-                        clause[j] = 0;
-                        ++zeros;
-                        if(--counter == quantifier) break;}}}}
+        int[] newClause = reduceMultiplicities(original,quantifier,clause);
+        original &= newClause == clause;
+        clause = newClause;
 
         boolean isOr = (quantifier == 1); // it is actually a disjunction
         if(original && !isOr) return clause; // no change necessary
 
-        int newLength = length-zeros;
-        if(isOr) --newLength;
-
         // now we remove the zeros
+        int[] purifiedClause = compactify(isOr,clause);
+        purifiedClause[2] = quantifier;
+        return purifiedClause;}
+
+    /** deletes literals which occur more often than maxMultiplicity allows.
+     *  If original = true then literals are deleted in a copy of the clause.
+     *
+     * @param original         true if it is the original clause.
+     * @param maxMultiplicity  the maximum allowed occurrence of the same literal
+     * @param clause           a quantified clause
+     * @return                 either the original clause, if nothing has changed, or a copy if original = true and literals have been zeroed.
+     */
+    protected static int[] reduceMultiplicities(boolean original, int maxMultiplicity, int[] clause) {
+        int start = (clause[1] == Connective.INTERVAL.ordinal()) ? 4 : 3;
+        int length = clause.length;
+        for(int i = start; i < length; ++i) {
+            int literal1 = clause[i];
+            if(literal1 == 0) continue;
+            int counter = 1;
+            for(int j = i+1; j < length; ++j) {
+                int literal2 = clause[j];
+                if(literal2 == 0) continue;
+                if(literal2 == literal1) {
+                    if(++counter <= maxMultiplicity) continue;
+                    if(original) {clause = Arrays.copyOf(clause,length); original = false;}
+                    clause[j] = 0;}}}
+        return clause;}
+
+    /** removes all zeros (0) from the clause
+     *
+     * @param isOr   true if the clause is to be turned into a disjunction
+     * @param clause the clause with zeros
+     * @return       the shoirtened clause without the zeros.
+     */
+    protected static int[] compactify(boolean isOr, int[] clause) {
+        int newLength = clause.length-countZeros(clause);
+        if(isOr) --newLength;
         int[] purifiedClause = new int[newLength];
         purifiedClause[0] = clause[0]; // identifier
-        if(isOr) {purifiedClause[1] = Connective.OR.ordinal(); }
-        else {
-            purifiedClause[1] = clause[1]; // original clause type
-            purifiedClause[2] = quantifier;}
-
+        purifiedClause[1] = isOr ? Connective.OR.ordinal() : clause[1]; // type of clause
+        boolean isInterval = clause[1] == Connective.INTERVAL.ordinal();
+        int start = isInterval ? 4 : 3;
         int j = isOr ? 1 :  2 ;
-        for(int i = 3; i < length; ++i) {
+        if(isInterval) ++j;
+        for(int i = start; i < clause.length; ++i) {
             if(clause[i] == 0) continue;
             purifiedClause[++j] = clause[i];}
         return purifiedClause;}
+
+
+
+    /** counts the number of zeros (0) in the clause
+     *
+     * @param clause a clause with quantifier
+     * @return the number of zeros in the clause.
+     */
+    protected static int countZeros(int[] clause) {
+        int start = (clause[1] == Connective.INTERVAL.ordinal()) ? 4 : 3;
+        int zeros = 0;
+        for(int i = start; i < clause.length; ++i) {
+            if(clause[i] == 0) ++zeros;}
+        return zeros;}
+
+
 
     }
