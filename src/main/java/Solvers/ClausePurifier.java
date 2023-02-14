@@ -12,6 +12,12 @@ import java.util.Arrays;
 
 public class ClausePurifier {
 
+    private static final int cOr       = Connective.OR.ordinal();
+    private static final int cAtleast  = Connective.ATLEAST.ordinal();
+    private static final int cAtmost   = Connective.ATMOST.ordinal();
+    private static final int cExactly  = Connective.EXACTLY.ordinal();
+    private static final int cInterval = Connective.INTERVAL.ordinal();
+
     public static void purifyClauses(InputClauses inputClauses, Model model) throws Unsatisfiable {
         int changedDisjunctions = 0;
         if(!inputClauses.disjunctions.isEmpty()) changedDisjunctions = purifyDisjunctions(inputClauses,model);}
@@ -58,7 +64,7 @@ public class ClausePurifier {
         if(purifiedDisjunctions.isEmpty()) return changedClauses;
 
         if(inputClauses.purifiedDisjunctions == inputClauses.disjunctions) {
-            inputClauses.purifiedDisjunctions = new ArrayList<int[]>();
+            inputClauses.purifiedDisjunctions = new ArrayList<>();
             inputClauses.purifiedDisjunctions.addAll(inputClauses.disjunctions);}
         inputClauses.purifiedDisjunctions.addAll(purifiedDisjunctions);
         return changedClauses;}
@@ -128,7 +134,7 @@ public class ClausePurifier {
         if(quantifier > clauseLength) throw new UnsatInputClause(clause); // atleast n l1... ln-k is unsatifiable
 
         // first of all we eliminate contradictory pairs of literals and reduce the quantifier.
-        int[] newClause = eliminateContradictoryPairs(clause,model);
+        int[] newClause = eliminateComplementaryPairs(clause,model);
         boolean original = newClause == clause;
         clause = newClause;
         quantifier = clause[2];
@@ -168,6 +174,172 @@ public class ClausePurifier {
 
         return original ? clause : compactify(isOr,clause,model);}
 
+
+    /** removes redundancies from the atmost clause.
+     * - complementary literals are detected. Each complementary pair reduces the quantifier by 1.<br>
+     * - multiple occurrences of literals which are more than the quantifier are false. <br>
+     * - atmost 0 ...  cause all literals to become false<br>
+     * - atmost n l1,...,ln is always true.<br>
+     * - atmost n-1 l1 ... ln  is turned into a disjunction -l1,...,-ln.<br>
+     * The original clause remains always unchanged.
+     *
+     * @param clause a raw input clause (atleast)
+     * @param model  the model
+     * @return       null (tautology of all literals true) or the unchanged clause or the purified shortened clause.
+     * @throws Unsatisfiable if inserting literals into the model causes a contradiction.
+     */
+    protected static int[] purifyAtmost(int[] clause, Model model) throws Unsatisfiable {
+        int intLength = clause.length;    // length of the array
+        int clauseLength = intLength - 3; // number of literals
+        int quantifier = clause[2];
+        if(quantifier >= clauseLength) return null;  // atmost n l1,...,ln ... is always true
+        if(quantifier == 0) {                        // atmost 0 ... means all literals are false.
+            for(int i = 3; i < intLength; ++i)
+                model.add(-clause[i],new InfInputClause(clause[0]));
+            return null;}
+        if(quantifier == clauseLength - 1) {
+            int[] disjunction = new int[clauseLength-1];
+            disjunction[0] = clause[0];
+            disjunction[1] = cOr;
+            for(int j = 3; j < intLength; ++j) disjunction[j-1] = -clause[j];
+            return purifyDisjunction(disjunction,model);}
+
+        // first of all we eliminate contradictory pairs of literals and reduce the quantifier.
+        int[] newClause = eliminateComplementaryPairs(clause,model);
+        if(newClause == null) return null;
+        boolean original = newClause == clause;
+        clause = newClause;
+        if(clause[1] == cOr) return compactify(true,reduceMultiplicities(false, 1, clause),model);
+        quantifier = clause[2];
+
+        //// all literals whose multiplicity exceeds quantifier must be false.
+        newClause = eliminateExceedingMultiplicities(original,quantifier,4,clause,model);
+        original &= newClause == clause;
+        clause = newClause;
+
+        return original ? clause : compactify(false,clause,model);}
+
+
+    /** removes redundancies from the exactly clause.
+     * - complementary literals are detected. Each complementary pair reduces the quantifier by 1.<br>
+     * - multiple occurrences of literals which are more than the quantifier are false. <br>
+     * - exctly -n ... is unsatisfiable<br>
+     * - exactly 0 ...  cause all literals to become false<br>
+     * - exactly n l1,...,ln all literals must be true.<br>
+     * The original clause remains always unchanged.
+     *
+     * @param clause a raw input clause (atleast)
+     * @param model  the model
+     * @return       null (tautology of all literals true) or the unchanged clause or the purified shortened clause.
+     * @throws Unsatisfiable if inserting literals into the model causes a contradiction.
+     */
+    protected static int[] purifyExactly(int[] clause, Model model) throws Unsatisfiable {
+        int clauseLength  = clause.length;    // length of the array
+        int literalLength = clauseLength - 3; // number of literals
+        int quantifier = clause[2];
+        if(quantifier > literalLength) throw new UnsatInputClause(clause);
+        if(quantifier == 0) {                        // atmost 0 ... means all literals are false.
+            for(int i = 3; i < clauseLength; ++i)
+                model.add(-clause[i],new InfInputClause(clause[0]));
+            return null;}
+        if(quantifier == literalLength) {
+            for(int i = 3; i < clauseLength; ++i)
+                model.add(clause[i],new InfInputClause(clause[0]));
+            return null;}
+
+        // first of all we eliminate contradictory pairs of literals and reduce the quantifier.
+        int[] newClause = eliminateComplementaryPairs(clause,model);
+        if(newClause == null) return null;
+        boolean original = newClause == clause;
+        clause = newClause;
+        quantifier = clause[2];
+
+        /// all literals whose multiplicity exceeds quantifier must be false.
+        newClause = eliminateExceedingMultiplicities(original,quantifier,4,clause,model);
+        original &= newClause == clause;
+        clause = newClause;
+
+        return original ? clause : compactify(false,clause,model);}
+
+
+    /** removes redundancies from the interval clause.
+     * - complementary literals are detected. Each complementary pair reduces the quantifier by 1.<br>
+     * - multiple occurrences of literals which are more than max are false. <br>
+     * - [..,-n] ... is unsatisfiable<br>
+     * - [..,0] ...  cause all literals to become false<br>
+     * - [1,n] l1...ln  becomes a disjunction<br>
+     * - [n,n] l1,...,ln becomes an exactly-clause
+     * The original clause remains always unchanged.
+     *
+     * @param clause a raw input clause (atleast)
+     * @param model  the model
+     * @return       null (tautology of all literals true) or the unchanged clause or the purified shortened clause.
+     * @throws Unsatisfiable if inserting literals into the model causes a contradiction.
+     */
+    protected static int[] purifyInterval(int[] clause, Model model) throws Unsatisfiable {
+        int clauseLength  = clause.length;    // length of the array
+        int literalLength = clauseLength - 3; // number of literals
+        int min = clause[2];
+        int max = clause[3];
+        if(min > literalLength) throw new UnsatInputClause(clause);
+        if(max == 0) {                        // atmost 0 ... means all literals are false.
+            for(int i = 4; i < clauseLength; ++i)
+                model.add(-clause[i],new InfInputClause(clause[0]));
+            return null;}
+        if(min == literalLength) {
+            for(int i = 3; i < clauseLength; ++i)
+                model.add(clause[i],new InfInputClause(clause[0]));
+            return null;}
+        if(min == 0) {
+            int[] atmostClause = new int[clauseLength-1];
+            atmostClause[0] = clause[0];
+            atmostClause[1] = cAtmost;
+            atmostClause[2] = max;
+            for(int i = 4; i < clauseLength; ++i) atmostClause[i-1] = clause[i];
+            return purifyAtmost(atmostClause,model);}
+
+        // first of all we eliminate contradictory pairs of literals and reduce the quantifier.
+        int[] newClause = eliminateComplementaryPairs(clause,model);
+        if(newClause == null) return null;
+        boolean original = newClause == clause;
+        if(newClause[1] == cAtmost) return purifyAtmost(newClause,model);
+        clause = newClause;
+        max = clause[3];
+
+        /// all literals whose multiplicity exceeds quantifier must be false.
+        newClause = eliminateExceedingMultiplicities(original,max,4,clause,model);
+        original &= newClause == clause;
+        clause = newClause;
+
+        return original ? clause : compactify(false,clause,model);}
+
+
+    /** derives false(literal) if its multiplicity exceeds the quentifier in atmost, exactly and interval clauses
+     *
+     * @param original   true if it is still the original clause
+     * @param quantifier the quantifier in atleast and exactly clauses, the max in interval clauses
+     * @param start      4 for interval clauses, otherwise 3
+     * @param clause     the clause
+     * @param model      the model
+     * @return           either the original or the simplified clause
+     * @throws Unsatisfiable if false(literal) causes a contradiction.
+     */
+    protected static int[] eliminateExceedingMultiplicities(boolean original, int quantifier,
+                                                            int start, int[] clause, Model model) throws Unsatisfiable {
+        int clauseLength = clause.length;
+        for(int i = start; i < clauseLength; ++i) {
+            int literal = clause[i];
+            if(literal == 0) continue;
+            int counter = 1;
+            for(int j = i+1; j < clauseLength; ++j) {
+                if(clause[j] == literal) ++counter;}
+            if(++counter > quantifier) {
+                model.add(-literal,new InfInputClause(clause[0]));
+                if(original) {clause = Arrays.copyOf(clause,clauseLength); original = false;}
+                for(int j = i; j < clauseLength; ++j) {
+                    if(clause[j] == literal) clause[j] = 0;}}}
+        return clause;}
+
     /** eliminates complementary pairs from the clause.
      * Each complementary pair p,-p represents a true fact. <br>
      * Therefore, each complementary pair reduces the quantifier by 1.<br>
@@ -199,10 +371,10 @@ public class ClausePurifier {
      * @return null or the unchanged clause or a new clause without complementary pairs.
      * @throws Unsatisfiable if a contradiction is encountered.
      */
-    protected static int[] eliminateContradictoryPairs(int[] clause, Model model) throws Unsatisfiable {
+    protected static int[] eliminateComplementaryPairs(int[] clause, Model model) throws Unsatisfiable {
         int[] originalClause = clause;
         boolean original = true;
-        boolean isInterval = clause[1] == Connective.INTERVAL.ordinal();
+        boolean isInterval = clause[1] == cInterval;
         int start = isInterval ? 4 : 3;
         int length = clause.length;
         int pairs = 0;
@@ -249,7 +421,7 @@ public class ClausePurifier {
                 if(quantifier == nonZeros - 1) {        // atmost 2 p,q,r -> atleast 1 -p,-q,-r
                     int[] disjunction = new int[nonZeros+2];
                     disjunction[0] = clause[0];
-                    disjunction[1] = Connective.OR.ordinal();
+                    disjunction[1] = cOr;
                     int j = 1;
                     for(int i = 3; i < length; ++i) {
                         int literal = clause[i];
@@ -287,7 +459,7 @@ public class ClausePurifier {
                 if(min == 0) { // [0,n] ... is the same as atmost n ...
                     int[] atmost = new int[nonZeros+3];
                     atmost[0] = clause[0];
-                    atmost[1] = Connective.ATMOST.ordinal();
+                    atmost[1] = cAtmost;
                     atmost[2] = max;
                     int j = 2;
                     for(int i = 4; i < length; ++i) {
@@ -298,7 +470,7 @@ public class ClausePurifier {
                 if(min == max) { // [n,n] ... is the same as exactly n
                     int[] exactly = new int[nonZeros+3];
                     exactly[0] = clause[0];
-                    exactly[1] = Connective.EXACTLY.ordinal();
+                    exactly[1] = cExactly;
                     exactly[2] = max;
                     int j = 2;
                     for(int i = 4; i < length; ++i) {
@@ -310,7 +482,8 @@ public class ClausePurifier {
         return clause;}
 
     /** deletes literals which occur more often than maxMultiplicity allows.
-     *  If original = true then literals are deleted in a copy of the clause.
+     *  If original = true then literals are deleted in a copy of the clause.<br>
+     *  The clause is like the original clause, but maybe with '0' literals
      *
      * @param original         true if it is the original clause.
      * @param maxMultiplicity  the maximum allowed occurrence of the same literal
@@ -319,8 +492,8 @@ public class ClausePurifier {
      */
     protected static int[] reduceMultiplicities(boolean original, int maxMultiplicity, int[] clause) {
         int start = 3;
-        if(clause[1] == Connective.OR.ordinal()) start = 2;
-        if(clause[1] == Connective.INTERVAL.ordinal()) start = 4;
+        if(clause[1] == cOr) start = 2;
+        if(clause[1] == cInterval) start = 4;
 
         int length = clause.length;
         for(int i = start; i < length; ++i) {
@@ -336,32 +509,41 @@ public class ClausePurifier {
                     clause[j] = 0;}}}
         return clause;}
 
-    /** removes all zeros (0) from the clause
+    /** removes all zeros (0) from a quantified clause.
+     * If makeOr = true then the clause is turned into an or-clause (disjunction).<br>
+     * If the disjunction is a unit clause then the literal is inserted into the model.
      *
-     * @param isOr   true if the clause is to be turned into a disjunction.
+     * @param makeOr true if the clause is to be turned into a disjunction.
      * @param clause the clause with zeros.
      * @param model  a model.
-     * @return       the shortened clause without the zeros.
+     * @return       null or the shortened clause without the zeros.
      * @throws       Unsatisfiable if the clause has become a unit clause (disjunction) and adding it to the model causes an unsatisfiability.
      */
-    protected static int[] compactify(boolean isOr, int[] clause, Model model) throws Unsatisfiable{
-        boolean isInterval = clause[1] == Connective.INTERVAL.ordinal();
+    protected static int[] compactify(boolean makeOr, int[] clause, Model model) throws Unsatisfiable{
+        boolean isInterval = clause[1] == cInterval;
         int start = isInterval ? 4 : 3;
-        int newLength = clause.length-countZeros(clause);
-        if(isOr) {
+        int zeros = countZeros(clause);
+        if(zeros == 0 && !makeOr) return clause; // no change necessary
+        int newLength = clause.length-zeros;
+        if(makeOr) {
             newLength -= isInterval ? 2 : 1;
             if(newLength == 3) { // the clause is now a unit clause.
                 for(int i = start; i < clause.length; ++i) {
                     int literal = clause[i];
-                    if(literal != 0) model.add(literal,new InfInputClause(clause[0]));
-                    return null;}}}
+                    if(literal != 0) {
+                        model.add(literal,new InfInputClause(clause[0]));
+                        return null;}}}}
 
         int[] purifiedClause = new int[newLength];
         purifiedClause[0] = clause[0]; // identifier
-        purifiedClause[1] = isOr ? Connective.OR.ordinal() : clause[1]; // type of clause
+        purifiedClause[1] = makeOr ? cOr : clause[1]; // type of clause
+        if(!makeOr) {
+            purifiedClause[2] = clause[2];                 // quantifier or min
+            if(isInterval) purifiedClause[3] = clause[3];} // max
 
-        int j = isOr ? 1 :  2 ;
-        if(isInterval) ++j;
+        int j = 2;
+        if(isInterval) j = 3;
+        if(makeOr) j = 1;
         for(int i = start; i < clause.length; ++i) {
             if(clause[i] == 0) continue;
             purifiedClause[++j] = clause[i];}
@@ -375,7 +557,7 @@ public class ClausePurifier {
      * @return the number of zeros in the clause.
      */
     protected static int countZeros(int[] clause) {
-        int start = (clause[1] == Connective.INTERVAL.ordinal()) ? 4 : 3;
+        int start = (clause[1] == cInterval) ? 4 : 3;
         int zeros = 0;
         for(int i = start; i < clause.length; ++i) {
             if(clause[i] == 0) ++zeros;}
