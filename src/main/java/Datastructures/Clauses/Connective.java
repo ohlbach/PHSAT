@@ -6,19 +6,19 @@ package Datastructures.Clauses;
  */
 public enum Connective {
     /** logical or-connective */
-    OR("", ",",""),
+    OR("", "v",""),
     /** logical and-connective */
     AND("&","&","A-"),
     /** equivalence of predicates */
     EQUIV("e","=","E-"),
-    /** interval connective, example: [2,4] p,q,r,s  (between 2 and 4 literals must be true) */
-    INTERVAL("i",",","I-"),
     /** atleast connective, example: >= 2 p,q,r,s  (atleast 2 of the literals must be true) */
     ATLEAST(">=", ",", "L-"),
     /** atmost connective, example: &lt;= 2 p,q,r,s  (atmost 2 of the literals are true) */
     ATMOST("<=", ",","M-"),
     /** exactly connective, example: = 2 p,q,r,s  (exactly 2 of the literals must be true) */
-    EXACTLY("=", ",","X-");
+    EXACTLY("=", ",","X-"),
+    /** interval connective, example: [2,4] p,q,r,s  (between 2 and 4 literals must be true) */
+    INTERVAL("i",",","I-");
 
     /** to be used in the input clauses. */
     public String abbreviation;
@@ -48,10 +48,10 @@ public enum Connective {
             case 0: return OR;
             case 1: return AND;
             case 2: return EQUIV;
-            case 3: return INTERVAL;
-            case 4: return ATLEAST;
-            case 5: return ATMOST;
-            case 6: return EXACTLY;}
+            case 3: return ATLEAST;
+            case 4: return ATMOST;
+            case 5: return EXACTLY;
+            case 6: return INTERVAL;}
         return null;}
 
     /** returns for the given string the corresponding connective.
@@ -64,10 +64,10 @@ public enum Connective {
             case "o":  return OR;
             case "a":  return AND;
             case "e":  return EQUIV;
-            case "i":  return INTERVAL;
             case "<=": return ATMOST;
             case ">=": return ATLEAST;
-            case "=":  return EXACTLY;}
+            case "=":  return EXACTLY;
+            case "i":  return INTERVAL;}
         return null;}
 
     /** checks if the ordinal is the Interval connective.
@@ -76,7 +76,7 @@ public enum Connective {
      * @return true if it is the Interval connective
      */
     public static boolean isInterval(int ordinal) {
-        return ordinal == 3;}
+        return ordinal == 6;}
 
     /** checks if the connective is the Interval connective.
      *
@@ -92,7 +92,7 @@ public enum Connective {
      * @return true if it is one of the quantifier numbers
      */
     public static boolean isQuantifier(int n) {
-        return n >= 3 && n <= 6;}
+        return n >= 3;}
 
     /** checks if the connective is a quantifier (atleast, atmost, exactly).
      *

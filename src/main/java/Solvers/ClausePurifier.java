@@ -314,6 +314,123 @@ public class ClausePurifier {
         return original ? clause : compactify(false,clause,model);}
 
 
+    protected int[] transform(int[] clause, int zeros, Model model) throws Unsatisfiable{
+        int length = clause.length;
+        int literals, quantifier;
+        int id = clause[0];
+        switch(Connective.getConnective(clause[1])) {
+            case OR:
+                literals = length - 2 - zeros;
+                if(literals <= 0) throw new UnsatInputClause(clause);
+                if(literals == 1) return makeAllTrue(clause,2,1,model);
+                break;
+            case ATLEAST:
+                literals = length - 3 - zeros;
+                quantifier = clause[2];
+                if(quantifier <= 0) return null;  // atleast 0 ... is always true
+                if(quantifier > literals) throw new UnsatInputClause(clause); // atleast n l1... ln-k is unsatisfiable
+                if(quantifier == literals) {      // atleast n l1...ln means all literals are true.
+                    return makeAllTrue(clause,3,1,model);}
+                if(quantifier == 1) {
+                    return makeDisjunction(clause,3,literals,1);}
+                break;
+            case ATMOST:
+                literals = length - 3 - zeros;
+                quantifier = clause[2];
+                if(quantifier < 0) throw new UnsatInputClause(clause); // atmost -1 ... is unsatisfiable
+                if(quantifier == 0) {      // atmost 0 l1...ln means all literals are false.
+                    return makeAllTrue(clause,3,-1,model);}
+                if(quantifier >= literals) return null; // atmost n l1...ln is always true
+                if(quantifier == literals-1) {
+                    return makeDisjunction(clause,3,literals,-1);}
+                break;
+            case EXACTLY:
+                literals = length - 3 - zeros;
+                quantifier = clause[2];
+                if(quantifier < 0 || quantifier > literals) throw new UnsatInputClause(clause); // exactly -1 ... is unsatisfiable
+                if(quantifier == 0) {      // exactly 0 l1...ln means all literals are false.
+                    return makeAllTrue(clause,3,-1,model);}
+                if(quantifier == literals) {      // exactly n l1...ln means all literals are true.
+                    return makeAllTrue(clause,3,1,model);}
+                if(quantifier == 1 && literals == 2) { // exactly 1 p,q  means p = -q
+                    int[] equiv = new int[4];
+                    equiv[0] = clause[0];
+                    equiv[1] = Connective.EQUIV.ordinal();
+                    if(zeros == 0) {equiv[2] = clause[4]; equiv[3] = -clause[5]; return equiv;}
+                    boolean first = true;
+                    for(int i = 3; i < length; ++i) {
+                        int literal = clause[i];
+                        if(literal == 0) continue;
+                        if(first) {equiv[4] = literal; first = false;}
+                        else {equiv[5] = -literal; break;}}
+                    return equiv;}
+                break;
+            case INTERVAL:
+                literals = length - 4 - zeros;
+                int min = clause[2];
+                int max = clause[3];
+                if(max < 0 || min > literals) throw new UnsatInputClause(clause);
+                if(max == 0) {      // [0,0] l1...ln means all literals are false.
+                    return makeAllTrue(clause,4,-1,model);}
+                if(min == literals) {      // [n,n] l1...ln means all literals are true.
+                    return makeAllTrue(clause,4,1,model);}
+                if(min == max) {
+                    if(min == 1 && literals == 2) { // [1,1] p,q  means p = -q
+                        int[] equiv = new int[4];
+                        equiv[0] = clause[0];
+                        equiv[1] = Connective.EQUIV.ordinal();
+                        if(zeros == 0) {equiv[2] = clause[5]; equiv[3] = -clause[6]; return equiv;}
+                        boolean first = true;
+                        for(int i = 4; i < length; ++i) {
+                            int literal = clause[i];
+                            if(literal == 0) continue;
+                            if(first) {equiv[4] = literal; first = false;}
+                            else {equiv[5] = -literal; break;}}
+                        return equiv;}
+
+                    int[] exactly = new int[literals+3];
+                    exactly[0] = clause[0];
+                    exactly[1] = Connective.EXACTLY.ordinal();
+                    exactly[3] = min;
+                    int j = 3;
+                    for(int i = 4; i < length; ++i) {
+                        int literal = clause[i];
+                        if(literal != 0) exactly[++j] = literal;}
+                    return exactly;}
+        }
+        return clause;}
+
+    protected int[] makeDisjunction(int[] clause, int start, int literals, int sign) {
+        int[] disjunction = new int[literals+2];
+        disjunction[0] = clause[0];
+        disjunction[1] = Connective.OR.ordinal();
+        int j = 1;
+        for(int i = start; i < clause.length; ++i) {
+            int literal = clause[i];
+            if(literal != 0) disjunction[++j] = sign*literal;}
+        return disjunction;}
+
+
+    protected int[] makeAllTrue(int[] clause, int start, int sign, Model model) throws Unsatisfiable {
+        InfInputClause inference = new InfInputClause(clause[0]);
+        for(int i = start; i < clause.length; ++i) {
+            int literal = clause[i];
+            if(literal != 0) model.add(sign*literal,inference);}
+        return null;}
+
+
+    /** returns the first (non-zero) literal
+     *
+     * @param clause a clause
+     * @param start the start index for the search
+     * @return the first literal (which is not 0)
+     */
+    protected int getFirstLiteral(int[] clause, int start) {
+        for(int i = start; i < clause.length; ++i) {
+            int literal = clause[i];
+            if(literal != 0) return literal;}
+        return 0;}
+
     /** derives false(literal) if its multiplicity exceeds the quentifier in atmost, exactly and interval clauses
      *
      * @param original   true if it is still the original clause
