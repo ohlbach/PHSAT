@@ -2,460 +2,198 @@ package Solvers;
 
 import Datastructures.Clauses.Connective;
 import Datastructures.Clauses.InputClauses;
+import Datastructures.Results.Result;
 import Datastructures.Results.UnsatInputClause;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
+import Management.ErrorReporter;
+import Management.ProblemSupervisor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class ClausePurifier {
+public class ClausePurifier extends Solver {
 
     private static final int cOr       = Connective.OR.ordinal();
+    private static final int cEquiv    = Connective.EQUIV.ordinal();
     private static final int cAtleast  = Connective.ATLEAST.ordinal();
     private static final int cAtmost   = Connective.ATMOST.ordinal();
     private static final int cExactly  = Connective.EXACTLY.ordinal();
     private static final int cInterval = Connective.INTERVAL.ordinal();
 
-    public static void purifyClauses(InputClauses inputClauses, Model model) throws Unsatisfiable {
-        int changedDisjunctions = 0;
-        if(!inputClauses.disjunctions.isEmpty()) changedDisjunctions = purifyDisjunctions(inputClauses,model);}
+    private final InputClauses inputClauses;
+    private final Model model;
 
-    protected static int purifyDisjunctions(InputClauses inputClauses, Model model) throws Unsatisfiable{
-        ArrayList<int[]> purifiedClauses = new ArrayList<>();
-        int changedClauses = 0;
-        for(int[] clause : inputClauses.disjunctions) {
-            int[] purifiedClause = purifyDisjunction(clause,model);
-            if(purifiedClause == null) {++changedClauses; continue;}
-            purifiedClauses.add(purifiedClause);
-            if(clause != purifiedClause) ++changedClauses;}
-        if(changedClauses != 0) inputClauses.purifiedDisjunctions = purifiedClauses;
-        return changedClauses;}
+    public final ClausePurifierStatistics statistics;
 
-    /** removes all redundancies from the atleast-clauses.
-     * - multiple occurrences of literals are removed not to exceed the quantifier. <br>
-     * - complementary literals are detected. Each complementary pair reduces the quantifier by 1.<br>
-     * - atleast 0 ...  is always true. The clause is ignored.<br>
-     * - atleast n l1,...,ln causes all literals to become true.<br>
-     * - atleast 1 ... is turned into a disjunction <br>
-     * The original clause remains always unchanged.<br>
-     * The original lists in inputClauses are kept unchanged if there were no redundancies in the clauses.
-     *
-     * @param inputClauses   the input clauses.
-     * @param model          the model.
-     * @return               the number of changed clauses.
-     * @throws Unsatisfiable if inserting a literal into the model causes a conflict.
-     */
-    protected static int purifyAtleasts(InputClauses inputClauses, Model model) throws Unsatisfiable{
-        ArrayList<int[]> purifiedAtleasts = new ArrayList<>();
+    public ArrayList<int[]> newEquivalences;
+
+    private ProblemSupervisor problemSupervisor = null;
+
+    public ClausePurifier(InputClauses inputClauses, Model model) {
+        this.inputClauses = inputClauses;
+        this.model        = model;
+        statistics = new ClausePurifierStatistics(this);
+    }
+
+    public ClausePurifier(ProblemSupervisor problemSupervisor, Model model) {
+        this.problemSupervisor = problemSupervisor;
+        this.inputClauses = problemSupervisor.inputClauses;
+        this.model        = model;
+        statistics = new ClausePurifierStatistics(this);
+    }
+
+    public void run() {
+        try{purifyClauses();}
+        catch(Unsatisfiable unsatisfiable) {
+            unsatisfiable.problemId = inputClauses.problemName;
+            unsatisfiable.solverClass = ClausePurifier.class;
+            unsatisfiable.statistic = statistics;
+            if(problemSupervisor != null)
+                problemSupervisor.announceResult(unsatisfiable,"ClausePurifier");}}
+
+    protected void purifyClauses() throws Unsatisfiable {
         ArrayList<int[]> purifiedDisjunctions = new ArrayList<>();
-        int changedClauses = 0;
-        for(int[] clause : inputClauses.atleasts) {
-            int[] purifiedClause = purifyAtleast(clause,model);
-            if(purifiedClause == null) {++changedClauses; continue;}
-            if(purifiedClause == clause) {purifiedAtleasts.add(clause); continue;}
-            ++changedClauses;
-            if(purifiedClause[1] == Connective.OR.ordinal()) {
-                 purifiedDisjunctions.add(purifiedClause);}
-            else{purifiedAtleasts.add(purifiedClause);}}
-        if(changedClauses == 0) return 0;
-        inputClauses.purifiedAtleasts = purifiedAtleasts;
-        if(purifiedDisjunctions.isEmpty()) return changedClauses;
+        int changedDisjunctions = 0;
+        ArrayList<int[]>  newDisjunctions = new ArrayList<>();
+        if(!inputClauses.disjunctions.isEmpty())  {
+            for(int[] clause : inputClauses.disjunctions) {
+                int[] purifiedClause = purifyDisjunction(clause,true);
+                if(purifiedClause == clause) {purifiedDisjunctions.add(purifiedClause); continue;}
+                ++changedDisjunctions; ++statistics.changedClauses;
+                if(purifiedClause == null)  continue;
+                purifiedDisjunctions.add(purifiedClause);}}
 
-        if(inputClauses.purifiedDisjunctions == inputClauses.disjunctions) {
-            inputClauses.purifiedDisjunctions = new ArrayList<>();
-            inputClauses.purifiedDisjunctions.addAll(inputClauses.disjunctions);}
-        inputClauses.purifiedDisjunctions.addAll(purifiedDisjunctions);
-        return changedClauses;}
+        ArrayList<int[]> purifiedAtleasts = new ArrayList<>();
+        int changedAtleasts = 0;
+        if(!inputClauses.atleasts.isEmpty()) {
+            for(int[] clause : inputClauses.atleasts) {
+                int[] purifiedClause = purifyClause(clause);
+                if(purifiedClause    == clause) {purifiedAtleasts.add(purifiedClause); continue;}
+                ++changedAtleasts; ++statistics.changedClauses;
+                if(purifiedClause    == null)   continue;
+                if(purifiedClause[1] == cOr)    {newDisjunctions.add(purifiedClause);  continue;}
+                purifiedAtleasts.add(purifiedClause);}}
 
+        ArrayList<int[]> purifiedAtmosts = new ArrayList<>();
+        int changedAtmosts = 0;
+        if(!inputClauses.atmosts.isEmpty()) {
+            for(int[] clause : inputClauses.atmosts) {
+                int[] purifiedClause = purifyClause(clause);
+                if(purifiedClause    == clause) {purifiedAtmosts.add(purifiedClause); continue;}
+                ++changedAtmosts; ++statistics.changedClauses;
+                if(purifiedClause    == null)   {continue;}
+                if(purifiedClause[1] == cOr)    {newDisjunctions.add(purifiedClause); continue;}
+                purifiedAtmosts.add(purifiedClause);}}
 
+        ArrayList<int[]> purifiedExactlys = new ArrayList<>();
+        newEquivalences = new ArrayList<>();
+        int changedExactlys = 0;
+        if(!inputClauses.exacltys.isEmpty()) {
+            for(int[] clause : inputClauses.exacltys) {
+                int[] purifiedClause = purifyClause(clause);
+                if(purifiedClause    == clause) {purifiedExactlys.add(purifiedClause); continue;}
+                ++changedExactlys; ++statistics.changedClauses;
+                if(purifiedClause    == null)   {continue;}
+                if(purifiedClause[1] == cEquiv) {newEquivalences.add(purifiedClause);  continue;}
+                purifiedExactlys.add(purifiedClause);}}
+
+        ArrayList<int[]> purifiedIntervals = new ArrayList<>();
+        ArrayList<int[]> newAtleasts       = new ArrayList<>();
+        ArrayList<int[]> newAtmosts        = new ArrayList<>();
+        ArrayList<int[]> newExactlys       = new ArrayList<>();
+        int changedIntervals = 0;
+        if(!inputClauses.intervals.isEmpty()) {
+            for(int[] clause : inputClauses.intervals) {
+                int[] purifiedClause = purifyClause(clause);
+                if(purifiedClause    == clause) {purifiedIntervals.add(purifiedClause); continue;}
+                ++changedIntervals; ++statistics.changedClauses;
+                if(purifiedClause    == null)   {continue;}
+                Connective connective = Connective.getConnective(purifiedClause[1]);
+                assert(connective != null);
+                switch(connective) {
+                    case OR:      newDisjunctions.add(purifiedClause); continue;
+                    case EQUIV:   newEquivalences.add(purifiedClause); continue;
+                    case ATLEAST: newAtleasts.add(purifiedClause);     continue;
+                    case ATMOST:  newAtmosts.add(purifiedClause);      continue;
+                    case EXACTLY: newExactlys.add(purifiedClause);     continue;
+                    case INTERVAL: purifiedIntervals.add(purifiedClause);
+                    default:
+                        ErrorReporter.reportError("ClausePurifier: interval clause turned into wrong type " + connective);}}}
+
+        if(changedDisjunctions != 0 || !newDisjunctions.isEmpty()) {
+            inputClauses.purifiedDisjunctions = purifiedDisjunctions;
+            if(!newDisjunctions.isEmpty()) inputClauses.purifiedDisjunctions.addAll(newDisjunctions);}
+        if(changedAtleasts != 0 || !newAtleasts.isEmpty()) {
+            inputClauses.purifiedAtleasts = purifiedAtleasts;
+            if(!newAtleasts.isEmpty()) inputClauses.purifiedAtleasts.addAll(newAtleasts);}
+        if(changedAtmosts != 0 || !newAtmosts.isEmpty()) {
+            inputClauses.purifiedAtmosts = purifiedAtmosts;
+            if(!newAtmosts.isEmpty()) inputClauses.purifiedAtmosts.addAll(newAtmosts);}
+        if(changedExactlys != 0|| !newExactlys.isEmpty()) {
+            inputClauses.purifiedExactlys = purifiedExactlys;
+            if(!newExactlys.isEmpty()) inputClauses.purifiedExactlys.addAll(newExactlys);}
+        if(changedIntervals != 0) {
+            inputClauses.purifiedIntervals = purifiedIntervals;}}
 
     /** removes redundancies from disjunctions.
      * - multiple occurrences of literals are removed <br>
      * - complementary literals are detected. The clause can be ignored.<br>
      * - if the purified clause becomes a unit clause, the literal is put into the model.<br>
-     * The original clause remains always unchanged.
+     * The original clause remains always unchanged.<br>
+     * All zeros (0) are removed from the literals.
      *
-     * @param clause a raw input clause (disjunction)
-     * @param model  the model
-     * @return       null (tautology or unit clause) or the unchanged clause or the purified shortened clause.
+     * @param clause   a disjunction
+     * @param original if true then the clause must not be changed.
+     * @return         null (tautology or unit clause) or the unchanged clause or the purified shortened clause.
      * @throws Unsatisfiable if the clause becomes a unit clause and inserting it into the model causes a contradiction.
      */
-    protected static int[] purifyDisjunction(int[] clause, Model model) throws Unsatisfiable {
-        boolean original = true;
+    protected int[] purifyDisjunction(int[] clause, boolean original) throws Unsatisfiable {
         int length = clause.length;
+        int nonZeroLiteral = 0;
         int zeros = 0;
         for(int i = 2; i < length; ++i) {
             int literal1 = clause[i];
+            if(literal1 == 0) {++zeros; continue;}
+            nonZeroLiteral = literal1;
             for(int j = i+1; j < length; ++j) {
                 int literal2 = clause[j];
-                if(literal2 == 0) continue;
                 if(literal1 == -literal2) return null; // tautology
-                if(literal1 == literal2) {
-                    if(original) {
-                        original = false;
-                        clause = Arrays.copyOf(clause,length);} // the original clause remains unchanged.
-                    ++zeros;
+                if(literal1 ==  literal2) {
+                    if(original) {clause = Arrays.copyOf(clause,length); original = false;} // the original clause remains unchanged.
                     clause[j] = 0;}}}
 
         int newLength = length-zeros;
-        if(newLength == 3) {model.add(clause[2],new InfInputClause(clause[0])); return null;}
-        if(original) return clause; // no change necessary
+        if(newLength == 3) {model.add(nonZeroLiteral,new InfInputClause(clause[0])); return null;}
+        return (zeros == 0) ? clause : compactify(clause,zeros);}
 
-        int[] purifiedClause = new int[newLength];
-        purifiedClause[0] = clause[0]; // identifier
-        purifiedClause[1] = clause[1]; // clause type
-        int j = 1;
-        for(int i = 2; i < length; ++i) {
-            if(clause[i] == 0) continue;
-            purifiedClause[++j] = clause[i];}
-        return purifiedClause;}
-
-
-    /** removes redundancies from the atleast clause.
-     * - multiple occurrences of literals are removed not to exceed the quantifier. <br>
-     * - complementary literals are detected. Each complementary pair reduces the quantifier by 1.<br>
-     * - atleast 0 ...  is always true. The clause is ignored.<br>
-     * - atleast n l1,...,ln causes all literals to become true.<br>
-     * - atleast 1 ...  is turned into a disjunction.<br>
-     * The original clause remains always unchanged.
+    /** removes all redundancies from the clause.
      *
-     * @param clause a raw input clause (atleast)
-     * @param model  the model
-     * @return       null (tautology of all literals true) or the unchanged clause or the purified shortened clause.
-     * @throws Unsatisfiable if inserting literals into the model causes a contradiction.
+     * @param clause a clause which is not a disjunction.
+     * @return null or the original clause or a purified clause.
+     * @throws Unsatisfiable if a contradiction is discovered.
      */
-    protected static int[] purifyAtleast(int[] clause, Model model) throws Unsatisfiable {
-        int quantifier = clause[2];
-        if(quantifier == 0) return null;  // atleast 0 ... is always true
-        int intLength = clause.length;    // length of the array
-        int clauseLength = intLength - 3; // number of literals
-        if(quantifier > clauseLength) throw new UnsatInputClause(clause); // atleast n l1... ln-k is unsatifiable
-
-        // first of all we eliminate contradictory pairs of literals and reduce the quantifier.
-        int[] newClause = eliminateComplementaryPairs(clause,model);
-        boolean original = newClause == clause;
-        clause = newClause;
-        quantifier = clause[2];
-
-        // now we have to reduce multiple occurrences of literals. At most 'quantifier' many are allowed.
-        newClause = reduceMultiplicities(original,quantifier,clause);
-        original &= newClause == clause;
-        clause = newClause;
-
-        boolean isOr = (quantifier == 1);    // it is actually a disjunction
-        if(original && !isOr) return clause; // no change necessary
-
-        if(isOr) return compactify(true,clause,model); // all zeros deleted, clause becomes a disjunction.
-
-        // This deals with the following phenomenon:
-        // Example: atleast 2 p,p,q. If p would be false, there would not be enough literals to satisfy atleast 2.
-        //          Therefore, p must be true.
-        // Example: atleast 5 p,p,q,q,r,s
-        //          p and q must be true, and the result is atleast 1 r,s
-        int zeros = countZeros(clause);
-        for(int i = 3; i < intLength; ++i) {
-            int literal = clause[i];
-            if(literal == 0) continue;
-            int counter = 1;
-            for(int j = i+1; j < intLength; ++j) {
-                if(clause[j] == literal) ++counter;}
-            if(clauseLength - zeros - counter < quantifier) {
-                model.add(literal,new InfInputClause(clause[0]));
-                quantifier -= counter;
-                zeros += counter;
-                for(int j = i; j < intLength; ++j) {
-                    if(clause[j] == literal) clause[j] = 0;}
-                clause = reduceMultiplicities(false,quantifier,clause);
-                original = false;
-                if(quantifier == 0) return null;
-                if(quantifier == 1) return compactify(true,clause,model);}}
-
-        return original ? clause : compactify(isOr,clause,model);}
-
-
-    /** removes redundancies from the atmost clause.
-     * - complementary literals are detected. Each complementary pair reduces the quantifier by 1.<br>
-     * - multiple occurrences of literals which are more than the quantifier are false. <br>
-     * - atmost 0 ...  cause all literals to become false<br>
-     * - atmost n l1,...,ln is always true.<br>
-     * - atmost n-1 l1 ... ln  is turned into a disjunction -l1,...,-ln.<br>
-     * The original clause remains always unchanged.
-     *
-     * @param clause a raw input clause (atleast)
-     * @param model  the model
-     * @return       null (tautology of all literals true) or the unchanged clause or the purified shortened clause.
-     * @throws Unsatisfiable if inserting literals into the model causes a contradiction.
-     */
-    protected static int[] purifyAtmost(int[] clause, Model model) throws Unsatisfiable {
-        int intLength = clause.length;    // length of the array
-        int clauseLength = intLength - 3; // number of literals
-        int quantifier = clause[2];
-        if(quantifier >= clauseLength) return null;  // atmost n l1,...,ln ... is always true
-        if(quantifier == 0) {                        // atmost 0 ... means all literals are false.
-            for(int i = 3; i < intLength; ++i)
-                model.add(-clause[i],new InfInputClause(clause[0]));
-            return null;}
-        if(quantifier == clauseLength - 1) {
-            int[] disjunction = new int[clauseLength-1];
-            disjunction[0] = clause[0];
-            disjunction[1] = cOr;
-            for(int j = 3; j < intLength; ++j) disjunction[j-1] = -clause[j];
-            return purifyDisjunction(disjunction,model);}
-
-        // first of all we eliminate contradictory pairs of literals and reduce the quantifier.
-        int[] newClause = eliminateComplementaryPairs(clause,model);
+    protected int[] purifyClause(int[] clause) throws Unsatisfiable {
+        int[] newClause = transform(clause,0); // the quantifier may cause the type of the clause to be changed.
         if(newClause == null) return null;
         boolean original = newClause == clause;
+        if(newClause[1] == cOr) return purifyDisjunction(newClause,original);
         clause = newClause;
-        if(clause[1] == cOr) return compactify(true,reduceMultiplicities(false, 1, clause),model);
-        quantifier = clause[2];
-
-        //// all literals whose multiplicity exceeds quantifier must be false.
-        newClause = eliminateExceedingMultiplicities(original,quantifier,4,clause,model);
-        original &= newClause == clause;
-        clause = newClause;
-
-        return original ? clause : compactify(false,clause,model);}
-
-
-    /** removes redundancies from the exactly clause.
-     * - complementary literals are detected. Each complementary pair reduces the quantifier by 1.<br>
-     * - multiple occurrences of literals which are more than the quantifier are false. <br>
-     * - exctly -n ... is unsatisfiable<br>
-     * - exactly 0 ...  cause all literals to become false<br>
-     * - exactly n l1,...,ln all literals must be true.<br>
-     * The original clause remains always unchanged.
-     *
-     * @param clause a raw input clause (atleast)
-     * @param model  the model
-     * @return       null (tautology of all literals true) or the unchanged clause or the purified shortened clause.
-     * @throws Unsatisfiable if inserting literals into the model causes a contradiction.
-     */
-    protected static int[] purifyExactly(int[] clause, Model model) throws Unsatisfiable {
-        int clauseLength  = clause.length;    // length of the array
-        int literalLength = clauseLength - 3; // number of literals
-        int quantifier = clause[2];
-        if(quantifier > literalLength) throw new UnsatInputClause(clause);
-        if(quantifier == 0) {                        // atmost 0 ... means all literals are false.
-            for(int i = 3; i < clauseLength; ++i)
-                model.add(-clause[i],new InfInputClause(clause[0]));
-            return null;}
-        if(quantifier == literalLength) {
-            for(int i = 3; i < clauseLength; ++i)
-                model.add(clause[i],new InfInputClause(clause[0]));
-            return null;}
-
-        // first of all we eliminate contradictory pairs of literals and reduce the quantifier.
-        int[] newClause = eliminateComplementaryPairs(clause,model);
+        newClause = eliminateComplementaryPairs(clause,original);
         if(newClause == null) return null;
-        boolean original = newClause == clause;
-        clause = newClause;
-        quantifier = clause[2];
-
-        /// all literals whose multiplicity exceeds quantifier must be false.
-        newClause = eliminateExceedingMultiplicities(original,quantifier,4,clause,model);
+        if(newClause[1] == Connective.OR.ordinal()) return purifyDisjunction(newClause,original);
         original &= newClause == clause;
         clause = newClause;
-
-        return original ? clause : compactify(false,clause,model);}
-
-
-    /** removes redundancies from the interval clause.
-     * - complementary literals are detected. Each complementary pair reduces the quantifier by 1.<br>
-     * - multiple occurrences of literals which are more than max are false. <br>
-     * - [..,-n] ... is unsatisfiable<br>
-     * - [..,0] ...  cause all literals to become false<br>
-     * - [1,n] l1...ln  becomes a disjunction<br>
-     * - [n,n] l1,...,ln becomes an exactly-clause
-     * The original clause remains always unchanged.
-     *
-     * @param clause a raw input clause (atleast)
-     * @param model  the model
-     * @return       null (tautology of all literals true) or the unchanged clause or the purified shortened clause.
-     * @throws Unsatisfiable if inserting literals into the model causes a contradiction.
-     */
-    protected static int[] purifyInterval(int[] clause, Model model) throws Unsatisfiable {
-        int clauseLength  = clause.length;    // length of the array
-        int literalLength = clauseLength - 3; // number of literals
-        int min = clause[2];
-        int max = clause[3];
-        if(min > literalLength) throw new UnsatInputClause(clause);
-        if(max == 0) {                        // atmost 0 ... means all literals are false.
-            for(int i = 4; i < clauseLength; ++i)
-                model.add(-clause[i],new InfInputClause(clause[0]));
-            return null;}
-        if(min == literalLength) {
-            for(int i = 3; i < clauseLength; ++i)
-                model.add(clause[i],new InfInputClause(clause[0]));
-            return null;}
-        if(min == 0) {
-            int[] atmostClause = new int[clauseLength-1];
-            atmostClause[0] = clause[0];
-            atmostClause[1] = cAtmost;
-            atmostClause[2] = max;
-            for(int i = 4; i < clauseLength; ++i) atmostClause[i-1] = clause[i];
-            return purifyAtmost(atmostClause,model);}
-
-        // first of all we eliminate contradictory pairs of literals and reduce the quantifier.
-        int[] newClause = eliminateComplementaryPairs(clause,model);
+        newClause = reduceMultiplicities(clause,original);
         if(newClause == null) return null;
-        boolean original = newClause == clause;
-        if(newClause[1] == cAtmost) return purifyAtmost(newClause,model);
-        clause = newClause;
-        max = clause[3];
-
-        /// all literals whose multiplicity exceeds quantifier must be false.
-        newClause = eliminateExceedingMultiplicities(original,max,4,clause,model);
         original &= newClause == clause;
-        clause = newClause;
-
-        return original ? clause : compactify(false,clause,model);}
-
-
-    protected int[] transform(int[] clause, int zeros, Model model) throws Unsatisfiable{
-        int length = clause.length;
-        int literals, quantifier;
-        int id = clause[0];
-        switch(Connective.getConnective(clause[1])) {
-            case OR:
-                literals = length - 2 - zeros;
-                if(literals <= 0) throw new UnsatInputClause(clause);
-                if(literals == 1) return makeAllTrue(clause,2,1,model);
-                break;
-            case ATLEAST:
-                literals = length - 3 - zeros;
-                quantifier = clause[2];
-                if(quantifier <= 0) return null;  // atleast 0 ... is always true
-                if(quantifier > literals) throw new UnsatInputClause(clause); // atleast n l1... ln-k is unsatisfiable
-                if(quantifier == literals) {      // atleast n l1...ln means all literals are true.
-                    return makeAllTrue(clause,3,1,model);}
-                if(quantifier == 1) {
-                    return makeDisjunction(clause,3,literals,1);}
-                break;
-            case ATMOST:
-                literals = length - 3 - zeros;
-                quantifier = clause[2];
-                if(quantifier < 0) throw new UnsatInputClause(clause); // atmost -1 ... is unsatisfiable
-                if(quantifier == 0) {      // atmost 0 l1...ln means all literals are false.
-                    return makeAllTrue(clause,3,-1,model);}
-                if(quantifier >= literals) return null; // atmost n l1...ln is always true
-                if(quantifier == literals-1) {
-                    return makeDisjunction(clause,3,literals,-1);}
-                break;
-            case EXACTLY:
-                literals = length - 3 - zeros;
-                quantifier = clause[2];
-                if(quantifier < 0 || quantifier > literals) throw new UnsatInputClause(clause); // exactly -1 ... is unsatisfiable
-                if(quantifier == 0) {      // exactly 0 l1...ln means all literals are false.
-                    return makeAllTrue(clause,3,-1,model);}
-                if(quantifier == literals) {      // exactly n l1...ln means all literals are true.
-                    return makeAllTrue(clause,3,1,model);}
-                if(quantifier == 1 && literals == 2) { // exactly 1 p,q  means p = -q
-                    int[] equiv = new int[4];
-                    equiv[0] = clause[0];
-                    equiv[1] = Connective.EQUIV.ordinal();
-                    if(zeros == 0) {equiv[2] = clause[4]; equiv[3] = -clause[5]; return equiv;}
-                    boolean first = true;
-                    for(int i = 3; i < length; ++i) {
-                        int literal = clause[i];
-                        if(literal == 0) continue;
-                        if(first) {equiv[4] = literal; first = false;}
-                        else {equiv[5] = -literal; break;}}
-                    return equiv;}
-                break;
-            case INTERVAL:
-                literals = length - 4 - zeros;
-                int min = clause[2];
-                int max = clause[3];
-                if(max < 0 || min > literals) throw new UnsatInputClause(clause);
-                if(max == 0) {      // [0,0] l1...ln means all literals are false.
-                    return makeAllTrue(clause,4,-1,model);}
-                if(min == literals) {      // [n,n] l1...ln means all literals are true.
-                    return makeAllTrue(clause,4,1,model);}
-                if(min == max) {
-                    if(min == 1 && literals == 2) { // [1,1] p,q  means p = -q
-                        int[] equiv = new int[4];
-                        equiv[0] = clause[0];
-                        equiv[1] = Connective.EQUIV.ordinal();
-                        if(zeros == 0) {equiv[2] = clause[5]; equiv[3] = -clause[6]; return equiv;}
-                        boolean first = true;
-                        for(int i = 4; i < length; ++i) {
-                            int literal = clause[i];
-                            if(literal == 0) continue;
-                            if(first) {equiv[4] = literal; first = false;}
-                            else {equiv[5] = -literal; break;}}
-                        return equiv;}
-
-                    int[] exactly = new int[literals+3];
-                    exactly[0] = clause[0];
-                    exactly[1] = Connective.EXACTLY.ordinal();
-                    exactly[3] = min;
-                    int j = 3;
-                    for(int i = 4; i < length; ++i) {
-                        int literal = clause[i];
-                        if(literal != 0) exactly[++j] = literal;}
-                    return exactly;}
-        }
-        return clause;}
-
-    protected int[] makeDisjunction(int[] clause, int start, int literals, int sign) {
-        int[] disjunction = new int[literals+2];
-        disjunction[0] = clause[0];
-        disjunction[1] = Connective.OR.ordinal();
-        int j = 1;
-        for(int i = start; i < clause.length; ++i) {
-            int literal = clause[i];
-            if(literal != 0) disjunction[++j] = sign*literal;}
-        return disjunction;}
-
-
-    protected int[] makeAllTrue(int[] clause, int start, int sign, Model model) throws Unsatisfiable {
-        InfInputClause inference = new InfInputClause(clause[0]);
-        for(int i = start; i < clause.length; ++i) {
-            int literal = clause[i];
-            if(literal != 0) model.add(sign*literal,inference);}
-        return null;}
-
-
-    /** returns the first (non-zero) literal
-     *
-     * @param clause a clause
-     * @param start the start index for the search
-     * @return the first literal (which is not 0)
-     */
-    protected int getFirstLiteral(int[] clause, int start) {
-        for(int i = start; i < clause.length; ++i) {
-            int literal = clause[i];
-            if(literal != 0) return literal;}
-        return 0;}
-
-    /** derives false(literal) if its multiplicity exceeds the quentifier in atmost, exactly and interval clauses
-     *
-     * @param original   true if it is still the original clause
-     * @param quantifier the quantifier in atleast and exactly clauses, the max in interval clauses
-     * @param start      4 for interval clauses, otherwise 3
-     * @param clause     the clause
-     * @param model      the model
-     * @return           either the original or the simplified clause
-     * @throws Unsatisfiable if false(literal) causes a contradiction.
-     */
-    protected static int[] eliminateExceedingMultiplicities(boolean original, int quantifier,
-                                                            int start, int[] clause, Model model) throws Unsatisfiable {
-        int clauseLength = clause.length;
-        for(int i = start; i < clauseLength; ++i) {
-            int literal = clause[i];
-            if(literal == 0) continue;
-            int counter = 1;
-            for(int j = i+1; j < clauseLength; ++j) {
-                if(clause[j] == literal) ++counter;}
-            if(++counter > quantifier) {
-                model.add(-literal,new InfInputClause(clause[0]));
-                if(original) {clause = Arrays.copyOf(clause,clauseLength); original = false;}
-                for(int j = i; j < clauseLength; ++j) {
-                    if(clause[j] == literal) clause[j] = 0;}}}
-        return clause;}
+        newClause = trueLiteralsFromMultiplicities(clause,original);
+        if(newClause == null) return null;
+        original &= newClause == clause;
+        return original ? clause : compactify(clause,countZeros(clause));
+    }
 
     /** eliminates complementary pairs from the clause.
      * Each complementary pair p,-p represents a true fact. <br>
@@ -484,188 +222,273 @@ public class ClausePurifier {
      *   <br>
      *
      * @param clause a quantified clause.
-     * @param model  a model.
-     * @return null or the unchanged clause or a new clause without complementary pairs.
+     * @param zeros  the number of zeros (0) in the clause.
+     * @return null or the unchanged clause or a new clause.
      * @throws Unsatisfiable if a contradiction is encountered.
      */
-    protected static int[] eliminateComplementaryPairs(int[] clause, Model model) throws Unsatisfiable {
-        int[] originalClause = clause;
-        boolean original = true;
-        boolean isInterval = clause[1] == cInterval;
-        int start = isInterval ? 4 : 3;
+    protected int[] transform(int[] clause, int zeros) throws Unsatisfiable {
         int length = clause.length;
-        int pairs = 0;
-        int nonZeros = 0;
-        for(int i = start; i < length; ++i) {
-            int literal1 = clause[i];
-            if(literal1 == 0) continue;
-            for(int j = i+1; j < length; ++j) {
-                int literal2 = clause[j];
-                if(literal2 == 0) continue;
-                if(literal1 == -literal2) {
-                    if(original) {
-                        original = false;
-                        clause = Arrays.copyOf(clause,length);} // the original clause remains unchanged.
-                    clause[i] = 0;
-                    clause[j] = 0;
-                    ++pairs;
-                    break;}}
-            if(clause[i] != 0) ++nonZeros;}
-        if(pairs == 0) return clause;
-
-        switch(Connective.getConnective(clause[1])) {
+        int literals, quantifier;
+        Connective connective = Connective.getConnective(clause[1]);
+        assert(connective != null);
+        switch(connective) {
+            case OR:
+                literals = length - 2 - zeros;
+                if(literals <= 0) throw new UnsatInputClause(clause);
+                if(literals == 1) return makeAllTrue(clause,2,1);
+                break;
             case ATLEAST:
-                int quantifier = clause[2] - pairs;
-                if(quantifier <= 0) return null;
-                if(quantifier == 1) return compactify(true,clause,model);
-                if(quantifier == nonZeros) {
-                    for(int i = 3; i < length; ++i) {
-                        int literal = clause[i];
-                        if(literal != 0) model.add(literal,new InfInputClause(clause[0]));}
-                    return null;}
-                clause[2] = quantifier;
-                return clause;
-
+                literals = length - 3 - zeros;
+                quantifier = clause[2];
+                if(quantifier <= 0)        return null;  // atleast 0 ... is always true
+                if(quantifier > literals)  throw new UnsatInputClause(clause);       // atleast n l1... ln-k is unsatisfiable
+                if(quantifier == literals) return makeAllTrue(clause,3,1); // atleast n l1...ln means all literals are true.
+                if(quantifier == 1)        return makeDisjunction(clause,3,literals,1);
+                break;
             case ATMOST:
-                quantifier = clause[2] - pairs;
-                if(quantifier < 0) throw new UnsatInputClause(originalClause);
-                if(quantifier == 0) {
-                    for(int i = 3; i < length; ++i) {
-                        int literal = clause[i];
-                        if(literal != 0) model.add(-literal,new InfInputClause(clause[0]));}
-                    return null;}
-                if(quantifier == nonZeros) return null; // atmost n l1,...,ln is always true
-                if(quantifier == nonZeros - 1) {        // atmost 2 p,q,r -> atleast 1 -p,-q,-r
-                    int[] disjunction = new int[nonZeros+2];
-                    disjunction[0] = clause[0];
-                    disjunction[1] = cOr;
-                    int j = 1;
-                    for(int i = 3; i < length; ++i) {
-                        int literal = clause[i];
-                        if(literal != 0) disjunction[++j] = -literal;}
-                    return disjunction;}
-                clause[2] = quantifier;
-                return clause;
-
+                literals = length - 3 - zeros;
+                quantifier = clause[2];
+                if(quantifier < 0)  throw new UnsatInputClause(clause);              // atmost -1 ... is unsatisfiable
+                if(quantifier == 0) return makeAllTrue(clause,3,-1); // atmost 0 l1...ln means all literals are false.
+                if(quantifier >= literals)   return null;                            // atmost n l1...ln is always true
+                if(quantifier == literals-1) return makeDisjunction(clause,3,literals,-1);
+                break;
             case EXACTLY:
-                quantifier = clause[2] - pairs;
-                if(quantifier < 0) throw new UnsatInputClause(originalClause);
-                if(quantifier == 0) { // all literals must be false
-                    for(int i = 3; i < length; ++i) {
-                        int literal = clause[i];
-                        if(literal != 0) model.add(-literal,new InfInputClause(clause[0]));}
-                    return null;}
-                if(quantifier == nonZeros) { // all literals must be true
-                    for(int i = 3; i < length; ++i) {
-                        int literal = clause[i];
-                        if(literal != 0) model.add(literal,new InfInputClause(clause[0]));}
-                    return null;}
-                return clause;
-
+                literals = length - 3 - zeros;
+                quantifier = clause[2];
+                if(quantifier < 0 || quantifier > literals) throw new UnsatInputClause(clause);      // exactly -1 ... is unsatisfiable
+                if(quantifier == 0)                  return makeAllTrue(clause,3,-1);// exactly 0 l1...ln means all literals are false.
+                if(quantifier == literals)           return makeAllTrue(clause,3,1); // exactly n l1...ln means all literals are true.
+                if(quantifier == 1 && literals == 2) return makeEquivalence(clause,3);          // exactly 1 p,q  means p = -q
+                break;
             case INTERVAL:
-                int min = Math.max(0,clause[2] - pairs);
-                int max = clause[3] - pairs;
-                if(max < 0) throw new UnsatInputClause(originalClause);
+                literals = length - 4 - zeros;
+                int min = clause[2];
+                int max = clause[3];
+                if(max < 0 || min > literals) throw new UnsatInputClause(clause);
+                if(max == 0)        return makeAllTrue(clause,4,-1);  // [0,0] l1...ln means all literals are false.
+                if(min == literals) return makeAllTrue(clause,4,1);   // [n,n] l1...ln means all literals are true.
+                if(min == 1 && max == literals) return makeDisjunction(clause,4,literals,+1);
+                if(min == max) {
+                    if(min == 1 && literals == 2) return makeEquivalence(clause,4); // [1,1] p,q  means p = -q
 
-                if(max == 0) { // all literals must be false
-                    for(int i = 4; i < length; ++i) {
-                        int literal = clause[i];
-                        if(literal != 0) model.add(-literal,new InfInputClause(clause[0]));}
-                    return null;}
-
-                if(min == 0) { // [0,n] ... is the same as atmost n ...
-                    int[] atmost = new int[nonZeros+3];
-                    atmost[0] = clause[0];
-                    atmost[1] = cAtmost;
-                    atmost[2] = max;
-                    int j = 2;
-                    for(int i = 4; i < length; ++i) {
-                        int literal = clause[i];
-                        if(literal != 0) atmost[++j] = literal;}
-                    return atmost;}
-
-                if(min == max) { // [n,n] ... is the same as exactly n
-                    int[] exactly = new int[nonZeros+3];
+                    int[] exactly = new int[literals+3];   // [n,n] ...  is exactly n ...
                     exactly[0] = clause[0];
                     exactly[1] = cExactly;
-                    exactly[2] = max;
-                    int j = 2;
+                    exactly[3] = min;
+                    int j = 3;
                     for(int i = 4; i < length; ++i) {
                         int literal = clause[i];
                         if(literal != 0) exactly[++j] = literal;}
                     return exactly;}
-                clause[2] = min;
-                clause[3] = max;}
+        }
         return clause;}
 
-    /** deletes literals which occur more often than maxMultiplicity allows.
-     *  If original = true then literals are deleted in a copy of the clause.<br>
-     *  The clause is like the original clause, but maybe with '0' literals
+    /** eliminates complementary pairs from the clause.
+     * Each complementary pair p,-p represents a true fact. <br>
+     * Therefore, each complementary pair reduces the quantifier by 1.<br>
      *
-     * @param original         true if it is the original clause.
-     * @param maxMultiplicity  the maximum allowed occurrence of the same literal
-     * @param clause           a quantified clause
-     * @return                 either the original clause, if nothing has changed, or a copy if original = true and literals have been zeroed.
+     * @param clause a quantified clause.
+     * @return null or the unchanged clause or a new clause without complementary pairs.
+     * @throws Unsatisfiable if a contradiction is encountered.
      */
-    protected static int[] reduceMultiplicities(boolean original, int maxMultiplicity, int[] clause) {
-        int start = 3;
-        if(clause[1] == cOr) start = 2;
-        if(clause[1] == cInterval) start = 4;
-
+    protected int[] eliminateComplementaryPairs(int[] clause, boolean original) throws Unsatisfiable {
+        boolean isInterval = clause[1] == cInterval;
+        int start = isInterval ? 4 : 3;
         int length = clause.length;
+        int zeros = 0;
+        int pairs = 0;
         for(int i = start; i < length; ++i) {
             int literal1 = clause[i];
-            if(literal1 == 0) continue;
-            int counter = 1;
+            if(literal1 == 0) {++zeros; continue;}
             for(int j = i+1; j < length; ++j) {
                 int literal2 = clause[j];
                 if(literal2 == 0) continue;
-                if(literal2 == literal1) {
-                    if(++counter <= maxMultiplicity) continue;
-                    if(original) {clause = Arrays.copyOf(clause,length); original = false;}
-                    clause[j] = 0;}}}
-        return clause;}
+                if(literal1 == -literal2) {
+                    if(original) {clause = Arrays.copyOf(clause,length); original = false;} // the original clause remains unchanged.
+                    clause[i] = 0;
+                    clause[j] = 0;
+                    ++pairs;
+                    break;}}}
+        if(pairs == 0) return clause;
+        clause[2] -= pairs;
+        if(isInterval) clause[3] -= pairs;
+        return transform(clause,zeros);}
 
-    /** removes all zeros (0) from a quantified clause.
-     * If makeOr = true then the clause is turned into an or-clause (disjunction).<br>
-     * If the disjunction is a unit clause then the literal is inserted into the model.
+    /** deletes multiple occurrences of literals depending on the type of clause and the quantifier.
+     * atleast clauses: literals occurring more than the quantifier allows can be deleted.<br>
+     * Example:  atleast 2 p,p,p,q,q,q -&gt; atleast 2 p,p,q,q.<br>
+     * <br>
+     * Other quantified clauses with upper bound: <br>
+     * Literals occurring more than the upper bound allows become false.<br>
+     * Example: atmost 2 p,p,p,q,r,s -> atmost 2 q,r,s and false(p)<br>
+     * The quantifier is not changed by this transformation.<br>
+     * <br>
+     * If original = true then literals are deleted in a copy of the clause.<br>
+     * The clause is like the original clause, but maybe with '0' literals.<br>
+     * Changed clauses may be transformed to other clause types.<br>
+     * Example: atmost 2 p,p,p,q,r,s -&gt; atmost 2 q,r,s -&gt; -q,-r,-s (disjunction)
      *
-     * @param makeOr true if the clause is to be turned into a disjunction.
-     * @param clause the clause with zeros.
-     * @param model  a model.
-     * @return       null or the shortened clause without the zeros.
-     * @throws       Unsatisfiable if the clause has become a unit clause (disjunction) and adding it to the model causes an unsatisfiability.
+     * @param clause a quantified clause
+     * @param original if true then the clause must not be changed.
+     * @return       either the original clause, if nothing has changed, or a copy if original = true and literals have been zeroed.
      */
-    protected static int[] compactify(boolean makeOr, int[] clause, Model model) throws Unsatisfiable{
-        boolean isInterval = clause[1] == cInterval;
-        int start = isInterval ? 4 : 3;
-        int zeros = countZeros(clause);
-        if(zeros == 0 && !makeOr) return clause; // no change necessary
-        int newLength = clause.length-zeros;
-        if(makeOr) {
-            newLength -= isInterval ? 2 : 1;
-            if(newLength == 3) { // the clause is now a unit clause.
-                for(int i = start; i < clause.length; ++i) {
-                    int literal = clause[i];
-                    if(literal != 0) {
-                        model.add(literal,new InfInputClause(clause[0]));
-                        return null;}}}}
+    protected int[] reduceMultiplicities(int[] clause, boolean original) throws Unsatisfiable{
+        int length = clause.length;
+        int start = 3; int quantifier = clause[2];
+        if(clause[1] == cInterval) {start = 4; quantifier = clause[3];}
+        boolean changed = false;
+        int zeros = 0;
+        if(clause[1] == cAtleast) {// multiplicities > quantifier can be deleted.
+            for(int i = 3; i < length; ++i) {
+                int literal1 = clause[i];
+                if(literal1 == 0) {++zeros; continue;}
+                int counter = 1;
+                for(int j = i+1; j < length; ++j) {
+                    int literal2 = clause[j];
+                    if(literal2 == 0) continue;
+                    if(literal2 == literal1) {
+                        if(++counter <= quantifier) continue;
+                        if(original) {clause = Arrays.copyOf(clause,length); original = false;}
+                        changed = true;
+                        clause[j] = 0;}}}}
+        else {            // multiplicities exceeding quantifier become false.
+            for(int i = start; i < length; ++i) {
+                int literal1 = clause[i];
+                if(literal1 == 0) {++zeros; continue;}
+                int counter = 1;
+                for(int j = i+1; j < length; ++j) {
+                    int literal2 = clause[j];
+                    if(literal2 == 0) continue;
+                    if(literal2 == literal1) ++counter;}
+                if(counter > quantifier) {
+                    if(original) {clause = Arrays.copyOf(clause,length); original = false;}
+                    changed = true;
+                    model.add(-literal1,new InfInputClause(clause[0]));
+                    for(int j = i; j < length; ++j) {
+                        if(clause[j] == literal1) clause[j] = 0;}}}}
+        return changed ? transform(clause,zeros) : clause;}
 
-        int[] purifiedClause = new int[newLength];
-        purifiedClause[0] = clause[0]; // identifier
-        purifiedClause[1] = makeOr ? cOr : clause[1]; // type of clause
-        if(!makeOr) {
-            purifiedClause[2] = clause[2];                 // quantifier or min
-            if(isInterval) purifiedClause[3] = clause[3];} // max
-
-        int j = 2;
-        if(isInterval) j = 3;
-        if(makeOr) j = 1;
+    /** A clause exactly 1 p,q is equivalent to p = -q.
+     * The clause is turned into such an equivalence.
+     *
+     * @param clause an exactly-clause or an interval-clause [1,1] ... (possibly with zeros)
+     * @param start  3 or 4 (for interval clauses)
+     * @return the corresponding equiv clause.
+     */
+    protected int[] makeEquivalence(int[] clause, int start) {
+        int[] equiv = new int[4];
+        equiv[0] = clause[0];
+        equiv[1] = cEquiv;
+        boolean first = true;
         for(int i = start; i < clause.length; ++i) {
-            if(clause[i] == 0) continue;
-            purifiedClause[++j] = clause[i];}
-        return purifiedClause;}
+            int literal = clause[i];
+            if(literal == 0) continue;
+            if(first) {equiv[2] = literal; first = false;}
+            else {equiv[3] = -literal; break;}}
+        return equiv;}
 
+
+    /** turns the clause into a disjunction.
+     *  The disjunction is purified.
+     *
+     * @param clause   the clause
+     * @param start    4 (for intervals) 3 for other quantified clauses
+     * @param literals the number of non-zero literals in the clause
+     * @param sign     +1 or -1
+     * @return         a new disjunction.
+     * @throws Unsatisfiable should not happen.
+     */
+    protected int[] makeDisjunction(int[] clause, int start, int literals, int sign) throws Unsatisfiable{
+        int[] disjunction = new int[literals+2];
+        disjunction[0] = clause[0];
+        disjunction[1] = cOr;
+        int j = 1;
+        for(int i = start; i < clause.length; ++i) {
+            int literal = clause[i];
+            if(literal != 0) disjunction[++j] = sign*literal;}
+        return purifyDisjunction(disjunction,false);} // there may still be double literals
+
+
+    /** makes all literals true/false.
+     *
+     * @param clause a clause, possibly with zeros.
+     * @param start  3 or 4 (for interval-clauses).
+     * @param sign   +1 or -1.
+     * @return null.
+     * @throws Unsatisfiable if the model discovers a contradiction.
+     */
+    protected int[] makeAllTrue(int[] clause, int start, int sign) throws Unsatisfiable {
+        InfInputClause inference = new InfInputClause(clause[0]);
+        for(int i = start; i < clause.length; ++i) {
+            int literal = clause[i];
+            if(literal != 0) model.add(sign*literal,inference);}
+        return null;}
+
+
+    /** removes all zeros (0) from a clause.
+     *
+     * @param clause the clause with zeros.
+     * @param zeros the number of zeros (0) in the clause.
+     * @return      a new shortened clause without the zeros.
+     */
+    protected int[] compactify(int[] clause, int zeros) {
+        if(zeros == 0) return clause;
+        int length = clause.length;
+        int[] shortenedClause = new int[length-zeros];
+        shortenedClause[0] = clause[0]; // identifier
+        shortenedClause[1] = clause[1]; // type of clause
+
+        int start = 0;
+        Connective connective = Connective.getConnective(clause[1]);
+        assert(connective != null);
+        switch(connective) {
+            case OR:       start = 2; break;
+            case ATLEAST:
+            case ATMOST:
+            case EXACTLY:  start = 3; shortenedClause[2] = clause[2]; break;
+            case INTERVAL: start = 4; shortenedClause[2] = clause[2]; shortenedClause[3] = clause[3];
+        }
+        int j = start - 1;
+        for(int i = start; i < length; ++i) {
+            if(clause[i] != 0) shortenedClause[++j] = clause[i];}
+        return shortenedClause;}
+
+    /** Identifies true literals from multiplicities.
+     * Example: atleast 2 p,p,q. If p was false, there would not be enough literals to satisfy atleast 2.<br>
+     *          Therefore, p must be true.<br>
+     * Example: atleast 5 p,p,q,q,r,s<br>
+     *          p and q must be true, and the result is atleast 1 r,s
+     *
+     * @param clause     the clause to be investigated
+     * @param original   true if it is still the original clause
+     * @return           the original or the simplified clause
+     * @throws Unsatisfiable if the model discovers a contradiction.
+     */
+    protected int[] trueLiteralsFromMultiplicities(int[] clause, boolean original) throws Unsatisfiable{
+        boolean isInterval = clause[1] == cInterval;
+        int length = clause.length;
+        int zeros = countZeros(clause);
+        int start = isInterval ? 4 : 3;
+        int literals = length - zeros - start;
+        int min = clause[2];
+        int newZeros = 0;
+        for(int i = start; i < length; ++i) {
+            int literal = clause[i];
+            if(literal == 0) continue;
+            int counter = 1;
+            for(int j = i+1; j < length; ++j) {if(clause[j] == literal) ++counter;}
+            if(literals - zeros - counter < min) {
+                model.add(literal,new InfInputClause(clause[0]));
+                min      -= counter;
+                zeros    += counter;
+                newZeros += counter;
+                if(original) {clause = Arrays.copyOf(clause,length); original = false;}
+                for(int j = i; j < length; ++j) {if(clause[j] == literal) clause[j] = 0;}}}
+        clause[2] -= newZeros;
+        if(isInterval) clause[3] -= newZeros;
+        if(newZeros > 0) clause = transform(clause,zeros);
+        return clause;}
 
 
     /** counts the number of zeros (0) in the clause
@@ -681,5 +504,18 @@ public class ClausePurifier {
         return zeros;}
 
 
+    @Override
+    public Result solveProblem(InputClauses inputClauses) {
+        return null;
+    }
+
+    @Override
+    public void prepare() {
 
     }
+
+    @Override
+    public Statistic getStatistics() {
+        return statistics;
+    }
+}
