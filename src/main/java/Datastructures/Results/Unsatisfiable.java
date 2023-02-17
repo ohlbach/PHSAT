@@ -2,7 +2,6 @@ package Datastructures.Results;
 
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -63,8 +62,7 @@ public abstract class Unsatisfiable extends Result {
                 boolean found = false;
                 for(int j = 0; j < i; ++j) {if(step == steps.get(j)) {found = true; break;}}
                 if(found) continue;
-                if(step.getClass() != InfInputClause.class)
-                    st.append(step.toString(symboltable)).append("\n");}
+                st.append(step.toString(symboltable)).append("\n");}
 
             st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:\n");
             for(String rule : InferenceStep.rules(steps)) {st.append("\n").append(rule).append("\n");}}

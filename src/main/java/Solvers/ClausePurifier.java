@@ -23,7 +23,7 @@ public class ClausePurifier extends Solver {
     private static final int cExactly  = Connective.EXACTLY.ordinal();
     private static final int cInterval = Connective.INTERVAL.ordinal();
 
-    private final InputClauses inputClauses;
+    private InputClauses inputClauses;
     private final Model model;
 
     public final ClausePurifierStatistics statistics;
@@ -32,8 +32,7 @@ public class ClausePurifier extends Solver {
 
     private ProblemSupervisor problemSupervisor = null;
 
-    public ClausePurifier(InputClauses inputClauses, Model model) {
-        this.inputClauses = inputClauses;
+    public ClausePurifier(Model model) {
         this.model        = model;
         statistics = new ClausePurifierStatistics(this);
     }
@@ -369,6 +368,48 @@ public class ClausePurifier extends Solver {
                         if(clause[j] == literal1) clause[j] = 0;}}}}
         return changed ? transform(clause,zeros) : clause;}
 
+
+    /** Identifies true literals from multiplicities.
+     * Example: atleast 2 p,p,q. If p was false, there would not be enough literals to satisfy atleast 2.<br>
+     *          Therefore, p must be true.<br>
+     * Example: atleast 5 p,p,q,q,r,s<br>
+     *          p and q must be true, and the result is atleast 1 r,s
+     *
+     * @param clause     the clause to be investigated
+     * @param original   true if it is still the original clause
+     * @return           the original or the simplified clause
+     * @throws Unsatisfiable if the model discovers a contradiction.
+     */
+    protected int[] trueLiteralsFromMultiplicities(int[] clause, boolean original) throws Unsatisfiable{
+        System.out.println(Arrays.toString(clause));
+        boolean isInterval = clause[1] == cInterval;
+        int length = clause.length;
+        int zeros = countZeros(clause);
+        int start = isInterval ? 4 : 3;
+        int literals = length - zeros - start;
+        System.out.println("LI " + zeros + " " + literals);
+        int min = clause[2];
+        int newZeros = 0;
+        for(int i = start; i < length; ++i) {
+            int literal = clause[i];
+            if(literal == 0) continue;
+            int counter = 1;
+            for(int j = i+1; j < length; ++j) {if(clause[j] == literal) ++counter;}
+            System.out.println("CO " + min + "  " + counter + " " + (literals - counter));
+            if(literals - counter < min) {
+                model.add(literal,new InfInputClause(clause[0]));
+                min      -= counter;
+                zeros    += counter;
+                newZeros += counter;
+                if(original) {clause = Arrays.copyOf(clause,length); original = false;}
+                for(int j = i; j < length; ++j) {if(clause[j] == literal) clause[j] = 0;}}}
+        clause[2] -= newZeros;
+        if(isInterval) clause[3] -= newZeros;
+        if(newZeros > 0) clause = transform(clause,zeros);
+        return clause;}
+
+
+
     /** A clause exactly 1 p,q is equivalent to p = -q.
      * The clause is turned into such an equivalence.
      *
@@ -453,43 +494,6 @@ public class ClausePurifier extends Solver {
         for(int i = start; i < length; ++i) {
             if(clause[i] != 0) shortenedClause[++j] = clause[i];}
         return shortenedClause;}
-
-    /** Identifies true literals from multiplicities.
-     * Example: atleast 2 p,p,q. If p was false, there would not be enough literals to satisfy atleast 2.<br>
-     *          Therefore, p must be true.<br>
-     * Example: atleast 5 p,p,q,q,r,s<br>
-     *          p and q must be true, and the result is atleast 1 r,s
-     *
-     * @param clause     the clause to be investigated
-     * @param original   true if it is still the original clause
-     * @return           the original or the simplified clause
-     * @throws Unsatisfiable if the model discovers a contradiction.
-     */
-    protected int[] trueLiteralsFromMultiplicities(int[] clause, boolean original) throws Unsatisfiable{
-        boolean isInterval = clause[1] == cInterval;
-        int length = clause.length;
-        int zeros = countZeros(clause);
-        int start = isInterval ? 4 : 3;
-        int literals = length - zeros - start;
-        int min = clause[2];
-        int newZeros = 0;
-        for(int i = start; i < length; ++i) {
-            int literal = clause[i];
-            if(literal == 0) continue;
-            int counter = 1;
-            for(int j = i+1; j < length; ++j) {if(clause[j] == literal) ++counter;}
-            if(literals - zeros - counter < min) {
-                model.add(literal,new InfInputClause(clause[0]));
-                min      -= counter;
-                zeros    += counter;
-                newZeros += counter;
-                if(original) {clause = Arrays.copyOf(clause,length); original = false;}
-                for(int j = i; j < length; ++j) {if(clause[j] == literal) clause[j] = 0;}}}
-        clause[2] -= newZeros;
-        if(isInterval) clause[3] -= newZeros;
-        if(newZeros > 0) clause = transform(clause,zeros);
-        return clause;}
-
 
     /** counts the number of zeros (0) in the clause
      *
