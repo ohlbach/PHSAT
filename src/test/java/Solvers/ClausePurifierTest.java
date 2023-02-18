@@ -166,6 +166,117 @@ public class ClausePurifierTest extends TestCase {
         assertEquals("-3",model.toString());
     }
 
+    public void testTransformOr() throws Unsatisfiable {
+        System.out.println("transform or");
+        Model model = new Model(20);
+        ClausePurifier cp = new ClausePurifier(model);
+        int[] clause = new int[]{10, cOr, 1, 2, 3};
+        assertEquals(clause,cp.transform(clause,0));
+        clause = new int[]{11, cOr, 0, 20, 0};
+        assertNull(cp.transform(clause,2));
+        assertEquals("20",model.toString());
+        try{
+            clause = new int[]{12, cOr, 0, 0, 0};
+            assertNull(cp.transform(clause,3));
+            assertTrue(false);}
+        catch(Unsatisfiable unsatisfiable) {
+            //System.out.println(unsatisfiable.toString());
+        }
+    }
+
+    public void testTransformAtleast() throws Unsatisfiable {
+        System.out.println("transform atleast");
+        Model model = new Model(20);
+        ClausePurifier cp = new ClausePurifier(model);
+        int[] clause = new int[]{10, cAtleast, 2, 1, 2, 3};
+        assertEquals(clause,cp.transform(clause,0));
+        clause = new int[]{11, cAtleast, 0, 1, 2, 3};
+        assertNull(cp.transform(clause,0));
+        clause = new int[]{12, cAtleast, 3, 1, 2,0, 3};
+        assertNull(cp.transform(clause,1));
+        assertEquals("1,2,3",model.toString());
+        clause = new int[]{13, cAtleast, 1, 1, 2,0, 3};
+        assertEquals("[13, 0, 1, 2, 3]",Arrays.toString(cp.transform(clause,1)));
+        try{
+            clause = new int[]{13, cAtleast, 4, 1, 2,0, 3};
+            cp.transform(clause,1);
+            assertTrue(false);}
+        catch(Unsatisfiable unsatisfiable) {
+            //System.out.println(unsatisfiable.toString());
+        }
+    }
+
+    public void testTransformAtmost() throws Unsatisfiable {
+        System.out.println("transform atmost");
+        Model model = new Model(20);
+        ClausePurifier cp = new ClausePurifier(model);
+        int[] clause = new int[]{10, cAtmost, 2, 1, 2, 3, 4};
+        assertEquals(clause, cp.transform(clause, 0));
+        clause = new int[]{11, cAtmost, 2, 1, 2, 0, 3};
+        assertEquals("[11, 0, -1, -2, -3]",Arrays.toString(cp.transform(clause,1)));
+        clause = new int[]{12, cAtmost, 0, 1, 2, 0, 3};
+        assertNull(cp.transform(clause,1));
+        assertEquals("-1,-2,-3",model.toString());
+        clause = new int[]{13, cAtmost, 3, 1, 2, 0, 3};
+        assertNull(cp.transform(clause,1));
+        try{
+            clause = new int[]{14, cAtmost, -1, 1, 2, 0, 3};
+            cp.transform(clause,1);
+            assertTrue(false);
+        }
+        catch (Unsatisfiable unsatisfiable) {
+            //System.out.println(unsatisfiable);
+        }
+    }
+
+    public void testTransformExactly() throws Unsatisfiable {
+        System.out.println("transform exactly");
+        Model model = new Model(20);
+        ClausePurifier cp = new ClausePurifier(model);
+        int[] clause = new int[]{10, cExactly, 2, 1, 2, 3, 0,4};
+        assertEquals(clause, cp.transform(clause, 1));
+        clause = new int[]{12, cExactly, 0, 1, 2, 0, 3};
+        assertNull(cp.transform(clause, 1));
+        assertEquals("-1,-2,-3",model.toString());
+        clause = new int[]{13, cExactly, 3, 11, 12, 0, 13};
+        assertNull(cp.transform(clause, 1));
+        assertEquals("-1,-2,-3,11,12,13",model.toString());
+        clause = new int[]{14, cExactly, 1, 4, 0, 5};
+        assertEquals("[14, 2, 4, -5]", Arrays.toString(cp.transform(clause, 1)));
+        try {
+            clause = new int[]{11, cExactly, 4, 1, 2, 0, 3};
+            cp.transform(clause, 1);
+            assertTrue(false);}
+        catch(Unsatisfiable unsatisfiable) {
+            //System.out.println(unsatisfiable.toString());
+        }
+    }
+
+    public void testTransformInterval() throws Unsatisfiable {
+        System.out.println("transform interval");
+        Model model = new Model(20);
+        ClausePurifier cp = new ClausePurifier(model);
+        int[] clause = new int[]{10, cInterval, 1, 3, 2, 3, 0, 4};
+        assertEquals("[10, 0, 2, 3, 4]", Arrays.toString(cp.transform(clause, 1)));
+        clause = new int[]{11, cInterval, 1, 1, 2, 3, 0};
+        assertEquals("[11, 2, 2, -3]", Arrays.toString(cp.transform(clause, 1)));
+        clause = new int[]{12, cInterval, 1, 1, 2, 3, 0,4};
+        assertEquals("[12, 5, 1, 2, 3, 4]", Arrays.toString(cp.transform(clause, 1)));
+        clause = new int[]{13, cInterval, 0, 0, 2, 3, 0,4};
+        assertNull(cp.transform(clause, 1));
+        assertEquals("-2,-3,-4", model.toString());
+        clause = new int[]{14, cInterval, 3, 3, 12, 13, 0,14};
+        assertNull(cp.transform(clause, 1));
+        assertEquals("-2,-3,-4,12,13,14", model.toString());
+        try{
+            clause = new int[]{15, cInterval, 4, 4, 12, 13, 0,14};
+            cp.transform(clause, 1);
+            assertTrue(false);}
+        catch(Unsatisfiable unsatisfiable) {
+            //System.out.println(unsatisfiable);
+        }
+    }
+
         public void testPurifyAtleast() throws Unsatisfiable {
     /*
         System.out.println("purifyAtleast");

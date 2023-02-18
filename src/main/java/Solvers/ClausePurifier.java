@@ -198,6 +198,10 @@ public class ClausePurifier extends Solver {
      * Each complementary pair p,-p represents a true fact. <br>
      * Therefore, each complementary pair reduces the quantifier by 1.<br>
      * Several phenomena may occur:<br>
+     * disjunctions:<br>
+     * - or 0 -&gt; unsatisfiability (empty clause)
+     * - or p -&gt; true(p)<br>
+     * <br>
      * atleast clauses: <br>
      *  - atleast 0 ... is always true: return null. <br>
      *  - atleast 1 ... is turned into a disjunction (OR-clause). <br>
@@ -220,7 +224,7 @@ public class ClausePurifier extends Solver {
      *   - [n,n] ... yields exaclty n ...<br>
      *   <br>
      *
-     * @param clause a quantified clause.
+     * @param clause a clause.
      * @param zeros  the number of zeros (0) in the clause.
      * @return null or the unchanged clause or a new clause.
      * @throws Unsatisfiable if a contradiction is encountered.
@@ -247,18 +251,18 @@ public class ClausePurifier extends Solver {
             case ATMOST:
                 literals = length - 3 - zeros;
                 quantifier = clause[2];
-                if(quantifier < 0)  throw new UnsatInputClause(clause);              // atmost -1 ... is unsatisfiable
+                if(quantifier < 0)  throw new UnsatInputClause(clause);        // atmost -1 ... is unsatisfiable
                 if(quantifier == 0) return makeAllTrue(clause,3,-1); // atmost 0 l1...ln means all literals are false.
-                if(quantifier >= literals)   return null;                            // atmost n l1...ln is always true
+                if(quantifier >= literals)   return null;                      // atmost n l1...ln is always true
                 if(quantifier == literals-1) return makeDisjunction(clause,3,literals,-1);
                 break;
             case EXACTLY:
                 literals = length - 3 - zeros;
                 quantifier = clause[2];
-                if(quantifier < 0 || quantifier > literals) throw new UnsatInputClause(clause);      // exactly -1 ... is unsatisfiable
-                if(quantifier == 0)                  return makeAllTrue(clause,3,-1);// exactly 0 l1...ln means all literals are false.
-                if(quantifier == literals)           return makeAllTrue(clause,3,1); // exactly n l1...ln means all literals are true.
-                if(quantifier == 1 && literals == 2) return makeEquivalence(clause,3);          // exactly 1 p,q  means p = -q
+                if(quantifier < 0 || quantifier > literals) throw new UnsatInputClause(clause); // exactly -1 ... is unsatisfiable
+                if(quantifier == 0)                  return makeAllTrue(clause,3,-1); // exactly 0 l1...ln means all literals are false.
+                if(quantifier == literals)           return makeAllTrue(clause,3,1);  // exactly n l1...ln means all literals are true.
+                if(quantifier == 1 && literals == 2) return makeEquivalence(clause,3);     // exactly 1 p,q  means p = -q
                 break;
             case INTERVAL:
                 literals = length - 4 - zeros;
@@ -267,15 +271,15 @@ public class ClausePurifier extends Solver {
                 if(max < 0 || min > literals) throw new UnsatInputClause(clause);
                 if(max == 0)        return makeAllTrue(clause,4,-1);  // [0,0] l1...ln means all literals are false.
                 if(min == literals) return makeAllTrue(clause,4,1);   // [n,n] l1...ln means all literals are true.
-                if(min == 1 && max == literals) return makeDisjunction(clause,4,literals,+1);
+                if(min == 1 && max >= literals) return makeDisjunction(clause,4,literals,+1);
                 if(min == max) {
                     if(min == 1 && literals == 2) return makeEquivalence(clause,4); // [1,1] p,q  means p = -q
 
                     int[] exactly = new int[literals+3];   // [n,n] ...  is exactly n ...
                     exactly[0] = clause[0];
                     exactly[1] = cExactly;
-                    exactly[3] = min;
-                    int j = 3;
+                    exactly[2] = min;
+                    int j = 2;
                     for(int i = 4; i < length; ++i) {
                         int literal = clause[i];
                         if(literal != 0) exactly[++j] = literal;}
