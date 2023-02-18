@@ -305,11 +305,11 @@ public class ClausePurifier extends Solver {
                 if(literal2 == 0) continue;
                 if(literal1 == -literal2) {
                     if(original) {clause = Arrays.copyOf(clause,length); original = false;} // the original clause remains unchanged.
-                    clause[i] = 0;
-                    clause[j] = 0;
-                    ++pairs;
+                    clause[i] = 0; ++zeros;
+                    clause[j] = 0; ++pairs;
+                    ++statistics.complementaryLiterals;
                     break;}}}
-        if(pairs == 0) return clause;
+        if(pairs == 0) return clause; // no changes
         clause[2] -= pairs;
         if(isInterval) clause[3] -= pairs;
         return transform(clause,zeros);}
@@ -319,7 +319,7 @@ public class ClausePurifier extends Solver {
      * Example:  atleast 2 p,p,p,q,q,q -&gt; atleast 2 p,p,q,q.<br>
      * <br>
      * Other quantified clauses with upper bound: <br>
-     * Literals occurring more than the upper bound allows become false.<br>
+     * Literals occurring more than the upper bound allows must be false.<br>
      * Example: atmost 2 p,p,p,q,r,s -> atmost 2 q,r,s and false(p)<br>
      * The quantifier is not changed by this transformation.<br>
      * <br>
@@ -342,27 +342,30 @@ public class ClausePurifier extends Solver {
             for(int i = 3; i < length; ++i) {
                 int literal1 = clause[i];
                 if(literal1 == 0) {++zeros; continue;}
-                int counter = 1;
+                int multiplicity = 1;
                 for(int j = i+1; j < length; ++j) {
                     int literal2 = clause[j];
                     if(literal2 == 0) continue;
                     if(literal2 == literal1) {
-                        if(++counter <= quantifier) continue;
+                        if(++multiplicity <= quantifier) continue;
                         if(original) {clause = Arrays.copyOf(clause,length); original = false;}
                         changed = true;
                         clause[j] = 0;}}}}
-        else {            // multiplicities exceeding quantifier become false.
+        else {            // literals with multiplicities exceeding the upper bound must be false.
             for(int i = start; i < length; ++i) {
                 int literal1 = clause[i];
                 if(literal1 == 0) {++zeros; continue;}
-                int counter = 1;
+                int multiplicity = 1;
                 for(int j = i+1; j < length; ++j) {
                     int literal2 = clause[j];
                     if(literal2 == 0) continue;
-                    if(literal2 == literal1) ++counter;}
-                if(counter > quantifier) {
+                    if(literal2 == literal1) ++multiplicity;}
+                if(multiplicity > quantifier) {
                     if(original) {clause = Arrays.copyOf(clause,length); original = false;}
                     changed = true;
+                    ++zeros;
+                    ++statistics.derivedTrueLiterals;
+                    ++statistics.deletedMultiplicities;
                     model.add(-literal1,new InfInputClause(clause[0]));
                     for(int j = i; j < length; ++j) {
                         if(clause[j] == literal1) clause[j] = 0;}}}}
@@ -373,34 +376,35 @@ public class ClausePurifier extends Solver {
      * Example: atleast 2 p,p,q. If p was false, there would not be enough literals to satisfy atleast 2.<br>
      *          Therefore, p must be true.<br>
      * Example: atleast 5 p,p,q,q,r,s<br>
-     *          p and q must be true, and the result is atleast 1 r,s
+     *          p and q must be true, and the result is atleast 1 r,s, transformed to r or s<br>
+     * The result may still contain zeros (0).
      *
-     * @param clause     the clause to be investigated
-     * @param original   true if it is still the original clause
-     * @return           the original or the simplified clause
+     * @param clause     the clause to be investigated: quantified clause, but not an atmost clause.
+     * @param original   true if it is still the original clause.
+     * @return           null or the original or the simplified clause
      * @throws Unsatisfiable if the model discovers a contradiction.
      */
     protected int[] trueLiteralsFromMultiplicities(int[] clause, boolean original) throws Unsatisfiable{
-        System.out.println(Arrays.toString(clause));
+        if(clause[1] == cAtmost) return clause;
         boolean isInterval = clause[1] == cInterval;
         int length = clause.length;
         int zeros = countZeros(clause);
         int start = isInterval ? 4 : 3;
         int literals = length - zeros - start;
-        System.out.println("LI " + zeros + " " + literals);
         int min = clause[2];
         int newZeros = 0;
         for(int i = start; i < length; ++i) {
             int literal = clause[i];
             if(literal == 0) continue;
-            int counter = 1;
-            for(int j = i+1; j < length; ++j) {if(clause[j] == literal) ++counter;}
-            System.out.println("CO " + min + "  " + counter + " " + (literals - counter));
-            if(literals - counter < min) {
+            int multiplicity = 1;
+            for(int j = i+1; j < length; ++j) {if(clause[j] == literal) ++multiplicity;}
+            if(literals - multiplicity < min) {
                 model.add(literal,new InfInputClause(clause[0]));
-                min      -= counter;
-                zeros    += counter;
-                newZeros += counter;
+                ++statistics.derivedTrueLiterals;
+                min      -= multiplicity;
+                zeros    += multiplicity;
+                newZeros += multiplicity;
+                literals -= multiplicity;
                 if(original) {clause = Arrays.copyOf(clause,length); original = false;}
                 for(int j = i; j < length; ++j) {if(clause[j] == literal) clause[j] = 0;}}}
         clause[2] -= newZeros;
@@ -427,6 +431,7 @@ public class ClausePurifier extends Solver {
             if(literal == 0) continue;
             if(first) {equiv[2] = literal; first = false;}
             else {equiv[3] = -literal; break;}}
+        ++statistics.derivedEquivalences;
         return equiv;}
 
 
@@ -463,7 +468,7 @@ public class ClausePurifier extends Solver {
         InfInputClause inference = new InfInputClause(clause[0]);
         for(int i = start; i < clause.length; ++i) {
             int literal = clause[i];
-            if(literal != 0) model.add(sign*literal,inference);}
+            if(literal != 0) {++statistics.derivedTrueLiterals; model.add(sign*literal,inference);}}
         return null;}
 
 

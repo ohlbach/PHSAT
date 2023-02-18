@@ -124,11 +124,48 @@ public class ClausePurifierTest extends TestCase {
         assertEquals("[11, 0, 5, 6]",Arrays.toString(cp.trueLiteralsFromMultiplicities(clause,true)));
         clause = new int[]{12, cExactly, 4, 7,7,8,9,9};
         assertNull(cp.trueLiteralsFromMultiplicities(clause,true));
-        assertEquals("1,2,3,4,7,-8,9",model.toString());
+        assertEquals("1,3,4,7,-8,9",model.toString());
         clause = new int[]{13, cAtleast, 4, 10,11,10,0,0,10,11,12,13};
-        clause = new int[]{13, cAtleast, 4, 1,1,1,2,2,0,0,3,4};
-        assertEquals("",Arrays.toString(cp.trueLiteralsFromMultiplicities(clause,false)));
+        assertEquals(clause,cp.trueLiteralsFromMultiplicities(clause,false));
+        clause = new int[]{14, cExactly, 5, 10,11,10,0,0,10,11,12};
+        assertNull(cp.trueLiteralsFromMultiplicities(clause,true));
+        assertEquals("1,3,4,7,-8,9,10,11,-12",model.toString());
     }
+
+
+    public void testReduceMultiplicities() throws Unsatisfiable {
+        System.out.println("reduceMultiplicities");
+        Model model = new Model(20);
+        ClausePurifier cp = new ClausePurifier(model);
+        int[] clause = new int[]{10, cAtleast, 2, 1, 2, 3};
+        assertEquals(clause,cp.reduceMultiplicities(clause,true));
+        clause = new int[]{11, cAtleast, 2, 1, 2,2, 3,2};
+        assertEquals("[11, 3, 2, 1, 2, 2, 3, 0]",Arrays.toString(cp.reduceMultiplicities(clause,true)));
+        clause = new int[]{12, cAtleast, 2, 1, 2,2, 3,2,3,2,3,1};
+        assertEquals("[12, 3, 2, 1, 2, 2, 3, 0, 3, 0, 0, 1]",Arrays.toString(cp.reduceMultiplicities(clause,true)));
+        clause = new int[]{13, cExactly, 2, 1, 2,2, 3,2,3,2,3,1};
+        assertNull(cp.reduceMultiplicities(clause,false));
+        assertEquals("1,-2,-3",model.toString());
+        clause = new int[]{14, cInterval, 1,2, 11, 12,12, 13,12,13,12,13,11}; assertNull(cp.reduceMultiplicities(clause,false));
+        assertEquals("1,-2,-3,11,-12,-13",model.toString());
+    }
+    public void testEliminateComplementaryPairs() throws Unsatisfiable {
+        System.out.println("eliminateComplementaryPairs");
+        Model model = new Model(20);
+        ClausePurifier cp = new ClausePurifier(model);
+        int[] clause = new int[]{10, cAtleast, 2, 1, 2, 3};
+        assertEquals(clause, cp.eliminateComplementaryPairs(clause, true));
+        clause = new int[]{11, cAtleast, 2, 1, 2, 3, -2};
+        assertEquals("[11, 0, 1, 3]", Arrays.toString(cp.eliminateComplementaryPairs(clause, true)));
+        clause = new int[]{12, cAtleast, 2, 1, 2, 3, -2,2};
+        assertEquals("[12, 0, 1, 3, 2]", Arrays.toString(cp.eliminateComplementaryPairs(clause, true)));
+        clause = new int[]{13, cExactly, 2, 1, 2, 3, -2,2};
+        assertEquals("[13, 5, 1, 1, 0, 3, 0, 2]", Arrays.toString(cp.eliminateComplementaryPairs(clause, true)));
+        clause = new int[]{14, cInterval,2, 3, 1, 2, 3, -2,-1,2,-2};
+        assertNull(cp.eliminateComplementaryPairs(clause, true));
+        assertEquals("-3",model.toString());
+    }
+
         public void testPurifyAtleast() throws Unsatisfiable {
     /*
         System.out.println("purifyAtleast");

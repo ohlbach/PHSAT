@@ -17,9 +17,13 @@ public class ClausePurifierStatistics extends Statistic {
     public int derivedTrueLiterals = 0;
 
     @Description("number of deleted complementary literals")
-    public int complentaryLiterals = 0;
+    public int complementaryLiterals = 0;
 
     @Description("number of deleted multiplicities")
-    public int multiplicities = 0;
+    public int deletedMultiplicities = 0;
+
+    @Description("number of derived equivalences")
+    public int derivedEquivalences = 0;
+
 
 }
