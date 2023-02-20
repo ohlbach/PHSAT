@@ -1,6 +1,7 @@
 package Solvers;
 
 import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
 import junit.framework.TestCase;
@@ -277,45 +278,183 @@ public class ClausePurifierTest extends TestCase {
         }
     }
 
-        public void testPurifyAtleast() throws Unsatisfiable {
-    /*
-        System.out.println("purifyAtleast");
-        Model model = new Model(10);
-        int[] oClause1 = new int[]{10, cAtleast, 2, 1, 2, 3, 2};
-        int[] pClause1 = ClausePurifier.purifyAtleast(oClause1, model);
-        assertTrue(oClause1 == pClause1);
+    public void testPurifyDisjunctions() throws Unsatisfiable {
+        System.out.println("purify disjunction");
+        Model model = new Model(20);
+        InputClauses inputClauses = new InputClauses("TestProblem",20,null,"Purify Disjunction");
+        ClausePurifier cp = new ClausePurifier(inputClauses, model);
+        int[] clause = new int[]{10, cOr, 1, 2, 3,4};
+        inputClauses.addClause(clause);
+        assertEquals(1,inputClauses.disjunctions.size());
+        cp.purifyClauses();
+        assertEquals(1,inputClauses.disjunctions.size());
+        assertTrue(inputClauses.disjunctions == inputClauses.purifiedDisjunctions);
+        clause = new int[]{11, cOr, 1, 2, 3,4,2};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertEquals(2,inputClauses.disjunctions.size());
+        assertEquals(2,inputClauses.purifiedDisjunctions.size());
+        assertFalse(inputClauses.disjunctions == inputClauses.purifiedDisjunctions);
+        assertEquals("[10, 0, 1, 2, 3, 4]",Arrays.toString(inputClauses.purifiedDisjunctions.get(0)));
+        assertEquals("[11, 0, 1, 2, 3, 4]",Arrays.toString(inputClauses.purifiedDisjunctions.get(1)));
+        clause = new int[]{12, cOr, 1, 2, 3,4,-2};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertEquals(2,inputClauses.purifiedDisjunctions.size());
 
-        int[] oClause2 = new int[]{11, cAtleast, 2, 1, 2, 3, -2};
-        int[] pClause2 = ClausePurifier.purifyAtleast(oClause2, model);
-        assertEquals("[11, 0, 1, 3]", Arrays.toString(pClause2));
+        inputClauses = new InputClauses("TestProblem",20,null,"Purify Disjunction");
+        cp = new ClausePurifier(inputClauses, model);
+        clause = new int[]{10, cOr, 1, 2, 3,4,-2};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertFalse(inputClauses.disjunctions == inputClauses.purifiedDisjunctions);
+        assertEquals(1,inputClauses.disjunctions.size());
+        assertEquals(0,inputClauses.purifiedDisjunctions.size());
+    }
 
-        int[] oClause3 = new int[]{12, cAtleast, 5, 1, 2, 3, -2, 2,3,-3,4,-3};
-        int[] pClause3 = ClausePurifier.purifyAtleast(oClause3, model);
-        assertEquals("[12, 4, 2, 1, 2, 4]", Arrays.toString(pClause3));
+    public void testPurifyAtleasts() throws Unsatisfiable {
+        System.out.println("purify atleasts");
+        Model model = new Model(20);
+        InputClauses inputClauses = new InputClauses("TestProblem", 20, null, "Purify Atleasts");
+        ClausePurifier cp = new ClausePurifier(inputClauses, model);
+        int[] clause = new int[]{10, cAtleast, 2, 1, 2, 3, 4};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertEquals(1, inputClauses.atleasts.size());
+        assertTrue(inputClauses.atleasts == inputClauses.purifiedAtleasts);
 
-        int[] oClause4 = new int[]{13, cAtleast, 3, 1, 2, 3, -2, 2,3,-3,4,-3};
-        int[] pClause4 = ClausePurifier.purifyAtleast(oClause4, model);
-        assertNull(pClause4);
-        assertEquals("",model.toString());
+        clause = new int[]{11, cAtleast, 3, 1, 2, 3, 4, -2, 2};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertEquals(2, inputClauses.atleasts.size());
+        assertEquals(2, inputClauses.purifiedAtleasts.size());
+        assertFalse(inputClauses.atleasts == inputClauses.purifiedAtleasts);
+        assertEquals("[11, 3, 2, 1, 3, 4, 2]",Arrays.toString(inputClauses.purifiedAtleasts.get(1)));
 
-        int[] oClause5 = new int[]{14, cAtleast, 6, 1, 2, 3, -2, 2,3,-3,4,-3};
-        int[] pClause5 = ClausePurifier.purifyAtleast(oClause5, model);
-        assertNull(pClause5);
-        assertEquals("1,2,4",model.toString());
+        inputClauses = new InputClauses("TestProblem", 20, null, "Purify Atleasts");
+        cp = new ClausePurifier(inputClauses, model);
+        clause = new int[]{10, cAtleast, 2, 1, 2, 3, 4};
+        inputClauses.addClause(clause);
+        clause = new int[]{11, cAtleast, 2, 1, 2, 3, 4, -2, 2};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertEquals(2, inputClauses.atleasts.size());
+        assertEquals(1, inputClauses.purifiedAtleasts.size());
+        assertEquals(1, inputClauses.purifiedDisjunctions.size());
+        assertEquals("[11, 0, 1, 3, 4, 2]",Arrays.toString(inputClauses.purifiedDisjunctions.get(0)));
 
-        int[] oClause6 = new int[]{15, cAtleast, 2, 1, 2, 3, 2, 2,3,3,4,3};
-        int[] pClause6 = ClausePurifier.purifyAtleast(oClause6, model);
-        assertEquals("[15, 4, 2, 1, 2, 2, 3, 4, 3]", Arrays.toString(pClause6));
+        inputClauses = new InputClauses("TestProblem", 20, null, "Purify Atleasts");
+        cp = new ClausePurifier(inputClauses, model);
+        clause = new int[]{10, cAtleast, 2, 1, 2, -1, -2, 3, 4};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertFalse(inputClauses.atleasts == inputClauses.purifiedAtleasts);
+        assertEquals(0, inputClauses.purifiedAtleasts.size());
+    }
 
 
-        try{
-            int[] oClause16 = new int[]{16, cAtleast, 2,-4,-5};
-            int[] pClause16 = ClausePurifier.purifyAtleast(oClause16, model);
-            assertTrue(false);}
-        catch(Unsatisfiable unsatisfiable) {
-            System.out.println(unsatisfiable.toString());
-        }
-*/
+    public void testPurifyAtmosts() throws Unsatisfiable {
+        System.out.println("purify atmosts");
+        Model model = new Model(20);
+        InputClauses inputClauses = new InputClauses("TestProblem", 20, null, "Purify Atmosts");
+        ClausePurifier cp = new ClausePurifier(inputClauses, model);
+        int[] clause = new int[]{10, cAtmost, 2, 1, 2, 3, 4};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertEquals(1, inputClauses.atmosts.size());
+        assertTrue(inputClauses.atmosts == inputClauses.purifiedAtmosts);
+
+        clause = new int[]{11, cAtmost, 3, 1, 2, 3, 4, -2, 2};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertEquals(2, inputClauses.atmosts.size());
+        assertEquals(2, inputClauses.purifiedAtmosts.size());
+        assertFalse(inputClauses.atmosts == inputClauses.purifiedAtmosts);
+        assertEquals("[11, 4, 2, 1, 3, 4, 2]",Arrays.toString(inputClauses.purifiedAtmosts.get(1)));
+
+        inputClauses = new InputClauses("TestProblem", 20, null, "Purify Atmosts");
+        cp = new ClausePurifier(inputClauses, model);
+        clause = new int[]{10, cAtmost, 2, 1, 2, 3, 4};
+        inputClauses.addClause(clause);
+        clause = new int[]{11, cAtmost, 3, 1, 2, 3, -2, 2};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertEquals(2, inputClauses.atmosts.size());
+        assertEquals(1, inputClauses.purifiedAtmosts.size());
+        assertEquals(1, inputClauses.purifiedDisjunctions.size());
+        assertEquals("[11, 0, -1, -3, -2]",Arrays.toString(inputClauses.purifiedDisjunctions.get(0)));
+
+        inputClauses = new InputClauses("TestProblem", 20, null, "Purify Atmosts");
+        cp = new ClausePurifier(inputClauses, model);
+        clause = new int[]{10, cAtmost, 4, 1, 2, 3, 4};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertFalse(inputClauses.atmosts == inputClauses.purifiedAtmosts);
+        assertTrue(inputClauses.purifiedAtmosts.isEmpty());
+    }
+    public void testPurifyExactlys() throws Unsatisfiable {
+        System.out.println("purify exactlys");
+        Model model = new Model(20);
+        InputClauses inputClauses = new InputClauses("TestProblem", 20, null, "Purify Exactlys");
+        ClausePurifier cp = new ClausePurifier(inputClauses, model);
+        int[] clause = new int[]{10, cExactly, 2, 1, 2, 3, 4};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertEquals(1, inputClauses.exacltys.size());
+
+        clause = new int[]{11, cExactly, 3, 1, 2, 3, 4, -2, -1, 5};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertEquals(2, inputClauses.exacltys.size());
+        assertEquals(2, inputClauses.purifiedExactlys.size());
+        assertFalse(inputClauses.exacltys == inputClauses.purifiedExactlys);
+        assertEquals("[11, 5, 1, 3, 4, 5]",Arrays.toString(inputClauses.purifiedExactlys.get(1)));
+
+        inputClauses = new InputClauses("TestProblem", 20, null, "Purify Exactlys");
+        cp = new ClausePurifier(inputClauses, model);
+        clause = new int[]{12, cExactly, 3, 1, 2, 3, 4,-3,-4};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertTrue(inputClauses.purifiedExactlys.isEmpty());
+        assertEquals(1, cp.newEquivalences.size());
+        assertEquals("[12, 2, 1, -2]",Arrays.toString(cp.newEquivalences.get(0)));
+    }
+
+    public void testPurifyIntervals() throws Unsatisfiable {
+        System.out.println("purify intervals");
+        Model model = new Model(20);
+        InputClauses inputClauses = new InputClauses("TestProblem", 20, null, "Purify Intervals");
+        ClausePurifier cp = new ClausePurifier(inputClauses, model);
+        int[] clause = new int[]{10, cInterval, 2, 3, 1, 2, 3, 4};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertTrue(inputClauses.intervals == inputClauses.purifiedIntervals);
+
+        clause = new int[]{11, cInterval, 2, 3, 1, 2, 3, 4, -3};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertFalse(inputClauses.intervals == inputClauses.purifiedIntervals);
+        assertEquals(2, inputClauses.intervals.size());
+        assertEquals(2, inputClauses.purifiedIntervals.size());
+        assertEquals("[11, 6, 1, 2, 1, 2, 4]",Arrays.toString(inputClauses.purifiedIntervals.get(1)));
+
+        inputClauses = new InputClauses("TestProblem", 20, null, "Purify Intervals");
+        cp = new ClausePurifier(inputClauses, model);
+        clause = new int[]{11, cInterval, 2, 2, 1, 2, 3, -3};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertTrue(inputClauses.purifiedIntervals.isEmpty());
+        assertEquals(1, cp.newEquivalences.size());
+        assertEquals("[11, 2, 1, -2]",Arrays.toString(cp.newEquivalences.get(0)));
+
+        inputClauses = new InputClauses("TestProblem", 20, null, "Purify Intervals");
+        cp = new ClausePurifier(inputClauses, model);
+        clause = new int[]{11, cInterval, 1, 3, 1, 2, 3};
+        inputClauses.addClause(clause);
+        cp.purifyClauses();
+        assertFalse(inputClauses.intervals == inputClauses.purifiedIntervals);
+        assertEquals(1, inputClauses.intervals.size());
+        assertEquals(0, inputClauses.purifiedIntervals.size());
     }
 
     }

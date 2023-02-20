@@ -14,6 +14,56 @@ import Management.ProblemSupervisor;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+/** The methods in this class remove redundancies at the level of individual clauses: Complementary and multiple occurrences of literals.
+ * This class might be the most useless class in the system
+ * because normal applications for SAT-solvers usually can avoid such redundancies in the clauses.
+ * Nevertheless, they are logically possible, and therefore one has to deal with them.
+ * <br>
+ * The following redundancies are discovered: <br>
+ * - Disjunctions: complementary pairs p,-p indicate a tautology. The clause can be ignored.
+ *   Multiple occurrences of literals p,p,... can be shrunken to one literal p.<br>
+ *   Unit clauses p are put into the model.
+ *   <br>
+ * - Quantified clauses: <br>
+ *   Complementary pairs p,-p reduce the quantifier by 1. <br>
+ *   Literals which occur more often than the max-quantifier can be reduced to max-quantifier many.<br>
+ *   <br>
+ *   The type of clauses is changed in the following cases:
+ *   - atleast 0 is ignored.<br>
+ *   - atleast 1 ... is changed to a disjunction.<br>
+ *   - atleast n l1...ln: all literals are true.<br>
+ *   - atmost n l1...ln is ignored.<br>
+ *   - atmost n-1 l1...ln is changed into a disjunction -l1...-ln.<br>
+ *   - atmost 0 l1...ln: all literals are false.<br>
+ *   - exactly n l1...ln: all literals are true.<br>
+ *   - exactly 0 l1...ln: all literals are false.<br>
+ *   - exactly 1 p,q is changed into an equivalence p == -q.<br>
+ *   - [1,n] ... is changed to a disjunction.<br>
+ *   - [k,k] ... is changed to an exactly-clause.<br>
+ *   - [1,1] p,q  yields p == -q.<br>
+ *   - [0,0] ... all literals are false.<br>
+ *   - [n,n] l1,...,ln all literals are true.<br>
+ *   <br>
+ *   Some transformations may reveal that the clause is contradictory.<br>
+ *   Example: atmost 1 p,-p,q,-q has 2 true literals and must therefore be false.<br>
+ *   These contradictions terminate the analysis immediately and report an unsatisfiability.<br>
+ *   <br>
+ *   Equivalence clauses are analysed in the Equivalence package, not in this class.<br>
+ *   Newly generated equivalences, however are stored in the ArrayList newEquivalences.<br>
+ *   <br>
+ *   Newly discovered true literals are put into the model.
+ *   True literals are not exploited for simplifications because they may produce a
+ *   snowball effect of new true literals. An efficient processing of the snowball effect
+ *   requires an indexing ot the literals. This is not available in this class.<br>
+ *   <br>
+ *   The clauses to be analysed are taken from the InputClauses class.
+ *   There are no changes in this class if no simplifications are discovered.
+ *   If changes are discovered the changed clauses are added, together with the unchanged clauses
+ *   in the purified versions of the ArrayLists. Even if there are no changes,
+ *   the clauses should always be taken from the purified versions in the InputClauses class.
+ *   The original clauses in the InputClauses class allows the system to verify a candidate model
+ *   against the input clauses.
+ */
 public class ClausePurifier extends Solver {
 
     private static final int cOr       = Connective.OR.ordinal();
@@ -23,20 +73,27 @@ public class ClausePurifier extends Solver {
     private static final int cExactly  = Connective.EXACTLY.ordinal();
     private static final int cInterval = Connective.INTERVAL.ordinal();
 
+    /** The original clauses and the purified versions */
     private InputClauses inputClauses;
+
+    /** The global model, */
     private final Model model;
 
+    /** statistical information about the changes in the clauses */
     public final ClausePurifierStatistics statistics;
 
+    /** newly derived equivalences */
     public ArrayList<int[]> newEquivalences;
 
+    /** the problem supervisor */
     private ProblemSupervisor problemSupervisor = null;
 
-    public ClausePurifier(Model model) {
-        this.model        = model;
-        statistics = new ClausePurifierStatistics(this);
-    }
 
+    /** constructs a new clause purifier.
+     *
+     * @param problemSupervisor which supervises this problem.
+     * @param model             the global model.
+     */
     public ClausePurifier(ProblemSupervisor problemSupervisor, Model model) {
         this.problemSupervisor = problemSupervisor;
         this.inputClauses = problemSupervisor.inputClauses;
@@ -44,6 +101,32 @@ public class ClausePurifier extends Solver {
         statistics = new ClausePurifierStatistics(this);
     }
 
+    /** Constructs a clause purifier for test purposes.
+     *
+     * @param model the global model.
+     */
+    public ClausePurifier(Model model) {
+        this.model        = model;
+        statistics = new ClausePurifierStatistics(this);
+    }
+
+    /** Constructs a clause purifier for test purposes.
+     *
+     * @param inputClauses the input clauses.
+     * @param model the global model.
+     */
+    public ClausePurifier(InputClauses inputClauses, Model model) {
+        this.inputClauses = inputClauses;
+        this.model        = model;
+        statistics = new ClausePurifierStatistics(this);
+    }
+
+
+    /** purifies all clauses.
+     * This method can be started from a separate thread.
+     * The results are stored in inputClauses.
+     * Unsatisfiabilities are reported to the problem supervisor.
+     */
     public void run() {
         try{purifyClauses();}
         catch(Unsatisfiable unsatisfiable) {
@@ -53,6 +136,11 @@ public class ClausePurifier extends Solver {
             if(problemSupervisor != null)
                 problemSupervisor.announceResult(unsatisfiable,"ClausePurifier");}}
 
+    /** analyses and purifies all clauses.
+     * The results are stored in the purified versions of the ArrayLists in the inputClauses.
+     *
+     * @throws Unsatisfiable if an unsatisfiable clause is discovered.
+     */
     protected void purifyClauses() throws Unsatisfiable {
         ArrayList<int[]> purifiedDisjunctions = new ArrayList<>();
         int changedDisjunctions = 0;
@@ -182,14 +270,17 @@ public class ClausePurifier extends Solver {
         clause = newClause;
         newClause = eliminateComplementaryPairs(clause,original);
         if(newClause == null) return null;
-        if(newClause[1] == Connective.OR.ordinal()) return purifyDisjunction(newClause,original);
+        if(newClause[1] == cOr) return purifyDisjunction(newClause,original);
+        if(newClause[1] == cEquiv) return newClause;
         original &= newClause == clause;
         clause = newClause;
         newClause = reduceMultiplicities(clause,original);
         if(newClause == null) return null;
+        if(newClause[1] == cEquiv) return newClause;
         original &= newClause == clause;
         newClause = trueLiteralsFromMultiplicities(clause,original);
         if(newClause == null) return null;
+        if(newClause[1] == cEquiv) return newClause;
         original &= newClause == clause;
         return original ? clause : compactify(clause,countZeros(clause));
     }
@@ -292,6 +383,7 @@ public class ClausePurifier extends Solver {
      * Therefore, each complementary pair reduces the quantifier by 1.<br>
      *
      * @param clause a quantified clause.
+     * @param original if true then the clause must not be changed.
      * @return null or the unchanged clause or a new clause without complementary pairs.
      * @throws Unsatisfiable if a contradiction is encountered.
      */
@@ -335,6 +427,7 @@ public class ClausePurifier extends Solver {
      * @param clause a quantified clause
      * @param original if true then the clause must not be changed.
      * @return       either the original clause, if nothing has changed, or a copy if original = true and literals have been zeroed.
+     * @throws Unsatisfiable if a contradiction is encountered.
      */
     protected int[] reduceMultiplicities(int[] clause, boolean original) throws Unsatisfiable{
         int length = clause.length;
@@ -527,6 +620,10 @@ public class ClausePurifier extends Solver {
 
     }
 
+    /** retrieves the statistics of the purifications.
+     *
+     * @return the statistics of the purifications.
+     */
     @Override
     public Statistic getStatistics() {
         return statistics;

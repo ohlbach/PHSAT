@@ -239,6 +239,7 @@ public abstract class Solver {
 
     public abstract void prepare();
 
+    /** returns the statistics of the solver */
     public abstract Statistic getStatistics();
 
 
