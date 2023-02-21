@@ -1139,10 +1139,16 @@ public class Utilities {
             if(i < size-1) st.append(",");}
         return st.toString();}
 
-    public static void  main(String[] args) {
+    public static void  main1(String[] args) {
         System.out.println(pathWithHome("home/xy/abc/def").toString());
     }
 
+    public static void  main(String[] args) {
+        IntArrayList com = combinations(5,3);
+        for(int i = 0; i < com.size(); ++i) {
+            System.out.println(Integer.toBinaryString(com.getInt(i)));
+        }
+    }
 
 
 }
