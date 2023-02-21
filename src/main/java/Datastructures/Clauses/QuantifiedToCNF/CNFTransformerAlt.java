@@ -13,7 +13,7 @@ import java.util.function.IntSupplier;
 /** This class contains the methods for generating CNF-clauses from quantification type clauses.
  *  Only in exceptional cases this might be necessary.
  */
-public class CNFTransformer {
+public class CNFTransformerAlt {
     private final IntSupplier nextId;
     private final boolean trackReasoning;
 
@@ -22,7 +22,7 @@ public class CNFTransformer {
      * @param nextId used for generating clause ids
      * @param trackReasoning controls the generation of inferenceSteps
      */
-    public CNFTransformer(boolean trackReasoning, IntSupplier nextId) {
+    public CNFTransformerAlt(boolean trackReasoning, IntSupplier nextId) {
         this.nextId = nextId;
         this.trackReasoning = trackReasoning;}
 

@@ -9,7 +9,7 @@ import java.util.ArrayList;
 
 import static org.junit.Assert.*;
 
-public class CNFTransformerTest {
+public class CNFTransformerAltTest {
 
     int atL = Connective.ATLEAST.ordinal();
     int atM = Connective.ATMOST.ordinal();
@@ -19,7 +19,7 @@ public class CNFTransformerTest {
     public void atleastToCNFTest() throws Result {
         System.out.println("atleast to CNF Test");
         int[] ids = new int[]{0};
-        CNFTransformer ct = new CNFTransformer(true, (() -> ++ids[0]));
+        CNFTransformerAlt ct = new CNFTransformerAlt(true, (() -> ++ids[0]));
         Clause c1 = new Clause(new int[]{1, atL, 3, 1,1,2,2,3,4});
         ArrayList<Clause> cnf = ct.toCNF(c1);
         for(Clause cl :cnf) System.out.println(cl.toNumbers());
@@ -30,7 +30,7 @@ public class CNFTransformerTest {
     public void atleastToCNF() throws Result {
         System.out.println("atleast to CNF");
         int[] ids = new int[]{0};
-        CNFTransformer ct = new CNFTransformer(true,(()->++ids[0]));
+        CNFTransformerAlt ct = new CNFTransformerAlt(true,(()->++ids[0]));
         Clause c1 = new Clause( new int[]{1,atL,3,1,2,3,4,5});
         ArrayList<Clause> cnf = ct.toCNF(c1);
         assertEquals("[1: 1,2,3, 2: 1,2,4, 3: 1,2,5, 4: 1,3,4, 5: 1,3,5, 6: 1,4,5, 7: 2,3,4, 8: 2,3,5, 9: 2,4,5, 10: 3,4,5]",cnf.toString());
@@ -53,7 +53,7 @@ public class CNFTransformerTest {
     public void atmostToCNF()  throws Result {
         System.out.println("atmost to CNF");
         int[] ids = new int[]{0};
-        CNFTransformer ct = new CNFTransformer(true,(()->++ids[0]));
+        CNFTransformerAlt ct = new CNFTransformerAlt(true,(()->++ids[0]));
         Clause c1 = new Clause( new int[]{1,atM,2,1,2,3});
         ArrayList<Clause> cnf = ct.toCNF(c1);
         assertEquals("[1: -1,-2,-3]",cnf.toString());
@@ -81,7 +81,7 @@ public class CNFTransformerTest {
     public void exactlyToCNF()  throws Result {
         System.out.println("exactly to CNF");
         int[] ids = new int[]{0};
-        CNFTransformer ct = new CNFTransformer(true,(()->++ids[0]));
+        CNFTransformerAlt ct = new CNFTransformerAlt(true,(()->++ids[0]));
         Clause c1 = new Clause( new int[]{1,ex,2,1,2,3});
         ArrayList<Clause> cnf = ct.toCNF(c1);
         assertEquals("[1: 1,2, 2: 1,3, 3: 2,3, 4: -1,-2,-3]",cnf.toString());
