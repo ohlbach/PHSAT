@@ -2,6 +2,7 @@ package NormalFormTransformers;
 
 import Datastructures.Clauses.Connective;
 import Datastructures.Clauses.InputClauses;
+import InferenceSteps.InferenceStep;
 import Utilities.CombinationsIterator;
 
 import java.util.Iterator;
@@ -122,4 +123,12 @@ public class CNFTransformer implements Iterator<int[]> {
                 disjunction[i+2] = sign * clause[pattern[i]+start];}
             return disjunction;}
     }
+
+    /** constructs the inference step for the given transformed disjunction.
+     *
+     * @param disjunction the transformed disjunction.
+     * @return the corresponding inference step.
+     */
+    public InferenceStep getInferenceStep(int[] disjunction) {
+        return new InfClauseToCNF(clause,disjunction);}
 }

@@ -46,6 +46,8 @@ public class InfExactly2Atleast extends InferenceStep {
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        if(steps != null) steps.add(new InfInputClause(exactlyClause[0]));}
+        if(steps != null) {
+            steps.add(new InfInputClause(exactlyClause[0]));
+            steps.add(this);}}
 
 }

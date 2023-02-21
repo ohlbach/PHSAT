@@ -1,21 +1,23 @@
 package Datastructures.Clauses;
 
 
-import Datastructures.Clauses.QuantifiedToCNF.InfAtleastToCNF;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
 import Datastructures.Symboltable;
 import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
-import InferenceSteps.InferenceStep;
 import InferenceSteps.InfInputClause;
+import InferenceSteps.InferenceStep;
+import Utilities.DiophantineEquation;
 import Utilities.Positioned;
 import Utilities.Sizable;
 import Utilities.Utilities;
-import Utilities.DiophantineEquation;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Formatter;
+import java.util.Iterator;
+import java.util.Locale;
 import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 
@@ -427,9 +429,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 Utilities.combinations(lits.size()- minLimit +1,lits,
                         hasDoubles,hasDoubles,hasDoubles)) {
             clauses.add(new Clause(nextId.getAsInt(), Connective.OR,(short)1,literals));}
-        if(trackReasoning) {
-            for(Clause orClause : clauses) {
-                orClause.inferenceStep = new InfAtleastToCNF(this, orClause);}}
+        //if(trackReasoning) {
+        //    for(Clause orClause : clauses) {
+        //        orClause.inferenceStep = new InfClauseToCNF(this, orClause);}}
         return clauses;}
 
     private final ArrayList<Object> replacements = new ArrayList();

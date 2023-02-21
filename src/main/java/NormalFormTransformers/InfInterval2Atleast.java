@@ -46,6 +46,9 @@ public class InfInterval2Atleast extends InferenceStep {
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        if(steps != null) steps.add(new InfInputClause(intervalClause[0]));}
+        if(steps != null) {
+            steps.add(new InfInputClause(intervalClause[0]));
+            steps.add(this);
+        }}
 
 }

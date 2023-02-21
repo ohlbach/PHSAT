@@ -1,6 +1,7 @@
 package NormalFormTransformers;
 
 import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.InputClauses;
 import junit.framework.TestCase;
 
 import java.util.Arrays;
@@ -30,9 +31,11 @@ public class CNFTransformerTest extends TestCase {
 
         clause = new int[]{20, cAtleast, 3, 1, 2, 3, 4};
         cnf.reset(clause);
+        int[] disjunction = null;
         disjunctions = new StringBuilder();
         while (cnf.hasNext()) {
-            disjunctions.append(Arrays.toString(cnf.next())).append("\n");
+            disjunction = cnf.next();
+            disjunctions.append(Arrays.toString(disjunction)).append("\n");
         }
         assertEquals("[15, 0, 1, 2]\n" +
                 "[16, 0, 1, 3]\n" +
@@ -40,6 +43,8 @@ public class CNFTransformerTest extends TestCase {
                 "[18, 0, 2, 3]\n" +
                 "[19, 0, 2, 4]\n" +
                 "[20, 0, 3, 4]\n", disjunctions.toString());
+
+        //System.out.println(cnf.getInferenceStep(disjunction).toString());
     }
 
     public void testAtmost() {
@@ -48,6 +53,7 @@ public class CNFTransformerTest extends TestCase {
         CNFTransformer cnf = new CNFTransformer(() -> ++ids[0]);
         int[] clause = new int[]{10, cAtleast, 2, 1, 2, 3, 4, 5};
         cnf.reset(clause);
+        int[] disjunction = null;
         StringBuilder disjunctions = new StringBuilder();
         while (cnf.hasNext()) {
             disjunctions.append(Arrays.toString(cnf.next())).append("\n");
@@ -62,13 +68,15 @@ public class CNFTransformerTest extends TestCase {
         cnf.reset(clause);
         disjunctions = new StringBuilder();
         while (cnf.hasNext()) {
-            disjunctions.append(Arrays.toString(cnf.next())).append("\n");
+            disjunction = cnf.next();
+            disjunctions.append(Arrays.toString(disjunction)).append("\n");
         }
         assertEquals("[15, 0, 1, 2, 3, 4]\n" +
                 "[16, 0, 1, 2, 3, 5]\n" +
                 "[17, 0, 1, 2, 4, 5]\n" +
                 "[18, 0, 1, 3, 4, 5]\n" +
                 "[19, 0, 2, 3, 4, 5]\n", disjunctions.toString());
+        System.out.println(cnf.getInferenceStep(disjunction).toString());
     }
 
     public void testExactly() {
@@ -225,5 +233,17 @@ public class CNFTransformerTest extends TestCase {
                 "[38, 0, -1, -4, -2]\n" +
                 "[39, 0, -2, -1, -4]\n", disjunctions.toString());
 
+    }
+    public void testExamples() {
+        System.out.println("examples");
+        int[] ids = new int[]{-1};
+        CNFTransformer cnf = new CNFTransformer(() -> ++ids[0]);
+        int[] clause = new int[]{10, cInterval, 2, 3, 1, 2, 3,4,5};
+        cnf.reset(clause);
+        StringBuilder disjunctions = new StringBuilder();
+        while (cnf.hasNext()) {
+            disjunctions.append(InputClauses.toString(cnf.next())).append("\n");
+        }
+        System.out.println(disjunctions.toString());
     }
     }
