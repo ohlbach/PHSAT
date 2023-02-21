@@ -17,8 +17,8 @@ import java.util.Iterator;
  * In total these are m over n combinations. (5 over 2 = 10).
  */
 public class CombinationsIterator implements Iterator<int[]> {
-    private final int m;
-    private final int n;
+    public final int m;
+    public final int n;
     private final int[] pattern;
     private boolean start = true;
 
