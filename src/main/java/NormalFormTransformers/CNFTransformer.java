@@ -1,6 +1,7 @@
 package NormalFormTransformers;
 
 import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.InputClauses;
 import Utilities.CombinationsIterator;
 
 import java.util.Iterator;
@@ -10,25 +11,24 @@ import java.util.function.IntSupplier;
  * The quantified clauses in InputClauses form are transformed into disjunctions also in InputClauses form. <br>
  * The transformer is an iterator of which the next()-method returns the next disjunction.<br>
  * <br>
- * The iterator needs to be constructed only once. A new clause is submitted to it by the reset-method.
+ * The iterator needs to be constructed only once. A new clause is submitted to it by the reset-method.<br>
+ * The input clauses should not contain complementary literals.
+ * They may, however, contain multiple occurrences of literals.
+ * These are eliminated from the output clauses.
+ * The shortened clauses may subsume longer clauses. This is not checked.
  */
 public class CNFTransformer implements Iterator<int[]> {
 
     private final static int cOr  = Connective.OR.ordinal();
-    private final static int cAtleast  = Connective.ATLEAST.ordinal();
-    private final static int cAtmost   = Connective.ATMOST.ordinal();
-    private final static int cExactly  = Connective.EXACTLY.ordinal();
-    private final static int cInterval = Connective.INTERVAL.ordinal();
-
     /** for generating a new identifier for the clauses. */
     private final IntSupplier nextId;
     private int[] clause;
-
     private CombinationsIterator iterator1;
     private CombinationsIterator iterator2;
     private CombinationsIterator iterator;
     private int start;
     private int sign1,sign2, sign;
+    private boolean hasDoubles;
 
     /** constructs a new transformer
      *
@@ -37,10 +37,16 @@ public class CNFTransformer implements Iterator<int[]> {
     public CNFTransformer(IntSupplier nextId) {
         this.nextId = nextId;}
 
+    /** submits a new clause to the iterator and resets all internal values.
+     *
+     * @param clause a clause.
+     */
     public void reset(int[] clause) {
         this.clause = clause;
         int length = clause.length;
-        switch(Connective.getConnective(clause[1])) {
+        Connective connective = Connective.getConnective(clause[1]);
+        assert(connective != null);
+        switch(connective) {
             case ATLEAST:
                 start = 3; sign1 = 1;
                 int m = clause[2];
@@ -68,8 +74,8 @@ public class CNFTransformer implements Iterator<int[]> {
                 iterator1 = new CombinationsIterator(n,n-m+1);
                 m = clause[3];
                 sign2 = -1;
-                iterator2 = new CombinationsIterator(n,m+1);
-        }
+                iterator2 = new CombinationsIterator(n,m+1);}
+        hasDoubles = InputClauses.hadDoubles(clause,start);
         iterator = iterator1;
         sign = sign1;
     }
@@ -90,6 +96,7 @@ public class CNFTransformer implements Iterator<int[]> {
 
 
     /** generates the next disjunction.
+     * Double literals are removed.
      *
      * @return the next disjunction.
      */
@@ -99,8 +106,20 @@ public class CNFTransformer implements Iterator<int[]> {
         int[] disjunction = new int[iterator.n+3];
         disjunction[0] = nextId.getAsInt();
         disjunction[1] = cOr;
-        for(int i = 0; i < pattern.length; ++i) {
-            disjunction[i+2] = sign * clause[pattern[i]+start];}
-        return disjunction;
+        if(hasDoubles) {
+            int j = 1;
+            for(int i = 0; i < pattern.length; ++i) {
+                int literal = sign * clause[pattern[i]+start];
+                boolean found = false;
+                for(int k = 2; k <= j; ++k) {
+                    if(literal == disjunction[k]) {found = true; break;}}
+                if(!found) disjunction[++j] = literal;}
+            int[] shortDisjunction = new int[j+1];
+            System.arraycopy(disjunction, 0, shortDisjunction, 0, j+1);
+            return shortDisjunction;}
+        else {
+            for(int i = 0; i < pattern.length; ++i) {
+                disjunction[i+2] = sign * clause[pattern[i]+start];}
+            return disjunction;}
     }
 }

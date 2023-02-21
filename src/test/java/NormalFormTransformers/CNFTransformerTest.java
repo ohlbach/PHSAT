@@ -174,21 +174,56 @@ public class CNFTransformerTest extends TestCase {
         System.out.println("multiple literals");
         int[] ids = new int[]{9};
         CNFTransformer cnf = new CNFTransformer(() -> ++ids[0]);
-        int[] clause = new int[]{10, cInterval, 2, 3, 1, 2, 1, 3, 4};
+        int[] clause = new int[]{10, cInterval, 2, 3, 1, 2, 3,4,5};
         cnf.reset(clause);
         StringBuilder disjunctions = new StringBuilder();
         while (cnf.hasNext()) {
             disjunctions.append(Arrays.toString(cnf.next())).append("\n");
         }
-        assertEquals("[10, 0, 1, 2, 1, 3]\n" +
-                "[11, 0, 1, 2, 1, 4]\n" +
-                "[12, 0, 1, 2, 3, 4]\n" +
-                "[13, 0, 1, 1, 3, 4]\n" +
-                "[14, 0, 2, 1, 3, 4]\n" +
-                "[15, 0, -1, -2, -1, -3]\n" +
-                "[16, 0, -1, -2, -1, -4]\n" +
-                "[17, 0, -1, -2, -3, -4]\n" +
-                "[18, 0, -1, -1, -3, -4]\n" +
-                "[19, 0, -2, -1, -3, -4]\n", disjunctions.toString());
+        assertEquals("[10, 0, 1, 2, 3, 4]\n" +
+                "[11, 0, 1, 2, 3, 5]\n" +
+                "[12, 0, 1, 2, 4, 5]\n" +
+                "[13, 0, 1, 3, 4, 5]\n" +
+                "[14, 0, 2, 3, 4, 5]\n" +
+                "[15, 0, -1, -2, -3, -4]\n" +
+                "[16, 0, -1, -2, -3, -5]\n" +
+                "[17, 0, -1, -2, -4, -5]\n" +
+                "[18, 0, -1, -3, -4, -5]\n" +
+                "[19, 0, -2, -3, -4, -5]\n", disjunctions.toString());
+
+        clause = new int[]{10, cInterval, 2, 3, 1, 1, 3,4,5};
+        cnf.reset(clause);
+        disjunctions = new StringBuilder();
+        while (cnf.hasNext()) {
+            disjunctions.append(Arrays.toString(cnf.next())).append("\n");
+        }
+        assertEquals("[20, 0, 1, 3, 4]\n" +
+                "[21, 0, 1, 3, 5]\n" +
+                "[22, 0, 1, 4, 5]\n" +
+                "[23, 0, 1, 3, 4, 5]\n" +
+                "[24, 0, 1, 3, 4, 5]\n" +
+                "[25, 0, -1, -3, -4]\n" +
+                "[26, 0, -1, -3, -5]\n" +
+                "[27, 0, -1, -4, -5]\n" +
+                "[28, 0, -1, -3, -4, -5]\n" +
+                "[29, 0, -1, -3, -4, -5]\n", disjunctions.toString());
+
+        clause = new int[]{10, cInterval, 2, 3, 1, 2, 1,4,2};
+        cnf.reset(clause);
+        disjunctions = new StringBuilder();
+        while (cnf.hasNext()) {
+            disjunctions.append(Arrays.toString(cnf.next())).append("\n");
+        }
+        assertEquals("[30, 0, 1, 2, 4]\n" +
+                "[31, 0, 1, 2]\n" +
+                "[32, 0, 1, 2, 4]\n" +
+                "[33, 0, 1, 4, 2]\n" +
+                "[34, 0, 2, 1, 4]\n" +
+                "[35, 0, -1, -2, -4]\n" +
+                "[36, 0, -1, -2]\n" +
+                "[37, 0, -1, -2, -4]\n" +
+                "[38, 0, -1, -4, -2]\n" +
+                "[39, 0, -2, -1, -4]\n", disjunctions.toString());
+
     }
     }

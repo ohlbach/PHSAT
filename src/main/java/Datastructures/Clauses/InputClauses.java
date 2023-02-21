@@ -118,6 +118,20 @@ public class InputClauses {
                 case EXACTLY:  exacltys.add(clause);     maxClauseLength = Math.max(maxClauseLength,length-1);  break;}}
     }
 
+    /** checks if the clause has double literals
+     *
+     * @param clause a clause
+     * @param start the start index of the literal section
+     * @return true if there are double literals in the clause.
+     */
+    public static boolean hadDoubles(int[] clause, int start) {
+        int length = clause.length;
+        for(int i = start; i < length; ++i) {
+            int literal = clause[i];
+            for(int j = i+1; j < length; ++j) {
+                if(clause[j] == literal) return true;}}
+        return false;}
+
     /** checks the clause's syntax.
      *  Syntax errors are wrong clause type or wrong literal numbers.
      *  These errors are appended to syntaxErrors.
