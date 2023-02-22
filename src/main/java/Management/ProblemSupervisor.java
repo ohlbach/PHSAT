@@ -3,7 +3,7 @@ package Management;
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.Connective;
 import Datastructures.Clauses.InputClauses;
-import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
+import Datastructures.Clauses.SimplifiersOld.ClauseSimplifier;
 import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;

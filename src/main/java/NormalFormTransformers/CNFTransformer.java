@@ -47,21 +47,22 @@ public class CNFTransformer implements Iterator<int[]> {
         int length = clause.length;
         Connective connective = Connective.getConnective(clause[1]);
         assert(connective != null);
+        start = connective.firstLiteralIndex;
         switch(connective) {
             case ATLEAST:
-                start = 3; sign1 = 1;
+                sign1 = 1;
                 int m = clause[2];
                 int n = length - start;
                 iterator1 = new CombinationsIterator(n,n-m+1);
                 break;
             case ATMOST:
-                start = 3; sign1 = -1;
+                sign1 = -1;
                 m = clause[2];
                 n = length - start;
                 iterator1 = new CombinationsIterator(n,m+1);
                 break;
             case EXACTLY:
-                start = 3; sign1 = 1;
+                sign1 = 1;
                 m = clause[2];
                 n = length - start;
                 iterator1 = new CombinationsIterator(n,n-m+1);
@@ -69,7 +70,7 @@ public class CNFTransformer implements Iterator<int[]> {
                 iterator2 = new CombinationsIterator(n,m+1);
                 break;
             case INTERVAL:
-                start = 4; sign1 = 1;
+                sign1 = 1;
                 m = clause[2];
                 n = length - start;
                 iterator1 = new CombinationsIterator(n,n-m+1);

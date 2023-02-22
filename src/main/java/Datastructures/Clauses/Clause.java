@@ -861,7 +861,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * @return the type-prefix with the clause id
      */
     public String getName() {
-        return connective.prefix+id;}
+        return Integer.toString(id);}
 
     /** computes the maximum width of the clause ids.
      *
@@ -898,8 +898,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         StringBuilder st = new StringBuilder();
         if(width > 0) {
             Formatter format = new Formatter(st, Locale.GERMANY);
-            format.format("%-"+(width+ connective.prefix.length())+"s", getName()+":");}
-        else st.append(connective.prefix+id+": ");
+            format.format("%-"+width+"s", getName()+":");}
+        else st.append(id+": ");
         switch(connective) {
             case OR:
             case AND:

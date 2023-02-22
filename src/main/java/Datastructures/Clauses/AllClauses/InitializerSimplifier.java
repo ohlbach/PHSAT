@@ -5,7 +5,7 @@ import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseStructure;
 import Datastructures.Clauses.Connective;
-import Datastructures.Clauses.Simplifiers.ClauseSimplifier;
+import Datastructures.Clauses.SimplifiersOld.ClauseSimplifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.Result;

@@ -46,14 +46,6 @@ public class ANFTransformer {
         for(int i = 3; i < length; ++i) atleastClause[i] = -atmostClause[i];
         return atleastClause;}
 
-    /** generates an inference step for atmostClause -&gt; atleastClause.
-     *
-     * @param atmostClause  the atmost-clause.
-     * @param atleastClause the generated atleast-clause.
-     * @return the corresponding inference step.
-     */
-    protected InferenceStep infAtmost2Atleast(int[] atmostClause, int[] atleastClause) {
-        return new InfAtmost2Atleast(atmostClause,atleastClause);}
 
     /** transforms an exactly-clause to two atleast clauses.
      * exactly k l1...ln -&gt; atleast k l1...ln and atleast n-k -l1...ln.
@@ -76,16 +68,6 @@ public class ANFTransformer {
         atleastClauses[0] = atleastClause1;
         atleastClauses[1] = atleastClause2;}
 
-    /** generates n inference step for exactlyClause -&gt; atleastClauses.
-     *
-     * @param exactlyClause  the exactly-clause.
-     * @param atleastClauses the two generated atleast-clauses.
-     * @param steps          an initialized array where the inference steps can be put into.
-     */
-    protected void infExactly2Atleast(int[] exactlyClause, int[][] atleastClauses, InferenceStep[] steps) {
-        if(steps == null) return;
-        steps[0] = new InfExactly2Atleast(exactlyClause,atleastClauses,0);
-        steps[1] = new InfExactly2Atleast(exactlyClause,atleastClauses,1);}
 
     /** transforms an interval-clause to two atleast-clauses.
      * [min,max] l1...ln -&gt; atleast min l1...ln and atleast n-max -l1...ln.
@@ -110,14 +92,14 @@ public class ANFTransformer {
         atleastClauses[0] = atleastClause1;
         atleastClauses[1] = atleastClause2;}
 
+
+
     /** generates n inference step for intervalClause -&gt; atleastClauses.
      *
-     * @param intervalClause  the exactly-clause.
-     * @param atleastClauses the two generated atleast-clauses.
-     * @param steps          an initialized array where the inference steps can be put into.
+     * @param clause  the inputClause.
+     * @param atleastClause one of the generated clauses
+     * @return the corresponding inference step.
      */
-    protected void infInterval2Atleast(int[] intervalClause, int[][] atleastClauses, InferenceStep[] steps) {
-        if(steps == null) return;
-        steps[0] = new InfInterval2Atleast(intervalClause,atleastClauses,0);
-        steps[1] = new InfInterval2Atleast(intervalClause,atleastClauses,1);}
+    protected InferenceStep getInferenceStep(int[] clause, int[] atleastClause) {
+        return new InfClauseToAtleast(clause,atleastClause);}
 }

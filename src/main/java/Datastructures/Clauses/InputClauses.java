@@ -396,8 +396,8 @@ public class InputClauses {
         int connectiveNumber = clause[1];
         Connective connective = Connective.getConnective(connectiveNumber);
         assert connective != null;
-        if(size == 0) {size = (connective.prefix+ clause[0]).length();}
-        st.append(String.format("%"+size+"s",connective.prefix+clause[0])).append(": ");
+        if(size == 0) {size = Integer.toString(clause[0]).length();}
+        st.append(String.format("%"+size+"s",clause[0])).append(": ");
         int start = 2;
         if(Connective.isQuantifier(connectiveNumber) && connective != Connective.INTERVAL) {
             start = 3;

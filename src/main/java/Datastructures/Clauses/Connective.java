@@ -6,37 +6,37 @@ package Datastructures.Clauses;
  */
 public enum Connective {
     /** logical or-connective */
-    OR("", "v",""),
+    OR("", "v",2),
     /** logical and-connective */
-    AND("&","&","A-"),
+    AND("&","&",2),
     /** equivalence of predicates */
-    EQUIV("e","=","E-"),
+    EQUIV("e","=",2),
     /** atleast connective, example: >= 2 p,q,r,s  (atleast 2 of the literals must be true) */
-    ATLEAST(">=", ",", "L-"),
+    ATLEAST(">=", ",", 3),
     /** atmost connective, example: &lt;= 2 p,q,r,s  (atmost 2 of the literals are true) */
-    ATMOST("<=", ",","M-"),
+    ATMOST("<=", ",",3),
     /** exactly connective, example: = 2 p,q,r,s  (exactly 2 of the literals must be true) */
-    EXACTLY("=", ",","X-"),
+    EXACTLY("=", ",",3),
     /** interval connective, example: [2,4] p,q,r,s  (between 2 and 4 literals must be true) */
-    INTERVAL("i",",","I-");
+    INTERVAL("i",",",4);
 
     /** to be used in the input clauses. */
     public String abbreviation;
     /** to be used for printing clauses */
     public String separator;
     /** to be used for clause names */
-    public String prefix;
+    public int firstLiteralIndex;
 
     /** This is the internally used constructor for connectives.
      *
-     * @param abbreviation  to be used in the input clauses.
-     * @param separator     to be used for printing the clauses.
-     * @param prefix        to be used for clause names.
+     * @param abbreviation      to be used in the input clauses.
+     * @param separator         to be used for printing the clauses.
+     * @param firstLiteralIndex the first index of the literals in the InputClauses int[]-arrays.
      */
-    Connective(String abbreviation, String separator, String prefix) {
+    Connective(String abbreviation, String separator, int firstLiteralIndex) {
         this.abbreviation = abbreviation;
         this.separator = separator;
-        this.prefix = prefix;}
+        this.firstLiteralIndex = firstLiteralIndex;}
 
     /** returns for the given number the corresponding connective.
      *

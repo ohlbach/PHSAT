@@ -1,4 +1,4 @@
-package Datastructures.Clauses.Simplifiers;
+package Datastructures.Clauses.SimplifiersOld;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;

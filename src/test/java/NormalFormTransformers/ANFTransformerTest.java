@@ -19,7 +19,7 @@ public class ANFTransformerTest extends TestCase {
         int[] clause = new int[]{5,cAtmost,2,1,2,3,4,5};
         int[] atleastClause = anf.atmost2Atleast(clause);
         assertEquals("[10, 3, 3, -1, -2, -3, -4, -5]", Arrays.toString(atleastClause));
-        InferenceStep step = anf.infAtmost2Atleast(clause,atleastClause);
+        InferenceStep step = anf.getInferenceStep(clause,atleastClause);
         //System.out.println(step.toString());
         //System.out.println(step.rule());
         assertEquals("[5]",step.inputClauseIds().toString());
@@ -35,12 +35,10 @@ public class ANFTransformerTest extends TestCase {
         anf.exactly2Atleast(clause,exactlyClauses);
         assertEquals("[10, 3, 2, 1, 2, 3, 4, 5]", Arrays.toString(exactlyClauses[0]));
         assertEquals("[11, 3, 3, -1, -2, -3, -4, -5]", Arrays.toString(exactlyClauses[1]));
-        InferenceStep[] steps = new InferenceStep[2];
-        anf.infExactly2Atleast(clause,exactlyClauses, steps);
-        //System.out.println(steps[0].toString());
-        //System.out.println(steps[1].toString());
-        //System.out.println(steps[0].rule());
-        assertEquals("[5]",steps[0].inputClauseIds().toString());
+        InferenceStep step = anf.getInferenceStep(clause,exactlyClauses[0]);
+        //System.out.println(step.toString());
+        //System.out.println(step.rule());
+        assertEquals("[5]",step.inputClauseIds().toString());
     }
 
     public void testInterval2Atleast() {
@@ -52,12 +50,10 @@ public class ANFTransformerTest extends TestCase {
         anf.interval2Atleast(clause,intervalClauses);
         assertEquals("[10, 3, 2, 1, 2, 3, 4, 5]", Arrays.toString(intervalClauses[0]));
         assertEquals("[11, 3, 2, -1, -2, -3, -4, -5]", Arrays.toString(intervalClauses[1]));
-        InferenceStep[] steps = new InferenceStep[2];
-        anf.infInterval2Atleast(clause,intervalClauses, steps);
-        //System.out.println(steps[0].toString());
-        //System.out.println(steps[1].toString());
-        //System.out.println(steps[0].rule());
-        assertEquals("[5]",steps[0].inputClauseIds().toString());
+        InferenceStep step = anf.getInferenceStep(clause,intervalClauses[0]);
+        //System.out.println(step.toString());
+        //System.out.println(step.rule());
+        assertEquals("[5]",step.inputClauseIds().toString());
     }
 
 }

@@ -76,7 +76,7 @@ public class CNFTransformerTest extends TestCase {
                 "[17, 0, 1, 2, 4, 5]\n" +
                 "[18, 0, 1, 3, 4, 5]\n" +
                 "[19, 0, 2, 3, 4, 5]\n", disjunctions.toString());
-        System.out.println(cnf.getInferenceStep(disjunction).toString());
+       //System.out.println(cnf.getInferenceStep(disjunction).toString());
     }
 
     public void testExactly() {
@@ -244,6 +244,6 @@ public class CNFTransformerTest extends TestCase {
         while (cnf.hasNext()) {
             disjunctions.append(InputClauses.toString(cnf.next())).append("\n");
         }
-        System.out.println(disjunctions.toString());
+       // System.out.println(disjunctions.toString());
     }
     }

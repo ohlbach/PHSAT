@@ -7,7 +7,7 @@ import junit.framework.TestCase;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class InfInputClauseClausesTest extends TestCase {
+public class InputClauseClausesTest extends TestCase {
     static Symboltable symboltable = new Symboltable(10);
     static {
         symboltable.setName(1,"p");
@@ -21,39 +21,39 @@ public class InfInputClauseClausesTest extends TestCase {
         System.out.println("ToString OR");
         InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.OR.ordinal(),1,-2,3};
-        assertEquals("   10: 1,-2,3",InputClauses.toString(5,clause,null));
-        assertEquals("   10: p,-q,r",InputClauses.toString(5,clause,symboltable));
+        assertEquals("   10: 1v-2v3",InputClauses.toString(5,clause,null));
+        assertEquals("   10: pv-qvr",InputClauses.toString(5,clause,symboltable));
     }
     public void testToStringAND() {
         System.out.println("ToString AND");
         InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.AND.ordinal(),1,-2,3};
-        assertEquals(" A-10: 1&-2&3",InputClauses.toString(5,clause,null));
-        assertEquals(" A-10: p&-q&r",InputClauses.toString(5,clause,symboltable));
+        assertEquals("   10: 1&-2&3",InputClauses.toString(5,clause,null));
+        assertEquals("   10: p&-q&r",InputClauses.toString(5,clause,symboltable));
     }
 
     public void testToStringEQUIV() {
         System.out.println("ToString EQUIV");
         InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.EQUIV.ordinal(),1,-2,3};
-        assertEquals(" E-10: 1=-2=3",InputClauses.toString(5,clause,null));
-        assertEquals(" E-10: p=-q=r",InputClauses.toString(5,clause,symboltable));
+        assertEquals("   10: 1=-2=3",InputClauses.toString(5,clause,null));
+        assertEquals("   10: p=-q=r",InputClauses.toString(5,clause,symboltable));
     }
 
     public void testToStringATLEAST() {
         System.out.println("ToString ATLEAST");
         InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.ATLEAST.ordinal(),2,1,-2,3};
-        assertEquals(" L-10: >= 2 1,-2,3",InputClauses.toString(5,clause,null));
-        assertEquals(" L-10: >= 2 p,-q,r",InputClauses.toString(5,clause,symboltable));
+        assertEquals("   10: >= 2 1,-2,3",InputClauses.toString(5,clause,null));
+        assertEquals("   10: >= 2 p,-q,r",InputClauses.toString(5,clause,symboltable));
     }
 
     public void testToStringATMOST() {
         System.out.println("ToString ATMOST");
         InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.ATMOST.ordinal(),2,1,-2,3};
-        assertEquals(" M-10: <= 2 1,-2,3",InputClauses.toString(5,clause,null));
-        assertEquals(" M-10: <= 2 p,-q,r",InputClauses.toString(5,clause,symboltable));
+        assertEquals("   10: <= 2 1,-2,3",InputClauses.toString(5,clause,null));
+        assertEquals("   10: <= 2 p,-q,r",InputClauses.toString(5,clause,symboltable));
     }
 
     public void testToStringEXACTLY() {
@@ -68,11 +68,11 @@ public class InfInputClauseClausesTest extends TestCase {
         System.out.println("ToString INTERVAL");
         InputClauses clauses = new InputClauses("Input",5,null,"test");
         int[] clause = {10,Connective.INTERVAL.ordinal(),2,3,1,-2,3};
-        assertEquals(" I-10: 2-3: 1,-2,3",InputClauses.toString(5,clause,null));
-        assertEquals(" I-10: 2-3: p,-q,r",InputClauses.toString(5,clause,symboltable));
+        assertEquals("   10: 2-3: 1,-2,3",InputClauses.toString(5,clause,null));
+        assertEquals("   10: 2-3: p,-q,r",InputClauses.toString(5,clause,symboltable));
 
         int[] clause1 = {11,Connective.INTERVAL.ordinal(),2,2,1,-2,3};
-        assertEquals(" I-11: 2-2: 1,-2,3",InputClauses.toString(5,clause1,null));
+        assertEquals("   11: 2-2: 1,-2,3",InputClauses.toString(5,clause1,null));
     }
 
 

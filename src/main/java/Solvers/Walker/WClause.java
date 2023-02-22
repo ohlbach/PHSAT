@@ -75,8 +75,8 @@ public class WClause {
         StringBuilder st = new StringBuilder();
         if(width > 0) {
             Formatter format = new Formatter(st, Locale.GERMANY);
-            format.format("%-"+(width+ connective.prefix.length())+"s", connective.prefix+id+":");}
-        else st.append(connective.prefix+id+": ");
+            format.format("%-"+width+"s", id+":");}
+        else st.append(id+": ");
         switch(connective) {
             case OR:
             case AND:

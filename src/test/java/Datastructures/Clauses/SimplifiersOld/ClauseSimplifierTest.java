@@ -1,4 +1,4 @@
-package Datastructures.Clauses.Simplifiers;
+package Datastructures.Clauses.SimplifiersOld;
 
 public class ClauseSimplifierTest {
 /*
