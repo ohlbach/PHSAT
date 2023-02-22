@@ -15,6 +15,7 @@ public class Literal {
         this.multiplicity = multiplicity;
     }
 
+
     public String toString() {
         return toString(null);}
 

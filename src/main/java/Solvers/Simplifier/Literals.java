@@ -47,6 +47,9 @@ public class Literals {
             literalData = literalData.nextLiteral;}
         return size;}
 
+    public Literal getFirstLiteral(int literal) {
+        return (literal > 0) ? positiveLiterals[literal] : negativeLiterals[-literal];}
+
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append("Positive Literals:\n");
