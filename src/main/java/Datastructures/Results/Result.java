@@ -1,5 +1,6 @@
 package Datastructures.Results;
 
+import Datastructures.Statistics.Statistic;
 import InferenceSteps.InferenceStep;
 
 /**
@@ -7,6 +8,11 @@ import InferenceSteps.InferenceStep;
  */
 public class Result extends Exception {
     public InferenceStep inferenceStep = null;
+    public Class solverClass = null;
+    public String solverId   = null;
+    public String problemId  = null;
+    public Statistic statistic;
+
 
     public boolean isOkay() {return true;}
 

@@ -4,6 +4,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Task;
 import Datastructures.Theory.Model;
+import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
@@ -62,6 +63,7 @@ public class EquivalenceClasses  {
     /** The list of equivalence classes */
     public ArrayList<EquivalenceClass> equivalenceClasses = new ArrayList<>();
 
+    private boolean isInterrupted = false;
 
     /** These two types can occur in the task queue */
     private enum TaskType {
@@ -114,6 +116,10 @@ public class EquivalenceClasses  {
             monitoring = true;
             monitorId = problemId+"-EQV";}}
 
+    public void interrupt() {
+        isInterrupted = true;
+        Thread.currentThread().interrupt();}
+
     /** turns all equivalences from the input clauses into EquivalenceClass objects.
      *
      * @param equivalences the equivalence classes from the input clauses
@@ -122,7 +128,7 @@ public class EquivalenceClasses  {
     public void integrateEQUIVClauses(ArrayList<int[]> equivalences) throws Unsatisfiable {
         try{
             for(int[] equivalence : equivalences) {
-                EquivalenceClass equivalenceClass = EquivalenceClass.makeEquivalenceClass(equivalence,model,trackReasoning);
+                EquivalenceClass equivalenceClass = EquivalenceClass.makeEquivalenceClass(equivalence,trackReasoning);
                 if(equivalenceClass != null) equivalenceClasses.add(equivalenceClass);}
 
             // Now we must join overlapping equivalence classes.
@@ -155,6 +161,17 @@ public class EquivalenceClasses  {
     public synchronized void addObserver(TriConsumer<Integer,Integer,InferenceStep> observer) {
         observers.add(observer);}
 
+    /** adds the literals which are already true in the model and the newly derived equivalences to the task queue.
+     * Installs the observer in the model.
+     *
+     * @param newEquivalences newly derived equivalences.
+     */
+    public void initialize(ArrayList<int[]> newEquivalences) {
+        for(int literal: model.model) {
+            addTrueLiteral(literal,model.getInferenceStep(literal));}
+        model.addObserver(this::addTrueLiteral);
+        for(int[] clause : newEquivalences) addEquivalence(clause[2],clause[3],new InfInputClause(clause[0]));}
+
 
     /** Starts the instance in a thread.
      * The thread waits for newly derived unit clauses (via the model) and newly derived
@@ -168,9 +185,8 @@ public class EquivalenceClasses  {
      * The result is stored into the variable result.
      */
     public void run() {
-        model.addObserver(this::addTrueLiteral);
         Task<TaskType> task;
-        while(!Thread.interrupted()) {
+        while(!isInterrupted) {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
@@ -194,6 +210,7 @@ public class EquivalenceClasses  {
             int sign = equivalenceClass.containsLiteral(literal);
             if(sign != 0) return sign*equivalenceClass.representative;}
         return  0;}
+
 
 
     /** adds a true literal to the queue

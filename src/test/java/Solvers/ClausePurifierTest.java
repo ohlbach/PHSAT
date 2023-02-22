@@ -2,6 +2,7 @@ package Solvers;
 
 import Datastructures.Clauses.Connective;
 import Datastructures.Clauses.InputClauses;
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
 import junit.framework.TestCase;
@@ -10,6 +11,7 @@ import java.util.Arrays;
 
 public class ClausePurifierTest extends TestCase {
     private static final int cOr = Connective.OR.ordinal();
+    private static final int cEquiv = Connective.EQUIV.ordinal();
     private static final int cAtleast = Connective.ATLEAST.ordinal();
     private static final int cAtmost   = Connective.ATMOST.ordinal();
     private static final int cExactly  = Connective.EXACTLY.ordinal();
@@ -39,7 +41,7 @@ public class ClausePurifierTest extends TestCase {
         clause = new int[]{13, cOr, 2, 3, 1, 0, 2, 0,0, 3,0};
         assertEquals("[13, 0, 2, 3, 1, 2, 3]", Arrays.toString(cp.compactify(clause,4)));
         }
-    public void testMakeAllTrue() throws Unsatisfiable {
+    public void testMakeAllTrue() throws Result {
         System.out.println("makeAllTrue");
         Model model = new Model(10);
         ClausePurifier cp = new ClausePurifier(model);
@@ -56,7 +58,7 @@ public class ClausePurifierTest extends TestCase {
 
 
 
-    public void testPurifyDisjunction() throws Unsatisfiable {
+    public void testPurifyDisjunction() throws Result {
         System.out.println("purifyDisjunction");
         Model model = new Model(10);
         ClausePurifier cp = new ClausePurifier(model);
@@ -83,7 +85,27 @@ public class ClausePurifierTest extends TestCase {
         assertEquals("1,2", model.toString());
     }
 
-    public void testmakeDisjunction() throws Unsatisfiable {
+    public void testPurifyEquivalence() throws Result {
+        System.out.println("purifyEquivalence");
+        Model model = new Model(10);
+        ClausePurifier cp = new ClausePurifier(model);
+        int[] oClause1 = new int[]{10, cEquiv, 1, 2, 3};
+        int[] pClause1 = cp.purifyEquivalence(oClause1);
+        assertTrue(oClause1 == pClause1);
+
+        int[] oClause2 = new int[]{11, cEquiv, 1, 2, 3, 2, 1, 2};
+        int[] pClause2 = cp.purifyEquivalence(oClause2);
+        assertEquals("[11, 2, 1, 2, 3]", Arrays.toString(pClause2));
+
+        int[] oClause3 = new int[]{12, cEquiv, 1, 2, 3, 2, -1, 2};
+        try{cp.purifyEquivalence(oClause3);
+            assertTrue(false);}
+        catch(Result result) {
+            //System.out.println(result.toString());
+        }
+    }
+
+        public void testmakeDisjunction() throws Result {
         System.out.println("makeDisjunction");
         Model model = new Model(10);
         ClausePurifier cp = new ClausePurifier(model);
@@ -103,7 +125,7 @@ public class ClausePurifierTest extends TestCase {
             //System.out.println(unsatisfiable.toString());
         }
     }
-    public void testmakeEquivalence() throws Unsatisfiable {
+    public void testmakeEquivalence() throws Result {
         System.out.println("makeEquivalence");
         Model model = new Model(10);
         ClausePurifier cp = new ClausePurifier(model);
@@ -114,7 +136,7 @@ public class ClausePurifierTest extends TestCase {
         assertEquals("[11, 2, 2, -3]",Arrays.toString(cp.makeEquivalence(clause,3)));
     }
 
-    public void testTrueLiteralsFromMultiplicities() throws Unsatisfiable {
+    public void testTrueLiteralsFromMultiplicities() throws Result {
         System.out.println("TrueLiteralsFromMultiplicities");
         Model model = new Model(20);
         ClausePurifier cp = new ClausePurifier(model);
@@ -134,7 +156,7 @@ public class ClausePurifierTest extends TestCase {
     }
 
 
-    public void testReduceMultiplicities() throws Unsatisfiable {
+    public void testReduceMultiplicities() throws Result {
         System.out.println("reduceMultiplicities");
         Model model = new Model(20);
         ClausePurifier cp = new ClausePurifier(model);
@@ -150,7 +172,7 @@ public class ClausePurifierTest extends TestCase {
         clause = new int[]{14, cInterval, 1,2, 11, 12,12, 13,12,13,12,13,11}; assertNull(cp.reduceMultiplicities(clause,false));
         assertEquals("1,-2,-3,11,-12,-13",model.toString());
     }
-    public void testEliminateComplementaryPairs() throws Unsatisfiable {
+    public void testEliminateComplementaryPairs() throws Result {
         System.out.println("eliminateComplementaryPairs");
         Model model = new Model(20);
         ClausePurifier cp = new ClausePurifier(model);
@@ -167,7 +189,7 @@ public class ClausePurifierTest extends TestCase {
         assertEquals("-3",model.toString());
     }
 
-    public void testTransformOr() throws Unsatisfiable {
+    public void testTransformOr() throws Result {
         System.out.println("transform or");
         Model model = new Model(20);
         ClausePurifier cp = new ClausePurifier(model);
@@ -185,7 +207,7 @@ public class ClausePurifierTest extends TestCase {
         }
     }
 
-    public void testTransformAtleast() throws Unsatisfiable {
+    public void testTransformAtleast() throws Result {
         System.out.println("transform atleast");
         Model model = new Model(20);
         ClausePurifier cp = new ClausePurifier(model);
@@ -207,7 +229,7 @@ public class ClausePurifierTest extends TestCase {
         }
     }
 
-    public void testTransformAtmost() throws Unsatisfiable {
+    public void testTransformAtmost() throws Result {
         System.out.println("transform atmost");
         Model model = new Model(20);
         ClausePurifier cp = new ClausePurifier(model);
@@ -230,7 +252,7 @@ public class ClausePurifierTest extends TestCase {
         }
     }
 
-    public void testTransformExactly() throws Unsatisfiable {
+    public void testTransformExactly() throws Result {
         System.out.println("transform exactly");
         Model model = new Model(20);
         ClausePurifier cp = new ClausePurifier(model);
@@ -253,7 +275,7 @@ public class ClausePurifierTest extends TestCase {
         }
     }
 
-    public void testTransformInterval() throws Unsatisfiable {
+    public void testTransformInterval() throws Result {
         System.out.println("transform interval");
         Model model = new Model(20);
         ClausePurifier cp = new ClausePurifier(model);
@@ -278,7 +300,7 @@ public class ClausePurifierTest extends TestCase {
         }
     }
 
-    public void testPurifyDisjunctions() throws Unsatisfiable {
+    public void testPurifyDisjunctions() throws Result {
         System.out.println("purify disjunction");
         Model model = new Model(20);
         InputClauses inputClauses = new InputClauses("TestProblem",20,null,"Purify Disjunction");
@@ -306,13 +328,13 @@ public class ClausePurifierTest extends TestCase {
         cp = new ClausePurifier(inputClauses, model);
         clause = new int[]{10, cOr, 1, 2, 3,4,-2};
         inputClauses.addClause(clause);
-        cp.purifyClauses();
+        try{cp.purifyClauses();}catch(Result result){}
         assertFalse(inputClauses.disjunctions == inputClauses.purifiedDisjunctions);
         assertEquals(1,inputClauses.disjunctions.size());
         assertEquals(0,inputClauses.purifiedDisjunctions.size());
     }
 
-    public void testPurifyAtleasts() throws Unsatisfiable {
+    public void testPurifyAtleasts() throws Result {
         System.out.println("purify atleasts");
         Model model = new Model(20);
         InputClauses inputClauses = new InputClauses("TestProblem", 20, null, "Purify Atleasts");
@@ -347,13 +369,13 @@ public class ClausePurifierTest extends TestCase {
         cp = new ClausePurifier(inputClauses, model);
         clause = new int[]{10, cAtleast, 2, 1, 2, -1, -2, 3, 4};
         inputClauses.addClause(clause);
-        cp.purifyClauses();
+        try{cp.purifyClauses();}catch(Result result){}
         assertFalse(inputClauses.atleasts == inputClauses.purifiedAtleasts);
         assertEquals(0, inputClauses.purifiedAtleasts.size());
     }
 
 
-    public void testPurifyAtmosts() throws Unsatisfiable {
+    public void testPurifyAtmosts() throws Result {
         System.out.println("purify atmosts");
         Model model = new Model(20);
         InputClauses inputClauses = new InputClauses("TestProblem", 20, null, "Purify Atmosts");
@@ -388,11 +410,11 @@ public class ClausePurifierTest extends TestCase {
         cp = new ClausePurifier(inputClauses, model);
         clause = new int[]{10, cAtmost, 4, 1, 2, 3, 4};
         inputClauses.addClause(clause);
-        cp.purifyClauses();
+        try{cp.purifyClauses();}catch(Result result){}
         assertFalse(inputClauses.atmosts == inputClauses.purifiedAtmosts);
         assertTrue(inputClauses.purifiedAtmosts.isEmpty());
     }
-    public void testPurifyExactlys() throws Unsatisfiable {
+    public void testPurifyExactlys() throws Result {
         System.out.println("purify exactlys");
         Model model = new Model(20);
         InputClauses inputClauses = new InputClauses("TestProblem", 20, null, "Purify Exactlys");
@@ -414,13 +436,13 @@ public class ClausePurifierTest extends TestCase {
         cp = new ClausePurifier(inputClauses, model);
         clause = new int[]{12, cExactly, 3, 1, 2, 3, 4,-3,-4};
         inputClauses.addClause(clause);
-        cp.purifyClauses();
+        try{cp.purifyClauses();}catch(Result result){}
         assertTrue(inputClauses.purifiedExactlys.isEmpty());
         assertEquals(1, cp.newEquivalences.size());
         assertEquals("[12, 2, 1, -2]",Arrays.toString(cp.newEquivalences.get(0)));
     }
 
-    public void testPurifyIntervals() throws Unsatisfiable {
+    public void testPurifyIntervals() throws Result {
         System.out.println("purify intervals");
         Model model = new Model(20);
         InputClauses inputClauses = new InputClauses("TestProblem", 20, null, "Purify Intervals");

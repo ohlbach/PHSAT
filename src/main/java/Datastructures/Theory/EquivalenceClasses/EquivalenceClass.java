@@ -1,7 +1,6 @@
 package Datastructures.Theory.EquivalenceClasses;
 
 import Datastructures.Clauses.Connective;
-import Datastructures.Results.UnsatInputClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
@@ -22,10 +21,7 @@ import java.util.ArrayList;
  * The representative remains fixed, even if further equivalences with smaller predicates are added.
  * <br>
  * Although this should not happen, the initial equivalence clauses which come from the input
- * can show redundancies and contradictions: <br>
- * - double literals p = p<br>
- * - complementary literals p = -p <br>
- * - overlapping equivalence classes: p = q and q = r
+ * may contain overlapping equivalence classes: p = q and q = r
  * <br>
  * They are either eliminated or cause an Unsatisfiable exception to be thrown.
  */
@@ -68,14 +64,12 @@ public class EquivalenceClass {
     /** analyses an input clause of type EQUIV and generates an equivalence class.
      *
      * @param inputClause     an input clause (maybe redundant or contradictory)
-     * @param model           the global model
      * @param trackReasoning if true then inference steps are added
      * @return               null or a new equivalence class.
      * @throws Unsatisfiable if the class is contradictory (p == -p)
      */
-    protected static EquivalenceClass makeEquivalenceClass(int[] inputClause, Model model, boolean trackReasoning) throws Unsatisfiable {
+    protected static EquivalenceClass makeEquivalenceClass(int[] inputClause, boolean trackReasoning) throws Unsatisfiable {
         assert(inputClause[1] == Connective.EQUIV.ordinal());
-        if(!model.isEmpty() && isAlreadyTrueInModel(inputClause,model,trackReasoning)) return null; // new model entries may be generated
 
         // the smallest literal becomes the representative.
         int length = inputClause.length;
@@ -94,44 +88,11 @@ public class EquivalenceClass {
             inferenceStep  = new InfInputClause(inputClause[0]);}
         IntArrayList literals = new IntArrayList(length-3);
         for(int i = 2; i < length; ++i) {
-            int literal1 = inputClause[i];
-            if(literal1 == sign*representative) continue;
-            boolean found = false;
-            for(int j = 2; j < i; ++j) {
-                int literal2 = inputClause[j];
-                if(literal1 == literal2) {found = true; break;}
-                if(literal1 == -literal2) {throw new UnsatInputClause(inputClause);}}
-            if(found) continue; // double literals can be ignored
-            literals.add(sign*literal1);
+            int literal1 = sign*inputClause[i];
+            if(literal1 != representative) literals.add(literal1);
             if(trackReasoning) inferenceSteps.add(inferenceStep);} // the same inference step for each literal.
         if(literals.size() < 1) return null; // clauses like p = p are redundant.
         return new EquivalenceClass(representative,literals,inferenceSteps);}
-
-    /** each literal in an equivalence which is true/false in the model causes the equivalent literals to become true/false.
-     * It is very unlikely that this happens. Just to be on the safe side.
-     *
-     * @param inputClause     an equivalence clause
-     * @param model           the model
-     * @param trackReasoning  true if the inferences are to be tracked
-     * @return                true if the equivalent literals all became true/false and the clause can be ignored.
-     * @throws Unsatisfiable  if a contradiction was discovered.
-     */
-    protected static boolean isAlreadyTrueInModel(int[] inputClause, Model model, boolean trackReasoning) throws Unsatisfiable {
-        int length = inputClause.length;
-        for(int i = 2; i < length; ++i) {
-            int oldTrueLiteral = inputClause[i];
-            int status = model.status(oldTrueLiteral);
-            if(status != 0) {                     // oldTrueLiteral is true/false
-                for(int j = 2; j < length; ++j) {
-                    if(i == j) continue;
-                    int newTrueLiteral = inputClause[j];
-                    if(model.status(newTrueLiteral) == status) continue; // literal is already true/false
-                    model.add(status*newTrueLiteral, trackReasoning ? // may become unsatisfiable.
-                            new InfEquivalentTrueLiterals(inputClause[0],status*oldTrueLiteral,
-                                    status*newTrueLiteral,
-                                        model.getInferenceStep(oldTrueLiteral)) : null);}
-                return true;}} // clause can be ignored from now on.
-        return false;}
 
     /** checks if the equivalence class contains the literal.
      *

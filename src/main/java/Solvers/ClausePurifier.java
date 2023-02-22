@@ -3,11 +3,13 @@ package Solvers;
 import Datastructures.Clauses.Connective;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatInputClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
+import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
 import Management.ProblemSupervisor;
 
@@ -129,19 +131,24 @@ public class ClausePurifier extends Solver {
      */
     public void run() {
         try{purifyClauses();}
-        catch(Unsatisfiable unsatisfiable) {
-            unsatisfiable.problemId = inputClauses.problemName;
-            unsatisfiable.solverClass = ClausePurifier.class;
-            unsatisfiable.statistic = statistics;
+        catch(Result result) {
+            result.problemId = inputClauses.problemName;
+            result.solverClass = ClausePurifier.class;
+            result.statistic = statistics;
             if(problemSupervisor != null)
-                problemSupervisor.announceResult(unsatisfiable,"ClausePurifier");}}
+                problemSupervisor.announceResult(result,"ClausePurifier");}}
 
     /** analyses and purifies all clauses.
      * The results are stored in the purified versions of the ArrayLists in the inputClauses.
      *
      * @throws Unsatisfiable if an unsatisfiable clause is discovered.
      */
-    protected void purifyClauses() throws Unsatisfiable {
+    protected void purifyClauses() throws Result {
+        for(int[] clause : inputClauses.conjunctions) {
+            InferenceStep step = new InfInputClause(clause[0]);
+            for(int i = 2; i < clause.length; ++i) {
+                model.add(clause[i],step);}}
+
         ArrayList<int[]> purifiedDisjunctions = new ArrayList<>();
         int changedDisjunctions = 0;
         ArrayList<int[]>  newDisjunctions = new ArrayList<>();
@@ -152,6 +159,16 @@ public class ClausePurifier extends Solver {
                 ++changedDisjunctions; ++statistics.changedClauses;
                 if(purifiedClause == null)  continue;
                 purifiedDisjunctions.add(purifiedClause);}}
+
+        ArrayList<int[]> purifiedEquivalences = new ArrayList<>();
+        int changedEquivalences = 0;
+        if(!inputClauses.equivalences.isEmpty())  {
+            for(int[] clause : inputClauses.purifiedEquivalences) {
+                int[] purifiedClause = purifyEquivalence(clause);
+                if(purifiedClause == clause) {purifiedEquivalences.add(purifiedClause); continue;}
+                ++changedEquivalences; ++statistics.changedClauses;
+                if(purifiedClause == null)  continue;
+                purifiedEquivalences.add(purifiedClause);}}
 
         ArrayList<int[]> purifiedAtleasts = new ArrayList<>();
         int changedAtleasts = 0;
@@ -206,13 +223,17 @@ public class ClausePurifier extends Solver {
                     case ATLEAST: newAtleasts.add(purifiedClause);     continue;
                     case ATMOST:  newAtmosts.add(purifiedClause);      continue;
                     case EXACTLY: newExactlys.add(purifiedClause);     continue;
-                    case INTERVAL: purifiedIntervals.add(purifiedClause);
+                    case INTERVAL: purifiedIntervals.add(purifiedClause); continue;
                     default:
-                        ErrorReporter.reportError("ClausePurifier: interval clause turned into wrong type " + connective);}}}
+                        ErrorReporter.reportError("ClausePurifier: interval clause " +
+                                Arrays.toString(purifiedClause) + " turned into wrong type " + connective);}}}
 
         if(changedDisjunctions != 0 || !newDisjunctions.isEmpty()) {
             inputClauses.purifiedDisjunctions = purifiedDisjunctions;
             if(!newDisjunctions.isEmpty()) inputClauses.purifiedDisjunctions.addAll(newDisjunctions);}
+        if(changedEquivalences != 0 || !newEquivalences.isEmpty()) {
+            inputClauses.purifiedEquivalences = purifiedEquivalences;
+            if(!newEquivalences.isEmpty()) inputClauses.purifiedEquivalences.addAll(newEquivalences);}
         if(changedAtleasts != 0 || !newAtleasts.isEmpty()) {
             inputClauses.purifiedAtleasts = purifiedAtleasts;
             if(!newAtleasts.isEmpty()) inputClauses.purifiedAtleasts.addAll(newAtleasts);}
@@ -223,7 +244,15 @@ public class ClausePurifier extends Solver {
             inputClauses.purifiedExactlys = purifiedExactlys;
             if(!newExactlys.isEmpty()) inputClauses.purifiedExactlys.addAll(newExactlys);}
         if(changedIntervals != 0) {
-            inputClauses.purifiedIntervals = purifiedIntervals;}}
+            inputClauses.purifiedIntervals = purifiedIntervals;}
+        if(inputClauses.purifiedDisjunctions.isEmpty() &&
+        inputClauses.purifiedEquivalences.isEmpty() &&
+        inputClauses.purifiedAtleasts.isEmpty()&&
+        inputClauses.purifiedAtmosts.isEmpty() &&
+        inputClauses.purifiedExactlys.isEmpty()&&
+        inputClauses.purifiedIntervals.isEmpty()&&
+        newEquivalences.isEmpty()) throw new Satisfiable(model);
+    }
 
     /** removes redundancies from disjunctions.
      * - multiple occurrences of literals are removed <br>
@@ -255,6 +284,36 @@ public class ClausePurifier extends Solver {
         int newLength = length-zeros;
         if(newLength == 3) {model.add(nonZeroLiteral,new InfInputClause(clause[0])); return null;}
         return (zeros == 0) ? clause : compactify(clause,zeros);}
+
+    /** removes redundancies from equivalences.
+     * - multiple occurrences of literals are removed <br>
+     * - complementary literals are detected. This causes an Unsatisfiable exception to be thrown.<br>
+     * The original clause remains always unchanged.<br>
+     * All zeros (0) are removed from the literals.
+     *
+     * @param clause   an equivalence clause.
+     * @return         null (unit clause) or the unchanged clause or the purified shortened clause.
+     * @throws Unsatisfiable if the clause contains complementary literals.
+     */
+    protected int[] purifyEquivalence(int[] clause) throws Unsatisfiable {
+        boolean original = true;
+        int length = clause.length;
+        int zeros = 0;
+        for(int i = 2; i < length; ++i) {
+            int literal1 = clause[i];
+            if(literal1 == 0) {++zeros; continue;}
+            for(int j = i+1; j < length; ++j) {
+                int literal2 = clause[j];
+                if(literal1 == -literal2) throw new UnsatInputClause(clause);
+                if(literal1 ==  literal2) {
+                    if(original) {clause = Arrays.copyOf(clause,length); original = false;} // the original clause remains unchanged.
+                    clause[j] = 0;}}}
+
+        int newLength = length-zeros;
+        if(newLength == 3)  return null;
+        return (zeros == 0) ? clause : compactify(clause,zeros);}
+
+
 
     /** removes all redundancies from the clause.
      *

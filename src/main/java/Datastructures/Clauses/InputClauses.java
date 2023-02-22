@@ -56,6 +56,9 @@ public class InputClauses {
     /** the original equivalences. */
     public final ArrayList<int[]> equivalences  = new ArrayList<>();
 
+    /** without multiple occurrences of literals and complementary literals */
+    public ArrayList<int[]> purifiedEquivalences = equivalences;
+
     /** the original atleast clauses. */
     public final ArrayList<int[]> atleasts      = new ArrayList<>();
 

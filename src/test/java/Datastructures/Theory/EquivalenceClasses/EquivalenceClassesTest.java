@@ -41,8 +41,6 @@ public class EquivalenceClassesTest extends TestCase {
                 "1 = 2 = 3 = 4 = 5\n",eqc.toString());
 
 
-
-
         eqc = new EquivalenceClasses(null,null);
         int[] clause3 = new int[]{13,eqv,3,-5,6};
         clauses.add(clause3);
@@ -59,15 +57,6 @@ public class EquivalenceClassesTest extends TestCase {
         eqc.integrateEQUIVClauses(clauses1);
         assertTrue(eqc.isEmpty());
 
-        eqc = new EquivalenceClasses(null,null);
-        int[] clause5 = new int[]{13,eqv,3,4,-3};
-        ArrayList<int[]> clauses2 = new ArrayList<>(); clauses2.add(clause5);
-        try{
-            eqc.integrateEQUIVClauses(clauses2);
-            assertTrue(false);}
-        catch(Unsatisfiable unsatisfiable) {
-            //System.out.println(unsatisfiable.toString());
-        }
     }
 
 
