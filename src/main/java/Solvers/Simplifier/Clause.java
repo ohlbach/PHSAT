@@ -33,6 +33,8 @@ public class Clause {
     /** the list of all Literal objects in the clause. */
     protected ArrayList<Literal> literals;
 
+    protected boolean exists = true;
+
     /** the inference step which caused the derivation of this clause. */
     protected InferenceStep inferenceStep;
 

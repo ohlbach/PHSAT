@@ -48,8 +48,9 @@ public class Literals {
     /** removes a literal object from the Literal index.
      *
      * @param literalObject the literal object to be added.
+     * @return true if the chain of literals with the given literal is now empty.
      */
-    public void removeLiteral(Literal literalObject) {
+    public boolean removeLiteral(Literal literalObject) {
         int literal = literalObject.literal;
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
@@ -59,7 +60,8 @@ public class Literals {
         else previousLiteral.nextLiteral = nextLiteral;
         if(nextLiteral != null) nextLiteral.previousLiteral = previousLiteral;
         literalObject.previousLiteral = null;
-        literalObject.nextLiteral = null;}
+        literalObject.nextLiteral = null;
+        return literals[predicate] == null;}
 
     /** removes the entire predicate from the Literals index.
      *
@@ -69,6 +71,16 @@ public class Literals {
         int predicate = Math.abs(literal);
         positiveLiterals[predicate] = null;
         negativeLiterals[predicate] = null;}
+
+    /** checks if the literal chain for the given literal is empty.
+     *
+     * @param literal a literal
+     * @return true if the literal chain for the given literal is empty.
+     */
+    public boolean isEmpty(int literal) {
+        int predicate = Math.abs(literal);
+        return literal > 0 ? positiveLiterals[predicate] == null : negativeLiterals[predicate] == null;
+    }
 
     /** counts the number of literal objects for the given literal in the index.
      *

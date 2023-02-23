@@ -1,6 +1,6 @@
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import ProblemGenerators.ProblemGenerator;
-import Management.Controller;
+import Management.ProblemDistributor;
 import Management.GlobalParameters;
 import Utilities.KVParser;
 import Management.Monitor.Monitor;
@@ -52,7 +52,7 @@ public class QUSat {
     public HashMap<String,Object>            initializeParameters  = null;
     public ArrayList<HashMap<String,Object>> problemParameters = null;
     public ArrayList<HashMap<String,Object>> solverParameters  = null;
-    Controller controller = null;
+    ProblemDistributor problemDistributor = null;
 
 
     /** The main method can be called with or without arguments. <br>

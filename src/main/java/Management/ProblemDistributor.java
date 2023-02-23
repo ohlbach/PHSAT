@@ -22,7 +22,7 @@ import java.util.ArrayList;
  * - activates the solvers <br>
  * - collects the results and statistics
  */
-public class Controller {
+public class ProblemDistributor {
 
     /** The global parameters */
     public final GlobalParameters globalParameters;
@@ -43,8 +43,8 @@ public class Controller {
      * @param problemGenerators  the problem generators
      * @param solvers            the solvers
      */
-    public Controller(GlobalParameters globalParameters, ArrayList<ProblemGenerator> problemGenerators,
-                      ArrayList<Solver> solvers) {
+    public ProblemDistributor(GlobalParameters globalParameters, ArrayList<ProblemGenerator> problemGenerators,
+                              ArrayList<Solver> solvers) {
         this.globalParameters  = globalParameters;
         this.solvers = solvers;
         for(ProblemGenerator problemGenerator : problemGenerators) {

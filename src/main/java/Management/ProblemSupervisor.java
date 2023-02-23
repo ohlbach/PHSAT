@@ -36,7 +36,7 @@ public class ProblemSupervisor {
     Thread[] threads;
     Result[] results;
     int numberOfSolvers;
-    public Controller controller;
+    public ProblemDistributor problemDistributor;
 
     public Model model;
     public EquivalenceClasses equivalenceClasses;

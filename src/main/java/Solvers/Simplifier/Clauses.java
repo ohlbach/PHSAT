@@ -18,36 +18,42 @@ public class Clauses {
     /** adds a clause at the end of the list.
      *
      * @param clause the clause to be added.
+     * @return the new number of clauses.
      */
-    public void addClause(Clause clause) {
-        if(firstClause == null) {firstClause = clause; lastClause = clause; return;}
+    public int addClause(Clause clause) {
+        if(firstClause == null) {firstClause = clause; lastClause = clause; size = 1; return 1;}
         clause.previousClause = lastClause;
         lastClause.nextClause = clause;
         lastClause = clause;
-        ++size;}
+        return ++size;}
 
     /** removes a clause from the list
      *
-     * @param clause the clause to be removed.*/
-    public void removeClause(Clause clause) {
-        if(clause.nextClause == null) {
-            if(clause.previousClause == null) return;
-            lastClause = clause.previousClause; clause.previousClause = null; return;}
-        if(clause.previousClause == null) {
-            firstClause = clause.nextClause; clause.nextClause = null; return;}
-        Clause previous = clause.previousClause;
+     * @param clause the clause to be removed.
+     * @return the new number of clauses in the list.
+     * */
+    public int removeClause(Clause clause) {
+        if(clause.nextClause == null) { // it is the clause at the end of the chain.
+            if(clause.previousClause == null) return size; // the clause is not linked.
+            lastClause = clause.previousClause; clause.previousClause = null; return --size;}
+        if(clause.previousClause == null) { // it is the first clause in the chain
+            firstClause = clause.nextClause; clause.nextClause = null; return --size;}
+
+        Clause previous = clause.previousClause;  // now the clause is in the middle.
         Clause next = clause.nextClause;
         previous.nextClause = next;
         next.previousClause = previous;
         clause.previousClause = null;
         clause.nextClause = null;
-        --size;}
+        return --size;}
 
     /** returns the number of clauses in the list.
      *
      * @return the number of clauses in the list.
      */
     public int size() {return size;}
+
+    public boolean isEmpty() {return firstClause == null;}
 
     /** generates a string containing all clauses in the list.
      *
