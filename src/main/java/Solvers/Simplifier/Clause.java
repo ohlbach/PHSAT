@@ -1,45 +1,70 @@
 package Solvers.Simplifier;
 
 import Datastructures.Clauses.Connective;
-import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
+/** A Clause object is essentially a collection of Literal objects.<br>
+ *  A clause can only be a disjunction (OR-clause) or an ATLEAST-clause.
+ *  Other types are not supported.<br>
+ *  Each Clause object may be part of a doubly connected list of clauses. <br>
+ *  Clauses can be destructively changed.
+ */
 public class Clause {
-    public int id;
-    public Connective connective;
-    public int quantifier;
-    public int expandedSize = 0;
-    public boolean isDisjunction;
-    public boolean hasMultipleLiterals = false;
-    public ArrayList<Literal> literals;
-    public int timestamp;
+    /** the identifier for the clause. */
+    protected int id;
 
-    public Clause previousClause;
-    public Clause nextClause;
-    public InferenceStep inferenceStep;
+    /** the connective, OR or ATLEAST. */
+    protected Connective connective;
 
+    /** true if the connective is OR. */
+    protected boolean isDisjunction;
+
+    /** the quantifier for ATLEAST clauses. */
+    protected int quantifier = 1;
+
+    /** the sum of all multiplicities of the literals. */
+    protected int expandedSize = 0;
+
+    /** the list of all Literal objects in the clause. */
+    protected ArrayList<Literal> literals;
+
+    /** the inference step which caused the derivation of this clause. */
+    protected InferenceStep inferenceStep;
+
+    /** a timstamp to be used by various algorithms. */
+    protected int timestamp = 0;
+
+    /** a pointer to the previous clause in a doubly connected list. */
+    protected Clause previousClause;
+
+    /** a pointer to the next clause in a doubly connected list. */
+    protected Clause nextClause;
+
+    /** The constructor turns an InputClause int[]-array into a Clause object.
+     *
+     * @param inputClause InputClause int[]-array.
+     */
     public Clause(int[] inputClause) {
         id = inputClause[0];
         connective = Connective.getConnective(inputClause[1]);
-        assert(connective != null);
+        assert(connective != null && (connective == Connective.OR || connective == Connective.ATLEAST));
         isDisjunction = connective == Connective.OR;
-        quantifier = inputClause[2];
+        quantifier = isDisjunction ? 1 : inputClause[2];
         inferenceStep = new InfInputClause(id);
         int length = inputClause.length;
         int start = connective.firstLiteralIndex;
         literals = new ArrayList<>(length-start);
         if(isDisjunction)
             for(int i = start; i < length; ++i) {
-                Literal literalData = new Literal(inputClause[i],1);
-                literalData.clause = this;
+                Literal literalObject = new Literal(inputClause[i],1);
+                literalObject.clause = this;
                 ++expandedSize;
-                literals.add(literalData);}
+                literals.add(literalObject);}
         else {
             inputClause = Arrays.copyOf(inputClause,length);
             for(int i = start; i < length; ++i) {
@@ -49,103 +74,63 @@ public class Clause {
                 for(int j = i+1; j < length; ++j) {
                     if(literal1 == inputClause[j]) {
                         ++multiplicity;
-                        inputClause[j] = 0;
-                        hasMultipleLiterals = true;}}
+                        inputClause[j] = 0;}}
                 expandedSize += multiplicity;
-                Literal literalData = new Literal(literal1,multiplicity);
-                literalData.clause = this;
-                literals.add(literalData);}}}
+                Literal literalObject = new Literal(literal1,multiplicity);
+                literalObject.clause = this;
+                literals.add(literalObject);}}}
 
-    /** The method applies a true literal to the clause.<br>
-     * For a disjunction this means that the clause is true and can therefore be deleted.<br>
-     * For a quantified clause this means that the literal can be deleted and the quantifier
-     * must be reduced by the literal's multiplicity.
-     * <br>
-     * The resulting clause must be checked for the following phenomena: <br>
-     *  - if the resulting quantifier is &lt;= 0, the clause is true and can be deleted.<br>
-     *  - if the resulting quantifier is 1, the clause became a disjunction. <br>
-     *  - if the quantifier is still &gt; 1, new true literals might be derived.<br>
-     *  Example: atleast 4 p,q^2,r^2 and p is true<br>
-     *  The clause is then: atleast 3 q^2,r^2. <br>
-     *  Both q and r must now be true.
+    /** removes a literal object from the clause.<br>
+     * All internal data are updated (quantifier, multiplicity of the literals, connective)
      *
-     * @param literalData   the true literal to be deleted
-     * @param literalIndex the literal index
-     * @param model        the model
-     * @return             true if the clause can be deleted.
-     * @throws Unsatisfiable if a contradiction is discovered.
+     * @param literalObject    the literal to be removed
+     * @param reduceQuantifier if true then the quantifier is reduced by the literal's multiplicity.
      */
-    public boolean applyTrueLiteral(Literal literalData, Literals literalIndex, Model model) throws Unsatisfiable {
-        if(isDisjunction) { // clause is true and can be removed.
-            for(Literal lit : literals) literalIndex.removeLiteral(lit);
-            return true;}
+    protected void removeLiteral(Literal literalObject, boolean reduceQuantifier) {
+        literals.remove(literalObject);
+        expandedSize -= literalObject.multiplicity;
+        literalObject.clause = null;
+        if(!isDisjunction && reduceQuantifier) {
+            quantifier -= literalObject.multiplicity;
+            if(quantifier == 1) {
+                isDisjunction = true;
+                connective = Connective.OR;
+                for(Literal literalObject1 : literals) {literalObject1.multiplicity = 1;}
+                expandedSize = literals.size();
+                return;}
+            for(Literal literalObject1 : literals) {
+                int multiplicity = literalObject1.multiplicity;
+                if(multiplicity > quantifier) {
+                    expandedSize -= quantifier-multiplicity;
+                    literalObject1.multiplicity = quantifier;}}}}
 
-        quantifier -= literalData.multiplicity;
-        if(quantifier <= 0) { // clause is true and can be removed.
-            for(Literal lit : literals) literalIndex.removeLiteral(lit);
-            return true;}
-
-        literals.remove(literalData);
-        literalIndex.removeLiteral(literalData);
-
-        if(quantifier == 1) { // clause became a disjunction.
-            isDisjunction = true;
-            connective = Connective.OR;
-            for(Literal lit : literals) lit.multiplicity = 1;
-            expandedSize = literals.size();
-            return false;} // clause is shorter, but cannot be removed.
-
-        for(Literal lit : literals) {
-            if(lit.multiplicity > quantifier) {
-                expandedSize -= quantifier - lit.multiplicity;
-                lit.multiplicity = quantifier;}}
-        expandedSize -= literalData.multiplicity;
-
-        return reclassify(literalData.literal, model);}
-
-    /** The method applies a false literal to the clause.<br>
-    * For a disjunction this means that the literal can be removed from the clause.<br>
-     * If the clause becomes a unit clause, the surviving literal must be true and is put into the model.<br>
-    * For a quantified clause this means that the literal can be deleted, but the quantifier remains the same.
-    * <br>
-    * The resulting clause must be checked for the following phenomena: <br>
-    *  - if the resulting quantifier equals the remaining expandedSize all literals must be true.<br>
-    *  - if the quantifier is &gt; 1, new true literals might be derived.<br>
-    *  Example: atleast 3 p,q^2,r^2 and p is false<br>
-    *  The clause is then: atleast 3 q^2,r^2. <br>
-    *  Both q and r must now be true.
-    *
-    * @param literalData  the true literal to be deleted
-    * @param literalIndex the literal index
-    * @param model        the model
-    * @return             true if the clause can be deleted.
-    * @throws Unsatisfiable if a contradiction is discovered.
+    /** finds a literal which must be true in an ATLEAST-clause. <br>
+     *  Example: atleast 3 p^2,q^2.<br>
+     *  If p is false then the clause became atleast 3 q^2, which is no longer satisfiable.
+     *  Therefore, p must be true (and q as well.)
+     *
+     * @return the first literal which must be true in an ATLEAST-clause.
      */
-    public boolean applyFalseLiteral(Literal literalData, Literals literalIndex, Model model) throws Unsatisfiable {
-        literalIndex.removeLiteral(literalData);
-        if(isDisjunction) {
-            literals.remove(literalData);
-            if(literals.size() == 1) {
-                int literal = literals.get(0).literal;
-                InferenceStep step = model.getInferenceStep(-literalData.literal);
-                if(step != null) step = new InfFalseLiteralDeletion(literal,step);
-                model.add(literals.get(0).literal, step);
-                return true;}
-            return false;}
-        literals.remove(literalData);
-        literalIndex.removeLiteral(literalData);
-        return reclassify(-literalData.literal, model);}
+    protected int findTrueLiteral() {
+        for(Literal literalObject: literals) {
+            if(expandedSize-literalObject.multiplicity < quantifier) {
+                return literalObject.literal;}}
+        return 0;}
 
-    protected boolean reclassify(int literal,Model model) throws Unsatisfiable{
-        for(Literal literalData: literals) {
-            if(expandedSize-literalData.multiplicity < quantifier) {
-                model.add(literalData.literal,null);
-            }
-        }
 
-    }
 
+    /** returns the number of Literal objects in the clause.
+     *
+     * @return the number of Literal objects in the clause.
+     */
     public int size() {return literals.size();}
+
+    /** returns the sum of the literal's multiplicities.
+     *
+     * @return the sum of the literal's multiplicities.
+     */
+    public int expandedSize() {
+        return expandedSize;}
 
     public String toString() {
         return toString(null,0);}

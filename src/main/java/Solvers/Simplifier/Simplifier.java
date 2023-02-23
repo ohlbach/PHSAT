@@ -10,6 +10,7 @@ import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
@@ -35,7 +36,8 @@ public class Simplifier extends Solver {
     /** for distinguishing the monitoring areas */
     private String monitorId;
 
-    private Literals literalIndex;
+    private Literals literalIndexTwo;
+    private Literals literalIndexMore;
     private Clauses clauses;
 
     public Simplifier(ProblemSupervisor problemSupervisor) {
@@ -104,25 +106,59 @@ public class Simplifier extends Solver {
             catch(Result result) {
                 problemSupervisor.finished("Simplifier", result,"");
                 return;}}}
-
+/** The method applies a true literal to the clause.<br>
+ * For a disjunction this means that the clause is true and can therefore be deleted.<br>
+ * For a quantified clause this means that the literal can be deleted and the quantifier
+ * must be reduced by the literal's multiplicity.
+ * <br>
+ * The resulting clause must be checked for the following phenomena: <br>
+ *  - if the resulting quantifier is &lt;= 0, the clause is true and can be deleted.<br>
+ *  - if the resulting quantifier is 1, the clause became a disjunction. <br>
+ *  - if the quantifier is still &gt; 1, new true literals might be derived.<br>
+ *  Example: atleast 4 p,q^2,r^2 and p is true<br>
+ *  The clause is then: atleast 3 q^2,r^2. <br>
+ *  Both q and r must now be true.
+ *  */
     protected void applyTrueLiteral(int literal, InferenceStep inferenceStep) throws Result {
-        Literal literalData = literalIndex.getFirstLiteral(literal);
-        while(literalData != null) {
-            Clause clause = literalData.clause;
-            if(clause.applyTrueLiteral(literalData, literalIndex,model)) clauses.removeClause(clause);
-            Literal nextLiteral = literalData.nextLiteral;
-            literalIndex.removeLiteral(literalData);
-            literalData = nextLiteral;}
+        Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal);
+        while(literalObject != null) {
+            clauses.removeClause(literalObject.clause);
+            literalObject = literalObject.nextLiteral;}
 
-        literalData = literalIndex.getFirstLiteral(-literal);
-        while(literalData != null) {
-            Clause clause = literalData.clause;
-            if(clause.applyFalseLiteral(literalData, literalIndex,model)) clauses.removeClause(clause);
-            Literal nextLiteral = literalData.nextLiteral;
-            literalIndex.removeLiteral(literalData);
-            literalData = nextLiteral;}
+        literalObject = literalIndexTwo.getFirstLiteralObject(-literal);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            ArrayList<Literal> literals = clause.literals;
+            int trueLiteral = (literals.get(0).literal == literal) ? literals.get(1).literal: literals.get(0).literal;
+            model.add(trueLiteral,null);
+            clauses.removeClause(clause);
+            literalObject = literalObject.nextLiteral;}
+        literalIndexTwo.removePredicate(literal);
 
+        literalObject = literalIndexMore.getFirstLiteralObject(literal);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if(clause.isDisjunction) clauses.removeClause(clause);
+            else {
+                clause.removeLiteral(literalObject, true);
+                analyseShortendClause(clause);}
+            literalObject = literalObject.nextLiteral;}
 
+        literalObject = literalIndexMore.getFirstLiteralObject(-literal);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            clause.removeLiteral(literalObject, false);
+            analyseShortendClause(clause);
+            literalObject = literalObject.nextLiteral;}
+
+        literalIndexMore.removePredicate(literal);}
+
+    protected void analyseShortendClause(Clause clause) {
+        if(clause.isDisjunction) {
+            if(clause.size() == 2) {
+                
+            }
+        }
     }
 
     protected void applyEquivalence(int representative, int literal, InferenceStep inferenceStep) {
