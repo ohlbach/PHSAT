@@ -14,6 +14,7 @@ import Solvers.Solver;
 
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.function.IntSupplier;
 
 import static java.lang.Thread.interrupted;
 
@@ -41,6 +42,10 @@ public class Simplifier extends Solver {
     private Literals literalIndexMore;
     private Clauses clauses;
 
+    private IntSupplier nextId;
+
+    private int timestamp = 1;
+
     public Simplifier(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
         this.inputClauses = problemSupervisor.inputClauses;
@@ -54,7 +59,7 @@ public class Simplifier extends Solver {
         TrueLiteral,
         /** a new binary equivalence is found in the TwoLiteral module. */
         Equivalence,
-        TwoLiteralClause,
+        BinaryClause,
         SimplifyTwoLiteralClauses,
         SimplifyLongerClauses
     }
@@ -68,7 +73,7 @@ public class Simplifier extends Solver {
         switch(task.taskType) {
             case TrueLiteral: return Integer.MIN_VALUE + Math.abs((Integer)task.a);
             case Equivalence: return (Math.abs((Integer)task.a)); // this guarantees a deterministic sequence of the tasks
-            case TwoLiteralClause:          return 100;
+            case BinaryClause:          return 100;
             case SimplifyTwoLiteralClauses: return 101;
             case SimplifyLongerClauses:     return 102;}
         return 0;}
@@ -100,7 +105,7 @@ public class Simplifier extends Solver {
                 switch(task.taskType){
                     case TrueLiteral: applyTrueLiteral((Integer)task.a); break;
                     case Equivalence: applyEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;
-                    case TwoLiteralClause: break;
+                    case BinaryClause: processBinaryClause((Clause)task.a); break;
                     case SimplifyTwoLiteralClauses: break;
                     case SimplifyLongerClauses: break;}}
             catch(InterruptedException ex) {return;}
@@ -170,17 +175,119 @@ public class Simplifier extends Solver {
 
         }}
 
+    protected void processBinaryClause(Clause clause) throws Result {
+        if(!clause.exists) return;
+        subsumedByBinaryClause(clause);
+        binaryClauseResolutionCompletion(clause);}
+
+    /** removes all longer clauses which are subsumed by a binary clause.
+     *
+     * @param clause a binary clause
+     * @throws Result if the clause set becomes empty.
+     */
+    protected void subsumedByBinaryClause(Clause clause) throws Result {
+        int quantifier = clause.quantifier;
+        Literal literalObject = literalIndexMore.getFirstLiteralObject(clause.literals.get(0).literal);
+        while(literalObject != null) {
+            Clause clause1 = literalObject.clause;
+            if(clause1.exists && clause1 != clause && clause1.quantifier <= quantifier) clause1.timestamp = timestamp;
+            literalObject = literalObject.nextLiteral;}
+        literalObject = literalIndexTwo.getFirstLiteralObject(clause.literals.get(1).literal);
+        while(literalObject != null) {
+            Clause clause1 = literalObject.clause;
+            literalObject = literalObject.nextLiteral;
+            if(clause1.timestamp == timestamp) removeClause(clause1);}
+        ++timestamp;}
+
+    /** checks if the binary clause is subsumed by another binary clause.
+     *
+     * @param clause a binary clause
+     * @return true if the clause is subsumed.
+     */
+    protected boolean isSubsumedBinaryClause(Clause clause) {
+        return isSubsumedBinaryClause(clause.literals.get(0).literal, clause.literals.get(1).literal);}
+
+    /** checks if the binary clause is subsumed by another binary clause.
+     *
+     * @param literal1 the first literal of a binary clause
+     * @param literal2 the second literal of a binary clause.
+     * @return true if the clause is subsumed.
+     */
+    protected boolean isSubsumedBinaryClause(int literal1, int literal2) {
+        Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal1);
+        while(literalObject != null) {
+            literalObject.clause.timestamp = timestamp;
+            literalObject = literalObject.nextLiteral;}
+        literalObject = literalIndexTwo.getFirstLiteralObject(literal2);
+        while(literalObject != null) {
+            if(literalObject.clause.timestamp == timestamp) {++timestamp; return true;}
+            literalObject = literalObject.nextLiteral;}
+        return false;}
+
+
+    protected void binaryClauseResolutionCompletion(Clause clause) throws Result {
+        int literal1 = clause.literals.get(0).literal;
+        Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
+        while(literalObject != null) {
+            Clause clause1 = literalObject.clause;
+            if(clause1.exists) clause1.timestamp = timestamp;
+            literalObject = literalObject.nextLiteral;}
+        int literal2 = clause.literals.get(0).literal;
+        literalObject = literalIndexTwo.getFirstLiteralObject(literal2);
+        while(literalObject != null) {
+            Clause clause1 = literalObject.clause;
+            if(clause1.timestamp == timestamp) binaryResolution(clause,clause1);
+            literalObject = literalObject.nextLiteral;}
+    }
+
+    protected void binaryResolution(Clause clause1, Clause clause2) {
+        int literala1 = clause1.literals.get(0).literal;
+        int literala2 = clause1.literals.get(1).literal;
+        int literalb1 = clause2.literals.get(0).literal;
+        int literalb2 = clause2.literals.get(1).literal;
+        int literalc1,literalc2;
+        if(literala1 == -literalb1) {literalc1 = literala2; literalc2 = literalb2;}
+        else {
+            if(literala1 == -literalb1) {literalc1 = literala2; literalc2 = literalb1;}
+            else {
+                if(literala2 == -literalb1) {literalc1 = literala1; literalc2 = literalb2;}
+                else {literalc1 = literala1; literalc2 = literalb1;}}}
+        int quantifier1 = clause1.quantifier;
+        int quantifier2 = clause2.quantifier;
+        int quantifier;
+        if(quantifier1 == quantifier2) quantifier = quantifier1;
+        else {
+            if(Math.abs(quantifier1-quantifier2) == 1) quantifier = Math.min(quantifier1,quantifier2);
+            else quantifier = Math.max(quantifier1,quantifier2) - 1;
+        }
+        if(literalc1 == -literalc2) return;
+        if(literalc1 == literalc2) {addTrueLiteral(literalc1,null); return;}
+        Clause resolvent = new Clause(nextId.getAsInt(), quantifier, literalc1,1, literalc2,1); // anpassen
+        if(isSubsumedBinaryClause(resolvent)) return;
+        insertClause(resolvent);
+        addBinaryClauseTask(resolvent);
+        }
 
     protected void addBinaryClauseTask(Clause clause) {
-        synchronized (this) {queue.add(new Task<Simplifier.TaskType>(TaskType.TwoLiteralClause, clause));}}
+        synchronized (this) {queue.add(new Task<>(TaskType.BinaryClause, clause));}}
 
     protected void addSimplifyClauseTask(Clause clause) {
-        synchronized (this) {queue.add(new Task<Simplifier.TaskType>(TaskType.SimplifyLongerClauses, clause));}}
+        synchronized (this) {queue.add(new Task<>(TaskType.SimplifyLongerClauses, clause));}}
 
 
     protected void applyEquivalence(int representative, int literal, InferenceStep inferenceStep) {
 
     }
+
+    /** inserts a clause into the internal lists.
+     *
+     * @param clause a clause.
+     */
+    protected void insertClause(Clause clause) {
+        Literals literalIndex = (clause.size() == 2) ? literalIndexTwo : literalIndexMore;
+        for(Literal literalObject : clause.literals) literalIndex.addLiteral(literalObject);
+        clauses.addClause(clause);}
+
 
     /** removes the clause from the internal lists.<br>
      * If the clause list becomes empty a EmptyClauses exception is thrown.<br>

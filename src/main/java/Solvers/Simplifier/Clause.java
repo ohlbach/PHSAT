@@ -82,6 +82,26 @@ public class Clause {
                 literalObject.clause = this;
                 literals.add(literalObject);}}}
 
+    /** constructs a new clause from a list of literal,multiplicity pairs.
+     *
+     * @param id         the identifier
+     * @param quantifier the quantifier
+     * @param items      pairs literal,multiplicity
+     */
+    public Clause(int id, int quantifier, int... items) {
+        this.id = id;
+        this.quantifier = quantifier;
+        connective = quantifier == 1 ? Connective.OR : Connective.ATLEAST;
+        isDisjunction = connective == Connective.OR;
+        literals = new ArrayList<>(items.length/2);
+        for(int i = 0; i < items.length; i +=2) {
+            int literal = items[i];
+            int multiplicity = Math.min(items[i+1],quantifier);
+            expandedSize += multiplicity;
+            Literal literalObject = new Literal(literal,multiplicity);
+            literalObject.clause = this;
+            literals.add(literalObject);}}
+
     /** removes a literal object from the clause.<br>
      * All internal data are updated (quantifier, multiplicity of the literals, connective)
      *
