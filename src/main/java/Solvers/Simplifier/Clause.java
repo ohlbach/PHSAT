@@ -85,13 +85,14 @@ public class Clause {
     /** constructs a new clause from a list of literal,multiplicity pairs.
      *
      * @param id         the identifier
+     * @param connective the connective
      * @param quantifier the quantifier
      * @param items      pairs literal,multiplicity
      */
-    public Clause(int id, int quantifier, int... items) {
+    public Clause(int id, Connective connective, int quantifier, int... items) {
         this.id = id;
         this.quantifier = quantifier;
-        connective = quantifier == 1 ? Connective.OR : Connective.ATLEAST;
+        this.connective = connective;
         isDisjunction = connective == Connective.OR;
         literals = new ArrayList<>(items.length/2);
         for(int i = 0; i < items.length; i +=2) {
@@ -101,6 +102,32 @@ public class Clause {
             Literal literalObject = new Literal(literal,multiplicity);
             literalObject.clause = this;
             literals.add(literalObject);}}
+
+    /** This is a constructor for a disjunction.
+     *
+     * @param id             the identifier
+     * @param literalNumbers the literals of the disjunction.
+     */
+    public Clause(int id,  int... literalNumbers) {
+        this.id = id;
+        this.quantifier = 1;
+        this.connective = Connective.OR;
+        expandedSize = literalNumbers.length;
+        for(int literal : literalNumbers) {
+            Literal literalObject = new Literal(literal,1);
+            literalObject.clause = this;
+            literals.add(literalObject);}}
+
+
+    /** finds the Literal with the given literal
+     *
+     * @param literal a literal
+     * @return null or a Literal with the given litral
+     */
+    protected Literal findLiteral(int literal) {
+        for(Literal literalObject : literals) {
+            if(literalObject.literal == literal) return literalObject;}
+        return null;}
 
     /** removes a literal object from the clause.<br>
      * All internal data are updated (quantifier, multiplicity of the literals, connective)
