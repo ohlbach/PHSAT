@@ -28,7 +28,7 @@ public class Literal {
         this.multiplicity = multiplicity;}
 
     /** returns a string representation of the literal: for example 3^2
-     * @return a tring representation of the literal. */
+     * @return a string representation of the literal. */
     public String toString() {
         return toString(null);}
 

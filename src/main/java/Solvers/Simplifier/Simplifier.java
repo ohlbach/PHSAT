@@ -333,7 +333,7 @@ public class Simplifier extends Solver {
     }
 
     protected Clause reduceShortenedToBinaryClause(Clause clause) throws Result {
-
+    return clause;
 
     }
 

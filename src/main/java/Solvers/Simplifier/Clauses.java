@@ -3,6 +3,7 @@ package Solvers.Simplifier;
 import Datastructures.Symboltable;
 
 /** The Clauses class maintains a doubly connected list of Clause objects.
+ * New clauses are appended at the end of the list.
  */
 public class Clauses {
 
@@ -21,6 +22,7 @@ public class Clauses {
      * @return the new number of clauses.
      */
     public int addClause(Clause clause) {
+        assert(clause.previousClause == null && clause.nextClause == null && clause != firstClause);
         if(firstClause == null) {firstClause = clause; lastClause = clause; size = 1; return 1;}
         clause.previousClause = lastClause;
         lastClause.nextClause = clause;
@@ -34,8 +36,10 @@ public class Clauses {
      * */
     public int removeClause(Clause clause) {
         if(clause.nextClause == null) { // it is the clause at the end of the chain.
-            if(clause.previousClause == null) return size; // the clause is not linked.
-            lastClause = clause.previousClause; clause.previousClause = null; return --size;}
+            if(clause == firstClause) {size = 0; firstClause = null; clause.previousClause = null; return 0;}
+            if(clause.previousClause == null) {return size;} // the clause is not linked.
+            Clause previousClause = clause.previousClause;
+            lastClause = previousClause; clause.previousClause = null; previousClause.nextClause = null; return --size;}
         if(clause.previousClause == null) { // it is the first clause in the chain
             firstClause = clause.nextClause; clause.nextClause = null; return --size;}
 
@@ -53,6 +57,10 @@ public class Clauses {
      */
     public int size() {return size;}
 
+    /** checks if the list is empty.
+     *
+     * @return true if the list is empty.
+     */
     public boolean isEmpty() {return firstClause == null;}
 
     /** generates a string containing all clauses in the list.

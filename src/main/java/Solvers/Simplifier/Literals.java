@@ -112,11 +112,11 @@ public class Literals {
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append("Positive Literals:\n");
-        for(int predicate = 1; predicate <= positiveLiterals.length; ++predicate) {
+        for(int predicate = 1; predicate < positiveLiterals.length; ++predicate) {
             int size = size(predicate);
             if(size != 0) st.append(Symboltable.toString(predicate, symboltable)).append(":").append(size).append(",");}
         st.append("\nNegative Literals:\n");
-        for(int predicate = 1; predicate <= negativeLiterals.length; ++predicate) {
+        for(int predicate = 1; predicate < negativeLiterals.length; ++predicate) {
             int size = size(-predicate);
             if(size != 0) st.append(Symboltable.toString(-predicate, symboltable)).append(":").append(size).append(",");}
         return st.toString();}
