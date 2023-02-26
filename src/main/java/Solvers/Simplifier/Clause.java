@@ -4,7 +4,6 @@ import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -161,23 +160,40 @@ public class Clause {
                     literalObject1.multiplicity = quantifier;}}}
         hasMultiplicities = expandedSize > literals.size();}
 
+    /** removes all given literals from the clause and reduces the quantifier.
+     * To be used for the literals found by findTrueLiterals.
+     *
+     * @param literalObjects which are to be removed from the clause.
+     * @return true if the clause has become true (tuatology).
+     */
+    protected boolean removeLiterals(ArrayList<Literal> literalObjects) {
+        for(Literal literalObject : literalObjects) {
+            literals.remove(literalObject);
+            quantifier -= literalObject.multiplicity;
+            expandedSize -= literalObject.multiplicity;}
+        if(quantifier <= 1) {
+            isDisjunction = true;
+            connective = Connective.OR;}
+        hasMultiplicities = expandedSize > literals.size();
+        return quantifier <= 0;}
+
     /** finds a literal which must be true in an ATLEAST-clause. <br>
      *  Example: atleast 3 p^2,q^2.<br>
      *  If p is false then the clause became atleast 3 q^2, which is no longer satisfiable.
      *  Therefore, p must be true (and q as well.)
      *
      * @param trueLiterals a list for collecting the true literals.
-     * @return the number of literals which must be true in an ATLEAST-clause.
+     * @return the sum of the multiplicities which can be deleted in ATLEAST-clause.
      */
-    protected int findTrueLiterals(IntArrayList trueLiterals) {
+    protected int findTrueLiterals(ArrayList<Literal> trueLiterals) {
         trueLiterals.clear();
         if(!hasMultiplicities) return 0;
-        int counter = 0;
+        int multiplicities = 0;
         for(Literal literalObject: literals) {
             if(expandedSize-literalObject.multiplicity < quantifier) {
-                ++counter;
-                trueLiterals.add(literalObject.literal);}}
-        return counter;}
+                multiplicities += literalObject.multiplicity;
+                trueLiterals.add(literalObject);}}
+        return multiplicities;}
 
 
 

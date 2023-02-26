@@ -13,6 +13,7 @@ import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.IntSupplier;
@@ -331,6 +332,31 @@ public class Simplifier extends Solver {
         }
         return null;
     }
+    private ArrayList<Literal> trueLiterals = new ArrayList<>(5);
+
+    /** extracts true literals from a clause. <br>
+     * Example: atleast 4 p^2,q^2,r<br>
+     * p and q must be true. <br>
+     * The true literals are inserted into the model and removed from the clause.
+     * If the clause survives it is reinserted into the clause index
+     * and a BinaryClauseTask or a ShortenedClause task is generated.
+     * 
+     * @param clause   the clause to be investigated
+     * @throws Result  EmptyClauses or Unsatisfiability
+     */
+    protected void extractTrueLiterals(Clause clause) throws Result {
+        if(!clause.hasMultiplicities) return;
+        int quantifierReduction = clause.findTrueLiterals(trueLiterals);
+        if(trueLiterals.isEmpty()) return;
+        for(Literal literalObject : trueLiterals) {
+            model.add(literalObject.literal,null);}
+        removeClause(clause);
+        if(clause.removeLiterals(trueLiterals)) {
+            if(clauses.isEmpty()) throw new EmptyClauses(model);
+            return;}
+        insertClause(clause);
+        if(clause.size() == 2) addBinaryClauseTask(clause);
+        else analyseShortendClause(clause);}
 
     protected Clause reduceShortenedToBinaryClause(Clause clause) throws Result {
     return clause;
@@ -367,7 +393,7 @@ public class Simplifier extends Solver {
      * @throws Result if the clause set becomes empty or a pure literal causes an contradiction.
      */
     protected void removeClause(Clause clause) throws Result {
-        if(clauses.removeClause(clause) == 0) throw new EmptyClauses(model);
+        clauses.removeClause(clause);
         clause.exists = false;
         Literals literalIndex1,literalIndex2;
         if(clause.size() == 2) {literalIndex1 = literalIndexTwo; literalIndex2 = literalIndexMore;}

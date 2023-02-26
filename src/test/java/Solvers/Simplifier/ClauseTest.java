@@ -2,8 +2,9 @@ package Solvers.Simplifier;
 
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
+
+import java.util.ArrayList;
 
 public class ClauseTest extends TestCase {
     static int cOr = Connective.OR.ordinal();
@@ -43,8 +44,8 @@ public class ClauseTest extends TestCase {
         assertNull(clause1.findLiteral(3));
         assertEquals(clause1,clause1.findLiteral(1).clause);
 
-        IntArrayList trueLiterals = new IntArrayList(5);
-        trueLiterals.add(25);
+        ArrayList<Literal> trueLiterals = new ArrayList(5);
+        trueLiterals.add(null);
         assertEquals(0,clause1.findTrueLiterals(trueLiterals));
         assertTrue(trueLiterals.isEmpty());
     }
@@ -62,19 +63,22 @@ public class ClauseTest extends TestCase {
         assertEquals(7,clause.expandedSize());
         assertFalse(clause.isDisjunction);
         assertTrue(clause.hasMultiplicities);
-        IntArrayList trueLiterals = new IntArrayList(5);
+        ArrayList<Literal> trueLiterals = new ArrayList(5);
         assertEquals(0,clause.findTrueLiterals(trueLiterals));
         assertTrue(trueLiterals.isEmpty());
     }
 
     public void testFindTrueLiterals() {
         System.out.println("findTrueLiterals");
-        int[] c1 = new int[]{12, cAtleast, 3, 1, 2, 1, 2};
+        int[] c1 = new int[]{12, cAtleast, 4, 1, 2, 1, 2,3};
         Clause clause = new Clause(c1);
-        assertEquals("12: >= 3 p^2,q^2",clause.toString(symboltable,0));
-        IntArrayList trueLiterals = new IntArrayList(5);
-        assertEquals(2,clause.findTrueLiterals(trueLiterals));
-        assertEquals("[1, 2]",trueLiterals.toString());
+        assertEquals("12: >= 4 p^2,q^2,r",clause.toString(symboltable,0));
+        ArrayList<Literal> trueLiterals = new ArrayList(5);
+        assertEquals(4,clause.findTrueLiterals(trueLiterals));
+        assertEquals(1,trueLiterals.get(0).literal);
+        assertEquals(2,trueLiterals.get(1).literal);
+        assertTrue(clause.removeLiterals(trueLiterals));
+        assertEquals("12: r",clause.toString(symboltable,0));
 
         int[] c2 = new int[]{13, cAtleast, 3, 1, 2, 1, 2,3};
         clause = new Clause(c2);
