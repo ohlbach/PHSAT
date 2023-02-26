@@ -4,6 +4,8 @@ import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
+import Utilities.Utilities;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -158,13 +160,14 @@ public class Clause {
                 if(multiplicity > quantifier) {
                     expandedSize -= quantifier-multiplicity;
                     literalObject1.multiplicity = quantifier;}}}
+        if(hasMultiplicities && quantifier > 1) divideByGCD();
         hasMultiplicities = expandedSize > literals.size();}
 
     /** removes all given literals from the clause and reduces the quantifier.
      * To be used for the literals found by findTrueLiterals.
      *
      * @param literalObjects which are to be removed from the clause.
-     * @return true if the clause has become true (tuatology).
+     * @return true if the clause has become true (tautology).
      */
     protected boolean removeLiterals(ArrayList<Literal> literalObjects) {
         for(Literal literalObject : literalObjects) {
@@ -175,7 +178,30 @@ public class Clause {
             isDisjunction = true;
             connective = Connective.OR;}
         hasMultiplicities = expandedSize > literals.size();
+        if(hasMultiplicities && quantifier > 1) divideByGCD();
         return quantifier <= 0;}
+
+    private IntArrayList numbers = new IntArrayList();
+    /** divides the quantifier and the multiplicities by their greatest common divisor.
+     */
+    protected void divideByGCD() {
+        numbers.clear(); numbers.add(quantifier);
+        boolean stop = false;
+        for(Literal literalObject : literals) {
+            int multiplicity = literalObject.multiplicity;
+            if(multiplicity == 1) {stop = true; break;}
+            numbers.add(multiplicity);}
+        if(!stop) {
+            int gcd = Utilities.gcd(numbers);
+            if(gcd > 1) {
+                expandedSize = 0;
+                quantifier /= gcd;
+                for(Literal literalObject : literals) {
+                    literalObject.multiplicity = Math.min(quantifier, literalObject.multiplicity / gcd);
+                    expandedSize += literalObject.multiplicity;}
+                if(quantifier == 1) {connective = Connective.OR; isDisjunction = true;}}}
+        }
+
 
     /** finds a literal which must be true in an ATLEAST-clause. <br>
      *  Example: atleast 3 p^2,q^2.<br>

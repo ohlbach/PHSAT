@@ -126,4 +126,19 @@ public class ClauseTest extends TestCase {
         assertEquals("10: 1v2v-3", clause.toString());
         assertEquals(3,clause.expandedSize);
     }
+
+    public void testDivideByGCD() {
+        System.out.println("divide by GCD");
+        Clause clause = new Clause(new int[]{10, cAtleast, 2, 1,1,1,1,2,2,2,2,2,2});
+        clause.divideByGCD();
+        assertEquals("10: 1v2", clause.toString());
+        clause = new Clause(new int[]{11, cAtleast, 2, 1,1,2,2,3,3});
+        clause.divideByGCD();
+        assertEquals("11: 1v2v3", clause.toString());
+        clause = new Clause(new int[]{12, cAtleast, 4, 1,1,1,1,2,2,3,3});
+        clause.divideByGCD();
+        assertEquals("12: >= 2 1^2,2,3", clause.toString());
+
+
+    }
 }

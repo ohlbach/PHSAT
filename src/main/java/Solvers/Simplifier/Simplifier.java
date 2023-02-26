@@ -12,6 +12,7 @@ import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -107,7 +108,7 @@ public class Simplifier extends Solver {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 switch(task.taskType){
-                    case TrueLiteral: applyTrueLiteral((Integer)task.a); break;
+                    case TrueLiteral: processTrueLiteral((Integer)task.a); break;
                     case Equivalence: applyEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;
                     case BinaryClause: processBinaryClause((Clause)task.a); break;
                     case SimplifyTwoLiteralClauses: break;
@@ -129,55 +130,78 @@ public class Simplifier extends Solver {
  *  The clause is then: atleast 3 q^2,r^2. <br>
  *  Both q and r must now be true.
  *  */
-    protected void applyTrueLiteral(int literal) throws Result {
+    protected void processTrueLiteral(int literal) throws Result {
+        processTrueLiteralTwo(literal);
+        processTrueLiteralMore(literal);
+        if(clauses.isEmpty()) throw new EmptyClauses(model);}
+
+    /** applies a true literal to all two-literal clauses containing this literal.<br>
+     * Clauses containing this literal are removed.
+     * Clauses containing -literal yield a new true literal.
+     *
+     * @param literal a true literal.
+     */
+    protected void processTrueLiteralTwo(int literal){
         Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
-            if(clause.exists) {
-                removeClause(clause); // clauses may become empty and literal may become pure.
-                if(clause.quantifier != literalObject.multiplicity)
-                    unitResolutionWithBinaryClause(literalObject);}
-            literalObject = literalObject.nextLiteral;}
+            literalObject = literalObject.nextLiteral;
+            if(clause.exists) removeClause(clause,true);} // literals may become pure.
 
         literalObject = literalIndexTwo.getFirstLiteralObject(-literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
+            Literal nextLiteral = literalObject.nextLiteral;
             if(clause.exists) {
-                unitResolutionWithBinaryClause(literalObject);
-                removeClause(literalObject.clause);}
-            literalObject = literalObject.nextLiteral;}
+                Literal otherLiteral = (clause.literals.get(0) == literalObject) ? clause.literals.get(1) : clause.literals.get(0);
+                addTrueLiteral(otherLiteral.literal,
+                        trackReasoning ?
+                                new InfUnitResolutionTwo(clause,literal,model.getInferenceStep(literal),otherLiteral.literal) :
+                                null);
+                removeClause(clause,true);}
+            literalObject = nextLiteral;}
 
-        literalIndexTwo.removePredicate(literal);
+        literalIndexTwo.removePredicate(literal);}
 
-        literalObject = literalIndexMore.getFirstLiteralObject(literal);
+    /** applies a true literal to all longer clauses containing this literal.<br>
+     * Disjunctions containing this literal are removed.
+     * Clauses containing -literal are shortened by this literal.
+     *
+     * @param literal a true literal.
+     */
+    protected void processTrueLiteralMore(int literal){
+        Literal literalObject = literalIndexMore.getFirstLiteralObject(literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
+            Literal nextLiteral = literalObject.nextLiteral;
             if(clause.exists) {
-                if(clause.quantifier == literalObject.multiplicity) removeClause(clause);
+                if(clause.isDisjunction) removeClause(clause,true);
                 else {
                     clause.removeLiteral(literalObject,true);
+                    if(trackReasoning) {
+                        clause.inferenceStep = null; // weiter
+                    }
                     analyseShortendClause(clause);}}
-            literalObject = literalObject.nextLiteral;}
+            literalObject = nextLiteral;}
 
         literalObject = literalIndexMore.getFirstLiteralObject(-literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
+            Literal nextLiteral = literalObject.nextLiteral;
             if(clause.exists) {
                 clause.removeLiteral(literalObject, false);
+                if(trackReasoning) {
+                    clause.inferenceStep = null; // weiter
+                }
                 analyseShortendClause(clause);}
-            literalObject = literalObject.nextLiteral;}
+            literalObject = nextLiteral;}
 
-        literalIndexMore.removePredicate(literal);}
-
+        literalIndexMore.removePredicate(literal);
+    }
     protected void analyseShortendClause(Clause clause) {
-        if(clause.size() == 2) {
-            for(Literal literalObject : clause.literals) {
-                literalIndexMore.removeLiteral(literalObject);
-                literalIndexTwo.addLiteral(literalObject);}
-            addBinaryClauseTask(clause);}
-        else {
+        assert(clause.size() > 2);
 
-        }}
+        }
 
     protected void processBinaryClause(Clause clause) throws Result {
         if(!clause.exists) return;
@@ -340,7 +364,7 @@ public class Simplifier extends Solver {
      * The true literals are inserted into the model and removed from the clause.
      * If the clause survives it is reinserted into the clause index
      * and a BinaryClauseTask or a ShortenedClause task is generated.
-     * 
+     *
      * @param clause   the clause to be investigated
      * @throws Result  EmptyClauses or Unsatisfiability
      */
@@ -348,12 +372,22 @@ public class Simplifier extends Solver {
         if(!clause.hasMultiplicities) return;
         int quantifierReduction = clause.findTrueLiterals(trueLiterals);
         if(trueLiterals.isEmpty()) return;
+        boolean isDisjunction = clause.isDisjunction;
+        String clauseBefore = trackReasoning ? clause.toString(symboltable,0) : "";
         for(Literal literalObject : trueLiterals) {
-            model.add(literalObject.literal,null);}
+            int literal = literalObject.literal;
+            model.add(literal, trackReasoning ? new InfTrueLiteral(clauseBefore,clause.id,literal,clause.inferenceStep) : null);}
         removeClause(clause);
-        if(clause.removeLiterals(trueLiterals)) {
+        if(clause.removeLiterals(trueLiterals)) { // clause can be ignored.
             if(clauses.isEmpty()) throw new EmptyClauses(model);
             return;}
+        if(trackReasoning) {
+            String clauseAfter = clause.toString(symboltable,0);
+            IntArrayList trueLits = new IntArrayList();
+            for(Literal literalObject : trueLiterals) trueLits.add(literalObject.literal);
+            clause.inferenceStep =
+                    new InfUnitResolution(clauseBefore,clause.inferenceStep,isDisjunction,
+                        trueLits,true,clauseAfter,model);}
         insertClause(clause);
         if(clause.size() == 2) addBinaryClauseTask(clause);
         else analyseShortendClause(clause);}
@@ -385,23 +419,23 @@ public class Simplifier extends Solver {
 
 
     /** removes the clause from the internal lists.<br>
-     * If the clause list becomes empty a EmptyClauses exception is thrown.<br>
-     * If removing a literal causes that the corresponding list of literal objects becomes empty
-     * then the negated literal becomes pure and is inserted into the model
      *
      * @param clause  a clause to be removed.
-     * @throws Result if the clause set becomes empty or a pure literal causes an contradiction.
+     * @param checkPurity if true then the clause's literals are checked for purity.
+     * @throws Result if the clause set becomes empty or a pure literal causes a contradiction.
      */
-    protected void removeClause(Clause clause) throws Result {
+    protected void removeClause(Clause clause, boolean checkPurity) {
         clauses.removeClause(clause);
         clause.exists = false;
         Literals literalIndex1,literalIndex2;
-        if(clause.size() == 2) {literalIndex1 = literalIndexTwo; literalIndex2 = literalIndexMore;}
+        if(clause.size() == 2){literalIndex1 = literalIndexTwo; literalIndex2 = literalIndexMore;}
         else {literalIndex1 = literalIndexMore; literalIndex2 = literalIndexTwo;}
-        for(Literal literalObject : clause.literals) {
-            int literal = literalObject.literal;
-            if(literalIndex1.removeLiteral(literalObject) && literalIndex2.isEmpty(literal)) {
-                model.add(-literal,trackReasoning ? new InfPureLiteral(literal) : null);}}}
+        if(checkPurity) {
+            for(Literal literalObject : clause.literals) {
+                int literal = literalObject.literal;
+                if(literalIndex1.removeLiteral(literalObject) && literalIndex2.isEmpty(literal)) {
+                    addTrueLiteral(-literal,trackReasoning ? new InfPureLiteral(literal) : null);}}}
+        else {for(Literal literalObject : clause.literals) literalIndex1.removeLiteral(literalObject);}}
 
     /** removes the literal from the literalIndexMore index.
      * If the literal becomes pure, its negation is inserted into the model.

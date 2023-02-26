@@ -2,6 +2,8 @@ package Solvers.Simplifier;
 
 import Datastructures.Symboltable;
 
+import java.util.ArrayList;
+
 /** A literal object contains the literal itself and is part of a clause and a literal index.
  * The literal index is a doubly connected list.
  * The Literal object has no active methods.
@@ -26,6 +28,20 @@ public class Literal {
     public Literal(int literal, int multiplicity) {
         this.literal = literal;
         this.multiplicity = multiplicity;}
+
+    /** turns the list of literals into a string of literal names or numbers.
+     *
+     * @param literals    a list of literals.
+     * @param symboltable null or a symboltable.
+     * @return the literals as a string of names or numbers.
+     */
+    public String toString(ArrayList<Literal> literals, Symboltable symboltable) {
+        if(literals == null || literals.isEmpty()) return "";
+        StringBuilder st = new StringBuilder();
+        st.append(Symboltable.toString(literals.get(0).literal,symboltable));
+        for(int i = 1; i < literals.size(); ++i)
+            st.append(",").append(Symboltable.toString(literals.get(i).literal,symboltable));
+        return st.toString();}
 
     /** returns a string representation of the literal: for example 3^2
      * @return a string representation of the literal. */

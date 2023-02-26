@@ -964,6 +964,18 @@ public class Utilities {
         for(int i = 0; i < n; ++i) st.append(s);
         return st.toString();}
 
+    /** puts the string between blanks such that the string is centered.
+     *
+     * @param s a string
+     * @param n the total length of the desired string
+     * @return the string surrounded with blanks.
+     */
+    public static String centerString(String s, int n) {
+        int length = s.length();
+        if(n <= length) return s;
+        String blanks = concatenateString (" ",((n-length) / 2));
+        return blanks + s + blanks;}
+
     /** turns an array to a string
      *
      * @param array    the array
@@ -991,6 +1003,29 @@ public class Utilities {
             for(Object b : bs) {if(a == b) contains = true;}
             if(!contains) {return false;}}
         return true;}
+
+    /** computes the greatest common divisor of the list of numbers.
+     *
+     * @param numbers a list of integers.
+     * @return the greatest common divisor of the list.
+     */
+    public static int gcd(IntArrayList numbers) {
+        assert(!numbers.isEmpty());
+        int gcd = numbers.get(0);
+        if(numbers.size() == 1) return gcd;
+        for(int i = 1; i < numbers.size(); ++i) {
+            int a = numbers.get(i);
+            while(gcd != a) {
+                if(gcd > a) gcd -= a;
+                else a -= gcd;}}
+        return gcd;}
+
+    public static void  main(String[] args) {
+        IntArrayList n = IntArrayList.wrap(new int[]{456,678,888});
+        System.out.println(gcd(n));
+    }
+
+
 
     /** computes n!
      *
@@ -1143,12 +1178,6 @@ public class Utilities {
         System.out.println(pathWithHome("home/xy/abc/def").toString());
     }
 
-    public static void  main(String[] args) {
-        IntArrayList com = combinations(5,3);
-        for(int i = 0; i < com.size(); ++i) {
-            System.out.println(Integer.toBinaryString(com.getInt(i)));
-        }
-    }
 
 
 }
