@@ -225,7 +225,7 @@ public class Simplifier extends Solver {
                     Clause partnerClause = isEquivalence(resolvent);
                     if(partnerClause != null) {
                         equivalenceClasses.addEquivalence(clause.literals.get(0).literal, -clause.literals.get(1).literal,null);
-                        removeClause(partnerClause);
+                        removeClause(partnerClause,true);
                         resolvent = null;}}
                 if(resolvent != null) {
                     removeClausesSubsumedByBinaryClause(resolvent);
@@ -279,7 +279,7 @@ public class Simplifier extends Solver {
         while(literalObject != null) {
             Clause clause1 = literalObject.clause;
             literalObject = literalObject.nextLiteral;
-            if(clause1.timestamp == timestamp) removeClause(clause1);}
+            if(clause1.timestamp == timestamp) removeClause(clause1,true);}
         ++timestamp;}
 
     /** checks if the binary clause is subsumed by another binary clause.
@@ -348,7 +348,7 @@ public class Simplifier extends Solver {
     protected Clause replacementResolventWithBinaryClause(Clause longerClause, Clause binaryClause, int literal) throws Result {
         Literal literalObject = longerClause.findLiteral(literal);
         assert(literalObject != null);
-        removeClause(longerClause);
+        removeClause(longerClause,true);
         longerClause.removeLiteral(literalObject,false);
         if(longerClause.size() == 2) {
             Clause shortenedClause = reduceShortenedToBinaryClause(longerClause);
@@ -377,7 +377,7 @@ public class Simplifier extends Solver {
         for(Literal literalObject : trueLiterals) {
             int literal = literalObject.literal;
             model.add(literal, trackReasoning ? new InfTrueLiteral(clauseBefore,clause.id,literal,clause.inferenceStep) : null);}
-        removeClause(clause);
+        removeClause(clause,true);
         if(clause.removeLiterals(trueLiterals)) { // clause can be ignored.
             if(clauses.isEmpty()) throw new EmptyClauses(model);
             return;}

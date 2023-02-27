@@ -78,11 +78,18 @@ public class ClauseTest extends TestCase {
         assertEquals(1,trueLiterals.get(0).literal);
         assertEquals(2,trueLiterals.get(1).literal);
         assertTrue(clause.removeLiterals(trueLiterals));
-        assertEquals("12: r",clause.toString(symboltable,0));
+        assertEquals("12: >= 0 r",clause.toString(symboltable,0));
 
         int[] c2 = new int[]{13, cAtleast, 3, 1, 2, 1, 2,3};
         clause = new Clause(c2);
         assertEquals(0,clause.findTrueLiterals(trueLiterals));
+        int[] c3 = new int[]{12, cAtleast, 9, 1,1,1,1,1,1,1,3,3,3,4,4,4};
+        clause = new Clause(c3);
+        assertEquals("12: >= 9 p^7,r^3,s^3",clause.toString(symboltable,0));
+        assertEquals(7,clause.findTrueLiterals(trueLiterals));
+        assertFalse(clause.removeLiterals(trueLiterals));
+        assertEquals("12: rvs",clause.toString(symboltable,0));
+
     }
     public void testRemoveLiteral() {
         System.out.println("removeLiteral");

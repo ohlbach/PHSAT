@@ -137,7 +137,12 @@ public class Clause {
         return null;}
 
     /** removes a literal object from the clause.<br>
-     * All internal data are updated (quantifier, multiplicity of the literals, connective).
+     * All internal data are updated (quantifier, multiplicity of the literals, connective).<br>
+     * If the clause is a disjunction then the literal is just removed.<br>
+     * If the clause is an atleast-clause then the literals multiplicities are adjusted to the quantifier.<br>
+     * If necessary, the remaining multiplicities are divided by their GCD.<br>
+     * If the resulting quantifier is 1 then the clause is turned into a disjunction.<br>
+     * True literals are not extracted.
      *
      * @param literalObject    the literal to be removed.
      * @param reduceQuantifier if true then the quantifier is reduced by the literal's multiplicity.
@@ -146,7 +151,8 @@ public class Clause {
         literals.remove(literalObject);
         expandedSize -= literalObject.multiplicity;
         literalObject.clause = null;
-        if(!isDisjunction && reduceQuantifier) {
+        if(isDisjunction) return;
+        if(reduceQuantifier) {
             quantifier -= literalObject.multiplicity;
             if(quantifier <= 1) {
                 isDisjunction = true;
@@ -154,17 +160,21 @@ public class Clause {
                 for(Literal literalObject1 : literals) {literalObject1.multiplicity = 1;}
                 expandedSize = literals.size();
                 hasMultiplicities = false;
-                return;}
-            for(Literal literalObject1 : literals) {
-                int multiplicity = literalObject1.multiplicity;
-                if(multiplicity > quantifier) {
-                    expandedSize -= quantifier-multiplicity;
-                    literalObject1.multiplicity = quantifier;}}}
-        if(hasMultiplicities && quantifier > 1) divideByGCD();
+                return;}}
+        boolean gcdUseful = quantifier > 1;
+        for(Literal literalObject1 : literals) {
+            int multiplicity = literalObject1.multiplicity;
+            if(multiplicity == 1) {gcdUseful = false; continue;}
+            if(multiplicity > quantifier) {
+                expandedSize -= quantifier-multiplicity;
+                literalObject1.multiplicity = quantifier;}}
+        if(gcdUseful) divideByGCD();
         hasMultiplicities = expandedSize > literals.size();}
 
     /** removes all given literals from the clause and reduces the quantifier.
-     * To be used for the literals found by findTrueLiterals.
+     * To be used for the literals found by findTrueLiterals.<br>
+     * The multiplicities of the remaining literals are adjusted to the quantifier
+     * and, if necessary, the numbers are divided by their GCD.
      *
      * @param literalObjects which are to be removed from the clause.
      * @return true if the clause has become true (tautology).
@@ -174,6 +184,11 @@ public class Clause {
             literals.remove(literalObject);
             quantifier -= literalObject.multiplicity;
             expandedSize -= literalObject.multiplicity;}
+        if(quantifier <= 0) return true;
+        for(Literal literalObject : literals) {
+            if(literalObject.multiplicity > quantifier) {
+                expandedSize -= literalObject.multiplicity - quantifier;
+                literalObject.multiplicity = quantifier;}}
         if(quantifier <= 1) {
             isDisjunction = true;
             connective = Connective.OR;}
