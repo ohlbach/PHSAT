@@ -146,21 +146,23 @@ public class Clause {
      *
      * @param literalObject    the literal to be removed.
      * @param reduceQuantifier if true then the quantifier is reduced by the literal's multiplicity.
+     * @return true if the clause has become a tautology (quantifier = 0).
      */
-    protected void removeLiteral(Literal literalObject, boolean reduceQuantifier) {
+    protected boolean removeLiteral(Literal literalObject, boolean reduceQuantifier) {
         literals.remove(literalObject);
         expandedSize -= literalObject.multiplicity;
         literalObject.clause = null;
-        if(isDisjunction) return;
+        if(isDisjunction) return false;
         if(reduceQuantifier) {
             quantifier -= literalObject.multiplicity;
+            if(quantifier <= 0) return true;
             if(quantifier <= 1) {
                 isDisjunction = true;
                 connective = Connective.OR;
                 for(Literal literalObject1 : literals) {literalObject1.multiplicity = 1;}
                 expandedSize = literals.size();
                 hasMultiplicities = false;
-                return;}}
+                return false;}}
         boolean gcdUseful = quantifier > 1;
         for(Literal literalObject1 : literals) {
             int multiplicity = literalObject1.multiplicity;
@@ -169,7 +171,8 @@ public class Clause {
                 expandedSize -= quantifier-multiplicity;
                 literalObject1.multiplicity = quantifier;}}
         if(gcdUseful) divideByGCD();
-        hasMultiplicities = expandedSize > literals.size();}
+        hasMultiplicities = expandedSize > literals.size();
+        return false;}
 
     /** removes all given literals from the clause and reduces the quantifier.
      * To be used for the literals found by findTrueLiterals.<br>
