@@ -6,6 +6,7 @@ import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.function.IntSupplier;
@@ -84,8 +85,9 @@ public class SimplifierTest extends TestCase {
         int[] id = new int[]{10};
         IntSupplier nextId = () -> ++id[0];
         Simplifier simplifier = new Simplifier(10, monitor, true, nextId);
+        IntArrayList removedLiterals = new IntArrayList();
         Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
-        simplifier.simplifyClause(clause, false);
+        simplifier.simplifyClause(clause, removedLiterals);
         assertEquals("1: 1v2v3", clause.toString());
 
         clause = new Clause(new int[]{2, cAtleast, 5, 1,1,2,2,3,4});
@@ -93,7 +95,7 @@ public class SimplifierTest extends TestCase {
         assertEquals("Positive Literals:\n" +
                 "1:1,2:1,3:1,4:1,\n" +
                 "Negative Literals:\n",simplifier.literalIndexMore.toString());
-        simplifier.simplifyClause(clause,true);
+        simplifier.simplifyClause(clause,removedLiterals);
         assertEquals("2: 3v4", clause.toString());
         assertEquals("1,2",simplifier.model.toString());
         assertEquals("Positive Literals:\n" +
@@ -104,7 +106,7 @@ public class SimplifierTest extends TestCase {
                 "Negative Literals:\n",simplifier.literalIndexTwo.toString());
 
         clause = new Clause(new int[]{3, cAtleast, 6, 1,1,1,1,2,2,2,2,3,3,3,3});
-        simplifier.simplifyClause(clause,false);
+        simplifier.simplifyClause(clause,removedLiterals);
         assertEquals("3: >= 3 1^2,2^2,3^2", clause.toString());
 
         InferenceStep step = simplifier.model.getInferenceStep(1);

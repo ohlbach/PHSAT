@@ -2,6 +2,7 @@ package Solvers.Simplifier;
 
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
@@ -9,6 +10,8 @@ import java.util.ArrayList;
 public class ClauseTest extends TestCase {
     static int cOr = Connective.OR.ordinal();
     static int cAtleast = Connective.ATLEAST.ordinal();
+
+    static IntArrayList removedLiterals = new IntArrayList();
 
     static Symboltable symboltable = new Symboltable(10);
     static {
@@ -43,11 +46,6 @@ public class ClauseTest extends TestCase {
         assertEquals(-3,clause1.findLiteral(-3).literal);
         assertNull(clause1.findLiteral(3));
         assertEquals(clause1,clause1.findLiteral(1).clause);
-
-        ArrayList<Literal> trueLiterals = new ArrayList(5);
-        trueLiterals.add(null);
-        assertEquals(0,clause1.findTrueLiterals(trueLiterals));
-        assertTrue(trueLiterals.isEmpty());
     }
 
     public void testConstructorInputClause2() {
@@ -64,8 +62,6 @@ public class ClauseTest extends TestCase {
         assertFalse(clause.isDisjunction);
         assertTrue(clause.hasMultiplicities);
         ArrayList<Literal> trueLiterals = new ArrayList(5);
-        assertEquals(0,clause.findTrueLiterals(trueLiterals));
-        assertTrue(trueLiterals.isEmpty());
     }
 
     public void testRemoveLiteral() {
@@ -85,11 +81,7 @@ public class ClauseTest extends TestCase {
         assertEquals("13: >= 2 2^2,3",clause2.toString());
 
         Literal literal3 = clause2.findLiteral(2);
-        clause2.removeLiteral(literal3,true);
-        assertEquals("13: 3",clause2.toString());
-        assertTrue(clause2.isDisjunction);
-        assertEquals(1, clause2.expandedSize());
-        assertFalse(clause2.hasMultiplicities);
+        assertTrue(clause2.removeLiteral(literal3,true));
         assertNull(literal3.clause);
     }
 
@@ -126,24 +118,21 @@ public class ClauseTest extends TestCase {
     public void testReduceByTrueLiterals() {
         System.out.println("reduceByTrueLiterals");
         Clause clause = new Clause(new int[]{10, cAtleast, 5, 1, 1, 3,4, 2, 2});
-        ArrayList<Literal> literals = clause.reduceByTrueLiterals();
+        ArrayList<Literal> literals = clause.reduceByTrueLiterals(removedLiterals);
         assertEquals("10: 3v4", clause.toString());
         assertEquals(2,literals.size());
         assertEquals(2,literals.get(1).literal);
         clause = new Clause(new int[]{11, cAtleast, 4, 1, 1, 3,4, 2, 2});
-        assertNull(clause.reduceByTrueLiterals());
+        assertNull(clause.reduceByTrueLiterals(removedLiterals));
 
     }
         public void testReduceToEssentialLiterals() {
         System.out.println("reduceToEssentialLiterals");
         Clause clause = new Clause(new int[]{10, cAtleast, 2, 1, 1, 3, 2, 2});
-        ArrayList<Literal> literals = clause.reduceToEssentialLiterals();
+        assertTrue(clause.reduceToEssentialLiterals(removedLiterals));
         assertEquals("10: 1v2", clause.toString());
-        assertEquals(1, literals.size());
-        assertEquals(3, literals.get(0).literal);
         clause = new Clause(new int[]{10, cAtleast, 2, 1, 1, 3, 4, 2, 2});
-        literals = clause.reduceToEssentialLiterals();
-        assertNull(literals);
+        assertFalse(clause.reduceToEssentialLiterals(removedLiterals));
         assertEquals("10: >= 2 1^2,3,4,2^2", clause.toString());
     }
 
