@@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.IntSupplier;
 
 /** A Clause object is essentially a collection of Literal objects.<br>
  *  A clause can only be a disjunction (OR-clause) or an ATLEAST-clause.
@@ -125,6 +126,25 @@ public class Clause {
             literalObject.clause = this;
             literals.add(literalObject);}}
 
+    public Clause(int id, int quantifier, ArrayList<Literal> literals) {
+        this.id = id;
+        this.quantifier = quantifier;
+        this.literals = literals;
+        expandedSize = 1;
+        hasMultiplicities = false;
+
+        for(Literal literalOject: literals) {
+            literalOject.clause = this;
+            hasMultiplicities |= literalOject.multiplicity > 1;
+            expandedSize += literalOject.multiplicity;}
+
+        if(quantifier == 1) {
+            connective = Connective.OR;
+            isDisjunction = true;}
+        else {
+            connective = Connective.ATLEAST;
+            isDisjunction = false;}}
+
 
     /** finds the Literal with the given literal.
      *
@@ -200,9 +220,11 @@ public class Clause {
         return quantifier <= 0;}
 
     private IntArrayList numbers = new IntArrayList();
+
     /** divides the quantifier and the multiplicities by their greatest common divisor.
+     * @return true if the clause is changed.
      */
-    protected void divideByGCD() {
+    protected boolean divideByGCD() {
         numbers.clear(); numbers.add(quantifier);
         boolean stop = false;
         for(Literal literalObject : literals) {
@@ -217,13 +239,14 @@ public class Clause {
                 for(Literal literalObject : literals) {
                     literalObject.multiplicity = Math.min(quantifier, literalObject.multiplicity / gcd);
                     expandedSize += literalObject.multiplicity;}
-                if(quantifier == 1) {connective = Connective.OR; isDisjunction = true;}}}
-        }
+                if(quantifier == 1) {connective = Connective.OR; isDisjunction = true;}
+            return true;}}
+        return false;}
 
 
     /** finds a literal which must be true in an ATLEAST-clause. <br>
      *  Example: atleast 3 p^2,q^2.<br>
-     *  If p is false then the clause became atleast 3 q^2, which is no longer satisfiable.
+     *  If p is false then the clause becomes atleast 3 q^2, which is no longer satisfiable.
      *  Therefore, p must be true (and q as well.)
      *
      * @param trueLiterals a list for collecting the true literals.
@@ -239,7 +262,96 @@ public class Clause {
                 trueLiterals.add(literalObject);}}
         return multiplicities;}
 
+    /** removes literals which must be true in an ATLEAST-clause. <br>
+     *  Example: atleast 4 p^2,q^2,r.<br>
+     *  If p is false then the clause becomes atleast 4 q^2,r, which is no longer satisfiable.<br>
+     *  Therefore, p must be true, and q as well.<br>
+     *  Both can be removed and made true.<br>
+     *  The resulting clause may get a quantifier &lt;= 0. It is true and can be removed.
+     *
+     * @return the literals which must be true.
+     */
+    private final ArrayList<Literal> auxiliaryLiterals = new ArrayList<>(5);
+    protected ArrayList<Literal> reduceByTrueLiterals() {
+        if(!hasMultiplicities) return null;
+        auxiliaryLiterals.clear();
+        for(Literal literalObject: literals) {
+            if(expandedSize-literalObject.multiplicity < quantifier) {
+                auxiliaryLiterals.add(literalObject);}}
+        if(auxiliaryLiterals.isEmpty()) return null;
 
+        for(Literal literalObject: auxiliaryLiterals) {
+            literals.remove(literalObject);
+            quantifier   -= literalObject.multiplicity;
+            expandedSize -= literalObject.multiplicity;
+            literalObject.clause = null;}
+        if(quantifier <= 0) return auxiliaryLiterals;
+
+        for(Literal literalObject: literals) {
+            if(literalObject.multiplicity > quantifier) {
+                literalObject.multiplicity = quantifier;
+                expandedSize -= literalObject.multiplicity - quantifier;}}
+        if(quantifier == 1) {
+            isDisjunction = true;
+            connective = Connective.OR;
+            hasMultiplicities = false;}
+        else {hasMultiplicities = expandedSize > literals.size();}
+
+        return auxiliaryLiterals;}
+
+
+    /** shrinks the literals to the essential literals, if possible, and turns the clause to a disjunction.<br>
+     * Example: atleast 2 p^2,q^2,r.<br>
+     * In this case either p or q must be true. If both are false then r is not enough to get 2 true literals.<br>
+     * The clause shrinks to the disjunction: p,q.
+     *
+     * @return the removed Literals. (They must  be removed from literal indices).
+     */
+    protected ArrayList<Literal> reduceToEssentialLiterals() {
+        if(!hasMultiplicities) return null;
+        auxiliaryLiterals.clear();
+        int multiplicities = 0;
+        for(Literal literalObject: literals) {
+            if(literalObject.multiplicity != quantifier) {
+                auxiliaryLiterals.add(literalObject);
+                multiplicities += literalObject.multiplicity;}}
+        if(multiplicities >= quantifier) return null; // the remaining literals can satisfy the clause.
+
+        for(Literal literalObject : auxiliaryLiterals) {
+            literals.remove(literalObject);
+            literalObject.clause = null;}
+        for(Literal literalObject : literals) literalObject.multiplicity = 1;
+        quantifier = 1;
+        isDisjunction = true;
+        connective = Connective.OR;
+        expandedSize = literals.size();
+        hasMultiplicities = false;
+        return auxiliaryLiterals;}
+
+    /** performs a merge resolution between this and a longer (or equally long) clause.
+     * Example: atleast 2 p,q,r and atleast 4 -p^2 q^2,r,s yields <br>
+     * atleast 4 q^3,r^2,s  (the quantifier is 2 + 4 - max(1,2)).<br>
+     * The resolvent is not simplified.
+     *
+     * @param nextId         for getting the next clause identifier.
+     * @param longerClause   the longer (or equally long) resolution partner.
+     * @param literalShorter the Literal in the shorter clause to be ignored.
+     * @param literalLonger  the Literal in the longer clause to be ignored.
+     * @return               the new resolvent (not simplified).
+     */
+    protected Clause mergeResolution(IntSupplier nextId, Clause longerClause, Literal literalShorter, Literal literalLonger) {
+        assert(longerClause.size() >= size());
+        int newQuantifier = quantifier + longerClause.quantifier - Math.max(literalShorter.multiplicity,literalLonger.multiplicity);
+        ArrayList<Literal> newLiterals = new ArrayList<>(longerClause.size()-1);
+        for(Literal litLonger : longerClause.literals) {
+            if(litLonger == literalLonger) continue;
+            int literal = litLonger.literal;
+            Literal litShorter = findLiteral(literal);
+            int newMultiplicity = Math.min(newQuantifier, ((litShorter == null) ? litLonger.multiplicity :
+                                                        litLonger.multiplicity + litShorter.multiplicity));
+             newLiterals.add(new Literal(literal,newMultiplicity));}
+        Clause resolvent = new Clause(nextId.getAsInt(), newQuantifier,newLiterals);
+        return resolvent;}
 
     /** returns the number of Literal objects in the clause.
      *

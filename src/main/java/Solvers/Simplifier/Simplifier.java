@@ -548,6 +548,54 @@ public class Simplifier extends Solver {
             return;}
         if(reduceQuantifier) extractTrueLiterals(clause);}
 
+    /** simplifies an atleast-clause with multiplicities > 1.<br>
+     * 1. True literals are extracted.<br>
+     * Example: atleast 5 p^2,q^2,r,s -&gt; true(p,q) and r,s (disjunction).<br>
+     * 2. Clause is reduced to essential literals.<br>
+     * Example: atleast 2 p^2,q^2,r -&gt; p,q (disjunction).<br>
+     * 3. Numbers are divided by the greatest common divisor (GCD). <br>
+     * Example: atleast 6 p^4,q^4,r^4 -> atleast 3 p^2,q^2,r^2.
+     *
+     * @param clause        the clause to be simplified.
+     * @param updateIndices if true then the literal indices are updated with the changed clause.
+     * @throws Result       if the model finds a contradiction.
+     */
+    protected void simplifyClause(Clause clause, boolean updateIndices) throws Result {
+        if(clause.isDisjunction || !clause.hasMultiplicities) return; // nothing to be simplified.
+        if(updateIndices) {for(Literal literalObject: clause.literals) literalIndexMore.removeLiteral(literalObject);}
+        String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
+
+        try{
+            ArrayList<Literal> trueLiterals = clause.reduceByTrueLiterals();
+            if(trueLiterals != null) {
+                String literalNames = "";
+                for(Literal literalObject : trueLiterals) {
+                    int literal = literalObject.literal;
+                    if(monitoring) literalNames += Symboltable.toString(literal,symboltable)+",";
+                    model.add(literal, trackReasoning ? new InfTrueLiteral(clauseBefore,clause.id,literal,clause.inferenceStep) : null);}
+                if(monitoring) monitor.println(monitorId,"True literals " + literalNames + " extracted from clause " +
+                        clauseBefore + ". new clause: " + clause.toString(symboltable,0));
+                if(clause.quantifier <= 1) return;}
+
+            ArrayList<Literal> removedLiterals = clause.reduceToEssentialLiterals();
+            if(removedLiterals != null) {
+                if(monitoring) monitor.println(monitorId,"Clause  "+clauseBefore+" reduced to essential literals:  "+
+                      clause.toString(symboltable,0));
+                if(clause.quantifier <= 0) return;
+                if(clause.size() == 1) {
+                    int literal = clause.literals.get(0).literal;
+                    model.add(literal,clause.inferenceStep);
+                    return;}
+            if(clause.quantifier <= 1) return;}
+
+            if(clause.divideByGCD() && monitoring) {
+                monitor.println(monitorId,"Clause " + clauseBefore + " divided by gcd  to " +
+                        clause.toString(symboltable,0));}}
+        finally{
+            if(updateIndices && clause.quantifier > 0 && clause.size() > 1) {
+                Literals literals = (clause.size() == 2) ? literalIndexTwo : literalIndexMore;
+                for(Literal literalObject: clause.literals) literals.addLiteral(literalObject);}}}
+
 
 
     @Override

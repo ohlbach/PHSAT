@@ -3,6 +3,7 @@ package Solvers.Simplifier;
 import Datastructures.Clauses.Connective;
 import Datastructures.Results.Result;
 import Datastructures.Symboltable;
+import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
 import junit.framework.TestCase;
@@ -14,6 +15,8 @@ public class SimplifierTest extends TestCase {
     static int cOr = Connective.OR.ordinal();
     static int cAtleast = Connective.ATLEAST.ordinal();
 
+    static boolean monitoring = true;
+
     static Symboltable symboltable = new Symboltable(10);
     static {symboltable.setName(1,"p");
         symboltable.setName(2,"q");
@@ -23,7 +26,7 @@ public class SimplifierTest extends TestCase {
 
     public void testInsertClause() throws Result{
         System.out.println("insertClause");
-        Monitor monitor = new MonitorLife();
+        Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
         IntSupplier nextId = ()->++id[0];
         Simplifier simplifier = new Simplifier(10,monitor,true,nextId);
@@ -63,7 +66,7 @@ public class SimplifierTest extends TestCase {
 
     public void testPurityCheck() throws Result {
         System.out.println("purityCheck");
-        Monitor monitor = new MonitorLife();
+        Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
         IntSupplier nextId = () -> ++id[0];
         Simplifier simplifier = new Simplifier(10, monitor, true, nextId);
@@ -74,6 +77,39 @@ public class SimplifierTest extends TestCase {
         simplifier.removeClause(clause2,true);
         assertEquals("1: 1v2v3\n",simplifier.clauses.toString());
         assertEquals("1,2",simplifier.model.toString());
+    }
+    public void testSimplifyClause() throws Result {
+        System.out.println("simplify clause");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(10, monitor, true, nextId);
+        Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        simplifier.simplifyClause(clause, false);
+        assertEquals("1: 1v2v3", clause.toString());
 
+        clause = new Clause(new int[]{2, cAtleast, 5, 1,1,2,2,3,4});
+        simplifier.insertClause(clause);
+        assertEquals("Positive Literals:\n" +
+                "1:1,2:1,3:1,4:1,\n" +
+                "Negative Literals:\n",simplifier.literalIndexMore.toString());
+        simplifier.simplifyClause(clause,true);
+        assertEquals("2: 3v4", clause.toString());
+        assertEquals("1,2",simplifier.model.toString());
+        assertEquals("Positive Literals:\n" +
+                "\n" +
+                "Negative Literals:\n",simplifier.literalIndexMore.toString());
+        assertEquals("Positive Literals:\n" +
+                "3:1,4:1,\n" +
+                "Negative Literals:\n",simplifier.literalIndexTwo.toString());
+
+        clause = new Clause(new int[]{3, cAtleast, 6, 1,1,1,1,2,2,2,2,3,3,3,3});
+        simplifier.simplifyClause(clause,false);
+        assertEquals("3: >= 3 1^2,2^2,3^2", clause.toString());
+
+        InferenceStep step = simplifier.model.getInferenceStep(1);
+        //System.out.println(step.toString(null));
+        //System.out.println(step.rule());
+        //System.out.println(step.inputClauseIds());
     }
     }
