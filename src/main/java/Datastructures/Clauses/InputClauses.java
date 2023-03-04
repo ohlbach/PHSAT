@@ -47,41 +47,23 @@ public class InputClauses {
     /** the original disjunctions. */
     public final ArrayList<int[]> disjunctions  = new ArrayList<>();
 
-    /** without multiple occurrences of literals and complementary literals */
-    public ArrayList<int[]> purifiedDisjunctions = disjunctions;
-
     /** the original conjunctions. */
     public final ArrayList<int[]> conjunctions  = new ArrayList<>();
 
     /** the original equivalences. */
     public final ArrayList<int[]> equivalences  = new ArrayList<>();
 
-    /** without multiple occurrences of literals and complementary literals */
-    public ArrayList<int[]> purifiedEquivalences = equivalences;
-
     /** the original atleast clauses. */
     public final ArrayList<int[]> atleasts      = new ArrayList<>();
-
-    /** without multiple occurrences of literals and complementary literals */
-    public ArrayList<int[]> purifiedAtleasts    = atleasts;
 
     /** the original atmost clauses. */
     public final ArrayList<int[]> atmosts       = new ArrayList<>();
 
-    /** without multiple occurrences of literals and complementary literals */
-    public ArrayList<int[]> purifiedAtmosts     = atmosts;
-
     /** the original exactly clauses. */
     public final ArrayList<int[]> exacltys      = new ArrayList<>();
 
-    /** without multiple occurrences of literals and complementary literals */
-    public ArrayList<int[]> purifiedExactlys    = exacltys;
-
     /** the original interval clauses. */
     public final ArrayList<int[]> intervals     = new ArrayList<>();
-
-    /** without multiple occurrences of literals and complementary literals */
-    public ArrayList<int[]> purifiedIntervals   = intervals;
 
 
     /** constructs a new input clause list.
@@ -144,62 +126,25 @@ public class InputClauses {
      * @param predicates   the number of predicates in the clause set.
      * @param errorPrefix  a prefix for the warnings.
      * @param errors       for adding error messages.
-     * @param warnings     for adding a warning.
      * @return null or the original clause.
      */
-    public static int[] checkSyntax(int[] clause, int predicates, String errorPrefix, StringBuilder errors, StringBuilder warnings) {
+    public static int[] checkSyntax(int[] clause, int predicates, String errorPrefix, StringBuilder errors) {
         errorPrefix += "Clause " + Arrays.toString(clause) + ": ";
         int type = clause[1];
         Connective connective = Connective.getConnective(type);
         if(connective == null) {
-            errors.append(errorPrefix).append("Connective number '"+type + "' is not between 0 and " +
-                    (Connective.size()-1) +"\n");
+            errors.append(errorPrefix).append("Connective number '").append(type).append("' is not between 0 and ").
+                    append(Connective.size() - 1).append("\n");
             return null;}
-        int start = getFirstLiteralIndex(connective);
+        int start = connective.firstLiteralIndex;
         boolean erraneous = false;
         for(int i = start; i < clause.length; ++i) {
             int predicate = Math.abs(clause[i]);
             if(predicate == 0 || predicate > predicates) {
-                errors.append(errorPrefix).append("Literal "+clause[i] + ": predicate " +
-                        "is not within the boundaries [1,"+predicates + "]\n");
-                erraneous = true;}}
-
-        if(connective == Connective.AND || connective == Connective.OR || connective == Connective.EQUIV)
-            return erraneous ? null : clause;
-
-        int size = clause.length-start;
-        int min = clause[2];
-
-        if(min < 0) {
-            {errors.append(errorPrefix).append("Interval boundary: " + clause[2] + " < 0\n");
-                erraneous = true;}}
-        if(min > size) {
-            warnings.append(errorPrefix).append("Interval boundary: " + clause[2] + " > clause size "+ size+"\n");
-            clause[2] = size;}
-
-        if(connective.isInterval()) {
-            int max = clause[3];
-            if(max < 0) {
-                {errors.append(errorPrefix).append("Interval boundary: " + max + " < 0\n");
-                    erraneous = true;}}
-            if(max > size) {
-                warnings.append(errorPrefix).append("Interval boundary: " + max + " > clause size "+ size+"\n");
-                max = size;
-                clause[3] = size;}
-            if(max < min) {errors.append(errorPrefix).append("Interval boundaries: min > max: " + min  + " > " + max+"\n");
+                errors.append(errorPrefix).append("Literal ").append(clause[i]).append(": predicate ").
+                        append("is not within the boundaries [1,").append(predicates).append("]\n");
                 erraneous = true;}}
         return erraneous ? null : clause;}
-
-    /** returns the start of the literal section in a basic clause.
-     *
-     * @param connective one of the connectives.
-     * @return the start of the literal section in a basic clause.
-     */
-    private static int getFirstLiteralIndex(Connective connective) {
-        if(connective.isInterval()) return 4;
-        if(connective.isQuantifier()) return 3;
-        return 2;}
-
 
 
     /** computes a list of clauses which are false in a model.
@@ -405,10 +350,10 @@ public class InputClauses {
         if(Connective.isQuantifier(connectiveNumber) && connective != Connective.INTERVAL) {
             start = 3;
             st.append(connective.abbreviation).append(" ");
-            st.append(clause[2] + " ");}
+            st.append(clause[2]).append(" ");}
         else{if(connective == Connective.INTERVAL) {
             start = 4;
-            st.append(clause[2] + "-" + clause[3]+": ");}}
+            st.append(clause[2]).append("-").append(clause[3]).append(": ");}}
         String separator = connective.separator;
         int length = clause.length;
         for(int i = start; i < length-1; ++i) {

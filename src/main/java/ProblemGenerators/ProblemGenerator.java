@@ -188,7 +188,7 @@ public abstract class ProblemGenerator {
 
             int[] clause = parseLine(line.trim(),++id, symboltable,errorPrefix,errors);
             if(clause == null) continue;
-            clause = InputClauses.checkSyntax(clause,predicates,errorPrefix,errors,warnings);
+            clause = InputClauses.checkSyntax(clause,predicates,errorPrefix,errors);
             if(clause == null) continue;
             inputClauses.addClause(clause);}
         if(info.length() > 0) inputClauses.info = info.toString();
