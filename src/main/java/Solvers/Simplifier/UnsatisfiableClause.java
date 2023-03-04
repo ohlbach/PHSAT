@@ -1,7 +1,7 @@
-package Datastructures.Results;
+package Solvers.Simplifier;
 
-import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.InputClauses;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
@@ -9,9 +9,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
-/** This class reports about an unsatisfiable clause, for example an empty clause.*/
-
-public class UnsatisfiableClause extends Unsatisfiable {
+public class UnsatisfiableClause  extends Unsatisfiable {
     private Clause clause = null;
     private int[] inputClause = null;
 
@@ -30,7 +28,7 @@ public class UnsatisfiableClause extends Unsatisfiable {
     public String description(Symboltable symboltable) {
         return "Unsatisfiable clause " +
                 ((clause == null) ? InputClauses.toString(0,inputClause,symboltable) :
-                clause.toString(0,symboltable)+"\n");}
+                        clause.toString(symboltable,0)+"\n");}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

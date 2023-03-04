@@ -8,6 +8,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class InputClauseClausesTest extends TestCase {
+    private static final int cOr = Connective.OR.ordinal();
+    private static final int cAtleast = Connective.ATLEAST.ordinal();
+    private static final int cAtmost = Connective.ATMOST.ordinal();
+    private static final int cExactly = Connective.EXACTLY.ordinal();
+    private static final int cInterval = Connective.INTERVAL.ordinal();
+
     static Symboltable symboltable = new Symboltable(10);
     static {
         symboltable.setName(1,"p");
@@ -289,7 +295,73 @@ public class InputClauseClausesTest extends TestCase {
 
         assertEquals("   11: p&q&r\n" +
                 "   12: p=q=r",InputClauses.toString(falseClauses,symboltable));
+    }
 
+    public void testAtmostToAtleast() {
+        System.out.println("atmostToAtleast");
+        int[] clause = {10, cAtmost, 2, 1, 2, 3, 4, 5};
+        clause = InputClauses.atmostToAtleast(clause);
+        assertEquals("  10: >= 3 -1,-2,-3,-4,-5", InputClauses.toString(clause));
+
+        clause = new int[]{11, cAtmost, 4, 1, 2, 3, 4, 5};
+        clause = InputClauses.atmostToAtleast(clause);
+        assertEquals("  11: -1v-2v-3v-4v-5", InputClauses.toString(clause));
+
+        clause = new int[]{12, cAtmost, 5, 1, 2, 3, 4, 5};
+        clause = InputClauses.atmostToAtleast(clause);
+        assertEquals("  12: >= 0 -1,-2,-3,-4,-5", InputClauses.toString(clause));
+
+        clause = new int[]{13, cAtmost, 0, 1, 2, 3, 4, 5};
+        clause = InputClauses.atmostToAtleast(clause);
+        assertEquals("  13: >= 5 -1,-2,-3,-4,-5", InputClauses.toString(clause));
+    }
+
+    public void testExactlyToAtleast() {
+        System.out.println("exactlyToAtleast");
+        int[] id = {5};
+        int[] clause = {10, cExactly, 2, 1, 2, 3, 4, 5};
+        int[][]clauses = InputClauses.exactlyToAtleast(clause,()->{return ++id[0];});
+        assertEquals("  6: >= 2 1,2,3,4,5", InputClauses.toString(clauses[0]));
+        assertEquals("  7: >= 3 -1,-2,-3,-4,-5", InputClauses.toString(clauses[1]));
+
+        clause = new int[]{11, cExactly, 1, 1, 2, 3, 4, 5};
+        clauses = InputClauses.exactlyToAtleast(clause,()->{return ++id[0];});
+        assertEquals("  8: 1v2v3v4v5", InputClauses.toString(clauses[0]));
+        assertEquals("  9: >= 4 -1,-2,-3,-4,-5", InputClauses.toString(clauses[1]));
+
+        clause = new int[]{12, cExactly, 4, 1, 2, 3, 4, 5};
+        clauses = InputClauses.exactlyToAtleast(clause,()->{return ++id[0];});
+        assertEquals("  10: >= 4 1,2,3,4,5", InputClauses.toString(clauses[0]));
+        assertEquals("  11: -1v-2v-3v-4v-5", InputClauses.toString(clauses[1]));
+
+        clause = new int[]{13, cExactly, 0, 1, 2, 3, 4, 5};
+        clauses = InputClauses.exactlyToAtleast(clause,()->{return ++id[0];});
+        assertEquals("  12: >= 0 1,2,3,4,5", InputClauses.toString(clauses[0]));
+        assertEquals("  13: >= 5 -1,-2,-3,-4,-5", InputClauses.toString(clauses[1]));
+
+        clause = new int[]{14, cExactly, 6, 1, 2, 3, 4, 5};
+        clauses = InputClauses.exactlyToAtleast(clause,()->{return ++id[0];});
+        assertEquals("  14: >= 6 1,2,3,4,5", InputClauses.toString(clauses[0]));
+        assertEquals("  15: >= -1 -1,-2,-3,-4,-5", InputClauses.toString(clauses[1]));
+ }
+
+    public void testIntervalToAtleast() {
+        System.out.println("intervalToAtleast");
+        int[] id = {5};
+        int[] clause = {10, cInterval, 2, 3, 1, 2, 3, 4, 5};
+        int[][] clauses = InputClauses.intervalToAtleast(clause, () -> {return ++id[0];});
+        assertEquals("  6: >= 2 1,2,3,4,5", InputClauses.toString(clauses[0]));
+        assertEquals("  7: >= 2 -1,-2,-3,-4,-5", InputClauses.toString(clauses[1]));
+
+        clause = new int[]{10, cInterval, 1, 3, 1, 2, 3, 4, 5};
+        clauses = InputClauses.intervalToAtleast(clause, () -> {return ++id[0];});
+        assertEquals("  8: 1v2v3v4v5", InputClauses.toString(clauses[0]));
+        assertEquals("  9: >= 2 -1,-2,-3,-4,-5", InputClauses.toString(clauses[1]));
+
+        clause = new int[]{10, cInterval, 2, 4, 1, 2, 3, 4, 5};
+        clauses = InputClauses.intervalToAtleast(clause, () -> {return ++id[0];});
+        assertEquals("  10: >= 2 1,2,3,4,5", InputClauses.toString(clauses[0]));
+        assertEquals("  11: -1v-2v-3v-4v-5", InputClauses.toString(clauses[1]));
 
     }
 

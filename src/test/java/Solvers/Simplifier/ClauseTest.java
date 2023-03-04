@@ -28,10 +28,10 @@ public class ClauseTest extends TestCase {
         //System.out.println(clause1.toString());
         //System.out.println(clause1.toString(symboltable,10));
         assertEquals(10,clause1.id);
-        assertEquals(Connective.OR,clause1.connective);
+        assertEquals(Connective.OR,clause1.quantifier);
         assertTrue(clause1.exists);
         assertTrue(clause1.isDisjunction);
-        assertEquals(1,clause1.quantifier);
+        assertEquals(1,clause1.limit);
         assertEquals(3,clause1.size());
         assertEquals(3,clause1.expandedSize);
         assertEquals(3,clause1.expandedSize());
@@ -56,7 +56,7 @@ public class ClauseTest extends TestCase {
         //System.out.println(clause.toString(symboltable,10));
         assertEquals("11: >= 2 p^2,q^2,-r^2,s",clause.toString(symboltable,0));
         assertEquals(11, clause.id);
-        assertEquals(Connective.ATLEAST, clause.connective);
+        assertEquals(Connective.ATLEAST, clause.quantifier);
         assertEquals(4,clause.size());
         assertEquals(7,clause.expandedSize());
         assertFalse(clause.isDisjunction);
@@ -93,7 +93,7 @@ public class ClauseTest extends TestCase {
         clause = new Clause(11,Connective.ATLEAST, 2, 1,3,2,2,3,1);
         assertEquals("11: >= 2 1^2,2^2,3",clause.toString());
         assertTrue(clause.hasMultiplicities);
-        assertEquals(2,clause.quantifier);
+        assertEquals(2,clause.limit);
         assertEquals(5,clause.expandedSize);
     }
     public void testConstructorOr() {
@@ -102,7 +102,33 @@ public class ClauseTest extends TestCase {
         assertEquals("10: 1v2v-3", clause.toString());
         assertEquals(3,clause.expandedSize);
     }
+    public void testRemoveComplementaryLiterals() {
+        System.out.println("removeComplementaryLiterals");
+        Clause clause = new Clause(new int[]{10, cAtleast, 3, 1, 1, -1, -1, 2,3});
+        assertFalse(clause.removeComplementaryLiterals());
+        assertEquals("10: 2v3",clause.toString());
 
+        clause = new Clause(new int[]{11, cAtleast, 3, 1, 1, -1, -1, 2,3,-1});
+        assertFalse(clause.removeComplementaryLiterals());
+        assertEquals("11: -1v2v3",clause.toString());
+
+        clause = new Clause(new int[]{12, cAtleast, 2, 1, 1, -1, -1, 2,3,1});
+        assertTrue(clause.removeComplementaryLiterals());
+
+        clause = new Clause(new int[]{13, cAtleast, 2, 1, 1, -1, -1});
+        assertTrue(clause.removeComplementaryLiterals());
+
+        clause = new Clause(new int[]{14, cAtleast, 3, 1, 1, -1, -1});
+        assertTrue(clause.removeComplementaryLiterals());
+
+        clause = new Clause(new int[]{15, cAtleast, 3, 1, 2,-1,3,-2,4});
+        assertFalse(clause.removeComplementaryLiterals());
+        assertEquals("15: 3v4",clause.toString());
+
+        clause = new Clause(new int[]{16, cOr, 1, 2, -1, 3});
+        assertTrue(clause.removeComplementaryLiterals());
+
+    }
     public void testDivideByGCD() {
         System.out.println("divide by GCD");
         Clause clause = new Clause(new int[]{10, cAtleast, 2, 1,1,1,1,2,2,2,2,2,2});

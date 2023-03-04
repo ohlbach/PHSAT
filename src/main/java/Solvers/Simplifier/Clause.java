@@ -22,13 +22,13 @@ public class Clause {
     protected int id;
 
     /** the connective, OR or ATLEAST. */
-    protected Connective connective;
+    protected Connective quantifier;
 
     /** true if the connective is OR. */
     protected boolean isDisjunction;
 
     /** the quantifier for ATLEAST clauses. */
-    protected int quantifier = 1;
+    protected int limit = 1;
 
     /** the sum of all multiplicities of the literals. */
     protected int expandedSize = 0;
@@ -60,17 +60,21 @@ public class Clause {
      */
     public Clause(int[] inputClause) {
         id = inputClause[0];
-        connective = Connective.getConnective(inputClause[1]);
-        assert(connective != null && (connective == Connective.OR || connective == Connective.ATLEAST));
-        isDisjunction = connective == Connective.OR;
-        quantifier = isDisjunction ? 1 : inputClause[2];
+        quantifier = Connective.getConnective(inputClause[1]);
+        assert(quantifier != null && (quantifier == Connective.OR || quantifier == Connective.ATLEAST));
+        isDisjunction = quantifier == Connective.OR;
+        limit = isDisjunction ? 1 : inputClause[2];
         inferenceStep = new InfInputClause(id);
         int length = inputClause.length;
-        int start = connective.firstLiteralIndex;
+        int start = quantifier.firstLiteralIndex;
         literals = new ArrayList<>(length-start);
         if(isDisjunction)
             for(int i = start; i < length; ++i) {
-                Literal literalObject = new Literal(inputClause[i],1);
+                int literal = inputClause[i];
+                boolean found = false;
+                for(int j = i+1; j < length; ++j) {if(literal == inputClause[j]) {found = true; break;}}
+                if(found) continue; // double literal. The second one will be recorded.
+                Literal literalObject = new Literal(literal,1);
                 literalObject.clause = this;
                 ++expandedSize;
                 literals.add(literalObject);}
@@ -85,32 +89,32 @@ public class Clause {
                         ++multiplicity;
                         inputClause[j] = 0;}}
                 expandedSize += multiplicity;
-                hasMultiplicities |= multiplicity > 1;
                 Literal literalObject = new Literal(literal1,multiplicity);
                 literalObject.clause = this;
-                literals.add(literalObject);}}}
+                literals.add(literalObject);}}
+        hasMultiplicities = expandedSize > literals.size();}
 
     /** constructs a new clause from a list of literal,multiplicity pairs.
      *
      * @param id         the identifier.
-     * @param connective the connective.
-     * @param quantifier the quantifier.
+     * @param quantifier the connective.
+     * @param limit the quantifier.
      * @param items      pairs literal,multiplicity.
      */
-    public Clause(int id, Connective connective, int quantifier, int... items) {
+    public Clause(int id, Connective quantifier, int limit, int... items) {
         this.id = id;
+        this.limit = limit;
         this.quantifier = quantifier;
-        this.connective = connective;
-        isDisjunction = connective == Connective.OR;
+        isDisjunction = quantifier == Connective.OR;
         literals = new ArrayList<>(items.length/2);
         for(int i = 0; i < items.length; i +=2) {
             int literal = items[i];
-            int multiplicity = Math.min(items[i+1],quantifier);
+            int multiplicity = Math.min(items[i+1], limit);
             expandedSize += multiplicity;
-            hasMultiplicities |= multiplicity > 1;
             Literal literalObject = new Literal(literal,multiplicity);
             literalObject.clause = this;
-            literals.add(literalObject);}}
+            literals.add(literalObject);}
+        hasMultiplicities = expandedSize > literals.size();}
 
     /** This is a constructor for a disjunction.
      *
@@ -119,16 +123,16 @@ public class Clause {
      */
     public Clause(int id,  int... literalNumbers) {
         this.id = id;
-        this.connective = Connective.OR;
+        this.quantifier = Connective.OR;
         expandedSize = literalNumbers.length;
         for(int literal : literalNumbers) {
             Literal literalObject = new Literal(literal,1);
             literalObject.clause = this;
             literals.add(literalObject);}}
 
-    public Clause(int id, int quantifier, ArrayList<Literal> literals) {
+    public Clause(int id, int limit, ArrayList<Literal> literals) {
         this.id = id;
-        this.quantifier = quantifier;
+        this.limit = limit;
         this.literals = literals;
         expandedSize = 1;
         hasMultiplicities = false;
@@ -138,12 +142,28 @@ public class Clause {
             hasMultiplicities |= literalOject.multiplicity > 1;
             expandedSize += literalOject.multiplicity;}
 
-        if(quantifier == 1) {
-            connective = Connective.OR;
+        if(limit == 1) {
+            quantifier = Connective.OR;
             isDisjunction = true;}
         else {
-            connective = Connective.ATLEAST;
+            quantifier = Connective.ATLEAST;
             isDisjunction = false;}}
+
+    /** checks if the atleast-clause is true
+     *
+     * @return true if the atleast-clause is true (limit <= 0)
+     */
+    protected boolean isTrue() {
+        return limit <= 0;}
+
+    /** checks if the atleast-clause is false
+     *
+     * @return true if the atleast-clause is false (limit > extendedSize)
+     */
+    protected boolean isFalse() {
+        return limit > expandedSize;}
+
+
 
 
     /** finds the Literal with the given literal.
@@ -173,31 +193,71 @@ public class Clause {
         literalObject.clause = null;
         if(isDisjunction) return false;
         if(reduceQuantifier) {
-            quantifier -= literalObject.multiplicity;
-            if(quantifier <= 0) return true;
-            if(quantifier == 1) {
+            limit -= literalObject.multiplicity;
+            if(limit <= 0) return true;
+            if(limit == 1) {
                 isDisjunction = true;
-                connective = Connective.OR;
+                quantifier = Connective.OR;
                 for(Literal literalObject1 : literals) {literalObject1.multiplicity = 1;}
                 expandedSize = literals.size();
                 hasMultiplicities = false;
                 return false;}
             for(Literal literalObject1 : literals) {
                 int multiplicity = literalObject1.multiplicity;
-                if(multiplicity > quantifier) {
-                    expandedSize -= quantifier-multiplicity;
-                    literalObject1.multiplicity = quantifier;}}}
+                if(multiplicity > limit) {
+                    expandedSize -= limit -multiplicity;
+                    literalObject1.multiplicity = limit;}}}
         hasMultiplicities = expandedSize > literals.size();
         return false;}
 
+    /** removes complementary pairs from the clause.<br>
+     * Example: atleast 4 p^3, -p^2, q, r -> atleast 2 p,q,r. <br>
+     * Example: atleast 2 p^2, -p^1,q,r -> atleast 0 q,r -> true.<br>
+     * The clause may be turned into a disjunction.
+     *
+     * @return true if the clause became a true clause.
+     */
+    protected boolean removeComplementaryLiterals() {
+        for(int i = 0; i < literals.size()-1; ++i) {
+            Literal literalObject1 = literals.get(i);
+            int literal1 = literalObject1.literal;
+            int multiplicity1 = literalObject1.multiplicity;
+            for(int j = i+1; j < literals.size(); ++j) {
+                Literal literalObject2 = literals.get(j);
+                if(literalObject2.literal == -literal1) {
+                    int multiplicity2 = literalObject2.multiplicity;
+                    if(multiplicity1 == multiplicity2) {
+                        limit -= multiplicity1;
+                        if(limit <= 0) return true;
+                        literals.remove(j);
+                        literals.remove(i--);
+                        expandedSize -= multiplicity1;
+                        break;}
+                    if(multiplicity1 > multiplicity2) {
+                        limit -= multiplicity2;
+                        if(limit <= 0) return true;
+                        literalObject1.multiplicity -= multiplicity2;
+                        literals.remove(j);
+                        expandedSize -= multiplicity2;
+                        break;}
+                    limit -= multiplicity1;
+                    if(limit <= 0) return true;
+                    literalObject2.multiplicity -= multiplicity1;
+                    literals.remove(i--);
+                    expandedSize -= multiplicity1;
+                    break;}}}
+        if(literals.isEmpty()) return true;
+        hasMultiplicities = expandedSize > literals.size();
+        if(limit == 1) quantifier = Connective.OR;
+        return false;}
 
-    private IntArrayList numbers = new IntArrayList();
+    private final IntArrayList numbers = new IntArrayList();
 
     /** divides the quantifier and the multiplicities by their greatest common divisor.
      * @return true if the clause is changed.
      */
     protected boolean divideByGCD() {
-        numbers.clear(); numbers.add(quantifier);
+        numbers.clear(); numbers.add(limit);
         boolean stop = false;
         for(Literal literalObject : literals) {
             int multiplicity = literalObject.multiplicity;
@@ -207,11 +267,12 @@ public class Clause {
             int gcd = Utilities.gcd(numbers);
             if(gcd > 1) {
                 expandedSize = 0;
-                quantifier /= gcd;
+                limit /= gcd;
                 for(Literal literalObject : literals) {
-                    literalObject.multiplicity = Math.min(quantifier, literalObject.multiplicity / gcd);
+                    literalObject.multiplicity = Math.min(limit, literalObject.multiplicity / gcd);
                     expandedSize += literalObject.multiplicity;}
-                if(quantifier == 1) {connective = Connective.OR; isDisjunction = true;}
+                if(limit == 1) {
+                    quantifier = Connective.OR; isDisjunction = true;}
             return true;}}
         return false;}
 
@@ -231,27 +292,27 @@ public class Clause {
         if(!hasMultiplicities) return null;
         auxiliaryLiterals.clear(); // we collect the literals which become true.
         for(Literal literalObject: literals) {
-            if(expandedSize-literalObject.multiplicity < quantifier) {
+            if(expandedSize-literalObject.multiplicity < limit) {
                 auxiliaryLiterals.add(literalObject);}}
         if(auxiliaryLiterals.isEmpty()) return null;
 
         for(Literal literalObject: auxiliaryLiterals) {
             removedLiterals.add(literalObject.literal);
             literals.remove(literalObject);
-            quantifier   -= literalObject.multiplicity;
+            limit -= literalObject.multiplicity;
             expandedSize -= literalObject.multiplicity;
             literalObject.clause = null;}
-        if(quantifier <= 0) {
+        if(limit <= 0) {
             for(Literal literalObject : literals) removedLiterals.add(literalObject.literal);
             return auxiliaryLiterals;}
 
         for(Literal literalObject: literals) {
-            if(literalObject.multiplicity > quantifier) {
-                literalObject.multiplicity = quantifier;
-                expandedSize -= literalObject.multiplicity - quantifier;}}
-        if(quantifier == 1) {
+            if(literalObject.multiplicity > limit) {
+                expandedSize -= literalObject.multiplicity - limit;
+                literalObject.multiplicity = limit;}}
+        if(limit == 1) {
             isDisjunction = true;
-            connective = Connective.OR;
+            quantifier = Connective.OR;
             hasMultiplicities = false;}
         else {hasMultiplicities = expandedSize > literals.size();}
 
@@ -271,19 +332,19 @@ public class Clause {
         auxiliaryLiterals.clear();
         int multiplicities = 0;
         for(Literal literalObject: literals) {
-            if(literalObject.multiplicity != quantifier) {
+            if(literalObject.multiplicity != limit) {
                 auxiliaryLiterals.add(literalObject);
                 multiplicities += literalObject.multiplicity;}}
-        if(multiplicities >= quantifier) return false; // the remaining literals can satisfy the clause.
+        if(multiplicities >= limit) return false; // the remaining literals can satisfy the clause.
 
         for(Literal literalObject : auxiliaryLiterals) {
             removedLiterals.add(literalObject.literal);
             literals.remove(literalObject);
             literalObject.clause = null;}
         for(Literal literalObject : literals) literalObject.multiplicity = 1;
-        quantifier = 1;
+        limit = 1;
         isDisjunction = true;
-        connective = Connective.OR;
+        quantifier = Connective.OR;
         expandedSize = literals.size();
         hasMultiplicities = false;
         return true;}
@@ -301,7 +362,7 @@ public class Clause {
      */
     protected Clause mergeResolution(IntSupplier nextId, Clause longerClause, Literal literalShorter, Literal literalLonger) {
         assert(longerClause.size() >= size());
-        int newQuantifier = quantifier + longerClause.quantifier - Math.max(literalShorter.multiplicity,literalLonger.multiplicity);
+        int newQuantifier = limit + longerClause.limit - Math.max(literalShorter.multiplicity,literalLonger.multiplicity);
         ArrayList<Literal> newLiterals = new ArrayList<>(longerClause.size()-1);
         for(Literal litLonger : longerClause.literals) {
             if(litLonger == literalLonger) continue;
@@ -310,8 +371,7 @@ public class Clause {
             int newMultiplicity = Math.min(newQuantifier, ((litShorter == null) ? litLonger.multiplicity :
                                                         litLonger.multiplicity + litShorter.multiplicity));
              newLiterals.add(new Literal(literal,newMultiplicity));}
-        Clause resolvent = new Clause(nextId.getAsInt(), newQuantifier,newLiterals);
-        return resolvent;}
+        return new Clause(nextId.getAsInt(), newQuantifier,newLiterals);}
 
     /** returns the number of Literal objects in the clause.
      *
@@ -342,10 +402,10 @@ public class Clause {
     public String toString(Symboltable symboltable, int size) {
         StringBuilder st = new StringBuilder();
         st.append((size == 0) ? id : String.format("%"+size+"s",id)).append(": ");
-        if(connective == Connective.ATLEAST) st.append(">= ").append(quantifier).append(" ");
+        if(quantifier == Connective.ATLEAST) st.append(">= ").append(limit).append(" ");
         int length = literals.size()-1;
         for(int i = 0; i < length; ++i) {
-            st.append(literals.get(i).toString(symboltable)).append(connective.separator);}
+            st.append(literals.get(i).toString(symboltable)).append(quantifier.separator);}
         st.append(literals.get(length).toString(symboltable));
         return st.toString();}
 

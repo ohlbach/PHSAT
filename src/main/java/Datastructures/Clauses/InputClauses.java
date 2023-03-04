@@ -7,6 +7,8 @@ import Datastructures.Theory.Model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.IntSupplier;
 
 /**
  * Created by Ohlbach on 03.09.2018.<br>
@@ -19,12 +21,17 @@ import java.util.Arrays;
  * '0': means disjunction:  '10 0 3 5'      means 1 or 3 or 5.<br>
  * '1': means and:          '11 1 4 5'      means 3 and 4 and 5.<br>
  * '2': means equivalences: '12 2 5 -6'     means that these three literals are equivalent. <br>
- * '3': means interval      '13 3 3 5 6 7 8 means between 2 and 3 literals among 5,6,7,8 are true.<br>
- * '4': means atleast:      '14 4 4 5 6'    means atleast 2 of 4,5,6 are true. <br>
- * '5': means atmost:       '15 5 4 5 6'    means atmost 2 of 4,5,6 are true. <br>
- * '6': means exactly:      '16 6 4 5 6'    means exactly 2 of 4,5,6 are true.
+ * '4': means atleast:      '13 3 4 5 6'    means atleast 2 of 4,5,6 are true. <br>
+ * '5': means atmost:       '14 4 4 5 6'    means atmost 2 of 4,5,6 are true. <br>
+ * '6': means exactly:      '15 5 4 5 6'    means exactly 2 of 4,5,6 are true.<br>
+ * '3': means interval      '16 6 2 3 5 6 7 8 means between 2 and 3 literals among 5,6,7,8 are true.<br>
  */
 public class InputClauses {
+    private static final int cOr = Connective.OR.ordinal();
+    private static final int cAtleast = Connective.ATLEAST.ordinal();
+    private static final int cAtmost = Connective.ATMOST.ordinal();
+    private static final int cExactly = Connective.EXACTLY.ordinal();
+    private static final int cInterval = Connective.INTERVAL.ordinal();
 
     /** the name of the problem */
     public String problemName = null;
@@ -145,6 +152,106 @@ public class InputClauses {
                         append("is not within the boundaries [1,").append(predicates).append("]\n");
                 erraneous = true;}}
         return erraneous ? null : clause;}
+
+    /** turns an atmost input clause into an atleast clause<br>
+     * Example: atmost 3 1,2,3,4 -> atleast 1 -1,-2,-3,-4 -> or -1,-2,-3,-4
+     *
+     * @param atmostClause
+     * @return the new atleastClause.
+     */
+    public static int[] atmostToAtleast(int[] atmostClause) {
+        assert(atmostClause[1] == cAtmost);
+        int newLimit = atmostClause.length-3-atmostClause[2];
+        if(newLimit == 1) {
+            int[] atleastClause = Arrays.copyOf(atmostClause,atmostClause.length-1);
+            atleastClause[1] = cOr;
+            for(int i = 3; i < atmostClause.length; ++i) atleastClause[i-1] = -atmostClause[i];
+            return atleastClause;}
+        int[] atleastClause = Arrays.copyOf(atmostClause,atmostClause.length);
+        atleastClause[1] = cAtleast;
+        atleastClause[2] = newLimit;
+        for(int i = 3; i < atmostClause.length; ++i) atleastClause[i] *= -1;
+        return atleastClause;}
+
+    /** turns an exactly input clause into two atleast clauses<br>
+     * Example: exactly 3 1,2,3,4 -> atleast 3 1,2,3,4 and <br>
+     *                               atleast 1 -1,-2,-3,-4 -> or -1,-2,-3,-4
+     *
+     * @param exactlyClause
+     * @return the two new atleastClauses.
+     */
+    public static int[][] exactlyToAtleast(int[] exactlyClause, IntSupplier newId) {
+        assert(exactlyClause[1] == cExactly);
+        int[] atleastClause1;
+        int limit = exactlyClause[2];
+        if(limit == 1) {
+            atleastClause1 = new int[exactlyClause.length-1];
+            atleastClause1[0] = newId.getAsInt();
+            atleastClause1[1] = cOr;
+            System.arraycopy(exactlyClause,3,atleastClause1,2,exactlyClause.length-3);}
+        else {
+            atleastClause1 = Arrays.copyOf(exactlyClause,exactlyClause.length);
+            atleastClause1[0] = newId.getAsInt();
+            atleastClause1[1] = cAtleast;}
+
+        int[] atleastClause2;
+        int newLimit = exactlyClause.length-3-limit;
+        if(newLimit == 1) {
+            atleastClause2 = new int[exactlyClause.length-1];
+            atleastClause2[0] = newId.getAsInt();
+            atleastClause2[1] = cOr;
+            for(int i = 3; i < exactlyClause.length; ++i) atleastClause2[i-1] = -exactlyClause[i];}
+        else {
+            atleastClause2 = Arrays.copyOf(exactlyClause,exactlyClause.length);
+            atleastClause2[0] = newId.getAsInt();
+            atleastClause2[1] = cAtleast;
+            atleastClause2[2] = newLimit;
+            for(int i = 3; i < atleastClause2.length; ++i) atleastClause2[i] *= -1;}
+        int[][] atleastClauses = new int[2][];
+        atleastClauses[0] = atleastClause1; atleastClauses[1] = atleastClause2;
+        return atleastClauses;}
+
+    /** turns an exactly input clause into two atleast clauses<br>
+     * Example: [2,3] 1,2,3,4 -> atleast 2 1,2,3,4 and <br>
+     *                           atleast 1 -1,-2,-3,-4 -> or -1,-2,-3,-4
+     *
+     * @param intervalClause
+     * @return the two new atleastClauses.
+     */
+    public static int[][] intervalToAtleast(int[] intervalClause, IntSupplier newId) {
+        assert(intervalClause[1] == cInterval);
+        int min = intervalClause[2];
+        int max = intervalClause[3];
+        int[] atleastClause1;
+        if(min == 1) {
+            atleastClause1 = new int[intervalClause.length-2];
+            atleastClause1[0] = newId.getAsInt();
+            atleastClause1[1] = cOr;
+            System.arraycopy(intervalClause,4,atleastClause1,2,intervalClause.length-4);}
+        else {
+            atleastClause1 = new int[intervalClause.length-1];
+            atleastClause1[0] = newId.getAsInt();
+            atleastClause1[1] = cAtleast;
+            atleastClause1[2] = min;
+            System.arraycopy(intervalClause,4,atleastClause1,3,intervalClause.length-4);
+        }
+
+        int[] atleastClause2;
+        int newLimit = intervalClause.length-4-max;
+        if(newLimit == 1) {
+            atleastClause2 = new int[intervalClause.length-2];
+            atleastClause2[0] = newId.getAsInt();
+            atleastClause2[1] = cOr;
+            for(int i = 4; i < intervalClause.length; ++i) atleastClause2[i-2] = -intervalClause[i];}
+        else {
+            atleastClause2 = new int[intervalClause.length-1];
+            atleastClause2[0] = newId.getAsInt();
+            atleastClause2[1] = cAtleast;
+            atleastClause2[2] = newLimit;
+            for(int i = 4; i < intervalClause.length; ++i) atleastClause2[i-1] = -intervalClause[i];}
+        int[][] atleastClauses = new int[2][];
+        atleastClauses[0] = atleastClause1; atleastClauses[1] = atleastClause2;
+        return atleastClauses;}
 
 
     /** computes a list of clauses which are false in a model.
