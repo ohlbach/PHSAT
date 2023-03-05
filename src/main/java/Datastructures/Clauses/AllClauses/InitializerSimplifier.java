@@ -183,7 +183,7 @@ public class InitializerSimplifier {
                 integrateClause(new Clause(basicClause));}
             for(int[] basicClause : inputClauses.atmosts) {
                 integrateClause(new Clause(basicClause));}
-            for(int[] basicClause : inputClauses.exacltys) {
+            for(int[] basicClause : inputClauses.exactlys) {
                 integrateClause(new Clause(basicClause));}
             for(int[] basicClause : inputClauses.intervals) {
                 for(Clause clause : Clause.intervalClause(problemSupervisor::nextClauseId,basicClause))

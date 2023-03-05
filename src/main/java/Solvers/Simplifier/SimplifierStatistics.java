@@ -8,6 +8,8 @@ public class SimplifierStatistics extends Statistic {
         super(id);
     }
 
+    @Description("number of initial or- and atleast-clauses")
+    public int orAndAtleastCLauses = 0;
     @Description("number of not internalized input clauses ")
     public int notInternalizedInputClauses = 0;
 

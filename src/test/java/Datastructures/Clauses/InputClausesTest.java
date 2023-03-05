@@ -7,7 +7,7 @@ import junit.framework.TestCase;
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class InputClauseClausesTest extends TestCase {
+public class InputClausesTest extends TestCase {
     private static final int cOr = Connective.OR.ordinal();
     private static final int cAtleast = Connective.ATLEAST.ordinal();
     private static final int cAtmost = Connective.ATMOST.ordinal();

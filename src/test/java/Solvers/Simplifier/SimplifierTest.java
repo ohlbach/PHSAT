@@ -95,7 +95,9 @@ public class SimplifierTest extends TestCase {
         assertEquals("Positive Literals:\n" +
                 "1:1,2:1,3:1,4:1,\n" +
                 "Negative Literals:\n",simplifier.literalIndexMore.toString());
+        simplifier.removeClause(clause,false);
         simplifier.simplifyClause(clause,removedLiterals);
+        simplifier.insertClause(clause);
         assertEquals("2: 3v4", clause.toString());
         assertEquals("1,2",simplifier.model.toString());
         assertEquals("Positive Literals:\n" +

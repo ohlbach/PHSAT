@@ -51,11 +51,11 @@ public class Literals {
      * @return true if the chain of literals with the given literal is now empty.
      */
     public boolean removeLiteral(Literal literalObject) {
+        Literal previousLiteral = literalObject.previousLiteral;
+        Literal nextLiteral     = literalObject.nextLiteral;
         int literal = literalObject.literal;
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
-        Literal previousLiteral = literalObject.previousLiteral;
-        Literal nextLiteral     = literalObject.nextLiteral;
         if(previousLiteral == null) literals[predicate] = nextLiteral;
         else previousLiteral.nextLiteral = nextLiteral;
         if(nextLiteral != null) nextLiteral.previousLiteral = previousLiteral;

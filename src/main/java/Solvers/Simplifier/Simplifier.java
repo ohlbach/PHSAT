@@ -122,28 +122,59 @@ public class Simplifier extends Solver {
         for(int[] inputClause : inputClauses.atleasts) {
             insertNewClause(inputClause,new Clause(inputClause));}
 
-        for(int[] inputClause : inputClauses.atmosts) {
-            insertNewClause(inputClause,new Clause(InputClauses.atmostToAtleast(inputClause)));}
+        for(int[] atmostClause : inputClauses.atmosts) {
+            int[] atleastClause = InputClauses.atmostToAtleast(atmostClause);
+            Clause clause = new Clause(atleastClause);
+            if(trackReasoning) clause.inferenceStep = new InfAtmostToAtleast(atmostClause,atleastClause);
+            if(insertNewClause(atmostClause,clause)) {
+                if(monitoring) {
+                    monitor.println(monitorId,"Atmost-clause: " +
+                            InputClauses.toString(0,atmostClause,symboltable) + " turned to atleast-clause " +
+                            clause.toString(symboltable,0));}}}
 
-        for(int[] inputClause : inputClauses.exacltys) {
-            int[][] inputClauses = InputClauses.exactlyToAtleast(inputClause,nextId);
+        for(int[] exactlyClause : inputClauses.exactlys) {
+            int[][] atleastClauses = InputClauses.exactlyToAtleast(exactlyClause,nextId);
             for(int i = 0; i < 2; ++i) {
-                insertNewClause(inputClause,new Clause(inputClauses[i]));}}
+                int[] atleastClause = atleastClauses[i];
+                Clause clause = new Clause(atleastClause);
+                if(trackReasoning) clause.inferenceStep = new InfExactlyToAtleast(exactlyClause,atleastClause);
+                if(insertNewClause(exactlyClause,clause)){
+                    if(monitoring) {
+                        monitor.println(monitorId,"Exactly-clause: " +
+                                InputClauses.toString(0,exactlyClause,symboltable) + " turned to atleast-clause " +
+                                clause.toString(symboltable,0));}}}}
 
-        for(int[] inputClause : inputClauses.intervals) {
-            int[][] inputClauses = InputClauses.intervalToAtleast(inputClause,nextId);
+        for(int[] intervalClause : inputClauses.exactlys) {
+            int[][] atleastClauses = InputClauses.exactlyToAtleast(intervalClause,nextId);
             for(int i = 0; i < 2; ++i) {
-                insertNewClause(inputClause,new Clause(inputClauses[i]));}}
+                int[] atleastClause = atleastClauses[i];
+                Clause clause = new Clause(atleastClause);
+                if(trackReasoning) clause.inferenceStep = new InfIntervalToAtleast(intervalClause,atleastClause);
+                if(insertNewClause(intervalClause,clause)){
+                    if(monitoring) {
+                        monitor.println(monitorId,"Interval-clause: " +
+                                InputClauses.toString(0,intervalClause,symboltable) + " turned to atleast-clause " +
+                                clause.toString(symboltable,0));}}}}
+
     }
 
-    private void insertNewClause(int[] inputClause, Clause clause) throws Result {
-        if(clause.isTrue()) {++statistics.notInternalizedInputClauses; return;}
+    /** simplifies and inserts an atleast-clause derived from input clauses.
+     *
+     * @param inputClause the original input-clause.
+     * @param clause      the clause to be inserted.
+     * @return            true if the clause survived the simplifications.
+     * @throws Result     if a contradiction is encountered.
+     */
+    private boolean insertNewClause(int[] inputClause, Clause clause) throws Result {
+        if(clause.isTrue())  {++statistics.notInternalizedInputClauses; return false;}
         if(clause.isFalse()) {throw new UnsatisfiableClause(inputClause);}
-        if(clause.removeComplementaryLiterals())   {++statistics.notInternalizedInputClauses; return;}
+        if(clause.removeComplementaryLiterals())   {++statistics.notInternalizedInputClauses; return false;}
         if(!clause.isDisjunction) {
-            if(simplifyClause(clause,auxLiterals)) {++statistics.notInternalizedInputClauses; return;}}
+            if(simplifyClause(clause,auxLiterals)) {++statistics.notInternalizedInputClauses; return false;}}
         addToIndex(clause);
-        if(clause.size() == 2) addBinaryClauseTask(clause);}
+        ++statistics.orAndAtleastCLauses;
+        if(clause.size() == 2) addBinaryClauseTask(clause);
+        return true;}
 
 
     /** adds a true literal to the queue

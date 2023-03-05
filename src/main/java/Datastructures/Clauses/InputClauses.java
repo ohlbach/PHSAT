@@ -7,7 +7,6 @@ import Datastructures.Theory.Model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.IntSupplier;
 
 /**
@@ -67,7 +66,7 @@ public class InputClauses {
     public final ArrayList<int[]> atmosts       = new ArrayList<>();
 
     /** the original exactly clauses. */
-    public final ArrayList<int[]> exacltys      = new ArrayList<>();
+    public final ArrayList<int[]> exactlys = new ArrayList<>();
 
     /** the original interval clauses. */
     public final ArrayList<int[]> intervals     = new ArrayList<>();
@@ -107,7 +106,7 @@ public class InputClauses {
                 case INTERVAL: intervals.add(clause);    maxClauseLength = Math.max(maxClauseLength,length-2); break;
                 case ATLEAST:  atleasts.add(clause);     maxClauseLength = Math.max(maxClauseLength,length-1);  break;
                 case ATMOST:   atmosts.add(clause);      maxClauseLength = Math.max(maxClauseLength,length-1);  break;
-                case EXACTLY:  exacltys.add(clause);     maxClauseLength = Math.max(maxClauseLength,length-1);  break;}}
+                case EXACTLY:  exactlys.add(clause);     maxClauseLength = Math.max(maxClauseLength,length-1);  break;}}
     }
 
     /** checks if the clause has double literals
@@ -268,7 +267,7 @@ public class InputClauses {
         for(int[] clause : equivalences) {if(equivalenceIsFalse(clause,model)) {falseClauses.add(clause);}}
         for(int[] clause : atleasts)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
         for(int[] clause : atmosts)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
-        for(int[] clause : exacltys)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
+        for(int[] clause : exactlys)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
         for(int[] clause : intervals)    {if(intervalIsFalse(clause,model))    {falseClauses.add(clause);}}
         return falseClauses.isEmpty() ? null : falseClauses;}
 
@@ -410,7 +409,7 @@ public class InputClauses {
         statistics.intervals    = intervals.size();
         statistics.atleasts     = atleasts.size();
         statistics.atmosts      = atmosts.size();
-        statistics.exactlys     = exacltys.size();
+        statistics.exactlys     = exactlys.size();
         return statistics;}
 
     /** turns a clause into a string, without using a symboltable.
@@ -486,7 +485,7 @@ public class InputClauses {
         if(problemName != null) st.append("Problem ").append(problemName).append("\n");
         if(info != null) st.append(info).append("\n");
         int size = (""+(disjunctions.size() + conjunctions.size()  +equivalences.size()) +
-                atleasts.size() + atmosts.size() +exacltys.size() +intervals.size()).length()+2;
+                atleasts.size() + atmosts.size() + exactlys.size() +intervals.size()).length()+2;
         if(!disjunctions.isEmpty()) {
             st.append("Disjunctions:\n");
             for(int[] clause : disjunctions) {st.append(toString(size,clause,symboltable)).append("\n");}}
@@ -502,9 +501,9 @@ public class InputClauses {
         if(!atmosts.isEmpty()) {
             st.append("Atmosts:\n");
             for(int[] clause : atmosts)  {st.append(toString(size,clause,symboltable)).append("\n");}}
-        if(!exacltys.isEmpty()) {
+        if(!exactlys.isEmpty()) {
             st.append("Exactlys:\n");
-            for(int[] clause : exacltys)  {st.append(toString(size,clause,symboltable)).append("\n");}}
+            for(int[] clause : exactlys)  {st.append(toString(size,clause,symboltable)).append("\n");}}
         if(!intervals.isEmpty()) {
             st.append("Intervals:\n");
             for(int[] clause : intervals)    {st.append(toString(size,clause,symboltable)).append("\n");}}
