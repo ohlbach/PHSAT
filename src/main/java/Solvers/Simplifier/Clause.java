@@ -210,6 +210,15 @@ public class Clause {
         hasMultiplicities = expandedSize > literals.size();
         return false;}
 
+    /** merges multiple literals of disjunctions into one literal.
+     */
+    public void removeDoubleLiterals() {
+        assert(quantifier == Connective.OR);
+        for(int i = 0;  i < literals.size()-1; ++i) {
+            int literal = literals.get(i).literal;
+            for(int j = i+1; j < literals.size(); ++j) {
+                if(literal == literals.get(j).literal) literals.remove(j--);}}}
+
     /** removes complementary pairs from the clause.<br>
      * Example: atleast 4 p^3, -p^2, q, r -> atleast 2 p,q,r. <br>
      * Example: atleast 2 p^2, -p^1,q,r -> atleast 0 q,r -> true.<br>
@@ -248,7 +257,7 @@ public class Clause {
                     break;}}}
         if(literals.isEmpty()) return true;
         hasMultiplicities = expandedSize > literals.size();
-        if(limit == 1) quantifier = Connective.OR;
+        if(limit == 1) {quantifier = Connective.OR; isDisjunction = true;}
         return false;}
 
     private final IntArrayList numbers = new IntArrayList();

@@ -16,6 +16,24 @@ public class SimplifierStatistics extends Statistic {
     @Description("number of derived unit clauses")
     public int derivedUnitClauses = 0;
 
+    @Description("number of pure literals")
+    public int pureLiterals = 0;
+
+    public void clear() {
+        orAndAtleastCLauses         = 0;
+        notInternalizedInputClauses = 0;
+        derivedUnitClauses          = 0;
+        pureLiterals                = 0;
+    }
+    public String toString(){
+        StringBuilder st = new StringBuilder();
+        st.append("Simplifier Statistics\n");
+        st.append("Initial Clauses:           ").append(orAndAtleastCLauses).append("\n");
+        st.append("Initially Removed Clauses: ").append(notInternalizedInputClauses).append("\n");
+        st.append("Derived Unit Clauses:      ").append(derivedUnitClauses).append("\n");
+        st.append("Pure Literals:             ").append(pureLiterals);
+        return st.toString();
+    }
 
 
 

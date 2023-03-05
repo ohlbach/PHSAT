@@ -25,7 +25,7 @@ public class InfAtmostToAtleast extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         return title + "\n" + InputClauses.toString(0,atmostClause,symboltable) +
-                " -> " + InputClauses.toString(0,atmostClause,symboltable);}
+                " -> " + InputClauses.toString(0,atleastClause,symboltable);}
 
     @Override
     public IntArrayList inputClauseIds() {

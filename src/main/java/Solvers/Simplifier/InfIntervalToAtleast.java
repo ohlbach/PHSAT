@@ -27,7 +27,7 @@ public class InfIntervalToAtleast extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         return title + "\n" + InputClauses.toString(0, intervalClause,symboltable) +
-                " -> " + InputClauses.toString(0, intervalClause,symboltable);}
+                " -> " + InputClauses.toString(0, atleastClause,symboltable);}
 
 
     @Override

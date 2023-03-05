@@ -22,6 +22,14 @@ public class Literals {
         positiveLiterals = new Literal[predicates+1];
         negativeLiterals = new Literal[predicates+1];}
 
+    /** removes all literals from the index.
+     * This is mainly for testing purposes.
+     */
+    public void clear() {
+        for(int i = 0; i < positiveLiterals.length; ++i) {
+            positiveLiterals[i] = null;
+            negativeLiterals[i] = null;}}
+
     /** returns the first Literal object in the Literal chain of the given literal
      *
      * @param literal a literal

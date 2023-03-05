@@ -1,8 +1,11 @@
 package Solvers.Simplifier;
 
 import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Result;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
@@ -15,6 +18,10 @@ public class SimplifierTest extends TestCase {
 
     static int cOr = Connective.OR.ordinal();
     static int cAtleast = Connective.ATLEAST.ordinal();
+    static int cAtmost = Connective.ATMOST.ordinal();
+    static int cExactly = Connective.EXACTLY.ordinal();
+    static int cInterval = Connective.INTERVAL.ordinal();
+
 
     static boolean monitoring = true;
 
@@ -116,4 +123,198 @@ public class SimplifierTest extends TestCase {
         //System.out.println(step.rule());
         //System.out.println(step.inputClauseIds());
     }
+    public void testCheckAllPurities() throws Result {
+        System.out.println("check all purities");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(4, monitor, true, nextId);
+        Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        simplifier.insertClause(clause);
+        clause = new Clause(new int[]{2, cAtleast, 2, -3, -4});
+        simplifier.insertClause(clause);
+        simplifier.checkAllPurities();
+        assertEquals("1,2,-4", simplifier.model.toString());
+        InferenceStep step = simplifier.model.getInferenceStep(-4);
+        //System.out.println(step.toString());
+    }
+
+    public void testInputClausesToAtleastDisjunctions() throws Result {
+        System.out.println("inputClausesToAtleast disjunctions");
+        int predicates = 3;
+        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        simplifier.inputClauses = inputClauses;
+        inputClauses.addClause(new int[]{1, cOr, 1, 2, 3});
+        inputClauses.addClause(new int[]{2, cOr, -1, -2, -3});
+        simplifier.inputClausesToAtleast();
+        assertEquals("1: 1v2v3\n" +
+                "2: -1v-2v-3\n",simplifier.clauses.toString());
+
+        simplifier.clear();
+
+        inputClauses.addClause(new int[]{1, cOr, 1, 2, 3,-2});
+        inputClauses.addClause(new int[]{2, cOr, -1, -2, -3,-2});
+        simplifier.inputClausesToAtleast();
+        assertEquals("2: -1v-3v-2\n",simplifier.clauses.toString());
+        assertEquals("-1,-2,-3",simplifier.model.toString());
+        //System.out.println(simplifier.statistics.toString());
+
+        simplifier.clear();
+        inputClauses.addClause(new int[]{1, cOr, 1, 2,3});
+        inputClauses.addClause(new int[]{2, cOr, -1, -2,-2});
+        inputClauses.addClause(new int[]{3, cOr, 3,3,3});
+        simplifier.inputClausesToAtleast();
+        assertEquals("1: 1v2v3\n" +
+                "2: -1v-2\n",simplifier.clauses.toString());
+        assertEquals("3",simplifier.model.toString());
+
+        //System.out.println(simplifier.statistics.toString());
+        simplifier.clear();
+        inputClauses.addClause(new int[]{1, cOr, 1, 1, 1});
+        inputClauses.addClause(new int[]{2, cOr, -1});
+        try{
+            simplifier.inputClausesToAtleast();}
+        catch(Unsatisfiable unsatisfiable) {
+            //System.out.println(unsatisfiable.toString());
+        }
+        }
+
+    public void testInputClausesToAtleastAtleasts() throws Result {
+        System.out.println("inputClausesToAtleast atleasts");
+        int predicates = 4;
+        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        simplifier.inputClauses = inputClauses;
+        inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 2, 3});
+        simplifier.inputClausesToAtleast();
+        assertEquals("1: >= 2 1,2,3\n", simplifier.clauses.toString());
+        assertEquals("1,2,3,-4", simplifier.model.toString());
+        //System.out.println(simplifier.statistics.toString());
+
+        //System.out.println("NEXT1");
+        simplifier.clear();
+        inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 2, -1,3});
+        simplifier.inputClausesToAtleast();
+        assertEquals("1: 2v3\n", simplifier.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
+
+        //System.out.println("NEXT2");
+        simplifier.clear();
+        inputClauses.addClause(new int[]{1, cAtleast, 5, 1,1,2,2,3,4});
+        simplifier.inputClausesToAtleast();
+        assertEquals("1: 3v4\n", simplifier.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
+
+        //System.out.println("NEXT3");
+        simplifier.clear();
+        inputClauses.addClause(new int[]{1, cAtleast, 2, 1,1,2,2,3});
+        simplifier.inputClausesToAtleast();
+        assertEquals("1: 1v2\n", simplifier.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
+
+        //System.out.println("NEXT4");
+        simplifier.clear();
+        inputClauses.addClause(new int[]{1, cAtleast, 4, 1,1,1,1,2,2,2,2,2,2,3,3});
+        simplifier.inputClausesToAtleast();
+        assertEquals("1: 1v2\n", simplifier.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
+    }
+
+    public void testInputClausesToAtleastAtmosts() throws Result {
+        System.out.println("inputClausesToAtleast atmosts");
+        int predicates = 4;
+        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        simplifier.inputClauses = inputClauses;
+        inputClauses.addClause(new int[]{1, cAtmost, 1, 1, 2, 3, 4});
+        simplifier.inputClausesToAtleast();
+        assertEquals("1: >= 3 -1,-2,-3,-4\n", simplifier.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
+
+        simplifier.clear();
+        inputClauses.addClause(new int[]{1, cAtmost, 4, 1,1,1,1,2,2,2,2,2,2,3,3});
+        simplifier.inputClausesToAtleast();
+        assertEquals("1: -1v-3\n", simplifier.clauses.toString());
+        assertEquals("-1,-2,-3,-4",simplifier.model.toString());
+        //System.out.println(simplifier.statistics.toString());
+    }
+
+    public void testInputClausesToAtleastExactlys() throws Result {
+        System.out.println("inputClausesToAtleast exactlys");
+        int predicates = 4;
+        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        simplifier.inputClauses = inputClauses;
+        inputClauses.addClause(new int[]{1, cExactly, 1, 1, 2, 3, 4});
+        simplifier.inputClausesToAtleast();
+        assertEquals("11: 1v2v3v4\n" +
+                "12: >= 3 -1,-2,-3,-4\n", simplifier.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
+        //System.out.println("\nNEW");
+        simplifier.clear();
+        inputClauses.addClause(new int[]{1, cExactly, 4, 1,1,1,1,2,2,2,2,2,2,3,3});
+        simplifier.inputClausesToAtleast();
+        assertEquals("13: 1v2\n" +
+                "14: -1v-3\n", simplifier.clauses.toString());
+        assertEquals("-2,-3,-4",simplifier.model.toString());
+        //System.out.println(simplifier.statistics.toString());
+        //System.out.println(simplifier.clauses.firstClause.nextClause.inferenceStep.toString());
+    }
+
+    public void testInputClausesToAtleastIntervals() throws Result {
+        System.out.println("inputClausesToAtleast intervals");
+        int predicates = 4;
+        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        simplifier.inputClauses = inputClauses;
+        inputClauses.addClause(new int[]{1, cInterval, 1, 3, 1, 2, 3, 4});
+        simplifier.inputClausesToAtleast();
+        assertEquals("11: 1v2v3v4\n" +
+                "12: -1v-2v-3v-4\n", simplifier.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
+        //System.out.println("\nNEW");
+        simplifier.clear();
+        inputClauses.addClause(new int[]{1, cInterval, 2,4, 1,1,1,1,2,2,2,2,2,2,3,3});
+        simplifier.inputClausesToAtleast();
+        assertEquals("13: 1v2v3\n" +
+                "14: -1v-3\n", simplifier.clauses.toString());
+        assertEquals("-2,-4",simplifier.model.toString());
+        //System.out.println(simplifier.statistics.toString());
+        //System.out.println(simplifier.clauses.firstClause.nextClause.inferenceStep.toString());
+    }
+
+    public void testProcessTrueLiteralTwo() throws Result {
+        System.out.println("processTrueLiteralTwo");
+        int predicates = 4;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        simplifier.model.add(2,new InfInputClause(1));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, -2, 3}));
+        simplifier.insertClause(new Clause(new int[]{4, cOr, -1, 4}));
+        simplifier.processTrueLiteralTwo(2); // true literal 2
+        assertEquals("4: -1v4\n",simplifier.clauses.toString());
+        assertEquals("-1,2,3",simplifier.model.toString());
+        //System.out.println(simplifier.model.getInferenceStep(3));
+        //System.out.println(simplifier.statistics.toString());
+    }
+
     }

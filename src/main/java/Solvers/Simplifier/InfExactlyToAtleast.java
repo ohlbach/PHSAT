@@ -28,7 +28,7 @@ public class InfExactlyToAtleast extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         return title + "\n" + InputClauses.toString(0,exactlyClause,symboltable) +
-                " -> " + InputClauses.toString(0,exactlyClause,symboltable);}
+                " -> " + InputClauses.toString(0,atleastClause,symboltable);}
 
 
     @Override

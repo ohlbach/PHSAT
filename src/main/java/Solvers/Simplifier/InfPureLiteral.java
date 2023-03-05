@@ -27,8 +27,7 @@ public class InfPureLiteral extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return "Literal " + Symboltable.toString(pureLiteral, symboltable) + " is pure. " +
-                Symboltable.toString(-pureLiteral, symboltable) + " becomes true.";}
+        return "Literal " + Symboltable.toString(pureLiteral, symboltable) + " is pure and becomes true.";}
 
     @Override
     public IntArrayList inputClauseIds() {
@@ -37,5 +36,5 @@ public class InfPureLiteral extends InferenceStep {
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-    }
+        steps.add(this);}
 }

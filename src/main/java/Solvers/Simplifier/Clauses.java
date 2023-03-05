@@ -41,7 +41,7 @@ public class Clauses {
             Clause previousClause = clause.previousClause;
             lastClause = previousClause; clause.previousClause = null; previousClause.nextClause = null; return --size;}
         if(clause.previousClause == null) { // it is the first clause in the chain
-            firstClause = clause.nextClause; clause.nextClause = null; return --size;}
+            firstClause = clause.nextClause; firstClause.previousClause = null; clause.nextClause = null; return --size;}
 
         Clause previous = clause.previousClause;  // now the clause is in the middle.
         Clause next = clause.nextClause;
@@ -62,6 +62,14 @@ public class Clauses {
      * @return true if the list is empty.
      */
     public boolean isEmpty() {return firstClause == null;}
+
+    /** removes all clauses from the index
+     * This is mainly for testing purposes.
+     */
+    public void clear() {
+        firstClause = null;
+        lastClause = null;
+        size = 0;}
 
     /** generates a string containing all clauses in the list.
      *

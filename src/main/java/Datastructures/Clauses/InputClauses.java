@@ -72,6 +72,7 @@ public class InputClauses {
     public final ArrayList<int[]> intervals     = new ArrayList<>();
 
 
+
     /** constructs a new input clause list.
      *
      * @param problemName the name of the problem.
@@ -411,6 +412,18 @@ public class InputClauses {
         statistics.atmosts      = atmosts.size();
         statistics.exactlys     = exactlys.size();
         return statistics;}
+
+    /** removes all clauses.
+     * This is mainly for testing purposes.*/
+    public void clear() {
+        disjunctions.clear();
+        conjunctions.clear();
+        equivalences.clear();
+        atleasts.clear();
+        atmosts.clear();
+        exactlys.clear();
+        intervals.clear();
+        maxClauseLength = 0;}
 
     /** turns a clause into a string, without using a symboltable.
      *

@@ -32,7 +32,7 @@ public class InfUnitResolutionTwo extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n" + clause.toString() + "true(" + Symboltable.toString(oldTrueLiteral,symboltable) +
+        return title + "\n" + clause.toString() + " and true(" + Symboltable.toString(oldTrueLiteral,symboltable) +
         ") -> true("  + Symboltable.toString(newTrueLiteral,symboltable) + ")";
     }
 
