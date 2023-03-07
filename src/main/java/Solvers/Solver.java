@@ -207,7 +207,7 @@ public abstract class Solver {
     public synchronized void importBinaryClause(int literal1, int literal2) {}
 
     /** This method is called when another solver found a new clause.
-     * It need be overwritten in the solver class when it wants to exploit these clauses
+     * It needs to be overwritten in the solver class when it wants to exploit these clauses
      *
      * @param literals the literals of the clause
      */

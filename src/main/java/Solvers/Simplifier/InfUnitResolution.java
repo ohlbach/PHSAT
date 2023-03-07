@@ -45,7 +45,6 @@ public class InfUnitResolution extends InferenceStep {
         this.clauseStep    = clauseStep;
         this.isDisjunction = isDisjunction;
         this.literals      = literals;
-        this.clauseAfter   = clauseAfter;
         this.isTrue        = isTrue;
         this.clauseAfter   = clauseAfter;
         this.model         = model;
@@ -61,7 +60,7 @@ public class InfUnitResolution extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return clauseBefore + (isTrue ? "true" : "false") + literals + " -> " + clauseAfter;
+        return clauseBefore + (isTrue ? " and true" : " and false") + literals + " -> " + clauseAfter;
     }
 
     @Override

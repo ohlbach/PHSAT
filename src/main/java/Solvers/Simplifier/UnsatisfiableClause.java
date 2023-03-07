@@ -32,12 +32,12 @@ public class UnsatisfiableClause  extends Unsatisfiable {
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        InferenceStep step = (clause == null) ? clause.inferenceStep : new InfInputClause(inputClause[0]);
-        if(step != null) steps.add(step);}
+        if(clause == null) steps.add(new InfInputClause(inputClause[0]));
+        else {clause.inferenceStep.inferenceSteps(steps);}}
 
     @Override
     public IntArrayList inputClauseIds() {
-        InferenceStep step = (clause == null) ? clause.inferenceStep : new InfInputClause(inputClause[0]);
+        InferenceStep step = (clause != null) ? clause.inferenceStep : new InfInputClause(inputClause[0]);
         if(step != null) return step.inputClauseIds();
         return null;}
 }

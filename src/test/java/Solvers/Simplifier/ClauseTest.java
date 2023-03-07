@@ -81,8 +81,8 @@ public class ClauseTest extends TestCase {
         assertEquals("13: >= 2 2^2,3",clause2.toString());
 
         Literal literal3 = clause2.findLiteral(2);
-        assertTrue(clause2.removeLiteral(literal3,true));
-        assertNull(literal3.clause);
+        assertFalse(clause2.removeLiteral(literal3,true));
+        assertFalse(literal3.clause.exists);
     }
 
     public void testConstructorQuantified() {
