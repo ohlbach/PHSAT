@@ -177,38 +177,42 @@ public class Clause {
         return null;}
 
     /** removes a literal object from the clause.<br>
-     * All internal data are updated (quantifier, multiplicity of the literals, connective).<br>
+     * All internal data are updated (limit, multiplicity of the literals, connective).<br>
      * If the clause is a disjunction then the literal is just removed.<br>
-     * If the clause is an atleast-clause then the literals multiplicities are adjusted to the quantifier.<br>
-     * If the resulting quantifier is 1 then the clause is turned into a disjunction.<br>
+     * If the clause is an atleast-clause then the literals multiplicities are adjusted to the limit.<br>
+     * If the resulting limit is 1 then the clause is turned into a disjunction.<br>
+     * If the new limit is &lt;= 0 then the clause may be removed. Therefor only the limit is changed.<br>
      * Other simplifications are not performed.
      *
      * @param literalObject    the literal to be removed.
      * @param reduceQuantifier if true then the quantifier is reduced by the literal's multiplicity.
-     * @return true if the clause has become a tautology (quantifier = 0).
+     * @return true if the clause still exists.
      */
     protected boolean removeLiteral(Literal literalObject, boolean reduceQuantifier) {
+        if(reduceQuantifier) {
+            limit -= literalObject.multiplicity;
+            if(limit <= 0) {exists = false; return false;}}
+
         literals.remove(literalObject);
         expandedSize -= literalObject.multiplicity;
         literalObject.clause = null;
-        if(isDisjunction) return false;
-        if(reduceQuantifier) {
-            limit -= literalObject.multiplicity;
-            if(limit <= 0) return true;
-            if(limit == 1) {
-                isDisjunction = true;
-                quantifier = Connective.OR;
-                for(Literal literalObject1 : literals) {literalObject1.multiplicity = 1;}
-                expandedSize = literals.size();
-                hasMultiplicities = false;
-                return false;}
+        if(isDisjunction) return true;
+        if(limit == 1) { // clause turns into a disjunction
+            isDisjunction = true;
+            quantifier = Connective.OR;
+            for(Literal literalObject1 : literals) {literalObject1.multiplicity = 1;}
+            expandedSize = literals.size();
+            hasMultiplicities = true;
+            return true;}
+
+        if(reduceQuantifier) { // adjust all multiplicities
             for(Literal literalObject1 : literals) {
                 int multiplicity = literalObject1.multiplicity;
                 if(multiplicity > limit) {
                     expandedSize -= limit -multiplicity;
                     literalObject1.multiplicity = limit;}}}
         hasMultiplicities = expandedSize > literals.size();
-        return false;}
+        return true;}
 
     /** merges multiple literals of disjunctions into one literal.
      */

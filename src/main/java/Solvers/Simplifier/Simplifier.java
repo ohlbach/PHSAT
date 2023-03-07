@@ -188,7 +188,7 @@ public class Simplifier extends Solver {
                 monitor.println(monitorId,"Complementary literals removed in clause " +
                         InputClauses.toString(0,inputClause,symboltable) + " -> " + clause.toString(symboltable,0));}
         if(!clause.isDisjunction) {
-            if(simplifyClause(clause,auxLiterals)) {++statistics.notInternalizedInputClauses; return false;}}
+            if(simplifyClause(clause, false)) {++statistics.notInternalizedInputClauses; return false;}}
         insertClause(clause);
         ++statistics.orAndAtleastCLauses;
         if(clause.size() == 2) addBinaryClauseTask(clause);
@@ -197,19 +197,29 @@ public class Simplifier extends Solver {
     /** checks all literals for purity.
      * Pure literals are inserted into the model.
      *
-     * @throws Unsatisfiable if the model detects a contradiction.
+     * @throws Unsatisfiable should not happen.
      */
-    protected void checkAllPurities() throws Result{
+    protected void checkAllPurities() throws Unsatisfiable{
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-            for(int sign = +1; sign >= -1; sign -= 2) {
-                int literal = sign*predicate;
-                if(literalIndexTwo.isEmpty(literal) && literalIndexMore.isEmpty(literal)) {
-                    int trueLiteral = -literal;
-                    if(model.status(trueLiteral) != 0) continue;
-                    model.add(trueLiteral, trackReasoning ? new InfPureLiteral(trueLiteral) : null);
-                    if(monitoring) monitor.println(monitorId,"Pure Literal: " + Symboltable.toString(trueLiteral,symboltable));
-                    ++statistics.pureLiterals;
-                    break;}}}}
+            if(!checkPurity(predicate)) checkPurity(-predicate);}}
+
+    /** checks the literal for purity. <br>
+     * A literal l is pure if -l does not occur anymore. l can then be made true. <br>
+     * A pure literal is put into the model.<br>
+     * The literal is not checked if it is already in the model.
+     *
+     * @param literal a literal.
+     * @return true if the literal is pure.
+     * @throws Unsatisfiable should not happen.
+     */
+    protected boolean checkPurity(int literal) throws Unsatisfiable {
+        if(model.status(literal) != 0) return false;
+        if(literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal)) {
+            model.add(literal, trackReasoning ? new InfPureLiteral(literal) : null);
+            if(monitoring) monitor.println(monitorId,"Pure Literal: " + Symboltable.toString(literal,symboltable));
+            ++statistics.pureLiterals;}
+            return true;}
+
 
 
     /** adds a true literal to the queue
@@ -303,25 +313,25 @@ public class Simplifier extends Solver {
      */
     protected void processTrueLiteralMore(int literal) throws Result{
         Literal literalObject = literalIndexMore.getFirstLiteralObject(literal);
-        while(literalObject != null) {
+        while(literalObject != null) { // the literal is true
             Clause clause = literalObject.clause;
             Literal nextLiteral = literalObject.nextLiteral;
             if(clause.exists) {
                 if(clause.isDisjunction) removeClause(clause,true);
                 else {
                     String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
-                    removeLiteral(literalObject,true);
-                    if(monitoring) monitor.println(monitorId,clauseBefore + " and true(" +
-                            Symboltable.toString(literal,symboltable) + ") -> " + clause.toString(symboltable,0));
-                    if(trackReasoning) {
-                        clause.inferenceStep = new InfUnitResolution(clauseBefore,clause.inferenceStep,false,
-                                IntArrayList.wrap(new int[]{literalObject.literal}),true,
-                                clause.toString(symboltable,0),model);}
-                    addShortenedClauseTask(clause);}}
+                    if(removeLiteral(literalObject,true)) {
+                        if(monitoring) monitor.println(monitorId,clauseBefore + " and true(" +
+                                Symboltable.toString(literal,symboltable) + ") -> " + clause.toString(symboltable,0));
+                        if(trackReasoning) {
+                            clause.inferenceStep = new InfUnitResolution(clauseBefore,clause.inferenceStep,false,
+                                    IntArrayList.wrap(new int[]{literalObject.literal}),true,
+                                    clause.toString(symboltable,0),model);}
+                        if(simplifyClause(clause, true)) addShortenedClauseTask(clause);}}}
             literalObject = nextLiteral;}
 
         literalObject = literalIndexMore.getFirstLiteralObject(-literal);
-        while(literalObject != null) {
+        while(literalObject != null) { // the literal is false.
             Clause clause = literalObject.clause;
             String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
             boolean isDisjunction = clause.isDisjunction;
@@ -590,19 +600,11 @@ public class Simplifier extends Solver {
      */
     protected void removeClause(Clause clause, boolean checkPurity) throws Result {
         clauses.removeClause(clause);
-         clause.exists = false;
-        Literals literalIndex1,literalIndex2;
-        if(clause.size() == 2){literalIndex1 = literalIndexTwo; literalIndex2 = literalIndexMore;}
-        else {literalIndex1 = literalIndexMore; literalIndex2 = literalIndexTwo;}
-        if(checkPurity) {
-            for(Literal literalObject : clause.literals) {
-                int literal = literalObject.literal;
-                if(literalIndex1.removeLiteral(literalObject) && literalIndex2.isEmpty(literal)) {
-                    int trueLiteral = -literal;
-                    if(model.status(trueLiteral) != 0) continue;
-                    if(monitoring) {monitor.println(monitorId,"Pure Literal: " + Symboltable.toString(trueLiteral,symboltable));}
-                    model.add(trueLiteral,trackReasoning ? new InfPureLiteral(trueLiteral) : null);}}}
-        else {for(Literal literalObject : clause.literals) literalIndex1.removeLiteral(literalObject);}}
+        clause.exists = false;
+        Literals literalIndex = (clause.size() == 2) ? literalIndexTwo :literalIndexMore;
+        for(Literal literalObject : clause.literals) {
+            literalIndex.removeLiteral(literalObject);
+            if(checkPurity) checkPurity(-literalObject.literal);}}
 
     /** removes all clauses containing the literal.
      *
@@ -655,46 +657,24 @@ public class Simplifier extends Solver {
         for(Literal literalObject : clause.literals) {
             literalIndex.addLiteral(literalObject);}}
 
-    private IntArrayList auxLiterals = new IntArrayList(5);
+    private IntArrayList removedLiterals = new IntArrayList(5);
 
     /** removes the literal from the clause and the literalIndexMore index.
-     * If the literal becomes pure, its negation is inserted into the model.<br>
-     * If the quantifier is reduced to 0, the entire clause is removed.<br>
-     * True literals are extracted from the shortened clause, if possible.<br>
-     * The true literals are removed.<br>
+     * If the literal becomes pure, it is inserted into the model.<br>
+     * If the limit is reduced to 0, the entire clause is removed.<br>
      *
-     * @param literalObject the literal object to be removed
+     * @param literalObject the literal object to be removed.
+     * @return true if the clause still exists.
      * @throws Unsatisfiable if inserting a pure literal into the model causes a contradiction.
      */
-    protected void removeLiteral(Literal literalObject, boolean reduceQuantifier) throws Result {
+    protected boolean removeLiteral(Literal literalObject, boolean reduceQuantifier) throws Result {
         Clause clause = literalObject.clause;
-        if(clause.isDisjunction) {
-            removeFromIndex(literalObject);
-            clause.removeLiteral(literalObject,false);
-            int removedLiteral = literalObject.literal;
-            if(isPure(removedLiteral)) {
-                if(monitoring) {
-                    monitor.println(monitorId,"Pure literal: " + Symboltable.toString(removedLiteral,symboltable));}
-                model.add(-removedLiteral,trackReasoning ? new InfPureLiteral(removedLiteral) : null);}
-            return;}
-        removeFromIndex(clause);
-        auxLiterals.clear(); // collects the removed literals
-        int literal = literalObject.literal;
-        auxLiterals.add(literal);
-
-        if(clause.removeLiteral(literalObject,reduceQuantifier)) { // quantifier = 0. Clause is no longer needed.
-            for(Literal litObject : clause.literals) auxLiterals.add(litObject.literal);
-            removeClause(clause,true);}
-        else {simplifyClause(clause,auxLiterals);
-            if(clause.limit <= 1) {clauses.removeClause(clause); return;}}
-
-        for(int removedLiteral : auxLiterals) {
-            if(isPure(removedLiteral)) {
-                if(monitoring) {
-                    monitor.println(monitorId,"Pure literal: " + Symboltable.toString(removedLiteral,symboltable));}
-                model.add(-removedLiteral,trackReasoning ? new InfPureLiteral(removedLiteral) : null);}}
-
-        addToIndex(clause);}
+        removeFromIndex(literalObject);
+        if(clause.removeLiteral(literalObject,reduceQuantifier)){
+            checkPurity(-literalObject.literal); // pure literals are just added to the model.
+            return true;}
+        removeClause(clause,true);
+        return false;}
 
     /** simplifies an atleast-clause with multiplicities > 1.<br>
      * 1. True literals are extracted.<br>
@@ -705,14 +685,15 @@ public class Simplifier extends Solver {
      * Example: atleast 6 p^4,q^4,r^4 -> atleast 3 p^2,q^2,r^2.
      *
      * @param clause         the clause to be simplified.
-     * @param removedLiterals for collecting removed literals (for purity check)
-     * @return               true if the clause became true.
+     * @param checkPurity    if true then the removed literals are checked for purity.
+     * @return               true if the clause still exists.
      * @throws Result        if the model finds a contradiction.
      */
-    protected boolean simplifyClause(Clause clause, IntArrayList removedLiterals) throws Result {
-        if(clause.isDisjunction || !clause.hasMultiplicities) return false; // nothing to be simplified.
+    protected boolean simplifyClause(Clause clause, boolean checkPurity) throws Result {  // ändern
+        if(clause.isDisjunction || !clause.hasMultiplicities) return true; // nothing to be simplified.
         String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
 
+        removedLiterals.clear();
         ArrayList<Literal> trueLiterals = clause.reduceByTrueLiterals(removedLiterals);
         if(trueLiterals != null) {
             String literalNames = "";
@@ -723,19 +704,19 @@ public class Simplifier extends Solver {
                 model.add(literal, trackReasoning ? new InfTrueLiteral(clauseBefore,clause.id,literal,clause.inferenceStep) : null);}
             if(monitoring) monitor.println(monitorId,"True literals " + literalNames + " extracted from clause " +
                     clauseBefore + ". new clause: " + clause.toString(symboltable,0));
-            if(clause.limit <= 1) return clause.limit == 0;}
+            if(clause.limit <= 1) return clause.limit == 1;}
 
         if(clause.isDisjunction || !clause.hasMultiplicities) return false; // nothing to be simplified.
         if(clause.reduceToEssentialLiterals(removedLiterals)) {
             if(monitoring) monitor.println(monitorId,"Clause  "+clauseBefore+" reduced to essential literals:  "+
                     clause.toString(symboltable,0));
-            if(clause.limit <= 0) return true;
+            if(clause.limit <= 0) return false;
             if(clause.size() == 1) {
                 int literal = clause.literals.get(0).literal;
                 model.add(literal,clause.inferenceStep);
                 removedLiterals.add(literal);
-                return true;}
-            if(clause.limit <= 1) return clause.limit == 0;}
+                return false;}
+            if(clause.limit <= 1) return clause.limit == 1;}
 
         boolean reducedByGCD = clause.divideByGCD();
         if(reducedByGCD && monitoring) {
@@ -743,9 +724,9 @@ public class Simplifier extends Solver {
                     clause.toString(symboltable,0));}
         if(clause.size() == 1) {
             model.add(clause.literals.get(0).literal,new InfInputClause(clause.id));
-            return true;}
-        if(reducedByGCD) return simplifyClause(clause,removedLiterals);
-        return false;}
+            return false;}
+        if(reducedByGCD) return simplifyClause(clause,checkPurity);
+        return true;}
 
     /** removes all clauses from the internal datastructures.
      * This is mainly for testing purposes.
