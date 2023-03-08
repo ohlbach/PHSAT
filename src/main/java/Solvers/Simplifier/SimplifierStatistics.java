@@ -25,6 +25,10 @@ public class SimplifierStatistics extends Statistic {
     @Description("number of merged clauses")
     public int mergedClauses = 0;
 
+    @Description("number of binary resolvents")
+    public int binaryResolvents = 0;
+
+
     public void clear() {
         orAndAtleastCLauses         = 0;
         notInternalizedInputClauses = 0;
@@ -32,6 +36,7 @@ public class SimplifierStatistics extends Statistic {
         pureLiterals                = 0;
         subsumedClauses             = 0;
         mergedClauses               = 0;
+        binaryResolvents            = 0;
     }
     public String toString(){
         StringBuilder st = new StringBuilder();
@@ -41,7 +46,8 @@ public class SimplifierStatistics extends Statistic {
         st.append("Derived Unit Clauses:      ").append(derivedUnitClauses).append("\n");
         st.append("Pure Literals:             ").append(pureLiterals).append("\n");
         st.append("Subsumed Clauses:          ").append(subsumedClauses).append("\n");
-        st.append("Merged Clauses:            ").append(mergedClauses);
+        st.append("Merged Clauses:            ").append(mergedClauses).append("\n");
+        st.append("Binary Resolvents:         ").append(binaryResolvents);
         return st.toString();
     }
 

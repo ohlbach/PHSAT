@@ -523,5 +523,44 @@ public class SimplifierTest extends TestCase {
         assertEquals("",simplifier.model.toString());
 
     }
+    public void testBinaryClauseResolutionCompletion() throws Result {
+        System.out.println("binaryClauseResolutionCompletion");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        Clause clause1 = new Clause(new int[]{2, cOr, 1, 2});
+        simplifier.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{3, cOr, -1,3 });
+        simplifier.insertClause(clause2);
+        Clause clause3 = new Clause(new int[]{4, cOr, -1,4 });
+        simplifier.insertClause(clause3);
+        Clause clause4 = new Clause(new int[]{5, cOr, -2,3 });
+        simplifier.insertClause(clause4);
+        simplifier.binaryClauseResolutionCompletion(clause1, 1, 2);
+        assertEquals(" 2: 1v2\n" +
+                " 3: -1v3\n" +
+                " 4: -1v4\n" +
+                " 5: -2v3\n" +
+                "11: 2v4\n" +
+                "12: 2v3\n",simplifier.clauses.toString());
+      //  System.out.println(simplifier.statistics.toString());
 
+        simplifier.clear();
+
+        clause1 = new Clause(new int[]{2, cOr, 1, 2});
+        simplifier.insertClause(clause1);
+        clause2 = new Clause(new int[]{3, cOr, -1,3 });
+        simplifier.insertClause(clause2);
+        clause3 = new Clause(new int[]{4, cOr, -1,2 });
+        simplifier.insertClause(clause3);
+        clause4 = new Clause(new int[]{5, cOr, -2,3 });
+        simplifier.insertClause(clause4);
+        simplifier.binaryClauseResolutionCompletion(clause1, 1, 2);
+        assertEquals("3: -1v3\n" +
+                "5: -2v3\n",simplifier.clauses.toString());
+        assertEquals("-1,2",simplifier.model.toString());
+        System.out.println(simplifier.statistics.toString());
+    }
     }
