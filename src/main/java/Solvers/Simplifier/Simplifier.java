@@ -645,9 +645,61 @@ public class Simplifier extends Solver {
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessLongerClause, clause));}}
 
 
-    protected void processEquivalence(int representative, int literal, InferenceStep inferenceStep) {
+    /** This method replaces in all clauses the given literal by the given representative.
+     *
+     * @param representative  the representative of an equivalence class.
+     * @param literal         the literal of the equivalence class.
+     * @param equivalenceStep which caused the equivalence.
+     * @throws Result         if a contradiction is encountered.
+     */
+    protected void processEquivalence(int representative, int literal, InferenceStep equivalenceStep) throws Result {
+        for(int sign = +1; sign >= -1; sign -=2) {
+            representative *= sign;
+            literal *= sign;
+            Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal);
+            while(literalObject != null) {
+                Literal nextLiteral = literalObject.nextLiteral;
+                Clause  clause = literalObject.clause;
+                if(clause.exists) {
+                    removeFromIndex(clause);
+                    String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
+                    if(clause.replaceEquivalenceTwo(representative,literal)) {
+                        model.add(representative, trackReasoning ? new InfEquivalenceMerge(clause,representative,equivalenceStep) : null);
+                        if(monitoring) {
+                            monitor.println(monitorId,"Equivalence Replacement: " +
+                                    clauseString + " and " + Symboltable.toString(literal,symboltable) + " = " +
+                                    Symboltable.toString(representative,symboltable) + " -> true(" +
+                                    Symboltable.toString(representative,symboltable)+")");}
+                        removeClause(clause,true);
+                        return;} // true literals need no further replacements.
+                    else {
+                        if(trackReasoning) {clause.inferenceStep =
+                                new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);}
+                        addToIndex(clause);
+                        addBinaryClauseTask(clause);}}
+                literalObject = nextLiteral;}
 
+            literalObject = literalIndexMore.getFirstLiteralObject(literal);
+            while(literalObject != null) {
+                Literal nextLiteral = literalObject.nextLiteral;
+                Clause  clause = literalObject.clause;
+                if(clause.exists) {
+                    removeFromIndex(clause);
+                    String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
+                    boolean merged = clause.replaceEquivalenceMore(representative,literal);
+                    if(trackReasoning) clause.inferenceStep =
+                            new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);
+                    if(merged) {
+                        simplifyClause(clause,true);
+                        if(clause.exists) {
+                            addToIndex(clause);
+                            if(clause.size() == 2) addBinaryClauseTask(clause);
+                            else addShortenedClauseTask(clause);}}} // changed clauses without merged literals are not further processed.
+                literalObject = nextLiteral;}
+            }
     }
+
+
 
     /** inserts a clause into the internal lists.
      *
@@ -777,7 +829,7 @@ public class Simplifier extends Solver {
                 }
                 if (monitoring) monitor.println(monitorId, "True literals " + literalNames + " extracted from clause " +
                         clauseBefore + ". new clause: " + clause.toString(symboltable, 0));
-                if (clause.limit <= 1) return clause.limit == 1;}
+                if(!clause.exists) return false;}
 
             if (clause.isDisjunction || !clause.hasMultiplicities) return false; // nothing to be simplified.
             if (clause.reduceToEssentialLiterals(removedLiterals)) {

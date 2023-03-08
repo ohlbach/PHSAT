@@ -296,7 +296,7 @@ public class Clause {
      *  If p is false then the clause becomes atleast 4 q^2,r, which is no longer satisfiable.<br>
      *  Therefore, p must be true, and q as well.<br>
      *  Both can be removed and made true.<br>
-     *  The resulting clause may get a quantifier &lt;= 0. It is true and can be removed.
+     *  The resulting clause may get a limit &lt;= 0. It is true and can be removed.
      *
      * @param removedLiterals for adding the removed literals (for purity check).
      * @return the literals which must be true.
@@ -309,13 +309,14 @@ public class Clause {
                 auxiliaryLiterals.add(literalObject);}}
         if(auxiliaryLiterals.isEmpty()) return null;
 
-        for(Literal literalObject: auxiliaryLiterals) {
+        for(Literal literalObject: auxiliaryLiterals) { // these are the true literals
             removedLiterals.add(literalObject.literal);
             literals.remove(literalObject);
             limit -= literalObject.multiplicity;
             expandedSize -= literalObject.multiplicity;
             literalObject.clause = null;}
         if(limit <= 0) {
+            exists = false;
             for(Literal literalObject : literals) removedLiterals.add(literalObject.literal);
             return auxiliaryLiterals;}
 
@@ -342,7 +343,7 @@ public class Clause {
      */
     protected boolean reduceToEssentialLiterals(IntArrayList removedLiterals) {
         if(!hasMultiplicities) return false;
-        auxiliaryLiterals.clear();
+        auxiliaryLiterals.clear(); // collect the literals with multiplicities < limit
         int multiplicities = 0;
         for(Literal literalObject: literals) {
             if(literalObject.multiplicity != limit) {
@@ -385,6 +386,46 @@ public class Clause {
                                                         litLonger.multiplicity + litShorter.multiplicity));
              newLiterals.add(new Literal(literal,newMultiplicity));}
         return new Clause(nextId.getAsInt(), newQuantifier,newLiterals);}
+
+    /** replaces in a binary clause containing the given literal this literal by the representative.<br>
+     * The literal is destructively changed.
+     * If the two literals merge then the clause is not changed.
+     *
+     * @param representative the representative of an equivalence class
+     * @param literal        the literal of this representative.
+     * @return               true if the two literals merge into one literal
+     */
+    protected boolean replaceEquivalenceTwo(int representative, int literal) {
+        assert(literals.size() == 2);
+        Literal literalObject1 = literals.get(0);
+        Literal literalObject2 = literals.get(1);
+        if(literalObject1.literal == representative || literalObject2.literal == representative) {
+            return true;}  // unit clause derived.
+        if(literalObject1.literal == literal) literalObject1.literal = representative;
+        else                                  literalObject2.literal = representative;
+        return false;}
+
+    /** replaces in a longer clause containing the given literal this literal by the representative.<br>
+     * The literal is destructively changed.<br>
+     * If the two literals merge, one them is removed.
+     *
+     * @param representative the representative of an equivalence class
+     * @param literal        the literal of this representative.
+     * @return               true if two literals merge into one literal
+     */
+    protected boolean replaceEquivalenceMore(int representative, int literal) {
+        assert(literals.size() > 2);
+        Literal literalObject = findLiteral(literal);
+        Literal representativeObject = findLiteral(representative);
+        if(literalObject.literal == representativeObject.literal) {
+            literals.remove(literalObject);
+            int combinedMultiplicity = representativeObject.multiplicity + literalObject.multiplicity;
+            if(combinedMultiplicity > limit) expandedSize -= combinedMultiplicity - limit;
+            representativeObject.multiplicity = Math.min(limit, combinedMultiplicity);
+            if(representativeObject.multiplicity > 1) hasMultiplicities = true;
+            return true;}
+        literalObject.literal = representative;
+        return false;}
 
     /** returns the number of Literal objects in the clause.
      *
