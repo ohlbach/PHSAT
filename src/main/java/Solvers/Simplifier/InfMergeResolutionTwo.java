@@ -23,7 +23,7 @@ public class InfMergeResolutionTwo extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         return clause1.toString(symboltable,0) + " and " + clause2.toString(symboltable,0) +
-                "true(" + Symboltable.toString(literal,symboltable) + ")";}
+                " -> true(" + Symboltable.toString(literal,symboltable) + ")";}
 
     @Override
     public IntArrayList inputClauseIds() {

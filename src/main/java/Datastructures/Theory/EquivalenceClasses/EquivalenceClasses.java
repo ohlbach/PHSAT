@@ -184,7 +184,7 @@ public class EquivalenceClasses  {
      * <br>
      * The result is stored into the variable result.
      */
-    public void run() {
+    public void run(boolean once) {
         Task<TaskType> task;
         while(!isInterrupted) {
             try {
@@ -198,7 +198,8 @@ public class EquivalenceClasses  {
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
                 problemSupervisor.finished("EquivalenceClasses", unsatisfiable,"Contradiction like p = -p found.");
-                return;}}}
+                return;}
+            if(once) return;}}
 
     /** finds the representative for the class containing the literal.
      *
@@ -373,9 +374,8 @@ public class EquivalenceClasses  {
      * @return a string representation of the equivalence classes.
      */
     public String toString(Symboltable symboltable) {
-        if(equivalenceClasses.isEmpty()) return "No equivalence classes in problem " + problemId + "\n";
+        if(equivalenceClasses.isEmpty()) return "";
         StringBuilder string = new StringBuilder();
-        string.append("Equivalence Classes of Problem ").append(problemId).append(":\n");
         for(EquivalenceClass equivalenceClass: equivalenceClasses) {
             string.append(equivalenceClass.toString(symboltable)).append("\n");}
         return string.toString();}

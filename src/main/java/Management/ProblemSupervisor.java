@@ -85,7 +85,7 @@ public class ProblemSupervisor {
             conjunctions2Model(inputClauses.conjunctions);
             equivalenceClasses = new EquivalenceClasses(this,monitor);
             equivalenceClasses.integrateEQUIVClauses(inputClauses.equivalences);
-            equivalenceThread = new Thread(()->equivalenceClasses.run());
+            equivalenceThread = new Thread(()->equivalenceClasses.run(false));
             equivalenceThread.start();
             numberOfSolvers = solvers.size();
             statistics.solvers = numberOfSolvers;

@@ -60,7 +60,7 @@ public class Task<TaskType> {
         StringBuilder st = new StringBuilder();
         try{
             Class inferenceStep = Class.forName("InferenceSteps.InferenceStep");
-            st.append("\n  "+taskType.toString());
+            st.append(taskType.toString());
             if(a != null && a.getClass().getSuperclass() != inferenceStep)
                 st.append(" a: " + (a.getClass() == int[].class ? Arrays.toString((int[])a) : a.toString()));
             if(b != null && b.getClass().getSuperclass() != inferenceStep)
