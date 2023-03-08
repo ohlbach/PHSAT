@@ -563,4 +563,89 @@ public class SimplifierTest extends TestCase {
         assertEquals("-1,2",simplifier.model.toString());
         System.out.println(simplifier.statistics.toString());
     }
+    public void testProcessBinaryClause1() throws Result {
+        System.out.println("processBinaryClause 1");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2});
+        simplifier.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, -1, 3, 4});
+        simplifier.insertClause(clause2);
+        Clause clause3 = new Clause(new int[]{3, cOr, 2,4,1});
+        simplifier.insertClause(clause3);
+        Clause clause4 = new Clause(new int[]{4, cOr, 5,2,1});
+        simplifier.insertClause(clause4);
+        Clause clause5 = new Clause(new int[]{5, cOr, 4,5,6});
+        simplifier.insertClause(clause5);
+        simplifier.processBinaryClause(clause1);
+        assertEquals("1: 1v2\n" +
+                "2: -1v3v4\n" +
+                "5: 4v5v6\n",simplifier.clauses.toString());
+        assertEquals("2,4,5",simplifier.model.toString());
+        System.out.println(simplifier.statistics.toString());
+    }
+
+    public void testProcessBinaryClause2() throws Result {
+        System.out.println("processBinaryClause 2");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 5});
+        simplifier.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, -1, 3, 4});
+        simplifier.insertClause(clause2);
+        Clause clause3 = new Clause(new int[]{3, cOr, 2,4,1});
+        simplifier.insertClause(clause3);
+        Clause clause4 = new Clause(new int[]{4, cOr, 5,2,-1});
+        simplifier.insertClause(clause4);
+        Clause clause5 = new Clause(new int[]{5, cOr, 4,5,6});
+        simplifier.insertClause(clause5);
+        Clause clause6 = new Clause(new int[]{6, cOr, -5,2});
+        simplifier.insertClause(clause6);
+
+        simplifier.processBinaryClause(clause1);
+        simplifier.run(2);
+
+
+        assertEquals(" 1: 1v5\n" +
+                " 2: -1v3v4\n" +
+                " 5: 4v5v6\n" +
+                "11: 1v2\n",simplifier.clauses.toString());
+        assertEquals("2,4",simplifier.model.toString());
+        //System.out.println(simplifier.statistics.toString());
+    }
+
+    public void testProcessBinaryClause3() throws Result {
+        System.out.println("processBinaryClause 3");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        simplifier.model.addObserver((Integer literal, InferenceStep step) -> simplifier.addTrueLiteralTask(literal,step));
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 5});
+        simplifier.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, -1, 3, 4});
+        simplifier.insertClause(clause2);
+        Clause clause3 = new Clause(new int[]{3, cOr, 2,4,1});
+        simplifier.insertClause(clause3);
+        Clause clause4 = new Clause(new int[]{4, cOr, 5,2,-1});
+        simplifier.insertClause(clause4);
+        Clause clause5 = new Clause(new int[]{5, cOr, 4,5,6});
+        simplifier.insertClause(clause5);
+        Clause clause6 = new Clause(new int[]{6, cOr, -5,2});
+        simplifier.insertClause(clause6);
+        simplifier.processBinaryClause(clause1);
+        simplifier.run(6);
+        assertEquals("",simplifier.clauses.toString());
+        assertEquals("1,2,3,4,5,6",simplifier.model.toString());
+        //System.out.println(simplifier.statistics.toString());
+    }
+
+
     }

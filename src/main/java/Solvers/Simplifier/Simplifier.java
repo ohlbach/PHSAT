@@ -88,11 +88,11 @@ public class Simplifier extends Solver {
      */
     private int getPriority(Task<Simplifier.TaskType> task) {
         switch(task.taskType) {
-            case ProcessTrueLiteral: return Integer.MIN_VALUE + Math.abs((Integer)task.a);
-            case ProcessEquivalence: return (Math.abs((Integer)task.a)); // this guarantees a deterministic sequence of the tasks
-            case ProcessBinaryClause:       return 100;
-            case SimplifyTwoLiteralClauses: return 101;
-            case ProcessLongerClause:       return 102;}
+            case ProcessTrueLiteral: return Math.abs((Integer)task.a);
+            case ProcessEquivalence: return predicates + (Math.abs((Integer)task.a)) + 1; // this guarantees a deterministic sequence of the tasks
+            case ProcessBinaryClause:       return predicates + 100;
+            case SimplifyTwoLiteralClauses: return predicates + 101;
+            case ProcessLongerClause:       return predicates + 102;}
         return 0;}
 
     /** A queue of newly derived unit literals and binary equivalences.
@@ -235,8 +235,9 @@ public class Simplifier extends Solver {
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
 
 
-    public void run() {
+    public void run(int n) {
         Task<Simplifier.TaskType> task;
+        int counter = 0;
         while(!interrupted()) {
             try {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
@@ -249,8 +250,10 @@ public class Simplifier extends Solver {
                     case ProcessLongerClause: break;}}
             catch(InterruptedException ex) {return;}
             catch(Result result) {
-                problemSupervisor.finished("Simplifier", result,"");
-                return;}}}
+                if(problemSupervisor != null)
+                    problemSupervisor.finished("Simplifier", result,"");
+                return;}
+            if(n > 0 && ++counter == n) return;}}
 
     /** The method applies a true literal to the clause.<br>
         * For a disjunction this means that the clause is true and can therefore be deleted.<br>
@@ -668,7 +671,7 @@ public class Simplifier extends Solver {
         Literals literalIndex = (clause.size() == 2) ? literalIndexTwo :literalIndexMore;
         for(Literal literalObject : clause.literals) {
             literalIndex.removeLiteral(literalObject);
-            if(checkPurity) checkPurity(-literalObject.literal);}}
+            if(checkPurity) checkPurity(literalObject.literal);}}
 
     /** removes all clauses containing the literal.
      *
@@ -735,6 +738,10 @@ public class Simplifier extends Solver {
         Clause clause = literalObject.clause;
         removeFromIndex(literalObject);
         if(clause.removeLiteral(literalObject,reduceQuantifier)){
+            if(clause.size() == 2) {
+                for(Literal litObject : clause.literals) {
+                    literalIndexMore.removeLiteral(litObject);
+                    literalIndexTwo.addLiteral(litObject);}}
             checkPurity(-literalObject.literal); // pure literals are just added to the model.
             return true;}
         removeClause(clause,true);

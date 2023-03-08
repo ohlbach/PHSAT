@@ -33,7 +33,7 @@ public class MonitorLife extends Monitor {
     public void println(String id, String... messages) {
         filled = true;
         System.out.println(title+","+id+":");
-        for(String message: messages) System.out.println(message);}
+        for(String message: messages) System.out.println("  "+message);}
 
     /** prints title, id and the messages one per line
      *
