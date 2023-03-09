@@ -685,9 +685,35 @@ public class SimplifierTest extends TestCase {
         simplifier.processEquivalence(3, 2, new InferenceTest("MyTest"));
         assertFalse(clause.exists);
         assertEquals("1,3",simplifier.model.toString());
-        assertEquals("", simplifier.clauses.toString());
+        assertEquals("", simplifier.clauses.toString());}
 
+    public void testRemoveClausesSubsumedByLongerClause() throws Result {
+        System.out.println("removeClausesSubsumedByLongerClause");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        Clause subsumer = new Clause(new int[]{1, cOr, 1,2,3});
+        simplifier.insertClause(subsumer);
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 3,2,1}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, 2,4,3,1}));
+        simplifier.insertClause(new Clause(new int[]{4, cOr, 2,4,1,5}));
+        simplifier.removeClausesSubsumedByLongerClause(subsumer);
+        assertEquals("1: 1v2v3\n" +
+                "4: 2v4v1v5\n",simplifier.clauses.toString());
 
+        simplifier.clear();
+        subsumer = new Clause(new int[]{1, cAtleast, 4, 1,1,2,2,3,3,3});
+        simplifier.insertClause(subsumer);
+        simplifier.insertClause(new Clause(new int[]{2, cAtleast,3 , 1,1,2,2,3,3}));
+        simplifier.insertClause(new Clause(new int[]{3, cAtleast,3 , 1,1,1,2,2,3,3}));
+        simplifier.insertClause(new Clause(new int[]{4, cAtleast,3 , 1,1,2,2,2,3,3}));
+        simplifier.removeClausesSubsumedByLongerClause(subsumer);
+        assertEquals("1: >= 4 1^2,2^2,3^3\n" +
+                "3: >= 3 1^3,2^2,3^2\n" +
+                "4: >= 3 1^2,2^3,3^2\n",simplifier.clauses.toString());
 
-    }
+        }
+
     }

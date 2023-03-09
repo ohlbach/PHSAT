@@ -77,7 +77,6 @@ public class Simplifier extends Solver {
         /** a new binary equivalence is found in the TwoLiteral module. */
         ProcessEquivalence,
         ProcessBinaryClause,
-        SimplifyTwoLiteralClauses,
         ProcessLongerClause
     }
 
@@ -91,8 +90,7 @@ public class Simplifier extends Solver {
             case ProcessTrueLiteral: return Math.abs((Integer)task.a);
             case ProcessEquivalence: return predicates + (Math.abs((Integer)task.a)) + 1; // this guarantees a deterministic sequence of the tasks
             case ProcessBinaryClause:       return predicates + 100;
-            case SimplifyTwoLiteralClauses: return predicates + 101;
-            case ProcessLongerClause:       return predicates + 102;}
+            case ProcessLongerClause:       return predicates + 101;}
         return 0;}
 
     /** A queue of newly derived unit literals and binary equivalences.
@@ -178,6 +176,7 @@ public class Simplifier extends Solver {
                         InputClauses.toString(0,inputClause,symboltable) + " -> " + clause.toString(symboltable,0));}
         if(!clause.isDisjunction) {
             if(!simplifyClause(clause, false)) {++statistics.notInternalizedInputClauses; return false;}}
+        if(clause.size() == 2 && isSubsumedByBinaryClauses(clause)) return false;
         insertClause(clause);
         ++statistics.orAndAtleastCLauses;
         if(clause.size() == 2) addBinaryClauseTask(clause);
@@ -246,7 +245,6 @@ public class Simplifier extends Solver {
                     case ProcessTrueLiteral:  processTrueLiteral((Integer)task.a); break;
                     case ProcessEquivalence:  processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;
                     case ProcessBinaryClause: processBinaryClause((Clause)task.a); break;
-                    case SimplifyTwoLiteralClauses: break;
                     case ProcessLongerClause: break;}}
             catch(InterruptedException ex) {return;}
             catch(Result result) {
@@ -417,19 +415,56 @@ public class Simplifier extends Solver {
                 ++statistics.subsumedClauses;}}
         ++timestamp;}
 
-    /** performs merge resolution between binary clauses and equivalence recognition, if possible.<br>
-     * Binary MergeResolution:  p,q and -p,q -&gt; true(q).<br>
-     * Equivalence Recognition: p,q and -p,-q -&gt; p == q.<br>
-     * A derived true literal is inserted into the model.<br>
-     * A derived equivalence is sent to the equivalence classes.<br>
-     * In both cases the two clauses are removed and the search stops immediately.
+    /** removes all clauses subsumed by the given clause.<br>
+     *  A clause atleast n    p_1^k1 ... p_n^kn subsumes <br>
+     *  a clause atleast n-.. p_1^(k1-..) ... p_n^(kn-..) phi <br>
+     *  where - means smaller.<br>
+     *  This is a sufficient, but not necessary condition. <br>
+     *  A case not detected is: atleast 4 p^2,q^2,r^3 subsumes atleast 3 p^2,q^3,r^2.
      *
-     * @param clause1   the binary clause.
-     * @param literal1  either the first or the second literal.
-     * @param literal2  the other literal.
-     * @param checkEquivalence if true then equivalence check is done.
-     * @throws Result if inserting a derived unit clause into the model causes a contradiction.
+     * @param subsumer       a clause,
+     * @throws Unsatisfiable should not happen.
      */
+    protected void removeClausesSubsumedByLongerClause(Clause subsumer) throws Unsatisfiable {
+        int subsumerSize = subsumer.literals.size();
+        int sumsumerLimit = subsumer.limit;
+        Literal subsumerLiteral = subsumer.literals.get(0);
+        Literal subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumerLiteral.literal);
+        while(subsumeeLiteral != null) { // mark all candidates with a timestamp
+            Clause subsumee = subsumeeLiteral.clause;
+            if(subsumee != subsumer && subsumee.limit <= sumsumerLimit &&
+                    subsumee.literals.size() >= subsumerSize &&
+                    subsumeeLiteral.multiplicity <= subsumerLiteral.multiplicity) {
+                subsumee.timestamp = timestamp;}
+            subsumeeLiteral = subsumeeLiteral.nextLiteral;}
+
+        for(int i = 1; i < subsumer.literals.size(); ++i) { // find candidates.
+            subsumerLiteral = subsumer.literals.get(i);
+            subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumerLiteral.literal);
+            while(subsumeeLiteral != null) {
+                Literal nextLiteral = subsumeeLiteral.nextLiteral;
+                Clause subsumee = subsumeeLiteral.clause;
+                if(subsumee.exists && (subsumee.timestamp - timestamp) == i - 1&&
+                        subsumeeLiteral.multiplicity <= subsumerLiteral.multiplicity) {
+                    ++subsumee.timestamp;
+                    if(subsumee.timestamp - timestamp == subsumerSize-1){
+                        removeClause(subsumee,true);}}
+                subsumeeLiteral = nextLiteral;}}
+        timestamp += subsumerSize + 1;}
+
+        /** performs merge resolution between binary clauses and equivalence recognition, if possible.<br>
+         * Binary MergeResolution:  p,q and -p,q -&gt; true(q).<br>
+         * Equivalence Recognition: p,q and -p,-q -&gt; p == q.<br>
+         * A derived true literal is inserted into the model.<br>
+         * A derived equivalence is sent to the equivalence classes.<br>
+         * In both cases the two clauses are removed and the search stops immediately.
+         *
+         * @param clause1   the binary clause.
+         * @param literal1  either the first or the second literal.
+         * @param literal2  the other literal.
+         * @param checkEquivalence if true then equivalence check is done.
+         * @throws Result if inserting a derived unit clause into the model causes a contradiction.
+         */
     protected void binaryMergeResolutionAndEquivalence(Clause clause1, int literal1, int literal2,
                                                        boolean checkEquivalence) throws Result {
         assert(clause1.size() == 2);
