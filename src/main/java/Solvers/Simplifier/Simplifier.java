@@ -566,26 +566,6 @@ public class Simplifier extends Solver {
         ++timestamp;
         return false;}
 
-    /** checks if the binary clause is part of an equivalence.<br>
-     * Example: p,q and -p,-q means p == -q
-     *
-     * @param clause the clause to be checked
-     * @return null or the partner clause for the equivalence.
-     */
-    protected Clause isEquivalence(Clause clause) {
-        Literal literalObject = literalIndexTwo.getFirstLiteralObject(-clause.literals.get(0).literal);
-        while(literalObject != null) {
-            Clause clause1 = literalObject.clause;
-            if(clause1.exists) clause1.timestamp = timestamp;
-            literalObject = literalObject.nextLiteral;}
-        literalObject = literalIndexTwo.getFirstLiteralObject(-clause.literals.get(1).literal);
-        while(literalObject != null) {
-            Clause clause1 = literalObject.clause;
-            if(clause1.timestamp == timestamp) {++timestamp; return clause1;}
-            literalObject = literalObject.nextLiteral;}
-        ++timestamp;
-        return null;}
-
     /** performs merge resolution between a binary clause and a longer clause.<br>
      *  p,q and atleast n -p,q^n,phi -> atleast n q^n,phi<br>
      *  The resolvent is simplified further.
@@ -621,22 +601,6 @@ public class Simplifier extends Solver {
         ++timestamp;
     }
 
-    protected Clause replacementResolventWithBinaryClause(Clause longerClause, Clause binaryClause, int literal) throws Result {
-        Literal literalObject = longerClause.findLiteral(literal);
-        assert(literalObject != null);
-        removeClause(longerClause,true);
-        longerClause.removeLiteral(literalObject,false);
-        if(longerClause.size() == 2) {
-            Clause shortenedClause = reduceShortenedToBinaryClause(longerClause);
-            if(shortenedClause != null) {insertClause(shortenedClause); addBinaryClauseTask(shortenedClause);}
-        }
-        return null;
-    }
-
-    protected Clause reduceShortenedToBinaryClause(Clause clause) throws Result {
-    return clause;
-
-    }
 
     protected void addBinaryClauseTask(Clause clause) {
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessBinaryClause, clause));}}
@@ -645,7 +609,9 @@ public class Simplifier extends Solver {
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessLongerClause, clause));}}
 
 
-    /** This method replaces in all clauses the given literal by the given representative.
+    /** This method replaces in all clauses the given literal by the given representative.<br>
+     * The new clauses are simplified as far as possible.<br>
+     * Derived true literals are inserted into the model.
      *
      * @param representative  the representative of an equivalence class.
      * @param literal         the literal of the equivalence class.
@@ -664,12 +630,15 @@ public class Simplifier extends Solver {
                     removeFromIndex(clause);
                     String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
                     if(clause.replaceEquivalenceTwo(representative,literal)) {
-                        model.add(representative, trackReasoning ? new InfEquivalenceMerge(clause,representative,equivalenceStep) : null);
+                        InferenceStep step = trackReasoning ? new InfEquivalenceMerge(clause,representative, literal, equivalenceStep) : null;
+                        model.add(representative, step);
+                        model.add(literal, step);
                         if(monitoring) {
                             monitor.println(monitorId,"Equivalence Replacement: " +
                                     clauseString + " and " + Symboltable.toString(literal,symboltable) + " = " +
                                     Symboltable.toString(representative,symboltable) + " -> true(" +
-                                    Symboltable.toString(representative,symboltable)+")");}
+                                    Symboltable.toString(representative,symboltable)+ ","+
+                                    Symboltable.toString(literal,symboltable)+")");}
                         removeClause(clause,true);
                         return;} // true literals need no further replacements.
                     else {
@@ -679,7 +648,7 @@ public class Simplifier extends Solver {
                         addBinaryClauseTask(clause);}}
                 literalObject = nextLiteral;}
 
-            literalObject = literalIndexMore.getFirstLiteralObject(literal);
+            literalObject = literalIndexMore.getFirstLiteralObject(literal);  // we check the longer clauses.
             while(literalObject != null) {
                 Literal nextLiteral = literalObject.nextLiteral;
                 Clause  clause = literalObject.clause;
@@ -689,12 +658,13 @@ public class Simplifier extends Solver {
                     boolean merged = clause.replaceEquivalenceMore(representative,literal);
                     if(trackReasoning) clause.inferenceStep =
                             new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);
-                    if(merged) {
+                    if(merged) { // two literals are merged. The new claus might be simplified.
                         simplifyClause(clause,true);
                         if(clause.exists) {
                             addToIndex(clause);
                             if(clause.size() == 2) addBinaryClauseTask(clause);
-                            else addShortenedClauseTask(clause);}}} // changed clauses without merged literals are not further processed.
+                            else addShortenedClauseTask(clause);}
+                        else clauses.removeClause(clause);}} // changed clauses without merged literals are not further processed.
                 literalObject = nextLiteral;}
             }
     }

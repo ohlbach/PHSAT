@@ -417,7 +417,7 @@ public class Clause {
         assert(literals.size() > 2);
         Literal literalObject = findLiteral(literal);
         Literal representativeObject = findLiteral(representative);
-        if(literalObject.literal == representativeObject.literal) {
+        if(representativeObject != null) {
             literals.remove(literalObject);
             int combinedMultiplicity = representativeObject.multiplicity + literalObject.multiplicity;
             if(combinedMultiplicity > limit) expandedSize -= combinedMultiplicity - limit;
@@ -457,10 +457,11 @@ public class Clause {
         StringBuilder st = new StringBuilder();
         st.append((size == 0) ? id : String.format("%"+size+"s",id)).append(": ");
         if(quantifier == Connective.ATLEAST) st.append(">= ").append(limit).append(" ");
-        int length = literals.size()-1;
-        for(int i = 0; i < length; ++i) {
-            st.append(literals.get(i).toString(symboltable)).append(quantifier.separator);}
-        st.append(literals.get(length).toString(symboltable));
+        if(literals.size() > 0) {
+            int length = literals.size()-1;
+            for(int i = 0; i < length; ++i) {
+                st.append(literals.get(i).toString(symboltable)).append(quantifier.separator);}
+            st.append(literals.get(length).toString(symboltable));}
         return st.toString();}
 
 }

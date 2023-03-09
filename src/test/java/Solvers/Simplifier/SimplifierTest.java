@@ -7,6 +7,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
+import InferenceSteps.InferenceTest;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
 import junit.framework.TestCase;
@@ -646,6 +647,47 @@ public class SimplifierTest extends TestCase {
         assertEquals("1,2,3,4,5,6",simplifier.model.toString());
         //System.out.println(simplifier.statistics.toString());
     }
+    public void testProcessEquivalence() throws Result {
+        System.out.println("processEquivalence");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 5}));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 5,3}));
+        simplifier.processEquivalence(2, 5, new InferenceTest("MyTest"));
+        assertEquals("1: 1v2\n" +
+                "2: 2v3\n", simplifier.clauses.toString());
+
+        simplifier.clear();
+        simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 5}));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 5,2}));
+        simplifier.processEquivalence(2, 5, new InferenceTest("MyTest"));
+        assertEquals("1: 1v5\n", simplifier.clauses.toString());
+        assertEquals("2,5",simplifier.model.toString());
+
+        simplifier.clear();
+        simplifier.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,3, 5}));
+        simplifier.insertClause(new Clause(new int[]{2, cAtleast, 3, 4,4,5,5,5,6,6,2}));
+        simplifier.processEquivalence(2, 5, new InferenceTest("MyTest"));
+        assertEquals("1: >= 2 1,3,2\n" +
+                "2: >= 3 4^2,6^2,2^3\n", simplifier.clauses.toString());
+
+        simplifier.clear();
+        simplifier.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,1,2,3,3}));
+        simplifier.processEquivalence(3, 2, new InferenceTest("MyTest"));
+        assertEquals("1: 1v3\n", simplifier.clauses.toString());
+
+        simplifier.clear();
+        Clause clause = new Clause(new int[]{1, cAtleast, 3, 1,1,2,3});
+        simplifier.insertClause(clause);
+        simplifier.processEquivalence(3, 2, new InferenceTest("MyTest"));
+        assertFalse(clause.exists);
+        assertEquals("1,3",simplifier.model.toString());
+        assertEquals("", simplifier.clauses.toString());
 
 
+
+    }
     }
