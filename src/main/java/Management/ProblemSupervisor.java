@@ -3,15 +3,14 @@ package Management;
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.Connective;
 import Datastructures.Clauses.InputClauses;
-import Datastructures.Clauses.SimplifiersOld.ClauseSimplifier;
 import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
-import Datastructures.TwoLiteral.TwoLitClauses;
 import InferenceSteps.InfInputClause;
 import Management.Monitor.Monitor;
 import ProblemGenerators.ProblemGenerator;
+import Solvers.Simplifier.Simplifier;
 import Solvers.Solver;
 
 import java.io.PrintStream;
@@ -40,14 +39,10 @@ public class ProblemSupervisor {
 
     public Model model;
     public EquivalenceClasses equivalenceClasses;
-    public ClauseSimplifier clauseSimplifier;
     public Thread equivalenceThread;
 
-    public TwoLitClauses twoLitClauses;
-    public Thread twoLitThread;
-
-    public InitializerSimplifier clauses;
-    public Thread allClausesThread;
+    public Simplifier simplifier;
+    public Thread simplifierThread;
 
     public Thread supervisorThread;
 
@@ -83,10 +78,8 @@ public class ProblemSupervisor {
             inputClauses = problemGenerator.generateProblem(null);
             model = new Model(inputClauses.predicates);
             conjunctions2Model(inputClauses.conjunctions);
-            equivalenceClasses = new EquivalenceClasses(this,monitor);
-            equivalenceClasses.integrateEQUIVClauses(inputClauses.equivalences);
-            equivalenceThread = new Thread(()->equivalenceClasses.run(false));
-            equivalenceThread.start();
+            startEquivalenceClasses();
+            startSimplifier();
             numberOfSolvers = solvers.size();
             statistics.solvers = numberOfSolvers;
             threads = new Thread[numberOfSolvers];
@@ -111,6 +104,25 @@ public class ProblemSupervisor {
             assert inputClause[1] == Connective.AND.ordinal();
             for(int i = 2; i < inputClause.length; ++i) {
                 model.add(inputClause[i],trackReasoning ? new InfInputClause(inputClause[0]) : null);}}}
+
+    private void startEquivalenceClasses() throws Unsatisfiable{
+        equivalenceClasses = new EquivalenceClasses(this,monitor);
+        equivalenceClasses.integrateEQUIVClauses(inputClauses.equivalences);
+        equivalenceClasses.initialize(); // puts the true clauses into its task queue.
+        equivalenceThread = new Thread(()->equivalenceClasses.run(false));
+        equivalenceThread.start();
+    }
+
+    private void startSimplifier() throws Result {
+        simplifier = new Simplifier(this);
+        simplifierThread = new Thread(() -> {
+            try{
+                simplifier.inputClausesToAtleast();
+                simplifier.initialize();
+                simplifier.run(0);}
+            catch(Result result) {
+                finished("Simplifier",result,"");}});
+        simplifierThread.start();}
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.
      * If the solver succeeded (satisfiable or unsatisfiable) then all other solvers are interrupted. <br>

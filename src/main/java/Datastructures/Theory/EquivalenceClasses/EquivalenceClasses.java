@@ -4,7 +4,6 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Task;
 import Datastructures.Theory.Model;
-import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
@@ -114,7 +113,8 @@ public class EquivalenceClasses  {
 
         if(monitor != null) {
             monitoring = true;
-            monitorId = problemId+"-EQV";}}
+            monitorId = problemId+"-EQV";}
+    }
 
     public void interrupt() {
         isInterrupted = true;
@@ -161,16 +161,13 @@ public class EquivalenceClasses  {
     public synchronized void addObserver(TriConsumer<Integer,Integer,InferenceStep> observer) {
         observers.add(observer);}
 
-    /** adds the literals which are already true in the model and the newly derived equivalences to the task queue.
+    /** adds the literals which are already true in the model to the task queue.
      * Installs the observer in the model.
-     *
-     * @param newEquivalences newly derived equivalences.
      */
-    public void initialize(ArrayList<int[]> newEquivalences) {
+    public void initialize() {
         for(int literal: model.model) {
-            addTrueLiteral(literal,model.getInferenceStep(literal));}
-        model.addObserver(this::addTrueLiteral);
-        for(int[] clause : newEquivalences) addEquivalence(clause[2],clause[3],new InfInputClause(clause[0]));}
+            addTrueLiteralTask(literal,model.getInferenceStep(literal));}
+        model.addObserver(this::addTrueLiteralTask);}
 
 
     /** Starts the instance in a thread.
@@ -191,8 +188,8 @@ public class EquivalenceClasses  {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 switch(task.taskType){
-                    case TRUELITERAL: applyTrueLiteral((Integer)task.a,(InferenceStep)task.b); break;
-                    case EQUIVALENCE: applyEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;}
+                    case TRUELITERAL: processTrueLiteral((Integer)task.a,(InferenceStep)task.b); break;
+                    case EQUIVALENCE: processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;}
                 if(monitoring) {
                     monitor.print(monitorId,"Current equivalences:\n" + toString(symboltable));}}
             catch(InterruptedException ex) {return;}
@@ -219,7 +216,7 @@ public class EquivalenceClasses  {
      * @param literal a true literal
      * @param inferenceStep which caused the truth
      */
-    public void addTrueLiteral(int literal,InferenceStep inferenceStep) {
+    public void addTrueLiteralTask(int literal, InferenceStep inferenceStep) {
         if(monitoring) {
             monitor.print(monitorId,"In:   True literal " +
                     Symboltable.toString(literal,symboltable));}
@@ -233,7 +230,7 @@ public class EquivalenceClasses  {
      * @param literal2      an equivalent literal.
      * @param inferenceStep which caused the equivalence.
      */
-    public void addEquivalence(int literal1, int literal2, InferenceStep inferenceStep) {
+    public void addEquivalenceTask(int literal1, int literal2, InferenceStep inferenceStep) {
         ++statistics.derivedClasses;
         if(monitoring) {
             monitor.print(monitorId,"In:   Equivalence " +
@@ -249,7 +246,7 @@ public class EquivalenceClasses  {
      * @param inferenceStep the inference that caused the truth of the literal.
      * @throws Unsatisfiable if a contradiction occurs.
      */
-    protected void applyTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
+    protected void processTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
         ++statistics.importedTrueLiterals;
         for(EquivalenceClass equivalenceClass : equivalenceClasses) {
             int sign = equivalenceClass.containsLiteral(literal);
@@ -277,7 +274,7 @@ public class EquivalenceClasses  {
      * @param inferenceStep which caused the equivalence
      * @throws Unsatisfiable when a contradiction is found.
      */
-    protected void applyEquivalence(int literal1, int literal2, InferenceStep inferenceStep) throws Unsatisfiable {
+    protected void processEquivalence(int literal1, int literal2, InferenceStep inferenceStep) throws Unsatisfiable {
         if(monitoring) {
             monitor.print(monitorId,"Exec: equivalence: " + Symboltable.toString(literal1,symboltable) +
                     " = " + Symboltable.toString(literal2,symboltable));}

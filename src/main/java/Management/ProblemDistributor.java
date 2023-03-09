@@ -17,10 +17,10 @@ import java.util.ArrayList;
  *
  * This class controls the processing of the problems. <br>
  * It <br>
- * - reads or generates the QUSAT-problems<br>
- * - distributes them over several threads <br>
- * - activates the solvers <br>
- * - collects the results and statistics
+ * - reads or generates the QUSAT-problems.<br>
+ * - distributes them over several threads. <br>
+ * - activates the solvers. <br>
+ * - collects the results and statistics.
  */
 public class ProblemDistributor {
 

@@ -661,7 +661,7 @@ public abstract class ResolutionReduction extends Solver {
             addTrueLiteralTask((toStatus == 1 ? fromLiteral : -fromLiteral),
                     "equivalent literals " + fromLiteral + " " + toLiteral);
             return null;}
-        equivalenceClasses.addEquivalence(fromLiteral,toLiteral,null);
+        equivalenceClasses.addEquivalenceTask(fromLiteral,toLiteral,null);
         replacedClauses.clear();
         replaceLiteralInAllClauses(fromLiteral,toLiteral);
         replaceLiteralInAllClauses(-fromLiteral,-toLiteral);

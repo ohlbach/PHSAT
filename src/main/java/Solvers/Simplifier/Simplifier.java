@@ -71,6 +71,14 @@ public class Simplifier extends Solver {
         statistics = new SimplifierStatistics("Simplifier");
     }
 
+    /** adds the literals which are already true in the model to the task queue.
+     * Installs the observer in the model.
+     */
+    public void initialize() {
+        for(int literal: model.model) {
+            addTrueLiteralTask(literal,model.getInferenceStep(literal));}
+        model.addObserver(this::addTrueLiteralTask);}
+
     private enum TaskType {
         /** a new true literal is obtained from the model */
         ProcessTrueLiteral,
@@ -106,7 +114,7 @@ public class Simplifier extends Solver {
      * 
      * @throws Result if a contradiction or the empty clause is derived.
      */
-    protected void inputClausesToAtleast() throws Result{
+    public void inputClausesToAtleast() throws Result{
         for(int[] inputClause : inputClauses.disjunctions) {
             Clause clause = new Clause(inputClause);
             if(clause.removeComplementaryLiterals()) {++statistics.notInternalizedInputClauses; continue;}
@@ -219,14 +227,11 @@ public class Simplifier extends Solver {
     protected void checkPurity(Clause clause) throws Unsatisfiable {
         for(Literal literalObject : clause.literals) checkPurity(literalObject.literal);}
 
-
-
-
-        /** adds a true literal to the queue
-         *
-         * @param literal a true literal
-         * @param inferenceStep which caused the truth
-         */
+    /** adds a true literal to the queue
+     *
+     * @param literal a true literal
+     * @param inferenceStep which caused the truth
+     */
     public void addTrueLiteralTask(int literal, InferenceStep inferenceStep) {
         if(monitoring) {
             monitor.print(monitorId,"In:   True literal " +
@@ -245,7 +250,7 @@ public class Simplifier extends Solver {
                     case ProcessTrueLiteral:  processTrueLiteral((Integer)task.a); break;
                     case ProcessEquivalence:  processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;
                     case ProcessBinaryClause: processBinaryClause((Clause)task.a); break;
-                    case ProcessLongerClause: break;}}
+                    case ProcessLongerClause: processLongerClause((Clause)task.a); break;}}
             catch(InterruptedException ex) {return;}
             catch(Result result) {
                 if(problemSupervisor != null)
@@ -496,7 +501,7 @@ public class Simplifier extends Solver {
                     if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                             clause2.toString(symboltable,0) + " -> " +
                             Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(literal2,symboltable));
-                    equivalenceClasses.addEquivalence(literal1,literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
+                    equivalenceClasses.addEquivalenceTask(literal1,literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
                     removeClause(clause1,false);
                     removeClause(clause2,false);
                     ++timestamp;
@@ -635,13 +640,25 @@ public class Simplifier extends Solver {
         ++timestamp;
     }
 
+    /** removes all subsumed clauses and performs merge resolution with the longer clauses.
+     *
+     * @param clause a longer clause.
+     * @throws Result if an exception is dicovered.
+     */
+    protected void processLongerClause(Clause clause) throws Result {
+        removeClausesSubsumedByLongerClause(clause);
+        mergeResolutionWithLongerClauseDirect(clause);
+        if(!clause.exists) return;
+        mergeResolutionWithLongerClauseIndirect(clause);
+    }
+
     /** performs merging resolution between longer clauses.<br>
      * atleast n p^n',q_1^k_1,...,q_l^k_l and atleast m -p^n,q_1^m,...,q_l^m, phi -> atleast m q_1^m,...,q_l^m, phi<br>
      * If phi is empty then one clause is removed entirely.<br>
      * The shortened clause is simplified further and a new task is generated.
      *
      * @param clause a clause to be tested as parent clause for a merging resolution step
-     * @throws Result should not happen.
+     * @throws Result if the simplification causes an Unsatisfiable exception.
      */
     protected void mergeResolutionWithLongerClauseDirect(Clause clause) throws Result {
         int clauseSize = clause.literals.size();
@@ -711,7 +728,14 @@ public class Simplifier extends Solver {
             timestamp += clauseSize + 1;}}
 
 
-
+    /** performs merging resolution between longer clauses, including a binary clause.<br>
+     * atleast n p^n',q_1^k_1,...,q_l^k_l and -p,s and  atleast m -s^(n-n'+1),q_1^m,...,q_l^m, phi -> atleast m q_1^m,...,q_l^m, phi<br>
+     * If phi is empty then one clause is removed entirely.<br>
+     * The shortened clause is simplified further and a new task is generated.
+     *
+     * @param clause a clause to be tested as parent clause for a merging resolution step
+     * @throws Result if the simplification causes an Unsatisfiable exception.
+     */
     protected void mergeResolutionWithLongerClauseIndirect(Clause clause) throws Result {
         int clauseSize = clause.literals.size();
         int thisLimit = clause.limit;
@@ -1024,14 +1048,6 @@ public class Simplifier extends Solver {
         clauses.clear();
         model.clear();
         statistics.clear();}
-
-    /** checks if the literal is pure.
-     *
-     * @param literal a literal.
-     * @return true if the literal is pure.
-     */
-    protected boolean isPure(int literal) {
-        return literalIndexTwo.isEmpty(literal) && literalIndexMore.isEmpty(literal);}
 
     @Override
     public Result solveProblem(InputClauses inputClauses) {

@@ -94,7 +94,7 @@ public class EquivalenceClassesTest extends TestCase {
         ArrayList<int[]> clauses = new ArrayList<>(); clauses.add(clause1);clauses.add(clause2);
         EquivalenceClasses eqc = new EquivalenceClasses(null,null);
         eqc.integrateEQUIVClauses(clauses);
-        eqc.applyTrueLiteral(-5,new InferenceTest("Apply 5"));
+        eqc.processTrueLiteral(-5,new InferenceTest("Apply 5"));
         assertEquals("-4,-6",eqc.model.toString());
         assertEquals(1,eqc.size());
  }
@@ -106,21 +106,21 @@ public class EquivalenceClassesTest extends TestCase {
         ArrayList<int[]> clauses = new ArrayList<>(); clauses.add(clause1);clauses.add(clause2);
         EquivalenceClasses eqc = new EquivalenceClasses(null,null);
         eqc.integrateEQUIVClauses(clauses);
-        eqc.applyEquivalence(3,7,new InferenceTest("Test 37"));
+        eqc.processEquivalence(3,7,new InferenceTest("Test 37"));
         assertEquals("Equivalence Classes of Problem TestProblem:\n" +
                 "1 = 2 = 3 = 7\n" +
                 "4 = 6 = 5\n",eqc.toString());
 
-        eqc.applyEquivalence(-5,9,new InferenceTest("Test -59"));
+        eqc.processEquivalence(-5,9,new InferenceTest("Test -59"));
         assertEquals("Equivalence Classes of Problem TestProblem:\n" +
                 "1 = 2 = 3 = 7\n" +
                 "4 = 6 = 5 = -9\n",eqc.toString());
 
-        eqc.applyEquivalence(-7,9,new InferenceTest("Test -79"));
+        eqc.processEquivalence(-7,9,new InferenceTest("Test -79"));
         assertEquals("Equivalence Classes of Problem TestProblem:\n" +
                 "1 = 2 = 3 = 7 = 4 = 6 = 5 = -9\n",eqc.toString());
 
-        eqc.applyEquivalence(12,-11,new InferenceTest("Test 12-11"));
+        eqc.processEquivalence(12,-11,new InferenceTest("Test 12-11"));
         assertEquals("Equivalence Classes of Problem TestProblem:\n" +
                 "1 = 2 = 3 = 7 = 4 = 6 = 5 = -9\n" +
                 "11 = -12\n",eqc.toString());
