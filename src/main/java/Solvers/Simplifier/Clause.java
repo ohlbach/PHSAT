@@ -176,6 +176,15 @@ public class Clause {
             if(literalObject.literal == literal) return literalObject;}
         return null;}
 
+    /** returns for a two-literal clause the other literal
+     *
+     * @param literalObject one of the clause's literalObjects
+     * @return the other literalObject
+     */
+    protected Literal otherLiteral(Literal literalObject) {
+        assert(literals.size() == 2);
+        return literalObject == literals.get(0) ? literals.get(1) : literals.get(0);}
+
     /** removes a literal object from the clause.<br>
      * All internal data are updated (limit, multiplicity of the literals, connective).<br>
      * If the clause is a disjunction then the literal is just removed.<br>

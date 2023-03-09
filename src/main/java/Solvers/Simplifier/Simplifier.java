@@ -388,9 +388,9 @@ public class Simplifier extends Solver {
         if(!clause.exists) return;
         mergeResolutionWithBinaryClause(clause,literal2,literal1);
         if(!clause.exists) return;
-        binaryClauseResolutionCompletion(clause,literal1,literal2);
+        binaryClauseResolutionCompletion(clause,literal1);
         if(!clause.exists) return;
-        binaryClauseResolutionCompletion(clause,literal2,literal1);}
+        binaryClauseResolutionCompletion(clause,literal2);}
 
 
     /** removes all longer disjunctions which are subsumed by a binary subsumer.
@@ -510,10 +510,9 @@ public class Simplifier extends Solver {
      *
      * @param clause     a binary clause,
      * @param literal1   a literal of the clause.
-     * @param literal2   the other literal of the clause.
      * @throws Unsatisfiable  if the model detects a contradiction.
      */
-    protected void binaryClauseResolutionCompletion(Clause clause, int literal1, int literal2) throws Unsatisfiable {
+    protected void binaryClauseResolutionCompletion(Clause clause, int literal1) throws Unsatisfiable {
         assert(clause.size() == 2);
         Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
         while(literalObject != null) {
@@ -627,7 +626,7 @@ public class Simplifier extends Solver {
                 String clause2String = (trackReasoning || monitoring) ? clause2.toString(symboltable,0) : null;
                 ++statistics.mergedClauses;
                 if(removeLiteral(clause2.findLiteral(-literal1),false)) {
-                    if(trackReasoning) clause2.inferenceStep = new InfMergeResolutionTwoMore(clause,clause2String,clause2,symboltable);
+                    if(trackReasoning) clause2.inferenceStep = new InfMergeResolutionMore(clause,clause2String,clause2,symboltable);
                     if(monitoring) monitor.println(monitorId,"Merge Resolution between " +
                             clause.toString(symboltable,0) + " and " + clause2String + " -> " + clause2.toString(symboltable,0));
                     if(simplifyClause(clause2,true)) addShortenedClauseTask(clause2);
@@ -635,6 +634,159 @@ public class Simplifier extends Solver {
             literalObject2 = nextLiteral;}
         ++timestamp;
     }
+
+    /** performs merging resolution between longer clauses.<br>
+     * atleast n p^n',q_1^k_1,...,q_l^k_l and atleast m -p^n,q_1^m,...,q_l^m, phi -> atleast m q_1^m,...,q_l^m, phi<br>
+     * If phi is empty then one clause is removed entirely.<br>
+     * The shortened clause is simplified further and a new task is generated.
+     *
+     * @param clause a clause to be tested as parent clause for a merging resolution step
+     * @throws Result should not happen.
+     */
+    protected void mergeResolutionWithLongerClauseDirect(Clause clause) throws Result {
+        int clauseSize = clause.literals.size();
+        int thisLimit = clause.limit;
+        for(Literal firstLiteral : clause.literals) {
+            int firstNegLiteral = -firstLiteral.literal;
+            Literal negLiteral = literalIndexMore.getFirstLiteralObject(firstNegLiteral);
+            while(negLiteral != null) {
+                Clause otherClause = negLiteral.clause;
+                if(otherClause.exists && otherClause.literals.size() >= clauseSize &&
+                        otherClause.limit >= thisLimit && negLiteral.multiplicity == thisLimit) {
+                    otherClause.timestamp = timestamp;}
+                negLiteral = negLiteral.nextLiteral;}
+
+            int i = 0;
+            for(Literal otherLiteral : clause.literals) {
+                if(otherLiteral == firstLiteral) continue;
+                ++i;
+                Literal posLiteral = literalIndexMore.getFirstLiteralObject(otherLiteral.literal);
+                while(posLiteral != null) {
+                    Literal nextLiteral = posLiteral.nextLiteral;
+                    Clause otherClause = posLiteral.clause;
+                    if(otherClause.exists && (otherClause.timestamp -timestamp) == i-1 && posLiteral.multiplicity == otherClause.limit) {
+                        ++otherClause.timestamp;
+                        if(otherClause.timestamp - timestamp == clauseSize-1) { // mergepartner found
+                            if(otherClause.size() == clauseSize) {
+                                statistics.mergedClauses += 2;
+                                removeClause(otherClause,true);
+                                removeFromIndex(clause);
+                                String resolventBefore = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
+                                clause.removeLiteral(firstLiteral,false);
+
+                                if(trackReasoning) {
+                                    clause.inferenceStep =
+                                            new InfMergeResolutionMore(otherClause,resolventBefore,clause,symboltable);}
+                                if(monitoring) {
+                                    monitor.println(monitorId,
+                                            otherClause.toString(symboltable,0) + " and " +
+                                            resolventBefore + " -> " + clause.toString(symboltable,0));}
+
+                                if(simplifyClause(clause,true)) {
+                                    addToIndex(clause);
+                                    if(clause.size() == 2) addBinaryClauseTask(clause);
+                                    else addLongerClauseTask(clause);}
+                                else clauses.removeClause(clause);
+                                timestamp += clauseSize + 1;
+                                return;}
+                            else {
+                                ++statistics.mergedClauses;
+                                removeFromIndex(otherClause);
+                                String resolventBefore = trackReasoning ? otherClause.toString(symboltable,0) : null;
+                                otherClause.removeLiteral(otherClause.findLiteral(firstNegLiteral),false);
+
+                                if(trackReasoning) {
+                                    otherClause.inferenceStep =
+                                            new InfMergeResolutionMore(clause,resolventBefore,otherClause,symboltable);}
+                                if(monitoring) {
+                                    monitor.println(monitorId, resolventBefore + " and " +
+                                            otherClause.toString(symboltable,0) + " -> " + otherClause.toString(symboltable,0));}
+
+                                if(simplifyClause(otherClause,true)) {
+                                    addToIndex(otherClause);
+                                    if(otherClause.size() == 2) addBinaryClauseTask(otherClause);
+                                    else addLongerClauseTask(otherClause);}
+                                else clauses.removeClause(otherClause);}}}
+                posLiteral = nextLiteral;}}
+            timestamp += clauseSize + 1;}}
+
+
+
+    protected void mergeResolutionWithLongerClauseIndirect(Clause clause) throws Result {
+        int clauseSize = clause.literals.size();
+        int thisLimit = clause.limit;
+        for(Literal firstLiteral : clause.literals) {
+            int firstNegLiteral = -firstLiteral.literal;
+            int thisMultiplicity = firstLiteral.multiplicity;
+            Literal twoLiteral1 = literalIndexTwo.getFirstLiteralObject(firstNegLiteral);
+            while(twoLiteral1 != null) {
+                Clause twoClause = twoLiteral1.clause;
+                Literal twoLiteral2 = twoLiteral1.clause.otherLiteral(twoLiteral1);
+                Literal negLiteral = literalIndexMore.getFirstLiteralObject(-twoLiteral2.literal);
+                while(negLiteral != null) {
+                    Clause otherClause = negLiteral.clause;
+                    if(otherClause.exists && otherClause.literals.size() >= clauseSize &&
+                            otherClause.limit >= thisLimit && negLiteral.multiplicity == thisLimit-thisMultiplicity+1) {
+                         otherClause.timestamp = timestamp;}
+                    negLiteral = negLiteral.nextLiteral;}
+
+                int i = 0;
+                for(Literal otherLiteral : clause.literals) {
+                    if(otherLiteral == firstLiteral) continue;
+                    ++i;
+                    Literal posLiteral = literalIndexMore.getFirstLiteralObject(otherLiteral.literal);
+                    while(posLiteral != null) {
+                        Literal nextLiteral = posLiteral.nextLiteral;
+                        Clause otherClause = posLiteral.clause;
+                        if(otherClause.exists && (otherClause.timestamp -timestamp) == i-1 && posLiteral.multiplicity == otherClause.limit) {
+                            ++otherClause.timestamp;
+                            if(otherClause.timestamp - timestamp == clauseSize-1) { // mergepartner found
+                                if(otherClause.size() == clauseSize) {
+                                    statistics.mergedClauses += 2;
+                                    removeClause(otherClause,true);
+                                    removeFromIndex(clause);
+                                    String resolventBefore = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
+                                    clause.removeLiteral(firstLiteral,false);
+
+                                    if(trackReasoning) {
+                                        clause.inferenceStep =
+                                            new InfMergeResolutionIndirect(otherClause,twoClause,resolventBefore,clause,symboltable);}
+                                    if(monitoring) {
+                                        monitor.println(monitorId,
+                                            otherClause.toString(symboltable,0) + " and " +
+                                                    twoClause.toString(symboltable,0)+ " and " +
+                                                    resolventBefore + " -> " + clause.toString(symboltable,0));}
+
+                                    if(simplifyClause(clause,true)) {
+                                        addToIndex(clause);
+                                        if(clause.size() == 2) addBinaryClauseTask(clause);
+                                        else addLongerClauseTask(clause);}
+                                    else clauses.removeClause(clause);
+                                    timestamp += clauseSize + 1;
+                                    return;}
+                                else {
+                                    ++statistics.mergedClauses;
+                                    removeFromIndex(otherClause);
+                                    String resolventBefore = trackReasoning ? otherClause.toString(symboltable,0) : null;
+                                    otherClause.removeLiteral(otherClause.findLiteral(-twoLiteral2.literal),false);
+
+                                    if(trackReasoning) {
+                                        otherClause.inferenceStep =
+                                            new InfMergeResolutionIndirect(clause,twoClause,resolventBefore,otherClause,symboltable);}
+                                    if(monitoring) {
+                                        monitor.println(monitorId, clause.toString(symboltable,0) + " and " +
+                                                twoClause.toString(symboltable,0) + " and " +
+                                                 resolventBefore + " -> " + otherClause.toString(symboltable,0));}
+
+                                    if(simplifyClause(otherClause,true)) {
+                                        addToIndex(otherClause);
+                                        if(otherClause.size() == 2) addBinaryClauseTask(otherClause);
+                                        else addLongerClauseTask(otherClause);}
+                                    else clauses.removeClause(otherClause);}}}
+                        posLiteral = nextLiteral;}}
+                timestamp += clauseSize + 1;
+                twoLiteral1 = twoLiteral1.nextLiteral;}
+            timestamp += clauseSize + 1;}}
 
 
     protected void addBinaryClauseTask(Clause clause) {
@@ -728,7 +880,7 @@ public class Simplifier extends Solver {
         Literals literalIndex = (clause.size() == 2) ? literalIndexTwo :literalIndexMore;
         for(Literal literalObject : clause.literals) {
             literalIndex.removeLiteral(literalObject);
-            if(checkPurity) checkPurity(literalObject.literal);}}
+            if(checkPurity) {checkPurity(literalObject.literal); checkPurity(-literalObject.literal);}}}
 
     /** removes all clauses containing the literal.
      *
@@ -781,7 +933,7 @@ public class Simplifier extends Solver {
         for(Literal literalObject : clause.literals) {
             literalIndex.addLiteral(literalObject);}}
 
-    private IntArrayList removedLiterals = new IntArrayList(5);
+    private final IntArrayList removedLiterals = new IntArrayList(5);
 
     /** removes the literal from the clause and the literalIndexMore index.
      * If the literal becomes pure, it is inserted into the model.<br>
@@ -836,7 +988,7 @@ public class Simplifier extends Solver {
                         clauseBefore + ". new clause: " + clause.toString(symboltable, 0));
                 if(!clause.exists) return false;}
 
-            if (clause.isDisjunction || !clause.hasMultiplicities) return false; // nothing to be simplified.
+            if (clause.isDisjunction || !clause.hasMultiplicities) return true; // nothing to be simplified.
             if (clause.reduceToEssentialLiterals(removedLiterals)) {
                 if (monitoring)
                     monitor.println(monitorId, "Clause  " + clauseBefore + " reduced to essential literals:  " +
