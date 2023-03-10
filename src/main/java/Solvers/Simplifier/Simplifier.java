@@ -323,29 +323,27 @@ public class Simplifier extends Solver {
             literal *= sign;
             Literal literalObject = literalIndexMore.getFirstLiteralObject(literal);
             while(literalObject != null) { // the literal is true
-                 Literal nextLiteral = literalObject.nextLiteral;
                  Clause clause = literalObject.clause;
-                 if(clause.exists) {
-                    removeFromIndex(clause);
-                    for(int i = 0; i < clause.literals.size(); ++i){
-                        Literal litObject = clause.literals.get(i);
-                        int status = model.status(litObject.literal);
-                        if(status == 0) continue; // literal must not be removed.
-                        boolean isTrue = status == 1;
-                        String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
-                        boolean isDisjunction = clause.isDisjunction;
+                 if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
+                 for(int i = 0; i < clause.literals.size(); ++i){
+                     Literal litObject = clause.literals.get(i);
+                     int status = model.status(litObject.literal);
+                     if(status == 0) continue; // literal must not be removed.
+                     boolean isTrue = status == 1;
+                     String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
+                     boolean isDisjunction = clause.isDisjunction;
 
-                        if(clause.removeLiteral(litObject,isTrue)) checkPurity(litObject.literal);
-                        else {clauses.removeClause(clause); checkPurity(clause); break;} // clause is true now.
+                     if(clause.removeLiteral(litObject,isTrue)) checkPurity(litObject.literal);
+                     else {clauses.removeClause(clause); checkPurity(clause); break;} // clause is true now.
 
-                        if(monitoring) monitor.println(monitorId,clauseBefore + " and " +
+                     if(monitoring) monitor.println(monitorId,clauseBefore + " and " +
                                 (isTrue ? "true":"false")+ "(" +
                                 Symboltable.toString(litObject.literal,symboltable) + ") -> " + clause.toString(symboltable,0));
-                        if(trackReasoning) {
-                            clause.inferenceStep = new InfUnitResolution(clauseBefore,clause.inferenceStep,isDisjunction,
-                                    IntArrayList.wrap(new int[]{litObject.literal}),isTrue,
-                                    clause.toString(symboltable,0),model);}
-                        --i;}}
+                     if(trackReasoning) {
+                         clause.inferenceStep = new InfUnitResolution(clauseBefore,clause.inferenceStep,isDisjunction,
+                                 IntArrayList.wrap(new int[]{litObject.literal}),isTrue,
+                                 clause.toString(symboltable,0),model);}
+                     --i;}
                 if(clause.exists) {
                     if(clause.limit > clause.expandedSize) {
                         throw new UnsatisfiableClause(clause);}
@@ -360,16 +358,34 @@ public class Simplifier extends Solver {
                                         Symboltable.toString(trueLiteral,symboltable) + " derived from clause " + clause.id);
                             clauses.removeClause(clause);
                             break;
-                        case 2:  addToIndex(clause);
+                        case 2:  moveToIndexTwo(clause);
                                  addBinaryClauseTask(clause);
                                  break;
                         default: if(simplifyClause(clause,true)) {
-                                    addToIndex(clause);
                                     addShortenedClauseTask(clause);}
                                 else clauses.removeClause(clause);}}
                 else clauses.removeClause(clause);
-            literalObject = nextLiteral;}}
+            literalObject = literalObject.nextLiteral;}}
         literalIndexMore.removePredicate(literal);}
+
+    /** moves a longer clause which has become a binary clause to the literalIndexTwo.
+     * To this end the literals are copied.
+     * Therefor an iteration over the old literals can still proceed.
+     *
+     * @param clause a binary clause.
+     */
+    protected void moveToIndexTwo(Clause clause) {
+        assert(clause.size() == 2);
+        for(int i = 0; i < 2; ++i) {
+            Literal oldLiteralObject = clause.literals.get(i);
+            Literal newLiteralObject = new Literal(oldLiteralObject.literal,oldLiteralObject.multiplicity);
+            newLiteralObject.clause = clause;
+            literalIndexMore.removeLiteral(oldLiteralObject);
+            literalIndexTwo.addLiteral(newLiteralObject);
+            clause.literals.set(i,newLiteralObject);}}
+
+
+
 
 
     /** adds a just shortened clause to the task queue
@@ -405,27 +421,28 @@ public class Simplifier extends Solver {
      */
     protected void removeClausesSubsumedByBinaryClause(Clause subsumer) throws Unsatisfiable {
         assert(subsumer.size() == 2);
-        Literal literalObject = literalIndexMore.getFirstLiteralObject(subsumer.literals.get(0).literal);
-        while(literalObject != null) {
-            Clause subsumee = literalObject.clause;
+        Literal subsumerLiteral = literalIndexMore.getFirstLiteralObject(subsumer.literals.get(0).literal);
+        while(subsumerLiteral != null) {
+            Clause subsumee = subsumerLiteral.clause;
             if(subsumee.exists && subsumee.isDisjunction && subsumee != subsumer) subsumee.timestamp = timestamp;
-            literalObject = literalObject.nextLiteral;}
+            subsumerLiteral = subsumerLiteral.nextLiteral;}
 
-        literalObject = literalIndexMore.getFirstLiteralObject(subsumer.literals.get(1).literal);
-        while(literalObject != null) {
-            Clause subsumee = literalObject.clause;
-            literalObject = literalObject.nextLiteral;
+        Literal subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumer.literals.get(1).literal);
+        while(subsumeeLiteral != null) {
+            Clause subsumee = subsumeeLiteral.clause;
+            if(subsumee == null) {subsumeeLiteral = subsumeeLiteral.nextLiteral; continue;}
             if(subsumee.timestamp == timestamp) {
                 removeClause(subsumee,true);
-                ++statistics.subsumedClauses;}}
+                ++statistics.subsumedClauses;}
+            subsumeeLiteral = subsumeeLiteral.nextLiteral;}
         ++timestamp;}
 
     /** removes all clauses subsumed by the given clause.<br>
      *  A clause atleast n    p_1^k1 ... p_n^kn subsumes <br>
-     *  a clause atleast n-.. p_1^(k1-..) ... p_n^(kn-..) phi <br>
-     *  where - means smaller.<br>
+     *  a clause atleast n-.. p_1^(k1+..) ... p_n^(kn+..) phi <br>
+     *  where - means smaller or equal and + means larger or equal.<br>
      *  This is a sufficient, but not necessary condition. <br>
-     *  A case not detected is: atleast 4 p^2,q^2,r^3 subsumes atleast 3 p^2,q^3,r^2.
+     *  A case not detected is: atleast 4 p^2,q^2,r subsumes atleast 3 p^2,q^3,r^2.
      *
      * @param subsumer       a clause,
      * @throws Unsatisfiable should not happen.
@@ -439,7 +456,7 @@ public class Simplifier extends Solver {
             Clause subsumee = subsumeeLiteral.clause;
             if(subsumee != subsumer && subsumee.limit <= sumsumerLimit &&
                     subsumee.literals.size() >= subsumerSize &&
-                    subsumeeLiteral.multiplicity <= subsumerLiteral.multiplicity) {
+                    subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity) {
                 subsumee.timestamp = timestamp;}
             subsumeeLiteral = subsumeeLiteral.nextLiteral;}
 
@@ -447,14 +464,14 @@ public class Simplifier extends Solver {
             subsumerLiteral = subsumer.literals.get(i);
             subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumerLiteral.literal);
             while(subsumeeLiteral != null) {
-                Literal nextLiteral = subsumeeLiteral.nextLiteral;
                 Clause subsumee = subsumeeLiteral.clause;
+                if(subsumee == null) {subsumeeLiteral = subsumeeLiteral.nextLiteral; continue;}
                 if(subsumee.exists && (subsumee.timestamp - timestamp) == i - 1&&
-                        subsumeeLiteral.multiplicity <= subsumerLiteral.multiplicity) {
+                        subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity) {
                     ++subsumee.timestamp;
                     if(subsumee.timestamp - timestamp == subsumerSize-1){
                         removeClause(subsumee,true);}}
-                subsumeeLiteral = nextLiteral;}}
+                subsumeeLiteral = subsumeeLiteral.nextLiteral;}}
         timestamp += subsumerSize + 1;}
 
         /** performs merge resolution between binary clauses and equivalence recognition, if possible.<br>
@@ -482,7 +499,7 @@ public class Simplifier extends Solver {
         literalObject = literalIndexTwo.getFirstLiteralObject(literal2);
         while(literalObject != null) {
             Clause clause2 = literalObject.clause;
-            literalObject = literalObject.nextLiteral;
+            if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
             if(clause2.timestamp == timestamp) { // a partner clause is found
                 if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                         clause2.toString(symboltable,0) + " -> " + "true("+ Symboltable.toString(literal2,symboltable)+")");
@@ -490,13 +507,14 @@ public class Simplifier extends Solver {
                 removeClause(clause1,true);
                 removeClause(clause2,true);
                 ++timestamp;
-                return;}}
+                return;}
+            literalObject = literalObject.nextLiteral;}
 
         if(checkEquivalence) {
             literalObject = literalIndexTwo.getFirstLiteralObject(-literal2);
             while(literalObject != null) {
                 Clause clause2 = literalObject.clause;
-                literalObject = literalObject.nextLiteral;
+                if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
                 if(clause2.timestamp == timestamp) { // a partner clause is found.
                     if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                             clause2.toString(symboltable,0) + " -> " +
@@ -505,7 +523,8 @@ public class Simplifier extends Solver {
                     removeClause(clause1,false);
                     removeClause(clause2,false);
                     ++timestamp;
-                    return;}}}
+                    return;}
+                literalObject = literalObject.nextLiteral;}}
         ++timestamp;}
 
     /** performs resolution between the given clause and other binary clauses.<br>
@@ -521,15 +540,14 @@ public class Simplifier extends Solver {
         assert(clause.size() == 2);
         Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
         while(literalObject != null) {
-            Literal nextLiteral = literalObject.nextLiteral;
             Clause clause1 = literalObject.clause;
-            if(clause1 != null && clause1.exists) {
-                Clause resolvent = resolveBetweenBinaryClauses(clause,clause1);
-                if(!clause.exists) return; // unit clause derived
-                if(resolvent != null) {
-                    insertClause(resolvent);
-                    addBinaryClauseTask(resolvent);}}
-            literalObject = nextLiteral;}}
+            if(clause1 == null) {literalObject = literalObject.nextLiteral; continue;}
+            Clause resolvent = resolveBetweenBinaryClauses(clause,clause1);
+            if(!clause.exists) return; // unit clause derived
+            if(resolvent != null) {
+                insertClause(resolvent);
+                addBinaryClauseTask(resolvent);}
+            literalObject = literalObject.nextLiteral;}}
 
 
     /** generates a resolvent between two binary clauses.
@@ -567,7 +585,7 @@ public class Simplifier extends Solver {
             removeClause(clause1,true);
             removeClause(clause2,true);
             ++statistics.binaryResolvents;
-            return  null;}
+            return null;}
         Clause resolvent = new Clause(nextId.getAsInt(), literal1, literal2);
         if(isSubsumedByBinaryClauses(resolvent)) return null;
         ++statistics.binaryResolvents;
@@ -625,9 +643,9 @@ public class Simplifier extends Solver {
 
         Literal literalObject2 = literalIndexMore.getFirstLiteralObject(literal2);
         while(literalObject2 != null) {
-            Literal nextLiteral = literalObject2.nextLiteral;
             Clause clause2 = literalObject2.clause;
-            if(clause2 != null && clause2.exists && clause2.timestamp == timestamp && clause2.limit == literalObject2.multiplicity) {
+            if(clause2 == null) {literalObject2 = literalObject2.nextLiteral; continue;}
+            if(clause2.timestamp == timestamp && clause2.limit == literalObject2.multiplicity) {
                 String clause2String = (trackReasoning || monitoring) ? clause2.toString(symboltable,0) : null;
                 ++statistics.mergedClauses;
                 if(removeLiteral(clause2.findLiteral(-literal1),false)) {
@@ -636,7 +654,7 @@ public class Simplifier extends Solver {
                             clause.toString(symboltable,0) + " and " + clause2String + " -> " + clause2.toString(symboltable,0));
                     if(simplifyClause(clause2,true)) addShortenedClauseTask(clause2);
                     else {removeClause(clause2,true);}}}
-            literalObject2 = nextLiteral;}
+            literalObject2 = literalObject2.nextLiteral;}
         ++timestamp;
     }
 
@@ -679,15 +697,14 @@ public class Simplifier extends Solver {
                 ++i;
                 Literal posLiteral = literalIndexMore.getFirstLiteralObject(otherLiteral.literal);
                 while(posLiteral != null) {
-                    Literal nextLiteral = posLiteral.nextLiteral;
                     Clause otherClause = posLiteral.clause;
-                    if(otherClause.exists && (otherClause.timestamp -timestamp) == i-1 && posLiteral.multiplicity == otherClause.limit) {
+                    if(otherClause == null) {posLiteral = posLiteral.nextLiteral; continue;}
+                    if((otherClause.timestamp -timestamp) == i-1 && posLiteral.multiplicity == otherClause.limit) {
                         ++otherClause.timestamp;
                         if(otherClause.timestamp - timestamp == clauseSize-1) { // mergepartner found
                             if(otherClause.size() == clauseSize) {
                                 statistics.mergedClauses += 2;
                                 removeClause(otherClause,true);
-                                removeFromIndex(clause);
                                 String resolventBefore = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
                                 clause.removeLiteral(firstLiteral,false);
 
@@ -724,7 +741,7 @@ public class Simplifier extends Solver {
                                     if(otherClause.size() == 2) addBinaryClauseTask(otherClause);
                                     else addLongerClauseTask(otherClause);}
                                 else clauses.removeClause(otherClause);}}}
-                posLiteral = nextLiteral;}}
+                posLiteral = posLiteral.nextLiteral;}}
             timestamp += clauseSize + 1;}}
 
 

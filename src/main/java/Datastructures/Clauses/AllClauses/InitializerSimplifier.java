@@ -146,13 +146,11 @@ public class InitializerSimplifier {
      */
     public InitializerSimplifier(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
          this.problemSupervisor = problemSupervisor;
-        problemSupervisor.clauses = this;
         problemId = problemSupervisor.problemId;
         thread = Thread.currentThread();
         model = problemSupervisor.model;
         symboltable = null; //model.symboltable;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
-        twoLitClauses = problemSupervisor.twoLitClauses;
         monitor = null; //problemSupervisor.globalParameters.monitor;
         monitoring = monitor != null;
         monitorId = problemId + "Clauses";

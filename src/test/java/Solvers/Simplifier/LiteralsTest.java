@@ -1,5 +1,6 @@
 package Solvers.Simplifier;
 
+import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
 import junit.framework.TestCase;
 
@@ -122,4 +123,48 @@ public class LiteralsTest extends TestCase {
         literals.removePredicate(-1);
         assertEquals("",toString(literals,1));
     }
-}
+
+    public void testIterating() {
+        System.out.println("iterating");
+        Clause clause = new Clause(new int[]{1, Connective.OR.ordinal(),1,2,3});
+        Literals literals = new Literals(10);
+        Literal l1 = new Literal(1, 1);l1.clause = clause;
+        literals.addLiteral(l1);
+        Literal l2 = new Literal(1, 2);l2.clause = clause;
+        literals.addLiteral(l2);
+        Literal l3 = new Literal(1, 3);l3.clause = clause;
+        literals.addLiteral(l3);
+        Literal l4 = new Literal(1, 4);l4.clause = clause;
+        literals.addLiteral(l4);
+
+        String s = "";
+        Literal lit = literals.getFirstLiteralObject(1);
+        while(lit != null) {s += lit.multiplicity; lit =lit.nextLiteral;}
+        assertEquals("4321",s);
+
+        s = "";
+        lit = literals.getFirstLiteralObject(1).nextLiteral;
+        literals.removeLiteral(l3);
+        while(lit != null) {
+            if(lit.clause == null) {lit =lit.nextLiteral; continue;}
+            s += lit.multiplicity; lit =lit.nextLiteral;}
+        assertEquals("21",s);
+
+        s = "";
+        lit = literals.getFirstLiteralObject(1).nextLiteral;
+        literals.removeLiteral(l2);
+        while(lit != null) {
+            if(lit.clause == null) {lit =lit.nextLiteral; continue;}
+            s += lit.multiplicity; lit =lit.nextLiteral;}
+        assertEquals("1",s);
+
+        s = "";
+        lit = literals.getFirstLiteralObject(1);
+
+        while(lit != null) {
+            if(lit.clause == null) {lit =lit.nextLiteral; continue;}
+            s += lit.multiplicity; lit =lit.nextLiteral;}
+        assertEquals("41",s);
+
+    }
+    }

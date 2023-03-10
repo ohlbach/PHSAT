@@ -54,21 +54,25 @@ public class Literals {
             firstLiteral.previousLiteral = literalObject;}}
 
     /** removes a literal object from the Literal index.
+     * The removed literal's nextLiteral remains as it is.
+     * This way forward iterations with a pointer pointing to the removed literal still work.<br>
+     * One has to check literalObject.clause!
      *
      * @param literalObject the literal object to be added.
      * @return true if the chain of literals with the given literal is now empty.
      */
     public boolean removeLiteral(Literal literalObject) {
+        literalObject.clause = null;
         Literal previousLiteral = literalObject.previousLiteral;
         Literal nextLiteral     = literalObject.nextLiteral;
         int literal = literalObject.literal;
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
+
         if(previousLiteral == null) literals[predicate] = nextLiteral;
         else previousLiteral.nextLiteral = nextLiteral;
         if(nextLiteral != null) nextLiteral.previousLiteral = previousLiteral;
         literalObject.previousLiteral = null;
-        literalObject.nextLiteral = null;
         return literals[predicate] == null;}
 
     /** removes the entire predicate from the Literals index.

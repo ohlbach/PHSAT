@@ -95,7 +95,6 @@ public class TwoLitClauses {
      * @param problemSupervisor contains all the parameters for the problem.
      */
     public TwoLitClauses(ProblemSupervisor problemSupervisor) {
-        problemSupervisor.twoLitClauses = this;
         this.problemSupervisor = problemSupervisor;
         problemId = problemSupervisor.problemId;
         model = problemSupervisor.model;

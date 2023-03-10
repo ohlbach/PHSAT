@@ -2,8 +2,12 @@ package Solvers.Simplifier;
 
 import Datastructures.Symboltable;
 
-/** The Clauses class maintains a doubly connected list of Clause objects.
- * New clauses are appended at the end of the list.
+/** The Clauses class maintains a doubly connected list of Clause objects.<br>
+ * New clauses are appended at the end of the list.<br>
+ * Clauses are removed with the following precautions:<br>
+ * - clause.exists is set to false;<br>
+ * - clause.nextClause remains as it is. This way iterating with a pointer to the removed clause still works.
+ *   One has just to check clause.exists.
  */
 public class Clauses {
 
@@ -22,33 +26,38 @@ public class Clauses {
      * @return the new number of clauses.
      */
     public int addClause(Clause clause) {
-        assert(clause.previousClause == null && clause.nextClause == null && clause != firstClause);
+        clause.exists = true;
         if(firstClause == null) {firstClause = clause; lastClause = clause; size = 1; return 1;}
         clause.previousClause = lastClause;
         lastClause.nextClause = clause;
         lastClause = clause;
         return ++size;}
 
-    /** removes a clause from the list
+    /** removes a clause from the list.<br>
+     * clause.exists is set to false.<br>
+     * The removed clause's nextClause remains as it is.
+     * This way forward iterations with a pointer pointing to the removed clause still work.<br>
+     * One has to check clause.exists!
      *
      * @param clause the clause to be removed.
      * @return the new number of clauses in the list.
      * */
     public int removeClause(Clause clause) {
+        if(!clause.exists) return size;
+        clause.exists = false;
         if(clause.nextClause == null) { // it is the clause at the end of the chain.
             if(clause == firstClause) {size = 0; firstClause = null; clause.previousClause = null; return 0;}
             if(clause.previousClause == null) {return size;} // the clause is not linked.
             Clause previousClause = clause.previousClause;
             lastClause = previousClause; clause.previousClause = null; previousClause.nextClause = null; return --size;}
         if(clause.previousClause == null) { // it is the first clause in the chain
-            firstClause = clause.nextClause; firstClause.previousClause = null; clause.nextClause = null; return --size;}
+            firstClause = clause.nextClause; firstClause.previousClause = null; return --size;}
 
         Clause previous = clause.previousClause;  // now the clause is in the middle.
         Clause next = clause.nextClause;
         previous.nextClause = next;
         next.previousClause = previous;
         clause.previousClause = null;
-        clause.nextClause = null;
         return --size;}
 
     /** returns the number of clauses in the list.

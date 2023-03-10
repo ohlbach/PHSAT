@@ -79,5 +79,52 @@ public class ClausesTest extends TestCase {
 
     }
 
+    public void testIterating() {
+        System.out.println("iterating");
+        Clauses clauses = new Clauses();
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
+        clauses.addClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, 1, 2, 3});
+        clauses.addClause(clause2);
+        Clause clause3 = new Clause(new int[]{3, cOr, 1, 2, 3});
+        clauses.addClause(clause3);
+        Clause clause4 = new Clause(new int[]{4, cOr, 1, 2, 3});
+        clauses.addClause(clause4);
+        String s = "";
+        Clause c = clauses.firstClause;
+        while (c != null) {
+            s += c.id;
+            c = c.nextClause;}
+        assertEquals("1234", s);
 
-}
+        s = "";
+        c = clauses.firstClause.nextClause;
+        clauses.removeClause(clause2);
+        while (c != null) {
+            if(!c.exists) {c = c.nextClause; continue;}
+            s += c.id;
+            c = c.nextClause;}
+        assertEquals("34", s);
+
+        s = "";
+        clauses.removeClause(clause3);
+        c = clauses.firstClause.nextClause;
+        while (c != null) {
+            if(!c.exists) {c = c.nextClause; continue;}
+            s += c.id;
+            c = c.nextClause;}
+        assertEquals("4", s);
+
+        s = "";
+        c = clauses.firstClause;
+        while (c != null) {
+            if(!c.exists) {c = c.nextClause; continue;}
+            s += c.id;
+            c = c.nextClause;}
+        assertEquals("14", s);
+
+        assertEquals("1: 1v2v3\n" +
+                "4: 1v2v3\n",clauses.toString());
+    }
+
+    }
