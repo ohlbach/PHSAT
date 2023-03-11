@@ -1,6 +1,6 @@
 package Solvers.Simplifier;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
@@ -21,7 +21,7 @@ public class Clause {
     protected int id;
 
     /** the connective, OR or ATLEAST. */
-    protected Connective quantifier;
+    protected Quantifier quantifier;
 
     /** true if the connective is OR. */
     protected boolean isDisjunction;
@@ -59,9 +59,9 @@ public class Clause {
      */
     public Clause(int[] inputClause) {
         id = inputClause[0];
-        quantifier = Connective.getConnective(inputClause[1]);
-        assert(quantifier != null && (quantifier == Connective.OR || quantifier == Connective.ATLEAST));
-        isDisjunction = quantifier == Connective.OR;
+        quantifier = Quantifier.getQuantifier(inputClause[1]);
+        assert(quantifier != null && (quantifier == Quantifier.OR || quantifier == Quantifier.ATLEAST));
+        isDisjunction = quantifier == Quantifier.OR;
         limit = isDisjunction ? 1 : inputClause[2];
         inferenceStep = new InfInputClause(id);
         int length = inputClause.length;
@@ -101,11 +101,11 @@ public class Clause {
      * @param limit the quantifier.
      * @param items      pairs literal,multiplicity.
      */
-    public Clause(int id, Connective quantifier, int limit, int... items) {
+    public Clause(int id, Quantifier quantifier, int limit, int... items) {
         this.id = id;
         this.limit = limit;
         this.quantifier = quantifier;
-        isDisjunction = quantifier == Connective.OR;
+        isDisjunction = quantifier == Quantifier.OR;
         literals = new ArrayList<>(items.length/2);
         for(int i = 0; i < items.length; i +=2) {
             int literal = items[i];
@@ -123,7 +123,7 @@ public class Clause {
      */
     public Clause(int id,  int... literalNumbers) {
         this.id = id;
-        this.quantifier = Connective.OR;
+        this.quantifier = Quantifier.OR;
         expandedSize = literalNumbers.length;
         for(int literal : literalNumbers) {
             Literal literalObject = new Literal(literal,1);
@@ -190,7 +190,7 @@ public class Clause {
         if(isDisjunction) return true;
         if(limit == 1) { // clause turns into a disjunction
             isDisjunction = true;
-            quantifier = Connective.OR;
+            quantifier = Quantifier.OR;
             for(Literal literalObject1 : literals) {literalObject1.multiplicity = 1;}
             expandedSize = literals.size();
             hasMultiplicities = true;
@@ -208,7 +208,7 @@ public class Clause {
     /** merges multiple literals of disjunctions into one literal.
      */
     public void removeDoubleLiterals() {
-        assert(quantifier == Connective.OR);
+        assert(quantifier == Quantifier.OR);
         for(int i = 0;  i < literals.size()-1; ++i) {
             int literal = literals.get(i).literal;
             for(int j = i+1; j < literals.size(); ++j) {
@@ -252,7 +252,7 @@ public class Clause {
                     break;}}}
         if(literals.isEmpty()) return true;
         hasMultiplicities = expandedSize > literals.size();
-        if(limit == 1) {quantifier = Connective.OR; isDisjunction = true;}
+        if(limit == 1) {quantifier = Quantifier.OR; isDisjunction = true;}
         return false;}
 
     /** to be used by divideByGCD. */
@@ -278,7 +278,7 @@ public class Clause {
                     literalObject.multiplicity = Math.min(limit, literalObject.multiplicity / gcd);
                     expandedSize += literalObject.multiplicity;}
                 if(limit == 1) {
-                    quantifier = Connective.OR; isDisjunction = true;}
+                    quantifier = Quantifier.OR; isDisjunction = true;}
             return true;}}
         return false;}
 
@@ -320,7 +320,7 @@ public class Clause {
                 literalObject.multiplicity = limit;}}
         if(limit == 1) {
             isDisjunction = true;
-            quantifier = Connective.OR;
+            quantifier = Quantifier.OR;
             hasMultiplicities = false;}
         else {hasMultiplicities = expandedSize > literals.size();}
 
@@ -352,7 +352,7 @@ public class Clause {
         for(Literal literalObject : literals) literalObject.multiplicity = 1;
         limit = 1;
         isDisjunction = true;
-        quantifier = Connective.OR;
+        quantifier = Quantifier.OR;
         expandedSize = literals.size();
         hasMultiplicities = false;
         return true;}
@@ -425,7 +425,7 @@ public class Clause {
     public String toString(Symboltable symboltable, int size) {
         StringBuilder st = new StringBuilder();
         st.append((size == 0) ? id : String.format("%"+size+"s",id)).append(": ");
-        if(quantifier == Connective.ATLEAST) st.append(">= ").append(limit).append(" ");
+        if(quantifier == Quantifier.ATLEAST) st.append(">= ").append(limit).append(" ");
         if(literals.size() > 0) {
             int length = literals.size()-1;
             for(int i = 0; i < length; ++i) {

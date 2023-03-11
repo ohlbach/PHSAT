@@ -165,7 +165,7 @@ loadScripts(document, 'script');</script>
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;errorPrefix,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/StringBuilder.html" title="class or interface in java.lang" class="external-link">StringBuilder</a>&nbsp;errors)</code></div>
 <div class="col-last even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4">
-<div class="block">parses a line with an interval connective.</div>
+<div class="block">parses a line with an interval quantifier.</div>
 </div>
 <div class="col-first odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>static int[]</code></div>
 <div class="col-second odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#parseLine(java.lang.String,int,Datastructures.Symboltable,java.lang.String,java.lang.StringBuilder)" class="member-name-link">parseLine</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;line,
@@ -208,7 +208,7 @@ loadScripts(document, 'script');</script>
 <div class="col-first odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>private static int[]</code></div>
 <div class="col-second odd-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#parseSingle(java.lang.String,int,Datastructures.Clauses.Connective,Datastructures.Symboltable,java.lang.String,java.lang.StringBuilder)" class="member-name-link">parseSingle</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;line,
  int&nbsp;id,
- <a href="../Datastructures/Clauses/Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;connective,
+ <a href="../Datastructures/Clauses/Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;quantifier,
  <a href="../Datastructures/Symboltable.html" title="class in Datastructures">Symboltable</a>&nbsp;symboltable,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;errorPrefix,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/StringBuilder.html" title="class or interface in java.lang" class="external-link">StringBuilder</a>&nbsp;errors)</code></div>
@@ -218,7 +218,7 @@ loadScripts(document, 'script');</script>
 <div class="col-first even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code>private static int[]</code></div>
 <div class="col-second even-row-color method-summary-table method-summary-table-tab1 method-summary-table-tab4"><code><a href="#parseWithQuantification(java.lang.String,int,Datastructures.Clauses.Connective,Datastructures.Symboltable,java.lang.String,java.lang.StringBuilder)" class="member-name-link">parseWithQuantification</a><wbr>(<a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;line,
  int&nbsp;id,
- <a href="../Datastructures/Clauses/Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;connective,
+ <a href="../Datastructures/Clauses/Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;quantifier,
  <a href="../Datastructures/Symboltable.html" title="class in Datastructures">Symboltable</a>&nbsp;symboltable,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;errorPrefix,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/StringBuilder.html" title="class or interface in java.lang" class="external-link">StringBuilder</a>&nbsp;errors)</code></div>
@@ -364,7 +364,7 @@ loadScripts(document, 'script');</script>
 <h3>parseSingle</h3>
 <div class="member-signature"><span class="modifiers">private static</span>&nbsp;<span class="return-type">int[]</span>&nbsp;<span class="element-name">parseSingle</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;line,
  int&nbsp;id,
- <a href="../Datastructures/Clauses/Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;connective,
+ <a href="../Datastructures/Clauses/Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;quantifier,
  <a href="../Datastructures/Symboltable.html" title="class in Datastructures">Symboltable</a>&nbsp;symboltable,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;errorPrefix,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/StringBuilder.html" title="class or interface in java.lang" class="external-link">StringBuilder</a>&nbsp;errors)</span></div>
@@ -373,7 +373,7 @@ loadScripts(document, 'script');</script>
 <dt>Parameters:</dt>
 <dd><code>line</code> - the line to be parsed</dd>
 <dd><code>id</code> - the identifier for the new clause</dd>
-<dd><code>connective</code> - the connective for the new clause</dd>
+<dd><code>quantifier</code> - the quantifier for the new clause</dd>
 <dd><code>symboltable</code> - a symboltable</dd>
 <dd><code>errors</code> - for appending error messages</dd>
 <dt>Returns:</dt>
@@ -386,7 +386,7 @@ loadScripts(document, 'script');</script>
 <h3>parseWithQuantification</h3>
 <div class="member-signature"><span class="modifiers">private static</span>&nbsp;<span class="return-type">int[]</span>&nbsp;<span class="element-name">parseWithQuantification</span><wbr><span class="parameters">(<a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;line,
  int&nbsp;id,
- <a href="../Datastructures/Clauses/Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;connective,
+ <a href="../Datastructures/Clauses/Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;quantifier,
  <a href="../Datastructures/Symboltable.html" title="class in Datastructures">Symboltable</a>&nbsp;symboltable,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;errorPrefix,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/StringBuilder.html" title="class or interface in java.lang" class="external-link">StringBuilder</a>&nbsp;errors)</span></div>
@@ -395,7 +395,7 @@ loadScripts(document, 'script');</script>
 <dt>Parameters:</dt>
 <dd><code>line</code> - the line to be parsed</dd>
 <dd><code>id</code> - the identifier for the new clause</dd>
-<dd><code>connective</code> - the connective for the new clause</dd>
+<dd><code>quantifier</code> - the quantifier for the new clause</dd>
 <dd><code>symboltable</code> - a symboltable</dd>
 <dd><code>errors</code> - for appending error messages</dd>
 <dt>Returns:</dt>
@@ -411,7 +411,7 @@ loadScripts(document, 'script');</script>
  <a href="../Datastructures/Symboltable.html" title="class in Datastructures">Symboltable</a>&nbsp;symboltable,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/String.html" title="class or interface in java.lang" class="external-link">String</a>&nbsp;errorPrefix,
  <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base/java/lang/StringBuilder.html" title="class or interface in java.lang" class="external-link">StringBuilder</a>&nbsp;errors)</span></div>
-<div class="block">parses a line with an interval connective.
+<div class="block">parses a line with an interval quantifier.
  Only syntactic checks are done. Semantic checks are done in BasicClauseList</div>
 <dl class="notes">
 <dt>Parameters:</dt>

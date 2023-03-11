@@ -1,7 +1,7 @@
 package Solvers.Walker;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
@@ -404,7 +404,7 @@ public class Walker extends Solver {
      */
     protected boolean isGloballyTrue(WClause wClause) {
         if(model.isEmpty()) return false;
-        if(wClause.connective == Connective.OR) {
+        if(wClause.quantifier == Quantifier.OR) {
             for(int literal : wClause.literals) {if(model.isTrue(literal)) return true;}
             return false;}
         int globallyTrueLiterals = 0;
@@ -425,7 +425,7 @@ public class Walker extends Solver {
      * @return true if the clause is true in the local (and global) model
      */
     protected boolean isLocallyTrue(WClause wClause) {
-        if(wClause.connective == Connective.OR) {
+        if(wClause.quantifier == Quantifier.OR) {
             for(int literal : wClause.literals) {
                 if(isLocallyTrue(literal)) {return true;} }
             return false;}
@@ -439,7 +439,7 @@ public class Walker extends Solver {
      * @param sign -1 (removing old score) +1 (adding new score)
      */
     protected void updateFlipScores(WClause wClause, int sign) {
-        if(wClause.connective == Connective.OR) { // separate treatment is more efficient
+        if(wClause.quantifier == Quantifier.OR) { // separate treatment is more efficient
             if(wClause.isLocallyTrue) {
                 int trueLiteral = 0;
                 for(int literal : wClause.literals) {

@@ -3,7 +3,7 @@ package Datastructures.Clauses.SimplifiersOld;
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseStructure;
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
@@ -61,10 +61,10 @@ public class ClauseSimplifier {
     public Clause simplify(Clause clause) throws Unsatisfiable {
         if(!equivalenceClasses.isEmpty()) clause = replaceEquivalences(clause);
         clause = removeMultipleAndComplementaryLiterals(clause);
-        if(clause.connective == Connective.AND) {
+        if(clause.quantifier == Quantifier.AND) {
             andToModel(clause); return null;}
         clause = removeTrueFalseLiterals(clause);
-        if(clause.connective == Connective.AND) {
+        if(clause.quantifier == Quantifier.AND) {
             andToModel(clause); return null;}
         return clause;}
 
@@ -74,7 +74,7 @@ public class ClauseSimplifier {
      * @throws Unsatisfiable if the model finds an inconsistency
      */
     public void andToModel(Clause clause) throws Unsatisfiable {
-        assert clause.connective == Connective.AND;
+        assert clause.quantifier == Quantifier.AND;
         InferenceStep step = null;
         if(trackReasoning) {
             step = clause.inferenceStep;
@@ -118,7 +118,7 @@ public class ClauseSimplifier {
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
         if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new UnsatisfiableClause(newClause);}
-        if(newClause.connective == Connective.AND) {
+        if(newClause.quantifier == Quantifier.AND) {
             for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step);
             return null;}
         return newClause;}
@@ -133,7 +133,7 @@ public class ClauseSimplifier {
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
         if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new UnsatisfiableClause(newClause);}
-        if(newClause.connective == Connective.AND) {
+        if(newClause.quantifier == Quantifier.AND) {
             for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step);
             return null;}
         return newClause;}

@@ -16,11 +16,14 @@ public class Result extends Exception {
     /** the problem identifier which has the result. */
     public String problemId    = null;
     /** the last inference step which generated the result. */
-    public InferenceStep inferenceStep = null;
+    public ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
     /** the statistics of the solver. */
     public Statistic statistic = null;
     /** the nanotime at which the result has been generated */
     public long endTime;
+
+    /** an optional message */
+    public String message = null;
 
 
     /** the constructor. It sets the endTime */
@@ -44,9 +47,9 @@ public class Result extends Exception {
      * @return null or the list of inference steps which produced the result.
      */
     public ArrayList<InferenceStep> inferenceSteps() {
-        if(inferenceStep == null) return null;
+        if(inferenceSteps.isEmpty()) return null;
         ArrayList<InferenceStep> steps = new ArrayList<>();
-        inferenceStep.inferenceSteps(steps);
+        for(InferenceStep step : inferenceSteps) step.inferenceSteps(steps);
         for(int i = 0; i < steps.size(); ++i) {
             InferenceStep step = steps.get(i);
             for(int j = i+1; j < steps.size(); ++j) {
@@ -59,11 +62,10 @@ public class Result extends Exception {
      * @return the list of input clause Ids which are responsible for the result.
      */
     public IntArrayList inputClauseIds() {
-        if(inferenceStep == null) return null;
-        IntArrayList ids = inferenceStep.inputClauseIds();
-        for(int i = 0; i < ids.size(); ++i) {
-            int id = ids.getInt(i);
-            for(int j = i+1; j < ids.size(); ++j) {
-                if(ids.getInt(j) == id) ids.removeInt(j);}}
+        if(inferenceSteps.isEmpty()) return null;
+        IntArrayList ids = new IntArrayList();
+        for(InferenceStep step : inferenceSteps)
+            for(int id : step.inputClauseIds()) {
+                if(!ids.contains(id)) ids.add(id);}
         return sortIntArray(ids);}
 }

@@ -1,8 +1,8 @@
 package Solvers.Simplifier;
 
 import Datastructures.Clauses.InputClauses;
-import Datastructures.Results.EmptyClauses;
 import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
@@ -22,40 +22,82 @@ import java.util.function.IntSupplier;
 
 import static java.lang.Thread.interrupted;
 
+/** This is an incomplete solver which tries to simplify the clauses as far as possible.
+ *  - It tries to derive new true literals and send them to the model.<br>
+ *  - It tries to derive new equivalences and send them to the equivalenceClasses.<br>
+ *  <br>
+ *  The following operations are preformed:<br>
+ *  - all clauses are transformed to atleast normal form.<br>
+ *  - subsumed clauses are removed. <br>
+ *  - merge resolution between two clause, possibly with a two-literal clause between them, reduces the clauses.<br>
+ *  - resolution between two-literal clauses generates its resolution completion.<br>
+ *  - New true literals in the model are incorporated.<br>
+ *  - New equivalences form the equivalenceClasses are incorporated.
+ */
+
 public class Simplifier extends Solver {
 
-    protected InputClauses inputClauses;
-    private ProblemSupervisor problemSupervisor;
 
+    /** the input clauses */
+    protected InputClauses inputClauses;
+
+    /** the equivalence classes */
     public EquivalenceClasses equivalenceClasses;
 
     /** The id of the current problem to be solved */
     private String problemId;
 
     /** for distinguishing the monitoring areas */
-    private String monitorId;
+    private final String monitorId;
 
+    /** the simplifier's statistics */
     protected SimplifierStatistics statistics;
 
+    /** contains a list of literalObjects for each literal in two-literal clauses.*/
     protected Literals literalIndexTwo;
+
+    /** contains a list of literalObjects for each literal in longer clauses.*/
     protected Literals literalIndexMore;
 
+    /** the list of clauses. */
     protected Clauses clauses;
 
-    private IntSupplier nextId;
+    /** for generating an identifier for the new clauses. */
+    private final IntSupplier nextId;
 
+    /** used in various algorithms. */
     private int timestamp = 1;
 
 
-
+    /** constructs a new Simplifier.
+     * All internal data are taken form the supervisor.
+     *
+     * @param problemSupervisor the corresponding problemSupervisor.
+     */
     public Simplifier(ProblemSupervisor problemSupervisor) {
-        this.problemSupervisor = problemSupervisor;
-        this.inputClauses = problemSupervisor.inputClauses;
+        model                  = problemSupervisor.model;
+        inputClauses           = problemSupervisor.inputClauses;
+        predicates             = inputClauses.predicates;
+        monitor                = problemSupervisor.monitor;
+        monitoring             = monitor != null;
+        monitorId              = "Simplifier";
+        problemId              = problemSupervisor.problemId;
+        equivalenceClasses     = problemSupervisor.equivalenceClasses;
+        literalIndexTwo        = new Literals(predicates);
+        literalIndexMore       = new Literals(predicates);
+        clauses                = new Clauses();
+        statistics             = new SimplifierStatistics("Simplifier");
+        trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
+        nextId                 = problemSupervisor::nextClauseId;
     }
 
-    public Simplifier(InputClauses inputClauses) {
-        this.inputClauses = inputClauses;}
-
+    /** this is a constructor for testing purposes (wothout ProblemSupervisor)
+     *
+     * @param predicates      the number of predicates.
+     * @param monitor         null or a monitor.
+     * @param trackReasoning  true if the reasoning is to be tracked.
+     * @param nextId          for generating a new identifier for a clause.
+     */
     public Simplifier(int predicates, Monitor monitor, boolean trackReasoning, IntSupplier nextId) {
         this.predicates = predicates;
         this.monitor = monitor;
@@ -71,22 +113,21 @@ public class Simplifier extends Solver {
         statistics = new SimplifierStatistics("Simplifier");
     }
 
-    /** adds the literals which are already true in the model to the task queue.
-     * Installs the observer in the model.
-     */
-    public void readModel() {
-        for(int literal: model.model) {
-            addTrueLiteralTask(literal,model.getInferenceStep(literal));}
-        model.addObserver(this::addTrueLiteralTask);}
 
+    /** specifies the task types in the priority queue.
+     */
     private enum TaskType {
         /** a new true literal is obtained from the model */
         ProcessTrueLiteral,
         /** a new binary equivalence is found in the TwoLiteral module. */
         ProcessEquivalence,
+        /** a new binary clause is available for simplifications */
         ProcessBinaryClause,
+        /** a longer clause is available for simplification */
         ProcessLongerClause,
+        /** an input clause should be simplified. */
         ProcessLongerInputClause,
+        /** merge resolution with a binary clause inbetween */
         ProcessBinaryTriggeredMerging
     }
 
@@ -170,16 +211,17 @@ public class Simplifier extends Solver {
                                     clause.toString(symboltable,0));}}}}
             checkAllPurities();
             statistics.orAndAtleastCLauses = clauses.size;
-            if(clauses.isEmpty()) throw new EmptyClauses(model);
+            if(clauses.isEmpty()) throw new Satisfiable(model);
             readModel();}
-            catch(Result result) {
-                result.statistic = statistics;
-                result.solver = this.getClass();
-                result.problemId = problemId;
-                throw result;}
+        catch(Result result) {
+            result.solver = this.getClass();
+            result.problemId = problemId;
+            result.statistic = statistics;
+            throw result;}
         }
 
     /** simplifies and inserts an atleast-clause derived from input clauses.
+     * Two-literal clauses are put into the task queue.
      *
      * @param inputClause the original input-clause.
      * @param clause      the clause to be inserted.
@@ -188,7 +230,7 @@ public class Simplifier extends Solver {
      */
     private boolean insertNewClause(int[] inputClause, Clause clause) throws Unsatisfiable {
         if(clause.isTrue())  {++statistics.notInternalizedInputClauses; return false;}
-        if(clause.isFalse()) {throw new UnsatisfiableClause(inputClause);}
+        if(clause.isFalse()) {throw new UnsatClause(inputClause);}
         int size = clause.size();
         if(clause.removeComplementaryLiterals())   {++statistics.notInternalizedInputClauses; return false;}
         if(clause.size() != size) {
@@ -202,6 +244,14 @@ public class Simplifier extends Solver {
         ++statistics.orAndAtleastCLauses;
         if(clause.size() == 2) addBinaryClauseTask(clause);
         return true;}
+
+    /** adds the literals which are already true in the model to the task queue.
+     * Installs the observer in the model.
+     */
+    public void readModel() {
+        for(int literal: model.model) {
+            addTrueLiteralTask(literal,model.getInferenceStep(literal));}
+        model.addObserver(this::addTrueLiteralTask);}
 
     /** checks all literals for purity.
      * Pure literals are inserted into the model.
@@ -271,7 +321,7 @@ public class Simplifier extends Solver {
                     case ProcessLongerClause:      processLongerClause((Clause)task.a); break;
                     case ProcessLongerInputClause: processLongerInputClause(task);      break;
                     case ProcessBinaryTriggeredMerging: mergeBinaryTriggered((Clause)task.a); break;}
-                if(clauses.isEmpty()) throw new EmptyClauses(model);}
+                if(clauses.isEmpty()) throw new Satisfiable(model);}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable result) {
                 result.statistic = statistics;
@@ -369,7 +419,7 @@ public class Simplifier extends Solver {
                      --i;}
                 if(clause.exists) {
                     if(clause.limit > clause.expandedSize) {
-                        throw new UnsatisfiableClause(clause);}
+                        throw new UnsatClause(clause);}
                     switch(clause.size()) {
                         case 0: throw new UnsatEmptyClause(clause);
                         case 1:
@@ -715,7 +765,8 @@ public class Simplifier extends Solver {
                 if(clause.exists && clause.size() > 2) {
                     task.a = clause; // reuse the task
                     synchronized (this) {queue.add(task);}
-                        break;}}
+                    break;}
+                else {clause = clause.nextClause;}}
             break;}}
 
 
@@ -893,7 +944,7 @@ public class Simplifier extends Solver {
      * @throws Unsatisfiable         if a contradiction is encountered.
      */
     protected void processEquivalence(int representative, int literal, InferenceStep equivalenceStep) throws Unsatisfiable {
-        for(int sign = +1; sign >= -1; sign -=2) {
+        for(int sign = 1; sign >= -1; sign -=2) {
             representative *= sign;
             literal *= sign;
             Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal);

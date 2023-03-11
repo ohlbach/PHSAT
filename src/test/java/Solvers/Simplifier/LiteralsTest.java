@@ -1,6 +1,6 @@
 package Solvers.Simplifier;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 import junit.framework.TestCase;
 
@@ -126,7 +126,7 @@ public class LiteralsTest extends TestCase {
 
     public void testIterating() {
         System.out.println("iterating");
-        Clause clause = new Clause(new int[]{1, Connective.OR.ordinal(),1,2,3});
+        Clause clause = new Clause(new int[]{1, Quantifier.OR.ordinal(),1,2,3});
         Literals literals = new Literals(10);
         Literal l1 = new Literal(1, 1);l1.clause = clause;
         literals.addLiteral(l1);

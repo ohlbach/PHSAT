@@ -2,9 +2,6 @@ package Datastructures.Results;
 
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-import java.util.ArrayList;
-import static Utilities.Utilities.joinIntArrays;
 
 /** This class reports about a derived literal which contradicts an earlier derived literal
  */
@@ -28,27 +25,5 @@ public class UnsatisfiableLiteral extends Unsatisfiable {
     public String description(Symboltable symboltable) {
         return "Contradictory literal derived: " + Symboltable.toString(literal,symboltable)+"\n";}
 
-    /** joins the inference steps for the literals
-     *
-     * @param steps for adding the inference steps
-     */
-    @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        if(stepLiteral1 != null) {
-            stepLiteral1.inferenceSteps(steps);
-            steps.add(stepLiteral1);}
-        if(stepLiteral2 != null)
-            stepLiteral2.inferenceSteps(steps);
-            steps.add(stepLiteral2);}
 
-    /** collects the basic clause ids of the clauses contributing to the unsatisfiability
-     *
-     * @return the basic clause ids of the clauses contributing to the unsatisfiability
-     */
-    @Override
-    public IntArrayList inputClauseIds() {
-        IntArrayList inputClauseIds = null;
-        if(stepLiteral1 != null) {inputClauseIds = stepLiteral1.inputClauseIds();}
-        if(stepLiteral2 != null) {inputClauseIds = joinIntArrays(inputClauseIds,stepLiteral2.inputClauseIds());}
-        return inputClauseIds;}
 }

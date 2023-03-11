@@ -1,15 +1,15 @@
 package NormalFormTransformers;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import InferenceSteps.InferenceStep;
 import junit.framework.TestCase;
 
 import java.util.Arrays;
 
 public class ANFTransformerTest extends TestCase {
-    private final static int cAtmost = Connective.ATMOST.ordinal();
-    private final static int cExactly = Connective.EXACTLY.ordinal();
-    private final static int cInterval = Connective.INTERVAL.ordinal();
+    private final static int cAtmost = Quantifier.ATMOST.ordinal();
+    private final static int cExactly = Quantifier.EXACTLY.ordinal();
+    private final static int cInterval = Quantifier.INTERVAL.ordinal();
 
 
     public void testAtmost2Atleast() {

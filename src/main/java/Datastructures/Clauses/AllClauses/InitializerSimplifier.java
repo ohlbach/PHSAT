@@ -4,7 +4,7 @@ package Datastructures.Clauses.AllClauses;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.ClauseStructure;
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.SimplifiersOld.ClauseSimplifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
@@ -188,8 +188,7 @@ public class InitializerSimplifier {
                 integrateClause(clause);}}
         catch(Unsatisfiable unsatisfiable) {
              unsatisfiable.problemId   = problemId;
-             unsatisfiable.solverClass = InitializerSimplifier.class;
-             unsatisfiable.solverId    = "Clauses";
+             unsatisfiable.solver = InitializerSimplifier.class;
              unsatisfiable.statistic   = statistics;
              unsatisfiable.symboltable = symboltable;
              throw unsatisfiable;}}
@@ -214,18 +213,18 @@ public class InitializerSimplifier {
         clause = clause.replaceEquivalences(equivalenceClasses,nextId);
         clause = clause.removeComplementaryLiterals(nextId);
         if(clause.structure == ClauseStructure.TAUTOLOGY) return;
-        if(clause.connective == Connective.AND) {integrateAnd(clause); return;}
+        if(clause.quantifier == Quantifier.AND) {integrateAnd(clause); return;}
         clause = clause.removeTrueFalseLiterals(model::status,nextId);
         switch(clause.structure) {
             case TAUTOLOGY: return;
             case CONTRADICTORY: throw new UnsatisfiableClause(clause);}
-        if(clause.connective == Connective.AND) {integrateAnd(clause); return;}
+        if(clause.quantifier == Quantifier.AND) {integrateAnd(clause); return;}
         if(isSubsumed(clause)) return;
         ArrayList<Clause> clauses = clause.splitOffMultiples(nextId,trackReasoning);
         if(clauses != null) {for(Clause cl : clauses) {integrateClause(cl);}}
         removeSubsumedClauses(clause);
         insertClause(clause);
-        if(clause.connective == Connective.OR && clause.size() == 2) {twoLitClauses.addDerivedClause(clause);}
+        if(clause.quantifier == Quantifier.OR && clause.size() == 2) {twoLitClauses.addDerivedClause(clause);}
     }
 
     /** simplifies and integrates a clause into the local data structures
@@ -239,7 +238,7 @@ public class InitializerSimplifier {
         if(clauses != null) {for(Clause cl : clauses) {integrateClause(cl);}}
         removeSubsumedClauses(clause);
         insertClause(clause);
-        if(clause.connective == Connective.OR && clause.size() == 2) {twoLitClauses.addDerivedClause(clause);}
+        if(clause.quantifier == Quantifier.OR && clause.size() == 2) {twoLitClauses.addDerivedClause(clause);}
     }
 
     /** puts a true literal into the queue.
@@ -275,7 +274,7 @@ public class InitializerSimplifier {
         switch(clause.structure) {
             case NEGATIVE: ++statistics.negativeClauses; break;
             case POSITIVE: ++statistics.positiveClauses; break;}
-        ++statistics.clauses[clause.connective.ordinal()];}
+        ++statistics.clauses[clause.quantifier.ordinal()];}
 
     /** removes a clause from the internal lists
      *
@@ -285,7 +284,7 @@ public class InitializerSimplifier {
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
-        --statistics.clauses[clause.connective.ordinal()];
+        --statistics.clauses[clause.quantifier.ordinal()];
         for(CLiteral cliteral : clause) literalIndex.remove(cliteral);
         clauses.remove(clause.id);}
 
@@ -300,7 +299,7 @@ public class InitializerSimplifier {
         switch(clause.structure) {
             case NEGATIVE: --statistics.negativeClauses; break;
             case POSITIVE: --statistics.positiveClauses; break;}
-        --statistics.clauses[clause.connective.ordinal()];
+        --statistics.clauses[clause.quantifier.ordinal()];
         iterator.remove();
         for(CLiteral clit : clause) if(clit != cliteral) literalIndex.remove(cliteral);
         clauses.remove(clause.id);
@@ -342,7 +341,7 @@ public class InitializerSimplifier {
             catch(Result result) {problemSupervisor.announceResult(result,"AllClauses"); return;}}}
 
     private static int[] quantifierTypes = new int[]{
-            Connective.ATLEAST.ordinal(),Connective.ATMOST.ordinal(),Connective.EXACTLY.ordinal()};
+            Quantifier.ATLEAST.ordinal(), Quantifier.ATMOST.ordinal(), Quantifier.EXACTLY.ordinal()};
 
     /** applies a true literal to all clauses.
      * Clauses containing the literal are removed.<br>
@@ -362,7 +361,7 @@ public class InitializerSimplifier {
                 Clause clause = cLiteral.clause;
                 Clause clause1 = clause.removeTrueFalseLiterals(model::status,nextId);
                 if(clause1.structure == ClauseStructure.TAUTOLOGY) continue;
-                if(clause1.connective == Connective.AND) {
+                if(clause1.quantifier == Quantifier.AND) {
                     addTrueLiteral(clause1.getLiteral(0),clause1.inferenceStep);
                     continue;}
                 queue.add(new Task<>(TaskType.INTEGRATE_SHORTENED_CLAUSE, clause,null));}
@@ -410,7 +409,7 @@ public class InitializerSimplifier {
      * @param eClause an equivalence clause
      */
     protected void integrateEquivalence(Clause eClause) {
-        assert eClause.connective == Connective.EQUIV;
+        assert eClause.quantifier == Quantifier.EQUIV;
         BucketSortedList<CLiteral>.BucketIterator iterator;
         for(int i = 1; i < eClause.size(); ++i) {
             int literal = eClause.getLiteral(i);

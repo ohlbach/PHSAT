@@ -2,6 +2,7 @@ package Solvers.Simplifier;
 
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import InferenceSteps.InferenceStep;
 
 /** represents an Unsatisfiability caused by the derivation of the empty clause. */
 public class UnsatEmptyClause extends Unsatisfiable {
@@ -14,8 +15,10 @@ public class UnsatEmptyClause extends Unsatisfiable {
      * @param emptyClause the empty clause.
      */
     public UnsatEmptyClause(Clause emptyClause) {
+        super();
         this.emptyClause = emptyClause;
-        inferenceStep = emptyClause.inferenceStep;}
+        InferenceStep step = emptyClause.inferenceStep;
+        if(step != null) inferenceSteps.add(emptyClause.inferenceStep);}
 
     /** a short description of the empty clause Unsatisfiability.
      *

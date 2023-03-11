@@ -1,7 +1,7 @@
 package Solvers.Walker;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 
 import java.util.Formatter;
@@ -11,7 +11,7 @@ import java.util.Locale;
 public class WClause {
 
     public final int id;                       // the clause identifier
-    protected final Connective connective;     // OR, ATLEAST ASTMOST, INTERVAL
+    protected final Quantifier quantifier;     // OR, ATLEAST ASTMOST, INTERVAL
     protected final short minLimit;              // the left limit of the interval
     protected final short maxLimit;              // the right limit of the interval
     public final int[] literals;               // the literals
@@ -26,7 +26,7 @@ public class WClause {
      */
     public WClause(Clause clause) {
         id = clause.id;
-        connective = clause.connective;
+        quantifier = clause.quantifier;
         minLimit = clause.minLimit;
         maxLimit = clause.maxLimit;
         int size = clause.size();
@@ -77,7 +77,7 @@ public class WClause {
             Formatter format = new Formatter(st, Locale.GERMANY);
             format.format("%-"+width+"s", id+":");}
         else st.append(id+": ");
-        switch(connective) {
+        switch(quantifier) {
             case OR:
             case AND:
             case EQUIV:    break;
@@ -89,7 +89,7 @@ public class WClause {
             st.append(Symboltable.toString(literals[position],symboltable));
             short multiplicity = multiplicity(position);
             if(multiplicity > 1) st.append("^").append(multiplicity);
-            if(position < size-1) {st.append(connective.separator);}}
+            if(position < size-1) {st.append(quantifier.separator);}}
         if(isLocallyTrue)  st.append(" LT");
         return st.toString();}
 

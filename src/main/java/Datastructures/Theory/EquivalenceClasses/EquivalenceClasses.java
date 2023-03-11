@@ -150,8 +150,7 @@ public class EquivalenceClasses extends Solver {
             statistics.inputClasses = equivalenceClasses.size();
             readModel();}
         catch(Unsatisfiable unsatifiable) {
-            unsatifiable.solverClass = EquivalenceClasses.class;
-            unsatifiable.solverId    = "EquivalenceClasses";
+            unsatifiable.solver = EquivalenceClasses.class;
             unsatifiable.problemId   = problemId;
             throw unsatifiable;}}
 
@@ -175,8 +174,7 @@ public class EquivalenceClasses extends Solver {
 
     @Override
     public void solveProblem() throws Result {
-        processTasks(false);
-    }
+        processTasks(false);}
 
     @Override
     public void prepare() {
@@ -200,7 +198,7 @@ public class EquivalenceClasses extends Solver {
      * <br>
      * The result is stored into the variable result.
      */
-    public void processTasks(boolean once) {
+    public void processTasks(boolean once) throws Unsatisfiable {
         Task<TaskType> task;
         while(!isInterrupted) {
             try {
@@ -213,8 +211,10 @@ public class EquivalenceClasses extends Solver {
                     monitor.print(monitorId,"Current equivalences:\n" + toString(symboltable));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
-                problemSupervisor.finished("EquivalenceClasses", unsatisfiable,"Contradiction like p = -p found.");
-                return;}
+                unsatisfiable.problemId = problemId;
+                unsatisfiable.statistic = statistics;
+                unsatisfiable.solver = this.getClass();
+                throw unsatisfiable;}
             if(once) return;}}
 
     /** finds the representative for the class containing the literal.

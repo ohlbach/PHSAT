@@ -4,7 +4,7 @@ package Datastructures.Clauses;
 /** The enumeration type specifies the allowed logical connectives.
  * Created by ohlbach on 14.09.2018.
  */
-public enum Connective {
+public enum Quantifier {
     /** logical or-connective */
     OR("", "v",2),
     /** logical and-connective */
@@ -33,7 +33,7 @@ public enum Connective {
      * @param separator         to be used for printing the clauses.
      * @param firstLiteralIndex the first index of the literals in the InputClauses int[]-arrays.
      */
-    Connective(String abbreviation, String separator, int firstLiteralIndex) {
+    Quantifier(String abbreviation, String separator, int firstLiteralIndex) {
         this.abbreviation = abbreviation;
         this.separator = separator;
         this.firstLiteralIndex = firstLiteralIndex;}
@@ -43,7 +43,7 @@ public enum Connective {
      * @param ordninal any number
      * @return null or the corresponding type
      */
-    public static Connective getConnective(int ordninal) {
+    public static Quantifier getQuantifier(int ordninal) {
         switch(ordninal) {
             case 0: return OR;
             case 1: return AND;
@@ -59,7 +59,7 @@ public enum Connective {
      * @param abbreviation the abbreviation for the connective
      * @return null or the corresponding connective
      */
-    public static Connective getConnective(String abbreviation) {
+    public static Quantifier getQuantifier(String abbreviation) {
         switch(abbreviation) {
             case "o":  return OR;
             case "a":  return AND;
@@ -83,7 +83,7 @@ public enum Connective {
      * @return true if it is the Interval connective
      */
     public boolean isInterval() {
-        return this == Connective.INTERVAL;}
+        return this == Quantifier.INTERVAL;}
 
 
     /** checks if the connective is a quantifier (atleast, atmost, exactly).

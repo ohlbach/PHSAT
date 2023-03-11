@@ -1,6 +1,6 @@
 package ProblemGenerators;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Symboltable;
 import Management.Monitor.Monitor;
@@ -226,11 +226,11 @@ public abstract class ProblemGenerator {
      */
     protected static int[] parseLine(String line, int id, Symboltable symboltable, String errorPrefix, StringBuilder errors) {
         switch(line.charAt(0)) {
-            case '&': return parseAndEquiv(line.trim(), id, Connective.AND, symboltable, errorPrefix,errors);
-            case 'e': return parseAndEquiv(line.trim(), id, Connective.EQUIV, symboltable, errorPrefix,errors);
-            case '<': return parseWithQuantification(line.trim(), id, Connective.ATMOST, symboltable, errorPrefix,errors);
-            case '>': return parseWithQuantification(line.trim(), id, Connective.ATLEAST, symboltable, errorPrefix,errors);
-            case '=': return parseWithQuantification(line.trim(), id, Connective.EXACTLY, symboltable, errorPrefix, errors);
+            case '&': return parseAndEquiv(line.trim(), id, Quantifier.AND, symboltable, errorPrefix,errors);
+            case 'e': return parseAndEquiv(line.trim(), id, Quantifier.EQUIV, symboltable, errorPrefix,errors);
+            case '<': return parseWithQuantification(line.trim(), id, Quantifier.ATMOST, symboltable, errorPrefix,errors);
+            case '>': return parseWithQuantification(line.trim(), id, Quantifier.ATLEAST, symboltable, errorPrefix,errors);
+            case '=': return parseWithQuantification(line.trim(), id, Quantifier.EXACTLY, symboltable, errorPrefix, errors);
             case '[': return parseInterval(line, id, symboltable, errorPrefix,errors);
             default:  return parseOr(line.trim(), id, symboltable, errorPrefix,errors);}}
 
@@ -252,7 +252,7 @@ public abstract class ProblemGenerator {
         length = clause[length-1].equals("0")? length+1: length+2;
         int[] inputClause = new int[length];
         inputClause[0] = id;
-        inputClause[1] = Connective.OR.ordinal();
+        inputClause[1] = Quantifier.OR.ordinal();
         boolean okay = parseLiterals(clause,0,inputClause,2,symboltable,errorPrefix,errors);
         return okay ? inputClause : null;}
 
@@ -265,20 +265,20 @@ public abstract class ProblemGenerator {
      *
      * @param line        the line to be parsed.
      * @param id          the identifier for the new clause.
-     * @param connective  the connective for the new clause.
+     * @param quantifier  the connective for the new clause.
      * @param symboltable null or a symboltable.
      * @param errorPrefix a prefix for the error messages
      * @param errors      for appending error messages.
      * @return            the new inputClause or null if errors have been detected.
      */
-    protected static int[] parseAndEquiv(String line, int id, Connective connective, Symboltable symboltable,
+    protected static int[] parseAndEquiv(String line, int id, Quantifier quantifier, Symboltable symboltable,
                                          String errorPrefix, StringBuilder errors) {
         String[] parts = line.split("\\s*[, ]\\s*");
         int length = parts.length;
         length = parts[length-1].equals("0")? length: length+1;
         int[] inputClause = new int[length];
         inputClause[0] = id;
-        inputClause[1] = connective.ordinal();
+        inputClause[1] = quantifier.ordinal();
         boolean okay = parseLiterals(parts,1,inputClause,2,symboltable,errorPrefix,errors);
         return okay ? inputClause : null;}
 
@@ -290,20 +290,20 @@ public abstract class ProblemGenerator {
      *
      * @param line        the line to be parsed.
      * @param id          the identifier for the new clause.
-     * @param connective  the connective for the new clause.
+     * @param quantifier  the connective for the new clause.
      * @param symboltable null or a symboltable.
      * @param errorPrefix a prefix for the error messages
      * @param errors      for appending error messages.
      * @return            the new inputClause or null if errors have been detected.
      */
-    protected static int[] parseWithQuantification(String line, int id, Connective connective,
+    protected static int[] parseWithQuantification(String line, int id, Quantifier quantifier,
                                                    Symboltable symboltable, String errorPrefix, StringBuilder errors) {
         String[] clause = line.split("\\s*[, ]\\s*");
         int length = clause.length;
         length = clause[length-1].equals("0")? length: length+1;
         int[] inputClause = new int[length];
         inputClause[0] = id;
-        inputClause[1] = connective.ordinal();
+        inputClause[1] = quantifier.ordinal();
         Integer amount = parseInteger(clause[1]);
         boolean okay = true;
         if(amount == null) {
@@ -338,7 +338,7 @@ public abstract class ProblemGenerator {
         int[] inputClause = new int[length];
         boolean okay = parseLiterals(parts,0,inputClause,4,symboltable,errorPrefix,errors);
         inputClause[0] = id;
-        inputClause[1] = Connective.INTERVAL.ordinal();
+        inputClause[1] = Quantifier.INTERVAL.ordinal();
         String[] interval = line.substring(1,position).trim().split("\\s*[, ]\\s*");
         if(interval.length != 2) {
             errors.append(errorPrefix).append("Line has no proper interval: '").append(Arrays.toString(interval)).append("'\n");

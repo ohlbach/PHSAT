@@ -1,6 +1,6 @@
 package Datastructures.Theory.EquivalenceClasses;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
@@ -69,7 +69,7 @@ public class EquivalenceClass {
      * @throws Unsatisfiable if the class is contradictory (p == -p)
      */
     protected static EquivalenceClass makeEquivalenceClass(int[] inputClause, boolean trackReasoning) throws Unsatisfiable {
-        assert(inputClause[1] == Connective.EQUIV.ordinal());
+        assert(inputClause[1] == Quantifier.EQUIV.ordinal());
 
         // the smallest literal becomes the representative.
         int length = inputClause.length;

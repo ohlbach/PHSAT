@@ -26,11 +26,11 @@ import java.util.function.IntSupplier;
  * '3': means interval      '16 6 2 3 5 6 7 8 means between 2 and 3 literals among 5,6,7,8 are true.<br>
  */
 public class InputClauses {
-    private static final int cOr = Connective.OR.ordinal();
-    private static final int cAtleast = Connective.ATLEAST.ordinal();
-    private static final int cAtmost = Connective.ATMOST.ordinal();
-    private static final int cExactly = Connective.EXACTLY.ordinal();
-    private static final int cInterval = Connective.INTERVAL.ordinal();
+    private static final int cOr       = Quantifier.OR.ordinal();
+    private static final int cAtleast  = Quantifier.ATLEAST.ordinal();
+    private static final int cAtmost   = Quantifier.ATMOST.ordinal();
+    private static final int cExactly  = Quantifier.EXACTLY.ordinal();
+    private static final int cInterval = Quantifier.INTERVAL.ordinal();
 
     /** the name of the problem */
     public String problemName = null;
@@ -66,7 +66,7 @@ public class InputClauses {
     public final ArrayList<int[]> atmosts       = new ArrayList<>();
 
     /** the original exactly clauses. */
-    public final ArrayList<int[]> exactlys = new ArrayList<>();
+    public final ArrayList<int[]> exactlys      = new ArrayList<>();
 
     /** the original interval clauses. */
     public final ArrayList<int[]> intervals     = new ArrayList<>();
@@ -97,10 +97,10 @@ public class InputClauses {
      */
     public void addClause(int[]... clauses) {
         for(int[] clause : clauses) {
-            Connective connective = Connective.getConnective(clause[1]);
-            assert connective != null;
+            Quantifier quantifier = Quantifier.getQuantifier(clause[1]);
+            assert quantifier != null;
             int length = clause.length-2;
-            switch(connective) {
+            switch(quantifier) {
                 case OR:       disjunctions.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
                 case AND:      conjunctions.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
                 case EQUIV:    equivalences.add(clause); maxClauseLength = Math.max(maxClauseLength,length);   break;
@@ -138,12 +138,12 @@ public class InputClauses {
     public static int[] checkSyntax(int[] clause, int predicates, String errorPrefix, StringBuilder errors) {
         errorPrefix += "Clause " + Arrays.toString(clause) + ": ";
         int type = clause[1];
-        Connective connective = Connective.getConnective(type);
-        if(connective == null) {
+        Quantifier quantifier = Quantifier.getQuantifier(type);
+        if(quantifier == null) {
             errors.append(errorPrefix).append("Connective number '").append(type).append("' is not between 0 and ").
-                    append(Connective.size() - 1).append("\n");
+                    append(Quantifier.size() - 1).append("\n");
             return null;}
-        int start = connective.firstLiteralIndex;
+        int start = quantifier.firstLiteralIndex;
         boolean erraneous = false;
         for(int i = start; i < clause.length; ++i) {
             int predicate = Math.abs(clause[i]);
@@ -270,7 +270,7 @@ public class InputClauses {
         for(int[] clause : atmosts)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
         for(int[] clause : exactlys)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
         for(int[] clause : intervals)    {if(intervalIsFalse(clause,model))    {falseClauses.add(clause);}}
-        return falseClauses.isEmpty() ? null : falseClauses;}
+        return falseClauses;}
 
 
     /** checks if the clause contains literals p,-p.
@@ -297,7 +297,7 @@ public class InputClauses {
         assert clause[1] > 2; // quantified clauses
         int shift = Integer.MAX_VALUE/2;
         int length = clause.length;
-        int start = clause[1] == Connective.INTERVAL.ordinal() ? 4 : 3;
+        int start = clause[1] == Quantifier.INTERVAL.ordinal() ? 4 : 3;
         int pairs = 0;
         for(int i = start; i < length; ++i){
             int literal1 = clause[i];
@@ -324,7 +324,7 @@ public class InputClauses {
      * @return true if all literals are either false or undefined in the model and the clause is not a tautology.
      */
     public static boolean disjunctionIsFalse(int[] clause, Model model) {
-        assert Connective.getConnective(clause[1]) == Connective.OR;
+        assert Quantifier.getQuantifier(clause[1]) == Quantifier.OR;
         for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return false;}}
         if(model.isComplete()) return true; // there can't be complementary literals
         return !containsComplementaryLiterals(clause);} // p or -p is always true
@@ -336,7 +336,7 @@ public class InputClauses {
      * @return true if one literal is false or undefined in the model.
      */
     public static boolean conjunctionIsFalse(int[] clause, Model model) {
-        assert Connective.getConnective(clause[1]) == Connective.AND;
+        assert Quantifier.getQuantifier(clause[1]) == Quantifier.AND;
         for(int i = 2; i < clause.length; ++i) {if(!model.isTrue(clause[i])) {return true;}}
         return false;}
 
@@ -347,7 +347,7 @@ public class InputClauses {
      * @return true if not either all literals are true or all literals are false in the model.
      */
     public static boolean equivalenceIsFalse(int[] clause, Model model) {
-        assert Connective.getConnective(clause[1]) == Connective.EQUIV;
+        assert Quantifier.getQuantifier(clause[1]) == Quantifier.EQUIV;
         int size = clause.length;
         int trueLiterals = 0;
         int falseLiterals = 0;
@@ -371,9 +371,9 @@ public class InputClauses {
         int trueLiterals = 0;
         for(int i = 3; i < size; ++i) {if(model.isTrue(clause[i])) ++trueLiterals;}
         trueLiterals += model.isComplete() ? 0 : numberOfComplementaryPairs(clause,model);
-        Connective connective = Connective.getConnective(clause[1]);
-        assert connective != null;
-        switch(connective) {
+        Quantifier quantifier = Quantifier.getQuantifier(clause[1]);
+        assert quantifier != null;
+        switch(quantifier) {
             case ATLEAST: return trueLiterals < n;
             case ATMOST:  return trueLiterals > n;
             case EXACTLY: return trueLiterals != n;}
@@ -386,7 +386,7 @@ public class InputClauses {
      * @return true if not between min and max literals are true in the model.
      */
     public static boolean intervalIsFalse(int[] clause, Model model) {
-        assert Connective.getConnective(clause[1]) == Connective.INTERVAL;
+        assert Quantifier.getQuantifier(clause[1]) == Quantifier.INTERVAL;
         int min = clause[2];
         int max = clause[3];
         int size = clause.length;
@@ -461,19 +461,19 @@ public class InputClauses {
     public static String toString(int size, int[] clause, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         int connectiveNumber = clause[1];
-        Connective connective = Connective.getConnective(connectiveNumber);
-        assert connective != null;
+        Quantifier quantifier = Quantifier.getQuantifier(connectiveNumber);
+        assert quantifier != null;
         if(size == 0) {size = Integer.toString(clause[0]).length();}
         st.append(String.format("%"+size+"s",clause[0])).append(": ");
         int start = 2;
-        if(Connective.isQuantifier(connectiveNumber) && connective != Connective.INTERVAL) {
+        if(Quantifier.isQuantifier(connectiveNumber) && quantifier != Quantifier.INTERVAL) {
             start = 3;
-            st.append(connective.abbreviation).append(" ");
+            st.append(quantifier.abbreviation).append(" ");
             st.append(clause[2]).append(" ");}
-        else{if(connective == Connective.INTERVAL) {
+        else{if(quantifier == Quantifier.INTERVAL) {
             start = 4;
             st.append(clause[2]).append("-").append(clause[3]).append(": ");}}
-        String separator = connective.separator;
+        String separator = quantifier.separator;
         int length = clause.length;
         for(int i = start; i < length-1; ++i) {
             st.append(Symboltable.toString(clause[i],symboltable));

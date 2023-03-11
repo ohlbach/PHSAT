@@ -3,7 +3,7 @@ package Solvers.Resolution;
 import Coordinator.Tasks.Task;
 import Coordinator.Tasks.TaskQueue;
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.Aborted;
@@ -142,7 +142,7 @@ public abstract class ResolutionReduction extends Solver {
             result = new Aborted(combinedId + " aborted after ");}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + ((result == null) ? " none" : result.toString()));
-        problemSupervisor.finished(this.solverId, result, "done");
+        //problemSupervisor.finished(this.solverId, result, "done");
         return result;}
 
     /** This function is called when a new disjunction is to be inserted.
@@ -563,7 +563,7 @@ public abstract class ResolutionReduction extends Solver {
         if(model.isFalse(literal2)) {
             addTrueLiteralTask(literal2,"Imported binary clause " + literalName(literal1) + "," +
                 literalName(literal2) + " reduced to " + literalName(literal1)); return;}
-        Clause clause = new Clause(++id[0], Connective.OR, 2);
+        Clause clause = new Clause(++id[0], Quantifier.OR, 2);
         clause.add(new CLiteral(literal1));
         clause.add(new CLiteral(literal2));
         clause.setPositiveNegative();
@@ -579,7 +579,7 @@ public abstract class ResolutionReduction extends Solver {
      */
     void processClause(int[] literals) throws Unsatisfiable  {
         int size = literals.length;
-        Clause clause = new Clause(++id[0], Connective.OR, literals.length);
+        Clause clause = new Clause(++id[0], Quantifier.OR, literals.length);
         for(int i = 0; i < size; ++i) {
             int literal = equivalenceClasses.getRepresentative(literals[i]);
             if(model.isTrue(literal)) {return;}
@@ -685,7 +685,7 @@ public abstract class ResolutionReduction extends Solver {
     void replaceLiteralInAllClauses(int fromLiteral, int toLiteral)  throws Unsatisfiable {
         for(CLiteral cliteral : literalIndex.getAllItems(fromLiteral)) {
             Clause clause = cliteral.clause;
-            Clause newClause = new Clause(++id[0], Connective.OR, clause.size());
+            Clause newClause = new Clause(++id[0], Quantifier.OR, clause.size());
             boolean tautology = false;
             for(CLiteral cLiteral : clause.cliterals) {
                 int literal = cLiteral.literal;

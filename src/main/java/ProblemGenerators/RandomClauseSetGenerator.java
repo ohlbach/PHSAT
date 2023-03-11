@@ -1,6 +1,6 @@
 package ProblemGenerators;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
 import Management.Monitor.Monitor;
 import Utilities.Utilities;
@@ -365,25 +365,25 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         InputClauses inputClauses = new InputClauses("",predicates,null,info);
         Random rnd = new Random(seed);
         int[] id = {0};
-        if(ors       != 0) {generateClauses(inputClauses,id,Connective.OR,ors,rnd);
+        if(ors       != 0) {generateClauses(inputClauses,id, Quantifier.OR,ors,rnd);
             problemName += " o:" +ors;
             info += "\ndisjunctions:" + ors;}
-        if(ands      != 0) {generateClauses(inputClauses,id,Connective.AND,ands,rnd);
+        if(ands      != 0) {generateClauses(inputClauses,id, Quantifier.AND,ands,rnd);
             problemName += " &:" +ands;
             info += "\nconjunctions:" + ands;}
-        if(equivs    != 0) {generateClauses(inputClauses,id,Connective.EQUIV,equivs,rnd);
+        if(equivs    != 0) {generateClauses(inputClauses,id, Quantifier.EQUIV,equivs,rnd);
             problemName += " e:" +equivs;
             info += "\nequivlences:" + equivs;}
-        if(atleasts  != 0) {generateClauses(inputClauses,id,Connective.ATLEAST,atleasts,rnd);
+        if(atleasts  != 0) {generateClauses(inputClauses,id, Quantifier.ATLEAST,atleasts,rnd);
             problemName += " >=:"+atleasts;
             info += "\natleasts:" + atleasts;}
-        if(atmosts   != 0) {generateClauses(inputClauses,id,Connective.ATMOST,atmosts,rnd);
+        if(atmosts   != 0) {generateClauses(inputClauses,id, Quantifier.ATMOST,atmosts,rnd);
             problemName += " <=:"+atmosts;
             info += "\natmosts:" + atmosts;}
-        if(exactly   != 0) {generateClauses(inputClauses,id,Connective.EXACTLY,exactly,rnd);
+        if(exactly   != 0) {generateClauses(inputClauses,id, Quantifier.EXACTLY,exactly,rnd);
             problemName += " =:" +exactly;
             info += "\nexactlies:" + exactly;}
-        if(intervals != 0) {generateClauses(inputClauses,id,Connective.INTERVAL,intervals,rnd);
+        if(intervals != 0) {generateClauses(inputClauses,id, Quantifier.INTERVAL,intervals,rnd);
             problemName += " []:"+intervals;
             info += "\nintervals:" + intervals;}
 
@@ -398,23 +398,23 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      *
      * @param inputClauses        for adding the new clauses
      * @param id                  for generating next clause id
-     * @param connective          AND etc.
+     * @param quantifier          AND etc.
      * @param numberOfClauses     number of clauses to be generated
      * @param rnd                 random number generator
      */
-    protected void generateClauses(InputClauses inputClauses, int[] id, Connective connective,
+    protected void generateClauses(InputClauses inputClauses, int[] id, Quantifier quantifier,
                                    int numberOfClauses,Random rnd) {
-        int start = connective.isQuantifier() ? 3 : 2;
-        if(connective == Connective.INTERVAL) start = 4;
+        int start = quantifier.isQuantifier() ? 3 : 2;
+        if(quantifier == Quantifier.INTERVAL) start = 4;
         int counter = -1;
         while(++counter < numberOfClauses) {
             int clauseLength = precise ? length : rnd.nextInt(length)+1;
-            if(Connective.EQUIV == connective && clauseLength == 1) {++clauseLength;}
+            if(Quantifier.EQUIV == quantifier && clauseLength == 1) {++clauseLength;}
             int[] clause = new int[clauseLength+start];
             clause[0] = ++id[0];
-            clause[1] = connective.ordinal();
-            if(connective.isQuantifier()) clause[2] = rnd.nextInt(clauseLength)+1;
-            if(connective == Connective.INTERVAL) {
+            clause[1] = quantifier.ordinal();
+            if(quantifier.isQuantifier()) clause[2] = rnd.nextInt(clauseLength)+1;
+            if(quantifier == Quantifier.INTERVAL) {
                 int min = clause[2];
                 int max = rnd.nextInt(clauseLength)+1;
                 if(min <= max) {clause[3] = max;}

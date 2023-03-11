@@ -1,6 +1,6 @@
 package NormalFormTransformers;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
 import InferenceSteps.InferenceStep;
 import Utilities.CombinationsIterator;
@@ -20,7 +20,7 @@ import java.util.function.IntSupplier;
  */
 public class CNFTransformer implements Iterator<int[]> {
 
-    private final static int cOr  = Connective.OR.ordinal();
+    private final static int cOr  = Quantifier.OR.ordinal();
     /** for generating a new identifier for the clauses. */
     private final IntSupplier nextId;
     private int[] clause;
@@ -45,10 +45,10 @@ public class CNFTransformer implements Iterator<int[]> {
     public void reset(int[] clause) {
         this.clause = clause;
         int length = clause.length;
-        Connective connective = Connective.getConnective(clause[1]);
-        assert(connective != null);
-        start = connective.firstLiteralIndex;
-        switch(connective) {
+        Quantifier quantifier = Quantifier.getQuantifier(clause[1]);
+        assert(quantifier != null);
+        start = quantifier.firstLiteralIndex;
+        switch(quantifier) {
             case ATLEAST:
                 sign1 = 1;
                 int m = clause[2];

@@ -1,6 +1,6 @@
 package Datastructures.TwoLiteral;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 
 public class TwoLitClausesTest {
 
@@ -8,8 +8,8 @@ public class TwoLitClausesTest {
     StringBuilder warnings = new StringBuilder();
     boolean monitoring = false;
     
-    int type = Connective.OR.ordinal();
-    int typeEQ = Connective.EQUIV.ordinal();
+    int type = Quantifier.OR.ordinal();
+    int typeEQ = Quantifier.EQUIV.ordinal();
 
 
 /*

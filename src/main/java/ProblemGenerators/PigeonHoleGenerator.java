@@ -1,6 +1,6 @@
 package ProblemGenerators;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Symboltable;
 import Management.Monitor.Monitor;
@@ -105,7 +105,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
             if(pigeons == null) {errors.append("\n"); erroneous = true;}}
 
         ArrayList capacities = new ArrayList();
-        if(capacity ==null) {capacities.add(new Object[]{Connective.EXACTLY,1});}
+        if(capacity ==null) {capacities.add(new Object[]{Quantifier.EXACTLY,1});}
         else {
             String[] parts = capacity.split("\\s*,\\s*");
             for(int i = 0; i < parts.length; ++i) {
@@ -121,7 +121,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
                             if(max == null || max < min) {
                                 errors.append("no proper interval: '").append(parts[i - 1]).append(",").append(parts[i]).append("'\n"); erroneous = true;}}
                         if(!erroneous)
-                            capacities.add(new Object[]{Connective.INTERVAL,
+                            capacities.add(new Object[]{Quantifier.INTERVAL,
                                     min < max ? new Interval(min,max) : new Interval(max,min)});}}
                 else {
                     String[] quantified = part.split("\\s+");
@@ -132,9 +132,9 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
                         errors.append("malformed quantification: '").append(part).append("\n"); erroneous = true;}
                     else {
                         switch(quantified[0]) {
-                            case "<=": capacities.add(new Object[]{Connective.ATMOST,amount}); break;
-                            case ">=": capacities.add(new Object[]{Connective.ATLEAST,amount}); break;
-                            case "=":  capacities.add(new Object[]{Connective.EXACTLY,amount}); break;
+                            case "<=": capacities.add(new Object[]{Quantifier.ATMOST,amount}); break;
+                            case ">=": capacities.add(new Object[]{Quantifier.ATLEAST,amount}); break;
+                            case "=":  capacities.add(new Object[]{Quantifier.EXACTLY,amount}); break;
                             default: errors.append("malformed quantification: '").append(part).append("\n"); erroneous = true;}}}}}
 
         if(erroneous) {return;}
@@ -169,12 +169,12 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
      * @return the new InputClauses
      */
     public InputClauses generateProblem(Monitor errors){
-        Connective connective = (Connective)capacity[0];
+        Quantifier quantifier = (Quantifier)capacity[0];
         String problemName = "PH_p"+pigeons+"_h"+holes;
         int min=0, max=0, amount=0;
         String capcity = capacityString(capacity);
         problemName += "_c"+capcity;
-        if(connective == Connective.INTERVAL) {
+        if(quantifier == Quantifier.INTERVAL) {
             Interval interval = (Interval)capacity[1];
             min = interval.min;
             max = interval.max;}
@@ -192,14 +192,14 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
 
         // each hole can take a number of pigeons.
         int id = 0;
-        int extra = connective == Connective.INTERVAL ? 4 : 3;
+        int extra = quantifier == Quantifier.INTERVAL ? 4 : 3;
 
         for(int hole = 1; hole <= holes; ++hole) {
             int[] clause = new int[pigeons+extra];
             clause[0] = ++id;
-            clause[1] = connective.ordinal();
+            clause[1] = quantifier.ordinal();
             int index = 2;
-            if(connective == Connective.INTERVAL) {
+            if(quantifier == Quantifier.INTERVAL) {
                 clause[2] = min;
                 clause[3] = max;
                 index = 3;}
@@ -212,7 +212,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         for(int pigeon = 1; pigeon <= pigeons; ++pigeon){
             int[] clause = new int[holes+3];
             clause[0] = ++id;
-            clause[1] = Connective.EXACTLY.ordinal();
+            clause[1] = Quantifier.EXACTLY.ordinal();
             clause[2] = 1;
             for(int hole = 1; hole <= holes; ++hole) {
                 clause[hole+2] = symboltable.getPredicate("P"+pigeon+"H"+hole);}
@@ -224,11 +224,11 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
 
     /** turns the capacity into a string */
     private static String capacityString(Object[] capacity) {
-        Connective connective = (Connective)capacity[0];
-        if(connective == Connective.INTERVAL) {
+        Quantifier quantifier = (Quantifier)capacity[0];
+        if(quantifier == Quantifier.INTERVAL) {
             Interval interval = (Interval)capacity[1];
             return "[" + interval.min + "," + interval.max +"]";}
-        else return connective.abbreviation+(int)capacity[1];}
+        else return quantifier.abbreviation+(int)capacity[1];}
 
 
     /** a string representation of the parameters

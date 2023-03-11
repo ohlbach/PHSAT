@@ -1,17 +1,17 @@
 package NormalFormTransformers;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
 import junit.framework.TestCase;
 
 import java.util.Arrays;
 
 public class CNFTransformerTest extends TestCase {
-    private int cOr = Connective.OR.ordinal();
-    private final static int cAtleast = Connective.ATLEAST.ordinal();
-    private final static int cAtmost = Connective.ATMOST.ordinal();
-    private final static int cExactly = Connective.EXACTLY.ordinal();
-    private final static int cInterval = Connective.INTERVAL.ordinal();
+    private int cOr = Quantifier.OR.ordinal();
+    private final static int cAtleast = Quantifier.ATLEAST.ordinal();
+    private final static int cAtmost = Quantifier.ATMOST.ordinal();
+    private final static int cExactly = Quantifier.EXACTLY.ordinal();
+    private final static int cInterval = Quantifier.INTERVAL.ordinal();
 
     public void testAtleast() {
         System.out.println("atleast to CNF");

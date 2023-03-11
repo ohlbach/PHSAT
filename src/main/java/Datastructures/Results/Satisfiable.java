@@ -10,9 +10,9 @@ public class Satisfiable extends Result {
     public Model model;
 
     public Satisfiable(Model model) {
+        super();
         this.model = model;}
 
-    public boolean isOkay() {return false;}
 
     public String toString() {
         return "Satisfiable with model: "+ model.toString();}

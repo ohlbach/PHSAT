@@ -131,9 +131,9 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
 <div class="col-second odd-row-color"><code><a href="#complementaryLiterals" class="member-name-link">complementaryLiterals</a></code></div>
 <div class="col-last odd-row-color">&nbsp;</div>
 <div class="col-first even-row-color"><code><a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a></code></div>
-<div class="col-second even-row-color"><code><a href="#connective" class="member-name-link">connective</a></code></div>
+<div class="col-second even-row-color"><code><a href="#quantifier" class="member-name-link">quantifier</a></code></div>
 <div class="col-last even-row-color">
-<div class="block">the connective</div>
+<div class="block">the quantifier</div>
 </div>
 <div class="col-first odd-row-color"><code>int</code></div>
 <div class="col-second odd-row-color"><code><a href="#id" class="member-name-link">id</a></code></div>
@@ -210,10 +210,10 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
  The limit of clauses where there is no limit (AND, EQUIV) is set to -1 <br>
  Atmost-clauses like atmost 2 p,q,r are transformed into atleast 1 -p,-q,-r.<br>
  Atleast-clauses like atleast 3 p,q,r are transformed into and p,q,r<br>
- If the limit of ATLEAST-clauses is 1,the connective is set to OR.</div>
+ If the limit of ATLEAST-clauses is 1,the quantifier is set to OR.</div>
 </div>
 <div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(int,Datastructures.Clauses.Connective,int...)" class="member-name-link">Clause</a><wbr>(int&nbsp;id,
- <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;connective,
+ <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;quantifier,
  int...&nbsp;literals)</code></div>
 <div class="col-last even-row-color">
 <div class="block">creates a new clause with the given literals
@@ -224,17 +224,17 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
  The limit of clauses where there is no limit (AND, EQUIV) is set to -1 <br>
  Atmost-clauses like atmost 2 p,q,r are transformed into atleast 1 -p,-q,-r.<br>
  Atleast-clauses like atleast 3 p,q,r are transformed into and p,q,r<br>
- If the limit of ATLEAST-clauses is 1,the connective is set to OR.</div>
+ If the limit of ATLEAST-clauses is 1,the quantifier is set to OR.</div>
 </div>
 <div class="col-constructor-name odd-row-color"><code><a href="#%3Cinit%3E(int,Datastructures.Clauses.Connective,short,int)" class="member-name-link">Clause</a><wbr>(int&nbsp;id,
- <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;connective,
+ <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;quantifier,
  short&nbsp;minLimit,
  int&nbsp;size)</code></div>
 <div class="col-last odd-row-color">
 <div class="block">constructs a clause with an empty list of literals.</div>
 </div>
 <div class="col-constructor-name even-row-color"><code><a href="#%3Cinit%3E(int,Datastructures.Clauses.Connective,short,it.unimi.dsi.fastutil.ints.IntArrayList)" class="member-name-link">Clause</a><wbr>(int&nbsp;id,
- <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;connective,
+ <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;quantifier,
  short&nbsp;minLimit,
  it.unimi.dsi.fastutil.ints.IntArrayList&nbsp;literals)</code></div>
 <div class="col-last even-row-color">
@@ -452,7 +452,7 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
 <div class="block">determines for an ATLEAST- or OR-clause the clause's structure:
  If the limit is too large: CONTRADICTORY<br>
  If the limit is 0: TAUTOLOGY,<br>
- If the limit is the clause's size then the connective is changed to AND, and the limit to -1<br>
+ If the limit is the clause's size then the quantifier is changed to AND, and the limit to -1<br>
  otherwise if the clause has only positive literals (POSITIVE) or only negative literals (NEGATIVE)
  or mixed signs (MIXED)</div>
 </div>
@@ -543,10 +543,10 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
 </section>
 </li>
 <li>
-<section class="detail" id="connective">
-<h3>connective</h3>
-<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a></span>&nbsp;<span class="element-name">connective</span></div>
-<div class="block">the connective</div>
+<section class="detail" id="quantifier">
+<h3>quantifier</h3>
+<div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="return-type"><a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a></span>&nbsp;<span class="element-name">quantifier</span></div>
+<div class="block">the quantifier</div>
 </section>
 </li>
 <li>
@@ -652,7 +652,7 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
 <section class="detail" id="&lt;init&gt;(int,Datastructures.Clauses.Connective,short,int)">
 <h3>Clause</h3>
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">Clause</span><wbr><span class="parameters">(int&nbsp;id,
- <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;connective,
+ <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;quantifier,
  short&nbsp;minLimit,
  int&nbsp;size)</span></div>
 <div class="block">constructs a clause with an empty list of literals.</div>
@@ -668,14 +668,14 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
 <section class="detail" id="&lt;init&gt;(int,Datastructures.Clauses.Connective,short,it.unimi.dsi.fastutil.ints.IntArrayList)">
 <h3>Clause</h3>
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">Clause</span><wbr><span class="parameters">(int&nbsp;id,
- <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;connective,
+ <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;quantifier,
  short&nbsp;minLimit,
  it.unimi.dsi.fastutil.ints.IntArrayList&nbsp;literals)</span></div>
 <div class="block">constructs a new clause with given literals</div>
 <dl class="notes">
 <dt>Parameters:</dt>
 <dd><code>id</code> - the id of the new clause</dd>
-<dd><code>connective</code> - the connective for the clause</dd>
+<dd><code>quantifier</code> - the quantifier for the clause</dd>
 <dd><code>minLimit</code> - the quantification limit</dd>
 <dd><code>literals</code> - the list of literals</dd>
 </dl>
@@ -694,7 +694,7 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
  The limit of clauses where there is no limit (AND, EQUIV) is set to -1 <br>
  Atmost-clauses like atmost 2 p,q,r are transformed into atleast 1 -p,-q,-r.<br>
  Atleast-clauses like atleast 3 p,q,r are transformed into and p,q,r<br>
- If the limit of ATLEAST-clauses is 1,the connective is set to OR.
+ If the limit of ATLEAST-clauses is 1,the quantifier is set to OR.
  The clause's structure is set to POSITIVE,NEGATIVE or MIXED.</div>
 <dl class="notes">
 <dt>Parameters:</dt>
@@ -706,7 +706,7 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
 <section class="detail" id="&lt;init&gt;(int,Datastructures.Clauses.Connective,int...)">
 <h3>Clause</h3>
 <div class="member-signature"><span class="modifiers">public</span>&nbsp;<span class="element-name">Clause</span><wbr><span class="parameters">(int&nbsp;id,
- <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;connective,
+ <a href="Connective.html" title="enum class in Datastructures.Clauses">Connective</a>&nbsp;quantifier,
  int...&nbsp;literals)</span></div>
 <div class="block">creates a new clause with the given literals
  The constructor does not work for INTERVAL-type basic clauses.<br>
@@ -716,12 +716,12 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
  The limit of clauses where there is no limit (AND, EQUIV) is set to -1 <br>
  Atmost-clauses like atmost 2 p,q,r are transformed into atleast 1 -p,-q,-r.<br>
  Atleast-clauses like atleast 3 p,q,r are transformed into and p,q,r<br>
- If the limit of ATLEAST-clauses is 1,the connective is set to OR.
+ If the limit of ATLEAST-clauses is 1,the quantifier is set to OR.
  The clause's structure is set to POSITIVE,NEGATIVE or MIXED.</div>
 <dl class="notes">
 <dt>Parameters:</dt>
 <dd><code>id</code> - the new id</dd>
-<dd><code>connective</code> - the clause's type (no INTERVAL-type)</dd>
+<dd><code>quantifier</code> - the clause's type (no INTERVAL-type)</dd>
 <dd><code>literals</code> - [limit] a list of literals</dd>
 </dl>
 </section>
@@ -908,7 +908,7 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
  If nextId != null then the replacements is done on a clone of the clause, otherwise on the clause itself.<br>
  The clause may become a tautology or contradictory.<br>
  In both cases the structure of the clause is set accordingly<br>
- The connective of the clause is adjusted at the new situation.</div>
+ The quantifier of the clause is adjusted at the new situation.</div>
 <dl class="notes">
 <dt>Parameters:</dt>
 <dd><code>getTruthStatus</code> - maps a literal to +1 (true), 0 (undefined) or -1 (false)</dd>
@@ -1011,7 +1011,7 @@ implements <a href="https://docs.oracle.com/en/java/javase/18/docs/api/java.base
 <div class="block">determines for an ATLEAST- or OR-clause the clause's structure:
  If the limit is too large: CONTRADICTORY<br>
  If the limit is 0: TAUTOLOGY,<br>
- If the limit is the clause's size then the connective is changed to AND, and the limit to -1<br>
+ If the limit is the clause's size then the quantifier is changed to AND, and the limit to -1<br>
  otherwise if the clause has only positive literals (POSITIVE) or only negative literals (NEGATIVE)
  or mixed signs (MIXED)</div>
 </section>

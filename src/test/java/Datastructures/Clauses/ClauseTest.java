@@ -26,63 +26,63 @@ public class ClauseTest {
 
 
     }
-    int or = Connective.OR.ordinal();
-    int atl = Connective.ATLEAST.ordinal();
-    int atm = Connective.ATMOST.ordinal();
-    int eqv = Connective.EQUIV.ordinal();
-    int and = Connective.AND.ordinal();
-    int itv = Connective.INTERVAL.ordinal();
+    int or = Quantifier.OR.ordinal();
+    int atl = Quantifier.ATLEAST.ordinal();
+    int atm = Quantifier.ATMOST.ordinal();
+    int eqv = Quantifier.EQUIV.ordinal();
+    int and = Quantifier.AND.ordinal();
+    int itv = Quantifier.INTERVAL.ordinal();
 
     short one = (short)1;
 
     @Test
     public void constructorOR() throws Unsatisfiable {
         System.out.println("Constructor OR");
-        Clause clause = new Clause(1,Connective.OR,(short)1,
+        Clause clause = new Clause(1, Quantifier.OR,(short)1,
                 IntArrayList.wrap(new int[]{2,-3,4}));
-        assertEquals("1: 2,-3,4",clause.toNumbers());
-        assertEquals("1:   q,-r,s",clause.toString(5,symboltable));
-        assertEquals(Connective.OR,clause.connective);
+        assertEquals("1: 2v-3v4",clause.toNumbers());
+        assertEquals("1:   qv-rvs",clause.toString(5,symboltable));
+        assertEquals(Quantifier.OR,clause.quantifier);
         assertEquals(2,clause.getLiteral(0));
         String s = "";
         for(CLiteral cLiteral : clause) {s += cLiteral.literal;}
         assertEquals("2-34",s);
-        assertEquals("Input: Clause 1",clause.inferenceStep.toString());
+        assertEquals("Input Clause Id: 1",clause.inferenceStep.toString());
         assertEquals("[2, -3, 4]",clause.toArray().toString());
 
         assertSame(clause,clause.getCLiteral(0).clause);
         assertSame(clause,clause.getCLiteral(2).clause);
         assertEquals(1,clause.getCLiteral(1).clausePosition);
 
-        clause = new Clause(2,Connective.OR,(short)1,
+        clause = new Clause(2, Quantifier.OR,(short)1,
                 IntArrayList.wrap(new int[]{2,-3,4,2,-3,4,4}));
-        assertEquals("2: 2,-3,4",clause.toNumbers());
-        assertEquals("2: 2,-3,4 [2]",clause.infoString(0,null));
-        assertEquals("Input: Clause 2",clause.inferenceStep.toString(symboltable));
+        assertEquals("2: 2v-3v4v2v-3v4v4",clause.toNumbers());
+        assertEquals("2: 2v-3v4v2v-3v4v4 [2]",clause.infoString(0,null));
+        assertEquals("Input Clause Id: 2",clause.inferenceStep.toString(symboltable));
     }
 
     @Test
     public void constructorATLEAST() throws Unsatisfiable  {
         System.out.println("Constructor ATLEAST");
-        Clause clause = new Clause(1,Connective.ATLEAST,one,
+        Clause clause = new Clause(1, Quantifier.ATLEAST,one,
                 IntArrayList.wrap(new int[]{2,3,4}));
         assertEquals("1: 2,3,4",clause.toNumbers());
         assertEquals("1: q,r,s",clause.toString(0,symboltable));
-        assertEquals(Connective.OR,clause.connective);
+        assertEquals(Quantifier.OR,clause.quantifier);
         assertEquals(clause.structure,ClauseStructure.POSITIVE);
 
-        clause = new Clause(1,Connective.ATLEAST,(short)3,
+        clause = new Clause(1, Quantifier.ATLEAST,(short)3,
                 IntArrayList.wrap(new int[]{-2,-3,-4}));
         assertEquals("A-1: -2&-3&-4",clause.toNumbers());
         assertEquals("A-1: -q&-r&-s",clause.toString(0,symboltable));
-        assertEquals(Connective.AND,clause.connective);
+        assertEquals(Quantifier.AND,clause.quantifier);
         assertEquals(clause.structure,ClauseStructure.NEGATIVE);
 
-        clause = new Clause(1,Connective.ATLEAST,(short)4,
+        clause = new Clause(1, Quantifier.ATLEAST,(short)4,
                 IntArrayList.wrap(new int[]{-2,-3,-4}));
         assertEquals(clause.structure,ClauseStructure.CONTRADICTORY);
 
-        clause = new Clause(2,Connective.ATLEAST,(short)2,
+        clause = new Clause(2, Quantifier.ATLEAST,(short)2,
                 IntArrayList.wrap(new int[]{2,3,4,2,3,2,2,3,4,-5,4,4}));
         assertEquals("L-2: 2: 2^2,3^2,4^2,-5",clause.toNumbers());
         assertEquals("L-2: 2: 2^2,3^2,4^2,-5 [2]",clause.infoString(0,null));
@@ -93,22 +93,22 @@ public class ClauseTest {
     @Test
     public void constructorATMOST()  throws Unsatisfiable {
         System.out.println("Constructor Atmost");
-        Clause clause = new Clause(1,Connective.ATMOST,one,
+        Clause clause = new Clause(1, Quantifier.ATMOST,one,
                 IntArrayList.wrap(new int[]{2,3,4}));
         assertEquals("L-1: 2: -2,-3,-4",clause.toNumbers());
         assertEquals("L-1: 2: -q,-r,-s",clause.toString(0,symboltable));
-        assertEquals(Connective.ATLEAST,clause.connective);
+        assertEquals(Quantifier.ATLEAST,clause.quantifier);
         assertEquals(clause.structure,ClauseStructure.NEGATIVE);
         assertEquals("L-1: 2: -q,-r,-s [1]",clause.infoString(0,symboltable));
         assertEquals("1: atmost 1: q,r,s -> L-1: 2: -q,-r,-s",clause.inferenceStep.toString(symboltable));
 
-        clause = new Clause(1,Connective.ATMOST,(short)0,
+        clause = new Clause(1, Quantifier.ATMOST,(short)0,
                 IntArrayList.wrap(new int[]{2,3,4}));
         assertEquals("A-1: -2&-3&-4",clause.toNumbers());
-        assertEquals(Connective.AND,clause.connective);
+        assertEquals(Quantifier.AND,clause.quantifier);
         assertEquals(clause.structure,ClauseStructure.NEGATIVE);
 
-        clause = new Clause(1,Connective.ATMOST,(short)3,
+        clause = new Clause(1, Quantifier.ATMOST,(short)3,
                 IntArrayList.wrap(new int[]{2,3,4}));
         assertEquals(clause.structure,ClauseStructure.TAUTOLOGY);
     }
@@ -162,7 +162,7 @@ public class ClauseTest {
         int[] bc = new int[]{1, atm, 2, 2, 3, 4};
         Clause cl = new Clause(bc);
         assertEquals("1: -2,-3,-4", cl.toNumbers());
-        assertEquals(cl.connective, Connective.OR);
+        assertEquals(cl.quantifier, Quantifier.OR);
         assertEquals(cl.structure,ClauseStructure.NEGATIVE);
         assertEquals("1: -q,-r,-s [1]",cl.infoString(0,symboltable));
         assertEquals("M-1: 2 q,r,s -> 1: -q,-r,-s",cl.inferenceStep.toString(symboltable));
@@ -207,33 +207,33 @@ public class ClauseTest {
     @Test
     public void constructorLitOr()  throws Unsatisfiable {
         System.out.println("Constructor Lit or");
-        Clause cl = new Clause(1,Connective.OR,2,3,4);
+        Clause cl = new Clause(1, Quantifier.OR,2,3,4);
         assertEquals("1: 2,3,4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
         assertEquals(1,cl.minLimit);
 
-        cl = new Clause(2,Connective.OR,2,3,2,3,2,4);
+        cl = new Clause(2, Quantifier.OR,2,3,2,3,2,4);
         assertEquals("2: 2,3,4", cl.toNumbers());
     }
 
     @Test
     public void constructorLitAtleast()  throws Unsatisfiable {
         System.out.println("Constructor Lit atleast");
-        Clause cl = new Clause(1,Connective.ATLEAST,1,2,3,4);
+        Clause cl = new Clause(1, Quantifier.ATLEAST,1,2,3,4);
         assertEquals("1: 2,3,4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
         assertEquals(1,cl.minLimit);
-        cl = new Clause(1,Connective.ATLEAST,3,2,3,4);
+        cl = new Clause(1, Quantifier.ATLEAST,3,2,3,4);
         assertEquals("A-1: 2&3&4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.POSITIVE);
         assertEquals(-1,cl.minLimit);
-        cl = new Clause(2,Connective.ATLEAST,2,2,3,2,2,2,4);
+        cl = new Clause(2, Quantifier.ATLEAST,2,2,3,2,2,2,4);
         assertEquals("L-2: 2: 2^2,3,4", cl.toNumbers());
     }
     @Test
     public void constructorLitAtmost()  throws Unsatisfiable {
         System.out.println("Constructor Lit atmost");
-        Clause cl = new Clause(1, Connective.ATMOST, 2, 2, 3, 4, 5, 6);
+        Clause cl = new Clause(1, Quantifier.ATMOST, 2, 2, 3, 4, 5, 6);
         assertEquals("L-1: 3: -2,-3,-4,-5,-6", cl.toNumbers());
         assertEquals(cl.structure, ClauseStructure.NEGATIVE);
         assertEquals("L-1: 3: -q,-r,-s,-t,-u [1]",cl.infoString(0,symboltable));
@@ -244,7 +244,7 @@ public class ClauseTest {
     @Test
     public void constructorLitAnd()  throws Unsatisfiable {
         System.out.println("Constructor Lit and");
-        Clause cl = new Clause(1,Connective.AND,-2,-3,-4);
+        Clause cl = new Clause(1, Quantifier.AND,-2,-3,-4);
         assertEquals("A-1: -2&-3&-4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.NEGATIVE);
         assertEquals(-1,cl.minLimit);
@@ -253,7 +253,7 @@ public class ClauseTest {
     @Test
     public void constructorLitEquiv()  throws Unsatisfiable {
         System.out.println("Constructor Lit equiv");
-        Clause cl = new Clause(1,Connective.EQUIV,-2,-3,-4);
+        Clause cl = new Clause(1, Quantifier.EQUIV,-2,-3,-4);
         assertEquals("E-1: -2=-3=-4", cl.toNumbers());
         assertEquals(cl.structure,ClauseStructure.NEGATIVE);
         assertEquals(-1,cl.minLimit);
@@ -283,10 +283,10 @@ public class ClauseTest {
     @Test
     public void cloneTest()  throws Unsatisfiable {
         System.out.println("clone");
-        Clause c1 = new Clause(1, Connective.ATLEAST, 2, 2, -3, 4, 5);
+        Clause c1 = new Clause(1, Quantifier.ATLEAST, 2, 2, -3, 4, 5);
         Clause c2 = c1.clone(1);
         assertEquals(c1.toNumbers(), c2.toNumbers());
-        Clause c3 = new Clause(2, Connective.AND,  2, -3, 4, 5);
+        Clause c3 = new Clause(2, Quantifier.AND,  2, -3, 4, 5);
         Clause c4 = c3.clone(2);
         assertEquals(c3.toNumbers(), c4.toNumbers());
         Clause c5 = c3.clone(3);
@@ -296,7 +296,7 @@ public class ClauseTest {
     @Test
     public void toAtmost()  throws Unsatisfiable {
         System.out.println("toAtmost");
-        Clause c1 = new Clause(1, Connective.ATLEAST, 2, 2, -3, 4, 5,6);
+        Clause c1 = new Clause(1, Quantifier.ATLEAST, 2, 2, -3, 4, 5,6);
         Clause c2 = c1.toAtmost(2);
         assertEquals("M-2: 3: -2,3,-4,-5,-6",c2.toNumbers());
         assertEquals("M-2: 3: -q,r,-s,-t,-u [1]",c2.infoString(0,symboltable));

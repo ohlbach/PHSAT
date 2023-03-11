@@ -1,13 +1,13 @@
 package Solvers.Simplifier;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 import junit.framework.TestCase;
 
 public class ClausesTest extends TestCase {
 
-    static int cOr = Connective.OR.ordinal();
-    static int cAtleast = Connective.ATLEAST.ordinal();
+    static int cOr = Quantifier.OR.ordinal();
+    static int cAtleast = Quantifier.ATLEAST.ordinal();
 
     static Symboltable symboltable = new Symboltable(10);
 

@@ -1,6 +1,6 @@
 package Datastructures.Clauses.AllClauses;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Statistics.Statistic;
 import Solvers.Resolution.ResolutionStatistics;
 import org.glassfish.gmbal.Description;
@@ -57,7 +57,7 @@ public class ClausesStatistics extends Statistic {
     public int negativeClauses = 0;
 
     @Description("clauses")
-    public int[] clauses = new int[Connective.size()];
+    public int[] clauses = new int[Quantifier.size()];
 
     @Description("tautologies")
     public int tautologies = 0;

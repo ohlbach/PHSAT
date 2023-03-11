@@ -10,7 +10,6 @@ import java.util.ArrayList;
  * Created by ohlbach on 14.09.2018.
  */
 public abstract class Unsatisfiable extends Result {
-    public Symboltable symboltable = null;
 
     /** must generate a short description of the unsatisfiability
      *

@@ -3,7 +3,7 @@ package Solvers.Resolution;
 import Coordinator.Tasks.Task;
 import Coordinator.Tasks.TaskQueue;
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
@@ -157,7 +157,7 @@ public abstract class Resolution extends Solver {
         catch(Unsatisfiable uns) {}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + result.toString());
-        problemSupervisor.finished(this.solverId, result, "done");
+        //problemSupervisor.finished(this.solverId, result, "done");
         return result;}
 
     /** one resolution parent is always chosen from this list */
@@ -544,7 +544,7 @@ public abstract class Resolution extends Solver {
         for(CLiteral otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) {
             boolean tautology = false;
             Clause otherClause = otherCliteral.clause;
-            Clause newClause = new Clause(++id[0], Connective.OR);
+            Clause newClause = new Clause(++id[0], Quantifier.OR);
             ArrayList<CLiteral> newLiterals = new ArrayList<>();
             for(CLiteral literal : literals) {
                 if(literal.literal != eliminateLiteral) {newLiterals.add(new CLiteral(literal.literal,newClause,newLiterals.size(),(short)1));}}
@@ -789,7 +789,7 @@ public abstract class Resolution extends Solver {
         replacedClauses.clear();
         for(CLiteral cliteral : literalIndex.getAllItems(fromLiteral)) {
             Clause clause = cliteral.clause;
-            Clause newClause = new Clause(++id[0], Connective.OR, clause.size());
+            Clause newClause = new Clause(++id[0], Quantifier.OR, clause.size());
             boolean tautology = false;
             for(CLiteral cLiteral : clause.cliterals) {
                 int literal = cLiteral.literal;
@@ -802,7 +802,7 @@ public abstract class Resolution extends Solver {
 
         for(CLiteral cliteral : literalIndex.getAllItems(-fromLiteral)) {
             Clause clause = cliteral.clause;
-            Clause newClause = new Clause(++id[0], Connective.OR, clause.size());
+            Clause newClause = new Clause(++id[0], Quantifier.OR, clause.size());
             boolean tautology = false;
             for(CLiteral cLiteral : clause.cliterals) {
                 int literal = cLiteral.literal;

@@ -84,7 +84,7 @@ loadScripts(document, 'script');</script>
  This class contains just the absolutely essential information about clauses.<br>
  The clauses should be the original clauses from the clause source and must not be changed.<br>
  They are in particular used to check a candidate model against the original clause set.<br>
- A clause is an integer-array [clause-number,connective,[min,max],literal1,...].<br>
+ A clause is an integer-array [clause-number,quantifier,[min,max],literal1,...].<br>
  The connectives are: <br>
  '0': means disjunction:  '10 0 3 5'      means 1 or 3 or 5.<br>
  '1': means and:          '11 1 4 5'      means 3 and 4 and 5.<br>

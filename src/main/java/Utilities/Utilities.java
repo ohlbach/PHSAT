@@ -1,7 +1,7 @@
 package Utilities;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -339,7 +339,7 @@ public class Utilities {
 
     public static Clause makeClause(int id, String literals)  throws Unsatisfiable {
         String[] lits = literals.split("\\s*(,| )\\s*");
-        Clause clause = new Clause(id, Connective.OR,lits.length);
+        Clause clause = new Clause(id, Quantifier.OR,lits.length);
         for(String lit : lits) {
             clause.add(new CLiteral(Integer.parseInt(lit)));}
         clause.setPositiveNegative();

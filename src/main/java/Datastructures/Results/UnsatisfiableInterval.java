@@ -2,12 +2,6 @@ package Datastructures.Results;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Symboltable;
-import InferenceSteps.InferenceStep;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
-
-import java.util.ArrayList;
-
-import static Utilities.Utilities.joinIntArrays;
 
 /** This class documents a contradiction arsing from two clauses with the same literals, but disjoint intervals
  */
@@ -31,19 +25,5 @@ public class UnsatisfiableInterval extends Unsatisfiable{
                 clause1.toString(width,symboltable) + "\n"+
                 clause2.toString(width,symboltable);}
 
-    @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        InferenceStep step1 = clause1.inferenceStep;
-        InferenceStep step2 = clause2.inferenceStep;
-        if(step1 != null) step1.inferenceSteps(steps);
-        if(step2 != null) step2.inferenceSteps(steps);}
 
-    @Override
-    public IntArrayList inputClauseIds() {
-        InferenceStep step1 = clause1.inferenceStep;
-        InferenceStep step2 = clause2.inferenceStep;
-        IntArrayList origins = null;
-        if(step1 != null) origins = step1.inputClauseIds();
-        if(step2 != null) origins = joinIntArrays(origins,step2.inputClauseIds());
-        return origins;}
 }

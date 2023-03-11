@@ -66,7 +66,7 @@ public class RSClause {
         RSClause rsClause;
         int size = clause.cliterals.size();
         RSLiteral[] literals = new RSLiteral[size];
-        switch(clause.connective) {
+        switch(clause.quantifier) {
             case OR:
             case ATLEAST:
                 rsClause = new RSClause(clause.id,clause.minLimit,literals);

@@ -1,14 +1,14 @@
 package Solvers.Simplifier;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
 
 public class ClauseTest extends TestCase {
-    static int cOr = Connective.OR.ordinal();
-    static int cAtleast = Connective.ATLEAST.ordinal();
+    static int cOr = Quantifier.OR.ordinal();
+    static int cAtleast = Quantifier.ATLEAST.ordinal();
 
     static ArrayList<Literal> removedLiterals = new ArrayList<>();
 
@@ -27,7 +27,7 @@ public class ClauseTest extends TestCase {
         //System.out.println(clause1.toString());
         //System.out.println(clause1.toString(symboltable,10));
         assertEquals(10,clause1.id);
-        assertEquals(Connective.OR,clause1.quantifier);
+        assertEquals(Quantifier.OR,clause1.quantifier);
         assertTrue(clause1.exists);
         assertTrue(clause1.isDisjunction);
         assertEquals(1,clause1.limit);
@@ -55,7 +55,7 @@ public class ClauseTest extends TestCase {
         //System.out.println(clause.toString(symboltable,10));
         assertEquals("11: >= 2 p^2,q^2,-r^2,s",clause.toString(symboltable,0));
         assertEquals(11, clause.id);
-        assertEquals(Connective.ATLEAST, clause.quantifier);
+        assertEquals(Quantifier.ATLEAST, clause.quantifier);
         assertEquals(4,clause.size());
         assertEquals(7,clause.expandedSize());
         assertFalse(clause.isDisjunction);
@@ -86,10 +86,10 @@ public class ClauseTest extends TestCase {
 
     public void testConstructorQuantified() {
         System.out.println("constructor Quantified");
-        Clause clause = new Clause(10,Connective.ATLEAST, 3, 1,3,2,2,3,1);
+        Clause clause = new Clause(10, Quantifier.ATLEAST, 3, 1,3,2,2,3,1);
         assertEquals("10: >= 3 1^3,2^2,3",clause.toString());
         assertEquals(6,clause.expandedSize);
-        clause = new Clause(11,Connective.ATLEAST, 2, 1,3,2,2,3,1);
+        clause = new Clause(11, Quantifier.ATLEAST, 2, 1,3,2,2,3,1);
         assertEquals("11: >= 2 1^2,2^2,3",clause.toString());
         assertTrue(clause.hasMultiplicities);
         assertEquals(2,clause.limit);

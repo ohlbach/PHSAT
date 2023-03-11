@@ -1,6 +1,6 @@
 package Solvers.Simplifier;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
@@ -16,11 +16,11 @@ import java.util.function.IntSupplier;
 
 public class SimplifierTest extends TestCase {
 
-    static int cOr = Connective.OR.ordinal();
-    static int cAtleast = Connective.ATLEAST.ordinal();
-    static int cAtmost = Connective.ATMOST.ordinal();
-    static int cExactly = Connective.EXACTLY.ordinal();
-    static int cInterval = Connective.INTERVAL.ordinal();
+    static int cOr = Quantifier.OR.ordinal();
+    static int cAtleast = Quantifier.ATLEAST.ordinal();
+    static int cAtmost = Quantifier.ATMOST.ordinal();
+    static int cExactly = Quantifier.EXACTLY.ordinal();
+    static int cInterval = Quantifier.INTERVAL.ordinal();
 
 
     static boolean monitoring = false;

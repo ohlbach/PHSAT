@@ -1,6 +1,6 @@
 package NormalFormTransformers;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
@@ -40,9 +40,9 @@ public class InfClauseToAtleast extends InferenceStep {
     public InfClauseToAtleast(int[] clause, int[] atleastClause) {
         this.clause = clause;
         this.atleastClause = atleastClause;
-        Connective connective = Connective.getConnective(clause[1]);
-        assert(connective != null);
-        switch(connective) {
+        Quantifier quantifier = Quantifier.getQuantifier(clause[1]);
+        assert(quantifier != null);
+        switch(quantifier) {
             case ATMOST:   rule = ruleAtmost;   title = titleAtmost;   break;
             case EXACTLY:  rule = ruleExactly;  title = titleExactly;  break;
             case INTERVAL: rule = ruleInterval; title = titleInterval; break;

@@ -1,7 +1,7 @@
 package Datastructures.Literals;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Unsatisfiable;
 import Utilities.BucketSortedIndex;
 import org.junit.Test;
@@ -16,12 +16,12 @@ import static org.junit.Assert.*;
  */
 public class LitAlgorithmsTest {
 
-    Connective or = Connective.OR;
-    Connective atl = Connective.ATLEAST;
+    Quantifier or = Quantifier.OR;
+    Quantifier atl = Quantifier.ATLEAST;
 
     private Clause make(int id, BucketSortedIndex<CLiteral> literalIndex,
-                        Connective connective, int... literals) throws Unsatisfiable {
-        Clause cl = new Clause(id, connective, literals);
+                        Quantifier quantifier, int... literals) throws Unsatisfiable {
+        Clause cl = new Clause(id, quantifier, literals);
         for(CLiteral lit : cl) {literalIndex.add(lit);}
         return cl;}
 

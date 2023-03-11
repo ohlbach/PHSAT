@@ -1,6 +1,6 @@
 package ProblemGenerators;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Symboltable;
 import Utilities.StringIterator;
@@ -227,22 +227,22 @@ public class ProblemGeneratorTest extends TestCase {
         System.out.println("parseAndEquiv");
         StringBuilder errors = new StringBuilder();
         String line = "& 1,-2 3";
-        int[] clause = ProblemGenerator.parseAndEquiv(line,10, Connective.AND,null,"prefix: ",errors);
+        int[] clause = ProblemGenerator.parseAndEquiv(line,10, Quantifier.AND,null,"prefix: ",errors);
         //System.out.println(errors.toString());
         assertEquals("[10, 1, 1, -2, 3]",Arrays.toString(clause));
 
         Symboltable symboltable = new Symboltable(5);
         line = "& p,-q 3r";
-        clause = ProblemGenerator.parseAndEquiv(line,10,Connective.AND,symboltable,"prefix: ",errors);
+        clause = ProblemGenerator.parseAndEquiv(line,10, Quantifier.AND,symboltable,"prefix: ",errors);
         assertEquals("[10, 1, 1, -2, 3]",Arrays.toString(clause));
 
         line = "e 1,-2 3";
-        clause = ProblemGenerator.parseAndEquiv(line,10, Connective.EQUIV,null,"prefix: ",errors);
+        clause = ProblemGenerator.parseAndEquiv(line,10, Quantifier.EQUIV,null,"prefix: ",errors);
         //System.out.println(errors.toString());
         assertEquals("[10, 2, 1, -2, 3]",Arrays.toString(clause));
 
         line = "e p,-q r";
-        clause = ProblemGenerator.parseAndEquiv(line,10,Connective.EQUIV,symboltable,"prefix: ",errors);
+        clause = ProblemGenerator.parseAndEquiv(line,10, Quantifier.EQUIV,symboltable,"prefix: ",errors);
         assertEquals("[10, 2, 1, -2, 4]",Arrays.toString(clause));
     }
 
@@ -250,31 +250,31 @@ public class ProblemGeneratorTest extends TestCase {
         System.out.println("parseWithQuantification");
         StringBuilder errors = new StringBuilder();
         String line = "<= 2 1,-2 3";
-        int[] clause = ProblemGenerator.parseWithQuantification(line,10, Connective.ATLEAST,null,"prefix: ",errors);
+        int[] clause = ProblemGenerator.parseWithQuantification(line,10, Quantifier.ATLEAST,null,"prefix: ",errors);
         //System.out.println(errors.toString());
         assertEquals("[10, 4, 2, 1, -2, 3]",Arrays.toString(clause));
 
         Symboltable symboltable = new Symboltable(5);
         line = "<= 2 p,-q 3r";
-        clause = ProblemGenerator.parseWithQuantification(line,11,Connective.ATLEAST,symboltable,"prefix: ",errors);
+        clause = ProblemGenerator.parseWithQuantification(line,11, Quantifier.ATLEAST,symboltable,"prefix: ",errors);
         assertEquals("[11, 4, 2, 1, -2, 3]",Arrays.toString(clause));
 
         line = ">= 2 1,-2 3";
-        clause = ProblemGenerator.parseWithQuantification(line,10, Connective.ATMOST,null,"prefix: ",errors);
+        clause = ProblemGenerator.parseWithQuantification(line,10, Quantifier.ATMOST,null,"prefix: ",errors);
         System.out.println(errors.toString());
         assertEquals("[10, 5, 2, 1, -2, 3]",Arrays.toString(clause));
 
         line = ">= 2 p,-q 3r";
-        clause = ProblemGenerator.parseWithQuantification(line,11,Connective.ATMOST,symboltable,"prefix: ",errors);
+        clause = ProblemGenerator.parseWithQuantification(line,11, Quantifier.ATMOST,symboltable,"prefix: ",errors);
         assertEquals("[11, 5, 2, 1, -2, 3]",Arrays.toString(clause));
 
         line = "= 2 1,-2 3";
-        clause = ProblemGenerator.parseWithQuantification(line,10, Connective.EXACTLY,null,"prefix: ",errors);
+        clause = ProblemGenerator.parseWithQuantification(line,10, Quantifier.EXACTLY,null,"prefix: ",errors);
         System.out.println(errors.toString());
         assertEquals("[10, 6, 2, 1, -2, 3]",Arrays.toString(clause));
 
         line = "= 2 p,-q 3r";
-        clause = ProblemGenerator.parseWithQuantification(line,11,Connective.EXACTLY,symboltable,"prefix: ",errors);
+        clause = ProblemGenerator.parseWithQuantification(line,11, Quantifier.EXACTLY,symboltable,"prefix: ",errors);
         assertEquals("[11, 6, 2, 1, -2, 3]",Arrays.toString(clause));
 
 

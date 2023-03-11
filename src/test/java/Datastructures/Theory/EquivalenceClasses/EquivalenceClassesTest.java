@@ -1,6 +1,6 @@
 package Datastructures.Theory.EquivalenceClasses;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceTest;
@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 public class EquivalenceClassesTest extends TestCase {
     static Symboltable symboltable= new Symboltable(10);
-    static int eqv = Connective.EQUIV.ordinal();
+    static int eqv = Quantifier.EQUIV.ordinal();
     static {
         symboltable.setName(1,"p");
         symboltable.setName(2,"q");

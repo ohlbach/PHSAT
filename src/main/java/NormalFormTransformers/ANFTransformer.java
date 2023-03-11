@@ -1,6 +1,6 @@
 package NormalFormTransformers;
 
-import Datastructures.Clauses.Connective;
+import Datastructures.Clauses.Quantifier;
 import InferenceSteps.InferenceStep;
 
 import java.util.Arrays;
@@ -14,10 +14,10 @@ import java.util.function.IntSupplier;
  */
 public class ANFTransformer {
 
-    private final static int cAtleast  = Connective.ATLEAST.ordinal();
-    private final static int cAtmost   = Connective.ATMOST.ordinal();
-    private final static int cExactly  = Connective.EXACTLY.ordinal();
-    private final static int cInterval = Connective.INTERVAL.ordinal();
+    private final static int cAtleast  = Quantifier.ATLEAST.ordinal();
+    private final static int cAtmost   = Quantifier.ATMOST.ordinal();
+    private final static int cExactly  = Quantifier.EXACTLY.ordinal();
+    private final static int cInterval = Quantifier.INTERVAL.ordinal();
 
     /** for generating a new identifier for the clauses. */
     private final IntSupplier nextId;
