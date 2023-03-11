@@ -144,7 +144,7 @@ public abstract class Resolution extends Solver {
      * @return the result of the resolution sequence.
      */
     public Result solve()  {
-        super.initialize();
+        super.readModel();
         //globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.currentTimeMillis();
         initializeData();

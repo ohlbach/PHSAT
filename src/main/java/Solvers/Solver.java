@@ -177,7 +177,7 @@ public abstract class Solver {
         trackReasoning          = problemSupervisor.globalParameters.trackReasoning;}
 
     public Solver() {}
-    protected void initialize() {
+    protected void readModel() {
         solverId                   = (String)solverParameters.get("name");
         problemId                  = problemSupervisor.problemId;
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
@@ -189,6 +189,8 @@ public abstract class Solver {
         monitoring                 = monitor != null; //&& monitor.monitoring;
         model                      = new Model(predicates);
         }
+
+        public String getSolverId() {return solverId;}
 
 
     /** This method is called when another solver found a new true literal.
@@ -235,7 +237,7 @@ public abstract class Solver {
      *
      * @return Un/Satisfiable or null
      */
-    public abstract Result solveProblem(InputClauses inputClauses);
+    public abstract void solveProblem() throws Result;
 
     public abstract void prepare();
 

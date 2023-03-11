@@ -27,7 +27,7 @@ public class EquivalenceClassesTest extends TestCase {
         int[] clause1 = new int[]{10,eqv,1,2,3};
         ArrayList<int[]> clauses = new ArrayList<>(); clauses.add(clause1);
         EquivalenceClasses eqc = new EquivalenceClasses(null,null);
-        eqc.integrateEQUIVClauses(clauses);
+        eqc.readEquivalences(clauses);
         assertEquals("Equivalence Classes of Problem TestProblem:\n" +
                 "1 = 2 = 3\n",eqc.toString());
         assertEquals("Equivalence Classes of Problem TestProblem:\n" +
@@ -36,7 +36,7 @@ public class EquivalenceClassesTest extends TestCase {
         eqc = new EquivalenceClasses(null,null);
         int[] clause2 = new int[]{11,eqv,3,4,5};
         clauses.add(clause2);
-        eqc.integrateEQUIVClauses(clauses);
+        eqc.readEquivalences(clauses);
         assertEquals("Equivalence Classes of Problem TestProblem:\n" +
                 "1 = 2 = 3 = 4 = 5\n",eqc.toString());
 
@@ -45,7 +45,7 @@ public class EquivalenceClassesTest extends TestCase {
         int[] clause3 = new int[]{13,eqv,3,-5,6};
         clauses.add(clause3);
         try{
-            eqc.integrateEQUIVClauses(clauses);
+            eqc.readEquivalences(clauses);
             assertTrue(false);}
         catch(Unsatisfiable unsatisfiable) {
            // System.out.println(unsatisfiable.toString());
@@ -54,7 +54,7 @@ public class EquivalenceClassesTest extends TestCase {
         eqc = new EquivalenceClasses(null,null);
         int[] clause4 = new int[]{12,eqv,3,3};
         ArrayList<int[]> clauses1 = new ArrayList<>(); clauses1.add(clause4);
-        eqc.integrateEQUIVClauses(clauses1);
+        eqc.readEquivalences(clauses1);
         assertTrue(eqc.isEmpty());
 
     }
@@ -66,7 +66,7 @@ public class EquivalenceClassesTest extends TestCase {
         int[] clause2 = new int[]{11,eqv,6,-5,-4};
         ArrayList<int[]> clauses = new ArrayList<>(); clauses.add(clause1);clauses.add(clause2);
         EquivalenceClasses eqc = new EquivalenceClasses(null,null);
-        eqc.integrateEQUIVClauses(clauses);
+        eqc.readEquivalences(clauses);
         assertEquals(1,eqc.getRepresentative(1));
         assertEquals(-1,eqc.getRepresentative(-1));
 
@@ -93,7 +93,7 @@ public class EquivalenceClassesTest extends TestCase {
         int[] clause2 = new int[]{10,eqv,6,5,4};
         ArrayList<int[]> clauses = new ArrayList<>(); clauses.add(clause1);clauses.add(clause2);
         EquivalenceClasses eqc = new EquivalenceClasses(null,null);
-        eqc.integrateEQUIVClauses(clauses);
+        eqc.readEquivalences(clauses);
         eqc.processTrueLiteral(-5,new InferenceTest("Apply 5"));
         assertEquals("-4,-6",eqc.model.toString());
         assertEquals(1,eqc.size());
@@ -105,7 +105,7 @@ public class EquivalenceClassesTest extends TestCase {
         int[] clause2 = new int[]{11,eqv,6,5,4};
         ArrayList<int[]> clauses = new ArrayList<>(); clauses.add(clause1);clauses.add(clause2);
         EquivalenceClasses eqc = new EquivalenceClasses(null,null);
-        eqc.integrateEQUIVClauses(clauses);
+        eqc.readEquivalences(clauses);
         eqc.processEquivalence(3,7,new InferenceTest("Test 37"));
         assertEquals("Equivalence Classes of Problem TestProblem:\n" +
                 "1 = 2 = 3 = 7\n" +

@@ -9,10 +9,9 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.function.IntSupplier;
 
-/** A Clause object is essentially a collection of Literal objects.<br>
- *  A clause can only be a disjunction (OR-clause) or an ATLEAST-clause.
+/** A Clause object is essentially a collection of Literal objects.
+ *  A clause can only be a disjunction (OR-clause) or an ATLEAST-clause.<br>
  *  Other types are not supported.<br>
  *  Each Clause object may be part of a doubly connected list of clauses. <br>
  *  Clauses can be destructively changed.
@@ -95,6 +94,7 @@ public class Clause {
         hasMultiplicities = expandedSize > literals.size();}
 
     /** constructs a new clause from a list of literal,multiplicity pairs.
+     * This constructor is basically for test purposes.
      *
      * @param id         the identifier.
      * @param quantifier the connective.
@@ -130,35 +130,17 @@ public class Clause {
             literalObject.clause = this;
             literals.add(literalObject);}}
 
-    public Clause(int id, int limit, ArrayList<Literal> literals) {
-        this.id = id;
-        this.limit = limit;
-        this.literals = literals;
-        expandedSize = 1;
-        hasMultiplicities = false;
 
-        for(Literal literalOject: literals) {
-            literalOject.clause = this;
-            hasMultiplicities |= literalOject.multiplicity > 1;
-            expandedSize += literalOject.multiplicity;}
-
-        if(limit == 1) {
-            quantifier = Connective.OR;
-            isDisjunction = true;}
-        else {
-            quantifier = Connective.ATLEAST;
-            isDisjunction = false;}}
-
-    /** checks if the atleast-clause is true
+    /** checks if the atleast-clause is true (limit &lt;= 0).
      *
-     * @return true if the atleast-clause is true (limit <= 0)
+     * @return true if the atleast-clause is true (limit &lt;= 0).
      */
     protected boolean isTrue() {
         return limit <= 0;}
 
-    /** checks if the atleast-clause is false
+    /** checks if the atleast-clause is false (limit &gt; expandedSize).
      *
-     * @return true if the atleast-clause is false (limit > extendedSize)
+     * @return true if the atleast-clause is false (limit &gt; extendedSize).
      */
     protected boolean isFalse() {
         return limit > expandedSize;}
@@ -176,16 +158,16 @@ public class Clause {
             if(literalObject.literal == literal) return literalObject;}
         return null;}
 
-    /** returns for a two-literal clause the other literal
+    /** returns for a two-literal clause the other literal.
      *
-     * @param literalObject one of the clause's literalObjects
-     * @return the other literalObject
+     * @param literalObject one of the clause's literalObjects.
+     * @return the other literalObject.
      */
     protected Literal otherLiteral(Literal literalObject) {
         assert(literals.size() == 2);
         return literalObject == literals.get(0) ? literals.get(1) : literals.get(0);}
 
-    /** removes a literal object from the clause.<br>
+    /** removes a literal object from the clause.
      * All internal data are updated (limit, multiplicity of the literals, connective).<br>
      * If the clause is a disjunction then the literal is just removed.<br>
      * If the clause is an atleast-clause then the literals multiplicities are adjusted to the limit.<br>
@@ -194,11 +176,11 @@ public class Clause {
      * Other simplifications are not performed.
      *
      * @param literalObject    the literal to be removed.
-     * @param reduceQuantifier if true then the quantifier is reduced by the literal's multiplicity.
+     * @param reduceLimit if true then the limit is reduced by the literal's multiplicity.
      * @return true if the clause still exists.
      */
-    protected boolean removeLiteral(Literal literalObject, boolean reduceQuantifier) {
-        if(reduceQuantifier) {
+    protected boolean removeLiteral(Literal literalObject, boolean reduceLimit) {
+        if(reduceLimit) {
             limit -= literalObject.multiplicity;
             if(limit <= 0) {exists = false; return false;}}
 
@@ -214,7 +196,7 @@ public class Clause {
             hasMultiplicities = true;
             return true;}
 
-        if(reduceQuantifier) { // adjust all multiplicities
+        if(reduceLimit) { // adjust all multiplicities
             for(Literal literalObject1 : literals) {
                 int multiplicity = literalObject1.multiplicity;
                 if(multiplicity > limit) {
@@ -232,7 +214,7 @@ public class Clause {
             for(int j = i+1; j < literals.size(); ++j) {
                 if(literal == literals.get(j).literal) literals.remove(j--);}}}
 
-    /** removes complementary pairs from the clause.<br>
+    /** removes complementary pairs from the clause.
      * Example: atleast 4 p^3, -p^2, q, r -> atleast 2 p,q,r. <br>
      * Example: atleast 2 p^2, -p^1,q,r -> atleast 0 q,r -> true.<br>
      * The clause may be turned into a disjunction.
@@ -273,9 +255,11 @@ public class Clause {
         if(limit == 1) {quantifier = Connective.OR; isDisjunction = true;}
         return false;}
 
+    /** to be used by divideByGCD. */
     private final IntArrayList numbers = new IntArrayList();
 
-    /** divides the quantifier and the multiplicities by their greatest common divisor.
+    /** divides the limit and the multiplicities by their greatest common divisor.
+     *
      * @return true if the clause is changed.
      */
     protected boolean divideByGCD() {
@@ -298,9 +282,10 @@ public class Clause {
             return true;}}
         return false;}
 
+    /** to be used by reduceByTrueLiterals. */
     private final ArrayList<Literal> auxiliaryLiterals = new ArrayList<>(5);
 
-    /** removes literals which must be true in an ATLEAST-clause. <br>
+    /** removes literals which must be true in an ATLEAST-clause.
      *  Example: atleast 4 p^2,q^2,r.<br>
      *  If p is false then the clause becomes atleast 4 q^2,r, which is no longer satisfiable.<br>
      *  Therefore, p must be true, and q as well.<br>
@@ -310,7 +295,7 @@ public class Clause {
      * @param removedLiterals for adding the removed literals (for purity check).
      * @return the literals which must be true.
      */
-    protected ArrayList<Literal> reduceByTrueLiterals(IntArrayList removedLiterals) {
+    protected ArrayList<Literal> reduceByTrueLiterals(ArrayList<Literal> removedLiterals) {
         if(!hasMultiplicities) return null;
         auxiliaryLiterals.clear(); // we collect the literals which become true.
         for(Literal literalObject: literals) {
@@ -319,14 +304,14 @@ public class Clause {
         if(auxiliaryLiterals.isEmpty()) return null;
 
         for(Literal literalObject: auxiliaryLiterals) { // these are the true literals
-            removedLiterals.add(literalObject.literal);
+            removedLiterals.add(literalObject);
             literals.remove(literalObject);
             limit -= literalObject.multiplicity;
             expandedSize -= literalObject.multiplicity;
             literalObject.clause = null;}
         if(limit <= 0) {
             exists = false;
-            for(Literal literalObject : literals) removedLiterals.add(literalObject.literal);
+            removedLiterals.addAll(literals);
             return auxiliaryLiterals;}
 
         for(Literal literalObject: literals) {
@@ -342,7 +327,7 @@ public class Clause {
         return auxiliaryLiterals;}
 
 
-    /** shrinks the literals to the essential literals, if possible, and turns the clause to a disjunction.<br>
+    /** shrinks the literals to the essential literals, if possible, and turns the clause to a disjunction.
      * Example: atleast 2 p^2,q^2,r.<br>
      * In this case either p or q must be true. If both are false then r is not enough to get 2 true literals.<br>
      * The clause shrinks to the disjunction: p,q.
@@ -350,7 +335,7 @@ public class Clause {
      * @param removedLiterals for collecting the removed literals (for purity check).
      * @return true if literals have been removed.
      */
-    protected boolean reduceToEssentialLiterals(IntArrayList removedLiterals) {
+    protected boolean reduceToEssentialLiterals(ArrayList<Literal> removedLiterals) {
         if(!hasMultiplicities) return false;
         auxiliaryLiterals.clear(); // collect the literals with multiplicities < limit
         int multiplicities = 0;
@@ -361,7 +346,7 @@ public class Clause {
         if(multiplicities >= limit) return false; // the remaining literals can satisfy the clause.
 
         for(Literal literalObject : auxiliaryLiterals) {
-            removedLiterals.add(literalObject.literal);
+            removedLiterals.add(literalObject);
             literals.remove(literalObject);
             literalObject.clause = null;}
         for(Literal literalObject : literals) literalObject.multiplicity = 1;
@@ -372,37 +357,14 @@ public class Clause {
         hasMultiplicities = false;
         return true;}
 
-    /** performs a merge resolution between this and a longer (or equally long) clause.
-     * Example: atleast 2 p,q,r and atleast 4 -p^2 q^2,r,s yields <br>
-     * atleast 4 q^3,r^2,s  (the quantifier is 2 + 4 - max(1,2)).<br>
-     * The resolvent is not simplified.
-     *
-     * @param nextId         for getting the next clause identifier.
-     * @param longerClause   the longer (or equally long) resolution partner.
-     * @param literalShorter the Literal in the shorter clause to be ignored.
-     * @param literalLonger  the Literal in the longer clause to be ignored.
-     * @return               the new resolvent (not simplified).
-     */
-    protected Clause mergeResolution(IntSupplier nextId, Clause longerClause, Literal literalShorter, Literal literalLonger) {
-        assert(longerClause.size() >= size());
-        int newQuantifier = limit + longerClause.limit - Math.max(literalShorter.multiplicity,literalLonger.multiplicity);
-        ArrayList<Literal> newLiterals = new ArrayList<>(longerClause.size()-1);
-        for(Literal litLonger : longerClause.literals) {
-            if(litLonger == literalLonger) continue;
-            int literal = litLonger.literal;
-            Literal litShorter = findLiteral(literal);
-            int newMultiplicity = Math.min(newQuantifier, ((litShorter == null) ? litLonger.multiplicity :
-                                                        litLonger.multiplicity + litShorter.multiplicity));
-             newLiterals.add(new Literal(literal,newMultiplicity));}
-        return new Clause(nextId.getAsInt(), newQuantifier,newLiterals);}
 
-    /** replaces in a binary clause containing the given literal this literal by the representative.<br>
-     * The literal is destructively changed.
+    /** replaces in a binary clause containing the given literal this literal by the representative.
+     * The literal is destructively changed.<br>
      * If the two literals merge then the clause is not changed.
      *
-     * @param representative the representative of an equivalence class
+     * @param representative the representative of an equivalence class.
      * @param literal        the literal of this representative.
-     * @return               true if the two literals merge into one literal
+     * @return               true if the two literals merge into one literal.
      */
     protected boolean replaceEquivalenceTwo(int representative, int literal) {
         assert(literals.size() == 2);
@@ -414,13 +376,13 @@ public class Clause {
         else                                  literalObject2.literal = representative;
         return false;}
 
-    /** replaces in a longer clause containing the given literal this literal by the representative.<br>
+    /** replaces in a longer clause containing the given literal this literal by the representative.
      * The literal is destructively changed.<br>
      * If the two literals merge, one them is removed.
      *
-     * @param representative the representative of an equivalence class
+     * @param representative the representative of an equivalence class.
      * @param literal        the literal of this representative.
-     * @return               true if two literals merge into one literal
+     * @return               true if two literals merge into one literal.
      */
     protected boolean replaceEquivalenceMore(int representative, int literal) {
         assert(literals.size() > 2);
@@ -446,17 +408,15 @@ public class Clause {
      *
      * @return the sum of the literal's multiplicities.
      */
-    public int expandedSize() {
-        return expandedSize;}
+    public int expandedSize() {return expandedSize;}
 
     /** turns the clause into a string
      *
      * @return a string representation of the clause.
      */
-    public String toString() {
-        return toString(null,0);}
+    public String toString() {return toString(null,0);}
 
-    /** turns the clause into a string
+    /** turns the clause into a string.
      *
      * @param symboltable null or a symboltable.
      * @param size 0 or the length of the clause number string.

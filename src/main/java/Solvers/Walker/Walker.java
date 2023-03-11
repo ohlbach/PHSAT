@@ -2,7 +2,6 @@ package Solvers.Walker;
 
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.Connective;
-import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
@@ -101,8 +100,8 @@ public class Walker extends Solver {
 
     /** initializes the walker
      */
-    public void initialize() {
-        super.initialize();
+    public void readModel() {
+        super.readModel();
         posOccurrences = new ArrayList[predicates+1];
         negOccurrences = new ArrayList[predicates+1];
         for(int predicate = 1; predicate <= predicates; ++predicate) {
@@ -169,7 +168,7 @@ public class Walker extends Solver {
      * @return the result of the solver
      */
     @Override
-    public Result solveProblem(InputClauses inputClauses) {
+    public void solveProblem() {
      //   globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.nanoTime();
         initializeModel();
@@ -180,7 +179,8 @@ public class Walker extends Solver {
         System.out.println("Flips " + statistics.flips);
         //problemSupervisor.finished(this, result, "done");
         //globalParameters.log(solverId + " for problem " + problemId + " finished");
-        return result;}
+        //return result;
+    }
 
     @Override
     public void prepare() {

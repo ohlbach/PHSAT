@@ -2,7 +2,6 @@ package Solvers.Simplifier;
 
 import Datastructures.Clauses.Connective;
 import Datastructures.Symboltable;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
@@ -11,7 +10,7 @@ public class ClauseTest extends TestCase {
     static int cOr = Connective.OR.ordinal();
     static int cAtleast = Connective.ATLEAST.ordinal();
 
-    static IntArrayList removedLiterals = new IntArrayList();
+    static ArrayList<Literal> removedLiterals = new ArrayList<>();
 
     static Symboltable symboltable = new Symboltable(10);
     static {
@@ -143,33 +142,36 @@ public class ClauseTest extends TestCase {
 
     public void testReduceByTrueLiterals() {
         System.out.println("reduceByTrueLiterals");
+        removedLiterals.clear();
         Clause clause = new Clause(new int[]{10, cAtleast, 5, 1, 1, 3,4, 2, 2});
         ArrayList<Literal> literals = clause.reduceByTrueLiterals(removedLiterals);
         assertEquals("10: 3v4", clause.toString());
         assertEquals(2,literals.size());
         assertEquals(2,literals.get(1).literal);
+        String st = "";
+        for(Literal literalObject: removedLiterals) st += literalObject.literal;
+        assertEquals("12",st);
         clause = new Clause(new int[]{11, cAtleast, 4, 1, 1, 3,4, 2, 2});
         assertNull(clause.reduceByTrueLiterals(removedLiterals));
 
     }
         public void testReduceToEssentialLiterals() {
         System.out.println("reduceToEssentialLiterals");
+        removedLiterals.clear();
         Clause clause = new Clause(new int[]{10, cAtleast, 2, 1, 1, 3, 2, 2});
         assertTrue(clause.reduceToEssentialLiterals(removedLiterals));
         assertEquals("10: 1v2", clause.toString());
+        String st = "";
+        for(Literal literalObject: removedLiterals) st += literalObject.literal;
+        assertEquals("3",st);
+
+        removedLiterals.clear();
         clause = new Clause(new int[]{10, cAtleast, 2, 1, 1, 3, 4, 2, 2});
         assertFalse(clause.reduceToEssentialLiterals(removedLiterals));
         assertEquals("10: >= 2 1^2,3,4,2^2", clause.toString());
+        assertTrue(removedLiterals.isEmpty());
     }
 
-    public void testMergeResolution() {
-        System.out.println("mergeResolution");
-        Clause clause1 = new Clause(new int[]{10, cAtleast, 2, 1,2,3});
-        Clause clause2 = new Clause(new int[]{11, cAtleast, 4, -1,-1,2,2,3,4});
-        Clause resolvent = clause1.mergeResolution(()->{return 13;}, clause2,
-                clause1.literals.get(0),clause2.literals.get(0));
-        assertEquals("13: >= 4 2^3,3^2,4",resolvent.toString());
-    }
     public void testReplaceEquivalenceTwo() {
         System.out.println("replaceEquivalenceTwo");
         Clause clause = new Clause(new int[]{10, cOr, 1,2});

@@ -1,12 +1,15 @@
 package Datastructures.Theory.EquivalenceClasses;
 
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
+import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Task;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
+import Solvers.Solver;
 import Utilities.TriConsumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -31,7 +34,7 @@ import java.util.concurrent.PriorityBlockingQueue;
  * In the search phase the class works as a parallel thread.
  * It gets input from other threads and can derive new true literals and new equivalences.
  */
-public class EquivalenceClasses  {
+public class EquivalenceClasses extends Solver {
     /** the problem supervisor */
     public ProblemSupervisor problemSupervisor;
 
@@ -125,7 +128,7 @@ public class EquivalenceClasses  {
      * @param equivalences the equivalence classes from the input clauses
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    public void integrateEQUIVClauses(ArrayList<int[]> equivalences) throws Unsatisfiable {
+    public void readEquivalences(ArrayList<int[]> equivalences) throws Unsatisfiable {
         try{
             for(int[] equivalence : equivalences) {
                 EquivalenceClass equivalenceClass = EquivalenceClass.makeEquivalenceClass(equivalence,trackReasoning);
@@ -144,7 +147,8 @@ public class EquivalenceClasses  {
                         equivalenceClasses.remove(i--);
                         equivalenceClasses.add(ec);
                         break;}}}
-            statistics.inputClasses = equivalenceClasses.size();}
+            statistics.inputClasses = equivalenceClasses.size();
+            readModel();}
         catch(Unsatisfiable unsatifiable) {
             unsatifiable.solverClass = EquivalenceClasses.class;
             unsatifiable.solverId    = "EquivalenceClasses";
@@ -164,10 +168,25 @@ public class EquivalenceClasses  {
     /** adds the literals which are already true in the model to the task queue.
      * Installs the observer in the model.
      */
-    public void initialize() {
+    public void readModel() {
         for(int literal: model.model) {
             addTrueLiteralTask(literal,model.getInferenceStep(literal));}
         model.addObserver(this::addTrueLiteralTask);}
+
+    @Override
+    public void solveProblem() throws Result {
+        processTasks(false);
+    }
+
+    @Override
+    public void prepare() {
+
+    }
+
+    @Override
+    public Statistic getStatistics() {
+        return statistics;
+    }
 
 
     /** Starts the instance in a thread.
@@ -181,7 +200,7 @@ public class EquivalenceClasses  {
      * <br>
      * The result is stored into the variable result.
      */
-    public void run(boolean once) {
+    public void processTasks(boolean once) {
         Task<TaskType> task;
         while(!isInterrupted) {
             try {

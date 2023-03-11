@@ -77,7 +77,7 @@ public class ProblemSupervisor {
         try {
             inputClauses = problemGenerator.generateProblem(null);
             model = new Model(inputClauses.predicates);
-            conjunctions2Model(inputClauses.conjunctions);
+            readConjunctions(inputClauses.conjunctions);
             startEquivalenceClasses();
             startSimplifier();
             numberOfSolvers = solvers.size();
@@ -86,11 +86,12 @@ public class ProblemSupervisor {
             results = new Result[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) {
                 int j = i;
-                threads[i] = new Thread(() -> {results[j] = solvers.get(j).solveProblem(inputClauses);});} // ???
+               // threads[i] = new Thread(() -> {results[j] = solvers.get(j).solveProblem(inputClauses);});
+            } // ???
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}
             equivalenceThread.interrupt();}
-        catch(Unsatisfiable uns) {}
+        catch(Result result) {}
         catch(Exception ex) {}
         globalParameters.logstream.println("Solvers finished for problem " + problemId);}
 
@@ -99,7 +100,7 @@ public class ProblemSupervisor {
      * @param conjunctions a list of input clauses
      * @throws Unsatisfiable if the conjunctions are contradictory
      */
-    private void conjunctions2Model(ArrayList<int[]> conjunctions) throws Unsatisfiable {
+    private void readConjunctions(ArrayList<int[]> conjunctions) throws Unsatisfiable {
         for(int[] inputClause : conjunctions) {
             assert inputClause[1] == Connective.AND.ordinal();
             for(int i = 2; i < inputClause.length; ++i) {
@@ -107,9 +108,10 @@ public class ProblemSupervisor {
 
     private void startEquivalenceClasses() throws Unsatisfiable{
         equivalenceClasses = new EquivalenceClasses(this,monitor);
-        equivalenceClasses.integrateEQUIVClauses(inputClauses.equivalences);
-        equivalenceClasses.initialize(); // puts the true clauses into its task queue.
-        equivalenceThread = new Thread(()->equivalenceClasses.run(false));
+        equivalenceClasses.readEquivalences(inputClauses.equivalences);
+        equivalenceThread = new Thread(()->{
+            try{equivalenceClasses.solveProblem();}
+            catch(Result result) {}});
         equivalenceThread.start();
     }
 
@@ -117,9 +119,8 @@ public class ProblemSupervisor {
         simplifier = new Simplifier(this);
         simplifierThread = new Thread(() -> {
             try{
-                simplifier.inputClausesToAtleast();
-                simplifier.initialize();
-                simplifier.run(0);}
+                simplifier.readInputClauses();
+                simplifier.processTasks(0);}
             catch(Result result) {
                 finished("Simplifier",result,"");}});
         simplifierThread.start();}

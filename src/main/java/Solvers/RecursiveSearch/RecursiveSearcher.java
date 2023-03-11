@@ -1,7 +1,6 @@
 package Solvers.RecursiveSearch;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.Model;
@@ -74,7 +73,7 @@ public class RecursiveSearcher  extends Solver {
      */
     public RecursiveSearcher(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
         super(solverNumber,solverParameters, problemSupervisor);
-        super.initialize();
+        super.readModel();
         posOccurrences = new ArrayList[predicates+1];
         negOccurrences = new ArrayList[predicates+1];
         blockedPredicates = new boolean[predicates+1];
@@ -90,8 +89,7 @@ public class RecursiveSearcher  extends Solver {
     }
 
     @Override
-    public Result solveProblem(InputClauses inputClauses) {
-        return null;
+    public void solveProblem() {
     }
 
     private ArrayList<RSClause> dummyClauses = new ArrayList<>(2);

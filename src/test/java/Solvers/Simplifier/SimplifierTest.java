@@ -90,7 +90,7 @@ public class SimplifierTest extends TestCase {
         assertEquals("1,2,3", simplifier.model.toString());
     }
 
-    public void testSimplifyClause() throws Result {
+    public void testSimplifyClause() throws Unsatisfiable {
         System.out.println("simplify clause");
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -154,7 +154,7 @@ public class SimplifierTest extends TestCase {
         simplifier.inputClauses = inputClauses;
         inputClauses.addClause(new int[]{1, cOr, 1, 2, 3});
         inputClauses.addClause(new int[]{2, cOr, -1, -2, -3});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("1: 1v2v3\n" +
                 "2: -1v-2v-3\n", simplifier.clauses.toString());
 
@@ -162,7 +162,7 @@ public class SimplifierTest extends TestCase {
 
         inputClauses.addClause(new int[]{1, cOr, 1, 2, 3, -2});
         inputClauses.addClause(new int[]{2, cOr, -1, -2, -3, -2});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("2: -1v-3v-2\n", simplifier.clauses.toString());
         assertEquals("-1,-2,-3", simplifier.model.toString());
         //System.out.println(simplifier.statistics.toString());
@@ -171,7 +171,7 @@ public class SimplifierTest extends TestCase {
         inputClauses.addClause(new int[]{1, cOr, 1, 2, 3});
         inputClauses.addClause(new int[]{2, cOr, -1, -2, -2});
         inputClauses.addClause(new int[]{3, cOr, 3, 3, 3});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("1: 1v2v3\n" +
                 "2: -1v-2\n", simplifier.clauses.toString());
         assertEquals("3", simplifier.model.toString());
@@ -181,7 +181,7 @@ public class SimplifierTest extends TestCase {
         inputClauses.addClause(new int[]{1, cOr, 1, 1, 1});
         inputClauses.addClause(new int[]{2, cOr, -1});
         try {
-            simplifier.inputClausesToAtleast();
+            simplifier.readInputClauses();
         } catch (Unsatisfiable unsatisfiable) {
             //System.out.println(unsatisfiable.toString());
         }
@@ -197,7 +197,7 @@ public class SimplifierTest extends TestCase {
         Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
         simplifier.inputClauses = inputClauses;
         inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 2, 3});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("1: >= 2 1,2,3\n", simplifier.clauses.toString());
         assertEquals("1,2,3,4", simplifier.model.toString());
         //System.out.println(simplifier.statistics.toString());
@@ -205,28 +205,28 @@ public class SimplifierTest extends TestCase {
         //System.out.println("NEXT1");
         simplifier.clear();
         inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 2, -1, 3});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("1: 2v3\n", simplifier.clauses.toString());
         //System.out.println(simplifier.statistics.toString());
 
         //System.out.println("NEXT2");
         simplifier.clear();
         inputClauses.addClause(new int[]{1, cAtleast, 5, 1, 1, 2, 2, 3, 4});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("1: 3v4\n", simplifier.clauses.toString());
         //System.out.println(simplifier.statistics.toString());
 
         //System.out.println("NEXT3");
         simplifier.clear();
         inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 1, 2, 2, 3});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("1: 1v2\n", simplifier.clauses.toString());
         //System.out.println(simplifier.statistics.toString());
 
         //System.out.println("NEXT4");
         simplifier.clear();
         inputClauses.addClause(new int[]{1, cAtleast, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("1: 1v2\n", simplifier.clauses.toString());
         //System.out.println(simplifier.statistics.toString());
     }
@@ -241,13 +241,13 @@ public class SimplifierTest extends TestCase {
         Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
         simplifier.inputClauses = inputClauses;
         inputClauses.addClause(new int[]{1, cAtmost, 1, 1, 2, 3, 4});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("1: >= 3 -1,-2,-3,-4\n", simplifier.clauses.toString());
         //System.out.println(simplifier.statistics.toString());
 
         simplifier.clear();
         inputClauses.addClause(new int[]{1, cAtmost, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("1: -1v-3\n", simplifier.clauses.toString());
         assertEquals("-1,-2,-3,4", simplifier.model.toString());
         //System.out.println(simplifier.statistics.toString());
@@ -263,14 +263,14 @@ public class SimplifierTest extends TestCase {
         Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
         simplifier.inputClauses = inputClauses;
         inputClauses.addClause(new int[]{1, cExactly, 1, 1, 2, 3, 4});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("11: 1v2v3v4\n" +
                 "12: >= 3 -1,-2,-3,-4\n", simplifier.clauses.toString());
         //System.out.println(simplifier.statistics.toString());
         //System.out.println("\nNEW");
         simplifier.clear();
         inputClauses.addClause(new int[]{1, cExactly, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("13: 1v2\n" +
                 "14: -1v-3\n", simplifier.clauses.toString());
         assertEquals("-2,-3,4", simplifier.model.toString());
@@ -288,14 +288,14 @@ public class SimplifierTest extends TestCase {
         Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
         simplifier.inputClauses = inputClauses;
         inputClauses.addClause(new int[]{1, cInterval, 1, 3, 1, 2, 3, 4});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("11: 1v2v3v4\n" +
                 "12: -1v-2v-3v-4\n", simplifier.clauses.toString());
         //System.out.println(simplifier.statistics.toString());
         //System.out.println("\nNEW");
         simplifier.clear();
         inputClauses.addClause(new int[]{1, cInterval, 2, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
-        simplifier.inputClausesToAtleast();
+        simplifier.readInputClauses();
         assertEquals("13: 1v2v3\n" +
                 "14: -1v-3\n", simplifier.clauses.toString());
         assertEquals("-2,4", simplifier.model.toString());
@@ -442,7 +442,7 @@ public class SimplifierTest extends TestCase {
         clause = new Clause(new int[]{4, cOr, -1,3});
         simplifier.insertClause(clause);
         simplifier.binaryMergeResolutionAndEquivalence(clause,-1,3,true);
-        simplifier.equivalenceClasses.run(true);
+        simplifier.equivalenceClasses.processTasks(true);
         assertEquals("2: 1v2\n",simplifier.clauses.toString());
         assertEquals("",simplifier.model.toString());
         assertEquals("1 = -3\n",simplifier.equivalenceClasses.toString());
@@ -610,7 +610,7 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause6);
 
         simplifier.processBinaryClause(clause1);
-        simplifier.run(2);
+        simplifier.processTasks(2);
 
 
         assertEquals(" 1: 1v5\n" +
@@ -642,7 +642,7 @@ public class SimplifierTest extends TestCase {
         Clause clause6 = new Clause(new int[]{6, cOr, -5,2});
         simplifier.insertClause(clause6);
         simplifier.processBinaryClause(clause1);
-        simplifier.run(6);
+        simplifier.processTasks(6);
         assertEquals("",simplifier.clauses.toString());
         assertEquals("1,2,3,4,5,6",simplifier.model.toString());
         //System.out.println(simplifier.statistics.toString());

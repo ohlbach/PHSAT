@@ -74,7 +74,7 @@ public class Simplifier extends Solver {
     /** adds the literals which are already true in the model to the task queue.
      * Installs the observer in the model.
      */
-    public void initialize() {
+    public void readModel() {
         for(int literal: model.model) {
             addTrueLiteralTask(literal,model.getInferenceStep(literal));}
         model.addObserver(this::addTrueLiteralTask);}
@@ -85,7 +85,9 @@ public class Simplifier extends Solver {
         /** a new binary equivalence is found in the TwoLiteral module. */
         ProcessEquivalence,
         ProcessBinaryClause,
-        ProcessLongerClause
+        ProcessLongerClause,
+        ProcessLongerInputClause,
+        ProcessBinaryTriggeredMerging
     }
 
     /** gets the priority for the objects in the queue.
@@ -97,8 +99,10 @@ public class Simplifier extends Solver {
         switch(task.taskType) {
             case ProcessTrueLiteral: return Math.abs((Integer)task.a);
             case ProcessEquivalence: return predicates + (Math.abs((Integer)task.a)) + 1; // this guarantees a deterministic sequence of the tasks
-            case ProcessBinaryClause:       return predicates + 100;
-            case ProcessLongerClause:       return predicates + 101;}
+            case ProcessBinaryClause:           return 2*predicates + 100;
+            case ProcessLongerClause:           return 2*predicates + 101;
+            case ProcessLongerInputClause:      return 2*predicates + 102;
+            case ProcessBinaryTriggeredMerging: return 2*predicates + 103;}
         return 0;}
 
     /** A queue of newly derived unit literals and binary equivalences.
@@ -114,66 +118,75 @@ public class Simplifier extends Solver {
      * 
      * @throws Result if a contradiction or the empty clause is derived.
      */
-    public void inputClausesToAtleast() throws Result{
-        for(int[] inputClause : inputClauses.disjunctions) {
-            Clause clause = new Clause(inputClause);
-            if(clause.removeComplementaryLiterals()) {++statistics.notInternalizedInputClauses; continue;}
-            clause.removeDoubleLiterals();
-            if(clause.size() == 1) {
-                ++statistics.derivedUnitClauses;
-                ++statistics.notInternalizedInputClauses;
-                model.add(clause.literals.get(0).literal,clause.inferenceStep);
-                continue;}
-            insertClause(clause);
-            if(clause.size() == 2) addBinaryClauseTask(clause);}
+    public void readInputClauses() throws Result{
+        try{
+            for(int[] inputClause : inputClauses.disjunctions) {
+                Clause clause = new Clause(inputClause);
+                if(clause.removeComplementaryLiterals()) {++statistics.notInternalizedInputClauses; continue;}
+                clause.removeDoubleLiterals();
+                if(clause.size() == 1) {
+                    ++statistics.derivedUnitClauses;
+                    ++statistics.notInternalizedInputClauses;
+                    model.add(clause.literals.get(0).literal,clause.inferenceStep);
+                    continue;}
+                insertClause(clause);
+                if(clause.size() == 2) addBinaryClauseTask(clause);}
 
-        for(int[] inputClause : inputClauses.atleasts) {
-            insertNewClause(inputClause,new Clause(inputClause));}
+            for(int[] inputClause : inputClauses.atleasts) {
+                insertNewClause(inputClause,new Clause(inputClause));}
 
-        for(int[] atmostClause : inputClauses.atmosts) {
-            int[] atleastClause = InputClauses.atmostToAtleast(atmostClause);
-            Clause clause = new Clause(atleastClause);
-            if(trackReasoning) clause.inferenceStep = new InfAtmostToAtleast(atmostClause,atleastClause);
-            if(insertNewClause(atmostClause,clause)) {
-                if(monitoring) {
-                    monitor.println(monitorId,"Atmost-clause: " +
-                            InputClauses.toString(0,atmostClause,symboltable) + " turned to atleast-clause " +
-                            clause.toString(symboltable,0));}}}
-
-        for(int[] exactlyClause : inputClauses.exactlys) {
-            int[][] atleastClauses = InputClauses.exactlyToAtleast(exactlyClause,nextId);
-            for(int i = 0; i < 2; ++i) {
-                int[] atleastClause = atleastClauses[i];
+            for(int[] atmostClause : inputClauses.atmosts) {
+                int[] atleastClause = InputClauses.atmostToAtleast(atmostClause);
                 Clause clause = new Clause(atleastClause);
-                if(trackReasoning) clause.inferenceStep = new InfExactlyToAtleast(exactlyClause,atleastClause);
-                if(insertNewClause(exactlyClause,clause)){
+                if(trackReasoning) clause.inferenceStep = new InfAtmostToAtleast(atmostClause,atleastClause);
+                if(insertNewClause(atmostClause,clause)) {
                     if(monitoring) {
-                        monitor.println(monitorId,"Exactly-clause: " +
-                                InputClauses.toString(0,exactlyClause,symboltable) + " turned to atleast-clause " +
-                                clause.toString(symboltable,0));}}}}
+                        monitor.println(monitorId,"Atmost-clause: " +
+                                InputClauses.toString(0,atmostClause,symboltable) + " turned to atleast-clause " +
+                                clause.toString(symboltable,0));}}}
 
-        for(int[] intervalClause : inputClauses.intervals) {
-            int[][] atleastClauses = InputClauses.intervalToAtleast(intervalClause,nextId);
-            for(int i = 0; i < 2; ++i) {
-                int[] atleastClause = atleastClauses[i];
-                Clause clause = new Clause(atleastClause);
-                if(trackReasoning) clause.inferenceStep = new InfIntervalToAtleast(intervalClause,atleastClause);
-                if(insertNewClause(intervalClause,clause)){
-                    if(monitoring) {
-                        monitor.println(monitorId,"Interval-clause: " +
-                                InputClauses.toString(0,intervalClause,symboltable) + " turned to atleast-clause " +
-                                clause.toString(symboltable,0));}}}}
-        checkAllPurities();
-        statistics.orAndAtleastCLauses = clauses.size;}
+            for(int[] exactlyClause : inputClauses.exactlys) {
+                int[][] atleastClauses = InputClauses.exactlyToAtleast(exactlyClause,nextId);
+                for(int i = 0; i < 2; ++i) {
+                    int[] atleastClause = atleastClauses[i];
+                    Clause clause = new Clause(atleastClause);
+                    if(trackReasoning) clause.inferenceStep = new InfExactlyToAtleast(exactlyClause,atleastClause);
+                    if(insertNewClause(exactlyClause,clause)){
+                        if(monitoring) {
+                            monitor.println(monitorId,"Exactly-clause: " +
+                                    InputClauses.toString(0,exactlyClause,symboltable) + " turned to atleast-clause " +
+                                    clause.toString(symboltable,0));}}}}
+
+            for(int[] intervalClause : inputClauses.intervals) {
+                int[][] atleastClauses = InputClauses.intervalToAtleast(intervalClause,nextId);
+                for(int i = 0; i < 2; ++i) {
+                    int[] atleastClause = atleastClauses[i];
+                    Clause clause = new Clause(atleastClause);
+                    if(trackReasoning) clause.inferenceStep = new InfIntervalToAtleast(intervalClause,atleastClause);
+                    if(insertNewClause(intervalClause,clause)){
+                        if(monitoring) {
+                            monitor.println(monitorId,"Interval-clause: " +
+                                    InputClauses.toString(0,intervalClause,symboltable) + " turned to atleast-clause " +
+                                    clause.toString(symboltable,0));}}}}
+            checkAllPurities();
+            statistics.orAndAtleastCLauses = clauses.size;
+            if(clauses.isEmpty()) throw new EmptyClauses(model);
+            readModel();}
+            catch(Result result) {
+                result.statistic = statistics;
+                result.solver = this.getClass();
+                result.problemId = problemId;
+                throw result;}
+        }
 
     /** simplifies and inserts an atleast-clause derived from input clauses.
      *
      * @param inputClause the original input-clause.
      * @param clause      the clause to be inserted.
      * @return            true if the clause survived the simplifications.
-     * @throws Result     if a contradiction is encountered.
+     * @throws Unsatisfiable     if a contradiction is encountered.
      */
-    private boolean insertNewClause(int[] inputClause, Clause clause) throws Result {
+    private boolean insertNewClause(int[] inputClause, Clause clause) throws Unsatisfiable {
         if(clause.isTrue())  {++statistics.notInternalizedInputClauses; return false;}
         if(clause.isFalse()) {throw new UnsatisfiableClause(inputClause);}
         int size = clause.size();
@@ -183,7 +196,7 @@ public class Simplifier extends Solver {
                 monitor.println(monitorId,"Complementary literals removed in clause " +
                         InputClauses.toString(0,inputClause,symboltable) + " -> " + clause.toString(symboltable,0));}
         if(!clause.isDisjunction) {
-            if(!simplifyClause(clause, false)) {++statistics.notInternalizedInputClauses; return false;}}
+            if(!simplifyClause(clause, true)) {++statistics.notInternalizedInputClauses; return false;}}
         if(clause.size() == 2 && isSubsumedByBinaryClauses(clause)) return false;
         insertClause(clause);
         ++statistics.orAndAtleastCLauses;
@@ -239,7 +252,12 @@ public class Simplifier extends Solver {
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
 
 
-    public void run(int n) {
+    /** reads the next task from the task queue and processes it.
+     *
+     * @param n 0 or the maximium number of task before stopping the loop (0: unlimited) (> 0 for test purposes).
+     * @throws Result if a contradiction is encountered or the clause set became empty.
+     */
+    public void processTasks(int n) throws Result {
         Task<Simplifier.TaskType> task;
         int counter = 0;
         while(!interrupted()) {
@@ -247,34 +265,37 @@ public class Simplifier extends Solver {
                 if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 switch(task.taskType){
-                    case ProcessTrueLiteral:  processTrueLiteral((Integer)task.a); break;
-                    case ProcessEquivalence:  processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;
-                    case ProcessBinaryClause: processBinaryClause((Clause)task.a); break;
-                    case ProcessLongerClause: processLongerClause((Clause)task.a); break;}}
+                    case ProcessTrueLiteral:       processTrueLiteral((Integer)task.a); break;
+                    case ProcessEquivalence:       processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;
+                    case ProcessBinaryClause:      processBinaryClause((Clause)task.a); break;
+                    case ProcessLongerClause:      processLongerClause((Clause)task.a); break;
+                    case ProcessLongerInputClause: processLongerInputClause(task);      break;
+                    case ProcessBinaryTriggeredMerging: mergeBinaryTriggered((Clause)task.a); break;}
+                if(clauses.isEmpty()) throw new EmptyClauses(model);}
             catch(InterruptedException ex) {return;}
-            catch(Result result) {
-                if(problemSupervisor != null)
-                    problemSupervisor.finished("Simplifier", result,"");
-                return;}
+            catch(Unsatisfiable result) {
+                result.statistic = statistics;
+                result.solver = this.getClass();
+                result.problemId = problemId;
+                throw result;}
             if(n > 0 && ++counter == n) return;}}
 
     /** The method applies a true literal to the clause.<br>
         * For a disjunction this means that the clause is true and can therefore be deleted.<br>
-        * For a quantified clause this means that the literal can be deleted and the quantifier
+        * For a quantified clause this means that the literal can be deleted and the limit
         * must be reduced by the literal's multiplicity.
         * <br>
         * The resulting clause must be checked for the following phenomena: <br>
-        *  - if the resulting quantifier is &lt;= 0, the clause is true and can be deleted.<br>
-        *  - if the resulting quantifier is 1, the clause became a disjunction. <br>
-        *  - if the quantifier is still &gt; 1, new true literals might be derived.<br>
+        *  - if the resulting limit is &lt;= 0, the clause is true and can be deleted.<br>
+        *  - if the resulting limit is 1, the clause became a disjunction. <br>
+        *  - if the limit is still &gt; 1, new true literals might be derived.<br>
         *  Example: atleast 4 p,q^2,r^2 and p is true<br>
         *  The clause is then: atleast 3 q^2,r^2. <br>
         *  Both q and r must now be true.
         *  */
-    protected void processTrueLiteral(int literal) throws Result {
+    protected void processTrueLiteral(int literal) throws Unsatisfiable {
         processTrueLiteralTwo(literal);
-        processTrueLiteralMore(literal);
-        if(clauses.isEmpty()) throw new EmptyClauses(model);}
+        processTrueLiteralMore(literal);}
 
     /** applies a true literal to all two-literal clauses containing this literal.<br>
      * Clauses containing this literal are removed.<br>
@@ -282,8 +303,9 @@ public class Simplifier extends Solver {
      * The clause is removed as well.
      *
      * @param literal a true literal.
+     * @throws Unsatisfiable if a contradiction is encountered.
      */
-    protected void processTrueLiteralTwo(int literal) throws Result{
+    protected void processTrueLiteralTwo(int literal) throws Unsatisfiable{
         Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
@@ -317,8 +339,9 @@ public class Simplifier extends Solver {
      * Shortened clauses cause new tasks to be inserted into the task queue.<br>
 
      * @param literal a true (or false) literal.
+     * @throws Unsatisfiable if a contradiction is encountered.
      */
-    protected void processTrueLiteralMore(int literal) throws Result{
+    protected void processTrueLiteralMore(int literal) throws Unsatisfiable{
         for(int sign = 1; sign >= -1; sign -= 2) {
             literal *= sign;
             Literal literalObject = literalIndexMore.getFirstLiteralObject(literal);
@@ -361,7 +384,7 @@ public class Simplifier extends Solver {
                         case 2:  moveToIndexTwo(clause);
                                  addBinaryClauseTask(clause);
                                  break;
-                        default: if(simplifyClause(clause,true)) {
+                        default: if(simplifyClause(clause,false)) {
                                     addShortenedClauseTask(clause);}
                                 else clauses.removeClause(clause);}}
                 else clauses.removeClause(clause);
@@ -393,10 +416,11 @@ public class Simplifier extends Solver {
      * @param clause a just shortened clause
      */
     protected void addShortenedClauseTask(Clause clause) {
-        if(clause.size() == 2) addBinaryClauseTask(clause);
+        if(clause.size() == 2) {addBinaryClauseTask(clause);
+                                addBinaryMergeTask(clause);}
         else                   addLongerClauseTask(clause);}
 
-    protected void processBinaryClause(Clause clause) throws Result {
+    protected void processBinaryClause(Clause clause) throws Unsatisfiable {
         if(!clause.exists) return;
         int literal1 = clause.literals.get(0).literal;
         int literal2 = clause.literals.get(1).literal;
@@ -485,10 +509,10 @@ public class Simplifier extends Solver {
          * @param literal1  either the first or the second literal.
          * @param literal2  the other literal.
          * @param checkEquivalence if true then equivalence check is done.
-         * @throws Result if inserting a derived unit clause into the model causes a contradiction.
+         * @throws Unsatisfiable if inserting a derived unit clause into the model causes a contradiction.
          */
     protected void binaryMergeResolutionAndEquivalence(Clause clause1, int literal1, int literal2,
-                                                       boolean checkEquivalence) throws Result {
+                                                       boolean checkEquivalence) throws Unsatisfiable {
         assert(clause1.size() == 2);
         Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
         while(literalObject != null) { // all clauses with -literal1 are marked.
@@ -546,7 +570,7 @@ public class Simplifier extends Solver {
             if(!clause.exists) return; // unit clause derived
             if(resolvent != null) {
                 insertClause(resolvent);
-                addBinaryClauseTask(resolvent);}
+                addShortenedClauseTask(resolvent);}
             literalObject = literalObject.nextLiteral;}}
 
 
@@ -630,9 +654,9 @@ public class Simplifier extends Solver {
      * @param clause   a binary clause
      * @param literal1 a literal of the binary clause
      * @param literal2 the other literal of the binary clause
-     * @throws Result  if a contradiction is encountered.
+     * @throws Unsatisfiable  if a contradiction is encountered.
      */
-    protected void mergeResolutionWithBinaryClause(Clause clause, int literal1, int literal2) throws Result {
+    protected void mergeResolutionWithBinaryClause(Clause clause, int literal1, int literal2) throws Unsatisfiable {
         assert(clause.size() == 2);
         Literal literalObject1 = literalIndexMore.getFirstLiteralObject(-literal1);
         while(literalObject1 != null) {
@@ -652,7 +676,7 @@ public class Simplifier extends Solver {
                     if(trackReasoning) clause2.inferenceStep = new InfMergeResolutionMore(clause,clause2String,clause2,symboltable);
                     if(monitoring) monitor.println(monitorId,"Merge Resolution between " +
                             clause.toString(symboltable,0) + " and " + clause2String + " -> " + clause2.toString(symboltable,0));
-                    if(simplifyClause(clause2,true)) addShortenedClauseTask(clause2);
+                    if(simplifyClause(clause2,false)) addShortenedClauseTask(clause2);
                     else {removeClause(clause2,true);}}}
             literalObject2 = literalObject2.nextLiteral;}
         ++timestamp;
@@ -661,24 +685,50 @@ public class Simplifier extends Solver {
     /** removes all subsumed clauses and performs merge resolution with the longer clauses.
      *
      * @param clause a longer clause.
-     * @throws Result if an exception is dicovered.
+     * @throws Unsatisfiable if a contradiction is dicovered.
      */
-    protected void processLongerClause(Clause clause) throws Result {
+    protected void processLongerClause(Clause clause) throws Unsatisfiable {
         removeClausesSubsumedByLongerClause(clause);
         mergeResolutionWithLongerClauseDirect(clause);
         if(!clause.exists) return;
         mergeResolutionWithLongerClauseIndirect(clause);
     }
 
-    /** performs merging resolution between longer clauses.<br>
+    /** performs forward subsumption and merge resolution with the given longer input clause.
+     *  After this, a new ProcessLongerInputClause for the next input clause is added to the queue.
+     *
+     * @param task    a ProcessLongerInputClause task.
+     * @throws Unsatisfiable a contradiction is discovered.
+     */
+    protected void processLongerInputClause(Task<Simplifier.TaskType> task) throws Unsatisfiable {
+        Clause clause = (Clause)task.a;
+        while(clause != null) {
+            if (!clause.exists || clause.size() <= 2) {
+                clause = clause.nextClause;
+                continue;}
+            removeClausesSubsumedByLongerClause(clause);
+            mergeResolutionWithLongerClauseDirect(clause);
+            if (clause.exists) mergeResolutionWithLongerClauseIndirect(clause);
+
+            clause = clause.nextClause;
+            while(clause != null) {
+                if(clause.exists && clause.size() > 2) {
+                    task.a = clause; // reuse the task
+                    synchronized (this) {queue.add(task);}
+                        break;}}
+            break;}}
+
+
+
+    /** performs merge resolution between longer clauses.<br>
      * atleast n p^n',q_1^k_1,...,q_l^k_l and atleast m -p^n,q_1^m,...,q_l^m, phi -> atleast m q_1^m,...,q_l^m, phi<br>
      * If phi is empty then one clause is removed entirely.<br>
      * The shortened clause is simplified further and a new task is generated.
      *
-     * @param clause a clause to be tested as parent clause for a merging resolution step
-     * @throws Result if the simplification causes an Unsatisfiable exception.
+     * @param clause a clause to be tested as parent clause for a merge resolution step
+     * @throws Unsatisfiable if the simplification causes an Unsatisfiable exception.
      */
-    protected void mergeResolutionWithLongerClauseDirect(Clause clause) throws Result {
+    protected void mergeResolutionWithLongerClauseDirect(Clause clause) throws Unsatisfiable {
         int clauseSize = clause.literals.size();
         int thisLimit = clause.limit;
         for(Literal firstLiteral : clause.literals) {
@@ -716,10 +766,8 @@ public class Simplifier extends Solver {
                                             otherClause.toString(symboltable,0) + " and " +
                                             resolventBefore + " -> " + clause.toString(symboltable,0));}
 
-                                if(simplifyClause(clause,true)) {
-                                    addToIndex(clause);
-                                    if(clause.size() == 2) addBinaryClauseTask(clause);
-                                    else addLongerClauseTask(clause);}
+                                if(simplifyClause(clause,false)) {
+                                    addShortenedClauseTask(clause);}
                                 else clauses.removeClause(clause);
                                 timestamp += clauseSize + 1;
                                 return;}
@@ -736,10 +784,8 @@ public class Simplifier extends Solver {
                                     monitor.println(monitorId, resolventBefore + " and " +
                                             otherClause.toString(symboltable,0) + " -> " + otherClause.toString(symboltable,0));}
 
-                                if(simplifyClause(otherClause,true)) {
-                                    addToIndex(otherClause);
-                                    if(otherClause.size() == 2) addBinaryClauseTask(otherClause);
-                                    else addLongerClauseTask(otherClause);}
+                                if(simplifyClause(otherClause,false)) {
+                                    addShortenedClauseTask(otherClause);}
                                 else clauses.removeClause(otherClause);}}}
                 posLiteral = posLiteral.nextLiteral;}}
             timestamp += clauseSize + 1;}}
@@ -751,9 +797,9 @@ public class Simplifier extends Solver {
      * The shortened clause is simplified further and a new task is generated.
      *
      * @param clause a clause to be tested as parent clause for a merging resolution step
-     * @throws Result if the simplification causes an Unsatisfiable exception.
+     * @throws Unsatisfiable if the simplification causes an Unsatisfiable exception.
      */
-    protected void mergeResolutionWithLongerClauseIndirect(Clause clause) throws Result {
+    protected void mergeResolutionWithLongerClauseIndirect(Clause clause) throws Unsatisfiable {
         int clauseSize = clause.literals.size();
         int thisLimit = clause.limit;
         for(Literal firstLiteral : clause.literals) {
@@ -798,10 +844,7 @@ public class Simplifier extends Solver {
                                                     twoClause.toString(symboltable,0)+ " and " +
                                                     resolventBefore + " -> " + clause.toString(symboltable,0));}
 
-                                    if(simplifyClause(clause,true)) {
-                                        addToIndex(clause);
-                                        if(clause.size() == 2) addBinaryClauseTask(clause);
-                                        else addLongerClauseTask(clause);}
+                                    if(simplifyClause(clause,false)) addShortenedClauseTask(clause);
                                     else clauses.removeClause(clause);
                                     timestamp += clauseSize + 1;
                                     return;}
@@ -819,19 +862,22 @@ public class Simplifier extends Solver {
                                                 twoClause.toString(symboltable,0) + " and " +
                                                  resolventBefore + " -> " + otherClause.toString(symboltable,0));}
 
-                                    if(simplifyClause(otherClause,true)) {
-                                        addToIndex(otherClause);
-                                        if(otherClause.size() == 2) addBinaryClauseTask(otherClause);
-                                        else addLongerClauseTask(otherClause);}
+                                    if(simplifyClause(otherClause,false)) addShortenedClauseTask(otherClause);
                                     else clauses.removeClause(otherClause);}}}
                         posLiteral = nextLiteral;}}
                 timestamp += clauseSize + 1;
                 twoLiteral1 = twoLiteral1.nextLiteral;}
             timestamp += clauseSize + 1;}}
 
+    protected void mergeBinaryTriggered(Clause clause) throws Unsatisfiable {
+        assert(clause.size() == 2);
+    }
 
     protected void addBinaryClauseTask(Clause clause) {
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessBinaryClause, clause));}}
+
+    protected void addBinaryMergeTask(Clause clause) {
+        synchronized (this) {queue.add(new Task<>(TaskType.ProcessBinaryTriggeredMerging, clause));}}
 
     protected void addLongerClauseTask(Clause clause) {
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessLongerClause, clause));}}
@@ -844,9 +890,9 @@ public class Simplifier extends Solver {
      * @param representative  the representative of an equivalence class.
      * @param literal         the literal of the equivalence class.
      * @param equivalenceStep which caused the equivalence.
-     * @throws Result         if a contradiction is encountered.
+     * @throws Unsatisfiable         if a contradiction is encountered.
      */
-    protected void processEquivalence(int representative, int literal, InferenceStep equivalenceStep) throws Result {
+    protected void processEquivalence(int representative, int literal, InferenceStep equivalenceStep) throws Unsatisfiable {
         for(int sign = +1; sign >= -1; sign -=2) {
             representative *= sign;
             literal *= sign;
@@ -887,11 +933,7 @@ public class Simplifier extends Solver {
                     if(trackReasoning) clause.inferenceStep =
                             new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);
                     if(merged) { // two literals are merged. The new claus might be simplified.
-                        simplifyClause(clause,true);
-                        if(clause.exists) {
-                            addToIndex(clause);
-                            if(clause.size() == 2) addBinaryClauseTask(clause);
-                            else addShortenedClauseTask(clause);}
+                        if(simplifyClause(clause,false)) addShortenedClauseTask(clause);
                         else clauses.removeClause(clause);}} // changed clauses without merged literals are not further processed.
                 literalObject = nextLiteral;}
             }
@@ -923,28 +965,6 @@ public class Simplifier extends Solver {
             literalIndex.removeLiteral(literalObject);
             if(checkPurity) {checkPurity(literalObject.literal); checkPurity(-literalObject.literal);}}}
 
-    /** removes all clauses containing the literal.
-     *
-     * @param literal a literal.
-     * @return the number of removed clauses.
-     * @throws Result should not happen.
-     */
-    protected int removeClauses(int literal) throws Result {
-        int removedClauses = 0;
-        Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal);
-        while(literalObject != null) {
-            Literal nextLiteralObject = literalObject.nextLiteral;
-            Clause clause = literalObject.clause;
-            if(clause.exists) {removeClause(clause,false);++removedClauses;}
-            literalObject = nextLiteralObject;}
-
-        literalObject = literalIndexMore.getFirstLiteralObject(literal);
-        while(literalObject != null) {
-            Literal nextLiteralObject = literalObject.nextLiteral;
-            Clause clause = literalObject.clause;
-            if(clause.exists) {removeClause(clause,false);++removedClauses;}
-            literalObject = nextLiteralObject;}
-        return removedClauses;}
 
     /** removes the clause from the corresponding index.
      *
@@ -974,7 +994,7 @@ public class Simplifier extends Solver {
         for(Literal literalObject : clause.literals) {
             literalIndex.addLiteral(literalObject);}}
 
-    private final IntArrayList removedLiterals = new IntArrayList(5);
+
 
     /** removes the literal from the clause and the literalIndexMore index.
      * If the literal becomes pure, it is inserted into the model.<br>
@@ -984,10 +1004,10 @@ public class Simplifier extends Solver {
      * @return true if the clause still exists.
      * @throws Unsatisfiable if inserting a pure literal into the model causes a contradiction.
      */
-    protected boolean removeLiteral(Literal literalObject, boolean reduceQuantifier) throws Result {
+    protected boolean removeLiteral(Literal literalObject, boolean reduceLimit) throws Unsatisfiable {
         Clause clause = literalObject.clause;
         removeFromIndex(literalObject);
-        if(clause.removeLiteral(literalObject,reduceQuantifier)){
+        if(clause.removeLiteral(literalObject,reduceLimit)){
             if(clause.size() == 2) {
                 for(Literal litObject : clause.literals) {
                     literalIndexMore.removeLiteral(litObject);
@@ -996,6 +1016,9 @@ public class Simplifier extends Solver {
             return true;}
         removeClause(clause,true);
         return false;}
+
+    /** used in simplifyClause */
+    private final ArrayList<Literal> removedLiterals = new ArrayList<>(5);
 
     /** simplifies an atleast-clause with multiplicities > 1.<br>
      * 1. True literals are extracted.<br>
@@ -1006,11 +1029,11 @@ public class Simplifier extends Solver {
      * Example: atleast 6 p^4,q^4,r^4 -> atleast 3 p^2,q^2,r^2.
      *
      * @param clause         the clause to be simplified.
-     * @param checkPurity    if true then the removed literals are checked for purity.
+     * @param isInputClause  if false then the removed literals are removed from the index and checked for purity.
      * @return               true if the clause still exists.
-     * @throws Result        if the model finds a contradiction.
+     * @throws Unsatisfiable        if the model finds a contradiction.
      */
-    protected boolean simplifyClause(Clause clause, boolean checkPurity) throws Result {  // ändern
+    protected boolean simplifyClause(Clause clause, boolean isInputClause) throws Unsatisfiable {
         if(clause.isDisjunction || !clause.hasMultiplicities) return true; // nothing to be simplified.
         String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
         boolean reducedByGCD = false;
@@ -1040,8 +1063,7 @@ public class Simplifier extends Solver {
                     model.add(literal, clause.inferenceStep);
                     return false;
                 }
-                if (clause.limit <= 1) return clause.limit == 1;
-            }
+                if (clause.limit <= 1) return clause.limit == 1;}
 
             reducedByGCD = clause.divideByGCD();
             if (reducedByGCD && monitoring) {
@@ -1050,8 +1072,11 @@ public class Simplifier extends Solver {
             if (clause.size() == 1) {
                 model.add(clause.literals.get(0).literal, new InfInputClause(clause.id));
                 return false;}}
-        finally {if(checkPurity) {for(int literal : removedLiterals) checkPurity(literal);}}
-        if(reducedByGCD) return simplifyClause(clause,checkPurity);
+        finally {
+            if(!isInputClause) {
+                for(Literal literalObject : removedLiterals) removeFromIndex(literalObject);
+                for(Literal literalObject : removedLiterals) checkPurity(literalObject.literal);}}
+        if(reducedByGCD) return simplifyClause(clause,isInputClause);
         return true;}
 
     /** removes all clauses from the internal datastructures.
@@ -1067,9 +1092,8 @@ public class Simplifier extends Solver {
         statistics.clear();}
 
     @Override
-    public Result solveProblem(InputClauses inputClauses) {
-        return null;
-    }
+    public void solveProblem() throws Result {
+        processTasks(0);}
 
     @Override
     public void prepare() {
@@ -1078,6 +1102,6 @@ public class Simplifier extends Solver {
 
     @Override
     public Statistic getStatistics() {
-        return null;
+        return statistics;
     }
 }
