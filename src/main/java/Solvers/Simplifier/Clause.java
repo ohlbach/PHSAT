@@ -398,6 +398,17 @@ public class Clause {
         literalObject.literal = representative;
         return false;}
 
+    /** reduces the clause to a disjunction.
+     */
+    protected void reduceToDisjunction() {
+        if(limit == 1) return;
+        limit = 1;
+        for(Literal literalObject : literals) literalObject.multiplicity = 1;
+        expandedSize = literals.size();
+        isDisjunction = true;
+        hasMultiplicities = false;
+        quantifier = Quantifier.OR;}
+
     /** returns the number of Literal objects in the clause.
      *
      * @return the number of Literal objects in the clause.
