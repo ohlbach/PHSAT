@@ -40,10 +40,8 @@ public class GlobalParameters {
     public String monitorMode = null;
     /** if false then many things are done destructively. Only the final results are needed. */
     public boolean trackReasoning = false;
-    /** if true then equivalences are treated in a separate thread */
-    public boolean equivalenceThread = true;
-    /** if true then two-literal clauses are treated in a separate thread */
-    public boolean twoLiteralThread = true;
+
+    public boolean simplifier = true;
 
     public MonitorLife monitor;
     public File monitorFile;
@@ -61,6 +59,7 @@ public class GlobalParameters {
                 " - directory  (default home) relative to the homedirectory.\n"+
                 " - parallel   (default: 1)  controls how many problems are processed in parallel threads.\n" +
                 "                            'true' means to use the number of available processors.\n" +
+                " - simplifier (default true) a simplifier in a separate thread triers to deduce true literals and equivalences\n" +
                 " - logging    (default: System.out) 'file' for logging the actions\n" +
                 " -            if 'file' is specified then logging information is printed to [jobname]-logfile.txt"+
                 " - errors2File (default false) print errors and warnings to files\n" +
@@ -68,9 +67,7 @@ public class GlobalParameters {
                 "             'live':    just print out as the messages come.\n" +
                 "              If the file is not specified then the messages are printed to System.out\n" +
                 "              default: no monitoring.\n" +
-                " - trackReasoning (default false) tracks reasons for all derivations.\n"+
-                " - equivalences (default false): if true then equivalences are treated in a separate thread.\n"+
-                " - twoLiterals  (default false): if true then two-literal clauses are treated in a separate thread.";}
+                " - trackReasoning (default false) tracks reasons for all derivations.\n";}
 
 
     /** generates the default parameters */
@@ -128,9 +125,7 @@ public class GlobalParameters {
                     break;
                 case "errors2File":  errors2File = true;
                     break;
-                case "equivalences": equivalenceThread = true;
-                    break;
-                case "twoLiterals":  twoLiteralThread = true;
+                case "simplifier": simplifier = value.equals("true");
                     break;
                 default: warnings.append(title+"Unknown parameter: " + key);
             }}}}
@@ -146,9 +141,7 @@ public class GlobalParameters {
                 "  logFile:            " + logFile +"\n" +
                 "  errors2File         " + errors2File + "\n" +
                 "  monitor:            " + (monitorMode == null ? "null" : monitorMode) +"\n"+
-                "  trackReasoning:     " + trackReasoning +"\n" +
-                "  equivalences:       " + equivalenceThread + "\n"+
-                "  twoLiterals:        " + twoLiteralThread;}
+                "  trackReasoning:     " + trackReasoning;}
 
 }
 

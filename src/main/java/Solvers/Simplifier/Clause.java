@@ -307,10 +307,8 @@ public class Clause {
             removedLiterals.add(literalObject);
             literals.remove(literalObject);
             limit -= literalObject.multiplicity;
-            expandedSize -= literalObject.multiplicity;
-            literalObject.clause = null;}
+            expandedSize -= literalObject.multiplicity;}
         if(limit <= 0) {
-            exists = false;
             removedLiterals.addAll(literals);
             return auxiliaryLiterals;}
 

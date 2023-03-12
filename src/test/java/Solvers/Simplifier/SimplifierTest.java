@@ -23,7 +23,7 @@ public class SimplifierTest extends TestCase {
     static int cInterval = Quantifier.INTERVAL.ordinal();
 
 
-    static boolean monitoring = false;
+    static boolean monitoring = true;
 
     static Symboltable symboltable = new Symboltable(10);
 
@@ -737,7 +737,7 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause);
         simplifier.insertClause(new Clause(new int[]{2, cOr, 3, -2, 1}));
         simplifier.mergeResolutionWithLongerClauseDirect(clause);
-        assertEquals("1: 1v3\n", simplifier.clauses.toString());
+        assertEquals("2: 3v1\n", simplifier.clauses.toString());
 
         /*System.out.println(clause1.inferenceStep.toString());
         System.out.println(clause1.inferenceStep.inputClauseIds());

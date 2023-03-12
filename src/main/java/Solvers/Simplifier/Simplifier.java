@@ -817,10 +817,9 @@ public class Simplifier extends Solver {
                             String resolventBefore = trackReasoning ? clauseS.toString(symboltable,0) : null;
                             if(clauseS.size() == clausePSize) {// both are equally long
                                 ++statistics.mergedClauses;
-                                if(removeLiteral(literalObjectS,false)) {
+                                if(removeLiteral(clauseS.findLiteral(literalObjectPNeg),false)) {
                                     clauseS.reduceToDisjunction();  // clauseS becomes a disjunction.
                                     addShortenedClauseTask(clauseS);
-                                    if(clauseS.size() == 2) moveToIndexTwo(clauseS);
                                     if(trackReasoning) {
                                         clauseS.inferenceStep =
                                                 new InfMergeResolutionMore(clauseP,resolventBefore,clauseS,symboltable);}
@@ -844,8 +843,7 @@ public class Simplifier extends Solver {
                                     monitor.println(monitorId, resolventBefore + " and " +
                                             clauseS.toString(symboltable,0) + " -> " + clauseS.toString(symboltable,0));}
 
-                                if(simplifyClause(clauseS,false)) {
-                                    addShortenedClauseTask(clauseS);}
+                                if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
                                 else clauses.removeClause(clauseS);}}}
                     literalObjectSi = literalObjectSi.nextLiteral;}}
             timestamp += clausePSize + 1;}}
@@ -898,7 +896,6 @@ public class Simplifier extends Solver {
                                     if(removeLiteral(literalObjectS,false)) {
                                         clauseS.reduceToDisjunction();  // clauseS becomes a disjunction.
                                         addShortenedClauseTask(clauseS);
-                                        if(clauseS.size() == 2) moveToIndexTwo(clauseS);
                                         if(trackReasoning) {
                                             clauseS.inferenceStep =
                                                     new InfMergeResolutionIndirect(clauseP,twoClause,resolventBefore,clauseS,symboltable);}
@@ -923,9 +920,7 @@ public class Simplifier extends Solver {
                                                 twoClause.toString(symboltable,0) + " and " +
                                                  resolventBefore + " -> " + clauseS.toString(symboltable,0));}
 
-                                    if(simplifyClause(clauseS,false)) {
-                                        addShortenedClauseTask(clauseS);
-                                        if(clauseS.size() == 2) moveToIndexTwo(clauseS);}
+                                    if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
                                     else clauses.removeClause(clauseS);}}}
                         literalObjectSi = literalObjectSi.nextLiteral;}}
                 timestamp += clausePSize + 1;
@@ -982,7 +977,6 @@ public class Simplifier extends Solver {
                                     if(removeLiteral(literalObjectS,false)) {
                                         clauseS.reduceToDisjunction();  // clauseS becomes a disjunction.
                                         addShortenedClauseTask(clauseS);
-                                        if(clauseS.size() == 2) moveToIndexTwo(clauseS);
                                         if(trackReasoning) {
                                             clauseS.inferenceStep =
                                                     new InfMergeResolutionIndirect(clauseP,twoClause,resolventBefore,clauseS,symboltable);}
@@ -1008,9 +1002,7 @@ public class Simplifier extends Solver {
                                             twoClause.toString(symboltable,0) + " and " +
                                             resolventBefore + " -> " + clauseS.toString(symboltable,0));}
 
-                                    if(simplifyClause(clauseS,false)) {
-                                        addShortenedClauseTask(clauseS);
-                                        if(clauseS.size() == 2) moveToIndexTwo(clauseS);}
+                                    if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
                                     else clauses.removeClause(clauseS);}}}
                         literalObjectSi = literalObjectSi.nextLiteral;}}}
             catch(Throwable th){
@@ -1153,10 +1145,7 @@ public class Simplifier extends Solver {
         Clause clause = literalObject.clause;
         removeFromIndex(literalObject);
         if(clause.removeLiteral(literalObject,reduceLimit)){
-            if(clause.size() == 2) {
-                for(Literal litObject : clause.literals) {
-                    literalIndexMore.removeLiteral(litObject);
-                    literalIndexTwo.addLiteral(litObject);}}
+            if(clause.size() == 2) {moveToIndexTwo(clause);}
             checkPurity(-literalObject.literal); // pure literals are just added to the model.
             return true;}
         removeClause(clause,true);
@@ -1183,9 +1172,12 @@ public class Simplifier extends Solver {
         String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
         boolean reducedByGCD = false;
         removedLiterals.clear();
+        for(Literal lo : clause.literals)
+        System.out.println("LO " + lo.literal + " " + lo.clause);
         try {
             ArrayList<Literal> trueLiterals = clause.reduceByTrueLiterals(removedLiterals);
             if (trueLiterals != null) {
+                System.out.println("RM " + removedLiterals.get(0).literal + " " + removedLiterals.get(0).clause);
                 String literalNames = "";
                 for (Literal literalObject : trueLiterals) {
                     int literal = literalObject.literal;
@@ -1195,7 +1187,7 @@ public class Simplifier extends Solver {
                 }
                 if (monitoring) monitor.println(monitorId, "True literals " + literalNames + " extracted from clause " +
                         clauseBefore + ". new clause: " + clause.toString(symboltable, 0));
-                if(!clause.exists) return false;}
+                if(clause.limit <= 0) return false;}
 
             if (clause.isDisjunction || !clause.hasMultiplicities) return true; // nothing to be simplified.
             if (clause.reduceToEssentialLiterals(removedLiterals)) {
@@ -1219,7 +1211,9 @@ public class Simplifier extends Solver {
                 return false;}}
         finally {
             if(!isInputClause) {
-                for(Literal literalObject : removedLiterals) removeFromIndex(literalObject);
+                for(Literal literalObject : removedLiterals) {
+                    System.out.println("REM " + literalObject.literal + " " + literalObject.clause);
+                    removeFromIndex(literalObject);}
                 for(Literal literalObject : removedLiterals) checkPurity(literalObject.literal);}}
         if(reducedByGCD) return simplifyClause(clause,isInputClause);
         return true;}

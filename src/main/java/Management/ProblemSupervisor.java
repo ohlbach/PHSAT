@@ -79,7 +79,7 @@ public class ProblemSupervisor {
             model = new Model(inputClauses.predicates);
             readConjunctions(inputClauses.conjunctions);
             startEquivalenceClasses();
-            startSimplifier();
+            if(globalParameters.simplifier) startSimplifier();
             numberOfSolvers = solvers.size();
             statistics.solvers = numberOfSolvers;
             threads = new Thread[numberOfSolvers];
@@ -91,8 +91,8 @@ public class ProblemSupervisor {
                    catch(Result result) {finished(result);}});}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}
-            equivalenceThread.interrupt();}
-        catch(Result result) {}
+            equivalenceThread.join();
+            if(simplifierThread != null) simplifierThread.join();}
         catch(Exception ex) {}
         globalParameters.logstream.println("Solvers finished for problem " + problemId);}
 
@@ -122,8 +122,7 @@ public class ProblemSupervisor {
             try{
                 simplifier.readInputClauses();
                 simplifier.processTasks(0);}
-            catch(Result result) {
-                finished(result);}});
+            catch(Result result) {finished(result);}});
         simplifierThread.start();}
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.
@@ -138,9 +137,9 @@ public class ProblemSupervisor {
         Class solver = result.solver;
         globalParameters.logstream.println("Solver " + solver.getSimpleName() + " finished  work at problem " + problemId);
         if(result.message != null && !result.message.isEmpty()) {globalParameters.logstream.println(result.message);}
-        if(result instanceof Satisfiable || result instanceof Unsatisfiable) {
-            for(Thread thread : threads) {thread.interrupt();}
-            return;}
+        for(Thread thread : threads) {thread.interrupt();}
+        if(simplifierThread != null) simplifierThread.interrupt();
+        equivalenceThread.interrupt();
         if(result instanceof Aborted)    {++statistics.aborted;}
         if(result instanceof Erraneous ) {++statistics.erraneous;}}
 
