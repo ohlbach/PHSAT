@@ -190,7 +190,6 @@ public class InitializerSimplifier {
              unsatisfiable.problemId   = problemId;
              unsatisfiable.solver = InitializerSimplifier.class;
              unsatisfiable.statistic   = statistics;
-             unsatisfiable.symboltable = symboltable;
              throw unsatisfiable;}}
 
     /** puts the literals of an AND-clause into the model
