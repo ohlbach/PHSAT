@@ -119,10 +119,8 @@ public class ProblemSupervisor {
     private void startSimplifier() throws Result {
         simplifier = new Simplifier(this);
         simplifierThread = new Thread(() -> {
-            try{
-                simplifier.readInputClauses();
-                simplifier.processTasks(0);}
-            catch(Result result) {finished(result);}});
+            Result result = simplifier.solveProblem();
+            finished(result);});
         simplifierThread.start();}
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.
@@ -132,6 +130,7 @@ public class ProblemSupervisor {
      * @param result    the result of the solver's work.
      */
     public synchronized void finished(Result result) {
+        if(result == null) return;
         if(result instanceof Satisfiable) checkModel((Satisfiable) result);
         this.result = result;
         Class solver = result.solver;

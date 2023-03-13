@@ -393,11 +393,12 @@ public class Simplifier extends Solver {
      */
     protected void processTrueLiteralMore(int literal) throws Unsatisfiable{
         for(int sign = 1; sign >= -1; sign -= 2) {
-            literal *= sign;
+            literal *= sign;   // the clauses containing the predicate are selected. The literals to be removed depend on the model.
             Literal literalObject = literalIndexMore.getFirstLiteralObject(literal);
-            while(literalObject != null) { // the literal is true
+            while(literalObject != null) {
                  Clause clause = literalObject.clause;
                  if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
+                 boolean removed = false;
                  for(int i = 0; i < clause.literals.size(); ++i){
                      Literal litObject = clause.literals.get(i);
                      int status = model.status(litObject.literal);
@@ -405,9 +406,7 @@ public class Simplifier extends Solver {
                      boolean isTrue = status == 1;
                      String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
                      boolean isDisjunction = clause.isDisjunction;
-
-                     if(clause.removeLiteral(litObject,isTrue)) checkPurity(litObject.literal);
-                     else {clauses.removeClause(clause); checkPurity(clause); break;} // clause is true now.
+                     if(!removeLiteralFromClause(litObject,isTrue)) {removed = true; break;} // clause is true now.
 
                      if(monitoring) monitor.println(monitorId,clauseBefore + " and " +
                                 (isTrue ? "true":"false")+ "(" +
@@ -417,9 +416,8 @@ public class Simplifier extends Solver {
                                  IntArrayList.wrap(new int[]{litObject.literal}),isTrue,
                                  clause.toString(symboltable,0),model);}
                      --i;}
-                if(clause.exists) {
-                    if(clause.limit > clause.expandedSize) {
-                        throw new UnsatClause(clause);}
+                    if(removed) continue;
+                    if(clause.limit > clause.expandedSize) throw new UnsatClause(clause);
                     switch(clause.size()) {
                         case 0: throw new UnsatEmptyClause(clause);
                         case 1:
@@ -429,15 +427,13 @@ public class Simplifier extends Solver {
                             if(monitoring)
                                 monitor.println(monitorId,"New true literal " +
                                         Symboltable.toString(trueLiteral,symboltable) + " derived from clause " + clause.id);
-                            clauses.removeClause(clause);
+                            removeClause(clause,false);
                             break;
-                        case 2:  moveToIndexTwo(clause);
-                                 addBinaryClauseTask(clause);
+                        case 2:  addBinaryClauseTask(clause);
+                                 addBinaryMergeTask(clause);
                                  break;
-                        default: if(simplifyClause(clause,false)) {
-                                    addShortenedClauseTask(clause);}
-                                else clauses.removeClause(clause);}}
-                else clauses.removeClause(clause);
+                        default: if(simplifyClause(clause,false)) addShortenedClauseTask(clause);
+                                else removeClause(clause,true);}
             literalObject = literalObject.nextLiteral;}}
         literalIndexMore.removePredicate(literal);}
 
@@ -567,7 +563,7 @@ public class Simplifier extends Solver {
         Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
         while(literalObject != null) { // all clauses with -literal1 are marked.
             Clause clause = literalObject.clause;
-            if(clause.exists && clause != clause1) clause.timestamp = timestamp;
+            if(clause != null && clause != clause1) clause.timestamp = timestamp;
             literalObject = literalObject.nextLiteral;}
 
         literalObject = literalIndexTwo.getFirstLiteralObject(literal2);
@@ -1084,7 +1080,6 @@ public class Simplifier extends Solver {
      */
     protected void removeClause(Clause clause, boolean checkPurity) throws Unsatisfiable {
         clauses.removeClause(clause);
-        clause.exists = false;
         Literals literalIndex = (clause.size() == 2) ? literalIndexTwo :literalIndexMore;
         for(Literal literalObject : clause.literals) {
             literalIndex.removeLiteral(literalObject);
@@ -1158,10 +1153,9 @@ public class Simplifier extends Solver {
     protected boolean simplifyClause(Clause clause, boolean isInputClause) throws Unsatisfiable {
         if(clause.isDisjunction || !clause.hasMultiplicities) return true; // nothing to be simplified.
         String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
-        boolean reducedByGCD = false;
+        boolean reducedByGCD;
+        int sizeBefore = clause.size();
         removedLiterals.clear();
-        for(Literal lo : clause.literals)
-        System.out.println("LO " + lo.literal + " " + lo.clause);
         try {
             ArrayList<Literal> trueLiterals = clause.reduceByTrueLiterals(removedLiterals);
             if (trueLiterals != null) {
@@ -1198,8 +1192,9 @@ public class Simplifier extends Solver {
                 return false;}}
         finally {
             if(!isInputClause) {
-                for(Literal literalObject : removedLiterals) {
-                    removeLiteralFromIndex(literalObject);}
+                Literals literalIndex = (sizeBefore == 2) ? literalIndexTwo : literalIndexMore;
+                for(Literal literalObject : removedLiterals) literalIndex.removeLiteral(literalObject);
+                if(sizeBefore > 2 && clause.size() == 2) moveToIndexTwo(clause);
                 for(Literal literalObject : removedLiterals) checkPurity(literalObject.literal);}}
         if(reducedByGCD) return simplifyClause(clause,isInputClause);
         return true;}

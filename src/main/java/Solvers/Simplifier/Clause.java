@@ -182,7 +182,7 @@ public class Clause {
     protected boolean removeLiteral(Literal literalObject, boolean reduceLimit) {
         if(reduceLimit) {
             limit -= literalObject.multiplicity;
-            if(limit <= 0) {exists = false; return false;}}
+            if(limit <= 0) {return false;}}
 
         literals.remove(literalObject);
         expandedSize -= literalObject.multiplicity;
