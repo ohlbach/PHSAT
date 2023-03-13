@@ -87,8 +87,8 @@ public class ProblemSupervisor {
             for(int i = 0; i < numberOfSolvers; ++i) {
                 int j = i;
                threads[i] = new Thread(() -> {
-                   try{solvers.get(j).solveProblem();}
-                   catch(Result result) {finished(result);}});}
+                   Result result = solvers.get(j).solveProblem();
+                   finished(result);});}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}
             equivalenceThread.join();
@@ -111,8 +111,8 @@ public class ProblemSupervisor {
         equivalenceClasses = new EquivalenceClasses(this,monitor);
         equivalenceClasses.readEquivalences(inputClauses.equivalences);
         equivalenceThread = new Thread(()->{
-            try{equivalenceClasses.solveProblem();}
-            catch(Result result) {}});
+            Result result = equivalenceClasses.solveProblem();
+            finished(result);});
         equivalenceThread.start();
     }
 

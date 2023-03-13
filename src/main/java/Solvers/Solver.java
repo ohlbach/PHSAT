@@ -237,7 +237,7 @@ public abstract class Solver {
      *
      * @return Un/Satisfiable or null
      */
-    public abstract void solveProblem() throws Result;
+    public abstract Result solveProblem();
 
     public abstract void prepare();
 

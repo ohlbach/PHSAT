@@ -89,7 +89,8 @@ public class RecursiveSearcher  extends Solver {
     }
 
     @Override
-    public void solveProblem() {
+    public Result solveProblem() {
+        return null;
     }
 
     private ArrayList<RSClause> dummyClauses = new ArrayList<>(2);

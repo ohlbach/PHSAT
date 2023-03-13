@@ -89,6 +89,7 @@ public class Simplifier extends Solver {
         statistics             = new SimplifierStatistics("Simplifier");
         trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
         nextId                 = problemSupervisor::nextClauseId;
+        readModel();
     }
 
     /** this is a constructor for testing purposes (wothout ProblemSupervisor)
@@ -211,8 +212,7 @@ public class Simplifier extends Solver {
                                     clause.toString(symboltable,0));}}}}
             checkAllPurities();
             statistics.orAndAtleastCLauses = clauses.size;
-            if(clauses.isEmpty()) throw new Satisfiable(model);
-            readModel();}
+            if(clauses.isEmpty()) throw new Satisfiable(model);}
         catch(Result result) {
             result.solver = this.getClass();
             result.problemId = problemId;
@@ -328,11 +328,6 @@ public class Simplifier extends Solver {
                         break;}}
                 if(clauses.isEmpty()) throw new Satisfiable(model);}
             catch(InterruptedException ex) {return;}
-            catch(Unsatisfiable result) {
-                result.statistic = statistics;
-                result.solver = this.getClass();
-                result.problemId = problemId;
-                throw result;}
             if(n > 0 && ++counter == n) return;}}
 
     /** The method applies a true literal to the clause.<br>
@@ -730,7 +725,7 @@ public class Simplifier extends Solver {
             if(clause2.timestamp == timestamp && clause2.limit == literalObject2.multiplicity) {
                 String clause2String = (trackReasoning || monitoring) ? clause2.toString(symboltable,0) : null;
                 ++statistics.mergedClauses;
-                if(removeLiteral(clause2.findLiteral(-literal1),false)) {
+                if(removeLiteralFromClause(clause2.findLiteral(-literal1),false)) {
                     if(trackReasoning) clause2.inferenceStep = new InfMergeResolutionMore(clause,clause2String,clause2,symboltable);
                     if(monitoring) monitor.println(monitorId,"Merge Resolution between " +
                             clause.toString(symboltable,0) + " and " + clause2String + " -> " + clause2.toString(symboltable,0));
@@ -817,7 +812,7 @@ public class Simplifier extends Solver {
                             String resolventBefore = trackReasoning ? clauseS.toString(symboltable,0) : null;
                             if(clauseS.size() == clausePSize) {// both are equally long
                                 ++statistics.mergedClauses;
-                                if(removeLiteral(clauseS.findLiteral(literalObjectPNeg),false)) {
+                                if(removeLiteralFromClause(clauseS.findLiteral(literalObjectPNeg),false)) {
                                     clauseS.reduceToDisjunction();  // clauseS becomes a disjunction.
                                     addShortenedClauseTask(clauseS);
                                     if(trackReasoning) {
@@ -834,17 +829,16 @@ public class Simplifier extends Solver {
                                     return;}}
                             else {
                                 ++statistics.mergedClauses;
-                                removeFromIndex(clauseS);
-                                clauseS.removeLiteral(clauseS.findLiteral(literalObjectPNeg),false);
-                                if(trackReasoning) {
-                                    clauseS.inferenceStep =
+                                if(removeLiteralFromClause(clauseS.findLiteral(literalObjectPNeg),false)){
+                                    if(trackReasoning) {
+                                        clauseS.inferenceStep =
                                             new InfMergeResolutionMore(clauseP,resolventBefore,clauseS,symboltable);}
-                                if(monitoring) {
-                                    monitor.println(monitorId, resolventBefore + " and " +
+                                    if(monitoring) {
+                                        monitor.println(monitorId, resolventBefore + " and " +
                                             clauseS.toString(symboltable,0) + " -> " + clauseS.toString(symboltable,0));}
 
-                                if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
-                                else clauses.removeClause(clauseS);}}}
+                                    if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
+                                    else removeClause(clauseS,true);}}}}
                     literalObjectSi = literalObjectSi.nextLiteral;}}
             timestamp += clausePSize + 1;}}
 
@@ -893,7 +887,7 @@ public class Simplifier extends Solver {
                                 String resolventBefore = (trackReasoning | monitoring) ? clauseS.toString(symboltable,0) : null;
                                 if(clauseS.size() == clausePSize) {// both are equally long
                                     ++statistics.mergedClauses;
-                                    if(removeLiteral(literalObjectS,false)) {
+                                    if(removeLiteralFromClause(literalObjectS,false)) {
                                         clauseS.reduceToDisjunction();  // clauseS becomes a disjunction.
                                         addShortenedClauseTask(clauseS);
                                         if(trackReasoning) {
@@ -911,17 +905,17 @@ public class Simplifier extends Solver {
                                         return;}}
                                 else {
                                     ++statistics.mergedClauses;
-                                    clauseS.removeLiteral(clauseS.findLiteral(-twoLiteralS.literal),false);
-                                    if(trackReasoning) {
-                                        clauseS.inferenceStep =
-                                            new InfMergeResolutionIndirect(clauseP,twoClause,resolventBefore,clauseS,symboltable);}
-                                    if(monitoring) {
-                                        monitor.println(monitorId, clauseP.toString(symboltable,0) + " and " +
+                                    if(removeLiteralFromClause(clauseS.findLiteral(-twoLiteralS.literal),false)) {
+                                        if(trackReasoning) {
+                                            clauseS.inferenceStep =
+                                                new InfMergeResolutionIndirect(clauseP,twoClause,resolventBefore,clauseS,symboltable);}
+                                        if(monitoring) {
+                                            monitor.println(monitorId, clauseP.toString(symboltable,0) + " and " +
                                                 twoClause.toString(symboltable,0) + " and " +
                                                  resolventBefore + " -> " + clauseS.toString(symboltable,0));}
 
-                                    if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
-                                    else clauses.removeClause(clauseS);}}}
+                                        if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
+                                        else removeClause(clauseS,true);}}}}
                         literalObjectSi = literalObjectSi.nextLiteral;}}
                 timestamp += clausePSize + 1;
                 twoLiteralP = twoLiteralP.nextLiteral;}
@@ -974,7 +968,7 @@ public class Simplifier extends Solver {
                                 String resolventBefore = (trackReasoning | monitoring) ? clauseS.toString(symboltable,0) : null;
                                 if(clauseS.size() == clausePSize) { // both are equally long
                                     ++statistics.mergedClauses;
-                                    if(removeLiteral(literalObjectS,false)) {
+                                    if(removeLiteralFromClause(literalObjectS,false)) {
                                         clauseS.reduceToDisjunction();  // clauseS becomes a disjunction.
                                         addShortenedClauseTask(clauseS);
                                         if(trackReasoning) {
@@ -991,19 +985,16 @@ public class Simplifier extends Solver {
                                         throw throwable;}} // go to next clauseP
                                 else {
                                     ++statistics.mergedClauses;
-                                    removeFromIndex(clauseS);
-                                    clauseS.removeLiteral(clauseS.findLiteral(-literalObjectS.literal),false);
-
-                                    if(trackReasoning) {
-                                        clauseS.inferenceStep =
-                                            new InfMergeResolutionIndirect(clauseP,twoClause,resolventBefore,clauseS,symboltable);}
-                                    if(monitoring) {
-                                        monitor.println(monitorId, twoClause.toString(symboltable,0) + " and " +
-                                            twoClause.toString(symboltable,0) + " and " +
-                                            resolventBefore + " -> " + clauseS.toString(symboltable,0));}
-
-                                    if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
-                                    else clauses.removeClause(clauseS);}}}
+                                    if(removeLiteralFromClause(clauseS.findLiteral(-literalObjectS.literal),false)) {
+                                        if(trackReasoning) {
+                                            clauseS.inferenceStep =
+                                                new InfMergeResolutionIndirect(clauseP,twoClause,resolventBefore,clauseS,symboltable);}
+                                        if(monitoring) {
+                                            monitor.println(monitorId, twoClause.toString(symboltable,0) + " and " +
+                                                twoClause.toString(symboltable,0) + " and " +
+                                                resolventBefore + " -> " + clauseS.toString(symboltable,0));}
+                                        if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
+                                        else removeClause(clauseS,true);}}}}
                         literalObjectSi = literalObjectSi.nextLiteral;}}}
             catch(Throwable th){
                 literalObjectP = literalObjectP.nextLiteral;
@@ -1035,48 +1026,45 @@ public class Simplifier extends Solver {
             literal *= sign;
             Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal);
             while(literalObject != null) {
-                Literal nextLiteral = literalObject.nextLiteral;
                 Clause  clause = literalObject.clause;
-                if(clause.exists) {
-                    removeFromIndex(clause);
-                    String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
-                    if(clause.replaceEquivalenceTwo(representative,literal)) {
-                        InferenceStep step = trackReasoning ? new InfEquivalenceMerge(clause,representative, literal, equivalenceStep) : null;
-                        model.add(representative, step);
-                        model.add(literal, step);
-                        if(monitoring) {
-                            monitor.println(monitorId,"Equivalence Replacement: " +
-                                    clauseString + " and " + Symboltable.toString(literal,symboltable) + " = " +
-                                    Symboltable.toString(representative,symboltable) + " -> true(" +
-                                    Symboltable.toString(representative,symboltable)+ ","+
-                                    Symboltable.toString(literal,symboltable)+")");}
-                        removeClause(clause,true);
-                        return;} // true literals need no further replacements.
-                    else {
-                        if(trackReasoning) {clause.inferenceStep =
-                                new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);}
-                        addToIndex(clause);
-                        addBinaryClauseTask(clause);}}
-                literalObject = nextLiteral;}
+                if(clause != null) {literalObject = literalObject.nextLiteral; continue;}
+                removeAllLiteralsFromIndex(clause);
+                String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
+                if(clause.replaceEquivalenceTwo(representative,literal)) {
+                    InferenceStep step = trackReasoning ? new InfEquivalenceMerge(clause,representative, literal, equivalenceStep) : null;
+                    model.add(representative, step);
+                    model.add(literal, step);
+                    if(monitoring) {
+                        monitor.println(monitorId,"Equivalence Replacement: " +
+                                clauseString + " and " + Symboltable.toString(literal,symboltable) + " = " +
+                                Symboltable.toString(representative,symboltable) + " -> true(" +
+                                Symboltable.toString(representative,symboltable)+ ","+
+                                Symboltable.toString(literal,symboltable)+")");}
+                    clauses.removeClause(clause);
+                    return;} // true literals need no further replacements.
+                else {
+                    if(trackReasoning) {clause.inferenceStep =
+                            new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);}
+                    addAllLiteralsToIndex(clause);
+                    addBinaryClauseTask(clause);}
+                literalObject = literalObject.nextLiteral;}
 
             literalObject = literalIndexMore.getFirstLiteralObject(literal);  // we check the longer clauses.
             while(literalObject != null) {
-                Literal nextLiteral = literalObject.nextLiteral;
                 Clause  clause = literalObject.clause;
-                if(clause.exists) {
-                    removeFromIndex(clause);
-                    String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
-                    boolean merged = clause.replaceEquivalenceMore(representative,literal);
-                    if(trackReasoning) clause.inferenceStep =
-                            new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);
-                    if(merged) { // two literals are merged. The new claus might be simplified.
-                        if(simplifyClause(clause,false)) addShortenedClauseTask(clause);
-                        else clauses.removeClause(clause);}} // changed clauses without merged literals are not further processed.
-                literalObject = nextLiteral;}
+                if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
+                removeAllLiteralsFromIndex(clause);
+                String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
+                boolean merged = clause.replaceEquivalenceMore(representative,literal);
+                addAllLiteralsToIndex(clause);
+                if(trackReasoning) clause.inferenceStep =
+                        new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);
+                if(merged) { // two literals are merged. The new clause might be simplified.
+                    if(simplifyClause(clause,false)) addShortenedClauseTask(clause);
+                    else removeClause(clause,true);} // changed clauses without merged literals are not further processed.
+                literalObject = literalObject.nextLiteral;}
             }
     }
-
-
 
     /** inserts a clause into the internal lists.
      *
@@ -1103,11 +1091,11 @@ public class Simplifier extends Solver {
             if(checkPurity) {checkPurity(literalObject.literal); checkPurity(-literalObject.literal);}}}
 
 
-    /** removes the clause from the corresponding index.
+    /** removes all the literals in the clause from the corresponding index.
      *
      * @param clause a clause
      */
-    protected void removeFromIndex(Clause clause) {
+    protected void removeAllLiteralsFromIndex(Clause clause) {
         Literals literalIndex = (clause.size() == 2) ? literalIndexTwo : literalIndexMore;
         for(Literal literalObject : clause.literals) {
             literalIndex.removeLiteral(literalObject);}}
@@ -1116,24 +1104,24 @@ public class Simplifier extends Solver {
      *
      * @param literalObject a Literal
      */
-    protected void removeFromIndex(Literal literalObject) {
+    protected void removeLiteralFromIndex(Literal literalObject) {
         Clause clause = literalObject.clause;
         Literals literalIndex = (clause.size() == 2) ? literalIndexTwo : literalIndexMore;
         literalIndex.removeLiteral(literalObject);}
 
 
-    /** adds a clause to the corresponding index.
+    /** adds all the literals of the clause to the corresponding index.
      *
      * @param clause a clause.
      */
-    protected void addToIndex(Clause clause) {
+    protected void addAllLiteralsToIndex(Clause clause) {
         Literals literalIndex = (clause.size() == 2) ? literalIndexTwo : literalIndexMore;
         for(Literal literalObject : clause.literals) {
             literalIndex.addLiteral(literalObject);}}
 
 
 
-    /** removes the literal from the clause and the literalIndexMore index.
+    /** removes the literal from the clause and from the corresponding index.
      * If the literal becomes pure, it is inserted into the model.<br>
      * If the limit is reduced to 0, the entire clause is removed.<br>
      *
@@ -1141,9 +1129,9 @@ public class Simplifier extends Solver {
      * @return true if the clause still exists.
      * @throws Unsatisfiable if inserting a pure literal into the model causes a contradiction.
      */
-    protected boolean removeLiteral(Literal literalObject, boolean reduceLimit) throws Unsatisfiable {
+    protected boolean removeLiteralFromClause(Literal literalObject, boolean reduceLimit) throws Unsatisfiable {
         Clause clause = literalObject.clause;
-        removeFromIndex(literalObject);
+        removeLiteralFromIndex(literalObject);
         if(clause.removeLiteral(literalObject,reduceLimit)){
             if(clause.size() == 2) {moveToIndexTwo(clause);}
             checkPurity(-literalObject.literal); // pure literals are just added to the model.
@@ -1177,7 +1165,6 @@ public class Simplifier extends Solver {
         try {
             ArrayList<Literal> trueLiterals = clause.reduceByTrueLiterals(removedLiterals);
             if (trueLiterals != null) {
-                System.out.println("RM " + removedLiterals.get(0).literal + " " + removedLiterals.get(0).clause);
                 String literalNames = "";
                 for (Literal literalObject : trueLiterals) {
                     int literal = literalObject.literal;
@@ -1212,8 +1199,7 @@ public class Simplifier extends Solver {
         finally {
             if(!isInputClause) {
                 for(Literal literalObject : removedLiterals) {
-                    System.out.println("REM " + literalObject.literal + " " + literalObject.clause);
-                    removeFromIndex(literalObject);}
+                    removeLiteralFromIndex(literalObject);}
                 for(Literal literalObject : removedLiterals) checkPurity(literalObject.literal);}}
         if(reducedByGCD) return simplifyClause(clause,isInputClause);
         return true;}
@@ -1231,8 +1217,16 @@ public class Simplifier extends Solver {
         statistics.clear();}
 
     @Override
-    public void solveProblem() throws Result {
-        processTasks(0);}
+    public Result solveProblem() {
+        try{
+            readInputClauses();
+            processTasks(0);}
+        catch(Result result) {
+            result.statistic = statistics;
+            result.solver = this.getClass();
+            result.problemId = problemId;
+            return result;}
+        return null;}
 
     @Override
     public void prepare() {

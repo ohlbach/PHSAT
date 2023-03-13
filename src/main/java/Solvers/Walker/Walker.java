@@ -168,7 +168,7 @@ public class Walker extends Solver {
      * @return the result of the solver
      */
     @Override
-    public void solveProblem() {
+    public Result solveProblem() {
      //   globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.nanoTime();
         initializeModel();
@@ -179,7 +179,7 @@ public class Walker extends Solver {
         System.out.println("Flips " + statistics.flips);
         //problemSupervisor.finished(this, result, "done");
         //globalParameters.log(solverId + " for problem " + problemId + " finished");
-        //return result;
+        return result;
     }
 
     @Override

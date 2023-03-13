@@ -173,8 +173,15 @@ public class EquivalenceClasses extends Solver {
         model.addObserver(this::addTrueLiteralTask);}
 
     @Override
-    public void solveProblem() throws Result {
+    public Result solveProblem() {
+        try{
         processTasks(false);}
+        catch(Result result) {
+            result.problemId = problemId;
+            result.statistic = statistics;
+            result.solver = this.getClass();
+            return result;}
+        return null;}
 
     @Override
     public void prepare() {
@@ -210,11 +217,6 @@ public class EquivalenceClasses extends Solver {
                 if(monitoring) {
                     monitor.print(monitorId,"Current equivalences:\n" + toString(symboltable));}}
             catch(InterruptedException ex) {return;}
-            catch(Unsatisfiable unsatisfiable) {
-                unsatisfiable.problemId = problemId;
-                unsatisfiable.statistic = statistics;
-                unsatisfiable.solver = this.getClass();
-                throw unsatisfiable;}
             if(once) return;}}
 
     /** finds the representative for the class containing the literal.
