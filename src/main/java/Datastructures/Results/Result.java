@@ -48,13 +48,19 @@ public class Result extends Exception {
      */
     public ArrayList<InferenceStep> inferenceSteps() {
         if(inferenceSteps.isEmpty()) return null;
-        ArrayList<InferenceStep> steps = new ArrayList<>();
-        for(InferenceStep step : inferenceSteps) step.inferenceSteps(steps);
-        for(int i = 0; i < steps.size(); ++i) {
-            InferenceStep step = steps.get(i);
-            for(int j = i+1; j < steps.size(); ++j) {
-                if(steps.get(j) == step) steps.remove(j);}}
-        return steps;}
+        ArrayList<InferenceStep> steps1 = new ArrayList<>();
+        ArrayList<InferenceStep> steps2 = new ArrayList<>();
+        ArrayList<InferenceStep> steps3 = new ArrayList<>();
+        for(InferenceStep step : inferenceSteps) step.inferenceSteps(steps1);
+        for(int i = 0; i < steps1.size(); ++i) {
+            InferenceStep step = steps1.get(i);
+            if(!steps2.contains(step)) steps2.add(step);}
+        for(int i = 0; i < steps2.size(); ++i) {
+            InferenceStep step2 = steps2.get(i);
+            steps3.clear();
+            step2.inferenceSteps(steps3);
+            for(InferenceStep step3 : steps3) {if(!steps2.contains(step3)) steps2.add(step3);}}
+        return steps2;}
 
     /** returns the list of input clause Ids which are responsible for the result.
      * Double occurrences are removed.
@@ -64,7 +70,7 @@ public class Result extends Exception {
     public IntArrayList inputClauseIds() {
         if(inferenceSteps.isEmpty()) return null;
         IntArrayList ids = new IntArrayList();
-        for(InferenceStep step : inferenceSteps)
+        for(InferenceStep step : inferenceSteps())
             for(int id : step.inputClauseIds()) {
                 if(!ids.contains(id)) ids.add(id);}
         return sortIntArray(ids);}

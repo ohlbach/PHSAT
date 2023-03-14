@@ -1,8 +1,9 @@
 package Solvers.Simplifier;
 
-import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
@@ -12,6 +13,7 @@ import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
 import junit.framework.TestCase;
 
+import java.util.ArrayList;
 import java.util.function.IntSupplier;
 
 public class SimplifierTest extends TestCase {
@@ -119,10 +121,12 @@ public class SimplifierTest extends TestCase {
         simplifier.simplifyClause(clause, false);
         assertEquals("3: >= 3 1^2,2^2,3^2", clause.toString());
 
-        InferenceStep step = simplifier.model.getInferenceStep(1);
-        //System.out.println(step.toString(null));
-        //System.out.println(step.rule());
-        //System.out.println(step.inputClauseIds());
+        if(monitoring) {
+            InferenceStep step = simplifier.model.getInferenceStep(1);
+            System.out.println("Inference Step");
+            System.out.println(step.toString(null));
+            System.out.println(step.rule());
+            System.out.println(step.inputClauseIds());}
     }
 
     public void testCheckAllPurities() throws Result {
@@ -272,8 +276,9 @@ public class SimplifierTest extends TestCase {
         assertEquals("13: 1v2\n" +
                 "14: -1v-3\n", simplifier.clauses.toString());
         assertEquals("-2,-3,4", simplifier.model.toString());
-        //System.out.println(simplifier.statistics.toString());
-        //System.out.println(simplifier.clauses.firstClause.nextClause.inferenceStep.toString());
+        if(monitoring) {
+            System.out.println(simplifier.statistics.toString());
+            System.out.println(simplifier.clauses.firstClause.nextClause.inferenceStep.toString());}
     }
 
     public void testInputClausesToAtleastIntervals() throws Result {
@@ -360,8 +365,7 @@ public class SimplifierTest extends TestCase {
             assertEquals("", simplifier.clauses.toString());
             assertEquals("-2,-4", simplifier.model.toString());}
         catch (Unsatisfiable unsatisfiable) {
-          //  System.out.println(unsatisfiable.toString());
-        }}
+          if(monitoring) System.out.println(unsatisfiable.toString());}}
 
     public void testProcessTrueLiteralMore2() throws Result {
         System.out.println("processTrueLiteralMore 2");
@@ -376,9 +380,8 @@ public class SimplifierTest extends TestCase {
         assertEquals("", simplifier.clauses.toString());
         assertEquals("1,2,-3,4", simplifier.model.toString());
 
-        System.out.println("\nNEW");
+        if(monitoring) System.out.println("\nNEW");
         simplifier.clear();
-
         simplifier.model.add(-1, new InfInputClause(1));
         simplifier.model.add(-3, new InfInputClause(2));
         simplifier.model.add(-4, new InfInputClause(3));
@@ -389,9 +392,11 @@ public class SimplifierTest extends TestCase {
         assertEquals("Positive Literals:\n" +
                 "\n" +
                 "Negative Literals:\n", simplifier.literalIndexMore.toString());
-        /*ArrayList<InferenceStep> steps = new ArrayList<>();
-        simplifier.model.getInferenceStep(2).inferenceSteps(steps);
-        for(InferenceStep step : steps) System.out.println(step.toString());*/
+        if(monitoring) {
+            System.out.println("\nInference Steps");
+            ArrayList<InferenceStep> steps = new ArrayList<>();
+            simplifier.model.getInferenceStep(2).inferenceSteps(steps);
+            for(InferenceStep step : steps) System.out.println(step.toString());}
     }
 
     public void testRemoveClausesSubsumedByBinaryClause() throws Result {
@@ -415,7 +420,7 @@ public class SimplifierTest extends TestCase {
                 "4: 2v-4v-5v-6\n" +
                 "6: >= 2 1,2,3,4\n" +
                 "7: 2v4\n",simplifier.clauses.toString());
-        //System.out.println(simplifier.statistics.toString());
+        if(monitoring) System.out.println(simplifier.statistics.toString());
 
     }
     public void testBinaryMergeResolutionAndEquivalence() throws Result {
@@ -499,7 +504,7 @@ public class SimplifierTest extends TestCase {
         simplifier.mergeResolutionWithBinaryClause(clause1,1,2);
         assertEquals("2: 1v2\n" +
                 "3: >= 2 2^2,3,4\n",simplifier.clauses.toString());
-        //System.out.println("INF " + clause2.inferenceStep.toString());
+        if(monitoring) System.out.println("INF " + clause2.inferenceStep.toString());
 
         simplifier.clear();
         clause1 = new Clause(new int[]{2, cOr, 1, 2});
@@ -509,7 +514,7 @@ public class SimplifierTest extends TestCase {
         simplifier.mergeResolutionWithBinaryClause(clause1,1,2);
         assertEquals("2: 1v2\n",simplifier.clauses.toString());
         assertEquals("1,2,3",simplifier.model.toString());
-        //System.out.println(simplifier.statistics.toString());
+        if(monitoring) System.out.println(simplifier.statistics.toString());
 
         simplifier.clear();
         clause1 = new Clause(new int[]{2, cOr, 1, 2});
@@ -640,7 +645,11 @@ public class SimplifierTest extends TestCase {
         Clause clause6 = new Clause(new int[]{6, cOr, -5,2});
         simplifier.insertClause(clause6);
         simplifier.processBinaryClause(clause1);
-        simplifier.processTasks(6);
+
+        try{simplifier.processTasks(6);}
+        catch(Satisfiable satisfiable) {
+            if(monitoring) System.out.println(satisfiable.toString());}
+
         assertEquals("",simplifier.clauses.toString());
         assertEquals("1,2,3,4,5,6",simplifier.model.toString());
         //System.out.println(simplifier.statistics.toString());
@@ -654,7 +663,7 @@ public class SimplifierTest extends TestCase {
         Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
         simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 5}));
         simplifier.insertClause(new Clause(new int[]{2, cOr, 5,3}));
-        simplifier.processEquivalence(2, 5, new InferenceTest("MyTest"));
+        simplifier.processEquivalence(2, 5, new InferenceTest("MyTest 1"));
         assertEquals("1: 1v2\n" +
                 "2: 2v3\n", simplifier.clauses.toString());
 
@@ -662,7 +671,7 @@ public class SimplifierTest extends TestCase {
         simplifier.clear();
         simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 5}));
         simplifier.insertClause(new Clause(new int[]{2, cOr, 5,2}));
-        simplifier.processEquivalence(2, 5, new InferenceTest("MyTest"));
+        simplifier.processEquivalence(2, 5, new InferenceTest("MyTest 2"));
         assertEquals("1: 1v5\n", simplifier.clauses.toString());
         assertEquals("2,5",simplifier.model.toString());
 
@@ -670,24 +679,26 @@ public class SimplifierTest extends TestCase {
         simplifier.clear();
         simplifier.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,3, 5}));
         simplifier.insertClause(new Clause(new int[]{2, cAtleast, 3, 4,4,5,5,5,6,6,2}));
-        simplifier.processEquivalence(2, 5, new InferenceTest("MyTest"));
+        simplifier.processEquivalence(2, 5, new InferenceTest("MyTest 3"));
         assertEquals("1: >= 2 1,3,2\n" +
                 "2: >= 3 4^2,6^2,2^3\n", simplifier.clauses.toString());
 
         if(monitoring) System.out.println("\nNEW 3");
         simplifier.clear();
         simplifier.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,1,2,3,3}));
-        simplifier.processEquivalence(3, 2, new InferenceTest("MyTest"));
+        simplifier.processEquivalence(3, 2, new InferenceTest("MyTest 4"));
         assertEquals("1: 1v3\n", simplifier.clauses.toString());
 
         if(monitoring) System.out.println("\nNEW 4");
         simplifier.clear();
         Clause clause = new Clause(new int[]{1, cAtleast, 3, 1,1,2,3});
         simplifier.insertClause(clause);
-        simplifier.processEquivalence(3, 2, new InferenceTest("MyTest"));
+        simplifier.processEquivalence(3, 2, new InferenceTest("MyTest 5"));
         assertFalse(clause.exists);
         assertEquals("1,3",simplifier.model.toString());
         assertEquals("", simplifier.clauses.toString());
+        if(monitoring) System.out.println(simplifier.statistics.toString());
+
 
         if(monitoring) System.out.println("\nNEW 5");
         simplifier.clear();
@@ -699,14 +710,19 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(new Clause(new int[]{6, cAtleast, 2, -1,-2,-3,-3,-4,3}));
         simplifier.insertClause(new Clause(new int[]{7, cAtleast, 2, 1,2,3,-4}));
         simplifier.insertClause(new Clause(new int[]{8, cOr, -2,3,}));
-        simplifier.processEquivalence(2, 3, new InferenceTest("MyTest"));
+        simplifier.processEquivalence(2, 3, new InferenceTest("MyTest 6"));
         assertEquals("3: >= 2 -1,-2^2,-4\n" +
                 "4: -1v-2v-4\n" +
                 "5: -1v-2\n" +
                 "6: -1v-2v-4\n" +
                 "7: >= 2 1,2^2,-4\n",simplifier.clauses.toString());
 
+        if(monitoring) System.out.println(simplifier.statistics.toString());
 
+        if(monitoring) System.out.println("\nNEW 6");
+        try{
+        simplifier.processEquivalence(2, 4, new InferenceTest("MyTest 7"));}
+        catch(Result result) {if(monitoring) System.out.println(result.toString());}
     }
 
     public void testRemoveClausesSubsumedByLongerClause() throws Result {
@@ -725,18 +741,20 @@ public class SimplifierTest extends TestCase {
         assertEquals("1: 1v2v3\n" +
                 "4: 2v4v1v5\n",simplifier.clauses.toString());
 
+        if(monitoring) System.out.println("\nNew");
         simplifier.clear();
         subsumer = new Clause(new int[]{1, cAtleast, 4, 1,1,2,2,3,3,3});
         simplifier.insertClause(subsumer);
         simplifier.insertClause(new Clause(new int[]{2, cAtleast,3 , 1,1,2,2,3,3}));
-        simplifier.insertClause(new Clause(new int[]{3, cAtleast,3 , 1,1,1,2,2,3,3}));
+        simplifier.insertClause(new Clause(new int[]{3, cAtleast,3 , 1,1,1,2,2,3,3,3}));
         simplifier.insertClause(new Clause(new int[]{4, cAtleast,3 , 1,1,2,2,2,3,3}));
+        simplifier.insertClause(new Clause(new int[]{5, cAtleast,3 , 1,1,1,2,2,2,3,3,3}));
         simplifier.removeClausesSubsumedByLongerClause(subsumer);
         assertEquals("1: >= 4 1^2,2^2,3^3\n" +
-                "3: >= 3 1^3,2^2,3^2\n" +
+                "2: >= 3 1^2,2^2,3^2\n" +
                 "4: >= 3 1^2,2^3,3^2\n",simplifier.clauses.toString());
-
         }
+
     public void testmergeResolutionWithLongerClauseDirect1() throws Result {
         System.out.println("mergeResolutionWithLongerClauseDirect 1");
         int predicates = 6;
@@ -751,9 +769,11 @@ public class SimplifierTest extends TestCase {
         simplifier.mergeResolutionWithLongerClauseDirect(clause);
         assertEquals("1: 1v2v3\n" +
                 "2: 3v1v4\n", simplifier.clauses.toString());
-        //System.out.println(clause1.inferenceStep.toString());
-        //System.out.println(clause1.inferenceStep.inputClauseIds());
+        if(monitoring) {
+            System.out.println(clause1.inferenceStep.toString());
+            System.out.println(clause1.inferenceStep.inputClauseIds());}
 
+        if(monitoring) System.out.println("NEW 2");
         simplifier.clear();
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});
         simplifier.insertClause(clause);
@@ -761,11 +781,12 @@ public class SimplifierTest extends TestCase {
         simplifier.mergeResolutionWithLongerClauseDirect(clause);
         assertEquals("2: 3v1\n", simplifier.clauses.toString());
 
-        /*System.out.println(clause1.inferenceStep.toString());
-        System.out.println(clause1.inferenceStep.inputClauseIds());
-        ArrayList<InferenceStep> steps = new ArrayList<>();
-        clause1.inferenceStep.inferenceSteps(steps);
-        for(InferenceStep step : steps) System.out.println(step.toString());*/
+        if(monitoring) {
+            System.out.println(clause1.inferenceStep.toString());
+            System.out.println(clause1.inferenceStep.inputClauseIds());
+            ArrayList<InferenceStep> steps = new ArrayList<>();
+            clause1.inferenceStep.inferenceSteps(steps);
+            for(InferenceStep step : steps) System.out.println(step.toString());}
 
         simplifier.clear();
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});

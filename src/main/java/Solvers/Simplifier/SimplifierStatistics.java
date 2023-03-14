@@ -28,6 +28,8 @@ public class SimplifierStatistics extends Statistic {
     @Description("number of binary resolvents")
     public int binaryResolvents = 0;
 
+    @Description("equivalence replacements")
+    public int equivalenceReplacements = 0;
 
     public void clear() {
         orAndAtleastCLauses         = 0;
@@ -37,6 +39,7 @@ public class SimplifierStatistics extends Statistic {
         subsumedClauses             = 0;
         mergedClauses               = 0;
         binaryResolvents            = 0;
+        equivalenceReplacements     = 0;
     }
     public String toString(){
         StringBuilder st = new StringBuilder();
@@ -47,7 +50,8 @@ public class SimplifierStatistics extends Statistic {
         st.append("Pure Literals:             ").append(pureLiterals).append("\n");
         st.append("Subsumed Clauses:          ").append(subsumedClauses).append("\n");
         st.append("Merged Clauses:            ").append(mergedClauses).append("\n");
-        st.append("Binary Resolvents:         ").append(binaryResolvents);
+        st.append("Binary Resolvents:         ").append(binaryResolvents).append("\n");
+        st.append("Equivalence Replacements:  ").append(equivalenceReplacements);
         return st.toString();
     }
 

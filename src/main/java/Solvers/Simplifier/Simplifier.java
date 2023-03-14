@@ -518,6 +518,7 @@ public class Simplifier extends Solver {
      * @throws Unsatisfiable should not happen.
      */
     protected void removeClausesSubsumedByLongerClause(Clause subsumer) throws Unsatisfiable {
+        boolean candidatesFound = false;
         int subsumerSize = subsumer.literals.size();
         int sumsumerLimit = subsumer.limit;
         Literal subsumerLiteral = subsumer.literals.get(0);
@@ -527,9 +528,11 @@ public class Simplifier extends Solver {
             if(subsumee != subsumer && subsumee.limit <= sumsumerLimit &&
                     subsumee.literals.size() >= subsumerSize &&
                     subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity) {
+                candidatesFound = true;
                 subsumee.timestamp = timestamp;}
             subsumeeLiteral = subsumeeLiteral.nextLiteral;}
 
+        if(!candidatesFound) return;
         for(int i = 1; i < subsumer.literals.size(); ++i) { // find candidates.
             subsumerLiteral = subsumer.literals.get(i);
             subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumerLiteral.literal);
@@ -1039,6 +1042,7 @@ public class Simplifier extends Solver {
                 String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
 
                 if(clause.findLiteral(-representative) != null) { // new clause would be a tautology
+                    ++statistics.equivalenceReplacements;
                     removeClause(clause,true);
                     literalObject = literalObject.nextLiteral; continue;}
 
@@ -1061,6 +1065,7 @@ public class Simplifier extends Solver {
                     representativeObject.clause = clause;
                     literalIndexTwo.addLiteral(representativeObject);
                     clause.replaceLiteral(literalObject,representativeObject);
+                    ++statistics.equivalenceReplacements;
                     if(trackReasoning) {clause.inferenceStep =
                             new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);}
 
@@ -1079,6 +1084,7 @@ public class Simplifier extends Solver {
                     clause.removeLiteral(literalObject,false);
                     representativeObject.multiplicity += literalObject.multiplicity;
                     clause.adjustMultiplicitiesToLimit();
+                    ++statistics.equivalenceReplacements;
                     if (trackReasoning) clause.inferenceStep =
                             new InfEquivalenceReplacement(clauseString, clause, representative, literal, equivalenceStep, symboltable);
                     if(simplifyClause(clause,false)) {
@@ -1094,6 +1100,7 @@ public class Simplifier extends Solver {
                     representativeObject.clause = clause;
                     literalIndexMore.addLiteral(representativeObject);
                     clause.replaceLiteral(literalObject,representativeObject);
+                    ++statistics.equivalenceReplacements;
                     if (trackReasoning) clause.inferenceStep =
                             new InfEquivalenceReplacement(clauseString, clause, representative, literal, equivalenceStep, symboltable);
                     if(clause.removeComplementaryLiterals()) {

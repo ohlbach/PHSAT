@@ -24,7 +24,7 @@ public class InferenceTest extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title + ":\n" + comment;
+        return title + ":\n  " + comment;
     }
 
     @Override
