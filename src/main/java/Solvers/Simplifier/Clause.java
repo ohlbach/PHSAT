@@ -252,7 +252,11 @@ public class Clause {
                     break;}}}
         if(literals.isEmpty()) return true;
         hasMultiplicities = expandedSize > literals.size();
-        if(limit == 1) {quantifier = Quantifier.OR; isDisjunction = true;}
+        if(limit == 1) {
+            quantifier = Quantifier.OR;
+            isDisjunction = true;
+            hasMultiplicities = false;
+            for(Literal literalObject : literals) literalObject.multiplicity = 1;}
         return false;}
 
     /** to be used by divideByGCD. */
@@ -356,45 +360,32 @@ public class Clause {
         return true;}
 
 
-    /** replaces in a binary clause containing the given literal this literal by the representative.
-     * The literal is destructively changed.<br>
-     * If the two literals merge then the clause is not changed.
-     *
-     * @param representative the representative of an equivalence class.
-     * @param literal        the literal of this representative.
-     * @return               true if the two literals merge into one literal.
-     */
-    protected boolean replaceEquivalenceTwo(int representative, int literal) {
-        assert(literals.size() == 2);
-        Literal literalObject1 = literals.get(0);
-        Literal literalObject2 = literals.get(1);
-        if(literalObject1.literal == representative || literalObject2.literal == representative) {
-            return true;}  // unit clause derived.
-        if(literalObject1.literal == literal) literalObject1.literal = representative;
-        else                                  literalObject2.literal = representative;
-        return false;}
 
-    /** replaces in a longer clause containing the given literal this literal by the representative.
-     * The literal is destructively changed.<br>
-     * If the two literals merge, one them is removed.
+
+    /** replaces the oldLiteral in the clause by the newLiteral.
+     * The literal's multiplicities are adjusted to the limit.
      *
-     * @param representative the representative of an equivalence class.
-     * @param literal        the literal of this representative.
-     * @return               true if two literals merge into one literal.
+     * @param oldLiteral  one of the clause's literals
+     * @param newLiteral  the literal which replaces the old literal.
      */
-    protected boolean replaceEquivalenceMore(int representative, int literal) {
-        assert(literals.size() > 2);
-        Literal literalObject = findLiteral(literal);
-        Literal representativeObject = findLiteral(representative);
-        if(representativeObject != null) {
-            literals.remove(literalObject);
-            int combinedMultiplicity = representativeObject.multiplicity + literalObject.multiplicity;
-            if(combinedMultiplicity > limit) expandedSize -= combinedMultiplicity - limit;
-            representativeObject.multiplicity = Math.min(limit, combinedMultiplicity);
-            if(representativeObject.multiplicity > 1) hasMultiplicities = true;
-            return true;}
-        literalObject.literal = representative;
-        return false;}
+    protected void replaceLiteral(Literal oldLiteral, Literal newLiteral) {
+        for(int i = 0; i < literals.size(); ++i) {
+            if(literals.get(i) == oldLiteral) {
+                literals.set(i,newLiteral);
+                if(limit > 1) adjustMultiplicitiesToLimit();
+                break;}}}
+
+
+    /** reduces the literal's multiplicity to the clause's limit.
+     */
+    protected void adjustMultiplicitiesToLimit() {
+        expandedSize = 0;
+        hasMultiplicities = false;
+        for(Literal literalObject : literals) {
+            literalObject.multiplicity = Math.min(limit,literalObject.multiplicity);
+            expandedSize += literalObject.multiplicity;
+            hasMultiplicities |= literalObject.multiplicity > 1;}}
+
 
     /** reduces the clause to a disjunction.
      */

@@ -658,6 +658,7 @@ public class SimplifierTest extends TestCase {
         assertEquals("1: 1v2\n" +
                 "2: 2v3\n", simplifier.clauses.toString());
 
+        if(monitoring) System.out.println("\nNEW 1");
         simplifier.clear();
         simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 5}));
         simplifier.insertClause(new Clause(new int[]{2, cOr, 5,2}));
@@ -665,6 +666,7 @@ public class SimplifierTest extends TestCase {
         assertEquals("1: 1v5\n", simplifier.clauses.toString());
         assertEquals("2,5",simplifier.model.toString());
 
+        if(monitoring) System.out.println("\nNEW 2");
         simplifier.clear();
         simplifier.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,3, 5}));
         simplifier.insertClause(new Clause(new int[]{2, cAtleast, 3, 4,4,5,5,5,6,6,2}));
@@ -672,18 +674,40 @@ public class SimplifierTest extends TestCase {
         assertEquals("1: >= 2 1,3,2\n" +
                 "2: >= 3 4^2,6^2,2^3\n", simplifier.clauses.toString());
 
+        if(monitoring) System.out.println("\nNEW 3");
         simplifier.clear();
         simplifier.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,1,2,3,3}));
         simplifier.processEquivalence(3, 2, new InferenceTest("MyTest"));
         assertEquals("1: 1v3\n", simplifier.clauses.toString());
 
+        if(monitoring) System.out.println("\nNEW 4");
         simplifier.clear();
         Clause clause = new Clause(new int[]{1, cAtleast, 3, 1,1,2,3});
         simplifier.insertClause(clause);
         simplifier.processEquivalence(3, 2, new InferenceTest("MyTest"));
         assertFalse(clause.exists);
         assertEquals("1,3",simplifier.model.toString());
-        assertEquals("", simplifier.clauses.toString());}
+        assertEquals("", simplifier.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 5");
+        simplifier.clear();
+        simplifier.insertClause(new Clause(new int[]{1, cAtleast, 3, 1,1,2,3}));
+        simplifier.insertClause(new Clause(new int[]{2, cAtleast, 3, 1,2,2,3,3,4}));
+        simplifier.insertClause(new Clause(new int[]{3, cAtleast, 2, -1,-2,-3,-3,-4}));
+        simplifier.insertClause(new Clause(new int[]{4, cOr, -1,-2,-3,-4}));
+        simplifier.insertClause(new Clause(new int[]{5, cOr, -1,-3,}));
+        simplifier.insertClause(new Clause(new int[]{6, cAtleast, 2, -1,-2,-3,-3,-4,3}));
+        simplifier.insertClause(new Clause(new int[]{7, cAtleast, 2, 1,2,3,-4}));
+        simplifier.insertClause(new Clause(new int[]{8, cOr, -2,3,}));
+        simplifier.processEquivalence(2, 3, new InferenceTest("MyTest"));
+        assertEquals("3: >= 2 -1,-2^2,-4\n" +
+                "4: -1v-2v-4\n" +
+                "5: -1v-2\n" +
+                "6: -1v-2v-4\n" +
+                "7: >= 2 1,2^2,-4\n",simplifier.clauses.toString());
+
+
+    }
 
     public void testRemoveClausesSubsumedByLongerClause() throws Result {
         System.out.println("removeClausesSubsumedByLongerClause");

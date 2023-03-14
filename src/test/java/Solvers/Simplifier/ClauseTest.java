@@ -172,25 +172,5 @@ public class ClauseTest extends TestCase {
         assertTrue(removedLiterals.isEmpty());
     }
 
-    public void testReplaceEquivalenceTwo() {
-        System.out.println("replaceEquivalenceTwo");
-        Clause clause = new Clause(new int[]{10, cOr, 1,2});
-        assertFalse(clause.replaceEquivalenceTwo(3,2));
-        assertEquals("10: 1v3",clause.toString());
-
-        assertTrue(clause.replaceEquivalenceTwo(1,3));
-        assertEquals("10: 1v3",clause.toString());
-    }
-
-    public void testReplaceEquivalenceMore() {
-        System.out.println("replaceEquivalenceMore");
-        Clause clause = new Clause(new int[]{10, cAtleast, 2, 1,1,2,2,3,3});
-        assertFalse(clause.replaceEquivalenceMore(4,2));
-        assertEquals("10: >= 2 1^2,4^2,3^2",clause.toString());
-
-        assertTrue(clause.replaceEquivalenceMore(1,4));
-        assertEquals("10: >= 2 1^2,3^2",clause.toString());
-    }
-
 
 }

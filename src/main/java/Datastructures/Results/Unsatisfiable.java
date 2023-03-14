@@ -44,8 +44,8 @@ public abstract class Unsatisfiable extends Result {
         ArrayList<InferenceStep> steps = inferenceSteps();
         if(steps != null) {
             st.append("Sequence of Inference Steps:\n");
-            for(InferenceStep step : steps) st.append(step.toString(symboltable)).append("\n");}
+            for(InferenceStep step : steps) st.append(step.toString(symboltable)).append("\n");
             st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:\n");
-            for(String rule : InferenceStep.rules(steps)) {st.append("\n").append(rule).append("\n");}
+            for(String rule : InferenceStep.rules(steps)) {st.append("\n").append(rule).append("\n");}}
         return st.toString();}
 }

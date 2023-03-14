@@ -75,6 +75,20 @@ public class Literals {
         literalObject.previousLiteral = null;
         return literals[predicate] == null;}
 
+    /** updates the index position after a literalObject's literal has been changed.
+     *
+     * @param literalObject the literalObject with a new literal.
+     * @param oldLiteral    the previous literal of the literalObject.
+     * @return              true if the oldLiteral's position became empty.
+     */
+    public boolean replaceLiteral(Literal literalObject, int oldLiteral) {
+        int newLiteral = literalObject.literal;
+        literalObject.literal = oldLiteral;
+        boolean isEmpty = removeLiteral(literalObject);
+        literalObject.literal = newLiteral;
+        addLiteral(literalObject);
+        return isEmpty;}
+
     /** removes the entire predicate from the Literals index.
      *
      * @param literal a literal to be removed.

@@ -7,8 +7,6 @@ import InferenceSteps.InferenceStep;
  */
 public class UnsatisfiableLiteral extends Unsatisfiable {
     private final int literal;
-    private final InferenceStep stepLiteral1;
-    private final InferenceStep stepLiteral2;
 
     /** constructs an Unsatisfiable exception for a contradictory literal
      *
@@ -18,8 +16,8 @@ public class UnsatisfiableLiteral extends Unsatisfiable {
      */
     public UnsatisfiableLiteral(int literal, InferenceStep stepLiteral1, InferenceStep stepLiteral2) {
         this.literal = literal;
-        this.stepLiteral1 = stepLiteral1;
-        this.stepLiteral2 = stepLiteral2;}
+        inferenceSteps.add(stepLiteral1);
+        inferenceSteps.add(stepLiteral2);}
 
     @Override
     public String description(Symboltable symboltable) {
