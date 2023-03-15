@@ -22,6 +22,8 @@ public class Result extends Exception {
     /** the nanotime at which the result has been generated */
     public long endTime;
 
+    public long startTime;
+
     /** an optional message */
     public String message = null;
 
@@ -30,6 +32,13 @@ public class Result extends Exception {
     public Result() {
         super();
         endTime = System.nanoTime();}
+
+    /** returns the duration (endTime - startTime) in nanoseconds.
+     *
+     * @return 0 or the duration in nanoseconds.
+     */
+    public long getDuration() {
+        return (startTime != 0 && endTime != 0) ? endTime - startTime : 0;}
 
     /** gets the solverId.
      *

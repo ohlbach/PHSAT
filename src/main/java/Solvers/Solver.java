@@ -177,6 +177,10 @@ public abstract class Solver {
         trackReasoning          = problemSupervisor.globalParameters.trackReasoning;}
 
     public Solver() {}
+
+    /**
+     *
+     */
     protected void readModel() {
         solverId                   = (String)solverParameters.get("name");
         problemId                  = problemSupervisor.problemId;
@@ -239,9 +243,7 @@ public abstract class Solver {
      */
     public abstract Result solveProblem();
 
-    public abstract void prepare();
-
-    /** returns the statistics of the solver */
+    /** @return the statistics of the solver */
     public abstract Statistic getStatistics();
 
 

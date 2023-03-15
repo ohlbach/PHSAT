@@ -153,7 +153,7 @@ public class Simplifier extends Solver {
     private final PriorityBlockingQueue<Task<Simplifier.TaskType>> queue =
             new PriorityBlockingQueue<>(10, Comparator.comparingInt(this::getPriority));
 
-    /** reads the disjunctions, the atleast, atmost, exactly and interval clauses from inputClauses and transforms them to atleast-clauses.#
+    /** reads the disjunctions, the atleast, atmost, exactly and interval clauses from inputClauses and transforms them to atleast-clauses.
      * The clauses themselves are simplified as far as possible.<br>
      * New unit clauses are put into the model. <br>
      * Two-literal clauses generate a corresponding task.
@@ -322,24 +322,27 @@ public class Simplifier extends Solver {
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
 
-    /** The method applies a true literal to the clause.<br>
-        * For a disjunction this means that the clause is true and can therefore be deleted.<br>
-        * For a quantified clause this means that the literal can be deleted and the limit
-        * must be reduced by the literal's multiplicity.
-        * <br>
-        * The resulting clause must be checked for the following phenomena: <br>
-        *  - if the resulting limit is &lt;= 0, the clause is true and can be deleted.<br>
-        *  - if the resulting limit is 1, the clause became a disjunction. <br>
-        *  - if the limit is still &gt; 1, new true literals might be derived.<br>
-        *  Example: atleast 4 p,q^2,r^2 and p is true<br>
-        *  The clause is then: atleast 3 q^2,r^2. <br>
-        *  Both q and r must now be true.
-        *  */
+    /** The method applies a true literal to the clause.
+     * For a disjunction this means that the clause is true and can therefore be deleted.<br>
+     * For a quantified clause this means that the literal can be deleted and the limit
+     * must be reduced by the literal's multiplicity.
+     * <br>
+     * The resulting clause must be checked for the following phenomena: <br>
+     *  - if the resulting limit is &lt;= 0, the clause is true and can be deleted.<br>
+     *  - if the resulting limit is 1, the clause became a disjunction. <br>
+     *  - if the limit is still &gt; 1, new true literals might be derived.<br>
+     *  Example: atleast 4 p,q^2,r^2 and p is true<br>
+     *  The clause is then: atleast 3 q^2,r^2. <br>
+     *  Both q and r must now be true.
+     *
+     * @param literal a true literal.
+     * @throws Unsatisfiable if a contradiction is found.
+     *  */
     protected void processTrueLiteral(int literal) throws Unsatisfiable {
         processTrueLiteralTwo(literal);
         processTrueLiteralMore(literal);}
 
-    /** applies a true literal to all two-literal clauses containing this literal.<br>
+    /** applies a true literal to all two-literal clauses containing this literal.
      * Clauses containing this literal are removed.<br>
      * Clauses containing -literal yield a new true literal, which is put into the model.<br>
      * The clause is removed as well.
@@ -373,7 +376,7 @@ public class Simplifier extends Solver {
 
         literalIndexTwo.removePredicate(literal);}
 
-    /** applies a true literal to all longer clauses containing this literal.<br>
+    /** applies a true literal to all longer clauses containing this literal.
      * All literals with a truth value in the model are removed.<br>
      * Clauses which become true in this step are entirely removed.<br>
      * The empty clause causes an UnsatEmptyClause exception to be thrown.<br>
@@ -458,8 +461,18 @@ public class Simplifier extends Solver {
                                 addBinaryMergeTask(clause);}
         else                   addLongerClauseTask(clause);}
 
+    /** processes the BinaryClause task.
+     * - clauses subsumed by the binary clause are removed. <br>
+     * - merge resolution with the binary clause is performed.<br>
+     * - equivalences are detected. <br>
+     * - all binary resolvents with the other binary clauses are generated.
+     *
+     * @param clause         a two-literal clause
+     * @throws Unsatisfiable if a contradiction is discovered.
+     */
     protected void processBinaryClause(Clause clause) throws Unsatisfiable {
         if(!clause.exists) return;
+        assert(clause.size() == 2);
         int literal1 = clause.literals.get(0).literal;
         int literal2 = clause.literals.get(1).literal;
         removeClausesSubsumedByBinaryClause(clause);
@@ -499,7 +512,7 @@ public class Simplifier extends Solver {
             subsumeeLiteral = subsumeeLiteral.nextLiteral;}
         ++timestamp;}
 
-    /** removes all clauses subsumed by the given clause.<br>
+    /** removes all clauses subsumed by the given clause.
      *  A clause atleast n    p_1^k1 ... p_n^kn subsumes <br>
      *  a clause atleast n-.. p_1^(k1+..) ... p_n^(kn+..) phi <br>
      *  where - means smaller or equal and + means larger or equal.<br>
@@ -539,7 +552,7 @@ public class Simplifier extends Solver {
                 subsumeeLiteral = subsumeeLiteral.nextLiteral;}}
         timestamp += subsumerSize + 1;}
 
-        /** performs merge resolution between binary clauses and equivalence recognition, if possible.<br>
+        /** performs merge resolution between binary clauses and equivalence recognition, if possible.
          * Binary MergeResolution:  p,q and -p,q -&gt; true(q).<br>
          * Equivalence Recognition: p,q and -p,-q -&gt; p == q.<br>
          * A derived true literal is inserted into the model.<br>
@@ -592,7 +605,7 @@ public class Simplifier extends Solver {
                 literalObject = literalObject.nextLiteral;}}
         ++timestamp;}
 
-    /** performs resolution between the given clause and other binary clauses.<br>
+    /** performs resolution between the given clause and other binary clauses.
      * Subsumed resolvents are ignored. <br>
      * If the resolvent's literals are identical it is inserted into the model.<br>
      * Other resolvents generate a new BinaryClauseTask.
@@ -621,11 +634,12 @@ public class Simplifier extends Solver {
      * A subsumed resolvent is not returned.<br>
      * If the resolvent merges to a unit clauses, both clauses are removed.
      *
-     * @param clause1 a binary disjunction
-     * @param clause2 a binary disjunction
+     * @param clause1 a binary disjunction.
+     * @param clause2 a binary disjunction.
+     * @throws Unsatisfiable if a contradiction is found.
      * @return the resolvent or null if either the resolvent is subsumed, or a true literal is derived.
      */
-    protected Clause resolveBetweenBinaryClauses(Clause clause1, Clause clause2) throws Unsatisfiable {
+    protected Clause resolveBetweenBinaryClauses(Clause clause1, Clause clause2) throws Unsatisfiable{
         assert(clause1.size() == 2);
         assert(clause2.size() == 2);
         int literala1 = clause1.literals.get(0).literal;
@@ -725,7 +739,7 @@ public class Simplifier extends Solver {
                 else {clause = clause.nextClause;}}
             break;}}
 
-    /** performs merge resolution between a binary clause and a longer clause.<br>
+    /** performs merge resolution between a binary clause and a longer clause.
      *  atleast n p,q^n,phi<br>
      *  -p,q<br>
      *  ----------------------<br>
@@ -768,7 +782,7 @@ public class Simplifier extends Solver {
     }
 
 
-    /** performs merge resolution between longer clauses.<br>
+    /** performs merge resolution between longer clauses.
      * atleast n p^n',q_1^k_1,...,q_l^k_l and<br>
      * atleast m -p^n,q_1^m,...,q_l^m, phi<br>
      * ----------------------------------<br>
@@ -843,7 +857,7 @@ public class Simplifier extends Solver {
         return true;}
 
 
-    /** performs merge resolution between longer clauses, including a binary clauseP.<br>
+    /** performs merge resolution between longer clauses, including a binary clauseP.
      * atleast n p^n',q_1^k_1,...,q_l^k_l and<br>
      *          -p,s and<br>
      * atleast m -s^(n-n'+1),q_1^m,...,q_l^m, phi<br>
@@ -931,7 +945,7 @@ public class Simplifier extends Solver {
     /** helps in mergeResolutionBinaryTriggered */
     private final Throwable throwable = new Throwable();
 
-    /** performs all mergeResolutions which are triggered by a two-literal clause.<br>
+    /** performs all mergeResolutions which are triggered by a two-literal clause.
      * atleast n p^n',q^k r^l<br>
      *          -p,-s<br>
      * atleast m    s^(n-n'+1) q^m,r^m,phi<br>
@@ -1016,17 +1030,32 @@ public class Simplifier extends Solver {
             timestamp += clausePSize + 1;
             }}
 
+    /** adds a two-literal clause as ProcessBinaryClause task to the task queue.
+     *
+     * @param clause a two-literal clause.
+     */
     protected void addBinaryClauseTask(Clause clause) {
+        assert(clause.size() == 2);
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessBinaryClause, clause));}}
 
+    /** adds a two-literal clause as ProcessBinaryTriggeredMerging task to the task queue.
+     *
+     * @param clause a two-literal clause.
+     */
     protected void addBinaryMergeTask(Clause clause) {
+        assert(clause.size() == 2);
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessBinaryTriggeredMerging, clause));}}
 
+    /** adds a two-literal clause as ProcessLongerClause task to the task queue.
+     *
+     * @param clause a longer clause.
+     */
     protected void addLongerClauseTask(Clause clause) {
+        assert(clause.size() > 2);
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessLongerClause, clause));}}
 
 
-    /** This method replaces in all clauses the given literal by the given representative.<br>
+    /** This method replaces in all clauses the given literal by the given representative.
      * The new clauses are simplified as far as possible.<br>
      * Derived true literals are inserted into the model.
      *
@@ -1130,7 +1159,7 @@ public class Simplifier extends Solver {
         clauses.addClause(clause);}
 
 
-    /** removes the clause from the internal lists.<br>
+    /** removes the clause from the internal lists.
      *
      * @param clause  a clause to be removed.
      * @param checkPurity if true then the clause's literals are checked for purity.
@@ -1162,6 +1191,7 @@ public class Simplifier extends Solver {
      * If the clause becomes a two-literal clause, it is moved to the two-literal index.
      *
      * @param literalObject the literal object to be removed.
+     * @param reduceLimit if true then the clause's limit is reduced by the literal's multiplicity.
      * @return true if the clause still exists.
      * @throws Unsatisfiable if inserting a pure literal into the model causes a contradiction.
      */
@@ -1178,7 +1208,7 @@ public class Simplifier extends Solver {
     /** used in simplifyClause */
     private final ArrayList<Literal> removedLiterals = new ArrayList<>(5);
 
-    /** simplifies an atleast-clause with multiplicities > 1.<br>
+    /** simplifies an atleast-clause with multiplicities &gt; 1.
      * 1. True literals are extracted.<br>
      * Example: atleast 5 p^2,q^2,r,s -&gt; true(p,q) and r,s (disjunction).<br>
      * 2. Clause is reduced to essential literals.<br>
@@ -1256,8 +1286,14 @@ public class Simplifier extends Solver {
         model.clear();
         statistics.clear();}
 
+    /** reads the input clauses and processes the tasks in the task queue.
+     * The simplifier tries to derive unit clause, pure literals and equivalences.
+     *
+     * @return null or a result (unsatisfiable or satisfiable)
+     */
     @Override
     public Result solveProblem() {
+        long startTime = System.nanoTime();
         try{
             readInputClauses();
             processTasks(0);}
@@ -1265,16 +1301,15 @@ public class Simplifier extends Solver {
             result.statistic = statistics;
             result.solver = this.getClass();
             result.problemId = problemId;
+            result.startTime = startTime;
             return result;}
         return null;}
 
-    @Override
-    public void prepare() {
-
-    }
-
+    /** returns the statistics.
+     *
+     * @return the statistics.
+     */
     @Override
     public Statistic getStatistics() {
-        return statistics;
-    }
+        return statistics;}
 }
