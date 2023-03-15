@@ -281,15 +281,6 @@ public class Simplifier extends Solver {
             return true;}
         return false;}
 
-    /** checks all literals in the clause for purity.
-     * Pure literals are put into the model.
-     *
-     * @param clause         a clause to be checked.
-     * @throws Unsatisfiable should not happen.
-     */
-    protected void checkPurity(Clause clause) throws Unsatisfiable {
-        for(Literal literalObject : clause.literals) checkPurity(literalObject.literal);}
-
     /** adds a true literal to the queue
      *
      * @param literal a true literal
@@ -322,6 +313,7 @@ public class Simplifier extends Solver {
                     case ProcessLongerInputClause: processLongerInputClause(task);      break;
                     case ProcessBinaryTriggeredMerging: {
                         Clause clause = (Clause)task.a;
+                        if(!clause.exists) break;
                         assert(clause.size() == 2);
                         mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
                         mergeResolutionBinaryTriggered(clause, clause.literals.get(1),clause.literals.get(0));
@@ -703,11 +695,10 @@ public class Simplifier extends Solver {
      * @throws Unsatisfiable if a contradiction is dicovered.
      */
     protected void processLongerClause(Clause clause) throws Unsatisfiable {
-        removeClausesSubsumedByLongerClause(clause);
-        mergeResolutionWithLongerClauseDirect(clause);
         if(!clause.exists) return;
-        mergeResolutionWithLongerClauseIndirect(clause);
-    }
+        removeClausesSubsumedByLongerClause(clause);
+        if(!mergeResolutionWithLongerClauseDirect(clause)) return;
+        mergeResolutionWithLongerClauseIndirect(clause);}
 
     /** performs forward subsumption and merge resolution with the given longer input clause.
      *  After this, a new ProcessLongerInputClause for the next input clause is added to the queue.
@@ -938,7 +929,7 @@ public class Simplifier extends Solver {
         return true;}
 
     /** helps in mergeResolutionBinaryTriggered */
-    private Throwable throwable = new Throwable();
+    private final Throwable throwable = new Throwable();
 
     /** performs all mergeResolutions which are triggered by a two-literal clause.<br>
      * atleast n p^n',q^k r^l<br>
@@ -953,9 +944,9 @@ public class Simplifier extends Solver {
      * @param twoClause       a two-literal clause
      * @param literalObject1  one of its literals
      * @param literalObject2  the other literal
-     * @throws Unsatisfiable  if a contradiction is encountered.
      */
-    protected void mergeResolutionBinaryTriggered(Clause twoClause, Literal literalObject1, Literal literalObject2) throws Unsatisfiable {
+    protected void mergeResolutionBinaryTriggered(Clause twoClause, Literal literalObject1, Literal literalObject2) {
+        if(!twoClause.exists) return;
         Literal literalObjectP = literalIndexMore.getFirstLiteralObject(-literalObject1.literal);
         while(literalObjectP != null) {
             Clause clauseP = literalObjectP.clause; // this is a candidate for the shorter resolution parent clause.
@@ -1153,14 +1144,6 @@ public class Simplifier extends Solver {
             if(checkPurity) {checkPurity(literalObject.literal); checkPurity(-literalObject.literal);}}}
 
 
-    /** removes all the literals in the clause from the corresponding index.
-     *
-     * @param clause a clause
-     */
-    protected void removeAllLiteralsFromIndex(Clause clause) {
-        Literals literalIndex = (clause.size() == 2) ? literalIndexTwo : literalIndexMore;
-        for(Literal literalObject : clause.literals) {
-            literalIndex.removeLiteral(literalObject);}}
 
     /** removes the Literal from the corresponding index.
      *
@@ -1170,16 +1153,6 @@ public class Simplifier extends Solver {
         Clause clause = literalObject.clause;
         Literals literalIndex = (clause.size() == 2) ? literalIndexTwo : literalIndexMore;
         literalIndex.removeLiteral(literalObject);}
-
-
-    /** adds all the literals of the clause to the corresponding index.
-     *
-     * @param clause a clause.
-     */
-    protected void addAllLiteralsToIndex(Clause clause) {
-        Literals literalIndex = (clause.size() == 2) ? literalIndexTwo : literalIndexMore;
-        for(Literal literalObject : clause.literals) {
-            literalIndex.addLiteral(literalObject);}}
 
 
 

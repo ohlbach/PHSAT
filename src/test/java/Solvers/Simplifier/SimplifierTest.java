@@ -25,7 +25,7 @@ public class SimplifierTest extends TestCase {
     static int cInterval = Quantifier.INTERVAL.ordinal();
 
 
-    static boolean monitoring = true;
+    static boolean monitoring = false;
 
     static Symboltable symboltable = new Symboltable(10);
 
@@ -951,7 +951,7 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(new Clause(new int[]{2, cOr, 1,3,4}));
         simplifier.insertClause(new Clause(new int[]{3, cOr, 2,3,4}));
         simplifier.mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
-        System.out.println(simplifier.clauses.toString());
+        if(monitoring) System.out.println(simplifier.clauses.toString());
         assertEquals("1: -1v-2\n" +
                 "3: 3v4\n",simplifier.clauses.toString());
 
