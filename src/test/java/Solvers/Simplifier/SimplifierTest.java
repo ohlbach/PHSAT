@@ -939,8 +939,66 @@ public class SimplifierTest extends TestCase {
     }
 
 
+    public void testMergeResolutionBinaryTriggered() throws Result {
+        System.out.println("mergeResolutionBinaryTriggered");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+        Clause clause = new Clause(new int[]{1, cOr, -1, -2});
+        simplifier.insertClause(clause);
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 1,3,4}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, 2,3,4}));
+        simplifier.mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
+        System.out.println(simplifier.clauses.toString());
+        assertEquals("1: -1v-2\n" +
+                "3: 3v4\n",simplifier.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 2");
+        simplifier.clear();
+        clause = new Clause(new int[]{1, cOr, -1, -2});
+        simplifier.insertClause(clause);
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 1,3,4}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, 2,3,4,5}));
+        simplifier.mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
+
+        assertEquals("1: -1v-2\n" +
+                "2: 1v3v4\n" +
+                "3: 3v4v5\n",simplifier.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 3");
+        simplifier.clear();
+        clause = new Clause(new int[]{1, cOr, -1, -2});
+        simplifier.insertClause(clause);
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 1,3,4}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, 2,3,4,5}));
+        simplifier.insertClause(new Clause(new int[]{4, cOr, 1,5,6}));
+        simplifier.insertClause(new Clause(new int[]{5, cOr, 2,6,5}));
+        simplifier.mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
+
+        assertEquals("1: -1v-2\n" +
+                "2: 1v3v4\n" +
+                "3: 3v4v5\n" +
+                "5: 6v5\n",simplifier.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 4");
+        simplifier.clear();
+        clause = new Clause(new int[]{1, cOr, -1, -2});
+        simplifier.insertClause(clause);
+        simplifier.insertClause(new Clause(new int[]{2, cAtleast, 3, 1,1,3,4}));
+        simplifier.insertClause(new Clause(new int[]{3, cAtleast, 4, 2,2,3,3,3,3,4,4,4,4,5}));
+        simplifier.insertClause(new Clause(new int[]{4, cAtleast, 4, 2,2,3,3,3,3,4,4,4,5}));
+        simplifier.mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
+
+        assertEquals("1: -1v-2\n" +
+                "2: >= 3 1^2,3,4\n" +
+                "3: 3v4\n" +
+                "4: >= 4 2^2,3^4,4^3,5\n",simplifier.clauses.toString());
+        if(monitoring) System.out.println(simplifier.statistics.toString());
 
 
+    }
     }
 
 

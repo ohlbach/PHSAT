@@ -323,8 +323,8 @@ public class Simplifier extends Solver {
                     case ProcessBinaryTriggeredMerging: {
                         Clause clause = (Clause)task.a;
                         assert(clause.size() == 2);
-                        mergeBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
-                        mergeBinaryTriggered(clause, clause.literals.get(1),clause.literals.get(0));
+                        mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
+                        mergeResolutionBinaryTriggered(clause, clause.literals.get(1),clause.literals.get(0));
                         break;}}
                 if(clauses.isEmpty()) throw new Satisfiable(model);}
             catch(InterruptedException ex) {return;}
@@ -937,6 +937,9 @@ public class Simplifier extends Solver {
             timestamp += clausePSize + 1;}
         return true;}
 
+    /** helps in mergeResolutionBinaryTriggered */
+    private Throwable throwable = new Throwable();
+
     /** performs all mergeResolutions which are triggered by a two-literal clause.<br>
      * atleast n p^n',q^k r^l<br>
      *          -p,-s<br>
@@ -952,39 +955,41 @@ public class Simplifier extends Solver {
      * @param literalObject2  the other literal
      * @throws Unsatisfiable  if a contradiction is encountered.
      */
-    protected void mergeBinaryTriggered(Clause twoClause, Literal literalObject1, Literal literalObject2) throws Unsatisfiable {
-        Throwable throwable = new Throwable();
+    protected void mergeResolutionBinaryTriggered(Clause twoClause, Literal literalObject1, Literal literalObject2) throws Unsatisfiable {
         Literal literalObjectP = literalIndexMore.getFirstLiteralObject(-literalObject1.literal);
         while(literalObjectP != null) {
-            Clause clauseP = literalObjectP.clause;
+            Clause clauseP = literalObjectP.clause; // this is a candidate for the shorter resolution parent clause.
             if(clauseP == null) {literalObjectP = literalObjectP.nextLiteral; continue;}
             int limitP = clauseP.limit;
             int clausePSize = clauseP.size();
             int multP = literalObjectP.multiplicity;
             try{
                 Literal literalObjectS = literalIndexMore.getFirstLiteralObject(-literalObject2.literal);
+                boolean candidatesFound = false;
                 while(literalObjectS != null) {
                     Clause clauseS = literalObjectS.clause;
                     if(clauseS == null) {literalObjectS = literalObjectS.nextLiteral; continue;}
                     if(clauseS.size() >= clausePSize && clauseS.limit >= clauseP.limit &&
-                            literalObjectS.multiplicity == limitP-multP+1) clauseS.timestamp = timestamp;
+                            literalObjectS.multiplicity == limitP-multP+1) {
+                        clauseS.timestamp = timestamp; candidatesFound = true;}
                     literalObjectS = literalObjectS.nextLiteral;}
 
+                if(!candidatesFound) {literalObjectP = literalObjectP.nextLiteral; continue;}
                 int i =0;
                 for(Literal literalObjectPi : clauseP.literals) {
                     if(literalObjectPi == literalObjectP) continue;
                     ++i;
                     Literal literalObjectSi = literalIndexMore.getFirstLiteralObject(literalObjectPi.literal);
                     while(literalObjectSi != null) {
-                        Clause clauseS = literalObjectSi.clause;
-                        if(clauseS == null) {literalObjectSi = literalObjectSi.nextLiteral; continue;}
-                        if(((clauseS.timestamp - timestamp) == i-1) && literalObjectSi.multiplicity == clauseS.limit) {
+                        Clause clauseS = literalObjectSi.clause; // this is a candidate for the longer resolution parent clause.
+                        if(clauseS == null || clauseS == clauseP) {literalObjectSi = literalObjectSi.nextLiteral; continue;}
+                         if(((clauseS.timestamp - timestamp) == i-1) && literalObjectSi.multiplicity == clauseS.limit) {
                             ++clauseS.timestamp;
                             if(clauseS.timestamp - timestamp == clausePSize-1) { // mergepartner found
                                 String resolventBefore = (trackReasoning | monitoring) ? clauseS.toString(symboltable,0) : null;
                                 if(clauseS.size() == clausePSize) { // both are equally long
                                     ++statistics.mergedClauses;
-                                    if(removeLiteralFromClause(literalObjectS,false)) {
+                                    if(removeLiteralFromClause(clauseS.findLiteral(-literalObject2.literal),false)) {
                                         clauseS.reduceToDisjunction();  // clauseS becomes a disjunction.
                                         addShortenedClauseTask(clauseS);
                                         if(trackReasoning) {
@@ -1001,12 +1006,12 @@ public class Simplifier extends Solver {
                                         throw throwable;}} // go to next clauseP
                                 else {
                                     ++statistics.mergedClauses;
-                                    if(removeLiteralFromClause(clauseS.findLiteral(-literalObjectS.literal),false)) {
+                                    if(removeLiteralFromClause(clauseS.findLiteral(-literalObject2.literal),false)) {
                                         if(trackReasoning) {
                                             clauseS.inferenceStep =
                                                 new InfMergeResolutionIndirect(clauseP,twoClause,resolventBefore,clauseS,symboltable);}
                                         if(monitoring) {
-                                            monitor.println(monitorId, twoClause.toString(symboltable,0) + " and " +
+                                            monitor.println(monitorId, clauseP.toString(symboltable,0) + " and " +
                                                 twoClause.toString(symboltable,0) + " and " +
                                                 resolventBefore + " -> " + clauseS.toString(symboltable,0));}
                                         if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
@@ -1014,8 +1019,11 @@ public class Simplifier extends Solver {
                         literalObjectSi = literalObjectSi.nextLiteral;}}}
             catch(Throwable th){
                 literalObjectP = literalObjectP.nextLiteral;
-                timestamp += clausePSize + 1;}}
-            }
+                timestamp += clausePSize + 1;
+                continue;}
+            literalObjectP = literalObjectP.nextLiteral;
+            timestamp += clausePSize + 1;
+            }}
 
     protected void addBinaryClauseTask(Clause clause) {
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessBinaryClause, clause));}}

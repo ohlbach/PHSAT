@@ -6,11 +6,11 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="PHSAT" />
+        <module name="QuSAT" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="PHSAT" target="1.8" />
+      <module name="QuSAT" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
