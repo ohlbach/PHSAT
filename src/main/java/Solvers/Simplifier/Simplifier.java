@@ -785,10 +785,11 @@ public class Simplifier extends Solver {
      * If phi is empty and n = 1 then the first clause is removed entirely.<br>
      * The shortened clause is simplified further and a new task is generated.
      *
-     * @param clauseP a clause to be tested as parent clause for a merge resolution step
+     * @param clauseP a clause to be tested as parent clause for a merge resolution step.
+     * @return        true if the clause itself has survived.
      * @throws Unsatisfiable if the simplification causes an Unsatisfiable exception.
      */
-    protected void mergeResolutionWithLongerClauseDirect(Clause clauseP) throws Unsatisfiable {
+    protected boolean mergeResolutionWithLongerClauseDirect(Clause clauseP) throws Unsatisfiable {
         boolean candidateClausesFound;
         int clausePSize = clauseP.literals.size();
         int limitP = clauseP.limit;
@@ -811,7 +812,7 @@ public class Simplifier extends Solver {
                 ++i;
                 Literal literalObjectSi = literalIndexMore.getFirstLiteralObject(literalObjectPi.literal);
                 while(literalObjectSi != null) {
-                    Clause clauseS = literalObjectSi.clause;
+                    Clause clauseS = literalObjectSi.clause;  // this is the potential merge partner.
                     if(clauseS == null) {literalObjectSi = literalObjectSi.nextLiteral; continue;}
                     if((clauseS.timestamp -timestamp) == i-1 && literalObjectSi.multiplicity == clauseS.limit) {
                         ++clauseS.timestamp;
@@ -820,7 +821,7 @@ public class Simplifier extends Solver {
                             if(clauseS.size() == clausePSize) {// both are equally long
                                 ++statistics.mergedClauses;
                                 if(removeLiteralFromClause(clauseS.findLiteral(literalObjectPNeg),false)) {
-                                    clauseS.reduceToDisjunction();  // clauseS becomes a disjunction.
+                                    clauseS.reduceToDisjunction();  // clauseS becomes a disjunction (implicit GCD-reduction)
                                     addShortenedClauseTask(clauseS);
                                     if(trackReasoning) {
                                         clauseS.inferenceStep =
@@ -833,7 +834,7 @@ public class Simplifier extends Solver {
                                     ++statistics.mergedClauses;
                                     removeClause(clauseP,true);
                                     timestamp += clausePSize + 1;
-                                    return;}}
+                                    return false;}}
                             else {
                                 ++statistics.mergedClauses;
                                 if(removeLiteralFromClause(clauseS.findLiteral(literalObjectPNeg),false)){
@@ -847,7 +848,8 @@ public class Simplifier extends Solver {
                                     if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
                                     else removeClause(clauseS,true);}}}}
                     literalObjectSi = literalObjectSi.nextLiteral;}}
-            timestamp += clausePSize + 1;}}
+            timestamp += clausePSize + 1;}
+        return true;}
 
 
     /** performs merge resolution between longer clauses, including a binary clauseP.<br>
@@ -859,10 +861,11 @@ public class Simplifier extends Solver {
      * If phi is empty then one clauseP is removed entirely.<br>
      * The shortened clauseP is simplified further and a new task is generated.
      *
-     * @param clauseP a clause to be tested as parent clause for a merging resolution step
+     * @param clauseP a clause to be tested as parent clause for a merging resolution step.
+     * @return        true if the clause survived.
      * @throws Unsatisfiable if the simplification causes an Unsatisfiable exception.
      */
-    protected void mergeResolutionWithLongerClauseIndirect(Clause clauseP) throws Unsatisfiable {
+    protected boolean mergeResolutionWithLongerClauseIndirect(Clause clauseP) throws Unsatisfiable {
         boolean candidateClausesFound;
         int clausePSize = clauseP.literals.size();
         int limitP = clauseP.limit;
@@ -874,6 +877,7 @@ public class Simplifier extends Solver {
                 if(twoClause == null) {twoLiteralP = twoLiteralP.nextLiteral; continue;}
                 candidateClausesFound = false;
                 Literal twoLiteralS = twoClause.otherLiteral(twoLiteralP);
+                if(clauseP.findLiteral(-twoLiteralS.literal) != null) {twoLiteralP = twoLiteralP.nextLiteral; continue;}
                 Literal literalObjectS = literalIndexMore.getFirstLiteralObject(-twoLiteralS.literal);
                 while(literalObjectS != null) { // mark all potential candidates with timestamp
                     Clause clauseS = literalObjectS.clause;
@@ -913,7 +917,7 @@ public class Simplifier extends Solver {
                                         ++statistics.mergedClauses;
                                         removeClause(clauseP,true);
                                         timestamp += clausePSize + 1;
-                                        return;}}
+                                        return false;}}
                                 else {
                                     ++statistics.mergedClauses;
                                     if(removeLiteralFromClause(clauseS.findLiteral(-twoLiteralS.literal),false)) {
@@ -930,7 +934,8 @@ public class Simplifier extends Solver {
                         literalObjectSi = literalObjectSi.nextLiteral;}}
                 timestamp += clausePSize + 1;
                 twoLiteralP = twoLiteralP.nextLiteral;}
-            timestamp += clausePSize + 1;}}
+            timestamp += clausePSize + 1;}
+        return true;}
 
     /** performs all mergeResolutions which are triggered by a two-literal clause.<br>
      * atleast n p^n',q^k r^l<br>
@@ -1173,6 +1178,7 @@ public class Simplifier extends Solver {
     /** removes the literal from the clause and from the corresponding index.
      * If the literal becomes pure, it is inserted into the model.<br>
      * If the limit is reduced to 0, the entire clause is removed.<br>
+     * If the clause becomes a two-literal clause, it is moved to the two-literal index.
      *
      * @param literalObject the literal object to be removed.
      * @return true if the clause still exists.
@@ -1183,7 +1189,7 @@ public class Simplifier extends Solver {
         removeLiteralFromIndex(literalObject);
         if(clause.removeLiteral(literalObject,reduceLimit)){
             if(clause.size() == 2) {moveToIndexTwo(clause);}
-            checkPurity(-literalObject.literal); // pure literals are just added to the model.
+            checkPurity(literalObject.literal); // pure literals are just added to the model.
             return true;}
         removeClause(clause,true);
         return false;}

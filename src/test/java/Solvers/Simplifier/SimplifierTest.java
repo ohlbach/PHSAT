@@ -504,8 +504,9 @@ public class SimplifierTest extends TestCase {
         simplifier.mergeResolutionWithBinaryClause(clause1,1,2);
         assertEquals("2: 1v2\n" +
                 "3: >= 2 2^2,3,4\n",simplifier.clauses.toString());
-        if(monitoring) System.out.println("INF " + clause2.inferenceStep.toString());
+        if(monitoring) System.out.println("Iference step\n   " + clause2.inferenceStep.toString());
 
+        if(monitoring) System.out.println("\nNEW 2");
         simplifier.clear();
         clause1 = new Clause(new int[]{2, cOr, 1, 2});
         simplifier.insertClause(clause1);
@@ -513,9 +514,10 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause2);
         simplifier.mergeResolutionWithBinaryClause(clause1,1,2);
         assertEquals("2: 1v2\n",simplifier.clauses.toString());
-        assertEquals("1,2,3",simplifier.model.toString());
+        assertEquals("2,3",simplifier.model.toString());
         if(monitoring) System.out.println(simplifier.statistics.toString());
 
+        if(monitoring) System.out.println("\nNEW 3");
         simplifier.clear();
         clause1 = new Clause(new int[]{2, cOr, 1, 2});
         simplifier.insertClause(clause1);
@@ -525,6 +527,27 @@ public class SimplifierTest extends TestCase {
         assertEquals("2: 1v2\n" +
                 "3: >= 3 -1,2^2,3,4\n",simplifier.clauses.toString());
         assertEquals("",simplifier.model.toString());
+
+        if(monitoring) System.out.println("\nNEW 4");
+        simplifier.clear();
+        clause1 = new Clause(new int[]{2, cOr, 1, 2});
+        simplifier.insertClause(clause1);
+        simplifier.insertClause(new Clause(new int[]{3, cAtleast, 3, -1, 2,2,3,4}));
+        simplifier.insertClause(new Clause(new int[]{4, cAtleast, 3, -1, 2,2,2,3,4}));
+        simplifier.insertClause(new Clause(new int[]{5, cOr, 2,3,-1,4}));
+        simplifier.insertClause(new Clause(new int[]{6, cOr, -2,3,-1,4}));
+        simplifier.insertClause(new Clause(new int[]{7, cOr, 2,3,4}));
+        simplifier.insertClause(new Clause(new int[]{8, cOr, -2,3,1}));
+        simplifier.mergeResolutionWithBinaryClause(clause1,1,2);
+        simplifier.mergeResolutionWithBinaryClause(clause1,2,1);
+        assertEquals("2: 1v2\n" +
+                "3: >= 3 -1,2^2,3,4\n" +
+                "5: 2v3v4\n" +
+                "6: -2v3v-1v4\n" +
+                "7: 2v3v4\n" +
+                "8: 3v1\n",simplifier.clauses.toString());
+        assertEquals("2,3,4",simplifier.model.toString());
+        if(monitoring) System.out.println(simplifier.statistics.toString());
 
     }
     public void testBinaryClauseResolutionCompletion() throws Result {
@@ -766,19 +789,19 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause);
         Clause clause1 = new Clause(new int[]{2, cOr, 3, -2, 1, 4});
         simplifier.insertClause(clause1);
-        simplifier.mergeResolutionWithLongerClauseDirect(clause);
+        assertTrue(simplifier.mergeResolutionWithLongerClauseDirect(clause));
         assertEquals("1: 1v2v3\n" +
                 "2: 3v1v4\n", simplifier.clauses.toString());
         if(monitoring) {
             System.out.println(clause1.inferenceStep.toString());
             System.out.println(clause1.inferenceStep.inputClauseIds());}
 
-        if(monitoring) System.out.println("NEW 2");
+        if(monitoring) System.out.println("\nNEW 2");
         simplifier.clear();
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});
         simplifier.insertClause(clause);
         simplifier.insertClause(new Clause(new int[]{2, cOr, 3, -2, 1}));
-        simplifier.mergeResolutionWithLongerClauseDirect(clause);
+        assertFalse(simplifier.mergeResolutionWithLongerClauseDirect(clause));
         assertEquals("2: 3v1\n", simplifier.clauses.toString());
 
         if(monitoring) {
@@ -788,13 +811,41 @@ public class SimplifierTest extends TestCase {
             clause1.inferenceStep.inferenceSteps(steps);
             for(InferenceStep step : steps) System.out.println(step.toString());}
 
+        if(monitoring) System.out.println("\nNEW 3");
         simplifier.clear();
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});
         simplifier.insertClause(clause);
         simplifier.insertClause(new Clause(new int[]{2, cOr, 3, -2, 4}));
-        simplifier.mergeResolutionWithLongerClauseDirect(clause);
+        assertTrue(simplifier.mergeResolutionWithLongerClauseDirect(clause));
         assertEquals("1: 1v2v3\n" +
-                "2: 3v-2v4\n", simplifier.clauses.toString());}
+                "2: 3v-2v4\n", simplifier.clauses.toString());
+
+
+        if(monitoring) System.out.println("\nNEW 4");
+        simplifier.clear();
+        clause = new Clause(new int[]{1, cAtleast, 2, 1, 2, 3});
+        simplifier.insertClause(clause);
+        simplifier.insertClause(new Clause(new int[]{2, cAtleast, 2, -1,-1,2,2,3,3}));
+        assertTrue(simplifier.mergeResolutionWithLongerClauseDirect(clause));
+        assertEquals("1: >= 2 1,2,3\n" +
+                "2: 2v3\n", simplifier.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 5");
+        simplifier.clear();
+        clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        simplifier.insertClause(clause);
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 3, -2, 4}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, 3, -2, -1}));
+        simplifier.insertClause(new Clause(new int[]{4, cOr, 3, -1, 4,2,5}));
+        simplifier.insertClause(new Clause(new int[]{5, cOr, -3, 2, 4,1}));
+        assertTrue(simplifier.mergeResolutionWithLongerClauseDirect(clause));
+        assertEquals("1: 1v2v3\n" +
+                "2: 3v-2v4\n" +
+                "3: 3v-2v-1\n" +
+                "4: 3v4v2v5\n" +
+                "5: 2v4v1\n", simplifier.clauses.toString());
+        if(monitoring) System.out.println(simplifier.statistics.toString());
+    }
 
     public void testmergeResolutionWithLongerClauseDirect2 () throws Result {
         System.out.println("mergeResolutionWithLongerClauseDirect 2");
@@ -814,8 +865,8 @@ public class SimplifierTest extends TestCase {
 
         }
 
-    public void testMergeResolutionWithLongerClauseInDirect () throws Result {
-        System.out.println("mergeResolutionWithLongerClauseInDirect 2");
+    public void testMergeResolutionWithLongerClauseInDirect() throws Result {
+        System.out.println("mergeResolutionWithLongerClauseInDirect 1");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -824,25 +875,67 @@ public class SimplifierTest extends TestCase {
         Clause clause = new Clause(new int[]{1, cOr, 1,2,3});
         simplifier.insertClause(clause);
         simplifier.insertClause(new Clause(new int[]{2, cOr, -2,-4}));
-        simplifier.insertClause(new Clause(new int[]{3, cOr, 3,1,4}));
-        simplifier.mergeResolutionWithLongerClauseIndirect(clause);
-        assertEquals("1: 1v3\n" +
-                "2: -2v-4\n", simplifier.clauses.toString());
-        //System.out.println(clause.inferenceStep.toString());
-        //System.out.println(clause.inferenceStep.inputClauseIds());
+        Clause clause2 =new Clause(new int[]{3, cOr, 3,1,4});
+        simplifier.insertClause(clause2);
+        assertFalse(simplifier.mergeResolutionWithLongerClauseIndirect(clause));
+        assertEquals("2: -2v-4\n" +
+                "3: 3v1\n", simplifier.clauses.toString());
+        if(monitoring) {
+            System.out.println("Inference Steps");
+            System.out.println(clause2.inferenceStep.toString());
+            System.out.println(clause2.inferenceStep.inputClauseIds());}
 
+
+        if(monitoring) System.out.println("\nNEW 2");
         simplifier.clear();
-        //System.out.println("NEXT");
         clause = new Clause(new int[]{1, cAtleast, 3, 1,1,2,2,3});
         simplifier.insertClause(clause);
         simplifier.insertClause(new Clause(new int[]{2, cOr, -2,-4}));
         Clause clause1 = new Clause(new int[]{3, cAtleast, 4, 3,3,3,3,1,1,1,1,4,4,5});
         simplifier.insertClause(clause1);
-        simplifier.mergeResolutionWithLongerClauseIndirect(clause);
+        assertTrue(simplifier.mergeResolutionWithLongerClauseIndirect(clause));
         assertEquals("1: >= 3 1^2,2^2,3\n" +
                 "2: -2v-4\n" +
                 "3: 3v1\n", simplifier.clauses.toString());
-        //System.out.println(clause1.inferenceStep.toString());
+        if(monitoring) {
+            System.out.println("Inference Steps");
+            System.out.println(clause1.inferenceStep.toString());
+            System.out.println(clause1.inferenceStep.inputClauseIds());}
+
+
+        if(monitoring) System.out.println("\nNEW 3");
+        simplifier.clear();
+        simplifier.insertClause(new Clause(new int[]{1, cOr, -1,-2}));
+        clause = new Clause(new int[]{2, cOr,1,2,3});
+        simplifier.insertClause(clause);
+        simplifier.insertClause(new Clause(new int[]{3,cOr,1,2,3,4}));
+        assertTrue(simplifier.mergeResolutionWithLongerClauseIndirect(clause));
+        assertEquals("1: -1v-2\n" +
+                "2: 1v2v3\n" +
+                "3: 1v2v3v4\n", simplifier.clauses.toString());
+
+
+        if(monitoring) System.out.println("\nNEW 4");
+        simplifier.clear();
+        simplifier.insertClause(new Clause(new int[]{1, cOr, -1,-4}));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, -1,-5}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, -2,-6}));
+
+        clause = new Clause(new int[]{4, cOr,1,2,3});
+        simplifier.insertClause(clause);
+        simplifier.insertClause(new Clause(new int[]{5, cOr, 2,3,4,6}));
+        simplifier.insertClause(new Clause(new int[]{6, cOr, 2,3,5,6}));
+        simplifier.insertClause(new Clause(new int[]{7, cOr, 1,3,6,5}));
+        assertTrue(simplifier.mergeResolutionWithLongerClauseIndirect(clause));
+        assertEquals("1: -1v-4\n" +
+                "2: -1v-5\n" +
+                "3: -2v-6\n" +
+                "4: 1v2v3\n" +
+                "5: 2v3v6\n" +
+                "6: 2v3v6\n" +
+                "7: 1v3v5\n",simplifier.clauses.toString());
+        if(monitoring) System.out.println(simplifier.statistics.toString());
+
     }
 
 
