@@ -183,10 +183,6 @@ public class EquivalenceClasses extends Solver {
             return result;}
         return null;}
 
-    @Override
-    public void prepare() {
-
-    }
 
     @Override
     public Statistic getStatistics() {

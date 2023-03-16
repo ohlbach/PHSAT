@@ -1,8 +1,6 @@
 package Management;
 
 import Datastructures.Statistics.Statistic;
-import ProblemGenerators.ProblemGenerator;
-import Solvers.Solver;
 import Utilities.Utilities;
 
 import java.io.File;
@@ -28,28 +26,22 @@ public class ProblemDistributor {
     public final GlobalParameters globalParameters;
 
     /** collects the problem supervisors */
-    public ArrayList<ProblemSupervisor> problemSupervisors = new ArrayList<>();
-
-    /** The problem solvers */
-    public final ArrayList<Solver> solvers;
+    public ArrayList<ProblemSupervisor> problemSupervisors;
 
     /** index of the next problem supervisor */
     private int nextProblemSupervisor = 0;
-
+    private QuSatJob quSatJob;
 
     /** generates a new controller
      *
-     * @param globalParameters   for global control parameters
-     * @param problemGenerators  the problem generators
-     * @param solvers            the solvers
+     * @param quSatJob           the overall manager.
+     * @param globalParameters   for global control parameters.
+     * @param problemSupervisors  the problem supervisors.
      */
-    public ProblemDistributor(GlobalParameters globalParameters, ArrayList<ProblemGenerator> problemGenerators,
-                              ArrayList<Solver> solvers) {
+    public ProblemDistributor(QuSatJob quSatJob, GlobalParameters globalParameters, ArrayList<ProblemSupervisor> problemSupervisors) {
         this.globalParameters  = globalParameters;
-        this.solvers = solvers;
-        for(ProblemGenerator problemGenerator : problemGenerators) {
-            problemSupervisors.add(new ProblemSupervisor(globalParameters,problemGenerator,solvers));}
-    }
+        this.problemSupervisors = problemSupervisors;}
+
 
     /** The method can be called from different threads to get the next unprocessed ProblemSupervisor.
      *
@@ -77,7 +69,7 @@ public class ProblemDistributor {
         globalParameters.logstream.println("Starting job " + jobname + " at " + LocalDateTime.now());
         long start = System.nanoTime();
         int numberOfCores = Runtime.getRuntime().availableProcessors() - 1; // one core as spare
-        int numberOfSolvers = solvers.size();
+        int numberOfSolvers = problemSupervisors.get(0).numberOfSolvers;
         int simultaneousProblems = Math.max(1, numberOfCores / numberOfSolvers);
         Thread[] threads = new Thread[simultaneousProblems];
         for (int i = 0; i < simultaneousProblems; ++i) {

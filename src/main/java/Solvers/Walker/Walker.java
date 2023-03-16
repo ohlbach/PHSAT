@@ -182,7 +182,7 @@ public class Walker extends Solver {
         return result;
     }
 
-    @Override
+
     public void prepare() {
         model.addObserver((literal,step) -> {
             synchronized(this) {globallyTrueLiterals.add((int)literal);}});

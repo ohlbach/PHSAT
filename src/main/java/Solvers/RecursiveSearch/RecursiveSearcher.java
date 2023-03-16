@@ -100,7 +100,7 @@ public class RecursiveSearcher  extends Solver {
         for(RSClause rsClause : dummyClauses) addRSClause(rsClause);}
 
 
-    @Override
+
     public void prepare() {
         localModel = model.clone();
         model.addObserver((literal,step) -> {

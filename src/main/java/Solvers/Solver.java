@@ -94,8 +94,8 @@ public abstract class Solver {
      * @param warnings      for collecting warning messages
      * @return              a list of solvers
      */
-    public static ArrayList<Solver> makeSolver(ArrayList<HashMap<String,String>> parameterList,
-                                               StringBuilder errors, StringBuilder warnings) {
+    public static ArrayList<Solver> makeSolvers(ArrayList<HashMap<String,String>> parameterList,
+                                                StringBuilder errors, StringBuilder warnings) {
         ArrayList<Solver> solvers = new ArrayList<>();
         for(HashMap<String,String> parameters: parameterList) {
             String type = parameters.get("solver");

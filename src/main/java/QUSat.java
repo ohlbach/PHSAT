@@ -1,16 +1,15 @@
 import Datastructures.Clauses.AllClauses.InitializerSimplifier;
-import ProblemGenerators.ProblemGenerator;
-import Management.ProblemDistributor;
 import Management.GlobalParameters;
-import Utilities.KVParser;
-import Management.Monitor.Monitor;
-import Management.Monitor.MonitorLife;
+import Management.ProblemDistributor;
+import Management.QuSatJob;
+import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
+import Utilities.KVParser;
 
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Date;
 
 /** This is the class with the main method for the QUSat system. <br>
  * Created by Ohlbach on 02.09.2018.
@@ -40,7 +39,7 @@ public class QUSat {
 
     /** This is a file with default parameters for 'global' and 'solver'. */
     private static final String defaultFile = Paths.get(System.getProperties().get("user.dir").toString(),
-            "src","main","resources","DefaultParameters.qsat").toString();
+            "src","main","resources","DefaultParameters.phs").toString();
 
     private static final String homeDirectory = System.getenv("USERPROFILE");
 
@@ -49,13 +48,11 @@ public class QUSat {
     public static String jobname;
 
     public static GlobalParameters globalParameters  = null;
-    public HashMap<String,Object>            initializeParameters  = null;
-    public ArrayList<HashMap<String,Object>> problemParameters = null;
-    public ArrayList<HashMap<String,Object>> solverParameters  = null;
+
     ProblemDistributor problemDistributor = null;
 
 
-    /** The main method can be called with or without arguments. <br>
+    /** The main method can be called with or without arguments.
      * If there are no arguments then the control parameters are read from System.in<br>
      * In this case the first line must either be a help command or a jobname.<br>
      * If the first argument is 'help' then help-strings are printed
@@ -66,7 +63,7 @@ public class QUSat {
      * - help:                  prints all help strings.
      * <br>
      * In the other cases the default control parameters are first read from the defaultFile. <br>
-     * The other parameters may overwirte the default parameters.<br>
+     * The other parameters may overwrite the default parameters.<br>
      * args[0] is the jobname (any string) and args[1]
      * must be a pathname relative to the homedirectory. The parameters are read from this file.<br>
      * If the pathname ends with .cnf then this is a clause file. <br>
@@ -78,9 +75,11 @@ public class QUSat {
      * @param args for the commands
      */
     public static void  main(String[] args) {
-        //args = new String[]{"help","global"};
+        System.out.println(LocalDateTime.now());
+        System.out.println(new Date());
+        args = new String[]{"help","global"};
         if(args.length == 0) {help(args); return;}
-        KVParser kvParser = new KVParser("global", "problem", "initialize", "solver");
+        KVParser kvParser = new KVParser("global", "problem", "solver");
         kvParser.parseFile(defaultFile);
         switch(args[0]) {
             case "help": help(args); return;
@@ -95,16 +94,11 @@ public class QUSat {
                 System.out.println("Unknown keyword in main method: "+ args[0]+ "\nIt should be one of:");
                 System.out.println("help, main, file, in, string");
                 return;}
-
-        StringBuilder errors   = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
-        globalParameters= new GlobalParameters(kvParser.get("global"),errors,warnings);
-        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeProblemGenerator(kvParser.get("generator"),errors,warnings);
-}
+        QuSatJob quSatJob = new QuSatJob(kvParser);
+        quSatJob.solveProblems();}
 
     /** This method calls the help()-methods and prints the results.
      * - help global:           prints the global help strings<br>
-     * - help initialize:       prints the initializer help strings<br>
      * - help [generator name]: prints the help strings of the generator<br>
      * - help [solver name]:    prints the help strings of the solver<br>
      * - help:                  prints all help strings.
@@ -115,8 +109,7 @@ public class QUSat {
         if(args.length > 1) {
             String name = args[1];
             if(name.equals("global"))       {System.out.println(GlobalParameters.help()); return;}
-            if(name.equals("initialize"))   {System.out.println(InitializerSimplifier.helpInitializer()); return;}
-            if(ProblemGenerator.isProblemGenerator(name)) {System.out.println(ProblemGenerator.help(name));    return;}
+            if(ProblemGenerator.isProblemGenerator(name)) {System.out.println(ProblemGenerator.help(name)); return;}
             if(Solver.isSolver(name))       {System.out.println(Solver.help(name));       return;}
             System.out.println("Unknown name '"+ name + "'. The available names are:");
             System.out.println("Generators: " + Arrays.toString(ProblemGenerator.problemGeneratorNames));
@@ -126,30 +119,5 @@ public class QUSat {
         System.out.println(ProblemGenerator.help());
         System.out.println(InitializerSimplifier.helpInitializer());
         System.out.println(Solver.help());}
-
-
-
-
-
-    /** analyses the solverParameters and turns them into sequences of objectParameters.
-     * Since the input parameters may specify ranges, each single input parameter may expand to a sequence of parsed parameters*/
-    private void analyseSolverParameters(ArrayList<HashMap<String,String>> solverInputParameters) {
-        solverParameters = new ArrayList<>();
-        Monitor errors = new MonitorLife(); Monitor warnings = new MonitorLife();
-        for(HashMap<String,String> parameters : solverInputParameters) {
-            String type = parameters.get("type");
-            if(type == null) {errors.print(jobname,"No solver type specified.\n"); return;}
-            ArrayList<HashMap<String,Object>> pars = null; //Solver.parseParameters(type,parameters,errors,warnings);
-            if(pars != null) {
-                for(HashMap<String,Object> map :pars) {map.put("type",type);}
-                if(pars.size() > 1) {
-                    for(int i = 0; i < pars.size(); ++i) {pars.get(i).put("solverId",type+"_"+i);}}
-                else {pars.get(0).put("solverId",type);}
-                solverParameters.addAll(pars);}}}
-
-
-
-
-
 
 }

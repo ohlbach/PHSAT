@@ -67,7 +67,7 @@ public class ProblemGeneratorTest extends TestCase {
         params.put("file",file.getAbsolutePath());
         parameters.add(params);
 
-        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeProblemGenerator(parameters,errors,warnings);
+        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeProblemGenerators(parameters,errors,warnings);
         System.out.println(errors);
         System.out.println(warnings);
         assertEquals(5,generators.size());

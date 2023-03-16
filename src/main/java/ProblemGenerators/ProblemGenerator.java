@@ -92,8 +92,8 @@ public abstract class ProblemGenerator {
      * @param warnings      for collecting warning messages
      * @return              a list of generators
      */
-    public static ArrayList<ProblemGenerator> makeProblemGenerator(ArrayList<HashMap<String,String>> parameterList,
-                                                                   StringBuilder errors, StringBuilder warnings) {
+    public static ArrayList<ProblemGenerator> makeProblemGenerators(ArrayList<HashMap<String,String>> parameterList,
+                                                                    StringBuilder errors, StringBuilder warnings) {
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
         for(HashMap<String,String> parameters: parameterList) {
             String type = parameters.get("generator");
