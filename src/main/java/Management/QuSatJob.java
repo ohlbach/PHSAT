@@ -7,9 +7,10 @@ import Management.Monitor.MonitorLife;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
 import Utilities.KVParser;
-import Utilities.Utilities;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -62,13 +63,28 @@ public class QuSatJob {
     }
 
     private void prepareSystem() {
-        if(globalParameters.monitor != null && globalParameters.monitor.equals("file")) {
+        if((globalParameters.monitor != null && globalParameters.monitor.equals("file"))  ||
+                globalParameters.logging.equals("file")){
             jobDirectory = makeJobDirectory(globalParameters.directory, globalParameters.jobname);
         }
+        switch(globalParameters.logging) {
+            case "file":
+                File file = Paths.get(jobDirectory.toString(),"logging.txt").toFile();
+                try{globalParameters.logstream = new PrintStream(file);
+                    globalParameters.logFile = file.getAbsolutePath();
+                    globalParameters.logstream.println("QuSat Job " + globalParameters.jobname + " logfile @ " + (new Date()));}
+                catch(FileNotFoundException exception) {
+                    System.out.println("Cannot open logfile: "+ file.getAbsolutePath());
+                    System.exit(0);}
+            break;
+            case "none": globalParameters.logstream = null;       globalParameters.logFile = "none";       break;
+            case "life": globalParameters.logstream = System.out; globalParameters.logFile = "System.out"; break;}
     }
 
     public void finalizeSystem() {
         for(Monitor monitor : monitors) monitor.flush(true); // close the files.
+        if(globalParameters.logstream != null && globalParameters.logstream != System.out)
+            globalParameters.logstream.close();
     }
 
     /** counts the problems */
@@ -119,14 +135,32 @@ public class QuSatJob {
         path.toFile().mkdirs();
         return path;}
 
+    /** prints the elapsed time followed by the message to globalParameters.logstream.
+     *
+     * @param message a string to be printed.
+     */
+    public void printlog(String message) {
+        if(globalParameters.logstream == null) return;
+        double time = (double)(System.nanoTime() - startTime)/1000.0;
+        globalParameters.logstream.print(time+" μs: ");
+        globalParameters.logstream.println(message);
+    }
+
     public static void main(String[] args) {
         QuSatJob quSatJob = new QuSatJob(null);
         quSatJob.globalParameters = new GlobalParameters();
         quSatJob.globalParameters.monitor = "life";
         quSatJob.globalParameters.jobname = "MyJob";
-        Path path = Utilities.pathWithHome("home/TEST");
-        quSatJob.jobDirectory = makeJobDirectory(path, quSatJob.globalParameters.jobname);
-        Monitor monitor1 = quSatJob.getMonitor("TestProblem1");
+        quSatJob.globalParameters.logging = "life";
+        quSatJob.globalParameters.directory = Utilities.Utilities.pathWithHome("home/TEST");
+        quSatJob.prepareSystem();
+        quSatJob.printlog("TEESTTT");
+        System.out.println(quSatJob.globalParameters.toString());
+
+        //Path path = Utilities.pathWithHome("home/TEST");
+        //quSatJob.jobDirectory = makeJobDirectory(Utilities.pathWithHome("home/TEST"), quSatJob.globalParameters.jobname);
+
+        /*Monitor monitor1 = quSatJob.getMonitor("TestProblem1");
         quSatJob.startTime = System.nanoTime();
         monitor1.println("Simplifier","hahahaha", "flkgdflkgjd");
         monitor1.println("equviv","jajajaja", "GGGGGGGGG");
@@ -139,6 +173,8 @@ public class QuSatJob {
         //monitor1.flush(true);
         //monitor2.flush(true);
         System.out.println(monitor1.toString());
+        */
+
 }
     protected void analyseResults() {
     }
