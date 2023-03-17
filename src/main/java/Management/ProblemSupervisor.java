@@ -55,6 +55,8 @@ public class ProblemSupervisor {
 
     public Monitor monitor;
 
+    public QuSatJob quSatJob;
+
     public ProblemSupervisor(GlobalParameters globalParameters, ProblemGenerator problemGenerator,
                              ArrayList<Solver> solvers) {
         this.globalParameters = globalParameters;
@@ -73,7 +75,7 @@ public class ProblemSupervisor {
         return ++clauseCounter;}
 
     public void solveProblem()  {
-        monitor = globalParameters.getMonitor(problemId);
+        monitor = quSatJob.getMonitor(problemId);
         try {
             inputClauses = problemGenerator.generateProblem(null);
             model = new Model(inputClauses.predicates);

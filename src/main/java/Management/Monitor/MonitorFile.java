@@ -4,8 +4,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
 
 /** This monitor prints messages to files.
  * The messages are separated by their identifiers and collected in buffers.
@@ -14,10 +14,9 @@ import java.util.Map;
 public class MonitorFile extends Monitor {
     private final HashMap<String, ArrayList<String>> buffers = new HashMap<>(); // collects the separated messages
     private File file; // null or the file where to print the messages
-    private String pathname = null; // the absolute pathname of the file.
 
-    // If the monitor is flushed it can be reused and prints to a file whose name is extended with a number
-    private int filenumber = 0;
+    /** the output stream of the file */
+    private PrintStream out = System.out;
 
     /** creates a monitor which does nothing at all*/
     public MonitorFile() {}
@@ -31,7 +30,11 @@ public class MonitorFile extends Monitor {
     public MonitorFile(String title, File file) {
         this.title = title;
         this.file = file;
-        if(file != null) pathname = file.getAbsolutePath();}
+        if(file != null) {
+            try{out = new PrintStream(file);
+            out.println("Monitor for " + title + ": " + (new Date()).toString());}
+            catch(FileNotFoundException ex) {
+                System.out.println("MonitorFile: File not found " + file.getAbsolutePath());}}}
 
     /** collects the messages for later printing them as a single line to a file
      *
@@ -40,21 +43,18 @@ public class MonitorFile extends Monitor {
      */
     @Override
     public void print(String id, String... messages) {
-        filled = true;
-        String string = "";
-        for(String message : messages) string += message;
-        buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(string);}
+        out.printf(id); out.printf(": ");
+        for(String message : messages)  out.printf(message);
+        out.printf("\n");}
 
-    /** fills the messages into the buffer
+    /** prints the messages from a StringBuilder.
      *
-     * @param id        an id for the message
-     * @param messages messages
+     * @param id       an identifier for the message
+     * @param messages the messages themselves
      */
-    @Override
     public void print(String id, StringBuilder messages) {
-        filled = true;
-        buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(messages.toString());}
-
+        out.printf(id); out.printf(": ");
+        out.println(messages.toString());}
 
     /** collects the messages for later printing them one per line to a file
      *
@@ -63,38 +63,17 @@ public class MonitorFile extends Monitor {
      */
     @Override
     public void println(String id, String... messages) {
-        filled = true;
-        String string = "";
-        for(int i = 0; i < messages.length; ++i) {
-            string += messages[i];
-            if(i < messages.length-1) string += "\n";}
-        buffers.computeIfAbsent(id, k -> new ArrayList<>()).add(string);}
+        out.printf(id); out.printf(": ");
+        for(int i = 0; i < messages.length; ++i) out.println(messages[i]);}
 
 
-    /** The messages are now printed, either to System.out, or to the file
-     * The buffers are cleared, and the monitor may be used again.
+    /** The file is closed
      *
-     * @param close if true then the file (if != null) is closed and another file whose name is extended by a number is used.
+     * @param close if true then the file is  closed.
      */
     @Override
     public synchronized void flush(boolean close) {
-        if(filled) {
-            PrintStream out = System.out;
-            if(file != null) {
-                try{out = new PrintStream(file);}
-                catch(FileNotFoundException ex) {
-                    out.println("File not found " + file.getAbsolutePath());}}
-            out.println(title);
-            out.println("*******");
-            for(Map.Entry<String,ArrayList<String>> entry : buffers.entrySet()) {
-                out.println(entry.getKey()+":");
-                for(String st : entry.getValue()) {out.printf(st);}
-                out.println();}
-            buffers.clear();
-            filled = false;
-            if(close && out != System.out) {
-                out.close();
-                file = new File(pathname + (filenumber++));}}}
+        if(close && out != System.out) out.close();}
 
 
     /** returns some information about the monitor
@@ -102,15 +81,9 @@ public class MonitorFile extends Monitor {
      * @return some information about the monitor
      */
     public String toString() {
-        if(!filled) {return title + ": The monitor is empty.";}
         StringBuilder st = new StringBuilder();
-        st.append(title).append(": ");
-        st.append("separated printing");
-        for(Map.Entry<String,ArrayList<String>> entry : buffers.entrySet()) {
-            st.append(entry.getKey()).append(",");}
-        st.append(" to ");
+        st.append("MonitorFile: printing to ");
         st.append((file == null) ? "System.out" : file.getAbsolutePath());
         return st.toString();}
-
 
 }

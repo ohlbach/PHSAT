@@ -100,7 +100,7 @@ public class TwoLitClauses {
         model = problemSupervisor.model;
         symboltable = null; //model.symboltable;
         equivalenceClasses = problemSupervisor.equivalenceClasses;
-        monitor = problemSupervisor.globalParameters.monitor;
+        monitor = null;
         monitoring = monitor != null;
         monitorId = problemId+"-2Lit";
         statistics = new TwoLitStatistics(problemId);

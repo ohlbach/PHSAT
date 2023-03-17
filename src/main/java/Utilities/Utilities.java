@@ -1,9 +1,5 @@
 package Utilities;
 
-import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.Quantifier;
-import Datastructures.Literals.CLiteral;
-import Datastructures.Results.Unsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.*;
@@ -337,14 +333,6 @@ public class Utilities {
             System.out.printf(": ");
             System.out.println(message);});}
 
-    public static Clause makeClause(int id, String literals)  throws Unsatisfiable {
-        String[] lits = literals.split("\\s*(,| )\\s*");
-        Clause clause = new Clause(id, Quantifier.OR,lits.length);
-        for(String lit : lits) {
-            clause.add(new CLiteral(Integer.parseInt(lit)));}
-        clause.setPositiveNegative();
-        return clause;
-    }
 
     /** computes the intersection of to tree sets
      *

@@ -1,12 +1,7 @@
 package Management;
 
-import Management.Monitor.Monitor;
-import Management.Monitor.MonitorFile;
-import Management.Monitor.MonitorFrame;
-import Management.Monitor.MonitorLife;
 import Utilities.Utilities;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -19,15 +14,18 @@ import java.util.Map;
  * Created by ohlbach on 12.10.2018.
  */
 public class GlobalParameters {
+
     /** the homedirectory */
     public String homeDirectory = System.getenv("USERPROFILE");
     /** the name of the current job. It is used as prefix for all generated files */
+
     public String jobname = "Test";
 
     public String basicDirectory = System.getenv("USERPROFILE");
 
-    /** the directory where to print the files. Default: null (System.out) */
-    public File directory = null;
+    /** the directory where to print the files. Default: system temporal directory */
+    public Path directory = Paths.get(System.getenv("TEMP"));
+
     /** number of parallel threads for solving several problems. 0 (default) means sequential processing. */
     public int parallel = 1;
     /** for printing information about the working of the system */
@@ -36,37 +34,31 @@ public class GlobalParameters {
     private String logFile = "System.out";
     /** print errors and warnings to a file */
     public boolean errors2File = false;
-    /** for monitoring the actions of the solvers */
-    public String monitorMode = null;
+
     /** if false then many things are done destructively. Only the final results are needed. */
     public boolean trackReasoning = false;
 
+    /** activates the Simplifier as separate thread */
     public boolean simplifier = true;
 
-    public MonitorLife monitor;
-    public File monitorFile;
-
-    public Monitor getMonitor(String title) {
-        switch (monitorMode) {
-            case "collect": return new MonitorFile(title,monitorFile);
-            case "live":    return new MonitorLife(title);
-            case "frame":   return new MonitorFrame(title, 1000,1000,100,100);}
-        return null;}
+    /** the monitor mode: life, file, frame */
+    public String monitor = null;
 
     /** @return a help-string which describes the parameters */
     public static String help() {
         return "Global Parameters:\n" +
-                " - directory  (default home) relative to the homedirectory.\n"+
+                " - directory  the output goes to directory/'jobname'/... \n"+
+                "              default: the TEMP directory.\n"+
                 " - parallel   (default: 1)  controls how many problems are processed in parallel threads.\n" +
                 "                            'true' means to use the number of available processors.\n" +
                 " - simplifier (default true) a simplifier in a separate thread triers to deduce true literals and equivalences\n" +
                 " - logging    (default: System.out) 'file' for logging the actions\n" +
                 " -            if 'file' is specified then logging information is printed to [jobname]-logfile.txt"+
                 " - errors2File (default false) print errors and warnings to files\n" +
-                " - monitor   'collect': collect them for all keys separated and print them at the end.\n" +
-                "             'live':    just print out as the messages come.\n" +
-                "              If the file is not specified then the messages are printed to System.out\n" +
-                "              default: no monitoring.\n" +
+                " - monitor   'life': print all the messages to System.out.\n" +
+                "             'file': just print the messages to a file, separate for each problem.\n" +
+                "             'frame': print the messages to a frame, separate for each problem.\n" +
+                "             default: no monitoring.\n" +
                 " - trackReasoning (default false) tracks reasons for all derivations.\n";}
 
 
@@ -86,16 +78,10 @@ public class GlobalParameters {
                 String key = entry.getKey();
                 String value = entry.getValue();
             switch(key) {
-                case "jobname": jobname = value;
-                break;
+                case "jobname": jobname = value; break;
                 case "directory" :
-                    directory = Paths.get(homeDirectory,value).toFile();
-                    if(directory.exists()) {
-                        if(!directory.isDirectory()) {
-                            errors.append(title+"Directory " + directory + " is not a directory");}}
-                    else {
-                        if(!directory.mkdirs()){
-                            errors.append(title+"Directory " + directory + " cannot be created");}}
+                    directory = Utilities.pathWithHome(value);
+                    if(!directory.toFile().exists()) {errors.append("Directory " + directory.toString() + " does not exist.");}
                     break;
                 case "parallel":
                     if(value.equals("true")) {parallel = Runtime.getRuntime().availableProcessors(); break;}
@@ -109,7 +95,7 @@ public class GlobalParameters {
                 case "logging":
                     logFile = value;
                     if(!value.equals("file")) {logstream = System.out; logFile = "System.out"; break;}
-                    try {Path path = Paths.get(directory.getAbsolutePath(),jobname+"-logfile.txt");
+                    try {Path path = null; // Paths.get(directory,jobname+"-logfile.txt");
                         logFile =  path.toFile().toString();
                         logstream = new PrintStream(path.toFile());}
                     catch(FileNotFoundException ex) {
@@ -119,9 +105,9 @@ public class GlobalParameters {
                         logstream = System.out;}
                     break;
                 case "monitor":
-                    monitorMode = value;
-                    if(!(value.equals("live") || value.equals("collect"))) {
-                        errors.append(title+"monitor '" + value + "' is not one of 'live','collect");}
+                    monitor = value;
+                    if(!(value.equals("life") || value.equals("file") || value.equals("frame"))) {
+                        errors.append(title+"monitor '" + value + "' is not one of 'life','file', 'frame'");}
                     break;
                 case "errors2File":  errors2File = true;
                     break;
@@ -136,11 +122,11 @@ public class GlobalParameters {
         return "Global Parameters:\n" +
                 "  name                " + jobname +"\n"+
                 "  homedirectory       " + homeDirectory + "\n"+
-                "  directory:          " + directory.getAbsolutePath()+"\n"+
+                "  directory:          " + directory+"\n"+
                 "  parallel threads:   " + parallel +"\n" +
                 "  logFile:            " + logFile +"\n" +
                 "  errors2File         " + errors2File + "\n" +
-                "  monitor:            " + (monitorMode == null ? "null" : monitorMode) +"\n"+
+                "  monitor:            " + (monitor == null ? "null" : monitor) +"\n"+
                 "  trackReasoning:     " + trackReasoning;}
 
 }

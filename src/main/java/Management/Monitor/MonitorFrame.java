@@ -34,6 +34,8 @@ public class MonitorFrame extends Monitor {
         scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
         frame.getContentPane().add(scroll);
         frame.pack();
+        frame.setVisible(true);
+        area.append("Monitor for " + title + ":\n");
     }
 
     /** either prints or collects the messages into a single line
@@ -43,11 +45,10 @@ public class MonitorFrame extends Monitor {
      */
     @Override
     public void print(String id, String... messages) {
-        if(!filled) {frame.setVisible(true);}
-        area.append(title); area.append(","); area.append(id); area.append(": ");
+        frame.setVisible(true);
+        area.append(id); area.append(": ");
         for(String message: messages) area.append(message);
-        area.append("\n");
-        filled = true;}
+        area.append("\n");}
 
     /** either prints the messages one per line
      *
@@ -56,10 +57,10 @@ public class MonitorFrame extends Monitor {
      */
     @Override
     public void println(String id, String... messages) {
-        if(!filled) {frame.setVisible(true);}
-        area.append(title); area.append(","); area.append(id); area.append(": ");
+        frame.setVisible(true);
+        area.append(id); area.append(": ");
         for(String message: messages) {area.append(message);area.append("\n");}
-        filled = true;}
+        }
 
     /** either prints the messages one per line
      *
@@ -68,10 +69,9 @@ public class MonitorFrame extends Monitor {
      */
     @Override
     public void print(String id, StringBuilder messages) {
-        if(!filled) {frame.setVisible(true);}
-        area.append(title); area.append(","); area.append(id); area.append(":\n");
-        area.append(messages.toString());area.append("\n");
-        filled = true;}
+        frame.setVisible(true);
+        area.append(id); area.append(": ");
+        area.append(messages.toString());area.append("\n");}
 
     /** returns true if the frame was filled at least once
      *
@@ -81,14 +81,9 @@ public class MonitorFrame extends Monitor {
     public boolean wasFilled() {
         return filled;}
 
-    /** Sets 'filled' to false. The monitor can be reused.*/
+    /** does nothing*/
     @Override
-    public synchronized void flush(boolean close) {
-        filled = false;
-        if(close) {frame.dispose(); return;}
-        frame.remove(area);
-        new JTextArea();
-        frame.add(area);}
+    public synchronized void flush(boolean close) {}
 
 
     /** returns some information about the monitor
