@@ -3,71 +3,74 @@ package Management.Monitor;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 
 /** This monitor prints messages to files.
- * The messages are separated by their identifiers and collected in buffers.
- * The 'flush' method prints them, either to a given file, or to System.out.
  */
 public class MonitorFile extends Monitor {
-    private final HashMap<String, ArrayList<String>> buffers = new HashMap<>(); // collects the separated messages
-    private File file; // null or the file where to print the messages
+    /** null or the file where to print the messages. */
+     private File file;
 
-    /** the output stream of the file */
+    /** the output stream of the file. */
     private PrintStream out = System.out;
 
-    /** creates a monitor which does nothing at all*/
-    public MonitorFile() {}
+    /** creates a monitor which does nothing at all.*/
+    public MonitorFile() {
+        super("Monitor",System.nanoTime());
+    }
 
-    /** creates a monitor for later printing messages to a file.
-     * If the filename is not given or cannot be opened then the messages are printed to System.out.
+    /** creates a monitor for printing messages to a file.
+     * If the filename is not given then the messages are printed to System.out.<br>
+     * If the file cannot be opened, an error message is printed to System.out.
      *
-     * @param title like "Messages", "Errors", "Warnings"
-     * @param file where to print the messages, or null if the messages are to be printed to System.out
+     * @param title for identifying the monitor.
+     * @param file where to print the messages, or null if the messages are to be printed to System.out.
      */
-    public MonitorFile(String title, File file) {
-        this.title = title;
+    public MonitorFile(String title, long startTime, File file) {
+        super(title,startTime);
         this.file = file;
         if(file != null) {
             try{out = new PrintStream(file);
-            out.println("Monitor for " + title + ": " + (new Date()).toString());}
+            out.println("Monitor for " + title + ": " + (new Date()));}
             catch(FileNotFoundException ex) {
                 System.out.println("MonitorFile: File not found " + file.getAbsolutePath());}}}
 
-    /** collects the messages for later printing them as a single line to a file
+    /** prints the id and the elapsed time followed by the messages to a single line.
      *
-     * @param id      for identifying and separating the messages
+     * @param id      for identifying and separating the messages.
      * @param messages to be printed.
      */
     @Override
     public void print(String id, String... messages) {
-        out.printf(id); out.printf(": ");
+        double time = (double)(System.nanoTime() - startTime)/1000.0;
+        out.print(id); out.print(" @ "); out.print(time); out.print(" μs: ");
         for(String message : messages)  out.printf(message);
-        out.printf("\n");}
+        out.print("\n");}
 
-    /** prints the messages from a StringBuilder.
+    /** prints the id and the elapsed time followed by the messages one per line.
      *
      * @param id       an identifier for the message
      * @param messages the messages themselves
      */
     public void print(String id, StringBuilder messages) {
-        out.printf(id); out.printf(": ");
+        double time = (double)(System.nanoTime() - startTime)/1000.0;
+        out.print(id); out.print(" @ "); out.print(time); out.print(" μs: ");
         out.println(messages.toString());}
 
-    /** collects the messages for later printing them one per line to a file
+    /** prints the id and the elapsed time followed by the messages one per line.
      *
      * @param id      for identifying and separating the messages
      * @param messages to be printed.
      */
     @Override
     public void println(String id, String... messages) {
-        out.printf(id); out.printf(": ");
-        for(int i = 0; i < messages.length; ++i) out.println(messages[i]);}
+        double time = (double)(System.nanoTime() - startTime)/1000.0;
+        out.print(id); out.print(" @ "); out.print(time); out.println(" μs: ");
+        for (String message : messages) out.println(message);
+    }
 
 
-    /** The file is closed
+    /** The file is closed.
      *
      * @param close if true then the file is  closed.
      */
@@ -81,9 +84,7 @@ public class MonitorFile extends Monitor {
      * @return some information about the monitor
      */
     public String toString() {
-        StringBuilder st = new StringBuilder();
-        st.append("MonitorFile: printing to ");
-        st.append((file == null) ? "System.out" : file.getAbsolutePath());
-        return st.toString();}
+        return "MonitorFile: printing to " +
+                ((file == null) ? "System.out" : file.getAbsolutePath());}
 
 }

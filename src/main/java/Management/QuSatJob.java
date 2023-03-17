@@ -36,6 +36,7 @@ public class QuSatJob {
     public Path jobDirectory;
 
     public QuSatJob(KVParser kvParser) {
+        startTime = System.nanoTime();
         this.kvParser = kvParser;}
 
     public void solveProblems() {
@@ -57,6 +58,7 @@ public class QuSatJob {
         problemDistributor.solveProblems();
         endTime = System.nanoTime();
         analyseResults();
+        finalizeSystem();
     }
 
     private void prepareSystem() {
@@ -65,9 +67,17 @@ public class QuSatJob {
         }
     }
 
+    public void finalizeSystem() {
+        for(Monitor monitor : monitors) monitor.flush(true); // close the files.
+    }
+
+    /** counts the problems */
     int problemCounter = 0;
 
-    /** gets a monitor, depending of the globalParameters.monitor value.
+    /** collects the monitors */
+    ArrayList<Monitor> monitors = new ArrayList<>();
+
+    /** gets a monitor, dependent of the globalParameters.monitor value.
      * A 'life' monitor prints to System.out.<br>
      * A 'file' monitor prints to a file 'problemId'_monitor.txt.<br>.
      * A 'frame' monitors prints to a newly generated frame.
@@ -77,12 +87,15 @@ public class QuSatJob {
      */
     public Monitor getMonitor(String problemId) {
         ++problemCounter;
+        Monitor monitor = null;
         switch (globalParameters.monitor) {
-            case "life":    return new MonitorLife(problemId);
+            case "life":    monitor = new MonitorLife(problemId, startTime); break;
             case "file":    File file = Paths.get(jobDirectory.toString(),problemId+"_monitor.txt").toFile();
-                            return new MonitorFile(problemId, file);
-            case "frame":   return new MonitorFrame(problemId, 1000,1000,100*problemCounter,100*problemCounter);}
-        return null;}
+                            monitor =  new MonitorFile(problemId, startTime, file); break;
+            case "frame":   monitor =  new MonitorFrame(problemId, startTime, 1000,1000,
+                    100*problemCounter,100*problemCounter);}
+        if(monitor != null) monitors.add(monitor);
+        return monitor;}
 
     /** creates a new directory in the basicDirectory.
      * The name of the new directory is basicDirectory/'jobname'_'number'
@@ -97,12 +110,11 @@ public class QuSatJob {
         File [] files = directory.listFiles((dir, name) -> name.contains(jobname));
         Path path;
         if(files == null) path = Paths.get(basicDirectory.toString(),jobname+"_1");
-        else{ int version = 1;
+        else{int version = 1;
             for(File file : files) {
                 String[] parts = split(file.getName(),"_");
-                if(parts.length > 1) {
-                    version = Math.max(version,Integer.parseInt(parts[1]));}
-                version++;}
+                if(parts.length > 1) version = Math.max(version,Integer.parseInt(parts[1]));}
+            version++;
             path = Paths.get(basicDirectory.toString(),jobname+"_"+version);}
         path.toFile().mkdirs();
         return path;}
@@ -110,19 +122,19 @@ public class QuSatJob {
     public static void main(String[] args) {
         QuSatJob quSatJob = new QuSatJob(null);
         quSatJob.globalParameters = new GlobalParameters();
-        quSatJob.globalParameters.monitor = "frame";
+        quSatJob.globalParameters.monitor = "life";
         quSatJob.globalParameters.jobname = "MyJob";
-        //Path path = makeJobDirectory(Paths.get(System.getenv("TEMP")), "MyJob");
         Path path = Utilities.pathWithHome("home/TEST");
         quSatJob.jobDirectory = makeJobDirectory(path, quSatJob.globalParameters.jobname);
         Monitor monitor1 = quSatJob.getMonitor("TestProblem1");
+        quSatJob.startTime = System.nanoTime();
         monitor1.println("Simplifier","hahahaha", "flkgdflkgjd");
         monitor1.println("equviv","jajajaja", "GGGGGGGGG");
         Monitor monitor2 = quSatJob.getMonitor("TestProblem2");
         monitor2.print("Simplifier 2 ","hahahaha", "HHHHHHHHH");
         monitor2.print("Simplifier 3 ","xxxxx","XXXXXXXX");
         monitor2.print("equviv 2","jajajaja","YYYYYYYY");
-        for(int i = 0; i < 100 ; ++i) monitor2.println("III ", ""+i);
+        for(int i = 0; i < 10 ; ++i) monitor2.println("III ", ""+i);
 
         //monitor1.flush(true);
         //monitor2.flush(true);

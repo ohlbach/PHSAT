@@ -1,59 +1,59 @@
 package Management.Monitor;
 
-/** This class implements a monitor which prints messages directly to System.out*/
+/** This class implements a monitor which prints messages directly to System.out.*/
 
 public class MonitorLife extends Monitor {
 
-    /** creates a monitor which does nothing at all*/
-    public MonitorLife() {}
+    /** creates a monitor which does nothing at all.*/
+    public MonitorLife() {
+        super("Monitor",System.nanoTime());}
 
-    /** creates a monitor that prints the messages to System.out
+    /** creates a monitor that prints the messages to System.out.
      *
-     * @param title like "Messages", "Errors", "Warnings"
+     * @param title for identifying the monitor.
      */
-    public MonitorLife(String title) {
-        this.title = title;}
+    public MonitorLife(String title, long startTime) {
+        super(title,startTime);}
 
-    /** prints the title, the id followed by the messages to a single line
+    /** prints the id and the elapsed time followed by the messages to a single line.
      *
-     * @param id      for identifying the messages
+     * @param id      for identifying the messages.
      * @param messages to be printed.
      */
     public void print(String id, String... messages) {
-        filled = true;
-        System.out.print(title+","+id+": ");
+        double time = (double)(System.nanoTime() - startTime)/1000.0;
+        System.out.print(title+","+id+" @ " + time + " μs: ");
         for(String message: messages) System.out.print(message);
         System.out.println();}
 
-    /**  prints title, id and the messages one per line
+    /**  prints the id and the elapsed time followed by the messages one per line.
      *
      * @param id      for identifying and separating the messages
      * @param messages to be printed.
      */
     public void println(String id, String... messages) {
-        filled = true;
-        System.out.println(title+","+id+":");
+        double time = ((double)(System.nanoTime() - startTime))/1000.0;
+        System.out.println(title+","+id+" @ " + time + " μs:");
         for(String message: messages) System.out.println("  "+message);}
 
-    /** prints title, id and the messages one per line
+    /** prints the id and the elapsed time followed by the messages one per line.
      *
-     * @param id        an id for the message
-     * @param messages messages
+     * @param id        an id for the message.
+     * @param messages messages.
      */
     public void print(String id, StringBuilder messages) {
-        filled = true;
-        System.out.println(title+","+id+":");
+        double time = (double)(System.nanoTime() - startTime)/1000.0;
+        System.out.println(title+","+id+" @ " + time + " μs:");
         System.out.println(messages);}
 
 
-    /** Sets 'filled' to false. The monitor can be reused.*/
-    public synchronized void flush(boolean close) {
-            filled = false;}
+    /** does nothing.*/
+    public synchronized void flush(boolean close) {}
 
 
-    /** returns some information about the monitor
+    /** returns some information about the monitor.
      *
-     * @return some information about the monitor
+     * @return some information about the monitor.
      */
     public String toString() {
         return title + ": Immediate printing to System.out";}

@@ -1,49 +1,52 @@
 package Management.Monitor;
 
 /** This is an abstract class for implementing monitors.
- *
- * A monitor can be used to print messages, error messages, warnings or messages about the current state of the program.
- * The messages can be printed as they come, or they can be collected and printed later on.
- * A monitor can tag messages with an identifier.
- * The identifiers can help classifying the messages and printing the classes separately.
+ * A monitor can be used to print messages about the current state of the program.<br>
+ * The messages are tagged with the elapsed time, counting from the start time.<br>
+ * There are three types of monitors:<br>
+ * - a monitor which prints to System.out<br>
+ * - a monitor which prints to a file<br>
+ * - a monitor which prints to a JFrame.
  */
 public abstract class Monitor {
 
-    /**  A title like "Messages", "Errors", "Warnings"*/
+    /**  A title for the monitor.*/
     public String title = "Monitor";
 
-    /** becomes true after the first call to print pr println */
-    public boolean filled = false;
+    /** the start time of the job */
+    protected long startTime;
 
-    /** prints/collects the messages
+    /** just sets the start time.
      *
-     * @param id       an identifier for the message
-     * @param messages the messages themselves
+     * @param title     a title for the monitor.
+     * @param startTime the start time of the job.
+     */
+    public Monitor(String title, long startTime) {
+        this.title = title;
+        this.startTime = startTime;}
+
+    /** prints the messages.
+     *
+     * @param id       an identifier for the message.
+     * @param messages the messages themselves.
      */
     public abstract void print(String id, String... messages);
 
-    /** prints/collects the messages. A newline is appended at each message string.
+    /** prints the messages. A newline is appended at each message string.
      *
-     * @param id       an identifier for the message
-     * @param messages the messages themselves
+     * @param id       an identifier for the message.
+     * @param messages the messages themselves.
      */
     public  abstract void println(String id, String... messages);
 
-    /** prints/collects the messages from a StringBuilder.
+    /** prints the messages from a StringBuilder.
      *
-     * @param id       an identifier for the message
-     * @param messages the messages themselves
+     * @param id       an identifier for the message.
+     * @param messages the messages themselves.
      */
     public abstract void print(String id, StringBuilder messages);
 
-    /** indicates whether messages have been printed/collected
-     *
-     * @return true if messages have been printed/collected
-     */
-    public boolean wasFilled() {
-        return filled;}
-
-    /** prints previously collected messages and clears buffers.
+    /** closes files.
      *
      * @param close if true then files are closed.
      */
