@@ -1,10 +1,7 @@
 package Utilities;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by Ohlbach on 03.09.2018.
@@ -109,7 +106,7 @@ public class KVParser {
         if(topKeys.contains(key)) {
             currentMap = new HashMap<>();
             kvList.get(key).add(currentMap);}
-        currentMap.put(key,parts.length > 1 ? parts[1].trim() : "true");}
+        if(!key.equals("")) currentMap.put(key,parts.length > 1 ? parts[1].trim() : "true");}
 
     /** reads and parses the lines from an InputStream.
      * IO-Error leads to System.exit
@@ -148,10 +145,12 @@ public class KVParser {
     public String toString() {
         StringBuilder st = new StringBuilder();
         st.append("Top-Keys: ").append(topKeys).append("\n\n");
-        st.append("HEADER\n");
-        st.append(header);
+        if(header.length() > 0) {
+            st.append("HEADER\n");
+            st.append(header);}
         st.append("KEY-VALUES:\n");
         for(Map.Entry<String,ArrayList<HashMap<String,String>>> entry : kvList.entrySet()) {
+            st.append(entry.getKey()).append("\n");
             ArrayList<HashMap<String,String>> list = entry.getValue();
             for(HashMap<String,String> map : list) {
                 for(Map.Entry<String,String> kv : map.entrySet()) {

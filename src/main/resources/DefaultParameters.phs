@@ -1,5 +1,7 @@
 global
  jobname = Test
  parallel = 1
- //monitor
- logging
+ monitor = life
+ logging = life
+ simplifier = true
+ showClauses = true

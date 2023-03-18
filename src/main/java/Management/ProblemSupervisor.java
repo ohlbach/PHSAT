@@ -4,7 +4,6 @@ import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.*;
-import Datastructures.Statistics.Statistic;
 import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
@@ -57,12 +56,13 @@ public class ProblemSupervisor {
 
     public QuSatJob quSatJob;
 
-    public ProblemSupervisor(GlobalParameters globalParameters, ProblemGenerator problemGenerator,
+    public ProblemSupervisor(QuSatJob quSatJob, GlobalParameters globalParameters, ProblemGenerator problemGenerator,
                              ArrayList<Solver> solvers) {
+        this.quSatJob         = quSatJob;
         this.globalParameters = globalParameters;
         jobname               = globalParameters.jobname;
         trackReasoning        = globalParameters.trackReasoning;
-        problemId             = (String)problemParameters.get("name");
+        //problemId             = problemGenerator.inputClauses.problemName;
         this.problemGenerator = problemGenerator;
         this.solvers          = solvers;
     }
@@ -78,6 +78,7 @@ public class ProblemSupervisor {
         monitor = quSatJob.getMonitor(problemId);
         try {
             inputClauses = problemGenerator.generateProblem(null);
+            if(globalParameters.showClauses && globalParameters.logstream != null) quSatJob.printlog(inputClauses.toString());
             model = new Model(inputClauses.predicates);
             readConjunctions(inputClauses.conjunctions);
             startEquivalenceClasses();
@@ -138,7 +139,7 @@ public class ProblemSupervisor {
         Class solver = result.solver;
         globalParameters.logstream.println("Solver " + solver.getSimpleName() + " finished  work at problem " + problemId);
         if(result.message != null && !result.message.isEmpty()) {globalParameters.logstream.println(result.message);}
-        for(Thread thread : threads) {thread.interrupt();}
+        if(threads != null) {for(Thread thread : threads) {thread.interrupt();}}
         if(simplifierThread != null) simplifierThread.interrupt();
         equivalenceThread.interrupt();
         if(result instanceof Aborted)    {++statistics.aborted;}
@@ -166,12 +167,9 @@ public class ProblemSupervisor {
      *
      * @return the array of Statistics objects.
      */
-    public Statistic[] collectStatistics() {
-        Statistic[] statistics = new Statistic[2+solvers.size()];
-        statistics[0] = this.statistics;
-        statistics[1] = inputClauses.getStatistics(problemId);
-        for(int i = 0; i < solvers.size(); ++i) {statistics[i+2] = solvers.get(i).getStatistics();}
-        return statistics;
+    public static void printStatistics(GlobalParameters globalParameters, ArrayList<ProblemSupervisor> problemSupervisors) {
+       String statistics = globalParameters.statistic;
+
     }
 
     /** prints the result to the PrintStream

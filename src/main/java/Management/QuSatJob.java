@@ -34,7 +34,6 @@ public class QuSatJob {
 
     public ProblemDistributor problemDistributor;
 
-    public Path jobDirectory;
 
     public QuSatJob(KVParser kvParser) {
         startTime = System.nanoTime();
@@ -45,7 +44,7 @@ public class QuSatJob {
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
         globalParameters= new GlobalParameters(kvParser.get("global"),errors,warnings);
-        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeProblemGenerators(kvParser.get("generator"),errors,warnings);
+        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeProblemGenerators(kvParser.get("problem"),errors,warnings);
         ArrayList<Solver> solvers = Solver.makeSolvers(kvParser.get("solver"),errors,warnings);
         if(warnings.length() > 0)  System.out.println(warnings);
         if(errors.length() > 0) {
@@ -54,7 +53,7 @@ public class QuSatJob {
             return;}
         prepareSystem();
         for(ProblemGenerator problemGenerator : generators) {
-            problemSupervisors.add(new ProblemSupervisor(globalParameters,problemGenerator,solvers));}
+            problemSupervisors.add(new ProblemSupervisor(this,globalParameters,problemGenerator,solvers));}
         problemDistributor = new ProblemDistributor(this,globalParameters,problemSupervisors);
         problemDistributor.solveProblems();
         endTime = System.nanoTime();
@@ -64,12 +63,14 @@ public class QuSatJob {
 
     private void prepareSystem() {
         if((globalParameters.monitor != null && globalParameters.monitor.equals("file"))  ||
-                globalParameters.logging.equals("file")){
-            jobDirectory = makeJobDirectory(globalParameters.directory, globalParameters.jobname);
+                globalParameters.logging.equals("file") ||
+                !(globalParameters.statistic.equals("none") || globalParameters.statistic.equals("text"))){
+            globalParameters.jobDirectory = makeJobDirectory(globalParameters.directory, globalParameters.jobname);
         }
+
         switch(globalParameters.logging) {
             case "file":
-                File file = Paths.get(jobDirectory.toString(),"logging.txt").toFile();
+                File file = Paths.get(globalParameters.jobDirectory.toString(),"logging.txt").toFile();
                 try{globalParameters.logstream = new PrintStream(file);
                     globalParameters.logFile = file.getAbsolutePath();
                     globalParameters.logstream.println("QuSat Job " + globalParameters.jobname + " logfile @ " + (new Date()));}
@@ -102,11 +103,12 @@ public class QuSatJob {
      * @return a monitor.
      */
     public Monitor getMonitor(String problemId) {
+        if(globalParameters.monitor == null) return null;
         ++problemCounter;
         Monitor monitor = null;
         switch (globalParameters.monitor) {
             case "life":    monitor = new MonitorLife(problemId, startTime); break;
-            case "file":    File file = Paths.get(jobDirectory.toString(),problemId+"_monitor.txt").toFile();
+            case "file":    File file = Paths.get(globalParameters.jobDirectory.toString(),problemId+"_monitor.txt").toFile();
                             monitor =  new MonitorFile(problemId, startTime, file); break;
             case "frame":   monitor =  new MonitorFrame(problemId, startTime, 1000,1000,
                     100*problemCounter,100*problemCounter);}
@@ -177,15 +179,9 @@ public class QuSatJob {
 
 }
     protected void analyseResults() {
+        ProblemSupervisor.printStatistics(globalParameters,problemSupervisors);
+
     }
 
 
 }
-/*
-    String[] list = dir.list(new FilenameFilter() {
-        @Override
-        public boolean accept(File dir, String name) {
-            return name.matches("[0-9]+");
-        }
-
- */

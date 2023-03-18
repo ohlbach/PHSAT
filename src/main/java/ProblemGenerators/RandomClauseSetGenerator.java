@@ -24,8 +24,8 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
     /** all allowed keys in the parameters */
     protected static final HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
-        Collections.addAll(keys,"generator", "seeds", "predicates", "cpRatios", "lengths", "precises",
-                "redundants", "ors", "ands", "equivs", "atleasts", "atmosts", "exactlies", "intervals");
+        Collections.addAll(keys,"problem", "seed", "predicates", "cpRatio", "length", "precise",
+                "redundant", "ors", "ands", "equivs", "atleasts", "atmosts", "exactlies", "intervals");
     }
 
     /** the original parameters (for documentation only. */
@@ -69,7 +69,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      * @param equivs       the number of equivalences.
      * @param atleasts     the number of atleast clauses.
      * @param atmosts      the number of atmost clauses.
-     * @param exactlies      the number of exactlies clauses.
+     * @param exactlies    the number of exactly clauses.
      * @param intervals    the number of interval clauses.
      */
     public RandomClauseSetGenerator(HashMap<String,String> parameters, int seed, int predicates, int length, boolean precise, boolean redundant,
@@ -108,10 +108,10 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                 "INTERVAL ([2,4] p,q,r,s: between 2 and 4 of them are true)\n\n"+
                 "The parameters are:\n" +
                 "predicates: an integer > 0, specifies the number of predicates in the clause set.\n" +
-                "lengths:    an integer > 0, specifies the maximum number of literals per clause.\n" +
-                "precises:   a boolean, if true then the clauses have exactly the specified length (default true).\n" +
-                "redundants: a boolean, if false then tautologies and doubble literals are avoided (default false).\n"+
-                "seeds:      an integer >= 0 for starting the random number generator (default 0).\n" +
+                "length:     an integer > 0, specifies the maximum number of literals per clause.\n" +
+                "precise:    a boolean, if true then the clauses have exactly the specified length (default true).\n" +
+                "redundant:  a boolean, if false then tautologies and doubble literals are avoided (default false).\n"+
+                "seed:       an integer >= 0 for starting the random number generator (default 0).\n" +
                 "\n" +
                 "ors:        an integer >= 0, specifies the number of disjunctions to be generated.\n" +
                 "ands:       an integer >= 0, specifies the number of conjunctions to be generated.\n" +
@@ -179,12 +179,12 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                 warnings.append(prefix).append("unknown key in parameters: ").append(key).append("\n");
                 warnings.append("  The allowed keys are\n  ").append(keys).append("\n");}}
 
-        String seedS      = parameters.get("seeds");
+        String seedS      = parameters.get("seed");
         String predicateS = parameters.get("predicates");
-        String cpRatioS   = parameters.get("cpRatios");
-        String lengthS    = parameters.get("lengths");
-        String preciseS   = parameters.get("precises");
-        String redundantS = parameters.get("redundants");
+        String cpRatioS   = parameters.get("cpRatio");
+        String lengthS    = parameters.get("length");
+        String preciseS   = parameters.get("precise");
+        String redundantS = parameters.get("redundant");
         String orsS       = parameters.get("ors");
         String andsS      = parameters.get("ands");
         String equivsS    = parameters.get("equivs");

@@ -96,7 +96,7 @@ public abstract class ProblemGenerator {
                                                                     StringBuilder errors, StringBuilder warnings) {
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
         for(HashMap<String,String> parameters: parameterList) {
-            String type = parameters.get("generator");
+            String type = parameters.get("problem");
             if(type == null) continue;
             Class clazz = generatorClass(type);
             if(clazz == null) {

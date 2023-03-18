@@ -7,7 +7,6 @@ import Solvers.Solver;
 import Utilities.KVParser;
 
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Date;
 
@@ -43,7 +42,12 @@ public class QUSat {
 
     private static final String homeDirectory = System.getenv("USERPROFILE");
 
-    private static final String parameters = null;
+    private static final String parameters =
+            "problem random\n"+
+                    "predicates = 10\n" +
+                    "cpRatio = 4\n"+
+                    "length = 3\n" +
+                    "precise = true";
 
     public static String jobname;
 
@@ -75,9 +79,9 @@ public class QUSat {
      * @param args for the commands
      */
     public static void  main(String[] args) {
-        System.out.println(LocalDateTime.now());
         System.out.println(new Date());
-        args = new String[]{"help","global"};
+        //args = new String[]{"help"};
+        args = new String[]{"string"};
         if(args.length == 0) {help(args); return;}
         KVParser kvParser = new KVParser("global", "problem", "solver");
         kvParser.parseFile(defaultFile);

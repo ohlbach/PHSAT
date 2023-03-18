@@ -7,8 +7,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Date;
 
 /**
  * Created by Ohlbach on 03.09.2018.<br>
@@ -66,11 +66,11 @@ public class ProblemDistributor {
      */
     public void solveProblems() {
         String jobname = globalParameters.jobname;
-        globalParameters.logstream.println("Starting job " + jobname + " at " + LocalDateTime.now());
+        globalParameters.logstream.println("Starting job " + jobname + " at " + (new Date()));
         long start = System.nanoTime();
         int numberOfCores = Runtime.getRuntime().availableProcessors() - 1; // one core as spare
         int numberOfSolvers = problemSupervisors.get(0).numberOfSolvers;
-        int simultaneousProblems = Math.max(1, numberOfCores / numberOfSolvers);
+        int simultaneousProblems = (numberOfSolvers == 0) ? 1 : Math.max(1, numberOfCores / numberOfSolvers);
         Thread[] threads = new Thread[simultaneousProblems];
         for (int i = 0; i < simultaneousProblems; ++i) {
             Thread thread = new Thread(this::processProblems);
@@ -81,8 +81,8 @@ public class ProblemDistributor {
             ErrorReporter.reportErrorAndStop(ex.toString());}
         long end = System.nanoTime(); // only the elapsed solution time is reported.
         reportResults();
-        globalParameters.logstream.println("Ending job   " + jobname + " at " + LocalDateTime.now());
-        globalParameters.logstream.println("Elapsed time" + (float)(end-start)/1000.0 + " ms");
+        globalParameters.logstream.println("Ending job    " + jobname + " at " + (new Date()));
+        globalParameters.logstream.println("Elapsed time " + (float)(end-start)/1000.0 + " μs");
         globalParameters.logstream.close();
     }
 
