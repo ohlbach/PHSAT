@@ -58,12 +58,13 @@ public class GlobalParameters {
     /** @return a help-string which describes the parameters */
     public static String help() {
         return "Global Parameters:\n" +
+                " - jobname    the name of the job (default: Test)\n"+
                 " - directory  the output goes to directory/'jobname'/... \n"+
                 "              default: the TEMP directory.\n"+
                 " - parallel   (default: 1)  controls how many problems are processed in parallel threads.\n" +
                 "                            'true' means to use the number of available processors.\n" +
-                " - simplifier (default true) a simplifier in a separate thread triers to deduce true literals and equivalences\n" +
-                " - logging    (default: life) 'life', 'none' or 'file' for logging the actions.\n" +
+                " - simplifier (default true) a simplifier in a separate thread tries to deduce true literals and equivalences.\n" +
+                " - logging    'life', 'none' or 'file' (default: life) for logging the actions.\n" +
                 "              if 'file' is specified then logging information is printed to logfile.txt\n"+
                 " - showClauses (default: false) if true then the clauses are printed to the logfile. \n"+
                 " - errors2File (default false) print errors and warnings to files\n" +
@@ -89,7 +90,7 @@ public class GlobalParameters {
      * @param warnings  for warnings
      */
     public GlobalParameters(ArrayList<HashMap<String,String>> parameters, StringBuilder errors, StringBuilder warnings) {
-        String title = "Global Parameters";
+        String title = "Global Parameters: ";
         for(HashMap<String,String> pars :parameters) {
             for(Map.Entry<String,String> entry : pars.entrySet()) {
                 String key = entry.getKey();
@@ -98,7 +99,7 @@ public class GlobalParameters {
                 case "jobname": jobname = value; break;
                 case "directory" :
                     directory = Utilities.pathWithHome(value);
-                    if(!directory.toFile().exists()) {errors.append("Directory " + directory.toString() + " does not exist.");}
+                    if(!directory.toFile().exists()) {errors.append(title + "Directory " + directory.toString() + " does not exist.");}
                     break;
                 case "parallel":
                     if(value.equals("true")) {parallel = Runtime.getRuntime().availableProcessors(); break;}
@@ -112,12 +113,12 @@ public class GlobalParameters {
                 case "logging":
                     logging = value;
                     if(!(value.equals("life") || value.equals("file") || value.equals("none"))) {
-                        errors.append(title+" logging '" + value + "' is not one of 'life','none','file'");}
+                        errors.append(title+"logging '" + value + "' is not one of 'life','none','file'");}
                     break;
                 case "showClauses":
                     showClauses = value.equals("true");
                     if(!(value.equals("true") || value.equals("false"))) {
-                        errors.append(title+" showClauses '" + value + "' is not 'true' or 'false'");}
+                        errors.append(title+"showClauses '" + value + "' is not 'true' or 'false'");}
                     break;
                 case "monitor":
                     monitor = value;
@@ -139,7 +140,7 @@ public class GlobalParameters {
     /** returns a description of the parameters */
     public String toString() {
         return "Global Parameters:\n" +
-                "  name                " + jobname +"\n"+
+                "  jobname             " + jobname +"\n"+
                 "  homedirectory       " + homeDirectory + "\n"+
                 "  directory:          " + directory+"\n"+
                 "  jobdirecory:        " + ((jobDirectory == null) ? "null" : jobDirectory.toString()) + "\n"+

@@ -5,3 +5,4 @@ global
  logging = life
  simplifier = true
  showClauses = true
+ directory D:/SAT

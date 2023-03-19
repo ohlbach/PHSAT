@@ -47,7 +47,8 @@ public class QUSat {
                     "predicates = 10\n" +
                     "cpRatio = 4\n"+
                     "length = 2-3\n" +
-                    "precise = true";
+                    "precise = true\n"+
+            "global";
 
     public static GlobalParameters globalParameters  = null;
 
@@ -78,8 +79,8 @@ public class QUSat {
      */
     public static void  main(String[] args)  {
         System.out.println(new Date());
-        args = new String[]{"help","parameters"};
-        //args = new String[]{"string"};
+        //args = new String[]{"help","global"};
+        args = new String[]{"string"};
         if(args.length == 0) {help(args); return;}
         KVParser kvParser = new KVParser("global", "problem", "solver");
         kvParser.parseFile(defaultFile);
@@ -99,17 +100,20 @@ public class QUSat {
         QuSatJob quSatJob = new QuSatJob(kvParser);
         quSatJob.solveProblems();}
 
+    /** collects the help functions */
     private static final HashMap<String, Supplier<String>> helpers = new HashMap<>();
 
     static {
         helpers.put("parameters", QUSat::help);
+        helpers.put("global",     Management.GlobalParameters::help);
         helpers.put("generator",  ProblemGenerators.ProblemGenerator::help);
         helpers.put("cnfreader",  ProblemGenerators.CNFReader::help);
         helpers.put("random",     ProblemGenerators.RandomClauseSetGenerator::help);
         helpers.put("pigeonhole", ProblemGenerators.PigeonHoleGenerator::help);
         helpers.put("string",     ProblemGenerators.StringClauseSetGenerator::help);
     }
-    private static final String helperKeys = "parameters, generator (cnfreader, random, pigeonhole, string) ";
+    /** for displaying the helpers */
+    private static final String helperKeys = "parameters, global, generator (cnfreader, random, pigeonhole, string) ";
 
     /** This method calls the help()-methods and prints the results.
      *
@@ -126,6 +130,10 @@ public class QUSat {
             System.out.println("The known helpers are:\n");
             System.out.println(helperKeys);}}
 
+    /** returns a string with explanations about the parameters.
+     *
+     * @return a string with explanations about the parameters.
+     */
     private static String help() {
         return "The parameters are specified as key-value pairs, grouped in blocks.\n"+
                 "Each block has a name and possibly a parameter.\n"+
