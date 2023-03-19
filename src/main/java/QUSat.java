@@ -46,7 +46,7 @@ public class QUSat {
             "problem random\n"+
                     "predicates = 10\n" +
                     "cpRatio = 4\n"+
-                    "length = 3\n" +
+                    "length = 2-3\n" +
                     "precise = true";
 
     public static String jobname;
