@@ -1,18 +1,16 @@
-import Datastructures.Clauses.AllClauses.InitializerSimplifier;
+package QUSat;
+
 import Management.GlobalParameters;
 import Management.ProblemDistributor;
 import Management.QuSatJob;
-import ProblemGenerators.ProblemGenerator;
-import Solvers.Solver;
 import Utilities.KVParser;
 
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.function.Supplier;
 
 /** This is the class with the main method for the QUSat system. <br>
- * Created by Ohlbach on 02.09.2018.
- *
  * QUSat solves SAT-problems for quantified propositional logic. <br>
  * In this logic there are clauses with quantifiers over literals.
  * Examples: <br>
@@ -42,14 +40,14 @@ public class QUSat {
 
     private static final String homeDirectory = System.getenv("USERPROFILE");
 
+
+
     private static final String parameters =
             "problem random\n"+
                     "predicates = 10\n" +
                     "cpRatio = 4\n"+
                     "length = 2-3\n" +
                     "precise = true";
-
-    public static String jobname;
 
     public static GlobalParameters globalParameters  = null;
 
@@ -78,10 +76,10 @@ public class QUSat {
      *
      * @param args for the commands
      */
-    public static void  main(String[] args) {
+    public static void  main(String[] args)  {
         System.out.println(new Date());
-        //args = new String[]{"help"};
-        args = new String[]{"string"};
+        args = new String[]{"help","parameters"};
+        //args = new String[]{"string"};
         if(args.length == 0) {help(args); return;}
         KVParser kvParser = new KVParser("global", "problem", "solver");
         kvParser.parseFile(defaultFile);
@@ -101,27 +99,64 @@ public class QUSat {
         QuSatJob quSatJob = new QuSatJob(kvParser);
         quSatJob.solveProblems();}
 
-    /** This method calls the help()-methods and prints the results.
-     * - help global:           prints the global help strings<br>
-     * - help [generator name]: prints the help strings of the generator<br>
-     * - help [solver name]:    prints the help strings of the solver<br>
-     * - help:                  prints all help strings.
-     *
-     * @param args either empty, or [help,name] where name is the name of a generator or solver.
-     */
-    private static void help(String[] args) {
-        if(args.length > 1) {
-            String name = args[1];
-            if(name.equals("global"))       {System.out.println(GlobalParameters.help()); return;}
-            if(ProblemGenerator.isProblemGenerator(name)) {System.out.println(ProblemGenerator.help(name)); return;}
-            if(Solver.isSolver(name))       {System.out.println(Solver.help(name));       return;}
-            System.out.println("Unknown name '"+ name + "'. The available names are:");
-            System.out.println("Generators: " + Arrays.toString(ProblemGenerator.problemGeneratorNames));
-            System.out.println("Solvers:    " + Arrays.toString(Solver.solvers));
-            return;}
-        System.out.println(GlobalParameters.help());
-        System.out.println(ProblemGenerator.help());
-        System.out.println(InitializerSimplifier.helpInitializer());
-        System.out.println(Solver.help());}
+    private static final HashMap<String, Supplier<String>> helpers = new HashMap<>();
 
+    static {
+        helpers.put("parameters", QUSat::help);
+        helpers.put("generator",  ProblemGenerators.ProblemGenerator::help);
+        helpers.put("cnfreader",  ProblemGenerators.CNFReader::help);
+        helpers.put("random",     ProblemGenerators.RandomClauseSetGenerator::help);
+        helpers.put("pigeonhole", ProblemGenerators.PigeonHoleGenerator::help);
+        helpers.put("string",     ProblemGenerators.StringClauseSetGenerator::help);
+    }
+    private static final String helperKeys = "parameters, generator (cnfreader, random, pigeonhole, string) ";
+
+    /** This method calls the help()-methods and prints the results.
+     *
+     * @param args either  [help] or [help,name] where name is the name of a helper.
+     */
+    private static void help(String[] args){
+        if(args.length > 1) {
+            Supplier<String> helper = helpers.get(args[1]);
+            if(helper == null) {
+                System.out.println("Unknown helper. The known helpers are:\n");
+                System.out.println(helperKeys);}
+            else System.out.println(helper.get());}
+        else {
+            System.out.println("The known helpers are:\n");
+            System.out.println(helperKeys);}}
+
+    private static String help() {
+        return "The parameters are specified as key-value pairs, grouped in blocks.\n"+
+                "Each block has a name and possibly a parameter.\n"+
+                "There are the following blocks:\n"+
+                "   global                   (for global parameters)\n"+
+                "   problem [generator-name] (for specifying the problem source)\n"+
+                "   solver  [solver-name]    (for specifying the solvers)\n"+
+                "All blocks may occur multiple times.\n"+
+                "The parameters in global blocks are overwritten by later global blocks.\n"+
+                "Several problem blocks specify several sources.\n"+
+                "Several solver blocks specify that these solvers should work in parallel.\n"+
+                "Even several solvers of the same type can work in parallel at the same problem.\n\n"+
+                "There is a file DefaultParameters.phs which is always loaded for specifying default parameters.\n"+
+                "Example:\n"+
+                "global\n" +
+                "   jobname     = Test\n" +
+                "   parallel    = 1\n" +
+                "   monitor     = life\n" +
+                "   logging     = life\n" +
+                "   simplifier  = true\n" +
+                "   showClauses = true\n"+
+                "\n"+
+                "problem random\n" +
+                "      predicates = 100\n" +
+                "      cpRatio    = 4\n" +
+                "      length     = 2-3\n" +
+                "      seed       = 1\n"+
+                "\n"+
+                " solver walker\n" +
+                "     flips = 50000\n" +
+                "     monitor = 0\n" +
+                "     seed = 1";
+    }
 }

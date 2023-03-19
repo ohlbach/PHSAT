@@ -35,6 +35,10 @@ import java.util.concurrent.PriorityBlockingQueue;
  * It gets input from other threads and can derive new true literals and new equivalences.
  */
 public class EquivalenceClasses extends Solver {
+    static {
+        //QUSat.addHelper("equivalences",() -> help());
+    }
+
     /** the problem supervisor */
     public ProblemSupervisor problemSupervisor;
 

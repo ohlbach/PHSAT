@@ -32,19 +32,11 @@ public abstract class ProblemGenerator {
     public ProblemGenerator() {}
 
     /** the list of problem generator names */
-    public static String[] problemGeneratorNames = new String[]{"random","file","pigeonhole","string"};
+    public static String[] problemGeneratorNames = new String[]{"random","cnfreader","pigeonhole","string"};
 
     /** takes the parsed input clauses */
     public InputClauses inputClauses = null;
 
-    /** checks if the name is a generator name
-     *
-     * @param name  a string
-     * @return true if the name is the name of a generator.
-     */
-    public static boolean isProblemGenerator(String name) {
-        for(String generatorName : problemGeneratorNames) {if(name.equals(generatorName)) {return true;}}
-        return false;}
 
     /** maps the generator names to the generator classes
      *
@@ -54,7 +46,7 @@ public abstract class ProblemGenerator {
     public static Class generatorClass(String name) {
         switch (name) {
             case "random":       return ProblemGenerators.RandomClauseSetGenerator.class;
-            case "file":         return ProblemGenerators.CNFReader.class;
+            case "cnfreader":    return ProblemGenerators.CNFReader.class;
             case "pigeonhole":   return ProblemGenerators.PigeonHoleGenerator.class;
             case "string" :      return ProblemGenerators.StringClauseSetGenerator.class;
             default: return null;}}
@@ -64,26 +56,12 @@ public abstract class ProblemGenerator {
      * @return the collected help string for all generator classes
      */
     public static String help() {
-        StringBuilder st = new StringBuilder();
-        st.append("The following problem generator types are available:\n\n");
-        for(String generatorName : problemGeneratorNames) {
-            st.append("Problem Generator ").append(generatorName).append(":\n");
-            st.append(help(generatorName)).append("\n\n");}
-        return st.toString();}
+        return "The following problem generator types are available:\n" +
+        "   cnfreader:  reads clauses from cnf-files.\n"+
+        "   random:     generates clauses with a random number generator.\n"+
+        "   pigeonhole: generates pigeonhole problems.\n"+
+        "   string:     for testing purposes only.";}
 
-    /** returns the help-string for the generator with the given name
-     *
-     * @param name a generator name
-     * @return its help-string
-     */
-    public static String help(String name) {
-        Class clazz = generatorClass(name);
-        if(clazz == null) {return "ProblemGenerator.help: Unknown Generator Class: " +name;}
-        try{
-            Method helper = clazz.getMethod("help");
-            return (String)helper.invoke(null);}
-        catch(Exception ex) {ex.printStackTrace();System.exit(1);}
-        return null;}
 
     /** parses the string-type parameters into sequences of objects
      *

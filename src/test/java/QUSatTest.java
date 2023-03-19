@@ -1,5 +1,6 @@
 import org.junit.Test;
 import Utilities.*;
+import QUSat.QUSat;
 
 /**
  * Created by ohlbach on 04.06.2019.

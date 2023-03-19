@@ -1,7 +1,7 @@
 package ProblemGenerators;
 
-import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
+import Datastructures.Clauses.Quantifier;
 import Management.Monitor.Monitor;
 import Utilities.Utilities;
 
@@ -30,7 +30,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
 
     /** for enumerating the problems. */
     private static int problemCounter = 0;
-    /** the original parameters (for documentation only. */
+    /** the original parameters (for documentation only.) */
     private final HashMap<String,String> parameters;
     /** the seed for the random number generator */
     private final int seed;

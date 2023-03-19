@@ -49,7 +49,7 @@ public class KVParser {
     /** the map of block-lists with the key-value pairs. */
     public final HashMap<String,ArrayList<HashMap<String,String>>> kvList = new HashMap<>();
 
-    /** the topKeys, like "global", "problem", "simplifier", "solver".*/
+    /** the topKeys, like "global", "problem",  "solver".*/
     private final HashSet<String> topKeys = new HashSet<>();
 
     /** creates a parser
