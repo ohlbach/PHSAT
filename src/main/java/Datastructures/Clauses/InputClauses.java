@@ -5,7 +5,6 @@ import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 
-import javax.lang.model.element.QualifiedNameable;
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.nio.file.Path;
@@ -38,7 +37,7 @@ public class InputClauses {
     private static final int cInterval = Quantifier.INTERVAL.ordinal();
 
     /** the name of the problem */
-    public String problemName = null;
+    public String problemId = null;
 
     /** the maximum number of predicates. */
     public int predicates;
@@ -80,13 +79,13 @@ public class InputClauses {
 
     /** constructs a new input clause list.
      *
-     * @param problemName the name of the problem.
+     * @param problemId the name of the problem.
      * @param predicates  the number of predicates which are allowed in the clauses.
      * @param symboltable null or a symboltable.
      * @param info        some information about the origin of the clause set.
      */
-    public InputClauses(String problemName, int predicates, Symboltable symboltable, String info) {
-        this.problemName = problemName;
+    public InputClauses(String problemId, int predicates, Symboltable symboltable, String info) {
+        this.problemId = problemId;
         this.predicates = predicates;
         this.symboltable = symboltable;
         this.info = info;}
@@ -500,7 +499,7 @@ public class InputClauses {
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
-        if(problemName != null) st.append("Problem ").append(problemName).append("\n");
+        if(problemId != null) st.append("Problem ").append(problemId).append("\n");
         if(info != null) st.append(info).append("\n");
         int size = (""+(disjunctions.size() + conjunctions.size()  +equivalences.size()) +
                 atleasts.size() + atmosts.size() + exactlys.size() +intervals.size()).length()+2;
@@ -535,8 +534,8 @@ public class InputClauses {
      */
     public void makeCNFFile(Path jobdirectory, String cnfFile) throws FileNotFoundException {
         Symboltable symboltable1 = cnfFile.equals("symboltable") ? symboltable : null;
-        PrintStream stream = new PrintStream(Paths.get(jobdirectory.toString(),problemName+".cnf").toFile());
-        stream.println("#problem " + problemName);
+        PrintStream stream = new PrintStream(Paths.get(jobdirectory.toString(), problemId +".cnf").toFile());
+        stream.println("#problem " + problemId);
         for(String info : info.split("\\n")) {
             stream.println("#"+info);}
         stream.println("p " + predicates + " c " + (nextId-1));

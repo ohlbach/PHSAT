@@ -1,9 +1,8 @@
 package ProblemGenerators;
 
-import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
-import Management.Monitor.Monitor;
 import Utilities.Interval;
 import Utilities.Utilities;
 
@@ -168,7 +167,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
      * @param errors    no effect
      * @return the new InputClauses
      */
-    public InputClauses generateProblem(Monitor errors){
+    public InputClauses generateProblem(StringBuilder errors){
         Quantifier quantifier = (Quantifier)capacity[0];
         String problemName = "PH_p"+pigeons+"_h"+holes;
         int min=0, max=0, amount=0;

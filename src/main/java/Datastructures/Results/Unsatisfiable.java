@@ -7,10 +7,16 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 
 /** This class represents the final reason for an unsatisfiability in the clauses.
- * Created by ohlbach on 14.09.2018.
+ * It must be subclassed for representing more specific reasons for the unsatisfiability.
  */
 public abstract class Unsatisfiable extends Result {
 
+
+    /** calls the super-constructor.
+     *
+     * @param problemId the problem where the unsatisfiability was discovered.
+     * @param solverId  the solver which discovered the unsatisfiability.
+     */
     public Unsatisfiable(String problemId, String solverId) {
         super(problemId,solverId);}
 
@@ -22,17 +28,17 @@ public abstract class Unsatisfiable extends Result {
     public abstract String description(Symboltable symboltable);
 
 
-    /** returns the reason for the unsatisfiability, usually the entire proof
+    /** returns the reason for the unsatisfiability, usually the entire proof.
      *
-     * @return the reason for the unsatisfiability
+     * @return the reason for the unsatisfiability.
      */
     public String toString() {
         return toString(null);}
 
-    /** returns the reason for the unsatisfiability, usually the entire proof
+    /** returns the reason for the unsatisfiability, usually the entire proof.
      *
      * @param symboltable null or a symboltable.
-     * @return the reason for the unsatisfiability
+     * @return the reason for the unsatisfiability.
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();

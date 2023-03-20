@@ -2,7 +2,6 @@ package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
-import Management.Monitor.Monitor;
 import Utilities.Utilities;
 
 import java.util.*;
@@ -377,12 +376,12 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         }
 
 
-    /** generates the clause set
+    /** generates the clause set.
      *
-     * @param errors for error messages
-     * @return  true
+     * @param errors for error messages.
+     * @return  the new InputClauses.
      */
-    public InputClauses generateProblem(Monitor errors) {
+    public InputClauses generateProblem(StringBuilder errors) {
         String problemName = "Random_" + ++problemCounter;
         String info = "Randomly generated clauses with parameters:" + parameters.toString()+":\n";
         InputClauses inputClauses = new InputClauses("",predicates,null,info);
@@ -403,7 +402,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         if(intervals != 0) {generateClauses(inputClauses,id, Quantifier.INTERVAL,intervals,rnd);
             info += "\nintervals:" + intervals;}
 
-        inputClauses.problemName = problemName;
+        inputClauses.problemId = problemName;
         inputClauses.info        = info;
         inputClauses.nextId      = id[0]+1;
         return inputClauses;}

@@ -9,26 +9,32 @@ import java.util.ArrayList;
 import static Utilities.Utilities.sortIntArray;
 
 /** This is the superclass of the various possible results the solvers can generate.
+ * The most important subclasses represent the satisfiability and unsatisfiability of a clause set.
  */
 public class Result extends Exception {
     /** the solver which found the result. */
     public String solverId = null;
     /** the problem identifier which has the result. */
     public String problemId = null;
-    /** the last inference step which generated the result. */
+    /** the last inference steps which generated the result. */
     public ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
     /** the statistics of the solver. */
     public Statistic statistic = null;
     /** the nanotime at which the result has been generated */
     public long endTime;
 
+    /** the nanotime at which the search was started. */
     public long startTime;
 
     /** an optional message */
     public String message = null;
 
 
-    /** the constructor. It sets the endTime */
+    /** the constructor. It sets the endTime.
+     *
+     * @param problemId the problem identifier which has the result.
+     * @param solverId the solver which found the result.
+     */
     public Result(String problemId, String solverId) {
         super();
         this.problemId = problemId;

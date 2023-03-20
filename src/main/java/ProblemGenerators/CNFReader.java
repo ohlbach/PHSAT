@@ -1,7 +1,6 @@
 package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
-import Management.Monitor.Monitor;
 import Utilities.FileIterator;
 
 import java.io.File;
@@ -44,7 +43,7 @@ public final class CNFReader extends ProblemGenerator {
     /** contains the allowed keys in the specification.*/
     private static final HashSet<String> keys = new HashSet<>();
     static { // these are the allowed keys in the specification.
-        Collections.addAll(keys, "generator", "files", "directories", "regExprs");}
+        Collections.addAll(keys, "problem", "files", "directories", "regExprs");}
 
     /** the cnf file */
     private final File file;
@@ -159,25 +158,19 @@ public final class CNFReader extends ProblemGenerator {
 
     /** reads the cnf-file and generates a InputClauses
      *
-     * @param errorMonitor    for error massages
+     * @param errors    for error massages
      * @return null or the new InputClauses.
      */
-    public InputClauses generateProblem(Monitor errorMonitor) {
-        StringBuilder errors   = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
+    public InputClauses generateProblem(StringBuilder errors) {
         InputClauses inputClauses = null;
-        String problemName = file.getName();
+        String problemId = file.getName();
         try{
-            inputClauses = parseClauses(problemName,new FileIterator(file.getAbsolutePath()),errors,warnings);}
+            inputClauses = parseClauses(problemId,new FileIterator(file.getAbsolutePath()),errors);}
         catch (FileNotFoundException ex){
-            errors.append("CNFReader: File ").append(file).append(" was not found");}
-        if(errorMonitor != null) {
-            if(warnings.length() > 0) {
-                errorMonitor.println("Warnings when parsing clauses "+problemName + "\n"+ errors);}
-            if(errors.length() > 0) {
-                errorMonitor.println("Errors when parsing clauses "+problemName + "\n"+ errors);}}
+            errors.append("CNFReader: File ").append(file).append(" was not found");
+            return null;}
         if(inputClauses == null) return null;
-        inputClauses.problemName = problemName;
+        inputClauses.problemId = problemId;
         return inputClauses;}
 
     /** turns the file and, if already filled, the InputClauses into a string.

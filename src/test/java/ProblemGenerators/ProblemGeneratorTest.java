@@ -83,7 +83,6 @@ public class ProblemGeneratorTest extends TestCase {
     public void testParseClauses() {
         System.out.println("parseClauses");
         StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
         String clauses = "Info1\n" +
                 "Info2\n" +
                 "% test\n" +
@@ -100,7 +99,7 @@ public class ProblemGeneratorTest extends TestCase {
                 "= 2 x y\n" +
                 "[2,3] a -b -c -d";
         Iterator iterator = new StringIterator(clauses, "\n");
-        InputClauses inputClauses = ProblemGenerator.parseClauses("Myproblem",iterator,errors,warnings);
+        InputClauses inputClauses = ProblemGenerator.parseClauses("Myproblem",iterator,errors);
         System.out.println(errors.toString());
         //System.out.println(inputClauses.toString());
         assertEquals("Problem Myproblem\n" +

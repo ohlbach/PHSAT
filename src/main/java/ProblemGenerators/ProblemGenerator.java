@@ -1,9 +1,8 @@
 package ProblemGenerators;
 
-import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
-import Management.Monitor.Monitor;
 import Utilities.KVParser;
 import Utilities.Utilities;
 
@@ -100,23 +99,21 @@ public abstract class ProblemGenerator {
 
     /** generates the InputClauses
      *
-     * @param errorMonitor    for error massages.
+     * @param errors    for error massages.
      * @return null or the new InputClauses.
      */
-    public abstract InputClauses generateProblem(Monitor errorMonitor);
+    public abstract InputClauses generateProblem(StringBuilder errors);
 
     /** parses the clause string and generates a InputClauses object.
      *
      * @param problemName the name of the example problem.
      * @param lineIterator for iterating over the lines.
      * @param errors   for error messages.
-     * @param warnings for warning messages.
      * @return  null or an InputClauses object.
      */
-    protected static InputClauses parseClauses(String problemName, Iterator<String> lineIterator,
-                                               StringBuilder errors, StringBuilder warnings) {
+    protected static InputClauses parseClauses(String problemName, Iterator<String> lineIterator,StringBuilder errors) {
         InputClauses inputClauses = new InputClauses();
-        inputClauses.problemName = problemName;
+        inputClauses.problemId = problemName;
         Integer predicates = 0;
         int lineNumber = 0;
         Symboltable symboltable = null;

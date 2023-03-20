@@ -1,6 +1,5 @@
 package Management;
 
-import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.*;
@@ -28,7 +27,7 @@ public class ProblemSupervisor {
     public HashMap<String,Object> problemParameters;
     public HashMap<String,Object> initializeParameters;
     public ArrayList<HashMap<String,Object>> solverParameters;
-    public InitializerSimplifier initializer;
+
     public Result result = null;
     private String solver = null;
     Thread[] threads;
@@ -73,9 +72,16 @@ public class ProblemSupervisor {
 
     public void solveProblem()  {
         monitor = quSatJob.getMonitor(problemId);
+        StringBuilder errors = new StringBuilder();
         try {
-            inputClauses = problemGenerator.generateProblem(null);
-            problemId    = inputClauses.problemName;
+            inputClauses = problemGenerator.generateProblem(errors);
+            if(errors.length() > 1) {
+                System.out.println("Error when reading/generating problem '" + problemId + "'");
+                System.out.println(errors);
+                System.out.println(problemGenerator.toString());
+                System.out.println("System is aborted.");
+                System.exit(1);}
+            problemId    = inputClauses.problemId;
             if(!globalParameters.cnfFile.equals("none")) inputClauses.makeCNFFile(globalParameters.jobDirectory,globalParameters.cnfFile);
             if(globalParameters.showClauses && globalParameters.logstream != null) quSatJob.printlog(inputClauses.toString());
             model = new Model(inputClauses.predicates);

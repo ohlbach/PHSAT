@@ -1,6 +1,5 @@
 package Solvers;
 
-import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Clauses.Clause;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Literals.CLiteral;
@@ -13,6 +12,7 @@ import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.RecursiveSearch.RecursiveSearcher;
+import Solvers.Simplifier.Simplifier;
 import Solvers.Walker.Walker;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -54,7 +54,7 @@ public abstract class Solver {
      */
     public static Class solverClass(String solverName) {
         switch (solverName) {
-            case "simplifier":      return InitializerSimplifier.class;
+            case "simplifier":      return Simplifier.class;
             case "walker":          return Walker.class;
             case "recursiveSearch": return RecursiveSearcher.class;
             case "resolution":      return Solvers.Resolution.Resolution.class;

@@ -35,23 +35,28 @@ public class QUSat {
     private static final String defaultFile = Paths.get(System.getProperties().get("user.dir").toString(),
             "src","main","resources","DefaultParameters.phs").toString();
 
+    private static final String testFile = Paths.get(System.getProperties().get("user.dir").toString(),
+            "src","main","resources","Test.cnf").toString();
+
+
     private static final String homeDirectory = System.getenv("USERPROFILE");
 
 
 
-    private static final String parameters =
+   private static final String parameters =
             "problem random\n"+
                     "predicates = 10\n" +
-                    "ors = 2\n"+
-                    "ands = 3\n"+
-                    "equivs = 4\n"+
-                    "atleasts = 5\n"+
-                    "atmosts = 6\n"+
-                    "intervals = 7\n"+
-                    "exactlies = 8\n"+
-                    "length = 2-4\n"+
+                    "cpRatio = 4\n"+
+                    "length = 2-3\n"+
             "global\n" +
-                    "cnfFile = numbers";
+                    "cnfFile = numbers\n"+
+                    "logging = life\n"+
+                    "monitor = life";
+
+    /*private static final String parameters =
+            "problem cnfreader\n"+
+                "files = " + testFile;*/
+
 
     public static GlobalParameters globalParameters  = null;
 

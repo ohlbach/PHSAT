@@ -1,6 +1,5 @@
 package Datastructures.Clauses;
 
-import Datastructures.Clauses.AllClauses.InitializerSimplifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -8,13 +7,14 @@ import Datastructures.Theory.Model;
 import Datastructures.TwoLiteral.TwoLitClause;
 import InferenceSteps.*;
 import Management.Monitor.MonitorLife;
+import Solvers.Simplifier.Simplifier;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Formatter;
 import java.util.Locale;
 
-import static Utilities.Utilities.*;
+import static Utilities.Utilities.concatenateString;
 
 /** This class performs multi-resolution.
  * A simple example: Clauses:
@@ -30,17 +30,17 @@ import static Utilities.Utilities.*;
  * There are other versions of multi-resolution where resolvents are created.
  */
 public class MRMatrix {
-    private final InitializerSimplifier allClauses;
+    private  Simplifier allClauses;
     public Clause[] disjointnessClauses;    // a list of Disjointness clauses
-    private final ArrayList<CLiteral>[] dLiterals; // the rearranged list of CLiterals of the disjointness clauses
+    private  ArrayList<CLiteral>[] dLiterals; // the rearranged list of CLiterals of the disjointness clauses
     private final ArrayList<CLiteral[]> matrix = new ArrayList<>(); // the matrix of clauses
-    private final int columnSize;                  // disjointnessClauses.length
+    private  int columnSize;                  // disjointnessClauses.length
     public boolean trackReasoning;           // controls computation of origins
-    private final Symboltable symboltable;         // null or a symboltable
-    private final MonitorLife monitor;                 // null or a monitor
-    private final boolean monitoring;              // monitor != null
-    private final String monitorId;                // a monitor id
-    private final Model model;                     // the global model
+    private  Symboltable symboltable;         // null or a symboltable
+    private  MonitorLife monitor;                 // null or a monitor
+    private  boolean monitoring;              // monitor != null
+    private  String monitorId;                // a monitor id
+    private  Model model;                     // the global model
     int matrixDepth = 0;                     // the maximum allowed depth of the matrix (the longest disjointness clause)
 
     /** creates a multi-resolution matrix
@@ -48,8 +48,8 @@ public class MRMatrix {
      * @param allClauses          the "parent class"
      * @param disjointnessClauses an array of disjointness clauses.
      */
-    public MRMatrix(InitializerSimplifier allClauses, Clause[] disjointnessClauses) {
-        this.allClauses = allClauses;
+    public MRMatrix(Simplifier allClauses, Clause[] disjointnessClauses) {
+       /* this.allClauses = allClauses;
         this.disjointnessClauses = disjointnessClauses;
         columnSize = disjointnessClauses.length;
         monitor = allClauses.monitor;
@@ -63,7 +63,7 @@ public class MRMatrix {
         for(int i = 0; i < columnSize; ++i) {
             dLiterals[i] = (ArrayList<CLiteral>) disjointnessClauses[i].cliterals.clone();
             int size = dLiterals[i].size();
-            for(int j = size; j < matrixDepth; ++j) dLiterals[i].add(null);}
+            for(int j = size; j < matrixDepth; ++j) dLiterals[i].add(null);}*/
     }
 
     /** inserts the clause into the matrix

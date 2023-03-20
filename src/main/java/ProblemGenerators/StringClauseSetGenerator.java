@@ -1,7 +1,6 @@
 package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
-import Management.Monitor.Monitor;
 import Utilities.StringIterator;
 
 import java.util.ArrayList;
@@ -74,20 +73,12 @@ public final class StringClauseSetGenerator extends ProblemGenerator {
 
     /** parses the clause string and generates a BasicClauseList object.
      *
-     * @param errorMonitor   for error messages
-     * @return  true if there was no error.
+     * @param errors   for error messages.
+     * @return  the parsed InputClauses.
      */
     @Override
-    public InputClauses generateProblem(Monitor errorMonitor) {
-        StringBuilder errors   = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
-        InputClauses inputClauses = parseClauses(name,new StringIterator(clauses,"\n"),errors,warnings);
-        if(errorMonitor != null) {
-            if(warnings.length() > 0) {
-                errorMonitor.println("Warnings when parsing clauses "+name + "\n"+errors.toString());}
-            if(errors.length() > 0) {
-                errorMonitor.println("Errors when parsing clauses "+name + "\n"+errors.toString()); return null;}}
-        return inputClauses;
+    public InputClauses generateProblem(StringBuilder errors) {
+        return parseClauses(name,new StringIterator(clauses,"\n"),errors);
     }
 
 
