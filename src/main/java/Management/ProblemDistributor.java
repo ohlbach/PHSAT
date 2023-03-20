@@ -39,6 +39,7 @@ public class ProblemDistributor {
      * @param problemSupervisors  the problem supervisors.
      */
     public ProblemDistributor(QuSatJob quSatJob, GlobalParameters globalParameters, ArrayList<ProblemSupervisor> problemSupervisors) {
+        this.quSatJob = quSatJob;
         this.globalParameters  = globalParameters;
         this.problemSupervisors = problemSupervisors;}
 

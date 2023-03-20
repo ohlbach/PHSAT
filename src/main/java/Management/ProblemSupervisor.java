@@ -43,8 +43,6 @@ public class ProblemSupervisor {
     public Simplifier simplifier;
     public Thread simplifierThread;
 
-    public Thread supervisorThread;
-
     private ArrayList<Solver> solvers;
 
     public SupervisorStatistics statistics = null;
@@ -62,7 +60,6 @@ public class ProblemSupervisor {
         this.globalParameters = globalParameters;
         jobname               = globalParameters.jobname;
         trackReasoning        = globalParameters.trackReasoning;
-        //problemId             = problemGenerator.inputClauses.problemName;
         this.problemGenerator = problemGenerator;
         this.solvers          = solvers;
     }
@@ -78,6 +75,8 @@ public class ProblemSupervisor {
         monitor = quSatJob.getMonitor(problemId);
         try {
             inputClauses = problemGenerator.generateProblem(null);
+            problemId    = inputClauses.problemName;
+            if(!globalParameters.cnfFile.equals("none")) inputClauses.makeCNFFile(globalParameters.jobDirectory,globalParameters.cnfFile);
             if(globalParameters.showClauses && globalParameters.logstream != null) quSatJob.printlog(inputClauses.toString());
             model = new Model(inputClauses.predicates);
             readConjunctions(inputClauses.conjunctions);
@@ -96,7 +95,14 @@ public class ProblemSupervisor {
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}
             equivalenceThread.join();
             if(simplifierThread != null) simplifierThread.join();}
-        catch(Exception ex) {}
+        catch(Result result) {
+            this.result = result;
+            System.out.println(result.toString());
+        }
+        catch(Exception ex) {
+            System.out.println(ex.toString());
+            ex.printStackTrace();
+            System.exit(0);}
         globalParameters.logstream.println("Solvers finished for problem " + problemId);}
 
     /** inserts the initial conjunctions (if any) into the model

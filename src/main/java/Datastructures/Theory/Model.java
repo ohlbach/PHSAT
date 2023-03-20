@@ -55,6 +55,9 @@ public class Model {
         inferenceSteps = new ArrayList<>(predicates);
         status         = new byte[predicates+1];}
 
+    public String getSolverId() {
+        return "Model";}
+
 
     /** adds a new observer which gets called when a new true literal is inserted.
      * An observer is a function to be called for the true literal and the corresponding inference step.
@@ -85,7 +88,10 @@ public class Model {
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
-        if(isFalse(literal)) {throw new UnsatisfiableLiteral(literal,getInferenceStep(literal),inferenceStep);}
+        if(isFalse(literal)) {
+            UnsatisfiableLiteral unsatisfiableLiteral = new UnsatisfiableLiteral(literal,getInferenceStep(literal),inferenceStep);
+            unsatisfiableLiteral.solver = Model.class;
+            throw unsatisfiableLiteral;}
         inferenceSteps.add(inferenceStep);
         model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;

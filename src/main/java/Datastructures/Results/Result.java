@@ -56,11 +56,11 @@ public class Result extends Exception {
      * @return null or the list of inference steps which produced the result.
      */
     public ArrayList<InferenceStep> inferenceSteps() {
-        if(inferenceSteps.isEmpty()) return null;
+        if(inferenceSteps == null || inferenceSteps.isEmpty()) return null;
         ArrayList<InferenceStep> steps1 = new ArrayList<>();
         ArrayList<InferenceStep> steps2 = new ArrayList<>();
         ArrayList<InferenceStep> steps3 = new ArrayList<>();
-        for(InferenceStep step : inferenceSteps) step.inferenceSteps(steps1);
+            for(InferenceStep step : inferenceSteps) step.inferenceSteps(steps1);
         for(int i = 0; i < steps1.size(); ++i) {
             InferenceStep step = steps1.get(i);
             if(!steps2.contains(step)) steps2.add(step);}

@@ -389,7 +389,6 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         Random rnd = new Random(seed);
         int[] id = {0};
         if(ors       != 0) {generateClauses(inputClauses,id, Quantifier.OR,ors,rnd);
-            problemName += " o:" +ors;
             info += "\ndisjunctions:" + ors;}
         if(ands      != 0) {generateClauses(inputClauses,id, Quantifier.AND,ands,rnd);
             info += "\nconjunctions:" + ands;}

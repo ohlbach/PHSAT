@@ -40,6 +40,9 @@ public class GlobalParameters {
     /** if true then the clauses are printed to the logfile */
     public boolean showClauses = false;
 
+    /** enables printing the clauses to a cnf-file */
+    public String cnfFile = "none";
+
     /** print errors and warnings to a file */
     public boolean errors2File = false;
 
@@ -67,6 +70,7 @@ public class GlobalParameters {
                 " - logging    'life', 'none' or 'file' (default: life) for logging the actions.\n" +
                 "              if 'file' is specified then logging information is printed to logfile.txt\n"+
                 " - showClauses (default: false) if true then the clauses are printed to the logfile. \n"+
+                " - cnfFile    'none', 'symboltable' or 'numbers' (default none) enables printing the clauses to a cnf-file.\n"+
                 " - errors2File (default false) print errors and warnings to files\n" +
                 " - monitor   'life': print all the messages to System.out.\n" +
                 "             'file': just print the messages to a file, separate for each problem.\n" +
@@ -120,6 +124,10 @@ public class GlobalParameters {
                     if(!(value.equals("true") || value.equals("false"))) {
                         errors.append(title+"showClauses '" + value + "' is not 'true' or 'false'");}
                     break;
+                case "cnfFile": cnfFile = value;
+                    if(!(value.equals("none") || value.equals("symboltable") || value.equals("numbers"))) {
+                        errors.append(title+"showClauses '" + value + "' is not 'none', 'symboltable' or 'numbers'");}
+                    break;
                 case "monitor":
                     monitor = value;
                     if(!(value.equals("life") || value.equals("file") || value.equals("frame"))) {
@@ -148,6 +156,8 @@ public class GlobalParameters {
                 "  logging:            " + logging +"\n" +
                 "  errors2File         " + errors2File + "\n" +
                 "  monitor:            " + (monitor == null ? "null" : monitor) +"\n"+
+                "  showClauses:        " + showClauses+"\n"+
+                "  cnfFile:            " + cnfFile+"\n"+
                 "  statistic:          " + statistic + "\n" +
                 "  trackReasoning:     " + trackReasoning;}
 

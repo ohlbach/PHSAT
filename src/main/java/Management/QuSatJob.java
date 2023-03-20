@@ -63,7 +63,7 @@ public class QuSatJob {
 
     private void prepareSystem() {
         if((globalParameters.monitor != null && globalParameters.monitor.equals("file"))  ||
-                globalParameters.logging.equals("file") ||
+                globalParameters.logging.equals("file") || !globalParameters.cnfFile.equals("none") ||
                 !(globalParameters.statistic.equals("none") || globalParameters.statistic.equals("text"))){
             globalParameters.jobDirectory = makeJobDirectory(globalParameters.directory, globalParameters.jobname);
         }

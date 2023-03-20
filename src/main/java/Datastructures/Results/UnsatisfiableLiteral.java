@@ -15,10 +15,15 @@ public class UnsatisfiableLiteral extends Unsatisfiable {
      * @param stepLiteral2  the inference step for the newly derived literal
      */
     public UnsatisfiableLiteral(int literal, InferenceStep stepLiteral1, InferenceStep stepLiteral2) {
+        super();
         this.literal = literal;
-        inferenceSteps.add(stepLiteral1);
-        inferenceSteps.add(stepLiteral2);}
+        if(stepLiteral1 != null) inferenceSteps.add(stepLiteral1);
+        if(stepLiteral2 != null) inferenceSteps.add(stepLiteral2);}
 
+    public String toString() {
+        return toString(null);}
+    public String toString(Symboltable symboltable) {
+        return "Contradictory literal derived: " + Symboltable.toString(literal,symboltable)+"\n" + super.toString(symboltable);}
     @Override
     public String description(Symboltable symboltable) {
         return "Contradictory literal derived: " + Symboltable.toString(literal,symboltable)+"\n";}

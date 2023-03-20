@@ -11,6 +11,9 @@ import java.util.ArrayList;
  */
 public abstract class Unsatisfiable extends Result {
 
+    public Unsatisfiable() {
+        super();}
+
     /** must generate a short description of the unsatisfiability
      *
      * @param symboltable  null or a symboltable

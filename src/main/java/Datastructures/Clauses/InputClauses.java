@@ -5,6 +5,11 @@ import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 
+import javax.lang.model.element.QualifiedNameable;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.IntSupplier;
@@ -39,7 +44,7 @@ public class InputClauses {
     public int predicates;
 
     /** null or a symboltable. */
-    public Symboltable symboltable;
+    public Symboltable symboltable = null;
 
     /** an info-string about the origin of the clauses. */
     public String info = null;
@@ -522,5 +527,53 @@ public class InputClauses {
             for(int[] clause : intervals)    {st.append(toString(size,clause,symboltable)).append("\n");}}
         return st.toString();}
 
+    /** prints the clauses as a cnf-file into the jobdirectory.
+     *
+     * @param jobdirectory           where the files of the job are to be printed.
+     * @param cnfFile               'symboltable' or 'numbers'.
+     * @throws FileNotFoundException if the file cannot be opnened.
+     */
+    public void makeCNFFile(Path jobdirectory, String cnfFile) throws FileNotFoundException {
+        Symboltable symboltable1 = cnfFile.equals("symboltable") ? symboltable : null;
+        PrintStream stream = new PrintStream(Paths.get(jobdirectory.toString(),problemName+".cnf").toFile());
+        stream.println("#problem " + problemName);
+        for(String info : info.split("\\n")) {
+            stream.println("#"+info);}
+        stream.println("p " + predicates + " c " + (nextId-1));
+        if(!disjunctions.isEmpty()) {
+            for(int[] clause : disjunctions) {printCNF(clause,stream,symboltable1);}}
+        if(!conjunctions.isEmpty()) {
+            for(int[] clause : conjunctions) {printCNF(clause,stream,symboltable1);}}
+        if(!equivalences.isEmpty()) {
+            for(int[] clause : equivalences) {printCNF(clause,stream,symboltable1);}}
+        if(!atleasts.isEmpty()) {
+            for(int[] clause : atleasts)     {printCNF(clause,stream,symboltable1);}}
+        if(!atmosts.isEmpty()) {
+            for(int[] clause : atmosts)      {printCNF(clause,stream,symboltable1);}}
+        if(!exactlys.isEmpty()) {
+            for(int[] clause : exactlys)     {printCNF(clause,stream,symboltable1);}}
+        if(!intervals.isEmpty()) {
+            for(int[] clause : intervals)    {printCNF(clause,stream,symboltable1);}}
+        stream.close();
+    }
+
+    /** prints a single clause in cnf-form to the stream.
+     *
+     * @param clause      a clause to be printed.
+     * @param stream      a PrintStream.
+     * @param symboltable null or a symboltable.
+     */
+    private void printCNF(int[] clause, PrintStream stream, Symboltable symboltable) {
+        Quantifier quantifier = Quantifier.getQuantifier(clause[1]);
+        int start = quantifier.firstLiteralIndex;
+        int end = clause.length;
+        String abbreviation = quantifier.abbreviation;
+        if(quantifier == Quantifier.OR || quantifier.isInterval()) abbreviation = "";
+        stream.print(abbreviation);
+        if(quantifier.isQuantifier() && !quantifier.isInterval()) stream.print(" "+clause[2]);
+        if(quantifier.isInterval()) stream.print("["+clause[2]+","+clause[3]+"]");
+        for(int i = start; i < end; ++i) {
+            stream.print(" "+ Symboltable.toString(clause[i],symboltable));}
+        stream.println(" 0");}
 
 }
