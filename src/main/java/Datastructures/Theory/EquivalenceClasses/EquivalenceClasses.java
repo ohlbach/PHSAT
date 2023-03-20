@@ -154,7 +154,7 @@ public class EquivalenceClasses extends Solver {
             statistics.inputClasses = equivalenceClasses.size();
             readModel();}
         catch(Unsatisfiable unsatifiable) {
-            unsatifiable.solver = EquivalenceClasses.class;
+            unsatifiable.solverId = "EquivalenceClasses";
             unsatifiable.problemId   = problemId;
             throw unsatifiable;}}
 
@@ -183,7 +183,7 @@ public class EquivalenceClasses extends Solver {
         catch(Result result) {
             result.problemId = problemId;
             result.statistic = statistics;
-            result.solver = this.getClass();
+            result.solverId = "EquivalenceClasses";
             return result;}
         return null;}
 

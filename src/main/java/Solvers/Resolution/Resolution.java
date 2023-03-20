@@ -153,7 +153,7 @@ public abstract class Resolution extends Solver {
             if(result == null) {result = resolve();}}
         catch(InterruptedException ex) {
             //globalParameters.log("Resolution " + combinedId + " interrupted after " + resolvents + " resolvents.\n");
-            result = new Aborted("Resolution aborted after " + resolvents + " resolvents");}
+            result = new Aborted(null,"Resolution","Resolution aborted after " + resolvents + " resolvents");}
         catch(Unsatisfiable uns) {}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + result.toString());
@@ -307,13 +307,13 @@ public abstract class Resolution extends Solver {
         }
         if(result == null) {
             System.out.println(toString());
-            return new Aborted("Maximum Resolution Limit " + resolutionLimit + " exceeded");
+            return new Aborted(null,"Resolution","Maximum Resolution Limit " + resolutionLimit + " exceeded");
             }
         if(result.getClass() == Satisfiable.class) {
             ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(((Satisfiable)result).model);
             if(falseClauses == null) {return result;}
             System.out.println(toString());
-            return new Erraneous(((Satisfiable)result).model,falseClauses,symboltable);}
+            return new Erraneous(problemId,"Resolution",((Satisfiable)result).model,falseClauses,symboltable);}
         return result;}
 
     private HashSet<Integer> indices = new HashSet<>();
@@ -582,14 +582,14 @@ public abstract class Resolution extends Solver {
      */
     private Result completeModel() {
         System.out.println("Completing Model\n"+toString());
-        if(model.size() == predicates) {return new Satisfiable(model);}
+        if(model.size() == predicates) {return new Satisfiable(null,null,model);}
         boolean isPositive = true;
         switch(strategy) {
             case INPUT:
             case SOS:       // there should be no clauses any more.
                 for(Clause clause : secondaryClauses) {
                     if(!trueInModel(clause,model)) {
-                        return new Erraneous(model,clause,symboltable);}}
+                        return new Erraneous(problemId,"Resolution",model,clause,symboltable);}}
                 break;
             case NEGATIVE: isPositive = false;
             case POSITIVE:
@@ -600,7 +600,7 @@ public abstract class Resolution extends Solver {
                         int literal = cliteral.literal;
                         if(model.status(literal) == 0 && ((isPositive && literal < 0) || (!isPositive && literal > 0))) {
                             model.addImmediately(literal); found = true; break;}}
-                    if(!found) return new Erraneous(model,clause,symboltable);}}
+                    if(!found) return new Erraneous(problemId,"Resolution",model,clause,symboltable);}}
         completeEliminations();
         try{equivalenceClasses.completeModel();}
         catch(Unsatisfiable uns) {return uns;}
@@ -608,7 +608,7 @@ public abstract class Resolution extends Solver {
         if(result != null) {return result;}
         result = checkModel(model);
         if(result != null) {return result;}
-        return new Satisfiable(model);}
+        return new Satisfiable(null,null,model);}
 
     private void completeEliminations() {
         for(int i = eliminatedLiterals.size()-1; i >= 0; --i) {

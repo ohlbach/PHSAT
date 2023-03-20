@@ -14,8 +14,8 @@ public class UnsatisfiableLiteral extends Unsatisfiable {
      * @param stepLiteral1  the inference step for the original literal
      * @param stepLiteral2  the inference step for the newly derived literal
      */
-    public UnsatisfiableLiteral(int literal, InferenceStep stepLiteral1, InferenceStep stepLiteral2) {
-        super();
+    public UnsatisfiableLiteral(String problemId, String solverId, int literal, InferenceStep stepLiteral1, InferenceStep stepLiteral2) {
+        super(problemId,solverId);
         this.literal = literal;
         if(stepLiteral1 != null) inferenceSteps.add(stepLiteral1);
         if(stepLiteral2 != null) inferenceSteps.add(stepLiteral2);}

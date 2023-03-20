@@ -212,9 +212,9 @@ public class Simplifier extends Solver {
                                     clause.toString(symboltable,0));}}}}
             checkAllPurities();
             statistics.orAndAtleastCLauses = clauses.size;
-            if(clauses.isEmpty()) throw new Satisfiable(model);}
+            if(clauses.isEmpty()) throw new Satisfiable(problemId,"Simplifier", model);}
         catch(Result result) {
-            result.solver = this.getClass();
+            result.solverId  = "Simplifier";
             result.problemId = problemId;
             result.statistic = statistics;
             throw result;}
@@ -230,7 +230,7 @@ public class Simplifier extends Solver {
      */
     private boolean insertNewClause(int[] inputClause, Clause clause) throws Unsatisfiable {
         if(clause.isTrue())  {++statistics.notInternalizedInputClauses; return false;}
-        if(clause.isFalse()) {throw new UnsatClause(inputClause);}
+        if(clause.isFalse()) {throw new UnsatClause(problemId,"Simplifier",inputClause);}
         int size = clause.size();
         if(clause.removeComplementaryLiterals())   {++statistics.notInternalizedInputClauses; return false;}
         if(clause.size() != size) {
@@ -318,7 +318,7 @@ public class Simplifier extends Solver {
                         mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
                         mergeResolutionBinaryTriggered(clause, clause.literals.get(1),clause.literals.get(0));
                         break;}}
-                if(clauses.isEmpty()) throw new Satisfiable(model);}
+                if(clauses.isEmpty()) throw new Satisfiable(problemId,"Simplifier",model);}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
 
@@ -412,9 +412,9 @@ public class Simplifier extends Solver {
                                  clause.toString(symboltable,0),model);}
                      --i;}
                     if(removed) continue;
-                    if(clause.limit > clause.expandedSize) throw new UnsatClause(clause);
+                    if(clause.limit > clause.expandedSize) throw new UnsatClause(problemId,"Simplifier",clause);
                     switch(clause.size()) {
-                        case 0: throw new UnsatEmptyClause(clause);
+                        case 0: throw new UnsatEmptyClause(problemId,"Simplifier", clause);
                         case 1:
                             int trueLiteral =  clause.literals.get(0).literal;
                             model.add(trueLiteral,clause.inferenceStep);
@@ -1299,7 +1299,7 @@ public class Simplifier extends Solver {
             processTasks(0);}
         catch(Result result) {
             result.statistic = statistics;
-            result.solver = this.getClass();
+            result.solverId = "EquivalenceClasses";
             result.problemId = problemId;
             result.startTime = startTime;
             return result;}

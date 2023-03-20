@@ -136,14 +136,14 @@ public class EquivalenceClass {
                                   ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers) throws Unsatisfiable{
         if(representative == newLiteral) return;
         if(representative == -newLiteral)
-            throw new UnsatContradictoryEquivalence(oldLiteral,representative,
+            throw new UnsatContradictoryEquivalence(null,"EquivalenceClass", oldLiteral,representative,
                 getInferenceStep(oldLiteral),newInferenceStep);
         InferenceStep oldInferenceStep = null;
         for(int i = 0; i < literals.size(); ++i) {
             int literal = literals.getInt(i);
             if(literal == newLiteral) return;
             if(literal == -newLiteral)
-                throw new UnsatContradictoryEquivalence(oldLiteral,literal,
+                throw new UnsatContradictoryEquivalence(null,"EquivalenceClass",oldLiteral,literal,
                         getInferenceStep(oldLiteral),newInferenceStep);
             if(inferenceSteps != null && oldLiteral == literal) oldInferenceStep = inferenceSteps.get(i);}
         if(inferenceSteps != null)
@@ -182,11 +182,11 @@ public class EquivalenceClass {
         IntArrayList literals = joinedClass.literals;
         int representative2 = eqClass2.representative;
         int sign1 = joinedClass.containsLiteral(sign*representative2);
-        if(sign1 == -1) throw new UnsatJoinedOverlaps(eqClass1,eqClass2);
+        if(sign1 == -1) throw new UnsatJoinedOverlaps(null,"EquivalenceClass", eqClass1,eqClass2);
         if(sign1 == 0) literals.add(sign*representative2);
         for(int literal2 : eqClass2.literals) {
             sign1 = joinedClass.containsLiteral(sign*literal2);
-            if(sign1 == -1) throw new UnsatJoinedOverlaps(eqClass1,eqClass2);
+            if(sign1 == -1) throw new UnsatJoinedOverlaps(null,"EquivalenceClass",eqClass1,eqClass2);
             if(sign1 == 0) literals.add(sign*literal2);
         }
         if(eqClass1.inferenceSteps != null) {

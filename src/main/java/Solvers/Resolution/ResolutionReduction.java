@@ -139,7 +139,7 @@ public abstract class ResolutionReduction extends Solver {
             if(result == null) {result = doTheWork();}}
         catch(InterruptedException ex) {
             //globalParameters.log(combinedId + " interrupted.\n");
-            result = new Aborted(combinedId + " aborted after ");}
+            result = new Aborted(null,"Resolution",combinedId + " aborted after ");}
         statistics.elapsedTime = System.currentTimeMillis() - time;
         System.out.println("RESULT " + ((result == null) ? " none" : result.toString()));
         //problemSupervisor.finished(this.solverId, result, "done");
@@ -776,14 +776,14 @@ public abstract class ResolutionReduction extends Solver {
         System.out.println("Completing Model\n"+toString());
         Result result = null;
         for(int i = 1; i <= 3; ++i) {
-            if(model.size() == predicates) {return new Satisfiable(model);}
+            if(model.size() == predicates) {return new Satisfiable(null,null,model);}
             try{equivalenceClasses.completeModel();}
             catch(Unsatisfiable uns) {return uns;}
             if(result != null) {return result;}
             completeEliminationsInModel();
             result = checkModel(model);
             if(result != null) {return result;}}
-        return new Satisfiable(model);}
+        return new Satisfiable(null,null,model);}
 
     /** completes a partial model by inserting the value for eliminated literals */
     void completeEliminationsInModel() {

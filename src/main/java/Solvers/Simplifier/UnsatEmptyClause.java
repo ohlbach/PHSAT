@@ -14,8 +14,8 @@ public class UnsatEmptyClause extends Unsatisfiable {
      *
      * @param emptyClause the empty clause.
      */
-    public UnsatEmptyClause(Clause emptyClause) {
-        super();
+    public UnsatEmptyClause(String problemId, String solverId,Clause emptyClause) {
+        super(problemId,solverId);
         this.emptyClause = emptyClause;
         InferenceStep step = emptyClause.inferenceStep;
         if(step != null) inferenceSteps.add(emptyClause.inferenceStep);}

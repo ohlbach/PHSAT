@@ -24,7 +24,8 @@ public class Erraneous extends Result {
      * @param falseClauses a list of false clauses
      * @param symboltable  a symbol table (optional)
      */
-    public Erraneous(Model model, ArrayList<int[]> falseClauses, Symboltable symboltable) {
+    public Erraneous(String problemId, String solverId,Model model, ArrayList<int[]> falseClauses, Symboltable symboltable) {
+        super(problemId,solverId);
         this.model = model;
         this.falseClauses = falseClauses;
         this.symboltable = symboltable;}
@@ -35,7 +36,8 @@ public class Erraneous extends Result {
      * @param falseClause a list of false clauses
      * @param symboltable  a symbol table (optional)
      */
-    public Erraneous(Model model, Clause falseClause, Symboltable symboltable) {
+    public Erraneous(String problemId, String solverId,Model model, Clause falseClause, Symboltable symboltable) {
+        super(problemId,solverId);
         this.model = model;
         this.falseClause = falseClause;
         this.symboltable = symboltable;}

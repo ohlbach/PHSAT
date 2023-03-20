@@ -230,7 +230,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 if (clause.size() == 1) {
                     clause.quantifier = Quantifier.AND;
                     return clause;}
-                if (clause.size() == 0) throw new UnsatisfiableClause(clause);
+                if (clause.size() == 0) throw new UnsatisfiableClause(null,null, clause);
                 setPositiveNegative();
                 return clause;
             case AND:
@@ -252,7 +252,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 if (clause.structure == ClauseStructure.TAUTOLOGY ||
                         clause.quantifier != Quantifier.ATLEAST) return clause;
                 int expandedSize = clause.expandedSize();
-                if (minLimit > expandedSize) throw new UnsatisfiableClause(clause);
+                if (minLimit > expandedSize) throw new UnsatisfiableClause(null,null, clause);
                 if(minLimit == expandedSize) return clause.toAnd(nextId,+1);
                 DiophantineEquation eq = getDiophantineEquation();
                 int newLimit = eq.minSolution();
@@ -274,7 +274,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
                 if (clause.structure == ClauseStructure.TAUTOLOGY) return clause;
                 clause.setPositiveNegative();
                 eq = getDiophantineEquation();
-                if(!eq.isSolvable()) throw new UnsatisfiableClause(clause);
+                if(!eq.isSolvable()) throw new UnsatisfiableClause(null,null, clause);
                 andId = nextId != null ? nextId.getAsInt() : -clause.id;
                 andClause = clause.getNeededLiterals(andId,eq);
                 if(andClause != null) clauses.add(andClause);

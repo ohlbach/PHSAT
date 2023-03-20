@@ -96,6 +96,7 @@ public class ProblemSupervisor {
             equivalenceThread.join();
             if(simplifierThread != null) simplifierThread.join();}
         catch(Result result) {
+            result.problemId = problemId;
             this.result = result;
             System.out.println(result.toString());
         }
@@ -142,8 +143,7 @@ public class ProblemSupervisor {
         if(result == null) return;
         if(result instanceof Satisfiable) checkModel((Satisfiable) result);
         this.result = result;
-        Class solver = result.solver;
-        globalParameters.logstream.println("Solver " + solver.getSimpleName() + " finished  work at problem " + problemId);
+        globalParameters.logstream.println("Solver " + result.solverId + " finished  work at problem " + problemId);
         if(result.message != null && !result.message.isEmpty()) {globalParameters.logstream.println(result.message);}
         if(threads != null) {for(Thread thread : threads) {thread.interrupt();}}
         if(simplifierThread != null) simplifierThread.interrupt();
@@ -159,7 +159,7 @@ public class ProblemSupervisor {
     protected void checkModel(Satisfiable satisfiable) {
         ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(satisfiable.model);
         if(!falseClauses.isEmpty()) {
-            System.out.println("Wrong model derived by " + satisfiable.solver.getSimpleName() +
+            System.out.println("Wrong model derived by " + satisfiable.solverId +
                     "for problem " + problemId + "\n  " +
                     model.toString() +
                     "\n  False Clauses:\n");

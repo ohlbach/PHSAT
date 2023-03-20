@@ -19,7 +19,8 @@ public class UnsatJoinedOverlaps extends Unsatisfiable {
      * @param eqClass1 the first class.
      * @param eqClass2 the second class.
      */
-    public UnsatJoinedOverlaps(EquivalenceClass eqClass1, EquivalenceClass eqClass2) {
+    public UnsatJoinedOverlaps(String problemId, String solverId,EquivalenceClass eqClass1, EquivalenceClass eqClass2) {
+        super(problemId,solverId);
         this.eqClass1 = eqClass1;
         this.eqClass2 = eqClass2;
         if(eqClass1.inferenceSteps != null) inferenceSteps.addAll(eqClass1.inferenceSteps);

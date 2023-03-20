@@ -22,9 +22,9 @@ public class UnsatContradictoryEquivalence extends Unsatisfiable {
      * @param oldInferenceStep the inference step that caused representative = oldLiteral
      * @param newInferenceStep the inference step that caused oldLiteral = newLiteral
      */
-    public UnsatContradictoryEquivalence(int oldLiteral, int newLiteral,
+    public UnsatContradictoryEquivalence(String problemId, String solverId, int oldLiteral, int newLiteral,
                                          InferenceStep oldInferenceStep, InferenceStep newInferenceStep) {
-        super();
+        super(problemId,solverId);
         this.oldLiteral = oldLiteral;
         this.newLiteral = newLiteral;
         if(oldInferenceStep != null) inferenceSteps.add(oldInferenceStep);

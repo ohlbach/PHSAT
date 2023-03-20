@@ -14,10 +14,12 @@ public class UnsatisfiableClause extends Unsatisfiable {
      *
      * @param clause an unsatisfiable clause
      */
-    public UnsatisfiableClause(Clause clause) {
+    public UnsatisfiableClause(String problemId, String solverId, Clause clause) {
+        super(problemId,solverId);
         this.clause = clause;}
 
-    public UnsatisfiableClause(int[] inputClause) {
+    public UnsatisfiableClause(String problemId, String solverId, int[] inputClause) {
+        super(problemId,solverId);
         this.inputClause = inputClause;}
 
 

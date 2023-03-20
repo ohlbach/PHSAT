@@ -117,7 +117,7 @@ public class ClauseSimplifier {
             step = new InfMultipleAndComplementaryLiterals(oldClause,newClause,intList1,intList2);
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-        if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new UnsatisfiableClause(newClause);}
+        if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new UnsatisfiableClause(null,null, newClause);}
         if(newClause.quantifier == Quantifier.AND) {
             for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step);
             return null;}
@@ -132,7 +132,7 @@ public class ClauseSimplifier {
             step = new InfTrueFalseLiterals(oldClause,newClause,intList1,intList2,model);
             newClause.inferenceStep = step;
             if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-        if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new UnsatisfiableClause(newClause);}
+        if(newClause.structure == ClauseStructure.CONTRADICTORY) {throw new UnsatisfiableClause(null,null, newClause);}
         if(newClause.quantifier == Quantifier.AND) {
             for(CLiteral cLiteral : newClause) model.add(cLiteral.literal,step);
             return null;}

@@ -282,7 +282,7 @@ public abstract class Solver {
      */
     public Result checkModel(Model model) {
         ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(model);
-        if(falseClauses != null) {return new Erraneous(model,falseClauses,symboltable);}
+        if(falseClauses != null) {return new Erraneous(problemId,"Solver",model,falseClauses,symboltable);}
         else {return null;}}
 
 

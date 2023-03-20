@@ -20,8 +20,8 @@ public class UnsatClause extends Unsatisfiable {
      *
      * @param clause an unsatisfiable clause
      */
-    public UnsatClause(Clause clause) {
-        super();
+    public UnsatClause(String problemId, String solverId, Clause clause) {
+        super(problemId, solverId);
         this.clause = clause;
         InferenceStep step = clause.inferenceStep;
         if(step != null) inferenceSteps.add(step);}
@@ -30,8 +30,8 @@ public class UnsatClause extends Unsatisfiable {
      *
      * @param inputClause an unsatisfiable clause
      */
-    public UnsatClause(int[] inputClause) {
-        super();
+    public UnsatClause(String problemId, String solverId,int[] inputClause) {
+        super(problemId, solverId);
         this.inputClause = inputClause;
         inferenceSteps.add(new InfInputClause(inputClause[1]));}
 

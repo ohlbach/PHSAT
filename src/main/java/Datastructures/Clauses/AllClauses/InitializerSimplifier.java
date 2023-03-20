@@ -188,7 +188,6 @@ public class InitializerSimplifier {
                 integrateClause(clause);}}
         catch(Unsatisfiable unsatisfiable) {
              unsatisfiable.problemId   = problemId;
-             unsatisfiable.solver = InitializerSimplifier.class;
              unsatisfiable.statistic   = statistics;
              throw unsatisfiable;}}
 
@@ -216,7 +215,7 @@ public class InitializerSimplifier {
         clause = clause.removeTrueFalseLiterals(model::status,nextId);
         switch(clause.structure) {
             case TAUTOLOGY: return;
-            case CONTRADICTORY: throw new UnsatisfiableClause(clause);}
+            case CONTRADICTORY: throw new UnsatisfiableClause(null,null, clause);}
         if(clause.quantifier == Quantifier.AND) {integrateAnd(clause); return;}
         if(isSubsumed(clause)) return;
         ArrayList<Clause> clauses = clause.splitOffMultiples(nextId,trackReasoning);

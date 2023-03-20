@@ -1,8 +1,5 @@
-package QUSat;
+package Management;
 
-import Management.GlobalParameters;
-import Management.ProblemDistributor;
-import Management.QuSatJob;
 import Utilities.KVParser;
 
 import java.nio.file.Paths;

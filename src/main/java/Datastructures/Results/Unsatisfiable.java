@@ -11,8 +11,8 @@ import java.util.ArrayList;
  */
 public abstract class Unsatisfiable extends Result {
 
-    public Unsatisfiable() {
-        super();}
+    public Unsatisfiable(String problemId, String solverId) {
+        super(problemId,solverId);}
 
     /** must generate a short description of the unsatisfiability
      *
@@ -37,10 +37,10 @@ public abstract class Unsatisfiable extends Result {
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append("CONTRADICTION FOUND: ");
-        if(solver != null) {
-            st.append( "by solver ").append(solver.getSimpleName()).append(": ").append(getSolverId()).append("\n");}
-        if(problemId != null) st.append("in problem ").append(problemId);
-        st.append("\n").append(description(symboltable)).append("\n");
+        if(solverId != null) {
+            st.append( "by solver '").append(solverId).append("' ");}
+        if(problemId != null) st.append("in problem '").append(problemId);
+        st.append("'\n").append(description(symboltable)).append("\n");
         IntArrayList inputClauseIds = inputClauseIds();
         if(inputClauseIds != null) {
             st.append("Contributing input clauses: ").append(inputClauseIds().toString()).append("\n");}

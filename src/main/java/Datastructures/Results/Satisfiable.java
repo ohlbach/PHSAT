@@ -9,8 +9,8 @@ import Datastructures.Theory.Model;
 public class Satisfiable extends Result {
     public Model model;
 
-    public Satisfiable(Model model) {
-        super();
+    public Satisfiable(String problemId, String solverId,Model model) {
+        super(problemId,solverId);
         this.model = model;}
 
 

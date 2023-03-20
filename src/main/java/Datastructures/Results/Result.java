@@ -12,9 +12,9 @@ import static Utilities.Utilities.sortIntArray;
  */
 public class Result extends Exception {
     /** the solver which found the result. */
-    public Class  solver       = null;
+    public String solverId = null;
     /** the problem identifier which has the result. */
-    public String problemId    = null;
+    public String problemId = null;
     /** the last inference step which generated the result. */
     public ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
     /** the statistics of the solver. */
@@ -29,8 +29,10 @@ public class Result extends Exception {
 
 
     /** the constructor. It sets the endTime */
-    public Result() {
+    public Result(String problemId, String solverId) {
         super();
+        this.problemId = problemId;
+        this.solverId = solverId;
         endTime = System.nanoTime();}
 
     /** returns the duration (endTime - startTime) in nanoseconds.
@@ -40,15 +42,6 @@ public class Result extends Exception {
     public long getDuration() {
         return (startTime != 0 && endTime != 0) ? endTime - startTime : 0;}
 
-    /** gets the solverId.
-     *
-     * @return the solverId.
-     */
-    public String getSolverId() {
-        try{
-            return (String)solver.getMethod("getSolverId").invoke(solver);}
-        catch(Exception ex) {ex.printStackTrace(); System.exit(1); }
-        return "";}
 
     /** returns the inference steps which produced the result.
      * Double occurrences are removed.

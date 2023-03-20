@@ -14,7 +14,8 @@ public class UnsatisfiableInterval extends Unsatisfiable{
      * @param clause1 a clause
      * @param clause2 a clause
      */
-    public UnsatisfiableInterval(Clause clause1, Clause clause2) {
+    public UnsatisfiableInterval(String problemId, String solverId, Clause clause1, Clause clause2) {
+        super(problemId,solverId);
         this.clause1 = clause1;
         this.clause2 = clause2;}
 

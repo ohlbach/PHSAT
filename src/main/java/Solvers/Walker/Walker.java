@@ -250,7 +250,7 @@ public class Walker extends Solver {
             flipPredicate(predicate);
             if(monitoring)System.out.println(toString());
             if(falseClauses.size() == 0) {return localToGlobalModel();}}
-        return new Aborted("Walker aborted after " + statistics.flips + " flips");}
+        return new Aborted(null,"Resolution","Walker aborted after " + statistics.flips + " flips");}
 
 
     private final ArrayList<WClause> globallyTrueClauses = new ArrayList<>();
@@ -389,7 +389,7 @@ public class Walker extends Solver {
         Model model = new Model(predicates);
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             model.addImmediately(localModel[predicate] ? predicate : -predicate);}
-        return new Satisfiable(model);}
+        return new Satisfiable(null,null,model);}
 
 
 
