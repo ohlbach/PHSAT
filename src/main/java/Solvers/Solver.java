@@ -168,13 +168,10 @@ public abstract class Solver {
      *
      * @param solverNumber       to distinguish different solvers of the same type, but different parameters,
      * @param solverParameters   the control parameters for the solver
-     * @param problemSupervisor the central processor.
      */
-    public Solver(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
+    public Solver(Integer solverNumber, HashMap<String,Object> solverParameters) {
         this.solverNumber = solverNumber;
-        this.solverParameters   = solverParameters;
-        this.problemSupervisor  = problemSupervisor;
-        trackReasoning          = problemSupervisor.globalParameters.trackReasoning;}
+        this.solverParameters   = solverParameters;}
 
     public Solver() {}
 
@@ -186,7 +183,7 @@ public abstract class Solver {
         problemId                  = problemSupervisor.problemId;
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
         globalParameters           = problemSupervisor.globalParameters;
-        inputClauses = problemSupervisor.inputClauses;
+        inputClauses               = problemSupervisor.inputClauses;
         predicates                 = inputClauses.predicates;
         symboltable                = inputClauses.symboltable;
         monitor                    = null; //globalParameters.monitor;
@@ -241,7 +238,7 @@ public abstract class Solver {
      *
      * @return Un/Satisfiable or null
      */
-    public abstract Result solveProblem();
+    public abstract Result solveProblem(ProblemSupervisor problemSupervisor);
 
     /** @return the statistics of the solver */
     public abstract Statistic getStatistics();

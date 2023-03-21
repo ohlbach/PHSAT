@@ -356,25 +356,25 @@ public class Simplifier extends Solver {
         Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
-            literalObject = literalObject.nextLiteral;
-            if(clause.exists) removeClause(clause,true);} // literals may become pure.
+            if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
+            removeClause(clause,true); // literals may become pure.
+            literalObject = literalObject.nextLiteral;}
 
         literalObject = literalIndexTwo.getFirstLiteralObject(-literal);
         while(literalObject != null) {
-            Literal nextLiteral = literalObject.nextLiteral;
             Clause clause = literalObject.clause;
-            if(clause.exists) {
-                Literal otherLiteral = (clause.literals.get(0) == literalObject) ? clause.literals.get(1) : clause.literals.get(0);
-                if(monitoring) monitor.println(monitorId,clause.toString(symboltable,0) + " and false(" +
-                        Symboltable.toString(literal,symboltable) + ") -> " +
-                        "true("+Symboltable.toString(otherLiteral.literal,symboltable)+")");
-                model.add(otherLiteral.literal,
-                        trackReasoning ?
-                                new InfUnitResolutionTwo(clause,literal,model.getInferenceStep(literal),otherLiteral.literal) :
-                                null);
-                ++statistics.derivedUnitClauses;
-                removeClause(clause,true);}
-            literalObject = nextLiteral;}
+            if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
+            Literal otherLiteral = (clause.literals.get(0) == literalObject) ? clause.literals.get(1) : clause.literals.get(0);
+            if(monitoring) monitor.println(monitorId,clause.toString(symboltable,0) + " and false(" +
+                    Symboltable.toString(literal,symboltable) + ") -> " +
+                    "true("+Symboltable.toString(otherLiteral.literal,symboltable)+")");
+            model.add(otherLiteral.literal,
+                    trackReasoning ?
+                            new InfUnitResolutionTwo(clause,literal,model.getInferenceStep(literal),otherLiteral.literal) :
+                            null);
+            ++statistics.derivedUnitClauses;
+            removeClause(clause,true);
+            literalObject = literalObject.nextLiteral;}
 
         literalIndexTwo.removePredicate(literal);}
 
@@ -416,7 +416,7 @@ public class Simplifier extends Solver {
                     if(removed) continue;
                     if(clause.limit > clause.expandedSize) throw new UnsatClause(problemId,solverId,clause);
                     switch(clause.size()) {
-                        case 0: throw new UnsatEmptyClause(problemId,solverId, clause);
+                        case 0: throw new UnsatEmptyClause(problemId,solverId, clause.id, clause.inferenceStep);
                         case 1:
                             int trueLiteral =  clause.literals.get(0).literal;
                             model.add(trueLiteral,clause.inferenceStep);
@@ -1294,7 +1294,7 @@ public class Simplifier extends Solver {
      * @return null or a result (unsatisfiable or satisfiable)
      */
     @Override
-    public Result solveProblem() {
+    public Result solveProblem(ProblemSupervisor problemSupervisor) {
         long startTime = System.nanoTime();
         try{
             readInputClauses();

@@ -120,7 +120,7 @@ public class EquivalenceClasses extends Solver {
 
         if(monitor != null) {
             monitoring = true;
-            monitorId = problemId+"-EQV";}
+            monitorId = "EQV";}
     }
 
     public void interrupt() {
@@ -177,7 +177,7 @@ public class EquivalenceClasses extends Solver {
         model.addObserver(this::addTrueLiteralTask);}
 
     @Override
-    public Result solveProblem() {
+    public Result solveProblem(ProblemSupervisor problemSupervisor) {
         try{
         processTasks(false);}
         catch(Result result) {

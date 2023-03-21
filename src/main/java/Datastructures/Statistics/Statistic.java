@@ -36,7 +36,7 @@ public class Statistic {
      */
     public Statistic(String id) {this.id = id;}
 
-    @Description("processor's elapsed time in microseconds")
+    @Description("processor's elapsed time in nanoseconds")
     public long elapsedTime = 0;
 
     /** the subclasses may overwrite this method to add some observers */

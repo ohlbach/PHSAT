@@ -72,7 +72,7 @@ public class RecursiveSearcher  extends Solver {
      * @param problemSupervisor    coordinates several solvers.
      */
     public RecursiveSearcher(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
-        super(solverNumber,solverParameters, problemSupervisor);
+        super(solverNumber,solverParameters);
         super.readModel();
         posOccurrences = new ArrayList[predicates+1];
         negOccurrences = new ArrayList[predicates+1];
@@ -89,7 +89,7 @@ public class RecursiveSearcher  extends Solver {
     }
 
     @Override
-    public Result solveProblem() {
+    public Result solveProblem(ProblemSupervisor problemSupervisor) {
         return null;
     }
 

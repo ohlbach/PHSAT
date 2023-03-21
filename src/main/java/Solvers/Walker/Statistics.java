@@ -6,12 +6,12 @@ import org.glassfish.gmbal.Description;
 /**
  * Created by ohlbach on 17.10.2018.
  */
-public class WalkerStatistics extends Statistic {
+public class Statistics extends Statistic {
 
-    static {Statistic.statisticsClasses.add(WalkerStatistics.class);}
+    static {Statistic.statisticsClasses.add(Statistics.class);}
 
 
-    public WalkerStatistics(String id) {
+    public Statistics(String id) {
         super(id);}
 
     @Description("Number of clauses")

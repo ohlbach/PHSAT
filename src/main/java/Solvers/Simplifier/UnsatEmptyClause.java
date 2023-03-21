@@ -8,17 +8,16 @@ import InferenceSteps.InferenceStep;
 public class UnsatEmptyClause extends Unsatisfiable {
 
     /** the empty clause. */
-    private final Clause emptyClause;
+    private final int emptyClauseId;
 
     /**  constructs the empty clause Unsatisfiability.
      *
-     * @param emptyClause the empty clause.
+     * @param  emptyClauseId; the empty clause id.
      */
-    public UnsatEmptyClause(String problemId, String solverId,Clause emptyClause) {
+    public UnsatEmptyClause(String problemId, String solverId, int emptyClauseId, InferenceStep step) {
         super(problemId,solverId);
-        this.emptyClause = emptyClause;
-        InferenceStep step = emptyClause.inferenceStep;
-        if(step != null) inferenceSteps.add(emptyClause.inferenceStep);}
+        this.emptyClauseId = emptyClauseId;
+        if(step != null) inferenceSteps.add(step);}
 
     /** a short description of the empty clause Unsatisfiability.
      *
@@ -27,6 +26,6 @@ public class UnsatEmptyClause extends Unsatisfiable {
      */
     @Override
     public String description(Symboltable symboltable) {
-        return "Empty clause " + emptyClause.id + " derived";}
+        return "Empty clause " + emptyClauseId + " derived";}
 
 }

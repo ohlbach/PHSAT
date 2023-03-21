@@ -71,7 +71,6 @@ public class ProblemSupervisor {
         return ++clauseCounter;}
 
     public void solveProblem()  {
-        monitor = quSatJob.getMonitor(problemId);
         StringBuilder errors = new StringBuilder();
         try {
             inputClauses = problemGenerator.generateProblem(errors);
@@ -82,6 +81,7 @@ public class ProblemSupervisor {
                 System.out.println("System is aborted.");
                 System.exit(1);}
             problemId    = inputClauses.problemId;
+            monitor = quSatJob.getMonitor(problemId);
             if(!globalParameters.cnfFile.equals("none")) inputClauses.makeCNFFile(globalParameters.jobDirectory,globalParameters.cnfFile);
             if(globalParameters.showClauses && globalParameters.logstream != null) quSatJob.printlog(inputClauses.toString());
             model = new Model(inputClauses.predicates);
@@ -89,13 +89,13 @@ public class ProblemSupervisor {
             startEquivalenceClasses();
             if(globalParameters.simplifier) startSimplifier();
             numberOfSolvers = solvers.size();
-            statistics.solvers = numberOfSolvers;
+            //statistics.solvers = numberOfSolvers;
             threads = new Thread[numberOfSolvers];
             results = new Result[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) {
                 int j = i;
                threads[i] = new Thread(() -> {
-                   Result result = solvers.get(j).solveProblem();
+                   Result result = solvers.get(j).solveProblem(this);
                    finished(result);});}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}
@@ -127,15 +127,16 @@ public class ProblemSupervisor {
         equivalenceClasses = new EquivalenceClasses(this,monitor);
         equivalenceClasses.readEquivalences(inputClauses.equivalences);
         equivalenceThread = new Thread(()->{
-            Result result = equivalenceClasses.solveProblem();
+            Result result = equivalenceClasses.solveProblem(this);
             finished(result);});
         equivalenceThread.start();
     }
 
     private void startSimplifier() throws Result {
+        System.out.println("ST Sm");
         simplifier = new Simplifier(this);
         simplifierThread = new Thread(() -> {
-            Result result = simplifier.solveProblem();
+            Result result = simplifier.solveProblem(this);
             finished(result);});
         simplifierThread.start();}
 
