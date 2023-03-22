@@ -20,6 +20,8 @@ public class Literal {
     /** pointer to the next literal in a doubly connected list */
     protected Literal nextLiteral;
 
+    protected float flipScorePart;
+
     /** constructs a Literal object
      *
      * @param literal      the literal itself

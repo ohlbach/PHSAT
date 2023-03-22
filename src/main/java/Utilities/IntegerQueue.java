@@ -3,26 +3,27 @@ package Utilities;
 
 import it.unimi.dsi.fastutil.ints.IntArrays;
 
-import javax.security.auth.callback.TextOutputCallback;
-import java.util.Arrays;
 import java.util.Random;
 
 /** This class provides an alternative to PriorityQueue.
- * It keeps an int-queue, sorted by int-values which are defined separately.
+ * It keeps an int-queue, sorted by float-values which are defined separately.
  * An example is: the flip-scores for predicates in the walker solver.
  * The higher the score for a predicate, the more clauses are made true by flipping the truth value of the predicate.
  * The differences to PriorityQueue is: <br>
  *  - the queue is entirely sorted. Therefore, one can access all elements according to the sorting. <br>
+ *  - changing the score of a predicate works in constant time. <br>
+ *    Therefore one can change scores of many predicates before sorting again.<br>
+ *  - The algorithm uses quicksort with average runtime performance O(n log(n)).<br>
  *  For initializing the queue one has to define all scores first, and then sort the queue. <br>
  *
  * Created by ohlbach on 17.01.2020.
  */
 public class IntegerQueue {
-    /** the number of items in the queue, eg. the number or predicates in the SAT-application*/
+    /** the number of items in the queue, eg. the number of predicates in the SAT-application*/
     private final int size;
 
     /** the score for each item */
-    public final int[] scores;
+    public final float[] scores;
 
     /** the priority queue, i.e. queue[0] is the item with the top score */
     public final int[] queue;
@@ -37,7 +38,7 @@ public class IntegerQueue {
     public IntegerQueue(int size) {
         this.size = size;
         ++size;
-        scores    = new int[size];
+        scores    = new float[size];
         queue     = new int[size];
         for(int i = 0; i < size; ++i) {queue[i] = i;}
         scores[0] = Short.MIN_VALUE;
@@ -48,7 +49,7 @@ public class IntegerQueue {
      * @param item   typically a predicate
      * @param score  its score, e.g. the number of clauses made true when the predicate is flipped
      */
-    public void setScore(int item, int score) {
+    public void setScore(int item, float score) {
         scores[item] = score;
         sorted = false;}
 
@@ -57,7 +58,7 @@ public class IntegerQueue {
      * @param item   typically a predicate
      * @param score  its score, e.g. the number of clauses made true when the predicate is flipped
      */
-    public void addScore(int item, int score) {
+    public void addScore(int item, float score) {
         scores[item] += score;
         sorted = false;}
 
@@ -71,7 +72,7 @@ public class IntegerQueue {
 
     /** sorts the queue, such that the item with the largest score comes first. */
     public void sort() {
-        IntArrays.quickSort(queue,((i,j)-> {return Integer.compare(scores[j], scores[i]);}));
+        IntArrays.quickSort(queue,((i,j)-> {return Float.compare(scores[j], scores[i]);}));
         sorted = true;}
 
 
@@ -104,7 +105,7 @@ public class IntegerQueue {
     public String toString() {
         if(!sorted) sort();
         int length = Integer.toString(size).length();
-        for(int i = 1; i < scores.length; ++i) length = Math.max(length,Integer.toString(scores[i]).length());
+        for(int i = 1; i < scores.length; ++i) length = Math.max(length,Float.toString(scores[i]).length());
         StringBuilder st = new StringBuilder();
         st.append("Integer Queue:  item: score\n");
         int blocks = 30;
