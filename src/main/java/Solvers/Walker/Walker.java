@@ -1,6 +1,5 @@
 package Solvers.Walker;
 
-import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
@@ -12,8 +11,8 @@ import Management.ErrorReporter;
 import Management.ProblemSupervisor;
 import Solvers.Simplifier.UnsatEmptyClause;
 import Solvers.Solver;
-import Utilities.Utilities;
 import Utilities.IntegerQueue;
+import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
@@ -241,18 +240,7 @@ public class Walker extends Solver {
      * - clauses which now become globally true are marked<br>
      * Clauses with globally false literals are not touched.
      */
-    private void integrateGloballyTrueLiterals() {
-        globallyTrueClauses.clear();
-        for(int literal : copyGloballyTrueLiterals()) {
-            ++statistics.importedTrueLiterals;
-            flipQueue.setScore(Math.abs(literal),Short.MIN_VALUE);
-
-            for(Clause Clause : getClauses(literal)) { // update global truth
-                if(isGloballyTrue(Clause)) {
-                    globallyTrueClauses.add(Clause);
-                    Clause.isLocallyTrue = true;}}
-            if(!setLocalTruth(literal)) flipPredicate(Math.abs(literal));}
-        for(Clause Clause : globallyTrueClauses) removeClause(Clause);}
+    private void integrateGloballyTrueLiterals() {}
 
     /** selects a predicate to be flipped.
      * The priorities are: <br>
@@ -284,12 +272,13 @@ public class Walker extends Solver {
      * @return 0 or the predicate to be flipped.
      */
     private int select0InFalseClause() {
+        /*
         for(Clause Clause : falseClauses) {
             for(int literal : Clause.literals) {
                 int predicate = Math.abs(literal);
                 if(isInFlipHistory(predicate)) continue;
                 if(flipQueue.scores[predicate] == 0 && flipOtherPredicate(Clause,predicate))
-                    return predicate;}}
+                    return predicate;}}*/
         return 0;}
 
     /** flips a predicate in another clause containing the selected predicate
@@ -299,21 +288,6 @@ public class Walker extends Solver {
      * @return true if a predicate has been found and flipped.
      */
     private boolean flipOtherPredicate(Clause Clause, int predicate) {
-        localModel[predicate] = !localModel[predicate];
-        for(int sign = -1; sign <= +1; sign +=2) {
-            for(Clause otherClause : getClauses(sign*predicate)) {
-                if(otherClause == Clause) continue;
-                if(!setLocalTruth(Clause)) continue;
-                for(int literal : otherClause.literals) {
-                    int otherPredicate = Math.abs(literal);
-                    if(otherPredicate == predicate) continue;
-                    if(Clause.contains(otherPredicate)) continue;
-                    if(flipQueue.scores[otherPredicate] == 0) {
-                        localModel[predicate] = !localModel[predicate];
-                        if(monitoring) System.out.println("Other Flip " + otherPredicate);
-                        flipPredicate(otherPredicate);
-                        return true;}}}}
-        localModel[predicate] = !localModel[predicate];
         return false;}
 
     /** selects the predicate in the false clauses with top score, an which is not in the flip history
@@ -321,15 +295,7 @@ public class Walker extends Solver {
      * @return 0 or the predicate in the false clauses with top score, an which is not in the flip history
      */
     private int selectTopInFalseClauses() {
-        int topScore = Integer.MIN_VALUE;
-        int topPredicate = 0;
-        for(Clause Clause : falseClauses) {
-            for(int literal : Clause.literals) {
-                int predicate = Math.abs(literal);
-                if(isInFlipHistory(predicate)) continue;
-                int score = flipQueue.scores[predicate];
-                if(score > topScore) {topScore = score; topPredicate = predicate;}}}
-        return topPredicate;}
+        return 0;}
 
     /** selects a predicate randomly among the 50% predicates with best scores.
      *
@@ -427,45 +393,7 @@ public class Walker extends Solver {
      * @param Clause the clause to be updated
      * @param sign -1 (removing old score) +1 (adding new score)
      */
-    protected void updateFlipScores(Clause Clause, int sign) {
-        if(Clause.quantifier == Quantifier.OR) { // separate treatment is more efficient
-            if(Clause.isLocallyTrue) {
-                int trueLiteral = 0;
-                for(int literal : Clause.literals) {
-                    if(setLocalTruth(literal)) {
-                        if(trueLiteral != 0) return; // if there are two true literals, nothing changes by flipping
-                        else trueLiteral = literal;}}
-                if(trueLiteral != 0) {// flipping the single true literal makes the clause false.
-                    flipQueue.addScore(Math.abs(trueLiteral), -sign);
-                    return;}}
-            // all literals are false
-            for(int literal : Clause.literals) flipQueue.addScore(Math.abs(literal), sign);
-            return;}
-
-        short min = Clause.minLimit;
-        short max = Clause.maxLimit;
-        if(Clause.isLocallyTrue) {
-            if (min == max) { // every flip makes the clause false
-                for (int literal : Clause.literals) flipQueue.addScore(Math.abs(literal), -sign);
-                return;}
-            // a flip can bring the number of true literals outside the range [min,max]
-            short trueLiterals = currentlyTrueLiterals(Clause);
-            for(int position = 0; position < Clause.literals.length; ++position) {
-                int literal = Clause.literals[position];
-                short newTrueLiterals = (short)(trueLiterals +
-                        (setLocalTruth(literal) ? -Clause.multiplicity(position) : Clause.multiplicity(position)));
-                if((newTrueLiterals < min) || (newTrueLiterals > max)) // no longer true
-                    flipQueue.addScore(Math.abs(literal), -sign);}
-            return;}
-        // the clause is false now
-        // a flip can bring the number of true literals into the range [min,max]
-        short trueLiterals = currentlyTrueLiterals(Clause);
-        for(int position = 0; position < Clause.literals.length; ++position) {
-            int literal = Clause.literals[position];
-            short newTrueLiterals = (short)(trueLiterals +
-                    (setLocalTruth(literal) ? -Clause.multiplicity(position) : Clause.multiplicity(position)));
-            if((min <= newTrueLiterals) && (newTrueLiterals <= max)) // now true
-                flipQueue.addScore(Math.abs(literal), sign);}}
+    protected void updateFlipScores(Clause Clause, int sign) {}
 
 
     /** counts the number of locally true literals in the clause, including multiplicities.
@@ -475,11 +403,7 @@ public class Walker extends Solver {
      * @return the number of true literals in the clause, including multiplicities.
      */
     private short currentlyTrueLiterals(Clause Clause) {
-        short trueLiterals = 0;
-        for(int position = 0; position < Clause.literals.length; ++position) {
-            int literal = Clause.literals[position];
-            if(setLocalTruth(literal)) trueLiterals += Clause.multiplicity(position);}
-        return trueLiterals;}
+        return 0;}
 
     /** returns true if the literal is true in the local model
      *
@@ -493,51 +417,33 @@ public class Walker extends Solver {
      *
      * @param Clause a new clause
      */
-    private void addToIndex(Clause Clause) {
-        for(int literal : Clause.literals) {
-            if(literal > 0) posOccurrences[literal].add(Clause);
-            else            posOccurrences[-literal].add(Clause);}}
+    private void addToIndex(Clause Clause) {}
 
     /** removes the claus from posOccurrences and negOccurrences
      *
      * @param Clause a clause to be removed.
      */
-    private void removeFromIndex(Clause Clause) {
-        for(int literal : Clause.literals) {
-            if(literal > 0) posOccurrences[literal].remove(Clause);
-            else            posOccurrences[-literal].remove(Clause);}}
+    private void removeFromIndex(Clause Clause) {}
 
     /** adds a false clause to the falseClauses list and stores its position in the clause's position slot. 
      * 
      * @param falseClause a false clause
      */
-    private void addFalseClause(Clause falseClause) {
-        falseClause.position = falseClauses.size();
-        falseClauses.add(falseClause);}
+    private void addFalseClause(Clause falseClause) {}
 
     /** removes a false clause from the list. The last clause in the list takes its position.
      * The operation is constant in time.
      * 
      * @param falseClause a clause to be removed.
      */
-    private void removeFalseClause(Clause falseClause) {
-        int position = falseClause.position;
-        if(position < 0) return;
-        int lastPosition = falseClauses.size()-1;
-        if(position < lastPosition) {
-            Clause lastClause = falseClauses.get(lastPosition);
-            falseClauses.set(position,lastClause);
-            lastClause.position = position;}
-        falseClause.position = -1;
-        falseClauses.remove(lastPosition);}
+    private void removeFalseClause(Clause falseClause) {}
 
     /** gets all clauses containing the literal
      *
      * @param literal a literal
      * @return a list of all clauses containing the literal
      */
-    private ArrayList<Clause> getClauses(int literal) {
-        return (literal > 0) ? posOccurrences[literal] : negOccurrences[-literal];}
+    private ArrayList<Clause> getClauses(int literal) {return null;}
 
 
     /** adds the flipped predicate to the flip history
@@ -593,10 +499,10 @@ public class Walker extends Solver {
         st.append("  flips:          ").append(statistics.flips).append(" of ").append(maxFlips).append("\n");
         st.append("  history: ").append(Arrays.toString(flipHistory)).append("\n\n");
         st.append("Current model: ").append(localModelToString(symboltable)).append("\n");
-        st.append("False Clauses: " + falseClauses.size() + "\n");
+      /*  st.append("False Clauses: " + falseClauses.size() + "\n");
         for(Clause Clause : clauses) {
             if(!Clause.isLocallyTrue) st.append(Clause.toString(idWidth+2,symboltable)).append("\n");}
-        st.append(flipQueue.toString());
+        st.append(flipQueue.toString());*/
     return st.toString();
     }
 }

@@ -127,7 +127,7 @@ public abstract class Resolution extends Solver {
      * @param problemSupervisor    coordinates several solvers.
      */
     public Resolution(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
-        super(solverNumber,solverParameters, problemSupervisor);}
+        super(solverNumber,solverParameters);}
 
     /** This method controls the entire resolution sequence
      * 1. All local data are initialized <br>

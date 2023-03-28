@@ -51,6 +51,11 @@ public class Clause {
     /** a timestamp to be used by various algorithms. */
     protected int timestamp = 0;
 
+    protected Clause nextClause;
+    protected Clause previousClause;
+
+    protected boolean exists;
+
 
     /** The constructor turns an InputClause int[]-array into a Clause object.
      *

@@ -71,7 +71,7 @@ public abstract class ResolutionReduction extends Solver {
      * @param problemSupervisor    coordinates several solvers.
      */
     public ResolutionReduction(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
-        super(solverNumber,solverParameters, problemSupervisor);}
+        super(solverNumber,solverParameters);}
 
     /** maps literals (numbers) to their occurrences in clauses */
     BucketSortedIndex<CLiteral> literalIndex;
