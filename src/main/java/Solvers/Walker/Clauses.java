@@ -16,6 +16,7 @@ public class Clauses {
     }
 
     public void addToBack(Clause clause) {
+        clause.isInList = true;
         clause.previousClause = null; clause.nextClause = null;
         if(firstClause == null) {firstClause = clause; lastClause = clause; return;}
         if(firstClause.nextClause == null) {lastClause = firstClause;}
@@ -24,7 +25,7 @@ public class Clauses {
         lastClause = clause;}
 
     public void remove(Clause clause) {
-        if(clause.previousClause == null && clause.nextClause == null) return;
+        clause.isInList = false;
         if(lastClause == firstClause) {lastClause = null; firstClause = null; return;}
         if(clause.previousClause == null) {
             firstClause = clause.nextClause;
