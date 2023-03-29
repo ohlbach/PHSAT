@@ -176,7 +176,7 @@ public class Walker extends Solver {
      */
     protected void insertClause(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause);
-        if(!clause.removeComplementaryLiterals()) return;
+        if(!clause.removeComplementaryLiterals(inputClause)) return;
         for(int i = 0; i < clause.literals.size(); ++i) {
             Literal literalObject = clause.literals.get(i);
             if(literalObject.multiplicity > clause.max) {
@@ -322,9 +322,9 @@ public class Walker extends Solver {
 
         for(int sign = -1; sign <= 1; sign += 2) {
             for(Clause clause : getClauses(sign*predicate)) {
-                if(!clause.isTrue) removeFalseClause(clause);
-                clause.isTrue = setLocalTruth(clause);
-                if(!clause.isTrue) {addFalseClause(clause);}
+                if(!clause.isLocallyTrue) removeFalseClause(clause);
+                clause.isLocallyTrue = setLocalTruth(clause);
+                if(!clause.isLocallyTrue) {addFalseClause(clause);}
                 updateFlipScores(clause,1);}}}
 
 
@@ -358,13 +358,13 @@ public class Walker extends Solver {
             else if(localModel[-literal]) trueLiterals += literalObject.multiplicity;}
         clause.trueLiterals = trueLiterals;
         boolean isTrue = clause.min <= trueLiterals && trueLiterals <= clause.max;
-        clause.isTrue = isTrue;
+        clause.isLocallyTrue = isTrue;
         return isTrue;}
 
     protected void setInitialFlipScores(Clause clause) {
         float flipScore = 0;
         int trueLiterals = clause.trueLiterals;
-        if(clause.isTrue) {
+        if(clause.isLocallyTrue) {
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
                 flipScore = setLocalTruth(literal) ?

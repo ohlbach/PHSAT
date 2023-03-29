@@ -6,7 +6,7 @@ public class Clauses {
     Clause lastClause;
 
     public void addToFront(Clause clause) {
-        clause.exists = true;
+        clause.isInList = true;
         clause.previousClause = null; clause.nextClause = null;
         if(firstClause == null) {firstClause = clause; lastClause = clause; return;}
         if(firstClause.nextClause == null) {lastClause = firstClause;}

@@ -1,24 +1,25 @@
 package Solvers.Walker;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
+import Solvers.Simplifier.UnsatClause;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 
 /** A Clause object is essentially a collection of Literal objects.
- *  A clause can only be a disjunction (OR-clause) or an ATLEAST-clause.<br>
- *  Other types are not supported.<br>
- *  Each Clause object may be part of a doubly connected list of clauses. <br>
- *  Clauses can be destructively changed.
+ * The clauses are represented in interval-normalform [min,max].
+ *  Nevertheless, the clauses keep their original connective.
+ *  A clause may be part of a doubly quantified list (list of false clauses).
  */
 public class Clause {
     /** the identifier for the clause. */
     protected int id;
 
-    /** the connective */
+    /** the quantifier */
     protected Quantifier quantifier;
 
     /** true if the connective is OR. */
@@ -36,7 +37,7 @@ public class Clause {
     protected int trueLiterals = 0;
 
     /** flag to indicate that the clause is true in the local model. */
-    protected boolean isTrue;
+    protected boolean isLocallyTrue;
 
 
     /** the list of all Literal objects in the clause. */
@@ -51,10 +52,13 @@ public class Clause {
     /** a timestamp to be used by various algorithms. */
     protected int timestamp = 0;
 
+    /** the next clause in a doubly quantified list. */
     protected Clause nextClause;
+    /** the previous clause in a doubly quantified list. */
     protected Clause previousClause;
 
-    protected boolean exists;
+    /** indicates that the clause is still in the doubly connected list. */
+    protected boolean isInList = false;
 
 
     /** The constructor turns an InputClause int[]-array into a Clause object.
@@ -88,6 +92,7 @@ public class Clause {
             case OR:       min = 1;              max = expandedSize;   break;
             case ATLEAST:  min = inputClause[2]; max = expandedSize;   break;
             case ATMOST:   min = 0;              max = inputClause[2]; break;
+            case EXACTLY:  min = inputClause[2]; max = inputClause[2]; break;
             case INTERVAL: min = inputClause[2]; max = inputClause[3];
         }
     }
@@ -132,19 +137,19 @@ public class Clause {
             literals.add(literalObject);}}
 
 
-    /** checks if the atleast-clause is true (limit &lt;= 0).
+    /** checks if the clause is true because of its limits.
      *
-     * @return true if the atleast-clause is true (limit &lt;= 0).
+     * @return true if the clause is true because of its limits.
      */
     protected boolean isTrue() {
-        return min == 0 && max == expandedSize ;}
+        return min <= 0 && max >= expandedSize ;}
 
-    /** checks if the atleast-clause is false (limit &gt; expandedSize).
+    /** checks if the clause is false because of its limits.
      *
-     * @return true if the atleast-clause is false (limit &gt; extendedSize).
+     * @return true if the clause is false because of its limits.
      */
     protected boolean isFalse() {
-        return min > expandedSize || max < 0;}
+        return min > expandedSize || max < 0 || max < min;}
 
 
 
@@ -162,13 +167,17 @@ public class Clause {
 
 
     /** removes complementary pairs from the clause.
+     * <br>
      * Example: atleast 4 p^3, -p^2, q, r -> atleast 2 p,q,r. <br>
      * Example: atleast 2 p^2, -p^1,q,r -> atleast 0 q,r -> true.<br>
-     * The clause may be turned into a disjunction.
+     * Example: [0,2] p,-p,q,-q,r,-r -> unsatisfiable <br>
+     * Example: [0,2] p,-p,q,-q,r,s -> -r&amp;-s <br>
      *
+     * @param inputClause the original input clause (for the UnsatClause).
      * @return true if the clause became a true clause.
+     * @throws UnsatClause if the clause is unsatisfiable.
      */
-    protected boolean removeComplementaryLiterals() {
+    protected boolean removeComplementaryLiterals(int[] inputClause) throws Unsatisfiable {
         for(int i = 0; i < literals.size()-1; ++i) {
             Literal literalObject1 = literals.get(i);
             int literal1 = literalObject1.literal;
@@ -178,26 +187,33 @@ public class Clause {
                 if(literalObject2.literal == -literal1) {
                     int multiplicity2 = literalObject2.multiplicity;
                     if(multiplicity1 == multiplicity2) {
+                        min -= multiplicity1;
                         max -= multiplicity1;
-                        if(max < min) return true;
                         literals.remove(j);
                         literals.remove(i--);
                         expandedSize -= multiplicity1;
                         break;}
                     if(multiplicity1 > multiplicity2) {
+                        min -= multiplicity2;
                         max -= multiplicity2;
-                        if(max < min) return true;
                         literalObject1.multiplicity -= multiplicity2;
                         literals.remove(j);
                         expandedSize -= multiplicity2;
                         break;}
+                    min -= multiplicity1; // multiplicity1 < multiplicity2
                     max -= multiplicity1;
-                    if(max < min) return true;
                     literalObject2.multiplicity -= multiplicity1;
                     literals.remove(i--);
                     expandedSize -= multiplicity1;
                     break;}}}
-        if(literals.isEmpty()) return true;
+        if(literals.isEmpty() || (min <= 0 && max >= expandedSize)) return true;
+        if(max < 0) throw new UnsatClause("","",inputClause);
+        if(max == 0) {
+            for(Literal literalObject : literals) {literalObject.literal *= -1; literalObject.multiplicity = 1;}
+            min = 0; max = literals.size();
+            quantifier = Quantifier.AND;
+            return false;}
+        min = Math.max(min,0);
         hasMultiplicities = expandedSize > literals.size();
         if(min == 1 && max == expandedSize) {
             quantifier = Quantifier.OR;
@@ -219,7 +235,7 @@ public class Clause {
      */
     public int expandedSize() {return expandedSize;}
 
-    /** turns the clause into a string
+    /** turns the clause into a string.
      *
      * @return a string representation of the clause.
      */
