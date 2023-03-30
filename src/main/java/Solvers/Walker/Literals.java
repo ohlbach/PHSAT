@@ -3,7 +3,8 @@ package Solvers.Walker;
 
 import Datastructures.Symboltable;
 
-/** This class is actually an index for the Literal objects.<br>
+/** This class is actually an index for the Literal objects.
+ * <br>
  * It contains for each predicate two doubly connected lists of Literal objects,
  * one for positive literals and one for negative literals.
  */
@@ -70,9 +71,13 @@ public class Literals {
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
 
-        if(previousLiteral == null) literals[predicate] = nextLiteral;
+        if(previousLiteral == null) { // front literal
+            literals[predicate] = nextLiteral;
+            if(nextLiteral != null) nextLiteral.previousLiteral = null;
+            return literals[predicate] == null;}
         else previousLiteral.nextLiteral = nextLiteral;
-        if(nextLiteral != null) nextLiteral.previousLiteral = previousLiteral;
+
+        if(nextLiteral != null)  nextLiteral.previousLiteral = previousLiteral;
         literalObject.previousLiteral = null;
         return literals[predicate] == null;}
 
@@ -168,7 +173,10 @@ public class Literals {
         if(literalObject == null) return "";
         StringBuilder st = new StringBuilder();
         while(literalObject != null) {
-            st.append(literalObject.literal).append("@").append(literalObject.clause.id).append(",");
+            Clause clause = literalObject.clause;
+            int multiplicity = literalObject.multiplicity;
+            st.append(Symboltable.toString(literalObject.literal,symboltable)).append(multiplicity == 1 ? "":"^"+multiplicity).
+                    append("@").append(clause == null ? "0":literalObject.clause.id).append(",");
             literalObject = literalObject.nextLiteral;}
         return st.toString();}
 

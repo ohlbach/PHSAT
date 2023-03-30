@@ -12,7 +12,6 @@ import Management.ErrorReporter;
 import Management.ProblemSupervisor;
 import Solvers.Simplifier.UnsatClause;
 import Solvers.Solver;
-import Utilities.IntegerQueue;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -21,20 +20,21 @@ import java.util.function.IntConsumer;
 
 public class Walker extends Solver {
 
+    protected static float trueLiteralScore = Integer.MIN_VALUE/2;
     private ArrayList<Solver> workerSolvers = new ArrayList<>();
 
     protected ArrayList<Clause> clauses = new ArrayList<>();         // collects all clauses
 
     protected Literals literals;
     protected boolean[] localModel;              // maps all predicates to a truth value
-    private IntegerQueue flipQueue = null;
+    protected float[] flipScores;
     private static final int jumpFrequencyDefault = 10;
     public  int jumpFrequency;                   // after jumpFrequency many flips, a random jump is inserted
     private static final int maxFlipsDefault = Integer.MAX_VALUE;
     public  int maxFlips;                        // maximum number of allowed flips
     public Statistics statistics;                // collects statistical information
     private final int seed;                                  // for the random number generator
-    private  Random random;                       // random number generator for flip jumps
+    protected  Random random;                       // random number generator for flip jumps
     private int idWidth = 0;
 
     private int flipHistoryLength = 5;
@@ -47,6 +47,8 @@ public class Walker extends Solver {
     private boolean monitoring = false;
 
     private String monitorId;
+
+    protected Clauses falseClauseList = new Clauses();
 
     public static String help() {
         return "Random Walker: parameters:\n" +
@@ -115,7 +117,7 @@ public class Walker extends Solver {
         statistics     = new Statistics(combinedId);
         clauses   = new ArrayList<>(inputClauses.nextId);
         literals  = new Literals(predicates);
-        flipQueue = new IntegerQueue(predicates+1);
+        flipScores = new float[predicates+1];
         try{
             initializeModelAndScores();
             readInputClauses();
@@ -168,12 +170,12 @@ public class Walker extends Solver {
 
 
     /** turns the inputClause into literals and clauses of the internal datastructures.
-     * All clauses are stored with interval limits.
-     * Complementary literals are removed.
-     * Literals with multiplicities &gt; clause.max are declared false in the global model.
+     * All clauses are stored with interval limits.<br>
+     * Complementary literals are removed.<br>
+     * Derivable true or false literals are inserted into the global model.<br>
      *
-     * @param inputClause    an input clause
-     * @throws Unsatisfiable if the global model discovers a contradiction.
+     * @param inputClause    an input clause.
+     * @throws Unsatisfiable if the clause is false or the global model discovers a contradiction.
      */
     protected void insertClause(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause);
@@ -188,7 +190,9 @@ public class Walker extends Solver {
                 model.add(-literalObject.literal,null);
                 clause.expandedSize -= literalObject.multiplicity;
                 clause.literals.remove(i--);}}
-        if(clause.expandedSize < clause.min) throw new UnsatClause(problemId,solverId,inputClause);
+        if(clause.isFalse()) throw new UnsatClause(problemId,solverId,inputClause);
+        if(clause.isTrue()) return;
+
         for(Literal literalObject : clause.literals) {
             literals.addLiteral(literalObject);}
         clauses.add(clause);}
@@ -206,7 +210,7 @@ public class Walker extends Solver {
             int status = model.status(predicate);
             if(status != 0) {
                 localModel[predicate] = (status == 1);
-                flipQueue.setScore(predicate,Integer.MIN_VALUE/2);}
+                flipScores[predicate] = Integer.MIN_VALUE/2;}
             else {
                 int posSize = literals.size(predicate);
                 int negSize = literals.size(-predicate);
@@ -218,6 +222,22 @@ public class Walker extends Solver {
             setInitialFlipScores(clause);}
         if(monitoring) monitor.println(monitorId, "Initial Data:\n" + toString());}
 
+    /** initializes the local model.
+     * a predicate is set to true if there are more positive literal occurrences than negative literal occurrences.<br>
+     * Globally true literals are made true in the local model.<br>
+     * Their flipScore is set to trueLiteralScore, an extremly small value.
+     */
+    protected void initializeModel() {
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            int status = model.status(predicate);
+            if(status != 0) {
+                localModel[predicate] = (status == 1);
+                flipScores[predicate] = trueLiteralScore;}
+            else {
+                int posSize = literals.size(predicate);
+                int negSize = literals.size(-predicate);
+                if(posSize == negSize) localModel[predicate] = random.nextBoolean();
+                else localModel[predicate] = (posSize >= negSize);}}}
 
 
 
@@ -259,6 +279,7 @@ public class Walker extends Solver {
      * @return a predicate to be flipped next.
      */
     private int selectFlipPredicate() {
+        /*
         int predicate = flipQueue.topItem();
         float topScore = flipQueue.scores[predicate];
         if(topScore > 0) return predicate;
@@ -267,7 +288,8 @@ public class Walker extends Solver {
             if(predicate != 0) return predicate;}
         predicate = selectTopInFalseClauses();
         if(predicate != 0) return predicate;
-        return selectRandomPredicate();}
+        return selectRandomPredicate();*/
+    return 0;}
 
 
     /** selects a predicate in a false clause with score = 0.
@@ -307,11 +329,12 @@ public class Walker extends Solver {
      * @return a randomly selected predicate
      */
     private int selectRandomPredicate() {
+        /*
         int predicate = flipQueue.queue[random.nextInt(predicates/2)+1];
         int counter = 0;
         while(isInFlipHistory(predicate) && ++counter < 10) {
-            predicate = flipQueue.queue[random.nextInt(predicates/2)+1];}
-        return predicate;}
+            predicate = flipQueue.queue[random.nextInt(predicates/2)+1];}*/
+        return 0;}
 
     /** flips the truth value of the predicate and updates the flipQueue and the falseClauses list
      *
@@ -359,36 +382,60 @@ public class Walker extends Solver {
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
             if(literal > 0)  {
-                 if(localModel[literal])  trueLiterals += literalObject.multiplicity;}
-            else if(localModel[-literal]) trueLiterals += literalObject.multiplicity;}
+                 if(localModel[literal])   trueLiterals += literalObject.multiplicity;}
+            else if(!localModel[-literal]) trueLiterals += literalObject.multiplicity;}
+
         clause.trueLiterals = trueLiterals;
         boolean isTrue = clause.min <= trueLiterals && trueLiterals <= clause.max;
         clause.isLocallyTrue = isTrue;
         return isTrue;}
 
+    protected boolean isLocallyTrue(int literal) {
+        return (literal > 0) ? localModel[literal] : !localModel[-literal];}
+
     protected void setInitialFlipScores(Clause clause) {
-        float flipScore = 0;
         int trueLiterals = clause.trueLiterals;
         if(clause.isLocallyTrue) {
+            if(clause.min == clause.max) { // all flips make the clause false.
+                for(Literal literalObject : clause.literals) {
+                    literalObject.flipScorePart = -1;
+                    flipScores[Math.abs(literalObject.literal)] -= 1;}
+                return;}
+            if(trueLiterals == clause.min) {  // true -> false makes the clause false.
+                for(Literal literalObject : clause.literals) {
+                    int literal = literalObject.literal;
+                    if(isLocallyTrue(literal)) {
+                        literalObject.flipScorePart = -1;
+                        flipScores[Math.abs(literalObject.literal)] -= 1;}}
+                return;}
+            if(trueLiterals == clause.max) { // false -> true makes the clause false.
+                for(Literal literalObject : clause.literals) {
+                    int literal = literalObject.literal;
+                    if(!isLocallyTrue(literal)) {
+                        literalObject.flipScorePart = -1;
+                        flipScores[Math.abs(literalObject.literal)] -= 1;}}
+                return;}}
+
+        // clause is false. Either there are not enough or too many true literals.
+        if(trueLiterals < clause.min) {  // false -> true brings the clause closer to truth.
+            float score = (float)1./(float)(clause.min-trueLiterals);
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                flipScore = setLocalTruth(literal) ?
-                        ((trueLiterals == clause.min) ? -1 : 0) :
-                        ((trueLiterals == clause.max) ? -1 : 0);
-                literalObject.flipScorePart = flipScore;
-                flipQueue.addScore(Math.abs(literal),flipScore);}}
-        else {
+                if(!isLocallyTrue(literal)) {
+                    literalObject.flipScorePart = score;
+                    flipScores[Math.abs(literalObject.literal)] += score;}
+                else {literalObject.flipScorePart = -score; // true -> false brings the clause more away from truth.
+                    flipScores[Math.abs(literalObject.literal)] -= score;}}
+            return;}
+        if(trueLiterals > clause.max) { // true -> false  brings the clause closer to truth.
+            float score = (float)1./(float)(trueLiterals-clause.max);
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(trueLiterals < clause.min) {
-                    flipScore = setLocalTruth(literal) ? -1 / (float)(clause.min - trueLiterals) :
-                            1/ (float)(clause.min - trueLiterals);}
-                if(trueLiterals > clause.max) {
-                    flipScore = setLocalTruth(literal) ? -1 / (float)(trueLiterals - clause.max) :
-                            1/ (float)(trueLiterals - clause.max);}
-                literalObject.flipScorePart = flipScore;
-                flipQueue.addScore(Math.abs(literal),flipScore);}}
-    }
+                if(isLocallyTrue(literal)) {
+                    literalObject.flipScorePart = score;
+                    flipScores[Math.abs(literalObject.literal)] += score;}
+                else {literalObject.flipScorePart = -score; // false -> true brings the clause more away from truth.
+                    flipScores[Math.abs(literalObject.literal)] -= score;}}}}
 
 
 
@@ -491,7 +538,7 @@ public class Walker extends Solver {
      * @return the flip scores as a string.
      */
     public String flipScoresToString() {
-        return flipQueue.toString();}
+        return Arrays.toString(flipScores);}
 
     public String toString(String version) {
         return toString(version,null);}

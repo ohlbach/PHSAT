@@ -33,7 +33,7 @@ public class UnsatClause extends Unsatisfiable {
     public UnsatClause(String problemId, String solverId,int[] inputClause) {
         super(problemId, solverId);
         this.inputClause = inputClause;
-        inferenceSteps.add(new InfInputClause(inputClause[1]));}
+        inferenceSteps.add(new InfInputClause(inputClause[0]));}
 
     @Override
     public String description(Symboltable symboltable) {
