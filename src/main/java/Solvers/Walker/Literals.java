@@ -148,6 +148,30 @@ public class Literals {
             if(size != 0) st.append(Symboltable.toString(-predicate, symboltable)).append(":").append(size).append(",");}
         return st.toString();}
 
+    /** collects the index entries for a particular literal in a string with entries literal@clause-id.
+     *
+     * @param literal     a literal
+     * @return the index entries for a particular literal in a string with entries literal@clause-id.
+     */
+    public String toString(int literal) {
+        return toString(literal,null);}
+
+    /** collects the index entries for a particular literal in a string with entries literal@clause-id.
+     *
+     * @param literal     a literal
+     * @param symboltable null or a symboltable
+     * @return the index entries for a particular literal in a string with entries literal@clause-id.
+     */
+    public String toString(int literal, Symboltable symboltable) {
+        Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
+        Literal literalObject = literals[Math.abs(literal)];
+        if(literalObject == null) return "";
+        StringBuilder st = new StringBuilder();
+        while(literalObject != null) {
+            st.append(literalObject.literal).append("@").append(literalObject.clause.id).append(",");
+            literalObject = literalObject.nextLiteral;}
+        return st.toString();}
+
 
 }
 

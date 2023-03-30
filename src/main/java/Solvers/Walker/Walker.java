@@ -1,5 +1,6 @@
 package Solvers.Walker;
 
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
@@ -9,7 +10,7 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import Management.ErrorReporter;
 import Management.ProblemSupervisor;
-import Solvers.Simplifier.UnsatEmptyClause;
+import Solvers.Simplifier.UnsatClause;
 import Solvers.Solver;
 import Utilities.IntegerQueue;
 import Utilities.Utilities;
@@ -22,9 +23,9 @@ public class Walker extends Solver {
 
     private ArrayList<Solver> workerSolvers = new ArrayList<>();
 
-    private ArrayList<Clause> clauses;         // collects all clauses
+    protected ArrayList<Clause> clauses = new ArrayList<>();         // collects all clauses
 
-    private Literals literals;
+    protected Literals literals;
     protected boolean[] localModel;              // maps all predicates to a truth value
     private IntegerQueue flipQueue = null;
     private static final int jumpFrequencyDefault = 10;
@@ -137,7 +138,7 @@ public class Walker extends Solver {
     public void readInputClauses() throws Result{
         try{
             for(int[] inputClause    : inputClauses.disjunctions) insertClause(inputClause);
-            for(int[] inputClause    : inputClauses.atleasts)     insertClause(inputClause);
+            for(int[] atleastClause  : inputClauses.atleasts)     insertClause(atleastClause);
             for(int[] atmostClause   : inputClauses.atmosts)      insertClause(atmostClause);
             for(int[] exactlyClause  : inputClauses.exactlys)     insertClause(exactlyClause);
             for(int[] intervalClause : inputClauses.intervals)    insertClause(intervalClause);
@@ -176,17 +177,21 @@ public class Walker extends Solver {
      */
     protected void insertClause(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause);
-        if(!clause.removeComplementaryLiterals(inputClause)) return;
+        if(clause.removeComplementaryLiterals(inputClause)) return;
+        if(clause.quantifier == Quantifier.AND) {
+            for(Literal literalObject : clause.literals) {
+                model.add(literalObject.literal,clause.inferenceStep);}
+            return;}
         for(int i = 0; i < clause.literals.size(); ++i) {
             Literal literalObject = clause.literals.get(i);
             if(literalObject.multiplicity > clause.max) {
                 model.add(-literalObject.literal,null);
                 clause.expandedSize -= literalObject.multiplicity;
                 clause.literals.remove(i--);}}
-        if(clause.literals.isEmpty()) throw new UnsatEmptyClause(problemId,solverId,clause.id,clause.inferenceStep);
+        if(clause.expandedSize < clause.min) throw new UnsatClause(problemId,solverId,inputClause);
         for(Literal literalObject : clause.literals) {
-            literals.addLiteral(literalObject);
-            clauses.add(clause);}}
+            literals.addLiteral(literalObject);}
+        clauses.add(clause);}
 
 
     /** Initializes the local model, the local truth values of the clauses, the falseClauses number and the initial flip scores.
@@ -488,8 +493,17 @@ public class Walker extends Solver {
     public String flipScoresToString() {
         return flipQueue.toString();}
 
-    public String toString() {
-        return toString(null);}
+    public String toString(String version) {
+        return toString(version,null);}
+
+    public String toString(String version, Symboltable symboltable) {
+        switch(version) {
+            case "clauses": return clausesString(symboltable);
+            case "literals": return literals.toString(symboltable);
+        }
+        return "Versions: clauses,literals";
+    }
+
 
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
@@ -505,4 +519,11 @@ public class Walker extends Solver {
         st.append(flipQueue.toString());*/
     return st.toString();
     }
+
+
+    public String clausesString(Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        for(Clause clause : clauses) {
+            st.append(clause.toString(symboltable,0)).append("\n");}
+        return st.toString();}
 }

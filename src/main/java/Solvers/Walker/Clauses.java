@@ -58,6 +58,7 @@ public class Clauses {
             return;}
         if(clause.nextClause == null) {
             lastClause = clause.previousClause;
+            lastClause.nextClause = null;
             return;}
         Clause claus = clause.previousClause;
         claus.nextClause = clause.nextClause;
@@ -72,9 +73,7 @@ public class Clauses {
         if(firstClause == null) return 0;
         int counter = 0;
         Clause clause = firstClause;
-        while(clause != null) {
-            if(!clause.isInList) {clause = clause.nextClause; continue;}
-            ++counter; clause = clause.nextClause;}
+        while(clause != null) {++counter; clause = clause.nextClause;}
         return counter;}
 
     /** collects the clauses in a string, one per line.
@@ -94,7 +93,7 @@ public class Clauses {
         StringBuilder st = new StringBuilder();
         Clause clause = firstClause;
         while(clause != null) {
-            if(!clause.isInList) {clause = clause.nextClause; continue;}
+            //if(!clause.isInList) {clause = clause.nextClause; continue;}
             st.append(clause.toString(symboltable,0)).append("\n");
             clause = clause.nextClause;}
         return st.toString();}

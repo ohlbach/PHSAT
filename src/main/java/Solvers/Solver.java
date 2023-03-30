@@ -54,10 +54,12 @@ public abstract class Solver {
      */
     public static Class solverClass(String solverName) {
         switch (solverName) {
+            case "Simplifier":
             case "simplifier":      return Simplifier.class;
+            case "Walker":
             case "walker":          return Walker.class;
+            case "RecursiveSearch":
             case "recursiveSearch": return RecursiveSearcher.class;
-            case "resolution":      return Solvers.Resolution.Resolution.class;
             default: return null;}}
 
     /** collects all the help-strings for all solver classes
