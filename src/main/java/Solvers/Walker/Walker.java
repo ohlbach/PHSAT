@@ -220,7 +220,7 @@ public class Walker extends Solver {
                 else localModel[predicate] = (posSize >= negSize);}}
 
         for(Clause clause: clauses) {
-            if(!setLocalTruth(clause)) ++falseClauses;
+            if(!initializeLocalTruthForClause(clause)) ++falseClauses;
             initializeFlipScores(clause);}
         if(monitoring) monitor.println(monitorId, "Initial Data:\n" + toString());}
 
@@ -353,7 +353,7 @@ public class Walker extends Solver {
         for(int sign = -1; sign <= 1; sign += 2) {
             for(Clause clause : getClauses(sign*predicate)) {
                 if(!clause.isLocallyTrue) removeFalseClause(clause);
-                clause.isLocallyTrue = setLocalTruth(clause);
+                clause.isLocallyTrue = initializeLocalTruthForClause(clause);
                 if(!clause.isLocallyTrue) {addFalseClause(clause);}
                 updateFlipScores(clause,1);}*/
         }
@@ -381,7 +381,7 @@ public class Walker extends Solver {
      * @param clause a clause.
      * @return true if the clause is true in the local (and global) model.
      */
-    protected boolean setLocalTruth(Clause clause) {
+    protected boolean initializeLocalTruthForClause(Clause clause) {
         int trueLiterals = 0;
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
@@ -418,20 +418,21 @@ public class Walker extends Solver {
         // clause is false. Either there are not enough or too many true literals.
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
-            int newTrueLiterals = isLocallyTrue(literal) ? trueLiterals - literalObject.multiplicity : trueLiterals + literalObject.multiplicity;
+            boolean isLocallyTrue = isLocallyTrue(literal);
+            int newTrueLiterals = isLocallyTrue ? trueLiterals - literalObject.multiplicity : trueLiterals + literalObject.multiplicity;
             if(min <= newTrueLiterals && newTrueLiterals <= max) {
                 literalObject.flipScorePart = 1;
                 flipScores[Math.abs(literalObject.literal)] += 1;
                 continue;}
             if(newTrueLiterals < min) {
                 float score = (float)1. / (float)(min - newTrueLiterals + 1);
-                literalObject.flipScorePart = -score; // true -> false brings the clause more away from truth.
-                flipScores[Math.abs(literalObject.literal)] -= score;
+                literalObject.flipScorePart = score;
+                flipScores[Math.abs(literalObject.literal)] += score;
                 continue;}
             if(newTrueLiterals > max) {
                 float score = (float)1. / (float)(newTrueLiterals - max + 1);
-                literalObject.flipScorePart = -score; // true -> false brings the clause more away from truth.
-                flipScores[Math.abs(literalObject.literal)] -= score;}}}
+                literalObject.flipScorePart = score;
+                flipScores[Math.abs(literalObject.literal)] += score;}}}
 
 
     protected void initializePredicatesWithPositiveScores() {

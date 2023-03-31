@@ -110,26 +110,71 @@ public class WalkerTest extends TestCase {
     public void testFlipPredicate() {
     }
 
-    public void testSetLocalTruth() {
-        System.out.println("setLocalTruth");
+    public void testInitializeLocalTruthForClause() {
+        System.out.println("initializeLocalTruthForClause");
         Walker walker = MyWalker(10);
         walker.localModel[1] = true;
         Clause clause1 = new Clause(new int[]{1,cOr,1,2,3});
-        assertTrue(walker.setLocalTruth(clause1));
+        assertTrue(walker.initializeLocalTruthForClause(clause1));
         assertTrue(clause1.isLocallyTrue);
         assertEquals(1,clause1.trueLiterals);
 
         walker.localModel[2] = true; walker.localModel[3] = false;
         Clause clause2 = new Clause(new int[]{2,cInterval,0,2, 1,2,-3,4});
-        assertFalse(walker.setLocalTruth(clause2));
+        assertFalse(walker.initializeLocalTruthForClause(clause2));
         assertFalse(clause2.isLocallyTrue);
         assertEquals(3,clause2.trueLiterals);
 
     }
 
-    public void testSetInitialFlipScores() {
+    public void testInitializeFlipScores1() {
+        System.out.println("initializeFlipScores 1");
+        Walker walker = MyWalker(10);
+        Clause clause1 = new Clause(new int[]{1,cOr,1,2,3});
+        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeFlipScores(clause1);
+        assertEquals("1:1.0,2:1.0,3:1.0,",walker.toString("flipscores"));
+
+        walker = MyWalker(10);
+        walker.localModel[2] = true;
+        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeFlipScores(clause1);
+        assertEquals("2:-1.0,",walker.toString("flipscores"));
+
+        walker = MyWalker(10);
+        walker.localModel[1] = true; walker.localModel[2] = true;
+        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeFlipScores(clause1);
+        Clause clause2 = new Clause(new int[]{2,cOr,1,-2,3});
+        walker.initializeLocalTruthForClause(clause2);
+        walker.initializeFlipScores(clause2);
+        assertEquals("1:-1.0,",walker.toString("flipscores"));
+    }
+    public void testInitializeFlipScores2() {
+        System.out.println("initializeFlipScores 2");
+        Walker walker = MyWalker(10);
+        Clause clause1 = new Clause(new int[]{1, cInterval, 1, 2, 1, 2, 3, 4});
+        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeFlipScores(clause1);
+        assertEquals("1:1.0,2:1.0,3:1.0,4:1.0,", walker.toString("flipscores"));
+
+        walker = MyWalker(10);
+        clause1 = new Clause(new int[]{2, cInterval, 2, 3, 1, 2, 3, 4});
+        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeFlipScores(clause1);
+        assertEquals("1:0.5,2:0.5,3:0.5,4:0.5,", walker.toString("flipscores"));
+
+        walker = MyWalker(10);
+        clause1 = new Clause(new int[]{3, cInterval, 2, 3, 1, 2, 3, 4});
+        walker.localModel[2] = true;
+        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeFlipScores(clause1);
+        assertEquals("1:0.5,2:0.5,3:0.5,4:0.5,", walker.toString("flipscores"));
+
+
+
     }
 
-    public void testUpdateFlipScores() {
+        public void testUpdateFlipScores() {
     }
 }
