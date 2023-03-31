@@ -22,6 +22,7 @@ public class WalkerTest extends TestCase {
         walker.localModel = new boolean[predicates+1];
         walker.random = new Random(0);
         walker.flipScores = new float[predicates+1];
+        walker.predicatesWithPositiveScore = new Predicates(predicates);
         return walker;
     }
 

@@ -93,7 +93,6 @@ public class Clauses {
         StringBuilder st = new StringBuilder();
         Clause clause = firstClause;
         while(clause != null) {
-            //if(!clause.isInList) {clause = clause.nextClause; continue;}
             st.append(clause.toString(symboltable,0)).append("\n");
             clause = clause.nextClause;}
         return st.toString();}

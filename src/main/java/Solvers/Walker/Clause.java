@@ -39,9 +39,6 @@ public class Clause {
     /** flag to indicate that the clause is true in the local model. */
     protected boolean isLocallyTrue;
 
-    /** the number of literals which are true in the local model. */
-    protected int locallyTrueLiterals;
-
     /** the list of all Literal objects in the clause. */
     protected ArrayList<Literal> literals = new ArrayList<>();
 
