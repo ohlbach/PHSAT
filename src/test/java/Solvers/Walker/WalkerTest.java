@@ -160,19 +160,37 @@ public class WalkerTest extends TestCase {
 
         walker = MyWalker(10);
         clause1 = new Clause(new int[]{2, cInterval, 2, 3, 1, 2, 3, 4});
-        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeLocalTruthForClause(clause1); // clause is false, two literals should be flipped.
         walker.initializeFlipScores(clause1);
         assertEquals("1:0.5,2:0.5,3:0.5,4:0.5,", walker.toString("flipscores"));
 
         walker = MyWalker(10);
         clause1 = new Clause(new int[]{3, cInterval, 2, 3, 1, 2, 3, 4});
-        walker.localModel[2] = true;
+        walker.localModel[2] = true; // clause is false
         walker.initializeLocalTruthForClause(clause1);
         walker.initializeFlipScores(clause1);
-        assertEquals("1:0.5,2:0.5,3:0.5,4:0.5,", walker.toString("flipscores"));
+        assertEquals("1:1.0,2:-0.5,3:1.0,4:1.0,", walker.toString("flipscores"));
 
+        walker = MyWalker(10);
+        clause1 = new Clause(new int[]{3, cInterval, 2, 3, 1, 2, 3, 4});
+        walker.localModel[2] = true; walker.localModel[3] = true; // clause is true
+        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeFlipScores(clause1);
+        assertEquals("2:-1.0,3:-1.0,", walker.toString("flipscores"));
 
+        walker = MyWalker(10);
+        clause1 = new Clause(new int[]{3, cInterval, 2, 3, 1, 2, 3, 4,5,6});
+        walker.localModel[2] = true; walker.localModel[3] = true; walker.localModel[4] = true; walker.localModel[5] = true;
+        walker.initializeLocalTruthForClause(clause1); // clause is false. One true literal too much
+        walker.initializeFlipScores(clause1);
+        assertEquals("1:-0.5,2:1.0,3:1.0,4:1.0,5:1.0,6:-0.5,", walker.toString("flipscores"));
 
+        walker = MyWalker(10);
+        clause1 = new Clause(new int[]{3, cInterval, 2, 3, 1, 2, 3, 4,5,6});
+        walker.localModel[1] = true; walker.localModel[2] = true; walker.localModel[3] = true; walker.localModel[4] = true; walker.localModel[5] = true;
+        walker.initializeLocalTruthForClause(clause1); // clause is false. Two true literal too much
+        walker.initializeFlipScores(clause1);
+        assertEquals("1:0.5,2:0.5,3:0.5,4:0.5,5:0.5,6:-0.33333334,", walker.toString("flipscores"));
     }
 
         public void testUpdateFlipScores() {

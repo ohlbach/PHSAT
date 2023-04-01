@@ -121,7 +121,6 @@ public class Walker extends Solver {
         literals  = new Literals(predicates);
         flipScores = new float[predicates+1];
         try{
-            initializeModelAndScores();
             readInputClauses();
             walk();}
         catch(Result result) {
@@ -200,29 +199,6 @@ public class Walker extends Solver {
         clauses.add(clause);}
 
 
-    /** Initializes the local model, the local truth values of the clauses, the falseClauses number and the initial flip scores.
-     * A predicate is made true if it makes more clauses true than making the predicate false.
-     * The number of true clauses when making a predicate true is estimated by its initial score.
-     * If the same number of clauses are made true/false then the truth value of the predicate is
-     * selected randomly.
-     * Global truth value are transferred unchanged to the local model.
-     */
-    protected void initializeModelAndScores() {
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            int status = model.status(predicate);
-            if(status != 0) {
-                localModel[predicate] = (status == 1);
-                flipScores[predicate] = Integer.MIN_VALUE/2;}
-            else {
-                int posSize = literals.size(predicate);
-                int negSize = literals.size(-predicate);
-                if(posSize == negSize) localModel[predicate] = random.nextBoolean();
-                else localModel[predicate] = (posSize >= negSize);}}
-
-        for(Clause clause: clauses) {
-            if(!initializeLocalTruthForClause(clause)) ++falseClauses;
-            initializeFlipScores(clause);}
-        if(monitoring) monitor.println(monitorId, "Initial Data:\n" + toString());}
 
     /** initializes the local model.
      * a predicate is set to true if there are more positive literal occurrences than negative literal occurrences.<br>
@@ -420,19 +396,18 @@ public class Walker extends Solver {
             int literal = literalObject.literal;
             boolean isLocallyTrue = isLocallyTrue(literal);
             int newTrueLiterals = isLocallyTrue ? trueLiterals - literalObject.multiplicity : trueLiterals + literalObject.multiplicity;
-            if(min <= newTrueLiterals && newTrueLiterals <= max) {
-                literalObject.flipScorePart = 1;
-                flipScores[Math.abs(literalObject.literal)] += 1;
-                continue;}
-            if(newTrueLiterals < min) {
-                float score = (float)1. / (float)(min - newTrueLiterals + 1);
-                literalObject.flipScorePart = score;
-                flipScores[Math.abs(literalObject.literal)] += score;
-                continue;}
-            if(newTrueLiterals > max) {
-                float score = (float)1. / (float)(newTrueLiterals - max + 1);
-                literalObject.flipScorePart = score;
-                flipScores[Math.abs(literalObject.literal)] += score;}}}
+            float score = 0;
+            if(isLocallyTrue) // flipping a true literal makes the clause more false.
+                score = (float)-1. / (float)(min - newTrueLiterals);
+            else { // flipping a false literal brings the clause closer to truth.
+                if(min <= newTrueLiterals && newTrueLiterals <= max) {
+                score = 1;}
+                else {
+                    if(newTrueLiterals < min)
+                        score = (float)1. / (float)(min - newTrueLiterals+1); // not enough true literals
+                    else score = (float)-1. / (float)(newTrueLiterals - max);}} // too many true literals.
+            literalObject.flipScorePart = score;
+            flipScores[Math.abs(literalObject.literal)] += score;}}
 
 
     protected void initializePredicatesWithPositiveScores() {
