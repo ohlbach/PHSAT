@@ -77,6 +77,13 @@ public class LiteralsTest extends TestCase {
     }
 
     public void testReplaceLiteral() {
+        System.out.println("replaceLiteral");
+        Literals literals = new Literals(10);
+        Literal lit1 = new Literal(3,1);
+        literals.addLiteral(lit1);
+        lit1.literal = 5;
+        assertTrue(literals.replaceLiteral(lit1,3));
+        assertEquals("5@0,",literals.toString(5));
     }
 
     public void testRemovePredicate() {

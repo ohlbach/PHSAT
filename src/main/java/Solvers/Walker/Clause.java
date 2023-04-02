@@ -60,12 +60,15 @@ public class Clause {
     /** indicates that the clause is still in the doubly connected list. */
     protected boolean isInList = false;
 
+    private int[] inputClause;
+
 
     /** The constructor turns an InputClause int[]-array into a Clause object.
      *
      * @param inputClause InputClause int[]-array.
      */
     public Clause(int[] inputClause) {
+        this.inputClause = inputClause;
         id = inputClause[0];
         quantifier = Quantifier.getQuantifier(inputClause[1]);
         isDisjunction = quantifier == Quantifier.OR;
@@ -173,11 +176,10 @@ public class Clause {
      * Example: [0,2] p,-p,q,-q,r,-r -> unsatisfiable <br>
      * Example: [0,2] p,-p,q,-q,r,s -> -r&amp;-s <br>
      *
-     * @param inputClause the original input clause (for the UnsatClause).
      * @return true if the clause became a true clause.
      * @throws UnsatClause if the clause is unsatisfiable.
      */
-    protected boolean removeComplementaryLiterals(int[] inputClause) throws Unsatisfiable {
+    protected boolean removeComplementaryLiterals() throws Unsatisfiable {
         for(int i = 0; i < literals.size()-1; ++i) {
             Literal literalObject1 = literals.get(i);
             int literal1 = literalObject1.literal;

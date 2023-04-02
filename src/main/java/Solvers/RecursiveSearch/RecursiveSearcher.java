@@ -65,6 +65,8 @@ public class RecursiveSearcher  extends Solver {
             list.add(map);}
         return list;}
 
+    public void initialize() {}
+
     /** constructs a new Walker solver.
      *
      * @param solverNumber         for distinguishing different solvers of the same type, but different parameters

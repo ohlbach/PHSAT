@@ -61,6 +61,7 @@ public class Predicates {
     public void remove(int predicate) {
         assert predicate > 0;
         Predicate predicateObject = predicates[predicate];
+        if(predicateObject.predicate == 0) return;
         predicateObject.predicate = 0;
         if(lastPredicate == firstPredicate) {lastPredicate = null; firstPredicate = null; return;}
         if(predicateObject.previousPredicate == null) {

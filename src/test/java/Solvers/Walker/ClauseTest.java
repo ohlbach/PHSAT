@@ -76,54 +76,54 @@ public class ClauseTest extends TestCase {
         System.out.println("removeComplementaryLiterals");
         int[] inputClause = new int[]{1,cOr,1,2,3};
         Clause clause = new Clause(inputClause);
-        clause.removeComplementaryLiterals(inputClause);
+        clause.removeComplementaryLiterals();
         assertEquals("1: 1v2v3",clause.toString());
         inputClause = new int[]{2,cOr,1,2,3,-2};
         clause = new Clause(inputClause);
-        clause.removeComplementaryLiterals(inputClause);
+        clause.removeComplementaryLiterals();
         assertEquals("2: 1v3",clause.toString());
 
         inputClause = new int[]{3,cAtleast,3,1,2,3,-2};
         clause = new Clause(inputClause);
-        clause.removeComplementaryLiterals(inputClause);
+        clause.removeComplementaryLiterals();
         assertEquals("3: >=2 1,3",clause.toString());
 
         inputClause = new int[]{4,cInterval,0,2,1,2,3,-2,-3,4};
         clause = new Clause(inputClause);
-        clause.removeComplementaryLiterals(inputClause);
+        clause.removeComplementaryLiterals();
         assertEquals("4: -1&-4",clause.toString());
 
         inputClause = new int[]{5,cInterval,0,2,1,2,3,-2,-3,-1};
         clause = new Clause(inputClause);
-        assertTrue(clause.removeComplementaryLiterals(inputClause));
+        assertTrue(clause.removeComplementaryLiterals());
 
         inputClause = new int[]{6,cAtleast,2,1,-1,2,-2,3,4};
         clause = new Clause(inputClause);
-        assertTrue(clause.removeComplementaryLiterals(inputClause));
+        assertTrue(clause.removeComplementaryLiterals());
 
         inputClause = new int[]{7,cAtleast,2,1,1,1,2,3,-1,-1};
         clause = new Clause(inputClause);
-        assertTrue(clause.removeComplementaryLiterals(inputClause));
+        assertTrue(clause.removeComplementaryLiterals());
 
         inputClause = new int[]{8,cAtleast,3,1,1,1,2,3,-1,-1};
         clause = new Clause(inputClause);
-        assertFalse(clause.removeComplementaryLiterals(inputClause));
+        assertFalse(clause.removeComplementaryLiterals());
         assertEquals("8: 1v2v3",clause.toString());
 
         inputClause = new int[]{9,cAtleast,3,1,1,2,3,-1,-1,-1};
         clause = new Clause(inputClause);
-        assertFalse(clause.removeComplementaryLiterals(inputClause));
+        assertFalse(clause.removeComplementaryLiterals());
         assertEquals("9: 2v3v-1",clause.toString());
 
         inputClause = new int[]{10,cAtleast,3,1,2,-1,-2,3,4};
         clause = new Clause(inputClause);
-        assertFalse(clause.removeComplementaryLiterals(inputClause));
+        assertFalse(clause.removeComplementaryLiterals());
         assertEquals("10: 3v4",clause.toString());
 
 
         inputClause = new int[]{11,cInterval,0,2,1,2,3,-2,-3,-1,4};
         clause = new Clause(inputClause);
-        try{clause.removeComplementaryLiterals(inputClause);}
+        try{clause.removeComplementaryLiterals();}
         catch(Unsatisfiable uns) {
             System.out.println(uns.toString());
         }
