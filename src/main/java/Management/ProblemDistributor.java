@@ -44,22 +44,6 @@ public class ProblemDistributor {
         this.problemSupervisors = problemSupervisors;}
 
 
-    /** The method can be called from different threads to get the next unprocessed ProblemSupervisor.
-     *
-     * @return null or the next ProblemSupervisor which has not yet been processed.
-     */
-    private synchronized ProblemSupervisor getNextProblemSupervisor() {
-        return (nextProblemSupervisor == problemSupervisors.size()) ?
-                null : problemSupervisors.get(nextProblemSupervisor++);}
-
-    /** gets and processes the unprocessed ProblemSupervisors.
-     * The method can be called from different threads to get then next unprocessed ProblemSupervisor and calls
-     * its solveProblem() method.
-     */
-    private void processProblems() {
-        ProblemSupervisor problemSupervisor;
-        while ((problemSupervisor = getNextProblemSupervisor()) != null) problemSupervisor.solveProblem();}
-
     /** creates threads which call the solveProblem() methods of the ProblemSupervisors.
      * The number of threads is determined such that all but one core gets busy
      * and there are free cores for each solver.
@@ -69,17 +53,7 @@ public class ProblemDistributor {
         String jobname = globalParameters.jobname;
         globalParameters.logstream.println("Starting job " + jobname + " at " + (new Date()));
         long start = System.nanoTime();
-        int numberOfCores = Runtime.getRuntime().availableProcessors() - 1; // one core as spare
-        int numberOfSolvers = problemSupervisors.get(0).numberOfSolvers;
-        int simultaneousProblems = (numberOfSolvers == 0) ? 1 : Math.max(1, numberOfCores / numberOfSolvers);
-        Thread[] threads = new Thread[simultaneousProblems];
-        for (int i = 0; i < simultaneousProblems; ++i) {
-            Thread thread = new Thread(this::processProblems);
-            threads[i] = thread;
-            thread.start();}
-        try {for (int i = 0; i < simultaneousProblems; ++i) threads[i].join();}
-        catch (InterruptedException ex) {
-            ErrorReporter.reportErrorAndStop(ex.toString());}
+        for(ProblemSupervisor problemSupervisor : problemSupervisors) problemSupervisor.solveProblem();
         long end = System.nanoTime(); // only the elapsed solution time is reported.
         reportResults();
         globalParameters.logstream.println("Ending job    " + jobname + " at " + (new Date()));

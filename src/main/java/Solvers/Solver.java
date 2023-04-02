@@ -195,6 +195,8 @@ public abstract class Solver {
 
         public String getSolverId() {return solverId;}
 
+    public abstract void initialize();
+
 
     /** This method is called when another solver found a new true literal.
      *  It should be overwritten in the solver classes, because otherwise this important information is lost.

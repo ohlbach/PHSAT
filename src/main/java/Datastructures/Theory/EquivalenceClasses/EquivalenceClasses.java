@@ -168,13 +168,12 @@ public class EquivalenceClasses extends Solver {
     public synchronized void addObserver(TriConsumer<Integer,Integer,InferenceStep> observer) {
         observers.add(observer);}
 
-    /** adds the literals which are already true in the model to the task queue.
-     * Installs the observer in the model.
+    /** Installs the observer in the model.
      */
-    public void readModel() {
-        for(int literal: model.model) {
-            addTrueLiteralTask(literal,model.getInferenceStep(literal));}
+    @Override
+    public void initialize() {
         model.addObserver(this::addTrueLiteralTask);}
+
 
     @Override
     public Result solveProblem(ProblemSupervisor problemSupervisor) {

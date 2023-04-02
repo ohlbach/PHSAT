@@ -7,7 +7,9 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
+import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
+import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
 import Management.ProblemSupervisor;
 import Solvers.Simplifier.UnsatClause;
@@ -109,19 +111,74 @@ public class Walker extends Solver {
         monitorId = "Walker_"+solverNumber;}
 
     @Override
+    public void initialize() {
+        model.addObserver(this::addGloballyTrueLiteral);
+        equivalenceClasses.addObserver((this::addEquivalence));
+    }
+
+    private boolean trueLiteralInterrupt = false;
+    public synchronized void addGloballyTrueLiteral(int literal, InferenceStep step) {
+        globallyTrueLiterals.add(literal);
+        trueLiteralInterrupt = true;
+        myThread.interrupt();
+    }
+
+    private synchronized IntArrayList getGloballyTrueLiterals() {
+        if(globallyTrueLiterals.isEmpty()) return null;
+        IntArrayList literals = globallyTrueLiterals.clone();
+        globallyTrueLiterals.clear();
+        trueLiteralInterrupt = false;
+        return literals;}
+
+
+    private Thread myThread;
+    private EquivalenceClasses equivalenceClasses;
+    private IntArrayList equivalentLiterals = new IntArrayList(5);
+    private boolean equivalenceInterrupt = false;
+
+    public synchronized void addEquivalence(int representative, int literal, InferenceStep step) {
+        equivalentLiterals.add(representative); equivalentLiterals.add(literal);
+        equivalenceInterrupt = true;
+        myThread.interrupt();}
+
+    private synchronized IntArrayList getEquivalences() {
+        if(equivalentLiterals.isEmpty()) return null;
+        IntArrayList literals = equivalentLiterals.clone();
+        equivalentLiterals.clear();
+        equivalenceInterrupt = false;
+        return literals;}
+
+    @Override
     public Result solveProblem(ProblemSupervisor problemSupervisor) {
         //   globalParameters.log(solverId + " for problem " + problemId + " started");
         long startTime = System.nanoTime();
+        myThread = Thread.currentThread();
         this.problemSupervisor = problemSupervisor;
-        readModel();
+        solverId           = (String)solverParameters.get("name");
+        problemId          = problemSupervisor.problemId;
+        combinedId         = problemId+"@"+solverId + ":" + solverNumber;
+        globalParameters   = problemSupervisor.globalParameters;
+        inputClauses       = problemSupervisor.inputClauses;
+        predicates         = inputClauses.predicates;
+        symboltable        = inputClauses.symboltable;
+        monitor            = problemSupervisor.monitor;
+        monitoring         = monitor != null; //&& monitor.monitoring;
+        model              = problemSupervisor.model;
+        equivalenceClasses = problemSupervisor.equivalenceClasses;
         localModel     = new boolean[predicates+1];
         random         = new Random(seed);
         statistics     = new Statistics(combinedId);
-        clauses   = new ArrayList<>(inputClauses.nextId);
-        literals  = new Literals(predicates);
-        flipScores = new float[predicates+1];
+        clauses        = new ArrayList<>(inputClauses.nextId);
+        literals       = new Literals(predicates);
+        flipScores     = new float[predicates+1];
+        predicatesWithPositiveScore = new Predicates(predicates);
         try{
             readInputClauses();
+            initializeModel();
+            for(Clause clause : clauses) {
+                initializeLocalTruthForClause(clause);
+                initializeFlipScores(clause);}
+            initializePredicatesWithPositiveScores();
             walk();}
         catch(Result result) {
             statistics.elapsedTime = System.nanoTime() - startTime;
@@ -226,9 +283,11 @@ public class Walker extends Solver {
     private Result walk() {
         while(statistics.flips < maxFlips) {
             if(Thread.interrupted()) {
-              //  globalParameters.log("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
-                break;}
-            integrateGloballyTrueLiterals();
+                if(trueLiteralInterrupt) integrateGloballyTrueLiterals();
+                else {if(equivalenceInterrupt) integrateEquivalences();
+                else {
+                    globalParameters.logstream.println("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
+                    break;}}}
             int predicate = selectFlipPredicate();
             if(monitoring) monitor.println(monitorId,"Flip " + predicate);
             flipPredicate(predicate);
@@ -238,36 +297,39 @@ public class Walker extends Solver {
 
     private final ArrayList<Clause> globallyTrueClauses = new ArrayList<>();
 
-    /** integrates globally true literals:
+    /** integrates globally true literals.
      * - their scores are minimized <br>
-     * - clauses which now become globally true are marked<br>
-     * Clauses with globally false literals are not touched.
+     * - If the literal's local model is different to the global model, the literal is flipped.
      */
-    private void integrateGloballyTrueLiterals() {}
+    private void integrateGloballyTrueLiterals() {
+        for(int literal : getGloballyTrueLiterals()) {
+            if((literal > 0 && localModel[literal] == model.isTrue(literal)) ||
+                    (literal < 0 && localModel[-literal] == model.isFalse(-literal))) continue;
+            int predicate = Math.abs(literal);
+            flipScores[predicate] = trueLiteralScore;
+            flipPredicate(predicate);}}
+
+    protected void integrateEquivalences() {
+
+    }
 
     /** selects a predicate to be flipped.
      * The priorities are: <br>
-     * 1. predicate with top score > 0
-     * 2. predicate in false clause with score = 0. <br>
-     *    The predicate must occur in another clause togehter with another predicate with score = 0. <br>
-     *    This predicate is flipped first<br>
-     * 3. predicate in false clause with rop score<br>
-     * 4. randomly chosen predicate.<br>
-     * Predicates in the flip history list are not chosen.
+     * 1. a predicate with positive flipScore (any such predicate is good enough).<br>
+     * 2. a predicate in a false clause.<br>
+     *    - every jump-frequency time a randomly chosen false clause is selected.<br>
+     *    - otherwise the first false clause in the list is chosen.
+     *
      * @return a predicate to be flipped next.
      */
     private int selectFlipPredicate() {
-        /*
-        int predicate = flipQueue.topItem();
-        float topScore = flipQueue.scores[predicate];
-        if(topScore > 0) return predicate;
-        if(topScore == 0) {
-            predicate = select0InFalseClause();
-            if(predicate != 0) return predicate;}
-        predicate = selectTopInFalseClauses();
-        if(predicate != 0) return predicate;
-        return selectRandomPredicate();*/
-    return 0;}
+        Predicate predicateObject = predicatesWithPositiveScore.firstPredicate;
+        if(predicateObject != null) return predicateObject.predicate;
+        if(statistics.flips % jumpFrequency == 0) {
+            int n = random.nextInt(falseClauseList.size);
+            Clause clause = falseClauseList.getClause(n);
+            return selectPredicateInFalseClause(clause);}
+        return selectPredicateInFalseClause(falseClauseList.firstClause);}
 
 
     /** selects a predicate in a false clause with score = 0.
@@ -276,63 +338,22 @@ public class Walker extends Solver {
      *
      * @return 0 or the predicate to be flipped.
      */
-    private int select0InFalseClause() {
-        /*
-        for(Clause Clause : falseClauses) {
-            for(int literal : Clause.literals) {
-                int predicate = Math.abs(literal);
-                if(isInFlipHistory(predicate)) continue;
-                if(flipQueue.scores[predicate] == 0 && flipOtherPredicate(Clause,predicate))
-                    return predicate;}}*/
+    private int selectPredicateInFalseClause(Clause clause) {
+        if(clause.trueLiterals < clause.min) { // not enough true literals. A false literal must be flipped.
+            for(Literal literalObject : clause.literals) {if(!isLocallyTrue(literalObject.literal)) return literalObject.literal;}}
+        // too many true literals. A true literal must be flipped.
+        for(Literal literalObject : clause.literals) {if(isLocallyTrue(literalObject.literal)) return literalObject.literal;}
         return 0;}
 
-    /** flips a predicate in another clause containing the selected predicate
-     *
-     * @param Clause   a false clause
-     * @param predicate a predicate in this clause with score = 0.
-     * @return true if a predicate has been found and flipped.
-     */
-    private boolean flipOtherPredicate(Clause Clause, int predicate) {
-        return false;}
-
-    /** selects the predicate in the false clauses with top score, and which is not in the flip history
-     *
-     * @return 0 or the predicate in the false clauses with top score, and which is not in the flip history
-     */
-    private int selectTopInFalseClauses() {
-        return 0;}
-
-    /** selects a predicate randomly among the 50% predicates with best scores.
-     *
-     * @return a randomly selected predicate
-     */
-    private int selectRandomPredicate() {
-        /*
-        int predicate = flipQueue.queue[random.nextInt(predicates/2)+1];
-        int counter = 0;
-        while(isInFlipHistory(predicate) && ++counter < 10) {
-            predicate = flipQueue.queue[random.nextInt(predicates/2)+1];}*/
-        return 0;}
 
     /** flips the truth value of the predicate and updates the flipQueue and the falseClauses list
      *
      * @param predicate to be flipped
      */
     void flipPredicate(int predicate) {
-        /*++statistics.flips;
-        addToFlipHistory(predicate);
-        for(Clause clause : getClauses(predicate)) updateFlipScores(clause,-1);
-        for(Clause clause : getClauses(-predicate)) updateFlipScores(clause,-1);
-
+        ++statistics.flips;
         localModel[predicate] = !localModel[predicate];
-
-        for(int sign = -1; sign <= 1; sign += 2) {
-            for(Clause clause : getClauses(sign*predicate)) {
-                if(!clause.isLocallyTrue) removeFalseClause(clause);
-                clause.isLocallyTrue = initializeLocalTruthForClause(clause);
-                if(!clause.isLocallyTrue) {addFalseClause(clause);}
-                updateFlipScores(clause,1);}*/
-        }
+        updateFlipScores(predicate);}
 
 
     /** turns the local model into a new model and returns Satisfiable as result
@@ -344,11 +365,7 @@ public class Walker extends Solver {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             model.addImmediately(localModel[predicate] ? predicate : -predicate);}
         return new Satisfiable(null,null,model);}
-
-
-
-
-
+    
 
     /** computes the truth value of a clause in the local (and global) model.
      * The truth value and the number of true literals is stored in the clause.<br>

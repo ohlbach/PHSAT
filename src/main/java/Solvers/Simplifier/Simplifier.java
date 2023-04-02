@@ -91,10 +91,9 @@ public class Simplifier extends Solver {
         statistics             = new SimplifierStatistics(solverId);
         trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
         nextId                 = problemSupervisor::nextClauseId;
-        readModel();
     }
 
-    /** this is a constructor for testing purposes (wothout ProblemSupervisor)
+    /** this is a constructor for testing purposes (without ProblemSupervisor)
      *
      * @param predicates      the number of predicates.
      * @param monitor         null or a monitor.
@@ -247,6 +246,11 @@ public class Simplifier extends Solver {
         if(clause.size() == 2) addBinaryClauseTask(clause);
         return true;}
 
+    /** Installs the observer in the model.*/
+    public void initialize() {
+        model.addObserver(this::addTrueLiteralTask);
+        equivalenceClasses.addObserver(this::addEquivalenceTask);}
+
     /** adds the literals which are already true in the model to the task queue.
      * Installs the observer in the model.
      */
@@ -293,6 +297,17 @@ public class Simplifier extends Solver {
             monitor.print(monitorId,"In:   True literal " +
                     Symboltable.toString(literal,symboltable));}
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
+
+    /** adds a true literal to the queue
+     *
+     * @param literal a true literal
+     * @param inferenceStep which caused the truth
+     */
+    public void addEquivalenceTask(int representative, int literal, InferenceStep inferenceStep) {
+        if(monitoring) {
+            monitor.print(monitorId,"In:   Equivalence " + Symboltable.toString(representative,symboltable) + "="+
+                    Symboltable.toString(literal,symboltable));}
+        synchronized (this) {queue.add(new Task<>(TaskType.ProcessEquivalence, representative, literal, inferenceStep));}}
 
 
     /** reads the next task from the task queue and processes it.

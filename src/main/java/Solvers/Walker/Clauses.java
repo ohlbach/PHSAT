@@ -12,9 +12,12 @@ import Datastructures.Symboltable;
 public class Clauses {
 
     /** the first clause in the list. */
-    Clause firstClause;
+    protected Clause firstClause;
     /** the last clause in the list. */
-    Clause lastClause;
+    protected Clause lastClause;
+
+    /** the number of clauses in the list */
+    protected int size = 0;
 
     /** constructs an empty list.
      */
@@ -25,6 +28,7 @@ public class Clauses {
      * @param clause the clause to be added.
      */
     public void addToFront(Clause clause) {
+        ++size;
         clause.isInList = true;
         clause.previousClause = null; clause.nextClause = null;
         if(firstClause == null) {firstClause = clause; lastClause = clause; return;}
@@ -38,6 +42,7 @@ public class Clauses {
      * @param clause the clause to be added.
      */
     public void addToBack(Clause clause) {
+        ++size;
         clause.isInList = true;
         clause.previousClause = null; clause.nextClause = null;
         if(firstClause == null) {firstClause = clause; lastClause = clause; return;}
@@ -51,6 +56,7 @@ public class Clauses {
      * @param clause the clause to be removed.
      */
     public void remove(Clause clause) {
+        --size;
         clause.isInList = false;
         if(lastClause == firstClause) {lastClause = null; firstClause = null; return;}
         if(clause.previousClause == null) {
@@ -69,12 +75,20 @@ public class Clauses {
      *
      * @return the number of clauses in the list.
      */
-    public int size() {
-        if(firstClause == null) return 0;
-        int counter = 0;
+    public int size() {return size;}
+
+    /** returns the nth clause in the list.
+     *
+     * @param n an integer.
+     * @return the nth clause in the list.
+     */
+    public Clause getClause(int n) {
+        int counter = -1;
         Clause clause = firstClause;
-        while(clause != null) {++counter; clause = clause.nextClause;}
-        return counter;}
+        while(clause != null) {
+            if(++counter == n) return clause;
+            clause = clause.nextClause;}
+        return null;}
 
     /** collects the clauses in a string, one per line.
      *

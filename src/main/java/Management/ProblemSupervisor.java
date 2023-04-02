@@ -85,22 +85,21 @@ public class ProblemSupervisor {
             if(!globalParameters.cnfFile.equals("none")) inputClauses.makeCNFFile(globalParameters.jobDirectory,globalParameters.cnfFile);
             if(globalParameters.showClauses && globalParameters.logstream != null) quSatJob.printlog(inputClauses.toString());
             model = new Model(inputClauses.predicates);
-            readConjunctions(inputClauses.conjunctions);
+            equivalenceClasses = new EquivalenceClasses(this,monitor);
+            solvers.add(equivalenceClasses);
             startEquivalenceClasses();
-            if(globalParameters.simplifier) startSimplifier();
             numberOfSolvers = solvers.size();
-            //statistics.solvers = numberOfSolvers;
             threads = new Thread[numberOfSolvers];
             results = new Result[numberOfSolvers];
+            for(int i = 0; i < numberOfSolvers; ++i) solvers.get(i).initialize();
             for(int i = 0; i < numberOfSolvers; ++i) {
                 int j = i;
-               threads[i] = new Thread(() -> {
+                threads[i] = new Thread(() -> {
                    Result result = solvers.get(j).solveProblem(this);
                    finished(result);});}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
-            for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}
-            equivalenceThread.join();
-            if(simplifierThread != null) simplifierThread.join();}
+            readConjunctions(inputClauses.conjunctions);
+            for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
         catch(Result result) {
             result.problemId = problemId;
             this.result = result;
