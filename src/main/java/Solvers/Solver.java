@@ -143,6 +143,7 @@ public abstract class Solver {
 
     public Monitor monitor = null;
     protected boolean monitoring = false;
+    protected String monitorId;
 
     /** the supervisor which coordinates the work of all solvers or a given problem */
     public ProblemSupervisor problemSupervisor;
