@@ -66,14 +66,16 @@ public class Predicates {
         if(lastPredicate == firstPredicate) {lastPredicate = null; firstPredicate = null; return;}
         if(predicateObject.previousPredicate == null) {
             firstPredicate = predicateObject.nextPredicate;
+            firstPredicate.previousPredicate = null;
             return;}
         if(predicateObject.nextPredicate == null) {
             lastPredicate = predicateObject.previousPredicate;
             lastPredicate.nextPredicate = null;
             return;}
-        Predicate pred = predicateObject.previousPredicate;
-        pred.nextPredicate = predicateObject.nextPredicate;
-        predicateObject.nextPredicate.previousPredicate = pred;}
+        Predicate previous = predicateObject.previousPredicate;
+        Predicate next     = predicateObject.nextPredicate;
+        previous.nextPredicate = next;
+        next.previousPredicate = previous;}
 
     /** returns a string representation of the list.
      *

@@ -127,9 +127,31 @@ public class ClauseTest extends TestCase {
         catch(Unsatisfiable uns) {
             System.out.println(uns.toString());
         }
+    }
 
+    public void testReduceMultiplicities() throws Unsatisfiable {
+        System.out.println("reduceMultiplicities");
+        Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        clause.reduceMultiplicities();
+        assertEquals("1: 1v2v3",clause.toString());
+
+        clause = new Clause(new int[]{2, cOr, 1, 2, 1,  3, 1, 3});
+        clause.reduceMultiplicities();
+        assertEquals("2: 1v2v3",clause.toString());
+
+        clause = new Clause(new int[]{3, cInterval, 2,3, 1, 2, 1, 1, 3, 1, 3});
+        clause.reduceMultiplicities();
+        assertEquals("3: [2,3] 1^2,2,3^2",clause.toString());
+
+        clause = new Clause(new int[]{4, cAtmost, 4, 1,1,1,2,3});
+        clause.reduceMultiplicities();
+        assertEquals("4: <=2 1,2,3",clause.toString());
+
+        clause = new Clause(new int[]{5, cAtmost, 4, 1,1,2,3,4});
+        clause.reduceMultiplicities();
+        assertEquals("5: <=3 1,2,3,4",clause.toString());
 
 
     }
 
-}
+    }

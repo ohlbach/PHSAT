@@ -67,10 +67,10 @@ public class Walker extends Solver {
     private final IntArrayList equivalentLiterals = new IntArrayList(5);
 
     /** becomes true when a new equivalence has been arrived. */
-    private boolean equivalenceInterrupt = false;
+    boolean equivalenceInterrupt = false;
 
     /** becomes true when a new true literal has been arrived. */
-    private boolean trueLiteralInterrupt = false;
+    boolean trueLiteralInterrupt = false;
 
     /** collects statistical information. */
     public Statistics statistics;
@@ -82,7 +82,7 @@ public class Walker extends Solver {
     protected static float trueLiteralScore = (float)(Integer.MIN_VALUE/2);
 
     /** the current thread. */
-    private Thread myThread;
+    Thread myThread;
 
 
     /** provides a help text about the parameters of the solver. */
@@ -231,6 +231,7 @@ public class Walker extends Solver {
      * All clauses are stored with interval limits.<br>
      * Complementary literals are removed.<br>
      * Derivable true or false literals are inserted into the global model.<br>
+     * Multiplicities are reduced.
      *
      * @param inputClause    an input clause.
      * @throws Unsatisfiable if the clause is false or the global model discovers a contradiction.
@@ -247,13 +248,15 @@ public class Walker extends Solver {
             if(literalObject.multiplicity > clause.max) {
                 model.add(-literalObject.literal,null);
                 clause.expandedSize -= literalObject.multiplicity;
-                clause.literals.remove(i--);}}
+                clause.literals.remove(i--);
+                clause.hasMultiplicities = clause.expandedSize > clause.literals.size();}}
         if(clause.isFalse()) throw new UnsatClause(problemId,solverId,inputClause);
         if(clause.isTrue()) return;
-
-        for(Literal literalObject : clause.literals) {
-            literals.addLiteral(literalObject);}
+        if(clause.hasMultiplicities) clause.reduceMultiplicities();
+        for(Literal literalObject : clause.literals) {literals.addLiteral(literalObject);}
         clauses.add(clause);}
+
+
 
     /** initializes the local model.
      * a predicate is set to true if there are more positive literal occurrences than negative literal occurrences.<br>
@@ -318,7 +321,7 @@ public class Walker extends Solver {
         if(trueLiterals < clause.min) { // false literals should become true and true literals should not become false.
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                float score = 0;;
+                float score = 0;
                 if(isLocallyTrue(literal)) {
                     score = (float)-1. / (float)(min - (trueLiterals - literalObject.multiplicity));}
                 else {
@@ -360,9 +363,10 @@ public class Walker extends Solver {
      * - a new equivalence is announced: <br>
      *   The literal is replaced by its representative and the two local truth values are synchronized.
      *
-     * @return the result of the search
+
+     * @throws Result the result of the search
      */
-    private Result walk() throws Unsatisfiable {
+    private void walk() throws Result {
         while(statistics.flips < maxFlips) {
             if(Thread.interrupted()) {
                 if(trueLiteralInterrupt) integrateGloballyTrueLiterals();
@@ -373,8 +377,8 @@ public class Walker extends Solver {
             int predicate = selectFlipPredicate();
             if(monitoring) monitor.println(monitorId,"Flip " + predicate);
             flipPredicate(predicate);
-            if(falseClauses == 0) {return localToGlobalModel();}}
-        return new Aborted(null,solverId,"Walker aborted after " + statistics.flips + " flips");}
+            if(falseClauses == 0) {throw localToGlobalModel();}}
+        throw new Aborted(null,solverId,"Walker aborted after " + statistics.flips + " flips");}
 
 
     /** selects a predicate to be flipped.
@@ -386,7 +390,7 @@ public class Walker extends Solver {
      *
      * @return a predicate to be flipped next.
      */
-    private int selectFlipPredicate() {
+    int selectFlipPredicate() {
         Predicate predicateObject = predicatesWithPositiveScore.firstPredicate;
         if(predicateObject != null) return predicateObject.predicate;
         if(statistics.flips % jumpFrequency == 0) {
@@ -410,21 +414,10 @@ public class Walker extends Solver {
         return 0;}
 
 
-    /** integrates globally true literals.
-     * - their scores are minimized <br>
-     * - If the literal's local model is different to the global model, the literal is flipped.
-     */
-    private void integrateGloballyTrueLiterals() {
-        for(int literal : getGloballyTrueLiterals()) {
-            int predicate = Math.abs(literal);
-            flipScores[predicate] = trueLiteralScore;
-            predicatesWithPositiveScore.remove(predicate);
-            if((literal > 0 && localModel[literal] == model.isTrue(literal)) ||
-                    (literal < 0 && localModel[-literal] == model.isFalse(-literal))) continue;
-            flipPredicate(predicate);}}
 
-    protected void integrateEquivalences() throws Unsatisfiable{
+    void integrateEquivalences() throws Unsatisfiable{
         IntArrayList equivalences = getEquivalences();
+        if(equivalences == null) return;
         for(int i = 0; i < equivalences.size(); i += 2) {
             int representative = equivalences.getInt(i);
             int literal = equivalences.getInt(i+1);
@@ -474,15 +467,66 @@ public class Walker extends Solver {
         updateFlipScores(predicate);}
 
 
+
+    /** updates the flip scores of the literals in the clauses containing the flipped literal.
+     * A literal's score is changed if, by flipping it, it makes a true clause false or vice versa.
+     *
+     * @param literal the literal with flipped truth value.
+     */
+     void updateFlipScores(int literal) {
+        for(int sign = 1; sign >= -1; sign -= 2) {
+            literal *= sign;
+            Literal literalObject = literals.getFirstLiteralObject(literal);
+            while(literalObject != null) {
+                updateFlipScores(literalObject);
+                literalObject = literalObject.nextLiteral;}}}
+
+    /** updates the clause's flip score, the falseClauses list and the predicatesWithPositiveScore list.
+     *  The previous score contribution is subtracted from flipScores and the new scores is added by calling initializeFlipScores.
+     *
+     * @param flippedLiteralObject the literal whose local truth value has already been flipped.
+     */
+     void updateFlipScores(Literal flippedLiteralObject) {
+        Clause clause = flippedLiteralObject.clause;
+        boolean wasTrue = clause.isLocallyTrue;
+        int trueLiterals = 0;
+        for(Literal literalObject : clause.literals) {
+            int literal = literalObject.literal;
+            flipScores[Math.abs(literal)] -= literalObject.flipScorePart;
+            literalObject.flipScorePart = 0;
+            if(isLocallyTrue(literal)) trueLiterals += literalObject.multiplicity;}
+        clause.trueLiterals = trueLiterals;
+        clause.isLocallyTrue = clause.min <= trueLiterals && trueLiterals <= clause.max;
+        initializeFlipScores(clause);
+        if(wasTrue) {
+             if(!clause.isLocallyTrue) {falseClauseList.addToBack(clause);++falseClauses;}}
+        else {if(clause.isLocallyTrue) {falseClauseList.remove(clause);--falseClauses;}}
+
+        for(Literal literalObject : clause.literals) {
+            updatePredicatesWithPositiveScore(Math.abs(literalObject.literal));}}
+
+
+    /** updates the list of predicates with positive flip score.
+     *
+     * @param predicate a predicate.
+     */
+     void updatePredicatesWithPositiveScore(int predicate) {
+        int pred = predicatesWithPositiveScore.predicates[predicate].predicate;
+        if(flipScores[predicate] > 0) {
+              if(pred == 0) predicatesWithPositiveScore.addToBack(predicate);}
+        else {if(pred != 0) predicatesWithPositiveScore.remove(predicate);}}
+
+
+
     /** turns the local model into a new model and returns Satisfiable as result
      *
-     * @return Satisfiable with the transferred local model.
+     * @throws Satisfiable with the transferred local model.
      */
-    private Satisfiable localToGlobalModel() {
+    Satisfiable localToGlobalModel()  throws Satisfiable {
         Model model = new Model(predicates);
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             model.addImmediately(localModel[predicate] ? predicate : -predicate);}
-        return new Satisfiable(null,null,model);}
+        throw new Satisfiable(null,null,model);}
 
 
 
@@ -491,97 +535,35 @@ public class Walker extends Solver {
 
 
 
-
-    /** updates the flip scores of the literals in the clauses containing the flipped literal.
-     * A literal's score is changed if, by flipping it, it makes a true clause false or vice versa.
-     *
-     * @param literal the flipped literal
-     */
-    protected void updateFlipScores(int literal) {
-        for(int sign = 1; sign >= -1; sign -= 2) {
-            literal *= sign;
-            Literal literalObject = literals.getFirstLiteralObject(literal);
-            while(literalObject != null) {
-                updateFlipScores(literalObject);
-                literalObject = literalObject.nextLiteral;}}}
-
-    protected void updateFlipScores(Literal flippedLiteralObject) {
-        Clause clause = flippedLiteralObject.clause;
-        int min = clause.min; int max = clause.max;
-        int oldTrueLiterals = clause.trueLiterals;
-        int trueLiterals = isLocallyTrue(flippedLiteralObject.literal) ? oldTrueLiterals+flippedLiteralObject.multiplicity:
-                oldTrueLiterals-flippedLiteralObject.multiplicity;
-        clause.trueLiterals = trueLiterals;
-        boolean wasTrue = clause.isLocallyTrue;
-        boolean isNowTrue = min <= trueLiterals && trueLiterals <= max;
-        clause.isLocallyTrue = isNowTrue;
-        if(wasTrue) {if(!isNowTrue) {falseClauseList.addToBack(clause); ++falseClauses;}}
-        else        {if(isNowTrue)  {falseClauseList.remove(clause);    --falseClauses;}}
-
-        if(isNowTrue) {
-            if(min == max) { // all flips make the clause false.
-                for(Literal literalObject : clause.literals) {
-                    float scoreChange = -1 - literalObject.flipScorePart;
-                    literalObject.flipScorePart += scoreChange;
-                    int predicate = Math.abs(literalObject.literal);
-                    flipScores[predicate] += scoreChange;
-                    updatePredicatesWithPositiveScore(predicate);}
-                return;}
-            for(Literal literalObject : clause.literals) {
-                int literal = literalObject.literal;
-                int newTrueLiterals = isLocallyTrue(literal) ? trueLiterals - literalObject.multiplicity : trueLiterals + literalObject.multiplicity;
-                if(newTrueLiterals < min || newTrueLiterals > max) {
-                    float scoreChange = -1 - literalObject.flipScorePart;
-                    literalObject.flipScorePart += scoreChange;
-                    int predicate = Math.abs(literal);
-                    flipScores[predicate] += scoreChange;
-                    updatePredicatesWithPositiveScore(predicate);}}
-            return;}
-
-        // clause is false. Either there are not enough or too many true literals.
-        for(Literal literalObject : clause.literals) {
-            int literal = literalObject.literal;
-            int newTrueLiterals = isLocallyTrue(literal) ? trueLiterals - literalObject.multiplicity : trueLiterals + literalObject.multiplicity;
-            float scoreChange = 0;
-            if(min <= newTrueLiterals && newTrueLiterals <= max) {
-                scoreChange = 1 -literalObject.flipScorePart;}
-            else {
-                if(newTrueLiterals < min) {
-                    float score = (float)1. / (float)(min - newTrueLiterals + 1);
-                    scoreChange = score -literalObject.flipScorePart;}
-                else {
-                    if(newTrueLiterals > max) {
-                        float score = (float)1. / (float)(newTrueLiterals - max + 1);
-                        scoreChange = score -literalObject.flipScorePart;}}}
-            int predicate = Math.abs(literal);
-            literalObject.flipScorePart += scoreChange;
-            flipScores[predicate] += scoreChange;
-            updatePredicatesWithPositiveScore(predicate);}}
-
-    protected void updatePredicatesWithPositiveScore(int predicate) {
-        if(flipScores[predicate] > 0) {
-            if(predicatesWithPositiveScore.predicates[predicate].predicate == 0) predicatesWithPositiveScore.addToBack(predicate);}
-        else {if(predicatesWithPositiveScore.predicates[predicate].predicate != 0) predicatesWithPositiveScore.remove(predicate);}
-    }
-
-    /** gets all clauses containing the literal
-     *
-     * @param literal a literal
-     * @return a list of all clauses containing the literal
-     */
-    private ArrayList<Clause> getClauses(int literal) {return null;}
-
     /** collects globally true literals which are inserted by other solvers  into the global model */
     private final IntArrayList globallyTrueLiterals = new IntArrayList();
 
+    /** integrates globally true literals.
+     * - their scores are minimized <br>
+     * - If the literal's local model is different to the global model, the literal is flipped.
+     */
+    void integrateGloballyTrueLiterals() {
+        for(int literal : getGloballyTrueLiterals()) {
+            int predicate = Math.abs(literal);
+            flipScores[predicate] = trueLiteralScore;
+            predicatesWithPositiveScore.remove(predicate);
+            if((literal > 0 && localModel[literal] == model.isTrue(literal)) ||
+                    (literal < 0 && localModel[-literal] == model.isFalse(-literal))) continue;
+            flipPredicate(predicate);}}
 
+
+    /** is called by the observer to add a globally true literal.
+     *
+     * @param literal a globally true literal.
+     * @param step null or an inference step (is ignored).
+     */
     public synchronized void addGloballyTrueLiteral(int literal, InferenceStep step) {
         globallyTrueLiterals.add(literal);
         trueLiteralInterrupt = true;
         myThread.interrupt();
     }
 
-    private synchronized IntArrayList getGloballyTrueLiterals() {
+    synchronized IntArrayList getGloballyTrueLiterals() {
         if(globallyTrueLiterals.isEmpty()) return null;
         IntArrayList literals = globallyTrueLiterals.clone();
         globallyTrueLiterals.clear();
@@ -650,12 +632,13 @@ public class Walker extends Solver {
 
     public String toString(String version, Symboltable symboltable) {
         switch(version) {
-            case "clauses":    return clausesToString(symboltable);
-            case "literals":   return literals.toString(symboltable);
-            case "predicates": return predicatesWithPositiveScore.toString(symboltable);
-            case "flipscores": return flipScoresToString(symboltable);
-            case "model":      return localModelToString(symboltable);
-            case "statistic":  return statistics.toString();
+            case "clauses":      return clausesToString(symboltable);
+            case "falseClauses": return falseClauseList.toString(symboltable);
+            case "literals":     return literals.toString(symboltable);
+            case "predicates":   return predicatesWithPositiveScore.toString(symboltable);
+            case "flipscores":   return flipScoresToString(symboltable);
+            case "model":        return localModelToString(symboltable);
+            case "statistic":    return statistics.toString();
         }
         return "Versions: clauses,literals,predicates,flipscores,model,statistic";
     }

@@ -100,61 +100,20 @@ public class Clause {
         }
     }
 
-    /** constructs a new clause from a list of literal,multiplicity pairs.
-     * This constructor is basically for test purposes.
-     *
-     * @param id         the identifier.
-     * @param quantifier the connective.
-     * @param min        the lower limit.
-     * @param max        the upper limit.
-     * @param items      pairs literal,multiplicity.
-     */
-    public Clause(int id, Quantifier quantifier, int min, int max, int... items) {
-        this.id = id;
-        this.min = min;
-        this.max = max;
-        this.quantifier = quantifier;
-        isDisjunction = quantifier == Quantifier.OR;
-        literals = new ArrayList<>(items.length/2);
-        for(int i = 0; i < items.length; i +=2) {
-            int literal = items[i];
-            int multiplicity = Math.min(items[i+1], max);
-            expandedSize += multiplicity;
-            Literal literalObject = new Literal(literal,multiplicity);
-            literalObject.clause = this;
-            literals.add(literalObject);}
-        hasMultiplicities = expandedSize > literals.size();}
-
-    /** This is a constructor for a disjunction.
-     *
-     * @param id             the identifier.
-     * @param literalNumbers the literals of the disjunction.
-     */
-    public Clause(int id,  int... literalNumbers) {
-        this.id = id;
-        this.quantifier = Quantifier.OR;
-        expandedSize = literalNumbers.length;
-        for(int literal : literalNumbers) {
-            Literal literalObject = new Literal(literal,1);
-            literalObject.clause = this;
-            literals.add(literalObject);}}
-
 
     /** checks if the clause is true because of its limits.
      *
      * @return true if the clause is true because of its limits.
      */
-    protected boolean isTrue() {
+    boolean isTrue() {
         return min <= 0 && max >= expandedSize ;}
 
     /** checks if the clause is false because of its limits.
      *
      * @return true if the clause is false because of its limits.
      */
-    protected boolean isFalse() {
+    boolean isFalse() {
         return min > expandedSize || max < 0 || max < min;}
-
-
 
 
     /** finds the Literal with the given literal.
@@ -162,7 +121,7 @@ public class Clause {
      * @param literal a literal.
      * @return null or a Literal with the given literal.
      */
-    protected Literal findLiteral(int literal) {
+    Literal findLiteral(int literal) {
         for(Literal literalObject : literals) {
             if(literalObject.literal == literal) return literalObject;}
         return null;}
@@ -179,7 +138,7 @@ public class Clause {
      * @return true if the clause became a true clause.
      * @throws UnsatClause if the clause is unsatisfiable.
      */
-    protected boolean removeComplementaryLiterals() throws Unsatisfiable {
+    boolean removeComplementaryLiterals() throws Unsatisfiable {
         for(int i = 0; i < literals.size()-1; ++i) {
             Literal literalObject1 = literals.get(i);
             int literal1 = literalObject1.literal;
@@ -223,6 +182,27 @@ public class Clause {
             hasMultiplicities = false;
             for(Literal literalObject : literals) literalObject.multiplicity = 1;}
         return false;}
+
+    /** reduces the clause's multiplicities, if necessary.
+     * If min &gt; 0 then the multiplicities are reduces to min;<br>
+     * If min = 0 then the atmost-clause is (virtually) turned into an atleast clause.<br>
+     * The multiplicities are reduced in this version to 'negMin'.<br>
+     * The clause is then (virtually) turned back into an atmost-clause.
+     */
+    void reduceMultiplicities() {
+        if(min > 0) {
+            for(Literal literalObject : literals) {
+                if(literalObject.multiplicity > min) {
+                    expandedSize -= literalObject.multiplicity - min;
+                    literalObject.multiplicity = min;}}
+        return;}
+        int negMin = expandedSize - max;
+        for(Literal literalObject : literals) {
+            if(literalObject.multiplicity > negMin) {
+                expandedSize -= literalObject.multiplicity - negMin;
+                literalObject.multiplicity = negMin;}}
+        max = expandedSize - negMin;
+    }
 
 
     /** returns the number of Literal objects in the clause.
