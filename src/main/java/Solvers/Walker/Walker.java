@@ -18,7 +18,6 @@ import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
-import java.util.function.IntConsumer;
 
 public class Walker extends Solver {
 
@@ -324,8 +323,8 @@ public class Walker extends Solver {
                     score = (float)-1. / (float)(min - (trueLiterals - literalObject.multiplicity));}
                 else {
                     int newTrueLiterals = trueLiterals + literalObject.multiplicity;
-                    if(newTrueLiterals < max) // otherwise don't flip.
-                    score = (float)1. / (float)(min - (trueLiterals + literalObject.multiplicity) + 1);}
+                    if(newTrueLiterals <= max) // otherwise don't flip.
+                        score = (float)1. / (float)(min - newTrueLiterals + 1);}
                 literalObject.flipScorePart = score;
                 flipScores[Math.abs(literalObject.literal)] += score;}
             return;}
@@ -336,7 +335,7 @@ public class Walker extends Solver {
                 float score = 0;
                 if(isLocallyTrue(literal)) {
                     int newTrueLiterals = trueLiterals - literalObject.multiplicity;
-                    if(newTrueLiterals > min) // otherwise don't flip.
+                    if(newTrueLiterals >= min) // otherwise don't flip.
                         score = (float)1. / (float)(newTrueLiterals - max + 1);}
                 else {
                     score = (float)-1. / (float)((trueLiterals + literalObject.multiplicity) -max);}
@@ -350,59 +349,16 @@ public class Walker extends Solver {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(flipScores[predicate] > 0) predicatesWithPositiveScore.addToBack(predicate);}}
 
-    public synchronized void addGloballyTrueLiteral(int literal, InferenceStep step) {
-        globallyTrueLiterals.add(literal);
-        trueLiteralInterrupt = true;
-        myThread.interrupt();
-    }
-
-    private synchronized IntArrayList getGloballyTrueLiterals() {
-        if(globallyTrueLiterals.isEmpty()) return null;
-        IntArrayList literals = globallyTrueLiterals.clone();
-        globallyTrueLiterals.clear();
-        trueLiteralInterrupt = false;
-        return literals;}
-
-
-
-    public synchronized void addEquivalence(int representative, int literal, InferenceStep step) {
-        equivalentLiterals.add(representative); equivalentLiterals.add(literal);
-        equivalenceInterrupt = true;
-        myThread.interrupt();}
-
-    private synchronized IntArrayList getEquivalences() {
-        if(equivalentLiterals.isEmpty()) return null;
-        IntArrayList literals = equivalentLiterals.clone();
-        equivalentLiterals.clear();
-        equivalenceInterrupt = false;
-        return literals;}
-
-
-    /** collects globally true literals which are inserted by other solvers  into the global model */
-    private final IntArrayList globallyTrueLiterals = new IntArrayList();
-
-    /** a temporary local copy of the globally true literals */
-    private final IntArrayList globallyTrueLiteralsCopy = new IntArrayList();
-
-    /** copies the globally true literals to a local copy, such that other threads could fill it anew
-     *
-     * @return a copy of the globally true literals
-     */
-    private synchronized IntArrayList copyGloballyTrueLiterals() {
-        globallyTrueLiteralsCopy.clear();
-        globallyTrueLiterals.forEach((IntConsumer) globallyTrueLiteralsCopy::add);
-        globallyTrueLiterals.clear();
-        return globallyTrueLiteralsCopy;}
-
-
-
-
-
-
-
-
 
     /** controls the search for a model.
+     * The truth values for predicates are flipped until there is no false clause anymore, or the search is interrupted.
+     * The loop stops if either maxFlips is reached, or there is an external interrupt from another thread.
+     * <br>
+     * There may be two internal interrupts:<br>
+     * - a new globally true literal is announced: <br>
+     *   Its local truth value is adapted and the flip score is set to a large negative value. <br>
+     * - a new equivalence is announced: <br>
+     *   The literal is replaced by its representative and the two local truth values are synchronized.
      *
      * @return the result of the search
      */
@@ -419,6 +375,39 @@ public class Walker extends Solver {
             flipPredicate(predicate);
             if(falseClauses == 0) {return localToGlobalModel();}}
         return new Aborted(null,solverId,"Walker aborted after " + statistics.flips + " flips");}
+
+
+    /** selects a predicate to be flipped.
+     * The priorities are: <br>
+     * 1. a predicate with positive flipScore (any such predicate is good enough).<br>
+     * 2. a predicate in a false clause.<br>
+     *    - every jump-frequency time a randomly chosen false clause is selected.<br>
+     *    - otherwise the first false clause in the list is chosen.
+     *
+     * @return a predicate to be flipped next.
+     */
+    private int selectFlipPredicate() {
+        Predicate predicateObject = predicatesWithPositiveScore.firstPredicate;
+        if(predicateObject != null) return predicateObject.predicate;
+        if(statistics.flips % jumpFrequency == 0) {
+            int n = random.nextInt(falseClauseList.size);
+            Clause clause = falseClauseList.getClause(n);
+            return selectPredicateInFalseClause(clause);}
+        return selectPredicateInFalseClause(falseClauseList.firstClause);}
+
+    /** selects a predicate in a false clause with score %lt;= 0.
+     * If there are not enough true literals then the first false clause is chosen to be flipped.<br>
+     * If there are too many true literals then the first true clause is chosen to be flipped.<br>
+     *
+     * @return the predicate to be flipped.
+     */
+    int selectPredicateInFalseClause(Clause clause) {
+        if(clause.trueLiterals < clause.min) { // not enough true literals. A false literal must be flipped.
+            for(Literal literalObject : clause.literals) {if(!isLocallyTrue(literalObject.literal)) return literalObject.literal;}}
+        // too many true literals. A true literal must be flipped.
+        for(Literal literalObject : clause.literals) {if(isLocallyTrue(literalObject.literal)) return literalObject.literal;}
+        assert(false);
+        return 0;}
 
 
     /** integrates globally true literals.
@@ -470,37 +459,9 @@ public class Walker extends Solver {
                 literals.removeLiteral(literalObject);}
             literalObject = literalObject.nextLiteral;}}
 
-    /** selects a predicate to be flipped.
-     * The priorities are: <br>
-     * 1. a predicate with positive flipScore (any such predicate is good enough).<br>
-     * 2. a predicate in a false clause.<br>
-     *    - every jump-frequency time a randomly chosen false clause is selected.<br>
-     *    - otherwise the first false clause in the list is chosen.
-     *
-     * @return a predicate to be flipped next.
-     */
-    private int selectFlipPredicate() {
-        Predicate predicateObject = predicatesWithPositiveScore.firstPredicate;
-        if(predicateObject != null) return predicateObject.predicate;
-        if(statistics.flips % jumpFrequency == 0) {
-            int n = random.nextInt(falseClauseList.size);
-            Clause clause = falseClauseList.getClause(n);
-            return selectPredicateInFalseClause(clause);}
-        return selectPredicateInFalseClause(falseClauseList.firstClause);}
 
 
-    /** selects a predicate in a false clause with score = 0.
-     *  The predicate must occur in another clause together with another predicate with score = 0. <br>
-     *  This predicate is flipped first<br>
-     *
-     * @return 0 or the predicate to be flipped.
-     */
-    private int selectPredicateInFalseClause(Clause clause) {
-        if(clause.trueLiterals < clause.min) { // not enough true literals. A false literal must be flipped.
-            for(Literal literalObject : clause.literals) {if(!isLocallyTrue(literalObject.literal)) return literalObject.literal;}}
-        // too many true literals. A true literal must be flipped.
-        for(Literal literalObject : clause.literals) {if(isLocallyTrue(literalObject.literal)) return literalObject.literal;}
-        return 0;}
+
 
 
     /** flips the truth value of the predicate and updates the flipQueue and the falseClauses list
@@ -610,6 +571,35 @@ public class Walker extends Solver {
      */
     private ArrayList<Clause> getClauses(int literal) {return null;}
 
+    /** collects globally true literals which are inserted by other solvers  into the global model */
+    private final IntArrayList globallyTrueLiterals = new IntArrayList();
+
+
+    public synchronized void addGloballyTrueLiteral(int literal, InferenceStep step) {
+        globallyTrueLiterals.add(literal);
+        trueLiteralInterrupt = true;
+        myThread.interrupt();
+    }
+
+    private synchronized IntArrayList getGloballyTrueLiterals() {
+        if(globallyTrueLiterals.isEmpty()) return null;
+        IntArrayList literals = globallyTrueLiterals.clone();
+        globallyTrueLiterals.clear();
+        trueLiteralInterrupt = false;
+        return literals;}
+
+
+    public synchronized void addEquivalence(int representative, int literal, InferenceStep step) {
+        equivalentLiterals.add(representative); equivalentLiterals.add(literal);
+        equivalenceInterrupt = true;
+        myThread.interrupt();}
+
+    private synchronized IntArrayList getEquivalences() {
+        if(equivalentLiterals.isEmpty()) return null;
+        IntArrayList literals = equivalentLiterals.clone();
+        equivalentLiterals.clear();
+        equivalenceInterrupt = false;
+        return literals;}
 
 
 
