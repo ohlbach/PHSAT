@@ -438,7 +438,96 @@ public class WalkerTest extends TestCase {
         assertEquals("",walker.toString("predicates"));
         assertEquals("",walker.toString("falseClauses"));
         assertEquals(0,walker.falseClauses);
+    }
+    public void testRemoveClause() throws Unsatisfiable {
+        System.out.println("removeClause");
+        Walker walker = MyWalker(10);
+        Clause clause1 = walker.insertClause(new int[]{1, cOr, 1, 2});
+        Clause clause2 = walker.insertClause(new int[]{2, cOr, 2, 3});
+        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeLocalTruthForClause(clause2);
+        walker.initializeFlipScores(clause1);
+        walker.initializeFlipScores(clause2);
+        walker.initializePredicatesWithPositiveScores();
+        assertEquals("1:1.0,2:2.0,3:1.0,", walker.toString("flipscores"));
+        assertEquals("1,2,3,", walker.toString("predicates"));
+        assertEquals("1: 1v2\n" +
+                "2: 2v3\n", walker.toString("falseClauses"));
+        assertEquals(2, walker.falseClauses);
+        walker.removeClause(clause1);
+        assertEquals("2:1.0,3:1.0,", walker.toString("flipscores"));
+        assertEquals("2,3,", walker.toString("predicates"));
+        assertEquals("2: 2v3\n", walker.toString("falseClauses"));
+        assertEquals(1, walker.falseClauses);
+        assertEquals("Positive Literals:\n" +
+                "2:1,3:1,\n" +
+                "Negative Literals:\n",walker.toString("literals"));
+    }
+
+    public void testReplaceEquivalentLiterals1() throws Unsatisfiable {
+        System.out.println("replaceEquivalentLiterals simple");
+        Walker walker = MyWalker(10);
+        Clause clause1 = walker.insertClause(new int[]{1, cOr, 1, 2, 3});
+        Clause clause2 = walker.insertClause(new int[]{2, cOr, -1, 2, 3});
+        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeLocalTruthForClause(clause2);
+        walker.initializeFlipScores(clause1);
+        walker.initializeFlipScores(clause2);
+        walker.initializePredicatesWithPositiveScores();
+        assertEquals("2:1.0,3:1.0,", walker.toString("flipscores"));
+        assertEquals("2,3,", walker.toString("predicates"));
+        assertEquals("1: 1v2v3\n", walker.toString("falseClauses"));
+        assertEquals(1, walker.falseClauses);
+        assertEquals("Positive Literals:\n" +
+                "1:1,2:2,3:2,\n" +
+                "Negative Literals:\n" +
+                "-1:1,",walker.toString("literals"));
+
+        walker.replaceEquivalentLiterals(4,2);
+        assertEquals("1: 1v4v3",clause1.toString());
+        assertEquals("2: -1v4v3",clause2.toString());
+        assertEquals("2:-1.07374182E9,3:1.0,4:1.0,", walker.toString("flipscores"));
+        assertEquals("3,4,", walker.toString("predicates"));
+        assertEquals("1: 1v4v3\n", walker.toString("falseClauses"));
+        assertEquals(1, walker.falseClauses);
+        assertEquals("Positive Literals:\n" +
+                "1:1,3:2,4:2,\n" +
+                "Negative Literals:\n" +
+                "-1:1,",walker.toString("literals"));
+    }
+
+    public void testReplaceEquivalentLiterals2() throws Unsatisfiable {
+        System.out.println("replaceEquivalentLiterals multiple");
+        Walker walker = MyWalker(10);
+        Clause clause1 = walker.insertClause(new int[]{1, cOr, 1, 2, 3});
+        Clause clause2 = walker.insertClause(new int[]{2, cOr, -1, 2, 3});
+        walker.initializeLocalTruthForClause(clause1);
+        walker.initializeLocalTruthForClause(clause2);
+        walker.initializeFlipScores(clause1);
+        walker.initializeFlipScores(clause2);
+        walker.initializePredicatesWithPositiveScores();
+        assertEquals("2:1.0,3:1.0,", walker.toString("flipscores"));
+        assertEquals("2,3,", walker.toString("predicates"));
+        assertEquals("1: 1v2v3\n", walker.toString("falseClauses"));
+        assertEquals(1, walker.falseClauses);
+        assertEquals("Positive Literals:\n" +
+                "1:1,2:2,3:2,\n" +
+                "Negative Literals:\n" +
+                "-1:1,",walker.toString("literals"));
+
+        walker.replaceEquivalentLiterals(3,2);
+        assertEquals("1: 1v3",clause1.toString());
+        assertEquals("2: -1v3",clause2.toString());
+        assertEquals("2:-1.07374182E9,3:1.0,", walker.toString("flipscores"));
+        assertEquals("3,", walker.toString("predicates"));
+        assertEquals("1: 1v3\n", walker.toString("falseClauses"));
+        assertEquals(1, walker.falseClauses);
+        assertEquals("Positive Literals:\n" +
+                "1:1,3:2,\n" +
+                "Negative Literals:\n" +
+                "-1:1,",walker.toString("literals"));
 
 
     }
+
     }

@@ -25,43 +25,43 @@ public class Walker extends Solver {
     // ******************
 
     /** maximum number of allowed flips. */
-    public  int maxFlips;
+    int maxFlips;
 
     /** for creating the random number generator */
-    private final int seed;
+    final int seed;
 
     /** the default value for the jump frequency. */
     private static final int jumpFrequencyDefault = 10;
 
     /** after jumpFrequency many flips, a random jump is inserted.*/
-    public int jumpFrequency;
+    int jumpFrequency;
 
     // Active Data
     // ***********
 
     /** collects all clauses. */
-    protected ArrayList<Clause> clauses = new ArrayList<>();
+    ArrayList<Clause> clauses = new ArrayList<>();
 
     /** the list of false clauses. */
-    protected Clauses falseClauseList = new Clauses();
+    Clauses falseClauseList = new Clauses();
 
     /** the number of false clauses. */
-    protected int falseClauses = 0;
+    int falseClauses = 0;
 
     /** an index for all literal occurrences in the clauses. */
-    protected Literals literals;
+    Literals literals;
 
     /** the current list of predicates with a positive score. */
-    protected Predicates predicatesWithPositiveScore;
+    Predicates predicatesWithPositiveScore;
 
     /** maps all predicates to a truth value. */
-    protected boolean[] localModel;
+    boolean[] localModel;
 
     /** a score of +x for predicate p means that by flipping(p) x more clauses become true. */
-    protected float[] flipScores;
+    float[] flipScores;
 
     /** a pointer to the equivalenceClasses solver. */
-    private EquivalenceClasses equivalenceClasses;
+    EquivalenceClasses equivalenceClasses;
 
     /** collects the equivalence classes which are send by the observer */
     private final IntArrayList equivalentLiterals = new IntArrayList(5);
@@ -73,13 +73,17 @@ public class Walker extends Solver {
     boolean trueLiteralInterrupt = false;
 
     /** collects statistical information. */
-    public Statistics statistics;
+    Statistics statistics;
 
     /** random number generator for flip jumps. */
-    protected  Random random;
+    Random random;
 
     /** a tiny flip score for globally true predicates. They should never be flipped again.*/
-    protected static float trueLiteralScore = (float)(Integer.MIN_VALUE/2);
+    private static float trueLiteralScore = (float)(Integer.MIN_VALUE/2);
+
+    /** flip scores of globally true literals should not be larger than this. */
+    private static float trueLiteralScoreLimit = trueLiteralScore/(float)10.;
+
 
     /** the current thread. */
     Thread myThread;
@@ -212,7 +216,7 @@ public class Walker extends Solver {
      *
      * @throws Result if a contradiction or the empty clause is derived.
      */
-    public void readInputClauses() throws Result{
+    void readInputClauses() throws Result{
         try{
             for(int[] inputClause    : inputClauses.disjunctions) insertClause(inputClause);
             for(int[] atleastClause  : inputClauses.atleasts)     insertClause(atleastClause);
@@ -234,15 +238,16 @@ public class Walker extends Solver {
      * Multiplicities are reduced.
      *
      * @param inputClause    an input clause.
+     * @return null or the new clause.
      * @throws Unsatisfiable if the clause is false or the global model discovers a contradiction.
      */
-    protected void insertClause(int[] inputClause) throws Unsatisfiable {
+    Clause insertClause(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause);
-        if(clause.removeComplementaryLiterals()) return;
+        if(clause.removeComplementaryLiterals()) return null;
         if(clause.quantifier == Quantifier.AND) {
             for(Literal literalObject : clause.literals) {
                 model.add(literalObject.literal,clause.inferenceStep);}
-            return;}
+            return null;}
         for(int i = 0; i < clause.literals.size(); ++i) {
             Literal literalObject = clause.literals.get(i);
             if(literalObject.multiplicity > clause.max) {
@@ -251,10 +256,11 @@ public class Walker extends Solver {
                 clause.literals.remove(i--);
                 clause.hasMultiplicities = clause.expandedSize > clause.literals.size();}}
         if(clause.isFalse()) throw new UnsatClause(problemId,solverId,inputClause);
-        if(clause.isTrue()) return;
+        if(clause.isTrue()) return null;
         if(clause.hasMultiplicities) clause.reduceMultiplicities();
         for(Literal literalObject : clause.literals) {literals.addLiteral(literalObject);}
-        clauses.add(clause);}
+        clauses.add(clause);
+        return clause;}
 
 
 
@@ -263,7 +269,7 @@ public class Walker extends Solver {
      * If there are equally many positive and negative occurrences, the random number generator decides about the truth value.<br>
      * The global model is not yet taken into account.
      */
-    protected void initializeModel() {
+    void initializeModel() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             int posSize = literals.size(predicate);
             int negSize = literals.size(-predicate);
@@ -278,7 +284,7 @@ public class Walker extends Solver {
      * @param clause a clause.
      * @return true if the clause is true in the local (and global) model.
      */
-    protected boolean initializeLocalTruthForClause(Clause clause) {
+    boolean initializeLocalTruthForClause(Clause clause) {
         int trueLiterals = 0;
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
@@ -301,7 +307,7 @@ public class Walker extends Solver {
      *
      * @param clause the clause to be investigated.
      */
-    protected void initializeFlipScores(Clause clause) {
+    void initializeFlipScores(Clause clause) {
         int trueLiterals = clause.trueLiterals;
         int min = clause.min; int max = clause.max;
         if(clause.isLocallyTrue) {
@@ -348,7 +354,7 @@ public class Walker extends Solver {
     /** all predicates with positive score are collected in predicatesWithPositiveScore.
      * The predicates are not ordered according to the flip score.
      */
-    protected void initializePredicatesWithPositiveScores() {
+    void initializePredicatesWithPositiveScores() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             if(flipScores[predicate] > 0) predicatesWithPositiveScore.addToBack(predicate);}}
 
@@ -366,7 +372,7 @@ public class Walker extends Solver {
 
      * @throws Result the result of the search
      */
-    private void walk() throws Result {
+    void walk() throws Result {
         while(statistics.flips < maxFlips) {
             if(Thread.interrupted()) {
                 if(trueLiteralInterrupt) integrateGloballyTrueLiterals();
@@ -407,51 +413,17 @@ public class Walker extends Solver {
      */
     int selectPredicateInFalseClause(Clause clause) {
         if(clause.trueLiterals < clause.min) { // not enough true literals. A false literal must be flipped.
-            for(Literal literalObject : clause.literals) {if(!isLocallyTrue(literalObject.literal)) return literalObject.literal;}}
+            for(Literal literalObject : clause.literals) {
+                int literal = literalObject.literal;
+                if(flipScores[Math.abs(literal)] < trueLiteralScoreLimit) continue;
+                if(!isLocallyTrue(literal)) return literal;}}
         // too many true literals. A true literal must be flipped.
-        for(Literal literalObject : clause.literals) {if(isLocallyTrue(literalObject.literal)) return literalObject.literal;}
+        for(Literal literalObject : clause.literals) {
+            int literal = literalObject.literal;
+            if(flipScores[Math.abs(literal)] < trueLiteralScoreLimit) continue;
+            if(isLocallyTrue(literal)) return literal;}
         assert(false);
         return 0;}
-
-
-
-    void integrateEquivalences() throws Unsatisfiable{
-        IntArrayList equivalences = getEquivalences();
-        if(equivalences == null) return;
-        for(int i = 0; i < equivalences.size(); i += 2) {
-            int representative = equivalences.getInt(i);
-            int literal = equivalences.getInt(i+1);
-            if(localModel[literal] != localModel[representative]) flipPredicate(Math.abs(literal));
-            for(int sign = 1; sign >= -1; sign -= 2) {
-                replaceEquivalentLiterals(sign*representative,sign*literal);}}}
-
-    protected void replaceEquivalentLiterals(int representative, int literal) throws Unsatisfiable {
-        Literal literalObject = literals.getFirstLiteralObject(literal);
-        while(literalObject != null) {
-            Clause clause = literalObject.clause;
-            while(clause == null) {literalObject = literalObject.nextLiteral; clause = literalObject.clause;}
-            Literal representativeObject = clause.findLiteral(-representative);
-            if(representativeObject != null) {
-                if(clause.quantifier == Quantifier.OR) {
-                    removeClause(clause);
-                    literalObject = literalObject.nextLiteral;
-                    continue;}
-                else {
-                    if(clause.removeComplementaryLiterals()){
-                        literalObject.literal = representative;
-                        removeClause(clause);
-                        literalObject = literalObject.nextLiteral;
-                        continue;}}}
-            representativeObject = clause.findLiteral(representative);
-            if(representativeObject == null) {
-                literalObject.literal = representative;
-                literals.replaceLiteral(literalObject,literal);}
-            else {
-                representativeObject.multiplicity = Math.max(clause.min, representativeObject.multiplicity+literalObject.multiplicity);
-                clause.literals.remove(literalObject);
-                literals.removeLiteral(literalObject);}
-            literalObject = literalObject.nextLiteral;}}
-
 
 
 
@@ -584,6 +556,60 @@ public class Walker extends Solver {
         return literals;}
 
 
+    void integrateEquivalences() throws Unsatisfiable{
+        IntArrayList equivalences = getEquivalences();
+        if(equivalences == null) return;
+        for(int i = 0; i < equivalences.size(); i += 2) {
+            int representative = equivalences.getInt(i);
+            int literal = equivalences.getInt(i+1);
+            if(localModel[literal] != localModel[representative]) flipPredicate(Math.abs(literal));
+            for(int sign = 1; sign >= -1; sign -= 2) {
+                replaceEquivalentLiterals(sign*representative,sign*literal);}}}
+
+    /** replaces the literal by its representative in an equivalence class.
+     *
+     * @param representative the representative in an equivalence class.
+     * @param literal        the literal
+     * @throws Unsatisfiable if a contradiction is found.
+     */
+    void replaceEquivalentLiterals(int representative, int literal) throws Unsatisfiable {
+        int predicateLiteral = Math.abs(literal); int c = 0;
+        Literal literalObject = literals.getFirstLiteralObject(literal);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if(++c==10) System.exit(0);
+            if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
+            Literal representativeObject = clause.findLiteral(-representative);
+            if(representativeObject != null) {
+                if(clause.quantifier == Quantifier.OR) {
+                    removeClause(clause);
+                    literalObject = literalObject.nextLiteral;
+                    continue;}
+                else {
+                    literalObject.literal = representative;
+                    if(clause.removeComplementaryLiterals()){
+                        removeClause(clause);
+                        literalObject = literalObject.nextLiteral;
+                        continue;}}}
+            representativeObject = clause.findLiteral(representative);
+            if(representativeObject == null) {
+                Literal newLiteral = literalObject.clone(representative);
+                literals.removeLiteral(literalObject);
+                literals.addLiteral(newLiteral);
+                clause.replaceLiteral(literalObject,newLiteral);
+                int predicateRepresentative = Math.abs(representative);
+                flipScores[predicateRepresentative] += literalObject.flipScorePart;
+                updatePredicatesWithPositiveScore(predicateRepresentative);}
+            else {
+                representativeObject.multiplicity = Math.min(clause.min, representativeObject.multiplicity+literalObject.multiplicity);
+                clause.literals.remove(literalObject);
+                literals.removeLiteral(literalObject);}
+            literalObject = literalObject.nextLiteral;}
+        flipScores[predicateLiteral] = trueLiteralScore;
+        predicatesWithPositiveScore.remove(predicateLiteral);
+    }
+
+
 
     /** removes the clause from the clauses, the falseClauses list, the literals index and if necessary from predicatesWithPositiveScore.
      * The flip score is updated.<br>
@@ -593,7 +619,7 @@ public class Walker extends Solver {
      */
     protected void removeClause(Clause clause) {
         clauses.remove(clause);
-        if(!clause.isLocallyTrue) {falseClauseList.remove(clause);}
+        if(!clause.isLocallyTrue) {falseClauseList.remove(clause); --falseClauses;}
         for(Literal literalObject : clause.literals) {
             literals.removeLiteral(literalObject);
             int predicate = Math.abs(literalObject.literal);

@@ -126,6 +126,14 @@ public class Clause {
             if(literalObject.literal == literal) return literalObject;}
         return null;}
 
+    /** replaces the old literal by the new one.
+     *
+     * @param oldLiteral a literal in the clause.
+     * @param newLiteral a new literal.
+     */
+    void replaceLiteral(Literal oldLiteral, Literal newLiteral) {
+        for(int i = 0; i < literals.size(); ++i) {
+            if(literals.get(i) == oldLiteral) {literals.set(i,newLiteral); return;}}}
 
 
     /** removes complementary pairs from the clause.

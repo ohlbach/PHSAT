@@ -47,6 +47,7 @@ public class Literals {
      */
     public void addLiteral(Literal literalObject) {
         int literal = literalObject.literal;
+        literalObject.nextLiteral = null;
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
         Literal firstLiteral = literals[predicate];
@@ -67,6 +68,7 @@ public class Literals {
         literalObject.clause = null;
         Literal previousLiteral = literalObject.previousLiteral;
         Literal nextLiteral     = literalObject.nextLiteral;
+        literalObject.previousLiteral = null;
         int literal = literalObject.literal;
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
@@ -74,12 +76,18 @@ public class Literals {
         if(previousLiteral == null) { // front literal
             literals[predicate] = nextLiteral;
             if(nextLiteral != null) nextLiteral.previousLiteral = null;
+            else literalObject.nextLiteral = null;
             return literals[predicate] == null;}
-        else previousLiteral.nextLiteral = nextLiteral;
 
-        if(nextLiteral != null)  nextLiteral.previousLiteral = previousLiteral;
+        if(nextLiteral == null) {  // last literal
+            previousLiteral.nextLiteral = null;
+            literalObject.nextLiteral = null;
+            return false;}
+
+        previousLiteral.nextLiteral = nextLiteral;
+        nextLiteral.previousLiteral = previousLiteral;
         literalObject.previousLiteral = null;
-        return literals[predicate] == null;}
+        return false;}
 
     /** updates the index position after a literalObject's literal has been changed.
      *

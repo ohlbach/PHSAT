@@ -31,6 +31,17 @@ public class Literal {
         this.literal = literal;
         this.multiplicity = multiplicity;}
 
+    /** clones the literal, except previousLiteral and nextLiteral.
+     *
+     * @param literal a new literal.
+     * @return the cloned literal.
+     */
+    public Literal clone(int literal) {
+        Literal newLiteral = new Literal(literal,multiplicity);
+        newLiteral.clause = clause;
+        newLiteral.flipScorePart = flipScorePart;
+        return newLiteral;}
+
     /** turns the list of literals into a string of literal names or numbers.
      *
      * @param literals    a list of literals.
