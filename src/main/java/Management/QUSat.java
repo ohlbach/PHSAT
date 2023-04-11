@@ -51,7 +51,8 @@ public class QUSat {
             "global\n" +
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
-                    "monitor = life";
+                    "monitor = life\n"+
+           "solver walker";
 
     /*private static final String parameters =
             "problem cnfreader\n"+
@@ -68,7 +69,7 @@ public class QUSat {
      * In this case the first line must either be a help command or a jobname.<br>
      * If the first argument is 'help' then help-strings are printed
      * - help global:           prints the global help strings<br>
-     * - help initialize:       prints the initializer help strings<br>
+     * - help installCommunication:       prints the initializer help strings<br>
      * - help [generator name]: prints the help strings of the generator<br>
      * - help [solver name]:    prints the help strings of the solver<br>
      * - help:                  prints all help strings.
@@ -87,7 +88,7 @@ public class QUSat {
      */
     public static void  main(String[] args)  {
         System.out.println(new Date());
-        //args = new String[]{"help","global"};
+        //args = new String[]{"help","walker"};
         args = new String[]{"string"};
         if(args.length == 0) {help(args); return;}
         KVParser kvParser = new KVParser("global", "problem", "solver");
@@ -119,6 +120,7 @@ public class QUSat {
         helpers.put("random",     ProblemGenerators.RandomClauseSetGenerator::help);
         helpers.put("pigeonhole", ProblemGenerators.PigeonHoleGenerator::help);
         helpers.put("string",     ProblemGenerators.StringClauseSetGenerator::help);
+        helpers.put("walker",     Solvers.Walker.Walker::help);
     }
     /** for displaying the helpers */
     private static final String helperKeys = "parameters, global, generator (cnfreader, random, pigeonhole, string) ";

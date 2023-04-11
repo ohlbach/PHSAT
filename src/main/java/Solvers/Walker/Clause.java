@@ -9,6 +9,7 @@ import Solvers.Simplifier.UnsatClause;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.Consumer;
 
 /** A Clause object is essentially a collection of Literal objects.
  * The clauses are represented in interval-normalform [min,max].
@@ -145,10 +146,11 @@ public class Clause {
      *
      * @param problemId the problem's identifier.
      * @param solverId the solver's identifier.
+     * @param literalRemover null or a consumer for literalObjects.
      * @return true if the clause became a true clause.
      * @throws UnsatClause if the clause is unsatisfiable.
      */
-    boolean removeComplementaryLiterals(String problemId, String solverId) throws Unsatisfiable {
+    boolean removeComplementaryLiterals(String problemId, String solverId, Consumer<Literal> literalRemover) throws Unsatisfiable {
         for(int i = 0; i < literals.size()-1; ++i) {
             Literal literalObject1 = literals.get(i);
             int literal1 = literalObject1.literal;
@@ -163,6 +165,7 @@ public class Clause {
                         literals.remove(j);
                         literals.remove(i--);
                         expandedSize -= multiplicity1;
+                        if(literalRemover != null) {literalRemover.accept(literalObject1);literalRemover.accept(literalObject2);}
                         break;}
                     if(multiplicity1 > multiplicity2) {
                         min -= multiplicity2;
@@ -170,12 +173,14 @@ public class Clause {
                         literalObject1.multiplicity -= multiplicity2;
                         literals.remove(j);
                         expandedSize -= multiplicity2;
+                        if(literalRemover != null) {literalRemover.accept(literalObject2);}
                         break;}
                     min -= multiplicity1; // multiplicity1 < multiplicity2
                     max -= multiplicity1;
                     literalObject2.multiplicity -= multiplicity1;
                     literals.remove(i--);
                     expandedSize -= multiplicity1;
+                    if(literalRemover != null) {literalRemover.accept(literalObject1);}
                     break;}}}
         if(literals.isEmpty() || (min <= 0 && max >= expandedSize)) return true;
         if(max < 0) throw new UnsatClause(problemId,solverId,inputClause);

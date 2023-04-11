@@ -569,7 +569,7 @@ public class WalkerTest extends TestCase {
         assertEquals("", walker.toString("falseClauses"));
         assertEquals(0, walker.falseClauses);
         assertEquals("Positive Literals:\n" +
-                "1:1,3:1,4:1,\n" +
+                "3:1,4:1,\n" +
                 "Negative Literals:\n" +
                 "-1:1,",walker.toString("literals"));
 

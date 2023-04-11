@@ -107,7 +107,7 @@ public class Clauses {
         StringBuilder st = new StringBuilder();
         Clause clause = firstClause;
         while(clause != null) {
-            st.append(clause.toString(symboltable,0)).append("\n");
+            st.append(clause.toString(symboltable,5)).append("\n");
             clause = clause.nextClause;}
         return st.toString();}
     

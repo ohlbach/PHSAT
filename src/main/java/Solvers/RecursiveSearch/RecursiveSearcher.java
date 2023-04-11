@@ -65,7 +65,7 @@ public class RecursiveSearcher  extends Solver {
             list.add(map);}
         return list;}
 
-    public void initialize() {}
+    public void installCommunication(ProblemSupervisor problemSupervisor) {}
 
     /** constructs a new Walker solver.
      *
@@ -75,7 +75,7 @@ public class RecursiveSearcher  extends Solver {
      */
     public RecursiveSearcher(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
         super(solverNumber,solverParameters);
-        super.readModel();
+        super.initialize(problemSupervisor);
         posOccurrences = new ArrayList[predicates+1];
         negOccurrences = new ArrayList[predicates+1];
         blockedPredicates = new boolean[predicates+1];

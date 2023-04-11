@@ -148,6 +148,12 @@ public class Simplifier extends Solver {
             case ProcessBinaryTriggeredMerging: return 2*predicates + 103;}
         return 0;}
 
+    /** Installs the observer in the model.
+     */
+    @Override
+    public void installCommunication(ProblemSupervisor problemSupervisor) {
+        problemSupervisor.model.addObserver(this::addTrueLiteralTask);}
+
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
      */
@@ -247,14 +253,14 @@ public class Simplifier extends Solver {
         return true;}
 
     /** Installs the observer in the model.*/
-    public void initialize() {
+    public void installCommunication() {
         model.addObserver(this::addTrueLiteralTask);
         equivalenceClasses.addObserver(this::addEquivalenceTask);}
 
     /** adds the literals which are already true in the model to the task queue.
      * Installs the observer in the model.
      */
-    public void readModel() {
+    public void initialize() {
         for(int literal: model.model) {
             addTrueLiteralTask(literal,model.getInferenceStep(literal));}
         model.addObserver(this::addTrueLiteralTask);}

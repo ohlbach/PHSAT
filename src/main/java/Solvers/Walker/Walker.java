@@ -100,10 +100,11 @@ public class Walker extends Solver {
      * @return a help text.
      * */
     public static String help() {
-        return "Random Walker: parameters:\n" +
-                "seeds:  for the random number generator      (default: 0)\n" +
-                "flips:  for restricting the number of flips  (default: Max_Integer).\n" +
-                "jumps:  frequency of random jumps            (default: 10)\n";}
+        return "Solver Random Walker: modifies a candidate model until a real model is found.\n"+
+                "parameters:\n" +
+                "  seeds:  for the random number generator      (default: 0)\n" +
+                "  flips:  for restricting the number of flips  (default: Max_Integer).\n" +
+                "  jumps:  frequency of random jumps            (default: 10)\n";}
 
     /** contains the allowed keys in the specification. */
     private static final HashSet<String> keys = new HashSet<>();
@@ -154,13 +155,13 @@ public class Walker extends Solver {
     /** constructs a new Walker.
      *
      * @param solverNumber  for enumerating the walkers.
-     * @param parameters    which specified the walker (for documentation only).
+     * @param solverParameters which specified the walker (for documentation only).
      * @param seed          for starting the random number generator.
      * @param maxFlips      the maximum number of allowed flips.
      * @param jumpFrequency the frequency of random flips.
      */
-    public Walker(int solverNumber, HashMap<String,Object> parameters, int seed, int maxFlips, int jumpFrequency) {
-        super(solverNumber,parameters);
+    public Walker(int solverNumber, HashMap<String,Object> solverParameters, int seed, int maxFlips, int jumpFrequency) {
+        super(solverNumber,solverParameters);
         this.seed = seed;
         this.maxFlips = maxFlips;
         this.jumpFrequency = jumpFrequency;
@@ -169,9 +170,9 @@ public class Walker extends Solver {
     /** adds observers to the model and the equivalenceClasses.
      */
     @Override
-    public void initialize() {
-        model.addObserver(this::addGloballyTrueLiteral);
-        equivalenceClasses.addObserver((this::addEquivalence));}
+    public void installCommunication(ProblemSupervisor problemSupervisor) {
+        problemSupervisor.model.addObserver(this::addGloballyTrueLiteral);
+        problemSupervisor.equivalenceClasses.addObserver((this::addEquivalence));}
 
     /** starts the search for a model.
      *
@@ -180,20 +181,9 @@ public class Walker extends Solver {
      */
     @Override
     public Result solveProblem(ProblemSupervisor problemSupervisor) {
-        this.problemSupervisor = problemSupervisor;
+        initialize(problemSupervisor);
         long startTime     = System.nanoTime();
         myThread           = Thread.currentThread();
-        solverId           = (String)solverParameters.get("name");
-        problemId          = problemSupervisor.problemId;
-        combinedId         = problemId+"@"+solverId + ":" + solverNumber;
-        globalParameters   = problemSupervisor.globalParameters;
-        inputClauses       = problemSupervisor.inputClauses;
-        predicates         = inputClauses.predicates;
-        symboltable        = inputClauses.symboltable;
-        monitor            = problemSupervisor.monitor;
-        monitoring         = monitor != null; //&& monitor.monitoring;
-        model              = problemSupervisor.model;
-        equivalenceClasses = problemSupervisor.equivalenceClasses;
         localModel         = new boolean[predicates+1];
         random             = new Random(seed);
         statistics         = new Statistics(combinedId);
@@ -252,7 +242,7 @@ public class Walker extends Solver {
      */
     Clause insertClause(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause);
-        if(clause.removeComplementaryLiterals(problemId,solverId)) return null;
+        if(clause.removeComplementaryLiterals(problemId,solverId,null)) return null;
         if(clause.quantifier == Quantifier.AND) {
             for(Literal literalObject : clause.literals) {
                 model.add(literalObject.literal,clause.inferenceStep);}
@@ -390,7 +380,6 @@ public class Walker extends Solver {
                         globalParameters.logstream.println("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
                         break;}}}
             int predicate = selectFlipPredicate();
-            if(monitoring) monitor.println(monitorId,"Flip " + predicate);
             flipPredicate(predicate);
             if(falseClauses == 0) {throw localToGlobalModel();}}
         throw new Aborted(problemId,solverId,"Walker aborted after " + statistics.flips + " flips");}
@@ -426,12 +415,12 @@ public class Walker extends Solver {
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
                 if(flipScores[Math.abs(literal)] < trueLiteralScoreLimit) continue;
-                if(!isLocallyTrue(literal)) return literal;}}
+                if(!isLocallyTrue(literal)) return Math.abs(literal);}}
         // too many true literals. A true literal must be flipped.
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
             if(flipScores[Math.abs(literal)] < trueLiteralScoreLimit) continue;
-            if(isLocallyTrue(literal)) return literal;}
+            if(isLocallyTrue(literal)) return Math.abs(literal);}
         assert(false);
         return 0;}
 
@@ -444,11 +433,13 @@ public class Walker extends Solver {
      * @param predicate to be flipped
      */
     void flipPredicate(int predicate) {
+        assert(predicate > 0);
         if(monitoring) monitor.println(monitorId,
                 "Flipping predicate " + Symboltable.toString(predicate,symboltable) +
                         " with flip score " + flipScores[predicate] +
                         " for " + falseClauses + " false clauses.",
-                "False clauses:", toString("falseClauses",symboltable));
+                "True Predicates: " + toString("model"),
+                "False clauses:   \n"+ toString("falseClauses",symboltable));
         ++statistics.flips;
         localModel[predicate] = !localModel[predicate];
         updateFlipScores(predicate);}
@@ -626,24 +617,30 @@ public class Walker extends Solver {
                     continue;}
                 else {
                     for(Literal litObject : clause.literals) {
-                        flipScores[Math.abs(litObject.literal)] -= litObject.flipScorePart;
+                        int pred = Math.abs(litObject.literal);
+                        flipScores[pred] -= litObject.flipScorePart;
+                        updatePredicatesWithPositiveScore(pred);
                         litObject.flipScorePart = 0;}
                     literals.removeLiteral(literalObject);
                     Literal newLiteral = literalObject.clone(representative);
                     clause.replaceLiteral(literalObject,newLiteral);
                     literals.addLiteral(newLiteral);
-                    if(clause.removeComplementaryLiterals(problemId,solverId)) removeClause(clause);
+
+                    if(clause.removeComplementaryLiterals(problemId,solverId,((Literal litObject) -> literals.removeLiteral(litObject))))
+                        removeClause(clause);
                     else {
                         initializeFlipScores(clause);
                         int trueLiterals = 0;
                         for(Literal litObject : clause.literals) {
-                            if(isLocallyTrue(litObject.literal)) trueLiterals += litObject.multiplicity;}
+                            if(isLocallyTrue(litObject.literal)) trueLiterals += litObject.multiplicity;
+                            updatePredicatesWithPositiveScore(Math.abs(litObject.literal));}
                         clause.trueLiterals = trueLiterals;
                         clause.isLocallyTrue = clause.min <= trueLiterals && trueLiterals <= clause.max;}
+
                     literalObject = literalObject.nextLiteral;
                     continue;}}
             representativeObject = clause.findLiteral(representative);
-            if(representativeObject == null) {
+            if(representativeObject == null) {  // just replace literal by the representative.
                 Literal newLiteral = literalObject.clone(representative);
                 literals.removeLiteral(literalObject);
                 literals.addLiteral(newLiteral);

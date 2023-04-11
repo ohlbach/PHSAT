@@ -15,6 +15,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 
 
@@ -106,6 +107,9 @@ public class EquivalenceClasses extends Solver {
      * @param monitor            null or a monitor.
      */
     public EquivalenceClasses(ProblemSupervisor problemSupervisor, Monitor monitor) {
+        solverParameters = new HashMap<>();
+        solverParameters.put("name","EquivalenceClasses");
+        solverNumber = 1;
         this.problemSupervisor = problemSupervisor;
         this.monitor = monitor;
         if(problemSupervisor != null) {
@@ -152,7 +156,7 @@ public class EquivalenceClasses extends Solver {
                         equivalenceClasses.add(ec);
                         break;}}}
             statistics.inputClasses = equivalenceClasses.size();
-            readModel();}
+            initialize(problemSupervisor);}
         catch(Unsatisfiable unsatifiable) {
             unsatifiable.solverId = "EquivalenceClasses";
             unsatifiable.problemId   = problemId;
@@ -171,8 +175,8 @@ public class EquivalenceClasses extends Solver {
     /** Installs the observer in the model.
      */
     @Override
-    public void initialize() {
-        model.addObserver(this::addTrueLiteralTask);}
+    public void installCommunication(ProblemSupervisor problemSupervisor) {
+        problemSupervisor.model.addObserver(this::addTrueLiteralTask);}
 
 
     @Override

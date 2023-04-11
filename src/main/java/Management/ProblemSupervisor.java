@@ -91,7 +91,7 @@ public class ProblemSupervisor {
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];
             results = new Result[numberOfSolvers];
-            for(int i = 0; i < numberOfSolvers; ++i) solvers.get(i).initialize();
+            for(int i = 0; i < numberOfSolvers; ++i) solvers.get(i).installCommunication(this);
             for(int i = 0; i < numberOfSolvers; ++i) {
                 int j = i;
                 threads[i] = new Thread(() -> {
