@@ -143,10 +143,12 @@ public class Clause {
      * Example: [0,2] p,-p,q,-q,r,-r -> unsatisfiable <br>
      * Example: [0,2] p,-p,q,-q,r,s -> -r&amp;-s <br>
      *
+     * @param problemId the problem's identifier.
+     * @param solverId the solver's identifier.
      * @return true if the clause became a true clause.
      * @throws UnsatClause if the clause is unsatisfiable.
      */
-    boolean removeComplementaryLiterals() throws Unsatisfiable {
+    boolean removeComplementaryLiterals(String problemId, String solverId) throws Unsatisfiable {
         for(int i = 0; i < literals.size()-1; ++i) {
             Literal literalObject1 = literals.get(i);
             int literal1 = literalObject1.literal;
@@ -176,7 +178,7 @@ public class Clause {
                     expandedSize -= multiplicity1;
                     break;}}}
         if(literals.isEmpty() || (min <= 0 && max >= expandedSize)) return true;
-        if(max < 0) throw new UnsatClause("","",inputClause);
+        if(max < 0) throw new UnsatClause(problemId,solverId,inputClause);
         if(max == 0) {
             for(Literal literalObject : literals) {literalObject.literal *= -1; literalObject.multiplicity = 1;}
             min = 0; max = literals.size();

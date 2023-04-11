@@ -23,4 +23,8 @@ public class Statistics extends Statistic {
     @Description("Imported true literals")
     int importedTrueLiterals = 0;
 
+    @Description("Imported equivalences")
+    int importedEquivalentLiterals = 0;
+
+
 }

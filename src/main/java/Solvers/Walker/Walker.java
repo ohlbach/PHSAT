@@ -19,6 +19,13 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
 
+/** This is a "random walker" for finding a model for QuSat-clauses.
+ * <br>
+ * All clauses are put into interval-normalform.
+ * An initial candidate model is created by comparing the positive and negative occurrences of literals.<br>
+ * If the numbers are the same then a random number generator is used for constructing the initial model.<br>
+ * The truth values are then heuristically flipped until there are no false clauses anymore.
+ */
 public class Walker extends Solver {
 
     // Control Parameters
@@ -79,7 +86,7 @@ public class Walker extends Solver {
     Random random;
 
     /** a tiny flip score for globally true predicates. They should never be flipped again.*/
-    private static float trueLiteralScore = (float)(Integer.MIN_VALUE/2);
+    private static final float trueLiteralScore = (float)(Integer.MIN_VALUE/2);
 
     /** flip scores of globally true literals should not be larger than this. */
     private static float trueLiteralScoreLimit = trueLiteralScore/(float)10.;
@@ -89,7 +96,9 @@ public class Walker extends Solver {
     Thread myThread;
 
 
-    /** provides a help text about the parameters of the solver. */
+    /** provides a help text about the parameters of the solver.
+     * @return a help text.
+     * */
     public static String help() {
         return "Random Walker: parameters:\n" +
                 "seeds:  for the random number generator      (default: 0)\n" +
@@ -243,7 +252,7 @@ public class Walker extends Solver {
      */
     Clause insertClause(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause);
-        if(clause.removeComplementaryLiterals()) return null;
+        if(clause.removeComplementaryLiterals(problemId,solverId)) return null;
         if(clause.quantifier == Quantifier.AND) {
             for(Literal literalObject : clause.literals) {
                 model.add(literalObject.literal,clause.inferenceStep);}
@@ -384,7 +393,7 @@ public class Walker extends Solver {
             if(monitoring) monitor.println(monitorId,"Flip " + predicate);
             flipPredicate(predicate);
             if(falseClauses == 0) {throw localToGlobalModel();}}
-        throw new Aborted(null,solverId,"Walker aborted after " + statistics.flips + " flips");}
+        throw new Aborted(problemId,solverId,"Walker aborted after " + statistics.flips + " flips");}
 
 
     /** selects a predicate to be flipped.
@@ -409,6 +418,7 @@ public class Walker extends Solver {
      * If there are not enough true literals then the first false clause is chosen to be flipped.<br>
      * If there are too many true literals then the first true clause is chosen to be flipped.<br>
      *
+     * @param clause a false clause.
      * @return the predicate to be flipped.
      */
     int selectPredicateInFalseClause(Clause clause) {
@@ -434,6 +444,11 @@ public class Walker extends Solver {
      * @param predicate to be flipped
      */
     void flipPredicate(int predicate) {
+        if(monitoring) monitor.println(monitorId,
+                "Flipping predicate " + Symboltable.toString(predicate,symboltable) +
+                        " with flip score " + flipScores[predicate] +
+                        " for " + falseClauses + " false clauses.",
+                "False clauses:", toString("falseClauses",symboltable));
         ++statistics.flips;
         localModel[predicate] = !localModel[predicate];
         updateFlipScores(predicate);}
@@ -492,13 +507,13 @@ public class Walker extends Solver {
 
     /** turns the local model into a new model and returns Satisfiable as result
      *
-     * @throws Satisfiable with the transferred local model.
+     * @return  Satisfiable with the transferred local model.
      */
-    Satisfiable localToGlobalModel()  throws Satisfiable {
+    Satisfiable localToGlobalModel() {
         Model model = new Model(predicates);
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             model.addImmediately(localModel[predicate] ? predicate : -predicate);}
-        throw new Satisfiable(null,null,model);}
+        return new Satisfiable(problemId,solverId,model);}
 
 
 
@@ -516,6 +531,8 @@ public class Walker extends Solver {
      */
     void integrateGloballyTrueLiterals() {
         for(int literal : getGloballyTrueLiterals()) {
+            if(monitoring) monitor.println(monitorId,"Integrating true literal " + Symboltable.toString(literal,symboltable));
+            ++statistics.importedTrueLiterals;
             int predicate = Math.abs(literal);
             flipScores[predicate] = trueLiteralScore;
             predicatesWithPositiveScore.remove(predicate);
@@ -535,6 +552,11 @@ public class Walker extends Solver {
         myThread.interrupt();
     }
 
+    /** copies the imported globally true literals.
+     *  globallyTrueLiterals is cleared.
+     *
+     * @return a copy of the globally true literals.
+     */
     synchronized IntArrayList getGloballyTrueLiterals() {
         if(globallyTrueLiterals.isEmpty()) return null;
         IntArrayList literals = globallyTrueLiterals.clone();
@@ -543,11 +565,22 @@ public class Walker extends Solver {
         return literals;}
 
 
+    /** adds a new equivalence between literals (called by the observer),
+     *
+     * @param representative the representative of the equivalence.
+     * @param literal the corresponding literal
+     * @param step is ignored.
+     */
     public synchronized void addEquivalence(int representative, int literal, InferenceStep step) {
         equivalentLiterals.add(representative); equivalentLiterals.add(literal);
         equivalenceInterrupt = true;
         myThread.interrupt();}
 
+    /** copies the imported equivalences.
+     *  equivalentLiterals is cleared.
+     *
+     * @return a copy of the imported equivalences.
+     */
     private synchronized IntArrayList getEquivalences() {
         if(equivalentLiterals.isEmpty()) return null;
         IntArrayList literals = equivalentLiterals.clone();
@@ -556,12 +589,19 @@ public class Walker extends Solver {
         return literals;}
 
 
+    /** replaces for each equivalence of literals the literal by its representative.
+     *
+     * @throws Unsatisfiable if a contradiction is found.
+     */
     void integrateEquivalences() throws Unsatisfiable{
         IntArrayList equivalences = getEquivalences();
         if(equivalences == null) return;
         for(int i = 0; i < equivalences.size(); i += 2) {
             int representative = equivalences.getInt(i);
             int literal = equivalences.getInt(i+1);
+            if(monitoring) monitor.println(monitorId,"Integrating equivalence " +
+                    Symboltable.toString(literal,symboltable) + " -> " + Symboltable.toString(representative,symboltable));
+            ++statistics.importedEquivalentLiterals;
             if(localModel[literal] != localModel[representative]) flipPredicate(Math.abs(literal));
             for(int sign = 1; sign >= -1; sign -= 2) {
                 replaceEquivalentLiterals(sign*representative,sign*literal);}}}
@@ -573,24 +613,35 @@ public class Walker extends Solver {
      * @throws Unsatisfiable if a contradiction is found.
      */
     void replaceEquivalentLiterals(int representative, int literal) throws Unsatisfiable {
-        int predicateLiteral = Math.abs(literal); int c = 0;
+        int predicateLiteral = Math.abs(literal);
         Literal literalObject = literals.getFirstLiteralObject(literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
-            if(++c==10) System.exit(0);
             if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
             Literal representativeObject = clause.findLiteral(-representative);
-            if(representativeObject != null) {
+            if(representativeObject != null) {  // example: atmost 3 -p^2,q,r,s  p == q -> atmost 3 -p^2,p,r,s -> atmost 2 -p,r,s
                 if(clause.quantifier == Quantifier.OR) {
-                    removeClause(clause);
+                    removeClause(clause); // tautology
                     literalObject = literalObject.nextLiteral;
                     continue;}
                 else {
-                    literalObject.literal = representative;
-                    if(clause.removeComplementaryLiterals()){
-                        removeClause(clause);
-                        literalObject = literalObject.nextLiteral;
-                        continue;}}}
+                    for(Literal litObject : clause.literals) {
+                        flipScores[Math.abs(litObject.literal)] -= litObject.flipScorePart;
+                        litObject.flipScorePart = 0;}
+                    literals.removeLiteral(literalObject);
+                    Literal newLiteral = literalObject.clone(representative);
+                    clause.replaceLiteral(literalObject,newLiteral);
+                    literals.addLiteral(newLiteral);
+                    if(clause.removeComplementaryLiterals(problemId,solverId)) removeClause(clause);
+                    else {
+                        initializeFlipScores(clause);
+                        int trueLiterals = 0;
+                        for(Literal litObject : clause.literals) {
+                            if(isLocallyTrue(litObject.literal)) trueLiterals += litObject.multiplicity;}
+                        clause.trueLiterals = trueLiterals;
+                        clause.isLocallyTrue = clause.min <= trueLiterals && trueLiterals <= clause.max;}
+                    literalObject = literalObject.nextLiteral;
+                    continue;}}
             representativeObject = clause.findLiteral(representative);
             if(representativeObject == null) {
                 Literal newLiteral = literalObject.clone(representative);
@@ -600,16 +651,22 @@ public class Walker extends Solver {
                 int predicateRepresentative = Math.abs(representative);
                 flipScores[predicateRepresentative] += literalObject.flipScorePart;
                 updatePredicatesWithPositiveScore(predicateRepresentative);}
-            else {
-                representativeObject.multiplicity = Math.min(clause.min, representativeObject.multiplicity+literalObject.multiplicity);
+            else {  // p,q,r and p = q -> p^2,r
+                for(Literal litObject : clause.literals) {
+                    flipScores[Math.abs(litObject.literal)] -= litObject.flipScorePart;
+                    litObject.flipScorePart = 0;}
+                representativeObject.multiplicity = representativeObject.multiplicity+literalObject.multiplicity;
                 clause.literals.remove(literalObject);
-                literals.removeLiteral(literalObject);}
+                literals.removeLiteral(literalObject);
+                clause.reduceMultiplicities();
+                initializeFlipScores(clause);
+                for(Literal litObject : clause.literals) {
+                    updatePredicatesWithPositiveScore(Math.abs(litObject.literal));}}
+
             literalObject = literalObject.nextLiteral;}
         flipScores[predicateLiteral] = trueLiteralScore;
         predicatesWithPositiveScore.remove(predicateLiteral);
     }
-
-
 
     /** removes the clause from the clauses, the falseClauses list, the literals index and if necessary from predicatesWithPositiveScore.
      * The flip score is updated.<br>
@@ -627,6 +684,10 @@ public class Walker extends Solver {
             flipScores[predicate] -= literalObject.flipScorePart;
             if(score > 0 && flipScores[predicate] <= 0) predicatesWithPositiveScore.remove(predicate);}}
 
+    /** returns the statistics
+     *
+     * @return the statistics
+     */
     @Override
     public Statistic getStatistics() {
         return statistics;}
@@ -644,6 +705,7 @@ public class Walker extends Solver {
 
     /** collects the predicates with flipScore != 0 in a string.
      *
+     * @param symboltable null or a symboltable.
      * @return the predicates with flipScore != 0 in a string.
      */
     public String flipScoresToString(Symboltable symboltable) {
@@ -653,9 +715,20 @@ public class Walker extends Solver {
                     append(":").append(flipScores[predicate]).append(",");}
         return st.toString();}
 
+    /** turns different aspects into a string.
+     *
+     * @param version      clauses,falseClauses,literals,predicates,flipscores,model,statistic.
+     * @return             different aspects as a string.
+     */
     public String toString(String version) {
         return toString(version,null);}
 
+    /** turns different aspects into a string.
+     *
+     * @param version      clauses,falseClauses,literals,predicates,flipscores,model,statistic.
+     * @param symboltable  null or a symboltable.
+     * @return             different aspects as a string.
+     */
     public String toString(String version, Symboltable symboltable) {
         switch(version) {
             case "clauses":      return clausesToString(symboltable);
@@ -666,25 +739,28 @@ public class Walker extends Solver {
             case "model":        return localModelToString(symboltable);
             case "statistic":    return statistics.toString();
         }
-        return "Versions: clauses,literals,predicates,flipscores,model,statistic";
+        return "Versions: clauses,falseClauses,literals,predicates,flipscores,model,statistic";
     }
 
-
-    public String toString(Symboltable symboltable) {
+    /** turns parameters into a string.
+     *
+     * @return the parameters as a string.
+     */
+    public String toString() {
         StringBuilder st = new StringBuilder();
         st.append("Random Walker ").append(solverId).append( " on Problem ").append(problemId).append("\n");
         st.append("Parameters:\n");
-        st.append("  seed:           ").append(seed).append("\n");
-        st.append("  flips:          ").append(statistics.flips).append(" of ").append(maxFlips).append("\n");
-        st.append("Current model: ").append(localModelToString(symboltable)).append("\n");
-      /*  st.append("False Clauses: " + falseClauses.size() + "\n");
-        for(Clause Clause : clauses) {
-            if(!Clause.isLocallyTrue) st.append(Clause.toString(idWidth+2,symboltable)).append("\n");}
-        st.append(flipQueue.toString());*/
-    return st.toString();
+        st.append("  seed:  ").append(seed).append("\n");
+        st.append("  flips: ").append(statistics.flips).append(" of ").append(maxFlips).append("\n");
+        st.append("  jumps: ").append(jumpFrequency).append("\n");
+        return st.toString();
     }
 
-
+    /** collects the clauses as a string.
+     *
+     * @param symboltable null or a symboltable
+     * @return the clauses as a string.
+     */
     public String clausesToString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         for(Clause clause : clauses) {
