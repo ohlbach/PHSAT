@@ -172,7 +172,6 @@ public abstract class Solver {
      * @param solverParameters   the control parameters for the solver
      */
     public Solver(Integer solverNumber, HashMap<String,Object> solverParameters) {
-        System.out.println("SO " + solverParameters);
         this.solverNumber = solverNumber;
         this.solverParameters   = solverParameters;}
 
@@ -184,7 +183,7 @@ public abstract class Solver {
      */
     protected void initialize(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
-        solverId                   = (String)solverParameters.get("solver");
+        solverId                   = (String)solverParameters.get("name");
         problemId                  = problemSupervisor.problemId;
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
         globalParameters           = problemSupervisor.globalParameters;

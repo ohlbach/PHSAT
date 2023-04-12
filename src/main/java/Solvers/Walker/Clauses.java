@@ -61,6 +61,7 @@ public class Clauses {
         if(lastClause == firstClause) {lastClause = null; firstClause = null; return;}
         if(clause.previousClause == null) {
             firstClause = clause.nextClause;
+            firstClause.previousClause = null;
             return;}
         if(clause.nextClause == null) {
             lastClause = clause.previousClause;

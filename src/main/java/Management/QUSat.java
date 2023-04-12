@@ -46,13 +46,17 @@ public class QUSat {
    private static final String parameters =
             "problem random\n"+
                     "predicates = 10\n" +
-                    "cpRatio = 4\n"+
+                    "cpRatio = 5\n"+
                     "length = 2-3\n"+
+                    "seed = 2\n"+
             "global\n" +
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
                     "monitor = life\n"+
-           "solver walker";
+                    "solver simplifier";
+           /*"solver walker\n"+
+                    "flips = 40\n"+
+                    "jumps = 3\n"+*/ ;
 
     /*private static final String parameters =
             "problem cnfreader\n"+

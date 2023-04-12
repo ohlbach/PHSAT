@@ -52,8 +52,6 @@ public class Walker extends Solver {
     /** the list of false clauses. */
     Clauses falseClauseList = new Clauses();
 
-    /** the number of false clauses. */
-    int falseClauses = 0;
 
     /** an index for all literal occurrences in the clauses. */
     Literals literals;
@@ -199,10 +197,12 @@ public class Walker extends Solver {
             for(Clause clause : clauses) {
                 initializeLocalTruthForClause(clause);
                 initializeFlipScores(clause);}
+            if(falseClauseList.size == 0) {throw localToGlobalModel();}
             initializePredicatesWithPositiveScores();
             walk();}
         catch(Result result) {
             statistics.elapsedTime = System.nanoTime() - startTime;
+            System.out.println("RESULT " + result);
             return result;}
         statistics.elapsedTime = System.nanoTime() - startTime;
         return null;
@@ -294,7 +294,7 @@ public class Walker extends Solver {
         clause.trueLiterals = trueLiterals;
         boolean isTrue = clause.min <= trueLiterals && trueLiterals <= clause.max;
         clause.isLocallyTrue = isTrue;
-        if(!isTrue) {falseClauseList.addToBack(clause); ++falseClauses;}
+        if(!isTrue) falseClauseList.addToBack(clause);
         return isTrue;}
 
 
@@ -381,7 +381,7 @@ public class Walker extends Solver {
                         break;}}}
             int predicate = selectFlipPredicate();
             flipPredicate(predicate);
-            if(falseClauses == 0) {throw localToGlobalModel();}}
+            if(falseClauseList.size == 0) {throw localToGlobalModel();}}
         throw new Aborted(problemId,solverId,"Walker aborted after " + statistics.flips + " flips");}
 
 
@@ -397,7 +397,7 @@ public class Walker extends Solver {
     int selectFlipPredicate() {
         Predicate predicateObject = predicatesWithPositiveScore.firstPredicate;
         if(predicateObject != null) return predicateObject.predicate;
-        if(statistics.flips % jumpFrequency == 0) {
+        if(statistics.flips > 0 &&  statistics.flips % jumpFrequency == 0) {
             int n = random.nextInt(falseClauseList.size);
             Clause clause = falseClauseList.getClause(n);
             return selectPredicateInFalseClause(clause);}
@@ -434,12 +434,12 @@ public class Walker extends Solver {
      */
     void flipPredicate(int predicate) {
         assert(predicate > 0);
-        if(monitoring) monitor.println(monitorId,
-                "Flipping predicate " + Symboltable.toString(predicate,symboltable) +
+        if(monitoring) monitor.println(monitorId, statistics.flips + ". flip: predicate "+
+                        Symboltable.toString(predicate,symboltable) +
                         " with flip score " + flipScores[predicate] +
-                        " for " + falseClauses + " false clauses.",
-                "True Predicates: " + toString("model"),
-                "False clauses:   \n"+ toString("falseClauses",symboltable));
+                        " for " + falseClauseList.size + " false clauses.",
+                        "True Predicates: " + toString("model"),
+                        "False clauses:   \n"+ toString("falseClauses",symboltable));
         ++statistics.flips;
         localModel[predicate] = !localModel[predicate];
         updateFlipScores(predicate);}
@@ -477,8 +477,8 @@ public class Walker extends Solver {
         clause.isLocallyTrue = clause.min <= trueLiterals && trueLiterals <= clause.max;
         initializeFlipScores(clause);
         if(wasTrue) {
-             if(!clause.isLocallyTrue) {falseClauseList.addToBack(clause);++falseClauses;}}
-        else {if(clause.isLocallyTrue) {falseClauseList.remove(clause);--falseClauses;}}
+             if(!clause.isLocallyTrue) {falseClauseList.addToBack(clause);}}
+        else {if(clause.isLocallyTrue) {falseClauseList.remove(clause);}}
 
         for(Literal literalObject : clause.literals) {
             updatePredicatesWithPositiveScore(Math.abs(literalObject.literal));}}
@@ -673,7 +673,7 @@ public class Walker extends Solver {
      */
     protected void removeClause(Clause clause) {
         clauses.remove(clause);
-        if(!clause.isLocallyTrue) {falseClauseList.remove(clause); --falseClauses;}
+        if(!clause.isLocallyTrue) falseClauseList.remove(clause);
         for(Literal literalObject : clause.literals) {
             literals.removeLiteral(literalObject);
             int predicate = Math.abs(literalObject.literal);

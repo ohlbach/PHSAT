@@ -17,6 +17,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.IntSupplier;
 
@@ -50,7 +51,7 @@ public class Simplifier extends Solver {
     public final String solverId = "Simplifier";
 
     /** for distinguishing the monitoring areas */
-    private final String monitorId;
+    private String monitorId;
 
     /** the simplifier's statistics */
     protected SimplifierStatistics statistics;
@@ -65,32 +66,22 @@ public class Simplifier extends Solver {
     protected Clauses clauses;
 
     /** for generating an identifier for the new clauses. */
-    private final IntSupplier nextId;
+    private IntSupplier nextId;
 
     /** used in various algorithms. */
     private int timestamp = 1;
 
+    public static void makeSolvers(HashMap<String,String> parameters, ArrayList<Solver> solvers,
+                                   StringBuilder errors, StringBuilder warnings) {
+        solvers.add(new Simplifier());
+    }
 
     /** constructs a new Simplifier.
      * All internal data are taken form the supervisor.
      *
-     * @param problemSupervisor the corresponding problemSupervisor.
      */
-    public Simplifier(ProblemSupervisor problemSupervisor) {
-        model                  = problemSupervisor.model;
-        inputClauses           = problemSupervisor.inputClauses;
-        predicates             = inputClauses.predicates;
-        monitor                = problemSupervisor.monitor;
-        monitoring             = monitor != null;
-        monitorId              = "Simplifier";
-        problemId              = problemSupervisor.problemId;
-        equivalenceClasses     = problemSupervisor.equivalenceClasses;
-        literalIndexTwo        = new Literals(predicates);
-        literalIndexMore       = new Literals(predicates);
-        clauses                = new Clauses();
-        statistics             = new SimplifierStatistics(solverId);
-        trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
-        nextId                 = problemSupervisor::nextClauseId;
+    public Simplifier() {
+        super(1,null);
     }
 
     /** this is a constructor for testing purposes (without ProblemSupervisor)
@@ -326,8 +317,9 @@ public class Simplifier extends Solver {
         int counter = 0;
         while(!interrupted()) {
             try {
-                if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                //if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
+                if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
                 switch(task.taskType){
                     case ProcessTrueLiteral:       processTrueLiteral((Integer)task.a); break;
                     case ProcessEquivalence:       processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;
@@ -1317,6 +1309,20 @@ public class Simplifier extends Solver {
     @Override
     public Result solveProblem(ProblemSupervisor problemSupervisor) {
         long startTime = System.nanoTime();
+        model                  = problemSupervisor.model;
+        inputClauses           = problemSupervisor.inputClauses;
+        predicates             = inputClauses.predicates;
+        monitor                = problemSupervisor.monitor;
+        monitoring             = monitor != null;
+        monitorId              = "Simplifier";
+        problemId              = problemSupervisor.problemId;
+        equivalenceClasses     = problemSupervisor.equivalenceClasses;
+        literalIndexTwo        = new Literals(predicates);
+        literalIndexMore       = new Literals(predicates);
+        clauses                = new Clauses();
+        statistics             = new SimplifierStatistics(solverId);
+        trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
+        nextId                 = problemSupervisor::nextClauseId;
         try{
             readInputClauses();
             processTasks(0);}

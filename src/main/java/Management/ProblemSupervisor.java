@@ -61,6 +61,7 @@ public class ProblemSupervisor {
         trackReasoning        = globalParameters.trackReasoning;
         this.problemGenerator = problemGenerator;
         this.solvers          = solvers;
+        statistics            = new SupervisorStatistics("Supervisor");
     }
 
 
@@ -131,14 +132,6 @@ public class ProblemSupervisor {
         equivalenceThread.start();
     }
 
-    private void startSimplifier() throws Result {
-        System.out.println("ST Sm");
-        simplifier = new Simplifier(this);
-        simplifierThread = new Thread(() -> {
-            Result result = simplifier.solveProblem(this);
-            finished(result);});
-        simplifierThread.start();}
-
     /** This method is called by the solvers to indicate that they have done their job or gave up.
      * If the solver succeeded (satisfiable or unsatisfiable) then all other solvers are interrupted. <br>
      * Some messages are logged.
@@ -147,15 +140,14 @@ public class ProblemSupervisor {
      */
     public synchronized void finished(Result result) {
         if(result == null) return;
+        if(result instanceof Aborted)    {++statistics.aborted; return;}
+        if(result instanceof Erraneous ) {++statistics.erraneous; return;}
         if(result instanceof Satisfiable) checkModel((Satisfiable) result);
         this.result = result;
         globalParameters.logstream.println("Solver " + result.solverId + " finished  work at problem " + problemId);
         if(result.message != null && !result.message.isEmpty()) {globalParameters.logstream.println(result.message);}
         if(threads != null) {for(Thread thread : threads) {thread.interrupt();}}
-        if(simplifierThread != null) simplifierThread.interrupt();
-        equivalenceThread.interrupt();
-        if(result instanceof Aborted)    {++statistics.aborted;}
-        if(result instanceof Erraneous ) {++statistics.erraneous;}}
+        }
 
     /** checks the model against the input clauses.
      * If some clauses are false in this model, they are printed and the system exits.
