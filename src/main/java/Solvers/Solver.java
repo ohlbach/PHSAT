@@ -193,7 +193,6 @@ public abstract class Solver {
         monitor                    = problemSupervisor.monitor;
         monitoring                 = monitor != null;
         model                      = problemSupervisor.model;
-        equivalenceClasses         = problemSupervisor.equivalenceClasses;
         }
 
         public String getSolverId() {return solverId;}

@@ -1323,6 +1323,7 @@ public class Simplifier extends Solver {
         statistics             = new SimplifierStatistics(solverId);
         trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
         nextId                 = problemSupervisor::nextClauseId;
+        equivalenceClasses     = problemSupervisor.equivalenceClasses;
         try{
             readInputClauses();
             processTasks(0);}

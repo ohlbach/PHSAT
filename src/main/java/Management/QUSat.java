@@ -74,7 +74,6 @@ public class QUSat {
      * In this case the first line must either be a help command or a jobname.<br>
      * If the first argument is 'help' then help-strings are printed
      * - help global:           prints the global help strings<br>
-     * - help installCommunication:       prints the initializer help strings<br>
      * - help [generator name]: prints the help strings of the generator<br>
      * - help [solver name]:    prints the help strings of the solver<br>
      * - help:                  prints all help strings.

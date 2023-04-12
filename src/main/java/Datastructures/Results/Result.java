@@ -1,6 +1,7 @@
 package Datastructures.Results;
 
 import Datastructures.Statistics.Statistic;
+import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -83,4 +84,6 @@ public class Result extends Exception {
             for(int id : step.inputClauseIds()) {
                 if(!ids.contains(id)) ids.add(id);}}
         return sortIntArray(ids);}
+
+    public String toString(Symboltable symboltable) {return "";};
 }
