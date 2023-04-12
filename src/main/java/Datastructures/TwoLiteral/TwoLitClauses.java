@@ -143,7 +143,7 @@ public class TwoLitClauses {
                 if(monitoring && !clauses.isEmpty()) {monitor.print(monitorId,toString("",null));}}
             catch(InterruptedException ex) {return;}
             catch(Unsatisfiable unsatisfiable) {
-                problemSupervisor.announceResult(unsatisfiable,"TwoLitClauses");
+               // problemSupervisor.announceResult(unsatisfiable,"TwoLitClauses");
                 return;}}}
 
     /** puts a two-literal basicClause into the queue

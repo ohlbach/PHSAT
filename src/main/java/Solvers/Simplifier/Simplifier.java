@@ -318,6 +318,7 @@ public class Simplifier extends Solver {
                // if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
+                System.out.println(clauses.toString());
                 switch(task.taskType){
                     case ProcessTrueLiteral:       processTrueLiteral((Integer)task.a); break;
                     case ProcessEquivalence:       processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;
@@ -331,7 +332,7 @@ public class Simplifier extends Solver {
                         mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
                         mergeResolutionBinaryTriggered(clause, clause.literals.get(1),clause.literals.get(0));
                         break;}}
-                if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId,model);}
+                if(clauses.isEmpty()) {throw new Satisfiable(problemId,solverId,model);}}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
 
@@ -1327,7 +1328,7 @@ public class Simplifier extends Solver {
             processTasks(0);}
         catch(Result result) {
             result.statistic = statistics;
-            result.solverId = "EquivalenceClasses";
+            result.solverId = "Simplifier";
             result.problemId = problemId;
             result.startTime = startTime;
             return result;}

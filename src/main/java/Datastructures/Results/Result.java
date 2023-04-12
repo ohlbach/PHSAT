@@ -78,8 +78,9 @@ public class Result extends Exception {
     public IntArrayList inputClauseIds() {
         if(inferenceSteps.isEmpty()) return null;
         IntArrayList ids = new IntArrayList();
-        for(InferenceStep step : inferenceSteps())
+        for(InferenceStep step : inferenceSteps()){
+            //System.out.println("STEP " + step.getClass().getSimpleName());
             for(int id : step.inputClauseIds()) {
-                if(!ids.contains(id)) ids.add(id);}
+                if(!ids.contains(id)) ids.add(id);}}
         return sortIntArray(ids);}
 }

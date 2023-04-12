@@ -213,6 +213,7 @@ public class EquivalenceClasses extends Solver {
             try {
                 //if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
+                if(equivalenceClasses.isEmpty()) continue;
                 if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
                 switch(task.taskType){
                     case TRUELITERAL: processTrueLiteral((Integer)task.a,(InferenceStep)task.b); break;

@@ -25,11 +25,9 @@ public class ProblemSupervisor {
     public InputClauses inputClauses;
     public GlobalParameters globalParameters;
     public HashMap<String,Object> problemParameters;
-    public HashMap<String,Object> initializeParameters;
     public ArrayList<HashMap<String,Object>> solverParameters;
 
     public Result result = null;
-    private String solver = null;
     Thread[] threads;
     Result[] results;
     int numberOfSolvers;
@@ -37,11 +35,7 @@ public class ProblemSupervisor {
 
     public Model model;
     public EquivalenceClasses equivalenceClasses;
-    public Thread equivalenceThread;
-
     public Simplifier simplifier;
-    public Thread simplifierThread;
-
     private ArrayList<Solver> solvers;
 
     public SupervisorStatistics statistics = null;
@@ -65,7 +59,6 @@ public class ProblemSupervisor {
     }
 
 
-    int predicates;
     public int clauseCounter = 0;
 
     public synchronized int nextClauseId() {
@@ -147,7 +140,9 @@ public class ProblemSupervisor {
      */
     protected void checkModel(Satisfiable satisfiable) {
         ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(satisfiable.model);
-        if(!falseClauses.isEmpty()) {
+        if(falseClauses.isEmpty()) {
+            globalParameters.logstream.println("Problem " + problemId + ": model successfully checked.");}
+        else {
             System.out.println("Wrong model derived by " + satisfiable.solverId +
                     "for problem " + problemId + "\n  " +
                     model.toString() +
@@ -176,7 +171,5 @@ public class ProblemSupervisor {
         if(result == null) {out.println("   no result");}
         else {out.println("  "+result.toString());}}
 
-
-    public void announceResult(Result unsatisfiable,String source) {};
 
 }
