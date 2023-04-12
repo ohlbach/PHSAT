@@ -181,8 +181,7 @@ public class EquivalenceClasses extends Solver {
 
     @Override
     public Result solveProblem(ProblemSupervisor problemSupervisor) {
-        try{
-        processTasks(false);}
+        try{processTasks(false);}
         catch(Result result) {
             result.problemId = problemId;
             result.statistic = statistics;

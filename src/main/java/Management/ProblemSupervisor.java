@@ -88,7 +88,6 @@ public class ProblemSupervisor {
             model = new Model(inputClauses.predicates);
             equivalenceClasses = new EquivalenceClasses(this,monitor);
             solvers.add(equivalenceClasses);
-            startEquivalenceClasses();
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];
             results = new Result[numberOfSolvers];
@@ -123,14 +122,6 @@ public class ProblemSupervisor {
             for(int i = 2; i < inputClause.length; ++i) {
                 model.add(inputClause[i],trackReasoning ? new InfInputClause(inputClause[0]) : null);}}}
 
-    private void startEquivalenceClasses() throws Unsatisfiable{
-        equivalenceClasses = new EquivalenceClasses(this,monitor);
-        equivalenceClasses.readEquivalences(inputClauses.equivalences);
-        equivalenceThread = new Thread(()->{
-            Result result = equivalenceClasses.solveProblem(this);
-            finished(result);});
-        equivalenceThread.start();
-    }
 
     /** This method is called by the solvers to indicate that they have done their job or gave up.
      * If the solver succeeded (satisfiable or unsatisfiable) then all other solvers are interrupted. <br>

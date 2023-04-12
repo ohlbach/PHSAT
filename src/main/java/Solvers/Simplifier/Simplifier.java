@@ -291,7 +291,7 @@ public class Simplifier extends Solver {
      */
     public void addTrueLiteralTask(int literal, InferenceStep inferenceStep) {
         if(monitoring) {
-            monitor.print(monitorId,"In:   True literal " +
+            monitor.print(monitorId,"In: True literal " +
                     Symboltable.toString(literal,symboltable));}
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
 

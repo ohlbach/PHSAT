@@ -53,7 +53,8 @@ public class QUSat {
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
                     "monitor = life\n"+
-                    "solver simplifier";
+                    "solver simplifier\n"+
+                    "trackReasoning";
            /*"solver walker\n"+
                     "flips = 40\n"+
                     "jumps = 3\n"+*/ ;
