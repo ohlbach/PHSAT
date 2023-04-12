@@ -47,14 +47,14 @@ public class QUSat {
             "problem random\n"+
                     "predicates = 10\n" +
                     "cpRatio = 5\n"+
-                    "length = 2-3\n"+
-                    "seed = 2\n"+
+                    "length = 3\n"+
+                    "seed = 0\n"+
             "global\n" +
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
                     "monitor = life\n"+
-                    "solver simplifier\n"+
-                    "trackReasoning";
+                    "trackReasoning\n"+
+           "solver simplifier";
            /*"solver walker\n"+
                     "flips = 40\n"+
                     "jumps = 3\n"+*/ ;

@@ -120,7 +120,7 @@ public class Simplifier extends Solver {
         ProcessLongerClause,
         /** an input clause should be simplified. */
         ProcessLongerInputClause,
-        /** merge resolution with a binary clause inbetween */
+        /** merge resolution with a binary clause in between */
         ProcessBinaryTriggeredMerging
     }
 
@@ -139,11 +139,12 @@ public class Simplifier extends Solver {
             case ProcessBinaryTriggeredMerging: return 2*predicates + 103;}
         return 0;}
 
-    /** Installs the observer in the model.
+    /** Installs the observer in the model and the equivalence classes.
      */
     @Override
     public void installCommunication(ProblemSupervisor problemSupervisor) {
-        problemSupervisor.model.addObserver(this::addTrueLiteralTask);}
+        problemSupervisor.model.addObserver(this::addTrueLiteralTask);
+        problemSupervisor.equivalenceClasses.addObserver(this::addEquivalenceTask);}
 
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
@@ -170,7 +171,8 @@ public class Simplifier extends Solver {
                     model.add(clause.literals.get(0).literal,clause.inferenceStep);
                     continue;}
                 insertClause(clause);
-                if(clause.size() == 2) addBinaryClauseTask(clause);}
+                if(clause.size() == 2) addBinaryClauseTask(clause);
+                else {queue.add(new Task<>(TaskType.ProcessLongerInputClause,clause));}}
 
             for(int[] inputClause : inputClauses.atleasts) {
                 insertNewClause(inputClause,new Clause(inputClause));}
@@ -241,12 +243,8 @@ public class Simplifier extends Solver {
         insertClause(clause);
         ++statistics.orAndAtleastCLauses;
         if(clause.size() == 2) addBinaryClauseTask(clause);
+        else {queue.add(new Task<>(TaskType.ProcessLongerInputClause,clause));}
         return true;}
-
-    /** Installs the observer in the model.*/
-    public void installCommunication() {
-        model.addObserver(this::addTrueLiteralTask);
-        equivalenceClasses.addObserver(this::addEquivalenceTask);}
 
     /** adds the literals which are already true in the model to the task queue.
      * Installs the observer in the model.
@@ -317,7 +315,7 @@ public class Simplifier extends Solver {
         int counter = 0;
         while(!interrupted()) {
             try {
-                //if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+               // if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
                 switch(task.taskType){
@@ -737,6 +735,7 @@ public class Simplifier extends Solver {
      */
     protected void processLongerInputClause(Task<Simplifier.TaskType> task) throws Unsatisfiable {
         Clause clause = (Clause)task.a;
+        System.out.println("CL " + clause);
         while(clause != null) {
             if (!clause.exists || clause.size() <= 2) {
                 clause = clause.nextClause;
