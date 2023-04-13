@@ -46,9 +46,9 @@ public class QUSat {
    private static final String parameters =
             "problem random\n"+
                     "predicates = 10\n" +
-                    "cpRatio = 5\n"+
+                    "cpRatio = 4.3\n"+
                     "length = 3\n"+
-                    "seed = 0\n"+
+                    "seed = 1\n"+
             "global\n" +
                     "cnfFile = numbers\n"+
                     "logging = life\n"+

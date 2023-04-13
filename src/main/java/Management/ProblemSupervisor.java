@@ -81,6 +81,7 @@ public class ProblemSupervisor {
         StringBuilder errors = new StringBuilder();
         try {
             inputClauses = problemGenerator.generateProblem(errors);
+            clauseCounter = inputClauses.nextId-1;
             if(errors.length() > 1) {
                 System.out.println("Error when reading/generating problem '" + problemId + "'");
                 System.out.println(errors);

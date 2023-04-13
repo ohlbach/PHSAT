@@ -175,7 +175,9 @@ public class Simplifier extends Solver {
                     continue;}
                 insertClause(clause);
                 if(clause.size() == 2) addBinaryClauseTask(clause);
-                else {queue.add(new Task<>(TaskType.ProcessLongerInputClause,clause));}}
+                else {queue.add(new Task<>(TaskType.ProcessLongerInputClause,clause));}
+                if(clause.size() == 3){synchronized(this){queue.add(new Task<>(TaskType.ProcessMergeResolutionPartial,clause));}}
+            }
 
             for(int[] inputClause : inputClauses.atleasts) {
                 insertNewClause(inputClause,new Clause(inputClause));}
@@ -729,7 +731,7 @@ public class Simplifier extends Solver {
      * @throws Unsatisfiable if a contradiction is dicovered.
      */
     protected void processLongerClause(Clause clause) throws Unsatisfiable {
-        if(!clause.exists) return;
+        if(!clause.exists || clause.size() < 3) return;
         removeClausesSubsumedByLongerClause(clause);
         if(!mergeResolutionWithLongerClauseDirect(clause)) return;
         mergeResolutionWithLongerClauseIndirect(clause);}
@@ -742,7 +744,6 @@ public class Simplifier extends Solver {
      */
     protected void processLongerInputClause(Task<Simplifier.TaskType> task) throws Unsatisfiable {
         Clause clause = (Clause)task.a;
-        System.out.println("CL " + clause);
         while(clause != null) {
             if (!clause.exists || clause.size() <= 2) {
                 clause = clause.nextClause;
@@ -1090,6 +1091,10 @@ public class Simplifier extends Solver {
                 new InfResolution(posLiteral.clause,negLiteral.clause, resolvent, inputClauses.symboltable);
         if(simplifyClause(resolvent,false)) {
             insertClause(resolvent);
+            if(monitoring) monitor.println(monitorId,
+                    "Partial Resolution: " + posLiteral.clause.toString(inputClauses.symboltable,0) + " and " +
+                            negLiteral.clause.toString(inputClauses.symboltable,0) + " -> " +
+                    resolvent.toString(inputClauses.symboltable,0));
             addShortenedClauseTask(resolvent);}}
 
 
