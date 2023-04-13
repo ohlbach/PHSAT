@@ -1058,12 +1058,15 @@ public class Simplifier extends Solver {
      */
     void mergeResolutionPartial(Clause clause) throws Unsatisfiable{
         if(!clause.exists || clause.size() != 3) return;
+        mergeResolutionPartialBinary(clause);
         for(Literal literalObject : clause.literals) { // example: p,q,r
             int posLiteral = literalObject.literal;
+            boolean found = false;
             Literal negLiteralObject = literalIndexMore.getFirstLiteralObject(-literalObject.literal);
             while(negLiteralObject != null) {          // example: -p,q',s
-                if(negLiteralObject.clause.size() == 3) negLiteralObject.clause.timestamp = timestamp;
+                if(negLiteralObject.clause.size() == 3) {negLiteralObject.clause.timestamp = timestamp; found = true;}
                 negLiteralObject = negLiteralObject.nextLiteral;}
+            if(!found) continue;
 
             for(Literal literalObject1 : clause.literals) {
                 if(literalObject1 == literalObject) continue;
@@ -1073,6 +1076,16 @@ public class Simplifier extends Solver {
                         resolve(literalObject,otherLiteralObject.clause.findLiteral(-posLiteral));}
                         otherLiteralObject = otherLiteralObject.nextLiteral;}}
             ++timestamp;}}
+
+    void mergeResolutionPartialBinary(Clause clause) throws Unsatisfiable{
+        if(!clause.exists || clause.size() != 3) return;
+        for(Literal literalObject : clause.literals) { // example: p,q,r
+            int posLiteral = literalObject.literal;
+            Literal negLiteralObject = literalIndexTwo.getFirstLiteralObject(-literalObject.literal);
+            while(negLiteralObject != null) {          // example: -p,s
+                resolve(literalObject,negLiteralObject.clause.findLiteral(-posLiteral));
+                negLiteralObject = negLiteralObject.nextLiteral;}
+        }}
 
     /** creates a resolvent between the clauses with the two literals.
      * The resolvent is checked for binary subsumption, simplified and inserted into the internal data structures.
