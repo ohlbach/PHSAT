@@ -385,7 +385,7 @@ public class Simplifier extends Solver {
             Clause clause = literalObject.clause;
             if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
             Literal otherLiteral = (clause.literals.get(0) == literalObject) ? clause.literals.get(1) : clause.literals.get(0);
-            if(monitoring) monitor.println(monitorId,clause.toString(symboltable,0) + " and false(" +
+            if(monitoring) monitor.println(monitorId,clause.toString(symboltable,0) + " and true(" +
                     Symboltable.toString(literal,symboltable) + ") -> " +
                     "true("+Symboltable.toString(otherLiteral.literal,symboltable)+")");
             model.add(otherLiteral.literal,
@@ -621,7 +621,6 @@ public class Simplifier extends Solver {
                             Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(literal2,symboltable));
                     equivalenceClasses.addEquivalenceTask(literal1,literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
                     removeClause(clause1,false);
-                    removeClause(clause2,false);
                     ++timestamp;
                     return;}
                 literalObject = literalObject.nextLiteral;}}

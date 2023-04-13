@@ -143,7 +143,9 @@ public class Clause {
         this.quantifier = quantifier;
         this.limit = limit;
         this.literals = literals;
-    }
+        if(limit == 1) expandedSize = literals.size();
+        else {for(Literal literalObject: literals) expandedSize += literalObject.multiplicity;}
+        hasMultiplicities = expandedSize > literals.size();}
 
 
     /** checks if the atleast-clause is true (limit &lt;= 0).
