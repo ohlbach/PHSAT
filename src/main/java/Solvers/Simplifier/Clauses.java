@@ -84,7 +84,7 @@ public class Clauses {
      *
      * @return a string containing all clauses in the list.
      */
-    public String toString() {
+    public String toString() {//return"";}
         return toString(null);}
 
     /** generates a string containing all clauses in the list.

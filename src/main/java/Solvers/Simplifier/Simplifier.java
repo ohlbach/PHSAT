@@ -306,7 +306,7 @@ public class Simplifier extends Solver {
      */
     public void addEquivalenceTask(int representative, int literal, InferenceStep inferenceStep) {
         if(monitoring) {
-            monitor.print(monitorId,"In:   Equivalence " + Symboltable.toString(representative,symboltable) + "="+
+            monitor.print(monitorId,"In: Equivalence " + Symboltable.toString(representative,symboltable) + "="+
                     Symboltable.toString(literal,symboltable));}
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessEquivalence, representative, literal, inferenceStep));}}
 
@@ -319,26 +319,60 @@ public class Simplifier extends Solver {
     public void processTasks(int n) throws Result {
         Task<Simplifier.TaskType> task;
         int counter = 0;
+        Clause clause = null;
         while(!interrupted()) {
             try {
-               // if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
-                if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
-                System.out.println(clauses.toString());
                 switch(task.taskType){
-                    case ProcessTrueLiteral:       processTrueLiteral((Integer)task.a); break;
-                    case ProcessEquivalence:       processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;
-                    case ProcessBinaryClause:      processBinaryClause((Clause)task.a); break;
-                    case ProcessLongerClause:      processLongerClause((Clause)task.a); break;
-                    case ProcessLongerInputClause: processLongerInputClause(task);      break;
-                    case ProcessBinaryTriggeredMerging: {
-                        Clause clause = (Clause)task.a;
-                        if(!clause.exists) break;
-                        assert(clause.size() == 2);
-                        mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
-                        mergeResolutionBinaryTriggered(clause, clause.literals.get(1),clause.literals.get(0));}
+                    case ProcessTrueLiteral:
+                        if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
+                                        System.out.println(clauses.toString());}
+                        processTrueLiteral((Integer)task.a);
                         break;
-                        case ProcessMergeResolutionPartial: mergeResolutionPartial((Clause)task.a); break;
+                    case ProcessEquivalence:
+                        if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
+                                        System.out.println(clauses.toString());}
+                        processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c);
+                        break;
+                    case ProcessBinaryClause:
+                        clause = (Clause)task.a;
+                        if(clause.exists) {
+                            if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
+                                    System.out.println(clauses.toString());}
+                            processBinaryClause(clause);}
+                        break;
+                    case ProcessLongerClause:
+                        clause = (Clause)task.a;
+                        if(clause.exists) {
+                            if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
+                            System.out.println(clauses.toString());}
+                            processLongerClause(clause);}
+                        break;
+                    case ProcessLongerInputClause:
+                        clause = (Clause)task.a;
+                        if(clause.exists) {
+                            if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
+                                System.out.println(clauses.toString());}
+                            processLongerInputClause(task);}
+                        break;
+                    case ProcessBinaryTriggeredMerging:
+                        clause = (Clause)task.a;
+                        if(clause.exists) {
+                            if(monitoring) {
+                                monitor.print(monitorId,"Next Task: " + task);
+                                System.out.println(clauses.toString());}
+                            assert(clause.size() == 2);
+                            mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
+                            mergeResolutionBinaryTriggered(clause, clause.literals.get(1),clause.literals.get(0));}
+                        break;
+                    case ProcessMergeResolutionPartial:
+                        clause = (Clause)task.a;
+                        if(clause.exists) {
+                            if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
+                                System.out.println(clauses.toString());}
+                            mergeResolutionPartial(clause);}
+                        break;
                 }
                 if(clauses.isEmpty()) {throw new Satisfiable(problemId,solverId,model);}}
             catch(InterruptedException ex) {return;}
@@ -493,7 +527,6 @@ public class Simplifier extends Solver {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     protected void processBinaryClause(Clause clause) throws Unsatisfiable {
-        if(!clause.exists) return;
         assert(clause.size() == 2);
         int literal1 = clause.literals.get(0).literal;
         int literal2 = clause.literals.get(1).literal;
@@ -521,6 +554,7 @@ public class Simplifier extends Solver {
         Literal subsumerLiteral = literalIndexMore.getFirstLiteralObject(subsumer.literals.get(0).literal);
         while(subsumerLiteral != null) {
             Clause subsumee = subsumerLiteral.clause;
+            if(subsumee == null) {subsumerLiteral = subsumerLiteral.nextLiteral; continue;}
             if(subsumee.exists && subsumee.isDisjunction && subsumee != subsumer) subsumee.timestamp = timestamp;
             subsumerLiteral = subsumerLiteral.nextLiteral;}
 
@@ -618,8 +652,8 @@ public class Simplifier extends Solver {
                 if(clause2.timestamp == timestamp) { // a partner clause is found.
                     if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                             clause2.toString(symboltable,0) + " -> " +
-                            Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(literal2,symboltable));
-                    equivalenceClasses.addEquivalenceTask(literal1,literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
+                            Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
+                    equivalenceClasses.addEquivalenceTask(literal1,-literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
                     removeClause(clause1,false);
                     ++timestamp;
                     return;}
@@ -730,7 +764,7 @@ public class Simplifier extends Solver {
      * @throws Unsatisfiable if a contradiction is dicovered.
      */
     protected void processLongerClause(Clause clause) throws Unsatisfiable {
-        if(!clause.exists || clause.size() < 3) return;
+        if(clause.size() < 3) return;
         removeClausesSubsumedByLongerClause(clause);
         if(!mergeResolutionWithLongerClauseDirect(clause)) return;
         mergeResolutionWithLongerClauseIndirect(clause);}
@@ -1057,7 +1091,7 @@ public class Simplifier extends Solver {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void mergeResolutionPartial(Clause clause) throws Unsatisfiable{
-        if(!clause.exists || clause.size() != 3) return;
+        if(clause.size() != 3) return;
         mergeResolutionPartialBinary(clause);
         for(Literal literalObject : clause.literals) { // example: p,q,r
             int posLiteral = literalObject.literal;

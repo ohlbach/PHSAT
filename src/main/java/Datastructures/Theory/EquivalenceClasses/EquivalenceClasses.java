@@ -211,12 +211,14 @@ public class EquivalenceClasses extends Solver {
         Task<TaskType> task;
         while(!isInterrupted) {
             try {
-                //if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                if(monitoring) {monitor.print(monitorId,"EQV: Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
-                if(equivalenceClasses.isEmpty()) continue;
+
                 if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
                 switch(task.taskType){
-                    case TRUELITERAL: processTrueLiteral((Integer)task.a,(InferenceStep)task.b); break;
+                    case TRUELITERAL:
+                        if(equivalenceClasses.isEmpty()) continue;
+                        processTrueLiteral((Integer)task.a,(InferenceStep)task.b); break;
                     case EQUIVALENCE: processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c); break;}
                 if(monitoring) {
                     monitor.print(monitorId,"Current equivalences:\n" + toString(symboltable));}}
@@ -259,7 +261,7 @@ public class EquivalenceClasses extends Solver {
     public void addEquivalenceTask(int literal1, int literal2, InferenceStep inferenceStep) {
         ++statistics.derivedClasses;
         if(monitoring) {
-            monitor.print(monitorId,"In:   Equivalence " +
+            monitor.print(monitorId,"In: Equivalence " +
                     Symboltable.toString(literal1, symboltable) + " = " +
                     Symboltable.toString(literal2, symboltable));}
         Task<TaskType> task = new Task<>(TaskType.EQUIVALENCE,literal1,literal2,inferenceStep);

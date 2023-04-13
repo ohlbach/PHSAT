@@ -81,8 +81,10 @@ public class Result extends Exception {
         IntArrayList ids = new IntArrayList();
         for(InferenceStep step : inferenceSteps()){
             //System.out.println("STEP " + step.getClass().getSimpleName());
-            for(int id : step.inputClauseIds()) {
-                if(!ids.contains(id)) ids.add(id);}}
+            IntArrayList stepIds = step.inputClauseIds();
+            if(stepIds != null)
+                for(int id : step.inputClauseIds()) {
+                    if(!ids.contains(id)) ids.add(id);}}
         return sortIntArray(ids);}
 
     public String toString(Symboltable symboltable) {return "";};
