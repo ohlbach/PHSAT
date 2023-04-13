@@ -310,10 +310,11 @@ public class Simplifier extends Solver {
                     Symboltable.toString(literal,symboltable));}
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessEquivalence, representative, literal, inferenceStep));}}
 
+    private boolean printClauses = true;
 
     /** reads the next task from the task queue and processes it.
      *
-     * @param n 0 or the maximium number of task before stopping the loop (0: unlimited) (> 0 for test purposes).
+     * @param n 0 or the maximum number of task before stopping the loop (0: unlimited) (> 0 for test purposes).
      * @throws Result if a contradiction is encountered or the clause set became empty.
      */
     public void processTasks(int n) throws Result {
@@ -327,33 +328,33 @@ public class Simplifier extends Solver {
                 switch(task.taskType){
                     case ProcessTrueLiteral:
                         if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
-                                        System.out.println(clauses.toString());}
+                            if(printClauses) System.out.println(clauses.toString());}
                         processTrueLiteral((Integer)task.a);
                         break;
                     case ProcessEquivalence:
                         if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
-                                        System.out.println(clauses.toString());}
+                            if(printClauses) System.out.println(clauses.toString());}
                         processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c);
                         break;
                     case ProcessBinaryClause:
                         clause = (Clause)task.a;
                         if(clause.exists) {
                             if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
-                                    System.out.println(clauses.toString());}
+                                if(printClauses) System.out.println(clauses.toString());}
                             processBinaryClause(clause);}
                         break;
                     case ProcessLongerClause:
                         clause = (Clause)task.a;
                         if(clause.exists) {
                             if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
-                            System.out.println(clauses.toString());}
+                                if(printClauses) System.out.println(clauses.toString());}
                             processLongerClause(clause);}
                         break;
                     case ProcessLongerInputClause:
                         clause = (Clause)task.a;
                         if(clause.exists) {
                             if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
-                                System.out.println(clauses.toString());}
+                                if(printClauses) System.out.println(clauses.toString());}
                             processLongerInputClause(task);}
                         break;
                     case ProcessBinaryTriggeredMerging:
@@ -361,7 +362,7 @@ public class Simplifier extends Solver {
                         if(clause.exists) {
                             if(monitoring) {
                                 monitor.print(monitorId,"Next Task: " + task);
-                                System.out.println(clauses.toString());}
+                                if(printClauses)  System.out.println(clauses.toString());}
                             assert(clause.size() == 2);
                             mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
                             mergeResolutionBinaryTriggered(clause, clause.literals.get(1),clause.literals.get(0));}
@@ -370,7 +371,7 @@ public class Simplifier extends Solver {
                         clause = (Clause)task.a;
                         if(clause.exists) {
                             if(monitoring) {monitor.print(monitorId,"Next Task: " + task);
-                                System.out.println(clauses.toString());}
+                                if(printClauses)  System.out.println(clauses.toString());}
                             mergeResolutionPartial(clause);}
                         break;
                 }
