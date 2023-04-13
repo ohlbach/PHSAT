@@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.IntSupplier;
 
 /** A Clause object is essentially a collection of Literal objects.
  *  A clause can only be a disjunction (OR-clause) or an ATLEAST-clause.<br>
@@ -129,6 +130,20 @@ public class Clause {
             Literal literalObject = new Literal(literal,1);
             literalObject.clause = this;
             literals.add(literalObject);}}
+
+    /** constructs a new clause.
+     *
+     * @param id         the identifier for the clause.
+     * @param quantifier the quantifier.
+     * @param limit      the limit for the quantifier.
+     * @param literals   the literals.
+     */
+    public Clause(int id, Quantifier quantifier, int limit, ArrayList<Literal> literals) {
+        this.id = id;
+        this.quantifier = quantifier;
+        this.limit = limit;
+        this.literals = literals;
+    }
 
 
     /** checks if the atleast-clause is true (limit &lt;= 0).
@@ -397,6 +412,35 @@ public class Clause {
         isDisjunction = true;
         hasMultiplicities = false;
         quantifier = Quantifier.OR;}
+
+    /** creates a resolvent for two clauses.
+     *
+     * @param id              for generating a new identifier.
+     * @param literalObject1  the first parent literal.
+     * @param literalObject2  the second parent literal.
+     * @return                null if the resolvent is a tautology, otherwise the new resolvent.
+     */
+    Clause resolve(IntSupplier id, Literal literalObject1, Literal literalObject2) {
+        Clause clause2 = literalObject2.clause;
+        int newLimit = limit + clause2.limit - Math.max(literalObject1.multiplicity,literalObject2.multiplicity);
+        ArrayList<Literal> newLiterals = new ArrayList<>(literals.size() + clause2.literals.size()-2);
+        for(Literal literalObject : literals) {
+            if(literalObject == literalObject1) continue;
+            newLiterals.add(new Literal(literalObject.literal,literalObject.multiplicity));}
+        for(Literal literalObject : clause2.literals) {
+            if(literalObject == literalObject2) continue;
+            boolean found = false;
+            for(Literal newLiteralObject : newLiterals) {
+                if(newLiteralObject.literal == literalObject.literal) {
+                    found = true;
+                    newLiteralObject.multiplicity = Math.min(newLimit, newLiteralObject.multiplicity + literalObject.multiplicity);
+                    break;}}
+            if(found) continue;
+            newLiterals.add(new Literal(literalObject.literal,literalObject.multiplicity));}
+        Quantifier newQuantifier = (newLimit == 1) ? Quantifier.OR : Quantifier.ATLEAST;
+        Clause resolvent = new Clause(id.getAsInt(),newQuantifier,newLimit,newLiterals);
+        for(Literal literalObject: newLiterals) literalObject.clause = resolvent;
+        return resolvent.removeComplementaryLiterals() ? null : resolvent;}
 
     /** returns the number of Literal objects in the clause.
      *

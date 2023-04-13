@@ -121,7 +121,9 @@ public class Simplifier extends Solver {
         /** an input clause should be simplified. */
         ProcessLongerInputClause,
         /** merge resolution with a binary clause in between */
-        ProcessBinaryTriggeredMerging
+        ProcessBinaryTriggeredMerging,
+        /** partial merge resolution between 3-literal clauses */
+        ProcessMergeResolutionPartial
     }
 
     /** gets the priority for the objects in the queue.
@@ -136,7 +138,8 @@ public class Simplifier extends Solver {
             case ProcessBinaryClause:           return 2*predicates + 100;
             case ProcessLongerClause:           return 2*predicates + 101;
             case ProcessLongerInputClause:      return 2*predicates + 102;
-            case ProcessBinaryTriggeredMerging: return 2*predicates + 103;}
+            case ProcessBinaryTriggeredMerging: return 2*predicates + 103;
+            case ProcessMergeResolutionPartial: return 2*predicates + 104;}
         return 0;}
 
     /** Installs the observer in the model and the equivalence classes.
@@ -221,7 +224,7 @@ public class Simplifier extends Solver {
         }
 
     /** simplifies and inserts an atleast-clause derived from input clauses.
-     * Two-literal clauses are put into the task queue.
+     * The clauses are put into the task queue.
      *
      * @param inputClause the original input-clause.
      * @param clause      the clause to be inserted.
@@ -243,7 +246,8 @@ public class Simplifier extends Solver {
         insertClause(clause);
         ++statistics.orAndAtleastCLauses;
         if(clause.size() == 2) addBinaryClauseTask(clause);
-        else {queue.add(new Task<>(TaskType.ProcessLongerInputClause,clause));}
+        else {synchronized(this){queue.add(new Task<>(TaskType.ProcessLongerInputClause,clause));}}
+        if(clause.size() == 3){synchronized(this){queue.add(new Task<>(TaskType.ProcessMergeResolutionPartial,clause));}}
         return true;}
 
     /** adds the literals which are already true in the model to the task queue.
@@ -330,8 +334,10 @@ public class Simplifier extends Solver {
                         if(!clause.exists) break;
                         assert(clause.size() == 2);
                         mergeResolutionBinaryTriggered(clause, clause.literals.get(0),clause.literals.get(1));
-                        mergeResolutionBinaryTriggered(clause, clause.literals.get(1),clause.literals.get(0));
-                        break;}}
+                        mergeResolutionBinaryTriggered(clause, clause.literals.get(1),clause.literals.get(0));}
+                        break;
+                        case ProcessMergeResolutionPartial: mergeResolutionPartial((Clause)task.a); break;
+                }
                 if(clauses.isEmpty()) {throw new Satisfiable(problemId,solverId,model);}}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
@@ -1044,6 +1050,48 @@ public class Simplifier extends Solver {
             literalObjectP = literalObjectP.nextLiteral;
             timestamp += clausePSize + 1;
             }}
+
+    /** creates resolvents between 3-literal clauses such that the resolvent has again 3 literals.
+     *
+     * @param clause        a 3-literal clause.
+     * @throws Unsatisfiable if a contradiction is discovered.
+     */
+    void mergeResolutionPartial(Clause clause) throws Unsatisfiable{
+        if(!clause.exists || clause.size() != 3) return;
+        for(Literal literalObject : clause.literals) { // example: p,q,r
+            int posLiteral = literalObject.literal;
+            Literal negLiteralObject = literalIndexMore.getFirstLiteralObject(-literalObject.literal);
+            while(negLiteralObject != null) {          // example: -p,q',s
+                if(negLiteralObject.clause.size() == 3) negLiteralObject.clause.timestamp = timestamp;
+                negLiteralObject = negLiteralObject.nextLiteral;}
+
+            for(Literal literalObject1 : clause.literals) {
+                if(literalObject1 == literalObject) continue;
+                Literal otherLiteralObject = literalIndexMore.getFirstLiteralObject(literalObject1.literal);
+                while(otherLiteralObject != null) {                        // Example: otherLiteralObject = q
+                    if(otherLiteralObject.clause.timestamp == timestamp) { // example: -p,q,s
+                        resolve(literalObject,otherLiteralObject.clause.findLiteral(-posLiteral));}
+                        otherLiteralObject = otherLiteralObject.nextLiteral;}}
+            ++timestamp;}}
+
+    /** creates a resolvent between the clauses with the two literals.
+     * The resolvent is checked for binary subsumption, simplified and inserted into the internal data structures.
+     * A new task is inserted into the task queue.
+     *
+     * @param posLiteral     a parent literal
+     * @param negLiteral     a parent literal
+     * @throws Unsatisfiable if a contradiction is discovered.
+     */
+    void resolve(Literal posLiteral, Literal negLiteral) throws Unsatisfiable {
+        Clause resolvent = posLiteral.clause.resolve(nextId,posLiteral,negLiteral);
+        if(resolvent == null) return;
+        if(isSubsumedByBinaryClauses(resolvent)) return;
+        if(trackReasoning) resolvent.inferenceStep =
+                new InfResolution(posLiteral.clause,negLiteral.clause, resolvent, inputClauses.symboltable);
+        if(simplifyClause(resolvent,false)) {
+            insertClause(resolvent);
+            addShortenedClauseTask(resolvent);}}
+
 
     /** adds a two-literal clause as ProcessBinaryClause task to the task queue.
      *
