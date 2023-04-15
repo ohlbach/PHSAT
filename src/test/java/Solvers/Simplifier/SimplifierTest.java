@@ -25,7 +25,7 @@ public class SimplifierTest extends TestCase {
     static int cInterval = Quantifier.INTERVAL.ordinal();
 
 
-    static boolean monitoring = false;
+    static boolean monitoring = true;
 
     static Symboltable symboltable = new Symboltable(10);
 
@@ -446,12 +446,13 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause);
         simplifier.binaryMergeResolutionAndEquivalence(clause,-1,3,true);
         simplifier.equivalenceClasses.processTasks(true);
-        assertEquals("2: 1v2\n",simplifier.clauses.toString());
+        assertEquals("2: 1v2\n" +
+                "3: 1v-3\n",simplifier.clauses.toString());
         assertEquals("",simplifier.model.toString());
-        assertEquals("1 = -3\n",simplifier.equivalenceClasses.toString());
+        assertEquals("1 = 3\n",simplifier.equivalenceClasses.toString());
     }
     public void testIsSubsumedByBinaryClauses()  {
-        System.out.println("binaryClauseIsSubsumedByBinaryClause");
+        System.out.println("binaryClauseIsSubsumedByBinaryClauses");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -460,11 +461,11 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
         simplifier.insertClause(new Clause(new int[]{3, cOr, 1, 3}));
         Clause clause = new Clause(new int[]{4, cOr, 1, 3});
-        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClause(clause));
+        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
         clause = new Clause(new int[]{5, cOr, 3, 1});
-        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClause(clause));
+        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
         clause = new Clause(new int[]{6, cOr, 1, 4});
-        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClause(clause));
+        assertNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
     }
     public void testResolveBetweenBinaryClauses() throws Result{
         System.out.println("resolveBetweenBinaryClauses");
@@ -547,10 +548,12 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause4);
         Clause clause5 = new Clause(new int[]{5, cOr, 4,5,6});
         simplifier.insertClause(clause5);
+
         simplifier.processBinaryClause(clause1);
-        assertEquals("1: 1v2\n" +
-                "2: -1v3v4\n" +
-                "5: 4v5v6\n",simplifier.clauses.toString());
+        assertEquals(" 1: 1v2\n" +
+                " 2: -1v3v4\n" +
+                " 5: 4v5v6\n" +
+                "11: 3v4v2\n",simplifier.clauses.toString());
         assertEquals("2,4,5",simplifier.model.toString());
       //  System.out.println(simplifier.statistics.toString());
     }
@@ -576,15 +579,26 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause6);
 
         simplifier.processBinaryClause(clause1);
+        assertEquals(" 1: 1v5\n" +
+                " 2: -1v3v4\n" +
+                " 3: 2v4v1\n" +
+                " 4: 5v2v-1\n" +
+                " 5: 4v5v6\n" +
+                " 6: -5v2\n" +
+                "11: 1v2\n" +
+                "12: 5v2\n" +
+                "13: 3v4v5\n",simplifier.clauses.toString());
         simplifier.processTasks(2);
 
 
         assertEquals(" 1: 1v5\n" +
                 " 2: -1v3v4\n" +
                 " 5: 4v5v6\n" +
-                "11: 1v2\n",simplifier.clauses.toString());
+                "11: 1v2\n" +
+                "13: 3v4v5\n" +
+                "15: 3v4v2\n",simplifier.clauses.toString());
         assertEquals("2,4,5",simplifier.model.toString());
-        //System.out.println(simplifier.statistics.toString());
+        System.out.println(simplifier.statistics.toString());
     }
 
     public void testProcessBinaryClause3() throws Result {

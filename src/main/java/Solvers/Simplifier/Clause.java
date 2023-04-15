@@ -132,6 +132,7 @@ public class Clause {
             literals.add(literalObject);}}
 
     /** constructs a new clause.
+     * The literal's multiplicities are automatically reduced to 'limit'.
      *
      * @param id         the identifier for the clause.
      * @param quantifier the quantifier.
@@ -143,8 +144,9 @@ public class Clause {
         this.quantifier = quantifier;
         this.limit = limit;
         this.literals = literals;
-        if(limit == 1) expandedSize = literals.size();
-        else {for(Literal literalObject: literals) expandedSize += literalObject.multiplicity;}
+        for(Literal literalObject: literals) {
+            literalObject.multiplicity = Math.min(limit,literalObject.multiplicity);
+            expandedSize += literalObject.multiplicity;}
         hasMultiplicities = expandedSize > literals.size();}
 
 
@@ -193,7 +195,7 @@ public class Clause {
      * Other simplifications are not performed.
      *
      * @param literalObject    the literal to be removed.
-     * @param reduceLimit if true then the limit is reduced by the literal's multiplicity.
+     * @param reduceLimit      if true then the limit is reduced by the literal's multiplicity.
      * @return true if the clause still exists.
      */
     protected boolean removeLiteral(Literal literalObject, boolean reduceLimit) {
@@ -239,6 +241,7 @@ public class Clause {
      * @return true if the clause became a true clause.
      */
     protected boolean removeComplementaryLiterals() {
+        boolean complementariesFound = false;
         for(int i = 0; i < literals.size()-1; ++i) {
             Literal literalObject1 = literals.get(i);
             int literal1 = literalObject1.literal;
@@ -246,6 +249,7 @@ public class Clause {
             for(int j = i+1; j < literals.size(); ++j) {
                 Literal literalObject2 = literals.get(j);
                 if(literalObject2.literal == -literal1) {
+                    complementariesFound = true;
                     int multiplicity2 = literalObject2.multiplicity;
                     if(multiplicity1 == multiplicity2) {
                         limit -= multiplicity1;
@@ -267,13 +271,20 @@ public class Clause {
                     literals.remove(i--);
                     expandedSize -= multiplicity1;
                     break;}}}
+        if(!complementariesFound) return false;
         if(literals.isEmpty()) return true;
-        hasMultiplicities = expandedSize > literals.size();
+
         if(limit == 1) {
             quantifier = Quantifier.OR;
             isDisjunction = true;
             hasMultiplicities = false;
             for(Literal literalObject : literals) literalObject.multiplicity = 1;}
+        else {
+            for(Literal literalObject : literals) {
+                if(literalObject.multiplicity > limit) {
+                    expandedSize -= literalObject.multiplicity - limit;
+                    literalObject.multiplicity = limit; }}
+            hasMultiplicities = expandedSize > literals.size();}
         return false;}
 
     /** to be used by divideByGCD. */

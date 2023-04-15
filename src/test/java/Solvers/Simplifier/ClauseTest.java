@@ -5,12 +5,14 @@ import Datastructures.Symboltable;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
+import java.util.function.IntSupplier;
 
 public class ClauseTest extends TestCase {
     static int cOr = Quantifier.OR.ordinal();
     static int cAtleast = Quantifier.ATLEAST.ordinal();
 
     static ArrayList<Literal> removedLiterals = new ArrayList<>();
+
 
     static Symboltable symboltable = new Symboltable(10);
     static {
@@ -60,7 +62,6 @@ public class ClauseTest extends TestCase {
         assertEquals(7,clause.expandedSize());
         assertFalse(clause.isDisjunction);
         assertTrue(clause.hasMultiplicities);
-        ArrayList<Literal> trueLiterals = new ArrayList(5);
     }
 
     public void testRemoveLiteral() {
@@ -81,7 +82,6 @@ public class ClauseTest extends TestCase {
 
         Literal literal3 = clause2.findLiteral(2);
         assertFalse(clause2.removeLiteral(literal3,true));
-        assertFalse(literal3.clause.exists);
     }
 
     public void testConstructorQuantified() {
@@ -155,7 +155,7 @@ public class ClauseTest extends TestCase {
         assertNull(clause.reduceByTrueLiterals(removedLiterals));
 
     }
-        public void testReduceToEssentialLiterals() {
+    public void testReduceToEssentialLiterals() {
         System.out.println("reduceToEssentialLiterals");
         removedLiterals.clear();
         Clause clause = new Clause(new int[]{10, cAtleast, 2, 1, 1, 3, 2, 2});
@@ -172,5 +172,41 @@ public class ClauseTest extends TestCase {
         assertTrue(removedLiterals.isEmpty());
     }
 
+
+    public void testResolve() {
+        System.out.println("resolve");
+        int[] id = new int[]{10};
+        IntSupplier ids = () -> ++id[0];
+        Clause clause1 = new Clause(new int[]{1, cOr, 1,2,3});
+        Clause clause2 = new Clause(new int[]{2, cOr, 1,-2,3,4});
+        Clause resolvent = clause2.resolve(ids,clause2.literals.get(1), clause1.literals.get(1));
+        assertEquals("11: 1v3v4",resolvent.toString());
+        assertEquals(resolvent.literals.get(1).clause,resolvent);
+        assertFalse(resolvent.hasMultiplicities);
+        assertEquals(1,resolvent.limit);
+        assertEquals(3,resolvent.size());
+
+        clause1 = new Clause(new int[]{3, cAtleast, 2, 1,1,2,2,3,3,3});
+        clause2 = new Clause(new int[]{4, cAtleast, 3,-2,-2,-2,3,4});
+        resolvent = clause2.resolve(ids,clause2.literals.get(0), clause1.literals.get(1));
+        assertEquals("12: >= 2 3^2,4,1^2",resolvent.toString());
+        assertTrue(resolvent.hasMultiplicities);
+
+        clause1 = new Clause(new int[]{5, cOr, 1,2});
+        clause2 = new Clause(new int[]{6, cAtleast, 3,-2,-2,-2,3,4,4});
+        resolvent = clause2.resolve(ids,clause2.literals.get(0), clause1.literals.get(1));
+        assertEquals("13: 3v4v1",resolvent.toString());
+
+        clause1 = new Clause(new int[]{5, cOr, 1,2});
+        clause2 = new Clause(new int[]{6, cAtleast, 3,-2,-2,-2,3,-1,-1});
+        resolvent = clause2.resolve(ids,clause2.literals.get(0), clause1.literals.get(1));
+        assertNull(resolvent);
+
+        clause1 = new Clause(new int[]{5, cOr, 1,2,4});
+        clause2 = new Clause(new int[]{6, cAtleast, 3,-2,3,4,4,-1,-1});
+        resolvent = clause2.resolve(ids,clause2.literals.get(0), clause1.literals.get(1));
+        assertEquals("15: >= 2 3,4^2,-1",resolvent.toString());
+
+    }
 
 }

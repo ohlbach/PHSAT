@@ -38,7 +38,6 @@ import static java.lang.Thread.interrupted;
 
 public class Simplifier extends Solver {
 
-
     /** the input clauses */
     protected InputClauses inputClauses;
 
@@ -248,7 +247,7 @@ public class Simplifier extends Solver {
                         InputClauses.toString(0,inputClause,symboltable) + " -> " + clause.toString(symboltable,0));}
         if(!clause.isDisjunction) {
             if(!simplifyClause(clause, true)) {++statistics.notInternalizedInputClauses; return false;}}
-        if(clause.size() == 2 && binaryClauseIsSubsumedByBinaryClause(clause) != null) return false;
+        if(clause.size() == 2 && binaryClauseIsSubsumedByBinaryClauses(clause) != null) return false;
         insertClause(clause);
         ++statistics.orAndAtleastCLauses;
         if(clause.size() == 2) addBinaryClauseTask(clause);
@@ -437,7 +436,7 @@ public class Simplifier extends Solver {
                             break;
                         case 2:  addBinaryClauseTask(clause);
                                  break;
-                        default: if(simplifyClause(clause,false)) addShortenedClauseTask(clause);
+                        default: if(simplifyClause(clause,false)) addDerivedClauseTask(clause);
                                 else removeClause(clause,true);}
             literalObject = literalObject.nextLiteral;}}
         literalIndexMore.removePredicate(literal);}
@@ -466,7 +465,7 @@ public class Simplifier extends Solver {
      *
      * @param clause a just shortened clause
      */
-    protected void addShortenedClauseTask(Clause clause) {
+    protected void addDerivedClauseTask(Clause clause) {
         if(clause.size() == 2) {addBinaryClauseTask(clause);}
         else                   addLongerClauseTask(clause);}
 
@@ -492,7 +491,7 @@ public class Simplifier extends Solver {
         if(!clause.exists) return;
         saturateBinaryClausesWithBinaryCLause(clause,literal2);
         if(!clause.exists) return;
-        saturateLongerClausesWithBinaryClause(clause);}
+        saturateBinaryClausesWithLongerClauses(clause);}
 
 
     /** removes all longer disjunctions which are subsumed by a binary subsumer.
@@ -629,8 +628,9 @@ public class Simplifier extends Solver {
             Clause resolvent = resolveBetweenBinaryClauses(clause,clause1);
             if(!clause.exists) return; // unit clause derived
             if(resolvent != null) {
+                if(trackReasoning) resolvent.inferenceStep = new InfResolution(clause, clause1, resolvent, symboltable);
                 insertClause(resolvent);
-                addShortenedClauseTask(resolvent);}
+                addDerivedClauseTask(resolvent);}
             literalObject = literalObject.nextLiteral;}}
 
 
@@ -672,7 +672,7 @@ public class Simplifier extends Solver {
             ++statistics.binaryResolvents;
             return null;}
         Clause resolvent = new Clause(nextId.getAsInt(), literal1, literal2);
-        if(binaryClauseIsSubsumedByBinaryClause(resolvent) == null) return null;
+         if(binaryClauseIsSubsumedByBinaryClauses(resolvent) != null) return null;
         ++statistics.binaryResolvents;
         if(trackReasoning) resolvent.inferenceStep = new InfBinaryResolution(clause1,clause2,resolvent,symboltable);
         return resolvent;}
@@ -683,34 +683,26 @@ public class Simplifier extends Solver {
      * @return null or the subsumer clause.
      */
     Clause isSubsumed(Clause clause) {
-        Clause subsumer;
-        if(clause.size() == 2) return binaryClauseIsSubsumedByBinaryClause(clause);
-        subsumer = longerClauseIsSubsumedByBinaryClause(clause);
-        if(subsumer != null) return subsumer;
-        return longerClauseIsSubsumedByLongerClause(clause);}
+        boolean isBinaryClause = clause.size() == 2;
+        Clause subsumer = isBinaryClause ? binaryClauseIsSubsumedByBinaryClauses(clause) :
+                                           longerClauseIsSubsumedByBinaryClause(clause);
+        if(subsumer == null && !isBinaryClause) subsumer = longerClauseIsSubsumedByLongerClause(clause);
+        if(subsumer != null) ++statistics.subsumedClauses;
+        return subsumer;}
 
     /** checks if the binary clause is subsumed by another binary clause.
      *
-     * @param clause a binary clause
+     * @param subsumee a binary subsumee
      * @return null or the subsumer clause.
      */
-    protected Clause binaryClauseIsSubsumedByBinaryClause(Clause clause) {
-        return binaryClauseIsSubsumedByBinaryClause(clause.literals.get(0).literal, clause.literals.get(1).literal);}
-
-    /** checks if the binary clause is subsumed by another binary clause.
-     * Since binary clauses are always disjunctions, quantification plays no role.
-     *
-     * @param literal1 the first literal of a binary clause
-     * @param literal2 the second literal of a binary clause.
-     * @return null or the subsumer clause.
-     */
-    protected Clause binaryClauseIsSubsumedByBinaryClause(int literal1, int literal2) {
+    protected Clause binaryClauseIsSubsumedByBinaryClauses(Clause subsumee) {
+        int literal1 = subsumee.literals.get(0).literal;
+        int literal2 = subsumee.literals.get(1).literal;
         Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal1);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
-            if(clause.exists) clause.timestamp = timestamp;
+             if(clause.exists && clause != subsumee) clause.timestamp = timestamp;
             literalObject = literalObject.nextLiteral;}
-
         literalObject = literalIndexTwo.getFirstLiteralObject(literal2);
         while(literalObject != null) {
             if(literalObject.clause.timestamp == timestamp) {++timestamp; return literalObject.clause;}
@@ -763,26 +755,48 @@ public class Simplifier extends Solver {
         return null;}
 
 
-    /** computes all resolvents between the given binary clause and the longer clauses.
+    /** computes all resolvents between the given binary binaryParentClause and the longer clauses.
      *
-     * @param clause         a binary clause.
+     * @param  binaryParentClause a binary binaryParentClause.
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    void saturateLongerClausesWithBinaryClause(Clause clause) throws Unsatisfiable {
-        assert(clause.size() == 2);
-        for(Literal literalObject : clause.literals) {
+    void saturateBinaryClausesWithLongerClauses(Clause binaryParentClause) throws Unsatisfiable {
+        assert(binaryParentClause.size() == 2);
+        for(Literal literalObject : binaryParentClause.literals) {
             Literal negLiteralObject = literalIndexMore.getFirstLiteralObject(-literalObject.literal);
             while(negLiteralObject != null) {
-                Clause resolvent = negLiteralObject.clause.resolve(nextId,negLiteralObject,literalObject);
+                Clause longerParentClause = negLiteralObject.clause;
+                Clause resolvent = longerParentClause.resolve(nextId,negLiteralObject,literalObject);
                 if(resolvent != null) {
                     if(trackReasoning) resolvent.inferenceStep = 
-                            new InfResolution(literalObject.clause,clause,resolvent,inputClauses.symboltable);
+                            new InfResolution(literalObject.clause,binaryParentClause,resolvent,symboltable);
                     if(simplifyClause(resolvent,true) && isSubsumed(resolvent) == null){
-                            insertClause(resolvent);
-                        addShortenedClauseTask(resolvent);}}
+                        if(trackReasoning)
+                            resolvent.inferenceStep = new InfResolution(longerParentClause, binaryParentClause, resolvent, symboltable);
+                        insertClause(resolvent);
+                        if(resolvent.size() == 2) ++statistics.binaryResolvents; else ++statistics.longerResolvents;
+                        addDerivedClauseTask(resolvent);}}
                 negLiteralObject = negLiteralObject.nextLiteral;}}}
 
-
+    /** generates all resolvents between the given binary clause and all longer clauses.
+     *
+     * @param longerParentClause a longer clause
+     * @throws Unsatisfiable     if a contradiction is discovered.
+     */
+    void saturateLongerClauseWithBinaryClauses(Clause longerParentClause) throws Unsatisfiable {
+        for(Literal literalObject : longerParentClause.literals) {
+            int posLiteral = literalObject.literal;
+            Literal negLiteralObject = literalIndexTwo.getFirstLiteralObject(-posLiteral);
+            while(negLiteralObject != null) {
+                Clause binaryParentClause = negLiteralObject.clause;
+                Clause resolvent = longerParentClause.resolve(nextId,literalObject,negLiteralObject);
+                if(simplifyClause(resolvent,true) && isSubsumed(resolvent) != null) {
+                    if(trackReasoning) resolvent.inferenceStep =
+                            new InfResolution(longerParentClause, binaryParentClause, resolvent, symboltable);
+                    insertClause(resolvent);
+                    if(resolvent.size() == 2) ++statistics.binaryResolvents; else ++statistics.longerResolvents;
+                    addDerivedClauseTask(resolvent);}
+                negLiteralObject = negLiteralObject.nextLiteral;}}}
 
     /** removes all subsumed clauses and performs merge resolution with the longer clauses.
      *
@@ -792,7 +806,8 @@ public class Simplifier extends Solver {
     protected void processLongerClause(Clause clause) throws Unsatisfiable {
         if(clause.size() < 3) return;
         removeClausesSubsumedByLongerClause(clause);
-        mergeResolutionWithLongerClauseDirect(clause);}
+        if(mergeResolutionWithLongerClauseDirect(clause)) saturateLongerClauseWithBinaryClauses(clause);
+    }
 
     /** performs forward subsumption and merge resolution with the given longer input clause.
      *  After this, a new ProcessLongerInputClause for the next input clause is added to the queue.
@@ -865,7 +880,7 @@ public class Simplifier extends Solver {
                                 ++statistics.mergedClauses;
                                 if(removeLiteralFromClause(clauseS.findLiteral(literalObjectPNeg),false)) {
                                     clauseS.reduceToDisjunction();  // clauseS becomes a disjunction (implicit GCD-reduction)
-                                    addShortenedClauseTask(clauseS);
+                                    addDerivedClauseTask(clauseS);
                                     if(trackReasoning) {
                                         clauseS.inferenceStep =
                                                 new InfMergeResolutionMore(clauseP,resolventBefore,clauseS,symboltable);}
@@ -888,7 +903,7 @@ public class Simplifier extends Solver {
                                         monitor.println(monitorId, resolventBefore + " and " +
                                             clauseS.toString(symboltable,0) + " -> " + clauseS.toString(symboltable,0));}
 
-                                    if(simplifyClause(clauseS,false)) addShortenedClauseTask(clauseS);
+                                    if(simplifyClause(clauseS,false)) addDerivedClauseTask(clauseS);
                                     else removeClause(clauseS,true);}}}}
                     literalObjectSi = literalObjectSi.nextLiteral;}}
             timestamp += clausePSize + 1;}
@@ -949,16 +964,16 @@ public class Simplifier extends Solver {
     void resolve(Literal posLiteral, Literal negLiteral) throws Unsatisfiable {
         Clause resolvent = posLiteral.clause.resolve(nextId,posLiteral,negLiteral);
         if(resolvent == null) return;
-        if(binaryClauseIsSubsumedByBinaryClause(resolvent) != null) return;
+        if(binaryClauseIsSubsumedByBinaryClauses(resolvent) != null) return;
         if(trackReasoning) resolvent.inferenceStep =
-                new InfResolution(posLiteral.clause,negLiteral.clause, resolvent, inputClauses.symboltable);
+                new InfResolution(posLiteral.clause,negLiteral.clause, resolvent, symboltable);
         if(simplifyClause(resolvent,false)) {
             insertClause(resolvent);
             if(monitoring) monitor.println(monitorId,
-                    "Partial Resolution: " + posLiteral.clause.toString(inputClauses.symboltable,0) + " and " +
-                            negLiteral.clause.toString(inputClauses.symboltable,0) + " -> " +
-                    resolvent.toString(inputClauses.symboltable,0));
-            addShortenedClauseTask(resolvent);}}
+                    "Partial Resolution: " + posLiteral.clause.toString(symboltable,0) + " and " +
+                            negLiteral.clause.toString(symboltable,0) + " -> " +
+                    resolvent.toString(symboltable,0));
+            addDerivedClauseTask(resolvent);}}
 
 
     /** adds a two-literal clause as ProcessBinaryClause task to the task queue.
@@ -1048,7 +1063,7 @@ public class Simplifier extends Solver {
                         if(monitoring) monitor.print(monitorId,"\n  Clause " + clauseString + ": literal " +
                                 Symboltable.toString(literal,symboltable) + " replaced by equivalent literal " +
                                 Symboltable.toString(representative,symboltable) + " new clause: " + clause.toString(symboltable,0));
-                        addShortenedClauseTask(clause);}
+                        addDerivedClauseTask(clause);}
                     else removeClause(clause,true);}
                 else {
                     literalIndexMore.removeLiteral(literalObject);
@@ -1066,7 +1081,7 @@ public class Simplifier extends Solver {
                         if(monitoring) monitor.print(monitorId,"\n  Clause " + clauseString + ": literal " +
                                 Symboltable.toString(literal,symboltable) + " replaced by equivalent literal " +
                                 Symboltable.toString(representative,symboltable) + " new clause: " + clause.toString(symboltable,0));
-                        addShortenedClauseTask(clause);}
+                        addDerivedClauseTask(clause);}
                     else removeClause(clause,true);}
                 literalObject = literalObject.nextLiteral;}
             }
@@ -1234,7 +1249,7 @@ public class Simplifier extends Solver {
      *  if its negation does not occur anymore in the longer clauses.<br>
      *  If there are only 2-literal clauses left, then the very first literal in the clauses is set to true.
      */
-    void checkForPartialPurity() {
+    void checkForPartialPurity() throws Unsatisfiable{
         if(longerClausesExist) {
             longerClausesExist = false;
             for(int predicate = 1; predicate <= predicates; ++predicate) {
@@ -1245,11 +1260,11 @@ public class Simplifier extends Solver {
                 if(literalIndexMore.isEmpty(-predicate)) pureLiteral = predicate;
                 else{longerClausesExist = true;}
                 if(pureLiteral != 0) {
-                    ++statistics.partiallyPureLiterals;
-                    addTrueLiteralTask(pureLiteral, trackReasoning ? new InfPureLiteral(pureLiteral,true) : null);
+                    ++statistics.partiallyPureLiterals;if(monitoring)
                     if(monitoring) {
                         monitor.println(monitorId,"Partially Pure Literal: " +
-                                Symboltable.toString(pureLiteral,inputClauses.symboltable));}
+                                Symboltable.toString(pureLiteral,symboltable));}
+                    model.add(pureLiteral, trackReasoning ? new InfPureLiteral(pureLiteral,true) : null);
                     break;}}
             if(longerClausesExist) return;}
         Clause clause = clauses.firstClause;
@@ -1257,7 +1272,8 @@ public class Simplifier extends Solver {
         if(monitoring) {
             monitor.println(monitorId,"Literal " + Symboltable.toString(literal,symboltable) +
                     " in saturated 2-literal clauses chosen to be true");}
-        addTrueLiteralTask(literal,trackReasoning ? new InfSaturatedTwoLiteralClauses(clause) : null);}
+        ++statistics.saturatedLiterals;
+        model.add(literal,trackReasoning ? new InfSaturatedTwoLiteralClauses(clause) : null);}
 
     /** removes all clauses from the internal datastructures.
      * This is mainly for testing purposes.

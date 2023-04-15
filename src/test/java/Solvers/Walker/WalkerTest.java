@@ -402,7 +402,7 @@ public class WalkerTest extends TestCase {
         walker.initializePredicatesWithPositiveScores();
         assertEquals("",walker.toString("predicates"));
         assertEquals("",walker.toString("falseClauses"));
-        assertEquals(0,walker.falseClauses);
+        assertEquals(0,walker.falseClauseList.size());
         walker.localModel[2] = true;
         walker.updateFlipScores(2);
         assertEquals("", walker.toString("flipscores"));
@@ -412,7 +412,7 @@ public class WalkerTest extends TestCase {
         assertEquals("1:1.0,2:1.0,3:1.0,", walker.toString("flipscores"));
         assertEquals("1,2,3,",walker.toString("predicates"));
         assertEquals("1: 1v2v3\n",walker.toString("falseClauses"));
-        assertEquals(1,walker.falseClauses);
+        assertEquals(1,walker.falseClauseList.size());
     }
     public void testAddGloballyTrueLiteral() throws Unsatisfiable {
         System.out.println("addGloballyTrueLiteral ");
@@ -426,7 +426,7 @@ public class WalkerTest extends TestCase {
         assertEquals("1:1.0,2:1.0,3:1.0,", walker.toString("flipscores"));
         assertEquals("1,2,3,",walker.toString("predicates"));
         assertEquals("1: 1v2v3\n",walker.toString("falseClauses"));
-        assertEquals(1,walker.falseClauses);
+        assertEquals(1,walker.falseClauseList.size());
 
         walker.model.add(1,null);
         walker.addGloballyTrueLiteral(1, null);
@@ -437,7 +437,7 @@ public class WalkerTest extends TestCase {
         assertEquals("1:-1.07374182E9,", walker.toString("flipscores"));
         assertEquals("",walker.toString("predicates"));
         assertEquals("",walker.toString("falseClauses"));
-        assertEquals(0,walker.falseClauses);
+        assertEquals(0,walker.falseClauseList.size());
     }
     public void testRemoveClause() throws Unsatisfiable {
         System.out.println("removeClause");
@@ -453,12 +453,12 @@ public class WalkerTest extends TestCase {
         assertEquals("1,2,3,", walker.toString("predicates"));
         assertEquals("1: 1v2\n" +
                 "2: 2v3\n", walker.toString("falseClauses"));
-        assertEquals(2, walker.falseClauses);
+        assertEquals(2, walker.falseClauseList.size());
         walker.removeClause(clause1);
         assertEquals("2:1.0,3:1.0,", walker.toString("flipscores"));
         assertEquals("2,3,", walker.toString("predicates"));
         assertEquals("2: 2v3\n", walker.toString("falseClauses"));
-        assertEquals(1, walker.falseClauses);
+        assertEquals(1, walker.falseClauseList.size());
         assertEquals("Positive Literals:\n" +
                 "2:1,3:1,\n" +
                 "Negative Literals:\n",walker.toString("literals"));
@@ -477,7 +477,7 @@ public class WalkerTest extends TestCase {
         assertEquals("2:1.0,3:1.0,", walker.toString("flipscores"));
         assertEquals("2,3,", walker.toString("predicates"));
         assertEquals("1: 1v2v3\n", walker.toString("falseClauses"));
-        assertEquals(1, walker.falseClauses);
+        assertEquals(1, walker.falseClauseList.size());
         assertEquals("Positive Literals:\n" +
                 "1:1,2:2,3:2,\n" +
                 "Negative Literals:\n" +
@@ -489,7 +489,7 @@ public class WalkerTest extends TestCase {
         assertEquals("2:-1.07374182E9,3:1.0,4:1.0,", walker.toString("flipscores"));
         assertEquals("3,4,", walker.toString("predicates"));
         assertEquals("1: 1v4v3\n", walker.toString("falseClauses"));
-        assertEquals(1, walker.falseClauses);
+        assertEquals(1, walker.falseClauseList.size());
         assertEquals("Positive Literals:\n" +
                 "1:1,3:2,4:2,\n" +
                 "Negative Literals:\n" +
@@ -509,7 +509,7 @@ public class WalkerTest extends TestCase {
         assertEquals("2:1.0,3:1.0,", walker.toString("flipscores"));
         assertEquals("2,3,", walker.toString("predicates"));
         assertEquals("1: 1v2v3\n", walker.toString("falseClauses"));
-        assertEquals(1, walker.falseClauses);
+        assertEquals(1, walker.falseClauseList.size());
         assertEquals("Positive Literals:\n" +
                 "1:1,2:2,3:2,\n" +
                 "Negative Literals:\n" +
@@ -521,7 +521,7 @@ public class WalkerTest extends TestCase {
         assertEquals("2:-1.07374182E9,3:1.0,", walker.toString("flipscores"));
         assertEquals("3,", walker.toString("predicates"));
         assertEquals("1: 1v3\n", walker.toString("falseClauses"));
-        assertEquals(1, walker.falseClauses);
+        assertEquals(1, walker.falseClauseList.size());
         assertEquals("Positive Literals:\n" +
                 "1:1,3:2,\n" +
                 "Negative Literals:\n" +
@@ -542,7 +542,7 @@ public class WalkerTest extends TestCase {
         assertEquals("1:0.5,2:-1.07374182E9,", walker.toString("flipscores"));
         assertEquals("1,", walker.toString("predicates"));
         assertEquals("1: [2,4] 1,3^2\n", walker.toString("falseClauses"));
-        assertEquals(1, walker.falseClauses);
+        assertEquals(1, walker.falseClauseList.size());
         assertEquals("Positive Literals:\n" +
                 "1:1,3:2,\n" +
                 "Negative Literals:\n" +
@@ -567,7 +567,7 @@ public class WalkerTest extends TestCase {
         assertEquals("2:-1.07374182E9,3:-1.0,4:-1.0,", walker.toString("flipscores"));
         assertEquals("", walker.toString("predicates"));
         assertEquals("", walker.toString("falseClauses"));
-        assertEquals(0, walker.falseClauses);
+        assertEquals(0, walker.falseClauseList.size());
         assertEquals("Positive Literals:\n" +
                 "3:1,4:1,\n" +
                 "Negative Literals:\n" +

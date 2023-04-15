@@ -152,7 +152,7 @@ public abstract class Solver {
     public EquivalenceClasses equivalenceClasses;
 
     /** the symboltable */
-    public  Symboltable symboltable;
+    public  Symboltable symboltable = null;
 
     /** controls the application of inferenceSteps. */
     protected boolean trackReasoning = true;

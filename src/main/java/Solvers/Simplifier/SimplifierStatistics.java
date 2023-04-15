@@ -22,6 +22,9 @@ public class SimplifierStatistics extends Statistic {
     @Description("number of partially pure literals")
     public int partiallyPureLiterals = 0;
 
+    @Description("number of true literals in saturated 2-literal clauses.")
+    public int saturatedLiterals = 0;
+
     @Description("number of subsumed clauses")
     public int subsumedClauses = 0;
 
@@ -30,6 +33,9 @@ public class SimplifierStatistics extends Statistic {
 
     @Description("number of binary resolvents")
     public int binaryResolvents = 0;
+
+    @Description("number of longer resolvents")
+    public int longerResolvents = 0;
 
     @Description("equivalence replacements")
     public int equivalenceReplacements = 0;
@@ -40,9 +46,11 @@ public class SimplifierStatistics extends Statistic {
         derivedUnitClauses          = 0;
         pureLiterals                = 0;
         partiallyPureLiterals       = 0;
+        saturatedLiterals           = 0;
         subsumedClauses             = 0;
         mergedClauses               = 0;
         binaryResolvents            = 0;
+        longerResolvents            = 0;
         equivalenceReplacements     = 0;
     }
     public String toString(){
@@ -53,9 +61,11 @@ public class SimplifierStatistics extends Statistic {
         st.append("Derived Unit Clauses:      ").append(derivedUnitClauses).append("\n");
         st.append("Pure Literals:             ").append(pureLiterals).append("\n");
         st.append("Parially pure Literals:    ").append(partiallyPureLiterals).append("\n");
+        st.append("Saturated Literals:        ").append(saturatedLiterals).append("\n");
         st.append("Subsumed Clauses:          ").append(subsumedClauses).append("\n");
         st.append("Merged Clauses:            ").append(mergedClauses).append("\n");
         st.append("Binary Resolvents:         ").append(binaryResolvents).append("\n");
+        st.append("Longer Resolvents:         ").append(longerResolvents).append("\n");
         st.append("Equivalence Replacements:  ").append(equivalenceReplacements);
         return st.toString();
     }
