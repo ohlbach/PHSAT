@@ -19,6 +19,9 @@ public class SimplifierStatistics extends Statistic {
     @Description("number of pure literals")
     public int pureLiterals = 0;
 
+    @Description("number of partially pure literals")
+    public int partiallyPureLiterals = 0;
+
     @Description("number of subsumed clauses")
     public int subsumedClauses = 0;
 
@@ -36,6 +39,7 @@ public class SimplifierStatistics extends Statistic {
         notInternalizedInputClauses = 0;
         derivedUnitClauses          = 0;
         pureLiterals                = 0;
+        partiallyPureLiterals       = 0;
         subsumedClauses             = 0;
         mergedClauses               = 0;
         binaryResolvents            = 0;
@@ -48,6 +52,7 @@ public class SimplifierStatistics extends Statistic {
         st.append("Initially Removed Clauses: ").append(notInternalizedInputClauses).append("\n");
         st.append("Derived Unit Clauses:      ").append(derivedUnitClauses).append("\n");
         st.append("Pure Literals:             ").append(pureLiterals).append("\n");
+        st.append("Parially pure Literals:    ").append(partiallyPureLiterals).append("\n");
         st.append("Subsumed Clauses:          ").append(subsumedClauses).append("\n");
         st.append("Merged Clauses:            ").append(mergedClauses).append("\n");
         st.append("Binary Resolvents:         ").append(binaryResolvents).append("\n");

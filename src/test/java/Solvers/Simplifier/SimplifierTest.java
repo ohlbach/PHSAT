@@ -460,11 +460,11 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
         simplifier.insertClause(new Clause(new int[]{3, cOr, 1, 3}));
         Clause clause = new Clause(new int[]{4, cOr, 1, 3});
-        assertTrue(simplifier.binaryClauseIsSubsumedByBinaryClause(clause));
+        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClause(clause));
         clause = new Clause(new int[]{5, cOr, 3, 1});
-        assertTrue(simplifier.binaryClauseIsSubsumedByBinaryClause(clause));
+        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClause(clause));
         clause = new Clause(new int[]{6, cOr, 1, 4});
-        assertFalse(simplifier.binaryClauseIsSubsumedByBinaryClause(clause));
+        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClause(clause));
     }
     public void testResolveBetweenBinaryClauses() throws Result{
         System.out.println("resolveBetweenBinaryClauses");
@@ -489,66 +489,6 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause1);
         clause2 = new Clause(new int[]{4, cOr, 2, -3});
         assertNull(simplifier.resolveBetweenBinaryClauses(clause2,clause1));
-    }
-    public void testMergeResolutionWithBinaryClause() throws Result {
-        System.out.println("mergeResolutionWithBinaryClause");
-        int predicates = 6;
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
-        Clause clause1 = new Clause(new int[]{2, cOr, 1, 2});
-        simplifier.insertClause(clause1);
-        Clause clause2 = new Clause(new int[]{3, cAtleast, 2, -1, 2,2,3,4});
-        simplifier.insertClause(clause2);
-        simplifier.mergeResolutionWithBinaryClause(clause1,1,2);
-        assertEquals("2: 1v2\n" +
-                "3: >= 2 2^2,3,4\n",simplifier.clauses.toString());
-        if(monitoring) System.out.println("Iference step\n   " + clause2.inferenceStep.toString());
-
-        if(monitoring) System.out.println("\nNEW 2");
-        simplifier.clear();
-        clause1 = new Clause(new int[]{2, cOr, 1, 2});
-        simplifier.insertClause(clause1);
-        clause2 = new Clause(new int[]{3, cAtleast, 2, -1, 2,2,3});
-        simplifier.insertClause(clause2);
-        simplifier.mergeResolutionWithBinaryClause(clause1,1,2);
-        assertEquals("2: 1v2\n",simplifier.clauses.toString());
-        assertEquals("2,3",simplifier.model.toString());
-        if(monitoring) System.out.println(simplifier.statistics.toString());
-
-        if(monitoring) System.out.println("\nNEW 3");
-        simplifier.clear();
-        clause1 = new Clause(new int[]{2, cOr, 1, 2});
-        simplifier.insertClause(clause1);
-        clause2 = new Clause(new int[]{3, cAtleast, 3, -1, 2,2,3,4});
-        simplifier.insertClause(clause2);
-        simplifier.mergeResolutionWithBinaryClause(clause1,1,2);
-        assertEquals("2: 1v2\n" +
-                "3: >= 3 -1,2^2,3,4\n",simplifier.clauses.toString());
-        assertEquals("",simplifier.model.toString());
-
-        if(monitoring) System.out.println("\nNEW 4");
-        simplifier.clear();
-        clause1 = new Clause(new int[]{2, cOr, 1, 2});
-        simplifier.insertClause(clause1);
-        simplifier.insertClause(new Clause(new int[]{3, cAtleast, 3, -1, 2,2,3,4}));
-        simplifier.insertClause(new Clause(new int[]{4, cAtleast, 3, -1, 2,2,2,3,4}));
-        simplifier.insertClause(new Clause(new int[]{5, cOr, 2,3,-1,4}));
-        simplifier.insertClause(new Clause(new int[]{6, cOr, -2,3,-1,4}));
-        simplifier.insertClause(new Clause(new int[]{7, cOr, 2,3,4}));
-        simplifier.insertClause(new Clause(new int[]{8, cOr, -2,3,1}));
-        simplifier.mergeResolutionWithBinaryClause(clause1,1,2);
-        simplifier.mergeResolutionWithBinaryClause(clause1,2,1);
-        assertEquals("2: 1v2\n" +
-                "3: >= 3 -1,2^2,3,4\n" +
-                "5: 2v3v4\n" +
-                "6: -2v3v-1v4\n" +
-                "7: 2v3v4\n" +
-                "8: 3v1\n",simplifier.clauses.toString());
-        assertEquals("2,3,4",simplifier.model.toString());
-        if(monitoring) System.out.println(simplifier.statistics.toString());
-
     }
     public void testBinaryClauseResolutionCompletion() throws Result {
         System.out.println("saturateBinaryClausesWithBinaryCLause");

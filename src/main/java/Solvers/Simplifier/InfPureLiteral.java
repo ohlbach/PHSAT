@@ -13,26 +13,34 @@ public class InfPureLiteral extends InferenceStep {
     public String title() {
         return title;}
 
-    private static final String rule =
-            "If a literal l does not occur any more in the clauses, " +
+    private static final String rulePure =
+            "If a literal l does not occur any more in the clauses,\n" +
             "its negation can be made true.";
+
+    private static final String rulePartial =
+            "If the clauses are 2-literal saturated\n" +
+                    "and a literal l does not occur any more in the longer clauses,\n" +
+                    "its negation can be made true.";
+
     @Override
     public String rule() {
-        return rule;}
+        return partiallyPure ? rulePartial : rulePure;}
 
     private final int pureLiteral;
+    private final boolean partiallyPure;
 
-    public InfPureLiteral(int pureLiteral) {
-        this.pureLiteral = pureLiteral;}
+    public InfPureLiteral(int pureLiteral, boolean partiallyPure) {
+        this.pureLiteral = pureLiteral;
+        this.partiallyPure = partiallyPure;}
 
     @Override
     public String toString(Symboltable symboltable) {
-        return "Literal " + Symboltable.toString(pureLiteral, symboltable) + " is pure and becomes true.";}
+        return "Literal " + Symboltable.toString(pureLiteral, symboltable) +
+                " is" + (partiallyPure ? " partially" : "") +" pure and becomes true.";}
 
     @Override
     public IntArrayList inputClauseIds() {
-        return null;
-    }
+        return new IntArrayList();}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
