@@ -40,12 +40,17 @@ public class SimplifierStatistics extends Statistic {
     @Description("equivalence replacements")
     public int equivalenceReplacements = 0;
 
+    @Description("number of complementary literal pairs.")
+    public int complementaryLiterals = 0;
+
+
     public void clear() {
         orAndAtleastCLauses         = 0;
         notInternalizedInputClauses = 0;
         derivedUnitClauses          = 0;
         pureLiterals                = 0;
         partiallyPureLiterals       = 0;
+        complementaryLiterals       = 0;
         saturatedLiterals           = 0;
         subsumedClauses             = 0;
         mergedClauses               = 0;
@@ -61,6 +66,7 @@ public class SimplifierStatistics extends Statistic {
         st.append("Derived Unit Clauses:      ").append(derivedUnitClauses).append("\n");
         st.append("Pure Literals:             ").append(pureLiterals).append("\n");
         st.append("Parially pure Literals:    ").append(partiallyPureLiterals).append("\n");
+        st.append("complementary Literals:    ").append(complementaryLiterals).append("\n");
         st.append("Saturated Literals:        ").append(saturatedLiterals).append("\n");
         st.append("Subsumed Clauses:          ").append(subsumedClauses).append("\n");
         st.append("Merged Clauses:            ").append(mergedClauses).append("\n");

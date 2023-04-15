@@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
 /** A Clause object is essentially a collection of Literal objects.
@@ -145,6 +146,7 @@ public class Clause {
         this.limit = limit;
         this.literals = literals;
         for(Literal literalObject: literals) {
+            literalObject.clause = this;
             literalObject.multiplicity = Math.min(limit,literalObject.multiplicity);
             expandedSize += literalObject.multiplicity;}
         hasMultiplicities = expandedSize > literals.size();}
@@ -238,9 +240,10 @@ public class Clause {
      * Example: atleast 2 p^2, -p^1,q,r -> atleast 0 q,r -> true.<br>
      * The clause may be turned into a disjunction.
      *
+     * @param complementaries for counting the removal of complementary literals.
      * @return true if the clause became a true clause.
      */
-    protected boolean removeComplementaryLiterals() {
+    protected boolean removeComplementaryLiterals(IntConsumer complementaries) {
         boolean complementariesFound = false;
         for(int i = 0; i < literals.size()-1; ++i) {
             Literal literalObject1 = literals.get(i);
@@ -252,6 +255,7 @@ public class Clause {
                     complementariesFound = true;
                     int multiplicity2 = literalObject2.multiplicity;
                     if(multiplicity1 == multiplicity2) {
+                        complementaries.accept(multiplicity1);
                         limit -= multiplicity1;
                         if(limit <= 0) return true;
                         literals.remove(j);
@@ -259,12 +263,14 @@ public class Clause {
                         expandedSize -= multiplicity1;
                         break;}
                     if(multiplicity1 > multiplicity2) {
+                        complementaries.accept(multiplicity2);
                         limit -= multiplicity2;
                         if(limit <= 0) return true;
                         literalObject1.multiplicity -= multiplicity2;
                         literals.remove(j);
                         expandedSize -= multiplicity2;
                         break;}
+                    complementaries.accept(multiplicity1);
                     limit -= multiplicity1;
                     if(limit <= 0) return true;
                     literalObject2.multiplicity -= multiplicity1;
@@ -431,9 +437,10 @@ public class Clause {
      * @param id              for generating a new identifier.
      * @param literalObject1  the first parent literal.
      * @param literalObject2  the second parent literal.
+     * @param complementaries for counting the removal of complementary literals.
      * @return                null if the resolvent is a tautology, otherwise the new resolvent.
      */
-    Clause resolve(IntSupplier id, Literal literalObject1, Literal literalObject2) {
+    Clause resolve(IntSupplier id, Literal literalObject1, Literal literalObject2, IntConsumer complementaries) {
         Clause clause2 = literalObject2.clause;
         int newLimit = limit + clause2.limit - Math.max(literalObject1.multiplicity,literalObject2.multiplicity);
         ArrayList<Literal> newLiterals = new ArrayList<>(literals.size() + clause2.literals.size()-2);
@@ -452,8 +459,7 @@ public class Clause {
             newLiterals.add(new Literal(literalObject.literal,literalObject.multiplicity));}
         Quantifier newQuantifier = (newLimit == 1) ? Quantifier.OR : Quantifier.ATLEAST;
         Clause resolvent = new Clause(id.getAsInt(),newQuantifier,newLimit,newLiterals);
-        for(Literal literalObject: newLiterals) literalObject.clause = resolvent;
-        return resolvent.removeComplementaryLiterals() ? null : resolvent;}
+        return resolvent.removeComplementaryLiterals(complementaries) ? null : resolvent;}
 
     /** returns the number of Literal objects in the clause.
      *

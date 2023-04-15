@@ -492,7 +492,7 @@ public class SimplifierTest extends TestCase {
         assertNull(simplifier.resolveBetweenBinaryClauses(clause2,clause1));
     }
     public void testBinaryClauseResolutionCompletion() throws Result {
-        System.out.println("saturateBinaryClausesWithBinaryCLause");
+        System.out.println("saturateBinaryClausesWithBinaryClause");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -506,7 +506,7 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause3);
         Clause clause4 = new Clause(new int[]{5, cOr, -2,3 });
         simplifier.insertClause(clause4);
-        simplifier.saturateBinaryClausesWithBinaryCLause(clause1, 1);
+        simplifier.saturateBinaryClausesWithBinaryClause(clause1, 1);
         assertEquals(" 2: 1v2\n" +
                 " 3: -1v3\n" +
                 " 4: -1v4\n" +
@@ -525,7 +525,7 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause3);
         clause4 = new Clause(new int[]{5, cOr, -2,3 });
         simplifier.insertClause(clause4);
-        simplifier.saturateBinaryClausesWithBinaryCLause(clause1, 1);
+        simplifier.saturateBinaryClausesWithBinaryClause(clause1, 1);
         assertEquals("3: -1v3\n" +
                 "5: -2v3\n",simplifier.clauses.toString());
         assertEquals("-1,2",simplifier.model.toString());
@@ -818,7 +818,161 @@ public class SimplifierTest extends TestCase {
                 "3: >= 4 1^4,-2^3,3^3,4\n", simplifier.clauses.toString());
 
         }
+    public void testbinaryClauseIsSubsumedByBinaryClauses()  {
+        System.out.println("binaryClauseIsSubsumedByBinaryClauses");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
 
+        simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 2, 3}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
+
+        Clause clause = new Clause(new int[]{4, cOr, 2, -1});
+        assertNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
+        clause = new Clause(new int[]{5, cOr, 3, 2});
+        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
+        clause = new Clause(new int[]{6, cOr, 2,1});
+        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
+        assertNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(simplifier.clauses.firstClause));
+    }
+
+    public void testlongerClauseIsSubsumedByBinaryClause()  {
+        System.out.println("longerClauseIsSubsumedByBinaryClause");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
+
+        simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 2, 3}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
+
+        Clause clause = new Clause(new int[]{4, cOr, 2, -1, -3});
+        assertNull(simplifier.longerClauseIsSubsumedByBinaryClause(clause));
+        clause = new Clause(new int[]{5, cOr, 3, 2, 1});
+        assertNotNull(simplifier.longerClauseIsSubsumedByBinaryClause(clause));
+        clause = new Clause(new int[]{6, cOr, 2,1,-3});
+        assertNotNull(simplifier.longerClauseIsSubsumedByBinaryClause(clause));
+    }
+    public void testlongerClauseIsSubsumedByLongerClause()  {
+        System.out.println("longerClauseIsSubsumedByLongerClause");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, false, nextId);
+
+        simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 2, 3, 4}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, -2, -1, 3}));
+
+        Clause clause = new Clause(new int[]{4, cOr, 2, -1, -3});
+        assertNull(simplifier.longerClauseIsSubsumedByLongerClause(clause));
+        clause = new Clause(new int[]{5, cOr, 3, 2, 1, 4});
+        assertNotNull(simplifier.longerClauseIsSubsumedByLongerClause(clause));
+        clause = new Clause(new int[]{6, cOr, 4, 2,1,-3});
+        assertNull(simplifier.longerClauseIsSubsumedByLongerClause(clause));
+        clause = new Clause(new int[]{7, cOr, 4, 2,1,3});
+        assertNotNull(simplifier.longerClauseIsSubsumedByLongerClause(clause));
+
+        simplifier.clear();
+
+        simplifier.insertClause(new Clause(new int[]{1, cAtleast, 2, 1, 2, 3}));
+        clause = new Clause(new int[]{2, cOr, 4, 2,1,3});
+        assertNotNull(simplifier.longerClauseIsSubsumedByLongerClause(clause));
+
+        clause = new Clause(new int[]{3, cOr, 4, 2,1,3,4});
+        assertNotNull(simplifier.longerClauseIsSubsumedByLongerClause(clause));
+
+        clause = new Clause(new int[]{4, cOr, 4, 2,-1,3,4});
+        assertNull(simplifier.longerClauseIsSubsumedByLongerClause(clause));
+
+        clause = new Clause(new int[]{5, cAtleast, 2, 4, 2,1,3});
+        assertNotNull(simplifier.longerClauseIsSubsumedByLongerClause(clause));
+
+        simplifier.insertClause(new Clause(new int[]{6, cAtleast, 3, 1, 2,2, 5}));
+        clause = new Clause(new int[]{7, cAtleast, 3, 5, 2,1,3});
+        assertNull(simplifier.longerClauseIsSubsumedByLongerClause(clause));
+        clause = new Clause(new int[]{8, cAtleast, 3, 5, 2,2,2,1,3});
+        assertNotNull(simplifier.longerClauseIsSubsumedByLongerClause(clause));
+    }
+
+    public void testsaturateBinaryClauseWithLongerClauses() throws Result {
+        System.out.println("saturateBinaryClauseWithLongerClauses");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, false, nextId);
+
+        simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 2, 3, 4}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, -2, -1, 3}));
+        simplifier.insertClause(new Clause(new int[]{4, cAtleast, 2, 2, -1, -3}));
+
+        Clause clause = new Clause(new int[]{5, cOr, -2, 5});
+        simplifier.insertClause(clause);
+        simplifier.saturateBinaryClauseWithLongerClauses(clause);
+        assertEquals(" 1: 1v2v3\n" +
+                " 2: 2v3v4\n" +
+                " 3: -2v-1v3\n" +
+                " 4: >= 2 2,-1,-3\n" +
+                " 5: -2v5\n" +
+                "11: >= 2 5,-1,-3\n" +
+                "12: 5v3v4\n" +
+                "13: 5v1v3\n",simplifier.clauses.toString());
+
+        simplifier.clear();
+
+        simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 2, -5}));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 2, 3, 4, 5}));
+        simplifier.insertClause(new Clause(new int[]{3, cOr, 2, 3, 5}));
+
+        clause = new Clause(new int[]{4, cOr, -2, 5});
+        simplifier.insertClause(clause);
+        simplifier.saturateBinaryClauseWithLongerClauses(clause);
+        assertEquals(" 1: 1v2v-5\n" +
+                " 2: 2v3v4v5\n" +
+                " 3: 2v3v5\n" +
+                " 4: -2v5\n" +
+                "14: 5v3\n",simplifier.clauses.toString());
+        //System.out.println(simplifier.statistics);
+    }
+
+    public void testResolve() throws Result {
+        System.out.println("resolve");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, false, nextId);
+
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
+        simplifier.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, 1, 2, -3});
+        simplifier.insertClause(clause2);
+        Clause clause3 = new Clause(new int[]{3, cOr, 1, -2, 3, 4});
+        simplifier.insertClause(clause3);
+        Clause clause4 = new Clause(new int[]{4, cOr, 1, -2, -3, 4});
+        simplifier.insertClause(clause4);
+        simplifier.resolve(clause1.literals.get(2),clause2.literals.get(2));
+        simplifier.resolve(clause1.literals.get(1),clause3.literals.get(1));
+        simplifier.resolve(clause1.literals.get(1),clause4.literals.get(1));
+        simplifier.resolve(clause1.literals.get(1),clause3.literals.get(1));
+        assertEquals(" 1: 1v2v3\n" +
+                " 2: 1v2v-3\n" +
+                " 3: 1v-2v3v4\n" +
+                " 4: 1v-2v-3v4\n" +
+                "11: 1v2\n" +
+                "12: 1v3v4\n",simplifier.clauses.toString());
+        //System.out.println(simplifier.statistics);
+
+
+    }
 
     }
 
