@@ -452,7 +452,7 @@ public class SimplifierTest extends TestCase {
         assertEquals("1 = 3\n",simplifier.equivalenceClasses.toString());
     }
     public void testIsSubsumedByBinaryClauses()  {
-        System.out.println("binaryClauseIsSubsumedByBinaryClauses");
+        System.out.println("binaryClauseIsSubsumed");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -461,11 +461,11 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
         simplifier.insertClause(new Clause(new int[]{3, cOr, 1, 3}));
         Clause clause = new Clause(new int[]{4, cOr, 1, 3});
-        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
+        assertNotNull(simplifier.binaryClauseIsSubsumed(clause));
         clause = new Clause(new int[]{5, cOr, 3, 1});
-        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
+        assertNotNull(simplifier.binaryClauseIsSubsumed(clause));
         clause = new Clause(new int[]{6, cOr, 1, 4});
-        assertNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
+        assertNull(simplifier.binaryClauseIsSubsumed(clause));
     }
     public void testResolveBetweenBinaryClauses() throws Result{
         System.out.println("resolveBetweenBinaryClauses");
@@ -733,7 +733,7 @@ public class SimplifierTest extends TestCase {
         }
 
     public void testmergeResolutionWithLongerClauseDirect1() throws Result {
-        System.out.println("mergeResolutionWithLongerClauseDirect 1");
+        System.out.println("mergeResolutionWithLongerClause 1");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -743,7 +743,7 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause);
         Clause clause1 = new Clause(new int[]{2, cOr, 3, -2, 1, 4});
         simplifier.insertClause(clause1);
-        assertTrue(simplifier.mergeResolutionWithLongerClauseDirect(clause));
+        assertTrue(simplifier.mergeResolutionWithLongerClause(clause));
         assertEquals("1: 1v2v3\n" +
                 "2: 3v1v4\n", simplifier.clauses.toString());
         if(monitoring) {
@@ -755,7 +755,7 @@ public class SimplifierTest extends TestCase {
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});
         simplifier.insertClause(clause);
         simplifier.insertClause(new Clause(new int[]{2, cOr, 3, -2, 1}));
-        assertFalse(simplifier.mergeResolutionWithLongerClauseDirect(clause));
+        assertFalse(simplifier.mergeResolutionWithLongerClause(clause));
         assertEquals("2: 3v1\n", simplifier.clauses.toString());
 
         if(monitoring) {
@@ -770,7 +770,7 @@ public class SimplifierTest extends TestCase {
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});
         simplifier.insertClause(clause);
         simplifier.insertClause(new Clause(new int[]{2, cOr, 3, -2, 4}));
-        assertTrue(simplifier.mergeResolutionWithLongerClauseDirect(clause));
+        assertTrue(simplifier.mergeResolutionWithLongerClause(clause));
         assertEquals("1: 1v2v3\n" +
                 "2: 3v-2v4\n", simplifier.clauses.toString());
 
@@ -780,7 +780,7 @@ public class SimplifierTest extends TestCase {
         clause = new Clause(new int[]{1, cAtleast, 2, 1, 2, 3});
         simplifier.insertClause(clause);
         simplifier.insertClause(new Clause(new int[]{2, cAtleast, 2, -1,-1,2,2,3,3}));
-        assertTrue(simplifier.mergeResolutionWithLongerClauseDirect(clause));
+        assertTrue(simplifier.mergeResolutionWithLongerClause(clause));
         assertEquals("1: >= 2 1,2,3\n" +
                 "2: 2v3\n", simplifier.clauses.toString());
 
@@ -792,7 +792,7 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(new Clause(new int[]{3, cOr, 3, -2, -1}));
         simplifier.insertClause(new Clause(new int[]{4, cOr, 3, -1, 4,2,5}));
         simplifier.insertClause(new Clause(new int[]{5, cOr, -3, 2, 4,1}));
-        assertTrue(simplifier.mergeResolutionWithLongerClauseDirect(clause));
+        assertTrue(simplifier.mergeResolutionWithLongerClause(clause));
         assertEquals("1: 1v2v3\n" +
                 "2: 3v-2v4\n" +
                 "3: 3v-2v-1\n" +
@@ -802,7 +802,7 @@ public class SimplifierTest extends TestCase {
     }
 
     public void testmergeResolutionWithLongerClauseDirect2 () throws Result {
-        System.out.println("mergeResolutionWithLongerClauseDirect 2");
+        System.out.println("mergeResolutionWithLongerClause 2");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -812,14 +812,14 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause);
         simplifier.insertClause(new Clause(new int[]{2, cAtleast, 4, 1,1,1,1, -2,-2,-2, 3,3,3,3,4}));
         simplifier.insertClause(new Clause(new int[]{3, cAtleast, 4, 1,1,1,1, -2,-2,-2, 3,3,3,4}));
-        simplifier.mergeResolutionWithLongerClauseDirect(clause);
+        simplifier.mergeResolutionWithLongerClause(clause);
         assertEquals("1: >= 3 1^2,2,3^2\n" +
                 "2: 1v3\n" +
                 "3: >= 4 1^4,-2^3,3^3,4\n", simplifier.clauses.toString());
 
         }
     public void testbinaryClauseIsSubsumedByBinaryClauses()  {
-        System.out.println("binaryClauseIsSubsumedByBinaryClauses");
+        System.out.println("binaryClauseIsSubsumed");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -831,12 +831,12 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
 
         Clause clause = new Clause(new int[]{4, cOr, 2, -1});
-        assertNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
+        assertNull(simplifier.binaryClauseIsSubsumed(clause));
         clause = new Clause(new int[]{5, cOr, 3, 2});
-        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
+        assertNotNull(simplifier.binaryClauseIsSubsumed(clause));
         clause = new Clause(new int[]{6, cOr, 2,1});
-        assertNotNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(clause));
-        assertNull(simplifier.binaryClauseIsSubsumedByBinaryClauses(simplifier.clauses.firstClause));
+        assertNotNull(simplifier.binaryClauseIsSubsumed(clause));
+        assertNull(simplifier.binaryClauseIsSubsumed(simplifier.clauses.firstClause));
     }
 
     public void testlongerClauseIsSubsumedByBinaryClause()  {
@@ -970,9 +970,29 @@ public class SimplifierTest extends TestCase {
                 "11: 1v2\n" +
                 "12: 1v3v4\n",simplifier.clauses.toString());
         //System.out.println(simplifier.statistics);
+    }
 
+    public void testcheckForPartialPurity() throws Result {
+        System.out.println("checkForPartialPurity");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Simplifier simplifier = new Simplifier(predicates, monitor, false, nextId);
+
+        simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, 3, 2}));
+        simplifier.checkForPartialPurity();
+        assertEquals("1", simplifier.model.toString());
+
+        simplifier.clear();
+        simplifier.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
+        simplifier.insertClause(new Clause(new int[]{2, cOr, -1,2,-3}));
+        simplifier.checkForPartialPurity();
+        assertEquals("2", simplifier.model.toString());
 
     }
+
 
     }
 

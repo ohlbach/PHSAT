@@ -45,10 +45,10 @@ public class QUSat {
 
    private static final String parameters =
             "problem random\n"+
-                    "predicates = 30\n" +
+                    "predicates = 20\n" +
                     "cpRatio = 4\n"+
                     "length = 3\n"+
-                    "seed = 2\n"+
+                    "seed = 5\n"+
             "global\n" +
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
