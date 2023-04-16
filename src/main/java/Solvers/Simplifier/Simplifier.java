@@ -177,18 +177,12 @@ public class Simplifier extends Solver {
             for(int[] inputClause : inputClauses.disjunctions) {
                 Clause clause = new Clause(inputClause);
                 if(clause.removeComplementaryLiterals(n -> statistics.complementaryLiterals += n)) {++statistics.notInternalizedInputClauses; continue;}
-                clause.removeDoubleLiterals();
                 if(clause.size() == 1) {
                     ++statistics.derivedUnitClauses;
                     ++statistics.notInternalizedInputClauses;
                     model.add(clause.literals.get(0).literal,clause.inferenceStep);
                     continue;}
-                insertClause(clause);
-                if(clause.size() == 2) addBinaryClauseTask(clause);
-                else {
-                    queue.add(new Task<>(TaskType.ProcessLongerInputClause,clause));}
-                if(clause.size() == 3){synchronized(this){queue.add(new Task<>(TaskType.ProcessMergeResolutionPartial,clause));}}
-            }
+                insertClause(clause);}
 
             for(int[] inputClause : inputClauses.atleasts) {
                 insertNewClause(inputClause,new Clause(inputClause));}
@@ -234,6 +228,7 @@ public class Simplifier extends Solver {
             result.problemId = problemId;
             result.statistic = statistics;
             throw result;}
+        synchronized(this){queue.add(new Task<>(TaskType.ProcessMergeResolutionPartial,clauses.firstClause));}
         }
 
     /** simplifies and inserts an atleast-clause derived from input clauses.
@@ -248,19 +243,17 @@ public class Simplifier extends Solver {
         if(clause.isTrue())  {++statistics.notInternalizedInputClauses; return false;}
         if(clause.isFalse()) {throw new UnsatClause(problemId,solverId,inputClause);}
         int size = clause.size();
-        if(clause.removeComplementaryLiterals(n -> statistics.complementaryLiterals += n))   {++statistics.notInternalizedInputClauses; return false;}
+        if(clause.removeComplementaryLiterals(n -> statistics.complementaryLiterals += n))   {
+            ++statistics.notInternalizedInputClauses; return false;}
         if(clause.size() != size) {
             if(monitoring)
                 monitor.println(monitorId,"Complementary literals removed in clause " +
                         InputClauses.toString(0,inputClause,symboltable) + " -> " + clause.toString(symboltable,0));}
         if(!clause.isDisjunction) {
-            if(!simplifyClause(clause, false)) {++statistics.notInternalizedInputClauses; return false;}}
-        if(clause.size() == 2 && binaryClauseIsSubsumed(clause) != null) return false;
+            if(!simplifyClause(clause, false)) {
+                ++statistics.notInternalizedInputClauses; return false;}}
         insertClause(clause);
         ++statistics.orAndAtleastCLauses;
-        if(clause.size() == 2) addBinaryClauseTask(clause);
-        else {synchronized(this){queue.add(new Task<>(TaskType.ProcessLongerInputClause,clause));}}
-        if(clause.size() == 3){synchronized(this){queue.add(new Task<>(TaskType.ProcessMergeResolutionPartial,clause));}}
         return true;}
 
     /** adds the literals which are already true in the model to the task queue.
@@ -327,7 +320,8 @@ public class Simplifier extends Solver {
                         break;
                     case ProcessLongerInputClause:
                         clause = (Clause)task.a;
-                        if(clause.exists) {processLongerInputClause(task);}
+                        if(clause.exists) {
+                            processClauseFirstTime(task);}
                         break;
                     case ProcessMergeResolutionPartial:
                         clause = (Clause)task.a;
@@ -489,18 +483,37 @@ public class Simplifier extends Solver {
      */
     protected void processBinaryClause(Clause clause) throws Unsatisfiable {
         assert(clause.size() == 2);
+        if(binaryClauseIsSubsumed(clause) != null) {
+            removeClause(clause,true);
+            return;}
+        removeBinaryClausesSubsumedByBinaryClause(clause);
+        removeLongerClausesSubsumedByBinaryClause(clause);
         int literal1 = clause.literals.get(0).literal;
         int literal2 = clause.literals.get(1).literal;
-        removeClausesSubsumedByBinaryClause(clause);
         binaryMergeResolutionAndEquivalence(clause,literal1,literal2,true);
         if(!clause.exists) return;
         binaryMergeResolutionAndEquivalence(clause,literal2,literal1,false);
         if(!clause.exists) return;
-        saturateBinaryClausesWithBinaryClause(clause,literal1);
-        if(!clause.exists) return;
-        saturateBinaryClausesWithBinaryClause(clause,literal2);
+        saturateBinaryClausesWithBinaryClause(clause);
         if(!clause.exists) return;
         saturateBinaryClauseWithLongerClauses(clause);}
+
+    /** removes all binary clauses which are subsumed by a binary subsumer.
+     *
+     * @param subsumer a binary clause.
+     * @throws Unsatisfiable if a contradiction is found (should not happen)
+     */
+    protected void removeBinaryClausesSubsumedByBinaryClause(Clause subsumer) throws Unsatisfiable {
+        assert(subsumer.size() == 2);
+        int literal1 = subsumer.literals.get(0).literal;
+        int literal2 = subsumer.literals.get(1).literal;
+        Literal subsumeeLiteral = literalIndexTwo.getFirstLiteralObject(literal1);
+        while(subsumeeLiteral != null) {
+            Clause subsumee = subsumeeLiteral.clause;
+            if(subsumee == null || subsumee == subsumer) {subsumeeLiteral = subsumeeLiteral.nextLiteral; continue;}
+            if(subsumee.otherLiteral(subsumeeLiteral).literal == literal2) {
+                removeClause(subsumee,true);}
+            subsumeeLiteral = subsumeeLiteral.nextLiteral;}}
 
 
     /** removes all longer disjunctions which are subsumed by a binary subsumer.
@@ -508,16 +521,16 @@ public class Simplifier extends Solver {
      * @param subsumer a binary clause.
      * @throws Unsatisfiable should not happen.
      */
-    protected void removeClausesSubsumedByBinaryClause(Clause subsumer) throws Unsatisfiable {
+    protected void removeLongerClausesSubsumedByBinaryClause(Clause subsumer) throws Unsatisfiable {
         assert(subsumer.size() == 2);
-        Literal subsumerLiteral = literalIndexMore.getFirstLiteralObject(subsumer.literals.get(0).literal);
-        while(subsumerLiteral != null) {
-            Clause subsumee = subsumerLiteral.clause;
-            if(subsumee == null) {subsumerLiteral = subsumerLiteral.nextLiteral; continue;}
+        Literal subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumer.literals.get(0).literal);
+        while(subsumeeLiteral != null) {
+            Clause subsumee = subsumeeLiteral.clause;
+            if(subsumee == null) {subsumeeLiteral = subsumeeLiteral.nextLiteral; continue;}
             if(subsumee.exists && subsumee.isDisjunction && subsumee != subsumer) subsumee.timestamp = timestamp;
-            subsumerLiteral = subsumerLiteral.nextLiteral;}
+            subsumeeLiteral = subsumeeLiteral.nextLiteral;}
 
-        Literal subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumer.literals.get(1).literal);
+        subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumer.literals.get(1).literal);
         while(subsumeeLiteral != null) {
             Clause subsumee = subsumeeLiteral.clause;
             if(subsumee == null) {subsumeeLiteral = subsumeeLiteral.nextLiteral; continue;}
@@ -625,23 +638,23 @@ public class Simplifier extends Solver {
      * If the resolvent's literals are identical it is inserted into the model.<br>
      * Other resolvents generate a new BinaryClauseTask.
      *
-     * @param clause     a binary clause,
-     * @param literal1   a literal of the clause.
+     * @param parentClause1     a binary clause,
      * @throws Unsatisfiable  if the model detects a contradiction.
      */
-    protected void saturateBinaryClausesWithBinaryClause(Clause clause, int literal1) throws Unsatisfiable {
-        assert(clause.size() == 2);
-        Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
-        while(literalObject != null) {
-            Clause clause1 = literalObject.clause;
-            if(clause1 == null) {literalObject = literalObject.nextLiteral; continue;}
-            Clause resolvent = resolveBetweenBinaryClauses(clause,clause1);
-            if(!clause.exists) return; // unit clause derived
-            if(resolvent != null) {
-                if(trackReasoning) resolvent.inferenceStep = new InfResolution(clause, clause1, resolvent, symboltable);
-                insertClause(resolvent);
-                addDerivedClauseTask(resolvent);}
-            literalObject = literalObject.nextLiteral;}}
+    protected void saturateBinaryClausesWithBinaryClause(Clause parentClause1) throws Unsatisfiable {
+        assert(parentClause1.size() == 2);
+        for(Literal parentLiteralObject1 : parentClause1.literals) {
+            Literal parentLiteralObject2 = literalIndexTwo.getFirstLiteralObject(-parentLiteralObject1.literal);
+            while(parentLiteralObject2 != null) {
+                Clause parentClause2 = parentLiteralObject2.clause;
+                if(parentClause2 == null) {parentLiteralObject2 = parentLiteralObject2.nextLiteral; continue;}
+                Clause resolvent = resolveBetweenBinaryClauses(parentClause1,parentClause2);
+                if(!parentClause1.exists) return; // unit clause derived
+                if(resolvent != null) {
+                    if(trackReasoning) resolvent.inferenceStep = new InfResolution(parentClause1, parentClause2, resolvent, symboltable);
+                    insertClause(resolvent);
+                    addDerivedClauseTask(resolvent);}
+                parentLiteralObject2 = parentLiteralObject2.nextLiteral;}}}
 
 
     /** generates a resolvent between two binary clauses.
@@ -817,13 +830,26 @@ public class Simplifier extends Solver {
      * @param task    a ProcessLongerInputClause task.
      * @throws Unsatisfiable a contradiction is discovered.
      */
-    protected void processLongerInputClause(Task<Simplifier.TaskType> task) throws Unsatisfiable {
+    protected void processClauseFirstTime(Task<Simplifier.TaskType> task) throws Unsatisfiable {
         Clause clause = (Clause)task.a;
-        while(!clause.exists || clause.size() <= 2) {
-            clause = clause.nextClause;
-            if(clause == null) return;}
-        removeClausesSubsumedByLongerClause(clause);
-        mergeResolutionWithLongerClause(clause);
+        while(clause != null) {
+            if(!clause.exists) {clause = clause.nextClause; continue;}
+            break;}
+        if(clause == null) return;
+        int size = clause.size();
+        if(size < 2) {
+            System.out.println("ERROR " + clause.toString());
+            System.exit(1);}
+        if(size == 2) processBinaryClause(clause);
+        else {processLongerClause(clause);}
+        clause = clause.nextClause;
+        while(clause != null) {
+            if(!clause.exists) {clause = clause.nextClause; continue;}
+            break;}
+        if(clause != null) {
+            task.a = clause;
+            synchronized (this) {queue.add(task);}
+        }
     }
 
 

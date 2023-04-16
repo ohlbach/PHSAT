@@ -400,7 +400,7 @@ public class SimplifierTest extends TestCase {
     }
 
     public void testRemoveClausesSubsumedByBinaryClause() throws Result {
-        System.out.println("removeClausesSubsumedByBinaryClause");
+        System.out.println("removeLongerClausesSubsumedByBinaryClause");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -415,7 +415,7 @@ public class SimplifierTest extends TestCase {
 
         Clause clause = new Clause(new int[]{7, cOr, 2,4});
         simplifier.insertClause(clause);
-        simplifier.removeClausesSubsumedByBinaryClause(clause);
+        simplifier.removeLongerClausesSubsumedByBinaryClause(clause);
         assertEquals("3: 3v4v5v6\n" +
                 "4: 2v-4v-5v-6\n" +
                 "6: >= 2 1,2,3,4\n" +
@@ -506,7 +506,7 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause3);
         Clause clause4 = new Clause(new int[]{5, cOr, -2,3 });
         simplifier.insertClause(clause4);
-        simplifier.saturateBinaryClausesWithBinaryClause(clause1, 1);
+        simplifier.saturateBinaryClausesWithBinaryClause(clause1);
         assertEquals(" 2: 1v2\n" +
                 " 3: -1v3\n" +
                 " 4: -1v4\n" +
@@ -525,7 +525,7 @@ public class SimplifierTest extends TestCase {
         simplifier.insertClause(clause3);
         clause4 = new Clause(new int[]{5, cOr, -2,3 });
         simplifier.insertClause(clause4);
-        simplifier.saturateBinaryClausesWithBinaryClause(clause1, 1);
+        simplifier.saturateBinaryClausesWithBinaryClause(clause1);
         assertEquals("3: -1v3\n" +
                 "5: -2v3\n",simplifier.clauses.toString());
         assertEquals("-1,2",simplifier.model.toString());
