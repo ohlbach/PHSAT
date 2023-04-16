@@ -48,7 +48,7 @@ public class QUSat {
                     "predicates = 20\n" +
                     "cpRatio = 4\n"+
                     "length = 3\n"+
-                    "seed = 5\n"+
+                    "seed = 6\n"+
             "global\n" +
                     "cnfFile = numbers\n"+
                     "logging = life\n"+

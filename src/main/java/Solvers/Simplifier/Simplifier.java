@@ -77,6 +77,8 @@ public class Simplifier extends Solver {
 
     private IntConsumer addComplementaries = (n -> statistics.complementaryLiterals += n);
 
+    private boolean checkConsistency = true;
+
     /** just creates a simplifier.
      *
      * @param parameters not used.
@@ -184,7 +186,8 @@ public class Simplifier extends Solver {
         try{
             for(int[] inputClause : inputClauses.disjunctions) {
                 Clause clause = new Clause(inputClause);
-                if(clause.removeComplementaryLiterals(n -> statistics.complementaryLiterals += n)) {++statistics.notInternalizedInputClauses; continue;}
+                if(clause.removeComplementaryLiterals((n -> statistics.complementaryLiterals += n),null)) {
+                    ++statistics.notInternalizedInputClauses; continue;}
                 if(clause.size() == 1) {
                     ++statistics.derivedUnitClauses;
                     ++statistics.notInternalizedInputClauses;
@@ -229,6 +232,7 @@ public class Simplifier extends Solver {
                                     InputClauses.toString(0,intervalClause,symboltable) + " turned to atleast-clause " +
                                     clause.toString(symboltable,0));}}}}
             checkAllPurities();
+            if(checkConsistency)checkConsistency();
             statistics.orAndAtleastCLauses = clauses.size;
             if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);
             synchronized(this){queue.add(new Task<>(TaskType.ProcessClauseFirstTime,clauses.firstClause));}
@@ -253,7 +257,7 @@ public class Simplifier extends Solver {
         if(clause.isTrue())  {++statistics.notInternalizedInputClauses; return false;}
         if(clause.isFalse()) {throw new UnsatClause(problemId,solverId,inputClause);}
         int size = clause.size();
-        if(clause.removeComplementaryLiterals(n -> statistics.complementaryLiterals += n))   {
+        if(clause.removeComplementaryLiterals((n -> statistics.complementaryLiterals += n),null))   {
             ++statistics.notInternalizedInputClauses; return false;}
         if(clause.size() != size) {
             if(monitoring)
@@ -304,7 +308,7 @@ public class Simplifier extends Solver {
         Clause clause;
         while(!interrupted()) {
             try {
-                //if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 switch(task.taskType){
                     case ProcessTrueLiteral:
@@ -439,9 +443,6 @@ public class Simplifier extends Solver {
     protected void processTrueLiteral(int literal) throws Unsatisfiable {
         processTrueLiteralTwo(literal);
         processTrueLiteralMore(literal);
-        System.out.println("PT " + literal);
-        System.out.println(clauses.toString());
-        System.out.println(literalIndexMore.toString());
     }
 
     /** applies a true literal to all two-literal clauses containing this literal.
@@ -495,6 +496,7 @@ public class Simplifier extends Solver {
             while(literalObject != null) {
                  Clause clause = literalObject.clause;
                  if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
+                 if(checkConsistency) checkConsistency();
                  boolean removed = false;
                  for(int i = 0; i < clause.literals.size(); ++i){ // all literals with a truth value are removed.
                      Literal litObject = clause.literals.get(i);
@@ -528,7 +530,9 @@ public class Simplifier extends Solver {
                             removeClause(clause,false);
                             break;
                         case 2:  addBinaryClauseTask(clause); break;
-                        default: if(simplifyClause(clause,true)) addDerivedClauseTask(clause);
+                        default: if(simplifyClause(clause,true)) {
+                                    if(checkConsistency) checkConsistency();
+                                    addDerivedClauseTask(clause);}
                                 else removeClause(clause,true);}
             literalObject = literalObject.nextLiteral;}}
         literalIndexMore.removePredicate(literal);}
@@ -970,7 +974,6 @@ int ch = 0;
                 if(negLiteralObject.clause.size() == 3) {negLiteralObject.clause.timestamp = timestamp; found = true;}
                 negLiteralObject = negLiteralObject.nextLiteral;}
             if(!found) continue;
-
             for(Literal literalObject1 : clause.literals) {
                 if(literalObject1 == literalObject) continue;
                 Literal otherLiteralObject = literalIndexMore.getFirstLiteralObject(literalObject1.literal);
@@ -979,7 +982,9 @@ int ch = 0;
                     if(otherLiteralObject.clause.timestamp == timestamp) { // example: -p,q,s
                         resolve(literalObject,otherLiteralObject.clause.findLiteral(-posLiteral));}
                         otherLiteralObject = otherLiteralObject.nextLiteral;}}
-            ++timestamp;}}
+            ++timestamp;}
+            
+    }
 
     /** creates all resolvents between the given 3-literal clause and all binary clauses.
      *
@@ -1118,7 +1123,7 @@ int ch = 0;
                     ++statistics.equivalenceReplacements;
                     if (trackReasoning) clause.inferenceStep =
                             new InfEquivalenceReplacement(clauseString, clause, representative, literal, equivalenceStep, symboltable);
-                    if(clause.removeComplementaryLiterals(n -> statistics.complementaryLiterals += n)) {
+                    if(clause.removeComplementaryLiterals((n -> statistics.complementaryLiterals += n), this::removeLiteralFromIndex)) {
                         removeClause(clause,true);
                         literalObject = literalObject.nextLiteral; continue;}
                     if(simplifyClause(clause,true)) {
@@ -1152,7 +1157,8 @@ int ch = 0;
         Literals literalIndex = (clause.size() == 2) ? literalIndexTwo :literalIndexMore;
         for(Literal literalObject : clause.literals) {
             literalIndex.removeLiteral(literalObject);
-            if(checkPurity) {checkPurity(literalObject.literal); checkPurity(-literalObject.literal);}}}
+            if(checkPurity) {checkPurity(literalObject.literal); checkPurity(-literalObject.literal);}}
+        if(checkConsistency) checkConsistency();}
 
 
 
@@ -1179,12 +1185,26 @@ int ch = 0;
      */
     protected boolean removeLiteralFromClause(Literal literalObject, boolean reduceLimit) throws Unsatisfiable {
         Clause clause = literalObject.clause;
+        switch(clause.size()) {
+            case 1:
+                if(reduceLimit) {
+                    removeClause(clause,false);
+                    return false;}
+                else {throw new UnsatClause(problemId,solverId, clause);}
+            case 2:
+                removeClause(clause,false);
+                if(reduceLimit) return false;
+                model.add(clause.otherLiteral(literalObject).literal,null);
+                return false;}
         removeLiteralFromIndex(literalObject);
         if(clause.removeLiteral(literalObject,reduceLimit)){
             if(clause.size() == 2) {moveToIndexTwo(clause);}
             checkPurity(literalObject.literal); // pure literals are just added to the model.
+            if(checkConsistency) checkConsistency();
             return true;}
+        if(clause.size() == 2) {moveToIndexTwo(clause);}
         removeClause(clause,true);
+        if(checkConsistency) checkConsistency();
         return false;}
 
     /** used in simplifyClause */
@@ -1368,6 +1388,50 @@ int ch = 0;
             return result;}
         System.out.println(statistics);
         return null;}
+
+    /** checks the consistency of the clauses and the literal index.
+     *  An error is reported and the system exits.
+     */
+    void checkConsistency() {
+        Clause clause = clauses.firstClause;
+        while(clause != null) {
+            for(Literal literalObject: clause.literals) {
+                if(literalObject.clause == null) {
+                    System.out.println("Literal " + Symboltable.toString(literalObject.literal,symboltable) +
+                            " of clause " + clause.toString(symboltable,0)+ " has no clause any more.");
+                    new Exception().printStackTrace();
+                    System.exit(1);}
+                if(literalObject.clause != clause) {
+                    System.out.println("Literal " + Symboltable.toString(literalObject.literal,symboltable) +
+                            " of clause " + clause.toString(symboltable,0)+
+                            " is in the wrong clause " + literalObject.clause.toString());
+                    new Exception().printStackTrace();
+                    System.exit(1);}
+                if(clause.size() == 2) {
+                    if(!literalIndexTwo.contains(literalObject)) {
+                        System.out.println("Literal " + Symboltable.toString(literalObject.literal,symboltable) +
+                            " of clause " + clause.toString(symboltable,0) +
+                            " is not in literalIndexTwo.");
+                        if(literalIndexMore.contains(literalObject)) {
+                            System.out.println("Literal " + Symboltable.toString(literalObject.literal,symboltable) +
+                                        " is instead in literalIndexMore.");}
+                        new Exception().printStackTrace();
+                        System.exit(1);}}
+                else {
+                    if(!literalIndexMore.contains(literalObject)) {
+                        System.out.println("Literal " + Symboltable.toString(literalObject.literal,symboltable) +
+                            " of clause " + clause.toString(symboltable,0) +
+                            " is not in literalIndexMore.");
+                        if(literalIndexTwo.contains(literalObject)) {
+                            System.out.println("Literal " + Symboltable.toString(literalObject.literal,symboltable) +
+                                    " is instead in literalIndexTwo.");}
+                        new Exception().printStackTrace();
+                        System.exit(1);}}}
+            clause = clause.nextClause;}
+        literalIndexTwo.checkConsistency(2,"literalIndexTwo");
+        literalIndexMore.checkConsistency(0,"literalIndexMore");
+        }
+
 
     /** returns the statistics.
      *

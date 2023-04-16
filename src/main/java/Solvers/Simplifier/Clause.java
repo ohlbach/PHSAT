@@ -9,6 +9,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
@@ -201,11 +202,10 @@ public class Clause {
      * @return true if the clause still exists.
      */
     protected boolean removeLiteral(Literal literalObject, boolean reduceLimit) {
+        literals.remove(literalObject);
         if(reduceLimit) {
             limit -= literalObject.multiplicity;
             if(limit <= 0) {return false;}}
-
-        literals.remove(literalObject);
         expandedSize -= literalObject.multiplicity;
         literalObject.clause = null;
         if(isDisjunction) return true;
@@ -243,7 +243,7 @@ public class Clause {
      * @param complementaries for counting the removal of complementary literals.
      * @return true if the clause became a true clause.
      */
-    protected boolean removeComplementaryLiterals(IntConsumer complementaries) {
+    protected boolean removeComplementaryLiterals(IntConsumer complementaries, Consumer<Literal> literalRemover) {
         boolean complementariesFound = false;
         for(int i = 0; i < literals.size()-1; ++i) {
             Literal literalObject1 = literals.get(i);
@@ -260,6 +260,9 @@ public class Clause {
                         if(limit <= 0) return true;
                         literals.remove(j);
                         literals.remove(i--);
+                        if(literalRemover != null) {
+                            literalRemover.accept(literalObject1);
+                            literalRemover.accept(literalObject2);}
                         expandedSize -= multiplicity1;
                         break;}
                     if(multiplicity1 > multiplicity2) {
@@ -268,6 +271,7 @@ public class Clause {
                         if(limit <= 0) return true;
                         literalObject1.multiplicity -= multiplicity2;
                         literals.remove(j);
+                        if(literalRemover != null) literalRemover.accept(literalObject2);
                         expandedSize -= multiplicity2;
                         break;}
                     complementaries.accept(multiplicity1);
@@ -275,6 +279,7 @@ public class Clause {
                     if(limit <= 0) return true;
                     literalObject2.multiplicity -= multiplicity1;
                     literals.remove(i--);
+                    if(literalRemover != null) literalRemover.accept(literalObject1);
                     expandedSize -= multiplicity1;
                     break;}}}
         if(!complementariesFound) return false;
@@ -459,7 +464,7 @@ public class Clause {
             newLiterals.add(new Literal(literalObject.literal,literalObject.multiplicity));}
         Quantifier newQuantifier = (newLimit == 1) ? Quantifier.OR : Quantifier.ATLEAST;
         Clause resolvent = new Clause(id.getAsInt(),newQuantifier,newLimit,newLiterals);
-        return resolvent.removeComplementaryLiterals(complementaries) ? null : resolvent;}
+        return resolvent.removeComplementaryLiterals(complementaries,null) ? null : resolvent;}
 
     /** returns the number of Literal objects in the clause.
      *

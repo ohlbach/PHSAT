@@ -123,6 +123,64 @@ public class Literals {
             literalObject = literalObject.nextLiteral;}
         return size;}
 
+    /** checks if the literalObject is in the right place of the index.
+     *
+     * @param literalObject a Literal
+     * @return true if the literalObject is in the right place.
+     */
+    boolean contains(Literal literalObject) {
+        Literal[] literals = (literalObject.literal > 0) ? positiveLiterals : negativeLiterals;
+        Literal litObject = literals[Math.abs(literalObject.literal)];
+        while(litObject != null) {
+            if(litObject == literalObject) return true;
+            litObject = litObject.nextLiteral;}
+        return false;
+    }
+
+    /** checks the consistency of the index.
+     * - is the literal's clause still defined. <br>
+     * - is the literal in the right predicate slot.<br>
+     * - if size &gt; 0: has the literal's clause the right size,
+     *
+     * @param size 0 or the clause size.
+     * @param text an error text.
+     */
+    void checkConsistency(int size, String text) {
+        for(int predicate = 1; predicate < positiveLiterals.length; ++predicate) {
+            Literal literalObject = positiveLiterals[predicate];
+            while(literalObject != null) {
+                if(literalObject.clause == null) {
+                    System.out.println("Error "+text+" literal " + predicate + " has no clause.");
+                    new Exception().printStackTrace();
+                    System.exit(1);}
+                if(literalObject.literal != predicate) {
+                    System.out.println("Error "+text+" literal " + literalObject.literal + " is in wrong predicate " + predicate);
+                    new Exception().printStackTrace();
+                    System.exit(1);}
+                if(size > 0 && literalObject.clause.size() != size) {
+                    System.out.println("Error "+text+" literal " + literalObject.literal + " is in the wrong index " + size);
+                    new Exception().printStackTrace();
+                    System.exit(1);}
+                literalObject = literalObject.nextLiteral;}
+
+            literalObject = negativeLiterals[predicate];
+            while(literalObject != null) {
+                if(literalObject.clause == null) {
+                    System.out.println("Error "+text+" literal " + -predicate + " has no clause.");
+                    new Exception().printStackTrace();
+                    System.exit(1);}
+                if(literalObject.literal != -predicate) {
+                    System.out.println("Error "+text+" literal " + literalObject.literal + " is in wrong predicate " + -predicate);
+                    new Exception().printStackTrace();
+                    System.exit(1);}
+                if(size > 0 && literalObject.clause.size() != size) {
+                    System.out.println("Error "+text+" literal " + literalObject.literal + " is in the wrong index " + size);
+                    new Exception().printStackTrace();
+                    System.exit(1);}
+                literalObject = literalObject.nextLiteral;}
+            }}
+
+
     /** generates a string representation of the Literal index.
      *
      * @return a string representation of the Literal index.
