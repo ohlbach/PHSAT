@@ -512,7 +512,8 @@ public class SimplifierTest extends TestCase {
                 " 4: -1v4\n" +
                 " 5: -2v3\n" +
                 "11: 2v4\n" +
-                "12: 2v3\n",simplifier.clauses.toString());
+                "12: 2v3\n" +
+                "13: 1v3\n",simplifier.clauses.toString());
       //  System.out.println(simplifier.statistics.toString());
 
         simplifier.clear();
@@ -902,7 +903,7 @@ public class SimplifierTest extends TestCase {
     }
 
     public void testsaturateBinaryClauseWithLongerClauses() throws Result {
-        System.out.println("saturateBinaryClauseWithLongerClauses");
+        System.out.println("saturateLongerClausesWithBinaryClause");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -916,7 +917,7 @@ public class SimplifierTest extends TestCase {
 
         Clause clause = new Clause(new int[]{5, cOr, -2, 5});
         simplifier.insertClause(clause);
-        simplifier.saturateBinaryClauseWithLongerClauses(clause);
+        simplifier.saturateLongerClausesWithBinaryClause(clause);
         assertEquals(" 1: 1v2v3\n" +
                 " 2: 2v3v4\n" +
                 " 3: -2v-1v3\n" +
@@ -934,7 +935,7 @@ public class SimplifierTest extends TestCase {
 
         clause = new Clause(new int[]{4, cOr, -2, 5});
         simplifier.insertClause(clause);
-        simplifier.saturateBinaryClauseWithLongerClauses(clause);
+        simplifier.saturateLongerClausesWithBinaryClause(clause);
         assertEquals(" 1: 1v2v-5\n" +
                 " 2: 2v3v4v5\n" +
                 " 3: 2v3v5\n" +
