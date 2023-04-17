@@ -38,8 +38,8 @@ public class InfUnitResolutionTwo extends InferenceStep {
 
     @Override
     public IntArrayList inputClauseIds() {
-        IntArrayList clauseIds = clause.inferenceStep.inputClauseIds();
-        IntArrayList oldIds    = oldInferenceStep.inputClauseIds();
+        IntArrayList clauseIds = (clause.inferenceStep == null) ? null : clause.inferenceStep.inputClauseIds();
+        IntArrayList oldIds    = (oldInferenceStep == null) ? null: oldInferenceStep.inputClauseIds();
         if(clauseIds == null) return oldIds;
         if(oldIds == null) return clauseIds;
         IntArrayList ids = clauseIds.clone();

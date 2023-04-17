@@ -72,12 +72,15 @@ public class Simplifier extends Solver {
     /** for generating an identifier for the new clauses. */
     private IntSupplier nextId;
 
-    /** used in various algorithms. */
+    /** a timestamp to be used by inference algorithms. */
     private int timestamp = 1;
+
+    /** a timestamp to be used by subsumption algorithms */
+    private int timestampSubsumption = 1;
 
     private IntConsumer addComplementaries = (n -> statistics.complementaryLiterals += n);
 
-    private boolean checkConsistency = true;
+    private boolean checkConsistency = false;
 
     /** just creates a simplifier.
      *
@@ -242,7 +245,6 @@ public class Simplifier extends Solver {
             result.problemId = problemId;
             result.statistic = statistics;
             throw result;}
-        synchronized(this){queue.add(new Task<>(TaskType.ProcessMergeResolutionPartial,clauses.firstClause));}
         }
 
     /** simplifies and inserts an atleast-clause derived from input clauses.
@@ -334,18 +336,21 @@ public class Simplifier extends Solver {
                     case ProcessClauseFirstTime:
                         if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
                         processClauseFirstTime(task);
-                        break;
-                    case ProcessMergeResolutionPartial:
-                        clause = (Clause)task.a;
-                        if(clause.exists) {
-                            if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
-                            mergeResolutionPartial(clause);}
                         break;}
                 if(monitoring  && printClauses) {System.out.println(clauses.toString());}
                 if(clauses.isEmpty()) {throw new Satisfiable(problemId,solverId,model);}
-                if(queue.isEmpty()) checkForPartialPurity();}
+                if(queue.isEmpty()) checkForPartialPurity();
+                if(queue.isEmpty() && monitoring) printSeparated();}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
+
+    void printSeparated() {
+        for(int size = 2; size <= inputClauses.maxClauseLength; ++size) {
+            System.out.println("Size " + size);
+            Clause clause = clauses.firstClause;
+            while(clause != null) {
+                if(clause.size() == size) {System.out.println(clause.toString());}
+                clause = clause.nextClause;}}}
 
     /** performs forward subsumption, merge resolution and saturation with the given clause.
      *  After this, a new ProcessClauseFirstTime for the next clause in the clauses list is added to the queue.<br>
@@ -422,7 +427,9 @@ public class Simplifier extends Solver {
             return;}
         removeClausesSubsumedByLongerClause(clause);
         if(!mergeResolutionWithLongerClause(clause)) return;
-        saturateBinaryClausesWithLongerClause(clause);}
+        saturateBinaryClausesWithLongerClause(clause);
+        if(clause.exists && clause.size()==3) mergeResolutionPartial(clause);
+    }
 
     /** The method applies a true literal to the clause.
      * For a disjunction this means that the clause is true and can therefore be deleted.<br>
@@ -593,14 +600,14 @@ public class Simplifier extends Solver {
         while(subsumeeLiteral != null) {
             Clause subsumee = subsumeeLiteral.clause;
             if(subsumee == null) {subsumeeLiteral = subsumeeLiteral.nextLiteral; continue;}
-            if(subsumee.exists && subsumee.isDisjunction && subsumee != subsumer) subsumee.timestamp = timestamp;
+            if(subsumee.exists && subsumee.isDisjunction && subsumee != subsumer) subsumee.timestamp1 = timestamp;
             subsumeeLiteral = subsumeeLiteral.nextLiteral;}
 
         subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumer.literals.get(1).literal);
         while(subsumeeLiteral != null) {
             Clause subsumee = subsumeeLiteral.clause;
             if(subsumee == null) {subsumeeLiteral = subsumeeLiteral.nextLiteral; continue;}
-            if(subsumee.timestamp == timestamp) {
+            if(subsumee.timestamp1 == timestamp) {
                 removeClause(subsumee,true);
                 ++statistics.subsumedClauses;}
             subsumeeLiteral = subsumeeLiteral.nextLiteral;}
@@ -629,7 +636,7 @@ public class Simplifier extends Solver {
                     subsumee.literals.size() >= subsumerSize &&
                     subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity) {
                 candidatesFound = true;
-                subsumee.timestamp = timestamp;}
+                subsumee.timestamp1 = timestamp;}
             subsumeeLiteral = subsumeeLiteral.nextLiteral;}
 
         if(!candidatesFound) return;
@@ -639,10 +646,10 @@ public class Simplifier extends Solver {
             while(subsumeeLiteral != null) {
                 Clause subsumee = subsumeeLiteral.clause;
                 if(subsumee == null) {subsumeeLiteral = subsumeeLiteral.nextLiteral; continue;}
-                if(subsumee.exists && (subsumee.timestamp - timestamp) == i - 1&&
+                if(subsumee.exists && (subsumee.timestamp1 - timestamp) == i - 1&&
                         subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity) {
-                    ++subsumee.timestamp;
-                    if(subsumee.timestamp - timestamp == subsumerSize-1){
+                    ++subsumee.timestamp1;
+                    if(subsumee.timestamp1 - timestamp == subsumerSize-1){
                         removeClause(subsumee,true);}}
                 subsumeeLiteral = subsumeeLiteral.nextLiteral;}}
         timestamp += subsumerSize + 1;}
@@ -666,14 +673,14 @@ int ch = 0;
         Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
         while(literalObject != null) { // all clauses with -literal1 are marked.
             Clause clause = literalObject.clause;
-            if(clause != null && clause != clause1) clause.timestamp = timestamp;
+            if(clause != null && clause != clause1) clause.timestamp1 = timestamp;
             literalObject = literalObject.nextLiteral;}
 
         literalObject = literalIndexTwo.getFirstLiteralObject(literal2);
         while(literalObject != null) {
             Clause clause2 = literalObject.clause;
             if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
-            if(clause2.timestamp == timestamp) { // a partner clause is found
+            if(clause2.timestamp1 == timestamp) { // a partner clause is found
                 if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                         clause2.toString(symboltable,0) + " -> " + "true("+ Symboltable.toString(literal2,symboltable)+")");
                 model.add(literal2,trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
@@ -688,7 +695,7 @@ int ch = 0;
             while(literalObject != null) {
                 Clause clause2 = literalObject.clause;
                 if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
-                if(clause2.timestamp == timestamp) { // a partner clause is found.
+                if(clause2.timestamp1 == timestamp) { // a partner clause is found.
                     if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                             clause2.toString(symboltable,0) + " -> " +
                             Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
@@ -833,16 +840,16 @@ int ch = 0;
             while(literalObject2 != null) {
                 Clause subsumer = literalObject2.clause;
                 if(subsumer == null || subsumer == subsumee) {literalObject2 = literalObject2.nextLiteral; continue;}
-                if(subsumer.timestamp < timestamp) {
+                if(subsumer.timestamp2 < timestampSubsumption) {
                     if(subsumer.size() <= size && subsumer.limit >= limit &&
-                            literalObject2.multiplicity <= literalObject1.multiplicity) subsumer.timestamp = timestamp;}
+                            literalObject2.multiplicity <= literalObject1.multiplicity) subsumer.timestamp2 = timestampSubsumption;}
                 else {
-                    if(subsumer.timestamp - timestamp == subsumer.size()-2 &&
+                    if(subsumer.timestamp2 - timestampSubsumption == subsumer.size()-2 &&
                             literalObject2.multiplicity <= literalObject1.multiplicity){
-                        timestamp += size+2; return subsumer;}
-                    if(literalObject2.multiplicity <= literalObject1.multiplicity) ++subsumer.timestamp;}
+                        timestampSubsumption += size+2; return subsumer;}
+                    if(literalObject2.multiplicity <= literalObject1.multiplicity) ++subsumer.timestamp2;}
                 literalObject2 = literalObject2.nextLiteral;}}
-        timestamp += size+2;
+        timestampSubsumption += size+2;
         return null;}
 
 
@@ -904,11 +911,11 @@ int ch = 0;
                 Clause clauseS = literalObjectS.clause;
                 if(clauseS == null) {literalObjectS = literalObjectS.nextLiteral; continue;}
                 if(clauseS.literals.size() >= clausePSize &&clauseS.limit >= limitP && literalObjectS.multiplicity == limitP) {
-                    clauseS.timestamp = timestamp;
+                    clauseS.timestamp1 = timestamp;
                     candidateClausesFound = true;}
                 literalObjectS = literalObjectS.nextLiteral;}
 
-            if(!candidateClausesFound) continue;
+            if(!candidateClausesFound)  {timestamp += clausePSize + 1;continue;}
             int i = 0;
             for(Literal literalObjectPi : clauseP.literals) {
                 if(literalObjectPi == literalObjectP) continue;
@@ -917,9 +924,9 @@ int ch = 0;
                 while(literalObjectSi != null) {
                     Clause clauseS = literalObjectSi.clause;  // this is the potential merge partner.
                     if(clauseS == null) {literalObjectSi = literalObjectSi.nextLiteral; continue;}
-                    if((clauseS.timestamp -timestamp) == i-1 && literalObjectSi.multiplicity == clauseS.limit) {
-                        ++clauseS.timestamp;
-                        if(clauseS.timestamp - timestamp == clausePSize-1) { // mergepartner found
+                    if((clauseS.timestamp1 -timestamp) == i-1 && literalObjectSi.multiplicity == clauseS.limit) {
+                        ++clauseS.timestamp1;
+                        if(clauseS.timestamp1 - timestamp == clausePSize-1) { // mergepartner found
                             String resolventBefore = trackReasoning ? clauseS.toString(symboltable,0) : null;
                             if(clauseS.size() == clausePSize) {// both are equally long
                                 ++statistics.mergedClauses;
@@ -963,7 +970,6 @@ int ch = 0;
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void mergeResolutionPartial(Clause clause) throws Unsatisfiable{
-        if(clause.size() != 3) return;
         mergeResolutionPartialBinary(clause);
         for(Literal literalObject : clause.literals) { // example: p,q,r
             int posLiteral = literalObject.literal;
@@ -971,19 +977,20 @@ int ch = 0;
             Literal negLiteralObject = literalIndexMore.getFirstLiteralObject(-literalObject.literal);
             while(negLiteralObject != null) {          // example: -p,q',s
                 if(negLiteralObject.clause == null) {negLiteralObject = negLiteralObject.nextLiteral; continue;}
-                if(negLiteralObject.clause.size() == 3) {negLiteralObject.clause.timestamp = timestamp; found = true;}
+                if(negLiteralObject.clause.size() == 3) {negLiteralObject.clause.timestamp1 = timestamp; found = true;}
                 negLiteralObject = negLiteralObject.nextLiteral;}
-            if(!found) continue;
+            if(!found) {++timestamp; continue;}
+
             for(Literal literalObject1 : clause.literals) {
                 if(literalObject1 == literalObject) continue;
                 Literal otherLiteralObject = literalIndexMore.getFirstLiteralObject(literalObject1.literal);
                 while(otherLiteralObject != null) {                        // Example: otherLiteralObject = q
                     if(otherLiteralObject.clause == null) {otherLiteralObject = otherLiteralObject.nextLiteral;continue;}
-                    if(otherLiteralObject.clause.timestamp == timestamp) { // example: -p,q,s
+                    if(otherLiteralObject.clause.timestamp1 == timestamp) { // example: -p,q,s
                         resolve(literalObject,otherLiteralObject.clause.findLiteral(-posLiteral));}
                         otherLiteralObject = otherLiteralObject.nextLiteral;}}
             ++timestamp;}
-            
+
     }
 
     /** creates all resolvents between the given 3-literal clause and all binary clauses.

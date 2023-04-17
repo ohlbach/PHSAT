@@ -48,7 +48,9 @@ public class Clause {
     protected InferenceStep inferenceStep;
 
     /** a timestamp to be used by various algorithms. */
-    protected int timestamp = 0;
+    protected int timestamp1 = 0;
+    /** a timestamp to be used by other algorithms. */
+    protected int timestamp2 = 0;
 
     /** a pointer to the previous clause in a doubly connected list. */
     protected Clause previousClause;

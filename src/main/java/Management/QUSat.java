@@ -48,11 +48,11 @@ public class QUSat {
                     "predicates = 20\n" +
                     "cpRatio = 4\n"+
                     "length = 3\n"+
-                    "seed = 6\n"+
+                    "seed = 5\n"+
             "global\n" +
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
-                    "monitor = life\n"+
+               //     "monitor = life\n"+
                     "trackReasoning\n"+
            "solver simplifier";
            /*"solver walker\n"+
