@@ -78,6 +78,8 @@ public class Simplifier extends Solver {
 
     private final boolean checkConsistency = false;
 
+    private Thread myThread;
+
     /** just creates a simplifier.
      *
      * @param parameters not used.
@@ -156,7 +158,7 @@ public class Simplifier extends Solver {
      */
     @Override
     public void installCommunication(ProblemSupervisor problemSupervisor) {
-        problemSupervisor.model.addObserver(this::addTrueLiteralTask);}
+        problemSupervisor.model.addObserver(myThread, this::addTrueLiteralToQueue);}
 
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
@@ -169,8 +171,7 @@ public class Simplifier extends Solver {
      */
     public void initialize() {
         for(int literal: model.model) {
-            addTrueLiteralTask(literal,model.getInferenceStep(literal));}
-        model.addObserver(this::addTrueLiteralTask);}
+            addTrueLiteralToQueue(literal,model.getInferenceStep(literal));}}
 
     /** reads the disjunctions, the atleast, atmost, exactly and interval clauses from inputClauses and transforms them to atleast-clauses.
      * The clauses themselves are simplified as far as possible.<br>
@@ -188,7 +189,7 @@ public class Simplifier extends Solver {
                 if(clause.size() == 1) {
                     ++statistics.derivedUnitClauses;
                     ++statistics.notInternalizedInputClauses;
-                    model.add(clause.literals.get(0).literal,clause.inferenceStep);
+                    addTrueLiteralTask(clause.literals.get(0).literal,clause.inferenceStep);
                     continue;}
                 insertClause(clause);}
 
@@ -274,11 +275,25 @@ public class Simplifier extends Solver {
      * @param literal a true literal
      * @param inferenceStep which caused the truth
      */
-    public void addTrueLiteralTask(int literal, InferenceStep inferenceStep) {
+    public void addTrueLiteralTask(int literal, InferenceStep inferenceStep) throws Unsatisfiable{
         if(monitoring) {
             monitor.print(monitorId,"In: True literal " +
                     Symboltable.toString(literal,symboltable));}
-        synchronized (this) {queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
+        synchronized (this) {
+            model.add(myThread,literal,inferenceStep);
+            queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
+
+    /** adds a true literal to the queue
+     *
+     * @param literal a true literal
+     * @param inferenceStep which caused the truth
+     */
+    public void addTrueLiteralToQueue(int literal, InferenceStep inferenceStep) {
+        if(monitoring) {
+            monitor.print(monitorId,"In: True literal " +
+                    Symboltable.toString(literal,symboltable));}
+        synchronized (this) {
+            queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
 
     /** adds an equivalence to the task queue
      *
@@ -477,7 +492,7 @@ public class Simplifier extends Solver {
             if(monitoring) monitor.println(monitorId,clause.toString(symboltable,0) + " and true(" +
                     Symboltable.toString(literal,symboltable) + ") -> " +
                     "true("+Symboltable.toString(otherLiteral,symboltable)+")");
-            model.add(otherLiteral,
+            addTrueLiteralTask(otherLiteral,
                     trackReasoning ?
                             new InfUnitResolutionTwo(clause,literal,model.getInferenceStep(literal),otherLiteral) :
                             null);
@@ -519,7 +534,7 @@ public class Simplifier extends Solver {
                          else {
                             int newTrueLiteral = clause.otherLiteral(litObject).literal;
                             ++statistics.derivedUnitClauses;
-                            model.add(newTrueLiteral,trackReasoning ?
+                             addTrueLiteralTask(newTrueLiteral,trackReasoning ?
                                     new InfUnitResolutionTwo(clause,litObject.literal,model.getInferenceStep(litObject.literal),newTrueLiteral): null);
                             if(monitoring)  monitor.println(monitorId,clause.toString(symboltable,0) +
                                     " and false(" + Symboltable.toString(litObject.literal,symboltable) + ") -> true(" +
@@ -688,7 +703,7 @@ int ch = 0;
             if(clause2.timestamp1 == timestamp) { // a partner clause is found
                 if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                         clause2.toString(symboltable,0) + " -> " + "true("+ Symboltable.toString(literal2,symboltable)+")");
-                model.add(literal2,trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
+                addTrueLiteralTask(literal2,trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
                 removeClause(clause1,true);
                 removeClause(clause2,true);
                 ++timestamp;
@@ -762,7 +777,7 @@ int ch = 0;
         if(literal1 == -literal2) return null; // tautology
         if(literal1 == literal2) {
             ++statistics.derivedUnitClauses;
-            model.add(literal1,trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal1) : null);
+            addTrueLiteralTask(literal1,trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal1) : null);
             if(monitoring) {
                 monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                         clause2.toString(symboltable,0) + " -> " + Symboltable.toString(literal1,symboltable));}
@@ -1090,8 +1105,8 @@ int ch = 0;
                                 Symboltable.toString(representative,symboltable) + " -> true(" +
                                 Symboltable.toString(representative,symboltable)+ ","+
                                 Symboltable.toString(literal,symboltable)+")");}
-                    model.add(representative, step);
-                    model.add(literal, step);
+                    addTrueLiteralTask(representative, step);
+                    addTrueLiteralTask(literal, step);
                     removeClause(clause,true);
                     return;} // true literals need no further replacements.
                 else {  // the two-literal clause needs to been changed.
@@ -1245,7 +1260,7 @@ int ch = 0;
                 for (Literal literalObject : trueLiterals) {
                     int literal = literalObject.literal;
                     ++statistics.derivedUnitClauses;
-                    model.add(literal, trackReasoning ? new InfTrueLiteral(clauseBefore, clause.id, literal, clause.inferenceStep) : null);}
+                    addTrueLiteralTask(literal, trackReasoning ? new InfTrueLiteral(clauseBefore, clause.id, literal, clause.inferenceStep) : null);}
 
                 if(clause.limit <= 0) return false;}
 
@@ -1257,7 +1272,7 @@ int ch = 0;
                 if (clause.limit <= 0) return false;
                 if (clause.size() == 1) {
                     int literal = clause.literals.get(0).literal;
-                    model.add(literal, clause.inferenceStep);
+                    addTrueLiteralTask(literal, clause.inferenceStep);
                     return false;
                 }
                 if (clause.limit <= 1) return clause.limit == 1;}
@@ -1267,7 +1282,7 @@ int ch = 0;
                 monitor.println(monitorId, "Clause " + clauseBefore + " divided by gcd  to " +
                         clause.toString(symboltable, 0));}
             if (clause.size() == 1) {
-                model.add(clause.literals.get(0).literal, new InfInputClause(clause.id));
+                addTrueLiteralTask(clause.literals.get(0).literal, new InfInputClause(clause.id));
                 return false;}}
         finally {
             if(isAlreadyIntegrated) {
@@ -1300,7 +1315,7 @@ int ch = 0;
     protected boolean checkPurity(int literal) throws Unsatisfiable {
         if(model.status(literal) != 0) return false;
         if(literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal)) {
-            model.add(literal, trackReasoning ? new InfPureLiteral(literal,false) : null);
+            addTrueLiteralTask(literal, trackReasoning ? new InfPureLiteral(literal,false) : null);
             if(monitoring) monitor.println(monitorId,"Pure Literal: " + Symboltable.toString(literal,symboltable));
             ++statistics.pureLiterals;
             return true;}
@@ -1332,7 +1347,7 @@ int ch = 0;
                     if(monitoring) {
                         monitor.println(monitorId,"Partially Pure Literal: " +
                                 Symboltable.toString(pureLiteral,symboltable));}
-                    model.add(pureLiteral, trackReasoning ? new InfPureLiteral(pureLiteral,true) : null);
+                    addTrueLiteralTask(pureLiteral, trackReasoning ? new InfPureLiteral(pureLiteral,true) : null);
                     return;}}
             if(longerClausesExist) return;}
         Clause clause = clauses.firstClause;
@@ -1341,7 +1356,7 @@ int ch = 0;
             monitor.println(monitorId,"Literal " + Symboltable.toString(literal,symboltable) +
                     " in saturated 2-literal clauses chosen to be true");}
         ++statistics.saturatedLiterals;
-        model.add(literal,trackReasoning ? new InfSaturatedTwoLiteralClauses(clause) : null);}
+        addTrueLiteralTask(literal,trackReasoning ? new InfSaturatedTwoLiteralClauses(clause) : null);}
 
     /** removes all clauses from the internal datastructures.
      * This is mainly for testing purposes.
@@ -1377,6 +1392,7 @@ int ch = 0;
         statistics             = new SimplifierStatistics(solverId);
         trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
         nextId                 = problemSupervisor::nextClauseId;
+        myThread               = Thread.currentThread();
         try{
             readInputClauses();
             processTasks(0);}

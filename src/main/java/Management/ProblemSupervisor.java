@@ -118,7 +118,7 @@ public class ProblemSupervisor {
         for(int[] inputClause : conjunctions) {
             assert inputClause[1] == Quantifier.AND.ordinal();
             for(int i = 2; i < inputClause.length; ++i) {
-                model.add(inputClause[i], trackReasoning ? new InfInputClause(inputClause[0]) : null);}}}
+                model.add(Thread.currentThread(), inputClause[i], trackReasoning ? new InfInputClause(inputClause[0]) : null);}}}
 
 
     /** This method is called to indicate that they have done their job or gave up.

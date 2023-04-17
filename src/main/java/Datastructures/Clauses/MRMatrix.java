@@ -208,7 +208,8 @@ public class MRMatrix {
                             if(trackReasoning) {
                                 step = new MRSquare1(this,dLiteral,i,colIndices, block);
                                 if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-                            model.add(-literal,step);}}
+                            //model.add(-literal,step);
+                        }}
                     else {
                         int literal1 = external.literal;
                         int literal2 = -literal;
@@ -296,7 +297,8 @@ public class MRMatrix {
                     if(trackReasoning) {
                         step = new MRRectangle1(this,colIndices,literal,newBlock);
                         if(monitoring) monitor.print(monitorId,step.toString(symboltable));}
-                    model.add(literal,step);}
+                    //model.add(literal,step);
+                }
                 return;
             case 2:
                 for(int i = 0; i < externalSize; ++i) {

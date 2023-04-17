@@ -44,6 +44,7 @@ public class ModelTest {
     @Test
     public void add() throws Exception {
         System.out.println("add");
+        Thread myThread = Thread.currentThread();
         Symboltable symboltable = new Symboltable(5);
         symboltable.setName(1, "p");
         symboltable.setName(2, "q");
@@ -51,12 +52,12 @@ public class ModelTest {
         Model model = new Model(5);
         IntArrayList lits = new IntArrayList();
         ArrayList<InferenceStep> infs = new ArrayList<>();
-        model.addObserver(
+        model.addObserver(myThread,
                 ((Integer literal, InferenceStep inference) -> {lits.add((int)literal); infs.add(inference);}));
         InferenceTest inf1 = new InferenceTest("comment1");
         InferenceTest inf2 = new InferenceTest("comment2");
-        model.add(-2, inf1);
-        model.add(1, inf2);
+        model.add(myThread,-2, inf1);
+        model.add(myThread,1, inf2);
         assertEquals(2,lits.size());
         assertEquals(2,infs.size());
         assertEquals("1,-2",model.toString());
@@ -66,6 +67,7 @@ public class ModelTest {
     @Test
     public void addThrow() throws Exception {
         System.out.println("add with Throw");
+        Thread myThread = Thread.currentThread();
         Symboltable symboltable = new Symboltable(5);
         symboltable.setName(1, "p");
         symboltable.setName(2, "q");
@@ -75,19 +77,20 @@ public class ModelTest {
         InferenceTest inf2 = new InferenceTest("comment2");
         InferenceTest inf3 = new InferenceTest("comment3");
 
-        model.add(1,inf1);
-        model.add(2,inf2);
-        try {model.add(-2,inf3);}
+        model.add(myThread,1,inf1);
+        model.add(myThread,2,inf2);
+        try {model.add(myThread,-2,inf3);}
         catch(Unsatisfiable unsat) {System.out.println(unsat);}}
 
     @Test
     public void cloneTest() throws Exception {
         System.out.println("clone");
+        Thread myThread = Thread.currentThread();
         Model model = new Model(5);
         InferenceTest inf1 = new InferenceTest("comment1");
         InferenceTest inf2 = new InferenceTest("comment2");
-        model.add(-2, inf1);
-        model.add(1, inf2);
+        model.add(myThread,-2, inf1);
+        model.add(myThread,1, inf2);
         assertEquals(2,model.inferenceSteps.size());
         assertEquals("1,-2",model.toString());
         Model model1 = model.clone();

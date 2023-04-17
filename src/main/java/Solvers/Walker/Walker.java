@@ -165,7 +165,8 @@ public class Walker extends Solver {
      */
     @Override
     public void installCommunication(ProblemSupervisor problemSupervisor) {
-        problemSupervisor.model.addObserver(this::addGloballyTrueLiteral);}
+        //problemSupervisor.model.addObserver(this::addGloballyTrueLiteral);
+    }
 
     /** starts the search for a model.
      *
@@ -240,12 +241,12 @@ public class Walker extends Solver {
         if(clause.removeComplementaryLiterals(problemId,solverId,null)) return null;
         if(clause.quantifier == Quantifier.AND) {
             for(Literal literalObject : clause.literals) {
-                model.add(literalObject.literal,clause.inferenceStep);}
+                model.add(Thread.currentThread(), literalObject.literal,clause.inferenceStep);}
             return null;}
         for(int i = 0; i < clause.literals.size(); ++i) {
             Literal literalObject = clause.literals.get(i);
             if(literalObject.multiplicity > clause.max) {
-                model.add(-literalObject.literal,null);
+                model.add(Thread.currentThread(), -literalObject.literal,null);
                 clause.expandedSize -= literalObject.multiplicity;
                 clause.literals.remove(i--);
                 clause.hasMultiplicities = clause.expandedSize > clause.literals.size();}}

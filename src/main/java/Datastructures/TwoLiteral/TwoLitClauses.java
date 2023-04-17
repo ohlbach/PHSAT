@@ -112,7 +112,7 @@ public class TwoLitClauses {
 
 
     public void configure() {
-        model.addObserver(this::addTrueLiteral);
+        //model.addObserver(this::addTrueLiteral);
         //equivalenceClasses.addObserver(this::addEquivalence);
     }
 
@@ -296,7 +296,7 @@ public class TwoLitClauses {
             if(monitoring) {
                 monitor.print(monitorId,"Clause " + clause.toString("",symboltable) + " -> " +
                         Symboltable.toString(literal1, symboltable));}
-            model.add(literal1,clause.inferenceStep); // send back to me
+            //model.add(literal1,clause.inferenceStep); // send back to me
             return null;}
         return clause;}
 
@@ -315,7 +315,7 @@ public class TwoLitClauses {
                 if(trackReasoning) {
                     inf = new UnitResolution2(clause,literal1,model.getInferenceStep(literal1));
                     if(monitoring) monitor.print(monitorId,inf.toString(symboltable));}
-                model.add(literal2,inf);
+                //model.add(literal2,inf);
                 ++statistics.unitClauses;
                 return null;}
             literal1 = clause.literal2;

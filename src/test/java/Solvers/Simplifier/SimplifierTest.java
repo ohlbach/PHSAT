@@ -308,12 +308,13 @@ public class SimplifierTest extends TestCase {
 
     public void testProcessTrueLiteralTwo() throws Result {
         System.out.println("processTrueLiteralTwo");
+        Thread myThread = Thread.currentThread();
         int predicates = 4;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
         IntSupplier nextId = () -> ++id[0];
         Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
-        simplifier.model.add(2, new InfInputClause(1));
+        simplifier.model.add(myThread,2, new InfInputClause(1));
         simplifier.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
         simplifier.insertClause(new Clause(new int[]{3, cOr, -2, 3}));
         simplifier.insertClause(new Clause(new int[]{4, cOr, -1, 4}));
@@ -326,19 +327,20 @@ public class SimplifierTest extends TestCase {
 
     public void testProcessTrueLiteralMore1() throws Result {
         System.out.println("processTrueLiteralMore 1");
+        Thread myThread = Thread.currentThread();
         int predicates = 4;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
         IntSupplier nextId = () -> ++id[0];
         Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
-        simplifier.model.add(2, new InfInputClause(1));
+        simplifier.model.add(myThread,2, new InfInputClause(1));
         simplifier.insertClause(new Clause(new int[]{2, cOr, 1, 2, 3}));
         simplifier.processTrueLiteralMore(2);
         assertTrue(simplifier.clauses.isEmpty());
         assertEquals("1,2,3", simplifier.model.toString());
 
         simplifier.clear();
-        simplifier.model.add(2, new InfInputClause(1));
+        simplifier.model.add(myThread,2, new InfInputClause(1));
         simplifier.insertClause(new Clause(new int[]{2, cOr, -1, -2, -3}));
         simplifier.processTrueLiteralMore(2);
         assertFalse(simplifier.clauses.isEmpty());
@@ -346,8 +348,8 @@ public class SimplifierTest extends TestCase {
         assertEquals("2", simplifier.model.toString());
 
         simplifier.clear();
-        simplifier.model.add(2, new InfInputClause(1));
-        simplifier.model.add(4, new InfInputClause(2));
+        simplifier.model.add(myThread,2, new InfInputClause(1));
+        simplifier.model.add(myThread,4, new InfInputClause(2));
         simplifier.insertClause(new Clause(new int[]{2, cAtleast, 3, 1, 2, 3, 4}));
         simplifier.processTrueLiteralMore(2);
         assertFalse(simplifier.clauses.isEmpty());
@@ -357,8 +359,8 @@ public class SimplifierTest extends TestCase {
         //System.out.println("\nNEW");
         try {
             simplifier.clear();
-            simplifier.model.add(-2, new InfInputClause(1));
-            simplifier.model.add(-4, new InfInputClause(2));
+            simplifier.model.add(myThread,-2, new InfInputClause(1));
+            simplifier.model.add(myThread,-4, new InfInputClause(2));
             simplifier.insertClause(new Clause(new int[]{2, cAtleast, 3, 1, 2, 3, 4}));
             simplifier.processTrueLiteralMore(2);
             assertFalse(simplifier.clauses.isEmpty());
@@ -369,12 +371,13 @@ public class SimplifierTest extends TestCase {
 
     public void testProcessTrueLiteralMore2() throws Result {
         System.out.println("processTrueLiteralMore 2");
+        Thread myThread = Thread.currentThread();
         int predicates = 4;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
         IntSupplier nextId = () -> ++id[0];
         Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
-        simplifier.model.add(-3, new InfInputClause(1));
+        simplifier.model.add(myThread,-3, new InfInputClause(1));
         simplifier.insertClause(new Clause(new int[]{2, cAtleast, 4, 1,1, 2,2, 3,4}));
         simplifier.processTrueLiteralMore(3);
         assertEquals("", simplifier.clauses.toString());
@@ -382,9 +385,9 @@ public class SimplifierTest extends TestCase {
 
         if(monitoring) System.out.println("\nNEW");
         simplifier.clear();
-        simplifier.model.add(-1, new InfInputClause(1));
-        simplifier.model.add(-3, new InfInputClause(2));
-        simplifier.model.add(-4, new InfInputClause(3));
+        simplifier.model.add(myThread,-1, new InfInputClause(1));
+        simplifier.model.add(myThread,-3, new InfInputClause(2));
+        simplifier.model.add(myThread,-4, new InfInputClause(3));
         simplifier.insertClause(new Clause(new int[]{2, cOr, 1,2,3,4}));
         simplifier.processTrueLiteralMore(3);
         assertEquals("", simplifier.clauses.toString());
@@ -604,12 +607,15 @@ public class SimplifierTest extends TestCase {
 
     public void testProcessBinaryClause3() throws Result {
         System.out.println("processBinaryClause 3");
+        Thread myThread = Thread.currentThread();
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
         IntSupplier nextId = () -> ++id[0];
         Simplifier simplifier = new Simplifier(predicates, monitor, true, nextId);
-        simplifier.model.addObserver((Integer literal, InferenceStep step) -> simplifier.addTrueLiteralTask(literal,step));
+        simplifier.model.addObserver(myThread,
+                (Integer literal, InferenceStep step) -> {try{
+                        simplifier.addTrueLiteralTask(literal,step);} catch(Unsatisfiable uns) {}});
         Clause clause1 = new Clause(new int[]{1, cOr, 1, 5});
         simplifier.insertClause(clause1);
         Clause clause2 = new Clause(new int[]{2, cOr, -1, 3, 4});

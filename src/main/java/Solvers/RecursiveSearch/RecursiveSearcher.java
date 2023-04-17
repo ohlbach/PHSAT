@@ -103,14 +103,6 @@ public class RecursiveSearcher  extends Solver {
 
 
 
-    public void prepare() {
-        localModel = model.clone();
-        model.addObserver((literal,step) -> {
-            synchronized(this) {globallyTrueLiterals.add((int)literal);}});
-    }
-
-
-
 
     public Result solve() {
         integrateGloballyTrueLiterals();

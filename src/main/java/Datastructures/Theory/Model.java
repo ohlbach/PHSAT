@@ -4,10 +4,12 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableLiteral;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
+import Utilities.Pair;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
+
 
 
 /** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
@@ -41,7 +43,7 @@ public class Model {
     private byte[] status;
 
     /** functions to be called when a new true literal is inserted. */
-    private final ArrayList<BiConsumer<Integer, InferenceStep>> observers = new ArrayList<>();
+    private final ArrayList<Pair<Thread,BiConsumer<Integer, InferenceStep>>> observers = new ArrayList<>();
 
 
     /** creates a model with a maximum number of predicates.
@@ -64,16 +66,16 @@ public class Model {
      *
      * @param observer a function (literal,inference-step)
      */
-    public synchronized void addObserver(BiConsumer<Integer, InferenceStep> observer) {
-        observers.add(observer);}
+    public synchronized void addObserver(Thread thread, BiConsumer<Integer, InferenceStep> observer) {
+        observers.add(new Pair<Thread,BiConsumer<Integer, InferenceStep>>(thread,observer));}
 
     /** adds a literal to the model with null inference step.
      *
      * @param literals some literals.
      * @throws Unsatisfiable if a contradiction is found.
      */
-    public synchronized void add(int... literals) throws Unsatisfiable {
-        for(int literal : literals) add(literal,null);}
+    public synchronized void add(Thread thread, int... literals) throws Unsatisfiable {
+        for(int literal : literals) add(thread,literal,null);}
 
     /** adds a literal to the model and checks if the literal is already in the model.
      * If the literal is new to the model then all observers are called.
@@ -84,7 +86,7 @@ public class Model {
      * @param inferenceStep  the inference step that caused the truth of the model.
      * @throws UnsatisfiableLiteral if a contradiction with an earlier entry in the model occurs.
      */
-    public synchronized void add(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
+    public synchronized void add(Thread thread,int literal, InferenceStep inferenceStep) throws Unsatisfiable {
         int predicate = Math.abs(literal);
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
@@ -94,8 +96,8 @@ public class Model {
         model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
 
-        for(BiConsumer<Integer, InferenceStep> observer : observers) {
-            observer.accept(literal,inferenceStep);}}
+        for(Pair<Thread, BiConsumer<Integer, InferenceStep>> observer : observers) {
+            if(observer.first != thread) observer.second.accept(literal,inferenceStep);}}
 
 
     /** adds the literals immediately without any checks and inference step.
