@@ -93,9 +93,9 @@ public class ProblemSupervisor {
             model = new Model(inputClauses.predicates);
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];
-            for(int i = 0; i < numberOfSolvers; ++i) solvers.get(i).installCommunication(this);
             for(int i = 0; i < numberOfSolvers; ++i) {int j = i;
-                threads[i] = new Thread(() -> finished(solvers.get(j).solveProblem(this)));}
+                threads[i] = new Thread(() -> finished(solvers.get(j).solveProblem(this)));
+                solvers.get(i).installCommunication(threads[i],this);}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             readConjunctions(inputClauses.conjunctions);
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}

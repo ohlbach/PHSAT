@@ -164,7 +164,7 @@ public class Walker extends Solver {
     /** adds observers to the model and the equivalenceClasses.
      */
     @Override
-    public void installCommunication(ProblemSupervisor problemSupervisor) {
+    public void installCommunication(Thread myThread, ProblemSupervisor problemSupervisor) {
         //problemSupervisor.model.addObserver(this::addGloballyTrueLiteral);
     }
 

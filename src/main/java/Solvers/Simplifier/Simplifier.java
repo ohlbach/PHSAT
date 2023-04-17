@@ -76,7 +76,7 @@ public class Simplifier extends Solver {
 
     private final IntConsumer addComplementaries = (n -> statistics.complementaryLiterals += n);
 
-    private final boolean checkConsistency = false;
+    private final boolean checkConsistency = true;
 
     private Thread myThread;
 
@@ -157,7 +157,7 @@ public class Simplifier extends Solver {
     /** Installs the observer in the model and the equivalence classes.
      */
     @Override
-    public void installCommunication(ProblemSupervisor problemSupervisor) {
+    public void installCommunication(Thread myThread,ProblemSupervisor problemSupervisor) {
         problemSupervisor.model.addObserver(myThread, this::addTrueLiteralToQueue);}
 
     /** A queue of newly derived unit literals and binary equivalences.
@@ -290,7 +290,7 @@ public class Simplifier extends Solver {
      */
     public void addTrueLiteralToQueue(int literal, InferenceStep inferenceStep) {
         if(monitoring) {
-            monitor.print(monitorId,"In: True literal " +
+            monitor.print(monitorId,"In: True literal from model " +
                     Symboltable.toString(literal,symboltable));}
         synchronized (this) {
             queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
@@ -1093,7 +1093,7 @@ int ch = 0;
 
                 if(clause.findLiteral(-representative) != null) { // new clause would be a tautology
                     ++statistics.equivalenceReplacements;
-                    removeClause(clause,true);
+                    removeClause(clause,false);
                     literalObject = literalObject.nextLiteral; continue;}
 
                 Literal representativeObject = clause.findLiteral(representative);
@@ -1150,14 +1150,14 @@ int ch = 0;
                     if (trackReasoning) clause.inferenceStep =
                             new InfEquivalenceReplacement(clauseString, clause, representative, literal, equivalenceStep, symboltable);
                     if(clause.removeComplementaryLiterals((n -> statistics.complementaryLiterals += n), this::removeLiteralFromIndex)) {
-                        removeClause(clause,true);
+                        removeClause(clause,false);
                         literalObject = literalObject.nextLiteral; continue;}
                     if(simplifyClause(clause,true)) {
-                        if(monitoring) monitor.println(monitorId,"\n  Clause " + clauseString + ": literal " +
+                        if(monitoring) monitor.println(monitorId,"Clause " + clauseString + ": literal " +
                                 Symboltable.toString(literal,symboltable) + " replaced by equivalent literal " +
                                 Symboltable.toString(representative,symboltable) + " new clause: " + clause.toString(symboltable,0));
                         addDerivedClauseTask(clause);}
-                    else removeClause(clause,true);}
+                    else removeClause(clause,false);}
                 literalObject = literalObject.nextLiteral;}
             }
     }
@@ -1215,7 +1215,7 @@ int ch = 0;
         removeLiteralFromIndex(literalObject);
         if(clause.removeLiteral(literalObject,reduceLimit)){
             if(clause.size() == 2) {moveToIndexTwo(clause);}
-            checkPurity(literalObject.literal); // pure literals are just added to the model.
+            //checkPurity(literalObject.literal); // pure literals are just added to the model.
             if(checkConsistency) checkConsistency();
             return true;}
         // clause has to be removed
@@ -1314,7 +1314,10 @@ int ch = 0;
      */
     protected boolean checkPurity(int literal) throws Unsatisfiable {
         if(model.status(literal) != 0) return false;
+        if(literalIndexTwo.isEmpty(literal) && literalIndexTwo.isEmpty(-literal) &&
+                literalIndexMore.isEmpty(literal) && literalIndexMore.isEmpty(-literal)) return false;
         if(literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal)) {
+            printSeparated();
             addTrueLiteralTask(literal, trackReasoning ? new InfPureLiteral(literal,false) : null);
             if(monitoring) monitor.println(monitorId,"Pure Literal: " + Symboltable.toString(literal,symboltable));
             ++statistics.pureLiterals;

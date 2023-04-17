@@ -65,7 +65,7 @@ public class RecursiveSearcher  extends Solver {
             list.add(map);}
         return list;}
 
-    public void installCommunication(ProblemSupervisor problemSupervisor) {}
+    public void installCommunication(Thread myThread, ProblemSupervisor problemSupervisor) {}
 
     /** constructs a new Walker solver.
      *
