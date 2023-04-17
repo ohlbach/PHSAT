@@ -7,7 +7,6 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
@@ -64,9 +63,6 @@ public class Walker extends Solver {
 
     /** a score of +x for predicate p means that by flipping(p) x more clauses become true. */
     float[] flipScores;
-
-    /** a pointer to the equivalenceClasses solver. */
-    EquivalenceClasses equivalenceClasses;
 
     /** collects the equivalence classes which are send by the observer */
     private final IntArrayList equivalentLiterals = new IntArrayList(5);
@@ -169,8 +165,7 @@ public class Walker extends Solver {
      */
     @Override
     public void installCommunication(ProblemSupervisor problemSupervisor) {
-        problemSupervisor.model.addObserver(this::addGloballyTrueLiteral);
-        problemSupervisor.equivalenceClasses.addObserver((this::addEquivalence));}
+        problemSupervisor.model.addObserver(this::addGloballyTrueLiteral);}
 
     /** starts the search for a model.
      *

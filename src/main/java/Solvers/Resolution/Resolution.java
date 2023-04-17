@@ -8,7 +8,6 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
 import Datastructures.Results.*;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
 import Utilities.Utilities;
@@ -199,11 +198,7 @@ public abstract class Resolution extends Solver {
                                     (cLiteral->cLiteral.clause.size()));
         taskQueue = new TaskQueue(combinedId,null);} //monitor);}
 
-    /** EquivalenceClasses manage equivalent literals.
-     *  In each equivalence class the literals are mapped to their representatives,
-     *  which is always the predicate with the smallest number.
-     */
-    private EquivalenceClasses equivalenceClasses = null;
+
 
     /** If an equivalence p = -p occurs or can be derived, this function is called.
      *  It adds an Unsatisfiable task to the task queue.
@@ -602,8 +597,6 @@ public abstract class Resolution extends Solver {
                             model.addImmediately(literal); found = true; break;}}
                     if(!found) return new Erraneous(problemId,"Resolution",model,clause,symboltable);}}
         completeEliminations();
-        try{equivalenceClasses.completeModel();}
-        catch(Unsatisfiable uns) {return uns;}
         Result result = null;
         if(result != null) {return result;}
         result = checkModel(model);
@@ -754,7 +747,6 @@ public abstract class Resolution extends Solver {
         int literal2 =  clause.getCLiteral(1).literal;
         if(literal1 < 0) {literal1 = -literal1; literal2 = -literal2;}
         int fromliteral = literal1; int toliteral = literal2;
-        equivalenceClasses.addEquivalenceTask(fromliteral,toliteral,null);
        // taskQueue.add(new Task(2,(()->processEquivalence(fromliteral,toliteral)),
        //         (()-> "Replacing equivalent literal: "+ fromliteral + " -> " + toliteral)));
         ++statistics.equivalences;

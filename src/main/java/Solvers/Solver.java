@@ -7,7 +7,6 @@ import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor.Monitor;
@@ -147,9 +146,6 @@ public abstract class Solver {
 
     /** the global model (from the problemSupervisor). */
     public Model model;
-
-    /** the global equivalence classes (from the problemSupervisor).*/
-    public EquivalenceClasses equivalenceClasses;
 
     /** the symboltable */
     public  Symboltable symboltable = null;

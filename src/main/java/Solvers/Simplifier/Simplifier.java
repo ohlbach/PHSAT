@@ -7,7 +7,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Task;
-import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
+import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
@@ -45,9 +45,6 @@ public class Simplifier extends Solver {
     /** the input clauses */
     protected InputClauses inputClauses;
 
-    /** the equivalence classes */
-    public EquivalenceClasses equivalenceClasses;
-
     /** The id of the current problem to be solved */
     private String problemId;
 
@@ -77,9 +74,9 @@ public class Simplifier extends Solver {
     /** a timestamp to be used by subsumption algorithms */
     private int timestampSubsumption = 1;
 
-    private IntConsumer addComplementaries = (n -> statistics.complementaryLiterals += n);
+    private final IntConsumer addComplementaries = (n -> statistics.complementaryLiterals += n);
 
-    private boolean checkConsistency = false;
+    private final boolean checkConsistency = false;
 
     /** just creates a simplifier.
      *
@@ -115,11 +112,10 @@ public class Simplifier extends Solver {
         this.monitorId = "Simplifier";
         this.trackReasoning = trackReasoning;
         this.nextId = nextId;
-        equivalenceClasses = new EquivalenceClasses(null,monitor);
         literalIndexTwo = new Literals(predicates);
         literalIndexMore = new Literals(predicates);
         clauses = new Clauses();
-        model = equivalenceClasses.model;
+        model = new Model(predicates);
         statistics = new SimplifierStatistics(solverId);
     }
 
@@ -160,8 +156,7 @@ public class Simplifier extends Solver {
      */
     @Override
     public void installCommunication(ProblemSupervisor problemSupervisor) {
-        problemSupervisor.model.addObserver(this::addTrueLiteralTask);
-        problemSupervisor.equivalenceClasses.addObserver(this::addEquivalenceTask);}
+        problemSupervisor.model.addObserver(this::addTrueLiteralTask);}
 
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
@@ -285,18 +280,25 @@ public class Simplifier extends Solver {
                     Symboltable.toString(literal,symboltable));}
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
 
-    /** adds a true literal to the queue
+    /** adds an equivalence to the task queue
      *
-     * @param literal a true literal
-     * @param inferenceStep which caused the truth
+     * @param literal1 a literal
+     * @param literal2 an equivalent literal
+     * @param inferenceStep which caused the equivalence
      */
-    public void addEquivalenceTask(int representative, int literal, InferenceStep inferenceStep) {
+    public void addEquivalenceTask(int literal1, int literal2, InferenceStep inferenceStep) {
+        if(literal1 == literal2) return;
+        if(Math.abs(literal1) > Math.abs(literal2)) {
+            int dummy = literal2;
+            literal2 = literal1;
+            literal1 = dummy;}
+        if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
         if(monitoring) {
-            monitor.print(monitorId,"In: Equivalence " + Symboltable.toString(representative,symboltable) + "="+
-                    Symboltable.toString(literal,symboltable));}
-        synchronized (this) {queue.add(new Task<>(TaskType.ProcessEquivalence, representative, literal, inferenceStep));}}
+            monitor.println(monitorId,"In: Equivalence " + Symboltable.toString(literal1,symboltable) + "="+
+                    Symboltable.toString(literal2,symboltable));}
+        synchronized (this) {queue.add(new Task<>(TaskType.ProcessEquivalence, literal1, literal2, inferenceStep));}}
 
-    private final boolean printClauses = false;
+    private final boolean printClauses = true;
 
     /** reads the next task from the task queue and processes it.
      *
@@ -309,36 +311,36 @@ public class Simplifier extends Solver {
         Clause clause;
         while(!interrupted()) {
             try {
-                //if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                //if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 switch(task.taskType){
                     case ProcessTrueLiteral:
-                        if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
+                        if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                         processTrueLiteral((Integer)task.a);
                         break;
                     case ProcessEquivalence:
-                        if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
+                        if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                         processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c);
                         break;
                     case ProcessBinaryClause:
                         clause = (Clause)task.a;
                         if(clause.exists) {
-                            if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
+                            if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                             processBinaryClause(clause);}
                         break;
                     case ProcessLongerClause:
                         clause = (Clause)task.a;
                         if(clause.exists) {
-                            if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
+                            if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                             processLongerClause(clause);}
                         break;
                     case ProcessClauseFirstTime:
-                        if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
+                        if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                         processClauseFirstTime(task);
                         break;}
                 if(monitoring  && printClauses) {System.out.println(clauses.toString());}
                 if(clauses.isEmpty()) {throw new Satisfiable(problemId,solverId,model);}
-                //if(queue.isEmpty()) checkForPartialPurity();
+                if(queue.isEmpty()) checkForPartialPurity();
                 if(queue.isEmpty() && monitoring) printSeparated();}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
@@ -702,8 +704,7 @@ int ch = 0;
                     if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                             clause2.toString(symboltable,0) + " -> " +
                             Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
-                    equivalenceClasses.addEquivalenceTask(literal1,-literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
-                    removeClause(clause1,false);
+                    addEquivalenceTask(literal1,-literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
                     ++timestamp;
                     return;}
                 literalObject = literalObject.nextLiteral;}}
@@ -1119,7 +1120,7 @@ int ch = 0;
                     if (trackReasoning) clause.inferenceStep =
                             new InfEquivalenceReplacement(clauseString, clause, representative, literal, equivalenceStep, symboltable);
                     if(simplifyClause(clause,true)) {
-                        if(monitoring) monitor.print(monitorId,"\n  Clause " + clauseString + ": literal " +
+                        if(monitoring) monitor.println(monitorId,"\n  Clause " + clauseString + ": literal " +
                                 Symboltable.toString(literal,symboltable) + " replaced by equivalent literal " +
                                 Symboltable.toString(representative,symboltable) + " new clause: " + clause.toString(symboltable,0));
                         addDerivedClauseTask(clause);}
@@ -1137,7 +1138,7 @@ int ch = 0;
                         removeClause(clause,true);
                         literalObject = literalObject.nextLiteral; continue;}
                     if(simplifyClause(clause,true)) {
-                        if(monitoring) monitor.print(monitorId,"\n  Clause " + clauseString + ": literal " +
+                        if(monitoring) monitor.println(monitorId,"\n  Clause " + clauseString + ": literal " +
                                 Symboltable.toString(literal,symboltable) + " replaced by equivalent literal " +
                                 Symboltable.toString(representative,symboltable) + " new clause: " + clause.toString(symboltable,0));
                         addDerivedClauseTask(clause);}
@@ -1315,7 +1316,7 @@ int ch = 0;
      *  If there are only 2-literal clauses left, then the very first literal in the clauses is set to true.
      */
     void checkForPartialPurity() throws Unsatisfiable{
-        System.out.println("PARTIAL\n" + clauses.toString());
+        System.out.println("PARTIAL\n"); printSeparated();
         if(longerClausesExist) {
             longerClausesExist = false;
             for(int predicate = 1; predicate <= predicates; ++predicate) {
@@ -1370,14 +1371,12 @@ int ch = 0;
         monitoring             = monitor != null;
         monitorId              = "Simplifier";
         problemId              = problemSupervisor.problemId;
-        equivalenceClasses     = problemSupervisor.equivalenceClasses;
         literalIndexTwo        = new Literals(predicates);
         literalIndexMore       = new Literals(predicates);
         clauses                = new Clauses();
         statistics             = new SimplifierStatistics(solverId);
         trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
         nextId                 = problemSupervisor::nextClauseId;
-        equivalenceClasses     = problemSupervisor.equivalenceClasses;
         try{
             readInputClauses();
             processTasks(0);}

@@ -445,11 +445,11 @@ public class SimplifierTest extends TestCase {
         clause = new Clause(new int[]{4, cOr, -1,3});
         simplifier.insertClause(clause);
         simplifier.binaryMergeResolutionAndEquivalence(clause,-1,3,true);
-        simplifier.equivalenceClasses.processTasks(true);
+        //simplifier.equivalenceClasses.processTasks(true);
         assertEquals("2: 1v2\n" +
                 "3: 1v-3\n",simplifier.clauses.toString());
         assertEquals("",simplifier.model.toString());
-        assertEquals("1 = 3\n",simplifier.equivalenceClasses.toString());
+        //assertEquals("1 = 3\n",simplifier.equivalenceClasses.toString());
     }
     public void testIsSubsumedByBinaryClauses()  {
         System.out.println("binaryClauseIsSubsumed");

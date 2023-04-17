@@ -5,7 +5,6 @@ import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Results.UnsatisfiableClause;
 import Datastructures.Symboltable;
-import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Utilities.DiophantineEquation;
@@ -435,37 +434,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         return clauses;}
 
     private final ArrayList<Object> replacements = new ArrayList();
-
-    /** replaces literals by the representatives in an equivalence class.
-     * If nextInt != null then the replacement is done in a clone of the clause, otherwise in the original clause
-     * Besides the replacements, nothing is changed.
-     *
-     * @param equivalenceClasses maps a literal to its representative in an equivalence class
-     * @param nextId           null or a function that returns the next clause id for a clone of the clause
-      * @return either the original clause or the clone with the replacements
-     */
-    public Clause replaceEquivalences(EquivalenceClasses equivalenceClasses, IntSupplier nextId)  throws Unsatisfiable  {
-        replacements.clear();
-        Clause clause = this;
-        ArrayList<CLiteral> cLits = cliterals;
-        for (int i = 0; i < cLits.size(); ++i) {
-            CLiteral cLiterali = cLits.get(i);
-            int oldLiteral = cLiterali.literal;
-            int newLiteral = equivalenceClasses.getRepresentative(oldLiteral);
-            if (oldLiteral == newLiteral) continue;
-            replacements.add(oldLiteral);
-            replacements.add(newLiteral);
-            //replacements.add(equivalenceClasses.getEClause(oldLiteral).inferenceStep);
-            if (clause == this && nextId != null) {
-                clause = clone(nextId.getAsInt());
-                cLits = clause.cliterals;
-                cLiterali = cLits.get(i);}
-            cLiterali.literal = newLiteral;}
-        if (!replacements.isEmpty()) {
-            clause.compactify();
-            clause.setPositiveNegative();}
-        if(clause != this) clause.inferenceStep = new InfEquivalenceReplacements(this,clause,replacements,equivalenceClasses);
-        return clause;}
 
     private final IntArrayList removedTrueLiterals  = new IntArrayList(3);
     private final IntArrayList removedFalseLiterals = new IntArrayList(3);

@@ -3,7 +3,6 @@ package Management;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.*;
-import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
 import Management.Monitor.Monitor;
@@ -42,7 +41,6 @@ public class ProblemSupervisor {
     public Model model;
     private ArrayList<Solver> solvers;
 
-    public EquivalenceClasses equivalenceClasses;
 
     public SupervisorStatistics statistics = null;
     private ProblemGenerator problemGenerator;
@@ -93,8 +91,6 @@ public class ProblemSupervisor {
             if(!globalParameters.cnfFile.equals("none")) inputClauses.makeCNFFile(globalParameters.jobDirectory,globalParameters.cnfFile);
             if(globalParameters.showClauses && globalParameters.logstream != null) quSatJob.printlog(inputClauses.toString());
             model = new Model(inputClauses.predicates);
-            equivalenceClasses = new EquivalenceClasses(this,monitor);
-            solvers.add(equivalenceClasses);
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) solvers.get(i).installCommunication(this);
@@ -154,7 +150,7 @@ public class ProblemSupervisor {
             globalParameters.logstream.println("Problem " + problemId + ": model successfully checked.");}
         else {
             System.out.println("Wrong model derived by " + satisfiable.solverId +
-                    "for problem " + problemId + "\n  " +
+                    " for problem " + problemId + "\n  " +
                     model.toString() +
                     "\n  False Clauses:\n");
             System.out.println(InputClauses.toString(falseClauses,inputClauses.symboltable));

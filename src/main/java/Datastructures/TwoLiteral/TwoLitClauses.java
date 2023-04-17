@@ -1,13 +1,12 @@
 package Datastructures.TwoLiteral;
 
-import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Task;
-import Datastructures.Theory.*;
-import Datastructures.Theory.EquivalenceClasses.EquivalenceClasses;
+import Datastructures.Theory.Model;
 import InferenceSteps.*;
 import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
@@ -45,8 +44,6 @@ public class TwoLitClauses {
 
     public final Symboltable symboltable;
 
-    /** the global set of equivalence classes */
-    public final EquivalenceClasses equivalenceClasses;
 
     /** counts various aspects */
     private final TwoLitStatistics statistics;
@@ -99,7 +96,6 @@ public class TwoLitClauses {
         problemId = problemSupervisor.problemId;
         model = problemSupervisor.model;
         symboltable = null; //model.symboltable;
-        equivalenceClasses = problemSupervisor.equivalenceClasses;
         monitor = null;
         monitoring = monitor != null;
         monitorId = problemId+"-2Lit";
