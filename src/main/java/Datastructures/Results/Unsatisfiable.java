@@ -1,6 +1,7 @@
 package Datastructures.Results;
 
 import Datastructures.Symboltable;
+import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -43,8 +44,7 @@ public abstract class Unsatisfiable extends Result {
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append("CONTRADICTION FOUND: ");
-        if(solverId != null) {
-            st.append( "by solver '").append(solverId).append("' ");}
+        if(solverId != null) {st.append( "by solver '").append(solverId).append("' ");}
         if(problemId != null) st.append("in problem '").append(problemId);
         st.append("'\n").append(description(symboltable)).append("\n");
         IntArrayList inputClauseIds = inputClauseIds();
@@ -52,9 +52,10 @@ public abstract class Unsatisfiable extends Result {
             st.append("Contributing input clauses: ").append(inputClauseIds().toString()).append("\n");}
         ArrayList<InferenceStep> steps = inferenceSteps();
         if(steps != null) {
-            st.append("Sequence of Inference Steps:\n");
-            for(InferenceStep step : steps) st.append(step.toString(symboltable)).append("\n");
+            st.append("Sequence of Inference Steps (except InputClause):\n");
+            for(InferenceStep step : steps) {
+                if(!(step instanceof InfInputClause)) st.append(step.toString(symboltable)).append("\n");}
             st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:\n");
-            for(String rule : InferenceStep.rules(steps)) {st.append("\n").append(rule).append("\n");}}
+            for(String rule : InferenceStep.rules(steps)) {st.append(rule).append("\n");}}
         return st.toString();}
 }

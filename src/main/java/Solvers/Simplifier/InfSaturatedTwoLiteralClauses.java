@@ -13,7 +13,7 @@ public class InfSaturatedTwoLiteralClauses extends InferenceStep {
     public String title() {
         return title;}
 
-    private static String rule = "In a saturated set of 2-literal clauses any literal can be made true.";
+    private static String rule = title +"\n  In a saturated set of 2-literal clauses any literal can be made true.";
     @Override
     public String rule() {
         return rule;}
@@ -29,7 +29,7 @@ public class InfSaturatedTwoLiteralClauses extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return "In the saturated set of 2-literal clauses, the literal " +
+        return title + "\n  In the saturated set of 2-literal clauses, the literal " +
                 Symboltable.toString(literal,symboltable) + " is set to true";
     }
 

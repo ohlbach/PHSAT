@@ -13,7 +13,6 @@ import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -310,7 +309,7 @@ public class Simplifier extends Solver {
         Clause clause;
         while(!interrupted()) {
             try {
-                if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                //if(monitoring) {monitor.print(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 switch(task.taskType){
                     case ProcessTrueLiteral:
@@ -339,7 +338,7 @@ public class Simplifier extends Solver {
                         break;}
                 if(monitoring  && printClauses) {System.out.println(clauses.toString());}
                 if(clauses.isEmpty()) {throw new Satisfiable(problemId,solverId,model);}
-                if(queue.isEmpty()) checkForPartialPurity();
+                //if(queue.isEmpty()) checkForPartialPurity();
                 if(queue.isEmpty() && monitoring) printSeparated();}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
@@ -505,11 +504,26 @@ public class Simplifier extends Solver {
                  if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
                  if(checkConsistency) checkConsistency();
                  boolean removed = false;
+
                  for(int i = 0; i < clause.literals.size(); ++i){ // all literals with a truth value are removed.
                      Literal litObject = clause.literals.get(i);
                      int status = model.status(litObject.literal);
                      if(status == 0) continue; // literal must not be removed.
                      boolean isTrue = status == 1;
+
+                     if(clause.size() == 2) {
+                         removeClause(clause,false);
+                         if(isTrue) break;
+                         else {
+                            int newTrueLiteral = clause.otherLiteral(litObject).literal;
+                            ++statistics.derivedUnitClauses;
+                            model.add(newTrueLiteral,trackReasoning ?
+                                    new InfUnitResolutionTwo(clause,litObject.literal,model.getInferenceStep(litObject.literal),newTrueLiteral): null);
+                            if(monitoring)  monitor.println(monitorId,clause.toString(symboltable,0) +
+                                    " and false(" + Symboltable.toString(litObject.literal,symboltable) + ") -> true(" +
+                                    Symboltable.toString(newTrueLiteral,symboltable)+ ")");
+                            break;}}
+
                      String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
                      boolean isDisjunction = clause.isDisjunction;
                      if(!removeLiteralFromClause(litObject,isTrue)) {removed = true; break;} // clause is true now.
@@ -519,28 +533,17 @@ public class Simplifier extends Solver {
                                 Symboltable.toString(litObject.literal,symboltable) + ") -> " + clause.toString(symboltable,0));
                      if(trackReasoning) {
                          clause.inferenceStep = new InfUnitResolution(clauseBefore,clause.inferenceStep,isDisjunction,
-                                 IntArrayList.wrap(new int[]{litObject.literal}),isTrue,
-                                 clause.toString(symboltable,0),model);}
+                                 litObject.literal,isTrue,clause.toString(symboltable,0),model);}
                      --i;}
-                    if(removed) continue;
+
+                    if(removed) {literalObject = literalObject.nextLiteral; continue;}
                     if(clause.limit > clause.expandedSize) throw new UnsatClause(problemId,solverId,clause);
 
-                    switch(clause.size()) {
-                        case 0: throw new UnsatEmptyClause(problemId,solverId, clause.id, clause.inferenceStep);
-                        case 1:
-                            int trueLiteral =  clause.literals.get(0).literal;
-                            model.add(trueLiteral,clause.inferenceStep);
-                            ++statistics.derivedUnitClauses;
-                            if(monitoring)
-                                monitor.println(monitorId,"New true literal " +
-                                        Symboltable.toString(trueLiteral,symboltable) + " derived from clause " + clause.id);
-                            removeClause(clause,false);
-                            break;
-                        case 2:  addBinaryClauseTask(clause); break;
-                        default: if(simplifyClause(clause,true)) {
-                                    if(checkConsistency) checkConsistency();
-                                    addDerivedClauseTask(clause);}
-                                else removeClause(clause,true);}
+                    if(clause.size() == 2) addBinaryClauseTask(clause);
+                    else{ if(simplifyClause(clause,true)) {
+                                if(checkConsistency) checkConsistency();
+                                addDerivedClauseTask(clause);}
+                          else removeClause(clause,true);}
             literalObject = literalObject.nextLiteral;}}
         literalIndexMore.removePredicate(literal);}
 
@@ -1192,23 +1195,14 @@ int ch = 0;
      */
     protected boolean removeLiteralFromClause(Literal literalObject, boolean reduceLimit) throws Unsatisfiable {
         Clause clause = literalObject.clause;
-        switch(clause.size()) {
-            case 1:
-                if(reduceLimit) {
-                    removeClause(clause,false);
-                    return false;}
-                else {throw new UnsatClause(problemId,solverId, clause);}
-            case 2:
-                removeClause(clause,false);
-                if(reduceLimit) return false;
-                model.add(clause.otherLiteral(literalObject).literal,null);
-                return false;}
+        assert(clause.size()  > 2);
         removeLiteralFromIndex(literalObject);
         if(clause.removeLiteral(literalObject,reduceLimit)){
             if(clause.size() == 2) {moveToIndexTwo(clause);}
             checkPurity(literalObject.literal); // pure literals are just added to the model.
             if(checkConsistency) checkConsistency();
             return true;}
+        // clause has to be removed
         if(clause.size() == 2) {moveToIndexTwo(clause);}
         removeClause(clause,true);
         if(checkConsistency) checkConsistency();
@@ -1321,6 +1315,7 @@ int ch = 0;
      *  If there are only 2-literal clauses left, then the very first literal in the clauses is set to true.
      */
     void checkForPartialPurity() throws Unsatisfiable{
+        System.out.println("PARTIAL\n" + clauses.toString());
         if(longerClausesExist) {
             longerClausesExist = false;
             for(int predicate = 1; predicate <= predicates; ++predicate) {

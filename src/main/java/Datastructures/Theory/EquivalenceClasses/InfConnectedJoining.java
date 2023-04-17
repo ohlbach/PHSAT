@@ -52,7 +52,7 @@ public class InfConnectedJoining extends InferenceStep {
 
     @Override
     public IntArrayList inputClauseIds() {
-        IntArrayList inputIds = null;
+        IntArrayList inputIds = new IntArrayList();
         for(InferenceStep step : inferenceSteps) joinIntArrays(inputIds,step.inputClauseIds());
         return inputIds;}
 

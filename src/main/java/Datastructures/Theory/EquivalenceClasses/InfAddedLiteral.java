@@ -17,9 +17,9 @@ public class InfAddedLiteral  extends InferenceStep {
 
     @Override
     public String rule() {
-        return "'p = q = ... = x = ... = s' and 'x = y'\n" +
-                "-------------------------------------\n" +
-                " p = q = ... = x = ... = s = y'";
+        return title() + "\n  'p = q = ... = x = ... = s' and 'x = y'\n" +
+                "  -------------------------------------\n" +
+                "     p = q = ... = x = ... = s = y'";
     }
 
     int representative,newLiteral,oldLiteral;
@@ -39,6 +39,7 @@ public class InfAddedLiteral  extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
+        st.append(title()).append("\n");
         st.append(Symboltable.toString(representative,symboltable));
         for(int literal : literals)
             st.append(" = ").append(Symboltable.toString(literal,symboltable));

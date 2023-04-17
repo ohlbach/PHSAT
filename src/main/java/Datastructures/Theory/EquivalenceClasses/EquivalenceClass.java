@@ -57,8 +57,7 @@ public class EquivalenceClass {
     protected EquivalenceClass clone() {
         IntArrayList newLiterals = literals.clone();
         ArrayList<InferenceStep> newSteps = null;
-        if(inferenceSteps != null) {
-            newSteps = new ArrayList<>(inferenceSteps);}
+        if(inferenceSteps != null) {newSteps = (ArrayList<InferenceStep>)inferenceSteps.clone();}
         return new EquivalenceClass(representative,newLiterals,newSteps);}
 
     /** analyses an input clause of type EQUIV and generates an equivalence class.
@@ -134,6 +133,7 @@ public class EquivalenceClass {
      */
     protected void addNewEquivalence(int oldLiteral, int newLiteral, InferenceStep newInferenceStep,
                                   ArrayList<TriConsumer<Integer,Integer,InferenceStep>> observers) throws Unsatisfiable{
+        System.out.println("EGGGG " + oldLiteral + " " + newLiteral + "\n" + toString(null));
         if(representative == newLiteral) return;
         if(representative == -newLiteral)
             throw new UnsatContradictoryEquivalence(null,"EquivalenceClass", oldLiteral,representative,
@@ -149,6 +149,7 @@ public class EquivalenceClass {
         if(inferenceSteps != null)
             inferenceSteps.add(new InfAddedLiteral(representative, literals,newLiteral,oldLiteral,newInferenceStep,oldInferenceStep));
         literals.add(newLiteral);
+        System.out.println("LITTT " + literals);
         if(observers != null) {
             for(TriConsumer<Integer,Integer,InferenceStep> observer : observers)
                 observer.accept(representative,newLiteral,newInferenceStep);}
@@ -174,6 +175,7 @@ public class EquivalenceClass {
      * @throws Unsatisfiable if the two classes contain contradictory literals.
      */
     protected EquivalenceClass joinOverlappingClasses(EquivalenceClass eqClass, int sign) throws Unsatisfiable {
+        System.out.println("JOIN\n" + toString(null) + "\n" + eqClass.toString(null));
         EquivalenceClass eqClass1 = this;
         EquivalenceClass eqClass2 = eqClass;
         if(eqClass2.representative < eqClass1.representative) {
@@ -197,6 +199,7 @@ public class EquivalenceClass {
             ArrayList<InferenceStep> inferenceSteps = new ArrayList<>(literals.size());
             for(int i = 0; i < literals.size(); ++i) inferenceSteps.add(joinedStep);
             joinedClass.inferenceSteps = inferenceSteps;}
+        System.out.println("JOINED\n" + joinedClass.toString(null));
         return joinedClass;
     }
 
@@ -255,6 +258,8 @@ public class EquivalenceClass {
      */
     protected void applyTrueLiteral(int trueLiteral, int sign, InferenceStep trueInferenceStep,
                                     Model model, EquivalenceStatistics statistics) throws Unsatisfiable {
+
+        System.out.println("TRUE LITT\n " + toString(null));
         int literalInClass = sign*trueLiteral;
         InferenceStep equivInferenceStep = getInferenceStep(literalInClass);
         InferenceStep literalInferenceStep = null;

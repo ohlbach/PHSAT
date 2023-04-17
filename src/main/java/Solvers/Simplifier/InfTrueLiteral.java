@@ -46,7 +46,7 @@ public class InfTrueLiteral extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return "  " +clause + " implies true(" + Symboltable.toString(literal,symboltable) + ")";}
+        return title + "\n  " +clause + " implies true(" + Symboltable.toString(literal,symboltable) + ")";}
 
     @Override
     public IntArrayList inputClauseIds() {

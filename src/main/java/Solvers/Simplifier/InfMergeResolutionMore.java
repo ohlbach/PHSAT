@@ -33,7 +33,7 @@ public class InfMergeResolutionMore extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n" + parentClause + " and " + resolventBefore + " -> " + resolventAfter;}
+        return title + "\n  " + parentClause + " and " + resolventBefore + " -> " + resolventAfter;}
 
     @Override
     public IntArrayList inputClauseIds() {

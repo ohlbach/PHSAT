@@ -44,9 +44,10 @@ public class InfOverlapJoining extends InferenceStep {
 
     @Override
     public IntArrayList inputClauseIds() {
-        return joinIntArrays(
+        IntArrayList result = joinIntArrays(
                 (clause1.inferenceStep != null) ? clause1.inferenceStep.inputClauseIds() : null,
-                (clause2.inferenceStep != null) ? clause2.inferenceStep.inputClauseIds() : null);}
+                (clause2.inferenceStep != null) ? clause2.inferenceStep.inputClauseIds() : null);
+        return (result == null) ? new IntArrayList() : result;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

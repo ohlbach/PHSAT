@@ -48,9 +48,9 @@ public class InfApplyTrueLiteral extends InferenceStep {
 
     @Override
     public String rule() {
-        return "l1 = l2 = ... = ln and true/false(li)\n"+
-                "------------------------------------\n"+
-                "true/false(l1) ... true/false(ln)";}
+        return title() + "\n  l1 = l2 = ... = ln and true/false(li)\n"+
+                "  ------------------------------------\n"+
+                "   true/false(l1) ... true/false(ln)";}
 
     @Override
     public String toString(Symboltable symboltable) {
@@ -63,7 +63,8 @@ public class InfApplyTrueLiteral extends InferenceStep {
         IntArrayList oldIds = (oldInferenceStep == null) ? null : oldInferenceStep.inputClauseIds();
         IntArrayList newIds = (newInferenceStep == null) ? null : newInferenceStep.inputClauseIds();
         IntArrayList ids    = (trueInferenceStep == null) ? null: trueInferenceStep.inputClauseIds();
-        return Utilities.Utilities.unionIntArrayLists(oldIds,newIds,ids);}
+        IntArrayList result = Utilities.Utilities.unionIntArrayLists(oldIds,newIds,ids);
+        return (result == null) ? new IntArrayList() : result;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

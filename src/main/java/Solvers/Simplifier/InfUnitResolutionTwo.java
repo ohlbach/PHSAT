@@ -13,7 +13,7 @@ public class InfUnitResolutionTwo extends InferenceStep {
     public String title() {
         return title;}
 
-    private final static String rule = "-p,q and true(p) -> true(q)";
+    private final static String rule = title + "\n  -p,q and true(p) -> true(q)";
 
     @Override
     public String rule() {
@@ -32,7 +32,7 @@ public class InfUnitResolutionTwo extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n" + clause.toString() + " and true(" + Symboltable.toString(oldTrueLiteral,symboltable) +
+        return title + "\n  " + clause.toString() + " and true(" + Symboltable.toString(oldTrueLiteral,symboltable) +
         ") -> true("  + Symboltable.toString(newTrueLiteral,symboltable) + ")";
     }
 

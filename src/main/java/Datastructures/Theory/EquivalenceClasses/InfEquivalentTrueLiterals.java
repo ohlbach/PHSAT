@@ -71,7 +71,7 @@ public class InfEquivalentTrueLiterals extends InferenceStep {
      */
     @Override
     public IntArrayList inputClauseIds() {
-        if(inferenceStep == null) return null;
+        if(inferenceStep == null) return new IntArrayList();
         IntArrayList inputClauseIds = inferenceStep.inputClauseIds().clone();
         inputClauseIds.add(inputClauseId);
         return inputClauseIds;}

@@ -24,7 +24,7 @@ public class InfPureLiteral extends InferenceStep {
 
     @Override
     public String rule() {
-        return partiallyPure ? rulePartial : rulePure;}
+        return title + "\n  " + (partiallyPure ? rulePartial : rulePure);}
 
     private final int pureLiteral;
     private final boolean partiallyPure;
@@ -35,7 +35,7 @@ public class InfPureLiteral extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return "Literal " + Symboltable.toString(pureLiteral, symboltable) +
+        return title + "\n  Literal " + Symboltable.toString(pureLiteral, symboltable) +
                 " is" + (partiallyPure ? " partially" : "") +" pure and becomes true.";}
 
     @Override

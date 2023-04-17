@@ -48,11 +48,13 @@ public class QUSat {
                     "predicates = 20\n" +
                     "cpRatio = 4\n"+
                     "length = 3\n"+
-                    "seed = 5\n"+
+                    "seed = 7\n"+ // 20/4;  0 sat, 1 cont, 2 sat, 3 sat, 4 unsat, 5 sat, 6 sat, 7 sat, wrong
+                                  // wrong 1, 2,3,4,5,-6,-7,-8,-9,-10,-11,-12,-13,-14,15,-16, 17,-18,19,20
+                                        // 1,-2,3,-4,5,-6,-7,-8,-9,-10,-11,12,-13,-14,15,-16,-17,-18,19,20
             "global\n" +
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
-               //     "monitor = life\n"+
+                    "monitor = life\n"+
                     "trackReasoning\n"+
            "solver simplifier";
            /*"solver walker\n"+

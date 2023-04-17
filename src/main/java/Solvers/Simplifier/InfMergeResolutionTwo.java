@@ -11,7 +11,7 @@ public class InfMergeResolutionTwo extends InferenceStep {
     @Override
     public String title() {return title;}
 
-    private final static String rule = title + "\np,q and -p,q -> true(q)";
+    private final static String rule = title + "\n  p,q and -p,q -> true(q)";
 
     @Override
     public String rule() {return rule;}
@@ -22,7 +22,7 @@ public class InfMergeResolutionTwo extends InferenceStep {
         this.clause1 = clause1; this.clause2 = clause2; this.literal = literal;}
     @Override
     public String toString(Symboltable symboltable) {
-        return clause1.toString(symboltable,0) + " and " + clause2.toString(symboltable,0) +
+        return title + "\n  " +clause1.toString(symboltable,0) + " and " + clause2.toString(symboltable,0) +
                 " -> true(" + Symboltable.toString(literal,symboltable) + ")";}
 
     @Override
