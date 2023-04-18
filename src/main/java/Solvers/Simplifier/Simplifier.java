@@ -13,6 +13,7 @@ import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -79,6 +80,8 @@ public class Simplifier extends Solver {
     private final boolean checkConsistency = true;
 
     private Thread myThread;
+
+    private final IntArrayList equivalences = new IntArrayList();
 
     /** just creates a simplifier.
      *
@@ -276,12 +279,21 @@ public class Simplifier extends Solver {
      * @param inferenceStep which caused the truth
      */
     public void addTrueLiteralTask(int literal, InferenceStep inferenceStep) throws Unsatisfiable{
+        int predicate = Math.abs(literal);
         if(monitoring) {
-            monitor.print(monitorId,"In: True literal " +
+            monitor.print(monitorId,"True literal added: " +
                     Symboltable.toString(literal,symboltable));}
         synchronized (this) {
             model.add(myThread,literal,inferenceStep);
-            queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
+            queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}
+            for(int i = 0; i < equivalences.size(); i += 2) {
+                if(equivalences.getInt(i) == predicate) {
+                    int lit = equivalences.getInt(i+1);
+                    if(literal < 0) lit *= -1;
+                    if(monitoring) monitor.println(monitorId, "equivalent literal " +
+                            Symboltable.toString(lit,symboltable) + " added to model.");
+                    model.add(myThread,lit,inferenceStep);
+                    return;}}}
 
     /** adds a true literal to the queue
      *
@@ -308,6 +320,7 @@ public class Simplifier extends Solver {
             literal2 = literal1;
             literal1 = dummy;}
         if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
+        equivalences.add(literal1); equivalences.add(literal2);
         if(monitoring) {
             monitor.println(monitorId,"In: Equivalence " + Symboltable.toString(literal1,symboltable) + "="+
                     Symboltable.toString(literal2,symboltable));}
@@ -326,34 +339,43 @@ public class Simplifier extends Solver {
         Clause clause;
         while(!interrupted()) {
             try {
-                //if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
+                boolean changed = false;
                 switch(task.taskType){
                     case ProcessTrueLiteral:
                         if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
+                        changed = true;
                         processTrueLiteral((Integer)task.a);
                         break;
                     case ProcessEquivalence:
                         if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
+                        changed = true;
                         processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c);
                         break;
                     case ProcessBinaryClause:
                         clause = (Clause)task.a;
                         if(clause.exists) {
+                            changed = true;
                             if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                             processBinaryClause(clause);}
                         break;
                     case ProcessLongerClause:
                         clause = (Clause)task.a;
                         if(clause.exists) {
+                            changed = true;
                             if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                             processLongerClause(clause);}
                         break;
                     case ProcessClauseFirstTime:
-                        if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
-                        processClauseFirstTime(task);
+                        if(((Clause)task.a).exists) {
+                            changed = true;
+                            if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
+                            processClauseFirstTime(task);}
                         break;}
-                if(monitoring  && printClauses) {System.out.println(clauses.toString());}
+                if(monitoring  && printClauses && changed) {
+                    System.out.println("Model: " + model.toString());
+                    printSeparated();}
                 if(clauses.isEmpty()) {throw new Satisfiable(problemId,solverId,model);}
                 if(queue.isEmpty()) checkForPartialPurity();
                 if(queue.isEmpty() && monitoring) printSeparated();}
@@ -719,8 +741,14 @@ int ch = 0;
                     if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                             clause2.toString(symboltable,0) + " -> " +
                             Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
-                    addEquivalenceTask(literal1,-literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
+                    //addEquivalenceTask(literal1,-literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
+                    removeClause(clause1,false);
+                    removeClause(clause2,false);
                     ++timestamp;
+                    if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
+                    equivalences.add(literal1); equivalences.add(-literal2);
+                    processEquivalence(literal1,-literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
+
                     return;}
                 literalObject = literalObject.nextLiteral;}}
         ++timestamp;}
@@ -1118,7 +1146,8 @@ int ch = 0;
                     ++statistics.equivalenceReplacements;
                     if(trackReasoning) {clause.inferenceStep =
                             new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);}
-                    addBinaryClauseTask(clause);}
+                    if(binaryClauseIsSubsumed(clause) != null) removeClause(clause,false);
+                        else addBinaryClauseTask(clause);}
                 literalObject = literalObject.nextLiteral;}
 
             literalObject = literalIndexMore.getFirstLiteralObject(literal);  // we check the longer clauses.
@@ -1138,7 +1167,7 @@ int ch = 0;
                         if(monitoring) monitor.println(monitorId,"\n  Clause " + clauseString + ": literal " +
                                 Symboltable.toString(literal,symboltable) + " replaced by equivalent literal " +
                                 Symboltable.toString(representative,symboltable) + " new clause: " + clause.toString(symboltable,0));
-                        addDerivedClauseTask(clause);}
+                        if(isSubsumed(clause) != null) removeClause(clause,false); else  addDerivedClauseTask(clause);}
                     else removeClause(clause,true);}
                 else { // just replace literal by representative
                     literalIndexMore.removeLiteral(literalObject);
@@ -1156,11 +1185,30 @@ int ch = 0;
                         if(monitoring) monitor.println(monitorId,"Clause " + clauseString + ": literal " +
                                 Symboltable.toString(literal,symboltable) + " replaced by equivalent literal " +
                                 Symboltable.toString(representative,symboltable) + " new clause: " + clause.toString(symboltable,0));
-                        addDerivedClauseTask(clause);}
+                        if(isSubsumed(clause) != null) removeClause(clause,false); else addDerivedClauseTask(clause);}
                     else removeClause(clause,false);}
                 literalObject = literalObject.nextLiteral;}
             }
+        if(!isTotallyEmpty(representative)) {
+            if(isPure(representative)) {
+                addTrueLiteralTask(representative, trackReasoning ?
+                    new InfPureLiteral(representative,false) : null);
+                addTrueLiteralTask(literal, trackReasoning ?
+                        new InfPureLiteral(literal,false) : null);}
+
+            else {if(isPure(-representative)) {
+                addTrueLiteralTask(-representative, trackReasoning ?
+                    new InfPureLiteral(-representative,false) : null);
+                addTrueLiteralTask(-literal, trackReasoning ?
+                        new InfPureLiteral(-literal,false) : null);}}}
     }
+
+    boolean isTotallyEmpty(int literal) {
+        return  literalIndexTwo.isEmpty(literal) && literalIndexMore.isEmpty(literal) &&
+                literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal);}
+
+    boolean isPure(int literal) {
+        return literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal);}
 
     /** inserts a clause into the internal lists.
      *
@@ -1318,8 +1366,8 @@ int ch = 0;
                 literalIndexMore.isEmpty(literal) && literalIndexMore.isEmpty(-literal)) return false;
         if(literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal)) {
             printSeparated();
-            addTrueLiteralTask(literal, trackReasoning ? new InfPureLiteral(literal,false) : null);
             if(monitoring) monitor.println(monitorId,"Pure Literal: " + Symboltable.toString(literal,symboltable));
+            addTrueLiteralTask(literal, trackReasoning ? new InfPureLiteral(literal,false) : null);
             ++statistics.pureLiterals;
             return true;}
         return false;}

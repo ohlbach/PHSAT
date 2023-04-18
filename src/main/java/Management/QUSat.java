@@ -48,8 +48,8 @@ public class QUSat {
                     "predicates = 5\n" +
                     "cpRatio = 4\n"+
                     "length = 3\n"+
-                    "seed = 3\n"+ // 20/4;  0 sat, 1 cont, 2 sat, 3 sat, 4 unsat, 5 sat, 6 sat, 7 sat, 8 wrong
-            "global\n" +
+                    "seed = 7\n"+ // 20/4;  0 sat, 1 cont, 2 sat, 3 sat, 4 unsat, 5 sat, 6 sat, 7 sat, 8 wrong
+            "global\n" +           // 5/4 wrong
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
                     "monitor = life\n"+
