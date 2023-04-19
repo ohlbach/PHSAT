@@ -18,27 +18,44 @@ import java.util.Date;
 
 import static org.apache.commons.lang3.StringUtils.split;
 
+/** The class initiates the solution of QuSat problems.
+ * <br>
+ * Several QuSat-problems can be processed, one by one. <br>
+ * Each QuSat-problem can be processed by several solvers in parallel. <br>
+ * They may exchange information, such as derived unit clauses.
+ */
 public class QuSatJob {
 
+    /** the date when the job has been processed. */
     public Date jobDate = new Date();
 
-    public KVParser kvParser;
-
+    /** the start time in nanoseconds. */
     public long startTime;
 
+    /** the end time in nanoseconds. */
     public long endTime;
 
+    /** key-value parser for parsing the problem and solver parameters. */
+    public KVParser kvParser;
+
+    /** the global control parameters. */
     public GlobalParameters globalParameters;
 
+    /** the list of problem supervisors,one for each problem. */
     public ArrayList<ProblemSupervisor> problemSupervisors = new ArrayList<>();
 
+    /** the class which distributes the problems to the problem supervisors. */
     public ProblemDistributor problemDistributor;
 
-
+    /** creates the QuSatJob.
+     *
+     * @param kvParser the key-value parser which has already parsed the parameters.
+     */
     public QuSatJob(KVParser kvParser) {
-        startTime = System.nanoTime();
         this.kvParser = kvParser;}
 
+    /** solves the QuSat-problems.
+     */
     public void solveProblems() {
         startTime = System.nanoTime();
         StringBuilder errors   = new StringBuilder();
@@ -51,7 +68,7 @@ public class QuSatJob {
             System.out.println(errors);
             System.out.println("QuSat solver stops!");
             return;}
-        prepareSystem();
+        prepareMonitorAndLogstream();
         for(ProblemGenerator problemGenerator : generators) {
             problemSupervisors.add(new ProblemSupervisor(this,globalParameters,problemGenerator,solvers));}
         problemDistributor = new ProblemDistributor(this,globalParameters,problemSupervisors);
@@ -61,7 +78,9 @@ public class QuSatJob {
         finalizeSystem();
     }
 
-    private void prepareSystem() {
+    /** pepares the monitor and the logstream
+     */
+    private void prepareMonitorAndLogstream() {
         if((globalParameters.monitor != null && globalParameters.monitor.equals("file"))  ||
                 globalParameters.logging.equals("file") || !globalParameters.cnfFile.equals("none") ||
                 !(globalParameters.statistic.equals("none") || globalParameters.statistic.equals("text"))){
@@ -80,13 +99,15 @@ public class QuSatJob {
             break;
             case "none": globalParameters.logstream = null;       globalParameters.logFile = "none";       break;
             case "life": globalParameters.logstream = System.out; globalParameters.logFile = "System.out"; break;}
+        if(globalParameters.logstream != null)
+            globalParameters.logstream.println(jobDate.toString() + ": Starting QuSat-job " + globalParameters.jobname);
     }
 
     public void finalizeSystem() {
         for(Monitor monitor : monitors) monitor.flush(true); // close the files.
+        printlog("QuSat job" + globalParameters.jobname + " finished.");
         if(globalParameters.logstream != null && globalParameters.logstream != System.out)
-            globalParameters.logstream.close();
-    }
+            globalParameters.logstream.close();}
 
     /** counts the problems */
     int problemCounter = 0;
@@ -155,7 +176,7 @@ public class QuSatJob {
         quSatJob.globalParameters.jobname = "MyJob";
         quSatJob.globalParameters.logging = "life";
         quSatJob.globalParameters.directory = Utilities.Utilities.pathWithHome("home/TEST");
-        quSatJob.prepareSystem();
+        quSatJob.prepareMonitorAndLogstream();
         quSatJob.printlog("TEESTTT");
         System.out.println(quSatJob.globalParameters.toString());
 

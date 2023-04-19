@@ -8,7 +8,6 @@ import java.io.FileNotFoundException;
 import java.io.PrintStream;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Date;
 
 /**
  * Created by Ohlbach on 03.09.2018.<br>
@@ -50,15 +49,8 @@ public class ProblemDistributor {
      * Each thread then fetches the next unprocessed ProblemSupervisor and calls its solveProblem() method.
      */
     public void solveProblems() {
-        String jobname = globalParameters.jobname;
-        globalParameters.logstream.println("Starting job " + jobname + " at " + (new Date()));
-        long start = System.nanoTime();
         for(ProblemSupervisor problemSupervisor : problemSupervisors) problemSupervisor.solveProblem();
-        long end = System.nanoTime(); // only the elapsed solution time is reported.
         reportResults();
-        globalParameters.logstream.println("Ending job    " + jobname + " at " + (new Date()));
-        globalParameters.logstream.println("Elapsed time " + (float)(end-start)/1000.0 + " μs");
-        globalParameters.logstream.close();
     }
 
 

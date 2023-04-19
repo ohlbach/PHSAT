@@ -3,7 +3,6 @@ package Management;
 import Utilities.KVParser;
 
 import java.nio.file.Paths;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.function.Supplier;
 
@@ -45,11 +44,11 @@ public class QUSat {
 
    private static final String parameters =
             "problem random\n"+
-                    "predicates = 10\n" +
+                    "predicates = 12\n" +
                     "cpRatio = 4\n"+
                     "length = 3\n"+
-                    "seed = 1 to 10 step 1\n"+ // 20/4;  0 sat, 1 cont, 2 sat, 3 sat, 4 unsat, 5 sat, 6 sat, 7 sat, 8 wrong
-            "global\n" +           //
+                    "seed = 8\n"+ // 20/4;  0 sat, 1 cont, 2 sat, 3 sat, 4 unsat, 5 sat, 6 sat, 7 sat, 8 wrong
+            "global\n" +           //12/4: 8 wrong
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
                     "monitor = life\n"+
@@ -91,7 +90,6 @@ public class QUSat {
      * @param args for the commands
      */
     public static void  main(String[] args)  {
-        System.out.println(new Date());
         //args = new String[]{"help","walker"};
         args = new String[]{"string"};
         if(args.length == 0) {help(args); return;}

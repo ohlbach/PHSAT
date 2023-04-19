@@ -79,6 +79,7 @@ public class ProblemSupervisor {
         StringBuilder errors = new StringBuilder();
         try {
             inputClauses = problemGenerator.generateProblem(errors);
+            problemId = inputClauses.problemId;
             clauseCounter = inputClauses.nextId-1;
             if(errors.length() > 1) {
                 System.out.println("Error when reading/generating problem '" + problemId + "'");
@@ -86,10 +87,10 @@ public class ProblemSupervisor {
                 System.out.println(problemGenerator.toString());
                 System.out.println("System is aborted.");
                 System.exit(1);}
-            problemId = inputClauses.problemId;
             monitor   = quSatJob.getMonitor(problemId);
             if(!globalParameters.cnfFile.equals("none")) inputClauses.makeCNFFile(globalParameters.jobDirectory,globalParameters.cnfFile);
-            if(globalParameters.showClauses && globalParameters.logstream != null) quSatJob.printlog(inputClauses.toString());
+            if(globalParameters.showClauses && globalParameters.logstream != null)
+                globalParameters.logstream.println(inputClauses.toString());
             model = new Model(inputClauses.predicates);
             readConjunctions(inputClauses.conjunctions);
             numberOfSolvers = solvers.size();
@@ -107,7 +108,8 @@ public class ProblemSupervisor {
             System.out.println(ex);
             ex.printStackTrace();
             System.exit(0);}
-        globalParameters.logstream.println("Solvers finished for problem " + problemId);}
+        if(globalParameters.logstream != null)
+            globalParameters.logstream.println("Solvers finished for problem " + problemId);}
 
     /** inserts the initial conjunctions (if any) into the model
      *

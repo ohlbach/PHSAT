@@ -383,7 +383,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      */
     public InputClauses generateProblem(StringBuilder errors) {
         String problemName = "Random_" + ++problemCounter;
-        String info = "Randomly generated clauses with parameters:" + parameters.toString()+":\n";
+        String info = "Randomly generated clauses by: " + toString()+":\n";
         InputClauses inputClauses = new InputClauses("",predicates,null,info);
         Random rnd = new Random(seed);
         int[] id = {0};
@@ -403,7 +403,6 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
             info += "\nintervals:" + intervals;}
 
         inputClauses.problemId = problemName;
-        inputClauses.info        = info;
         inputClauses.nextId      = id[0]+1;
         return inputClauses;}
 
