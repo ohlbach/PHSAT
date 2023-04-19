@@ -123,7 +123,7 @@ public abstract class ResolutionReduction extends Solver {
      * @return the result of the operation sequence.
      */
     public Result solve() {
-        super.initialize(problemSupervisor);
+        super.initialize(null,problemSupervisor);
         //globalParameters.log(solverId + " for problem " + problemId + " started");
         long time = System.currentTimeMillis();
         initializeData();

@@ -81,7 +81,7 @@ public class Simplifier extends Solver {
 
     private Thread myThread;
 
-    private final IntArrayList equivalences = new IntArrayList();
+    private IntArrayList equivalences;
 
     /** just creates a simplifier.
      *
@@ -92,15 +92,17 @@ public class Simplifier extends Solver {
      */
     public static void makeSolvers(HashMap<String,String> parameters, ArrayList<Solver> solvers,
                                    StringBuilder errors, StringBuilder warnings) {
-        solvers.add(new Simplifier());
+        HashMap<String,Object> solverParameters = new HashMap<>();
+        solverParameters.put("name", "Simplifier");
+        solvers.add(new Simplifier(1,solverParameters));
     }
 
     /** constructs a new Simplifier.
      * All internal data are taken form the supervisor.
      *
      */
-    public Simplifier() {
-        super(1,null);
+    public Simplifier(int solverNumber, HashMap<String,Object> solverParameters) {
+        super(solverNumber,solverParameters);
     }
 
     /** this is a constructor for testing purposes (without ProblemSupervisor)
@@ -172,7 +174,16 @@ public class Simplifier extends Solver {
     /** adds the literals which are already true in the model to the task queue.
      * Installs the observer in the model.
      */
-    public void initialize() {
+    public void initialize(Thread myThread, ProblemSupervisor problemSupervisor) {
+        super.initialize(myThread,problemSupervisor);
+        literalIndexTwo = new Literals(predicates);
+        literalIndexMore = new Literals(predicates);
+        equivalences = new IntArrayList();
+        clauses = new Clauses();
+        statistics = new SimplifierStatistics(solverId);
+        timestamp = 1;
+        timestampSubsumption = 1;
+        queue.clear();
         for(int literal: model.model) {
             addTrueLiteralToQueue(literal,model.getInferenceStep(literal));}}
 
@@ -290,10 +301,18 @@ public class Simplifier extends Solver {
                 if(equivalences.getInt(i) == predicate) {
                     int lit = equivalences.getInt(i+1);
                     if(literal < 0) lit *= -1;
-                    if(monitoring) monitor.println(monitorId, "equivalent literal " +
+                    if(monitoring) monitor.println(monitorId, "Equivalent literal " +
                             Symboltable.toString(lit,symboltable) + " added to model.");
-                    model.add(myThread,lit,inferenceStep);
-                    return;}}}
+                    model.add(myThread,lit,inferenceStep);}}}
+
+    void completeEquivalences() throws Unsatisfiable {
+        int status;
+        for(int i = 0; i < equivalences.size(); i += 2) {
+            if((status = model.status(equivalences.getInt(i))) != 0) {
+                int literal = status*equivalences.getInt(i+1);
+                if(monitoring) monitor.println(monitorId, "Equivalent literal " +
+                        Symboltable.toString(literal,symboltable) + " added to model.");
+                model.add(myThread,literal,null);}}}
 
     /** adds a true literal to the queue
      *
@@ -376,7 +395,7 @@ public class Simplifier extends Solver {
                 if(monitoring  && printClauses && changed) {
                     System.out.println("Model: " + model.toString());
                     printSeparated();}
-                if(clauses.isEmpty()) {throw new Satisfiable(problemId,solverId,model);}
+                if(clauses.isEmpty()) {completeEquivalences(); throw new Satisfiable(problemId,solverId,model);}
                 if(queue.isEmpty()) checkForPartialPurity();
                 if(queue.isEmpty() && monitoring) printSeparated();}
             catch(InterruptedException ex) {return;}
@@ -745,10 +764,17 @@ int ch = 0;
                     removeClause(clause1,false);
                     removeClause(clause2,false);
                     ++timestamp;
+                    int pure = isPure(literal1);
+                    if(pure == 0) pure = isPure(-literal2);
+                    if(pure != 0) {
+                        addTrueLiteralTask(pure*literal1,trackReasoning ?
+                            new InfPureLiteral(pure*literal1,false) : null);
+                        addTrueLiteralTask(-pure*literal2,trackReasoning ?
+                            new InfPureLiteral(-pure*literal2,false) : null);
+                        return;}
                     if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
                     equivalences.add(literal1); equivalences.add(-literal2);
                     processEquivalence(literal1,-literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
-
                     return;}
                 literalObject = literalObject.nextLiteral;}}
         ++timestamp;}
@@ -1188,27 +1214,16 @@ int ch = 0;
                         if(isSubsumed(clause) != null) removeClause(clause,false); else addDerivedClauseTask(clause);}
                     else removeClause(clause,false);}
                 literalObject = literalObject.nextLiteral;}
-            }
-        if(!isTotallyEmpty(representative)) {
-            if(isPure(representative)) {
-                addTrueLiteralTask(representative, trackReasoning ?
-                    new InfPureLiteral(representative,false) : null);
-                addTrueLiteralTask(literal, trackReasoning ?
-                        new InfPureLiteral(literal,false) : null);}
-
-            else {if(isPure(-representative)) {
-                addTrueLiteralTask(-representative, trackReasoning ?
-                    new InfPureLiteral(-representative,false) : null);
-                addTrueLiteralTask(-literal, trackReasoning ?
-                        new InfPureLiteral(-literal,false) : null);}}}
-    }
+            }}
 
     boolean isTotallyEmpty(int literal) {
         return  literalIndexTwo.isEmpty(literal) && literalIndexMore.isEmpty(literal) &&
                 literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal);}
 
-    boolean isPure(int literal) {
-        return literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal);}
+    int isPure(int literal) {
+        if(literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal)) return 1;
+        if(literalIndexTwo.isEmpty(literal) && literalIndexMore.isEmpty(literal)) return -1;
+        return 0;}
 
     /** inserts a clause into the internal lists.
      *

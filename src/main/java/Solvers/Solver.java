@@ -162,6 +162,8 @@ public abstract class Solver {
     /** an identifier for the monitor */
     protected String monitorId;
 
+    Thread myThread;
+
     /** constructs a solver as an instance of the Processor class.
      *
      * @param solverNumber       to distinguish different solvers of the same type, but different parameters,
@@ -177,8 +179,9 @@ public abstract class Solver {
      *
      * @param problemSupervisor the supervisor for the problem.
      */
-    protected void initialize(ProblemSupervisor problemSupervisor) {
-        this.problemSupervisor = problemSupervisor;
+    public void initialize(Thread thread,ProblemSupervisor problemSupervisor) {
+        this.myThread              = thread;
+        this.problemSupervisor     = problemSupervisor;
         solverId                   = (String)solverParameters.get("name");
         problemId                  = problemSupervisor.problemId;
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;

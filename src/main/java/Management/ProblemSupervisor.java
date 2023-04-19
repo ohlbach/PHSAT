@@ -91,13 +91,13 @@ public class ProblemSupervisor {
             if(!globalParameters.cnfFile.equals("none")) inputClauses.makeCNFFile(globalParameters.jobDirectory,globalParameters.cnfFile);
             if(globalParameters.showClauses && globalParameters.logstream != null) quSatJob.printlog(inputClauses.toString());
             model = new Model(inputClauses.predicates);
+            readConjunctions(inputClauses.conjunctions);
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) {int j = i;
                 threads[i] = new Thread(() -> finished(solvers.get(j).solveProblem(this)));
-                solvers.get(i).installCommunication(threads[i],this);}
+                solvers.get(i).initialize(threads[i],this);}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
-            readConjunctions(inputClauses.conjunctions);
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
         catch(Result result) { // may come from the conjunctions
             result.problemId = problemId;
