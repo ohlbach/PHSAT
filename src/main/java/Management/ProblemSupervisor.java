@@ -89,8 +89,9 @@ public class ProblemSupervisor {
                 System.exit(1);}
             monitor   = quSatJob.getMonitor(problemId);
             if(!globalParameters.cnfFile.equals("none")) inputClauses.makeCNFFile(globalParameters.jobDirectory,globalParameters.cnfFile);
-            if(globalParameters.showClauses && globalParameters.logstream != null)
-                globalParameters.logstream.println(inputClauses.toString());
+            if(globalParameters.logstream != null) {
+                boolean infoOnly = !globalParameters.showClauses;
+                globalParameters.logstream.println(inputClauses.toString(inputClauses.symboltable,infoOnly));}
             model = new Model(inputClauses.predicates);
             readConjunctions(inputClauses.conjunctions);
             numberOfSolvers = solvers.size();

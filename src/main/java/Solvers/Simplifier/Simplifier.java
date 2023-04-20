@@ -307,12 +307,16 @@ public class Simplifier extends Solver {
 
     void completeEquivalences() throws Unsatisfiable {
         int status;
-        for(int i = 0; i < equivalences.size(); i += 2) {
-            if((status = model.status(equivalences.getInt(i))) != 0) {
-                int literal = status*equivalences.getInt(i+1);
-                if(monitoring) monitor.println(monitorId, "Equivalent literal " +
-                        Symboltable.toString(literal,symboltable) + " added to model.");
-                model.add(myThread,literal,null);}}}
+        boolean changed = true;
+        while(changed) {
+            changed = false;
+            for(int i = 0; i < equivalences.size(); i += 2) {
+                if((status = model.status(equivalences.getInt(i))) != 0 && model.status(equivalences.getInt(i+1)) == 0) {
+                    changed = true;
+                    int literal = status*equivalences.getInt(i+1);
+                    if(monitoring) monitor.println(monitorId, "Equivalent literal " +
+                            Symboltable.toString(literal,symboltable) + " added to model.");
+                    model.add(myThread,literal,null);}}}}
 
     /** adds a true literal to the queue
      *
@@ -392,12 +396,15 @@ public class Simplifier extends Solver {
                             if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                             processClauseFirstTime(task);}
                         break;}
+                if(queue.isEmpty()) {
+                    System.out.println("Empty Queue " + clauses.size + " " + model.toString());
+                    //throw new Aborted(problemId,solverId,"Empty Queue");
+                }
                 if(monitoring  && printClauses && changed) {
                     System.out.println("Model: " + model.toString());
                     printSeparated();}
                 if(clauses.isEmpty()) {completeEquivalences(); throw new Satisfiable(problemId,solverId,model);}
-                if(queue.isEmpty()) checkForPartialPurity();
-                if(queue.isEmpty() && monitoring) printSeparated();}
+                if(queue.isEmpty()) checkForPartialPurity();}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
 
@@ -1380,7 +1387,6 @@ int ch = 0;
         if(literalIndexTwo.isEmpty(literal) && literalIndexTwo.isEmpty(-literal) &&
                 literalIndexMore.isEmpty(literal) && literalIndexMore.isEmpty(-literal)) return false;
         if(literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal)) {
-            printSeparated();
             if(monitoring) monitor.println(monitorId,"Pure Literal: " + Symboltable.toString(literal,symboltable));
             addTrueLiteralTask(literal, trackReasoning ? new InfPureLiteral(literal,false) : null);
             ++statistics.pureLiterals;
@@ -1397,7 +1403,6 @@ int ch = 0;
      *  If there are only 2-literal clauses left, then the very first literal in the clauses is set to true.
      */
     void checkForPartialPurity() throws Unsatisfiable{
-        System.out.println("PARTIAL\n"); printSeparated();
         if(longerClausesExist) {
             longerClausesExist = false;
             for(int predicate = 1; predicate <= predicates; ++predicate) {

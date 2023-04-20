@@ -490,19 +490,21 @@ public class InputClauses {
      * @return  a string representation of the clause.
      */
     public String toString() {
-        return toString(symboltable);}
+        return toString(symboltable,false);}
 
     /** generates a string representation of the clauses.
      *
      * @param symboltable null or a symboltable.
      * @return  a string representation of the clauses.
      */
-    public String toString(Symboltable symboltable) {
+    public String toString(Symboltable symboltable, boolean infoOnly) {
         StringBuilder st = new StringBuilder();
         if(problemId != null) st.append("Problem ").append(problemId).append("\n");
         if(info != null) st.append(info).append("\n");
-        int size = (""+(disjunctions.size() + conjunctions.size()  +equivalences.size()) +
-                atleasts.size() + atmosts.size() + exactlys.size() +intervals.size()).length()+2;
+        int size = (disjunctions.size() + conjunctions.size()  +equivalences.size()) +
+                atleasts.size() + atmosts.size() + exactlys.size() +intervals.size();
+        if(infoOnly) {st.append("Clauses " + size); return st.toString();}
+        size = (""+size).length()+2;
         if(!disjunctions.isEmpty()) {
             st.append("Disjunctions:\n");
             for(int[] clause : disjunctions) {st.append(toString(size,clause,symboltable)).append("\n");}}
