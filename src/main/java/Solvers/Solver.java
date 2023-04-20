@@ -196,9 +196,6 @@ public abstract class Solver {
 
         public String getSolverId() {return solverId;}
 
-    /** installs the communication between the different parts (observers). */
-    public abstract void installCommunication(Thread myThread, ProblemSupervisor problemSupervisor);
-
 
     /** The key method, which has to be implemented by the solvers.
      * It is supposed to find a model or a contradiction in the clauses.

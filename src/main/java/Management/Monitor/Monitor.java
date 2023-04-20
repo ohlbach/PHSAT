@@ -39,6 +39,12 @@ public abstract class Monitor {
      */
     public  abstract void println(String id, String... messages);
 
+    /** prints just the message.
+     *
+     * @param message the messages themselves.
+     */
+    public  abstract void println(String message);
+
     /** prints the messages from a StringBuilder.
      *
      * @param id       an identifier for the message.

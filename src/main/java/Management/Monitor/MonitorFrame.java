@@ -69,6 +69,13 @@ public class MonitorFrame extends Monitor {
         for(String message: messages) {area.append(message);area.append("\n");}
         }
 
+    /** prints just the message.
+     *
+     * @param message the messages themselves.
+     */
+    public void println(String message) {
+        area.append(message);area.append("\n");};
+
     /** prints the messages one per line.
      *
      * @param id      for identifying and separating the messages.

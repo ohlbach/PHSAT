@@ -1,7 +1,7 @@
 package Solvers.Simplifier;
 
 import Datastructures.Statistics.Statistic;
-import org.glassfish.gmbal.Description;
+import Utilities.Description;
 
 public class SimplifierStatistics extends Statistic {
     public SimplifierStatistics(String id) {

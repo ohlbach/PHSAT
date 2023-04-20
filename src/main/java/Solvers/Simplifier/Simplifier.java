@@ -75,15 +75,21 @@ public class Simplifier extends Solver {
     /** a timestamp to be used by subsumption algorithms */
     private int timestampSubsumption = 1;
 
+    /** is used by the clause.removeComplementaryLiterals to increment the statistics.*/
     private final IntConsumer addComplementaries = (n -> statistics.complementaryLiterals += n);
 
-    private final boolean checkConsistency = true;
+    /** controls if the consistency is to be checked (for testing purposes) */
+    private final boolean checkConsistency = false;
 
+    /** the thread which runs the simplifier. */
     private Thread myThread;
 
+    /** collects the equivalences for later updating the model.
+     * Entries: representative_1, literal_1, ...
+     */
     private IntArrayList equivalences;
 
-    /** just creates a simplifier.
+    /** just creates a single simplifier.
      *
      * @param parameters not used.
      * @param solvers    to add the new simplifier.
@@ -99,7 +105,6 @@ public class Simplifier extends Solver {
 
     /** constructs a new Simplifier.
      * All internal data are taken form the supervisor.
-     *
      */
     public Simplifier(int solverNumber, HashMap<String,Object> solverParameters) {
         super(solverNumber,solverParameters);
@@ -159,11 +164,6 @@ public class Simplifier extends Solver {
             case ProcessMergeResolutionPartial: return 2*predicates + 103;}
         return 0;}
 
-    /** Installs the observer in the model and the equivalence classes.
-     */
-    @Override
-    public void installCommunication(Thread myThread,ProblemSupervisor problemSupervisor) {
-        problemSupervisor.model.addObserver(myThread, this::addTrueLiteralToQueue);}
 
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
@@ -184,6 +184,7 @@ public class Simplifier extends Solver {
         timestamp = 1;
         timestampSubsumption = 1;
         queue.clear();
+        problemSupervisor.model.addObserver(myThread, this::addTrueLiteralToQueue);
         for(int literal: model.model) {
             addTrueLiteralToQueue(literal,model.getInferenceStep(literal));}}
 
@@ -244,7 +245,7 @@ public class Simplifier extends Solver {
                                     InputClauses.toString(0,intervalClause,symboltable) + " turned to atleast-clause " +
                                     clause.toString(symboltable,0));}}}}
             checkAllPurities();
-            if(checkConsistency)checkConsistency();
+            if(checkConsistency) checkConsistency();
             statistics.orAndAtleastCLauses = clauses.size;
             if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);
             synchronized(this){queue.add(new Task<>(TaskType.ProcessClauseFirstTime,clauses.firstClause));}
@@ -257,7 +258,6 @@ public class Simplifier extends Solver {
         }
 
     /** simplifies and inserts an atleast-clause derived from input clauses.
-     * The clauses are put into the task queue.
      *
      * @param inputClause the original input-clause.
      * @param clause      the clause to be inserted.
@@ -281,9 +281,6 @@ public class Simplifier extends Solver {
         ++statistics.orAndAtleastCLauses;
         return true;}
 
-
-
-
     /** adds a true literal to the queue
      *
      * @param literal a true literal
@@ -305,6 +302,11 @@ public class Simplifier extends Solver {
                             Symboltable.toString(lit,symboltable) + " added to model.");
                     model.add(myThread,lit,inferenceStep);}}}
 
+    /** for all equivalences representative == literal where representative is already in the model,
+     * the literal is put in the model too.
+     *
+     * @throws Unsatisfiable ir a contradiction is found (should not happen).
+     */
     void completeEquivalences() throws Unsatisfiable {
         int status;
         boolean changed = true;
@@ -330,26 +332,9 @@ public class Simplifier extends Solver {
         synchronized (this) {
             queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
 
-    /** adds an equivalence to the task queue
-     *
-     * @param literal1 a literal
-     * @param literal2 an equivalent literal
-     * @param inferenceStep which caused the equivalence
-     */
-    public void addEquivalenceTask(int literal1, int literal2, InferenceStep inferenceStep) {
-        if(literal1 == literal2) return;
-        if(Math.abs(literal1) > Math.abs(literal2)) {
-            int dummy = literal2;
-            literal2 = literal1;
-            literal1 = dummy;}
-        if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
-        equivalences.add(literal1); equivalences.add(literal2);
-        if(monitoring) {
-            monitor.println(monitorId,"In: Equivalence " + Symboltable.toString(literal1,symboltable) + "="+
-                    Symboltable.toString(literal2,symboltable));}
-        synchronized (this) {queue.add(new Task<>(TaskType.ProcessEquivalence, literal1, literal2, inferenceStep));}}
 
-    private final boolean printClauses = true;
+    /** controls that all clauses are printed after each task has been changed somthing (for testing purposes).*/
+    private final boolean printClauses = false;
 
     /** reads the next task from the task queue and processes it.
      *
@@ -408,13 +393,6 @@ public class Simplifier extends Solver {
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
 
-    void printSeparated() {
-        for(int size = 2; size <= inputClauses.maxClauseLength; ++size) {
-            System.out.println("Size " + size);
-            Clause clause = clauses.firstClause;
-            while(clause != null) {
-                if(clause.size() == size) {System.out.println(clause.toString());}
-                clause = clause.nextClause;}}}
 
     /** performs forward subsumption, merge resolution and saturation with the given clause.
      *  After this, a new ProcessClauseFirstTime for the next clause in the clauses list is added to the queue.<br>
@@ -1520,6 +1498,15 @@ int ch = 0;
         literalIndexMore.checkConsistency(0,"literalIndexMore");
         }
 
+    /** the monitor prints the clauses separated by their size.
+     */
+    void printSeparated() {
+        for(int size = 2; size <= inputClauses.maxClauseLength; ++size) {
+            System.out.println("Size " + size);
+            Clause clause = clauses.firstClause;
+            while(clause != null) {
+                if(clause.size() == size) {monitor.println(clause.toString());}
+                clause = clause.nextClause;}}}
 
     /** returns the statistics.
      *

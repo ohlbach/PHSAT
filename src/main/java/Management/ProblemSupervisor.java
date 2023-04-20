@@ -32,6 +32,8 @@ public class ProblemSupervisor {
     /** the final result */
     public Result result = null;
 
+    private long startTime;
+
     /** stores all the solver threads */
     Thread[] threads;
     /** the number of solvers */
@@ -76,6 +78,7 @@ public class ProblemSupervisor {
     /** starts the solvers in parallel threads and waits for their results.
      */
     public void solveProblem()  {
+        startTime = System.nanoTime();
         StringBuilder errors = new StringBuilder();
         try {
             inputClauses = problemGenerator.generateProblem(errors);
@@ -109,8 +112,9 @@ public class ProblemSupervisor {
             System.out.println(ex);
             ex.printStackTrace();
             System.exit(0);}
-        if(globalParameters.logstream != null)
-            globalParameters.logstream.println("Solvers finished for problem " + problemId);}
+        if(globalParameters.logstream != null) {
+            float time = (float)(System.nanoTime() - startTime) / (float)1000.0;
+            globalParameters.logstream.println("Solvers finished the problem " + problemId +" in " + time + "μs");}}
 
     /** inserts the initial conjunctions (if any) into the model
      *

@@ -1,7 +1,7 @@
 package Solvers.Resolution;
 
 import Datastructures.Statistics.Statistic;
-import org.glassfish.gmbal.Description;
+import Utilities.Description;
 
 /** This class extends the DataStatistics with the information about resolutions
  * <br>

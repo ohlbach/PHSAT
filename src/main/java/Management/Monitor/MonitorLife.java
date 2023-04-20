@@ -36,6 +36,13 @@ public class MonitorLife extends Monitor {
         System.out.println(id+","+title+"@" + time + "μs: ");
         for(String message: messages) System.out.println("  "+message);}
 
+    /** prints just the message.
+     *
+     * @param message the messages themselves.
+     */
+    public void println(String message) {
+        System.out.println(message);};
+
     /** prints the id and the elapsed time followed by the messages one per line.
      *
      * @param id        an id for the message.

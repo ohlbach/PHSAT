@@ -2,7 +2,7 @@ package Datastructures.Statistics;
 
 import Solvers.Solver;
 import Utilities.Utilities;
-import org.glassfish.gmbal.Description;
+import Utilities.Description;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -36,7 +36,6 @@ public class Statistic {
      */
     public Statistic(String id) {this.id = id;}
 
-    @Description("processor's elapsed time in nanoseconds")
     public long elapsedTime = 0;
 
     /** the subclasses may overwrite this method to add some observers */
@@ -253,7 +252,8 @@ public class Statistic {
         for(Class clazz : statisticsClasses) {
             for(Field f : clazz.getFields()) {
                 if(f.getAnnotation(Description.class) != null) {
-                    st.append(String.format(format,f.getName(),f.getAnnotation(Description.class).value())).append("\n");}}}
+                    st.append(String.format(format,f.getName(),f.getAnnotation(Description.class).value())).append("\n");
+                }}}
         return st.toString();}
 
 

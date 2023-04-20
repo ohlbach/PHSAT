@@ -69,6 +69,13 @@ public class MonitorFile extends Monitor {
         for (String message : messages) out.println(message);
     }
 
+    /** prints just the message.
+     *
+     * @param message the messages themselves.
+     */
+    public void println(String message) {
+        out.println(message);};
+
 
     /** The file is closed.
      *

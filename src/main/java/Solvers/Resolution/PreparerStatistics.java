@@ -1,7 +1,7 @@
 package Solvers.Resolution;
 
 import Datastructures.Statistics.Statistic;
-import org.glassfish.gmbal.Description;
+import Utilities.Description;
 
 /**
  * Created by ohlbach on 12.02.2020.

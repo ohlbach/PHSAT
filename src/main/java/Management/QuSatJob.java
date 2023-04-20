@@ -177,7 +177,6 @@ public class QuSatJob {
         quSatJob.globalParameters.logging = "life";
         quSatJob.globalParameters.directory = Utilities.Utilities.pathWithHome("home/TEST");
         quSatJob.prepareMonitorAndLogstream();
-        quSatJob.printlog("TEESTTT");
         System.out.println(quSatJob.globalParameters.toString());
 
         //Path path = Utilities.pathWithHome("home/TEST");

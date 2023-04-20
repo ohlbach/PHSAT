@@ -1,7 +1,7 @@
 package Datastructures.TwoLiteral;
 
 import Datastructures.Statistics.Statistic;
-import org.glassfish.gmbal.Description;
+import Utilities.Description;
 
 import java.util.ArrayList;
 
