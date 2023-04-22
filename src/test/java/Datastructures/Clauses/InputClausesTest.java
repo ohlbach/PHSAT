@@ -2,6 +2,7 @@ package Datastructures.Clauses;
 
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
@@ -9,6 +10,8 @@ import java.util.Arrays;
 
 public class InputClausesTest extends TestCase {
     private static final int cOr = Quantifier.OR.ordinal();
+    private static final int cAnd = Quantifier.AND.ordinal();
+    private static final int cEquiv = Quantifier.EQUIV.ordinal();
     private static final int cAtleast = Quantifier.ATLEAST.ordinal();
     private static final int cAtmost = Quantifier.ATMOST.ordinal();
     private static final int cExactly = Quantifier.EXACTLY.ordinal();
@@ -362,6 +365,84 @@ public class InputClausesTest extends TestCase {
         clauses = InputClauses.intervalToAtleast(clause, () -> {return ++id[0];});
         assertEquals("  10: >= 2 1,2,3,4,5", InputClauses.toString(clauses[0]));
         assertEquals("  11: -1v-2v-3v-4v-5", InputClauses.toString(clauses[1]));
+
+    }
+
+    public void testsimplifyOr() {
+        System.out.println("simplifyOr");
+        InputClauses inputClauses = new InputClauses("test", 10, null, "info");
+        int[] inputClause = {1, cOr, 1, 2, 3,2,1,1};
+        IntArrayList clause = inputClauses.simplifyClause(inputClause);
+        assertEquals("1: 1v2v3", inputClauses.toString(clause));
+
+        inputClause = new int[]{2, cOr, 1, 2, 3,-2};
+        assertNull(inputClauses.simplifyClause(inputClause));
+
+        inputClause = new int[]{3, cOr, 1, 1, 1};
+        assertNull(inputClauses.simplifyClause(inputClause));
+        assertEquals("[1]",inputClauses.trueLiterals.toString());
+    }
+
+    public void testsimplifyAtleast() {
+        System.out.println("simplifyAtleast");
+        InputClauses inputClauses = new InputClauses("test", 10, null, "info");
+        int[] inputClause = {1, cAtleast, 2, 1,2,3};
+        IntArrayList clause = inputClauses.simplifyClause(inputClause);
+        assertEquals("1: >=2 1,2,3", inputClauses.toString(clause));
+
+        inputClause = new int[]{2, cAtleast, 1, 1,2,3};
+        clause = inputClauses.simplifyClause(inputClause);
+        assertEquals("2: 1v2v3", inputClauses.toString(clause));
+
+        inputClause = new int[]{3, cAtleast, 2, 1,2,3,-2};
+        clause = inputClauses.simplifyClause(inputClause);
+        assertEquals("3: 1v3", inputClauses.toString(clause));
+
+        inputClause = new int[]{4, cAtleast, 2, 1,2,3,-2, -1};
+        assertNull(inputClauses.simplifyClause(inputClause));
+
+        inputClauses.trueLiterals.clear();
+        inputClause = new int[]{5, cAtleast, 3, 1,2,3,-2, -1, 3};
+        assertNull(inputClauses.simplifyClause(inputClause));
+        assertEquals("[3]",inputClauses.trueLiterals.toString());
+
+
+        inputClause = new int[]{6, cAtleast, 4, 1,1,2,2,2,2,2,2};
+        clause = inputClauses.simplifyClause(inputClause);
+        assertEquals("6: >=2 1,2^2", inputClauses.toString(clause));
+
+        inputClauses.trueLiterals.clear();
+        inputClause = new int[]{7, cAtleast, 3, 1,2,2};
+        assertNull(inputClauses.simplifyClause(inputClause));
+        assertEquals("[1, 2]",inputClauses.trueLiterals.toString());
+
+        inputClauses.trueLiterals.clear();
+        inputClause = new int[]{8, cAtleast, 4, 1,2,3};
+        assertNull(inputClauses.simplifyClause(inputClause));
+        assertEquals(1, inputClauses.contradictions.size());
+    }
+    public void testsimplifyAnd() {
+        System.out.println("simplifyAnd");
+        InputClauses inputClauses = new InputClauses("test", 10, null, "info");
+        int[] inputClause = {1, cAnd, 1, 2, 3, 1};
+        assertNull(inputClauses.simplifyClause(inputClause));
+        assertEquals("[1, 2, 3]", inputClauses.trueLiterals.toString());
+
+        inputClause = new int[]{2, cAnd, 4, -2};
+        assertNull(inputClauses.simplifyClause(inputClause));
+        assertEquals("[1, 2, 3, 4]", inputClauses.trueLiterals.toString());
+        assertEquals(1, inputClauses.contradictions.size());
+    }
+    public void testsimplifyEquiv() {
+        System.out.println("simplifyEquiv");
+        InputClauses inputClauses = new InputClauses("test", 10, null, "info");
+        int[] inputClause = {1, cEquiv, 1, 2, 3, 1};
+        IntArrayList clause = inputClauses.simplifyClause(inputClause);
+        assertEquals("1: 1=2=3",inputClauses.toString(clause));
+
+        inputClause = new int[] {2, cEquiv, 4,5,6};
+        clause = inputClauses.simplifyClause(inputClause);
+        assertEquals("2: 4=5=6",inputClauses.toString(clause));
 
     }
 

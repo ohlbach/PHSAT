@@ -428,7 +428,7 @@ public class WalkerTest extends TestCase {
         assertEquals("1: 1v2v3\n",walker.toString("falseClauses"));
         assertEquals(1,walker.falseClauseList.size());
 
-        walker.model.add(1,null);
+        walker.model.add(null,1,null);
         walker.addGloballyTrueLiteral(1, null);
         assertTrue(walker.myThread.isInterrupted());
         assertTrue(walker.trueLiteralInterrupt);

@@ -102,36 +102,7 @@ public class ClauseTest extends TestCase {
         assertEquals("10: 1v2v-3", clause.toString());
         assertEquals(3,clause.expandedSize);
     }
-    public void testRemoveComplementaryLiterals() {
-        int[] c = new int[]{0};
-        IntConsumer addComplementaries = (n -> {c[0]+=n;});
-        System.out.println("removeComplementaryLiterals");
-        Clause clause = new Clause(new int[]{10, cAtleast, 3, 1, 1, -1, -1, 2,3});
-        assertFalse(clause.removeComplementaryLiterals(addComplementaries));
-        assertEquals("10: 2v3",clause.toString());
 
-        clause = new Clause(new int[]{11, cAtleast, 3, 1, 1, -1, -1, 2,3,-1});
-        assertFalse(clause.removeComplementaryLiterals(addComplementaries));
-        assertEquals("11: -1v2v3",clause.toString());
-
-        clause = new Clause(new int[]{12, cAtleast, 2, 1, 1, -1, -1, 2,3,1});
-        assertTrue(clause.removeComplementaryLiterals(addComplementaries));
-
-        clause = new Clause(new int[]{13, cAtleast, 2, 1, 1, -1, -1});
-        assertTrue(clause.removeComplementaryLiterals(addComplementaries));
-
-        clause = new Clause(new int[]{14, cAtleast, 3, 1, 1, -1, -1});
-        assertTrue(clause.removeComplementaryLiterals(addComplementaries));
-
-        clause = new Clause(new int[]{15, cAtleast, 3, 1, 2,-1,3,-2,4});
-        assertFalse(clause.removeComplementaryLiterals(addComplementaries));
-        assertEquals("15: 3v4",clause.toString());
-
-        clause = new Clause(new int[]{16, cOr, 1, 2, -1, 3});
-        assertTrue(clause.removeComplementaryLiterals(addComplementaries));
-        assertEquals(13,c[0]);
-
-    }
     public void testDivideByGCD() {
         System.out.println("divide by GCD");
         Clause clause = new Clause(new int[]{10, cAtleast, 2, 1,1,1,1,2,2,2,2,2,2});

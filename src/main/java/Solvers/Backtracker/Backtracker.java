@@ -1,13 +1,11 @@
 package Solvers.Backtracker;
 
-import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Management.ErrorReporter;
 import Management.ProblemSupervisor;
-import Solvers.Simplifier.UnsatClause;
 import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -102,9 +100,10 @@ public class Backtracker extends Solver {
      */
     public void initialize(Thread myThread, ProblemSupervisor problemSupervisor) {
         super.initialize(myThread,problemSupervisor);
-        problemSupervisor.model.addObserver(myThread, this::addTrueLiteralToQueue);
-        for(int literal: model.model) {
-            addTrueLiteralToQueue(literal,model.getInferenceStep(literal));}}
+       // problemSupervisor.model.addObserver(myThread, this::addTrueLiteralToQueue);
+       // for(int literal: model.model) {
+       //     addTrueLiteralToQueue(literal,model.getInferenceStep(literal));}
+    }
 
     @Override
     public Result solveProblem(ProblemSupervisor problemSupervisor) {

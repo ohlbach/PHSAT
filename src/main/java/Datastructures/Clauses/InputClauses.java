@@ -1,9 +1,14 @@
 
 package Datastructures.Clauses;
 
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import Solvers.Simplifier.Literal;
+import Solvers.Simplifier.UnsatClause;
+import Utilities.Utilities;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.FileNotFoundException;
 import java.io.PrintStream;
@@ -31,6 +36,7 @@ import java.util.function.IntSupplier;
  */
 public class InputClauses {
     private static final int cOr       = Quantifier.OR.ordinal();
+    private static final int cEquiv    = Quantifier.EQUIV.ordinal();
     private static final int cAtleast  = Quantifier.ATLEAST.ordinal();
     private static final int cAtmost   = Quantifier.ATMOST.ordinal();
     private static final int cExactly  = Quantifier.EXACTLY.ordinal();
@@ -76,6 +82,11 @@ public class InputClauses {
     public final ArrayList<int[]> intervals     = new ArrayList<>();
 
 
+    public final ArrayList<IntArrayList> simplifiedClauses = new ArrayList<>();
+    public final IntArrayList trueLiterals = new IntArrayList();
+    public final ArrayList<IntArrayList> equivalenceClasses = new ArrayList();
+
+    public final ArrayList<Unsatisfiable> contradictions = new ArrayList<>();
 
     /** constructs a new input clause list.
      *
@@ -131,7 +142,6 @@ public class InputClauses {
     /** checks the clause's syntax.
      *  Syntax errors are wrong clause type or wrong literal numbers.
      *  These errors are appended to syntaxErrors.
-     *  Double literals are removed and a warning is added to warnings.
      *
      * @param clause the   clause to be checked.
      * @param predicates   the number of predicates in the clause set.
@@ -156,6 +166,181 @@ public class InputClauses {
                         append("is not within the boundaries [1,").append(predicates).append("]\n");
                 erraneous = true;}}
         return erraneous ? null : clause;}
+
+    IntArrayList simplifyClause(int[] inputClause) {
+        IntArrayList clause = new IntArrayList(inputClause.length);
+        clause.add(inputClause[0]); // id
+        clause.add(inputClause[1]); // quantifier;
+        clause.add(0); clause.add(0); // min,max
+        Quantifier quantifier = Quantifier.getQuantifier(inputClause[1]);
+        switch(quantifier) {
+            case OR:      return simplifyOr(inputClause,clause);
+            case AND:     for(int i = 2; i < inputClause.length; ++i) addTrueLiteral(inputClause[i],inputClause); return null;
+            case EQUIV:      return simplifyEquiv(inputClause,clause);
+            case ATLEAST:    return simplifyAtleast(inputClause,clause);
+            case ATMOST:     break;
+            case EXACTLY:    break;
+            case INTERVAL:   break;}
+        return null;}
+
+    IntArrayList simplifyOr(int[] inputClause, IntArrayList clause) {
+        clause.set(2,1); // min
+        int size = 0;
+        for(int i = 2; i < inputClause.length; ++i) {
+            int literal1 = inputClause[i];
+            boolean multiple = false;
+            for(int j = 2; j < i; ++j) {
+                int literal2 = inputClause[j];
+                if(literal2 == -literal1) {return null;} // tautology
+                if(literal2 == literal1)  {multiple = true; break;}}
+            if(multiple) continue;
+            ++size;
+            clause.add(literal1); clause.add(1);}
+        if(size == 1) {addTrueLiteral(clause.getInt(4),inputClause);  return null;}
+        clause.set(3,size);
+        simplifiedClauses.add(clause);
+        return clause;}
+
+
+    IntArrayList simplifyAtleast(int[] inputClause, IntArrayList clause) {
+        int length = inputClause.length;
+        int[] inputClauseCopy= Arrays.copyOf(inputClause,length);
+        int size = 0;
+        int complementaryLiterals = 0;
+        int expandedSize = 0;
+        for(int i = 3; i < length; ++i) {
+            int literal1 = inputClauseCopy[i];
+            if(literal1 == 0) continue;
+            int multiplicity = 1;
+            for(int j = i+1; j < length; ++j) {
+                int literal2 = inputClauseCopy[j];
+                if(literal2 == literal1)  {++multiplicity; inputClauseCopy[j] = 0; continue;}
+                if(literal2 == -literal1) {--multiplicity; ++complementaryLiterals; inputClauseCopy[j] = 0;}}
+            if(multiplicity <= 0) continue;
+            expandedSize += multiplicity;
+            ++size;
+            clause.add(literal1); clause.add(multiplicity);}
+        int min = inputClauseCopy[2] - complementaryLiterals;  int max = expandedSize;
+        if(min <= 0) {return null;} // tautology
+        if(min > expandedSize)  {contradictions.add(new UnsatClause(problemId,"InputClauses",inputClause)); return null;}
+        if(min == expandedSize) {
+            for(int i = 4; i < clause.size(); i += 2) addTrueLiteral(clause.getInt(i),inputClause);
+            return null;}
+        for(int i = 5; i < clause.size(); i += 2) {
+            int multiplicity = clause.getInt(i);
+            if(multiplicity > min) {
+                expandedSize -= multiplicity - min;
+                clause.set(i,min);}}
+        if(size == 1) {addTrueLiteral(clause.getInt(4),inputClause); return null;}
+        clause.set(2,min); clause.set(3,max); // max
+        divideByGCD(clause);
+        if(min == 1) clause.set(1,Quantifier.OR.ordinal());
+        simplifiedClauses.add(clause);
+        return clause;}
+
+    IntArrayList simplifyEquiv(int[] inputClause, IntArrayList clause) {
+        int length = inputClause.length;
+        int sign = 1;
+        IntArrayList eqClass = null;
+        for(int i = 2; i < length; ++i) {
+            int literal1 = inputClause[i];
+            for(IntArrayList equivalenceClass : equivalenceClasses) {
+                for(int j = 4; j < equivalenceClass.size(); ++j) {
+                    int literal2 = equivalenceClass.getInt(j);
+                    if(literal2 == literal1) {
+                        sign = 1;
+                        eqClass = equivalenceClass;
+                        break;}
+                    if(literal2 == -literal1) {
+                        sign = 1;
+                        eqClass = equivalenceClass;
+                        break;}}
+                if(eqClass != null) break;}
+            if(eqClass != null) break;}
+        boolean newClass = eqClass == null;
+        if(!newClass) clause = eqClass;
+        for(int i = 2; i < length; ++i) {
+            int literal1 = sign*inputClause[i];
+            boolean found = false;
+            for(int j = 4; j < clause.size(); ++j) {
+                int literal2 = clause.getInt(j);
+                if(literal1 == literal2) {found = true; break;}
+                if(literal1 == -literal2) {
+                    contradictions.add(new UnsatClause(problemId,"InputClauses", inputClause));
+                    return null;}}
+            if(!found) clause.add(literal1);}
+        if(newClass && clause.size() > 5) equivalenceClasses.add(clause);
+        return (clause.size() > 5) ? clause : null;}
+
+    /** to be used by divideByGCD. */
+    private final IntArrayList numbers = new IntArrayList();
+
+    /** divides the limit and the multiplicities by their greatest common divisor.
+     *
+     * @return true if the clause is changed.
+     */
+    void divideByGCD(IntArrayList clause) {
+        numbers.clear(); numbers.add(clause.get(2)); // min
+        boolean stop = false;
+        for(int i = 5; i < clause.size(); i += 2) {
+            int multiplicity = clause.getInt(i);
+            if(multiplicity == 1) {return;}
+            numbers.add(multiplicity);}
+        int gcd = Utilities.gcd(numbers);
+        if(gcd == 1) return;
+        int min = clause.get(2)/gcd;
+        clause.set(2,min);
+        int max = 0;
+        for(int i = 5; i < clause.size(); i += 2) {
+            int multiplicity = clause.getInt(i)/gcd;
+            clause.set(i,multiplicity);
+            max += multiplicity;}
+        clause.set(3,max);}
+
+    void addTrueLiteral(int trueLiteral, int[] inputClause) {
+        for(int literal : trueLiterals) {
+            if(literal == trueLiteral) return;
+            if(literal == -trueLiteral) {
+                contradictions.add(new UnsatClause(problemId,"InputClauses", inputClause));
+                return;}}
+        trueLiterals.add(trueLiteral);}
+
+    String toString(IntArrayList clause) {
+        StringBuilder st = new StringBuilder();
+        st.append(clause.getInt(0)).append(": ");
+        Quantifier quantifier = Quantifier.getQuantifier(clause.getInt(1));
+        switch(quantifier) {
+            case OR:         toStringOr(clause, quantifier, st);    break;
+            case EQUIV:      toStringEquiv(clause,quantifier,st); break;
+            case ATLEAST:    toStringAtleast(clause,quantifier,st);     break;
+            case ATMOST:     break;
+            case EXACTLY:    break;
+            case INTERVAL:   break;}
+        return st.toString();}
+
+    void toStringOr(IntArrayList clause, Quantifier quantifier, StringBuilder st) {
+        String separator = quantifier.separator;
+        st.append(Symboltable.toString(clause.getInt(4),symboltable));
+        for(int i = 6; i < clause.size(); i += 2) {
+            st.append(separator).append(Symboltable.toString(clause.getInt(i),symboltable));}}
+
+    void toStringAtleast(IntArrayList clause, Quantifier quantifier, StringBuilder st) {
+        String separator = quantifier.separator;
+        st.append(quantifier.abbreviation).append(clause.getInt(2)).append(" ");
+        st.append(Symboltable.toString(clause.getInt(4),symboltable));
+        if(clause.getInt(5) > 1) st.append("^").append(clause.getInt(5));
+        for(int i = 6; i < clause.size(); i += 2) {
+            st.append(separator).append(Symboltable.toString(clause.getInt(i),symboltable));
+            int multiplicity = clause.getInt(i+1);
+            if(multiplicity > 1) st.append("^").append(multiplicity);
+        }}
+
+    void toStringEquiv(IntArrayList clause, Quantifier quantifier, StringBuilder st) {
+        String separator = quantifier.separator;
+        st.append(Symboltable.toString(clause.getInt(4),symboltable));
+        for(int i = 5; i < clause.size(); ++i)
+            st.append(separator).append(Symboltable.toString(clause.getInt(i),symboltable));}
+
 
     /** turns an atmost input clause into an atleast clause<br>
      * Example: atmost 3 1,2,3,4 -> atleast 1 -1,-2,-3,-4 -> or -1,-2,-3,-4
