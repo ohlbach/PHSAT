@@ -5,22 +5,21 @@ import Datastructures.Symboltable;
 public class Clauses {
 
     /** the first clause in the list. */
-    protected Clause firstClause;
+    Clause firstClause;
     /** the last clause in the list. */
-    protected Clause lastClause;
+    Clause lastClause;
 
     /** the number of clauses in the list */
-    protected int size = 0;
+    int size = 0;
 
-    /** constructs an empty list.
-     */
-    public Clauses() {}
+    /** constructs an empty list.*/
+    Clauses() {}
 
     /** adds a clause to the back of the list.
      *
      * @param clause the clause to be added.
      */
-    public void addClause(Clause clause) {
+    void addClause(Clause clause) {
         ++size;
         clause.previousClause = null; clause.nextClause = null;
         if(firstClause == null) {firstClause = clause; lastClause = clause; return;}
@@ -33,7 +32,7 @@ public class Clauses {
      *
      * @param clause the clause to be removed.
      */
-    public void remove(Clause clause) {
+    void remove(Clause clause) {
         --size;
         if(lastClause == firstClause) {lastClause = null; firstClause = null; return;}
         if(clause.previousClause == null) {
@@ -49,18 +48,21 @@ public class Clauses {
         clause.nextClause.previousClause = claus;
     }
 
+    boolean isEmpty() {
+        return firstClause == null;}
+
     /** counts the clauses in the list.
      *
      * @return the number of clauses in the list.
      */
-    public int size() {return size;}
+    int size() {return size;}
 
     /** returns the nth clause in the list.
      *
      * @param n an integer.
      * @return the nth clause in the list.
      */
-    public Clause getClause(int n) {
+    Clause getClause(int n) {
         int counter = -1;
         Clause clause = firstClause;
         while(clause != null) {

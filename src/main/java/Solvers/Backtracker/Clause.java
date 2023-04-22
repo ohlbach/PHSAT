@@ -4,10 +4,10 @@ import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Solvers.Simplifier.UnsatClause;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.function.Consumer;
 
 public class Clause {
     /** the identifier for the clause. */
@@ -43,22 +43,31 @@ public class Clause {
      *
      * @param inputClause InputClause int[]-array.
      */
-    public Clause(int[] inputClause) {
+    public Clause(int[] inputClause, String problemId, String solverId, IntArrayList trueLiterals) throws Unsatisfiable {
         this.inputClause = inputClause;
         id = inputClause[0];
         quantifier = Quantifier.getQuantifier(inputClause[1]);
+        if(quantifier == Quantifier.OR) {makeDisjunction(inputClause,trueLiterals); return;}
+        if(quantifier == Quantifier.EQUIV) {makeEquivalence(inputClause,problemId,solverId); return;}
+        trueLiterals.clear();
         int length = inputClause.length;
         int start = quantifier.firstLiteralIndex;
         literals = new ArrayList<>(length-start);
         inputClause = Arrays.copyOf(inputClause,length);
+        int complementaryLiterals = 0;
         for(int i = start; i < length; ++i) {
             int literal1 = inputClause[i];
             if(literal1 == 0) continue;
             int multiplicity = 1;
             for(int j = i+1; j < length; ++j) {
-                if(literal1 == inputClause[j]) {
+                int literal2 = inputClause[j];
+                if(literal2 == literal1) {
                     ++multiplicity;
+                    inputClause[j] = 0; continue;}
+                if(literal2 == -literal1) {
+                    --multiplicity; ++complementaryLiterals;
                     inputClause[j] = 0;}}
+            if(multiplicity <= 0) continue;
             expandedSize += multiplicity;
             Literal literalObject = new Literal(literal1,multiplicity);
             literalObject.clause = this;
@@ -66,14 +75,89 @@ public class Clause {
         hasMultiplicities = expandedSize > literals.size();
 
         switch(quantifier) {
-            case OR:       min = 1;              max = expandedSize;   break;
-            case ATLEAST:  min = inputClause[2]; max = expandedSize;   break;
-            case ATMOST:   min = 0;              max = inputClause[2]; break;
-            case EXACTLY:  min = inputClause[2]; max = inputClause[2]; break;
-            case INTERVAL: min = inputClause[2]; max = inputClause[3];
-        }
+            case ATLEAST:
+                min = inputClause[2] - complementaryLiterals;  max = expandedSize;
+                if(min <= 0) {literals.clear(); return;} // tautology
+                if(min > expandedSize)  throw new UnsatClause(problemId,solverId,inputClause);
+                if(min == expandedSize) {
+                    for(Literal literalObject : literals) trueLiterals.add(literalObject.literal);
+                    literals.clear();
+                    return;}
+                for(Literal literalObject : literals) {
+                    if(literalObject.multiplicity > min) {
+                        expandedSize -= literalObject.multiplicity - min;
+                        literalObject.multiplicity = min;}}
+                return;
+            case ATMOST:   min = 0; max = inputClause[2] - complementaryLiterals;
+                break;
+            case EXACTLY:
+                min = inputClause[2]  - complementaryLiterals;
+                max = inputClause[2]  - complementaryLiterals;
+                break;
+            case INTERVAL:
+                min = Math.max(0,inputClause[2]  - complementaryLiterals);
+                max = inputClause[3] - complementaryLiterals;}
+
+        if(max < 0)   throw new UnsatClause(problemId,solverId,inputClause);
+        if(max == 0)  {
+            for(Literal literalObject : literals) trueLiterals.add(-literalObject.literal);
+            literals.clear();
+            return;}
+        for(int i = 0; i < literals.size(); ++i) {
+            Literal literalObject = literals.get(i);
+            if(literalObject.multiplicity > max) {
+                literals.remove(i--);
+                expandedSize -= literalObject.multiplicity;
+                trueLiterals.add(-literalObject.literal);}}
     }
 
+    /** turns a disjunction into a clause object.
+     *  Multiple literals are ignored.<br>
+     *  If the clause is a tautology, then the literals are emptied.
+     *
+     * @param inputClause an inputClause array.
+     */
+    void makeDisjunction(int[] inputClause, IntArrayList trueLiterals) {
+        int start = quantifier.firstLiteralIndex;
+        int length = inputClause.length;
+        literals = new ArrayList<>(length-start);
+        for(int i = start; i < length; ++i) {
+            int literal1 = inputClause[i];
+            boolean multiple = false;
+            for(int j = start; j < i; ++j) {
+                int literal2 = inputClause[j];
+                if(literal2 == -literal1) {literals.clear(); return;} // tautology
+                if(literal2 == literal1)  {multiple = true; break;}}
+            if(multiple) continue;
+            Literal literalObject = new Literal(literal1,1);
+            literalObject.clause = this;
+            literals.add(literalObject);}
+        hasMultiplicities = false;
+        expandedSize = literals.size();
+        min = 1; max = expandedSize;
+        if(max == 1) {
+            trueLiterals.add(literals.get(0).literal);
+            literals.clear();}}
+
+    void makeEquivalence(int[] inputClause, String problemId, String solverId) throws Unsatisfiable{
+        int start = quantifier.firstLiteralIndex;
+        int length = inputClause.length;
+        literals = new ArrayList<>(length-start);
+        for(int i = start; i < length; ++i) {
+            int literal1 = inputClause[i];
+            boolean multiple = false;
+            for(int j = start; j < i; ++j) {
+                int literal2 = inputClause[j];
+                if(literal2 == -literal1) throw new UnsatClause(problemId, solverId,inputClause); // tautology
+                if(literal2 == literal1)  {multiple = true; break;}}
+            if(multiple) continue;
+            Literal literalObject = new Literal(literal1,1);
+            literalObject.clause = this;
+            literals.add(literalObject);}
+        if(literals.size() == 1) literals.clear();}
+
+    boolean isEmpty() {
+        return literals.isEmpty();}
 
     /** checks if the clause is true because of its limits.
      *
@@ -119,11 +203,10 @@ public class Clause {
      *
      * @param problemId the problem's identifier.
      * @param solverId the solver's identifier.
-     * @param literalRemover null or a consumer for literalObjects.
      * @return true if the clause became a true clause.
      * @throws UnsatClause if the clause is unsatisfiable.
      */
-    boolean removeComplementaryLiterals(String problemId, String solverId, Consumer<Literal> literalRemover) throws Unsatisfiable {
+    boolean removeComplementaryLiterals(String problemId, String solverId) throws Unsatisfiable {
         for(int i = 0; i < literals.size()-1; ++i) {
             Literal literalObject1 = literals.get(i);
             int literal1 = literalObject1.literal;
@@ -138,7 +221,6 @@ public class Clause {
                         literals.remove(j);
                         literals.remove(i--);
                         expandedSize -= multiplicity1;
-                        if(literalRemover != null) {literalRemover.accept(literalObject1);literalRemover.accept(literalObject2);}
                         break;}
                     if(multiplicity1 > multiplicity2) {
                         min -= multiplicity2;
@@ -146,14 +228,12 @@ public class Clause {
                         literalObject1.multiplicity -= multiplicity2;
                         literals.remove(j);
                         expandedSize -= multiplicity2;
-                        if(literalRemover != null) {literalRemover.accept(literalObject2);}
                         break;}
                     min -= multiplicity1; // multiplicity1 < multiplicity2
                     max -= multiplicity1;
                     literalObject2.multiplicity -= multiplicity1;
                     literals.remove(i--);
                     expandedSize -= multiplicity1;
-                    if(literalRemover != null) {literalRemover.accept(literalObject1);}
                     break;}}}
         if(literals.isEmpty() || (min <= 0 && max >= expandedSize)) return true;
         if(max < 0) throw new UnsatClause(problemId,solverId,inputClause);
