@@ -169,7 +169,7 @@ public class Walker extends Solver {
      */
     @Override
     public Result solveProblem(ProblemSupervisor problemSupervisor) {
-        initialize(null,problemSupervisor);
+        initialize(Thread.currentThread(),problemSupervisor);
         long startTime     = System.nanoTime();
         myThread           = Thread.currentThread();
         localModel         = new boolean[predicates+1];
