@@ -162,7 +162,7 @@ public abstract class Solver {
     /** an identifier for the monitor */
     protected String monitorId;
 
-    Thread myThread;
+    protected Thread myThread;
 
     /** constructs a solver as an instance of the Processor class.
      *
