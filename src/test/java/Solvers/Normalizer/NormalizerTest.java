@@ -39,6 +39,65 @@ public class NormalizerTest extends TestCase {
         assertNull(normalizer.normalizeDisjunction(inputClause));
         assertEquals("1",normalizer.model.toString());}
 
+    public void testNormalizeEquiv() throws Unsatisfiable{
+        Normalizer normalizer = new Normalizer(10);
+        int[] inputClause = {1,cEquiv,2,3,-1};
+        normalizer.normalizeEquivalence(inputClause);
+        StringBuilder st = new StringBuilder();
+        normalizer.toStringEquiv(st,"");
+        assertEquals("2=3=-1",st.toString());
+        inputClause = new int[]{2,cEquiv,3,4,5};
+        normalizer.normalizeEquivalence(inputClause);
+        inputClause = new int[]{3,cEquiv,5,-6,4};
+        normalizer.normalizeEquivalence(inputClause);
+        normalizer.joinEquivalences();
+        st = new StringBuilder();
+        normalizer.toStringEquiv(st,"");
+        assertEquals("1=-3=-2=-4=-5=6",st.toString());
+    }
+
+    public void testNormalizeAtleast() throws Unsatisfiable {
+        System.out.println("normalizeAtleast");
+        /*
+        Normalizer normalizer = new Normalizer(10);
+        int[] inputClause = {1, cAtleast, 2, 1, 2, 3};
+        IntArrayList clause = normalizer.normalizeAtleast(inputClause);
+        assertEquals("1: >=2 1,2,3", normalizer.toString(clause));
+
+        inputClause = new int[]{2, cAtleast, 1, 1, 2, 3};
+        clause = normalizer.normalizeAtleast(inputClause);
+        assertEquals("2: 1v2v3", normalizer.toString(clause));
+
+        inputClause = new int[]{3, cAtleast, 2, 1, 2, 3, -2};
+        clause = normalizer.normalizeAtleast(inputClause);
+        assertEquals("3: 1v3", normalizer.toString(clause));
+
+        inputClause = new int[]{4, cAtleast, 2, 1, 2, 3, -2, -1};
+        assertNull(normalizer.normalizeAtleast(inputClause));
+
+        inputClauses.trueLiterals.clear();
+        inputClause = new int[]{5, cAtleast, 3, 1, 2, 3, -2, -1, 3};
+        assertNull(normalizer.normalizeAtleast(inputClause));
+        assertEquals("[3]", normalizer.model.toString());
+
+
+        inputClause = new int[]{6, cAtleast, 4, 1, 1, 2, 2, 2, 2, 2, 2};
+        clause = normalizer.normalizeAtleast(inputClause);
+        assertEquals("6: >=2 1,2^2", normalizer.toString(clause));
+
+        inputClauses.trueLiterals.clear();
+        inputClause = new int[]{7, cAtleast, 3, 1, 2, 2};
+        assertNull(normalizer.normalizeAtleast(inputClause));
+        assertEquals("[1, 2]", normalizer.trueLiterals.toString());
+
+        normalizer.trueLiterals.clear();
+        inputClause = new int[]{8, cAtleast, 4, 1, 2, 3};
+        assertNull(normalizer.normalizeAtleast(inputClause));
+        assertEquals(1, normalizer.contradictions.size());
+        */
+
+    }
+
     public void testNormalizeEquivalence() {
     }
 }

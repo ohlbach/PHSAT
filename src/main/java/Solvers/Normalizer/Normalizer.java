@@ -220,13 +220,15 @@ public class Normalizer extends Solver {
     void normalizeEquivalence(int[] inputClause) throws Unsatisfiable {
         IntArrayList clause = new IntArrayList(inputClause.length-2);
         for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
-            int literal = inputClause[0];
+            int literal = inputClause[i];
             if(clause.contains(literal)) continue;
             if(clause.contains(-literal)) throw new UnsatClause(problemId,solverId,inputClause);
             clause.add(literal);}
         if(clause.size() > 1) equivalences.add(clause);}
 
     /** joins overlapping equivalence classes into one of the class.
+     * The smallest predicate will be moved to the front.
+     * It can be used as representative for the equivalence class.
      *
      * @throws Unsatisfiable if the overlapping classes contain complementary literals.
      */
@@ -244,7 +246,22 @@ public class Normalizer extends Solver {
                                 "The equivalence classes contain complementary literals: " +
                                         Symboltable.toString(literal,symboltable));
                     eq1.add(literal);}
-                equivalences.remove(j);}}}
+                equivalences.remove(j--);}}
+
+        for(IntArrayList eqv : equivalences) {
+            int minLiteral = eqv.getInt(0);
+            int minPredicate = Math.abs(minLiteral);
+            int firstLiteral = minLiteral;
+            for(int i = 1; i < eqv.size(); ++i)
+                if(minPredicate > Math.abs(eqv.getInt(i))) {
+                    minLiteral = eqv.getInt(i);
+                    minPredicate = Math.abs(minLiteral);}
+            int sign = (minLiteral > 0) ? +1: -1;
+            eqv.set(0,sign*minLiteral);
+            for(int i = 1; i < eqv.size(); ++i)
+                if(eqv.get(i) == minLiteral) eqv.set(i,sign*firstLiteral);
+                else eqv.set(i, sign*eqv.get(i));}
+    }
 
     /** checks if the two lists overlap.
      *
@@ -259,10 +276,15 @@ public class Normalizer extends Solver {
                 if(literal1 == -literal2) return -1;}}
         return 0;}
 
-    /** lists the model, the equivalence classes and the clauses as a string.
-     *
-     * @return the model, the equivalence classes and the clauses as a string.
-     */
+    IntArrayList normalizeAtleast(int[] inputClause) throws Unsatisfiable {
+        int length = inputClause.length;
+        return null;
+    }
+
+        /** lists the model, the equivalence classes and the clauses as a string.
+         *
+         * @return the model, the equivalence classes and the clauses as a string.
+         */
     public String toString() {
         StringBuilder st = new StringBuilder();
         if(!model.isEmpty()) {st.append("Model:\n  ").append(model.toString(symboltable));}
