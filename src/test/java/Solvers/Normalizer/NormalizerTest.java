@@ -54,11 +54,18 @@ public class NormalizerTest extends TestCase {
         st = new StringBuilder();
         normalizer.toStringEquiv(st,"");
         assertEquals("1=-3=-2=-4=-5=6",st.toString());
-    }
+        inputClause = new int[]{4,cEquiv,3,6};
+        try{
+            normalizer.normalizeEquivalence(inputClause);
+            normalizer.joinEquivalences();
+            assertTrue(false);}
+        catch(Unsatisfiable uns) {
+            //System.out.println(uns.toString());
+    }}
 
     public void testNormalizeAtleast() throws Unsatisfiable {
         System.out.println("normalizeAtleast");
-        /*
+
         Normalizer normalizer = new Normalizer(10);
         int[] inputClause = {1, cAtleast, 2, 1, 2, 3};
         IntArrayList clause = normalizer.normalizeAtleast(inputClause);
@@ -75,26 +82,36 @@ public class NormalizerTest extends TestCase {
         inputClause = new int[]{4, cAtleast, 2, 1, 2, 3, -2, -1};
         assertNull(normalizer.normalizeAtleast(inputClause));
 
-        inputClauses.trueLiterals.clear();
         inputClause = new int[]{5, cAtleast, 3, 1, 2, 3, -2, -1, 3};
         assertNull(normalizer.normalizeAtleast(inputClause));
-        assertEquals("[3]", normalizer.model.toString());
+        assertEquals("3", normalizer.model.toString());
 
 
         inputClause = new int[]{6, cAtleast, 4, 1, 1, 2, 2, 2, 2, 2, 2};
+        assertNull(normalizer.normalizeAtleast(inputClause));
+        assertEquals("1,2,3", normalizer.model.toString());
+
+        inputClause = new int[]{7, cAtleast, 3, 5,6,6};
+        assertNull(normalizer.normalizeAtleast(inputClause));
+        assertEquals("1,2,3,5,6", normalizer.model.toString());
+
+        inputClause = new int[]{8, cAtleast, 5, 7,7,8,8,9,10};
         clause = normalizer.normalizeAtleast(inputClause);
-        assertEquals("6: >=2 1,2^2", normalizer.toString(clause));
+        assertEquals("8: 9v10", normalizer.toString(clause));
+        assertEquals("1,2,3,5,6,7,8",normalizer.model.toString());
 
-        inputClauses.trueLiterals.clear();
-        inputClause = new int[]{7, cAtleast, 3, 1, 2, 2};
-        assertNull(normalizer.normalizeAtleast(inputClause));
-        assertEquals("[1, 2]", normalizer.trueLiterals.toString());
+        inputClause = new int[]{9, cAtleast, 4,4,4,5,5,6,6};
+        clause = normalizer.normalizeAtleast(inputClause);
+        assertEquals("9: >=2 4,5,6", normalizer.toString(clause));
 
-        normalizer.trueLiterals.clear();
-        inputClause = new int[]{8, cAtleast, 4, 1, 2, 3};
-        assertNull(normalizer.normalizeAtleast(inputClause));
-        assertEquals(1, normalizer.contradictions.size());
-        */
+        try {
+            inputClause = new int[]{10, cAtleast, 4, 1, 2, 3};
+            assertNull(normalizer.normalizeAtleast(inputClause));
+            assertEquals(1, normalizer.model.size());
+        }
+        catch(Unsatisfiable uns) {
+            System.out.println(uns.toString());
+        }
 
     }
 
