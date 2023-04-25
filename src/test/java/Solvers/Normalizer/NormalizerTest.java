@@ -115,6 +115,24 @@ public class NormalizerTest extends TestCase {
 
     }
 
-    public void testNormalizeEquivalence() {
+    public void testNormalizeAtmost() throws Unsatisfiable{
+        System.out.println("normalizeAtmost");
+        Normalizer normalizer = new Normalizer(10);
+        int[] inputClause = {1, cAtmost, 2, 1, 2, 3, 4};
+        IntArrayList clause = normalizer.normalizeAtmost(inputClause);
+        assertEquals("1: <=2 1,2,3,4", normalizer.toString(clause));
+
+        inputClause = new int[]{2, cAtmost, 2, 1, 1,2,2};
+        clause = normalizer.normalizeAtmost(inputClause);
+        assertEquals("2: -1v-2", normalizer.toString(clause));
+
+        inputClause = new int[]{3, cAtmost, 2, 1, 1,1, 2,2};
+        assertNull(normalizer.normalizeAtmost(inputClause));
+        assertEquals("-1,2", normalizer.model.toString());
+
+        inputClause = new int[]{4, cAtmost, 2, 3,3,3,4,4,4,5};
+        assertNull(normalizer.normalizeAtmost(inputClause));
+        assertEquals("-1,2,-3,-4,5", normalizer.model.toString());
+
     }
 }
