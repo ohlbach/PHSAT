@@ -117,9 +117,19 @@ public class Normalizer extends Solver {
     public static void setExpandedSize(IntArrayList clause, int expandedSize) {
         clause.set(4,expandedSize);}
 
+    /** computes the number of literals in the clause.
+     *
+     * @param clause a clause.
+     * @return the number of literals in the clause.
+     */
     public static int size(IntArrayList clause) {
-        return (clause.size()-literalsStart+1) / 2;}
+        return (clause.size()-literalsStart) / 2;}
 
+    /** checks if the clause has multiplicities &gt; 1.
+     *
+     * @param clause a clause
+     * @return true if the clause has multiplicities &gt; 1.
+     */
     public static boolean hasMultiplicities(IntArrayList clause) {
         return getExpandedSize(clause) - size(clause) > 0;}
 
@@ -325,7 +335,7 @@ public class Normalizer extends Solver {
      * @param clause the clause to be reduced.
      * @throws Unsatisfiable if the model discovers complementary literals.
      */
-    private IntArrayList analyseMultiplicities(IntArrayList clause, int[] inputClause) throws Unsatisfiable{
+     IntArrayList analyseMultiplicities(IntArrayList clause, int[] inputClause) throws Unsatisfiable{
         if(!hasMultiplicities(clause)) return clause;
         int id = clause.getInt(0);
         int expandedSize = getExpandedSize(clause);

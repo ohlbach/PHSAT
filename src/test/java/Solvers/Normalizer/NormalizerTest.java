@@ -71,7 +71,7 @@ public class NormalizerTest extends TestCase {
     }}
 
 public void testTransformInputClauses() {
-    System.out.println("TransormInputClauses");
+    System.out.println("TransformInputClauses");
     Normalizer normalizer = new Normalizer(10,monitoring);
     int[] inputClause = {1, cAtleast, 2, 1, 2, 3};
     IntArrayList clause = normalizer.transformInputClause(inputClause);
@@ -92,8 +92,17 @@ public void testTransformInputClauses() {
     inputClause = new int[]{5, cInterval, 2,3, 1, -2, 3};
     clause = normalizer.transformInputClause(inputClause);
     assertEquals("5: [2,3] 1,-2,3",normalizer.toString(clause));
+    assertEquals(3,Normalizer.size(clause));
+    assertFalse(Normalizer.hasMultiplicities(clause));
 }
+    public void testAnalyseMultiplicities() throws Unsatisfiable {
+        System.out.println("analyseMultiplicities");
+        Normalizer normalizer = new Normalizer(10,monitoring);
+        int[] inputClause = {1, cAtleast, 2, 1, 2, 3};
+        IntArrayList clause = normalizer.transformInputClause(inputClause);
+        assertEquals("1: >=2 1,2,3",normalizer.toString(normalizer.analyseMultiplicities(clause,inputClause)));
 
+    }
     public void testNormalizeAtleast() throws Unsatisfiable {
         System.out.println("normalizeAtleast");
         /*
