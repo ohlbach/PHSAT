@@ -69,14 +69,6 @@ public class Normalizer extends Solver {
     public static void setQuantifier(IntArrayList clause, Quantifier quantifier) {
         clause.set(1,quantifier.ordinal());}
 
-    /** sets the clause's ordinal.
-     *
-     * @param ordinal the quantifier's ordinal
-     * @param clause a clause as IntArrayList.
-     */
-    public static void setQuantifier(IntArrayList clause, int ordinal) {
-        clause.set(1,ordinal);}
-
     /** returns the clause's min-limit.
      *
      * @param clause a clause as IntArrayList.
@@ -170,13 +162,10 @@ public class Normalizer extends Solver {
             for(int[] inputClause : inputClauses.equivalences) normalizeEquivalence(inputClause);
             if(equivalences.size() > 1) joinEquivalences();
             for(int[] inputClause : inputClauses.disjunctions) normalizeDisjunction(inputClause);
-            for(int[] inputClause : inputClauses.atleasts)  {
-                IntArrayList clause = transformClause(inputClause);
-                divideByGCD(clause);
-                if(optimizeQuantifier(clause,inputClause) != null) clauses.add(clause);}
-            for(int[] inputClause : inputClauses.atmosts)      normalizeAtmost(inputClause);
-            for(int[] inputClause : inputClauses.exactlys)     normalizeExactly(inputClause);
-            for(int[] inputClause : inputClauses.intervals)    normalizeInterval(inputClause);
+            for(int[] inputClause : inputClauses.atleasts)     transformAndSimplify(inputClause);
+            for(int[] inputClause : inputClauses.atmosts)      transformAndSimplify(inputClause);
+            for(int[] inputClause : inputClauses.exactlys)     transformAndSimplify(inputClause);
+            for(int[] inputClause : inputClauses.intervals)    transformAndSimplify(inputClause);
         }
         catch(Result result) {return result;}
         return null;}
@@ -188,7 +177,8 @@ public class Normalizer extends Solver {
      */
     void normalizeConjunction(int[] inputClause) throws Unsatisfiable {
         for(int i = Quantifier.AND.firstLiteralIndex; i < inputClause.length; ++i) {
-            model.add(myThread, inputClause[i]);}}
+            model.add(myThread, inputClause[i],
+                    trackReasoning ? new InfInputClause(inputClause[0]) : null);}}
 
     /** normalizes a disjunction and adds it to 'clauses'.
      * - multiple literals are removed.<br>
@@ -219,7 +209,9 @@ public class Normalizer extends Solver {
             if(multiple) continue;
             ++size;
             clause.add(literal1); clause.add(1);}
-        if(size == 1) {model.add(myThread, clause.getInt(literalsStart));  return null;}
+        if(size == 1) {model.add(myThread, clause.getInt(literalsStart),
+                            trackReasoning ? new InfInputClause(inputClause[0]) : null);
+                        return null;}
         setMax(clause,size);
         setExpandedSize(clause,size);
         clauses.add(clause);
@@ -275,8 +267,8 @@ public class Normalizer extends Solver {
             int sign = (minLiteral > 0) ? +1: -1;
             eqv.set(0,sign*minLiteral);
             for(int i = 1; i < eqv.size(); ++i)
-                if(eqv.get(i) == minLiteral) eqv.set(i,sign*firstLiteral);
-                else eqv.set(i, sign*eqv.get(i));}
+                if(eqv.getInt(i) == minLiteral) eqv.set(i,sign*firstLiteral);
+                else eqv.set(i, sign*eqv.getInt(i));}
     }
 
     /** checks if the two lists overlap.
@@ -292,240 +284,93 @@ public class Normalizer extends Solver {
                 if(literal1 == -literal2) return -1;}}
         return 0;}
 
-    /** transforms the inputClause into the IntArrayList version and simplifies the clause.<br>
-     * - complementary literals are removed.<br>
-     * - if min = expandedSize then all literals are true and added to the model.<br>
-     * - other literals which also must be true are added to the model:<br>
-     *   Example: atleast 4 p^2,q^2,r.<br>
-     *      *  If p is false then the clause becomes atleast 4 q^2,r, which is no longer satisfiable.<br>
-     *      *  Therefore, p must be true, and q as well.<br>
-     * - The multiplicities are divided by their gcd.
+
+    /** transforms an input clause into the IntArrayList form and performs various simplifications.
      *
-     * @param inputClause the original input clause.
-     * @return null or the simplified clause.
-     * @throws Unsatisfiable if the model contains complementary literals.
+     * @param inputClause an inputClause.
+     * @return null or the transformed clause.
+     * @throws Unsatisfiable if the clause becomes empty or the model discovers complementary literals.
      */
-    IntArrayList normalizeAtleast(int[] inputClause) throws Unsatisfiable {
-        Quantifier atleast = Quantifier.ATLEAST;
-        int length = inputClause.length;
-        IntArrayList clause = new IntArrayList(4+2*(inputClause.length-3));
-        clause.add(inputClause[0]); // id
-        clause.add(atleast.ordinal());
-        clause.add(inputClause[2]); // min
-        clause.add(0); // max
-        clause.add(0); // expandedSize
-        int[] inputClauseCopy = Arrays.copyOf(inputClause,length); // the original clause must not be changed.
-        int size = 0;
-        int complementaryLiterals = 0;
-        int expandedSize = 0;
-        for(int i = atleast.firstLiteralIndex; i < length; ++i) {
-            int literal1 = inputClauseCopy[i];
-            if(literal1 == 0) continue;
-            int multiplicity = 1;
-            for(int j = i+1; j < length; ++j) {
-                int literal2 = inputClauseCopy[j];
-                if(literal2 == literal1)  {++multiplicity; inputClauseCopy[j] = 0; continue;}
-                if(literal2 == -literal1) {--multiplicity; ++complementaryLiterals; inputClauseCopy[j] = 0; break;}}
-            if(multiplicity <= 0) continue;
-            expandedSize += multiplicity;
-            ++size;
-            clause.add(literal1); clause.add(multiplicity);}
-        int min = inputClauseCopy[2] - complementaryLiterals;
-        if(min <= 0) {return null;} // tautology
-        if(min > expandedSize)  {throw new UnsatClause(problemId,"InputClauses",inputClause);}
-
-        if(size == 1) {
-            model.add(myThread, clause.getInt(literalsStart), trackReasoning ? new InfInputClause(inputClause[0]): null);
-            return null;}
-
-        if(min == expandedSize) { // all literals must be true.
-            for(int i = literalsStart; i < clause.size(); i += 2) {
-                model.add(myThread, clause.getInt(i), trackReasoning ? new InfInputClause(inputClause[0]): null);}
-            return null;}
-        for(int i = literalsStart+1; i < clause.size(); i += 2) {
-            int multiplicity = clause.getInt(i);
-            if(multiplicity > min) {
-                expandedSize -= multiplicity - min;
-                clause.set(i,min);}}
-        if(size == 1) {
-            model.add(myThread, clause.getInt(literalsStart), trackReasoning ? new InfInputClause(inputClause[0]): null);
-        return null;}
-        setMin(clause,min); setMax(clause,expandedSize);
-        setExpandedSize(clause,expandedSize);
-        if(min == 1) {clause.set(1,Quantifier.OR.ordinal()); return clause;}
-        if(reduceByTrueLiterals(clause)) divideByGCDAtleast(clause);
-        else return null;
+    IntArrayList transformAndSimplify(int[] inputClause) throws Unsatisfiable {
+        IntArrayList clause = transformInputClause(inputClause);
+        if(analyseMultiplicities(clause,inputClause) == null) return null;
+        divideByGCD(clause);
+        optimizeQuantifier(clause,inputClause);
+        clauses.add(clause);
         return clause;
+    }
+
+    /** analyses the multiplicities to find true/false literals and to reduce the multiplicities.<br>
+     *  Examples: <br>
+     *  - atmost 2 p^3 ..., p must be false<br>
+     *  - atleast 4 p^2,q^2,r.<br>
+     *        If p is false then the clause becomes atleast 4 q^2,r, which is no longer satisfiable.<br>
+     *        Therefore, p must be true, and q as well.<br>
+     *  - atleast 2 p^3...   -&gt; atleast 2 p^2 ...<br>
+     *  - atmost 3 p^3,q^2 -> atmost 2 p^2,q^2 (-&gt; atmost 1 p,q)
+     *
+     * @param clause the clause to be reduced.
+     * @throws Unsatisfiable if the model discovers complementary literals.
+     */
+    private IntArrayList analyseMultiplicities(IntArrayList clause, int[] inputClause) throws Unsatisfiable{
+        if(!hasMultiplicities(clause)) return clause;
+        int id = clause.getInt(0);
+        int expandedSize = getExpandedSize(clause);
+        int min = getMin(clause);
+        int max = getMax(clause);
+        boolean changed = true;
+        while(changed) {
+            changed = false;
+            for(int i = clause.size()-2; i >= literalsStart; i -= 2) {
+                int multiplicity = clause.getInt(i+1);
+                if(multiplicity > max) { // example: atmost 2 p^3 ... p must be false
+                    model.add(myThread,-clause.getInt(i), trackReasoning ? new InfInputClause(id) : null);
+                    clause.removeInt(i+1); clause.removeInt(i);
+                    expandedSize -= multiplicity;
+                    changed = true;
+                    continue;}
+                int remainings = expandedSize-multiplicity;
+                if(remainings < min) { // example: atleast 4 p^2,q^2,r   p and q must be true
+                    model.add(myThread,clause.getInt(i), trackReasoning ? new InfInputClause(id) : null);
+                    clause.removeInt(i+1); clause.removeInt(i);
+                    min -= multiplicity; max -= multiplicity;
+                    expandedSize -= multiplicity;
+                    changed = true;
+                    continue;}
+                if(multiplicity > min) {  // example atleast 2 p^3...   -> atleast 2 p^2 ...
+                    remainings = multiplicity - min;
+                    clause.set(i+1,min);
+                    expandedSize -= remainings;
+                    changed = true;
+                    continue;}
+                                // example atmost 3 p^3,q^2 -> atmost 2 p^2,q^2 (-> atmost 1 p,q)
+                int negMax = expandedSize - max;            // negMax = 2, expandedSize = 5
+                if(multiplicity > negMax) {                 // multiplicity = 2
+                    int difference = multiplicity - negMax; // difference = 1
+                    clause.set(i+1,negMax);                 // new multiplicity = 2
+                    expandedSize -= difference;             // expanded size = 4
+                    max = expandedSize - negMax;            // new max = 2
+                    changed = true;}}}
+                setMin(clause,min); setMax(clause,max);
+                setExpandedSize(clause,expandedSize);
+        if(expandedSize == 0) return checkEmptyClause(clause,inputClause);
+        return clause;}
+
+    /** checks the empty clause. It can be ignored (min &lt;= 0) or is unsatisfiable (min &gt 0).
+     *
+     * @param clause      an empty clause
+     * @param inputClause the original inputClause
+     * @return            null
+     * @throws Unsatisfiable if the empty clause represents an unsatisfiability.
+     */
+    IntArrayList checkEmptyClause(IntArrayList clause, int[] inputClause) throws Unsatisfiable{
+        if(getMin(clause) <= 0) return null;
+        throw new UnsatClause(problemId,solverId,inputClause);
     }
 
     /** to be used by divideByGCD. */
     private final IntArrayList numbers = new IntArrayList();
 
-    /** divides the limit and the multiplicities by their greatest common divisor.
-     *
-     * @return true if the clause is changed.
-     */
-    private void divideByGCDAtleast(IntArrayList clause) {
-        assert(getQuantifier(clause) == Quantifier.ATLEAST);
-        numbers.clear(); numbers.add(getMin(clause));
-        for(int i = literalsStart+1; i < clause.size(); i += 2) {
-            int multiplicity = clause.getInt(i);
-            if(multiplicity == 1) {return;}
-            numbers.add(multiplicity);}
-        int gcd = Utilities.gcd(numbers);
-        if(gcd == 1) return;
-        setMin(clause,getMin(clause)/gcd);
-        int expandedSize = 0;
-        for(int i = literalsStart+1; i < clause.size(); i += 2) {
-            int multiplicity = clause.getInt(i)/gcd;
-            clause.set(i,multiplicity);
-            expandedSize += multiplicity;}
-        setMax(clause,expandedSize);
-        setExpandedSize(clause,expandedSize);
-    }
-
-    /** removes literals which must be true in an ATLEAST-clause.
-     *  Example: atleast 4 p^2,q^2,r.<br>
-     *  If p is false then the clause becomes atleast 4 q^2,r, which is no longer satisfiable.<br>
-     *  Therefore, p must be true, and q as well.<br>
-     *  Both can be removed and made true.<br>
-     *  The resulting clause may get a limit &lt;= 0. It is true and can be removed.
-     *
-     * @param clause the clause to be reduced.
-     * @return true if the clause survived the reduction.
-     */
-    private boolean reduceByTrueLiterals(IntArrayList clause) throws Unsatisfiable{
-        if(!hasMultiplicities(clause)) return true;
-        int expandedSize = getExpandedSize(clause);
-        int min = getMin(clause);
-        int max = getMax(clause);
-        int size = 0;
-        for(int i = literalsStart; i < clause.size(); i +=2) {
-            int multiplicity = clause.getInt(i+1);
-            int remainings = expandedSize-multiplicity;
-            if(!(min <= remainings && remainings <= max)) {
-                model.add(myThread,clause.getInt(i), trackReasoning ? new InfInputClause(clause.getInt(0)) : null);
-                min -= multiplicity; max -= multiplicity;
-                expandedSize -= multiplicity;
-                setMin(clause,min); setMax(clause,max);
-                setExpandedSize(clause,expandedSize);
-                clause.removeInt(i+1); clause.removeInt(i);
-                i -= 2;}
-            else ++size;}
-        if(size == 0) return false;
-        if(size == 1) {
-            model.add(myThread,clause.getInt(literalsStart), trackReasoning ? new InfInputClause(clause.getInt(0)) : null);
-            return false;}
-        if(min == 1)  {
-            setQuantifier(clause, Quantifier.OR);
-            for(int i = literalsStart+1; i < clause.size(); i +=2) clause.set(i,1); }
-        return true;}
-
-    /** transforms the inputClause into the IntArrayList version and simplifies the clause.<br>
-     * - complementary literals are removed.<br>
-     * - if max = 0 then all literals are false and added to the model.<br>
-     * - The multiplicities are divided by their gcd.<br>
-     * - atmost n-1 l_1,...,l_n is turned into -l_1 or ... or -l_n
-     * - a singleton clause is added to the model.
-     *
-     * @param inputClause the original input clause.
-     * @return null or the simplified clause.
-     * @throws Unsatisfiable if the model contains complementary literals.
-     */
-    IntArrayList normalizeAtmost(int[] inputClause) throws Unsatisfiable {
-        Quantifier atmost = Quantifier.ATMOST;
-        int length = inputClause.length;
-        int max = inputClause[2];
-        IntArrayList clause = new IntArrayList(4 + 2 * (inputClause.length - 3));
-        clause.add(inputClause[0]); // id
-        clause.add(atmost.ordinal());
-        clause.add(0);              // min
-        clause.add(max);
-        clause.add(0);              // expandedSize
-        int[] inputClauseCopy = Arrays.copyOf(inputClause, length); // the original clause must not be changed.
-        int size = 0;
-        int complementaryLiterals = 0;
-        int expandedSize = 0;
-        for (int i = atmost.firstLiteralIndex; i < length; ++i) {
-            int literal1 = inputClauseCopy[i];
-            if (literal1 == 0) continue;
-            int multiplicity = 1;
-            for (int j = i + 1; j < length; ++j) {
-                int literal2 = inputClauseCopy[j];
-                if (literal2 == literal1) {++multiplicity; inputClauseCopy[j] = 0; continue;}
-                if (literal2 == -literal1) {--multiplicity; ++complementaryLiterals; inputClauseCopy[j] = 0; break;}}
-            if (multiplicity <= 0) continue;
-            if(multiplicity > max) {
-                model.add(myThread,-literal1,trackReasoning ? new InfInputClause(inputClause[0]) : null);
-                continue;}
-            expandedSize += multiplicity;
-            ++size;
-            clause.add(literal1);
-            clause.add(multiplicity);}
-        if(size == 0) throw new UnsatClause(problemId,solverId, inputClause);
-        if(size == 1) {
-            model.add(myThread,clause.getInt(literalsStart),
-                    trackReasoning ? new InfInputClause(inputClause[0]) : null);
-            return null;}
-        max -= complementaryLiterals;
-        if(max < 0) throw new UnsatClause(problemId,solverId, inputClause);
-        if(max == 0) {
-            for(int i = literalsStart; i < clause.size(); i += 2) {
-                model.add(myThread,-clause.getInt(i),
-                        trackReasoning ? new InfInputClause(inputClause[0]) : null);}
-            return null;}
-        setMax(clause,max);
-        setExpandedSize(clause,expandedSize);
-        divideByGCDAtmost(clause);
-        if(getMax(clause) == getExpandedSize(clause)-1) {
-            setQuantifier(clause,Quantifier.OR);
-            setMin(clause,1);
-            setMax(clause,size);
-            setExpandedSize(clause,size);
-            for(int i = literalsStart; i < clause.size(); i += 2) {
-                clause.set(i,-clause.get(i));
-                clause.set(i+1,1);}}
-        return clause;
-    }
-
-    IntArrayList normalizeExactly(int[] inputClause) throws Unsatisfiable {
-        Quantifier interval = Quantifier.INTERVAL;
-        int length = inputClause.length;
-        int min = inputClause[2];
-        int max = inputClause[3];
-        IntArrayList clause = new IntArrayList(4 + 2 * (inputClause.length - 3));
-        clause.add(inputClause[0]); // id
-        clause.add(interval.ordinal());
-        clause.add(min);
-        clause.add(max);
-        clause.add(0); // expandedSize
-        int[] inputClauseCopy = Arrays.copyOf(inputClause, length); // the original clause must not be changed.
-        int size = 0;
-        int complementaryLiterals = 0;
-        int expandedSize = 0;
-        for (int i = interval.firstLiteralIndex; i < length; ++i) {
-            int literal1 = inputClauseCopy[i];
-            if (literal1 == 0) continue;
-            int multiplicity = 1;
-            for (int j = i + 1; j < length; ++j) {
-                int literal2 = inputClauseCopy[j];
-                if (literal2 == literal1) {++multiplicity; inputClauseCopy[j] = 0; continue;}
-                if (literal2 == -literal1) {--multiplicity; ++complementaryLiterals; inputClauseCopy[j] = 0; break;}}
-            if(multiplicity <= 0) continue;
-            if(multiplicity > max) {
-                model.add(myThread,-literal1,trackReasoning ? new InfInputClause(inputClause[0]) : null);
-                continue;}
-            expandedSize += multiplicity;
-            ++size;
-            clause.add(literal1);
-            clause.add(multiplicity);}
-        return clause;}
-
-    IntArrayList normalizeInterval(int[] inputClause) throws Unsatisfiable {
-        IntArrayList clause = transformClause(inputClause);
-        divideByGCD(clause);
-        return optimizeQuantifier(clause,inputClause);
-    }
 
     /** divides the limits and the multiplicities by their greatest common divisor.
      */
@@ -559,33 +404,23 @@ public class Normalizer extends Solver {
         if(min == 0 && max == expandedSize) return null; // tautology
         if(max < min || min > expandedSize) throw new UnsatClause(problemId,solverId,inputClause);
 
-        if(min == expandedSize) { // all must be true
-            for(int i = literalsStart; i < clause.size(); i +=2) {
-                model.add(myThread,clause.get(i),
-                        trackReasoning ? new InfInputClause(inputClause[0]): null);}
-            return null;}
-
         int size = (clause.size() - literalsStart)/2;
         if(min == 0) { // atmost
             if(max - 1 == expandedSize) { // atleast one of the literals must be false.
                 for(int i = literalsStart; i < clause.size(); i += 2) {
                     clause.set(i,-clause.getInt(i));
                     clause.set(i+1,1);}
-                setQuantifier(clause, Quantifier.OR.ordinal());
+                setQuantifier(clause, Quantifier.OR);
                 setMin(clause,1);
                 setMax(clause,size);
                 setExpandedSize(clause,size);}
-            else setQuantifier(clause, Quantifier.ATMOST.ordinal());
+            else setQuantifier(clause, Quantifier.ATMOST);
             return clause;}
 
         if(max == expandedSize) { // atleast
             if(min == 1) { // or
-                if(size == 1) {
-                    model.add(myThread,clause.get(literalsStart),
-                            trackReasoning ? new InfInputClause(inputClause[0]): null);
-                    return null;}
                 for(int i = literalsStart+1; i < clause.size(); i += 2) {clause.set(i,1); ++size;}
-                setQuantifier(clause, Quantifier.OR.ordinal());
+                setQuantifier(clause, Quantifier.OR);
                 setMax(clause,size);
                 setExpandedSize(clause,size);}
             return clause;}
@@ -595,7 +430,7 @@ public class Normalizer extends Solver {
             if(size == 1) {
                 int multiplicity = clause.getInt(literalsStart+1);
                 if(multiplicity != min) throw new UnsatClause(problemId,solverId,inputClause);}
-            setQuantifier(clause, Quantifier.EXACTLY.ordinal());}
+            setQuantifier(clause, Quantifier.EXACTLY);}
 
         return clause;}
 
@@ -606,8 +441,9 @@ public class Normalizer extends Solver {
      * @param inputClause an input clause
      * @return the transformed clause.
      */
-    private IntArrayList transformClause(int[] inputClause) {
+     IntArrayList transformInputClause(int[] inputClause) {
         Quantifier quantifier = Quantifier.getQuantifier(inputClause[1]);
+        assert quantifier != null;
         int length = inputClause.length;
         IntArrayList clause = new IntArrayList(4 + 2 * (inputClause.length - 3));
         clause.add(inputClause[0]); // id
@@ -642,29 +478,6 @@ public class Normalizer extends Solver {
         setMax(clause,max - complementaryLiterals);
         setExpandedSize(clause,expandedSize);
         return clause;}
-
-
-        /** divides the limit and the multiplicities by their greatest common divisor.
-         *
-         * @return true if the clause is changed.
-         */
-    private void divideByGCDAtmost(IntArrayList clause) {
-        assert(getQuantifier(clause) == Quantifier.ATMOST);
-        numbers.clear(); numbers.add(getMax(clause));
-        for(int i = literalsStart+1; i < clause.size(); i += 2) {
-            int multiplicity = clause.getInt(i);
-            if(multiplicity == 1) {return;}
-            numbers.add(multiplicity);}
-        int gcd = Utilities.gcd(numbers);
-        if(gcd == 1) return;
-        setMax(clause,getMax(clause)/gcd);
-        int expandedSize = 0;
-        for(int i = literalsStart+1; i < clause.size(); i += 2) {
-            int multiplicity = clause.getInt(i)/gcd;
-            clause.set(i,multiplicity);
-            expandedSize += multiplicity;}
-        setExpandedSize(clause,expandedSize);
-    }
 
         /** lists the model, the equivalence classes and the clauses as a string.
          *
@@ -732,7 +545,7 @@ public class Normalizer extends Solver {
      */
     private void toStringOr(IntArrayList clause, Quantifier quantifier, StringBuilder st) {
         String separator = quantifier.separator;
-        st.append(Symboltable.toString(clause.get(literalsStart),symboltable));
+        st.append(Symboltable.toString(clause.getInt(literalsStart),symboltable));
         for(int i = literalsStart+2; i < clause.size(); i += 2) {
             st.append(separator).append(Symboltable.toString(clause.getInt(i),symboltable));}}
 
@@ -746,7 +559,7 @@ public class Normalizer extends Solver {
     private void toStringLimit(IntArrayList clause, Quantifier quantifier, int limit, StringBuilder st) {
         String separator = quantifier.separator;
         st.append(quantifier.abbreviation).append(limit).append(" ");
-        st.append(Symboltable.toString(clause.get(literalsStart),symboltable));
+        st.append(Symboltable.toString(clause.getInt(literalsStart),symboltable));
         if(clause.getInt(literalsStart+1) > 1) st.append("^").append(clause.getInt(literalsStart+1));
         for(int i = literalsStart+2; i < clause.size(); i += 2) {
             st.append(separator).append(Symboltable.toString(clause.getInt(i),symboltable));
@@ -762,7 +575,7 @@ public class Normalizer extends Solver {
     private void toStringInterval(IntArrayList clause, Quantifier quantifier, StringBuilder st) {
         String separator = quantifier.separator;
         st.append("[").append(getMin(clause)).append(",").append(getMax(clause)).append("] ");
-        st.append(Symboltable.toString(clause.get(literalsStart),symboltable));
+        st.append(Symboltable.toString(clause.getInt(literalsStart),symboltable));
         if(clause.getInt(literalsStart+1) > 1) st.append("^").append(clause.getInt(literalsStart+1));
         for(int i = literalsStart+2; i < clause.size(); i += 2) {
             st.append(separator).append(Symboltable.toString(clause.getInt(i),symboltable));
