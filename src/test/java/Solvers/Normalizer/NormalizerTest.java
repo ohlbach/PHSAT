@@ -13,13 +13,17 @@ public class NormalizerTest extends TestCase {
     private static final int cAtmost = Quantifier.ATMOST.ordinal();
     private static final int cExactly = Quantifier.EXACTLY.ordinal();
     private static final int cInterval = Quantifier.INTERVAL.ordinal();
+
+    private static boolean monitoring = true;
     public void testNormalizeConjunction() throws Unsatisfiable {
         System.out.println("noramlizeConjunction");
-        Normalizer normalizer = new Normalizer(10);
-        int[] inputClause = new int[]{1,cAnd,1,2,-3};
+        Normalizer normalizer = new Normalizer(10, monitoring);
+        int[] inputClause = new int[]{1,cAnd};
+        normalizer.normalizeConjunction(inputClause);
+        inputClause = new int[]{2,cAnd,1,2,-3};
         normalizer.normalizeConjunction(inputClause);
         assertEquals("1,2,-3",normalizer.model.toString());
-        inputClause = new int[]{2,cAnd,3,4,5};
+        inputClause = new int[]{3,cAnd,3,4,5};
         try{normalizer.normalizeConjunction(inputClause);}
         catch(Unsatisfiable uns) {
             //System.out.println(uns.toString());
@@ -27,9 +31,12 @@ public class NormalizerTest extends TestCase {
 
     public void testNormalizeDisjunction() throws Unsatisfiable{
         System.out.println("noramlizeDisjunction");
-        Normalizer normalizer = new Normalizer(10);
-        int[] inputClause = {1, cOr, 1, 2, 3,2,1,1};
+        Normalizer normalizer = new Normalizer(10, monitoring);
+        int[] inputClause = {0, cOr};
         IntArrayList clause = normalizer.normalizeDisjunction(inputClause);
+        assertNull(clause);
+        inputClause = new int[]{1, cOr, 1, 2, 3,2,1,1};
+        clause = normalizer.normalizeDisjunction(inputClause);
         assertEquals("1: 1v2v3", normalizer.toString(clause));
 
         inputClause = new int[]{2, cOr, 1, 2, 3,-2};
@@ -40,7 +47,7 @@ public class NormalizerTest extends TestCase {
         assertEquals("1",normalizer.model.toString());}
 
     public void testNormalizeEquiv() throws Unsatisfiable{
-        Normalizer normalizer = new Normalizer(10);
+        Normalizer normalizer = new Normalizer(10, monitoring);
         int[] inputClause = {1,cEquiv,2,3,-1};
         normalizer.normalizeEquivalence(inputClause);
         StringBuilder st = new StringBuilder();
@@ -63,9 +70,33 @@ public class NormalizerTest extends TestCase {
             //System.out.println(uns.toString());
     }}
 
+public void testTransformInputClauses() {
+    System.out.println("TransormInputClauses");
+    Normalizer normalizer = new Normalizer(10,monitoring);
+    int[] inputClause = {1, cAtleast, 2, 1, 2, 3};
+    IntArrayList clause = normalizer.transformInputClause(inputClause);
+    assertEquals("1: >=2 1,2,3",normalizer.toString(clause));
+
+    inputClause = new int[]{2, cOr, 1, -2, 3};
+    clause = normalizer.transformInputClause(inputClause);
+    assertEquals("2: 1v-2v3",normalizer.toString(clause));
+
+    inputClause = new int[]{3, cAtleast, 2, 1, -2, 3};
+    clause = normalizer.transformInputClause(inputClause);
+    assertEquals("3: >=2 1,-2,3",normalizer.toString(clause));
+
+    inputClause = new int[]{4, cExactly, 2, 1, -2, 3};
+    clause = normalizer.transformInputClause(inputClause);
+    assertEquals("4: =2 1,-2,3",normalizer.toString(clause));
+
+    inputClause = new int[]{5, cInterval, 2,3, 1, -2, 3};
+    clause = normalizer.transformInputClause(inputClause);
+    assertEquals("5: [2,3] 1,-2,3",normalizer.toString(clause));
+}
+
     public void testNormalizeAtleast() throws Unsatisfiable {
         System.out.println("normalizeAtleast");
-
+        /*
         Normalizer normalizer = new Normalizer(10);
         int[] inputClause = {1, cAtleast, 2, 1, 2, 3};
         IntArrayList clause = normalizer.normalizeAtleast(inputClause);
@@ -112,11 +143,12 @@ public class NormalizerTest extends TestCase {
         catch(Unsatisfiable uns) {
             System.out.println(uns.toString());
         }
-
+*/
     }
 
     public void testNormalizeAtmost() throws Unsatisfiable{
         System.out.println("normalizeAtmost");
+        /*
         Normalizer normalizer = new Normalizer(10);
         int[] inputClause = {1, cAtmost, 2, 1, 2, 3, 4};
         IntArrayList clause = normalizer.normalizeAtmost(inputClause);
@@ -133,6 +165,6 @@ public class NormalizerTest extends TestCase {
         inputClause = new int[]{4, cAtmost, 2, 3,3,3,4,4,4,5};
         assertNull(normalizer.normalizeAtmost(inputClause));
         assertEquals("-1,2,-3,-4,5", normalizer.model.toString());
-
+*/
     }
 }

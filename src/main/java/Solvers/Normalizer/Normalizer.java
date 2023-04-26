@@ -8,6 +8,7 @@ import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
+import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import Solvers.Simplifier.UnsatClause;
 import Solvers.Solver;
@@ -146,8 +147,12 @@ public class Normalizer extends Solver {
         initialize(Thread.currentThread(),problemSupervisor);
         model = new Model(predicates);}
 
-    public Normalizer(int predicates) {
+    public Normalizer(int predicates, boolean monitoring) {
         super(1,null);
+        this.monitoring = monitoring;
+        if(monitoring) {
+            monitorId = "Normalizer";
+            monitor = new MonitorLife();}
         problemId = "Test";
         solverParameters = new HashMap<>();
         solverParameters.put("name","Normalizer");
@@ -177,7 +182,10 @@ public class Normalizer extends Solver {
      */
     void normalizeConjunction(int[] inputClause) throws Unsatisfiable {
         for(int i = Quantifier.AND.firstLiteralIndex; i < inputClause.length; ++i) {
-            model.add(myThread, inputClause[i],
+            int literal = inputClause[i];
+            if(monitoring) monitor.println(monitorId, "adding literal " +
+                    Symboltable.toString(literal,symboltable) + " to the model.");
+            model.add(myThread, literal,
                     trackReasoning ? new InfInputClause(inputClause[0]) : null);}}
 
     /** normalizes a disjunction and adds it to 'clauses'.
@@ -209,6 +217,7 @@ public class Normalizer extends Solver {
             if(multiple) continue;
             ++size;
             clause.add(literal1); clause.add(1);}
+        if(size == 0) return null;
         if(size == 1) {model.add(myThread, clause.getInt(literalsStart),
                             trackReasoning ? new InfInputClause(inputClause[0]) : null);
                         return null;}
@@ -269,6 +278,10 @@ public class Normalizer extends Solver {
             for(int i = 1; i < eqv.size(); ++i)
                 if(eqv.getInt(i) == minLiteral) eqv.set(i,sign*firstLiteral);
                 else eqv.set(i, sign*eqv.getInt(i));}
+        if(monitoring) {
+            StringBuilder st = new StringBuilder();
+            toStringEquiv(st,"    ");
+            monitor.println(monitorId,"Equivalence Classes:\n"+st.toString());}
     }
 
     /** checks if the two lists overlap.
@@ -443,7 +456,7 @@ public class Normalizer extends Solver {
      */
      IntArrayList transformInputClause(int[] inputClause) {
         Quantifier quantifier = Quantifier.getQuantifier(inputClause[1]);
-        assert quantifier != null;
+        assert quantifier != null && quantifier != Quantifier.AND && quantifier != Quantifier.EQUIV;
         int length = inputClause.length;
         IntArrayList clause = new IntArrayList(4 + 2 * (inputClause.length - 3));
         clause.add(inputClause[0]); // id
