@@ -320,7 +320,7 @@ public class InputClauses {
                 return;}}
         trueLiterals.add(trueLiteral);}
 
-    String toString(IntArrayList clause) {
+    public String toString(IntArrayList clause) {
         StringBuilder st = new StringBuilder();
         st.append(clause.getInt(0)).append(": ");
         Quantifier quantifier = Quantifier.getQuantifier(clause.getInt(1));

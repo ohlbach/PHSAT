@@ -1,7 +1,9 @@
 package Solvers.Normalizer;
 
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatString;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
@@ -46,6 +48,10 @@ import java.util.HashMap;
  * If the input clauses are not redundant, there will be no changes in the clause set.
  */
 public class Normalizer extends Solver {
+
+    private static final int cOr = Quantifier.OR.ordinal();
+
+    NormalizerStatistics statistics;
 
     /** returns the clause's identifier.
      *
@@ -156,8 +162,14 @@ public class Normalizer extends Solver {
         solverParameters = new HashMap<>();
         solverParameters.put("name","Normalizer");
         initialize(Thread.currentThread(),problemSupervisor);
-        model = new Model(predicates);}
+        model = problemSupervisor.model;
+        statistics = new NormalizerStatistics(this);}
 
+    /** construct a normalizer for testing purposes.
+     *
+     * @param predicates the number of predicates.
+     * @param monitoring if true then the monitor is activated.
+     */
     public Normalizer(int predicates, boolean monitoring) {
         super(1,null);
         this.monitoring = monitoring;
@@ -169,11 +181,31 @@ public class Normalizer extends Solver {
         solverParameters.put("name","Normalizer");
         this.predicates = predicates;
         model = new Model(predicates);
+        statistics = new NormalizerStatistics(this);
        }
 
-    /** indicates that there new true/false literals have been derived.
-     */
+    /** indicates that there new true/false literals have been derived.*/
     private boolean newTrueLiterals = false;
+
+    /** adds a literal to the model.
+     *
+     * @param literal       a derived true literal.
+     * @param inferenceStep null or an inference step.
+     * @throws Unsatisfiable if the model finds complementary literals.
+     */
+    private void addTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
+        model.add(myThread,literal,inferenceStep);
+        newTrueLiterals = true;
+        ++statistics.derivedTrueLiterals;}
+
+    /** transforms the input clauses into IntArrayList form and performs various simplifications.<br>
+     *  All true/false literals are put into the model and removed from the clauses.
+     *  Equivalence classes are processed by replacing all literals by the representatives in the equivalence classes.
+     *  In the further processing the equivalence classes can be ignored.
+     *
+     * @param problemSupervisor the problem Supervisor.
+     * @return null or an Unsatisfiable or Satisfiable exception.
+     */
     @Override
     public Result solveProblem(ProblemSupervisor problemSupervisor) {
         try{
@@ -185,13 +217,12 @@ public class Normalizer extends Solver {
             for(int[] inputClause : inputClauses.atmosts)      transformAndSimplify(inputClause);
             for(int[] inputClause : inputClauses.exactlys)     transformAndSimplify(inputClause);
             for(int[] inputClause : inputClauses.intervals)    transformAndSimplify(inputClause);
-
-            equivalences.clear();
-            while(newTrueLiterals) {
+            // from now on the equivalence classes are no longer needed.
+            while(newTrueLiterals) { // fixpoint iteration until no new true literals are derived.
                 newTrueLiterals = false;
-                for(int i = clauses.size()-1; i >= 0; --i) replaceTrueLiterals(i);}}
+                for(int i = clauses.size()-1; i >= 0; --i) replaceTrueLiterals(i);}} // clauses[i] may be removed.
         catch(Result result) {return result;}
-        return null;}
+        return clauses.isEmpty() ? new Satisfiable(problemId,solverId,model) : null;}
 
     /** puts all conjuncts into the model.
      *
@@ -203,46 +234,8 @@ public class Normalizer extends Solver {
             int literal = inputClause[i];
             if(monitoring) monitor.println(monitorId, "adding literal " +
                     Symboltable.toString(literal,symboltable) + " to the model.");
-            model.add(myThread, literal,
-                    trackReasoning ? new InfInputClause(inputClause[0]) : null);}}
-
-    /** normalizes a disjunction and adds it to 'clauses'.
-     * - multiple literals are removed.<br>
-     * - tautologies are ignored.<br>
-     * - unit clauses are added to the model.
-     *
-     * @param inputClause the input clause.
-     * @return the normalized clause.
-     * @throws Unsatisfiable if the model discovers a contradiction.
-     */
-    IntArrayList normalizeDisjunction(int[] inputClause) throws Unsatisfiable{
-        int length = inputClause.length;
-        IntArrayList clause = new IntArrayList(length+2);
-        clause.add(inputClause[0]); // id
-        clause.add(inputClause[1]); // quantifier ordinal
-        clause.add(1); // min
-        clause.add(0); // max
-        clause.add(0); // extendedSize;
-        int start = Quantifier.OR.firstLiteralIndex;
-        int size = 0;
-        for(int i = start; i < inputClause.length; ++i) {
-            int literal1 = inputClause[i];
-            boolean multiple = false;
-            for(int j = start; j < i; ++j) {
-                int literal2 = inputClause[j];
-                if(literal2 == -literal1) {return null;} // tautology
-                if(literal2 == literal1)  {multiple = true; break;}}
-            if(multiple) continue;
-            ++size;
-            clause.add(literal1); clause.add(1);}
-        if(size == 0) return null;
-        if(size == 1) {model.add(myThread, clause.getInt(literalsStart),
-                            trackReasoning ? new InfInputClause(inputClause[0]) : null);
-                        return null;}
-        setMax(clause,size);
-        setExpandedSize(clause,size);
-        clauses.add(clause);
-        return clause;}
+            ++statistics.initialTrueLiterals;
+            model.add(myThread, literal, trackReasoning ? new InfInputClause(inputClause[0]) : null);}}
 
     /** transforms the inputClause into an IntArrayList of literals and puts it into the equivalences list.
      * - Double literals are removed.<br>
@@ -251,25 +244,24 @@ public class Normalizer extends Solver {
      * - true/false literals cause all equivalent literals to become true/false.
      *
      * @param inputClause     an inputClause.
-     * @throws Unsatisfiable if the clause contains complementary literals.
+     * @throws Unsatisfiable if the clause or the model contains complementary literals.
      */
     void normalizeEquivalence(int[] inputClause) throws Unsatisfiable {
-        IntArrayList clause = new IntArrayList(inputClause.length-2);
+        IntArrayList equivalence = new IntArrayList(inputClause.length-2);
         int start = Quantifier.EQUIV.firstLiteralIndex;
         for(int i = start; i < inputClause.length; ++i) {
             int literal = inputClause[i];
-            if(clause.contains(literal)) continue;
-            if(clause.contains(-literal)) throw new UnsatClause(problemId,solverId,inputClause);
+            if(equivalence.contains(literal)) continue;
+            if(equivalence.contains(-literal)) throw new UnsatClause(problemId,solverId,inputClause);
             int status = model.status(literal);
-            if(status == 0) {clause.add(literal); continue;}
-
+            if(status == 0) {equivalence.add(literal); continue;}
+                // all literals get a truth value.
             for(int j = start; j < inputClause.length; ++j) {
                 int literal1 = inputClause[j];
-                if(literal1 == literal) continue;
-                model.add(myThread,status*literal1,
-                        trackReasoning ? new InfInputClause(inputClause[0]) : null);}
+                if(literal1 != literal)
+                    addTrueLiteral(status*literal1,trackReasoning ? new InfInputClause(inputClause[0]) : null);}
             return;}
-        if(clause.size() > 1) equivalences.add(clause);}
+        if(equivalence.size() > 1) equivalences.add(equivalence);}
 
     /** joins overlapping equivalence classes into one of the class.
      * The smallest predicate will be moved to the front.
@@ -306,10 +298,12 @@ public class Normalizer extends Solver {
             for(int i = 1; i < eqv.size(); ++i)
                 if(eqv.getInt(i) == minLiteral) eqv.set(i,sign*firstLiteral);
                 else eqv.set(i, sign*eqv.getInt(i));}
+
         if(monitoring) {
             StringBuilder st = new StringBuilder();
             toStringEquiv(st,"    ");
-            monitor.println(monitorId,"Equivalence Classes:\n"+st.toString());}
+            monitor.println(monitorId,"Equivalence Classes:\n"+ st);}
+        statistics.equivalenceClasses = equivalences.size();
     }
 
     /** checks if the two lists overlap.
@@ -335,12 +329,68 @@ public class Normalizer extends Solver {
             int representative = equivalence.getInt(0);
             for(int i = 1; i < equivalence.size(); ++i) {
                 int lit = equivalence.getInt(i);
-                if(lit == literal) return representative;
+                if(lit ==  literal) return  representative;
                 if(lit == -literal) return -representative;}}
         return literal;}
 
 
-    /** transforms an input clause into the IntArrayList form and performs various simplifications.
+    /** normalizes a disjunction and adds it to 'clauses'.
+     * - multiple literals are removed.<br>
+     * - tautologies are ignored.<br>
+     * - unit clauses are added to the model.<br>
+     * - true literals make the clause true. The clause is ignored.<br>
+     * - false literals are ignored.<br>
+     * - literals are replaced by their representative in the equivalence classes.
+     *
+     * @param inputClause the input clause.
+     * @return the normalized clause.
+     * @throws Unsatisfiable if the model discovers a contradiction.
+     */
+    IntArrayList normalizeDisjunction(int[] inputClause) throws Unsatisfiable{
+        int quantifier = inputClause[1];
+        assert quantifier == cOr;
+        int length = inputClause.length;
+        IntArrayList clause = new IntArrayList(length+2);
+        clause.add(inputClause[0]); // id
+        clause.add(quantifier);
+        clause.add(1); // min
+        clause.add(0); // max
+        clause.add(0); // extendedSize;
+        int start = Quantifier.OR.firstLiteralIndex;
+        int size = 0;
+        boolean changed = false;
+        for(int i = start; i < inputClause.length; ++i) {
+            int literal1 = inputClause[i];
+            if(model.isTrue(literal1)) return null;  // true clause
+            if(model.isFalse(literal1)) {changed = true; continue;}    // can be ignored
+            boolean multiple = false;
+            for(int j = start; j < i; ++j) {
+                int literal2 = inputClause[j];
+                if(literal2 == -literal1) {return null;} // tautology
+                if(literal2 == literal1)  {multiple = true; break;}}
+            if(multiple) continue;
+            int representative = getRepresentative(literal1);
+            if(representative != literal1) changed = true;
+            ++size;
+            clause.add(representative); clause.add(1);}
+
+        if(changed) {
+            ++statistics.simplifiedClauses;
+            if(monitoring)
+                monitor.println(monitorId,"InputClause " + InputClauses.toString(inputClause) +
+                        " changed to " + toString(clause));}
+
+        if(size == 0) throw new UnsatClause(problemId,solverId,inputClause); // empty disjunction is false.
+        if(size == 1) {addTrueLiteral(clause.getInt(literalsStart),trackReasoning ? new InfInputClause(inputClause[0]) : null);
+                        return null;}
+        setMax(clause,size);
+        setExpandedSize(clause,size);
+        clauses.add(clause);
+        return clause;}
+
+
+    /** transforms an input clause into the IntArrayList form and performs various simplifications.<br>
+     * Only the following clause types are transformed: atleat-, atmost-, exactly- and interval-clauses.
      *
      * @param inputClause an inputClause.
      * @return null or the transformed clause.
@@ -352,13 +402,57 @@ public class Normalizer extends Solver {
         divideByGCD(clause);
         optimizeQuantifier(clause,inputClause);
         clauses.add(clause);
-        return clause;
-    }
+        return clause;}
 
-    private void addTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
-        model.add(myThread,literal,inferenceStep);
-        newTrueLiterals = true;
-    }
+    /** transforms the inputClause into the IntArrayList form.<br>
+     *  true/false literals are removed.<br>
+     *  equivalent literals are replaced by their representative.
+     *
+     * @param inputClause an input clause
+     * @return the transformed clause.
+     */
+    IntArrayList transformInputClause(int[] inputClause) {
+        Quantifier quantifier = Quantifier.getQuantifier(inputClause[1]);
+        assert quantifier != null && quantifier != Quantifier.AND && quantifier != Quantifier.EQUIV;
+        int length = inputClause.length;
+        IntArrayList clause = new IntArrayList(4 + 2 * (inputClause.length - 3));
+        clause.add(inputClause[0]); // id
+        clause.add(inputClause[1]); // quantifier
+        int min = 0, max = 0;
+        int expandedSize = length - quantifier.firstLiteralIndex;
+        switch(quantifier) {
+            case OR:       min = 1; max = expandedSize; expandedSize = max; break;
+            case ATLEAST:  min = inputClause[2]; max = expandedSize;        break;
+            case ATMOST:   min = 0; max = inputClause[2];                   break;
+            case EXACTLY:  min = inputClause[2] ; max = min;                break;
+            case INTERVAL: min = inputClause[2] ; max = inputClause[3];     break;}
+        clause.add(min);
+        clause.add(max);
+        clause.add(expandedSize);
+        int[] inputClauseCopy = Arrays.copyOf(inputClause, length); // the original clause must not be changed.
+        int complementaryLiterals = 0;
+        expandedSize = 0;
+        for (int i = quantifier.firstLiteralIndex; i < length; ++i) {
+            int literal1 = inputClauseCopy[i];
+            if (literal1 == 0) continue;
+            literal1 = getRepresentative(literal1);
+            int multiplicity = 1;
+            if(model.isTrue(literal1)) {--multiplicity; --max; --min; continue;}
+            if(model.isFalse(literal1)){--multiplicity; continue;}
+            for (int j = i + 1; j < length; ++j) {
+                int literal2 = inputClauseCopy[j];
+                if(literal2 == 0) continue;
+                literal2 = getRepresentative(literal2);
+                if (literal2 == literal1) {++multiplicity; inputClauseCopy[j] = 0; continue;}
+                if (literal2 == -literal1) {--multiplicity; ++complementaryLiterals; inputClauseCopy[j] = 0; break;}}
+            if(multiplicity <= 0) continue;
+            expandedSize += multiplicity;
+            clause.add(literal1);
+            clause.add(multiplicity);}
+        setMin(clause,min - complementaryLiterals);
+        setMax(clause,max - complementaryLiterals);
+        setExpandedSize(clause,expandedSize);
+        return clause;}
 
     /** analyses the multiplicities to find true/false literals and to reduce the multiplicities.<br>
      *  Examples: <br>
@@ -370,17 +464,19 @@ public class Normalizer extends Solver {
      *  - atmost 3 p^3,q^2 -> atmost 2 p^2,q^2 (-&gt; atmost 1 p,q)
      *
      * @param clause the clause to be reduced.
+     * @return null or the simplified clause.
      * @throws Unsatisfiable if the model discovers complementary literals.
      */
      IntArrayList analyseMultiplicities(IntArrayList clause, int[] inputClause) throws Unsatisfiable{
-        if(!hasMultiplicities(clause)) return clause;
         int id = clause.getInt(0);
         int expandedSize = getExpandedSize(clause);
         int min = getMin(clause);
         int max = getMax(clause);
         if(max > expandedSize) {max = expandedSize; setMax(clause,max);}
         if(min > max) {throw new UnsatClause(problemId,solverId,inputClause);}
+         if(!hasMultiplicities(clause)) return clause;
         boolean changed = true;
+        boolean anyChanges = false;
         while(changed) {
             changed = false;
             for(int i = clause.size()-2; i >= literalsStart; i -= 2) {
@@ -412,11 +508,15 @@ public class Normalizer extends Solver {
                     clause.set(i+1,negMax);                 // new multiplicity = 2
                     expandedSize -= difference;             // expanded size = 4
                     max = expandedSize - negMax;            // new max = 2
-                    changed = true;}}}
-                setMin(clause,min); setMax(clause,max);
-                setExpandedSize(clause,expandedSize);
-        if(expandedSize == 0) return checkEmptyClause(clause,inputClause);
-        return clause;}
+                    changed = true;}}
+                anyChanges |= changed;}
+        setMin(clause,min); setMax(clause,max);
+        setExpandedSize(clause,expandedSize);
+        if(anyChanges) {
+            ++statistics.simplifiedClauses;
+            if(monitoring) monitor.println(monitorId,"Clause " + InputClauses.toString(inputClause) +
+                    " simplified to " + toString(clause));}
+        return (expandedSize == 0) ? checkEmptyClause(clause,inputClause) : clause;}
 
     /** checks the empty clause. It can be ignored (min &lt;= 0) or is unsatisfiable (min &gt 0).
      *
@@ -450,6 +550,7 @@ public class Normalizer extends Solver {
             numbers.add(multiplicity);}
         int gcd = Utilities.gcd(numbers);
         if(gcd == 1) return;
+        ++statistics.gcdReductions;
         setMin(clause,min/gcd);
         setMax(clause,max/gcd);
         int expandedSize = 0;
@@ -457,8 +558,18 @@ public class Normalizer extends Solver {
             int multiplicity = clause.getInt(i)/gcd;
             clause.set(i,multiplicity);
             expandedSize += multiplicity;}
-        setExpandedSize(clause,expandedSize);}
+        setExpandedSize(clause,expandedSize);
+        if(monitoring) monitor.println(monitorId,"Clause " + toString(clause) + " was reduced by gcd: " + gcd);}
 
+    /** modifies the quantifier to the most specific quantifier.<br>
+     * Example: atleast 1 -&gt; or<br>
+     * In addition the limits are checked. Some combinations of min,max allows one to derive new facts.
+     *
+     * @param clause      a clause
+     * @param inputClause the original input clause
+     * @return            the same clause with a possibly changed quantifier.
+     * @throws Unsatisfiable if a contradiction is discovered.
+     */
     IntArrayList optimizeQuantifier(IntArrayList clause, int[] inputClause) throws Unsatisfiable {
         int min = getMin(clause);
         int max = getMax(clause);
@@ -491,63 +602,22 @@ public class Normalizer extends Solver {
             if(size == 0) throw new UnsatClause(problemId,solverId,inputClause);
             if(size == 1) {
                 int multiplicity = clause.getInt(literalsStart+1);
-                if(multiplicity != min) throw new UnsatClause(problemId,solverId,inputClause);}
+                if(multiplicity == min) addTrueLiteral(clause.getInt(literalsStart),
+                        trackReasoning ? new InfInputClause(inputClause[0]) : null);
+                else throw new UnsatClause(problemId,solverId,inputClause);}
             setQuantifier(clause, Quantifier.EXACTLY);}
 
         return clause;}
 
-    /** transforms the inputClause into the IntArrayList form.<br>
-     *  true/false literals are removed.<br>
-     *  equivalent literals are replaced by their representative.
-     *
-     * @param inputClause an input clause
-     * @return the transformed clause.
-     */
-     IntArrayList transformInputClause(int[] inputClause) {
-        Quantifier quantifier = Quantifier.getQuantifier(inputClause[1]);
-        assert quantifier != null && quantifier != Quantifier.AND && quantifier != Quantifier.EQUIV;
-        int length = inputClause.length;
-        IntArrayList clause = new IntArrayList(4 + 2 * (inputClause.length - 3));
-        clause.add(inputClause[0]); // id
-        clause.add(inputClause[1]); // quantifier
-        int min = 0, max = 0;
-        int expandedSize = length - quantifier.firstLiteralIndex;
-        switch(quantifier) {
-            case OR:       min = 1; max = expandedSize; expandedSize = max; break;
-            case ATLEAST:  min = inputClause[2]; max = expandedSize; break;
-            case ATMOST:   min = 0; max = inputClause[2]; break;
-            case EXACTLY:  min = inputClause[2] ; max = min; break;
-            case INTERVAL: min = inputClause[2] ; max = inputClause[3]; break;}
-        clause.add(min);
-        clause.add(max);
-        clause.add(expandedSize);
-        int[] inputClauseCopy = Arrays.copyOf(inputClause, length); // the original clause must not be changed.
-        int complementaryLiterals = 0;
-        expandedSize = 0;
-        for (int i = quantifier.firstLiteralIndex; i < length; ++i) {
-            int literal1 = inputClauseCopy[i];
-            if (literal1 == 0) continue;
-            literal1 = getRepresentative(literal1);
-            int multiplicity = 1;
-            if(model.isTrue(literal1)) {--multiplicity; --max; --min; continue;}
-            if(model.isFalse(literal1)){--multiplicity; continue;}
-            for (int j = i + 1; j < length; ++j) {
-                int literal2 = inputClauseCopy[j];
-                if(literal2 == 0) continue;
-                literal2 = getRepresentative(literal2);
-                if (literal2 == literal1) {++multiplicity; inputClauseCopy[j] = 0; continue;}
-                if (literal2 == -literal1) {--multiplicity; ++complementaryLiterals; inputClauseCopy[j] = 0; break;}}
-            if(multiplicity <= 0) continue;
-            expandedSize += multiplicity;
-            clause.add(literal1);
-            clause.add(multiplicity);}
-        setMin(clause,min - complementaryLiterals);
-        setMax(clause,max - complementaryLiterals);
-        setExpandedSize(clause,expandedSize);
-        return clause;}
 
+    /** replaces true/false literals in the clause.
+     *
+     * @param index         the clause's index in the clauses list.
+     * @throws Unsatisfiable if the clause becomes empty or the model discovers complementary literals.
+     */
     void replaceTrueLiterals(int index) throws Unsatisfiable {
          IntArrayList clause = clauses.get(index);
+         boolean isDisjunction = clause.getInt(1) == cOr;
          int min = getMin(clause);
          int max = getMax(clause);
          int expandedSize = getExpandedSize(clause);
@@ -556,13 +626,15 @@ public class Normalizer extends Solver {
              int literal = clause.getInt(i);
              int status = model.status(literal);
              if(status != 0) {
+                 if(isDisjunction && status == 1) {clauses.remove(index); return;} // true clause
                  changed = true;
                  expandedSize -= clause.getInt(i+1);
              clause.removeInt(i+1); clause.removeInt(i);
-             if(status == 1) {--max; --min;  continue;}}}
+             if(status == 1) {--max; --min;}}}
 
          if(changed) {
              int[] inputClause = inputClauses.findClause(clause.getInt(0));
+             if(expandedSize == 0) {checkEmptyClause(clause, inputClause); clauses.remove(index); return;}
              setMin(clause,min); setMax(clause,max); setExpandedSize(clause,expandedSize);
              if(analyseMultiplicities(clause, inputClause) == null) {clauses.remove(index); return;}
              divideByGCD(clause);
