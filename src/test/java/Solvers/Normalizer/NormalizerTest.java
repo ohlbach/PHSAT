@@ -14,7 +14,7 @@ public class NormalizerTest extends TestCase {
     private static final int cExactly = Quantifier.EXACTLY.ordinal();
     private static final int cInterval = Quantifier.INTERVAL.ordinal();
 
-    private static boolean monitoring = true;
+    private static boolean monitoring = false;
     public void testNormalizeConjunction() throws Unsatisfiable {
         System.out.println("noramlizeConjunction");
         Normalizer normalizer = new Normalizer(10, monitoring);
@@ -179,4 +179,41 @@ public class NormalizerTest extends TestCase {
         //System.out.println(normalizer.statistics.toString());
 
     }
-}
+
+    public void testOptimizeQuantifier() throws Unsatisfiable {
+        System.out.println("optimizeQuantifier");
+        Normalizer normalizer = new Normalizer(10, monitoring);
+        int[] inputClause = {1, cAtleast, 1, 1, 2, 3};
+        IntArrayList clause = normalizer.transformInputClause(inputClause);
+        normalizer.optimizeQuantifier(clause,inputClause);
+        assertEquals("1: 1v2v3", normalizer.toString(clause));
+
+        inputClause = new int[] {2, cInterval, 0, 3, 1, 2, 3};
+        clause = normalizer.transformInputClause(inputClause);
+        assertNull(normalizer.optimizeQuantifier(clause,inputClause));
+
+        inputClause = new int[] {3, cInterval, 0, 2, 1, 2, 3};
+        clause = normalizer.transformInputClause(inputClause);
+        normalizer.optimizeQuantifier(clause,inputClause);
+        assertEquals("3: -1v-2v-3", normalizer.toString(clause));
+
+        inputClause = new int[] {4, cInterval, 0, 2};
+        clause = normalizer.transformInputClause(inputClause);
+        assertNull(normalizer.optimizeQuantifier(clause,inputClause));
+
+        inputClause = new int[] {5, cAtmost, 2, 1, 2, 3};
+        clause = normalizer.transformInputClause(inputClause);
+        normalizer.optimizeQuantifier(clause,inputClause);
+        assertEquals("5: -1v-2v-3", normalizer.toString(clause));
+
+        inputClause = new int[] {6, cInterval, 1, 2};
+        clause = normalizer.transformInputClause(inputClause);
+        try{
+            normalizer.optimizeQuantifier(clause,inputClause);
+            assertTrue(false);}
+        catch(Unsatisfiable uns) {
+            //System.out.println(uns.toString());
+        }
+
+    }
+    }

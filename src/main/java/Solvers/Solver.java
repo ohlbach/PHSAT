@@ -44,7 +44,7 @@ public abstract class Solver {
         return false;}
 
 
-    /** maps the solver names to the solver classes.
+    /** maps the solver names to the solver classes.<br>
      * This method must be extended when a new solver class is added.
      *
      * @param solverName a solver name
@@ -197,14 +197,17 @@ public abstract class Solver {
         public String getSolverId() {return solverId;}
 
 
-    /** The key method, which has to be implemented by the solvers.
+    /** The key method, which has to be implemented by the solvers.<br>
      * It is supposed to find a model or a contradiction in the clauses.
      *
+     * @param problemSupervisor the problem-supervisor.
      * @return Un/Satisfiable or null
      */
     public abstract Result solveProblem(ProblemSupervisor problemSupervisor);
 
-    /** @return the statistics of the solver */
+    /** returns the solver's statistics.
+     *
+     * @return the statistics of the solver */
     public abstract Statistic getStatistics();
 
 

@@ -49,8 +49,10 @@ import java.util.HashMap;
  */
 public class Normalizer extends Solver {
 
+    /** the Or-ordinal */
     private static final int cOr = Quantifier.OR.ordinal();
 
+    /** the normalizer statistics */
     NormalizerStatistics statistics;
 
     /** returns the clause's identifier.
@@ -88,6 +90,7 @@ public class Normalizer extends Solver {
     /** sets the clause's min-limit.
      *
      * @param clause a clause as IntArrayList.
+     * @param min the min-limit for the clause.
      */
     public static void setMin(IntArrayList clause, int min) {
         clause.set(2,Math.max(0,min));}
@@ -108,7 +111,7 @@ public class Normalizer extends Solver {
     public static void setMax(IntArrayList clause, int max) {
         clause.set(3,max);}
 
-    /** returns the clause's extendedSize
+    /** returns the clause's extendedSize.
      *
      * @param clause a clause as IntArrayList.
      * @return the clause's extendedSize.
@@ -198,9 +201,10 @@ public class Normalizer extends Solver {
         newTrueLiterals = true;
         ++statistics.derivedTrueLiterals;}
 
-    /** transforms the input clauses into IntArrayList form and performs various simplifications.<br>
-     *  All true/false literals are put into the model and removed from the clauses.
-     *  Equivalence classes are processed by replacing all literals by the representatives in the equivalence classes.
+    /** transforms the input clauses into IntArrayList form and performs various simplifications.
+     * <br>
+     *  All true/false literals are put into the model and removed from the clauses.<br>
+     *  Equivalence classes are processed by replacing all literals by the representatives in the equivalence classes.<br>
      *  In the further processing the equivalence classes can be ignored.
      *
      * @param problemSupervisor the problem Supervisor.
@@ -239,9 +243,10 @@ public class Normalizer extends Solver {
             model.add(myThread, literal, trackReasoning ? new InfInputClause(inputClause[0]) : null);}}
 
     /** transforms the inputClause into an IntArrayList of literals and puts it into the equivalences list.
+     * <br>
      * - Double literals are removed.<br>
-     * - If the remains is a singleton, it is ignored.
-     * - Complementary literals cause an UnsatClause to be thrown.
+     * - If the remains is a singleton, it is ignored.<br>
+     * - Complementary literals cause an UnsatClause to be thrown.<br>
      * - true/false literals cause all equivalent literals to become true/false.
      *
      * @param inputClause     an inputClause.
@@ -265,8 +270,9 @@ public class Normalizer extends Solver {
         if(equivalence.size() > 1) equivalences.add(equivalence);}
 
     /** joins overlapping equivalence classes into one of the class.
-     * The smallest predicate will be moved to the front.
-     * It can be used as representative for the equivalence class.
+     * <br>
+     * The smallest predicate will be moved to the front.<br>
+     * It can be used as representative for the equivalence class.<br>
      *
      * @throws Unsatisfiable if the overlapping classes contain complementary literals.
      */
@@ -336,6 +342,7 @@ public class Normalizer extends Solver {
 
 
     /** normalizes a disjunction and adds it to 'clauses'.
+     * <br>
      * - multiple literals are removed.<br>
      * - tautologies are ignored.<br>
      * - unit clauses are added to the model.<br>
@@ -390,7 +397,8 @@ public class Normalizer extends Solver {
         return clause;}
 
 
-    /** transforms an input clause into the IntArrayList form and performs various simplifications.<br>
+    /** transforms an input clause into the IntArrayList form and performs various simplifications.
+     * <br>
      * Only the following clause types are transformed: atleat-, atmost-, exactly- and interval-clauses.
      *
      * @param inputClause an inputClause.
@@ -405,7 +413,8 @@ public class Normalizer extends Solver {
         clauses.add(clause);
         return clause;}
 
-    /** transforms the inputClause into the IntArrayList form.<br>
+    /** transforms the inputClause into the IntArrayList form.
+     * <br>
      *  true/false literals are removed.<br>
      *  equivalent literals are replaced by their representative.
      *
@@ -463,7 +472,8 @@ public class Normalizer extends Solver {
                 " changed to " + toString(clause));}}
         return clause;}
 
-    /** analyses the multiplicities to find true/false literals and to reduce the multiplicities.<br>
+    /** analyses the multiplicities to find true/false literals and to reduce the multiplicities.
+     * <br>
      *  Examples: <br>
      *  - atmost 2 p^3 ..., p must be false<br>
      *  - atleast 4 p^2,q^2,r.<br>
@@ -473,6 +483,7 @@ public class Normalizer extends Solver {
      *  - atmost 3 p^3,q^2 -> atmost 2 p^2,q^2 (-&gt; atmost 1 p,q)
      *
      * @param clause the clause to be reduced.
+     * @param inputClause the original input clause.
      * @return null or the simplified clause.
      * @throws Unsatisfiable if the model discovers complementary literals.
      */
@@ -535,7 +546,7 @@ public class Normalizer extends Solver {
                     " simplified to " + toString(clause));}
         return (expandedSize == 0) ? checkEmptyClause(clause,inputClause) : clause;}
 
-    /** checks the empty clause. It can be ignored (min &lt;= 0) or is unsatisfiable (min &gt 0).
+    /** checks the empty clause. It can be ignored (min &lt;= 0) or is unsatisfiable (min &gt; 0).
      *
      * @param clause      an empty clause
      * @param inputClause the original inputClause
@@ -552,6 +563,8 @@ public class Normalizer extends Solver {
 
 
     /** divides the limits and the multiplicities by their greatest common divisor.
+     *
+     * @param clause the clause.
      */
     void divideByGCD(IntArrayList clause) {
         numbers.clear();
@@ -578,7 +591,8 @@ public class Normalizer extends Solver {
         setExpandedSize(clause,expandedSize);
         if(monitoring) monitor.println(monitorId,"Clause " + toString(clause) + " was reduced by gcd: " + gcd);}
 
-    /** modifies the quantifier to the most specific quantifier.<br>
+    /** modifies the quantifier to the most specific quantifier.
+     * <br>
      * Example: atleast 1 -&gt; or<br>
      * In addition the limits are checked. Some combinations of min,max allows one to derive new facts.
      *
@@ -591,12 +605,12 @@ public class Normalizer extends Solver {
         int min = getMin(clause);
         int max = getMax(clause);
         int expandedSize = getExpandedSize(clause);
-        if(min == 0 && max == expandedSize) {++statistics.removedClauses; return null;} // tautology
+        if(min <= 0 && max >= expandedSize) {++statistics.removedClauses; return null;} // tautology
         if(max < min || min > expandedSize) throw new UnsatClause(problemId,solverId,inputClause);
 
         int size = (clause.size() - literalsStart)/2;
         if(min == 0) { // atmost
-            if(max - 1 == expandedSize) { // atleast one of the literals must be false.
+            if(max == expandedSize-1) { // atleast one of the literals must be false.
                 for(int i = literalsStart; i < clause.size(); i += 2) {
                     clause.set(i,-clause.getInt(i));
                     clause.set(i+1,1);}
@@ -788,8 +802,12 @@ public class Normalizer extends Solver {
             st.append(separator).append(Symboltable.toString(clause.getInt(i),symboltable));}
 
 
+    /** returns the Normalizer statistics.
+     *
+     * @return the Normalizer statistics.
+     */
     @Override
     public Statistic getStatistics() {
-        return null;
+        return statistics;
     }
 }
