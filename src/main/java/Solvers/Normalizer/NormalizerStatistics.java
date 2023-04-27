@@ -23,13 +23,22 @@ public class NormalizerStatistics extends Statistic {
     @Description("Equivalence classes.")
     int equivalenceClasses = 0;
 
+    @Description("Survived Clauses")
+    int survivedClauses = 0;
+
+    @Description("Removed Clauses")
+    int removedClauses = 0;
+
     public String toString() {
         StringBuilder st = new StringBuilder();
-        if(initialTrueLiterals > 0) st.append("Initially True Literals: ").append(initialTrueLiterals);
-        if(derivedTrueLiterals > 0) st.append("Derived True Literals:   ").append(derivedTrueLiterals);
-        if(simplifiedClauses   > 0) st.append("Simplified Clauses:      ").append(simplifiedClauses);
-        if(gcdReductions       > 0) st.append("GCD Reductions:          ").append(gcdReductions);
-        if(equivalenceClasses  > 0) st.append("Equivalence Classes:     ").append(equivalenceClasses);
+        st.append("Normalizer Statistics:");
+        if(initialTrueLiterals > 0) st.append("\n  Initially True Literals: ").append(initialTrueLiterals);
+        if(derivedTrueLiterals > 0) st.append("\n  Derived True Literals:   ").append(derivedTrueLiterals);
+        if(simplifiedClauses   > 0) st.append("\n  Simplified Clauses:      ").append(simplifiedClauses);
+        if(gcdReductions       > 0) st.append("\n  GCD Reductions:          ").append(gcdReductions);
+        if(equivalenceClasses  > 0) st.append("\n  Equivalence Classes:     ").append(equivalenceClasses);
+        if(survivedClauses     > 0) st.append("\n  Survived Clauses:        ").append(survivedClauses);
+        if(removedClauses      > 0) st.append("\n  Removed Clauses:         ").append(removedClauses);
         return st.toString();}
 
 }

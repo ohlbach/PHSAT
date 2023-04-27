@@ -222,6 +222,7 @@ public class Normalizer extends Solver {
                 newTrueLiterals = false;
                 for(int i = clauses.size()-1; i >= 0; --i) replaceTrueLiterals(i);}} // clauses[i] may be removed.
         catch(Result result) {return result;}
+        statistics.survivedClauses = clauses.size();
         return clauses.isEmpty() ? new Satisfiable(problemId,solverId,model) : null;}
 
     /** puts all conjuncts into the model.
@@ -361,12 +362,12 @@ public class Normalizer extends Solver {
         boolean changed = false;
         for(int i = start; i < inputClause.length; ++i) {
             int literal1 = inputClause[i];
-            if(model.isTrue(literal1)) return null;  // true clause
+            if(model.isTrue(literal1))  {++statistics.removedClauses; return null;}  // true clause
             if(model.isFalse(literal1)) {changed = true; continue;}    // can be ignored
             boolean multiple = false;
             for(int j = start; j < i; ++j) {
                 int literal2 = inputClause[j];
-                if(literal2 == -literal1) {return null;} // tautology
+                if(literal2 == -literal1) {++statistics.removedClauses; return null;} // tautology
                 if(literal2 == literal1)  {multiple = true; break;}}
             if(multiple) continue;
             int representative = getRepresentative(literal1);
@@ -432,16 +433,19 @@ public class Normalizer extends Solver {
         int[] inputClauseCopy = Arrays.copyOf(inputClause, length); // the original clause must not be changed.
         int complementaryLiterals = 0;
         expandedSize = 0;
+        boolean changed = false;
         for (int i = quantifier.firstLiteralIndex; i < length; ++i) {
             int literal1 = inputClauseCopy[i];
             if (literal1 == 0) continue;
-            literal1 = getRepresentative(literal1);
+            int representative = getRepresentative(literal1);
+            if(representative != literal1) {changed = true; literal1 = representative;}
             int multiplicity = 1;
-            if(model.isTrue(literal1)) {--multiplicity; --max; --min; continue;}
-            if(model.isFalse(literal1)){--multiplicity; continue;}
+            if(model.isTrue(literal1)) {--multiplicity; --max; --min; changed = true; continue;}
+            if(model.isFalse(literal1)){--multiplicity; changed = true; continue;}
             for (int j = i + 1; j < length; ++j) {
                 int literal2 = inputClauseCopy[j];
                 if(literal2 == 0) continue;
+
                 literal2 = getRepresentative(literal2);
                 if (literal2 == literal1) {++multiplicity; inputClauseCopy[j] = 0; continue;}
                 if (literal2 == -literal1) {--multiplicity; ++complementaryLiterals; inputClauseCopy[j] = 0; break;}}
@@ -452,6 +456,11 @@ public class Normalizer extends Solver {
         setMin(clause,min - complementaryLiterals);
         setMax(clause,max - complementaryLiterals);
         setExpandedSize(clause,expandedSize);
+        if(changed) {
+            ++statistics.simplifiedClauses;
+            if(monitoring) {
+                monitor.println(monitorId,"Input Clause " + InputClauses.toString(inputClause) +
+                " changed to " + toString(clause));}}
         return clause;}
 
     /** analyses the multiplicities to find true/false literals and to reduce the multiplicities.<br>
@@ -474,7 +483,7 @@ public class Normalizer extends Solver {
         int max = getMax(clause);
         if(max > expandedSize) {max = expandedSize; setMax(clause,max);}
         if(min > max) {throw new UnsatClause(problemId,solverId,inputClause);}
-         if(!hasMultiplicities(clause)) return clause;
+        if(!hasMultiplicities(clause)) return clause;
         boolean changed = true;
         boolean anyChanges = false;
         while(changed) {
@@ -482,20 +491,26 @@ public class Normalizer extends Solver {
             for(int i = clause.size()-2; i >= literalsStart; i -= 2) {
                 int multiplicity = clause.getInt(i+1);
                 if(multiplicity > max) { // example: atmost 2 p^3 ... p must be false
-                    addTrueLiteral(-clause.getInt(i), trackReasoning ? new InfInputClause(id) : null);
+                    int literal = -clause.getInt(i);
+                    addTrueLiteral(literal, trackReasoning ? new InfInputClause(id) : null);
+                    if(monitoring) monitor.println(monitorId,"Clause " + InputClauses.toString(inputClause) +
+                            " -> true(" + Symboltable.toString(literal,symboltable) + ")");
                     clause.removeInt(i+1); clause.removeInt(i);
                     expandedSize -= multiplicity;
                     changed = true;
                     continue;}
                 int remainings = expandedSize-multiplicity;
                 if(remainings < min) { // example: atleast 4 p^2,q^2,r   p and q must be true
-                    addTrueLiteral(clause.getInt(i), trackReasoning ? new InfInputClause(id) : null);
+                    int literal = clause.getInt(i);
+                    addTrueLiteral(literal, trackReasoning ? new InfInputClause(id) : null);
+                    if(monitoring) monitor.println(monitorId,"Clause " + InputClauses.toString(inputClause) +
+                            " -> true(" + Symboltable.toString(literal,symboltable) + ")");
                     clause.removeInt(i+1); clause.removeInt(i);
                     min -= multiplicity; max -= multiplicity;
                     expandedSize -= multiplicity;
                     changed = true;
                     continue;}
-                if(multiplicity > min) {  // example atleast 2 p^3...   -> atleast 2 p^2 ...
+                if(min > 0 && multiplicity > min) {  // example atleast 2 p^3...   -> atleast 2 p^2 ...
                     remainings = multiplicity - min;
                     clause.set(i+1,min);
                     expandedSize -= remainings;
@@ -503,15 +518,17 @@ public class Normalizer extends Solver {
                     continue;}
                                 // example atmost 3 p^3,q^2 -> atmost 2 p^2,q^2 (-> atmost 1 p,q)
                 int negMax = expandedSize - max;            // negMax = 2, expandedSize = 5
-                if(multiplicity > negMax) {                 // multiplicity = 2
+                if(negMax > 0 && multiplicity > negMax) {                 // multiplicity = 2
                     int difference = multiplicity - negMax; // difference = 1
                     clause.set(i+1,negMax);                 // new multiplicity = 2
                     expandedSize -= difference;             // expanded size = 4
-                    max = expandedSize - negMax;            // new max = 2
+                    max = expandedSize - negMax;            // new min = 2
                     changed = true;}}
+
                 anyChanges |= changed;}
         setMin(clause,min); setMax(clause,max);
         setExpandedSize(clause,expandedSize);
+
         if(anyChanges) {
             ++statistics.simplifiedClauses;
             if(monitoring) monitor.println(monitorId,"Clause " + InputClauses.toString(inputClause) +
@@ -526,7 +543,7 @@ public class Normalizer extends Solver {
      * @throws Unsatisfiable if the empty clause represents an unsatisfiability.
      */
     IntArrayList checkEmptyClause(IntArrayList clause, int[] inputClause) throws Unsatisfiable{
-        if(getMin(clause) <= 0) return null;
+        if(getMin(clause) <= 0) {++statistics.removedClauses; return null;}
         throw new UnsatClause(problemId,solverId,inputClause);
     }
 
@@ -574,7 +591,7 @@ public class Normalizer extends Solver {
         int min = getMin(clause);
         int max = getMax(clause);
         int expandedSize = getExpandedSize(clause);
-        if(min == 0 && max == expandedSize) return null; // tautology
+        if(min == 0 && max == expandedSize) {++statistics.removedClauses; return null;} // tautology
         if(max < min || min > expandedSize) throw new UnsatClause(problemId,solverId,inputClause);
 
         int size = (clause.size() - literalsStart)/2;
@@ -626,7 +643,7 @@ public class Normalizer extends Solver {
              int literal = clause.getInt(i);
              int status = model.status(literal);
              if(status != 0) {
-                 if(isDisjunction && status == 1) {clauses.remove(index); return;} // true clause
+                 if(isDisjunction && status == 1) {++statistics.removedClauses; clauses.remove(index); return;} // true clause
                  changed = true;
                  expandedSize -= clause.getInt(i+1);
              clause.removeInt(i+1); clause.removeInt(i);
