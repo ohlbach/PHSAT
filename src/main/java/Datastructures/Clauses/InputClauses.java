@@ -167,6 +167,21 @@ public class InputClauses {
                 erraneous = true;}}
         return erraneous ? null : clause;}
 
+    /** finds the clause with the given identifier
+     *
+     * @param id an identifier for a clause
+     * @return null or the clause with this identifier.
+     */
+    public int[] findClause(int id) {
+        for(int[] clause: disjunctions) if(clause[0] == id) return clause;
+        for(int[] clause: atleasts) if(clause[0] == id) return clause;
+        for(int[] clause: atmosts) if(clause[0] == id) return clause;
+        for(int[] clause: exactlys) if(clause[0] == id) return clause;
+        for(int[] clause: intervals) if(clause[0] == id) return clause;
+        for(int[] clause: equivalences) if(clause[0] == id) return clause;
+        for(int[] clause: conjunctions) if(clause[0] == id) return clause;
+        return null;}
+
     IntArrayList simplifyClause(int[] inputClause) {
         IntArrayList clause = new IntArrayList(inputClause.length);
         clause.add(inputClause[0]); // id
