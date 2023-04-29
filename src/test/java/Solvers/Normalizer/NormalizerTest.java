@@ -214,6 +214,5 @@ public class NormalizerTest extends TestCase {
         catch(Unsatisfiable uns) {
             //System.out.println(uns.toString());
         }
-
     }
     }

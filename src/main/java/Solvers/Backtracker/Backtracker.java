@@ -1,7 +1,6 @@
 package Solvers.Backtracker;
 
 import Datastructures.Results.Result;
-import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Management.ErrorReporter;
@@ -40,8 +39,8 @@ public class Backtracker extends Solver {
                                    StringBuilder errors, StringBuilder warnings){
         for(String key : parameters.keySet()) {
             if(!keys.contains(key)) {
-                ErrorReporter.reportWarning("Walker: unknown key in parameters: " + key + "\n" +
-                        "        allowed keys: seed, flips, jumps.\n");}}
+                ErrorReporter.reportWarning("Backtracker: unknown key in parameters: " + key + "\n" +
+                        "        allowed keys: seed.\n");}}
         String seeds = parameters.get("seed");
         if(seeds == null) seeds = "0";
         String place = "Backtracker: ";
@@ -125,7 +124,9 @@ public class Backtracker extends Solver {
         initializeLocalModel();
         initializePredicateIndex();
         try{
-            readInputClauses();}
+            readInputClauses();
+            searchModel();
+        }
         catch(Result result) {
             result.statistic = statistics;
             result.solverId = "Backtracker";
@@ -137,59 +138,17 @@ public class Backtracker extends Solver {
         return null;
     }
 
-    /** reads the disjunctions, the atleast, atmost, exactly and interval clauses from inputClauses and transforms them to atleast-clauses.
-     * The clauses themselves are simplified as far as possible.<br>
-     * New unit clauses are put into the model. <br>
-     * Two-literal clauses generate a corresponding task.
-     *
-     * @throws Result if a contradiction or the empty clause is derived.
+    /** integrates the normalized input clauses into the clauses-list.
      */
-    public void readInputClauses() throws Result{
-        IntArrayList trueLiterals = new IntArrayList();
+    public void readInputClauses() {
         Clause clause;
-        try{
-            for(int[] inputClause : inputClauses.disjunctions) {
-                clause = new Clause(inputClause,problemId,solverId,trueLiterals);
-                addTrueLiterals(trueLiterals);
-                if(clause.isEmpty()) continue;
-                insertClause(clause);}
+        for(IntArrayList normalizedClause: problemSupervisor.normalizer.clauses) {
+            clause = new Clause(normalizedClause);
+            insertClause(clause);}}
 
-            for(int[] inputClause : inputClauses.atleasts) {
-                clause = new Clause(inputClause,problemId,solverId,trueLiterals);
-                addTrueLiterals(trueLiterals);
-                if(clause.isEmpty()) continue;
-                insertClause(clause);}
-
-            for(int[] inputClause : inputClauses.atmosts) {
-                clause = new Clause(inputClause,problemId,solverId,trueLiterals);
-                addTrueLiterals(trueLiterals);
-                if(clause.isEmpty()) continue;
-                insertClause(clause);}
-
-            for(int[] inputClause : inputClauses.exactlys) {
-                clause = new Clause(inputClause,problemId,solverId,trueLiterals);
-                addTrueLiterals(trueLiterals);
-                if(clause.isEmpty()) continue;
-                insertClause(clause);}
-
-            for(int[] inputClause : inputClauses.intervals) {
-                clause = new Clause(inputClause,problemId,solverId,trueLiterals);
-                addTrueLiterals(trueLiterals);
-                if(clause.isEmpty()) continue;
-                insertClause(clause);}
-
-            for(int[] inputClause : inputClauses.equivalences) {
-                clause = new Clause(inputClause,problemId,solverId,trueLiterals);
-                if(clause.isEmpty()) continue;
-                insertClause(clause);}
-
-            if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);
-        }
-        catch(Result result) {
-            result.solverId  = solverId;
-            result.problemId = problemId;
-            result.statistic = statistics;
-            throw result;}}
+    public void searchModel() throws Result{
+        
+    }
 
 
     void addTrueLiterals(IntArrayList trueLiterals) throws Unsatisfiable {

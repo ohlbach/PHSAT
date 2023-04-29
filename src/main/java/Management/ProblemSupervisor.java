@@ -1,12 +1,14 @@
 package Management;
 
 import Datastructures.Clauses.InputClauses;
-import Datastructures.Clauses.Quantifier;
-import Datastructures.Results.*;
+import Datastructures.Results.Aborted;
+import Datastructures.Results.Erraneous;
+import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Theory.Model;
-import InferenceSteps.InfInputClause;
 import Management.Monitor.Monitor;
 import ProblemGenerators.ProblemGenerator;
+import Solvers.Normalizer.Normalizer;
 import Solvers.Solver;
 
 import java.io.PrintStream;
@@ -53,6 +55,8 @@ public class ProblemSupervisor {
 
     public QuSatJob quSatJob;
 
+    public Normalizer normalizer;
+
     public ProblemSupervisor(QuSatJob quSatJob, GlobalParameters globalParameters, ProblemGenerator problemGenerator,
                              ArrayList<Solver> solvers) {
         this.quSatJob         = quSatJob;
@@ -96,7 +100,9 @@ public class ProblemSupervisor {
                 boolean infoOnly = !globalParameters.showClauses;
                 globalParameters.logstream.println(inputClauses.toString(inputClauses.symboltable,infoOnly));}
             model = new Model(inputClauses.predicates);
-            readConjunctions(inputClauses.conjunctions);
+            normalizer = new Normalizer(this);
+            Result result = normalizer.solveProblem(this);
+            if(result != null)  {finished(result); return;}
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) {int j = i;
@@ -104,10 +110,6 @@ public class ProblemSupervisor {
                 solvers.get(i).initialize(threads[i],this);}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
-        catch(Result result) { // may come from the conjunctions
-            result.problemId = problemId;
-            this.result = result;
-            System.out.println(result.toString(inputClauses.symboltable));}
         catch(Exception ex) {
             System.out.println(ex);
             ex.printStackTrace();
@@ -115,17 +117,6 @@ public class ProblemSupervisor {
         if(globalParameters.logstream != null) {
             float time = (float)(System.nanoTime() - startTime) / (float)1000.0;
             globalParameters.logstream.println("Solvers finished the problem " + problemId +" in " + time + "μs");}}
-
-    /** inserts the initial conjunctions (if any) into the model
-     *
-     * @param conjunctions a list of input clauses
-     * @throws Unsatisfiable if the conjunctions are contradictory
-     */
-    private void readConjunctions(ArrayList<int[]> conjunctions) throws Unsatisfiable {
-        for(int[] inputClause : conjunctions) {
-            assert inputClause[1] == Quantifier.AND.ordinal();
-            for(int i = 2; i < inputClause.length; ++i) {
-                model.add(Thread.currentThread(), inputClause[i], trackReasoning ? new InfInputClause(inputClause[0]) : null);}}}
 
 
     /** This method is called to indicate that they have done their job or gave up.
