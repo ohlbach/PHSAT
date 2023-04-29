@@ -45,26 +45,14 @@ public class Clause {
         max = Normalizer.getMax(normalizedClause);
         expandedSize = Normalizer.getExpandedSize(normalizedClause);
         hasMultiplicities = Normalizer.hasMultiplicities(normalizedClause);
-        for(int i = Normalizer.literalsStart; i <= normalizedClause.size(); i +=2) {
+        for(int i = Normalizer.literalsStart; i <= normalizedClause.size()-2; i +=2) {
             Literal literal = new Literal(normalizedClause.get(i),normalizedClause.get(i+1));
+            literals.add(literal);
             literal.clause = this;}}
 
 
     boolean isEmpty() {
         return literals.isEmpty();}
-
-
-
-    /** finds the Literal with the given literal.
-     *
-     * @param literal a literal.
-     * @return null or a Literal with the given literal.
-     */
-    Literal findLiteral(int literal) {
-        for(Literal literalObject : literals) {
-            if(literalObject.literal == literal) return literalObject;}
-        return null;}
-
 
 
 

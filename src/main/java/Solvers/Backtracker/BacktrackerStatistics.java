@@ -8,10 +8,10 @@ public class BacktrackerStatistics extends Statistic {
         super(id);
     }
 
-    @Description("number of contradictions")
-    public int contradictions = 0;
+    @Description("number of backtrackings")
+    public int backtrackings = 0;
 
-    @Description("number of complementary literal pairs.")
-    public int complementaryLiterals = 0;
+    public String toString() {
+        return "Backtracker Statistics:\n  backtrackings:  " + backtrackings;}
 
 }

@@ -340,6 +340,50 @@ public class Normalizer extends Solver {
                 if(lit == -literal) return -representative;}}
         return literal;}
 
+    /** generates and IntArrayList version from an InputClause, just for testing purposes.
+     *
+     * @param inputClause an inputClause
+     * @return an IntArrayList version of the clause.
+     */
+    public static IntArrayList makeClause(int[] inputClause){
+        Quantifier quantifier = Quantifier.getQuantifier(inputClause[1]);
+        assert quantifier != null && quantifier != Quantifier.AND && quantifier != Quantifier.EQUIV;
+        int length = inputClause.length;
+        IntArrayList clause = new IntArrayList(4 + 2 * (inputClause.length - 3));
+        clause.add(inputClause[0]); // id
+        clause.add(inputClause[1]); // quantifier
+        int min = 0, max = 0;
+        int expandedSize = length - quantifier.firstLiteralIndex;
+        switch(quantifier) {
+            case OR:       min = 1; max = expandedSize; expandedSize = max; break;
+            case ATLEAST:  min = inputClause[2]; max = expandedSize;        break;
+            case ATMOST:   min = 0; max = inputClause[2];                   break;
+            case EXACTLY:  min = inputClause[2] ; max = min;                break;
+            case INTERVAL: min = inputClause[2] ; max = inputClause[3];     break;}
+        clause.add(min);
+        clause.add(max);
+        clause.add(expandedSize);
+        int[] inputClauseCopy = Arrays.copyOf(inputClause, length); // the original clause must not be changed.
+        int complementaryLiterals = 0;
+        expandedSize = 0;
+        boolean changed = false;
+        for (int i = quantifier.firstLiteralIndex; i < length; ++i) {
+            int literal1 = inputClauseCopy[i];
+            if (literal1 == 0) continue;
+            int multiplicity = 1;
+              for (int j = i + 1; j < length; ++j) {
+                int literal2 = inputClauseCopy[j];
+                if(literal2 == 0) continue;
+                if (literal2 == literal1) {++multiplicity; inputClauseCopy[j] = 0; continue;}
+                if (literal2 == -literal1) {--multiplicity; ++complementaryLiterals; inputClauseCopy[j] = 0; break;}}
+            if(multiplicity <= 0) continue;
+            expandedSize += multiplicity;
+            clause.add(literal1);
+            clause.add(multiplicity);}
+        setMin(clause,min - complementaryLiterals);
+        setMax(clause,max - complementaryLiterals);
+        setExpandedSize(clause,expandedSize);
+        return clause;}
 
     /** normalizes a disjunction and adds it to 'clauses'.
      * <br>
