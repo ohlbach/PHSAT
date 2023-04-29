@@ -67,14 +67,8 @@ public class Backtracker extends Solver {
 
     private Clauses clauses;
 
-    /** literals in or- and atleast- clauses */
-    private Literals literalIndexPositive = new Literals();
-
-    /** literals in atmost-clauses */
-    private Literals literalIndexNegative = new Literals();
-
-    /** literals in all other clause types */
-    private Literals literalIndexMixed = new Literals();
+    /** literals  */
+    private Literals literalIndex = new Literals();
 
     /** keeps the local candidate model */
     private short[] localModel;
@@ -100,8 +94,7 @@ public class Backtracker extends Solver {
     public void initialize(Thread myThread, ProblemSupervisor problemSupervisor) {
         super.initialize(myThread,problemSupervisor);
        // problemSupervisor.model.addObserver(myThread, this::addTrueLiteralToQueue);
-       // for(int literal: model.model) {
-       //     addTrueLiteralToQueue(literal,model.getInferenceStep(literal));}
+
     }
 
     @Override
@@ -118,9 +111,7 @@ public class Backtracker extends Solver {
         statistics             = new BacktrackerStatistics(solverId);
         nextId                 = problemSupervisor::nextClauseId;
         myThread               = Thread.currentThread();
-        literalIndexPositive.reset(predicates);
-        literalIndexNegative.reset(predicates);
-        literalIndexMixed.reset(predicates);
+        literalIndex.reset(predicates);
         initializeLocalModel();
         initializePredicateIndex();
         try{
@@ -146,9 +137,139 @@ public class Backtracker extends Solver {
             clause = new Clause(normalizedClause);
             insertClause(clause);}}
 
+
+    private IntArrayList derivedTrueLiterals = new IntArrayList();
+
+    private HashMap<Integer,Integer> selectedTrueLiterals = new HashMap<>();
     public void searchModel() throws Result{
-        
+        for(int index = 1; index <= predicates; ++ index) {
+            int predicate = predicateIndex[index];
+            if(localModel[predicate] != 0) continue;
+            localModel[predicate] = 1;
+            derivedTrueLiterals.add(predicate);
+            for(int i = 0; i < derivedTrueLiterals.size(); ++i) {
+                predicate = derivedTrueLiterals.getInt(i);
+                if(checkClauses(predicate,predicate)) { // contradiction found
+                    break;
+                };
+            }
+        }
+
     }
+
+    private boolean checkClauses(int predicate, int selectedPredicate) {
+        for(int sign = 1; sign >= -1; sign -= 2) {
+            Literal literalObject = literalIndex.getFirstLiteralObject(sign*predicate);
+            while(literalObject != null) {
+                if(deriveTrueLiterals(literalObject.clause,selectedPredicate)) return true; // contradiction
+                literalObject = literalObject.nextLiteral;}}
+        return false;}
+
+    boolean deriveTrueLiterals(Clause clause, int selectedPredicate) {
+        switch(clause.quantifier) {
+            case OR:      return deriveTrueLiteralsOr(clause, selectedPredicate);
+            case ATLEAST: return deriveTrueLiteralsAtleast(clause, selectedPredicate);
+            case ATMOST:  return deriveTrueLiteralsAtmost(clause, selectedPredicate);
+            case EXACTLY: return deriveTrueLiteralsExactly(clause, selectedPredicate);
+            default: deriveTrueLiteralsInterval(clause, selectedPredicate);}
+        return false;}
+
+    boolean deriveTrueLiteralsOr(Clause clause, int selectedPredicate) {
+        int negativeLiteralsFound = 0;
+        int unassignedLiteral = 0;
+        for(Literal literalObject : clause.literals) {
+            int literal = literalObject.literal;
+            int sign = getLocalTruth(literal);
+            if(sign == -1) ++negativeLiteralsFound;
+            else {if (sign != 1) unassignedLiteral = literal;}}
+        int expandedSize = clause.expandedSize;
+        if(negativeLiteralsFound == expandedSize) return true; // contradiction
+        if(negativeLiteralsFound == expandedSize - 1) {setLocalTruth(unassignedLiteral,selectedPredicate);}
+        return false;}
+
+    boolean deriveTrueLiteralsAtleast(Clause clause, int selectedPredicate) {
+        int negativeLiteralsFound = 0;
+        for(Literal literalObject : clause.literals) {
+            if(getLocalTruth(literalObject.literal) == -1) {negativeLiteralsFound += literalObject.multiplicity;}}
+        int expandedSize = clause.expandedSize;
+        if(negativeLiteralsFound == expandedSize) return true; // contradiction
+        if(negativeLiteralsFound >= expandedSize - clause.min) {
+            for(Literal literalObject : clause.literals) {
+                int literal = literalObject.literal;
+                if(getLocalTruth(literal) != 1) {setLocalTruth(literal,selectedPredicate);}}}
+        return false;}
+
+    boolean deriveTrueLiteralsAtmost(Clause clause, int selectedPredicate) {
+        int positiveLiteralsFound = 0;
+        for(Literal literalObject : clause.literals) {
+            if(getLocalTruth(literalObject.literal) == 1) {positiveLiteralsFound += literalObject.multiplicity;}}
+        int max = clause.max;
+        if(positiveLiteralsFound > max) return true; // contradiction
+        if(positiveLiteralsFound == max) {
+            for(Literal literalObject : clause.literals) {
+                int literal = literalObject.literal;
+                if(getLocalTruth(literal) != -1) {setLocalTruth(-literal,selectedPredicate);}}}
+        return false;}
+
+    boolean deriveTrueLiteralsExactly(Clause clause, int selectedPredicate) {
+        int positiveLiteralsFound = 0;
+        int negativeLiteralsFound = 0;
+        int exactlyPostive = clause.min;
+        int exactlyNegative = clause.expandedSize - exactlyPostive;
+        for(Literal literalObject : clause.literals) {
+            int sign = getLocalTruth(literalObject.literal);
+            if(sign == 1) {
+                positiveLiteralsFound += literalObject.multiplicity;
+                if(positiveLiteralsFound > exactlyPostive) return true;} // contradiction; too many positive literals.
+            else {
+                if(sign == -1) negativeLiteralsFound += literalObject.multiplicity;
+                if(negativeLiteralsFound > exactlyNegative) return true; // contradiction: too many negative literals.
+            }}
+        if(positiveLiteralsFound == exactlyPostive) { // all other literals must be false.
+            for(Literal literalObject : clause.literals) {
+                int literal = literalObject.literal;
+                if(getLocalTruth(literal) != -1) {setLocalTruth(-literal,selectedPredicate);}}
+            return false;}
+        if(negativeLiteralsFound == exactlyNegative) { // all other literals must be true.
+            for(Literal literalObject : clause.literals) {
+                int literal = literalObject.literal;
+                if(getLocalTruth(literal) != 1) {setLocalTruth(literal,selectedPredicate);}}}
+        return false;}
+
+    boolean deriveTrueLiteralsInterval(Clause clause, int selectedPredicate) {
+        int positiveLiteralsFound = 0;
+        int negativeLiteralsFound = 0;
+        int maxPositive = clause.max;
+        int maxNegative = clause.expandedSize - clause.min;
+        for(Literal literalObject : clause.literals) {
+            int sign = getLocalTruth(literalObject.literal);
+            if(sign == 1) {
+                positiveLiteralsFound += literalObject.multiplicity;
+                if(positiveLiteralsFound > maxPositive) return true;} // contradiction; too many positive literals.
+            else {
+                if(sign == -1) negativeLiteralsFound += literalObject.multiplicity;
+                if(negativeLiteralsFound > maxNegative) return true; // contradiction: too many negative literals.
+            }}
+        if(positiveLiteralsFound == maxPositive) { // all other literals must be false.
+            for(Literal literalObject : clause.literals) {
+                int literal = literalObject.literal;
+                if(getLocalTruth(literal) != -1) {setLocalTruth(-literal,selectedPredicate);}}
+            return false;}
+        if(negativeLiteralsFound == maxNegative) { // all other literals must be true.
+            for(Literal literalObject : clause.literals) {
+                int literal = literalObject.literal;
+                if(getLocalTruth(literal) != 1) {setLocalTruth(literal,selectedPredicate);}}}
+        return false;}
+
+
+
+    private void setLocalTruth(int literal, int selectedPredicate) {
+        if(literal > 0) localModel[literal] = 1; else localModel[-literal] = -1;
+        derivedTrueLiterals.add(literal);
+        selectedTrueLiterals.put(literal,selectedPredicate);}
+
+    private int getLocalTruth(int literal) {
+        return literal > 0 ? localModel[literal] : -localModel[-literal]; }
 
 
     void addTrueLiterals(IntArrayList trueLiterals) throws Unsatisfiable {
@@ -161,12 +282,6 @@ public class Backtracker extends Solver {
      * @param clause a clause.
      */
     void insertClause(Clause clause) {
-        Literals literalIndex;
-        switch(clause.quantifier) {
-            case OR:
-            case ATLEAST: literalIndex = literalIndexPositive; break;
-            case ATMOST:  literalIndex = literalIndexNegative; break;
-            default:      literalIndex = literalIndexMixed;}
         for(Literal literalObject : clause.literals) literalIndex.addLiteral(literalObject);
         clauses.addClause(clause);}
 
