@@ -141,11 +141,11 @@ public class Model {
      * @param literal the literal to be checked.
      * @return +1 if the literal is true in the model, -1 if it is false in the model, otherwise 0.
      */
-    public synchronized int status(int literal) {
+    public synchronized byte status(int literal) {
         int predicate = Math.abs(literal);
         assert predicate <= predicates;
-        short status = this.status[predicate];
-        return literal > 0 ? status : -status;}
+        byte status = this.status[predicate];
+        return literal > 0 ? status : (byte) -status;}
 
     /** returns null or the inference step which caused the truth of the literal in the model.
      *

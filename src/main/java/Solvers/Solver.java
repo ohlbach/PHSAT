@@ -11,7 +11,7 @@ import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
-import Solvers.RecursiveSearch.RecursiveSearcher;
+import Solvers.Backtracker.Backtracker;
 import Solvers.Simplifier.Simplifier;
 import Solvers.Walker.Walker;
 
@@ -32,7 +32,7 @@ public abstract class Solver {
        *********************** */
 
     /** the list of all solver types */
-    public static String[] solvers = new String[]{"simplifier","walker","recursiveSearch","resolution"};
+    public static String[] solvers = new String[]{"simplifier","walker","backtracker","resolution"};
 
     /** checks if the name is a solver name
      *
@@ -56,8 +56,8 @@ public abstract class Solver {
             case "simplifier":      return Simplifier.class;
             case "Walker":
             case "walker":          return Walker.class;
-            case "RecursiveSearch":
-            case "recursiveSearch": return RecursiveSearcher.class;
+            case "Backtracker":
+            case "backtracker": return Backtracker.class;
             default: return null;}}
 
     /** collects all the help-strings for all solver classes

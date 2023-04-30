@@ -11,7 +11,14 @@ public class BacktrackerStatistics extends Statistic {
     @Description("number of backtrackings")
     public int backtrackings = 0;
 
+    @Description("Merge Resolutions")
+    public int mergeResolutions = 0;
+
     public String toString() {
-        return "Backtracker Statistics:\n  backtrackings:  " + backtrackings;}
+        StringBuilder st = new StringBuilder();
+        st.append("Backtracker Statistics:");
+        if(backtrackings    != 0) st.append("\n  backtrackings:     ").append(backtrackings);
+        if(mergeResolutions != 0) st.append("\n  merge resolutions: ").append(mergeResolutions);
+        return st.toString();}
 
 }

@@ -1,5 +1,6 @@
 package Solvers.Backtracker;
 
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Result;
 import Datastructures.Statistics.Statistic;
 import Management.ErrorReporter;
@@ -19,7 +20,8 @@ public class Backtracker extends Solver {
     public static String help() {
         return "Solver Backtracker: a kind of Davis-Putnam Procedure.\n"+
                 "parameters:\n" +
-                "  seeds:  for the random number generator (default: 0)\n";}
+                "  seeds:           for the random number generator (default: 0)\n"+
+                "  mergeResolution: for activating merge-resolution (default true)";}
 
     /** contains the allowed keys in the specification. */
     private static final HashSet<String> keys = new HashSet<>();
@@ -30,7 +32,7 @@ public class Backtracker extends Solver {
     /** parses a HashMap with key-value pairs and creates corresponding Walkers.
      *
      * @param parameters  the parameters with the keys "seed", "flips", "jumps".
-     * @param solvers     for adding the newly created Walkers.
+     * @param solvers     for adding the newly created Backtrackers.
      * @param errors      for error messages.
      * @param warnings    for warnings (not used here).
      */
@@ -42,21 +44,28 @@ public class Backtracker extends Solver {
                         "        allowed keys: seed.\n");}}
         String seeds = parameters.get("seed");
         if(seeds == null) seeds = "0";
+        String mergeResolutions = parameters.get("mergeResolution");
+        if(mergeResolutions == null) mergeResolutions = "true";
         String place = "Backtracker: ";
         ArrayList seedA = Utilities.parseIntRange(place+"seed: ",seeds,errors);
+        ArrayList mergeResolutionA = Utilities.parseBoolean("mergeResolution: ", mergeResolutions,errors);
         if(errors.length() > 0) ErrorReporter.reportErrorAndStop("Check Backtracker parameters!");
-        ArrayList<ArrayList> pars = Utilities.crossProduct(seedA);
+        ArrayList<ArrayList> pars = Utilities.crossProduct(seedA,mergeResolutionA);
         int solverNumber = 1;
         for(ArrayList<Object> p : pars ) {
             int seedV  = (int)p.get(0);
+            boolean mergeResolutionV = (boolean)p.get(1);
             if(seedV < 0)   errors.append("Backtracker: seed < 0: ").append(seedV).append("\n");
             HashMap<String,Object> solverParameters = new HashMap<>();
             solverParameters.put("seed",seedV);
+            solverParameters.put("mergeResolution",mergeResolutionV);
             solverParameters.put("name",(pars.size() == 1 ? "Backtracker" : "Backtracker_"+solverNumber));
-            solvers.add(new Backtracker(solverNumber++, solverParameters, seedV));}}
+            solvers.add(new Backtracker(solverNumber++, solverParameters, seedV, mergeResolutionV));}}
 
     /** The seed for the random number generator */
     private int seed;
+
+    boolean mergeResolution = true;
 
     /** the thread which executes the solver */
     private Thread myThread;
@@ -64,13 +73,13 @@ public class Backtracker extends Solver {
     /** for generating an identifier for the new clauses. */
     private IntSupplier nextId;
 
-    private Clauses clauses;
+    Clauses clauses;
 
     /** literals  */
-    private Literals literalIndex = new Literals();
+    Literals literalIndex = new Literals();
 
     /** keeps the local candidate model */
-    short[] localModel;
+    byte[] localModel;
 
     int[] predicateIndex;
 
@@ -82,9 +91,10 @@ public class Backtracker extends Solver {
      * @param solverParameters which specified the walker (for documentation only).
      * @param seed          for starting the random number generator.
      */
-    public Backtracker(int solverNumber, HashMap<String,Object> solverParameters, int seed) {
+    public Backtracker(int solverNumber, HashMap<String,Object> solverParameters, int seed, boolean mergeResolution) {
         super(solverNumber,solverParameters);
         this.seed = seed;
+        this.mergeResolution = mergeResolution;
         monitorId = "Backtracker_"+solverNumber;}
 
     /** adds the literals which are already true in the model to the task queue.
@@ -100,7 +110,7 @@ public class Backtracker extends Solver {
     public Result solveProblem(ProblemSupervisor problemSupervisor) {
         long startTime         = System.nanoTime();
         model                  = problemSupervisor.model;
-        predicates             = inputClauses.predicates;
+        predicates             = problemSupervisor.inputClauses.predicates;
         monitor                = problemSupervisor.monitor;
         monitoring             = monitor != null;
         monitorId              = "Backtracker";
@@ -119,7 +129,7 @@ public class Backtracker extends Solver {
         if(trueLiteralIndex.length < predicates+1) trueLiteralIndex = new int[predicates+1];
         readInputClauses();
         boolean satisfiable = searchModel();
-        if(satisfiable) System.out.println(localModel);
+        if(satisfiable) System.out.println(Arrays.toString(localModel));
         else System.out.println("Unsatisfiable");
         System.out.println(statistics);
         return null;
@@ -141,210 +151,252 @@ public class Backtracker extends Solver {
 
     boolean positiveLiteral = true;
     public boolean searchModel(){
-        int firstIndex = 0;
+        int firstIndex;
         for(firstIndex = 1; firstIndex <= predicates; ++firstIndex) {
             if(model.status(predicateIndex[firstIndex]) == 0) break;}
 
         for(int index = firstIndex; index <= predicates; ++index) {
+            System.out.println("IND " + index);
             int selectedLiteral = predicateIndex[index];
             int status = model.status(selectedLiteral);
             if(status != 0) {
-                localModel[selectedLiteral] = (short)status;
+                localModel[selectedLiteral] = (byte)status;
                 continue;}
 
             if(localModel[selectedLiteral] != 0) continue;
 
             trueLiteralIndex[selectedLiteral] = index;
 
-            int minIndex = -1;
+            int maxIndex = -1;
             derivedTrueLiterals = derivedTrueLiteralArray[index];
             derivedTrueLiterals.clear();
             if(positiveLiteral) {
                 localModel[selectedLiteral] = 1;
                 derivedTrueLiterals.add(selectedLiteral);
                 for(int i = 0; i < derivedTrueLiterals.size(); ++i) {
-                    if((minIndex = checkClauses(derivedTrueLiterals.getInt(i))) >= 0) break;};}
+                    if((maxIndex = checkClauses(derivedTrueLiterals.getInt(i))) >= 0)
+                        System.out.println("MI1 " + maxIndex);
+                        break;}}
 
-            if(minIndex >= 0) { // positive literal caused a contradiction.
+            if(maxIndex >= 0) { // positive literal caused a contradiction.
                 positiveLiteral = true;
                 for(int literal : derivedTrueLiterals) localModel[Math.abs(literal)] = 0;
                 derivedTrueLiterals.clear();
                 localModel[selectedLiteral] = -1;
+                trueLiteralIndex[selectedLiteral] = Integer.MIN_VALUE;
                 selectedLiteral *= -1;
                 derivedTrueLiterals.add(selectedLiteral);
                 for(int i = 0; i < derivedTrueLiterals.size(); ++i) {
-                    if((minIndex = checkClauses(derivedTrueLiterals.getInt(i))) >= 0) break;}}
-
-            if(minIndex >= 0) { // negative literal also caused a contradiction. Backtracking.
-                if(minIndex < firstIndex) return false;
+                    if((maxIndex = checkClauses(derivedTrueLiterals.getInt(i))) >= 0)
+                        System.out.println("MI2 " + maxIndex); break;}}
+            System.out.println("MI3 " + maxIndex);
+            if(maxIndex >= 0) { // negative literal also caused a contradiction. Backtracking.
+                if(maxIndex < firstIndex) return false;
                 ++statistics.backtrackings;
                 positiveLiteral = false;
-                while(index >= minIndex) {
+                while(index >= maxIndex) {
                     for(int literal : derivedTrueLiteralArray[index]) {
                         int predicate = Math.abs(literal);
-                        localModel[predicate] = (short)model.status(predicate);
+                        localModel[predicate] = model.status(predicate);
                         trueLiteralIndex[predicate] = 0;}
                     --index;}}}
         return true;}
 
+    /** checks the clauses with the given predicate: they may be locally unsatisfiable, or new true literals may be derivable.
+     *
+     * @param predicate the predicate to be checked.
+     * @return -1 if none of the clauses is locally unsatisfiable, otherwise the largest predicate index for the predicates which causes a clause to be unsatisfiable.
+     */
     private int checkClauses(int predicate) {
         for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = literalIndex.getFirstLiteralObject(sign*predicate);
             while(literalObject != null) {
-                int minIndex = deriveTrueLiterals(literalObject.clause);
-                if(minIndex >= 0) return minIndex; // contradiction
+                int maxIndex = deriveTrueLiterals(literalObject.clause);
+                if(maxIndex >= 0) return maxIndex; // contradiction
                 literalObject = literalObject.nextLiteral;}}
         return -1;}
 
+    /** checks the clause: it may be locally unsatisfiable, or new true literals may be derivable.
+     *
+     * @param clause the clause to be checked.
+     * @return -1 if the clause is not locally unsatisfiable, otherwise the largest predicate index for the predicates which causes the clause to be unsatisfiable.
+     */
     int deriveTrueLiterals(Clause clause) {
         switch(clause.quantifier) {
             case OR:      return deriveTrueLiteralsOr(clause);
             case ATLEAST: return deriveTrueLiteralsAtleast(clause);
             case ATMOST:  return deriveTrueLiteralsAtmost(clause);
-            case EXACTLY: return deriveTrueLiteralsExactly(clause);
             default:      return deriveTrueLiteralsInterval(clause);}}
 
-    int minTruthIndex(Clause clause) {
-        int minIndex = Integer.MAX_VALUE;
-        for(Literal literalObject : clause.literals) {
-            int predicate = Math.abs(literalObject.literal);
-            if(localModel[predicate] != 0) minIndex = Math.min(minIndex, trueLiteralIndex[predicate]);}
-        return minIndex;}
 
     /** if all except one literal are locally false then the remaining literal is derived as true literal.
      * <br>
-     * If all literals are locally false then the smallest index in the predicateIndex which was responsible for the
+     * If all literals are locally false then the largest index in the predicateIndex which was responsible for the
      * contradiction is returned.
      *
      * @param clause a clause to be checked.
-     * @return -1 or the smallest index in the predicateIndex whose selection as true literal was responsible for the truth of the literal.
+     * @return -1 or the largest index in the predicateIndex whose selection as true literal was responsible for the truth of the literal.
      */
     int deriveTrueLiteralsOr(Clause clause) {
-        int negativeLiteralsFound = 0;
-        int unassignedLiteral = 0;
+        int maxIndex = Integer.MIN_VALUE;
+        int falseLiterals = 0;
+        int unassignedLiteral1 = 0;
+        int unassignedLiteral2 = 0;
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
-            int sign = getLocalTruth(literal);
-            if(sign == -1) ++negativeLiteralsFound;
-            else {if (sign != 1) unassignedLiteral = literal;}}
+            int status = getLocalTruth(literal);
+            if(status == 1) return -1; // clause is satisfied.
+            if(status == 0) {
+                if(unassignedLiteral1 == 0) unassignedLiteral1 = literal; else unassignedLiteral2 = literal;}
+            else {
+                maxIndex = Math.max(maxIndex,trueLiteralIndex[Math.abs(literal)]);
+                ++falseLiterals;}}
         int expandedSize = clause.expandedSize;
-        if(negativeLiteralsFound == expandedSize) return minTruthIndex(clause); // contradiction
-        if(unassignedLiteral != 0 && negativeLiteralsFound == expandedSize - 1) {
-            setLocalTruth(unassignedLiteral,minTruthIndex(clause));}
+        if(falseLiterals == expandedSize) return maxIndex; // contradiction
+        if(falseLiterals == expandedSize - 1) setLocalTruth(unassignedLiteral1,maxIndex);
+        if(mergeResolution && falseLiterals == expandedSize - 2) {
+            if(!mergeResolution(unassignedLiteral1,unassignedLiteral2,maxIndex))
+                mergeResolution(unassignedLiteral2,unassignedLiteral1,maxIndex);}
         return -1;}
 
-    /** checks the clause for local contradiction or derives new locally true literals.
+    /** performs merge-resolution between (locally) binary clauses.
      * <br>
-     * If too many literals are false then the clause is contradictory and the smallest predicate index is returned.<br>
-     * If enough literals are true then the clause is satisfied and -1 is returned.<br>
-     * If expandedSize-min literals are false then the remaining literals can be made true, and -1 is returned.
+     * If all other literals are locally false then merge-resolution between two
+     * binary clauses p,q and -p,q yields q.
+     *
+     * @param resolutionLiteral an unassigned literal.
+     * @param mergeLiteral another unassigned literal.
+     * @param maxIndex the largest predicate index which caused the other literals to be false.
+     * @return true if the merge-resolution succeeded.
+     */
+    boolean mergeResolution(int resolutionLiteral, int mergeLiteral, int maxIndex) {
+        Literal literalObject = literalIndex.getFirstLiteralObject(-resolutionLiteral);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if(clause.quantifier == Quantifier.OR) {
+                boolean mergeLiteralFound = false;
+                int falseLiterals = 0;
+                for(Literal litObject : clause.literals) {
+                    int literal = litObject.literal;
+                    if(literal == -resolutionLiteral) continue;
+                    if(literal == mergeLiteral) {mergeLiteralFound = true; continue;}
+                    if(getLocalTruth(literal) == -1) {
+                        ++falseLiterals;
+                        maxIndex = Math.max(maxIndex,trueLiteralIndex[Math.abs(literal)]);}
+                    else break;}
+                if(mergeLiteralFound && falseLiterals == clause.expandedSize - 2) {
+                    setLocalTruth(mergeLiteral,maxIndex);
+                    ++statistics.mergeResolutions;
+                    return true;}}
+            literalObject = literalObject.nextLiteral;}
+        return false;}
+
+    /** checks the clause for local unsatisfiability or derives new locally true literals.
+     * <br>
+     * The clause is locally unsatisfiable iff<br>
+     * - |false literals| &gt; expandedSize - min
+     * <br>
+     * True literals can be derived iff<br>
+     * - |false literals| = expandedSize - min; all other literals must be true.
+     * <br>
+     * If nothing can be concluded, -1 is returned. <br>
+     * If the clause is unsatisfiable then the largest predicate index is returned.<br>
      *
      * @param clause a clause to be checked.
-     * @return -1 or the smallest predicate index if the clause is locally contradictory.
+     * @return -1 or the largest predicate index if the clause is locally contradictory.
      */
     int deriveTrueLiteralsAtleast(Clause clause) {
-        int negativeLiteralsFound = 0;
-        int positiveLiteralsFound = 0;
+        int maxIndex = Integer.MIN_VALUE;
+        int maxFalse = clause.expandedSize - clause.min;
+        int falseLiterals = 0;
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
-            int status =  getLocalTruth(literal);
-            if(status == -1)      {negativeLiteralsFound += literalObject.multiplicity;}
-            else {if(status == 1) {positiveLiteralsFound += literalObject.multiplicity;}}}
-        if(positiveLiteralsFound > clause.min) return -1; // clause is satisfied.
-        int expandedSize = clause.expandedSize;
-        if(negativeLiteralsFound > expandedSize - clause.min) return minTruthIndex(clause); // not enough positive literals left
-        if(negativeLiteralsFound == expandedSize - clause.min) { // the remaining literals must become true.
-            int minIndex = minTruthIndex(clause);
+            if(getLocalTruth(literal) == -1)  {
+                falseLiterals += literalObject.multiplicity;
+                maxIndex = Math.max(maxIndex,trueLiteralIndex[Math.abs(literal)]);
+                if(falseLiterals > maxFalse) return maxIndex;}}
+        if(falseLiterals == maxFalse) { // the remaining literals must become true.
+             for(Literal literalObject : clause.literals) {
+                int literal = literalObject.literal;
+                if(getLocalTruth(literal) == 0) {setLocalTruth(literal,maxIndex);}}}
+        return -1;}
+
+    /** checks the clause for local unsatisfiability or derives new locally true literals.
+     * <br>
+     * An atmost-clause is locally unsatisfiable iff<br>
+     * - |true literals| &gt; max
+     * <br>
+     * New literals can be derived iff <br>
+     * - |true literals| = max. All other literals must be false.
+     *
+     * @param clause a clause to be checked.
+     * @return -1 or the largest predicate index if the clause is locally unsatisfiable.
+     */
+    int deriveTrueLiteralsAtmost(Clause clause) {
+        int maxIndex = Integer.MIN_VALUE;
+        int max = clause.max;
+        int trueLiterals = 0;
+        for(Literal literalObject : clause.literals) {
+            int literal = literalObject.literal;
+            if(getLocalTruth(literal) == 1)  {
+                trueLiterals += literalObject.multiplicity;
+                maxIndex = Math.max(maxIndex,trueLiteralIndex[Math.abs(literal)]);
+                if(trueLiterals > max) return maxIndex;}} // unsatisfiable
+        if(trueLiterals == max) {
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(getLocalTruth(literal) == 0) {setLocalTruth(literal,minIndex);}}}
+                if(getLocalTruth(literal) == 0) {setLocalTruth(-literal,maxIndex);}}}
         return -1;}
+
 
     /** checks the clause for local contradiction or derives new locally true literals.
      * <br>
-     * If too many literals are true then the clause is contradictory and the smallest predicate index is returned.<br>
+     * The clause is locally unsatisfiable iff<br>
+     * - |true literals| &gt; max or <br>
+     * - |false literals| &gt; expandedSize - min
+     * <br>
+     * New literals can be derived iff <br>
+     * - |true literals| = max; the remaining literals must be false
+     * - |false literals| &gt; expandedSize - min; the remaining literals must be true.
      *
-     * @param clause a clause to be checked.
-     * @return -1 or the smallest predicate index if the clause is locally contradictory.
+     * @param clause an interval-clause
+     * @return -1 if nothing can be concluded, otherwise the largest predicate index which caused the contradiction.
      */
-    int deriveTrueLiteralsAtmost(Clause clause) {
-        int positiveLiteralsFound = 0;
-        int negativeLiteralsFound = 0;
-        for(Literal literalObject : clause.literals) {
-            int status = getLocalTruth(literalObject.literal);
-            if(status == 1)        positiveLiteralsFound += literalObject.multiplicity;
-            else {if(status == -1) negativeLiteralsFound += literalObject.multiplicity;}}
-        int max = clause.max;
-        if(positiveLiteralsFound > max || negativeLiteralsFound > clause.expandedSize-max)
-            return minTruthIndex(clause); // contradiction
-        if(positiveLiteralsFound == max) {
-            int minIndex = minTruthIndex(clause);
-            for(Literal literalObject : clause.literals) {
-                int literal = literalObject.literal;
-                if(getLocalTruth(literal) == 0) {setLocalTruth(-literal,minIndex);}}}
-        return -1;}
-
-    int deriveTrueLiteralsExactly(Clause clause) {
-        int positiveLiteralsFound = 0;
-        int negativeLiteralsFound = 0;
-        int exactlyPostive = clause.min;
-        int exactlyNegative = clause.expandedSize - exactlyPostive;
-        for(Literal literalObject : clause.literals) {
-            int sign = getLocalTruth(literalObject.literal);
-            if(sign == 1) {
-                positiveLiteralsFound += literalObject.multiplicity;
-                if(positiveLiteralsFound > exactlyPostive) return minTruthIndex(clause);} // contradiction; too many positive literals.
-            else {
-                if(sign == -1) negativeLiteralsFound += literalObject.multiplicity;
-                if(negativeLiteralsFound > exactlyNegative) return minTruthIndex(clause); // contradiction: too many negative literals.
-            }}
-        int minIndex = 0;
-        if(positiveLiteralsFound == exactlyPostive) { // all other literals must be false.
-            minIndex = minTruthIndex(clause);
-            for(Literal literalObject : clause.literals) {
-                int literal = literalObject.literal;
-                if(getLocalTruth(literal) != -1) {setLocalTruth(-literal,minIndex);}}
-            return -1;}
-        if(negativeLiteralsFound == exactlyNegative) { // all other literals must be true.
-            if(minIndex == 0) minIndex = minTruthIndex(clause);
-            for(Literal literalObject : clause.literals) {
-                int literal = literalObject.literal;
-                if(getLocalTruth(literal) == 0) {setLocalTruth(literal,minIndex);}}}
-        return -1;}
-
     int deriveTrueLiteralsInterval(Clause clause) {
-        int positiveLiteralsFound = 0;
-        int negativeLiteralsFound = 0;
-        int maxPositive = clause.max;
-        int maxNegative = clause.expandedSize - clause.min;
+        int maxIndexTrue  = Integer.MIN_VALUE;
+        int maxIndexFalse = Integer.MIN_VALUE;
+        int trueLiterals  = 0;
+        int falseLiterals = 0;
+        int maxTrue  = clause.max;
+        int maxFalse = clause.expandedSize - clause.min;
         for(Literal literalObject : clause.literals) {
-            int sign = getLocalTruth(literalObject.literal);
-            if(sign == 1) {
-                positiveLiteralsFound += literalObject.multiplicity;
-                if(positiveLiteralsFound > maxPositive) return minTruthIndex(clause);} // contradiction; too many positive literals.
-            else {
-                if(sign == -1) negativeLiteralsFound += literalObject.multiplicity;
-                if(negativeLiteralsFound > maxNegative) return minTruthIndex(clause); // contradiction: too many negative literals.
-            }}
-        int minIndex = 0;
-        if(positiveLiteralsFound == maxPositive) { // all other literals must be false.
-            minIndex = minTruthIndex(clause);
+            int literal = literalObject.literal;
+            int status = getLocalTruth(literal);
+            if(status == 0) continue;
+            if(status == 1) {
+                maxIndexTrue = Math.max(maxIndexTrue,trueLiteralIndex[Math.abs(literal)]);
+                trueLiterals += literalObject.multiplicity;
+                if(trueLiterals > maxTrue) return maxIndexTrue;} // contradiction; too many positive literals.
+            else {falseLiterals += literalObject.multiplicity;
+                  maxIndexFalse = Math.max(maxIndexFalse,trueLiteralIndex[Math.abs(literal)]);
+                  if(falseLiterals > maxFalse) return maxIndexFalse;}} // contradiction: too many negative literals.
+
+         if(trueLiterals == maxTrue) { // all other literals must be false.
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(getLocalTruth(literal) != -1) {setLocalTruth(-literal,minIndex);}}
+                if(getLocalTruth(literal) == 0) {setLocalTruth(-literal,maxIndexTrue);}}
             return -1;}
-        if(negativeLiteralsFound == maxNegative) { // all other literals must be true.
-            if(minIndex == 0) minIndex = minTruthIndex(clause);
+        if(falseLiterals == maxFalse) { // all other literals must be true.
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(getLocalTruth(literal) == 0) {setLocalTruth(literal,minIndex);}}}
+                if(getLocalTruth(literal) == 0) {setLocalTruth(literal,maxIndexFalse);}}}
         return -1;}
 
 
     /** adds the literal to the derivedTrueLiterals list and puts minTruthIndex into the trueLiteralIndex;
      *
      * @param literal       a derived true literal.
-     * @param minTruthIndex the smallest index in the predicateIndex whose selection as true literal was responsible for the truth of the literal.
+     * @param minTruthIndex the largest index in the predicateIndex whose selection as true literal was responsible for the truth of the literal.
      */
     private void setLocalTruth(int literal, int minTruthIndex) {
         if(literal > 0) localModel[literal] = 1; else localModel[-literal] = -1;
@@ -388,9 +440,9 @@ public class Backtracker extends Solver {
     /** initializes the local to be synchronous to the global model.
      */
     void initializeLocalModel() {
-        if(localModel == null || localModel.length < predicates+1) localModel = new short[predicates+1];
+        if(localModel == null || localModel.length < predicates+1) localModel = new byte[predicates+1];
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-            localModel[predicate] = (short)model.status(predicate);}}
+            localModel[predicate] = model.status(predicate);}}
 
 
     @Override

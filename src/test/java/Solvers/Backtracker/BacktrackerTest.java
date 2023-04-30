@@ -21,12 +21,21 @@ public class BacktrackerTest extends TestCase {
     private static final int cInterval = Quantifier.INTERVAL.ordinal();
 
     Backtracker makeBacktracker(int predicates, int seed) {
-        Backtracker backtracker = new Backtracker(1,null,seed);
+        Backtracker backtracker = new Backtracker(1,null,seed,true);
         backtracker.predicates = predicates;
         backtracker.model = new Model(predicates);
-        backtracker.localModel = new short[predicates+1];
+        backtracker.localModel = new byte[predicates+1];
         backtracker.trueLiteralIndex = new int[predicates+1];
         backtracker.derivedTrueLiterals = new IntArrayList();
+        backtracker.predicateIndex = new int[predicates+1];
+        backtracker.derivedTrueLiteralArray = new IntArrayList[predicates+1];
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            backtracker.predicateIndex[predicate] = predicate;
+            backtracker.derivedTrueLiteralArray[predicate] = new IntArrayList();}
+        backtracker.literalIndex = new Literals();
+        backtracker.literalIndex.reset(predicates);
+        backtracker.clauses = new Clauses();
+        backtracker.statistics = new BacktrackerStatistics("test");
         return backtracker;
     }
 
@@ -61,10 +70,9 @@ public class BacktrackerTest extends TestCase {
         backtracker.localModel[1] = -1;
         backtracker.trueLiteralIndex[1] = 5;
         backtracker.trueLiteralIndex[2] = 6;
-        assertEquals(5,backtracker.minTruthIndex(clause));
         assertEquals(-1,backtracker.deriveTrueLiteralsOr(clause));
         assertEquals("[3]",backtracker.derivedTrueLiterals.toString());
-        assertEquals(5,backtracker.trueLiteralIndex[3]);
+        assertEquals(6,backtracker.trueLiteralIndex[3]);
 
         backtracker = makeBacktracker(5,0);
         inputClause = new int[]{2,cOr,-1,-2,-3};
@@ -76,7 +84,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.trueLiteralIndex[1] = 7;
         backtracker.trueLiteralIndex[2] = 6;
         backtracker.trueLiteralIndex[3] = 5;
-        assertEquals(5,backtracker.deriveTrueLiteralsOr(clause));
+        assertEquals(7,backtracker.deriveTrueLiteralsOr(clause));
     }
     public void testDeriveTrueLiteralsAtleast() {
         System.out.println("deriveTrueLiteralsAtleast");
@@ -100,7 +108,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.localModel[2] = -1;
         backtracker.trueLiteralIndex[1] = 6;
         backtracker.trueLiteralIndex[2] = 5;
-        assertEquals(5, backtracker.deriveTrueLiteralsAtleast(clause));
+        assertEquals(6, backtracker.deriveTrueLiteralsAtleast(clause));
 
         backtracker = makeBacktracker(5, 0);
         inputClause = new int[]{3, cAtleast, 2, 1,2,3,4};
@@ -126,7 +134,7 @@ public class BacktrackerTest extends TestCase {
         assertEquals("[0, -1, -1, 1, 1, 0]",Arrays.toString(backtracker.localModel));
         backtracker.localModel[3] = -1;
         backtracker.trueLiteralIndex[3] = 3;
-        assertEquals(3, backtracker.deriveTrueLiteralsAtleast(clause));
+        assertEquals(6, backtracker.deriveTrueLiteralsAtleast(clause));
 
         backtracker = makeBacktracker(5, 0);
         inputClause = new int[]{3, cAtleast, 2, 1,1,2,2,3,3};
@@ -158,7 +166,7 @@ public class BacktrackerTest extends TestCase {
 
         backtracker.localModel[1] = -1;
         backtracker.trueLiteralIndex[1] = 5;
-        assertEquals(5, backtracker.deriveTrueLiteralsAtmost(clause)); // contradiction
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause)); // contradiction
 
         backtracker = makeBacktracker(5, 0);
         backtracker.localModel[2] = 1;
@@ -169,6 +177,93 @@ public class BacktrackerTest extends TestCase {
         backtracker.trueLiteralIndex[1] = 5;
         assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
         assertEquals("[0, 1, 1, -1, 0, 0]",Arrays.toString(backtracker.localModel));
-        assertEquals("[0, 5, 6, 5, 0, 0]", Arrays.toString(backtracker.trueLiteralIndex));
+        assertEquals("[0, 5, 6, 6, 0, 0]", Arrays.toString(backtracker.trueLiteralIndex));
+    }
+
+    public void testDeriveTrueLiteralsInterval() {
+        System.out.println("deriveTrueLiteralsInterval");
+        Backtracker backtracker = makeBacktracker(5, 0);
+        int[] inputClause = new int[]{1, cInterval, 2, 4, 1, 2, 3, 4, 5};
+        IntArrayList listClause = Normalizer.makeClause(inputClause);
+        Clause clause = new Clause(listClause);
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
+        assertEquals("[0, 0, 0, 0, 0, 0]", Arrays.toString(backtracker.localModel));
+
+        backtracker.localModel[1] = 1;
+        backtracker.trueLiteralIndex[1] = 6;
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
+        assertEquals("[0, 1, 0, 0, 0, 0]", Arrays.toString(backtracker.localModel));
+
+        backtracker.localModel[2] = 1;
+        backtracker.trueLiteralIndex[2] = 5;
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
+        assertEquals("[0, 1, 1, 0, 0, 0]", Arrays.toString(backtracker.localModel));
+
+        backtracker.localModel[3] = 1;
+        backtracker.trueLiteralIndex[3] = 4;
+        backtracker.localModel[4] = 1;
+        backtracker.trueLiteralIndex[4] = 3;
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
+        assertEquals("[0, 1, 1, 1, 1, -1]", Arrays.toString(backtracker.localModel));
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
+        assertEquals("[0, 6, 5, 4, 3, 6]", Arrays.toString(backtracker.trueLiteralIndex));
+
+        backtracker = makeBacktracker(5, 0);
+        for(int i = 1; i <= 5; ++i) {
+            backtracker.localModel[i] = 1;
+            backtracker.trueLiteralIndex[i] = i;}
+        assertEquals(5, backtracker.deriveTrueLiteralsInterval(clause));
+
+        backtracker = makeBacktracker(5, 0);
+        for(int i = 1; i <= 3; ++i) {
+            backtracker.localModel[i] = -1;
+            backtracker.trueLiteralIndex[i] = i;}
+        assertEquals(-1, backtracker.deriveTrueLiteralsInterval(clause));
+        assertEquals("[0, -1, -1, -1, 1, 1]", Arrays.toString(backtracker.localModel));
+        assertEquals("[0, 1, 2, 3, 3, 3]", Arrays.toString(backtracker.trueLiteralIndex));
+    }
+
+    public void testMergeResolution() {
+        System.out.println("deriveTrueLiteralsInterval");
+        Backtracker backtracker = makeBacktracker(5, 0);
+        int[] inputClause = new int[]{1, cOr, 1,2,3};
+        IntArrayList listClause = Normalizer.makeClause(inputClause);
+        Clause clause = new Clause(listClause);
+        backtracker.insertClause(clause);
+        backtracker.localModel[3] = -1;
+        backtracker.trueLiteralIndex[3] = 5;
+        assertTrue(backtracker.mergeResolution(-1,2,1));
+        assertEquals("[0, 0, 1, -1, 0, 0]",Arrays.toString(backtracker.localModel));
+        assertEquals("[0, 0, 5, 5, 0, 0]", Arrays.toString(backtracker.trueLiteralIndex));
+    }
+
+    public void testSearchModel() {
+        System.out.println("searchModel");
+        Backtracker backtracker = makeBacktracker(5, 0);
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{1, cOr, 1, 2, 3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{2, cOr, 1, 2, -3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{3, cOr, 1, -2, 3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{4, cOr, 1, -2, -3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{5, cOr, -1, 2, 3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{6, cOr, -1, 2, -3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{7, cOr, -1, -2, 3})));
+        assertTrue(backtracker.searchModel());
+        assertEquals("[0, 1, 1, 1, 1, 1]",Arrays.toString(backtracker.localModel));
+        System.out.println(backtracker.statistics);
+
+        backtracker = makeBacktracker(5, 0);
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{1, cOr, 1, 2, 3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{2, cOr, 1, 2, -3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{3, cOr, 1, -2, 3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{4, cOr, 1, -2, -3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{5, cOr, -1, 2, 3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{6, cOr, -1, 2, -3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{7, cOr, -1, -2, 3})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{8, cOr, -1, -2, -3})));
+        assertFalse(backtracker.searchModel());
+        assertEquals("[0, 1, 1, 1, 1, 1]",Arrays.toString(backtracker.localModel));
+        System.out.println(backtracker.statistics);
+
+
     }
     }
