@@ -127,6 +127,48 @@ public class BacktrackerTest extends TestCase {
         backtracker.localModel[3] = -1;
         backtracker.trueLiteralIndex[3] = 3;
         assertEquals(3, backtracker.deriveTrueLiteralsAtleast(clause));
+
+        backtracker = makeBacktracker(5, 0);
+        inputClause = new int[]{3, cAtleast, 2, 1,1,2,2,3,3};
+        listClause = Normalizer.makeClause(inputClause);
+        clause = new Clause(listClause);
+        backtracker.localModel[1] = -1;
+        backtracker.trueLiteralIndex[1] = 6;
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtleast(clause));
+        backtracker.localModel[2] = -1;
+        backtracker.trueLiteralIndex[2] = 5;
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtleast(clause));
+        assertEquals("[3]",backtracker.derivedTrueLiterals.toString());
+
     }
 
-}
+    public void testDeriveTrueLiteralsAtmost() {
+        System.out.println("deriveTrueLiteralsAtmost");
+        Backtracker backtracker = makeBacktracker(5, 0);
+        int[] inputClause = new int[]{1, cAtmost, 2, 1, 2, 3};
+        IntArrayList listClause = Normalizer.makeClause(inputClause);
+        Clause clause = new Clause(listClause);
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
+        assertEquals("[0, 0, 0, 0, 0, 0]", Arrays.toString(backtracker.localModel));
+        backtracker.localModel[2] = -1;
+        backtracker.trueLiteralIndex[2] = 6;
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
+        assertEquals("[0, 0, -1, 0, 0, 0]", Arrays.toString(backtracker.localModel));
+        assertEquals("[0, 0, 6, 0, 0, 0]", Arrays.toString(backtracker.trueLiteralIndex));
+
+        backtracker.localModel[1] = -1;
+        backtracker.trueLiteralIndex[1] = 5;
+        assertEquals(5, backtracker.deriveTrueLiteralsAtmost(clause)); // contradiction
+
+        backtracker = makeBacktracker(5, 0);
+        backtracker.localModel[2] = 1;
+        backtracker.trueLiteralIndex[2] = 6;
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
+        assertEquals("[0, 0, 1, 0, 0, 0]", Arrays.toString(backtracker.localModel));backtracker.localModel[2] = 1;
+        backtracker.localModel[1] = 1;
+        backtracker.trueLiteralIndex[1] = 5;
+        assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
+        assertEquals("[0, 1, 1, -1, 0, 0]",Arrays.toString(backtracker.localModel));
+        assertEquals("[0, 5, 6, 5, 0, 0]", Arrays.toString(backtracker.trueLiteralIndex));
+    }
+    }

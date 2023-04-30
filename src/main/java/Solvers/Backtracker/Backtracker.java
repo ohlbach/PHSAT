@@ -254,21 +254,34 @@ public class Backtracker extends Solver {
         int expandedSize = clause.expandedSize;
         if(negativeLiteralsFound > expandedSize - clause.min) return minTruthIndex(clause); // not enough positive literals left
         if(negativeLiteralsFound == expandedSize - clause.min) { // the remaining literals must become true.
+            int minIndex = minTruthIndex(clause);
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(getLocalTruth(literal) == 0) {setLocalTruth(literal,minTruthIndex(clause));}}}
+                if(getLocalTruth(literal) == 0) {setLocalTruth(literal,minIndex);}}}
         return -1;}
 
+    /** checks the clause for local contradiction or derives new locally true literals.
+     * <br>
+     * If too many literals are true then the clause is contradictory and the smallest predicate index is returned.<br>
+     *
+     * @param clause a clause to be checked.
+     * @return -1 or the smallest predicate index if the clause is locally contradictory.
+     */
     int deriveTrueLiteralsAtmost(Clause clause) {
         int positiveLiteralsFound = 0;
+        int negativeLiteralsFound = 0;
         for(Literal literalObject : clause.literals) {
-            if(getLocalTruth(literalObject.literal) == 1) {positiveLiteralsFound += literalObject.multiplicity;}}
+            int status = getLocalTruth(literalObject.literal);
+            if(status == 1)        positiveLiteralsFound += literalObject.multiplicity;
+            else {if(status == -1) negativeLiteralsFound += literalObject.multiplicity;}}
         int max = clause.max;
-        if(positiveLiteralsFound > max) return minTruthIndex(clause); // contradiction
+        if(positiveLiteralsFound > max || negativeLiteralsFound > clause.expandedSize-max)
+            return minTruthIndex(clause); // contradiction
         if(positiveLiteralsFound == max) {
+            int minIndex = minTruthIndex(clause);
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(getLocalTruth(literal) != -1) {setLocalTruth(-literal,minTruthIndex(clause));}}}
+                if(getLocalTruth(literal) == 0) {setLocalTruth(-literal,minIndex);}}}
         return -1;}
 
     int deriveTrueLiteralsExactly(Clause clause) {
@@ -285,15 +298,18 @@ public class Backtracker extends Solver {
                 if(sign == -1) negativeLiteralsFound += literalObject.multiplicity;
                 if(negativeLiteralsFound > exactlyNegative) return minTruthIndex(clause); // contradiction: too many negative literals.
             }}
+        int minIndex = 0;
         if(positiveLiteralsFound == exactlyPostive) { // all other literals must be false.
+            minIndex = minTruthIndex(clause);
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(getLocalTruth(literal) != -1) {setLocalTruth(-literal,minTruthIndex(clause));}}
+                if(getLocalTruth(literal) != -1) {setLocalTruth(-literal,minIndex);}}
             return -1;}
         if(negativeLiteralsFound == exactlyNegative) { // all other literals must be true.
+            if(minIndex == 0) minIndex = minTruthIndex(clause);
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(getLocalTruth(literal) != 1) {setLocalTruth(literal,minTruthIndex(clause));}}}
+                if(getLocalTruth(literal) == 0) {setLocalTruth(literal,minIndex);}}}
         return -1;}
 
     int deriveTrueLiteralsInterval(Clause clause) {
@@ -310,15 +326,18 @@ public class Backtracker extends Solver {
                 if(sign == -1) negativeLiteralsFound += literalObject.multiplicity;
                 if(negativeLiteralsFound > maxNegative) return minTruthIndex(clause); // contradiction: too many negative literals.
             }}
+        int minIndex = 0;
         if(positiveLiteralsFound == maxPositive) { // all other literals must be false.
+            minIndex = minTruthIndex(clause);
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(getLocalTruth(literal) != -1) {setLocalTruth(-literal,minTruthIndex(clause));}}
+                if(getLocalTruth(literal) != -1) {setLocalTruth(-literal,minIndex);}}
             return -1;}
         if(negativeLiteralsFound == maxNegative) { // all other literals must be true.
+            if(minIndex == 0) minIndex = minTruthIndex(clause);
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(getLocalTruth(literal) != 1) {setLocalTruth(literal,minTruthIndex(clause));}}}
+                if(getLocalTruth(literal) == 0) {setLocalTruth(literal,minIndex);}}}
         return -1;}
 
 
