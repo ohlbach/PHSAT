@@ -154,8 +154,10 @@ public class Backtracker extends Solver {
         int firstIndex;
         for(firstIndex = 1; firstIndex <= predicates; ++firstIndex) {
             if(model.status(predicateIndex[firstIndex]) == 0) break;}
-
+        boolean lastTry = false;
+int counter = 0;
         for(int index = firstIndex; index <= predicates; ++index) {
+            if(++counter == 10) System.exit(0);
             int selectedLiteral = predicateIndex[index];
             byte status = model.status(selectedLiteral);
             if(status != 0) {
@@ -164,61 +166,69 @@ public class Backtracker extends Solver {
 
             if(localModel[selectedLiteral] != 0) continue;
 
-            trueLiteralIndex[selectedLiteral] = index;
             derivedTrueLiterals = derivedTrueLiteralArray[index];
-
             int maxIndex = -1;
             System.out.println("I " + index + " PL " + positiveLiteral);
             if(positiveLiteral) {
-                derivedTrueLiterals.clear();
+                clearDerivedLiterals(derivedTrueLiterals);
                 localModel[selectedLiteral] = 1;
                 derivedTrueLiterals.add(selectedLiteral);
+                trueLiteralIndex[selectedLiteral] = index;
 
                 printStatus("A",index,selectedLiteral,maxIndex);
                 for(int i = 0; i < derivedTrueLiterals.size(); ++i) {
-                    if((maxIndex = checkClauses(derivedTrueLiterals.getInt(i))) >= 0) break;}}
+                    if((maxIndex = checkClauses(derivedTrueLiterals.getInt(i))) > 0) break;}}
 
-            if(!positiveLiteral || maxIndex >= 0) { // positive literal caused a contradiction.
+            if(!positiveLiteral || maxIndex > 0) { // positive literal caused a contradiction.
                 positiveLiteral = true;
-                for(int literal : derivedTrueLiterals) localModel[Math.abs(literal)] = 0;
-                derivedTrueLiterals.clear();
+                clearDerivedLiterals(derivedTrueLiterals);
                 localModel[selectedLiteral] = -1;
-                trueLiteralIndex[selectedLiteral] = Integer.MIN_VALUE;
+                trueLiteralIndex[selectedLiteral] = 0;
                 selectedLiteral *= -1;
                 derivedTrueLiterals.add(selectedLiteral);
                 printStatus("B",index,selectedLiteral, maxIndex);
                 for(int i = 0; i < derivedTrueLiterals.size(); ++i) {
-                    if((maxIndex = checkClauses(derivedTrueLiterals.getInt(i))) >= 0) {
-                        break;}}}
-
-
-            printStatus("C",index,selectedLiteral,maxIndex);
-            if(maxIndex >= 0) { // negative literal also caused a contradiction. Backtracking.
-                if(index == firstIndex) return false;
+                    int literal = derivedTrueLiterals.getInt(i);
+                    System.out.println("DR " + literal);
+                    maxIndex = checkClauses(literal);
+                    trueLiteralIndex[Math.abs(literal)] = 0;
+                    System.out.println("C " + maxIndex + " " + lastTry);
+                    if(maxIndex > 0) {
+                        if(lastTry) return false;
+                        break;}}
+                trueLiteralIndex[-selectedLiteral] = index;
+            }
+            printStatus("D",index,selectedLiteral,maxIndex);
+            if(maxIndex > 0) { // negative literal also caused a contradiction. Backtracking.
                 ++statistics.backtrackings;
                 positiveLiteral = false;
                 while(index >= maxIndex) {
-                    for(int literal : derivedTrueLiteralArray[index]) {
-                        int predicate = Math.abs(literal);
-                        localModel[predicate] = model.status(predicate);
-                        trueLiteralIndex[predicate] = 0;}
-                    --index;}}}
+                    clearDerivedLiterals(derivedTrueLiteralArray[index]);}
+                    lastTry = (--index <= firstIndex);}}
         return true;}
+
+    private void clearDerivedLiterals(IntArrayList derivedTrueLiterals) {
+        for(int literal : derivedTrueLiterals) {
+            int predicate = Math.abs(literal);
+            localModel[predicate] = model.status(predicate);
+            trueLiteralIndex[predicate] = 0;}
+        derivedTrueLiterals.clear();}
 
     void printStatus(String position, int index, int literal, int maxIndex) {
         System.out.println("\nStatus: " + position + " Index: " + index + " Sel.Lit: " + literal + " Max Ind: " + maxIndex +
                 " BT: " + statistics.backtrackings);
         System.out.println("Model:   " + Arrays.toString(localModel));
        if(index > 0) System.out.println("Derived: " + derivedTrueLiteralArray[index].toString());
+        System.out.println("TLI: "  + Arrays.toString(trueLiteralIndex));
     }
 
     /** checks the clauses with the given predicate: they may be locally unsatisfiable, or new true literals may be derivable.
      *
-     * @param predicate the predicate to be checked.
+     * @param literal the predicate to be checked.
      * @return -1 if none of the clauses is locally unsatisfiable, otherwise the largest predicate index for the predicates which causes a clause to be unsatisfiable.
      */
-    private int checkClauses(int predicate) {
-        Literal literalObject = literalIndex.getFirstLiteralObject(-predicate);
+    private int checkClauses(int literal) {
+        Literal literalObject = literalIndex.getFirstLiteralObject(-literal);
         while(literalObject != null) {
             int maxIndex = deriveTrueLiterals(literalObject.clause);
             if(maxIndex >= 0) return maxIndex; // contradiction
@@ -247,7 +257,8 @@ public class Backtracker extends Solver {
      * @return -1 or the largest index in the predicateIndex whose selection as true literal was responsible for the truth of the literal.
      */
     int deriveTrueLiteralsOr(Clause clause) {
-        int maxIndex = Integer.MIN_VALUE;
+        System.out.println("CL " + clause + "  " + Arrays.toString(localModel));
+        int maxIndex = -1;
         int falseLiterals = 0;
         int unassignedLiteral1 = 0;
         int unassignedLiteral2 = 0;
@@ -259,11 +270,13 @@ public class Backtracker extends Solver {
                 if(unassignedLiteral1 == 0) unassignedLiteral1 = literal; else unassignedLiteral2 = literal;}
             else {
                 maxIndex = Math.max(maxIndex,trueLiteralIndex[Math.abs(literal)]);
+                System.out.println("MI " + literal + " " + trueLiteralIndex[Math.abs(literal)] + " " + maxIndex);
                 ++falseLiterals;}}
+        System.out.println("FL " + falseLiterals + " " + clause.expandedSize + "  " + maxIndex);
         int expandedSize = clause.expandedSize;
         if(falseLiterals == expandedSize) return maxIndex; // contradiction
         if(falseLiterals == expandedSize - 1) setLocalTruth(unassignedLiteral1,maxIndex);
-        if(false && mergeResolution && falseLiterals == expandedSize - 2) {
+        if(mergeResolution && falseLiterals == expandedSize - 2) {
             if(!mergeResolution(unassignedLiteral1,unassignedLiteral2,maxIndex))
                 mergeResolution(unassignedLiteral2,unassignedLiteral1,maxIndex);}
         return -1;}

@@ -262,7 +262,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{7, cOr, -1, -2, 3})));
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{8, cOr, -1, -2, -3})));
         assertFalse(backtracker.searchModel());
-        assertEquals("[0, 1, -1, -1, 0, 0]",Arrays.toString(backtracker.localModel));
+        assertEquals("[0, -1, -1, -1, 0, 0]",Arrays.toString(backtracker.localModel));
         System.out.println(backtracker.statistics);
 
 
