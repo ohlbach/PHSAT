@@ -239,8 +239,33 @@ public class BacktrackerTest extends TestCase {
 
     public void testSearchModel() {
         System.out.println("searchModel");
-        Backtracker backtracker;
-        /*backtracker = makeBacktracker(5, 0);
+        Backtracker backtracker = makeBacktracker(5, 0);;
+
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{1, cOr, 1, 2, 3, 4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{2, cOr, 1, 2, -3, 4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{3, cOr, 1, -2, 3, 4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{4, cOr, 1, -2, -3, 4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{5, cOr, -1, 2, 3, 4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{6, cOr, -1, 2, -3, 4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{7, cOr, -1, -2, 3, 4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{8, cOr, -1, -2, -3, 4})));
+
+
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{11, cOr, 1, 2, 3, -4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{12, cOr, 1, 2, -3, -4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{13, cOr, 1, -2, 3, -4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{14, cOr, 1, -2, -3, -4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{15, cOr, -1, 2, 3, -4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{16, cOr, -1, 2, -3, -4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{17, cOr, -1, -2, 3, -4})));
+        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{18, cOr, -1, -2, -3, -4})));
+
+
+        assertFalse(backtracker.searchModel());
+        assertEquals("[0, -1, -1, -1, -1, 0]",Arrays.toString(backtracker.localModel));
+        System.out.println(backtracker.statistics);
+
+        backtracker = makeBacktracker(5, 0);
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{1, cOr, 1, 2, 3})));
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{2, cOr, 1, 2, -3})));
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{3, cOr, 1, -2, 3})));
@@ -250,7 +275,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{7, cOr, -1, -2, 3})));
         assertTrue(backtracker.searchModel());
         assertEquals("[0, 1, 1, 1, 1, 1]",Arrays.toString(backtracker.localModel));
-        System.out.println(backtracker.statistics);*/
+        System.out.println(backtracker.statistics);
 
         backtracker = makeBacktracker(5, 0);
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{1, cOr, 1, 2, 3})));
