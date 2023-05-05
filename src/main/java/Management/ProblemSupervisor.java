@@ -10,6 +10,7 @@ import Management.Monitor.Monitor;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Normalizer.Normalizer;
 import Solvers.Solver;
+import Utilities.Utilities;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -115,8 +116,8 @@ public class ProblemSupervisor {
             ex.printStackTrace();
             System.exit(0);}
         if(globalParameters.logstream != null) {
-            float time = (float)(System.nanoTime() - startTime) / (float)1000.0;
-            globalParameters.logstream.println("Solvers finished the problem " + problemId +" in " + time + "μs");}}
+            long time = System.nanoTime() - startTime;
+            globalParameters.logstream.println("Solvers finished the problem " + problemId +" in " + Utilities.duration(time));}}
 
 
     /** This method is called to indicate that they have done their job or gave up.

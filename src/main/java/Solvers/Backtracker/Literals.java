@@ -146,6 +146,12 @@ public class Literals {
             literalObject = literalObject.nextLiteral;}
         return size;}
 
+    int sizeTotal(int literal) {
+        int predicate = Math.abs(literal);
+        return size(predicate) + size(-predicate);}
+
+
+
     /** generates a string representation of the Literal index.
      *
      * @return a string representation of the Literal index.

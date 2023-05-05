@@ -1,6 +1,7 @@
 package Solvers.Backtracker;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Theory.Model;
 import Solvers.Normalizer.Normalizer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -261,7 +262,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{18, cOr, -1, -2, -3, -4})));
 
 
-        assertFalse(backtracker.searchModel());
+        assertFalse(backtracker.searchModel() instanceof Satisfiable);
         assertEquals("[0, -1, -1, -1, -1, 0]",Arrays.toString(backtracker.localModel));
         System.out.println(backtracker.statistics);
 
@@ -273,7 +274,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{5, cOr, -1, 2, 3})));
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{6, cOr, -1, 2, -3})));
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{7, cOr, -1, -2, 3})));
-        assertTrue(backtracker.searchModel());
+        assertTrue(backtracker.searchModel() instanceof Satisfiable);
         assertEquals("[0, 1, 1, 1, 1, 1]",Arrays.toString(backtracker.localModel));
         System.out.println(backtracker.statistics);
 
@@ -286,7 +287,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{6, cOr, -1, 2, -3})));
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{7, cOr, -1, -2, 3})));
         backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{8, cOr, -1, -2, -3})));
-        assertFalse(backtracker.searchModel());
+        assertFalse(backtracker.searchModel() instanceof Satisfiable);
         assertEquals("[0, -1, -1, -1, 0, 0]",Arrays.toString(backtracker.localModel));
         System.out.println(backtracker.statistics);
 

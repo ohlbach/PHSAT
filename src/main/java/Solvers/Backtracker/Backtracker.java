@@ -2,6 +2,8 @@ package Solvers.Backtracker;
 
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
+import Datastructures.Results.UnsatClauses;
 import Datastructures.Statistics.Statistic;
 import Management.ErrorReporter;
 import Management.ProblemSupervisor;
@@ -119,6 +121,7 @@ public class Backtracker extends Solver {
         statistics             = new BacktrackerStatistics(solverId);
         myThread               = Thread.currentThread();
         literalIndex.reset(predicates);
+        readInputClauses();
         initializeLocalModel();
         initializePredicateIndex();
         if(derivedTrueLiteralArray.length < predicates+1) derivedTrueLiteralArray = new IntArrayList[predicates +1];
@@ -127,12 +130,12 @@ public class Backtracker extends Solver {
             if (derivedTrueLiterals == null) derivedTrueLiteralArray[predicate] = new IntArrayList(10);
             else derivedTrueLiterals.clear();}
         if(trueLiteralIndex.length < predicates+1) trueLiteralIndex = new int[predicates+1];
-        readInputClauses();
-        boolean satisfiable = searchModel();
-        if(satisfiable) System.out.println(Arrays.toString(localModel));
-        else System.out.println("Unsatisfiable");
+
+        System.out.println(clauses.toString(null));
+        Result result = searchModel();
+        result.startTime = startTime;
         System.out.println(statistics);
-        return null;
+        return result;
     }
 
     /** integrates the normalized input clauses into the clauses-list.
@@ -150,7 +153,7 @@ public class Backtracker extends Solver {
     int[] trueLiteralIndex = new int[predicates+1];
 
     boolean positiveLiteral = true;
-    public boolean searchModel(){
+    public Result searchModel(){
         int firstIndex;
         for(firstIndex = 1; firstIndex <= predicates; ++firstIndex) {
             if(model.status(predicateIndex[firstIndex]) == 0) break;}
@@ -160,6 +163,7 @@ public class Backtracker extends Solver {
             int selectedLiteral = predicateIndex[index];
 
             if(selectedLiteral > 0) {
+                //System.out.println("SEL+ " + selectedLiteral);
                 byte status = model.status(selectedLiteral);
                 if (status != 0) { localModel[selectedLiteral] = status; continue;}
                 if (localModel[selectedLiteral] != 0) continue;
@@ -175,6 +179,7 @@ public class Backtracker extends Solver {
                     trueLiteralIndex[selectedLiteral] = index; continue;}
                 else selectedLiteral *= -1;}
 
+            //System.out.println("SEL- " + selectedLiteral);
             clearDerivedLiterals(derivedTrueLiterals);
             localModel[-selectedLiteral] = -1;
             trueLiteralIndex[-selectedLiteral] = 0;
@@ -192,8 +197,11 @@ public class Backtracker extends Solver {
             if(maxIndex == 0) ++maxIndex;
             // negative literal also caused a contradiction. Backtracking.
 
+            if((index - maxIndex) > 1) ++statistics.backjumps;
             while(maxIndex > firstIndex && predicateIndex[maxIndex] < 0) --maxIndex;
-            if(maxIndex == firstIndex && predicateIndex[maxIndex] < 0) return false;
+            if(maxIndex == firstIndex && predicateIndex[maxIndex] < 0)
+                return new UnsatClauses(problemId,solverId);
+
             // now predicateIndex[maxIndex] > 0 or maxIndex is at firstIndex
 
             ++statistics.backtrackings;
@@ -204,7 +212,8 @@ public class Backtracker extends Solver {
             if(predicateIndex[index] > 0) predicateIndex[index] *= -1;
             clearDerivedLiterals(derivedTrueLiteralArray[index--]);
             }
-        return true;}
+        model.exchangeModel(localModel);
+        return new Satisfiable(problemId,solverId,model);}
 
     private void clearDerivedLiterals(IntArrayList derivedTrueLiterals) {
         for(int literal : derivedTrueLiterals) {
@@ -435,28 +444,22 @@ public class Backtracker extends Solver {
 
 
 
-    /** initializes the predicate index. The first predicate starts with index 1.
-     * If seed = 0 then the sequence of predicates is just that natural order.<br>
-     * If seed != 0 then sequence of predicates is randomly changed. <br>
-     * This way one can have different Backtracker solvers searching in parallel in completely different order.
+    /** initializes the predicate index.
+     * <br>
+     * The predicates are sorted according to the number of literal occurrences.
+     * The higher numbers of literal occurrences come earlier.
      */
-    void initializePredicateIndex(){
+    void initializePredicateIndex() {
+        Integer[] preds = new Integer[predicates+1];
+        for (int predicate = 1; predicate <= predicates; ++predicate) preds[predicate] = predicate;
+        Arrays.sort(preds,1,predicates+1, Comparator.comparingInt(i -> -literalIndex.sizeTotal(i)));
         if(predicateIndex == null || predicateIndex.length < predicates+1) predicateIndex = new int[predicates+1];
-        for(int predicate = 1; predicate <= predicates; ++predicate) predicateIndex[predicate] = predicate;
-        if(seed ==  0) return;
-        Random rnd = new Random(seed);
-        int position1 = rnd.nextInt(predicates)+1;
-        predicateIndex[1] = position1;
-        predicateIndex[position1] = 1;
-        for(int i = 0; i < predicates/2; ++i) {
-            position1 = rnd.nextInt(predicates)+1;
-            int position2 = rnd.nextInt(predicates) + 1;
-            int predicate = predicateIndex[position1];
-            predicateIndex[position1] = predicateIndex[position2];
-            predicateIndex[position2] = predicate;}}
+        for (int predicate = 1; predicate <= predicates; ++predicate) predicateIndex[predicate] = preds[predicate];
+    }
 
-    /** initializes the local to be synchronous to the global model.
-     */
+
+        /** initializes the local to be synchronous to the global model.
+         */
     void initializeLocalModel() {
         if(localModel == null || localModel.length < predicates+1) localModel = new byte[predicates+1];
         for(int predicate = 1; predicate <= predicates; ++predicate) {

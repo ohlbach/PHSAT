@@ -1162,6 +1162,17 @@ public class Utilities {
             if(i < size-1) st.append(",");}
         return st.toString();}
 
+    /** returns the time as sec, ms, μs or ns
+     *
+     * @param time nanoseconds
+     * @return the time as string.
+     */
+    public static String duration(long time) {
+        if(time > 1000000000) return (float)time/1000000000.0 + " sec";
+        if(time > 1000000)    return (float)time/1000000.0 + " ms";
+        if(time > 1000)    return (float)time/1000.0 + " μs";
+        return time + " ns";}
+
     public static void  main1(String[] args) {
         System.out.println(pathWithHome("home/xy/abc/def").toString());
     }

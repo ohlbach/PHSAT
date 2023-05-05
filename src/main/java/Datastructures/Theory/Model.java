@@ -162,6 +162,16 @@ public class Model {
         if(position >= inferenceSteps.size()) return null;
         return inferenceSteps.get(position);}
 
+    /** exchanges the model by a model found by some solver.
+     *
+     * @param status the truth status (+1,-1,0) if the predicates.
+     */
+    public synchronized void exchangeModel(byte[] status) {
+        this.status = status;
+        model.clear();
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            if(status[predicate] == 1) model.add(predicate);
+            else if(status[predicate] == -1) model.add(-predicate);}}
 
     /** turns the status value into a string.
      *

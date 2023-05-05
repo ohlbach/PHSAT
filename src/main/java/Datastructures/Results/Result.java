@@ -40,7 +40,8 @@ public class Result extends Exception {
         super();
         this.problemId = problemId;
         this.solverId = solverId;
-        endTime = System.nanoTime();}
+        endTime = System.nanoTime();
+    }
 
     /** returns the duration (endTime - startTime) in nanoseconds.
      *

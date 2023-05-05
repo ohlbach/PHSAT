@@ -1,5 +1,7 @@
 package Management.Monitor;
 
+import Utilities.Utilities;
+
 /** This class implements a monitor which prints messages directly to System.out.*/
 
 public class MonitorLife extends Monitor {
@@ -21,8 +23,8 @@ public class MonitorLife extends Monitor {
      * @param messages to be printed.
      */
     public void print(String id, String... messages) {
-        double time = (double)(System.nanoTime() - startTime)/1000.0;
-        System.out.print(id+","+title+"@" + time + "μs: ");
+        String time = Utilities.duration(System.nanoTime() - startTime);
+        System.out.print(id+","+title+"@" + time + " ");
         for(String message: messages) System.out.print(message);
         System.out.println();}
 
@@ -32,8 +34,8 @@ public class MonitorLife extends Monitor {
      * @param messages to be printed.
      */
     public void println(String id, String... messages) {
-        double time = ((double)(System.nanoTime() - startTime))/1000.0;
-        System.out.println(id+","+title+"@" + time + "μs: ");
+        String time = Utilities.duration(System.nanoTime() - startTime);
+        System.out.println(id+","+title+"@" + time);
         for(String message: messages) System.out.println("  "+message);}
 
     /** prints just the message.
@@ -49,8 +51,8 @@ public class MonitorLife extends Monitor {
      * @param messages messages.
      */
     public void print(String id, StringBuilder messages) {
-        double time = (double)(System.nanoTime() - startTime)/1000.0;
-        System.out.println(id+","+title+"@" + time + "μs: ");
+        String time = Utilities.duration(System.nanoTime() - startTime);
+        System.out.println(id+","+title+"@" + time + " ");
         System.out.println(messages);}
 
 

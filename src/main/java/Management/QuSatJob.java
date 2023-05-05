@@ -7,6 +7,7 @@ import Management.Monitor.MonitorLife;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
 import Utilities.KVParser;
+import Utilities.Utilities;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -164,8 +165,7 @@ public class QuSatJob {
      */
     public void printlog(String message) {
         if(globalParameters.logstream == null) return;
-        double time = (double)(System.nanoTime() - startTime)/1000.0;
-        globalParameters.logstream.print(time+" μs: ");
+        globalParameters.logstream.print(Utilities.duration(System.nanoTime() - startTime) + " ");
         globalParameters.logstream.println(message);
     }
 
@@ -175,7 +175,7 @@ public class QuSatJob {
         quSatJob.globalParameters.monitor = "life";
         quSatJob.globalParameters.jobname = "MyJob";
         quSatJob.globalParameters.logging = "life";
-        quSatJob.globalParameters.directory = Utilities.Utilities.pathWithHome("home/TEST");
+        quSatJob.globalParameters.directory = Utilities.pathWithHome("home/TEST");
         quSatJob.prepareMonitorAndLogstream();
         System.out.println(quSatJob.globalParameters.toString());
 

@@ -44,20 +44,18 @@ public class QUSat {
 
    private static final String parameters =
             "problem random\n"+
-                    "predicates = 20\n" +
-                    "cpRatio = 4\n"+
+                    "predicates = 100\n" +
+                    "cpRatio = 5\n"+
                     "length = 3\n"+
-                    "seed = 5 to 10 step 1\n"+ // 20/4;  0 sat, 1 cont, 2 sat, 3 sat, 4 unsat, 5 sat, 6 sat, 7 sat, 8 wrong
+                    "seed = 1\n"+ // 20/4;  0 sat, 1 cont, 2 sat, 3 sat, 4 unsat, 5 sat, 6 sat, 7 sat, 8 wrong
             "global\n" +           //12/4: 8 wrong
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
                     "showClauses = false\n"+
-                    //"monitor = life\n"+
+                    "monitor = life\n"+
                     "trackReasoning\n"+
-           "solver simplifier";
-           /*"solver walker\n"+
-                    "flips = 40\n"+
-                    "jumps = 3\n"+*/ ;
+           //"solver simplifier";
+           "solver backtracker\n";
 
     /*private static final String parameters =
             "problem cnfreader\n"+
@@ -124,6 +122,7 @@ public class QUSat {
         helpers.put("pigeonhole", ProblemGenerators.PigeonHoleGenerator::help);
         helpers.put("string",     ProblemGenerators.StringClauseSetGenerator::help);
         helpers.put("walker",     Solvers.Walker.Walker::help);
+        helpers.put("backtracker", Solvers.Backtracker.Backtracker::help);
     }
     /** for displaying the helpers */
     private static final String helperKeys = "parameters, global, generator (cnfreader, random, pigeonhole, string) ";
