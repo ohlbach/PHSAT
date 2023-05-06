@@ -28,6 +28,8 @@ public class Clause {
     /** true if there are literals with multiplicities &gt; 1. */
     protected boolean hasMultiplicities = false;
 
+    protected int timestamp = 0;
+
     /** the next clause in a doubly quantified list. */
     protected Clause nextClause;
 

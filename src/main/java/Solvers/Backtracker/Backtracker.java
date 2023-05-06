@@ -265,6 +265,7 @@ public class Backtracker extends Solver {
      * @return -1 or the largest index in the predicateIndex whose selection as true literal was responsible for the truth of the literal.
      */
     int deriveTrueLiteralsOr(Clause clause) {
+        System.out.println("DT " + clause);
         int maxIndex = -1;
         int falseLiterals = 0;
         int unassignedLiteral1 = 0;
@@ -281,7 +282,7 @@ public class Backtracker extends Solver {
         int expandedSize = clause.expandedSize;
         if(falseLiterals == expandedSize) return maxIndex; // contradiction
         if(falseLiterals == expandedSize - 1) setLocalTruth(unassignedLiteral1,maxIndex);
-        if(false && mergeResolution && falseLiterals == expandedSize - 2) {
+        if(mergeResolution && falseLiterals == expandedSize - 2) {
             if(!mergeResolution(unassignedLiteral1,unassignedLiteral2,maxIndex))
                 mergeResolution(unassignedLiteral2,unassignedLiteral1,maxIndex);}
         return -1;}
@@ -296,7 +297,8 @@ public class Backtracker extends Solver {
      * @param maxIndex the largest predicate index which caused the other literals to be false.
      * @return true if the merge-resolution succeeded.
      */
-    boolean mergeResolution(int resolutionLiteral, int mergeLiteral, int maxIndex) {
+    boolean mergeResolution1(int resolutionLiteral, int mergeLiteral, int maxIndex) {
+        //System.out.println("MTA " + resolutionLiteral + " " + mergeLiteral);
         Literal literalObject = literalIndex.getFirstLiteralObject(-resolutionLiteral);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
@@ -314,24 +316,61 @@ public class Backtracker extends Solver {
                 if(mergeLiteralFound && falseLiterals == clause.expandedSize - 2) {
                     setLocalTruth(mergeLiteral,maxIndex);
                     ++statistics.mergeResolutions;
+                    System.out.println("MEA " + mergeLiteral);
                     return true;}}
             literalObject = literalObject.nextLiteral;}
         return false;}
 
-    /** checks the clause for local unsatisfiability or derives new locally true literals.
-     * <br>
-     * The clause is locally unsatisfiable iff<br>
-     * - |false literals| &gt; expandedSize - min
-     * <br>
-     * True literals can be derived iff<br>
-     * - |false literals| = expandedSize - min; all other literals must be true.
-     * <br>
-     * If nothing can be concluded, -1 is returned. <br>
-     * If the clause is unsatisfiable then the largest predicate index is returned.<br>
-     *
-     * @param clause a clause to be checked.
-     * @return -1 or the largest predicate index if the clause is locally contradictory.
-     */
+    private int timestamp = 1;
+
+    boolean mergeResolution(int resolutionLiteral, int mergeLiteral, int maxIndex) {
+        //System.out.println("MTN " + resolutionLiteral + " " + mergeLiteral);
+        int negResolutionLiteral = -resolutionLiteral;
+        Literal literalObject = literalIndex.getFirstLiteralObject(negResolutionLiteral);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if(clause.quantifier == Quantifier.OR)  clause.timestamp = timestamp;
+            literalObject = literalObject.nextLiteral;}
+
+        literalObject = literalIndex.getFirstLiteralObject(mergeLiteral);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if(clause.timestamp == timestamp) {
+                int falseLiterals = 0;
+                ArrayList<Literal> literals = clause.literals;
+                int size = literals.size();
+                for(int i = 0; i < size; ++i){
+                    int literal = literals.get(i).literal;
+                    if(literal == negResolutionLiteral || literal == mergeLiteral) continue;
+                    if(getLocalTruth(literal) == -1) {
+                        ++falseLiterals;
+                        maxIndex = Math.max(maxIndex,trueLiteralIndex[Math.abs(literal)]);}
+                    else break;}
+                if(falseLiterals == clause.expandedSize-2) {
+                    setLocalTruth(mergeLiteral,maxIndex);
+                    ++statistics.mergeResolutions;
+                    ++timestamp;
+                    System.out.println("MEN " + mergeLiteral);
+
+                    return true;}}
+            literalObject = literalObject.nextLiteral;}
+        ++timestamp;
+        return false;}
+
+                /** checks the clause for local unsatisfiability or derives new locally true literals.
+                 * <br>
+                 * The clause is locally unsatisfiable iff<br>
+                 * - |false literals| &gt; expandedSize - min
+                 * <br>
+                 * True literals can be derived iff<br>
+                 * - |false literals| = expandedSize - min; all other literals must be true.
+                 * <br>
+                 * If nothing can be concluded, -1 is returned. <br>
+                 * If the clause is unsatisfiable then the largest predicate index is returned.<br>
+                 *
+                 * @param clause a clause to be checked.
+                 * @return -1 or the largest predicate index if the clause is locally contradictory.
+                 */
     int deriveTrueLiteralsAtleast(Clause clause) {
         int maxIndex = Integer.MIN_VALUE;
         int maxFalse = clause.expandedSize - clause.min;
