@@ -29,7 +29,7 @@ public class Backtracker extends Solver {
     private static final HashSet<String> keys = new HashSet<>();
 
     static { // these are the allowed keys in the specification.
-        Collections.addAll(keys, "seeds", "solver");}
+        Collections.addAll(keys, "seeds", "solver", "mergeResolution");}
 
     /** parses a HashMap with key-value pairs and creates corresponding Walkers.
      *
@@ -131,7 +131,7 @@ public class Backtracker extends Solver {
             else derivedTrueLiterals.clear();}
         if(trueLiteralIndex.length < predicates+1) trueLiteralIndex = new int[predicates+1];
 
-        System.out.println(clauses.toString(null));
+        //System.out.println(clauses.toString(null));
         Result result = searchModel();
         result.startTime = startTime;
         System.out.println(statistics);
@@ -163,7 +163,6 @@ public class Backtracker extends Solver {
             int selectedLiteral = predicateIndex[index];
 
             if(selectedLiteral > 0) {
-                //System.out.println("SEL+ " + selectedLiteral);
                 byte status = model.status(selectedLiteral);
                 if (status != 0) { localModel[selectedLiteral] = status; continue;}
                 if (localModel[selectedLiteral] != 0) continue;
@@ -175,11 +174,11 @@ public class Backtracker extends Solver {
                 for (int i = 0; i < derivedTrueLiterals.size(); ++i) {
                     maxIndex = checkClauses(derivedTrueLiterals.getInt(i));
                     if (maxIndex >= 0) break;}
-                if (maxIndex == -1) { // no contradiction
+                statistics.addDerivedLiteralLength(derivedTrueLiterals.size());
+                  if (maxIndex == -1) { // no contradiction
                     trueLiteralIndex[selectedLiteral] = index; continue;}
                 else selectedLiteral *= -1;}
 
-            //System.out.println("SEL- " + selectedLiteral);
             clearDerivedLiterals(derivedTrueLiterals);
             localModel[-selectedLiteral] = -1;
             trueLiteralIndex[-selectedLiteral] = 0;
@@ -190,7 +189,8 @@ public class Backtracker extends Solver {
                 int literal = derivedTrueLiterals.getInt(i);
                 maxIndex = checkClauses(literal);
                 if(maxIndex >= 0) {break;}}
-            if(maxIndex == -1) { // no contradiction
+            statistics.addDerivedLiteralLength(derivedTrueLiterals.size());
+             if(maxIndex == -1) { // no contradiction
                 trueLiteralIndex[-selectedLiteral] = index;
                 continue;}
 
@@ -265,7 +265,7 @@ public class Backtracker extends Solver {
      * @return -1 or the largest index in the predicateIndex whose selection as true literal was responsible for the truth of the literal.
      */
     int deriveTrueLiteralsOr(Clause clause) {
-        System.out.println("DT " + clause);
+        //System.out.println("DT " + clause);
         int maxIndex = -1;
         int falseLiterals = 0;
         int unassignedLiteral1 = 0;
@@ -294,15 +294,15 @@ public class Backtracker extends Solver {
      *
      * @param resolutionLiteral an unassigned literal.
      * @param mergeLiteral another unassigned literal.
-     * @param maxIndex the largest predicate index which caused the other literals to be false.
+     * @param maxIndexOriginal the largest predicate index which caused the other literals to be false.
      * @return true if the merge-resolution succeeded.
      */
-    boolean mergeResolution1(int resolutionLiteral, int mergeLiteral, int maxIndex) {
-        //System.out.println("MTA " + resolutionLiteral + " " + mergeLiteral);
+    boolean mergeResolution1(int resolutionLiteral, int mergeLiteral, int maxIndexOriginal) {
         Literal literalObject = literalIndex.getFirstLiteralObject(-resolutionLiteral);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
             if(clause.quantifier == Quantifier.OR) {
+                int maxIndex = maxIndexOriginal;
                 boolean mergeLiteralFound = false;
                 int falseLiterals = 0;
                 for(Literal litObject : clause.literals) {
@@ -316,15 +316,13 @@ public class Backtracker extends Solver {
                 if(mergeLiteralFound && falseLiterals == clause.expandedSize - 2) {
                     setLocalTruth(mergeLiteral,maxIndex);
                     ++statistics.mergeResolutions;
-                    System.out.println("MEA " + mergeLiteral);
                     return true;}}
             literalObject = literalObject.nextLiteral;}
         return false;}
 
     private int timestamp = 1;
 
-    boolean mergeResolution(int resolutionLiteral, int mergeLiteral, int maxIndex) {
-        //System.out.println("MTN " + resolutionLiteral + " " + mergeLiteral);
+    boolean mergeResolution(int resolutionLiteral, int mergeLiteral, int maxIndexOriginal) {
         int negResolutionLiteral = -resolutionLiteral;
         Literal literalObject = literalIndex.getFirstLiteralObject(negResolutionLiteral);
         while(literalObject != null) {
@@ -336,6 +334,7 @@ public class Backtracker extends Solver {
         while(literalObject != null) {
             Clause clause = literalObject.clause;
             if(clause.timestamp == timestamp) {
+                int maxIndex = maxIndexOriginal;
                 int falseLiterals = 0;
                 ArrayList<Literal> literals = clause.literals;
                 int size = literals.size();
@@ -350,8 +349,6 @@ public class Backtracker extends Solver {
                     setLocalTruth(mergeLiteral,maxIndex);
                     ++statistics.mergeResolutions;
                     ++timestamp;
-                    System.out.println("MEN " + mergeLiteral);
-
                     return true;}}
             literalObject = literalObject.nextLiteral;}
         ++timestamp;
