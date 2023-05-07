@@ -1,1008 +1,1007 @@
 package Solvers.Resolution;
 
-/**
- * Created by ohlbach on 09.12.2019.
- */
-public class ResolutionTest {
-/*
-    static Method getMethod(String name, Class<?>... classes) {
-        try {
-            Class clazz = Class.forName("Solvers.Resolution.Resolution");
-            Method method = clazz.getDeclaredMethod(name, classes);
-            method.setAccessible(true);
-            return method;
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        return null;}
+import Datastructures.Clauses.InputClauses;
+import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
+import Datastructures.Results.Unsatisfiable;
+import Datastructures.Symboltable;
+import InferenceSteps.InfInputClause;
+import InferenceSteps.InferenceStep;
+import InferenceSteps.InferenceTest;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
+import junit.framework.TestCase;
 
-    static Field getField(String name) {
-        try {
-            Class clazz = Class.forName("Solvers.Resolution.Resolution");
-            Field field = clazz.getDeclaredField(name);
-            field.setAccessible(true);
-            return field;
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        return null;}
+import java.util.ArrayList;
+import java.util.function.IntSupplier;
 
-    static Field getSField(String name) {
-        try {
-            Class clazz = Class.forName("Solvers.Solver");
-            Field field = clazz.getDeclaredField(name);
-            field.setAccessible(true);
-            return field;
-        }
-        catch (Exception ex) {
-            ex.printStackTrace();
-        }
-        return null;}
+public class ResolutionTest extends TestCase {
+
+    static int cOr = Quantifier.OR.ordinal();
+    static int cAtleast = Quantifier.ATLEAST.ordinal();
+    static int cAtmost = Quantifier.ATMOST.ordinal();
+    static int cExactly = Quantifier.EXACTLY.ordinal();
+    static int cInterval = Quantifier.INTERVAL.ordinal();
 
 
+    static boolean monitoring = true;
 
+    static Symboltable symboltable = new Symboltable(10);
 
-    private static int counter = 1;
-
-    private Clause make(int... literals) {
-        Clause cl = new Clause(counter++, ClauseType.OR, literals.length);
-        int i = -1;
-        for(int l:literals) {
-            cl.add(new CLiteral(l,cl,++i));}
-        return cl;}
-
-
-    @Test
-    public void parseParameters1() throws Exception {
-        System.out.println("Parse Parameters 1");
-        HashMap<String,String> parameters = new HashMap<>();
-        parameters.put("strategy","POSITIVE");
-        parameters.put("seed","10");
-        parameters.put("limit", "20");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
-        ArrayList<HashMap<String,Object>> pars = Resolution.parseParameters(parameters,errors,warnings);
-        assertEquals("[{seed=10, limit=20, name=Resolution_1, strategy=POSITIVE, percentageOfSOSClauses=50}]",pars.toString());
-    }
-    @Test
-    public void parseParameters2() throws Exception {
-        System.out.println("Parse Parameters 2");
-        HashMap<String,String> parameters = new HashMap<>();
-        parameters.put("strategy","POSITIVE, SOS");
-        parameters.put("seed","10,20");
-        parameters.put("limit", "20 to 22");
-        parameters.put("percentageOfSOSClauses","80");
-        StringBuffer errors = new StringBuffer();
-        StringBuffer warnings = new StringBuffer();
-        ArrayList<HashMap<String,Object>> pars = Resolution.parseParameters(parameters,errors,warnings);
-        //System.out.println(pars);
-        System.out.println(errors.toString());
-        System.out.println(warnings.toString());
-        assertEquals("[{seed=10, limit=20, name=Resolution_1, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=10, limit=20, name=Resolution_2, strategy=SOS, percentageOfSOSClauses=80}, {seed=20, limit=20, name=Resolution_3, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=20, limit=20, name=Resolution_4, strategy=SOS, percentageOfSOSClauses=80}, {seed=10, limit=21, name=Resolution_5, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=10, limit=21, name=Resolution_6, strategy=SOS, percentageOfSOSClauses=80}, {seed=20, limit=21, name=Resolution_7, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=20, limit=21, name=Resolution_8, strategy=SOS, percentageOfSOSClauses=80}, {seed=10, limit=22, name=Resolution_9, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=10, limit=22, name=Resolution_10, strategy=SOS, percentageOfSOSClauses=80}, {seed=20, limit=22, name=Resolution_11, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=20, limit=22, name=Resolution_12, strategy=SOS, percentageOfSOSClauses=80}]",pars.toString());
+    static {
+        symboltable.setName(1, "p");
+        symboltable.setName(2, "q");
+        symboltable.setName(3, "r");
+        symboltable.setName(4, "s");
+        symboltable.setName(5, "t");
     }
 
-
-
-    @Test
-    public void help() throws Exception {
-        //System.out.println(Resolution.help());
-
-    }
-
-    @Test
-    public void isPrimary() throws Exception {
-        System.out.println("isPrimary");
-        Controller cntr = new Controller(null,null,null);
-        HashMap<String,Object> problemParameters = new HashMap<>();
-        problemParameters.put("name","test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr,null,problemParameters,null);
-        Resolution res = new Resolution(1,null,sup);
-        Field strategy = getField("strategy");
-        Clause c1 = make(1,2,3);
-        Clause c2 = make(-1,-2,-3);
-        Clause c3 = make(1,-2,3);
-        Method isPrimary = getMethod("isPrimary",Clause.class,boolean.class);
-
-        strategy.set(res,ResolutionStrategy.INPUT);
-        assertTrue((boolean)isPrimary.invoke(res,c1,true));
-        assertFalse((boolean)isPrimary.invoke(res,c1,false));
-
-        strategy.set(res,ResolutionStrategy.POSITIVE);
-        assertTrue((boolean)isPrimary.invoke(res,c1,true));
-        assertFalse((boolean)isPrimary.invoke(res,c2,true));
-        assertFalse((boolean)isPrimary.invoke(res,c3,true));
-
-
-        strategy.set(res,ResolutionStrategy.NEGATIVE);
-        assertFalse((boolean)isPrimary.invoke(res,c1,true));
-        assertTrue((boolean)isPrimary.invoke(res,c2,true));
-        assertFalse((boolean)isPrimary.invoke(res,c3,true));
-
-        Field percentageOfSOSClauses = getField("percentageOfSOSClauses");
-        Field random = getField("random");
-        percentageOfSOSClauses.set(res,99);
-        random.set(res,new Random(0));
-
-        strategy.set(res,ResolutionStrategy.SOS);
-        assertTrue((boolean)isPrimary.invoke(res,c1,false));
-
-        percentageOfSOSClauses.set(res,100);
-        assertTrue((boolean)isPrimary.invoke(res,c1,true));
-        percentageOfSOSClauses.set(res,0);
-        assertFalse((boolean)isPrimary.invoke(res,c1,true));
-    }
-
-
-    @Test
-    public void insertClause() throws Exception {
-        counter = 1;
+    public void testInsertClause() throws Result {
         System.out.println("insertClause");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
-        Resolution res = new Resolution(1, null, sup);
-        Field statistics = getField("statistics");
-        statistics.set(res,new ResolutionStatistics("test"));
-        Field primaryClauses = getField("primaryClauses");
-        primaryClauses.set(res,new BucketSortedList<Clause>(clause->clause.size()));
-        Field secondaryClauses = getField("secondaryClauses");
-        secondaryClauses.set(res,new BucketSortedList<Clause>(clause->clause.size()));
-        Field literalIndex = getField("literalIndex");
-        literalIndex.set(res,new BucketSortedIndex<CLiteral>(10,
-                (cLiteral->cLiteral.literal),
-                (cLiteral->cLiteral.clause.size())));
-        Field taskQueue = getField("taskQueue");
-        taskQueue.set(res,new TaskQueue("test",null));
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(10, monitor, true, nextId);
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cAtleast, 2, 1, 1, 2, 2, -3, -3});
+        resolution.insertClause(clause2);
+        assertEquals("1: 1v2v3\n" +
+                "2: >= 2 1^2,2^2,-3^2\n", resolution.clauses.toString());
+        assertEquals("1: pvqvr\n" +
+                "2: >= 2 p^2,q^2,-r^2\n", resolution.clauses.toString(symboltable));
+        Clause clause3 = new Clause(new int[]{3, cOr, 4, -5});
+        resolution.insertClause(clause3);
+        assertEquals("Positive Literals:\n" +
+                "4:1,\n" +
+                "Negative Literals:\n" +
+                "-5:1,", resolution.literalIndexTwo.toString());
+        assertEquals("Positive Literals:\n" +
+                "1:2,2:2,3:1,\n" +
+                "Negative Literals:\n" +
+                "-3:1,", resolution.literalIndexMore.toString());
 
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
+        resolution.removeClause(clause1, false); // no purity check
+        assertEquals("2: >= 2 1^2,2^2,-3^2\n" +
+                "3: 4v-5\n", resolution.clauses.toString());
 
-        Clause c1 = make(1, 2, 3);
-        Clause c2 = make(-1, -2, -3);
-        Clause c3 = make(4, -5, 6);
-        insertClause.invoke(res,c1,true,"initial");
-        insertClause.invoke(res,c2,false,"initial");
-        insertClause.invoke(res,c3,false,"initial");
-        assertEquals("Bucket 3\n" +
-                "  1:(1,2,3)\n",primaryClauses.get(res).toString());
-        assertEquals("Bucket 3\n" +
-                "  2:(-1,-2,-3)\n" +
-                "  3:(4,-5,6)\n",secondaryClauses.get(res).toString());
-        assertEquals(" 1: 1,\n" +
-                "-1: -1,\n" +
-                " 2: 2,\n" +
-                "-2: -2,\n" +
-                " 3: 3,\n" +
-                "-3: -3,\n" +
-                " 4: 4,\n" +
-                "-5: -5,\n" +
-                " 6: 6,\n",literalIndex.get(res).toString());
-        Field clauseCounter = getField("clauseCounter");
-        assertEquals(3,clauseCounter.get(res));
+        assertEquals("Positive Literals:\n" +
+                "4:1,\n" +
+                "Negative Literals:\n" +
+                "-5:1,", resolution.literalIndexTwo.toString());
 
-        Clause c4 = make(7);
-        insertClause.invoke(res,c4,true,"initial");
-        Clause c5 = make(-7);
-        insertClause.invoke(res,c5,true,"initial");
-        assertEquals("1. P1: initial: 7\n" +
-                "2. P1: initial: -7\n",taskQueue.get(res).toString());
-        assertEquals(2,((ResolutionStatistics)statistics.get(res)).derivedUnitClauses);
+        assertEquals("Positive Literals:\n" +
+                "1:1,2:1,\n" +
+                "Negative Literals:\n" +
+                "-3:1,", resolution.literalIndexMore.toString());
     }
 
-    @Test
-    public void removeClause() throws Exception {
-        counter = 1;
-        System.out.println("removeClause");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
-        Resolution res = new Resolution(1, null, sup);
-        Field statistics = getField("statistics");
-        statistics.set(res, new ResolutionStatistics("test"));
-        Field primaryClauses = getField("primaryClauses");
-        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field secondaryClauses = getField("secondaryClauses");
-        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
-                (cLiteral -> cLiteral.literal),
-                (cLiteral -> cLiteral.clause.size())));
-        Field taskQueue = getField("taskQueue");
-        taskQueue.set(res, new TaskQueue("test", null));
-
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
-
-        Clause c1 = make(1, 2, 3);
-        Clause c2 = make(-4, -5, -6);
-        Clause c3 = make(7, -5, 6);
-        insertClause.invoke(res, c1, true,"initial");
-        insertClause.invoke(res, c2, false,"initial");
-        insertClause.invoke(res, c3, false,"initial");
-        assertEquals(" 1: 1,\n" +
-                " 2: 2,\n" +
-                " 3: 3,\n" +
-                "-4: -4,\n" +
-                "-5: -5,-5,\n" +
-                " 6: 6,\n" +
-                "-6: -6,\n" +
-                " 7: 7,\n",literalIndex.get(res).toString());
-
-        Method removeClause = getMethod("removeClause", Clause.class, int.class);
-
-        removeClause.invoke(res,c2,0);
-        assertEquals(" 1: 1,\n" +
-                " 2: 2,\n" +
-                " 3: 3,\n" +
-                "-5: -5,\n" +
-                " 6: 6,\n" +
-                " 7: 7,\n",literalIndex.get(res).toString());
-
-        removeClause.invoke(res,c1,2);
-        assertEquals(" 2: 2,\n" +
-                "-5: -5,\n" +
-                " 6: 6,\n" +
-                " 7: 7,\n",literalIndex.get(res).toString());
-
-        assertEquals("Bucket 3\n" +
-                "  3:(7,-5,6)\n",secondaryClauses.get(res).toString());
-        assertEquals("",primaryClauses.get(res).toString());
+    public void testPurityCheck() throws Result {
+        System.out.println("purityCheck");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(10, monitor, true, nextId);
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, -1, -2, 3});
+        resolution.insertClause(clause2);
+        resolution.removeClause(clause2, true);
+        assertEquals("1: 1v2v3\n", resolution.clauses.toString());
+        assertEquals("1,2,3", resolution.model.toString());
     }
 
-    @Test
-    public void removeLiteral() throws Exception {
-        counter = 1;
-        System.out.println("removeLiteral");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
-        Resolution res = new Resolution(1, null, sup);
-        Field statistics = getField("statistics");
-        statistics.set(res, new ResolutionStatistics("test"));
-        Field primaryClauses = getField("primaryClauses");
-        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field secondaryClauses = getField("secondaryClauses");
-        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
-                (cLiteral -> cLiteral.literal),
-                (cLiteral -> cLiteral.clause.size())));
-        Field taskQueue = getField("taskQueue");
-        taskQueue.set(res, new TaskQueue("test", null));
+    public void testSimplifyClause() throws Unsatisfiable {
+        System.out.println("simplify clause");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(10, monitor, true, nextId);
+        Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.simplifyClause(clause, false);
+        assertEquals("1: 1v2v3", clause.toString());
 
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
+        clause = new Clause(new int[]{2, cAtleast, 5, 1, 1, 2, 2, 3, 4});
+        resolution.insertClause(clause);
+        assertEquals("Positive Literals:\n" +
+                "1:1,2:1,3:1,4:1,\n" +
+                "Negative Literals:\n", resolution.literalIndexMore.toString());
+        resolution.simplifyClause(clause, false);
+        assertEquals("2: 3v4", clause.toString());
+        assertEquals("1,2", resolution.model.toString());
+        assertEquals("Positive Literals:\n" +
+                "\n" +
+                "Negative Literals:\n", resolution.literalIndexMore.toString());
+        assertEquals("Positive Literals:\n" +
+                "3:1,4:1,\n" +
+                "Negative Literals:\n", resolution.literalIndexTwo.toString());
 
-        Clause c1 = make(1, 2, 3);
-        Clause c2 = make(-4, -5, -6);
-        Clause c3 = make(7, -5, 6);
-        insertClause.invoke(res, c1, true,"initial");
-        insertClause.invoke(res, c2, false,"initial");
-        insertClause.invoke(res, c3, false,"initial");
+        clause = new Clause(new int[]{3, cAtleast, 6, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3});
+        resolution.simplifyClause(clause, false);
+        assertEquals("3: >= 3 1^2,2^2,3^2", clause.toString());
 
-        Method removeLiteral = getMethod("removeLiteral", CLiteral.class);
-
-        removeLiteral.invoke(res,c1.getCLiteral(1));
-        assertEquals("1:(1,3)",c1.toString());
-        assertEquals(" 1: 1,\n" +
-                " 3: 3,\n" +
-                "-4: -4,\n" +
-                "-5: -5,-5,\n" +
-                " 6: 6,\n" +
-                "-6: -6,\n" +
-                " 7: 7,\n",literalIndex.get(res).toString());
-
-        removeLiteral.invoke(res,c2.getCLiteral(1));
-        assertEquals("2:(-4,-6)",c2.toString());
-        assertEquals("3:(7,-5,6)",c3.toString());
-        assertEquals(" 1: 1,\n" +
-                " 3: 3,\n" +
-                "-4: -4,\n" +
-                "-5: -5,\n" +
-                " 6: 6,\n" +
-                "-6: -6,\n" +
-                " 7: 7,\n",literalIndex.get(res).toString());
-        assertFalse((boolean)removeLiteral.invoke(res,c2.getCLiteral(1)));
-        assertEquals("1. P1: New true literal derived: -4\n",taskQueue.get(res).toString());
-        assertEquals(1,((ResolutionStatistics)statistics.get(res)).derivedUnitClauses);
-
-        assertEquals("Bucket 2\n" +
-                "  1:(1,3)\n",primaryClauses.get(res).toString());
-        assertEquals("Bucket 3\n" +
-                "  3:(7,-5,6)\n",secondaryClauses.get(res).toString());
+        if(monitoring) {
+            InferenceStep step = resolution.model.getInferenceStep(1);
+            System.out.println("Inference Step");
+            System.out.println(step.toString(null));
+            System.out.println(step.rule());
+            System.out.println(step.inputClauseIds());}
     }
 
-
-    @Test
-    public void replaceClause() throws Exception {
-        counter = 1;
-        System.out.println("replaceClause");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
-        Resolution res = new Resolution(1, null, sup);
-        Field statistics = getField("statistics");
-        statistics.set(res, new ResolutionStatistics("test"));
-        Field primaryClauses = getField("primaryClauses");
-        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field secondaryClauses = getField("secondaryClauses");
-        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
-                (cLiteral -> cLiteral.literal),
-                (cLiteral -> cLiteral.clause.size())));
-        Field taskQueue = getField("taskQueue");
-        taskQueue.set(res, new TaskQueue("test", null));
-
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
-
-        Clause c1 = make(1, 2, 3);
-        Clause c2 = make(-4, -5, -6);
-        Clause c3 = make(1,3);
-        insertClause.invoke(res, c1, true,"initial");
-        insertClause.invoke(res, c2, false,"initial");
-        insertClause.invoke(res, c3, false,"initial");
-
-        Method replaceClause = getMethod("replaceClause", Clause.class, Clause.class);
-        replaceClause.invoke(res,c1,c3);
-        assertEquals("Bucket 2\n" +
-                "  3:(1,3)\n",primaryClauses.get(res).toString());
-        assertEquals("Bucket 3\n" +
-                "  2:(-4,-5,-6)\n",secondaryClauses.get(res).toString());
+    public void testCheckAllPurities() throws Result {
+        System.out.println("check all purities");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(4, monitor, true, nextId);
+        Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause);
+        clause = new Clause(new int[]{2, cAtleast, 2, -3, -4});
+        resolution.insertClause(clause);
+        resolution.checkAllPurities();
+        assertEquals("1,2,-4", resolution.model.toString());
+        InferenceStep step = resolution.model.getInferenceStep(-4);
+        //System.out.println(step.toString());
     }
 
-    @Test
-    public void checkPurity() throws Exception {
-        counter = 1;
-        System.out.println("checkPurity");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
-        Resolution res = new Resolution(1, null, sup);
-        Field statistics = getField("statistics");
-        statistics.set(res, new ResolutionStatistics("test"));
-        Field primaryClauses = getField("primaryClauses");
-        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field secondaryClauses = getField("secondaryClauses");
-        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
-                (cLiteral -> cLiteral.literal),
-                (cLiteral -> cLiteral.clause.size())));
-        Field taskQueue = getField("taskQueue");
-        taskQueue.set(res, new TaskQueue("test", null));
+    public void testInputClausesToAtleastDisjunctions() throws Result {
+        System.out.println("inputClausesToAtleast disjunctions");
+        int predicates = 3;
+        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.inputClauses = inputClauses;
+        inputClauses.addClause(new int[]{1, cOr, 1, 2, 3});
+        inputClauses.addClause(new int[]{2, cOr, -1, -2, -3});
+        resolution.readInputClauses();
+        assertEquals("1: 1v2v3\n" +
+                "2: -1v-2v-3\n", resolution.clauses.toString());
 
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
+        resolution.clear();
 
-        Clause c1 = make(1, 2, 3);
-        Clause c2 = make(-4, -5, -6);
-        Clause c3 = make(1, 3);
-        //insertClause.invoke(res, c1, true);
-        insertClause.invoke(res, c2, false,"initial");
-        insertClause.invoke(res, c3, false,"initial");
+        inputClauses.addClause(new int[]{1, cOr, 1, 2, 3, -2});
+        inputClauses.addClause(new int[]{2, cOr, -1, -2, -3, -2});
+        resolution.readInputClauses();
+        assertEquals("2: -1v-3v-2\n", resolution.clauses.toString());
+        assertEquals("-1,-2,-3", resolution.model.toString());
+        //System.out.println(simplifier.statistics.toString());
 
-        Method checkPurity = getMethod("checkPurity", Clause.class);
-        checkPurity.invoke(res,c1);
-        assertEquals("1. P1: Pure literal: -2\n",taskQueue.get(res).toString());
+        resolution.clear();
+        inputClauses.addClause(new int[]{1, cOr, 1, 2, 3});
+        inputClauses.addClause(new int[]{2, cOr, -1, -2, -2});
+        inputClauses.addClause(new int[]{3, cOr, 3, 3, 3});
+        resolution.readInputClauses();
+        assertEquals("1: 1v2v3\n" +
+                "2: -1v-2\n", resolution.clauses.toString());
+        assertEquals("3", resolution.model.toString());
+
+        //System.out.println(simplifier.statistics.toString());
+        resolution.clear();
+        inputClauses.addClause(new int[]{1, cOr, 1, 1, 1});
+        inputClauses.addClause(new int[]{2, cOr, -1});
+        try {
+            resolution.readInputClauses();
+        } catch (Unsatisfiable unsatisfiable) {
+            //System.out.println(unsatisfiable.toString());
+        }
     }
 
-    @Test
-    public void completeModel() throws Exception {
-        counter = 1;
-        System.out.println("completeModel");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
-        Resolution res = new Resolution(1, null, sup);
-        Field statistics = getField("statistics");
-        statistics.set(res, new ResolutionStatistics("test"));
-        Field primaryClauses = getField("primaryClauses");
-        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field secondaryClauses = getField("secondaryClauses");
-        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
-                (cLiteral -> cLiteral.literal),
-                (cLiteral -> cLiteral.clause.size())));
-        Field taskQueue = getField("taskQueue");
-        taskQueue.set(res, new TaskQueue("test", null));
+    public void testInputClausesToAtleastAtleasts() throws Result {
+        System.out.println("inputClausesToAtleast atleasts");
+        int predicates = 4;
+        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.inputClauses = inputClauses;
+        inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 2, 3});
+        resolution.readInputClauses();
+        assertEquals("1: >= 2 1,2,3\n", resolution.clauses.toString());
+        assertEquals("1,2,3,4", resolution.model.toString());
+        //System.out.println(simplifier.statistics.toString());
 
-        Field strategy = getField("strategy");
-        strategy.set(res,ResolutionStrategy.NEGATIVE);
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class,String.class);
+        //System.out.println("NEXT1");
+        resolution.clear();
+        inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 2, -1, 3});
+        resolution.readInputClauses();
+        assertEquals("1: 2v3\n", resolution.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
 
-        Field predicates = getSField("predicates");
-        predicates.setInt(res,10);
+        //System.out.println("NEXT2");
+        resolution.clear();
+        inputClauses.addClause(new int[]{1, cAtleast, 5, 1, 1, 2, 2, 3, 4});
+        resolution.readInputClauses();
+        assertEquals("1: 3v4\n", resolution.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
 
-        Clause c1 = make(1, 2, 3);
-        Clause c2 = make(-4, -5, 6);
-        Clause c3 = make(-5,1, 3);
-        ((BucketSortedList<Clause>)secondaryClauses.get(res)).add(c1);
-        ((BucketSortedList<Clause>)secondaryClauses.get(res)).add(c2);
-        ((BucketSortedList<Clause>)secondaryClauses.get(res)).add(c3);
+        //System.out.println("NEXT3");
+        resolution.clear();
+        inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 1, 2, 2, 3});
+        resolution.readInputClauses();
+        assertEquals("1: 1v2\n", resolution.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
 
-        Method completeModel = getMethod("completeModel");
-        Field model = getSField("model");
-        model.set(res, new Model(10,null));
-        assertEquals("Satisfiable with model: [1, 6]",completeModel.invoke(res).toString());
-
-        strategy.set(res,ResolutionStrategy.POSITIVE);
-        model.set(res, new Model(10,null));
-        ((BucketSortedList<Clause>)secondaryClauses.get(res)).remove(c1);
-        Clause c4 = make(-1, -2, -3);
-        ((BucketSortedList<Clause>)secondaryClauses.get(res)).add(c4);
-        assertEquals("Satisfiable with model: [-5, -1]",completeModel.invoke(res).toString());
-
-
+        //System.out.println("NEXT4");
+        resolution.clear();
+        inputClauses.addClause(new int[]{1, cAtleast, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
+        resolution.readInputClauses();
+        assertEquals("1: 1v2\n", resolution.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
     }
 
-    @Test
-    public void processTrueLiteral1() throws Exception {
-        counter = 1;
-        System.out.println("processTrueLiteral, no propagation");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
-        Resolution res = new Resolution(1, null, sup);
-        Field statistics = getField("statistics");
-        statistics.set(res, new ResolutionStatistics("test"));
-        Field primaryClauses = getField("primaryClauses");
-        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field secondaryClauses = getField("secondaryClauses");
-        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
-                (cLiteral -> cLiteral.literal),
-                (cLiteral -> cLiteral.clause.size())));
-        Field taskQueue = getField("taskQueue");
-        taskQueue.set(res, new TaskQueue("test", null));
+    public void testInputClausesToAtleastAtmosts() throws Result {
+        System.out.println("inputClausesToAtleast atmosts");
+        int predicates = 4;
+        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.inputClauses = inputClauses;
+        inputClauses.addClause(new int[]{1, cAtmost, 1, 1, 2, 3, 4});
+        resolution.readInputClauses();
+        assertEquals("1: >= 3 -1,-2,-3,-4\n", resolution.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
 
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class, String.class);
-
-        Field predicates = getSField("predicates");
-        predicates.setInt(res,10);
-        Field symboltable = getSField("symboltable");
-        Symboltable stb = new Symboltable(10);
-        symboltable.set(res,stb);
-
-        Clause c1 = make(1, 2);    insertClause.invoke(res,c1,true,"initial");
-        Clause c2 = make(-2,1,3);  insertClause.invoke(res,c2,false,"initial");
-        Clause c3 = make(3,4);     insertClause.invoke(res,c3,true,"initial");
-        Clause c4 = make(2, -1,4); insertClause.invoke(res,c4,true,"initial");
-        Clause c5 = make(-2,-1,3); insertClause.invoke(res,c5,false,"initial");
-        Clause c6 = make(5,-6);    insertClause.invoke(res,c6,true,"initial");
-
-        Field model = getSField("model");
-        model.set(res, new Model(10,null));
-
-        Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
-        Result result = (Result)processTrueLiteral.invoke(res,1);
-
-        stb.setName(1,"p");
-        stb.setName(4,"q");
-        //System.out.println(res.toString(stb));
-        assertEquals("Resolution:\n" +
-                "Primary Clauses:\n" +
-                "Bucket 2\n" +
-                "  6:(5,-6)\n" +
-                "  3:(3,q)\n" +
-                "  4:(2,q)\n" +
-                "\n" +
-                "Secondary Clauses:\n" +
-                "Bucket 2\n" +
-                "  5:(-2,3)\n" +
-                "\n" +
-                "Model:\n" +
-                "p\n" +
-                "\n" +
-                "Literal Index:\n" +
-                " 2: 2@4,\n" +
-                "-2: -2@5,\n" +
-                " 3: 3@3,3@5,\n" +
-                " 4: q@3,q@4,\n" +
-                " 5: 5@6,\n" +
-                "-6: -6@6,\n",res.toString(stb));
+        resolution.clear();
+        inputClauses.addClause(new int[]{1, cAtmost, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
+        resolution.readInputClauses();
+        assertEquals("1: -1v-3\n", resolution.clauses.toString());
+        assertEquals("-1,-2,-3,4", resolution.model.toString());
+        //System.out.println(simplifier.statistics.toString());
     }
 
-
-
-    @Test
-    public void processTrueLiteral2() throws Exception {
-        counter = 1;
-        System.out.println("processTrueLiteral, with propagation");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
-        Resolution res = new Resolution(1, null, sup);
-        Field statistics = getField("statistics");
-        statistics.set(res, new ResolutionStatistics("test"));
-        Field primaryClauses = getField("primaryClauses");
-        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field secondaryClauses = getField("secondaryClauses");
-        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
-                (cLiteral -> cLiteral.literal),
-                (cLiteral -> cLiteral.clause.size())));
-        Field taskQueue = getField("taskQueue");
-        taskQueue.set(res, new TaskQueue("test", null));
-
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class, String.class);
-
-        Field predicates = getSField("predicates");
-        predicates.setInt(res,10);
-
-        Clause c1 = make(1, 2);    insertClause.invoke(res,c1,true,"initial");
-        Clause c2 = make(-2,1,3);  insertClause.invoke(res,c2,false,"initial");
-        Clause c3 = make(-3,4);     insertClause.invoke(res,c3,true,"initial");
-        Clause c4 = make(2, -1); insertClause.invoke(res,c4,true,"initial");
-        Clause c5 = make(-2,-1,-3); insertClause.invoke(res,c5,false,"initial");
-        Clause c6 = make(-1,-6);    insertClause.invoke(res,c6,true,"initial");
-        Clause c7 = make(-5,3);    insertClause.invoke(res,c7,true,"initial");
-        Field model = getSField("model");
-        model.set(res, new Model(10,null));
-
-        Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
-        Result result = (Result)processTrueLiteral.invoke(res,1);
-
-        //System.out.println(res.toString());
-        assertEquals("Resolution:\n" +
-                "Primary Clauses:\n" +
-                "Bucket 2\n" +
-                "  7:(-5,3)\n" +
-                "  3:(-3,4)\n" +
-                "\n" +
-                "Secondary Clauses:\n" +
-                "Bucket 2\n" +
-                "  5:(-2,-3)\n" +
-                "\n" +
-                "Model:\n" +
-                "[1]\n" +
-                "\n" +
-                "Literal Index:\n" +
-                "-2: -2@5,\n" +
-                " 3: 3@7,\n" +
-                "-3: -3@3,-3@5,\n" +
-                " 4: 4@3,\n" +
-                "-5: -5@7,\n" +
-                "\n" +
-                "Task Queue:\n" +
-                "1. P1: New true literal derived: 2\n" +
-                "2. P1: New true literal derived: -6\n",res.toString());
-    }
-    @Test
-    public void processTrueLiteral3() throws Exception {
-        counter = 1;
-        System.out.println("processTrueLiteral, with purity");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
-        Resolution res = new Resolution(1, null, sup);
-        Field statistics = getField("statistics");
-        statistics.set(res, new ResolutionStatistics("test"));
-        Field primaryClauses = getField("primaryClauses");
-        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field secondaryClauses = getField("secondaryClauses");
-        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
-                (cLiteral -> cLiteral.literal),
-                (cLiteral -> cLiteral.clause.size())));
-        Field taskQueue = getField("taskQueue");
-        taskQueue.set(res, new TaskQueue("test", null));
-
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class, String.class);
-
-        Field predicates = getSField("predicates");
-        predicates.setInt(res,10);
-
-        Clause c1 = make(1, 2);     insertClause.invoke(res,c1,true,"initial");
-        Clause c2 = make(-2,1,3);   insertClause.invoke(res,c2,false,"initial");
-        Clause c3 = make(-3,4);     insertClause.invoke(res,c3,true,"initial");
-        Clause c4 = make(2, -1);    insertClause.invoke(res,c4,true,"initial");
-        Clause c5 = make(-2,-1,-3); insertClause.invoke(res,c5,false,"initial");
-        Clause c6 = make(-1,-6);    insertClause.invoke(res,c6,true,"initial");
-        Field model = getSField("model");
-        model.set(res, new Model(10,null));
-
-        Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
-        Result result = (Result)processTrueLiteral.invoke(res,1);
-
-        //System.out.println(res.toString());
-        assertEquals("Resolution:\n" +
-                "Primary Clauses:\n" +
-                "Bucket 2\n" +
-                "  3:(-3,4)\n" +
-                "\n" +
-                "Secondary Clauses:\n" +
-                "Bucket 2\n" +
-                "  5:(-2,-3)\n" +
-                "\n" +
-                "Model:\n" +
-                "[1]\n" +
-                "\n" +
-                "Literal Index:\n" +
-                "-2: -2@5,\n" +
-                "-3: -3@3,-3@5,\n" +
-                " 4: 4@3,\n" +
-                "\n" +
-                "Task Queue:\n" +
-                "1. P1: Pure literal: -3\n" +
-                "2. P1: New true literal derived: 2\n" +
-                "3. P1: New true literal derived: -6\n",res.toString());
-    }
-    @Test
-    public void processTrueLiteral4() throws Exception {
-        counter = 1;
-        System.out.println("processTrueLiteral, with model completion");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, null);
-        Resolution res = new Resolution(1, null, sup);
-        Field statistics = getField("statistics");
-        statistics.set(res, new ResolutionStatistics("test"));
-        Field primaryClauses = getField("primaryClauses");
-        primaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field secondaryClauses = getField("secondaryClauses");
-        secondaryClauses.set(res, new BucketSortedList<Clause>(clause -> clause.size()));
-        Field literalIndex = getField("literalIndex");
-        literalIndex.set(res, new BucketSortedIndex<CLiteral>(10,
-                (cLiteral -> cLiteral.literal),
-                (cLiteral -> cLiteral.clause.size())));
-        Field taskQueue = getField("taskQueue");
-        taskQueue.set(res, new TaskQueue("test", null));
-
-        Field strategy = getField("strategy");
-        strategy.set(res,ResolutionStrategy.POSITIVE);
-
-        Method insertClause = getMethod("insertClause", Clause.class, boolean.class, String.class);
-
-        Field predicates = getSField("predicates");
-        predicates.setInt(res,10);
-
-        Clause c1 = make(1, 2);     insertClause.invoke(res,c1,true,"initial");
-        Clause c2 = make(-2,1,3);   insertClause.invoke(res,c2,true,"initial");
-        Clause c3 = make(-3,4);     insertClause.invoke(res,c3,false,"initial");
-        Clause c4 = make(2, -1);    insertClause.invoke(res,c4,true,"initial");
-        Clause c5 = make(-2,-1,-3); insertClause.invoke(res,c5,false,"initial");
-        Clause c6 = make(-1,-6);    insertClause.invoke(res,c6,true,"initial");
-        Field model = getSField("model");
-        model.set(res, new Model(10,null));
-
-        Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
-        Result result = (Result)processTrueLiteral.invoke(res,1);
-
-        //System.out.println(res.toString());
-        assertEquals("Resolution:\n" +
-                "Secondary Clauses:\n" +
-                "Bucket 2\n" +
-                "  3:(-3,4)\n" +
-                "  5:(-2,-3)\n" +
-                "\n" +
-                "Model:\n" +
-                "[1, -3]\n" +
-                "\n" +
-                "Literal Index:\n" +
-                "-2: -2@5,\n" +
-                "-3: -3@3,-3@5,\n" +
-                " 4: 4@3,\n" +
-                "\n" +
-                "Task Queue:\n" +
-                "1. P1: Pure literal: -3\n" +
-                "2. P1: New true literal derived: 2\n" +
-                "3. P1: New true literal derived: -6\n",res.toString());
+    public void testInputClausesToAtleastExactlys() throws Result {
+        System.out.println("inputClausesToAtleast exactlys");
+        int predicates = 4;
+        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.inputClauses = inputClauses;
+        inputClauses.addClause(new int[]{1, cExactly, 1, 1, 2, 3, 4});
+        resolution.readInputClauses();
+        assertEquals("11: 1v2v3v4\n" +
+                "12: >= 3 -1,-2,-3,-4\n", resolution.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
+        //System.out.println("\nNEW");
+        resolution.clear();
+        inputClauses.addClause(new int[]{1, cExactly, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
+        resolution.readInputClauses();
+        assertEquals("13: 1v2\n" +
+                "14: -1v-3\n", resolution.clauses.toString());
+        assertEquals("-2,-3,4", resolution.model.toString());
+        if(monitoring) {
+            System.out.println(resolution.statistics.toString());
+            System.out.println(resolution.clauses.firstClause.nextClause.inferenceStep.toString());}
     }
 
-        @Test
-    public void initializeData() throws Exception {
-            System.out.println("initializeData");
-            Controller cntr = new Controller(null, null, null);
-            HashMap<String, Object> problemParameters = new HashMap<>();
-            problemParameters.put("name", "test");
-            HashMap<String, Object> solverParameters = new HashMap<>();
-            ArrayList<HashMap<String, Object>> svp = new ArrayList<>();
-            solverParameters.put("strategy", ResolutionStrategy.INPUT);
-            solverParameters.put("seed", 1);
-            solverParameters.put("percentage", 50);
-            ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, svp);
-            Resolution res = new Resolution(1, solverParameters, sup);
-            Field predicates = getSField("predicates");
-            predicates.set(res, 10);
-            Method initializeData = getMethod("initializeData");
-            initializeData.invoke(res);
-            assertEquals(ResolutionStrategy.INPUT, getField("strategy").get(res));
-            assertEquals(ResolutionStatistics.class, getField("statistics").get(res).getClass());
-            assertEquals(Random.class, getField("random").get(res).getClass());
-            assertEquals(50, getField("percentageOfSOSClauses").get(res));
-            assertEquals(BucketSortedList.class, getField("primaryClauses").get(res).getClass());
-            assertEquals(BucketSortedList.class, getField("secondaryClauses").get(res).getClass());
-            assertEquals(BucketSortedIndex.class, getField("literalIndex").get(res).getClass());
+    public void testInputClausesToAtleastIntervals() throws Result {
+        System.out.println("inputClausesToAtleast intervals");
+        int predicates = 4;
+        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.inputClauses = inputClauses;
+        inputClauses.addClause(new int[]{1, cInterval, 1, 3, 1, 2, 3, 4});
+        resolution.readInputClauses();
+        assertEquals("11: 1v2v3v4\n" +
+                "12: -1v-2v-3v-4\n", resolution.clauses.toString());
+        //System.out.println(simplifier.statistics.toString());
+        //System.out.println("\nNEW");
+        resolution.clear();
+        inputClauses.addClause(new int[]{1, cInterval, 2, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
+        resolution.readInputClauses();
+        assertEquals("13: 1v2v3\n" +
+                "14: -1v-3\n", resolution.clauses.toString());
+        assertEquals("-2,4", resolution.model.toString());
+        //System.out.println(simplifier.statistics.toString());
+        //System.out.println(simplifier.clauses.firstClause.nextClause.inferenceStep.toString());
+    }
+
+    public void testProcessTrueLiteralTwo() throws Result {
+        System.out.println("processTrueLiteralTwo");
+        Thread myThread = Thread.currentThread();
+        int predicates = 4;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.model.add(myThread,2, new InfInputClause(1));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -2, 3}));
+        resolution.insertClause(new Clause(new int[]{4, cOr, -1, 4}));
+        resolution.processTrueLiteralTwo(2); // true literal 2
+        assertEquals("4: -1v4\n", resolution.clauses.toString());
+        assertEquals("-1,2,3", resolution.model.toString());
+        //System.out.println(simplifier.model.getInferenceStep(3));
+        //System.out.println(simplifier.statistics.toString());
+    }
+
+    public void testProcessTrueLiteralMore1() throws Result {
+        System.out.println("processTrueLiteralMore 1");
+        Thread myThread = Thread.currentThread();
+        int predicates = 4;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.model.add(myThread,2, new InfInputClause(1));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2, 3}));
+        resolution.processTrueLiteralMore(2);
+        assertTrue(resolution.clauses.isEmpty());
+        assertEquals("1,2,3", resolution.model.toString());
+
+        resolution.clear();
+        resolution.model.add(myThread,2, new InfInputClause(1));
+        resolution.insertClause(new Clause(new int[]{2, cOr, -1, -2, -3}));
+        resolution.processTrueLiteralMore(2);
+        assertFalse(resolution.clauses.isEmpty());
+        assertEquals("2: -1v-3\n", resolution.clauses.toString());
+        assertEquals("2", resolution.model.toString());
+
+        resolution.clear();
+        resolution.model.add(myThread,2, new InfInputClause(1));
+        resolution.model.add(myThread,4, new InfInputClause(2));
+        resolution.insertClause(new Clause(new int[]{2, cAtleast, 3, 1, 2, 3, 4}));
+        resolution.processTrueLiteralMore(2);
+        assertFalse(resolution.clauses.isEmpty());
+        assertEquals("2: 1v3\n", resolution.clauses.toString());
+        assertEquals("2,4", resolution.model.toString());
+
+        //System.out.println("\nNEW");
+        try {
+            resolution.clear();
+            resolution.model.add(myThread,-2, new InfInputClause(1));
+            resolution.model.add(myThread,-4, new InfInputClause(2));
+            resolution.insertClause(new Clause(new int[]{2, cAtleast, 3, 1, 2, 3, 4}));
+            resolution.processTrueLiteralMore(2);
+            assertFalse(resolution.clauses.isEmpty());
+            assertEquals("", resolution.clauses.toString());
+            assertEquals("-2,-4", resolution.model.toString());}
+        catch (Unsatisfiable unsatisfiable) {
+          if(monitoring) System.out.println(unsatisfiable.toString());}}
+
+    public void testProcessTrueLiteralMore2() throws Result {
+        System.out.println("processTrueLiteralMore 2");
+        Thread myThread = Thread.currentThread();
+        int predicates = 4;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.model.add(myThread,-3, new InfInputClause(1));
+        resolution.insertClause(new Clause(new int[]{2, cAtleast, 4, 1,1, 2,2, 3,4}));
+        resolution.processTrueLiteralMore(3);
+        assertEquals("", resolution.clauses.toString());
+        assertEquals("1,2,-3,4", resolution.model.toString());
+
+        if(monitoring) System.out.println("\nNEW");
+        resolution.clear();
+        resolution.model.add(myThread,-1, new InfInputClause(1));
+        resolution.model.add(myThread,-3, new InfInputClause(2));
+        resolution.model.add(myThread,-4, new InfInputClause(3));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1,2,3,4}));
+        resolution.processTrueLiteralMore(3);
+        assertEquals("", resolution.clauses.toString());
+        assertEquals("-1,2,-3,-4", resolution.model.toString());
+        assertEquals("Positive Literals:\n" +
+                "\n" +
+                "Negative Literals:\n", resolution.literalIndexMore.toString());
+        if(monitoring) {
+            System.out.println("\nInference Steps");
+            ArrayList<InferenceStep> steps = new ArrayList<>();
+            resolution.model.getInferenceStep(2).inferenceSteps(steps);
+            for(InferenceStep step : steps) System.out.println(step.toString());}
+    }
+
+    public void testRemoveClausesSubsumedByBinaryClause() throws Result {
+        System.out.println("removeLongerClausesSubsumedByBinaryClause");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1,2,3,4}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 3,4,5,6}));
+        resolution.insertClause(new Clause(new int[]{4, cOr, 2,-4,-5,-6}));
+        resolution.insertClause(new Clause(new int[]{5, cOr, -1,2,-3,4}));
+
+        resolution.insertClause(new Clause(new int[]{6, cAtleast, 2, 1,2,3,4}));
+
+        Clause clause = new Clause(new int[]{7, cOr, 2,4});
+        resolution.insertClause(clause);
+        resolution.removeLongerClausesSubsumedByBinaryClause(clause);
+        assertEquals("3: 3v4v5v6\n" +
+                "4: 2v-4v-5v-6\n" +
+                "6: >= 2 1,2,3,4\n" +
+                "7: 2v4\n", resolution.clauses.toString());
+        if(monitoring) System.out.println(resolution.statistics.toString());
+
+    }
+    public void testBinaryMergeResolutionAndEquivalence() throws Result {
+        System.out.println("binaryMergeResolutionAndEquivalence");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1,2}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 1,3}));
+        Clause clause = new Clause(new int[]{4, cOr, -1,3});
+        resolution.insertClause(clause);
+        resolution.binaryMergeResolutionAndEquivalence(clause,-1,3,false);
+        assertEquals("2: 1v2\n", resolution.clauses.toString());
+        assertEquals("1,3", resolution.model.toString());
+        //System.out.println(simplifier.model.getInferenceStep(3).toString());
+
+        resolution.clear();
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1,2}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 1,-3}));
+        clause = new Clause(new int[]{4, cOr, -1,3});
+        resolution.insertClause(clause);
+        resolution.binaryMergeResolutionAndEquivalence(clause,-1,3,true);
+        //simplifier.equivalenceClasses.processTasks(true);
+        assertEquals("2: 1v2\n" +
+                "3: 1v-3\n", resolution.clauses.toString());
+        assertEquals("", resolution.model.toString());
+        //assertEquals("1 = 3\n",simplifier.equivalenceClasses.toString());
+    }
+    public void testIsSubsumedByBinaryClauses()  {
+        System.out.println("binaryClauseIsSubsumed");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 1, 3}));
+        Clause clause = new Clause(new int[]{4, cOr, 1, 3});
+        assertNotNull(resolution.binaryClauseIsSubsumed(clause));
+        clause = new Clause(new int[]{5, cOr, 3, 1});
+        assertNotNull(resolution.binaryClauseIsSubsumed(clause));
+        clause = new Clause(new int[]{6, cOr, 1, 4});
+        assertNull(resolution.binaryClauseIsSubsumed(clause));
+    }
+    public void testResolveBetweenBinaryClauses() throws Result{
+        System.out.println("resolveBetweenBinaryClauses");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        Clause clause1 = new Clause(new int[]{2, cOr, 1, 2});
+        Clause clause2 = new Clause(new int[]{3, cOr, 3, -2});
+        Clause resolvent = resolution.resolveBetweenBinaryClauses(clause1,clause2);
+        assertEquals("11: 1v3",resolvent.toString());
+
+        Clause clause3 = new Clause(new int[]{4, cOr, 3, 2});
+        assertNull(resolution.resolveBetweenBinaryClauses(clause3,clause2));
+        assertEquals("2,3", resolution.model.toString());
+        //System.out.println(simplifier.model.getInferenceStep(3).toString());
+
+        resolution.clear();
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
+        clause1 = new Clause(new int[]{3, cOr, 1, 3});
+        resolution.insertClause(clause1);
+        clause2 = new Clause(new int[]{4, cOr, 2, -3});
+        assertNull(resolution.resolveBetweenBinaryClauses(clause2,clause1));
+    }
+    public void testBinaryClauseResolutionCompletion() throws Result {
+        System.out.println("saturateBinaryClausesWithBinaryClause");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        Clause clause1 = new Clause(new int[]{2, cOr, 1, 2});
+        resolution.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{3, cOr, -1,3 });
+        resolution.insertClause(clause2);
+        Clause clause3 = new Clause(new int[]{4, cOr, -1,4 });
+        resolution.insertClause(clause3);
+        Clause clause4 = new Clause(new int[]{5, cOr, -2,3 });
+        resolution.insertClause(clause4);
+        resolution.saturateBinaryClausesWithBinaryClause(clause1);
+        assertEquals(" 2: 1v2\n" +
+                " 3: -1v3\n" +
+                " 4: -1v4\n" +
+                " 5: -2v3\n" +
+                "11: 2v4\n" +
+                "12: 2v3\n" +
+                "13: 1v3\n", resolution.clauses.toString());
+      //  System.out.println(simplifier.statistics.toString());
+
+        resolution.clear();
+
+        clause1 = new Clause(new int[]{2, cOr, 1, 2});
+        resolution.insertClause(clause1);
+        clause2 = new Clause(new int[]{3, cOr, -1,3 });
+        resolution.insertClause(clause2);
+        clause3 = new Clause(new int[]{4, cOr, -1,2 });
+        resolution.insertClause(clause3);
+        clause4 = new Clause(new int[]{5, cOr, -2,3 });
+        resolution.insertClause(clause4);
+        resolution.saturateBinaryClausesWithBinaryClause(clause1);
+        assertEquals("3: -1v3\n" +
+                "5: -2v3\n", resolution.clauses.toString());
+        assertEquals("-1,2", resolution.model.toString());
+      //  System.out.println(simplifier.statistics.toString());
+    }
+    public void testProcessBinaryClause1() throws Result {
+        System.out.println("processBinaryClause 1");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2});
+        resolution.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, -1, 3, 4});
+        resolution.insertClause(clause2);
+        Clause clause3 = new Clause(new int[]{3, cOr, 2,4,1});
+        resolution.insertClause(clause3);
+        Clause clause4 = new Clause(new int[]{4, cOr, 5,2,1});
+        resolution.insertClause(clause4);
+        Clause clause5 = new Clause(new int[]{5, cOr, 4,5,6});
+        resolution.insertClause(clause5);
+
+        resolution.processBinaryClause(clause1);
+        assertEquals(" 1: 1v2\n" +
+                " 2: -1v3v4\n" +
+                " 5: 4v5v6\n" +
+                "11: 3v4v2\n", resolution.clauses.toString());
+        assertEquals("2,4,5", resolution.model.toString());
+      //  System.out.println(simplifier.statistics.toString());
+    }
+
+    public void testProcessBinaryClause2() throws Result {
+        System.out.println("processBinaryClause 2");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 5});
+        resolution.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, -1, 3, 4});
+        resolution.insertClause(clause2);
+        Clause clause3 = new Clause(new int[]{3, cOr, 2,4,1});
+        resolution.insertClause(clause3);
+        Clause clause4 = new Clause(new int[]{4, cOr, 5,2,-1});
+        resolution.insertClause(clause4);
+        Clause clause5 = new Clause(new int[]{5, cOr, 4,5,6});
+        resolution.insertClause(clause5);
+        Clause clause6 = new Clause(new int[]{6, cOr, -5,2});
+        resolution.insertClause(clause6);
+
+        resolution.processBinaryClause(clause1);
+        assertEquals(" 1: 1v5\n" +
+                " 2: -1v3v4\n" +
+                " 3: 2v4v1\n" +
+                " 4: 5v2v-1\n" +
+                " 5: 4v5v6\n" +
+                " 6: -5v2\n" +
+                "11: 1v2\n" +
+                "12: 5v2\n" +
+                "13: 3v4v5\n", resolution.clauses.toString());
+        resolution.processTasks(2);
+
+
+        assertEquals(" 1: 1v5\n" +
+                " 2: -1v3v4\n" +
+                " 5: 4v5v6\n" +
+                "11: 1v2\n" +
+                "13: 3v4v5\n" +
+                "15: 3v4v2\n", resolution.clauses.toString());
+        assertEquals("2,4,5", resolution.model.toString());
+        System.out.println(resolution.statistics.toString());
+    }
+
+    public void testProcessBinaryClause3() throws Result {
+        System.out.println("processBinaryClause 3");
+        Thread myThread = Thread.currentThread();
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.model.addObserver(myThread,
+                (Integer literal, InferenceStep step) -> {try{
+                        resolution.addTrueLiteralTask(literal,step);} catch(Unsatisfiable uns) {}});
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 5});
+        resolution.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, -1, 3, 4});
+        resolution.insertClause(clause2);
+        Clause clause3 = new Clause(new int[]{3, cOr, 2,4,1});
+        resolution.insertClause(clause3);
+        Clause clause4 = new Clause(new int[]{4, cOr, 5,2,-1});
+        resolution.insertClause(clause4);
+        Clause clause5 = new Clause(new int[]{5, cOr, 4,5,6});
+        resolution.insertClause(clause5);
+        Clause clause6 = new Clause(new int[]{6, cOr, -5,2});
+        resolution.insertClause(clause6);
+        resolution.processBinaryClause(clause1);
+
+        try{
+            resolution.processTasks(6);}
+        catch(Satisfiable satisfiable) {
+            if(monitoring) System.out.println(satisfiable.toString());}
+
+        assertEquals("", resolution.clauses.toString());
+        assertEquals("1,2,3,4,5,6", resolution.model.toString());
+        //System.out.println(simplifier.statistics.toString());
+    }
+    public void testProcessEquivalence() throws Result {
+        System.out.println("processEquivalence");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 5}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 5,3}));
+        resolution.processEquivalence(2, 5, new InferenceTest("MyTest 1"));
+        assertEquals("1: 1v2\n" +
+                "2: 2v3\n", resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 1");
+        resolution.clear();
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 5}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 5,2}));
+        resolution.processEquivalence(2, 5, new InferenceTest("MyTest 2"));
+        assertEquals("1: 1v5\n", resolution.clauses.toString());
+        assertEquals("2,5", resolution.model.toString());
+
+        if(monitoring) System.out.println("\nNEW 2");
+        resolution.clear();
+        resolution.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,3, 5}));
+        resolution.insertClause(new Clause(new int[]{2, cAtleast, 3, 4,4,5,5,5,6,6,2}));
+        resolution.processEquivalence(2, 5, new InferenceTest("MyTest 3"));
+        assertEquals("1: >= 2 1,3,2\n" +
+                "2: >= 3 4^2,6^2,2^3\n", resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 3");
+        resolution.clear();
+        resolution.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,1,2,3,3}));
+        resolution.processEquivalence(3, 2, new InferenceTest("MyTest 4"));
+        assertEquals("1: 1v3\n", resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 4");
+        resolution.clear();
+        Clause clause = new Clause(new int[]{1, cAtleast, 3, 1,1,2,3});
+        resolution.insertClause(clause);
+        resolution.processEquivalence(3, 2, new InferenceTest("MyTest 5"));
+        assertFalse(clause.exists);
+        assertEquals("1,3", resolution.model.toString());
+        assertEquals("", resolution.clauses.toString());
+        if(monitoring) System.out.println(resolution.statistics.toString());
+
+
+        if(monitoring) System.out.println("\nNEW 5");
+        resolution.clear();
+        resolution.insertClause(new Clause(new int[]{1, cAtleast, 3, 1,1,2,3}));
+        resolution.insertClause(new Clause(new int[]{2, cAtleast, 3, 1,2,2,3,3,4}));
+        resolution.insertClause(new Clause(new int[]{3, cAtleast, 2, -1,-2,-3,-3,-4}));
+        resolution.insertClause(new Clause(new int[]{4, cOr, -1,-2,-3,-4}));
+        resolution.insertClause(new Clause(new int[]{5, cOr, -1,-3,}));
+        resolution.insertClause(new Clause(new int[]{6, cAtleast, 2, -1,-2,-3,-3,-4,3}));
+        resolution.insertClause(new Clause(new int[]{7, cAtleast, 2, 1,2,3,-4}));
+        resolution.insertClause(new Clause(new int[]{8, cOr, -2,3,}));
+        resolution.processEquivalence(2, 3, new InferenceTest("MyTest 6"));
+        assertEquals("3: >= 2 -1,-2^2,-4\n" +
+                "4: -1v-2v-4\n" +
+                "5: -1v-2\n" +
+                "6: -1v-2v-4\n" +
+                "7: >= 2 1,2^2,-4\n", resolution.clauses.toString());
+
+        if(monitoring) System.out.println(resolution.statistics.toString());
+
+        if(monitoring) System.out.println("\nNEW 6");
+        try{
+        resolution.processEquivalence(2, 4, new InferenceTest("MyTest 7"));}
+        catch(Result result) {if(monitoring) System.out.println(result.toString());}
+    }
+
+    public void testRemoveClausesSubsumedByLongerClause() throws Result {
+        System.out.println("removeClausesSubsumedByLongerClause");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        Clause subsumer = new Clause(new int[]{1, cOr, 1,2,3});
+        resolution.insertClause(subsumer);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 3,2,1}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 2,4,3,1}));
+        resolution.insertClause(new Clause(new int[]{4, cOr, 2,4,1,5}));
+        resolution.removeClausesSubsumedByLongerClause(subsumer);
+        assertEquals("1: 1v2v3\n" +
+                "4: 2v4v1v5\n", resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNew");
+        resolution.clear();
+        subsumer = new Clause(new int[]{1, cAtleast, 4, 1,1,2,2,3,3,3});
+        resolution.insertClause(subsumer);
+        resolution.insertClause(new Clause(new int[]{2, cAtleast,3 , 1,1,2,2,3,3}));
+        resolution.insertClause(new Clause(new int[]{3, cAtleast,3 , 1,1,1,2,2,3,3,3}));
+        resolution.insertClause(new Clause(new int[]{4, cAtleast,3 , 1,1,2,2,2,3,3}));
+        resolution.insertClause(new Clause(new int[]{5, cAtleast,3 , 1,1,1,2,2,2,3,3,3}));
+        resolution.removeClausesSubsumedByLongerClause(subsumer);
+        assertEquals("1: >= 4 1^2,2^2,3^3\n" +
+                "2: >= 3 1^2,2^2,3^2\n" +
+                "4: >= 3 1^2,2^3,3^2\n", resolution.clauses.toString());
         }
 
-     private Result initializeClauses() throws InterruptedException {
-        if(basicClauseList.equivalences != null) {
-            equivalenceClasses = Transformers.prepareEquivalences(basicClauseList,contradictionHandler);
-            if(equivalenceClasses == null) {return null;}}
+    public void testmergeResolutionWithLongerClauseDirect1() throws Result {
+        System.out.println("mergeResolutionWithLongerClause 1");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause);
+        Clause clause1 = new Clause(new int[]{2, cOr, 3, -2, 1, 4});
+        resolution.insertClause(clause1);
+        assertTrue(resolution.mergeResolutionWithLongerClause(clause));
+        assertEquals("1: 1v2v3\n" +
+                "2: 3v1v4\n", resolution.clauses.toString());
+        if(monitoring) {
+            System.out.println(clause1.inferenceStep.toString());
+            System.out.println(clause1.inferenceStep.inputClauseIds());}
 
-        Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
-                (literal-> addTrueLiteralTask(literal, "Initial Conjunction: ")));
-        if(Thread.interrupted()) {throw new InterruptedException();}
-        Transformers.prepareDisjunctions(basicClauseList,equivalenceClasses,insertHandler);
-        Transformers.prepareXors     (basicClauseList,equivalenceClasses,insertHandler);
-        Transformers.prepareDisjoints(basicClauseList,equivalenceClasses,insertHandler);
-        int limit = (int)solverParameters.get("limit");
-        resolutionLimit = (limit == Integer.MAX_VALUE) ? limit : limit * clauseCounter;
-        initializing = false;
-        if(Thread.interrupted()) {throw new InterruptedException();}
-        return null;}
+        if(monitoring) System.out.println("\nNEW 2");
+        resolution.clear();
+        clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 3, -2, 1}));
+        assertFalse(resolution.mergeResolutionWithLongerClause(clause));
+        assertEquals("2: 3v1\n", resolution.clauses.toString());
 
-    @Test
-    public void initializeClauses1() throws Exception {
-        System.out.println("initializeClauses standard clauses, no equivalences");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        HashMap<String, Object> solverParameters = new HashMap<>();
-        ArrayList<HashMap<String, Object>> svp = new ArrayList<>();
-        solverParameters.put("strategy", ResolutionStrategy.INPUT);
-        solverParameters.put("seed", 1);
-        solverParameters.put("percentage", 50);
-        solverParameters.put("limit", 10);
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, svp);
-        Resolution res = new Resolution(1, solverParameters, sup);
-        Field predicates = getSField("predicates");
-        predicates.set(res, 20);
-        Method initializeData = getMethod("initializeData");
+        if(monitoring) {
+            System.out.println(clause1.inferenceStep.toString());
+            System.out.println(clause1.inferenceStep.inputClauseIds());
+            ArrayList<InferenceStep> steps = new ArrayList<>();
+            clause1.inferenceStep.inferenceSteps(steps);
+            for(InferenceStep step : steps) System.out.println(step.toString());}
 
-        BasicClauseList clauses = new BasicClauseList();
-        int[] clause1 = {1,0, 1,2};      clauses.addClause(clause1); // or
-        int[] clause2 = {2,0, 3,4,-5};   clauses.addClause(clause2);
-        int[] clause3 = {3,1, 5,6};      clauses.addClause(clause3);  // and
-        int[] clause4 = {4,1, 7,8};      clauses.addClause(clause4);
-        int[] clause5 = {5,2, 9,10};     clauses.addClause(clause5);  // xor
-        int[] clause6 = {6,2, 11,12};    clauses.addClause(clause6);
-        int[] clause7 = {7,3, 13,14};    clauses.addClause(clause7);  // disjoint
-        int[] clause8 = {8,3, 15,16,17}; clauses.addClause(clause8);
+        if(monitoring) System.out.println("\nNEW 3");
+        resolution.clear();
+        clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 3, -2, 4}));
+        assertTrue(resolution.mergeResolutionWithLongerClause(clause));
+        assertEquals("1: 1v2v3\n" +
+                "2: 3v-2v4\n", resolution.clauses.toString());
 
-        Field bcl = getSField("basicClauseList");
-        bcl.set(res,clauses);
-        initializeData.invoke(res);
 
-        Method initializeClauses = getMethod("initializeClauses");
-        initializeClauses.invoke(res);
-        //System.out.println(res.toString());
-        assertEquals("Resolution:\n" +
-                "Primary Clauses:\n" +
-                "Bucket 2\n" +
-                "  1:(1,2)\n" +
-                "  X5:(9,10)\n" +
-                "  D5_1:(-9,-10)\n" +
-                "  X6:(11,12)\n" +
-                "  D6_1:(-11,-12)\n" +
-                "  D7_1:(-13,-14)\n" +
-                "  D8_1:(-15,-16)\n" +
-                "  D8_2:(-15,-17)\n" +
-                "  D8_3:(-16,-17)\n" +
-                "Bucket 3\n" +
-                "  2:(3,4,-5)\n" +
-                "\n" +
-                "Literal Index:\n" +
-                " 1: 1@1,\n" +
-                " 2: 2@1,\n" +
-                " 3: 3@2,\n" +
-                " 4: 4@2,\n" +
-                "-5: -5@2,\n" +
-                " 9: 9@X5,\n" +
-                "-9: -9@D5_1,\n" +
-                " 10: 10@X5,\n" +
-                "-10: -10@D5_1,\n" +
-                " 11: 11@X6,\n" +
-                "-11: -11@D6_1,\n" +
-                " 12: 12@X6,\n" +
-                "-12: -12@D6_1,\n" +
-                "-13: -13@D7_1,\n" +
-                "-14: -14@D7_1,\n" +
-                "-15: -15@D8_1,-15@D8_2,\n" +
-                "-16: -16@D8_1,-16@D8_3,\n" +
-                "-17: -17@D8_2,-17@D8_3,\n" +
-                "\n" +
-                "Task Queue:\n" +
-                "1. P1: Initial Conjunction: 5\n" +
-                "2. P1: Initial Conjunction: 6\n" +
-                "3. P1: Initial Conjunction: 7\n" +
-                "4. P1: Initial Conjunction: 8\n" +
-                "5. P2: Simplify initial clause 2:(3,4,-5)\n" +
-                "6. P3: Simplify initial clause 1:(1,2)\n" +
-                "7. P3: Simplify initial clause X5:(9,10)\n" +
-                "8. P3: Simplify initial clause D5_1:(-9,-10)\n" +
-                "9. P3: Simplify initial clause X6:(11,12)\n" +
-                "10. P3: Simplify initial clause D6_1:(-11,-12)\n" +
-                "11. P3: Simplify initial clause D7_1:(-13,-14)\n" +
-                "12. P3: Simplify initial clause D8_1:(-15,-16)\n" +
-                "13. P3: Simplify initial clause D8_2:(-15,-17)\n" +
-                "14. P3: Simplify initial clause D8_3:(-16,-17)\n",res.toString());
+        if(monitoring) System.out.println("\nNEW 4");
+        resolution.clear();
+        clause = new Clause(new int[]{1, cAtleast, 2, 1, 2, 3});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cAtleast, 2, -1,-1,2,2,3,3}));
+        assertTrue(resolution.mergeResolutionWithLongerClause(clause));
+        assertEquals("1: >= 2 1,2,3\n" +
+                "2: 2v3\n", resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 5");
+        resolution.clear();
+        clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 3, -2, 4}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 3, -2, -1}));
+        resolution.insertClause(new Clause(new int[]{4, cOr, 3, -1, 4,2,5}));
+        resolution.insertClause(new Clause(new int[]{5, cOr, -3, 2, 4,1}));
+        assertTrue(resolution.mergeResolutionWithLongerClause(clause));
+        assertEquals("1: 1v2v3\n" +
+                "2: 3v-2v4\n" +
+                "3: 3v-2v-1\n" +
+                "4: 3v4v2v5\n" +
+                "5: 2v4v1\n", resolution.clauses.toString());
+        if(monitoring) System.out.println(resolution.statistics.toString());
     }
 
-    @Test
-    public void initializeClauses2() throws Exception {
-        System.out.println("initializeClauses redundant clauses, no equivalences");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        HashMap<String, Object> solverParameters = new HashMap<>();
-        ArrayList<HashMap<String, Object>> svp = new ArrayList<>();
-        solverParameters.put("strategy", ResolutionStrategy.INPUT);
-        solverParameters.put("seed", 1);
-        solverParameters.put("percentage", 50);
-        solverParameters.put("limit", 10);
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, svp);
-        Resolution res = new Resolution(1, solverParameters, sup);
-        Field predicates = getSField("predicates");
-        predicates.set(res, 20);
-        Method initializeData = getMethod("initializeData");
+    public void testmergeResolutionWithLongerClauseDirect2 () throws Result {
+        System.out.println("mergeResolutionWithLongerClause 2");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        Clause clause = new Clause(new int[]{1, cAtleast, 3, 1,1, 2, 3,3});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cAtleast, 4, 1,1,1,1, -2,-2,-2, 3,3,3,3,4}));
+        resolution.insertClause(new Clause(new int[]{3, cAtleast, 4, 1,1,1,1, -2,-2,-2, 3,3,3,4}));
+        resolution.mergeResolutionWithLongerClause(clause);
+        assertEquals("1: >= 3 1^2,2,3^2\n" +
+                "2: 1v3\n" +
+                "3: >= 4 1^4,-2^3,3^3,4\n", resolution.clauses.toString());
 
-        BasicClauseList clauses = new BasicClauseList();
-        int[] clause1 = {1,0, 1,2,3,-2};     clauses.addClause(clause1); // or
-        int[] clause2 = {2,0, 3,4,-5,3,4};  clauses.addClause(clause2);
-        int[] clause3 = {3,1, 5,6};          clauses.addClause(clause3);  // and
-        int[] clause4 = {4,1, -6,7};         clauses.addClause(clause4);
-        int[] clause5 = {5,2, 9,-9};         clauses.addClause(clause5);  // xor
-        int[] clause6 = {6,2, 11,12,11};     clauses.addClause(clause6);
-        int[] clause7 = {7,3, 13,-13,14};    clauses.addClause(clause7);  // disjoint
-        int[] clause8 = {8,3, 15,16,15};     clauses.addClause(clause8);
+        }
+    public void testbinaryClauseIsSubsumedByBinaryClauses()  {
+        System.out.println("binaryClauseIsSubsumed");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
 
-        Field bcl = getSField("basicClauseList");
-        bcl.set(res,clauses);
-        initializeData.invoke(res);
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 3}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
 
-        Method initializeClauses = getMethod("initializeClauses");
-        initializeClauses.invoke(res);
-        //System.out.println(res.toString());
-        assertEquals("Resolution:\n" +
-                "Primary Clauses:\n" +
-                "Bucket 2\n" +
-                "  X6:(11,12)\n" +
-                "  D6_1:(-11,-12)\n" +
-                "  D6_3:(-12,-11)\n" +
-                "  D7_1:(-13,-14)\n" +
-                "  D7_2:(13,-14)\n" +
-                "  D8_1:(-15,-16)\n" +
-                "  D8_3:(-16,-15)\n" +
-                "Bucket 3\n" +
-                "  2:(3,4,-5)\n" +
-                "\n" +
-                "Literal Index:\n" +
-                " 3: 3@2,\n" +
-                " 4: 4@2,\n" +
-                "-5: -5@2,\n" +
-                " 11: 11@X6,\n" +
-                "-11: -11@D6_1,-11@D6_3,\n" +
-                " 12: 12@X6,\n" +
-                "-12: -12@D6_1,-12@D6_3,\n" +
-                " 13: 13@D7_2,\n" +
-                "-13: -13@D7_1,\n" +
-                "-14: -14@D7_1,-14@D7_2,\n" +
-                "-15: -15@D8_1,-15@D8_3,\n" +
-                "-16: -16@D8_1,-16@D8_3,\n" +
-                "\n" +
-                "Task Queue:\n" +
-                "1. P1: Initial Conjunction: 5\n" +
-                "2. P1: Initial Conjunction: 6\n" +
-                "3. P1: Initial Conjunction: -6\n" +
-                "4. P1: Initial Conjunction: 7\n" +
-                "5. P1: Initial clause: -15\n" +
-                "6. P1: Initial clause: -11\n" +
-                "7. P4: Simplify initial clause 2:(3,4,-5)\n" +
-                "8. P5: Simplify initial clause D6_1:(-11,-12)\n" +
-                "9. P5: Simplify initial clause D6_3:(-12,-11)\n" +
-                "10. P5: Simplify initial clause D7_1:(-13,-14)\n" +
-                "11. P5: Simplify initial clause D7_2:(13,-14)\n" +
-                "12. P5: Simplify initial clause D8_1:(-15,-16)\n" +
-                "13. P5: Simplify initial clause X6:(11,12)\n" +
-                "14. P5: Simplify initial clause D8_3:(-16,-15)\n",res.toString());}
-
-    @Test
-    public void initializeClauses3() throws Exception {
-        System.out.println("initializeClauses redundant clauses, with equivalences");
-        Controller cntr = new Controller(null, null, null);
-        HashMap<String, Object> problemParameters = new HashMap<>();
-        problemParameters.put("name", "test");
-        HashMap<String, Object> solverParameters = new HashMap<>();
-        ArrayList<HashMap<String, Object>> svp = new ArrayList<>();
-        solverParameters.put("strategy", ResolutionStrategy.INPUT);
-        solverParameters.put("seed", 1);
-        solverParameters.put("percentage", 50);
-        solverParameters.put("limit", 10);
-        ProblemSupervisor sup = new ProblemSupervisor(cntr, null, problemParameters, svp);
-        Resolution res = new Resolution(1, solverParameters, sup);
-        Field predicates = getSField("predicates");
-        predicates.set(res, 30);
-        Method initializeData = getMethod("initializeData");
-
-        BasicClauseList clauses = new BasicClauseList();
-        int[] clause1 = {1,0, 1,20,3,-21};   clauses.addClause(clause1); // or
-        int[] clause2 = {2,0, 3,21,-5,3,22}; clauses.addClause(clause2);
-        int[] clause3 = {3,1, 5,21};         clauses.addClause(clause3);  // and
-        int[] clause4 = {4,1, -6,22};        clauses.addClause(clause4);
-        int[] clause5 = {5,2, 21,-22};       clauses.addClause(clause5);  // xor
-        int[] clause6 = {6,2, 21,12,22};     clauses.addClause(clause6);
-        int[] clause7 = {7,3, 22,-21,14};    clauses.addClause(clause7);  // disjoint
-        int[] clause8 = {8,3, 22,16,20};     clauses.addClause(clause8);
-        int[] clause9 = {9,4, 20,21,22};     clauses.addClause(clause9);  // eqv
-
-        Field bcl = getSField("basicClauseList");
-        bcl.set(res,clauses);
-        initializeData.invoke(res);
-
-        Method initializeClauses = getMethod("initializeClauses");
-        initializeClauses.invoke(res);
-        //System.out.println(res.toString());
-        assertEquals("Resolution:\n" +
-                "Primary Clauses:\n" +
-                "Bucket 2\n" +
-                "  X6:(20,12)\n" +
-                "  D6_1:(-20,-12)\n" +
-                "  D6_3:(-12,-20)\n" +
-                "  D7_1:(-20,-14)\n" +
-                "  D7_2:(20,-14)\n" +
-                "  D8_1:(-20,-16)\n" +
-                "  D8_3:(-16,-20)\n" +
-                "Bucket 3\n" +
-                "  2:(3,20,-5)\n" +
-                "\n" +
-                "Literal Index:\n" +
-                " 3: 3@2,\n" +
-                "-5: -5@2,\n" +
-                " 12: 12@X6,\n" +
-                "-12: -12@D6_1,-12@D6_3,\n" +
-                "-14: -14@D7_1,-14@D7_2,\n" +
-                "-16: -16@D8_1,-16@D8_3,\n" +
-                " 20: 20@X6,20@D7_2,20@2,\n" +
-                "-20: -20@D6_1,-20@D6_3,-20@D7_1,-20@D8_1,-20@D8_3,\n" +
-                "\n" +
-                "Task Queue:\n" +
-                "1. P1: Initial Conjunction: 5\n" +
-                "2. P1: Initial Conjunction: 20\n" +
-                "3. P1: Initial Conjunction: -6\n" +
-                "4. P1: Initial Conjunction: 20\n" +
-                "5. P1: Initial clause: -20\n" +
-                "6. P1: Initial clause: -20\n" +
-                "7. P4: Simplify initial clause 2:(3,20,-5)\n" +
-                "8. P5: Simplify initial clause D6_1:(-20,-12)\n" +
-                "9. P5: Simplify initial clause D6_3:(-12,-20)\n" +
-                "10. P5: Simplify initial clause D7_1:(-20,-14)\n" +
-                "11. P5: Simplify initial clause D7_2:(20,-14)\n" +
-                "12. P5: Simplify initial clause D8_1:(-20,-16)\n" +
-                "13. P5: Simplify initial clause X6:(20,12)\n" +
-                "14. P5: Simplify initial clause D8_3:(-16,-20)\n",res.toString());}
-
-    @Test
-    public void resolve() throws Exception {
-
+        Clause clause = new Clause(new int[]{4, cOr, 2, -1});
+        assertNull(resolution.binaryClauseIsSubsumed(clause));
+        clause = new Clause(new int[]{5, cOr, 3, 2});
+        assertNotNull(resolution.binaryClauseIsSubsumed(clause));
+        clause = new Clause(new int[]{6, cOr, 2,1});
+        assertNotNull(resolution.binaryClauseIsSubsumed(clause));
+        assertNull(resolution.binaryClauseIsSubsumed(resolution.clauses.firstClause));
     }
 
-    @Test
-    public void selectParentLiterals() throws Exception {
+    public void testlongerClauseIsSubsumedByBinaryClause()  {
+        System.out.println("longerClauseIsSubsumedByBinaryClause");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 3}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
+
+        Clause clause = new Clause(new int[]{4, cOr, 2, -1, -3});
+        assertNull(resolution.longerClauseIsSubsumedByBinaryClause(clause));
+        clause = new Clause(new int[]{5, cOr, 3, 2, 1});
+        assertNotNull(resolution.longerClauseIsSubsumedByBinaryClause(clause));
+        clause = new Clause(new int[]{6, cOr, 2,1,-3});
+        assertNotNull(resolution.longerClauseIsSubsumedByBinaryClause(clause));
+    }
+    public void testlongerClauseIsSubsumedByLongerClause()  {
+        System.out.println("longerClauseIsSubsumedByLongerClause");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, false, nextId);
+
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 3, 4}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1, 3}));
+
+        Clause clause = new Clause(new int[]{4, cOr, 2, -1, -3});
+        assertNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        clause = new Clause(new int[]{5, cOr, 3, 2, 1, 4});
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        clause = new Clause(new int[]{6, cOr, 4, 2,1,-3});
+        assertNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        clause = new Clause(new int[]{7, cOr, 4, 2,1,3});
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+
+        resolution.clear();
+
+        resolution.insertClause(new Clause(new int[]{1, cAtleast, 2, 1, 2, 3}));
+        clause = new Clause(new int[]{2, cOr, 4, 2,1,3});
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+
+        clause = new Clause(new int[]{3, cOr, 4, 2,1,3,4});
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+
+        clause = new Clause(new int[]{4, cOr, 4, 2,-1,3,4});
+        assertNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+
+        clause = new Clause(new int[]{5, cAtleast, 2, 4, 2,1,3});
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+
+        resolution.insertClause(new Clause(new int[]{6, cAtleast, 3, 1, 2,2, 5}));
+        clause = new Clause(new int[]{7, cAtleast, 3, 5, 2,1,3});
+        assertNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        clause = new Clause(new int[]{8, cAtleast, 3, 5, 2,2,2,1,3});
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+    }
+
+    public void testsaturateBinaryClauseWithLongerClauses() throws Result {
+        System.out.println("saturateLongerClausesWithBinaryClause");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, false, nextId);
+
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 3, 4}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1, 3}));
+        resolution.insertClause(new Clause(new int[]{4, cAtleast, 2, 2, -1, -3}));
+
+        Clause clause = new Clause(new int[]{5, cOr, -2, 5});
+        resolution.insertClause(clause);
+        resolution.saturateLongerClausesWithBinaryClause(clause);
+        assertEquals(" 1: 1v2v3\n" +
+                " 2: 2v3v4\n" +
+                " 3: -2v-1v3\n" +
+                " 4: >= 2 2,-1,-3\n" +
+                " 5: -2v5\n" +
+                "11: >= 2 5,-1,-3\n" +
+                "12: 5v3v4\n" +
+                "13: 5v1v3\n", resolution.clauses.toString());
+
+        resolution.clear();
+
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2, -5}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 3, 4, 5}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 2, 3, 5}));
+
+        clause = new Clause(new int[]{4, cOr, -2, 5});
+        resolution.insertClause(clause);
+        resolution.saturateLongerClausesWithBinaryClause(clause);
+        assertEquals(" 1: 1v2v-5\n" +
+                " 2: 2v3v4v5\n" +
+                " 3: 2v3v5\n" +
+                " 4: -2v5\n" +
+                "14: 5v3\n", resolution.clauses.toString());
+        //System.out.println(simplifier.statistics);
+    }
+
+    public void testResolve() throws Result {
+        System.out.println("resolve");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, false, nextId);
+
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, 1, 2, -3});
+        resolution.insertClause(clause2);
+        Clause clause3 = new Clause(new int[]{3, cOr, 1, -2, 3, 4});
+        resolution.insertClause(clause3);
+        Clause clause4 = new Clause(new int[]{4, cOr, 1, -2, -3, 4});
+        resolution.insertClause(clause4);
+        resolution.resolve(clause1.literals.get(2),clause2.literals.get(2));
+        resolution.resolve(clause1.literals.get(1),clause3.literals.get(1));
+        resolution.resolve(clause1.literals.get(1),clause4.literals.get(1));
+        resolution.resolve(clause1.literals.get(1),clause3.literals.get(1));
+        assertEquals(" 1: 1v2v3\n" +
+                " 2: 1v2v-3\n" +
+                " 3: 1v-2v3v4\n" +
+                " 4: 1v-2v-3v4\n" +
+                "11: 1v2\n" +
+                "12: 1v3v4\n", resolution.clauses.toString());
+        //System.out.println(simplifier.statistics);
+    }
+
+    public void testcheckForPartialPurity() throws Result {
+        System.out.println("checkForPartialPurity");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, false, nextId);
+
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 3, 2}));
+        resolution.checkForPartialPurity();
+        assertEquals("1", resolution.model.toString());
+
+        resolution.clear();
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, -1,2,-3}));
+        resolution.checkForPartialPurity();
+        assertEquals("2", resolution.model.toString());
 
     }
 
-    @Test
-    public void simplifyForward() throws Exception {
 
     }
 
-    @Test
-    public void addTrueLiteralTask() throws Exception {
 
-    }
-*/
-}

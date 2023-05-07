@@ -11,7 +11,7 @@ import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
 import Management.ProblemSupervisor;
-import Solvers.Simplifier.UnsatClause;
+import Solvers.Resolution.UnsatClause;
 import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;

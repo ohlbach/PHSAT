@@ -12,7 +12,7 @@ import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Backtracker.Backtracker;
-import Solvers.Simplifier.Simplifier;
+import Solvers.Resolution.Resolution;
 import Solvers.Walker.Walker;
 
 import java.lang.reflect.Method;
@@ -32,7 +32,7 @@ public abstract class Solver {
        *********************** */
 
     /** the list of all solver types */
-    public static String[] solvers = new String[]{"simplifier","walker","backtracker","resolution"};
+    public static String[] solvers = new String[]{"walker","backtracker","resolution"};
 
     /** checks if the name is a solver name
      *
@@ -52,8 +52,8 @@ public abstract class Solver {
      */
     public static Class solverClass(String solverName) {
         switch (solverName) {
-            case "Simplifier":
-            case "simplifier":      return Simplifier.class;
+            case "Resolution":
+            case "resolution":      return Resolution.class;
             case "Walker":
             case "walker":          return Walker.class;
             case "Backtracker":

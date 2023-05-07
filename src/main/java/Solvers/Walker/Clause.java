@@ -5,7 +5,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
-import Solvers.Simplifier.UnsatClause;
+import Solvers.Resolution.UnsatClause;
 
 import java.util.ArrayList;
 import java.util.Arrays;

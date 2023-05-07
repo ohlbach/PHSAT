@@ -12,5 +12,5 @@ ProblemGenerators
 Management
 Solvers
 Solvers.Walker
-Solvers.Resolution
+Solvers.ResolutionOld
 Utilities

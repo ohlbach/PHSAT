@@ -5,9 +5,6 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
-import Solvers.Simplifier.Literal;
-import Solvers.Simplifier.UnsatClause;
-import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.FileNotFoundException;

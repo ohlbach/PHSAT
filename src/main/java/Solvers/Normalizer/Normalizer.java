@@ -13,7 +13,7 @@ import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
-import Solvers.Simplifier.UnsatClause;
+import Solvers.Resolution.UnsatClause;
 import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -21,6 +21,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.function.IntSupplier;
 
 /** The Normalizer transforms the InputClauses into Interval-Normalform and removes obvious redundancies.
  *  <br>
@@ -51,6 +52,14 @@ public class Normalizer extends Solver {
 
     /** the Or-ordinal */
     private static final int cOr = Quantifier.OR.ordinal();
+
+    private static final int cAtleast     = Quantifier.ATLEAST.ordinal();
+
+    private static final int cAtmost = Quantifier.ATMOST.ordinal();
+
+    private static final int cExactly = Quantifier.EXACTLY.ordinal();
+
+    private static final int cInterval = Quantifier.INTERVAL.ordinal();
 
     /** the normalizer statistics */
     NormalizerStatistics statistics;
@@ -366,7 +375,6 @@ public class Normalizer extends Solver {
         int[] inputClauseCopy = Arrays.copyOf(inputClause, length); // the original clause must not be changed.
         int complementaryLiterals = 0;
         expandedSize = 0;
-        boolean changed = false;
         for (int i = quantifier.firstLiteralIndex; i < length; ++i) {
             int literal1 = inputClauseCopy[i];
             if (literal1 == 0) continue;
@@ -714,6 +722,102 @@ public class Normalizer extends Solver {
              if(analyseMultiplicities(clause, inputClause) == null) {clauses.remove(index); return;}
              divideByGCD(clause);
              if(optimizeQuantifier(clause,inputClause) == null){clauses.remove(index);}}
+    }
+
+    /** turns a normalized atmost-clause into an atleast clause.
+     *
+     * @param atmostClause a normalized atmost-clause
+     * @return the transformed atleast-clause.
+     */
+    public static IntArrayList atmost2Atleast(IntArrayList atmostClause) {
+        assert atmostClause.get(1) == cAtmost;
+        IntArrayList atleastClause = new IntArrayList(atmostClause.size());
+        atleastClause.add(atmostClause.getInt(0)); // Id
+        atleastClause.add(cAtleast);
+        int expandedSize = getExpandedSize(atmostClause);
+        atleastClause.add(expandedSize - getMax(atmostClause)); // min;
+        atleastClause.add(expandedSize);
+        atleastClause.add(expandedSize);
+        for(int i = literalsStart; i < atmostClause.size(); i += 2) {
+            atleastClause.add(-atmostClause.getInt(i));
+            atleastClause.add(atmostClause.getInt(i+1));}
+        return atleastClause;}
+
+    /** turns a normalized atleast-clause into an atmost clause.
+     *
+     * @param atleastClause a normalized atmost-clause
+     * @return the transformed atmost-clause.
+     */
+    public static IntArrayList atleast2Atmost(IntArrayList atleastClause) {
+        assert atleastClause.get(1) == cAtleast;
+        IntArrayList atmostClause = new IntArrayList(atleastClause.size());
+        atmostClause.add(atleastClause.getInt(0)); // Id
+        atmostClause.add(cAtmost);
+        int expandedSize = getExpandedSize(atleastClause);
+        atmostClause.add(0); // min;
+        atmostClause.add(expandedSize - getMin(atleastClause));
+        atmostClause.add(expandedSize);
+        for(int i = literalsStart; i < atleastClause.size(); i += 2) {
+            atmostClause.add(-atleastClause.getInt(i));
+            atmostClause.add(atleastClause.getInt(i+1));}
+        return atmostClause;}
+
+    /** turns a normalized exactly-clause into two atleast clauses.
+     *
+     * @param exactlyClause a normalized atmost-clause
+     * @return the transformed atleast-clauses.
+     */
+    public static IntArrayList[] exactlyToAtleast(IntArrayList exactlyClause, IntSupplier newId) {
+        assert (exactlyClause.getInt(1) == cExactly);
+        int size = exactlyClause.size();
+        int expandedSize = getExpandedSize(exactlyClause);
+        IntArrayList atleastClause1 = new IntArrayList(size);
+        IntArrayList atleastClause2 = new IntArrayList(size);
+        atleastClause1.add(newId.getAsInt());
+        atleastClause2.add(newId.getAsInt());
+        atleastClause1.add(cAtleast);
+        atleastClause2.add(cAtleast);
+        atleastClause1.add(getMin(exactlyClause));
+        atleastClause1.add(expandedSize);
+        atleastClause2.add(expandedSize-getMax(exactlyClause));
+        atleastClause2.add(0);
+        atleastClause1.add(expandedSize);
+        atleastClause2.add(expandedSize);
+        for(int i = literalsStart; i < exactlyClause.size(); i += 2) {
+            atleastClause1.add(exactlyClause.getInt(i));
+            atleastClause1.add(exactlyClause.getInt(i+1));
+            atleastClause2.add(-exactlyClause.getInt(i));
+            atleastClause2.add(exactlyClause.getInt(i+1));}
+         return new IntArrayList[]{atleastClause1,atleastClause2};
+    }
+
+    /** turns a normalized exactly-clause into two atleast clauses.
+     *
+     * @param intervalClause a normalized atmost-clause
+     * @return the transformed atleast-clauses.
+     */
+    public static IntArrayList[] intervalToAtleast(IntArrayList intervalClause, IntSupplier newId) {
+        assert (intervalClause.getInt(1) == cInterval);
+        int size = intervalClause.size();
+        int expandedSize = getExpandedSize(intervalClause);
+        IntArrayList atleastClause1 = new IntArrayList(size);
+        IntArrayList atleastClause2 = new IntArrayList(size);
+        atleastClause1.add(newId.getAsInt());
+        atleastClause2.add(newId.getAsInt());
+        atleastClause1.add(cAtleast);
+        atleastClause2.add(cAtleast);
+        atleastClause1.add(getMin(intervalClause));
+        atleastClause1.add(expandedSize);
+        atleastClause2.add(expandedSize-getMax(intervalClause));
+        atleastClause2.add(0);
+        atleastClause1.add(expandedSize);
+        atleastClause2.add(expandedSize);
+        for(int i = literalsStart; i < intervalClause.size(); i += 2) {
+            atleastClause1.add(intervalClause.getInt(i));
+            atleastClause1.add(intervalClause.getInt(i+1));
+            atleastClause2.add(-intervalClause.getInt(i));
+            atleastClause2.add(intervalClause.getInt(i+1));}
+        return new IntArrayList[]{atleastClause1,atleastClause2};
     }
 
     /** lists the model, the equivalence classes and the clauses as a string.
