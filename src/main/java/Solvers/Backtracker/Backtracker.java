@@ -109,7 +109,7 @@ public class Backtracker extends Solver {
     }
 
     @Override
-    public Result solveProblem(ProblemSupervisor problemSupervisor) {
+    public Result solveProblem() {
         long startTime         = System.nanoTime();
         model                  = problemSupervisor.model;
         predicates             = problemSupervisor.inputClauses.predicates;

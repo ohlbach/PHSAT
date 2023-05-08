@@ -8,6 +8,8 @@ import Datastructures.Symboltable;
  */
 public class Literals {
 
+    int predicates;
+
     /** a doubly connected list for each positive literal */
     Literal[] positiveLiterals;
 
@@ -19,16 +21,21 @@ public class Literals {
      * @param predicates the total number of predicates.
      */
     public Literals(int predicates) {
+        this.predicates = predicates;
         positiveLiterals = new Literal[predicates+1];
         negativeLiterals = new Literal[predicates+1];}
 
-    /** removes all literals from the index.
-     * This is mainly for testing purposes.
+    /** If the index is large enough, it is reused and all literals are removed, otherwise a new index is created.
      */
-    public void clear() {
-        for(int i = 0; i < positiveLiterals.length; ++i) {
-            positiveLiterals[i] = null;
-            negativeLiterals[i] = null;}}
+    public void clear(int predicates) {
+        this.predicates = predicates;
+        if(positiveLiterals.length <= predicates) {
+            positiveLiterals = new Literal[predicates+1];
+            negativeLiterals = new Literal[predicates+1];}
+        else {
+            for(int i = 0; i < positiveLiterals.length; ++i) {
+                positiveLiterals[i] = null;
+                negativeLiterals[i] = null;}}}
 
     /** returns the first Literal object in the Literal chain of the given literal
      *
@@ -196,11 +203,11 @@ public class Literals {
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append("Positive Literals:\n");
-        for(int predicate = 1; predicate < positiveLiterals.length; ++predicate) {
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
             int size = size(predicate);
             if(size != 0) st.append(Symboltable.toString(predicate, symboltable)).append(":").append(size).append(",");}
         st.append("\nNegative Literals:\n");
-        for(int predicate = 1; predicate < negativeLiterals.length; ++predicate) {
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
             int size = size(-predicate);
             if(size != 0) st.append(Symboltable.toString(-predicate, symboltable)).append(":").append(size).append(",");}
         return st.toString();}

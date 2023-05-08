@@ -220,7 +220,7 @@ public class Normalizer extends Solver {
      * @return null or an Unsatisfiable or Satisfiable exception.
      */
     @Override
-    public Result solveProblem(ProblemSupervisor problemSupervisor) {
+    public Result solveProblem() {
         try{
             for(int[] inputClause : inputClauses.conjunctions) normalizeConjunction(inputClause);
             for(int[] inputClause : inputClauses.equivalences) normalizeEquivalence(inputClause);

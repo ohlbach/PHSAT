@@ -4,6 +4,7 @@ import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
+import Solvers.Normalizer.Normalizer;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -153,6 +154,23 @@ public class Clause {
             literalObject.multiplicity = Math.min(limit,literalObject.multiplicity);
             expandedSize += literalObject.multiplicity;}
         hasMultiplicities = expandedSize > literals.size();}
+
+
+    /** this constructor turns a normalizedClause to a clause for the Resolution solver.
+     *
+     * @param normalizedClause a normalized and simplified clause from the Normalizer.
+     */
+    public Clause(IntArrayList normalizedClause) {
+        id = normalizedClause.getInt(0);
+        quantifier = Normalizer.getQuantifier(normalizedClause);
+        limit = Normalizer.getMin(normalizedClause);
+        expandedSize = Normalizer.getExpandedSize(normalizedClause);
+        hasMultiplicities = Normalizer.hasMultiplicities(normalizedClause);
+        for(int i = Normalizer.literalsStart; i <= normalizedClause.size()-2; i +=2) {
+            Literal literal = new Literal(normalizedClause.get(i),normalizedClause.get(i+1));
+            literals.add(literal);
+            literal.clause = this;}}
+
 
 
     /** checks if the atleast-clause is true (limit &lt;= 0).

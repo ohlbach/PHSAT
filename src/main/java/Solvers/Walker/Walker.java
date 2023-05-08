@@ -10,7 +10,6 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
-import Management.ProblemSupervisor;
 import Solvers.Resolution.UnsatClause;
 import Solvers.Solver;
 import Utilities.Utilities;
@@ -164,12 +163,10 @@ public class Walker extends Solver {
 
     /** starts the search for a model.
      *
-     * @param problemSupervisor the corresponding supervisor.
      * @return the result of the search.
      */
     @Override
-    public Result solveProblem(ProblemSupervisor problemSupervisor) {
-        initialize(Thread.currentThread(),problemSupervisor);
+    public Result solveProblem() {
         long startTime     = System.nanoTime();
         myThread           = Thread.currentThread();
         localModel         = new boolean[predicates+1];

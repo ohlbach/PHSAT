@@ -200,10 +200,9 @@ public abstract class Solver {
     /** The key method, which has to be implemented by the solvers.<br>
      * It is supposed to find a model or a contradiction in the clauses.
      *
-     * @param problemSupervisor the problem-supervisor.
      * @return Un/Satisfiable or null
      */
-    public abstract Result solveProblem(ProblemSupervisor problemSupervisor);
+    public abstract Result solveProblem();
 
     /** returns the solver's statistics.
      *

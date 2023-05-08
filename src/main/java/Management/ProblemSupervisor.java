@@ -102,12 +102,13 @@ public class ProblemSupervisor {
                 globalParameters.logstream.println(inputClauses.toString(inputClauses.symboltable,infoOnly));}
             model = new Model(inputClauses.predicates);
             normalizer = new Normalizer(this);
-            Result result = normalizer.solveProblem(this);
+            normalizer.initialize(Thread.currentThread(),this);
+            Result result = normalizer.solveProblem();
             if(result != null)  {finished(result); return;}
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];
             for(int i = 0; i < numberOfSolvers; ++i) {int j = i;
-                threads[i] = new Thread(() -> finished(solvers.get(j).solveProblem(this)));
+                threads[i] = new Thread(() -> finished(solvers.get(j).solveProblem()));
                 solvers.get(i).initialize(threads[i],this);}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].start();}
             for(int i = 0; i < numberOfSolvers; ++i) {threads[i].join();}}
