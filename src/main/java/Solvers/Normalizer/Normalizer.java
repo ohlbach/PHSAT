@@ -216,11 +216,11 @@ public class Normalizer extends Solver {
      *  Equivalence classes are processed by replacing all literals by the representatives in the equivalence classes.<br>
      *  In the further processing the equivalence classes can be ignored.
      *
-     * @param problemSupervisor the problem Supervisor.
      * @return null or an Unsatisfiable or Satisfiable exception.
      */
     @Override
     public Result solveProblem() {
+        InputClauses inputClauses = problemSupervisor.inputClauses;
         try{
             for(int[] inputClause : inputClauses.conjunctions) normalizeConjunction(inputClause);
             for(int[] inputClause : inputClauses.equivalences) normalizeEquivalence(inputClause);
@@ -716,7 +716,7 @@ public class Normalizer extends Solver {
              if(status == 1) {--max; --min;}}}
 
          if(changed) {
-             int[] inputClause = inputClauses.findClause(clause.getInt(0));
+             int[] inputClause = problemSupervisor.inputClauses.findClause(clause.getInt(0));
              if(expandedSize == 0) {checkEmptyClause(clause, inputClause); clauses.remove(index); return;}
              setMin(clause,min); setMax(clause,max); setExpandedSize(clause,expandedSize);
              if(analyseMultiplicities(clause, inputClause) == null) {clauses.remove(index); return;}

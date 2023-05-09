@@ -1,7 +1,6 @@
 package Solvers;
 
 import Datastructures.Clauses.Clause;
-import Datastructures.Clauses.InputClauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Erraneous;
 import Datastructures.Results.Result;
@@ -12,6 +11,7 @@ import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Backtracker.Backtracker;
+import Solvers.Normalizer.Normalizer;
 import Solvers.Resolution.Resolution;
 import Solvers.Walker.Walker;
 
@@ -138,8 +138,11 @@ public abstract class Solver {
     /** all control parameters for the solvers. */
     protected  HashMap<String,Object> solverParameters;
 
-    /** the input clauses. */
-    protected InputClauses inputClauses;
+    /** if contains the normalized clauses */
+    protected Normalizer normalizer;
+
+    /** the start time of the solver. */
+    protected long startTime;
 
     /** the number of predicates in the problem. */
     public  int predicates;
@@ -180,18 +183,20 @@ public abstract class Solver {
      * @param problemSupervisor the supervisor for the problem.
      */
     public void initialize(Thread thread,ProblemSupervisor problemSupervisor) {
+        startTime                  = System.nanoTime();
         this.myThread              = thread;
         this.problemSupervisor     = problemSupervisor;
         solverId                   = (String)solverParameters.get("name");
         problemId                  = problemSupervisor.problemId;
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
         globalParameters           = problemSupervisor.globalParameters;
-        inputClauses               = problemSupervisor.inputClauses;
-        predicates                 = inputClauses.predicates;
-        symboltable                = inputClauses.symboltable;
+        normalizer                 = problemSupervisor.normalizer;
+        predicates                 = normalizer.predicates;
+        symboltable                = normalizer.symboltable;
         monitor                    = problemSupervisor.monitor;
         monitoring                 = monitor != null;
         model                      = problemSupervisor.model;
+        trackReasoning             = globalParameters.trackReasoning;
         }
 
         public String getSolverId() {return solverId;}
@@ -226,7 +231,7 @@ public abstract class Solver {
      * @return null or an Erraneous Result
      */
     public Result checkModel(Model model) {
-        ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(model);
+        ArrayList<int[]> falseClauses = problemSupervisor.inputClauses.falseClausesInModel(model);
         if(falseClauses != null) {return new Erraneous(problemId,"Solver",model,falseClauses,symboltable);}
         else {return null;}}
 

@@ -1,6 +1,5 @@
 package Solvers.Resolution;
 
-import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
@@ -89,7 +88,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(clause2);
         resolution.removeClause(clause2, true);
         assertEquals("1: 1v2v3\n", resolution.clauses.toString());
-        assertEquals("1,2,3", resolution.model.toString());
+        assertEquals("1,2,3", resolution.localModelString());
     }
 
     public void testSimplifyClause() throws Unsatisfiable {
@@ -107,7 +106,7 @@ public class ResolutionTest extends TestCase {
         assertEquals("Positive Literals:\n" +
                 "1:1,2:1,3:1,4:1,\n" +
                 "Negative Literals:\n", resolution.literalIndexMore.toString());
-        resolution.simplifyClause(clause, false);
+        resolution.simplifyClause(clause, true);
         assertEquals("2: 3v4", clause.toString());
         assertEquals("1,2", resolution.model.toString());
         assertEquals("Positive Literals:\n" +
@@ -140,170 +139,9 @@ public class ResolutionTest extends TestCase {
         clause = new Clause(new int[]{2, cAtleast, 2, -3, -4});
         resolution.insertClause(clause);
         resolution.checkAllPurities();
-        assertEquals("1,2,-4", resolution.model.toString());
+        assertEquals("1,2,-4", resolution.localModelString());
         InferenceStep step = resolution.model.getInferenceStep(-4);
         //System.out.println(step.toString());
-    }
-
-    public void testInputClausesToAtleastDisjunctions() throws Result {
-        System.out.println("inputClausesToAtleast disjunctions");
-        int predicates = 3;
-        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
-        resolution.inputClauses = inputClauses;
-        inputClauses.addClause(new int[]{1, cOr, 1, 2, 3});
-        inputClauses.addClause(new int[]{2, cOr, -1, -2, -3});
-        resolution.readInputClauses();
-        assertEquals("1: 1v2v3\n" +
-                "2: -1v-2v-3\n", resolution.clauses.toString());
-
-        resolution.clear();
-
-        inputClauses.addClause(new int[]{1, cOr, 1, 2, 3, -2});
-        inputClauses.addClause(new int[]{2, cOr, -1, -2, -3, -2});
-        resolution.readInputClauses();
-        assertEquals("2: -1v-3v-2\n", resolution.clauses.toString());
-        assertEquals("-1,-2,-3", resolution.model.toString());
-        //System.out.println(simplifier.statistics.toString());
-
-        resolution.clear();
-        inputClauses.addClause(new int[]{1, cOr, 1, 2, 3});
-        inputClauses.addClause(new int[]{2, cOr, -1, -2, -2});
-        inputClauses.addClause(new int[]{3, cOr, 3, 3, 3});
-        resolution.readInputClauses();
-        assertEquals("1: 1v2v3\n" +
-                "2: -1v-2\n", resolution.clauses.toString());
-        assertEquals("3", resolution.model.toString());
-
-        //System.out.println(simplifier.statistics.toString());
-        resolution.clear();
-        inputClauses.addClause(new int[]{1, cOr, 1, 1, 1});
-        inputClauses.addClause(new int[]{2, cOr, -1});
-        try {
-            resolution.readInputClauses();
-        } catch (Unsatisfiable unsatisfiable) {
-            //System.out.println(unsatisfiable.toString());
-        }
-    }
-
-    public void testInputClausesToAtleastAtleasts() throws Result {
-        System.out.println("inputClausesToAtleast atleasts");
-        int predicates = 4;
-        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
-        resolution.inputClauses = inputClauses;
-        inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 2, 3});
-        resolution.readInputClauses();
-        assertEquals("1: >= 2 1,2,3\n", resolution.clauses.toString());
-        assertEquals("1,2,3,4", resolution.model.toString());
-        //System.out.println(simplifier.statistics.toString());
-
-        //System.out.println("NEXT1");
-        resolution.clear();
-        inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 2, -1, 3});
-        resolution.readInputClauses();
-        assertEquals("1: 2v3\n", resolution.clauses.toString());
-        //System.out.println(simplifier.statistics.toString());
-
-        //System.out.println("NEXT2");
-        resolution.clear();
-        inputClauses.addClause(new int[]{1, cAtleast, 5, 1, 1, 2, 2, 3, 4});
-        resolution.readInputClauses();
-        assertEquals("1: 3v4\n", resolution.clauses.toString());
-        //System.out.println(simplifier.statistics.toString());
-
-        //System.out.println("NEXT3");
-        resolution.clear();
-        inputClauses.addClause(new int[]{1, cAtleast, 2, 1, 1, 2, 2, 3});
-        resolution.readInputClauses();
-        assertEquals("1: 1v2\n", resolution.clauses.toString());
-        //System.out.println(simplifier.statistics.toString());
-
-        //System.out.println("NEXT4");
-        resolution.clear();
-        inputClauses.addClause(new int[]{1, cAtleast, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
-        resolution.readInputClauses();
-        assertEquals("1: 1v2\n", resolution.clauses.toString());
-        //System.out.println(simplifier.statistics.toString());
-    }
-
-    public void testInputClausesToAtleastAtmosts() throws Result {
-        System.out.println("inputClausesToAtleast atmosts");
-        int predicates = 4;
-        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
-        resolution.inputClauses = inputClauses;
-        inputClauses.addClause(new int[]{1, cAtmost, 1, 1, 2, 3, 4});
-        resolution.readInputClauses();
-        assertEquals("1: >= 3 -1,-2,-3,-4\n", resolution.clauses.toString());
-        //System.out.println(simplifier.statistics.toString());
-
-        resolution.clear();
-        inputClauses.addClause(new int[]{1, cAtmost, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
-        resolution.readInputClauses();
-        assertEquals("1: -1v-3\n", resolution.clauses.toString());
-        assertEquals("-1,-2,-3,4", resolution.model.toString());
-        //System.out.println(simplifier.statistics.toString());
-    }
-
-    public void testInputClausesToAtleastExactlys() throws Result {
-        System.out.println("inputClausesToAtleast exactlys");
-        int predicates = 4;
-        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
-        resolution.inputClauses = inputClauses;
-        inputClauses.addClause(new int[]{1, cExactly, 1, 1, 2, 3, 4});
-        resolution.readInputClauses();
-        assertEquals("11: 1v2v3v4\n" +
-                "12: >= 3 -1,-2,-3,-4\n", resolution.clauses.toString());
-        //System.out.println(simplifier.statistics.toString());
-        //System.out.println("\nNEW");
-        resolution.clear();
-        inputClauses.addClause(new int[]{1, cExactly, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
-        resolution.readInputClauses();
-        assertEquals("13: 1v2\n" +
-                "14: -1v-3\n", resolution.clauses.toString());
-        assertEquals("-2,-3,4", resolution.model.toString());
-        if(monitoring) {
-            System.out.println(resolution.statistics.toString());
-            System.out.println(resolution.clauses.firstClause.nextClause.inferenceStep.toString());}
-    }
-
-    public void testInputClausesToAtleastIntervals() throws Result {
-        System.out.println("inputClausesToAtleast intervals");
-        int predicates = 4;
-        InputClauses inputClauses = new InputClauses("Test", predicates, symboltable, "input clauses test");
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
-        resolution.inputClauses = inputClauses;
-        inputClauses.addClause(new int[]{1, cInterval, 1, 3, 1, 2, 3, 4});
-        resolution.readInputClauses();
-        assertEquals("11: 1v2v3v4\n" +
-                "12: -1v-2v-3v-4\n", resolution.clauses.toString());
-        //System.out.println(simplifier.statistics.toString());
-        //System.out.println("\nNEW");
-        resolution.clear();
-        inputClauses.addClause(new int[]{1, cInterval, 2, 4, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3});
-        resolution.readInputClauses();
-        assertEquals("13: 1v2v3\n" +
-                "14: -1v-3\n", resolution.clauses.toString());
-        assertEquals("-2,4", resolution.model.toString());
-        //System.out.println(simplifier.statistics.toString());
-        //System.out.println(simplifier.clauses.firstClause.nextClause.inferenceStep.toString());
     }
 
     public void testProcessTrueLiteralTwo() throws Result {
@@ -315,12 +153,14 @@ public class ResolutionTest extends TestCase {
         IntSupplier nextId = () -> ++id[0];
         Resolution resolution = new Resolution(predicates, monitor, true, nextId);
         resolution.model.add(myThread,2, new InfInputClause(1));
+        resolution.makeLocallyTrue(2);
         resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
         resolution.insertClause(new Clause(new int[]{3, cOr, -2, 3}));
         resolution.insertClause(new Clause(new int[]{4, cOr, -1, 4}));
         resolution.processTrueLiteralTwo(2); // true literal 2
         assertEquals("4: -1v4\n", resolution.clauses.toString());
-        assertEquals("-1,2,3", resolution.model.toString());
+        assertEquals("2,3", resolution.model.toString());
+        assertEquals("-1,2,3", resolution.localModelString());
         //System.out.println(simplifier.model.getInferenceStep(3));
         //System.out.println(simplifier.statistics.toString());
     }
@@ -334,33 +174,39 @@ public class ResolutionTest extends TestCase {
         IntSupplier nextId = () -> ++id[0];
         Resolution resolution = new Resolution(predicates, monitor, true, nextId);
         resolution.model.add(myThread,2, new InfInputClause(1));
+        resolution.makeLocallyTrue(2);
         resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2, 3}));
         resolution.processTrueLiteralMore(2);
         assertTrue(resolution.clauses.isEmpty());
-        assertEquals("1,2,3", resolution.model.toString());
+        assertEquals("1,2,3", resolution.localModelString());
 
         resolution.clear();
         resolution.model.add(myThread,2, new InfInputClause(1));
+        resolution.makeLocallyTrue(2);
         resolution.insertClause(new Clause(new int[]{2, cOr, -1, -2, -3}));
         resolution.processTrueLiteralMore(2);
         assertFalse(resolution.clauses.isEmpty());
         assertEquals("2: -1v-3\n", resolution.clauses.toString());
-        assertEquals("2", resolution.model.toString());
+        assertEquals("2", resolution.localModelString());
 
         resolution.clear();
         resolution.model.add(myThread,2, new InfInputClause(1));
+        resolution.makeLocallyTrue(2);
         resolution.model.add(myThread,4, new InfInputClause(2));
+        resolution.makeLocallyTrue(4);
         resolution.insertClause(new Clause(new int[]{2, cAtleast, 3, 1, 2, 3, 4}));
         resolution.processTrueLiteralMore(2);
         assertFalse(resolution.clauses.isEmpty());
         assertEquals("2: 1v3\n", resolution.clauses.toString());
-        assertEquals("2,4", resolution.model.toString());
+        assertEquals("2,4", resolution.localModelString());
 
         //System.out.println("\nNEW");
         try {
             resolution.clear();
             resolution.model.add(myThread,-2, new InfInputClause(1));
+            resolution.makeLocallyTrue(-2);
             resolution.model.add(myThread,-4, new InfInputClause(2));
+            resolution.makeLocallyTrue(-4);
             resolution.insertClause(new Clause(new int[]{2, cAtleast, 3, 1, 2, 3, 4}));
             resolution.processTrueLiteralMore(2);
             assertFalse(resolution.clauses.isEmpty());
@@ -378,16 +224,20 @@ public class ResolutionTest extends TestCase {
         IntSupplier nextId = () -> ++id[0];
         Resolution resolution = new Resolution(predicates, monitor, true, nextId);
         resolution.model.add(myThread,-3, new InfInputClause(1));
+        resolution.makeLocallyTrue(-3);
         resolution.insertClause(new Clause(new int[]{2, cAtleast, 4, 1,1, 2,2, 3,4}));
         resolution.processTrueLiteralMore(3);
         assertEquals("", resolution.clauses.toString());
-        assertEquals("1,2,-3,4", resolution.model.toString());
+        assertEquals("1,2,-3,4", resolution.localModelString());
 
         if(monitoring) System.out.println("\nNEW");
         resolution.clear();
         resolution.model.add(myThread,-1, new InfInputClause(1));
+        resolution.makeLocallyTrue(-1);
         resolution.model.add(myThread,-3, new InfInputClause(2));
+        resolution.makeLocallyTrue(-3);
         resolution.model.add(myThread,-4, new InfInputClause(3));
+        resolution.makeLocallyTrue(-4);
         resolution.insertClause(new Clause(new int[]{2, cOr, 1,2,3,4}));
         resolution.processTrueLiteralMore(3);
         assertEquals("", resolution.clauses.toString());
@@ -615,7 +465,7 @@ public class ResolutionTest extends TestCase {
         Resolution resolution = new Resolution(predicates, monitor, true, nextId);
         resolution.model.addObserver(myThread,
                 (Integer literal, InferenceStep step) -> {try{
-                        resolution.addTrueLiteralTask(literal,step);} catch(Unsatisfiable uns) {}});
+                        resolution.addTrueLiteralTask(literal,true,step);} catch(Unsatisfiable uns) {}});
         Clause clause1 = new Clause(new int[]{1, cOr, 1, 5});
         resolution.insertClause(clause1);
         Clause clause2 = new Clause(new int[]{2, cOr, -1, 3, 4});

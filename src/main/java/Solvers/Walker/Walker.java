@@ -1,5 +1,6 @@
 package Solvers.Walker;
 
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
@@ -172,7 +173,7 @@ public class Walker extends Solver {
         localModel         = new boolean[predicates+1];
         random             = new Random(seed);
         statistics         = new Statistics(combinedId);
-        clauses            = new ArrayList<>(inputClauses.nextId);
+        clauses            = new ArrayList<>(problemSupervisor.inputClauses.nextId);
         literals           = new Literals(predicates);
         flipScores         = new float[predicates+1];
         predicatesWithPositiveScore = new Predicates(predicates);
@@ -203,6 +204,7 @@ public class Walker extends Solver {
      * @throws Result if a contradiction or the empty clause is derived.
      */
     void readInputClauses() throws Result{
+        InputClauses inputClauses = problemSupervisor.inputClauses;
         try{
             for(int[] inputClause    : inputClauses.disjunctions) insertClause(inputClause);
             for(int[] atleastClause  : inputClauses.atleasts)     insertClause(atleastClause);

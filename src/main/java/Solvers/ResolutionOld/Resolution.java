@@ -3,6 +3,7 @@ package Solvers.ResolutionOld;
 import Coordinator.Tasks.Task;
 import Coordinator.Tasks.TaskQueue;
 import Datastructures.Clauses.Clause;
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Literals.LitAlgorithms;
@@ -40,6 +41,7 @@ import java.util.function.Function;
  */
 public abstract class Resolution extends Solver {
 
+    InputClauses inputClauses = null;
     boolean checkConsistency = true;
 
     private static HashSet<String> keys = new HashSet<>(); // contains the allowed keys in the specification.
