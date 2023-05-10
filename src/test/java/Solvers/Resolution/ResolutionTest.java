@@ -24,7 +24,7 @@ public class ResolutionTest extends TestCase {
     static int cInterval = Quantifier.INTERVAL.ordinal();
 
 
-    static boolean monitoring = true;
+    static boolean monitoring = false;
 
     static Symboltable symboltable = new Symboltable(10);
 
@@ -178,7 +178,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2, 3}));
         resolution.processTrueLiteralMore(2);
         assertTrue(resolution.clauses.isEmpty());
-        assertEquals("1,2,3", resolution.localModelString());
+        assertEquals("2", resolution.localModelString());
 
         resolution.clear();
         resolution.model.add(myThread,2, new InfInputClause(1));
@@ -228,7 +228,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{2, cAtleast, 4, 1,1, 2,2, 3,4}));
         resolution.processTrueLiteralMore(3);
         assertEquals("", resolution.clauses.toString());
-        assertEquals("1,2,-3,4", resolution.localModelString());
+        assertEquals("1,2,-3", resolution.localModelString());
 
         if(monitoring) System.out.println("\nNEW");
         resolution.clear();
@@ -289,7 +289,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(clause);
         resolution.binaryMergeResolutionAndEquivalence(clause,-1,3,false);
         assertEquals("2: 1v2\n", resolution.clauses.toString());
-        assertEquals("1,3", resolution.model.toString());
+        assertEquals("3", resolution.model.toString());
         //System.out.println(simplifier.model.getInferenceStep(3).toString());
 
         resolution.clear();
@@ -299,10 +299,9 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(clause);
         resolution.binaryMergeResolutionAndEquivalence(clause,-1,3,true);
         //simplifier.equivalenceClasses.processTasks(true);
-        assertEquals("2: 1v2\n" +
-                "3: 1v-3\n", resolution.clauses.toString());
-        assertEquals("", resolution.model.toString());
-        //assertEquals("1 = 3\n",simplifier.equivalenceClasses.toString());
+        assertEquals("2: 1v2\n", resolution.clauses.toString());
+        assertEquals("1,3", resolution.localModelString());
+        assertEquals("[]",resolution.equivalences.toString());
     }
     public void testIsSubsumedByBinaryClauses()  {
         System.out.println("binaryClauseIsSubsumed");
@@ -334,7 +333,9 @@ public class ResolutionTest extends TestCase {
 
         Clause clause3 = new Clause(new int[]{4, cOr, 3, 2});
         assertNull(resolution.resolveBetweenBinaryClauses(clause3,clause2));
-        assertEquals("2,3", resolution.model.toString());
+        assertEquals("",resolution.clauses.toString());
+        assertEquals("3", resolution.model.toString());
+        assertEquals("3", resolution.localModelString());
         //System.out.println(simplifier.model.getInferenceStep(3).toString());
 
         resolution.clear();
@@ -371,18 +372,21 @@ public class ResolutionTest extends TestCase {
 
         resolution.clear();
 
-        clause1 = new Clause(new int[]{2, cOr, 1, 2});
+        clause1 = new Clause(new int[]{1, cOr, 1, 2});
         resolution.insertClause(clause1);
-        clause2 = new Clause(new int[]{3, cOr, -1,3 });
+        clause2 = new Clause(new int[]{2, cOr, -1,3 });
         resolution.insertClause(clause2);
-        clause3 = new Clause(new int[]{4, cOr, -1,2 });
+        clause3 = new Clause(new int[]{3, cOr, -1,2 });
         resolution.insertClause(clause3);
-        clause4 = new Clause(new int[]{5, cOr, -2,3 });
+        clause4 = new Clause(new int[]{4, cOr, -2,3 });
         resolution.insertClause(clause4);
         resolution.saturateBinaryClausesWithBinaryClause(clause1);
-        assertEquals("3: -1v3\n" +
-                "5: -2v3\n", resolution.clauses.toString());
-        assertEquals("-1,2", resolution.model.toString());
+        assertEquals(" 2: -1v3\n" +
+                " 4: -2v3\n" +
+                "14: 2v3\n" +
+                "15: 1v3\n", resolution.clauses.toString());
+        assertEquals("2", resolution.model.toString());
+        assertEquals("-1,2", resolution.localModelString());
       //  System.out.println(simplifier.statistics.toString());
     }
     public void testProcessBinaryClause1() throws Result {
@@ -407,8 +411,9 @@ public class ResolutionTest extends TestCase {
         assertEquals(" 1: 1v2\n" +
                 " 2: -1v3v4\n" +
                 " 5: 4v5v6\n" +
-                "11: 3v4v2\n", resolution.clauses.toString());
-        assertEquals("2,4,5", resolution.model.toString());
+                "11: 2v3v4\n", resolution.clauses.toString());
+        assertEquals("", resolution.model.toString());
+        assertEquals("2,4,5", resolution.localModelString());
       //  System.out.println(simplifier.statistics.toString());
     }
 
@@ -441,18 +446,13 @@ public class ResolutionTest extends TestCase {
                 " 6: -5v2\n" +
                 "11: 1v2\n" +
                 "12: 5v2\n" +
-                "13: 3v4v5\n", resolution.clauses.toString());
-        resolution.processTasks(2);
+                "13: 5v3v4\n", resolution.clauses.toString());
+        resolution.processTasks(3);
 
-
-        assertEquals(" 1: 1v5\n" +
-                " 2: -1v3v4\n" +
-                " 5: 4v5v6\n" +
-                "11: 1v2\n" +
-                "13: 3v4v5\n" +
-                "15: 3v4v2\n", resolution.clauses.toString());
-        assertEquals("2,4,5", resolution.model.toString());
-        System.out.println(resolution.statistics.toString());
+        assertEquals("1: 1v5\n" +
+                "5: 4v5v6\n", resolution.clauses.toString());
+        assertEquals("1,2,3,4,5", resolution.localModelString());
+       // System.out.println(resolution.statistics.toString());
     }
 
     public void testProcessBinaryClause3() throws Result {
@@ -486,7 +486,7 @@ public class ResolutionTest extends TestCase {
             if(monitoring) System.out.println(satisfiable.toString());}
 
         assertEquals("", resolution.clauses.toString());
-        assertEquals("1,2,3,4,5,6", resolution.model.toString());
+        assertEquals("1,2,3,4,5", resolution.localModelString());
         //System.out.println(simplifier.statistics.toString());
     }
     public void testProcessEquivalence() throws Result {
@@ -546,10 +546,9 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{7, cAtleast, 2, 1,2,3,-4}));
         resolution.insertClause(new Clause(new int[]{8, cOr, -2,3,}));
         resolution.processEquivalence(2, 3, new InferenceTest("MyTest 6"));
+        assertEquals("1,2,-4",resolution.localModelString());
         assertEquals("3: >= 2 -1,-2^2,-4\n" +
-                "4: -1v-2v-4\n" +
                 "5: -1v-2\n" +
-                "6: -1v-2v-4\n" +
                 "7: >= 2 1,2^2,-4\n", resolution.clauses.toString());
 
         if(monitoring) System.out.println(resolution.statistics.toString());
@@ -841,13 +840,13 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
         resolution.insertClause(new Clause(new int[]{2, cOr, 3, 2}));
         resolution.checkForPartialPurity();
-        assertEquals("1", resolution.model.toString());
+        assertEquals("1", resolution.localModelString());
 
         resolution.clear();
         resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
         resolution.insertClause(new Clause(new int[]{2, cOr, -1,2,-3}));
         resolution.checkForPartialPurity();
-        assertEquals("2", resolution.model.toString());
+        assertEquals("2", resolution.localModelString());
 
     }
 

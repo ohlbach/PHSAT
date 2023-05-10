@@ -130,6 +130,21 @@ public class Literals {
             literalObject = literalObject.nextLiteral;}
         return size;}
 
+    /** counts the number of literal objects for the given literal in the index up to max.
+     *
+     * @param literal a literal.
+     * @return -1 if the number of literal objects for the given literal in the index &gt; max, otherwise this number.
+     */
+    public int size(int literal, int max) {
+        int predicate = Math.abs(literal);
+        Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
+        int size = 0;
+        Literal literalObject = literals[predicate];
+        while(literalObject != null) {
+            if(++size > max) return -1 ;
+            literalObject = literalObject.nextLiteral;}
+        return size;}
+
     /** checks if the literalObject is in the right place of the index.
      *
      * @param literalObject a Literal
