@@ -176,6 +176,8 @@ public class Resolution extends Solver {
      * The method is called before the threads are started.
      * */
     public void initialize(Thread myThread, ProblemSupervisor problemSupervisor) {
+        this.problemSupervisor = problemSupervisor;
+        this.myThread = myThread;
         problemSupervisor.model.addObserver(myThread, this::addTrueLiteralToQueue);}
 
     /** reads the input clauses and processes the tasks in the task queue.
@@ -217,16 +219,16 @@ public class Resolution extends Solver {
     public void makeReusable() {
         timestamp = 1;
         timestampSubsumption = 1;
-        longerClausesExist = true;
         statistics.clear();
         queue.clear();
         equivalences.clear();
-        if(literalIndexTwo == null) new Literals(predicates);
+        if(literalIndexTwo == null)  literalIndexTwo = new Literals(predicates);
         else literalIndexTwo.clear(predicates);
-        if(literalIndexMore == null) new Literals(predicates);
+        if(literalIndexMore == null) literalIndexMore = new Literals(predicates);
         else literalIndexMore.clear(predicates);
         if(clauses == null) clauses = new Clauses(); else clauses.clear();
-        if(localModel.length <= predicates) localModel = new byte[predicates+1];
+        if(localModel == null) localModel = new byte[predicates+1];
+        else if(localModel.length <= predicates) localModel = new byte[predicates+1];
         else for(int predicate = 1; predicate <= predicates; ++predicate) localModel[predicate] = 0;
     }
 
@@ -237,7 +239,6 @@ public class Resolution extends Solver {
     public void clear() {
         timestamp = 1;
         timestampSubsumption = 1;
-        longerClausesExist = true;
         literalIndexTwo.clear(predicates);
         literalIndexMore.clear(predicates);
         clauses.clear();
@@ -376,10 +377,13 @@ public class Resolution extends Solver {
                     System.out.println("Empty Queue " + clauses.size + " " + model.toString());
                     //throw new Aborted(problemId,solverId,"Empty Queue");
                 }
+
                 if(monitoring  && printClauses && changed) {
                     System.out.println("Model: " + model.toString());
                     printSeparated();}
-                if(clauses.isEmpty()) {completeModel(); throw new Satisfiable(problemId,solverId,model);}}
+                if(clauses.isEmpty()) {completeModel(); throw new Satisfiable(problemId,solverId,model);}
+                if(literalIndexMore.size() == 0) {
+                    addTrueLiteralTask(clauses.firstClause.literals.get(0).literal,false,null);}}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
 
@@ -762,6 +766,8 @@ public class Resolution extends Solver {
                         addTrueLiteralTask(-pure*literal2, false, trackReasoning ?
                             new InfPureLiteral(-pure*literal2,false) : null);
                         return;}
+                    if(Math.abs(literal1) > Math.abs(literal2)) {
+                        int dummy = literal2; literal2 = literal1; literal1 = dummy;}
                     if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
                     equivalences.add(literal1); equivalences.add(-literal2);
                     processEquivalence(literal1,-literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
@@ -1421,6 +1427,7 @@ public class Resolution extends Solver {
                     removeClauses(-predicate);
                     if(literalIndexTwo.isEmpty(-predicate)) makeLocallyTrue(-predicate);
                     else {
+                        ++statistics.partiallyPureLiterals;
                         addTrueLiteralTask(-predicate,false,
                             trackReasoning ? new InfPureLiteral(-predicate,true) : null);
                         return;}}
@@ -1428,6 +1435,7 @@ public class Resolution extends Solver {
                     removeClauses(predicate);
                     if(literalIndexTwo.isEmpty(predicate)) makeLocallyTrue(predicate);
                     else {
+                        ++statistics.partiallyPureLiterals;
                         addTrueLiteralTask(predicate,false,
                                 trackReasoning ? new InfPureLiteral(-predicate,true) : null);
                         return;}}
@@ -1440,10 +1448,14 @@ public class Resolution extends Solver {
                 while(literalObject != null) {literalsP.add(literalObject); literalObject = literalObject.nextLiteral;}
                 literalObject = literalIndexMore.getFirstLiteralObject(-predicate);
                 while(literalObject != null) {literalsN.add(literalObject); literalObject = literalObject.nextLiteral;}
-                for(Literal literalP : literalsP) {for(Literal literalN: literalsN) resolve(literalP,literalN);}
+                for(Literal literalP : literalsP) {for(Literal literalN: literalsN) {
+                    ++statistics.longerResolvents;
+                    resolve(literalP,literalN);}}
                 for(Literal literalP : literalsP) removeClause(literalP.clause,false);
                 for(Literal literalN : literalsN) removeClause(literalN.clause,false);
                 eliminatedPredicates.add(literalsP); eliminatedPredicates.add(literalsN);
+                if(monitoring) monitor.println(monitorId,"Predicate Eliminated by Resolution: " +
+                        Symboltable.toString(predicate,symboltable));
                 return;}
             atEnd = true;}
         finally {if(!atEnd) synchronized (this) {queue.add(task);}}}

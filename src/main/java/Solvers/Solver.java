@@ -191,8 +191,8 @@ public abstract class Solver {
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
         globalParameters           = problemSupervisor.globalParameters;
         normalizer                 = problemSupervisor.normalizer;
-        predicates                 = normalizer.predicates;
-        symboltable                = normalizer.symboltable;
+        predicates                 = problemSupervisor.inputClauses.predicates;
+        symboltable                = problemSupervisor.inputClauses.symboltable;
         monitor                    = problemSupervisor.monitor;
         monitoring                 = monitor != null;
         model                      = problemSupervisor.model;

@@ -41,12 +41,16 @@ public class ResolutionStatistics extends Statistic {
     @Description("number of complementary literal pairs.")
     public int complementaryLiterals = 0;
 
+    @Description("number of predicates eliminated by resolution.")
+    public int resolvedPredicates = 0;
+
 
     public void clear() {
         initialClauses = 0;
         derivedUnitClauses          = 0;
         pureLiterals                = 0;
         partiallyPureLiterals       = 0;
+        resolvedPredicates          = 0;
         complementaryLiterals       = 0;
         saturatedLiterals           = 0;
         subsumedClauses             = 0;
@@ -62,6 +66,7 @@ public class ResolutionStatistics extends Statistic {
         st.append("Derived Unit Clauses:      ").append(derivedUnitClauses).append("\n");
         st.append("Pure Literals:             ").append(pureLiterals).append("\n");
         st.append("Parially pure Literals:    ").append(partiallyPureLiterals).append("\n");
+        st.append("Resolved Predicates:       ").append(resolvedPredicates).append("\n");
         st.append("complementary Literals:    ").append(complementaryLiterals).append("\n");
         st.append("Saturated Literals:        ").append(saturatedLiterals).append("\n");
         st.append("Subsumed Clauses:          ").append(subsumedClauses).append("\n");

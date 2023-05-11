@@ -33,12 +33,12 @@ public class InfResolution extends InferenceStep {
 
     @Override
     public IntArrayList inputClauseIds() {
-        IntArrayList list = inferenceStep1.inputClauseIds().clone();
-        list.addAll(inferenceStep2.inputClauseIds());
+        IntArrayList list = (inferenceStep1 == null|| inferenceStep1.inputClauseIds() == null) ? new IntArrayList() : inferenceStep1.inputClauseIds().clone();
+        if(inferenceStep2 != null) list.addAll(inferenceStep2.inputClauseIds());
         return list;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        inferenceStep1.inferenceSteps(steps);
-        inferenceStep2.inferenceSteps(steps);}
+        if(inferenceStep1 != null) inferenceStep1.inferenceSteps(steps);
+        if(inferenceStep2 != null)inferenceStep2.inferenceSteps(steps);}
 }

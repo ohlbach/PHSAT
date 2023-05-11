@@ -65,7 +65,7 @@ public class InfUnitResolution extends InferenceStep {
 
     @Override
     public IntArrayList inputClauseIds() {
-        IntArrayList clauseIds = clauseStep.inputClauseIds();
+        IntArrayList clauseIds = (clauseStep == null) ? null: clauseStep.inputClauseIds();
         if(clauseIds == null) clauseIds = new IntArrayList();
         IntArrayList literalIds = new IntArrayList();
         InferenceStep step = model.getInferenceStep(literal);
