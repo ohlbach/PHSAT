@@ -300,6 +300,46 @@ public class InputClauses {
         for(int[] clause : intervals)    {if(intervalIsFalse(clause,model))    {falseClauses.add(clause);}}
         return falseClauses;}
 
+    /** computes lists of clauses which are false in a model and wich are undefined in the model.
+     *  This indicates that something went terribly wrong.
+     *
+     * @param model a model for the literals of the clause.
+     * @return null or [falseClauses,undefinedClauses]
+     */
+    public ArrayList<int[]>[] criticalClausesInModel(Model model) {
+        ArrayList<int[]> falseClauses = new ArrayList<>();
+        ArrayList<int[]> undefinedClauses = new ArrayList<>();
+        for(int[] clause : disjunctions) {
+            int status = disjunctionStatus(clause,model);
+            if(status == 0)  undefinedClauses.add(clause);
+            if(status == -1) falseClauses.add(clause);}
+        for(int[] clause : conjunctions) {
+            int status = conjunctionStatus(clause,model);
+            if(status == 0)  undefinedClauses.add(clause);
+            if(status == -1) falseClauses.add(clause);}
+        for(int[] clause : equivalences) {
+            int status = equivalenceStatus(clause,model);
+            if(status == 0)  undefinedClauses.add(clause);
+            if(status == -1) falseClauses.add(clause);}
+        for(int[] clause : atleasts)  {
+            int status = quantifiedStatus(clause,model);
+            if(status == 0)  undefinedClauses.add(clause);
+            if(status == -1) falseClauses.add(clause);}
+        for(int[] clause : atmosts)  {
+            int status = quantifiedStatus(clause,model);
+            if(status == 0)  undefinedClauses.add(clause);
+            if(status == -1) falseClauses.add(clause);}
+        for(int[] clause : exactlys)  {
+            int status = quantifiedStatus(clause,model);
+            if(status == 0)  undefinedClauses.add(clause);
+            if(status == -1) falseClauses.add(clause);}
+        for(int[] clause : intervals)    {
+            int status = quantifiedStatus(clause,model);
+            if(status == 0)  undefinedClauses.add(clause);
+            if(status == -1) falseClauses.add(clause);}
+        return (falseClauses.isEmpty() && undefinedClauses.isEmpty()) ? null :
+            new ArrayList[]{falseClauses,undefinedClauses};}
+
 
     /** checks if the clause contains literals p,-p.
      *
@@ -357,16 +397,52 @@ public class InputClauses {
         if(model.isComplete()) return true; // there can't be complementary literals
         return !containsComplementaryLiterals(clause);} // p or -p is always true
 
-    /** checks if a conjunction is entirely false in a model.
+    /** determines the truth status of a disjunction: +1 = true, -1 = false, 0 = undecided.
      *
-     * @param clause a conjunctive clause.
-     * @param model a possibly partial model.
-     * @return true if one literal is false or undefined in the model.
+     * @param clause a disjunctive clause.
+     * @param model a model.
+     * @return      +1 = true, -1 = false, 0 = undecided.
      */
+    public static int disjunctionStatus(int[] clause, Model model) {
+        assert Quantifier.getQuantifier(clause[1]) == Quantifier.OR;
+        int length = clause.length;
+        int falseLiterals = 0;
+        for(int i = 2; i < length; ++i) {
+            int literal = clause[i];
+            if(model.isTrue(literal)) {return 1;}
+            if(model.isFalse(literal)) {++falseLiterals; continue;}
+            for(int j = i+1; j < length; ++j) {if(clause[j] == -literal) return 1;}} // tautology
+        return (falseLiterals == length-2) ? -1 : 0;}
+
+    /** checks if a conjunction is entirely false in a model.
+    *
+    * @param clause a conjunctive clause.
+    * @param model a possibly partial model.
+    * @return true if one literal is false or undefined in the model.
+    */
     public static boolean conjunctionIsFalse(int[] clause, Model model) {
         assert Quantifier.getQuantifier(clause[1]) == Quantifier.AND;
         for(int i = 2; i < clause.length; ++i) {if(!model.isTrue(clause[i])) {return true;}}
         return false;}
+
+    /** determines the truth status of a conjunction: +1 = true, -1 = false, 0 = undecided.
+     *
+     * @param clause a conjunctive clause.
+     * @param model a possibly partial model.
+     * @return +1 = true, -1 = false, 0 = undecided.
+     */
+    public static int conjunctionStatus(int[] clause, Model model) {
+        assert Quantifier.getQuantifier(clause[1]) == Quantifier.AND;
+        int length = clause.length;
+        int trueLiterals = 0;
+        for(int i = 2; i < length; ++i) {
+            int literal = clause[i];
+            if(model.isFalse(literal)) {return -1;}
+            if(model.isTrue(literal)) {++trueLiterals; continue;}
+            for(int j = i+1; j < length; ++j) {if(clause[j] == -literal) return -1;}} // contradiction
+        return (trueLiterals == length-2) ? +1 : 0;}
+
+
 
     /** checks if an equivalence is false in a model.
      *
@@ -386,6 +462,26 @@ public class InputClauses {
                 case -1: ++falseLiterals;}}
         size -= 2;
         return !(trueLiterals == size || falseLiterals == size);}
+
+
+    /** determines the truth status of an equivalence: +1 = true, -1 = false, 0 = undecided.
+     *
+     * @param clause an equivalence clause.
+     * @param model a model.
+     * @return +1 = true, -1 = false, 0 = undecided.
+     */
+    public static int equivalenceStatus(int[] clause, Model model) {
+        assert Quantifier.getQuantifier(clause[1]) == Quantifier.EQUIV;
+        int length = clause.length;
+        int trueLiterals = 0;
+        int falseLiterals = 0;
+        for(int i = 2; i < length; ++i) {
+            int literal = clause[i];
+            for(int j = i+1; j < length; ++j) {if(clause[j] == -literal) return -1;} // contradiction
+            if(model.isTrue(literal))  {++trueLiterals; continue;}
+            if(model.isFalse(literal)) {++falseLiterals; continue;}}
+        length -= 2;
+        return (trueLiterals == length || falseLiterals == length) ? 1 : 0;}
 
     /** checks if an atleast-clause is false in a model.
      *
@@ -407,12 +503,42 @@ public class InputClauses {
             case EXACTLY: return trueLiterals != n;}
         return false;}
 
-    /** checks if an interval-clause is false in a model.
+    /** determines the truth status of all quantified clauses: +1 = true, -1 = false, 0 = undecided.
      *
-     * @param clause an interval clause  [id,type,min,max,literal1,...].
+     * @param clause an quantified clause.
      * @param model a model.
-     * @return true if not between min and max literals are true in the model.
+     * @return +1 = true, -1 = false, 0 = undecided.
      */
+    public static int quantifiedStatus(int[] clause, Model model) {
+        int length = clause.length;
+        clause = Arrays.copyOf(clause,length);
+        Quantifier quantifier = Quantifier.getQuantifier(clause[1]);
+        assert quantifier != null;
+        int min = 0; int max = 0; int start = 3;
+        switch (quantifier) {
+            case ATLEAST:  min = clause[2]; max = length-3; break;
+            case ATMOST:   min = 0; max = clause[2];        break;
+            case EXACTLY:  min = clause[2]; max = min;      break;
+            case INTERVAL: min = clause[2]; max = clause[3]; start = 4;}
+        int trueLiterals = 0; int undefinedLiterals = 0;
+        for(int i = start; i < length; ++i) {
+            int literal = clause[i];
+            if(literal == 0) continue;
+            boolean multiple = false;
+            for(int j = i+1; j < length; ++j) {
+                if(clause[j] == -literal) {++trueLiterals; clause[j] = 0; multiple = true; break;}}
+            if(multiple) continue;
+            if(model.isTrue(literal))  {++trueLiterals;  continue;}
+            if(!model.isFalse(literal)) {++undefinedLiterals; continue;}}
+        if(min <= trueLiterals && trueLiterals <= max) return 1;
+        return (undefinedLiterals + trueLiterals < min || trueLiterals > max) ? -1 : 0;}
+
+        /** checks if an interval-clause is false in a model.
+         *
+         * @param clause an interval clause  [id,type,min,max,literal1,...].
+         * @param model a model.
+         * @return true if not between min and max literals are true in the model.
+         */
     public static boolean intervalIsFalse(int[] clause, Model model) {
         assert Quantifier.getQuantifier(clause[1]) == Quantifier.INTERVAL;
         int min = clause[2];

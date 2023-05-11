@@ -158,57 +158,116 @@ public class InputClausesTest extends TestCase {
         assertEquals("[10, 6, 1, 2, 1, -2, -1, 2]", Arrays.toString(clause3));
     }
 
-    public void testDisjunctionIsFalse() {
-        System.out.println("disjunctionIsFalse");
+
+    public void testDisjunctionStatus() {
+        System.out.println("disjunctionStatus");
         Model model = new Model(3);
         int[] clause1 = {10, Quantifier.OR.ordinal(), 1,2,3};
-        assertTrue(InputClauses.disjunctionIsFalse(clause1,model));
+        assertEquals(0, InputClauses.disjunctionStatus(clause1,model));
         int[] clause2 = {10, Quantifier.OR.ordinal(), 1,2,-1};
-        assertFalse(InputClauses.disjunctionIsFalse(clause2,model));
+        assertEquals(1,InputClauses.disjunctionStatus(clause2,model));
         model.addImmediately(-3);
-        assertTrue(InputClauses.disjunctionIsFalse(clause1,model));
+        assertEquals(0, InputClauses.disjunctionStatus(clause1,model));
         model.addImmediately(1);
-        assertFalse(InputClauses.disjunctionIsFalse(clause1,model));
+        assertEquals(1, InputClauses.disjunctionStatus(clause1,model));
 
         model = new Model(3);
         model.addImmediately(1,2,3);
-        assertFalse(InputClauses.disjunctionIsFalse(clause1,model));
-        assertFalse(InputClauses.disjunctionIsFalse(clause2,model));
+        clause1 = new int[]{10, Quantifier.OR.ordinal(), 1,2,3,2,3};
+        assertEquals(1, InputClauses.disjunctionStatus(clause1,model));
+        assertEquals(1, InputClauses.disjunctionStatus(clause2,model));
+
+        clause1 = new int[]{10, Quantifier.OR.ordinal(), -2,-1,-1,-2,-3};
+        assertEquals(-1, InputClauses.disjunctionStatus(clause1,model));
+
     }
 
-    public void testConjunctionIsFalse() {
-        System.out.println("conjunctionIsFalse");
+    public void testConjunctionStatus() {
+        System.out.println("conjunctionStatus");
         Model model = new Model(3);
-        int[] clause1 = {10, Quantifier.AND.ordinal(), 1,2,3};
-        assertTrue(InputClauses.conjunctionIsFalse(clause1,model));
+        int[] clause1 = {10, Quantifier.AND.ordinal(), 1, 2, 3, 2};
+        int[] clause2 = {11, Quantifier.AND.ordinal(), 1, 2, -3,2};
+        int[] clause3 = {12, Quantifier.AND.ordinal(), 1, 2, -1,2};
+        model = new Model(3);
         model.addImmediately(1,2);
-        assertTrue(InputClauses.conjunctionIsFalse(clause1,model));
+        assertEquals(0,InputClauses.conjunctionStatus(clause1,model));
+        assertEquals(0,InputClauses.conjunctionStatus(clause2,model));
+        assertEquals(-1,InputClauses.conjunctionStatus(clause3,model));
         model.addImmediately(3);
-        assertFalse(InputClauses.conjunctionIsFalse(clause1,model));
-        int[] clause2 = {10, Quantifier.AND.ordinal(), 1,2,-2};
-        assertTrue(InputClauses.conjunctionIsFalse(clause2,model));
+        assertEquals(1,InputClauses.conjunctionStatus(clause1,model));
+    }
+    public void testEquivalenceStatus() {
+        System.out.println("equivalenceStatus");
+        Model model = new Model(3);
+        int[] clause1 = {10, Quantifier.EQUIV.ordinal(), 1, 2, 3, 2};
+        int[] clause2 = {11, Quantifier.EQUIV.ordinal(), 1, 2, -3,2};
+        int[] clause3 = {12, Quantifier.EQUIV.ordinal(), 1, 2, -1,2};
+        model = new Model(3);
+        model.addImmediately(1,2);
+        assertEquals(0,InputClauses.equivalenceStatus(clause1,model));
+        assertEquals(0,InputClauses.equivalenceStatus(clause2,model));
+        assertEquals(-1,InputClauses.equivalenceStatus(clause3,model));
+        model.addImmediately(3);
+        assertEquals(1,InputClauses.equivalenceStatus(clause1,model));
+    }
+    public void testQuantifiedStatus() {
+        System.out.println("quantifiedStatus");
+        Model model = new Model(3);
+        int[] clause1 = {1, Quantifier.ATLEAST.ordinal(), 2, 1, 2, 3, 2};
+        int[] clause2 = {2, Quantifier.ATMOST.ordinal(),  2, 1, 2, 3, 2};
+        int[] clause3 = {3, Quantifier.EXACTLY.ordinal(), 2, 1, 2, 3, 2};
+        int[] clause4 = {4, Quantifier.INTERVAL.ordinal(),2, 3, 1, 2, 3, 2};
+        model.addImmediately(1);
+        assertEquals(0,InputClauses.quantifiedStatus(clause1,model));
+        assertEquals(1,InputClauses.quantifiedStatus(clause2,model));
+        assertEquals(0,InputClauses.quantifiedStatus(clause3,model));
+        assertEquals(0,InputClauses.quantifiedStatus(clause4,model));
+
+        model.addImmediately(3);
+        assertEquals(1,InputClauses.quantifiedStatus(clause1,model));
+        assertEquals(1,InputClauses.quantifiedStatus(clause2,model));
+        assertEquals(1,InputClauses.quantifiedStatus(clause3,model));
+        assertEquals(1,InputClauses.quantifiedStatus(clause4,model));
+
+        model.addImmediately(2);
+        assertEquals(1,InputClauses.quantifiedStatus(clause1,model));
+        assertEquals(-1,InputClauses.quantifiedStatus(clause2,model));
+        assertEquals(-1,InputClauses.quantifiedStatus(clause3,model));
+        assertEquals(-1,InputClauses.quantifiedStatus(clause4,model));
 
         model = new Model(3);
-        model.addImmediately(1);
-        assertTrue(InputClauses.conjunctionIsFalse(clause2,model)); // complementary clause
+        model.addImmediately(-1,-2);
+        assertEquals(-1,InputClauses.quantifiedStatus(clause1,model));
+        assertEquals( 1,InputClauses.quantifiedStatus(clause2,model));
+        assertEquals(-1,InputClauses.quantifiedStatus(clause3,model));
+        assertEquals(-1,InputClauses.quantifiedStatus(clause4,model));
+
+        clause1 = new int[]{1, Quantifier.ATLEAST.ordinal(), 2, 1, 2, 3, -2};
+        clause2 = new int[]{2, Quantifier.ATMOST.ordinal(),  2, 1, 2, 3, -2};
+        clause3 = new int[]{3, Quantifier.EXACTLY.ordinal(), 2, 1, 2, 3, -2};
+        clause4 = new int[]{4, Quantifier.INTERVAL.ordinal(),2, 3, 1, 2, 3, -2};
+
+
+        model = new Model(3);
+        assertEquals(0,InputClauses.quantifiedStatus(clause1,model));
+        assertEquals(1,InputClauses.quantifiedStatus(clause2,model));
+        assertEquals(0,InputClauses.quantifiedStatus(clause3,model));
+        assertEquals(0,InputClauses.quantifiedStatus(clause4,model));
+
+        clause1 = new int[]{1, Quantifier.ATLEAST.ordinal(), 2, 1, 2, 3, -2, -1};
+        clause2 = new int[]{2, Quantifier.ATMOST.ordinal(),  2, 1, 2, 3, -2,-1};
+        clause3 = new int[]{3, Quantifier.EXACTLY.ordinal(), 2, 1, 2, 3, -2,-1};
+        clause4 = new int[]{4, Quantifier.INTERVAL.ordinal(),2, 3, 1, 2, 3, -2,-1};
+
+
+        model = new Model(3);
+        assertEquals(1,InputClauses.quantifiedStatus(clause1,model));
+        assertEquals(1,InputClauses.quantifiedStatus(clause2,model));
+        assertEquals(1,InputClauses.quantifiedStatus(clause3,model));
+        assertEquals(1,InputClauses.quantifiedStatus(clause4,model));
     }
 
-    public void testEquivalenceIsFalse() {
-        System.out.println("equivalenceIsFalse");
-        Model model = new Model(3);
-        int[] clause1 = {10, Quantifier.EQUIV.ordinal(), 1,2,3};
-        assertTrue(InputClauses.equivalenceIsFalse(clause1,model));
-        model.addImmediately(1,3);
-        assertTrue(InputClauses.equivalenceIsFalse(clause1,model));
-        model.addImmediately(2);
-        assertFalse(InputClauses.equivalenceIsFalse(clause1,model));
-        int[] clause2 = {10, Quantifier.EQUIV.ordinal(), 1,2,-3};
-        assertTrue(InputClauses.equivalenceIsFalse(clause2,model));
-        int[] clause3 = {10, Quantifier.EQUIV.ordinal(), -1,-2,-3};
-        assertFalse(InputClauses.equivalenceIsFalse(clause3,model));
-    }
-
-    public void testATLEASTIsFalse() {
+        public void testATLEASTIsFalse() {
         System.out.println("atleastIsFalse");
         Model model = new Model(3);
         int[] clause1 = {10, Quantifier.ATLEAST.ordinal(), 2, 1,2,3};
