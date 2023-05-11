@@ -22,8 +22,6 @@ import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
-import static java.lang.Thread.interrupted;
-
 /** This is an incomplete solver which tries to simplify the clauses as far as possible.
  *  - It tries to derive new true literals and send them to the model.<br>
  *  - It tries to derive new equivalences and send them to the equivalenceClasses.<br>
@@ -192,8 +190,9 @@ public class Resolution extends Solver {
         monitorId              = "Resolution";
         statistics             = new ResolutionStatistics(solverId);
         makeReusable();
-        for(int literal: model.model) {
-            addTrueLiteralToQueue(literal,model.getInferenceStep(literal));}
+        synchronized (this) {
+            for(int literal: model.model) {
+                addTrueLiteralToQueue(literal,model.getInferenceStep(literal));}}
         try{
             readInputClauses();
             synchronized (this) {queue.add(new Task(TaskType.ProcessElimination,null));}
@@ -294,48 +293,22 @@ public class Resolution extends Solver {
     /** adds a true literal to the queue and to the model.
      * <br>
      *  Derived literals (as unit clauses) are added to the local and to the global model.<br>
-     *  Pure literals are only added to the local model.
+     *  Pure literals are only added to the local model.<br>
      *
      * @param literal a true literal
      * @param globallyTrue if true then the literal is derived as true literal.
      * @param inferenceStep which caused the truth
      */
     public void addTrueLiteralTask(int literal, boolean globallyTrue, InferenceStep inferenceStep) throws Unsatisfiable {
-        int predicate = Math.abs(literal);
-        if(monitoring) {
+       if(monitoring) {
             monitor.print(monitorId,"True literal added: " +
                     Symboltable.toString(literal,symboltable));}
         makeLocallyTrue(literal);
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}
-        if(globallyTrue) model.add(myThread,literal,inferenceStep);
-        for(int i = 0; i < equivalences.size(); i += 2) {
-            if(equivalences.getInt(i) == predicate) {
-                int lit = equivalences.getInt(i+1);
-                if(literal < 0) lit *= -1;
-                if(monitoring) monitor.println(monitorId, "Equivalent literal " +
-                        Symboltable.toString(lit,symboltable) + " added to model.");
-                makeLocallyTrue(literal);
-                if(globallyTrue) model.add(myThread,lit,inferenceStep);}}}
+        if(globallyTrue) model.add(myThread,literal,inferenceStep);}
 
-    /** for all equivalences representative == literal where representative is already in the local model,
-     * the literal is put in the local model too.
-     * <br>
-     * The method is called at the end when the clause set is found to be satisfiable.
-     */
-    void completeEquivalences() {
-        int status;
-        boolean changed = true;
-        while(changed) {
-            changed = false;
-            for(int i = 0; i < equivalences.size(); i += 2) {
-                if((status = localStatus(equivalences.getInt(i))) != 0 && localStatus(equivalences.getInt(i+1)) == 0) {
-                    changed = true;
-                    int literal = status*equivalences.getInt(i+1);
-                    if(monitoring) monitor.println(monitorId, "Equivalent literal " +
-                            Symboltable.toString(literal,symboltable) + " added to model.");
-                    makeLocallyTrue(literal);}}}}
 
-    /** adds a true literal to the queue
+    /** adds a true literal to the queue. It is called by other threads for globally true literals.
      *
      * @param literal a true literal
      * @param inferenceStep which caused the truth
@@ -360,7 +333,7 @@ public class Resolution extends Solver {
         Task<Resolution.TaskType> task;
         int counter = 0;
         Clause clause;
-        while(!interrupted()) {
+        while(!myThread.isInterrupted()) {
             try {
                 if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
@@ -406,8 +379,7 @@ public class Resolution extends Solver {
                 if(monitoring  && printClauses && changed) {
                     System.out.println("Model: " + model.toString());
                     printSeparated();}
-                if(clauses.isEmpty()) {completeEquivalences(); throw new Satisfiable(problemId,solverId,model);}
-                if(queue.isEmpty()) checkForPartialPurity();}
+                if(clauses.isEmpty()) {completeModel(); throw new Satisfiable(problemId,solverId,model);}}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
 
@@ -511,7 +483,15 @@ public class Resolution extends Solver {
     protected void processTrueLiteral(int literal) throws Unsatisfiable {
         processTrueLiteralTwo(literal);
         processTrueLiteralMore(literal);
-    }
+        int predicate = Math.abs(literal);
+        for(int i = 0; i < equivalences.size(); i += 2) {
+            if(equivalences.getInt(i) == predicate) {
+                int lit = equivalences.getInt(i+1);
+                if(literal < 0) lit *= -1;
+                if(monitoring) monitor.println(monitorId, "Equivalent literal " +
+                        Symboltable.toString(lit,symboltable) + " added to model.");
+                makeLocallyTrue(lit);
+                if(model.status(literal) != 0) model.add(myThread,lit,model.getInferenceStep(literal));}}}
 
     /** applies a true literal to all two-literal clauses containing this literal.
      * <br>
@@ -1412,52 +1392,48 @@ public class Resolution extends Solver {
 
 
 
-    /** indicates that there are still clauses with more than 2 literals. */
-    private boolean longerClausesExist = true;
 
-    /** checks for pure literals if saturation with two-literal clauses has been achieved.
-     *  As long as there are clauses with more than 2 literals, a predicate is partially pure
-     *  if its negation does not occur anymore in the longer clauses.<br>
-     *  If there are only 2-literal clauses left, then the very first literal in the clauses is set to true.
-     */
-    void checkForPartialPurity() throws Unsatisfiable{
-        if(longerClausesExist) {
-            longerClausesExist = false;
-            for(int predicate = 1; predicate <= predicates; ++predicate) {
-                if(localStatus(predicate) != 0) continue;
-                if(literalIndexMore.isEmpty(predicate) && literalIndexMore.isEmpty(-predicate)) continue;
-                int pureLiteral = 0;
-                if(literalIndexMore.isEmpty(predicate))  pureLiteral = -predicate;
-                else{longerClausesExist = true;}
-                if(literalIndexMore.isEmpty(-predicate)) pureLiteral = predicate;
-                else{longerClausesExist = true;}
-                if(pureLiteral != 0) {
-                    ++statistics.partiallyPureLiterals;
-                    if(monitoring) {
-                        monitor.println(monitorId,"Partially Pure Literal: " +
-                                Symboltable.toString(pureLiteral,symboltable));}
-                    addTrueLiteralTask(pureLiteral, false, trackReasoning ? new InfPureLiteral(pureLiteral,true) : null);
-                    return;}}
-            if(longerClausesExist) return;}
-        Clause clause = clauses.firstClause;
-        int literal = clause.literals.get(0).literal;
-        if(monitoring) {
-            monitor.println(monitorId,"Literal " + Symboltable.toString(literal,symboltable) +
-                    " in saturated 2-literal clauses chosen to be true");}
-        ++statistics.saturatedLiterals;
-        addTrueLiteralTask(literal, false,trackReasoning ? new InfSaturatedTwoLiteralClauses(clause) : null);}
-
+    /** takes the literalObjects of the clauses whose predicates have been eliminated by exhaustive resolution.*/
     ArrayList<ArrayList<Literal>> eliminatedPredicates = new ArrayList<>();
+
+    /** goes through the predicates to find the first one which can be eliminated.
+     * <br>
+     * The method can only be called after the two-literal clauses are saturated! <br>
+     * The following eliminations are done: <br>
+     * - all clauses with literals which are pure in the longer clauses are eliminated. <br>
+     *   There may still be such literals in the saturated two-literal clauses.<br>
+     * - If number of all resolvents with a literal does not exceed the number of clauses with this literal,
+     *   then the resolvents are generated and the parent clauses are removed.<br>
+     * If there are still predicates with non-empty literals in the index, the task is added to the queue again.
+     *
+     * @param task         the processElimination task.
+     * @throws Unsatisfiable if the resolvent is unsatisfiable.
+     */
     void processElimination(Task task) throws Unsatisfiable {
+        boolean atEnd = false;
         try{
             for(int predicate = 1; predicate <= predicates; ++predicate) {
                 if(localModel[predicate] != 0) continue;
                 int sizeP = literalIndexMore.size(predicate,2);
                 int sizeN = literalIndexMore.size(-predicate,2);
                 if(sizeP == 0 && sizeN == 0) continue;
-                if(sizeP == 0) {removeClauses(-predicate); makeLocallyTrue(-predicate); return;}
-                if(sizeN == 0) {removeClauses(predicate);  makeLocallyTrue(predicate);  return;}
+                if(sizeP == 0) {
+                    removeClauses(-predicate);
+                    if(literalIndexTwo.isEmpty(-predicate)) makeLocallyTrue(-predicate);
+                    else {
+                        addTrueLiteralTask(-predicate,false,
+                            trackReasoning ? new InfPureLiteral(-predicate,true) : null);
+                        return;}}
+                if(sizeN == 0) {
+                    removeClauses(predicate);
+                    if(literalIndexTwo.isEmpty(predicate)) makeLocallyTrue(predicate);
+                    else {
+                        addTrueLiteralTask(predicate,false,
+                                trackReasoning ? new InfPureLiteral(-predicate,true) : null);
+                        return;}}
                 if(sizeP < 0 || sizeN < 0) continue;
+
+                // resolution between one or two clauses with positive predicate and one or two clauses with negative predicate.
                 ArrayList<Literal> literalsP = new ArrayList<>();
                 ArrayList<Literal> literalsN = new ArrayList<>();
                 Literal literalObject = literalIndexMore.getFirstLiteralObject(predicate);
@@ -1468,9 +1444,12 @@ public class Resolution extends Solver {
                 for(Literal literalP : literalsP) removeClause(literalP.clause,false);
                 for(Literal literalN : literalsN) removeClause(literalN.clause,false);
                 eliminatedPredicates.add(literalsP); eliminatedPredicates.add(literalsN);
-                return;}}
-        finally {synchronized (this) {queue.add(task);}}}
+                return;}
+            atEnd = true;}
+        finally {if(!atEnd) synchronized (this) {queue.add(task);}}}
 
+    /** completes the local model for the clauses whose predicates have been eliminated with exhaustive resolution.
+     */
     void completeModel() {
         for(int i = eliminatedPredicates.size()-1; i >= 0; --i) {
             for(Literal literalObject : eliminatedPredicates.get(i)) {
@@ -1498,8 +1477,6 @@ public class Resolution extends Solver {
             byte status = localModel[predicate];
             if(status != 0) st.append(",").append(status* predicate);}
         return st.toString();}
-
-
 
 
     /** checks the consistency of the clauses and the literal index.

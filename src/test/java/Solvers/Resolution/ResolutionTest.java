@@ -829,26 +829,6 @@ public class ResolutionTest extends TestCase {
         //System.out.println(simplifier.statistics);
     }
 
-    public void testcheckForPartialPurity() throws Result {
-        System.out.println("checkForPartialPurity");
-        int predicates = 6;
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(predicates, monitor, false, nextId);
-
-        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
-        resolution.insertClause(new Clause(new int[]{2, cOr, 3, 2}));
-        resolution.checkForPartialPurity();
-        assertEquals("1", resolution.localModelString());
-
-        resolution.clear();
-        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
-        resolution.insertClause(new Clause(new int[]{2, cOr, -1,2,-3}));
-        resolution.checkForPartialPurity();
-        assertEquals("2", resolution.localModelString());
-
-    }
 
 
     }

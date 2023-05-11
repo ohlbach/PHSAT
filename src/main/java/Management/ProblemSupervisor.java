@@ -145,15 +145,20 @@ public class ProblemSupervisor {
      * @param satisfiable the result of a SAT-search.
      */
     protected void checkModel(Satisfiable satisfiable) {
-        ArrayList<int[]> falseClauses = inputClauses.falseClausesInModel(satisfiable.model);
-        if(falseClauses.isEmpty()) {
+        ArrayList<int[]>[] criticalClauses = inputClauses.criticalClausesInModel(satisfiable.model);
+        if(criticalClauses == null) {
             globalParameters.logstream.println("Problem " + problemId + ": model successfully checked.");}
         else {
-            System.out.println("Wrong model derived by " + satisfiable.solverId +
-                    " for problem " + problemId + "\n  " +
-                    model.toString() +
-                    "\n  False Clauses:\n");
-            System.out.println(InputClauses.toString(falseClauses,inputClauses.symboltable));
+            ArrayList<int[]> falseClauses = criticalClauses[0];
+            ArrayList<int[]> undefinedClauses = criticalClauses[1];
+                System.out.println("Wrong or incomplete model derived by " + satisfiable.solverId +
+                        " for problem " + problemId + "\n  " + model.toString());
+            if(!falseClauses.isEmpty()) {
+                System.out.println("False Clauses:\n");
+                System.out.println(InputClauses.toString(falseClauses,inputClauses.symboltable));}
+            if(!undefinedClauses.isEmpty()) {
+                System.out.println("Undefined Clauses:\n");
+                System.out.println(InputClauses.toString(undefinedClauses,inputClauses.symboltable));}
             System.out.println("Process Terminates");
             System.exit(1);}}
 

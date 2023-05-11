@@ -16,6 +16,8 @@ public class Literals {
     /** a doubly connected list for each negative literal */
     Literal[] negativeLiterals;
 
+    int entries = 0;
+
     /** constructs a new index
      *
      * @param predicates the total number of predicates.
@@ -28,6 +30,7 @@ public class Literals {
     /** If the index is large enough, it is reused and all literals are removed, otherwise a new index is created.
      */
     public void clear(int predicates) {
+        entries = 0;
         this.predicates = predicates;
         if(positiveLiterals.length <= predicates) {
             positiveLiterals = new Literal[predicates+1];
@@ -55,6 +58,7 @@ public class Literals {
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
         Literal firstLiteral = literals[predicate];
+        if(firstLiteral == null) ++entries;
         literals[predicate] = literalObject;
         if(firstLiteral != null) {
             literalObject.nextLiteral = firstLiteral;
@@ -80,7 +84,8 @@ public class Literals {
         else previousLiteral.nextLiteral = nextLiteral;
         if(nextLiteral != null) nextLiteral.previousLiteral = previousLiteral;
         literalObject.previousLiteral = null;
-        return literals[predicate] == null;}
+        if(literals[predicate] == null) {--entries; return true;}
+        return false;}
 
     /** updates the index position after a literalObject's literal has been changed.
      *
@@ -102,6 +107,8 @@ public class Literals {
      */
     public void removePredicate(int literal) {
         int predicate = Math.abs(literal);
+        if(positiveLiterals[predicate] != null) --entries;
+        if(negativeLiterals[predicate] != null) --entries;
         positiveLiterals[predicate] = null;
         negativeLiterals[predicate] = null;}
 
@@ -114,6 +121,14 @@ public class Literals {
         int predicate = Math.abs(literal);
         return literal > 0 ? positiveLiterals[predicate] == null : negativeLiterals[predicate] == null;
     }
+
+    /** returns the number of non-null entries.
+     * <br>
+     * size() == 0 means the index is totally empty.
+     *
+     * @return the number of literals which have entries.
+     */
+    int size() {return entries;}
 
     /** counts the number of literal objects for the given literal in the index.
      *
