@@ -80,9 +80,11 @@ public class Resolution extends Solver {
     private Thread myThread;
 
     /** collects the equivalences for later updating the model.
-     * Entries: representative_1, literal_1, ...
-     */
-    IntArrayList equivalences = new IntArrayList();;
+     * Entries: representative_1, literal_1, ...*/
+    IntArrayList equivalences = new IntArrayList();
+    /** collects the corresponding inference steps.
+     * Entries: InfEquivalence,null,InfEquivalence,null,...*/
+    ArrayList<InfEquivalence> equivalenceSteps = new ArrayList<>();
 
     /** The local model may contain true literals derived from pure literals.
      * These need not be true in all models, and therefore cannot be sent to the global model. */
@@ -150,6 +152,8 @@ public class Resolution extends Solver {
     }
 
     /** gets the priority for the objects in the queue.
+     * <br>
+     * The smaller the priority the earlier the task is executed.
      *
      * @param task the task in the queue
      * @return the priority of the objects in the queue.
@@ -178,7 +182,7 @@ public class Resolution extends Solver {
     public void initialize(Thread myThread, ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
         this.myThread = myThread;
-        problemSupervisor.model.addObserver(myThread, this::addTrueLiteralToQueue);}
+        problemSupervisor.model.addObserver(myThread, this::addExternalTrueLiteralTask);}
 
     /** reads the input clauses and processes the tasks in the task queue.
      * <br>
@@ -194,7 +198,7 @@ public class Resolution extends Solver {
         makeReusable();
         synchronized (this) {
             for(int literal: model.model) {
-                addTrueLiteralToQueue(literal,model.getInferenceStep(literal));}}
+                addExternalTrueLiteralTask(literal,model.getInferenceStep(literal));}}
         try{
             readInputClauses();
             synchronized (this) {queue.add(new Task(TaskType.ProcessElimination,null));}
@@ -284,7 +288,6 @@ public class Resolution extends Solver {
                 case INTERVAL: for(IntArrayList atleastClause : Normalizer.intervalToAtleast(normalizedClause,nextId)) {
                         insertClause(clause = new Clause(atleastClause));
                         if(clause.size() == 2) addBinaryClauseTask(clause);}}}
-        checkAllPurities();
         if(checkConsistency) checkConsistency();
         statistics.initialClauses = clauses.size;
         if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);
@@ -300,7 +303,7 @@ public class Resolution extends Solver {
      * @param globallyTrue if true then the literal is derived as true literal.
      * @param inferenceStep which caused the truth
      */
-    public void addTrueLiteralTask(int literal, boolean globallyTrue, InferenceStep inferenceStep) throws Unsatisfiable {
+    public void addInternalTrueLiteralTask(int literal, boolean globallyTrue, InferenceStep inferenceStep) throws Unsatisfiable {
        if(monitoring) {
             monitor.print(monitorId,"True literal added: " +
                     Symboltable.toString(literal,symboltable));}
@@ -310,19 +313,24 @@ public class Resolution extends Solver {
 
 
     /** adds a true literal to the queue. It is called by other threads for globally true literals.
+     * <br>
+     * If the queue is empty a new ProcessElimination task is added to the queue as well.
      *
-     * @param literal a true literal
-     * @param inferenceStep which caused the truth
+     * @param literal a true literal.
+     * @param inferenceStep which caused the truth.
      */
-    public void addTrueLiteralToQueue(int literal, InferenceStep inferenceStep) {
+    public void addExternalTrueLiteralTask(int literal, InferenceStep inferenceStep) {
         if(monitoring) {
             monitor.print(monitorId,"In: True literal from model " +
                     Symboltable.toString(literal,symboltable));}
+        if(trackReasoning && inferenceStep == null) inferenceStep = new InfExternal(literal);
         makeLocallyTrue(literal);
-        synchronized (this) {queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
+        synchronized (this) {
+            if(queue.isEmpty()) queue.add(new Task<>(TaskType.ProcessElimination,null));
+            queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
 
 
-    /** controls that all clauses are printed after each task has been changed somthing (for testing purposes).*/
+    /** controls that all clauses are printed after each task has been changed something (for testing purposes).*/
     private final boolean printClauses = false;
 
     /** reads the next task from the task queue and processes it.
@@ -343,7 +351,7 @@ public class Resolution extends Solver {
                     case ProcessTrueLiteral:
                         if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                         changed = true;
-                        processTrueLiteral((Integer)task.a);
+                        processTrueLiteral((Integer)task.a, (InferenceStep)task.b);
                         break;
                     case ProcessEquivalence:
                         if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
@@ -383,7 +391,7 @@ public class Resolution extends Solver {
                     printSeparated();}
                 if(clauses.isEmpty()) {completeModel(); throw new Satisfiable(problemId,solverId,model);}
                 if(literalIndexMore.size() == 0) {
-                    addTrueLiteralTask(clauses.firstClause.literals.get(0).literal,false,null);}}
+                    addInternalTrueLiteralTask(clauses.firstClause.literals.get(0).literal,false,null);}}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
 
@@ -467,7 +475,7 @@ public class Resolution extends Solver {
         if(clause.exists && clause.size()==3) mergeResolutionPartial(clause);
     }
 
-    /** The method applies a true literal to the clause.
+    /** The method applies a true literal to the clauses and the equivalences.
      * <br>
      * For a disjunction this means that the clause is true and can therefore be deleted.<br>
      * For a quantified clause this means that the literal can be deleted and the limit
@@ -480,22 +488,33 @@ public class Resolution extends Solver {
      *  Example: atleast 4 p,q^2,r^2 and p is true<br>
      *  The clause is then: atleast 3 q^2,r^2. <br>
      *  Both q and r must now be true.
+     *  <br>
+     *  For an equivalence p = q where one of the literals is true, the other literal is also made true.
      *
-     * @param literal a true literal.
+     * @param oldTrueLiteral a true literal.
      * @throws Unsatisfiable if a contradiction is found.
      *  */
-    protected void processTrueLiteral(int literal) throws Unsatisfiable {
-        processTrueLiteralTwo(literal);
-        processTrueLiteralMore(literal);
-        int predicate = Math.abs(literal);
+    protected void processTrueLiteral(int oldTrueLiteral, InferenceStep inferenceStep) throws Unsatisfiable {
+        processTrueLiteralTwo(oldTrueLiteral,inferenceStep);
+        processTrueLiteralMore(oldTrueLiteral);
+        int oldTruePredicate = Math.abs(oldTrueLiteral);
         for(int i = 0; i < equivalences.size(); i += 2) {
-            if(equivalences.getInt(i) == predicate) {
-                int lit = equivalences.getInt(i+1);
-                if(literal < 0) lit *= -1;
+            int newTrueLiteral = 0;
+            if(equivalences.getInt(i) == oldTruePredicate) {
+                newTrueLiteral = equivalences.getInt(i+1);
+                if(oldTrueLiteral < 0) newTrueLiteral *= -1;}
+            else {
+                int literal = equivalences.getInt(i+1);
+                if(Math.abs(literal) == oldTruePredicate) {
+                    newTrueLiteral = equivalences.getInt(i);
+                    if(oldTrueLiteral != literal) newTrueLiteral *= -1;}}
+            if(newTrueLiteral != 0) {
                 if(monitoring) monitor.println(monitorId, "Equivalent literal " +
-                        Symboltable.toString(lit,symboltable) + " added to model.");
-                makeLocallyTrue(lit);
-                if(model.status(literal) != 0) model.add(myThread,lit,model.getInferenceStep(literal));}}}
+                        Symboltable.toString(newTrueLiteral,symboltable) + " added to model.");
+                makeLocallyTrue(newTrueLiteral);
+                if(trackReasoning) {inferenceStep = new InfEquivalentTruth(newTrueLiteral,oldTrueLiteral,equivalenceSteps.get(i),inferenceStep);}
+                model.add(myThread,newTrueLiteral,inferenceStep);
+                ++statistics.derivedUnitClauses;}}}
 
     /** applies a true literal to all two-literal clauses containing this literal.
      * <br>
@@ -503,34 +522,32 @@ public class Resolution extends Solver {
      * Clauses containing -literal yield a new true literal, which is put into the model.<br>
      * The clause is removed as well.
      *
-     * @param literal a true literal.
+     * @param oldTrueLiteral a true literal.
      * @throws Unsatisfiable if a contradiction is encountered.
      */
-    protected void processTrueLiteralTwo(int literal) throws Unsatisfiable{
-        Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal);
+    protected void processTrueLiteralTwo(int oldTrueLiteral, InferenceStep inferenceStep) throws Unsatisfiable{
+        Literal literalObject = literalIndexTwo.getFirstLiteralObject(oldTrueLiteral);
         while(literalObject != null) { // remove all binary clauses containing the literal.
             Clause clause = literalObject.clause;
             if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
             removeClause(clause,true); // literals may become pure.
             literalObject = literalObject.nextLiteral;}
 
-        literalObject = literalIndexTwo.getFirstLiteralObject(-literal);
+        literalObject = literalIndexTwo.getFirstLiteralObject(-oldTrueLiteral);
         while(literalObject != null) { // unit resolution between literal and all binary clauses -literal,p.
             Clause clause = literalObject.clause;
             if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
             int otherLiteral = clause.otherLiteral(literalObject).literal;
             if(monitoring) monitor.println(monitorId,clause.toString(symboltable,0) + " and true(" +
-                    Symboltable.toString(literal,symboltable) + ") -> " +
+                    Symboltable.toString(oldTrueLiteral,symboltable) + ") -> " +
                     "true("+Symboltable.toString(otherLiteral,symboltable)+")");
-            addTrueLiteralTask(otherLiteral, model.isTrue(literal),
-                    trackReasoning ?
-                            new InfUnitResolutionTwo(clause,literal,model.getInferenceStep(literal),otherLiteral) :
-                            null);
+            addInternalTrueLiteralTask(otherLiteral, model.isTrue(oldTrueLiteral),
+                    trackReasoning ? new InfUnitResolutionTwo(clause,oldTrueLiteral,inferenceStep,otherLiteral) : null);
             ++statistics.derivedUnitClauses;
             removeClause(clause,true);
             literalObject = literalObject.nextLiteral;}
 
-        literalIndexTwo.removePredicate(literal);}
+        literalIndexTwo.removePredicate(oldTrueLiteral);}
 
     /** applies a true literal to all longer clauses containing this literal.
      * <br>
@@ -540,61 +557,47 @@ public class Resolution extends Solver {
      * Derived unit clauses are put into the model <br>
      * Shortened clauses cause new tasks to be inserted into the task queue.<br>
 
-     * @param literal a true (or false) literal.
+     * @param oldTrueLiteral a true (or false) literal.
      * @throws Unsatisfiable if a contradiction is encountered.
      */
-    protected void processTrueLiteralMore(int literal) throws Unsatisfiable{
+    protected void processTrueLiteralMore(int oldTrueLiteral) throws Unsatisfiable{
+        IntArrayList removedLiterals = new IntArrayList();
         for(int sign = 1; sign >= -1; sign -= 2) {
-            literal *= sign;   // the clauses containing the predicate are selected. The literals to be removed depend on the model.
-            Literal literalObject = literalIndexMore.getFirstLiteralObject(literal);
+            oldTrueLiteral *= sign;   // the clauses containing the predicate are selected. The literals to be removed depend on the model.
+            Literal literalObject = literalIndexMore.getFirstLiteralObject(oldTrueLiteral);
             while(literalObject != null) {
                  Clause clause = literalObject.clause;
                  if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
                  if(checkConsistency) checkConsistency();
-                 boolean removed = false;
                  assert clause.size() > 2;
-
+                 String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
+                 boolean isTrue = false;
+                 removedLiterals.clear();
                  for(int i = 0; i < clause.literals.size(); ++i){ // all literals with a truth value are removed.
                      Literal litObject = clause.literals.get(i);
-                     int status = localStatus(litObject.literal);
-                     if(status == 0) continue; // literal must not be removed.
-                     boolean isTrue = status == 1;
-
-                     if(clause.size() == 2) { // several literals may be removed, until the clause is a two-literal clause.
-                         removeClause(clause,false); // purity check is not necessary
-                         if(isTrue) break;                    // removing the clause is sufficient
-                         else {
-                            int newTrueLiteral = clause.otherLiteral(litObject).literal;
-                            ++statistics.derivedUnitClauses;
-                             addTrueLiteralTask(newTrueLiteral,model.isTrue(literal),trackReasoning ?
-                                    new InfUnitResolutionTwo(clause,litObject.literal,model.getInferenceStep(litObject.literal),newTrueLiteral): null);
-                            if(monitoring)  monitor.println(monitorId,clause.toString(symboltable,0) +
-                                    " and false(" + Symboltable.toString(litObject.literal,symboltable) + ") -> true(" +
-                                    Symboltable.toString(newTrueLiteral,symboltable)+ ")");
-                            break;}}
-
-                     String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
-                     boolean isDisjunction = clause.isDisjunction;
-                     if(!removeLiteralFromClause(litObject,isTrue)) {removed = true; break;} // clause is true now.
-
-                     if(monitoring) monitor.println(monitorId,clauseBefore + " and " +
-                                (isTrue ? "true":"false")+ "(" +
-                                Symboltable.toString(litObject.literal,symboltable) + ") -> " + clause.toString(symboltable,0));
-                     if(trackReasoning) {
-                         clause.inferenceStep = new InfUnitResolution(clauseBefore,clause.inferenceStep,isDisjunction,
-                                 litObject.literal,isTrue,clause.toString(symboltable,0),model);}
-                     --i;}
-
-                    if(removed) {literalObject = literalObject.nextLiteral; continue;}
-                    if(clause.limit > clause.expandedSize) throw new UnsatClause(problemId,solverId,clause);
-
-                    if(clause.size() == 2) addBinaryClauseTask(clause);
-                    else{ if(simplifyClause(clause,true)) {
+                     int literal = litObject.literal;
+                     byte status = localStatus(literal);
+                     if(status != 0) {
+                         removedLiterals.add(status == 1 ? literal : -literal);
+                         removeLiteralFromClause(litObject,status == 1);
+                         if(clause.limit <= 0) {isTrue = true; break;}}}
+                 if(isTrue) {removeClause(clause,true); break;}
+                 if(monitoring) monitor.println(monitorId, clauseBefore + " and true" + removedLiterals +
+                         " -> " + clause.toString(symboltable,0));
+                 InferenceStep step = null; // hier gehts weiter!
+                 switch(clause.size()) {
+                     case 0: throw new UnsatEmptyClause(problemId,solverId,clause.id, step);
+                     case 1: ++statistics.derivedUnitClauses;
+                             addInternalTrueLiteralTask(clause.literals.get(0).literal,model.isTrue(oldTrueLiteral),step);
+                             removeClause(clause,false);
+                             break;
+                     case 2: addBinaryClauseTask(clause);
+                        if(simplifyClause(clause,true)) {
                                 if(checkConsistency) checkConsistency();
                                 addDerivedClauseTask(clause);}
-                          else removeClause(clause,true);}
-            literalObject = literalObject.nextLiteral;}}
-        literalIndexMore.removePredicate(literal);}
+                          else removeClause(clause,true);}}
+            literalObject = literalObject.nextLiteral;}
+        literalIndexMore.removePredicate(oldTrueLiteral);}
 
     /** moves a longer clause which has become a binary clause to the literalIndexTwo.
      * <br>
@@ -725,6 +728,7 @@ public class Resolution extends Solver {
     protected void binaryMergeResolutionAndEquivalence(Clause clause1, int literal1, int literal2,
                                                        boolean checkEquivalence) throws Unsatisfiable {
         assert(clause1.size() == 2);
+        ++timestamp; // just to be sure.
         Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
         while(literalObject != null) { // all clauses with -literal1 are marked.
             Clause clause = literalObject.clause;
@@ -738,7 +742,7 @@ public class Resolution extends Solver {
             if(clause2.timestamp1 == timestamp) { // a partner clause is found
                 if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                         clause2.toString(symboltable,0) + " -> " + "true("+ Symboltable.toString(literal2,symboltable)+")");
-                addTrueLiteralTask(literal2,true, trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
+                addInternalTrueLiteralTask(literal2,true, trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
                 removeClause(clause1,true);
                 removeClause(clause2,true);
                 ++timestamp;
@@ -754,23 +758,17 @@ public class Resolution extends Solver {
                     if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                             clause2.toString(symboltable,0) + " -> " +
                             Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
-                    //addEquivalenceTask(literal1,-literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
                     removeClause(clause1,false);
-                    removeClause(clause2,false);
-                    ++timestamp;
-                    int pure = isPure(literal1);
-                    if(pure == 0) pure = isPure(-literal2);
-                    if(pure != 0) {
-                        addTrueLiteralTask(pure*literal1,false, trackReasoning ?
-                            new InfPureLiteral(pure*literal1,false) : null);
-                        addTrueLiteralTask(-pure*literal2, false, trackReasoning ?
-                            new InfPureLiteral(-pure*literal2,false) : null);
-                        return;}
-                    if(Math.abs(literal1) > Math.abs(literal2)) {
-                        int dummy = literal2; literal2 = literal1; literal1 = dummy;}
+                    removeClause(clause2,true);
+                    if(Math.abs(literal1) > Math.abs(literal2)) {int dummy = literal2; literal2 = literal1; literal1 = dummy;}
                     if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
                     equivalences.add(literal1); equivalences.add(-literal2);
-                    processEquivalence(literal1,-literal2,trackReasoning ? new InfEquivalence(clause1,clause2) : null);
+                    InfEquivalence step = null;
+                    if(trackReasoning) {
+                        step = new InfEquivalence(clause1,clause2);
+                        equivalenceSteps.add(step); equivalenceSteps.add(null);}
+                    processEquivalence(literal1,-literal2,step);
+                    ++timestamp;
                     return;}
                 literalObject = literalObject.nextLiteral;}}
         ++timestamp;}
@@ -829,7 +827,7 @@ public class Resolution extends Solver {
         if(literal1 == -literal2) return null; // tautology
         if(literal1 == literal2) {
             ++statistics.derivedUnitClauses;
-            addTrueLiteralTask(literal1,true,trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal1) : null);
+            addInternalTrueLiteralTask(literal1,true,trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal1) : null);
             if(monitoring) {
                 monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                         clause2.toString(symboltable,0) + " -> " + Symboltable.toString(literal1,symboltable));}
@@ -1158,8 +1156,8 @@ public class Resolution extends Solver {
                                 Symboltable.toString(representative,symboltable) + " -> true(" +
                                 Symboltable.toString(representative,symboltable)+ ","+
                                 Symboltable.toString(literal,symboltable)+")");}
-                    addTrueLiteralTask(representative, true, step);
-                    addTrueLiteralTask(literal, true, step);
+                    addInternalTrueLiteralTask(representative, true, step);
+                    addInternalTrueLiteralTask(literal, true, step);
                     removeClause(clause,true);
                     return;} // true literals need no further replacements.
                 else {  // the two-literal clause needs to been changed.
@@ -1332,7 +1330,7 @@ public class Resolution extends Solver {
                 for (Literal literalObject : trueLiterals) {
                     int literal = literalObject.literal;
                     ++statistics.derivedUnitClauses;
-                    addTrueLiteralTask(literal, true, trackReasoning ? new InfTrueLiteral(clauseBefore, clause.id, literal, clause.inferenceStep) : null);}
+                    addInternalTrueLiteralTask(literal, true, trackReasoning ? new InfTrueLiteral(clauseBefore, clause.id, literal, clause.inferenceStep) : null);}
 
                 if(clause.limit <= 0) return false;}
 
@@ -1344,7 +1342,7 @@ public class Resolution extends Solver {
                 if (clause.limit <= 0) return false;
                 if (clause.size() == 1) {
                     int literal = clause.literals.get(0).literal;
-                    addTrueLiteralTask(literal, true, clause.inferenceStep);
+                    addInternalTrueLiteralTask(literal, true, clause.inferenceStep);
                     return false;
                 }
                 if (clause.limit <= 1) return clause.limit == 1;}
@@ -1354,7 +1352,7 @@ public class Resolution extends Solver {
                 monitor.println(monitorId, "Clause " + clauseBefore + " divided by gcd  to " +
                         clause.toString(symboltable, 0));}
             if (clause.size() == 1) {
-                addTrueLiteralTask(clause.literals.get(0).literal, true, new InfInputClause(clause.id));
+                addInternalTrueLiteralTask(clause.literals.get(0).literal, true, new InfInputClause(clause.id));
                 return false;}}
         finally {
             if(isAlreadyIntegrated) {
@@ -1365,16 +1363,6 @@ public class Resolution extends Solver {
         if(reducedByGCD) return simplifyClause(clause,isAlreadyIntegrated);
         return true;}
 
-
-    /** checks all literals for purity.
-     * Pure literals are inserted into the model.
-     *
-     * @throws Unsatisfiable should not happen.
-     */
-    protected void checkAllPurities() throws Unsatisfiable{
-        for(int predicate = 1; predicate <= predicates; ++predicate) {
-            if(checkPurity(predicate)) continue;
-            checkPurity(-predicate);}}
 
     /** checks the literal for purity. <br>
      * A literal l is pure if -l does not occur anymore. l can then be made true. <br>
@@ -1391,7 +1379,7 @@ public class Resolution extends Solver {
                 literalIndexMore.isEmpty(literal) && literalIndexMore.isEmpty(-literal)) return false;
         if(literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal)) {
             if(monitoring) monitor.println(monitorId,"Pure Literal: " + Symboltable.toString(literal,symboltable));
-            addTrueLiteralTask(literal, false,trackReasoning ? new InfPureLiteral(literal,false) : null);
+            addInternalTrueLiteralTask(literal, false,trackReasoning ? new InfPureLiteral(literal,false) : null);
             ++statistics.pureLiterals;
             return true;}
         return false;}
@@ -1428,7 +1416,7 @@ public class Resolution extends Solver {
                     if(literalIndexTwo.isEmpty(-predicate)) makeLocallyTrue(-predicate);
                     else {
                         ++statistics.partiallyPureLiterals;
-                        addTrueLiteralTask(-predicate,false,
+                        addInternalTrueLiteralTask(-predicate,false,
                             trackReasoning ? new InfPureLiteral(-predicate,true) : null);
                         return;}}
                 if(sizeN == 0) {
@@ -1436,7 +1424,7 @@ public class Resolution extends Solver {
                     if(literalIndexTwo.isEmpty(predicate)) makeLocallyTrue(predicate);
                     else {
                         ++statistics.partiallyPureLiterals;
-                        addTrueLiteralTask(predicate,false,
+                        addInternalTrueLiteralTask(predicate,false,
                                 trackReasoning ? new InfPureLiteral(-predicate,true) : null);
                         return;}}
                 if(sizeP < 0 || sizeN < 0) continue;

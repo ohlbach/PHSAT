@@ -164,7 +164,7 @@ public abstract class ResolutionReduction extends Solver {
             if(!taskQueue.isEmpty()) {Result result = taskQueue.run(); if(result != null) {return result;}}}
 
         Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
-                (literal-> addTrueLiteralTask(literal, "Initial Conjunction")));
+                (literal-> addInternalTrueLiteralTask(literal, "Initial Conjunction")));
         if(Thread.interrupted()) {throw new InterruptedException();}
         Transformers.prepareDisjunctions(basicClauseList,id,equivalenceClasses,insertHandler);
         Transformers.prepareXors     (basicClauseList,id,equivalenceClasses,(clause -> insertClause(clause)));

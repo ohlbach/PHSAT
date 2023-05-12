@@ -734,7 +734,7 @@ public class ResolutionTest {
             if(equivalenceClasses == null) {return null;}}
 
         Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
-                (literal-> addTrueLiteralTask(literal, "Initial Conjunction: ")));
+                (literal-> addInternalTrueLiteralTask(literal, "Initial Conjunction: ")));
         if(Thread.interrupted()) {throw new InterruptedException();}
         Transformers.prepareDisjunctions(basicClauseList,equivalenceClasses,insertHandler);
         Transformers.prepareXors     (basicClauseList,equivalenceClasses,insertHandler);
@@ -1001,7 +1001,7 @@ public class ResolutionTest {
     }
 
     @Test
-    public void addTrueLiteralTask() throws Exception {
+    public void addInternalTrueLiteralTask() throws Exception {
 
     }
 */

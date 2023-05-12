@@ -104,7 +104,7 @@ public class Backtracker extends Solver {
      */
     public void initialize(Thread myThread, ProblemSupervisor problemSupervisor) {
         super.initialize(myThread,problemSupervisor);
-       // problemSupervisor.model.addObserver(myThread, this::addTrueLiteralToQueue);
+       // problemSupervisor.model.addObserver(myThread, this::addExternalTrueLiteralTask);
 
     }
 

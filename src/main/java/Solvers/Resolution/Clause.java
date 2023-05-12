@@ -39,6 +39,9 @@ public class Clause {
     /** the list of all Literal objects in the clause. */
     protected ArrayList<Literal> literals = new ArrayList<>();
 
+    /** characterises the distribution of positive and negative literals in a clause. */
+    protected ClauseType clauseType;
+
     /** flag to indicate that the clause still exists. */
     protected boolean exists = true;
 
@@ -97,6 +100,7 @@ public class Clause {
                 Literal literalObject = new Literal(literal1,multiplicity);
                 literalObject.clause = this;
                 literals.add(literalObject);}}
+        determineClauseType();
         hasMultiplicities = expandedSize > literals.size();}
 
     /** constructs a new clause from a list of literal,multiplicity pairs.
@@ -120,6 +124,7 @@ public class Clause {
             Literal literalObject = new Literal(literal,multiplicity);
             literalObject.clause = this;
             literals.add(literalObject);}
+        determineClauseType();
         hasMultiplicities = expandedSize > literals.size();}
 
     /** This is a constructor for a disjunction.
@@ -129,12 +134,13 @@ public class Clause {
      */
     public Clause(int id,  int... literalNumbers) {
         this.id = id;
-        this.quantifier = Quantifier.OR;
+        quantifier = Quantifier.OR;
         expandedSize = literalNumbers.length;
         for(int literal : literalNumbers) {
             Literal literalObject = new Literal(literal,1);
             literalObject.clause = this;
-            literals.add(literalObject);}}
+            literals.add(literalObject);}
+        determineClauseType();}
 
     /** constructs a new clause.
      * The literal's multiplicities are automatically reduced to 'limit'.
@@ -153,6 +159,7 @@ public class Clause {
             literalObject.clause = this;
             literalObject.multiplicity = Math.min(limit,literalObject.multiplicity);
             expandedSize += literalObject.multiplicity;}
+        determineClauseType();
         hasMultiplicities = expandedSize > literals.size();}
 
 
@@ -169,7 +176,8 @@ public class Clause {
         for(int i = Normalizer.literalsStart; i <= normalizedClause.size()-2; i +=2) {
             Literal literal = new Literal(normalizedClause.get(i),normalizedClause.get(i+1));
             literals.add(literal);
-            literal.clause = this;}}
+            literal.clause = this;}
+        determineClauseType();}
 
 
 
@@ -223,6 +231,7 @@ public class Clause {
      */
     protected boolean removeLiteral(Literal literalObject, boolean reduceLimit) {
         literals.remove(literalObject);
+        determineClauseType();
         if(reduceLimit) {
             limit -= literalObject.multiplicity;
             if(limit <= 0) {return false;}}
@@ -302,6 +311,7 @@ public class Clause {
                     if(literalRemover != null) literalRemover.accept(literalObject1);
                     expandedSize -= multiplicity1;
                     break;}}}
+        determineClauseType();
         if(!complementariesFound) return false;
         if(literals.isEmpty()) return true;
 
@@ -374,6 +384,7 @@ public class Clause {
         if(limit <= 0) {
             removedLiterals.addAll(literals);
             return auxiliaryLiterals;}
+        determineClauseType();
 
         for(Literal literalObject: literals) {
             if(literalObject.multiplicity > limit) {
@@ -404,6 +415,7 @@ public class Clause {
             if(literalObject.multiplicity != limit) {
                 auxiliaryLiterals.add(literalObject);
                 multiplicities += literalObject.multiplicity;}}
+        determineClauseType();
         if(multiplicities >= limit) return false; // the remaining literals can satisfy the clause.
 
         for(Literal literalObject : auxiliaryLiterals) {
@@ -432,7 +444,8 @@ public class Clause {
             if(literals.get(i) == oldLiteral) {
                 literals.set(i,newLiteral);
                 if(limit > 1) adjustMultiplicitiesToLimit();
-                break;}}}
+                break;}}
+        determineClauseType();}
 
 
     /** reduces the literal's multiplicity to the clause's limit.
@@ -485,6 +498,20 @@ public class Clause {
         Quantifier newQuantifier = (newLimit == 1) ? Quantifier.OR : Quantifier.ATLEAST;
         Clause resolvent = new Clause(id.getAsInt(),newQuantifier,newLimit,newLiterals);
         return resolvent.removeComplementaryLiterals(complementaries,null) ? null : resolvent;}
+
+    /** investigates the distribution of positive and negative literals and determines the ClauseType.
+     */
+    void determineClauseType() {
+       int positiveLiterals = 0; int negativeLiterals = 0;
+       for(Literal literalObject : literals) {
+           if(literalObject.literal > 0) ++positiveLiterals; else --negativeLiterals; }
+       int size = literals.size();
+       if(positiveLiterals == size) {clauseType = ClauseType.POSITIVE; return;}
+       if(negativeLiterals == size) {clauseType = ClauseType.NEGATIVE; return;}
+       if(positiveLiterals >= limit && negativeLiterals >= limit) {clauseType = ClauseType.POSITIVENEGATIVE; return;}
+       if(positiveLiterals >= limit && negativeLiterals < limit) {clauseType = ClauseType.MIXEDPOSITIVE; return;}
+       if(positiveLiterals < limit && negativeLiterals >= limit) {clauseType = ClauseType.MIXEDNEGATIVE; return;}
+       clauseType = ClauseType.MIXEDMIXED;}
 
     /** returns the number of Literal objects in the clause.
      *

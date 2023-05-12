@@ -128,21 +128,6 @@ public class ResolutionTest extends TestCase {
             System.out.println(step.inputClauseIds());}
     }
 
-    public void testCheckAllPurities() throws Result {
-        System.out.println("check all purities");
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(4, monitor, true, nextId);
-        Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
-        resolution.insertClause(clause);
-        clause = new Clause(new int[]{2, cAtleast, 2, -3, -4});
-        resolution.insertClause(clause);
-        resolution.checkAllPurities();
-        assertEquals("1,2,-4", resolution.localModelString());
-        InferenceStep step = resolution.model.getInferenceStep(-4);
-        //System.out.println(step.toString());
-    }
 
     public void testProcessTrueLiteralTwo() throws Result {
         System.out.println("processTrueLiteralTwo");
@@ -157,7 +142,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
         resolution.insertClause(new Clause(new int[]{3, cOr, -2, 3}));
         resolution.insertClause(new Clause(new int[]{4, cOr, -1, 4}));
-        resolution.processTrueLiteralTwo(2); // true literal 2
+        resolution.processTrueLiteralTwo(2,null); // true literal 2
         assertEquals("4: -1v4\n", resolution.clauses.toString());
         assertEquals("2,3", resolution.model.toString());
         assertEquals("-1,2,3", resolution.localModelString());
@@ -465,7 +450,7 @@ public class ResolutionTest extends TestCase {
         Resolution resolution = new Resolution(predicates, monitor, true, nextId);
         resolution.model.addObserver(myThread,
                 (Integer literal, InferenceStep step) -> {try{
-                        resolution.addTrueLiteralTask(literal,true,step);} catch(Unsatisfiable uns) {}});
+                        resolution.addInternalTrueLiteralTask(literal,true,step);} catch(Unsatisfiable uns) {}});
         Clause clause1 = new Clause(new int[]{1, cOr, 1, 5});
         resolution.insertClause(clause1);
         Clause clause2 = new Clause(new int[]{2, cOr, -1, 3, 4});

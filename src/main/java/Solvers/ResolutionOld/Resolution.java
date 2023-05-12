@@ -232,7 +232,7 @@ public abstract class Resolution extends Solver {
             if(!taskQueue.isEmpty()) {Result result = taskQueue.run(); if(result != null) {return result;}}}
 
         Transformers.prepareConjunctions(basicClauseList,equivalenceClasses,
-                (literal-> addTrueLiteralTask(literal, true, "Initial Conjunction")));
+                (literal-> addInternalTrueLiteralTask(literal, true, "Initial Conjunction")));
         if(Thread.interrupted()) {throw new InterruptedException();}
         Transformers.prepareDisjunctions(basicClauseList,id,equivalenceClasses,insertHandler);
         Transformers.prepareXors     (basicClauseList,id,equivalenceClasses,insertHandler);

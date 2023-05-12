@@ -27,13 +27,13 @@ public class InfMergeResolutionTwo extends InferenceStep {
 
     @Override
     public IntArrayList inputClauseIds() {
-        IntArrayList list = clause1.inferenceStep == null ? new IntArrayList() : clause1.inferenceStep.inputClauseIds().clone();
-        if(clause2.inferenceStep != null) list.addAll(clause2.inferenceStep.inputClauseIds());
+        IntArrayList list = clause1.inferenceStep.inputClauseIds().clone();
+        list.addAll(clause2.inferenceStep.inputClauseIds());
         return list;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        if(clause1.inferenceStep != null) clause1.inferenceStep.inferenceSteps(steps);
-        if(clause2.inferenceStep != null) clause2.inferenceStep.inferenceSteps(steps);
+        clause1.inferenceStep.inferenceSteps(steps);
+        clause2.inferenceStep.inferenceSteps(steps);
         steps.add(this);}
 }
