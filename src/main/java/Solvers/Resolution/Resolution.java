@@ -581,22 +581,31 @@ public class Resolution extends Solver {
                          removedLiterals.add(status == 1 ? literal : -literal);
                          removeLiteralFromClause(litObject,status == 1);
                          if(clause.limit <= 0) {isTrue = true; break;}}}
-                 if(isTrue) {removeClause(clause,true); break;}
+                 if(isTrue) {removeClause(clause,true); literalObject = literalObject.nextLiteral;  continue;}
                  if(monitoring) monitor.println(monitorId, clauseBefore + " and true" + removedLiterals +
                          " -> " + clause.toString(symboltable,0));
-                 InferenceStep step = null; // hier gehts weiter!
-                 switch(clause.size()) {
+                 InferenceStep step = null;
+                 if(trackReasoning) {
+                     ArrayList<InferenceStep> steps = new ArrayList<>();
+                     steps.add(clause.inferenceStep);
+                     for(int literal : removedLiterals) {
+                         step = model.getInferenceStep(literal);
+                         if(step == null) step = new InfExternal(literal);
+                         steps.add(step);}
+                     step = new InfTrueLiterals(clauseBefore, clause.toString(symboltable,0), removedLiterals,steps);
+                    clause.inferenceStep = step;}
+                if(!simplifyClause(clause,true)) {
+                    removeClause(clause,true);
+                    literalObject = literalObject.nextLiteral;  continue;}
+                switch(clause.size()) {
                      case 0: throw new UnsatEmptyClause(problemId,solverId,clause.id, step);
                      case 1: ++statistics.derivedUnitClauses;
                              addInternalTrueLiteralTask(clause.literals.get(0).literal,model.isTrue(oldTrueLiteral),step);
                              removeClause(clause,false);
                              break;
-                     case 2: addBinaryClauseTask(clause);
-                        if(simplifyClause(clause,true)) {
-                                if(checkConsistency) checkConsistency();
-                                addDerivedClauseTask(clause);}
-                          else removeClause(clause,true);}}
-            literalObject = literalObject.nextLiteral;}
+                     case 2: moveToIndexTwo(clause); addBinaryClauseTask(clause); break;
+                     default: synchronized (this) {queue.add(new Task(TaskType.ProcessLongerClause,clause));}}
+            literalObject = literalObject.nextLiteral;}}
         literalIndexMore.removePredicate(oldTrueLiteral);}
 
     /** moves a longer clause which has become a binary clause to the literalIndexTwo.
