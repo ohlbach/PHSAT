@@ -233,6 +233,7 @@ public class Clause {
      */
     protected boolean removeLiteral(Literal literalObject, boolean reduceLimit) {
         literals.remove(literalObject);
+        if(literals.isEmpty()) return false;
         determineClauseType();
         if(reduceLimit) {
             limit -= literalObject.multiplicity;

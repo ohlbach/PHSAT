@@ -73,6 +73,7 @@ public class Literals {
      * @return true if the chain of literals with the given literal is now empty.
      */
     public boolean removeLiteral(Literal literalObject) {
+        Clause clause = literalObject.clause;
         literalObject.clause = null;
         Literal previousLiteral = literalObject.previousLiteral;
         Literal nextLiteral     = literalObject.nextLiteral;
@@ -84,22 +85,10 @@ public class Literals {
         else previousLiteral.nextLiteral = nextLiteral;
         if(nextLiteral != null) nextLiteral.previousLiteral = previousLiteral;
         literalObject.previousLiteral = null;
+        System.out.println("REMOVED " + literal + " from " + clause + " ENTRIES " + entries);
         if(literals[predicate] == null) {--entries; return true;}
         return false;}
 
-    /** updates the index position after a literalObject's literal has been changed.
-     *
-     * @param literalObject the literalObject with a new literal.
-     * @param oldLiteral    the previous literal of the literalObject.
-     * @return              true if the oldLiteral's position became empty.
-     */
-    public boolean replaceLiteral(Literal literalObject, int oldLiteral) {
-        int newLiteral = literalObject.literal;
-        literalObject.literal = oldLiteral;
-        boolean isEmpty = removeLiteral(literalObject);
-        literalObject.literal = newLiteral;
-        addLiteral(literalObject);
-        return isEmpty;}
 
     /** removes the entire predicate from the Literals index.
      *

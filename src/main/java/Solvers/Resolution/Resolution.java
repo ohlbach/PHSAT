@@ -74,7 +74,7 @@ public class Resolution extends Solver {
     private final IntConsumer addComplementaries = (n -> statistics.complementaryLiterals += n);
 
     /** controls if the consistency is to be checked (for testing purposes) */
-    private final boolean checkConsistency = false;
+    private final boolean checkConsistency = true;
 
     /** the thread which runs the simplifier. */
     private Thread myThread;
@@ -293,7 +293,9 @@ public class Resolution extends Solver {
         if(checkConsistency) checkConsistency();
         statistics.initialClauses = clauses.size;
         if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);
-        if(printClauses) System.out.println(clauses.toString(symboltable));
+        if(printClauses) {
+            System.out.println("INPUT CLAUSES: " + literalIndexMore.size());
+            printSeparated();}
         synchronized(this){queue.add(new Task<>(TaskType.ProcessClauseFirstTime,clauses.firstClause));}}
 
     /** counts the number of true literal processes in the queue */
@@ -339,7 +341,7 @@ public class Resolution extends Solver {
 
 
     /** controls that all clauses are printed after each task has been changed something (for testing purposes).*/
-    private final boolean printClauses = false;
+    private final boolean printClauses = true;
 
     /** reads the next task from the task queue and processes it.
      *
@@ -386,6 +388,8 @@ public class Resolution extends Solver {
                     case ProcessElimination:
                         processElimination(task);
                         break;}
+                System.out.println("SIZE " + literalIndexMore.size());
+                printSeparated();
                 if(clauses.isEmpty()) {
                     completeModel();
                     completeModelForEquivalences((byte) 1);
@@ -572,6 +576,8 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if a contradiction is encountered.
      */
     protected void processTrueLiteralMore(int oldTrueLiteral) throws Unsatisfiable{
+        System.out.println("PTLM " + literalIndexMore.size());
+        printSeparated();
         IntArrayList removedLiterals = new IntArrayList();
         for(int sign = 1; sign >= -1; sign -= 2) {
             oldTrueLiteral *= sign;   // the clauses containing the predicate are selected. The literals to be removed depend on the model.
@@ -585,16 +591,19 @@ public class Resolution extends Solver {
                  boolean isTrue = false;
                  boolean isFalse = false;
                  removedLiterals.clear();
+                System.out.println("CB " + clause + " " + literalIndexMore.size());
                  for(int i = 0; i < clause.literals.size(); ++i){ // all literals with a truth value are removed.
                      Literal litObject = clause.literals.get(i);
                      int literal = litObject.literal;
                      byte status = localStatus(literal);
                      if(status != 0) {
-                         removedLiterals.add(status == 1 ? literal : -literal);
+                         System.out.println("ST " + literal + " " + status + "   " + localModelString());
+                         removedLiterals.add(status*literal);
                          removeLiteralFromClause(litObject,status == 1);
                          --i;
                          if(clause.limit <= 0) {isTrue = true; break;}
                         if(clause.expandedSize < clause.limit) {isFalse = true; break;}}}
+                System.out.println("CA " + clause + " " + isTrue + "  " +literalIndexMore.size());
                  if(isTrue) {removeClause(clause,true); literalObject = literalObject.nextLiteral;  continue;}
                  if(monitoring) monitor.println(monitorId, clauseBefore + " and true" + removedLiterals +
                          " -> " + clause.toString(symboltable,0));
@@ -618,10 +627,14 @@ public class Resolution extends Solver {
                              addInternalTrueLiteralTask(clause.literals.get(0).literal,model.isTrue(oldTrueLiteral),step);
                              removeClause(clause,false);
                              break;
-                     case 2: moveToIndexTwo(clause); addBinaryClauseTask(clause); break;
+                     case 2: addBinaryClauseTask(clause); break;
                      default: synchronized (this) {queue.add(new Task(TaskType.ProcessLongerClause,clause));}}
-            literalObject = literalObject.nextLiteral;}}
-        literalIndexMore.removePredicate(oldTrueLiteral);}
+            literalObject = literalObject.nextLiteral;
+                System.out.println("SIIII " + clause + " " +literalIndexMore.size());
+                printSeparated();
+            }}
+        literalIndexMore.removePredicate(oldTrueLiteral);
+    }
 
     /** moves a longer clause which has become a binary clause to the literalIndexTwo.
      * <br>
@@ -1306,6 +1319,7 @@ public class Resolution extends Solver {
      */
     protected void removeLiteralFromIndex(Literal literalObject) {
         Clause clause = literalObject.clause;
+        if(clause.size() < 2) return;
         Literals literalIndex = (clause.size() == 2) ? literalIndexTwo : literalIndexMore;
         literalIndex.removeLiteral(literalObject);}
 
@@ -1323,6 +1337,7 @@ public class Resolution extends Solver {
      */
     protected boolean removeLiteralFromClause(Literal literalObject, boolean reduceLimit) throws Unsatisfiable {
         Clause clause = literalObject.clause;
+        System.out.println("RLC " + literalObject.literal + " " + clause);
         removeLiteralFromIndex(literalObject);
         clauses.updateClauseNumbers(clause,-1);
         if(clause.removeLiteral(literalObject,reduceLimit)){
@@ -1332,6 +1347,7 @@ public class Resolution extends Solver {
             clauses.updateClauseNumbers(clause,+1);
             return true;}
         // clause has to be removed
+        if(clause.size() == 0) return false;
         clauses.updateClauseNumbers(clause,+1);
         if(clause.size() == 2) {moveToIndexTwo(clause);}
         removeClause(clause,true);
