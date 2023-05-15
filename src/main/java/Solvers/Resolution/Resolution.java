@@ -206,6 +206,7 @@ public class Resolution extends Solver {
         catch(Result result) {
             if(result instanceof Satisfiable) {
                 completeModel();
+                completeModelForEquivalences((byte) 1);
                 model.exchangeModel(localModel);}
             result.statistic = statistics;
             result.solverId = solverId;
@@ -294,6 +295,9 @@ public class Resolution extends Solver {
         if(printClauses) System.out.println(clauses.toString(symboltable));
         synchronized(this){queue.add(new Task<>(TaskType.ProcessClauseFirstTime,clauses.firstClause));}}
 
+    /** counts the number of true literal processes in the queue */
+    private int trueLiteralsInQueue = 0;
+
     /** adds a true literal to the queue and to the model.
      * <br>
      *  Derived literals (as unit clauses) are added to the local and to the global model.<br>
@@ -308,7 +312,9 @@ public class Resolution extends Solver {
             monitor.print(monitorId,"True literal added: " +
                     Symboltable.toString(literal,symboltable));}
         makeLocallyTrue(literal);
-        synchronized (this) {queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}
+        synchronized (this) {
+            queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));
+            ++trueLiteralsInQueue;}
         if(globallyTrue) model.add(myThread,literal,inferenceStep);}
 
 
@@ -327,7 +333,8 @@ public class Resolution extends Solver {
         makeLocallyTrue(literal);
         synchronized (this) {
             if(queue.isEmpty()) queue.add(new Task<>(TaskType.ProcessElimination,null));
-            queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));}}
+            queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));
+            ++trueLiteralsInQueue;}}
 
 
     /** controls that all clauses are printed after each task has been changed something (for testing purposes).*/
@@ -351,6 +358,7 @@ public class Resolution extends Solver {
                     case ProcessTrueLiteral:
                         if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                         changed = true;
+                        --trueLiteralsInQueue;
                         processTrueLiteral((Integer)task.a, (InferenceStep)task.b);
                         break;
                     case ProcessEquivalence:
@@ -381,15 +389,18 @@ public class Resolution extends Solver {
                     case ProcessElimination:
                         processElimination(task);
                         break;}
+                if(clauses.isEmpty()) {
+                    completeModel();
+                    completeModelForEquivalences((byte) 1);
+                    throw new Satisfiable(problemId,solverId,model);}
+                if(trueLiteralsInQueue == 0 && clauses.status != 0) generatePositiveOrNegativeModel();
                 if(queue.isEmpty()) {
                     System.out.println("Empty Queue " + clauses.size + " " + model.toString());
                     //throw new Aborted(problemId,solverId,"Empty Queue");
                 }
-
                 if(monitoring  && printClauses && changed) {
                     System.out.println("Model: " + model.toString());
                     printSeparated();}
-                if(clauses.isEmpty()) {completeModel(); throw new Satisfiable(problemId,solverId,model);}
                 if(literalIndexMore.size() == 0) {
                     addInternalTrueLiteralTask(clauses.firstClause.literals.get(0).literal,false,null);}}
             catch(InterruptedException ex) {return;}
@@ -1292,12 +1303,15 @@ public class Resolution extends Solver {
         Clause clause = literalObject.clause;
         assert(clause.size()  > 2);
         removeLiteralFromIndex(literalObject);
+        clauses.updateClauseNumbers(clause,-1);
         if(clause.removeLiteral(literalObject,reduceLimit)){
             if(clause.size() == 2) {moveToIndexTwo(clause);}
             //checkPurity(literalObject.literal); // pure literals are just added to the model.
             if(checkConsistency) checkConsistency();
+            clauses.updateClauseNumbers(clause,+1);
             return true;}
         // clause has to be removed
+        clauses.updateClauseNumbers(clause,+1);
         if(clause.size() == 2) {moveToIndexTwo(clause);}
         removeClause(clause,true);
         if(checkConsistency) checkConsistency();
@@ -1468,8 +1482,80 @@ public class Resolution extends Solver {
                 int trueLiterals = 0;
                 for(Literal litObject : literalObject.clause.literals) {
                     if(localStatus(litObject.literal) == 1) ++trueLiterals;}
-                if(trueLiterals < clause.limit) makeLocallyTrue(literal);}}}
+                if(trueLiterals < clause.limit) makeLocallyTrue(literal);}}
+    }
 
+    /** extends the local model to the equivalences.
+     * <br>
+     * If both literals of an equivalence are undefined then the status defines their truth value.
+     *
+     * @param status +1 or -1, for defining the truth value of literal pairs with undefined truth value.
+     */
+    void completeModelForEquivalences(byte status) {
+        for(int i = 0; i < equivalences.size(); i += 2) {
+            int literal1 = equivalences.getInt(i);
+            int literal2 = equivalences.getInt(i+1);
+            byte localStatus1 = localStatus(literal1);
+            byte localStatus2 = localStatus(literal2);
+            if(localStatus1 != 0) {
+                if(localStatus2 != 0) assert localStatus1 == localStatus2;
+                else makeLocallyTrue(localStatus1*literal2);}
+            else {
+                if(localStatus2 != 0) makeLocallyTrue(localStatus2*literal1);
+                else {
+                    makeLocallyTrue(status*literal1);
+                    makeLocallyTrue(status*literal2);}}}}
+
+    /** generates a local model from either the positive and mixedPositive literals or
+     * from the negative and mixedNegative literals in the clauses.
+     *
+     * @throws Satisfiable after the model has been generated.*/
+    void generatePositiveOrNegativeModel() throws Satisfiable {
+        byte status = clauses.status;
+        if(status != 0) {
+            if (status == +1) generatePositiveModel();
+            if (status == -1) generateNegativeModel();
+            completeModel();
+            completeModelForEquivalences(status);
+            model.exchangeModel(localModel);
+            throw new Satisfiable(problemId,solverId,model);}}
+
+    /** generates a local model from the positive and mixed positive literals in the clauses.*/
+    void generatePositiveModel() {
+        Clause clause = clauses.firstClause;
+        while(clause != null) {
+            if(!clause.exists || clause.clauseType == ClauseType.NEGATIVE || clause.clauseType == ClauseType.MIXEDNEGATIVE) {
+                clause = clause.nextClause;}
+                int trueLiterals = 0;
+            for(Literal literalObject : clause.literals) {
+                 if(localStatus(literalObject.literal) == 1) ++trueLiterals;}
+            if(trueLiterals < clause.limit) {
+                for(Literal literalObject : clause.literals) {
+                    int literal = literalObject.literal;
+                    if(literal < 0 || localStatus(literal) != 0) continue;
+                    makeLocallyTrue(literal);
+                    if(++trueLiterals == clause.limit) break;}
+                assert trueLiterals >= clause.limit;}
+            clause = clause.nextClause;}}
+
+
+    /** generates a local model from the negative and mixed negative literals in the clauses.*/
+    void generateNegativeModel() {
+        Clause clause = clauses.firstClause;
+        while(clause != null) {
+            if(!clause.exists || clause.clauseType == ClauseType.POSITIVE || clause.clauseType == ClauseType.MIXEDPOSITIVE) {
+                clause = clause.nextClause;}
+            int trueLiterals = 0;
+            for(Literal literalObject : clause.literals) {
+                if(localStatus(literalObject.literal) == 1) ++trueLiterals;}
+            if(trueLiterals < clause.limit) {
+                for(Literal literalObject : clause.literals) {
+                    int literal = literalObject.literal;
+                    if(literal > 0 || localStatus(literal) != 0) continue;
+                    makeLocallyTrue(literal);
+                    if(++trueLiterals == clause.limit) break;}
+                assert trueLiterals >= clause.limit;}
+            clause = clause.nextClause;}}
 
     /** lists the local model as string.
      *

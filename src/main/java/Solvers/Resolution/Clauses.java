@@ -20,6 +20,49 @@ public class Clauses {
     /** the number of clauses in the list.*/
     public int size = 0;
 
+    /** the number of clauses with positive literals only. */
+    int positiveClauses = 0;
+
+    /** the number of clauses with negative literals only. */
+    int negativeClauses = 0;
+
+    /** the number of clauses with &gt;= limit positive and negative literals. */
+    int positiveNegativeClauses = 0;
+
+    /** the number of clauses with &gt;= limit positive literals, but not enough negative literals. */
+    int mixedPositiveClauses = 0;
+
+    /** the number of clauses with &gt;= limit negative literals, but not enough positive literals. */
+    int mixedNegativeClauses = 0;
+
+    /** the number of clauses where neither the number of positive nor the number of negative literals are sufficient to make the clause true. */
+    int mixedMixedClauses = 0;
+
+    /** +1 if a model for positive literals is sufficient,
+     * -1 if a model for negative literals is sufficient,
+     * 0 otherwise. */
+    byte status = 0;
+
+    /** updates the clause numbers (positive, negative etc.)
+     *
+     * @param clause a clause
+     * @param change typically +1 or -1. The change is added to the corresponding clause type number.
+     */
+    void updateClauseNumbers(Clause clause, int change) {
+        switch(clause.clauseType) {
+            case POSITIVE:         positiveClauses         += change; break;
+            case NEGATIVE:         negativeClauses         += change; break;
+            case POSITIVENEGATIVE: positiveNegativeClauses += change; break;
+            case MIXEDPOSITIVE:    mixedPositiveClauses    += change; break;
+            case MIXEDNEGATIVE:    mixedNegativeClauses    += change; break;
+            case MIXEDMIXED:       mixedMixedClauses       += change;}
+        status = 0;
+        if(mixedMixedClauses == 0) {
+            if(negativeClauses == 0 && mixedNegativeClauses == 0)       status = 1;
+            else {if(positiveClauses == 0 && mixedPositiveClauses == 0) status = -1;}
+    }}
+
+
     /** adds a clause at the end of the list.
      *
      * @param clause the clause to be added.
@@ -27,7 +70,8 @@ public class Clauses {
      */
     public int addClause(Clause clause) {
         clause.exists = true;
-        if(firstClause == null) {firstClause = clause; lastClause = clause; size = 1; return 1;}
+        updateClauseNumbers(clause,1);
+        if(firstClause == null) {firstClause = clause; lastClause = clause; size = 1;  return 1;}
         clause.previousClause = lastClause;
         lastClause.nextClause = clause;
         lastClause = clause;
@@ -44,12 +88,15 @@ public class Clauses {
      * */
     public int removeClause(Clause clause) {
         if(!clause.exists) return size;
+        updateClauseNumbers(clause,-1);
         clause.exists = false;
         if(clause.nextClause == null) { // it is the clause at the end of the chain.
-            if(clause == firstClause) {size = 0; firstClause = null; clause.previousClause = null; return 0;}
-            if(clause.previousClause == null) {return size;} // the clause is not linked.
+            if(clause == firstClause) {size = 0; firstClause = null;
+                clause.previousClause = null;  return 0;}
+            if(clause.previousClause == null)  {updateClauseNumbers(clause,1); return size;} // the clause is not linked.
             Clause previousClause = clause.previousClause;
-            lastClause = previousClause; clause.previousClause = null; previousClause.nextClause = null; return --size;}
+            lastClause = previousClause; clause.previousClause = null;
+            previousClause.nextClause = null; return --size;}
         if(clause.previousClause == null) { // it is the first clause in the chain
             firstClause = clause.nextClause; firstClause.previousClause = null; return --size;}
 
@@ -78,7 +125,28 @@ public class Clauses {
     public void clear() {
         firstClause = null;
         lastClause = null;
-        size = 0;}
+        size = 0;
+        positiveClauses          = 0;
+        negativeClauses          = 0;
+        positiveNegativeClauses  = 0;
+        mixedPositiveClauses     = 0;
+        mixedNegativeClauses     = 0;
+        mixedMixedClauses        = 0;}
+
+    /** returns a survey of the clause numbers as string.
+     *
+     * @return a survey of the clause numbers as string.
+     */
+    public String numbers() {
+        return "Clause Statistics:" +
+                "\nnumber of clauses:         " + size +
+                "\npositive clauses:          " + positiveClauses +
+                "\nnegative clauses:          " + negativeClauses +
+                "\npositive-negative clauses: " + positiveNegativeClauses +
+                "\nmixed positive clauses:    " + mixedPositiveClauses +
+                "\nmixed negative clauses:    " + mixedNegativeClauses +
+                "\nmixed-mixed clauses:       " + mixedMixedClauses;
+    }
 
     /** generates a string containing all clauses in the list.
      *
