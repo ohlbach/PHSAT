@@ -37,6 +37,5 @@ public class InfTrueLiterals extends InferenceStep {
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        for(InferenceStep step : inferenceSteps) step.inferenceSteps(steps);
-    }
+        for(InferenceStep step : inferenceSteps) {step.inferenceSteps(steps);}}
 }

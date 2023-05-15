@@ -170,11 +170,13 @@ public class Clause {
     public Clause(IntArrayList normalizedClause) {
         id = normalizedClause.getInt(0);
         quantifier = Normalizer.getQuantifier(normalizedClause);
+        isDisjunction = quantifier == Quantifier.OR;
         limit = Normalizer.getMin(normalizedClause);
         expandedSize = Normalizer.getExpandedSize(normalizedClause);
         hasMultiplicities = Normalizer.hasMultiplicities(normalizedClause);
+        inferenceStep = new InfInputClause(id);
         for(int i = Normalizer.literalsStart; i <= normalizedClause.size()-2; i +=2) {
-            Literal literal = new Literal(normalizedClause.get(i),normalizedClause.get(i+1));
+            Literal literal = new Literal(normalizedClause.getInt(i),normalizedClause.getInt(i+1));
             literals.add(literal);
             literal.clause = this;}
         determineClauseType();}
@@ -255,14 +257,6 @@ public class Clause {
         hasMultiplicities = expandedSize > literals.size();
         return true;}
 
-    /** merges multiple literals of disjunctions into one literal.
-     */
-    public void removeDoubleLiterals() {
-        assert(quantifier == Quantifier.OR);
-        for(int i = 0;  i < literals.size()-1; ++i) {
-            int literal = literals.get(i).literal;
-            for(int j = i+1; j < literals.size(); ++j) {
-                if(literal == literals.get(j).literal) literals.remove(j--);}}}
 
     /** removes complementary pairs from the clause.
      * Example: atleast 4 p^3, -p^2, q, r -> atleast 2 p,q,r. <br>
@@ -504,13 +498,13 @@ public class Clause {
     void determineClauseType() {
        int positiveLiterals = 0; int negativeLiterals = 0;
        for(Literal literalObject : literals) {
-           if(literalObject.literal > 0) ++positiveLiterals; else --negativeLiterals; }
-       int size = literals.size();
-       if(positiveLiterals == size) {clauseType = ClauseType.POSITIVE; return;}
-       if(negativeLiterals == size) {clauseType = ClauseType.NEGATIVE; return;}
+           if(literalObject.literal > 0) positiveLiterals += literalObject.multiplicity;
+           else negativeLiterals += literalObject.multiplicity; }
+       if(positiveLiterals == expandedSize) {clauseType = ClauseType.POSITIVE; return;}
+       if(negativeLiterals == expandedSize) {clauseType = ClauseType.NEGATIVE; return;}
        if(positiveLiterals >= limit && negativeLiterals >= limit) {clauseType = ClauseType.POSITIVENEGATIVE; return;}
-       if(positiveLiterals >= limit && negativeLiterals < limit) {clauseType = ClauseType.MIXEDPOSITIVE; return;}
-       if(positiveLiterals < limit && negativeLiterals >= limit) {clauseType = ClauseType.MIXEDNEGATIVE; return;}
+       if(positiveLiterals >= limit) {clauseType = ClauseType.MIXEDPOSITIVE; return;}
+       if(negativeLiterals >= limit) {clauseType = ClauseType.MIXEDNEGATIVE; return;}
        clauseType = ClauseType.MIXEDMIXED;}
 
     /** returns the number of Literal objects in the clause.

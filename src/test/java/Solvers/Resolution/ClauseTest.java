@@ -48,6 +48,7 @@ public class ClauseTest extends TestCase {
         assertEquals(-3,clause1.findLiteral(-3).literal);
         assertNull(clause1.findLiteral(3));
         assertEquals(clause1,clause1.findLiteral(1).clause);
+        assertEquals(ClauseType.POSITIVENEGATIVE,clause1.clauseType);
     }
 
     public void testConstructorInputClause2() {
@@ -63,6 +64,7 @@ public class ClauseTest extends TestCase {
         assertEquals(7,clause.expandedSize());
         assertFalse(clause.isDisjunction);
         assertTrue(clause.hasMultiplicities);
+        assertEquals(ClauseType.POSITIVENEGATIVE,clause.clauseType);
     }
 
     public void testRemoveLiteral() {
@@ -83,6 +85,7 @@ public class ClauseTest extends TestCase {
 
         Literal literal3 = clause2.findLiteral(2);
         assertFalse(clause2.removeLiteral(literal3,true));
+        assertEquals(ClauseType.POSITIVE,clause2.clauseType);
     }
 
     public void testConstructorQuantified() {
@@ -169,11 +172,13 @@ public class ClauseTest extends TestCase {
         resolvent = clause2.resolve(ids,clause2.literals.get(0), clause1.literals.get(1),addComplementaries);
         assertEquals("12: >= 2 3^2,4,1^2",resolvent.toString());
         assertTrue(resolvent.hasMultiplicities);
+        assertEquals(ClauseType.MIXEDNEGATIVE,clause2.clauseType);
 
         clause1 = new Clause(new int[]{5, cOr, 1,2});
         clause2 = new Clause(new int[]{6, cAtleast, 3,-2,-2,-2,3,4,4});
         resolvent = clause2.resolve(ids,clause2.literals.get(0), clause1.literals.get(1),addComplementaries);
         assertEquals("13: 3v4v1",resolvent.toString());
+        assertEquals(ClauseType.POSITIVENEGATIVE,clause2.clauseType);
 
         clause1 = new Clause(new int[]{5, cOr, 1,2});
         clause2 = new Clause(new int[]{6, cAtleast, 3,-2,-2,-2,3,-1,-1});

@@ -129,6 +129,7 @@ public class Resolution extends Solver {
         clauses = new Clauses();
         model = new Model(predicates);
         statistics = new ResolutionStatistics(solverId);
+        myThread = Thread.currentThread();
     }
 
 
@@ -351,18 +352,17 @@ public class Resolution extends Solver {
         Clause clause;
         while(!myThread.isInterrupted()) {
             try {
-                if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                //if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
+                if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                 boolean changed = false;
                 switch(task.taskType){
                     case ProcessTrueLiteral:
-                        if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                         changed = true;
                         --trueLiteralsInQueue;
                         processTrueLiteral((Integer)task.a, (InferenceStep)task.b);
                         break;
                     case ProcessEquivalence:
-                        if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                         changed = true;
                         processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c);
                         break;
@@ -370,20 +370,17 @@ public class Resolution extends Solver {
                         clause = (Clause)task.a;
                         if(clause.exists) {
                             changed = true;
-                            if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                             processBinaryClause(clause);}
                         break;
                     case ProcessLongerClause:
                         clause = (Clause)task.a;
                         if(clause.exists) {
                             changed = true;
-                            if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                             processLongerClause(clause);}
                         break;
                     case ProcessClauseFirstTime:
                         if(((Clause)task.a).exists) {
                             changed = true;
-                            if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                             processClauseFirstTime(task);}
                         break;
                     case ProcessElimination:
@@ -402,6 +399,9 @@ public class Resolution extends Solver {
                     System.out.println("Model: " + model.toString());
                     printSeparated();}
                 if(literalIndexMore.size() == 0) {
+                    if(monitoring) {
+                        monitor.println(monitorId, "No longer clauses any more. 2-Literal Clauses are Saturated.\n" );
+                        printSeparated();}
                     addInternalTrueLiteralTask(clauses.firstClause.literals.get(0).literal,false,null);}}
             catch(InterruptedException ex) {return;}
             if(n > 0 && ++counter == n) return;}}
@@ -583,6 +583,7 @@ public class Resolution extends Solver {
                  assert clause.size() > 2;
                  String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
                  boolean isTrue = false;
+                 boolean isFalse = false;
                  removedLiterals.clear();
                  for(int i = 0; i < clause.literals.size(); ++i){ // all literals with a truth value are removed.
                      Literal litObject = clause.literals.get(i);
@@ -591,7 +592,9 @@ public class Resolution extends Solver {
                      if(status != 0) {
                          removedLiterals.add(status == 1 ? literal : -literal);
                          removeLiteralFromClause(litObject,status == 1);
-                         if(clause.limit <= 0) {isTrue = true; break;}}}
+                         --i;
+                         if(clause.limit <= 0) {isTrue = true; break;}
+                        if(clause.expandedSize < clause.limit) {isFalse = true; break;}}}
                  if(isTrue) {removeClause(clause,true); literalObject = literalObject.nextLiteral;  continue;}
                  if(monitoring) monitor.println(monitorId, clauseBefore + " and true" + removedLiterals +
                          " -> " + clause.toString(symboltable,0));
@@ -605,6 +608,7 @@ public class Resolution extends Solver {
                          steps.add(step);}
                      step = new InfTrueLiterals(clauseBefore, clause.toString(symboltable,0), removedLiterals,steps);
                     clause.inferenceStep = step;}
+                 if(isFalse) throw new UnsatEmptyClause(problemId,solverId,clause.id, step);
                 if(!simplifyClause(clause,true)) {
                     removeClause(clause,true);
                     literalObject = literalObject.nextLiteral;  continue;}
@@ -749,49 +753,52 @@ public class Resolution extends Solver {
                                                        boolean checkEquivalence) throws Unsatisfiable {
         assert(clause1.size() == 2);
         ++timestamp; // just to be sure.
-        Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
-        while(literalObject != null) { // all clauses with -literal1 are marked.
-            Clause clause = literalObject.clause;
-            if(clause != null && clause != clause1) clause.timestamp1 = timestamp;
-            literalObject = literalObject.nextLiteral;}
+        try{
+            Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
+            while(literalObject != null) { // all clauses with -literal1 are marked.
+                Clause clause = literalObject.clause;
+                if(clause != null && clause != clause1) clause.timestamp1 = timestamp;
+                literalObject = literalObject.nextLiteral;}
 
-        literalObject = literalIndexTwo.getFirstLiteralObject(literal2);
-        while(literalObject != null) {
-            Clause clause2 = literalObject.clause;
-            if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
-            if(clause2.timestamp1 == timestamp) { // a partner clause is found
-                if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
-                        clause2.toString(symboltable,0) + " -> " + "true("+ Symboltable.toString(literal2,symboltable)+")");
-                addInternalTrueLiteralTask(literal2,true, trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
-                removeClause(clause1,true);
-                removeClause(clause2,true);
-                ++timestamp;
-                return;}
-            literalObject = literalObject.nextLiteral;}
-
-        if(checkEquivalence) {
-            literalObject = literalIndexTwo.getFirstLiteralObject(-literal2);
+            literalObject = literalIndexTwo.getFirstLiteralObject(literal2);
             while(literalObject != null) {
                 Clause clause2 = literalObject.clause;
                 if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
-                if(clause2.timestamp1 == timestamp) { // a partner clause is found.
+                if(clause2.timestamp1 == timestamp) { // a partner clause is found
                     if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
-                            clause2.toString(symboltable,0) + " -> " +
-                            Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
-                    removeClause(clause1,false);
+                            clause2.toString(symboltable,0) + " -> " + "true("+ Symboltable.toString(literal2,symboltable)+")");
+                    addInternalTrueLiteralTask(literal2,true, trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
+                    removeClause(clause1,true);
                     removeClause(clause2,true);
-                    if(Math.abs(literal1) > Math.abs(literal2)) {int dummy = literal2; literal2 = literal1; literal1 = dummy;}
-                    if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
-                    equivalences.add(literal1); equivalences.add(-literal2);
-                    InfEquivalence step = null;
-                    if(trackReasoning) {
-                        step = new InfEquivalence(clause1,clause2);
-                        equivalenceSteps.add(step); equivalenceSteps.add(null);}
-                    processEquivalence(literal1,-literal2,step);
-                    ++timestamp;
                     return;}
-                literalObject = literalObject.nextLiteral;}}
-        ++timestamp;}
+                literalObject = literalObject.nextLiteral;}
+
+            if(checkEquivalence) {
+                literalObject = literalIndexTwo.getFirstLiteralObject(-literal2);
+                while(literalObject != null) {
+                    Clause clause2 = literalObject.clause;
+                    if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
+                    if(clause2.timestamp1 == timestamp) { // a partner clause is found.
+                        removeClause(clause1,false);
+                        removeClause(clause2,true);
+                        if(Math.abs(literal1) > Math.abs(literal2)) {int dummy = literal2; literal2 = literal1; literal1 = dummy;}
+                        if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
+                        if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
+                                clause2.toString(symboltable,0) + " -> " +
+                                Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
+                        int status = localStatus(clause2.literals.get(0).literal); // literal may have become pure.
+                        if(status != 0) {addInternalTrueLiteralTask(-status*clause2.literals.get(1).literal,false,null); return;}
+                        status = localStatus(clause2.literals.get(1).literal);
+                        if(status != 0) {addInternalTrueLiteralTask(-status*clause2.literals.get(0).literal,false,null); return;}
+                        equivalences.add(literal1); equivalences.add(-literal2);
+                        InfEquivalence step = null;
+                        if(trackReasoning) {
+                            step = new InfEquivalence(clause1,clause2);
+                            equivalenceSteps.add(step); equivalenceSteps.add(null);}
+                        processEquivalence(literal1,-literal2,step);
+                        return;}
+                    literalObject = literalObject.nextLiteral;}}}
+            finally {++timestamp;}}
 
     /** performs resolution between the given clause and all other binary clauses.
      * <br>
@@ -953,12 +960,27 @@ public class Resolution extends Solver {
      */
     void saturateLongerClausesWithBinaryClause(Clause binaryParentClause) throws Unsatisfiable {
         assert(binaryParentClause.size() == 2);
-        for(Literal literalObject : binaryParentClause.literals) {
-            Literal negLiteralObject = literalIndexMore.getFirstLiteralObject(-literalObject.literal);
-            while(negLiteralObject != null) {
-                if(negLiteralObject.clause == null) {negLiteralObject = negLiteralObject.nextLiteral; continue;}
-                resolve(literalObject,negLiteralObject);
-                negLiteralObject = negLiteralObject.nextLiteral;}}}
+        String clauseBefore = null; String binaryClause = null;
+        if(trackReasoning || monitoring) binaryClause = binaryParentClause.toString(symboltable,0);
+        for(Literal binaryParentLiteralObject : binaryParentClause.literals) {
+            int otherBinaryParentLiteral = binaryParentClause.otherLiteral(binaryParentLiteralObject).literal;
+            Literal longerParentLiteralObject = literalIndexMore.getFirstLiteralObject(-binaryParentLiteralObject.literal);
+            while(longerParentLiteralObject != null) {
+                Clause longerParentClause = longerParentLiteralObject.clause;
+                 if(longerParentClause == null) {longerParentLiteralObject = longerParentLiteralObject.nextLiteral; continue;}
+                if(longerParentClause.isDisjunction) {
+                    Literal otherLongerParentLiteralObject = longerParentClause.findLiteral(otherBinaryParentLiteral);
+                     if(otherLongerParentLiteralObject != null) {
+                        if(trackReasoning || monitoring) clauseBefore = longerParentClause.toString(symboltable,0);
+                        removeLiteralFromClause(longerParentLiteralObject,false);
+                        if(monitoring) monitor.println(monitorId,"MergeResolution: "+ binaryClause + " and " +
+                                clauseBefore + " -> " + longerParentClause.toString(symboltable,0));
+                        if(trackReasoning)
+                            longerParentClause.inferenceStep = new InfResolution(binaryParentClause, binaryClause, longerParentClause,
+                                    clauseBefore,longerParentClause,symboltable);
+                        continue;}}
+                resolve(binaryParentLiteralObject,longerParentLiteralObject);
+                longerParentLiteralObject = longerParentLiteralObject.nextLiteral;}}}
 
     /** computes all resolvents between the given longer parent clause and the binary clauses.
      *
@@ -1301,7 +1323,6 @@ public class Resolution extends Solver {
      */
     protected boolean removeLiteralFromClause(Literal literalObject, boolean reduceLimit) throws Unsatisfiable {
         Clause clause = literalObject.clause;
-        assert(clause.size()  > 2);
         removeLiteralFromIndex(literalObject);
         clauses.updateClauseNumbers(clause,-1);
         if(clause.removeLiteral(literalObject,reduceLimit)){

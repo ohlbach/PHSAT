@@ -45,6 +45,8 @@ public class ClausesTest extends TestCase {
                 " 100: >= 2 p^2,q^2,r\n" +
                 "1000: 4v5\n", clauses.toString(symboltable));
         assertEquals(3, clauses.size());
+        assertEquals(1,clauses.status);
+        //System.out.println(clauses.numbers());
     }
 
     public void testRemoveClause() {
@@ -76,6 +78,9 @@ public class ClausesTest extends TestCase {
         assertEquals(2, clauses.removeClause(clause1));
         assertEquals(" 100: -pv-qv-r\n" +
                 "1000: 4v5\n", clauses.toString(symboltable));
+
+        assertEquals(0,clauses.status);
+        //System.out.println(clauses.numbers());
 
     }
 

@@ -27,6 +27,16 @@ public class InfResolution extends InferenceStep {
         inferenceStep2 = parentClause2.inferenceStep;
     }
 
+    public InfResolution(Clause parentClause1, String parentClause1String, Clause parentClause2, String parentClause2String, Clause resolvent, Symboltable symboltable) {
+        this.parentClause1 = parentClause1String;
+        this.parentClause2 = parentClause2String;
+        this.resolvent     = resolvent.toString(symboltable,0);
+        inferenceStep1 = parentClause1.inferenceStep;
+        inferenceStep2 = parentClause2.inferenceStep;
+    }
+
+
+
     @Override
     public String toString(Symboltable symboltable) {
         return parentClause1 + " and " + parentClause2 + " -> " + resolvent;}

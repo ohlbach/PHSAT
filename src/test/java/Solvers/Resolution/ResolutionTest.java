@@ -24,7 +24,7 @@ public class ResolutionTest extends TestCase {
     static int cInterval = Quantifier.INTERVAL.ordinal();
 
 
-    static boolean monitoring = false;
+    static boolean monitoring = true;
 
     static Symboltable symboltable = new Symboltable(10);
 
@@ -226,15 +226,12 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{2, cOr, 1,2,3,4}));
         resolution.processTrueLiteralMore(3);
         assertEquals("", resolution.clauses.toString());
-        assertEquals("-1,2,-3,-4", resolution.model.toString());
+        assertEquals("-1,2,-3,-4", resolution.localModelString());
+        assertEquals("-1,-3,-4", resolution.model.toString());
         assertEquals("Positive Literals:\n" +
                 "\n" +
                 "Negative Literals:\n", resolution.literalIndexMore.toString());
-        if(monitoring) {
-            System.out.println("\nInference Steps");
-            ArrayList<InferenceStep> steps = new ArrayList<>();
-            resolution.model.getInferenceStep(2).inferenceSteps(steps);
-            for(InferenceStep step : steps) System.out.println(step.toString());}
+
     }
 
     public void testRemoveClausesSubsumedByBinaryClause() throws Result {
@@ -277,6 +274,7 @@ public class ResolutionTest extends TestCase {
         assertEquals("3", resolution.model.toString());
         //System.out.println(simplifier.model.getInferenceStep(3).toString());
 
+        System.out.println("NEW");
         resolution.clear();
         resolution.insertClause(new Clause(new int[]{2, cOr, 1,2}));
         resolution.insertClause(new Clause(new int[]{3, cOr, 1,-3}));

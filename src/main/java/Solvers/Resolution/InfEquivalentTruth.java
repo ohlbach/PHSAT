@@ -31,7 +31,8 @@ public class InfEquivalentTruth extends InferenceStep {
     @Override
     public IntArrayList inputClauseIds() {
         IntArrayList ids = infEquivalence.inputClauseIds().clone();
-        ids.addAll(infTruth.inputClauseIds());}
+        ids.addAll(infTruth.inputClauseIds());
+        return ids;}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
