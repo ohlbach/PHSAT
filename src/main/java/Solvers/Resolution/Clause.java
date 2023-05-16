@@ -11,6 +11,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
@@ -229,34 +230,58 @@ public class Clause {
      *
      * @param literalObject    the literal to be removed.
      * @param reduceLimit      if true then the limit is reduced by the literal's multiplicity.
-     * @return true if the clause still exists.
+     * @return                 +1 (tautology) -1 (unsatisfiable) 0 otherwise.
      */
-    protected boolean removeLiteral(Literal literalObject, boolean reduceLimit) {
+    protected byte removeLiteral(Literal literalObject, boolean reduceLimit) {
         literals.remove(literalObject);
-        if(literals.isEmpty()) return false;
+        literalObject.clause = null;
         determineClauseType();
         if(reduceLimit) {
             limit -= literalObject.multiplicity;
-            if(limit <= 0) {return false;}}
+            if(limit <= 0) {return +1;}} // tautology
         expandedSize -= literalObject.multiplicity;
-        literalObject.clause = null;
-        if(isDisjunction) return true;
+        if(expandedSize < limit) return -1; // not enough literals to satisfy the limit.
+        if(isDisjunction) return 0;
+
         if(limit == 1) { // clause turns into a disjunction
             isDisjunction = true;
             quantifier = Quantifier.OR;
             for(Literal literalObject1 : literals) {literalObject1.multiplicity = 1;}
             expandedSize = literals.size();
             hasMultiplicities = true;
-            return true;}
+            return 0;}
 
         if(reduceLimit) { // adjust all multiplicities
             for(Literal literalObject1 : literals) {
                 int multiplicity = literalObject1.multiplicity;
                 if(multiplicity > limit) {
-                    expandedSize -= limit -multiplicity;
+                    expandedSize -= limit - multiplicity;
                     literalObject1.multiplicity = limit;}}}
         hasMultiplicities = expandedSize > literals.size();
-        return true;}
+        return 0;}
+
+    /** removes all literals where modelStatus != 0.
+     *
+     * @param modelStatus returns +1 (true), -1 (false) or 0 (undefined)
+     * @param remover is applied to the removed literals.
+     * @return +1 (tautology), -1 (unsatisfiable), 0 undefined.
+     */
+    byte removeLiterals(Function<Literal,Integer> modelStatus, Consumer<Literal> remover){
+        for(int i = 0; i < literals.size(); ++i) {
+            Literal literalObject = literals.get(i);
+            int status = modelStatus.apply(literalObject);
+            if(status == 0) continue;
+            if(status == 1) {limit -= literalObject.multiplicity;}
+            literalObject.clause = null;
+            remover.accept(literalObject);
+            literals.remove(i--);}
+        if(limit <= 0) return 1; // tautology
+        adjustMultiplicitiesToLimit();
+        if(limit == 1) { // clause turns into a disjunction
+            isDisjunction = true;
+            quantifier = Quantifier.OR;}
+        determineClauseType();
+        return (expandedSize < limit) ? (byte)-1: 0;}
 
 
     /** removes complementary pairs from the clause.
@@ -265,7 +290,7 @@ public class Clause {
      * The clause may be turned into a disjunction.
      *
      * @param complementaries for counting the removal of complementary literals.
-     * @return true if the clause became a true clause.
+     * @return true if the clause became a true clause (tautology).
      */
     protected boolean removeComplementaryLiterals(IntConsumer complementaries, Consumer<Literal> literalRemover) {
         boolean complementariesFound = false;
@@ -306,21 +331,11 @@ public class Clause {
                     if(literalRemover != null) literalRemover.accept(literalObject1);
                     expandedSize -= multiplicity1;
                     break;}}}
-        determineClauseType();
         if(!complementariesFound) return false;
         if(literals.isEmpty()) return true;
-
-        if(limit == 1) {
-            quantifier = Quantifier.OR;
-            isDisjunction = true;
-            hasMultiplicities = false;
-            for(Literal literalObject : literals) literalObject.multiplicity = 1;}
-        else {
-            for(Literal literalObject : literals) {
-                if(literalObject.multiplicity > limit) {
-                    expandedSize -= literalObject.multiplicity - limit;
-                    literalObject.multiplicity = limit; }}
-            hasMultiplicities = expandedSize > literals.size();}
+        determineClauseType();
+        adjustMultiplicitiesToLimit();
+        reduceToDisjunction();
         return false;}
 
     /** to be used by divideByGCD. */
@@ -394,6 +409,11 @@ public class Clause {
         return auxiliaryLiterals;}
 
 
+    byte reduceByTrueLiterals(Consumer<Literal> remover) {
+        return removeLiterals(literalObject -> (expandedSize-literalObject.multiplicity < limit) ? 1 : 0,remover);}
+
+
+
     /** shrinks the literals to the essential literals, if possible, and turns the clause to a disjunction.
      * Example: atleast 2 p^2,q^2,r.<br>
      * In this case either p or q must be true. If both are false then r is not enough to get 2 true literals.<br>
@@ -410,19 +430,16 @@ public class Clause {
             if(literalObject.multiplicity != limit) {
                 auxiliaryLiterals.add(literalObject);
                 multiplicities += literalObject.multiplicity;}}
-        determineClauseType();
         if(multiplicities >= limit) return false; // the remaining literals can satisfy the clause.
 
         for(Literal literalObject : auxiliaryLiterals) {
             removedLiterals.add(literalObject);
             literals.remove(literalObject);
             literalObject.clause = null;}
-        for(Literal literalObject : literals) literalObject.multiplicity = 1;
         limit = 1;
-        isDisjunction = true;
-        quantifier = Quantifier.OR;
-        expandedSize = literals.size();
-        hasMultiplicities = false;
+        adjustMultiplicitiesToLimit();
+        reduceToDisjunction();
+        determineClauseType();
         return true;}
 
 
@@ -447,11 +464,10 @@ public class Clause {
      */
     protected void adjustMultiplicitiesToLimit() {
         expandedSize = 0;
-        hasMultiplicities = false;
         for(Literal literalObject : literals) {
             literalObject.multiplicity = Math.min(limit,literalObject.multiplicity);
-            expandedSize += literalObject.multiplicity;
-            hasMultiplicities |= literalObject.multiplicity > 1;}}
+            expandedSize += literalObject.multiplicity;}
+        hasMultiplicities = expandedSize > literals.size();}
 
 
     /** reduces the clause to a disjunction.

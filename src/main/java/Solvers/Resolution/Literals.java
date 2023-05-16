@@ -8,6 +8,8 @@ import Datastructures.Symboltable;
  */
 public class Literals {
 
+    String name;
+
     int predicates;
 
     /** a doubly connected list for each positive literal */
@@ -20,9 +22,11 @@ public class Literals {
 
     /** constructs a new index
      *
+     * @param name the name of the index.
      * @param predicates the total number of predicates.
      */
-    public Literals(int predicates) {
+    public Literals(String name, int predicates) {
+        this.name = name;
         this.predicates = predicates;
         positiveLiterals = new Literal[predicates+1];
         negativeLiterals = new Literal[predicates+1];}
@@ -85,7 +89,6 @@ public class Literals {
         else previousLiteral.nextLiteral = nextLiteral;
         if(nextLiteral != null) nextLiteral.previousLiteral = previousLiteral;
         literalObject.previousLiteral = null;
-        System.out.println("REMOVED " + literal + " from " + clause + " ENTRIES " + entries);
         if(literals[predicate] == null) {--entries; return true;}
         return false;}
 
@@ -221,6 +224,7 @@ public class Literals {
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
+        st.append("Literals ").append(name).append(":\n");
         st.append("Positive Literals:\n");
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             int size = size(predicate);
