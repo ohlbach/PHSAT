@@ -12,7 +12,7 @@ public class InfResolution extends InferenceStep {
     @Override
     public String title() {return title;}
 
-    private String rule = ">= n p^k,phi and >= m -p^l,psi -> >= n+m-max(k,l) phi,psi";
+    private String rule = title + "\n  >= n p^k,phi and >= m -p^l,psi -> >= n+m-max(k,l) phi,psi";
     @Override
     public String rule() {return rule;}
 
@@ -39,7 +39,7 @@ public class InfResolution extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return parentClause1 + " and " + parentClause2 + " -> " + resolvent;}
+        return title+"\n  "+ parentClause1 + " and " + parentClause2 + " -> " + resolvent;}
 
     @Override
     public IntArrayList inputClauseIds() {
@@ -50,5 +50,6 @@ public class InfResolution extends InferenceStep {
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
         if(inferenceStep1 != null) inferenceStep1.inferenceSteps(steps);
-        if(inferenceStep2 != null)inferenceStep2.inferenceSteps(steps);}
+        if(inferenceStep2 != null) inferenceStep2.inferenceSteps(steps);
+        steps.add(this);}
 }

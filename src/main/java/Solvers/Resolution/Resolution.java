@@ -301,6 +301,8 @@ public class Resolution extends Solver {
     /** counts the number of true literal processes in the queue */
     private int trueLiteralsInQueue = 0;
 
+    private int binaryClausesInQueue = 0;
+
     /** adds a true literal to the queue and to the model.
      * <br>
      *  Derived literals (as unit clauses) are added to the local and to the global model.<br>
@@ -354,7 +356,7 @@ public class Resolution extends Solver {
         Clause clause;
         while(!myThread.isInterrupted()) {
             try {
-                //if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 boolean changed = false;
                 switch(task.taskType){
@@ -375,6 +377,7 @@ public class Resolution extends Solver {
                             if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                             changed = true;
                             processBinaryClause(clause);}
+                        --binaryClausesInQueue;
                         break;
                     case ProcessLongerClause:
                         clause = (Clause)task.a;
@@ -406,7 +409,7 @@ public class Resolution extends Solver {
                 if(monitoring  && printClauses && changed) {
                     System.out.println("Model: " + model.toString());
                     printSeparated();}
-                if(literalIndexMore.size() == 0) {
+                if(trueLiteralsInQueue == 0 && binaryClausesInQueue == 0 && literalIndexMore.size() == 0) {
                     if(monitoring) {
                         monitor.println(monitorId, "No longer clauses any more. 2-Literal Clauses are Saturated.\n" );
                         printSeparated();}
@@ -608,11 +611,10 @@ public class Resolution extends Solver {
                  if(status == -1) throw new UnsatEmptyClause(problemId,solverId,clause.id, step);
                 switch(clause.size()) {
                      case 1: ++statistics.derivedUnitClauses;
-                             addInternalTrueLiteralTask(clause.literals.get(0).literal,model.isTrue(oldTrueLiteral),step);
+                            addInternalTrueLiteralTask(clause.literals.get(0).literal,model.status(oldTrueLiteral) != 0,step);
                              removeClause(clause,false);
                              break;
-                     case 2: moveToIndexTwo(clause);
-                             synchronized (this)  {queue.add(new Task(TaskType.ProcessBinaryClause,clause));} break;
+                     case 2: moveToIndexTwo(clause); addBinaryClauseTask(clause); break;
                      default: synchronized (this) {queue.add(new Task(TaskType.ProcessLongerClause,clause));}}
                 if(checkConsistency) checkConsistency();
             literalObject = literalObject.nextLiteral;}}
@@ -1145,6 +1147,7 @@ public class Resolution extends Solver {
 
     void addModifiedClauseTask(Clause clause) {
         TaskType type = (clause.size() == 2) ? TaskType.ProcessBinaryClause: TaskType.ProcessLongerClause;
+        if(type == TaskType.ProcessBinaryClause) ++binaryClausesInQueue;
         synchronized (this) {queue.add(new Task<>(type, clause));}}
 
     /** adds a two-literal clause as ProcessBinaryClause task to the task queue.
@@ -1153,6 +1156,7 @@ public class Resolution extends Solver {
      */
     protected void addBinaryClauseTask(Clause clause) {
         assert(clause.size() == 2);
+        ++binaryClausesInQueue;
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessBinaryClause, clause));}}
 
 
@@ -1335,7 +1339,6 @@ public class Resolution extends Solver {
      */
     protected boolean removeLiteralFromClause(Literal literalObject, boolean reduceLimit) throws Unsatisfiable {
         Clause clause = literalObject.clause;
-        System.out.println("REM " + clause + " " + literalObject.literal + " " + reduceLimit);
         removeLiteralFromIndex(literalObject);
         clauses.updateClauseNumbers(clause,-1);
         if(clause.removeLiteral(literalObject,reduceLimit) == 0){
