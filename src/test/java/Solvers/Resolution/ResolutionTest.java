@@ -784,7 +784,7 @@ public class ResolutionTest extends TestCase {
     }
 
     public void testResolve() throws Result {
-        System.out.println("resolve");
+        System.out.println("resolve1");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};

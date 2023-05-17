@@ -295,7 +295,7 @@ public class Resolution extends Solver {
         if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);
         if(printClauses) {
             System.out.println("INPUT CLAUSES: " + literalIndexMore.size());
-            printSeparated();}
+            if(monitoring) printSeparated();}
         synchronized(this){queue.add(new Task<>(TaskType.ProcessClauseFirstTime,clauses.firstClause));}}
 
     /** counts the number of true literal processes in the queue */
@@ -395,8 +395,9 @@ public class Resolution extends Solver {
                     case ProcessElimination:
                         processElimination(task);
                         break;}
-                System.out.println("SIZE " + literalIndexMore.size());
-                printSeparated();
+                if(monitoring) {
+                    System.out.println("SIZE " + literalIndexMore.size());
+                    printSeparated();}
                 if(clauses.isEmpty()) {
                     completeModel();
                     completeModelForEquivalences((byte) 1);
@@ -413,9 +414,15 @@ public class Resolution extends Solver {
                     if(monitoring) {
                         monitor.println(monitorId, "No longer clauses any more. 2-Literal Clauses are Saturated.\n" );
                         printSeparated();}
-                    addInternalTrueLiteralTask(clauses.firstClause.literals.get(0).literal,false,null);}}
-            catch(InterruptedException ex) {return;}
-            if(n > 0 && ++counter == n) return;}}
+                    addInternalTrueLiteralTask(clauses.firstClause.literals.get(0).literal,false,null);}
+
+                }
+            catch(InterruptedException ex) {
+                ex.printStackTrace();
+                return;}
+            if(n > 0 && ++counter == n){
+                System.out.println("Stopped " + counter);
+                return;}}}
 
 
     /** performs forward subsumption, merge resolution and saturation with the given clause.
@@ -1130,7 +1137,7 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void resolve(Literal posLiteral, Literal negLiteral) throws Unsatisfiable {
-        Clause resolvent = posLiteral.clause.resolve(nextId,posLiteral,negLiteral,addComplementaries);
+        Clause resolvent = posLiteral.clause.resolve1(nextId,posLiteral,negLiteral,addComplementaries);
         if(resolvent == null) return;
         if(isSubsumed(resolvent) != null) return;
         if(trackReasoning) resolvent.inferenceStep =

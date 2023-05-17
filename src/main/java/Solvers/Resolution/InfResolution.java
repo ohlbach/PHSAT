@@ -11,8 +11,10 @@ public class InfResolution extends InferenceStep {
     private String title = "Resolution";
     @Override
     public String title() {return title;}
+    private String ruleAtleast = title + "\n  >= n p^k,phi and >= m -p^l,psi -> >= n+m-max(k,l) phi,psi";
+    private String ruleOr = title + "\n  p,phi and -p,psi -> phi,psi";
 
-    private String rule = title + "\n  >= n p^k,phi and >= m -p^l,psi -> >= n+m-max(k,l) phi,psi";
+    private String rule;
     @Override
     public String rule() {return rule;}
 
@@ -25,6 +27,8 @@ public class InfResolution extends InferenceStep {
         this.resolvent     = resolvent.toString(symboltable,0);
         inferenceStep1 = parentClause1.inferenceStep;
         inferenceStep2 = parentClause2.inferenceStep;
+        if(parentClause1.isDisjunction && parentClause2.isDisjunction) rule = ruleOr;
+        else rule = ruleAtleast;
     }
 
     public InfResolution(Clause parentClause1, String parentClause1String, Clause parentClause2, String parentClause2String, Clause resolvent, Symboltable symboltable) {
@@ -33,6 +37,8 @@ public class InfResolution extends InferenceStep {
         this.resolvent     = resolvent.toString(symboltable,0);
         inferenceStep1 = parentClause1.inferenceStep;
         inferenceStep2 = parentClause2.inferenceStep;
+        if(parentClause1.isDisjunction && parentClause2.isDisjunction) rule = ruleOr;
+        else rule = ruleAtleast;
     }
 
 

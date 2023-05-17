@@ -153,14 +153,14 @@ public class ClauseTest extends TestCase {
 
 
     public void testResolve() {
-        System.out.println("resolve");
+        System.out.println("resolve1");
         int[] c = new int[]{0};
         IntConsumer addComplementaries = (n -> {c[0]+=n;});
         int[] id = new int[]{10};
         IntSupplier ids = () -> ++id[0];
         Clause clause1 = new Clause(new int[]{1, cOr, 1,2,3});
         Clause clause2 = new Clause(new int[]{2, cOr, 1,-2,3,4});
-        Clause resolvent = clause2.resolve(ids,clause2.literals.get(1), clause1.literals.get(1),addComplementaries);
+        Clause resolvent = clause2.resolve1(ids,clause2.literals.get(1), clause1.literals.get(1),addComplementaries);
         assertEquals("11: 1v3v4",resolvent.toString());
         assertEquals(resolvent.literals.get(1).clause,resolvent);
         assertFalse(resolvent.hasMultiplicities);
@@ -169,25 +169,25 @@ public class ClauseTest extends TestCase {
 
         clause1 = new Clause(new int[]{3, cAtleast, 2, 1,1,2,2,3,3,3});
         clause2 = new Clause(new int[]{4, cAtleast, 3,-2,-2,-2,3,4});
-        resolvent = clause2.resolve(ids,clause2.literals.get(0), clause1.literals.get(1),addComplementaries);
+        resolvent = clause2.resolve1(ids,clause2.literals.get(0), clause1.literals.get(1),addComplementaries);
         assertEquals("12: >= 2 3^2,4,1^2",resolvent.toString());
         assertTrue(resolvent.hasMultiplicities);
         assertEquals(ClauseType.MIXEDNEGATIVE,clause2.clauseType);
 
         clause1 = new Clause(new int[]{5, cOr, 1,2});
         clause2 = new Clause(new int[]{6, cAtleast, 3,-2,-2,-2,3,4,4});
-        resolvent = clause2.resolve(ids,clause2.literals.get(0), clause1.literals.get(1),addComplementaries);
+        resolvent = clause2.resolve1(ids,clause2.literals.get(0), clause1.literals.get(1),addComplementaries);
         assertEquals("13: 3v4v1",resolvent.toString());
         assertEquals(ClauseType.POSITIVENEGATIVE,clause2.clauseType);
 
         clause1 = new Clause(new int[]{5, cOr, 1,2});
         clause2 = new Clause(new int[]{6, cAtleast, 3,-2,-2,-2,3,-1,-1});
-        resolvent = clause2.resolve(ids,clause2.literals.get(0), clause1.literals.get(1),addComplementaries);
+        resolvent = clause2.resolve1(ids,clause2.literals.get(0), clause1.literals.get(1),addComplementaries);
         assertNull(resolvent);
 
         clause1 = new Clause(new int[]{5, cOr, 1,2,4});
         clause2 = new Clause(new int[]{6, cAtleast, 3,-2,3,4,4,-1,-1});
-        resolvent = clause2.resolve(ids,clause2.literals.get(0), clause1.literals.get(1),addComplementaries);
+        resolvent = clause2.resolve1(ids,clause2.literals.get(0), clause1.literals.get(1),addComplementaries);
         assertEquals("15: >= 2 3,4^2,-1",resolvent.toString());
 
     }

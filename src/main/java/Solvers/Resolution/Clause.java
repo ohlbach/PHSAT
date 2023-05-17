@@ -136,6 +136,7 @@ public class Clause {
     public Clause(int id,  int... literalNumbers) {
         this.id = id;
         quantifier = Quantifier.OR;
+        isDisjunction = true;
         expandedSize = literalNumbers.length;
         for(int literal : literalNumbers) {
             Literal literalObject = new Literal(literal,1);
@@ -154,6 +155,7 @@ public class Clause {
     public Clause(int id, Quantifier quantifier, int limit, ArrayList<Literal> literals) {
         this.id = id;
         this.quantifier = quantifier;
+        isDisjunction = quantifier == Quantifier.OR;
         this.limit = limit;
         this.literals = literals;
         for(Literal literalObject: literals) {
@@ -489,7 +491,7 @@ public class Clause {
      * @param complementaries for counting the removal of complementary literals.
      * @return                null if the resolvent is a tautology, otherwise the new resolvent.
      */
-    Clause resolve(IntSupplier id, Literal literalObject1, Literal literalObject2, IntConsumer complementaries) {
+    Clause resolve1(IntSupplier id, Literal literalObject1, Literal literalObject2, IntConsumer complementaries) {
         Clause clause2 = literalObject2.clause;
         int newLimit = limit + clause2.limit - Math.max(literalObject1.multiplicity,literalObject2.multiplicity);
         ArrayList<Literal> newLiterals = new ArrayList<>(literals.size() + clause2.literals.size()-2);
@@ -510,8 +512,91 @@ public class Clause {
         Clause resolvent = new Clause(id.getAsInt(),newQuantifier,newLimit,newLiterals);
         return resolvent.removeComplementaryLiterals(complementaries,null) ? null : resolvent;}
 
-    /** investigates the distribution of positive and negative literals and determines the ClauseType.
+    /** creates a resolvent for two clauses and performs all possible simplifications.
+     * <br>
+     * - multiple occurrences of literals are merged into one occurrence.<br>
+     * - complementary literals are removed.<br>
+     * - derivable true literals are identified and removed. <br>
+     *    Example: -p,q and atleast 2 p,q,r  ->  atleast 2 q^2,r.  q must be true.<br>
+     * - literals are reduces to essential literals: <br>
+     *    Example: -p,q and atleast 2 p,q,r^2,s  -> atleast 2 q^2,r^2,s  ->  p,q
+     *
+     * @param id              for generating a new identifier.
+     * @param literalObject1  the first parent literal.
+     * @param literalObject2  the second parent literal.
+     * @param trueLiterals    applied to derived true literals.
+     * @return                null if the resolvent is a tautology, otherwise the new resolvent.
      */
+    static Clause resolve(IntSupplier id, Literal literalObject1, Literal literalObject2, IntConsumer trueLiterals){
+        Clause clause1 = literalObject1.clause;
+        Clause clause2 = literalObject2.clause;
+        int newLimit = clause1.limit + clause2.limit - Math.max(literalObject1.multiplicity,literalObject2.multiplicity);
+        ArrayList<Literal> newLiterals = new ArrayList<>(clause1.literals.size() + clause2.literals.size()-2);
+        int expandedSize = 0;
+        for(Literal litObject1 : clause1.literals) {
+            if(litObject1 == literalObject1) continue;
+            expandedSize += litObject1.multiplicity;
+            newLiterals.add(new Literal(litObject1.literal,litObject1.multiplicity));}
+
+        for(Literal litObject2 : clause2.literals) {
+            if(litObject2 == literalObject2) continue;
+            int multiplicity2 = litObject2.multiplicity;
+            boolean found = false;
+            for(int i = 0; i < newLiterals.size(); ++i) {
+                Literal litObject1  = newLiterals.get(i);
+                int multiplicity1 = litObject1.multiplicity;
+                if(litObject1.literal == litObject2.literal) {
+                    found = true;
+                    litObject1.multiplicity = Math.min(newLimit, multiplicity1 + multiplicity2);
+                    break;} // litObject2 is not necessary
+                if(litObject1.literal == -litObject2.literal) {
+                    found = true;
+                    if(multiplicity1 == multiplicity2) {
+                        newLimit -= multiplicity1;
+                        newLiterals.remove(i);} // p,-p can both be removed.
+                    else {
+                        if(multiplicity1 > multiplicity2) {
+                            litObject1.multiplicity -= multiplicity2;
+                            newLimit -= multiplicity2;
+                            expandedSize -= multiplicity2;} // we keep the old literal
+                        else {litObject1.multiplicity = multiplicity2 - multiplicity1;
+                            newLimit -= multiplicity1;
+                            expandedSize -= multiplicity1;
+                            litObject1.literal *= -1;}}  // we keep the negated old literal
+                    if(newLimit <= 0) return null; // tautology
+                    break;}}
+            if(!found) {
+                newLiterals.add(new Literal(litObject2.literal,litObject2.multiplicity));
+                expandedSize += litObject2.multiplicity;}}
+
+        assert (expandedSize >= newLimit);
+        if(newLiterals.size() == 1) {trueLiterals.accept(newLiterals.get(0).literal); return null;} // unit clause
+        if(newLimit == 1) return new Clause(id.getAsInt(),Quantifier.OR,1,newLiterals);
+
+        for(int i = 0; i < newLiterals.size(); ++i) {
+            Literal literalObject = newLiterals.get(i);
+            if(expandedSize - literalObject.multiplicity < newLimit) { // The other literals don't have enough literals to satisfy the limit
+                trueLiterals.accept(literalObject.literal);            // The literal must be true.
+                newLimit -= literalObject.multiplicity; // Example: -p,q and >= 2 p,q,r  ->  >= 2 q^2,r.  q must be true.
+                if(newLimit <= 0) return null;
+                expandedSize -= literalObject.multiplicity;
+                newLiterals.remove(i--);}}
+        if(newLiterals.size() == 1) {trueLiterals.accept(newLiterals.get(0).literal); return null;} // unit clause
+        if(newLimit == 1) return new Clause(id.getAsInt(),Quantifier.OR,1,newLiterals);
+
+        int remainingMultiplicity = 0;
+        for(Literal literalObject : newLiterals) {
+            if(literalObject.multiplicity < newLimit) remainingMultiplicity += literalObject.multiplicity;}
+        if(remainingMultiplicity < newLimit) { // Example: -p,q and >= 2 p,q,r^2,s  -> >= 2 q^2,r^2,s -> p,q
+            for(int i = 0; i < newLiterals.size(); ++i) {
+                Literal literalObject = newLiterals.get(i);
+                if(literalObject.multiplicity < newLimit) newLiterals.remove(i--);}
+            if(newLiterals.size() == 1) {trueLiterals.accept(newLiterals.get(0).literal); return null;}
+            return new Clause(id.getAsInt(),Quantifier.OR,1,newLiterals);}
+        return new Clause(id.getAsInt(),Quantifier.ATLEAST,newLimit,newLiterals);}
+
+
+    /** investigates the distribution of positive and negative literals and determines the ClauseType.*/
     void determineClauseType() {
        int positiveLiterals = 0; int negativeLiterals = 0;
        for(Literal literalObject : literals) {
