@@ -101,5 +101,7 @@ public class ANFTransformer {
      * @return the corresponding inference step.
      */
     protected InferenceStep getInferenceStep(int[] clause, int[] atleastClause) {
-        return new InfClauseToAtleast(clause,atleastClause);}
+        return null;
+        //return new InfClauseToAtleast(clause,atleastClause);
+    }
 }

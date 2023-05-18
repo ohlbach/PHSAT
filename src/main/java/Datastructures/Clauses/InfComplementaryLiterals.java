@@ -40,9 +40,8 @@ public class InfComplementaryLiterals extends InferenceStep {
     }
 
     @Override
-    public IntArrayList inputClauseIds() {
-        InferenceStep step = oldClause.inferenceStep;
-        return (step != null) ? step.inputClauseIds() : null;}
+    public void inputClauseIds(IntArrayList ids) {
+        oldClause.inferenceStep.inputClauseIds(ids);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

@@ -131,5 +131,7 @@ public class CNFTransformer implements Iterator<int[]> {
      * @return the corresponding inference step.
      */
     public InferenceStep getInferenceStep(int[] disjunction) {
-        return new InfClauseToCNF(clause,disjunction);}
+        return null;
+        //return new InfClauseToCNF(clause,disjunction);
+    }
 }

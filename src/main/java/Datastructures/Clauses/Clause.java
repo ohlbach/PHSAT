@@ -890,7 +890,10 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public String infoString(int width, Symboltable symboltable) {
         String st = toString(width,symboltable);
-        if(inferenceStep != null) st += " " + sortIntArray(inferenceStep.inputClauseIds()).toString();
+        IntArrayList ids = new IntArrayList();
+        if(inferenceStep != null) {
+            inferenceStep.inputClauseIds(ids);
+            st += " " + sortIntArray(ids).toString();}
         return st;}
 
     /** gets an iterator over the literals

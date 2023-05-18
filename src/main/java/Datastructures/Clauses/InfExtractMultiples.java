@@ -31,9 +31,8 @@ public class InfExtractMultiples extends InferenceStep {
         return title + ":\n"+originalClause.toString(0,symboltable) + " -> " + cnfClause.toString(0,symboltable);}
 
     @Override
-    public IntArrayList inputClauseIds() {
-        InferenceStep step = originalClause.inferenceStep;
-        return (step != null) ? step.inputClauseIds() : null;}
+    public void inputClauseIds(IntArrayList ids) {
+        originalClause.inferenceStep.inputClauseIds(ids);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

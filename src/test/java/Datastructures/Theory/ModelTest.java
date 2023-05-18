@@ -3,7 +3,6 @@ package Datastructures.Theory;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
-import InferenceSteps.InferenceTest;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import org.junit.Test;
 

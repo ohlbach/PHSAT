@@ -7,7 +7,6 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
-import InferenceSteps.InferenceTest;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
 import junit.framework.TestCase;

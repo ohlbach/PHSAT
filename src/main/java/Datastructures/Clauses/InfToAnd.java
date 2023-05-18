@@ -32,9 +32,8 @@ public class InfToAnd extends InferenceStep {
     }
 
     @Override
-    public IntArrayList inputClauseIds() {
-        InferenceStep step = oldClause.inferenceStep;
-        return step == null ? null : step.inputClauseIds();}
+    public void inputClauseIds(IntArrayList ids) {
+        oldClause.inferenceStep.inputClauseIds(ids);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
