@@ -38,15 +38,14 @@ public class InfEquivalenceReplacement extends InferenceStep {
                 " = " + Symboltable.toString(literal,symboltable) + " -> " + newClause;}
 
     @Override
-    public IntArrayList inputClauseIds() {
-        IntArrayList ids = (clauseStep == null) ? new IntArrayList() : clauseStep.inputClauseIds().clone();
-        //for(int id : equivalenceStep.inputClauseIds()) {if(!ids.contains(id)) ids.add(id);}
-        return ids;
+    public void inputClauseIds(IntArrayList ids) {
+        clauseStep.inputClauseIds(ids);
+        equivalenceStep.inputClauseIds(ids);
     }
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        if(clauseStep != null) clauseStep.inferenceSteps(steps);
-        //equivalenceStep.inferenceSteps(steps);
+        clauseStep.inferenceSteps(steps);
+        equivalenceStep.inferenceSteps(steps);
         steps.add(this);}
 }

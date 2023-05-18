@@ -29,10 +29,9 @@ public class InfEquivalentTruth extends InferenceStep {
                 "true(" + Symboltable.toString(literal1,symboltable) + ")";}
 
     @Override
-    public IntArrayList inputClauseIds() {
-        IntArrayList ids = infEquivalence.inputClauseIds().clone();
-        ids.addAll(infTruth.inputClauseIds());
-        return ids;}
+    public void inputClauseIds(IntArrayList ids) {
+        infEquivalence.inputClauseIds(ids);
+        infTruth.inputClauseIds(ids);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

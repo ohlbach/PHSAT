@@ -29,11 +29,9 @@ public class InfTrueLiterals extends InferenceStep {
         return clauseBefore + " and true" + literals + " -> " + clauseAfter;}
 
     @Override
-    public IntArrayList inputClauseIds() {
-        IntArrayList ids = new IntArrayList();
-        for(InferenceStep step : inferenceSteps) ids.addAll(step.inputClauseIds());
-        return ids;
-    }
+    public void inputClauseIds(IntArrayList ids) {
+        for(InferenceStep step : inferenceSteps) step.inputClauseIds(ids);
+        }
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

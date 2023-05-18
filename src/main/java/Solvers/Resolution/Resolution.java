@@ -205,6 +205,7 @@ public class Resolution extends Solver {
             synchronized (this) {queue.add(new Task(TaskType.ProcessElimination,null));}
             processTasks(0);}
         catch(Result result) {
+            System.out.println("Catched " + result);
             if(result instanceof Satisfiable) {
                 completeModel();
                 completeModelForEquivalences((byte) 1);
@@ -589,7 +590,7 @@ public class Resolution extends Solver {
      * @param oldTrueLiteral a true (or false) literal.
      * @throws Unsatisfiable if a contradiction is encountered.
      */
-    protected void processTrueLiteralMore(int oldTrueLiteral) throws Unsatisfiable{
+    void processTrueLiteralMore(int oldTrueLiteral) throws Unsatisfiable{
         IntArrayList removedLiterals = new IntArrayList();
         for(int sign = 1; sign >= -1; sign -= 2) {
             oldTrueLiteral *= sign;   // the clauses containing the predicate are selected. The literals to be removed depend on the model.
@@ -615,7 +616,7 @@ public class Resolution extends Solver {
                          steps.add(step);}
                      step = new InfTrueLiterals(clauseBefore, clause.toString(symboltable,0), removedLiterals,steps);
                     clause.inferenceStep = step;}
-                 if(status == -1) throw new UnsatEmptyClause(problemId,solverId,clause.id, step);
+                 if(status == -1) {throw new UnsatEmptyClause(problemId,solverId,clause.id, step);}
                 switch(clause.size()) {
                      case 1: ++statistics.derivedUnitClauses;
                             addInternalTrueLiteralTask(clause.literals.get(0).literal,model.status(oldTrueLiteral) != 0,step);

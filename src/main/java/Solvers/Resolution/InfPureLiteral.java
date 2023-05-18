@@ -39,8 +39,7 @@ public class InfPureLiteral extends InferenceStep {
                 " is" + (partiallyPure ? " partially" : "") +" pure and becomes true.";}
 
     @Override
-    public IntArrayList inputClauseIds() {
-        return new IntArrayList();}
+    public void inputClauseIds(IntArrayList ids) {}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

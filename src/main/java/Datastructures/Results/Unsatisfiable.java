@@ -47,9 +47,9 @@ public abstract class Unsatisfiable extends Result {
         if(solverId != null) {st.append( "by solver '").append(solverId).append("' ");}
         if(problemId != null) st.append("in problem '").append(problemId);
         st.append("'\n").append(description(symboltable)).append("\n");
-        IntArrayList inputClauseIds = inputClauseIds();
-        if(inputClauseIds != null) {
-            st.append("Contributing input clauses: ").append(inputClauseIds().toString()).append("\n");}
+        IntArrayList inputIds = inputClauseIds();
+        if(inputIds != null) {
+            st.append("Contributing input clauses: ").append(inputIds.toString()).append("\n");}
         ArrayList<InferenceStep> steps = inferenceSteps();
         if(steps != null) {
             st.append("Sequence of Inference Steps (except InputClause):\n");

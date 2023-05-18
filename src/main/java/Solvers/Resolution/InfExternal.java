@@ -28,8 +28,7 @@ public class InfExternal extends InferenceStep {
         return "External Solver -> " + Symboltable.toString(literal,symboltable);}
 
     @Override
-    public IntArrayList inputClauseIds() {
-        return new IntArrayList();}
+    public void inputClauseIds(IntArrayList ids) {}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

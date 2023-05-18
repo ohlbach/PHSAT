@@ -80,12 +80,7 @@ public class Result extends Exception {
     public IntArrayList inputClauseIds() {
         if(inferenceSteps.isEmpty()) return null;
         IntArrayList ids = new IntArrayList();
-        for(InferenceStep step : inferenceSteps()){
-            //System.out.println("STEP " + step.getClass().getSimpleName());
-            IntArrayList stepIds = step.inputClauseIds();
-            if(stepIds != null)
-                for(int id : step.inputClauseIds()) {
-                    if(!ids.contains(id)) ids.add(id);}}
+        for(InferenceStep step : inferenceSteps()){step.inputClauseIds(ids);}
         return sortIntArray(ids);}
 
     public String toString(Symboltable symboltable) {return "";};

@@ -32,7 +32,7 @@ public abstract class InferenceStep {
      *
      * @return the list of basic clause ids of all clauses causing the current inference
      */
-    public abstract IntArrayList inputClauseIds();
+    public abstract void inputClauseIds(IntArrayList ids);
 
     /** collects the inference steps culminating in this in the list steps
      * Double occurrences are to be avoided.

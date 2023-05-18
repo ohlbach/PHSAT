@@ -42,10 +42,9 @@ public class InfMergeResolutionMore extends InferenceStep {
         return title + "\n  " + parentClause + " and " + resolventBefore + " -> " + resolventAfter;}
 
     @Override
-    public IntArrayList inputClauseIds() {
-        IntArrayList ids = inferenceStep1.inputClauseIds().clone();
-        for(int id : inferenceStep2.inputClauseIds()) {if(!ids.contains(id)) ids.add(id);}
-        return ids;}
+    public void inputClauseIds(IntArrayList ids) {
+        inferenceStep1.inputClauseIds(ids);
+        inferenceStep2.inputClauseIds(ids);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {

@@ -34,10 +34,9 @@ public class InfSaturatedTwoLiteralClauses extends InferenceStep {
     }
 
     @Override
-    public IntArrayList inputClauseIds() {
-        IntArrayList ids = step.inputClauseIds();
-        ids.add(id);
-        return ids;}
+    public void inputClauseIds(IntArrayList ids) {
+        step.inputClauseIds(ids);
+        if(!ids.contains(id)) ids.add(id);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps) {
