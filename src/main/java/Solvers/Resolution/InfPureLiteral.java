@@ -38,10 +38,8 @@ public class InfPureLiteral extends InferenceStep {
         return title + "\n  Literal " + Symboltable.toString(pureLiteral, symboltable) +
                 " is" + (partiallyPure ? " partially" : "") +" pure and becomes true.";}
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        steps.add(this);}
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(!steps.contains(this)) steps.add(this);}
 }

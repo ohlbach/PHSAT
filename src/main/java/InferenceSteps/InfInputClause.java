@@ -61,11 +61,10 @@ public class InfInputClause extends InferenceStep {
         for(int i = 1; i < inputClauseIds.size(); ++i) st += "," + inputClauseIds.getInt(i);
         return "Input: Clauses " + st;}
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {
-        for(int id : inputClauseIds) if(!ids.contains(id)) ids.add(id);}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        if(!steps.contains(this)) steps.add(this);}
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(!steps.contains(this)) {
+            steps.add(this);
+            for(int id : inputClauseIds) if(!ids.contains(id)) ids.add(id);}}
 }

@@ -47,14 +47,11 @@ public class InfResolution extends InferenceStep {
     public String toString(Symboltable symboltable) {
         return title+"\n  "+ parentClause1 + " and " + parentClause2 + " -> " + resolvent;}
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {
-        inferenceStep1.inputClauseIds(ids);
-        inferenceStep2.inputClauseIds(ids);}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        if(inferenceStep1 != null) inferenceStep1.inferenceSteps(steps);
-        if(inferenceStep2 != null) inferenceStep2.inferenceSteps(steps);
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(steps.contains(this)) return;
+        if(inferenceStep1 != null) inferenceStep1.inferenceSteps(steps,ids);
+        if(inferenceStep2 != null) inferenceStep2.inferenceSteps(steps,ids);
         steps.add(this);}
 }

@@ -63,15 +63,12 @@ public class InfUnitResolution extends InferenceStep {
         return title + "\n  " +  clauseBefore + (isTrue ? " and true" : " and false") + literal + " -> " + clauseAfter;
     }
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {
-        clauseStep.inputClauseIds(ids);
-        model.getInferenceStep(literal).inputClauseIds(ids);}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        if(clauseStep != null) clauseStep.inferenceSteps(steps);
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(steps.contains(this)) return;
+        if(clauseStep != null) clauseStep.inferenceSteps(steps,ids);
         InferenceStep step = model.getInferenceStep(literal);
-        if(step != null) {step.inferenceSteps(steps);}
-        if(!steps.contains(this)) steps.add(this);}
+        if(step != null) {step.inferenceSteps(steps,ids);}
+        steps.add(this);}
 }

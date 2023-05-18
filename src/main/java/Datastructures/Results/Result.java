@@ -7,8 +7,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
-import static Utilities.Utilities.sortIntArray;
-
 /** This is the superclass of the various possible results the solvers can generate.
  * The most important subclasses represent the satisfiability and unsatisfiability of a clause set.
  */
@@ -56,32 +54,13 @@ public class Result extends Exception {
      *
      * @return null or the list of inference steps which produced the result.
      */
-    public ArrayList<InferenceStep> inferenceSteps() {
-        if(inferenceSteps == null || inferenceSteps.isEmpty()) return null;
-        ArrayList<InferenceStep> steps1 = new ArrayList<>();
-        ArrayList<InferenceStep> steps2 = new ArrayList<>();
-        ArrayList<InferenceStep> steps3 = new ArrayList<>();
-        for(InferenceStep step : inferenceSteps) step.inferenceSteps(steps1);
-        for(int i = 0; i < steps1.size(); ++i) {
-            InferenceStep step = steps1.get(i);
-            if(!steps2.contains(step)) steps2.add(step);}
-        for(int i = 0; i < steps2.size(); ++i) {
-            InferenceStep step2 = steps2.get(i);
-            steps3.clear();
-            step2.inferenceSteps(steps3);
-            for(InferenceStep step3 : steps3) {if(!steps2.contains(step3)) steps2.add(step3);}}
-        return steps2;}
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(inferenceSteps == null || inferenceSteps.isEmpty()) return;
+        for(InferenceStep step : inferenceSteps) step.inferenceSteps(steps,ids);
+        ids.sort((x,y) -> Integer.compare(x,y));
+    }
 
-    /** returns the list of input clause Ids which are responsible for the result.
-     * Double occurrences are removed.
-     *
-     * @return the list of input clause Ids which are responsible for the result.
-     */
-    public IntArrayList inputClauseIds() {
-        if(inferenceSteps.isEmpty()) return null;
-        IntArrayList ids = new IntArrayList();
-        for(InferenceStep step : inferenceSteps()){step.inputClauseIds(ids);}
-        return sortIntArray(ids);}
+
 
     public String toString(Symboltable symboltable) {return "";};
 }

@@ -25,14 +25,11 @@ public class InfMergeResolutionTwo extends InferenceStep {
         return title + "\n  " +clause1.toString(symboltable,0) + " and " + clause2.toString(symboltable,0) +
                 " -> true(" + Symboltable.toString(literal,symboltable) + ")";}
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {
-        clause1.inferenceStep.inputClauseIds(ids);
-        clause2.inferenceStep.inputClauseIds(ids);}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        clause1.inferenceStep.inferenceSteps(steps);
-        clause2.inferenceStep.inferenceSteps(steps);
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(steps.contains(this)) return;
+        clause1.inferenceStep.inferenceSteps(steps,ids);
+        clause2.inferenceStep.inferenceSteps(steps,ids);
         steps.add(this);}
 }

@@ -33,13 +33,11 @@ public class InfNeededLiterals extends InferenceStep {
         return title + "\n" +
                 atleastClause.toString(0,symboltable) + " -> " + andClause.toString(0,symboltable);}
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {
-        atleastClause.inferenceStep.inputClauseIds(ids);}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(steps.contains(this)) return;
         InferenceStep step = atleastClause.inferenceStep;
-        if(step != null) step.inferenceSteps(steps);
+        if(step != null) step.inferenceSteps(steps,ids);
         if(!steps.contains(this)) steps.add(this);}
 }

@@ -36,13 +36,9 @@ public class InfEquivalenceMerge extends InferenceStep {
                 Symboltable.toString(literal,symboltable)+")";}
 
     @Override
-    public void inputClauseIds(IntArrayList ids) {
-        clause.inferenceStep.inputClauseIds(ids);
-        equivalenceStep.inputClauseIds(ids);}
-
-    @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        clause.inferenceStep.inferenceSteps(steps);
-        equivalenceStep.inferenceSteps(steps);
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(steps.contains(this)) return;
+        clause.inferenceStep.inferenceSteps(steps,ids);
+        equivalenceStep.inferenceSteps(steps,ids);
         steps.add(this);}
 }

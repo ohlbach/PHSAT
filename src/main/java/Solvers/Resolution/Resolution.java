@@ -205,7 +205,7 @@ public class Resolution extends Solver {
             synchronized (this) {queue.add(new Task(TaskType.ProcessElimination,null));}
             processTasks(0);}
         catch(Result result) {
-            System.out.println("Catched " + result);
+            System.out.println("Result " + result.getClass().getName());
             if(result instanceof Satisfiable) {
                 completeModel();
                 completeModelForEquivalences((byte) 1);
@@ -216,7 +216,6 @@ public class Resolution extends Solver {
             result.startTime = startTime;
             System.out.println(statistics);
             return result;}
-        System.out.println(statistics);
         return null;}
 
     /** The solver may be reused for more than one problem.
@@ -396,9 +395,6 @@ public class Resolution extends Solver {
                     case ProcessElimination:
                         processElimination(task);
                         break;}
-                if(monitoring) {
-                    System.out.println("SIZE " + literalIndexMore.size());
-                    printSeparated();}
                 if(clauses.isEmpty()) {
                     completeModel();
                     completeModelForEquivalences((byte) 1);

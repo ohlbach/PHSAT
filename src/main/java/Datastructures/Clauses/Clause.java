@@ -20,8 +20,6 @@ import java.util.Locale;
 import java.util.function.IntSupplier;
 import java.util.function.IntUnaryOperator;
 
-import static Utilities.Utilities.sortIntArray;
-
 /** A clause is primarily a list of CLiterals.
  * OR-Clauses and ATLEAST-clauses have an addition parameter limit:<br>
  * 2:p,q,r  means atleast 2 literals must be true in order to make the clause true.<br>
@@ -890,10 +888,6 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public String infoString(int width, Symboltable symboltable) {
         String st = toString(width,symboltable);
-        IntArrayList ids = new IntArrayList();
-        if(inferenceStep != null) {
-            inferenceStep.inputClauseIds(ids);
-            st += " " + sortIntArray(ids).toString();}
         return st;}
 
     /** gets an iterator over the literals

@@ -27,19 +27,13 @@ public abstract class InferenceStep {
      */
     public abstract String toString(Symboltable symboltable);
 
-
-    /** collects the basicClause ids of all clauses causing the current inference
-     *
-     * @return the list of basic clause ids of all clauses causing the current inference
-     */
-    public abstract void inputClauseIds(IntArrayList ids);
-
     /** collects the inference steps culminating in this in the list steps
      * Double occurrences are to be avoided.
+     *  collects the basicClause ids of all clauses causing the current inference
      *
      * @param steps a list for collecting the inference steps.
      */
-    public abstract void inferenceSteps(ArrayList<InferenceStep> steps);
+    public abstract void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids);
 
     /** collects all rules which are used for the inference steps
      *

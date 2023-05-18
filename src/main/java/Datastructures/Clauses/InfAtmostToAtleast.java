@@ -31,13 +31,11 @@ public class InfAtmostToAtleast extends InferenceStep {
         return atmostClause.toString(0,symboltable) + " -> " +
                     atleastClause.toString(0, symboltable);}
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {
-        atmostClause.inferenceStep.inputClauseIds(ids);}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(steps.contains(this)) return;
         InferenceStep step = atmostClause.inferenceStep;
-        if(step != null) step.inferenceSteps(steps);
-        if(!steps.contains(this)) steps.add(this);}
+        if(step != null) step.inferenceSteps(steps,ids);
+        steps.add(this);}
 }

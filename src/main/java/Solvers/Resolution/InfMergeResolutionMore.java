@@ -41,14 +41,11 @@ public class InfMergeResolutionMore extends InferenceStep {
     public String toString(Symboltable symboltable) {
         return title + "\n  " + parentClause + " and " + resolventBefore + " -> " + resolventAfter;}
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {
-        inferenceStep1.inputClauseIds(ids);
-        inferenceStep2.inputClauseIds(ids);}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        inferenceStep1.inferenceSteps(steps);
-        inferenceStep2.inferenceSteps(steps);
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(steps.contains(this)) return;
+        inferenceStep1.inferenceSteps(steps,ids);
+        inferenceStep2.inferenceSteps(steps,ids);
         steps.add(this);}
 }

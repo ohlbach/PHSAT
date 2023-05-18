@@ -33,12 +33,10 @@ public class InfSaturatedTwoLiteralClauses extends InferenceStep {
                 Symboltable.toString(literal,symboltable) + " is set to true";
     }
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {
-        step.inputClauseIds(ids);
-        if(!ids.contains(id)) ids.add(id);}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
-        steps.add(this);}
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(steps.contains(this)) return;
+        steps.add(this);
+        if(!ids.contains(id)) ids.add(id);}
 }

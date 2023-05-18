@@ -36,15 +36,12 @@ public class InfUnitResolutionTwo extends InferenceStep {
         ") -> true("  + Symboltable.toString(newTrueLiteral,symboltable) + ")";
     }
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {
-        clause.inferenceStep.inputClauseIds(ids);
-        oldInferenceStep.inputClauseIds(ids);}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(steps.contains(this)) return;
         InferenceStep clauseStep = clause.inferenceStep;
-        if(clauseStep != null) clauseStep.inferenceSteps(steps);
-        if(oldInferenceStep != null) oldInferenceStep.inferenceSteps(steps);
-        if(!steps.contains(this)) steps.add(this);}
+        if(clauseStep != null) clauseStep.inferenceSteps(steps,ids);
+        if(oldInferenceStep != null) oldInferenceStep.inferenceSteps(steps, ids);
+        steps.add(this);}
 }

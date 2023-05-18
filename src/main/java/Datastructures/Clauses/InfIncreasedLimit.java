@@ -34,13 +34,11 @@ public class InfIncreasedLimit extends InferenceStep {
         return oldClause.toString(0,symboltable) + " -> " + newClause.toString(0,symboltable);
     }
 
-    @Override
-    public void inputClauseIds(IntArrayList ids) {
-        oldClause.inferenceStep.inputClauseIds(ids);}
 
     @Override
-    public void inferenceSteps(ArrayList<InferenceStep> steps) {
+    public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        if(steps.contains(this)) return;
         InferenceStep step = oldClause.inferenceStep;
-        if(step != null) step.inferenceSteps(steps);
-        if(!steps.contains(this)) steps.add(this);}
+        if(step != null) step.inferenceSteps(steps,ids);
+        steps.add(this);}
 }
