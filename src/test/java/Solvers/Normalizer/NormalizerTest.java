@@ -5,8 +5,6 @@ import Datastructures.Results.Unsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
-import java.util.function.IntSupplier;
-
 public class NormalizerTest extends TestCase {
     private static final int cOr = Quantifier.OR.ordinal();
     private static final int cAnd = Quantifier.AND.ordinal();
@@ -230,25 +228,23 @@ public class NormalizerTest extends TestCase {
     public void testExactly2Atleast() {
         System.out.println("exactly2Atleast");
         int[] id = new int[]{0};
-        IntSupplier newIds = () -> ++id[0];
         Normalizer normalizer = new Normalizer(10, monitoring);
         int[] inputClause = {1, cExactly, 2, 1, 2, 3, 4, 5};
         IntArrayList exactlyClause = normalizer.transformInputClause(inputClause);
-        IntArrayList[] atleastClauses = Normalizer.exactlyToAtleast(exactlyClause,newIds);
+        IntArrayList[] atleastClauses = Normalizer.exactlyToAtleast(exactlyClause);
         assertEquals("1: >=2 1,2,3,4,5",normalizer.toString(atleastClauses[0]));
-        assertEquals("2: >=3 -1,-2,-3,-4,-5",normalizer.toString(atleastClauses[1]));
+        assertEquals("1: >=3 -1,-2,-3,-4,-5",normalizer.toString(atleastClauses[1]));
     }
 
     public void testInterval2Atleast() {
         System.out.println("interval2Atleast");
         int[] id = new int[]{0};
-        IntSupplier newIds = () -> ++id[0];
         Normalizer normalizer = new Normalizer(10, monitoring);
         int[] inputClause = {1, cInterval, 2, 4, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         IntArrayList intervalClause = normalizer.transformInputClause(inputClause);
-        IntArrayList[] atleastClauses = Normalizer.intervalToAtleast(intervalClause,newIds);
+        IntArrayList[] atleastClauses = Normalizer.intervalToAtleast(intervalClause);
         assertEquals("1: >=2 1,2,3,4,5,6,7,8,9",normalizer.toString(atleastClauses[0]));
-        assertEquals("2: >=5 -1,-2,-3,-4,-5,-6,-7,-8,-9",normalizer.toString(atleastClauses[1]));
+        assertEquals("1: >=5 -1,-2,-3,-4,-5,-6,-7,-8,-9",normalizer.toString(atleastClauses[1]));
     }
 
     }

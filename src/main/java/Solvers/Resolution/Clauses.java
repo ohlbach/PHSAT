@@ -166,7 +166,7 @@ public class Clauses {
         int maxId = 0;
         Clause clause = firstClause;
         while(clause != null) {
-            maxId = Math.max(maxId,clause.id);
+            maxId = Math.max(maxId,clause.identifier);
             clause = clause.nextClause;}
         int size = Integer.toString(maxId).length();
         clause = firstClause;

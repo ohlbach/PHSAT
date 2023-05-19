@@ -22,7 +22,7 @@ public class LiteralsTest extends TestCase {
 
     public void testAddLiteral() {
         System.out.println("addLiteral");
-        Literals literals = new Literals(10);
+        Literals literals = new Literals("Test",10);
         Literal l1 = new Literal(1,1);
         assertTrue(literals.isEmpty(1));
         assertEquals(0,literals.size(1));
@@ -59,7 +59,7 @@ public class LiteralsTest extends TestCase {
 
     public void testWhile() {
         System.out.println("while");
-        Literals literals = new Literals(10);
+        Literals literals = new Literals("Test",10);
         Literal l1 = new Literal(1,1);
         literals.addLiteral(l1);
         assertEquals("p,",toString(literals,1));
@@ -76,7 +76,7 @@ public class LiteralsTest extends TestCase {
 
     public void testRemoveLiteral() {
         System.out.println("remove");
-        Literals literals = new Literals(10);
+        Literals literals = new Literals("Test",10);
         Literal l1 = new Literal(1,1);
         literals.addLiteral(l1);
         literals.removeLiteral(l1);
@@ -114,7 +114,7 @@ public class LiteralsTest extends TestCase {
 
     public void testRemovePredicate() {
         System.out.println("removePredicate");
-        Literals literals = new Literals(10);
+        Literals literals = new Literals("Test",10);
         Literal l1 = new Literal(1,1);
         literals.addLiteral(l1);
         Literal l2 = new Literal(1,2);
@@ -127,7 +127,7 @@ public class LiteralsTest extends TestCase {
     public void testIterating() {
         System.out.println("iterating");
         Clause clause = new Clause(new int[]{1, Quantifier.OR.ordinal(),1,2,3});
-        Literals literals = new Literals(10);
+        Literals literals = new Literals("Test",10);
         Literal l1 = new Literal(1, 1);l1.clause = clause;
         literals.addLiteral(l1);
         Literal l2 = new Literal(1, 2);l2.clause = clause;

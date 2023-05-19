@@ -11,8 +11,8 @@ public class ResolutionStatistics extends Statistic {
     @Description("number of initial or- and atleast-clauses")
     public int initialClauses = 0;
 
-    @Description("number of derived unit clauses")
-    public int derivedUnitClauses = 0;
+    @Description("number of derived true literal")
+    public int derivedTrueLiterals = 0;
 
     @Description("number of pure literals")
     public int pureLiterals = 0;
@@ -47,7 +47,7 @@ public class ResolutionStatistics extends Statistic {
 
     public void clear() {
         initialClauses = 0;
-        derivedUnitClauses          = 0;
+        derivedTrueLiterals = 0;
         pureLiterals                = 0;
         partiallyPureLiterals       = 0;
         resolvedPredicates          = 0;
@@ -63,7 +63,7 @@ public class ResolutionStatistics extends Statistic {
         StringBuilder st = new StringBuilder();
         st.append("Simplifier Statistics\n");
         st.append("Initial Clauses:           ").append(initialClauses).append("\n");
-        st.append("Derived Unit Clauses:      ").append(derivedUnitClauses).append("\n");
+        st.append("Derived Unit Clauses:      ").append(derivedTrueLiterals).append("\n");
         st.append("Pure Literals:             ").append(pureLiterals).append("\n");
         st.append("Parially pure Literals:    ").append(partiallyPureLiterals).append("\n");
         st.append("Resolved Predicates:       ").append(resolvedPredicates).append("\n");

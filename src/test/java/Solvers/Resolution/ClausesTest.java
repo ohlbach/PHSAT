@@ -98,7 +98,7 @@ public class ClausesTest extends TestCase {
         String s = "";
         Clause c = clauses.firstClause;
         while (c != null) {
-            s += c.id;
+            s += c.identifier;
             c = c.nextClause;}
         assertEquals("1234", s);
 
@@ -107,7 +107,7 @@ public class ClausesTest extends TestCase {
         clauses.removeClause(clause2);
         while (c != null) {
             if(!c.exists) {c = c.nextClause; continue;}
-            s += c.id;
+            s += c.identifier;
             c = c.nextClause;}
         assertEquals("34", s);
 
@@ -116,7 +116,7 @@ public class ClausesTest extends TestCase {
         c = clauses.firstClause.nextClause;
         while (c != null) {
             if(!c.exists) {c = c.nextClause; continue;}
-            s += c.id;
+            s += c.identifier;
             c = c.nextClause;}
         assertEquals("4", s);
 
@@ -124,7 +124,7 @@ public class ClausesTest extends TestCase {
         c = clauses.firstClause;
         while (c != null) {
             if(!c.exists) {c = c.nextClause; continue;}
-            s += c.id;
+            s += c.identifier;
             c = c.nextClause;}
         assertEquals("14", s);
 

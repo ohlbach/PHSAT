@@ -276,19 +276,21 @@ public class Resolution extends Solver {
     public void readInputClauses() throws Result {
         ArrayList<IntArrayList> normalizedClauses = problemSupervisor.normalizer.clauses;
         clauseId[0] = normalizedClauses.get(normalizedClauses.size()-1).getInt(0);
-        Clause clause;
+        Clause clause; int subIdentifier = 0;
         for(IntArrayList normalizedClause : problemSupervisor.normalizer.clauses) {
             switch(Normalizer.getQuantifier(normalizedClause)) {
                 case OR:
-                case ATLEAST: insertClause(clause = new Clause(normalizedClause));
+                case ATLEAST: insertClause(clause = new Clause(normalizedClause,0));
                     if(clause.size() == 2) addBinaryClauseTask(clause); break;
-                case ATMOST:  insertClause(clause = new Clause(Normalizer.atmost2Atleast(normalizedClause)));
+                case ATMOST:  insertClause(clause = new Clause(Normalizer.atmost2Atleast(normalizedClause),0));
                     if(clause.size() == 2) addBinaryClauseTask(clause); break;
-                case EXACTLY: for(IntArrayList atleastClause : Normalizer.exactlyToAtleast(normalizedClause,nextId)) {
-                    insertClause(clause = new Clause(atleastClause));
+                case EXACTLY: subIdentifier = 0;
+                    for(IntArrayList atleastClause : Normalizer.exactlyToAtleast(normalizedClause)) {
+                    insertClause(clause = new Clause(atleastClause,++subIdentifier));
                     if(clause.size() == 2) addBinaryClauseTask(clause);} break;
-                case INTERVAL: for(IntArrayList atleastClause : Normalizer.intervalToAtleast(normalizedClause,nextId)) {
-                        insertClause(clause = new Clause(atleastClause));
+                case INTERVAL: subIdentifier = 0;
+                    for(IntArrayList atleastClause : Normalizer.intervalToAtleast(normalizedClause)) {
+                        insertClause(clause = new Clause(atleastClause,++subIdentifier));
                         if(clause.size() == 2) addBinaryClauseTask(clause);}}}
         if(checkConsistency) checkConsistency();
         statistics.initialClauses = clauses.size;
@@ -540,7 +542,7 @@ public class Resolution extends Solver {
                 makeLocallyTrue(newTrueLiteral);
                 if(trackReasoning) {inferenceStep = new InfEquivalentTruth(newTrueLiteral,oldTrueLiteral,equivalenceSteps.get(i),inferenceStep);}
                 model.add(myThread,newTrueLiteral,inferenceStep);
-                ++statistics.derivedUnitClauses;}}}
+                ++statistics.derivedTrueLiterals;}}}
 
     /** applies a true literal to all two-literal clauses containing this literal.
      * <br>
@@ -569,7 +571,7 @@ public class Resolution extends Solver {
                     "true("+Symboltable.toString(otherLiteral,symboltable)+")");
             addInternalTrueLiteralTask(otherLiteral, model.isTrue(oldTrueLiteral),
                     trackReasoning ? new InfUnitResolutionTwo(clause,oldTrueLiteral,inferenceStep,otherLiteral) : null);
-            ++statistics.derivedUnitClauses;
+            ++statistics.derivedTrueLiterals;
             removeClause(clause,true);
             literalObject = literalObject.nextLiteral;}
 
@@ -612,9 +614,9 @@ public class Resolution extends Solver {
                          steps.add(step);}
                      step = new InfTrueLiterals(clauseBefore, clause.toString(symboltable,0), removedLiterals,steps);
                     clause.inferenceStep = step;}
-                 if(status == -1) {throw new UnsatEmptyClause(problemId,solverId,clause.id, step);}
+                 if(status == -1) {throw new UnsatEmptyClause(problemId,solverId,clause.identifier, step);}
                 switch(clause.size()) {
-                     case 1: ++statistics.derivedUnitClauses;
+                     case 1: ++statistics.derivedTrueLiterals;
                             addInternalTrueLiteralTask(clause.literals.get(0).literal,model.status(oldTrueLiteral) != 0,step);
                              removeClause(clause,false);
                              break;
@@ -855,7 +857,7 @@ public class Resolution extends Solver {
 
         if(literal1 == -literal2) return null; // tautology
         if(literal1 == literal2) {
-            ++statistics.derivedUnitClauses;
+            ++statistics.derivedTrueLiterals;
             addInternalTrueLiteralTask(literal1,true,trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal1) : null);
             if(monitoring) {
                 monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
@@ -1124,6 +1126,7 @@ public class Resolution extends Solver {
                 negLiteralObject = negLiteralObject.nextLiteral;}
         }}
 
+    private final IntArrayList trueLiterals = new IntArrayList();
     /** creates a resolvent between the clauses with the two literals.
      * <br>
      * The resolvent is checked for subsumption, simplified and inserted into the internal data structures.
@@ -1134,19 +1137,25 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void resolve(Literal posLiteral, Literal negLiteral) throws Unsatisfiable {
-        Clause resolvent = posLiteral.clause.resolve1(nextId,posLiteral,negLiteral,addComplementaries);
+        trueLiterals.clear();
+        Clause resolvent = Clause.resolve(posLiteral,negLiteral,nextId,(literal -> trueLiterals.add(literal)));
+        for(int literal : trueLiterals) {
+            ++statistics.derivedTrueLiterals;
+            addInternalTrueLiteralTask(literal,true,
+                    trackReasoning ? new InfResolutionTrueLiteral(posLiteral.clause,negLiteral.clause,literal,symboltable): null);
+            if(monitoring) monitor.println(monitorId, posLiteral.clause.toString(symboltable,0) + " and " +
+            negLiteral.clause.toString(symboltable,0) + " -> true(" + Symboltable.toString(literal,symboltable) + ")");}
         if(resolvent == null) return;
         if(isSubsumed(resolvent) != null) return;
         if(trackReasoning) resolvent.inferenceStep =
                 new InfResolution(posLiteral.clause,negLiteral.clause, resolvent, symboltable);
-        if(simplifyClause(resolvent,false)) {
-            insertClause(resolvent);
-            if(resolvent.size() == 2) ++statistics.binaryResolvents; else ++statistics.longerResolvents;
-            if(monitoring) monitor.println(monitorId,
+        insertClause(resolvent);
+        if(resolvent.size() == 2) ++statistics.binaryResolvents; else ++statistics.longerResolvents;
+        if(monitoring) monitor.println(monitorId,
                     "Resolution: " + posLiteral.clause.toString(symboltable,0) + " and " +
                             negLiteral.clause.toString(symboltable,0) + " -> " +
                             resolvent.toString(symboltable,0));
-            addDerivedClauseTask(resolvent);}}
+        addDerivedClauseTask(resolvent);}
 
 
     void addModifiedClauseTask(Clause clause) {
@@ -1397,9 +1406,9 @@ public class Resolution extends Solver {
                 for (Literal literalObject : removedLiterals) {
                     if(isAlreadyIntegrated) literalIndex.removeLiteral(literalObject);
                     int literal = literalObject.literal;
-                    ++statistics.derivedUnitClauses;
+                    ++statistics.derivedTrueLiterals;
                     addInternalTrueLiteralTask(literal, true,
-                            trackReasoning ? new InfTrueLiteral(clauseBefore, clause.id, literal, clause.inferenceStep) : null);}
+                            trackReasoning ? new InfTrueLiteral(clauseBefore, clause.identifier, literal, clause.inferenceStep) : null);}
 
                 if(status == 1) {removeClause(clause,true,literalIndex); return false;}}
 
@@ -1422,7 +1431,7 @@ public class Resolution extends Solver {
                 monitor.println(monitorId, "Clause " + clauseBefore + " divided by gcd  to " +
                         clause.toString(symboltable, 0));}
             if (clause.size() == 1) {
-                addInternalTrueLiteralTask(clause.literals.get(0).literal, true, new InfInputClause(clause.id));
+                addInternalTrueLiteralTask(clause.literals.get(0).literal, true, new InfInputClause(clause.identifier));
                 return false;}}
         finally {
             if(isAlreadyIntegrated) {
@@ -1449,8 +1458,8 @@ public class Resolution extends Solver {
 
                 for (Literal literalObject : trueLiterals) {
                     int literal = literalObject.literal;
-                    ++statistics.derivedUnitClauses;
-                    addInternalTrueLiteralTask(literal, true, trackReasoning ? new InfTrueLiteral(clauseBefore, clause.id, literal, clause.inferenceStep) : null);}
+                    ++statistics.derivedTrueLiterals;
+                    addInternalTrueLiteralTask(literal, true, trackReasoning ? new InfTrueLiteral(clauseBefore, clause.identifier, literal, clause.inferenceStep) : null);}
 
                 if(clause.limit <= 0) return false;}
 
@@ -1472,7 +1481,7 @@ public class Resolution extends Solver {
                 monitor.println(monitorId, "Clause " + clauseBefore + " divided by gcd  to " +
                         clause.toString(symboltable, 0));}
             if (clause.size() == 1) {
-                addInternalTrueLiteralTask(clause.literals.get(0).literal, true, new InfInputClause(clause.id));
+                addInternalTrueLiteralTask(clause.literals.get(0).literal, true, new InfInputClause(clause.identifier));
                 return false;}}
         finally {
             if(isAlreadyIntegrated) {

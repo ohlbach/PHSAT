@@ -21,7 +21,6 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.function.IntSupplier;
 
 /** The Normalizer transforms the InputClauses into Interval-Normalform and removes obvious redundancies.
  *  <br>
@@ -730,7 +729,7 @@ public class Normalizer extends Solver {
      * @return the transformed atleast-clause.
      */
     public static IntArrayList atmost2Atleast(IntArrayList atmostClause) {
-        assert atmostClause.get(1) == cAtmost;
+        assert atmostClause.getInt(1) == cAtmost;
         IntArrayList atleastClause = new IntArrayList(atmostClause.size());
         atleastClause.add(atmostClause.getInt(0)); // Id
         atleastClause.add(cAtleast);
@@ -749,7 +748,7 @@ public class Normalizer extends Solver {
      * @return the transformed atmost-clause.
      */
     public static IntArrayList atleast2Atmost(IntArrayList atleastClause) {
-        assert atleastClause.get(1) == cAtleast;
+        assert atleastClause.getInt(1) == cAtleast;
         IntArrayList atmostClause = new IntArrayList(atleastClause.size());
         atmostClause.add(atleastClause.getInt(0)); // Id
         atmostClause.add(cAtmost);
@@ -767,14 +766,15 @@ public class Normalizer extends Solver {
      * @param exactlyClause a normalized atmost-clause
      * @return the transformed atleast-clauses.
      */
-    public static IntArrayList[] exactlyToAtleast(IntArrayList exactlyClause, IntSupplier newId) {
+    public static IntArrayList[] exactlyToAtleast(IntArrayList exactlyClause) {
         assert (exactlyClause.getInt(1) == cExactly);
+        int id = getIdentifier(exactlyClause);
         int size = exactlyClause.size();
         int expandedSize = getExpandedSize(exactlyClause);
         IntArrayList atleastClause1 = new IntArrayList(size);
         IntArrayList atleastClause2 = new IntArrayList(size);
-        atleastClause1.add(newId.getAsInt());
-        atleastClause2.add(newId.getAsInt());
+        atleastClause1.add(id);
+        atleastClause2.add(id);
         atleastClause1.add(cAtleast);
         atleastClause2.add(cAtleast);
         atleastClause1.add(getMin(exactlyClause));
@@ -796,14 +796,15 @@ public class Normalizer extends Solver {
      * @param intervalClause a normalized atmost-clause
      * @return the transformed atleast-clauses.
      */
-    public static IntArrayList[] intervalToAtleast(IntArrayList intervalClause, IntSupplier newId) {
+    public static IntArrayList[] intervalToAtleast(IntArrayList intervalClause) {
         assert (intervalClause.getInt(1) == cInterval);
+        int id = getIdentifier(intervalClause);
         int size = intervalClause.size();
         int expandedSize = getExpandedSize(intervalClause);
         IntArrayList atleastClause1 = new IntArrayList(size);
         IntArrayList atleastClause2 = new IntArrayList(size);
-        atleastClause1.add(newId.getAsInt());
-        atleastClause2.add(newId.getAsInt());
+        atleastClause1.add(id);
+        atleastClause2.add(id);
         atleastClause1.add(cAtleast);
         atleastClause2.add(cAtleast);
         atleastClause1.add(getMin(intervalClause));

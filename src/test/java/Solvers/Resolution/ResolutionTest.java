@@ -5,10 +5,12 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Datastructures.Theory.InferenceTest;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
@@ -123,8 +125,7 @@ public class ResolutionTest extends TestCase {
             InferenceStep step = resolution.model.getInferenceStep(1);
             System.out.println("Inference Step");
             System.out.println(step.toString(null));
-            System.out.println(step.rule());
-            System.out.println(step.inputClauseIds());}
+            System.out.println(step.rule());}
     }
 
 
@@ -587,7 +588,8 @@ public class ResolutionTest extends TestCase {
                 "2: 3v1v4\n", resolution.clauses.toString());
         if(monitoring) {
             System.out.println(clause1.inferenceStep.toString());
-            System.out.println(clause1.inferenceStep.inputClauseIds());}
+            //System.out.println(clause1.inferenceStep.inputClauseIds());
+        }
 
         if(monitoring) System.out.println("\nNEW 2");
         resolution.clear();
@@ -599,9 +601,10 @@ public class ResolutionTest extends TestCase {
 
         if(monitoring) {
             System.out.println(clause1.inferenceStep.toString());
-            System.out.println(clause1.inferenceStep.inputClauseIds());
+            //System.out.println(clause1.inferenceStep.inputClauseIds());
             ArrayList<InferenceStep> steps = new ArrayList<>();
-            clause1.inferenceStep.inferenceSteps(steps);
+            IntArrayList ids = new IntArrayList();
+            clause1.inferenceStep.inferenceSteps(steps,ids);
             for(InferenceStep step : steps) System.out.println(step.toString());}
 
         if(monitoring) System.out.println("\nNEW 3");
@@ -782,7 +785,7 @@ public class ResolutionTest extends TestCase {
         //System.out.println(simplifier.statistics);
     }
 
-    public void testResolve() throws Result {
+    public void testResolveOld() throws Result {
         System.out.println("resolve1");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
@@ -810,8 +813,6 @@ public class ResolutionTest extends TestCase {
                 "12: 1v3v4\n", resolution.clauses.toString());
         //System.out.println(simplifier.statistics);
     }
-
-
 
     }
 

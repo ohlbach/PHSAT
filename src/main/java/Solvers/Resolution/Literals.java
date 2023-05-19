@@ -77,7 +77,6 @@ public class Literals {
      * @return true if the chain of literals with the given literal is now empty.
      */
     public boolean removeLiteral(Literal literalObject) {
-        Clause clause = literalObject.clause;
         literalObject.clause = null;
         Literal previousLiteral = literalObject.previousLiteral;
         Literal nextLiteral     = literalObject.nextLiteral;

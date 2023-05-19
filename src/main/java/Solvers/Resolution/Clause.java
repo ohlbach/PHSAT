@@ -23,57 +23,60 @@ import java.util.function.IntSupplier;
  */
 public class Clause {
     /** the identifier for the clause. */
-    protected int id;
+    int identifier;
+
+    /** another identifier for clauses which originated from interval-type clauses */
+    int subIdentifier = 0;
 
     /** the connective, OR or ATLEAST. */
-    protected Quantifier quantifier;
+    Quantifier quantifier;
 
     /** true if the connective is OR. */
-    protected boolean isDisjunction;
+    boolean isDisjunction;
 
     /** the quantifier for ATLEAST clauses. */
-    protected int limit = 1;
+    int limit = 1;
 
     /** the sum of all multiplicities of the literals. */
-    protected int expandedSize = 0;
+    int expandedSize = 0;
 
     /** the list of all Literal objects in the clause. */
-    protected ArrayList<Literal> literals = new ArrayList<>();
+    ArrayList<Literal> literals = new ArrayList<>();
 
     /** characterises the distribution of positive and negative literals in a clause. */
-    protected ClauseType clauseType;
+    ClauseType clauseType;
 
     /** flag to indicate that the clause still exists. */
-    protected boolean exists = true;
+    boolean exists = true;
 
     /** true if there are literals with multiplicities &gt; 1. */
-    protected boolean hasMultiplicities = false;
+    boolean hasMultiplicities = false;
 
     /** the inference step which caused the derivation of this clause. */
-    protected InferenceStep inferenceStep;
+    InferenceStep inferenceStep;
 
     /** a timestamp to be used by various algorithms. */
-    protected int timestamp1 = 0;
+    int timestamp1 = 0;
     /** a timestamp to be used by other algorithms. */
-    protected int timestamp2 = 0;
+    int timestamp2 = 0;
 
     /** a pointer to the previous clause in a doubly connected list. */
-    protected Clause previousClause;
+    Clause previousClause;
 
     /** a pointer to the next clause in a doubly connected list. */
-    protected Clause nextClause;
+    Clause nextClause;
 
     /** The constructor turns an InputClause int[]-array into a Clause object.
      *
      * @param inputClause InputClause int[]-array.
      */
     public Clause(int[] inputClause) {
-        id = inputClause[0];
+        identifier = inputClause[0];
         quantifier = Quantifier.getQuantifier(inputClause[1]);
         assert(quantifier != null && (quantifier == Quantifier.OR || quantifier == Quantifier.ATLEAST));
         isDisjunction = quantifier == Quantifier.OR;
         limit = isDisjunction ? 1 : inputClause[2];
-        inferenceStep = new InfInputClause(id);
+        inferenceStep = new InfInputClause(identifier);
         int length = inputClause.length;
         int start = quantifier.firstLiteralIndex;
         literals = new ArrayList<>(length-start);
@@ -107,13 +110,13 @@ public class Clause {
     /** constructs a new clause from a list of literal,multiplicity pairs.
      * This constructor is basically for test purposes.
      *
-     * @param id         the identifier.
+     * @param identifier         the identifier.
      * @param quantifier the connective.
      * @param limit the quantifier.
      * @param items      pairs literal,multiplicity.
      */
-    public Clause(int id, Quantifier quantifier, int limit, int... items) {
-        this.id = id;
+    public Clause(int identifier, Quantifier quantifier, int limit, int... items) {
+        this.identifier = identifier;
         this.limit = limit;
         this.quantifier = quantifier;
         isDisjunction = quantifier == Quantifier.OR;
@@ -130,11 +133,11 @@ public class Clause {
 
     /** This is a constructor for a disjunction.
      *
-     * @param id             the identifier.
+     * @param identifier             the identifier.
      * @param literalNumbers the literals of the disjunction.
      */
-    public Clause(int id,  int... literalNumbers) {
-        this.id = id;
+    public Clause(int identifier, int... literalNumbers) {
+        this.identifier = identifier;
         quantifier = Quantifier.OR;
         isDisjunction = true;
         expandedSize = literalNumbers.length;
@@ -147,13 +150,13 @@ public class Clause {
     /** constructs a new clause.
      * The literal's multiplicities are automatically reduced to 'limit'.
      *
-     * @param id         the identifier for the clause.
+     * @param identifier         the identifier for the clause.
      * @param quantifier the quantifier.
      * @param limit      the limit for the quantifier.
      * @param literals   the literals.
      */
-    public Clause(int id, Quantifier quantifier, int limit, ArrayList<Literal> literals) {
-        this.id = id;
+    public Clause(int identifier, Quantifier quantifier, int limit, ArrayList<Literal> literals) {
+        this.identifier = identifier;
         this.quantifier = quantifier;
         isDisjunction = quantifier == Quantifier.OR;
         this.limit = limit;
@@ -170,14 +173,15 @@ public class Clause {
      *
      * @param normalizedClause a normalized and simplified clause from the Normalizer.
      */
-    public Clause(IntArrayList normalizedClause) {
-        id = normalizedClause.getInt(0);
+    public Clause(IntArrayList normalizedClause, int subIdentifier) {
+        identifier = normalizedClause.getInt(0);
+        this.subIdentifier = subIdentifier;
         quantifier = Normalizer.getQuantifier(normalizedClause);
         isDisjunction = quantifier == Quantifier.OR;
         limit = Normalizer.getMin(normalizedClause);
         expandedSize = Normalizer.getExpandedSize(normalizedClause);
         hasMultiplicities = Normalizer.hasMultiplicities(normalizedClause);
-        inferenceStep = new InfInputClause(id);
+        inferenceStep = new InfInputClause(identifier);
         for(int i = Normalizer.literalsStart; i <= normalizedClause.size()-2; i +=2) {
             Literal literal = new Literal(normalizedClause.getInt(i),normalizedClause.getInt(i+1));
             literals.add(literal);
@@ -483,34 +487,6 @@ public class Clause {
         hasMultiplicities = false;
         quantifier = Quantifier.OR;}
 
-    /** creates a resolvent for two clauses.
-     *
-     * @param id              for generating a new identifier.
-     * @param literalObject1  the first parent literal.
-     * @param literalObject2  the second parent literal.
-     * @param complementaries for counting the removal of complementary literals.
-     * @return                null if the resolvent is a tautology, otherwise the new resolvent.
-     */
-    Clause resolve1(IntSupplier id, Literal literalObject1, Literal literalObject2, IntConsumer complementaries) {
-        Clause clause2 = literalObject2.clause;
-        int newLimit = limit + clause2.limit - Math.max(literalObject1.multiplicity,literalObject2.multiplicity);
-        ArrayList<Literal> newLiterals = new ArrayList<>(literals.size() + clause2.literals.size()-2);
-        for(Literal literalObject : literals) {
-            if(literalObject == literalObject1) continue;
-            newLiterals.add(new Literal(literalObject.literal,literalObject.multiplicity));}
-        for(Literal literalObject : clause2.literals) {
-            if(literalObject == literalObject2) continue;
-            boolean found = false;
-            for(Literal newLiteralObject : newLiterals) {
-                if(newLiteralObject.literal == literalObject.literal) {
-                    found = true;
-                    newLiteralObject.multiplicity = Math.min(newLimit, newLiteralObject.multiplicity + literalObject.multiplicity);
-                    break;}}
-            if(found) continue;
-            newLiterals.add(new Literal(literalObject.literal,literalObject.multiplicity));}
-        Quantifier newQuantifier = (newLimit == 1) ? Quantifier.OR : Quantifier.ATLEAST;
-        Clause resolvent = new Clause(id.getAsInt(),newQuantifier,newLimit,newLiterals);
-        return resolvent.removeComplementaryLiterals(complementaries,null) ? null : resolvent;}
 
     /** creates a resolvent for two clauses and performs all possible simplifications.
      * <br>
@@ -519,7 +495,7 @@ public class Clause {
      * - derivable true literals are identified and removed. <br>
      *    Example: -p,q and atleast 2 p,q,r  ->  atleast 2 q^2,r.  q must be true.<br>
      * - literals are reduces to essential literals: <br>
-     *    Example: -p,q and atleast 2 p,q,r^2,s  -> atleast 2 q^2,r^2,s  ->  p,q
+     *    Example: -p,q and atleast 2 p,q,r^2,s  -> atleast 2 q^2,r^2,s  ->  p,q.
      *
      * @param id              for generating a new identifier.
      * @param literalObject1  the first parent literal.
@@ -527,7 +503,8 @@ public class Clause {
      * @param trueLiterals    applied to derived true literals.
      * @return                null if the resolvent is a tautology, otherwise the new resolvent.
      */
-    static Clause resolve(IntSupplier id, Literal literalObject1, Literal literalObject2, IntConsumer trueLiterals){
+    static Clause resolve( Literal literalObject1, Literal literalObject2, IntSupplier id,IntConsumer trueLiterals){
+        assert literalObject1.literal == -literalObject2.literal;
         Clause clause1 = literalObject1.clause;
         Clause clause2 = literalObject2.clause;
         int newLimit = clause1.limit + clause2.limit - Math.max(literalObject1.multiplicity,literalObject2.multiplicity);
@@ -547,7 +524,9 @@ public class Clause {
                 int multiplicity1 = litObject1.multiplicity;
                 if(litObject1.literal == litObject2.literal) {
                     found = true;
+                    expandedSize -= litObject1.multiplicity;
                     litObject1.multiplicity = Math.min(newLimit, multiplicity1 + multiplicity2);
+                    expandedSize += litObject1.multiplicity;
                     break;} // litObject2 is not necessary
                 if(litObject1.literal == -litObject2.literal) {
                     found = true;
@@ -559,9 +538,11 @@ public class Clause {
                             litObject1.multiplicity -= multiplicity2;
                             newLimit -= multiplicity2;
                             expandedSize -= multiplicity2;} // we keep the old literal
-                        else {litObject1.multiplicity = multiplicity2 - multiplicity1;
+                        else {
+                            expandedSize -= litObject1.multiplicity;
+                            litObject1.multiplicity = multiplicity2 - multiplicity1;
                             newLimit -= multiplicity1;
-                            expandedSize -= multiplicity1;
+                            expandedSize += litObject1.multiplicity;
                             litObject1.literal *= -1;}}  // we keep the negated old literal
                     if(newLimit <= 0) return null; // tautology
                     break;}}
@@ -571,7 +552,7 @@ public class Clause {
 
         assert (expandedSize >= newLimit);
         if(newLiterals.size() == 1) {trueLiterals.accept(newLiterals.get(0).literal); return null;} // unit clause
-        if(newLimit == 1) return new Clause(id.getAsInt(),Quantifier.OR,1,newLiterals);
+        if(newLimit == 1) return  new Clause(id.getAsInt(),Quantifier.OR,1,newLiterals);
 
         for(int i = 0; i < newLiterals.size(); ++i) {
             Literal literalObject = newLiterals.get(i);
@@ -635,7 +616,9 @@ public class Clause {
      */
     public String toString(Symboltable symboltable, int size) {
         StringBuilder st = new StringBuilder();
-        st.append((size == 0) ? id : String.format("%"+size+"s",id)).append(": ");
+        String id = Integer.toString(identifier);
+        if(subIdentifier != 0) id += "."+subIdentifier;
+        st.append((size == 0) ? id : String.format("%"+size+"s", id)).append(": ");
         if(quantifier == Quantifier.ATLEAST) st.append(">= ").append(limit).append(" ");
         if(literals.size() > 0) {
             int length = literals.size()-1;
