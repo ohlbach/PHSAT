@@ -600,7 +600,7 @@ public class Resolution extends Solver {
                  removedLiterals.clear();
                  byte status = clause.removeLiterals(litObject->(int)localStatus(litObject.literal),
                          litObject -> {literalIndexMore.removeLiteral(litObject);
-                                       removedLiterals.add(localStatus(litObject.literal)*litObject.literal);});
+                                       removedLiterals.add(localStatus(litObject.literal)*litObject.literal);},null);
                  if(status == 1) {removeClause(clause,true, literalIndexMore); continue;}
                  if(monitoring) monitor.println(monitorId, clauseBefore + " and true" + removedLiterals +
                          " -> " + clause.toString(symboltable,0));
@@ -1393,7 +1393,7 @@ public class Resolution extends Solver {
         Literals literalIndex = sizeBefore == 2 ? literalIndexTwo : literalIndexMore;
         removedLiterals.clear();
         try {
-            byte status = clause.reduceByTrueLiterals(literalObject -> removedLiterals.add(literalObject));
+            byte status = clause.reduceByTrueLiterals(literalObject -> removedLiterals.add(literalObject),null);
             if(!removedLiterals.isEmpty()) {
                 if(monitoring) {
                     String literalNames = "";

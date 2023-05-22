@@ -40,12 +40,16 @@ public class Literal {
      * @param symboltable null or a symboltable.
      * @return the literals as a string of names or numbers.
      */
-    public String toString(ArrayList<Literal> literals, Symboltable symboltable) {
+    public static String toString(ArrayList<Literal> literals, Symboltable symboltable) {
         if(literals == null || literals.isEmpty()) return "";
         StringBuilder st = new StringBuilder();
         st.append(Symboltable.toString(literals.get(0).literal,symboltable));
-        for(int i = 1; i < literals.size(); ++i)
+        int multiplicity = literals.get(0).multiplicity;
+        if(multiplicity > 1) st.append("^").append(multiplicity);
+        for(int i = 1; i < literals.size(); ++i) {
+            multiplicity = literals.get(i).multiplicity;
             st.append(",").append(Symboltable.toString(literals.get(i).literal,symboltable));
+            if(multiplicity > 1) st.append("^").append(multiplicity);}
         return st.toString();}
 
     /** returns a string representation of the literal: for example 3^2.

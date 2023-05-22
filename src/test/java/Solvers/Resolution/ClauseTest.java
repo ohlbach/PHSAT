@@ -118,8 +118,8 @@ public class ClauseTest extends TestCase {
         clause.divideByGCD();
         assertEquals("12: >= 2 1^2,2,3", clause.toString());}
 
-    public void testReduceByTrueLiterals() {
-        System.out.println("reduceByTrueLiterals");
+    public void testReduceByTrueLiterals1() {
+        System.out.println("reduceByTrueLiterals1");
         removedLiterals.clear();
         Clause clause = new Clause(new int[]{10, cAtleast, 5, 1, 1, 3,4, 2, 2});
         ArrayList<Literal> literals = clause.reduceByTrueLiterals(removedLiterals);
@@ -131,23 +131,72 @@ public class ClauseTest extends TestCase {
         assertEquals("12",st);
         clause = new Clause(new int[]{11, cAtleast, 4, 1, 1, 3,4, 2, 2});
         assertNull(clause.reduceByTrueLiterals(removedLiterals));
-
     }
+
+    IntArrayList trueLiterals = new IntArrayList();
+    public void testReduceByTrueLiterals() {
+        System.out.println("reduceByTrueLiterals");
+        removedLiterals.clear();
+        trueLiterals.clear();
+        Clause clause = new Clause(new int[]{1, cAtleast, 3, 1, 2, 3});
+        assertEquals(0,Clause.reduceByTrueLiterals(3,3,clause.literals,(l -> removedLiterals.add(l)),
+                (l -> trueLiterals.add(l))));
+        assertEquals("[1, 2, 3]",trueLiterals.toString());
+        assertEquals(3,removedLiterals.size());
+
+        removedLiterals.clear();
+        trueLiterals.clear();
+        clause = new Clause(new int[]{2, cAtleast, 2, 1, 2, 3});
+        assertEquals(2,Clause.reduceByTrueLiterals(2,3,clause.literals,(l -> removedLiterals.add(l)),
+                (l -> trueLiterals.add(l))));
+        assertEquals("[]",trueLiterals.toString());
+        assertEquals(0,removedLiterals.size());
+
+        removedLiterals.clear();
+        trueLiterals.clear();
+        clause = new Clause(new int[]{3, cAtleast, 5, 1, 1, 3,4, 2, 2});
+        assertEquals(1,Clause.reduceByTrueLiterals(5,6,clause.literals,(l -> removedLiterals.add(l)),
+                (l -> trueLiterals.add(l))));
+        assertEquals("[1, 2]",trueLiterals.toString());
+        assertEquals(2,removedLiterals.size());
+        assertEquals("3,4",Literal.toString(clause.literals,null));
+
+        removedLiterals.clear();
+        trueLiterals.clear();
+        clause = new Clause(new int[]{4, cAtleast, 4, 1, 1, 3,4, 2, 2});
+        assertEquals(4,Clause.reduceByTrueLiterals(4,6,clause.literals,(l -> removedLiterals.add(l)),
+                (l -> trueLiterals.add(l))));
+        assertEquals("[]",trueLiterals.toString());
+        assertEquals(0,removedLiterals.size());
+        assertEquals("1^2,3,4,2^2",Literal.toString(clause.literals,null));
+
+        removedLiterals.clear();
+        trueLiterals.clear();
+        clause = new Clause(new int[]{5, cAtleast, 3, 1, 1, 2});
+        assertEquals(0,Clause.reduceByTrueLiterals(3,3,clause.literals,(l -> removedLiterals.add(l)),
+                (l -> trueLiterals.add(l))));
+        assertEquals("[1, 2]",trueLiterals.toString());
+        assertEquals(2,removedLiterals.size());
+        assertTrue(clause.literals.isEmpty());}
+
     public void testReduceToEssentialLiterals() {
         System.out.println("reduceToEssentialLiterals");
+        trueLiterals.clear();
         removedLiterals.clear();
-        Clause clause = new Clause(new int[]{10, cAtleast, 2, 1, 1, 3, 2, 2});
-        assertTrue(clause.reduceToEssentialLiterals(removedLiterals));
-        assertEquals("10: 1v2", clause.toString());
-        String st = "";
-        for(Literal literalObject: removedLiterals) st += literalObject.literal;
-        assertEquals("3",st);
+        Clause clause = new Clause(new int[]{1, cAtleast, 2, 1, 1, 3, 2, 2});
+        assertEquals(2,Clause.reduceToEssentialLiterals(2,clause.literals,(l -> removedLiterals.add(l)),
+                (l -> trueLiterals.add(l))));
+        assertEquals("1,2", Literal.toString(clause.literals,null));
+        assertEquals("3", Literal.toString(removedLiterals,null));
+        assertEquals("[]",trueLiterals.toString());
 
         removedLiterals.clear();
-        clause = new Clause(new int[]{10, cAtleast, 2, 1, 1, 3, 4, 2, 2});
-        assertFalse(clause.reduceToEssentialLiterals(removedLiterals));
-        assertEquals("10: >= 2 1^2,3,4,2^2", clause.toString());
+        clause = new Clause(new int[]{2, cAtleast, 2, 1, 1, 3, 4, 2, 2});
+        assertEquals(6,Clause.reduceToEssentialLiterals(2,clause.literals,(l -> removedLiterals.add(l)),
+                (l -> trueLiterals.add(l))));
+        assertEquals("1^2,3,4,2^2", Literal.toString(clause.literals,null));
         assertTrue(removedLiterals.isEmpty());
+        assertTrue(trueLiterals.isEmpty());
     }
 
 
