@@ -284,11 +284,13 @@ public class Resolution extends Solver {
                     if(clause.size() == 2) addBinaryClauseTask(clause); break;
                 case ATMOST:  insertClause(clause = new Clause(Normalizer.atmost2Atleast(normalizedClause),0));
                     if(clause.size() == 2) addBinaryClauseTask(clause); break;
-                case EXACTLY: subIdentifier = 0;
+                case EXACTLY:
+                    subIdentifier = 0;
                     for(IntArrayList atleastClause : Normalizer.exactlyToAtleast(normalizedClause)) {
                     insertClause(clause = new Clause(atleastClause,++subIdentifier));
                     if(clause.size() == 2) addBinaryClauseTask(clause);} break;
-                case INTERVAL: subIdentifier = 0;
+                case INTERVAL:
+                    subIdentifier = 0;
                     for(IntArrayList atleastClause : Normalizer.intervalToAtleast(normalizedClause)) {
                         insertClause(clause = new Clause(atleastClause,++subIdentifier));
                         if(clause.size() == 2) addBinaryClauseTask(clause);}}}
@@ -551,6 +553,7 @@ public class Resolution extends Solver {
      * The clause is removed as well.
      *
      * @param oldTrueLiteral a true literal.
+     * @param inferenceStep  which caused the derivation of oldTrueLiteral.
      * @throws Unsatisfiable if a contradiction is encountered.
      */
     protected void processTrueLiteralTwo(int oldTrueLiteral, InferenceStep inferenceStep) throws Unsatisfiable{
@@ -577,6 +580,8 @@ public class Resolution extends Solver {
 
         literalIndexTwo.removePredicate(oldTrueLiteral);}
 
+    private IntArrayList trueLiterals1 = new IntArrayList();
+
     /** applies a true literal to all longer clauses containing this literal.
      * <br>
      * All literals with a truth value in the model are removed.<br>
@@ -596,32 +601,40 @@ public class Resolution extends Solver {
             while(literalObject != null) {
                  Clause clause = literalObject.clause;
                  if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
-                 String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
+                 String clauseBefore =  null;
+                 InferenceStep step = null;
+                 ArrayList<InferenceStep> steps = null;
+                 if(trackReasoning) {
+                     trueLiterals1.clear();
+                     steps = new ArrayList<>();
+                     steps.add(clause.inferenceStep);
+                     for(Literal litObject : clause.literals) {
+                        int lit = litObject.literal;
+                        int status = model.status(lit);
+                        if(status != 0) {
+                            trueLiterals1.add(status*lit);
+                            step = model.getInferenceStep(lit);
+                            if(step == null) step = new InfExternal(lit);
+                            steps.add(step);}
+                        clauseBefore = clause.toString(symboltable,0);
+                        step = new InfTrueLiterals(clauseBefore, clause.toString(symboltable,0), trueLiterals1,steps);}}
+                 if(monitoring && clauseBefore == null) clauseBefore = clause.toString(symboltable,0);
                  removedLiterals.clear();
+                 trueLiterals.clear();
                  byte status = clause.removeLiterals(litObject->(int)localStatus(litObject.literal),
                          litObject -> {literalIndexMore.removeLiteral(litObject);
-                                       removedLiterals.add(localStatus(litObject.literal)*litObject.literal);},null);
-                 if(status == 1) {removeClause(clause,true, literalIndexMore); continue;}
-                 if(monitoring) monitor.println(monitorId, clauseBefore + " and true" + removedLiterals +
-                         " -> " + clause.toString(symboltable,0));
-                 InferenceStep step = null;
-                 if(trackReasoning) {
-                     ArrayList<InferenceStep> steps = new ArrayList<>();
-                     steps.add(clause.inferenceStep);
-                     for(int literal : removedLiterals) {
-                         step = model.getInferenceStep(literal);
-                         if(step == null) step = new InfExternal(literal);
-                         steps.add(step);}
-                     step = new InfTrueLiterals(clauseBefore, clause.toString(symboltable,0), removedLiterals,steps);
-                    clause.inferenceStep = step;}
+                                       removedLiterals.add(localStatus(litObject.literal)*litObject.literal);},
+                         literal -> trueLiterals.add(literal));
+                 for(int literal :trueLiterals) {
+                     ++statistics.derivedTrueLiterals;
+                     addInternalTrueLiteralTask(literal,true,step);}
+                 if(status == 1) return;
+                 clause.inferenceStep = step;
                  if(status == -1) {throw new UnsatEmptyClause(problemId,solverId,clause.identifier(), step);}
-                switch(clause.size()) {
-                     case 1: ++statistics.derivedTrueLiterals;
-                            addInternalTrueLiteralTask(clause.literals.get(0).literal,model.status(oldTrueLiteral) != 0,step);
-                             removeClause(clause,false);
-                             break;
-                     case 2: moveToIndexTwo(clause); addBinaryClauseTask(clause); break;
-                     default: synchronized (this) {queue.add(new Task(TaskType.ProcessLongerClause,clause));}}
+                 if(monitoring) monitor.println(monitorId, clauseBefore + " and true" + trueLiterals +
+                         " -> " + clause.toString(symboltable,0));
+                 if(clause.size() == 2) moveToIndexTwo(clause);
+                 addDerivedClauseTask(clause);
                 if(checkConsistency) checkConsistency();
             literalObject = literalObject.nextLiteral;}}
         literalIndexMore.removePredicate(oldTrueLiteral);

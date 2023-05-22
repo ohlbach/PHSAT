@@ -227,9 +227,14 @@ public class Clause {
         return 0;}
 
     /** removes all literals where modelStatus != 0.
+     * <br>
+     * - all possible simplifications are done. <br>
+     * - all superfluous literals are removed.<br>
+     * - for all derivable literals, trueLiterals is called.
      *
      * @param modelStatus returns +1 (true), -1 (false) or 0 (undefined)
      * @param remover is applied to the removed literals.
+     * @param trueLiterals is applied to all derivable true literals.
      * @return +1 (removed), -1 (unsatisfiable), 0 undefined.
      */
     byte removeLiterals(Function<Literal,Integer> modelStatus, Consumer<Literal> remover, IntConsumer trueLiterals){
