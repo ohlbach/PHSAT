@@ -312,7 +312,7 @@ public class Clause {
            determineClauseType();
            return (expandedSize < limit) ? (byte)-1: 0;}
 
-        // Example: >= 2 p,q,r^2,s and false(p) -> >= 2 q^2,r^2,s -> p,q
+        // Example: >= 2 p,q^2,r^2,s and false(p) -> >= 2 q^2,r^2,s -> q,r
         int size = literals.size();
         expandedSize = reduceToEssentialLiterals(limit,literals,remover,trueLiterals);
         if(expandedSize == 0) return 1;
