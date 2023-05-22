@@ -8,13 +8,13 @@ import InferenceSteps.InferenceStep;
 public class UnsatEmptyClause extends Unsatisfiable {
 
     /** the empty clause. */
-    private final int emptyClauseId;
+    private final String emptyClauseId;
 
     /**  constructs the empty clause Unsatisfiability.
      *
      * @param  emptyClauseId; the empty clause id.
      */
-    public UnsatEmptyClause(String problemId, String solverId, int emptyClauseId, InferenceStep step) {
+    public UnsatEmptyClause(String problemId, String solverId, String emptyClauseId, InferenceStep step) {
         super(problemId,solverId);
         this.emptyClauseId = emptyClauseId;
         if(step != null) inferenceSteps.add(step);

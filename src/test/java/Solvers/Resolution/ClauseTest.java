@@ -88,17 +88,7 @@ public class ClauseTest extends TestCase {
         assertEquals(ClauseType.POSITIVE,clause2.clauseType);
     }
 
-    public void testConstructorQuantified() {
-        System.out.println("constructor Quantified");
-        Clause clause = new Clause(10, Quantifier.ATLEAST, 3, 1,3,2,2,3,1);
-        assertEquals("10: >= 3 1^3,2^2,3",clause.toString());
-        assertEquals(6,clause.expandedSize);
-        clause = new Clause(11, Quantifier.ATLEAST, 2, 1,3,2,2,3,1);
-        assertEquals("11: >= 2 1^2,2^2,3",clause.toString());
-        assertTrue(clause.hasMultiplicities);
-        assertEquals(2,clause.limit);
-        assertEquals(5,clause.expandedSize);
-    }
+
     public void testConstructorOr() {
         System.out.println("constructor Or");
         Clause clause = new Clause(10, 1, 2, -3);

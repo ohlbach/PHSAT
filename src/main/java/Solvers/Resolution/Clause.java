@@ -107,30 +107,6 @@ public class Clause {
         determineClauseType();
         hasMultiplicities = expandedSize > literals.size();}
 
-    /** constructs a new clause from a list of literal,multiplicity pairs.
-     * This constructor is basically for test purposes.
-     *
-     * @param identifier         the identifier.
-     * @param quantifier the connective.
-     * @param limit the quantifier.
-     * @param items      pairs literal,multiplicity.
-     */
-    public Clause(int identifier, Quantifier quantifier, int limit, int... items) {
-        this.identifier = identifier;
-        this.limit = limit;
-        this.quantifier = quantifier;
-        isDisjunction = quantifier == Quantifier.OR;
-        literals = new ArrayList<>(items.length/2);
-        for(int i = 0; i < items.length; i +=2) {
-            int literal = items[i];
-            int multiplicity = Math.min(items[i+1], limit);
-            expandedSize += multiplicity;
-            Literal literalObject = new Literal(literal,multiplicity);
-            literalObject.clause = this;
-            literals.add(literalObject);}
-        determineClauseType();
-        hasMultiplicities = expandedSize > literals.size();}
-
     /** This is a constructor for a disjunction.
      *
      * @param identifier             the identifier.
@@ -172,6 +148,8 @@ public class Clause {
     /** this constructor turns a normalizedClause to a clause for the Resolution solver.
      *
      * @param normalizedClause a normalized and simplified clause from the Normalizer.
+     * @param subIdentifier a secondary identifier for multiple clauses resulting from interval-type clauses.
+     *                      subIdentifier = 0 will be ignored.
      */
     public Clause(IntArrayList normalizedClause, int subIdentifier) {
         identifier = normalizedClause.getInt(0);
@@ -187,24 +165,6 @@ public class Clause {
             literals.add(literal);
             literal.clause = this;}
         determineClauseType();}
-
-
-
-    /** checks if the atleast-clause is true (limit &lt;= 0).
-     *
-     * @return true if the atleast-clause is true (limit &lt;= 0).
-     */
-    protected boolean isTrue() {
-        return limit <= 0;}
-
-    /** checks if the atleast-clause is false (limit &gt; expandedSize).
-     *
-     * @return true if the atleast-clause is false (limit &gt; extendedSize).
-     */
-    protected boolean isFalse() {
-        return limit > expandedSize;}
-
-
 
 
     /** finds the Literal with the given literal.
@@ -436,46 +396,6 @@ public class Clause {
     /** to be used by reduceByTrueLiterals. */
     private final ArrayList<Literal> auxiliaryLiterals = new ArrayList<>(5);
 
-    /** removes literals which must be true in an ATLEAST-clause.
-     *  Example: atleast 4 p^2,q^2,r.<br>
-     *  If p is false then the clause becomes atleast 4 q^2,r, which is no longer satisfiable.<br>
-     *  Therefore, p must be true, and q as well.<br>
-     *  Both can be removed and made true.<br>
-     *  The resulting clause may get a limit &lt;= 0. It is true and can be removed.
-     *
-     * @param removedLiterals for adding the removed literals (for purity check).
-     * @return the literals which must be true.
-     */
-    protected ArrayList<Literal> reduceByTrueLiterals(ArrayList<Literal> removedLiterals) {
-        if(!hasMultiplicities) return null;
-        auxiliaryLiterals.clear(); // we collect the literals which become true.
-        for(Literal literalObject: literals) {
-            if(expandedSize-literalObject.multiplicity < limit) {
-                auxiliaryLiterals.add(literalObject);}}
-        if(auxiliaryLiterals.isEmpty()) return null;
-
-        for(Literal literalObject: auxiliaryLiterals) { // these are the true literals
-            removedLiterals.add(literalObject);
-            literals.remove(literalObject);
-            limit -= literalObject.multiplicity;
-            expandedSize -= literalObject.multiplicity;}
-        if(limit <= 0) {
-            removedLiterals.addAll(literals);
-            return auxiliaryLiterals;}
-        determineClauseType();
-
-        for(Literal literalObject: literals) {
-            if(literalObject.multiplicity > limit) {
-                expandedSize -= literalObject.multiplicity - limit;
-                literalObject.multiplicity = limit;}}
-        if(limit == 1) {
-            isDisjunction = true;
-            quantifier = Quantifier.OR;
-            hasMultiplicities = false;}
-        else {hasMultiplicities = expandedSize > literals.size();}
-
-        return auxiliaryLiterals;}
-
 
     byte reduceByTrueLiterals(Consumer<Literal> remover, IntConsumer trueLiterals) {
         return removeLiterals(literalObject -> (expandedSize-literalObject.multiplicity < limit) ? 1 : 0,remover,trueLiterals);}
@@ -489,7 +409,7 @@ public class Clause {
      * If the clause became true, all literals are removed.
      *
      * @param limit         the clause's limit
-     * @param expandedSize  the clause's exandedSize
+     * @param expandedSize  the clause's expandedSize
      * @param literals      the literalObjects
      * @param remover       is applied to the removed literalObjects.
      * @param trueLiterals  is applied to the true literals.
@@ -650,27 +570,15 @@ public class Clause {
         if(newLiterals.size() == 1) {trueLiterals.accept(newLiterals.get(0).literal); return null;} // unit clause
         if(newLimit == 1) return  new Clause(id.getAsInt(),Quantifier.OR,1,newLiterals);
 
-        for(int i = 0; i < newLiterals.size(); ++i) {
-            Literal literalObject = newLiterals.get(i);
-            if(expandedSize - literalObject.multiplicity < newLimit) { // The other literals don't have enough literals to satisfy the limit
-                trueLiterals.accept(literalObject.literal);            // The literal must be true.
-                newLimit -= literalObject.multiplicity; // Example: -p,q and >= 2 p,q,r  ->  >= 2 q^2,r.  q must be true.
-                if(newLimit <= 0) return null;
-                expandedSize -= literalObject.multiplicity;
-                newLiterals.remove(i--);}}
-        if(newLiterals.size() == 1) {trueLiterals.accept(newLiterals.get(0).literal); return null;} // unit clause
+        newLimit = reduceByTrueLiterals(newLimit,expandedSize, newLiterals,(l->{}),trueLiterals);
+        if(newLimit == 0) return null;
         if(newLimit == 1) return new Clause(id.getAsInt(),Quantifier.OR,1,newLiterals);
 
-        int remainingMultiplicity = 0;
-        for(Literal literalObject : newLiterals) {
-            if(literalObject.multiplicity < newLimit) remainingMultiplicity += literalObject.multiplicity;}
-        if(remainingMultiplicity < newLimit) { // Example: -p,q and >= 2 p,q,r^2,s  -> >= 2 q^2,r^2,s -> p,q
-            for(int i = 0; i < newLiterals.size(); ++i) {
-                Literal literalObject = newLiterals.get(i);
-                if(literalObject.multiplicity < newLimit) newLiterals.remove(i--);}
-            if(newLiterals.size() == 1) {trueLiterals.accept(newLiterals.get(0).literal); return null;}
-            return new Clause(id.getAsInt(),Quantifier.OR,1,newLiterals);}
-        return new Clause(id.getAsInt(),Quantifier.ATLEAST,newLimit,newLiterals);}
+        int size = newLiterals.size();
+        expandedSize = reduceToEssentialLiterals(newLimit,newLiterals,(l->{}),trueLiterals);
+        if(expandedSize == 0) return null;
+        return new Clause(id.getAsInt(), (newLiterals.size() == size)? Quantifier.ATLEAST: Quantifier.OR,
+                newLimit,newLiterals); }
 
 
     /** investigates the distribution of positive and negative literals and determines the ClauseType.*/
@@ -691,6 +599,14 @@ public class Clause {
      * @return the number of Literal objects in the clause.
      */
     public int size() {return literals.size();}
+
+    /** returns either the identifier itself or identifier.subidentifier.
+     *
+     * @return either the identifier itself or identifier.subidentifier.
+     */
+    public String identifier() {
+        return (subIdentifier == 0) ? Integer.toString(identifier) : identifier+"."+subIdentifier;
+    }
 
     /** returns the sum of the literal's multiplicities.
      *

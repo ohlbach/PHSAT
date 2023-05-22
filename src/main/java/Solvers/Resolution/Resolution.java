@@ -614,7 +614,7 @@ public class Resolution extends Solver {
                          steps.add(step);}
                      step = new InfTrueLiterals(clauseBefore, clause.toString(symboltable,0), removedLiterals,steps);
                     clause.inferenceStep = step;}
-                 if(status == -1) {throw new UnsatEmptyClause(problemId,solverId,clause.identifier, step);}
+                 if(status == -1) {throw new UnsatEmptyClause(problemId,solverId,clause.identifier(), step);}
                 switch(clause.size()) {
                      case 1: ++statistics.derivedTrueLiterals;
                             addInternalTrueLiteralTask(clause.literals.get(0).literal,model.status(oldTrueLiteral) != 0,step);
@@ -1352,22 +1352,21 @@ public class Resolution extends Solver {
      */
     protected boolean removeLiteralFromClause(Literal literalObject, boolean reduceLimit) throws Unsatisfiable {
         Clause clause = literalObject.clause;
-        removeLiteralFromIndex(literalObject);
+        trueLiterals.clear();
         clauses.updateClauseNumbers(clause,-1);
-        if(clause.removeLiteral(literalObject,reduceLimit) == 0){
-            if(clause.size() == 2) {moveToIndexTwo(clause);}
-            //checkPurity(literalObject.literal); // pure literals are just added to the model.
-            if(checkConsistency) checkConsistency();
-            clauses.updateClauseNumbers(clause,+1);
-            return true;}
-        // clause has to be removed
-        switch(clause.size()) {
-            case 0:  break;
-            case 1:  removeClause(clause,true,literalIndexTwo); break;
-            default: removeClause(clause,true,literalIndexMore); break;}
-        clauses.updateClauseNumbers(clause,+1);
+        Literals literalIndex = (clause.size() == 2) ? literalIndexTwo : literalIndexMore;
+        byte status = clause.removeLiterals((l-> (l == literalObject) ? (reduceLimit ? +1:-1) : 0),
+                                           (l -> literalIndex.removeLiteral(literalObject)),
+                                           (l -> trueLiterals.add(l)));
+        if(status == -1) throw new UnsatEmptyClause(problemId,solverId,clause.identifier(),null);
+        for(int literal :trueLiterals) addInternalTrueLiteralTask(literal,true,null);
+        if(status == 1) return false;
+        if(clause.size() == 2) {moveToIndexTwo(clause);}
+        checkPurity(literalObject.literal); // pure literals are just added to the model.
         if(checkConsistency) checkConsistency();
-        return false;}
+        clauses.updateClauseNumbers(clause,+1);
+        return true;}
+
 
     /** used in simplifyClause */
     private final ArrayList<Literal> removedLiterals = new ArrayList<>(5);
@@ -1436,59 +1435,6 @@ public class Resolution extends Solver {
         finally {
             if(isAlreadyIntegrated) {
                 if(sizeBefore > 2 && clause.size() == 2) moveToIndexTwo(clause);}}
-        if(reducedByGCD) return simplifyClause(clause,isAlreadyIntegrated);
-        return true;}
-
-    protected boolean simplifyClauseOld(Clause clause, boolean isAlreadyIntegrated) throws Unsatisfiable {
-        if(clause.isDisjunction || !clause.hasMultiplicities) return true; // nothing to be simplified.
-        String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
-        boolean reducedByGCD;
-        int sizeBefore = clause.size();
-        removedLiterals.clear();
-        try {
-            ArrayList<Literal> trueLiterals = clause.reduceByTrueLiterals(removedLiterals);
-            if (trueLiterals != null) {
-                if(monitoring) {
-                    String literalNames = "";
-                    for (Literal literalObject : trueLiterals) {
-                        literalNames += Symboltable.toString(literalObject.literal, symboltable) + ",";}
-                    String newClause = (clause.limit > 0) ? ". new clause: " + clause.toString(symboltable,0) : "";
-                    monitor.println(monitorId, "True literals " + literalNames + " extracted from clause " +
-                            clauseBefore + newClause);}
-
-                for (Literal literalObject : trueLiterals) {
-                    int literal = literalObject.literal;
-                    ++statistics.derivedTrueLiterals;
-                    addInternalTrueLiteralTask(literal, true, trackReasoning ? new InfTrueLiteral(clauseBefore, clause.identifier, literal, clause.inferenceStep) : null);}
-
-                if(clause.limit <= 0) return false;}
-
-            if (clause.isDisjunction || !clause.hasMultiplicities) return true; // nothing to be simplified.
-            if (clause.reduceToEssentialLiterals(removedLiterals)) {
-                if (monitoring && clause.limit > 0)
-                    monitor.println(monitorId, "Clause  " + clauseBefore + " reduced to essential literals:  " +
-                            clause.toString(symboltable, 0));
-                if (clause.limit <= 0) return false;
-                if (clause.size() == 1) {
-                    int literal = clause.literals.get(0).literal;
-                    addInternalTrueLiteralTask(literal, true, clause.inferenceStep);
-                    return false;
-                }
-                if (clause.limit <= 1) return clause.limit == 1;}
-
-            reducedByGCD = clause.divideByGCD();
-            if (reducedByGCD && monitoring) {
-                monitor.println(monitorId, "Clause " + clauseBefore + " divided by gcd  to " +
-                        clause.toString(symboltable, 0));}
-            if (clause.size() == 1) {
-                addInternalTrueLiteralTask(clause.literals.get(0).literal, true, new InfInputClause(clause.identifier));
-                return false;}}
-        finally {
-            if(isAlreadyIntegrated) {
-                Literals literalIndex = (sizeBefore == 2) ? literalIndexTwo : literalIndexMore;
-                for(Literal literalObject : removedLiterals) literalIndex.removeLiteral(literalObject);
-                if(sizeBefore > 2 && clause.size() == 2) moveToIndexTwo(clause);
-                for(Literal literalObject : removedLiterals) checkPurity(literalObject.literal);}}
         if(reducedByGCD) return simplifyClause(clause,isAlreadyIntegrated);
         return true;}
 
