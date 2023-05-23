@@ -318,14 +318,21 @@ public class Resolution extends Solver {
      * @param inferenceStep which caused the truth
      */
     public void addInternalTrueLiteralTask(int literal, boolean globallyTrue, InferenceStep inferenceStep) throws Unsatisfiable {
-       if(monitoring) {
+        if(monitoring) {
             monitor.print(monitorId,"True literal added: " +
                     Symboltable.toString(literal,symboltable));}
+        if(literal == 0) {
+            System.out.println("INFERENCES");
+            Result.printInferenceSteps(inferenceStep);
+            new Exception().printStackTrace();
+            System.exit(1);}
         makeLocallyTrue(literal);
         synchronized (this) {
             queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));
             ++trueLiteralsInQueue;}
-        if(globallyTrue) model.add(myThread,literal,inferenceStep);}
+        if(globallyTrue) model.add(myThread,literal,inferenceStep);
+        if(checkConsistency) problemSupervisor.intermediateModelCheck(model,null); // ()->{printSeparated(); return null;});
+    }
 
 
     /** adds a true literal to the queue. It is called by other threads for globally true literals.
@@ -361,10 +368,7 @@ public class Resolution extends Solver {
         Clause clause;
         while(!myThread.isInterrupted()) {
             try {
-                if(!model.isEmpty()) {
-                    System.out.println("MODEL CHECK " + model.toString());
-                    problemSupervisor.intermediateModelCheck(model);}
-                if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
+                //if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 boolean changed = false;
                 switch(task.taskType){
@@ -410,7 +414,7 @@ public class Resolution extends Solver {
                 if(trueLiteralsInQueue == 0 && clauses.status != 0) generatePositiveOrNegativeModel();
                 if(queue.isEmpty()) {
                     System.out.println("Empty Queue " + clauses.size + " " + model.toString());
-                    //throw new Aborted(problemId,solverId,"Empty Queue");
+                    printSeparated();
                 }
                 if(monitoring  && printClauses && changed) {
                     System.out.println("Model: " + model.toString());
@@ -471,7 +475,7 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     protected void processBinaryClause(Clause clause) throws Unsatisfiable {
-        assert(clause.size() == 2);
+        assert clause.size() == 2;
         if(binaryClauseIsSubsumed(clause) != null) {
             removeClause(clause,true);
             return;}
@@ -605,6 +609,7 @@ public class Resolution extends Solver {
             while(literalObject != null) {
                  Clause clause = literalObject.clause;
                  if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
+                 clauses.updateClauseNumbers(clause,-1);
                  String clauseBefore =  monitoring    ? clause.toString(symboltable,0) : null;
                  InfTrueLiterals step  = (trackReasoning || monitoring) ? new InfTrueLiterals(clause, model,symboltable) : null;
                  removedLiterals.clear();
@@ -617,8 +622,9 @@ public class Resolution extends Solver {
                  for(int literal :trueLiterals) {
                      ++statistics.derivedTrueLiterals;
                      addInternalTrueLiteralTask(literal,true,step);}
-                 if(status == 1) return;
+                 if(status == 1) {removeClause(clause,false); return;}
                  if(status == -1) {throw new UnsatEmptyClause(problemId,solverId,clause.identifier(), step);}
+                 clauses.updateClauseNumbers(clause,1);
                  if(monitoring) {
                      String result = step.clauseAfter;
                      if(!trueLiterals.isEmpty()) result += " and true(" + Symboltable.toString(trueLiterals,symboltable)+ ")";
@@ -794,10 +800,6 @@ public class Resolution extends Solver {
                         if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
                                 clause2.toString(symboltable,0) + " -> " +
                                 Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
-                        int status = localStatus(clause2.literals.get(0).literal); // literal may have become pure.
-                        if(status != 0) {addInternalTrueLiteralTask(-status*clause2.literals.get(1).literal,false,null); return;}
-                        status = localStatus(clause2.literals.get(1).literal);
-                        if(status != 0) {addInternalTrueLiteralTask(-status*clause2.literals.get(0).literal,false,null); return;}
                         equivalences.add(literal1); equivalences.add(-literal2);
                         InfEquivalence step = null;
                         if(trackReasoning) {
@@ -1153,6 +1155,7 @@ public class Resolution extends Solver {
         if(trackReasoning) resolvent.inferenceStep =
                 new InfResolution(posLiteral.clause,negLiteral.clause, resolvent, symboltable);
         insertClause(resolvent);
+        clauses.updateClauseNumbers(resolvent,1);
         if(resolvent.size() == 2) ++statistics.binaryResolvents; else ++statistics.longerResolvents;
         if(monitoring) monitor.println(monitorId,
                     "Resolution: " + posLiteral.clause.toString(symboltable,0) + " and " +
@@ -1322,7 +1325,7 @@ public class Resolution extends Solver {
         removeClause(clause,checkPurity,(clause.size() == 2) ? literalIndexTwo :literalIndexMore);}
 
 
-        void removeClauses (int literal) throws Unsatisfiable {
+    void removeClauses (int literal) throws Unsatisfiable {
         Literal literalObject = literalIndexMore.getFirstLiteralObject(literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;

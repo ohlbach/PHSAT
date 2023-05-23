@@ -60,6 +60,13 @@ public class Result extends Exception {
         ids.sort((x,y) -> Integer.compare(x,y));
     }
 
+    public static void printInferenceSteps(InferenceStep step) {
+        ArrayList<InferenceStep> steps = new ArrayList<>();
+        IntArrayList ids = new IntArrayList();
+        step.inferenceSteps(steps,ids);
+        System.out.println("Input Ids: " + ids.toString());
+        for(InferenceStep infStep : steps) System.out.println(infStep.toString(null));}
+
 
 
     public String toString(Symboltable symboltable) {return "";};

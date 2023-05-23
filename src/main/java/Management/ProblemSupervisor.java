@@ -15,6 +15,7 @@ import Utilities.Utilities;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.function.Supplier;
 
 /** A problem supervisor solves a single problem by using several cooperating solvers in parallel threads.
  * Created by ohlbach on 09.10.2018.
@@ -162,12 +163,13 @@ public class ProblemSupervisor {
             System.out.println("Process Terminates");
             System.exit(1);}}
 
-    public void intermediateModelCheck(Model model) {
+    public void intermediateModelCheck(Model model, Supplier supplier) {
         ArrayList<int[]>[] criticalClauses = inputClauses.criticalClausesInModel(model);
         ArrayList<int[]> falseClauses = criticalClauses[0];
         if(!falseClauses.isEmpty()) {
             System.out.println("False Clauses for model: " + model.toString()+"\n");
             System.out.println(InputClauses.toString(falseClauses,inputClauses.symboltable));
+            if(supplier != null) supplier.get();
             System.exit(1);}}
 
     /** The method collects the individual solver statistics into an array of Statistic-objects:
