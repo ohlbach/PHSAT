@@ -44,7 +44,7 @@ public class QUSat {
 
    private static final String parameters =
             "problem random\n"+
-                    "predicates = 30\n" +
+                    "predicates = 20\n" +
                     "cpRatio = 4\n"+
                     "length = 3\n"+
                     "seed = 2\n"+ // 20/4;  0 sat, 1 cont, 2 sat, 3 sat, 4 unsat, 5 sat, 6 sat, 7 sat, 8 wrong
@@ -52,8 +52,8 @@ public class QUSat {
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
                     "showClauses = true\n"+
-                  //  "monitor = life\n"+
-                  //  "trackReasoning\n"+
+                    "monitor = life\n"+
+                    "trackReasoning\n"+
            //"solver simplifier";
            "solver resolution\n";
                     //"mergeResolution = true\n";
@@ -65,7 +65,6 @@ public class QUSat {
 
     public static GlobalParameters globalParameters  = null;
 
-    ProblemDistributor problemDistributor = null;
 
 
     /** The main method can be called with or without arguments.

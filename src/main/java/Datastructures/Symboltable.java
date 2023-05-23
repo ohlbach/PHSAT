@@ -114,7 +114,7 @@ public class Symboltable {
      * @return the list as string
      */
     public static String toString(IntArrayList literals, String separator, Symboltable symboltable) {
-        if(literals == null) {return "";}
+        if(literals == null || literals.isEmpty()) {return "";}
         StringBuilder string = new StringBuilder();
         int size = literals.size();
         for(int i = 0; i < size; ++i) {

@@ -162,6 +162,14 @@ public class ProblemSupervisor {
             System.out.println("Process Terminates");
             System.exit(1);}}
 
+    public void intermediateModelCheck(Model model) {
+        ArrayList<int[]>[] criticalClauses = inputClauses.criticalClausesInModel(model);
+        ArrayList<int[]> falseClauses = criticalClauses[0];
+        if(!falseClauses.isEmpty()) {
+            System.out.println("False Clauses for model: " + model.toString()+"\n");
+            System.out.println(InputClauses.toString(falseClauses,inputClauses.symboltable));
+            System.exit(1);}}
+
     /** The method collects the individual solver statistics into an array of Statistic-objects:
      * statistics[0]    = supervisor statistics <br>
      * statistics[1...] = solver statistics

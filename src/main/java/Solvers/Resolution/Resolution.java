@@ -206,6 +206,7 @@ public class Resolution extends Solver {
             processTasks(0);}
         catch(Result result) {
             System.out.println("Result " + result.getClass().getName());
+            printSeparated();
             if(result instanceof Satisfiable) {
                 completeModel();
                 completeModelForEquivalences((byte) 1);
@@ -360,6 +361,9 @@ public class Resolution extends Solver {
         Clause clause;
         while(!myThread.isInterrupted()) {
             try {
+                if(!model.isEmpty()) {
+                    System.out.println("MODEL CHECK " + model.toString());
+                    problemSupervisor.intermediateModelCheck(model);}
                 if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
                 boolean changed = false;
@@ -410,7 +414,8 @@ public class Resolution extends Solver {
                 }
                 if(monitoring  && printClauses && changed) {
                     System.out.println("Model: " + model.toString());
-                    printSeparated();}
+                    //printSeparated();
+                }
                 if(trueLiteralsInQueue == 0 && binaryClausesInQueue == 0 && literalIndexMore.size() == 0) {
                     if(monitoring) {
                         monitor.println(monitorId, "No longer clauses any more. 2-Literal Clauses are Saturated.\n" );
@@ -580,14 +585,13 @@ public class Resolution extends Solver {
 
         literalIndexTwo.removePredicate(oldTrueLiteral);}
 
-    private IntArrayList trueLiterals1 = new IntArrayList();
 
     /** applies a true literal to all longer clauses containing this literal.
      * <br>
-     * All literals with a truth value in the model are removed.<br>
+     * All literals with a truth value in the model are removed and the clause is simplified.<br>
      * Clauses which become true in this step are entirely removed.<br>
      * The empty clause causes an UnsatEmptyClause exception to be thrown.<br>
-     * Derived unit clauses are put into the model <br>
+     * Derived unit clauses are put into the model. <br>
      * Shortened clauses cause new tasks to be inserted into the task queue.<br>
 
      * @param oldTrueLiteral a true (or false) literal.
@@ -601,38 +605,25 @@ public class Resolution extends Solver {
             while(literalObject != null) {
                  Clause clause = literalObject.clause;
                  if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
-                 String clauseBefore =  null;
-                 InferenceStep step = null;
-                 ArrayList<InferenceStep> steps = null;
-                 if(trackReasoning) {
-                     trueLiterals1.clear();
-                     steps = new ArrayList<>();
-                     steps.add(clause.inferenceStep);
-                     for(Literal litObject : clause.literals) {
-                        int lit = litObject.literal;
-                        int status = model.status(lit);
-                        if(status != 0) {
-                            trueLiterals1.add(status*lit);
-                            step = model.getInferenceStep(lit);
-                            if(step == null) step = new InfExternal(lit);
-                            steps.add(step);}
-                        clauseBefore = clause.toString(symboltable,0);
-                        step = new InfTrueLiterals(clauseBefore, clause.toString(symboltable,0), trueLiterals1,steps);}}
-                 if(monitoring && clauseBefore == null) clauseBefore = clause.toString(symboltable,0);
+                 String clauseBefore =  monitoring    ? clause.toString(symboltable,0) : null;
+                 InfTrueLiterals step  = (trackReasoning || monitoring) ? new InfTrueLiterals(clause, model,symboltable) : null;
                  removedLiterals.clear();
                  trueLiterals.clear();
                  byte status = clause.removeLiterals(litObject->(int)localStatus(litObject.literal),
                          litObject -> {literalIndexMore.removeLiteral(litObject);
                                        removedLiterals.add(localStatus(litObject.literal)*litObject.literal);},
                          literal -> trueLiterals.add(literal));
+                 if(step != null) clause.inferenceStep = step.addResults(clause,status,trueLiterals,symboltable);
                  for(int literal :trueLiterals) {
                      ++statistics.derivedTrueLiterals;
                      addInternalTrueLiteralTask(literal,true,step);}
                  if(status == 1) return;
-                 clause.inferenceStep = step;
                  if(status == -1) {throw new UnsatEmptyClause(problemId,solverId,clause.identifier(), step);}
-                 if(monitoring) monitor.println(monitorId, clauseBefore + " and true" + trueLiterals +
-                         " -> " + clause.toString(symboltable,0));
+                 if(monitoring) {
+                     String result = step.clauseAfter;
+                     if(!trueLiterals.isEmpty()) result += " and true(" + Symboltable.toString(trueLiterals,symboltable)+ ")";
+                     monitor.println(monitorId, clauseBefore + " and true(" +
+                         Symboltable.toString(step.oldTrueLiterals,symboltable) + ") -> " + result);}
                  if(clause.size() == 2) moveToIndexTwo(clause);
                  addDerivedClauseTask(clause);
                 if(checkConsistency) checkConsistency();
@@ -1158,8 +1149,7 @@ public class Resolution extends Solver {
                     trackReasoning ? new InfResolutionTrueLiteral(posLiteral.clause,negLiteral.clause,literal,symboltable): null);
             if(monitoring) monitor.println(monitorId, posLiteral.clause.toString(symboltable,0) + " and " +
             negLiteral.clause.toString(symboltable,0) + " -> true(" + Symboltable.toString(literal,symboltable) + ")");}
-        if(resolvent == null) return;
-        if(isSubsumed(resolvent) != null) return;
+        if(resolvent == null || isSubsumed(resolvent) != null) return;
         if(trackReasoning) resolvent.inferenceStep =
                 new InfResolution(posLiteral.clause,negLiteral.clause, resolvent, symboltable);
         insertClause(resolvent);
