@@ -88,7 +88,6 @@ public class Clauses {
      * */
     public int removeClause(Clause clause) {
         if(!clause.exists) return size;
-        updateClauseNumbers(clause,-1);
         clause.exists = false;
         if(clause.nextClause == null) { // it is the clause at the end of the chain.
             if(clause == firstClause) {size = 0; firstClause = null;

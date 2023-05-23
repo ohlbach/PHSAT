@@ -67,27 +67,6 @@ public class ClauseTest extends TestCase {
         assertEquals(ClauseType.POSITIVENEGATIVE,clause.clauseType);
     }
 
-    public void testRemoveLiteral() {
-        System.out.println("removeLiteral");
-        int[] c1 = new int[]{12, cOr, 1,2,3};
-        Clause clause1 = new Clause(c1);
-        Literal literal1 = clause1.findLiteral(1);
-        clause1.removeLiteral(literal1,false);
-        assertEquals("12: 2v3",clause1.toString());
-        assertEquals(2,clause1.size());
-        assertEquals(2,clause1.expandedSize);
-
-        int[] c2 = new int[]{13, cAtleast,2 , 1,1,2,2,3};
-        Clause clause2 = new Clause(c2);
-        Literal literal2 = clause2.findLiteral(1);
-        clause2.removeLiteral(literal2,false);
-        assertEquals("13: >= 2 2^2,3",clause2.toString());
-
-        Literal literal3 = clause2.findLiteral(2);
-        assertEquals(1,clause2.removeLiteral(literal3,true));
-        assertEquals(ClauseType.POSITIVE,clause2.clauseType);
-    }
-
 
     public void testConstructorOr() {
         System.out.println("constructor Or");

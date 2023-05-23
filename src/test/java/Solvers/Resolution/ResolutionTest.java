@@ -99,7 +99,7 @@ public class ResolutionTest extends TestCase {
         IntSupplier nextId = () -> ++id[0];
         Resolution resolution = new Resolution(10, monitor, true, nextId);
         Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
-        resolution.simplifyClause(clause, false);
+        resolution.simplifyClause(clause);
         assertEquals("1: 1v2v3", clause.toString());
 
         clause = new Clause(new int[]{2, cAtleast, 5, 1, 1, 2, 2, 3, 4});
@@ -107,7 +107,7 @@ public class ResolutionTest extends TestCase {
         assertEquals("Positive Literals:\n" +
                 "1:1,2:1,3:1,4:1,\n" +
                 "Negative Literals:\n", resolution.literalIndexMore.toString());
-        resolution.simplifyClause(clause, true);
+        resolution.simplifyClause(clause);
         assertEquals("2: 3v4", clause.toString());
         assertEquals("1,2", resolution.model.toString());
         assertEquals("Positive Literals:\n" +
@@ -118,7 +118,7 @@ public class ResolutionTest extends TestCase {
                 "Negative Literals:\n", resolution.literalIndexTwo.toString());
 
         clause = new Clause(new int[]{3, cAtleast, 6, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3});
-        resolution.simplifyClause(clause, false);
+        resolution.simplifyClause(clause);
         assertEquals("3: >= 3 1^2,2^2,3^2", clause.toString());
 
         if(monitoring) {

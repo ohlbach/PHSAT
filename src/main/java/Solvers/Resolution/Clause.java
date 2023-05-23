@@ -186,45 +186,7 @@ public class Clause {
         assert(literals.size() == 2);
         return literalObject == literals.get(0) ? literals.get(1) : literals.get(0);}
 
-    /** removes a literal object from the clause.
-     * All internal data are updated (limit, multiplicity of the literals, connective).<br>
-     * If the clause is a disjunction then the literal is just removed.<br>
-     * If the clause is an atleast-clause then the literals multiplicities are adjusted to the limit.<br>
-     * If the resulting limit is 1 then the clause is turned into a disjunction.<br>
-     * If the new limit is &lt;= 0 then the clause may be removed. Therefor only the limit is changed.<br>
-     * Other simplifications are not performed.
-     *
-     * @param literalObject    the literal to be removed.
-     * @param reduceLimit      if true then the limit is reduced by the literal's multiplicity.
-     * @return                 +1 (tautology) -1 (unsatisfiable) 0 otherwise.
-     */
-    protected byte removeLiteral(Literal literalObject, boolean reduceLimit) {
-        literals.remove(literalObject);
-        literalObject.clause = null;
-        determineClauseType();
-        if(reduceLimit) {
-            limit -= literalObject.multiplicity;
-            if(limit <= 0) {return +1;}} // tautology
-        expandedSize -= literalObject.multiplicity;
-        if(expandedSize < limit) return -1; // not enough literals to satisfy the limit.
-        if(isDisjunction) return 0;
 
-        if(limit == 1) { // clause turns into a disjunction
-            isDisjunction = true;
-            quantifier = Quantifier.OR;
-            for(Literal literalObject1 : literals) {literalObject1.multiplicity = 1;}
-            expandedSize = literals.size();
-            hasMultiplicities = true;
-            return 0;}
-
-        if(reduceLimit) { // adjust all multiplicities
-            for(Literal literalObject1 : literals) {
-                int multiplicity = literalObject1.multiplicity;
-                if(multiplicity > limit) {
-                    expandedSize -= limit - multiplicity;
-                    literalObject1.multiplicity = limit;}}}
-        hasMultiplicities = expandedSize > literals.size();
-        return 0;}
 
     /** removes all literals where modelStatus != 0.
      * <br>
@@ -294,7 +256,7 @@ public class Clause {
      * @param literals  the literals
      * @param remover   applied to removed literals
      * @param trueLiterals applied to a remaining single literal (must be true).
-     * @return 0 if the clause has become true, otherwise the old essential literals
+     * @return 0 if the clause has become true, otherwise the new expandedSize.
      */
     static int reduceToEssentialLiterals(int limit, ArrayList<Literal> literals,  Consumer<Literal> remover, IntConsumer trueLiterals) {
         int remainingMultiplicity = 0; int expandedSize = 0;
@@ -315,6 +277,21 @@ public class Clause {
                 remover.accept(literals.get(0)); literals.clear();
                 return 0;}}
         return expandedSize;}
+
+    /** reduces the clause's literals to the essential literals.
+     * <br>
+     * Example: &gt= 2 q^2,r^2,s -> p,q <br>
+     * The literal's size shrinks if a reduction was achieved.
+     *
+     * @param remover   applied to removed literals
+     * @param trueLiterals applied to a remaining single literal (must be true).
+     * @return true if the clause survived, otherwise false (all literals removed).
+     */
+    boolean reduceToEssentialLiterals(Consumer<Literal> remover, IntConsumer trueLiterals) {
+        int newExpandedSize = reduceToEssentialLiterals(limit, literals,remover,trueLiterals);
+        if(newExpandedSize == 0) return false;
+        if(newExpandedSize < expandedSize) reduceToDisjunction();
+        return true;}
 
 
     /** removes complementary pairs from the clause.
@@ -402,6 +379,14 @@ public class Clause {
     private final ArrayList<Literal> auxiliaryLiterals = new ArrayList<>(5);
 
 
+    /** extracts all literals which must be true because there are not enough other literals to satisfy the limit.
+     * <br>
+     * All superfluous literals are removed.
+     *
+     * @param remover       applied to removed literals
+     * @param trueLiterals  applied  to true literals
+     * @return              +1 if the entire clause is removed, otherwise 0.
+     */
     byte reduceByTrueLiterals(Consumer<Literal> remover, IntConsumer trueLiterals) {
         return removeLiterals(literalObject -> (expandedSize-literalObject.multiplicity < limit) ? 1 : 0,remover,trueLiterals);}
 
