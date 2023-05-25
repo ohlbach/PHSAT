@@ -209,8 +209,6 @@ public class Resolution extends Solver {
             System.out.println("Result " + result.getClass().getName());
             printSeparated();
             if(result instanceof Satisfiable) {
-                completeModel();
-                completeModelForEquivalences((byte) 1);
                 model.exchangeModel(localModel);}
             result.statistic = statistics;
             result.solverId = solverId;
@@ -319,7 +317,7 @@ public class Resolution extends Solver {
      * @param inferenceStep which caused the truth
      */
     public void addInternalTrueLiteralTask(int literal, boolean globallyTrue, InferenceStep inferenceStep) throws Unsatisfiable {
-        if(inferenceStep == null) {
+        if(trackReasoning && inferenceStep == null) {
             new Exception().printStackTrace();
             System.exit(1);
         }
@@ -421,7 +419,7 @@ public class Resolution extends Solver {
                     printSeparated();
                 }
                 if(monitoring  && printClauses && changed) {
-                    System.out.println("Model: " + model.toString());
+                    System.out.println("Local Model: " + localModelString());
                     //printSeparated();
                 }
                 if(trueLiteralsInQueue == 0 && binaryClausesInQueue == 0 && literalIndexMore.size() == 0) {
@@ -552,13 +550,11 @@ public class Resolution extends Solver {
                 if(Math.abs(literal) == oldTruePredicate) {
                     newTrueLiteral = equivalences.getInt(i);
                     if(oldTrueLiteral != literal) newTrueLiteral *= -1;}}
-            if(newTrueLiteral != 0) {
+            if(newTrueLiteral != 0 && localStatus(newTrueLiteral) == 0) {
                 if(monitoring) monitor.println(monitorId, "Equivalent literal " +
                         Symboltable.toString(newTrueLiteral,symboltable) + " added to model.");
-                makeLocallyTrue(newTrueLiteral);
-                if(trackReasoning) {
-                    inferenceStep = new InfEquivalentTruth(newTrueLiteral,oldTrueLiteral,equivalenceSteps.get(i),inferenceStep);}
-                model.add(myThread,newTrueLiteral,inferenceStep);
+                addInternalTrueLiteralTask(newTrueLiteral,true,
+                        trackReasoning ? new InfEquivalentTruth(newTrueLiteral,oldTrueLiteral,equivalenceSteps.get(i),inferenceStep) : null);
                 ++statistics.derivedTrueLiterals;}}}
 
     /** applies a true literal to all two-literal clauses containing this literal.
@@ -1532,11 +1528,12 @@ public class Resolution extends Solver {
                 while(literalObject != null) {literalsP.add(literalObject); literalObject = literalObject.nextLiteral;}
                 literalObject = literalIndexMore.getFirstLiteralObject(-predicate);
                 while(literalObject != null) {literalsN.add(literalObject); literalObject = literalObject.nextLiteral;}
-                for(Literal literalP : literalsP) {for(Literal literalN: literalsN) {
-                    ++statistics.longerResolvents;
-                    resolve(literalP,literalN);}}
-                for(Literal literalP : literalsP) removeClause(literalP.clause,false,false);
-                for(Literal literalN : literalsN) removeClause(literalN.clause,false,false);
+                for(Literal literalP : literalsP) {
+                    for(Literal literalN: literalsN) {
+                        ++statistics.longerResolvents;
+                        resolve(literalP,literalN);}}
+                for(Literal literalP : literalsP) {Clause clause = literalP.clause; removeClause(clause,false,false); literalP.clause = clause;}
+                for(Literal literalN : literalsN) {Clause clause = literalN.clause; removeClause(literalN.clause,false,false);literalN.clause = clause;}
                 eliminatedPredicates.add(literalsP); eliminatedPredicates.add(literalsN);
                 if(monitoring) monitor.println(monitorId,"Predicate Eliminated by Resolution: " +
                         Symboltable.toString(predicate,symboltable));
@@ -1551,12 +1548,14 @@ public class Resolution extends Solver {
             for(Literal literalObject : eliminatedPredicates.get(i)) {
                 Clause clause = literalObject.clause;
                 int literal = literalObject.literal;
-                if(localStatus(literal) != 0) continue;
                 int trueLiterals = 0;
-                for(Literal litObject : literalObject.clause.literals) {
+                for(Literal litObject : clause.literals) {
                     if(localStatus(litObject.literal) == 1) ++trueLiterals;}
-                if(trueLiterals < clause.limit) makeLocallyTrue(literal);}}
-    }
+                if(trueLiterals < clause.limit)
+                    for(Literal  litObject : clause.literals) {
+                        if(localStatus(litObject.literal) == 0) {
+                            makeLocallyTrue(litObject.literal);
+                            if(++trueLiterals == clause.limit) break;}}}}}
 
     /** extends the local model to the equivalences.
      * <br>
