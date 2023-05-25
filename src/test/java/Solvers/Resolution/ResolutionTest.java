@@ -62,7 +62,7 @@ public class ResolutionTest extends TestCase {
                 "Negative Literals:\n" +
                 "-3:1,", resolution.literalIndexMore.toString());
 
-        resolution.removeClause(clause1, false); // no purity check
+        resolution.removeClause(clause1, false,false); // no purity check
         assertEquals("2: >= 2 1^2,2^2,-3^2\n" +
                 "3: 4v-5\n", resolution.clauses.toString());
 
@@ -87,7 +87,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(clause1);
         Clause clause2 = new Clause(new int[]{2, cOr, -1, -2, 3});
         resolution.insertClause(clause2);
-        resolution.removeClause(clause2, true);
+        resolution.removeClause(clause2, true,false);
         assertEquals("1: 1v2v3\n", resolution.clauses.toString());
         assertEquals("1,2,3", resolution.localModelString());
     }

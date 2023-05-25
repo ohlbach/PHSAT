@@ -14,7 +14,7 @@ public class InfEquivalentTruth extends InferenceStep {
 
     private static final String rule = "p == q and true(p) -> true(q)";
     @Override
-    public String rule() {return rule;}
+    public String rule() {return title + "\n  " + rule;}
 
     int literal1, literal2;
     InfEquivalence infEquivalence; InferenceStep infTruth;
@@ -25,8 +25,8 @@ public class InfEquivalentTruth extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return Symboltable.toString(literal1,symboltable) + " == " + Symboltable.toString(literal2,symboltable) +
-                "true(" + Symboltable.toString(literal1,symboltable) + ")";}
+        return title + "\n  " + Symboltable.toString(literal1,symboltable) + " == " + Symboltable.toString(literal2,symboltable) +
+                " -> true(" + Symboltable.toString(literal1,symboltable) + ")";}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {

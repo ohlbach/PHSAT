@@ -41,16 +41,21 @@ public class InfTrueLiterals extends InferenceStep {
 
     public InfTrueLiterals addResults(Clause clause, byte status, IntArrayList derivedLiterals, Symboltable symboltable) {
         if(status == 0) clauseAfter = clause.toString(symboltable,0);
-        this.newTrueLiterals = derivedLiterals;
+        newTrueLiterals = derivedLiterals.clone();
         return this;}
+
+    public String result(Symboltable symboltable) {
+        String result = (clauseAfter != null) ? clauseAfter : "";
+        if(newTrueLiterals != null && !newTrueLiterals.isEmpty()) {
+            if(!result.isEmpty()) result += " and ";
+            result += "true(" + Symboltable.toString(newTrueLiterals,symboltable) + ")";}
+        if(result.isEmpty()) result = "empty clause.";
+        return result;}
 
     @Override
     public String toString(Symboltable symboltable) {
-        String result = (clauseAfter != null) ? clauseAfter : "";
-        if(newTrueLiterals != null && !newTrueLiterals.isEmpty())
-            result += " and true(" + Symboltable.toString(newTrueLiterals,symboltable) + ")";
-        if(result.isEmpty()) result = "empty clause.";
-        return title + "\n  " +clauseBefore + " and true(" + Symboltable.toString(oldTrueLiterals,symboltable) + ") -> " + result;}
+        return title + "\n  " +clauseBefore + " and true(" + Symboltable.toString(oldTrueLiterals,symboltable) + ") -> "
+                + result(symboltable);}
 
 
     @Override
