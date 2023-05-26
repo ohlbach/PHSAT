@@ -19,7 +19,11 @@ import java.util.function.IntSupplier;
  *  A clause can only be a disjunction (OR-clause) or an ATLEAST-clause.<br>
  *  Other types are not supported.<br>
  *  Each Clause object may be part of a doubly connected list of clauses. <br>
- *  Clauses can be destructively changed.
+ *  Clauses can be destructively changed.<br>
+ *  Clause are identified by an identifier and possibly a sub-identifier.<br>
+ *  This allows one to transform interval-type clauses to several clauses, while keeping
+ *  the identifier of the original clause.<br>
+ *  A sub-identifier 0 is ignored.
  */
 public class Clause {
     /** the identifier for the clause. */
@@ -28,13 +32,13 @@ public class Clause {
     /** another identifier for clauses which originated from interval-type clauses */
     int subIdentifier = 0;
 
-    /** the connective, OR or ATLEAST. */
+    /** the quantifier, OR or ATLEAST. */
     Quantifier quantifier;
 
-    /** true if the connective is OR. */
+    /** true if the quantifier is OR. */
     boolean isDisjunction;
 
-    /** the quantifier for ATLEAST clauses. */
+    /** the minimum quantification for ATLEAST clauses. */
     int limit = 1;
 
     /** the sum of all multiplicities of the literals. */
@@ -57,6 +61,7 @@ public class Clause {
 
     /** a timestamp to be used by various algorithms. */
     int timestamp1 = 0;
+
     /** a timestamp to be used by other algorithms. */
     int timestamp2 = 0;
 
@@ -67,6 +72,8 @@ public class Clause {
     Clause nextClause;
 
     /** The constructor turns an InputClause int[]-array into a Clause object.
+     * <br>
+     * The constructor is used for testing purposes.
      *
      * @param inputClause InputClause int[]-array.
      */
@@ -108,6 +115,8 @@ public class Clause {
         hasMultiplicities = expandedSize > literals.size();}
 
     /** This is a constructor for a disjunction.
+     * <br>
+     * It is in particular used for constructing 2-literal clauses, which, when simplified, are always disjunctions.
      *
      * @param identifier             the identifier.
      * @param literalNumbers the literals of the disjunction.
@@ -123,10 +132,12 @@ public class Clause {
             literals.add(literalObject);}
         determineClauseType();}
 
-    /** constructs a new clause.
+    /** constructs a new clause from previously constructed Literals.
+     * <br>
      * The literal's multiplicities are automatically reduced to 'limit'.
+     * This constructor is used for constructing new resolvents.
      *
-     * @param identifier         the identifier for the clause.
+     * @param identifier the identifier for the clause.
      * @param quantifier the quantifier.
      * @param limit      the limit for the quantifier.
      * @param literals   the literals.
@@ -134,32 +145,38 @@ public class Clause {
     public Clause(int identifier, Quantifier quantifier, int limit, ArrayList<Literal> literals) {
         this.identifier = identifier;
         this.quantifier = quantifier;
-        isDisjunction = quantifier == Quantifier.OR;
+        isDisjunction   = quantifier == Quantifier.OR;
         this.limit = limit;
         this.literals = literals;
         for(Literal literalObject: literals) {
             literalObject.clause = this;
             literalObject.multiplicity = Math.min(limit,literalObject.multiplicity);
             expandedSize += literalObject.multiplicity;}
-        determineClauseType();
-        hasMultiplicities = expandedSize > literals.size();}
+        hasMultiplicities = expandedSize > literals.size();
+        determineClauseType();}
 
 
     /** this constructor turns a normalizedClause to a clause for the Resolution solver.
+     * <br>
+     * A normalizedClause is in interval-normalform.<br>
+     * Therefor this constructor works only for OR- and ATLEAST-clauses.<br>
+     * The structure of the normalizedClause is: <br>
+     * identifier, quantifier, min, max, expandedSize, literal1, multiplicity1,...
      *
      * @param normalizedClause a normalized and simplified clause from the Normalizer.
      * @param subIdentifier a secondary identifier for multiple clauses resulting from interval-type clauses.
      *                      subIdentifier = 0 will be ignored.
      */
     public Clause(IntArrayList normalizedClause, int subIdentifier) {
-        identifier = normalizedClause.getInt(0);
+        identifier         = normalizedClause.getInt(0);
         this.subIdentifier = subIdentifier;
-        quantifier = Normalizer.getQuantifier(normalizedClause);
-        isDisjunction = quantifier == Quantifier.OR;
-        limit = Normalizer.getMin(normalizedClause);
-        expandedSize = Normalizer.getExpandedSize(normalizedClause);
-        hasMultiplicities = Normalizer.hasMultiplicities(normalizedClause);
-        inferenceStep = new InfInputClause(identifier);
+        quantifier         = Normalizer.getQuantifier(normalizedClause);
+        assert quantifier == Quantifier.OR || quantifier == Quantifier.ATLEAST;
+        isDisjunction      = quantifier == Quantifier.OR;
+        limit              = Normalizer.getMin(normalizedClause);
+        expandedSize       = Normalizer.getExpandedSize(normalizedClause);
+        hasMultiplicities  = Normalizer.hasMultiplicities(normalizedClause);
+        inferenceStep      = new InfInputClause(identifier);
         for(int i = Normalizer.literalsStart; i <= normalizedClause.size()-2; i +=2) {
             Literal literal = new Literal(normalizedClause.getInt(i),normalizedClause.getInt(i+1));
             literals.add(literal);
@@ -190,12 +207,21 @@ public class Clause {
 
     /** removes all literals where modelStatus != 0.
      * <br>
+     * modelStatus == 1 means the literal is true, and therefor the limit has to be reduced by the literal's multiplicity.<br>
+     * modelStatus == -1 means the literal is false and can just be removed.<br>
      * - all possible simplifications are done. <br>
      * - all superfluous literals are removed.<br>
-     * - for all derivable literals, trueLiterals is called.
+     *   Example: &gt;= 2 p,q^2,r^2,s and false(p) -> &gt;= 2 q^2,r^2,s -> q,r <br>
+     * - for all derivable literals, trueLiterals is called.<br>
+     *   Example:  &gt;= 2 p^2,q,r. and false(q) -> &gt;= 2 p^2,r -> p must be true.<br>
+     * If the resulting clause is a unit clause, trueLiterals is applied to it, and the literal is removed.
+     * In this case the clause is empty, but nor false.<br>
+     * The result +1 may therefor mean: tautology, or unit clause with removed literal.
+     * <br>
+     * The remover is applied to all removed literals. It may, for example, remove the literals from the index.
      *
-     * @param modelStatus returns +1 (true), -1 (false) or 0 (undefined)
-     * @param remover is applied to the removed literals.
+     * @param modelStatus  returns +1 (true), -1 (false) or 0 (undefined).
+     * @param remover      is applied to the removed literals.
      * @param trueLiterals is applied to all derivable true literals.
      * @return +1 (removed), -1 (unsatisfiable), 0 undefined.
      */
@@ -250,7 +276,11 @@ public class Clause {
     /** reduces the literals to the essential literals.
      * <br>
      * Example: &gt= 2 q^2,r^2,s -> p,q <br>
-     * The literal's size shrinks if a reduction was achieved.
+     * If such a reduction is possible then the clause becomes a disjunction.<br>
+     * The literal's size shrinks if a reduction was achieved.<br>
+     * The remover is applied to all removed literals.<br>
+     * If a literal becomes true (e.g. unit clause), the trueLiterals is applied to the single literal,
+     * and the literal is removed as well.
      *
      * @param limit     the clause's limit
      * @param literals  the literals
@@ -283,7 +313,7 @@ public class Clause {
      * Example: &gt= 2 q^2,r^2,s -> p,q <br>
      * The literal's size shrinks if a reduction was achieved.
      *
-     * @param remover   applied to removed literals
+     * @param remover   applied to removed literals.
      * @param trueLiterals applied to a remaining single literal (must be true).
      * @return true if the clause survived, otherwise false (all literals removed).
      */
@@ -292,61 +322,6 @@ public class Clause {
         if(newExpandedSize == 0) return false;
         if(newExpandedSize < expandedSize) reduceToDisjunction();
         return true;}
-
-
-    /** removes complementary pairs from the clause.
-     * Example: atleast 4 p^3, -p^2, q, r -> atleast 2 p,q,r. <br>
-     * Example: atleast 2 p^2, -p^1,q,r -> atleast 0 q,r -> true.<br>
-     * The clause may be turned into a disjunction.
-     *
-     * @param complementaries for counting the removal of complementary literals.
-     * @return true if the clause became a true clause (tautology).
-     */
-    protected boolean removeComplementaryLiterals(IntConsumer complementaries, Consumer<Literal> literalRemover) {
-        boolean complementariesFound = false;
-        for(int i = 0; i < literals.size()-1; ++i) {
-            Literal literalObject1 = literals.get(i);
-            int literal1 = literalObject1.literal;
-            int multiplicity1 = literalObject1.multiplicity;
-            for(int j = i+1; j < literals.size(); ++j) {
-                Literal literalObject2 = literals.get(j);
-                if(literalObject2.literal == -literal1) {
-                    complementariesFound = true;
-                    int multiplicity2 = literalObject2.multiplicity;
-                    if(multiplicity1 == multiplicity2) {
-                        complementaries.accept(multiplicity1);
-                        limit -= multiplicity1;
-                        if(limit <= 0) return true;
-                        literals.remove(j);
-                        literals.remove(i--);
-                        if(literalRemover != null) {
-                            literalRemover.accept(literalObject1);
-                            literalRemover.accept(literalObject2);}
-                        expandedSize -= multiplicity1;
-                        break;}
-                    if(multiplicity1 > multiplicity2) {
-                        complementaries.accept(multiplicity2);
-                        limit -= multiplicity2;
-                        if(limit <= 0) return true;
-                        literalObject1.multiplicity -= multiplicity2;
-                        literals.remove(j);
-                        if(literalRemover != null) literalRemover.accept(literalObject2);
-                        expandedSize -= multiplicity2;
-                        break;}
-                    complementaries.accept(multiplicity1);
-                    limit -= multiplicity1;
-                    if(limit <= 0) return true;
-                    literalObject2.multiplicity -= multiplicity1;
-                    literals.remove(i--);
-                    if(literalRemover != null) literalRemover.accept(literalObject1);
-                    expandedSize -= multiplicity1;
-                    break;}}}
-        if(!complementariesFound) return false;
-        if(literals.isEmpty()) return true;
-        determineClauseType();
-        adjustMultiplicitiesToLimit();
-        reduceToDisjunction();
-        return false;}
 
     /** to be used by divideByGCD. */
     private final IntArrayList numbers = new IntArrayList();
@@ -425,63 +400,7 @@ public class Clause {
                 literals.clear();
                 return 0;}
         return limit;}
-
-
-    /** shrinks the literals to the essential literals, if possible, and turns the clause to a disjunction.
-     * Example: atleast 2 p^2,q^2,r.<br>
-     * In this case either p or q must be true. If both are false then r is not enough to get 2 true literals.<br>
-     * The clause shrinks to the disjunction: p,q.
-     *
-     * @param removedLiterals for collecting the removed literals (for purity check).
-     * @return true if literals have been removed.
-     */
-    protected boolean reduceToEssentialLiterals(ArrayList<Literal> removedLiterals) {
-        if(!hasMultiplicities) return false;
-        auxiliaryLiterals.clear(); // collect the literals with multiplicities < limit
-        int multiplicities = 0;
-        for(Literal literalObject: literals) {
-            if(literalObject.multiplicity != limit) {
-                auxiliaryLiterals.add(literalObject);
-                multiplicities += literalObject.multiplicity;}}
-        if(multiplicities >= limit) return false; // the remaining literals can satisfy the clause.
-
-        for(Literal literalObject : auxiliaryLiterals) {
-            removedLiterals.add(literalObject);
-            literals.remove(literalObject);
-            literalObject.clause = null;}
-        limit = 1;
-        adjustMultiplicitiesToLimit();
-        reduceToDisjunction();
-        determineClauseType();
-        return true;}
-
-
-
-
-    /** replaces the oldLiteral in the clause by the newLiteral.
-     * The literal's multiplicities are adjusted to the limit.
-     *
-     * @param oldLiteral  one of the clause's literals
-     * @param newLiteral  the literal which replaces the old literal.
-     */
-    protected void replaceLiteral(Literal oldLiteral, Literal newLiteral) {
-        for(int i = 0; i < literals.size(); ++i) {
-            if(literals.get(i) == oldLiteral) {
-                literals.set(i,newLiteral);
-                if(limit > 1) adjustMultiplicitiesToLimit();
-                break;}}
-        determineClauseType();}
-
-
-    /** reduces the literal's multiplicity to the clause's limit.
-     */
-    protected void adjustMultiplicitiesToLimit() {
-        expandedSize = 0;
-        for(Literal literalObject : literals) {
-            literalObject.multiplicity = Math.min(limit,literalObject.multiplicity);
-            expandedSize += literalObject.multiplicity;}
-        hasMultiplicities = expandedSize > literals.size();}
-
+    
 
     /** reduces the clause to a disjunction.
      */

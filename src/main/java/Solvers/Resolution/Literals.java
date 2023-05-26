@@ -2,14 +2,17 @@ package Solvers.Resolution;
 
 import Datastructures.Symboltable;
 
-/** This class is actually an index for the Literal objects.<br>
+/** This class is actually an index for the Literal objects.
+ * <br>
  * It contains for each predicate two doubly connected lists of Literal objects,
  * one for positive literals and one for negative literals.
  */
 public class Literals {
 
+    /** a name for the index. */
     String name;
 
+    /** the number of predicates for the index. */
     int predicates;
 
     /** a doubly connected list for each positive literal */
@@ -18,6 +21,8 @@ public class Literals {
     /** a doubly connected list for each negative literal */
     Literal[] negativeLiterals;
 
+    /** the total number of predicates (positive + negative) with a non-empty index.
+     * If entries == 0 then the entire index is empty.*/
     int entries = 0;
 
     /** constructs a new index
@@ -31,9 +36,13 @@ public class Literals {
         positiveLiterals = new Literal[predicates+1];
         negativeLiterals = new Literal[predicates+1];}
 
-    /** If the index is large enough, it is reused and all literals are removed, otherwise a new index is created.
+    /** The arrays can be reused for new problems.
+     * <br>
+     * If the index is large enough, it is reused and all literals are removed, otherwise a new index is created.
+     *
+     * @param predicates the new number of predicates for the new version of the index.
      */
-    public void clear(int predicates) {
+     void clear(int predicates) {
         entries = 0;
         this.predicates = predicates;
         if(positiveLiterals.length <= predicates) {
@@ -44,20 +53,22 @@ public class Literals {
                 positiveLiterals[i] = null;
                 negativeLiterals[i] = null;}}}
 
-    /** returns the first Literal object in the Literal chain of the given literal
+    /** returns the first Literal object in the Literal chain of the given literal.
      *
      * @param literal a literal
      * @return the first Literal object in the Literal chain of the given literal
      */
-    public Literal getFirstLiteralObject(int literal) {
+     Literal getFirstLiteralObject(int literal) {
         return (literal > 0) ? positiveLiterals[literal] : negativeLiterals[-literal];}
 
 
     /** adds a literal object to the Literal index.
+     * <br>
+     * The new literal is added at the front of the list.
      *
      * @param literalObject the literal object to be added.
      */
-    public void addLiteral(Literal literalObject) {
+     void addLiteral(Literal literalObject) {
         int literal = literalObject.literal;
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
@@ -69,14 +80,16 @@ public class Literals {
             firstLiteral.previousLiteral = literalObject;}}
 
     /** removes a literal object from the Literal index.
+     * <br>
      * The removed literal's nextLiteral remains as it is.
      * This way forward iterations with a pointer pointing to the removed literal still work.<br>
-     * One has to check literalObject.clause!
+     * One has to check literalObject.clause!<br>
+     * The literalObject's previousLiteral is set to null.
      *
      * @param literalObject the literal object to be added.
      * @return true if the chain of literals with the given literal is now empty.
      */
-    public boolean removeLiteral(Literal literalObject) {
+     boolean removeLiteral(Literal literalObject) {
         literalObject.clause = null;
         Literal previousLiteral = literalObject.previousLiteral;
         Literal nextLiteral     = literalObject.nextLiteral;
@@ -84,7 +97,7 @@ public class Literals {
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
 
-        if(previousLiteral == null) literals[predicate] = nextLiteral;
+        if(previousLiteral == null) literals[predicate] = nextLiteral; // it was the first in the list.
         else previousLiteral.nextLiteral = nextLiteral;
         if(nextLiteral != null) nextLiteral.previousLiteral = previousLiteral;
         literalObject.previousLiteral = null;
@@ -96,7 +109,7 @@ public class Literals {
      *
      * @param literal a literal to be removed.
      */
-    public void removePredicate(int literal) {
+     void removePredicate(int literal) {
         int predicate = Math.abs(literal);
         if(positiveLiterals[predicate] != null) --entries;
         if(negativeLiterals[predicate] != null) --entries;
@@ -108,7 +121,7 @@ public class Literals {
      * @param literal a literal
      * @return true if the literal chain for the given literal is empty.
      */
-    public boolean isEmpty(int literal) {
+     boolean isEmpty(int literal) {
         int predicate = Math.abs(literal);
         return literal > 0 ? positiveLiterals[predicate] == null : negativeLiterals[predicate] == null;
     }
@@ -122,11 +135,13 @@ public class Literals {
     int size() {return entries;}
 
     /** counts the number of literal objects for the given literal in the index.
+     * <br>
+     * There is no counter. Therefor the method counts each time it is called.
      *
      * @param literal a literal.
      * @return the number of literal objects for the given literal in the index.
      */
-    public int size(int literal) {
+     int size(int literal) {
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
         int size = 0;
@@ -137,11 +152,14 @@ public class Literals {
         return size;}
 
     /** counts the number of literal objects for the given literal in the index up to max.
+     * <br>
+     * Example: if max = 2, the counting stops when it reached 2 entries.
      *
      * @param literal a literal.
+     * @param max the counting of the literals is done only up to this value.
      * @return -1 if the number of literal objects for the given literal in the index &gt; max, otherwise this number.
      */
-    public int size(int literal, int max) {
+     int size(int literal, int max) {
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
         int size = 0;
@@ -166,15 +184,18 @@ public class Literals {
     }
 
     /** checks the consistency of the index.
+     * <br>
      * - is the literal's clause still defined. <br>
      * - is the literal in the right predicate slot.<br>
-     * - if size &gt; 0: has the literal's clause the right size,
+     * - if size &gt; 0: has the literal's clause the right size?<br>
+     * This can be used for a literal index for clauses with a fixed size.<br>
+     * An inconsistency in the index causes a stacktrace to be printed, and the system stops.
      *
-     * @param size 0 or the clause size.
+     * @param size 0 or the clause's size.
      * @param text an error text.
      */
     void checkConsistency(int size, String text) {
-        for(int predicate = 1; predicate < positiveLiterals.length; ++predicate) {
+        for(int predicate = 1; predicate < predicates; ++predicate) {
             Literal literalObject = positiveLiterals[predicate];
             while(literalObject != null) {
                 if(literalObject.clause == null) {

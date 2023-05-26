@@ -44,16 +44,16 @@ public class QUSat {
 
    private static final String parameters =
             "problem random\n"+
-                    "predicates = 40\n" +
+                    "predicates = 200\n" +
                     "cpRatio = 4\n"+
-                    "length = 3\n"+
-                    "seed = 9\n"+ // 20/4;  0 sat, 1 cont, 2 sat, 3 sat, 4 unsat, 5 sat, 6 sat, 7 sat, 8 wrong
+                    "length = 2-4\n"+
+                    "seed = 0\n"+ // 20/4;  0 sat, 1 cont, 2 sat, 3 sat, 4 unsat, 5 sat, 6 sat, 7 sat, 8 wrong
             "global\n" +           //12/4: 8 wrong
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
                     "showClauses = true\n"+
                     //"monitor = life\n"+
-                    //"trackReasoning\n"+
+                    "trackReasoning\n"+
            //"solver simplifier";
            "solver resolution\n";
                     //"mergeResolution = true\n";

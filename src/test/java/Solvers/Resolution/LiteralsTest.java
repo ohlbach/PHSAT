@@ -53,7 +53,11 @@ public class LiteralsTest extends TestCase {
         Literal l31 = new Literal(3,1);
         literals.addLiteral(l31);
         assertEquals(2,literals.size(1));
+        assertEquals(-1,literals.size(1,1));
+        assertEquals(2,literals.size(1,2));
         assertEquals(1,literals.size(3));
+        assertEquals(3,literals.size());
+
         //System.out.println(literals.toString(symboltable));
     }
 
@@ -79,7 +83,9 @@ public class LiteralsTest extends TestCase {
         Literals literals = new Literals("Test",10);
         Literal l1 = new Literal(1,1);
         literals.addLiteral(l1);
+        assertTrue(literals.contains(l1));
         literals.removeLiteral(l1);
+        assertFalse(literals.contains(l1));
         assertNull(literals.getFirstLiteralObject(1));
         assertEquals(0,literals.size(1));
 
