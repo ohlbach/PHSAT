@@ -19,13 +19,15 @@ public class InfEquivalenceReplacement extends InferenceStep {
         return rule;}
 
     String oldClause, newClause;
+    IntArrayList trueLiterals = null;
     int representative,literal;
     InferenceStep equivalenceStep, clauseStep;
 
-    public InfEquivalenceReplacement(String oldClause, Clause newClause,
+    public InfEquivalenceReplacement(String oldClause, Clause newClause, IntArrayList trueLiterals,
                                      int representative, int literal, InferenceStep equivalenceStep, Symboltable symboltable) {
         this.oldClause       = oldClause;
-        this.newClause       = newClause.toString(symboltable,0);
+        this.newClause       = newClause.literals.isEmpty() ? "" : newClause.toString(symboltable,0);
+        this.trueLiterals    = trueLiterals;
         this.representative  = representative;
         this.literal         = literal;
         this.equivalenceStep = equivalenceStep;
@@ -34,8 +36,14 @@ public class InfEquivalenceReplacement extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n  " + oldClause + " and " + Symboltable.toString(representative,symboltable) +
-                " = " + Symboltable.toString(literal,symboltable) + " -> " + newClause;}
+        return title + "\n  " + info(symboltable);}
+
+    public String info(Symboltable symboltable) {
+        String trueLits = (trueLiterals == null || trueLiterals.isEmpty())? "" : Symboltable.toString(trueLiterals,symboltable);
+        if(!trueLits.isEmpty()) trueLits = "true("+trueLits+")";
+        if(!newClause.isEmpty() && !trueLits.isEmpty()) trueLits = " and " + trueLits;
+        return oldClause + " and " + Symboltable.toString(representative,symboltable) +
+                " == " + Symboltable.toString(literal,symboltable) + " -> " + newClause + trueLits;}
 
 
 

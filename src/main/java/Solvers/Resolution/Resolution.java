@@ -1235,10 +1235,10 @@ public class Resolution extends Solver {
                     literalIndexTwo.addLiteral(literalObject);
                     clause.determineClauseType();
                     if(trackReasoning) {clause.inferenceStep =
-                            new InfEquivalenceReplacement(clauseString,clause,representative,literal,equivalenceStep, symboltable);}
+                            new InfEquivalenceReplacement(clauseString,clause,null,representative,literal,equivalenceStep, symboltable);}
                     if(monitoring) monitor.println(monitorId,"\n  Clause " + clauseString + ": literal " +
-                            Symboltable.toString(literal,symboltable) + " replaced by equivalent literal " +
-                            Symboltable.toString(representative,symboltable) + " new clause: " + clause.toString(symboltable,0));
+                            Symboltable.toString(representative,symboltable) + " replaced by equivalent literal " +
+                            Symboltable.toString(literal,symboltable) + " new clause: " + clause.toString(symboltable,0));
                     if(binaryClauseIsSubsumed(clause) != null) removeClause(clause,false,true);
                         else {
                             clauses.updateClauseNumbers(clause,1);
@@ -1247,48 +1247,24 @@ public class Resolution extends Solver {
 
             literalObject = literalIndexMore.getFirstLiteralObject(literal);  // we check the longer clauses.
             while(literalObject != null) {
-                ++statistics.equivalenceReplacements;
                 Clause  clause = literalObject.clause;
-                clauses.updateClauseNumbers(clause,-1);
                 if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
+                ++statistics.equivalenceReplacements;
+                clauses.updateClauseNumbers(clause,-1);
                 String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
-                boolean done = false;
-                Literal representativeObject = clause.findLiteral(representative);
-                if(representativeObject != null) { // the two literals merge into one.
-                    done = true;
-                    representativeObject.multiplicity = Math.min(clause.limit, representativeObject.multiplicity + literalObject.multiplicity);
-                    if(!removeLiteralFromClause(literalObject,false)) {literalObject = literalObject.nextLiteral; continue;}}
-                else {
-                    representativeObject = clause.findLiteral(-representative);
-                    if(representativeObject != null) { // could be tautology
-                        done = true;
-                        if(representativeObject.multiplicity == literalObject.multiplicity) {
-                            removeClause(clause,true,literalIndexMore,false);
-                            literalObject = literalObject.nextLiteral; continue;}
-                        else {
-                            if(representativeObject.multiplicity > literalObject.multiplicity) {
-                                representativeObject.multiplicity -= literalObject.multiplicity;
-                                if(!removeLiteralFromClause(literalObject,false)) {literalObject = literalObject.nextLiteral; continue;}}
-                            else {literalObject.multiplicity -= representativeObject.multiplicity;
-                                literalIndexMore.removeLiteral(literalObject);
-                                literalObject.literal = representative;
-                                literalIndexMore.addLiteral(literalObject);
-                                if(!removeLiteralFromClause(representativeObject,false)) {literalObject = literalObject.nextLiteral; continue;}}}}}
-                if(!done) {
-                    literalIndexMore.removeLiteral(literalObject);
-                    literalObject.literal = representative;
-                    literalIndexMore.addLiteral(literalObject);
-                    clause.determineClauseType();}
-
-                if(trackReasoning) clause.inferenceStep =
-                            new InfEquivalenceReplacement(clauseString, clause, representative, literal, equivalenceStep, symboltable);
-                if(monitoring) monitor.println(monitorId,"\n  Clause " + clauseString + ": literal " +
-                                Symboltable.toString(literal,symboltable) + " replaced by equivalent literal " +
-                                Symboltable.toString(representative,symboltable) + " new clause: " + clause.toString(symboltable,0));
-                if(isSubsumed(clause) != null) removeClause(clause,false,false);
-                else {
-                    clauses.updateClauseNumbers(clause,+1);
-                    addDerivedClauseTask(clause);}
+                trueLiterals.clear();
+                int status = Clause.replaceLiteral(literalObject,representative,
+                                    (l->literalIndexMore.removeLiteral(l)),
+                                    (l->literalIndexMore.addLiteral(l)),
+                                    (l->trueLiterals.add(l)));
+                if(status == 1 && trueLiterals.isEmpty()) {literalObject = literalObject.nextLiteral; continue;}
+                InfEquivalenceReplacement step = (trackReasoning || monitoring) ?
+                        new InfEquivalenceReplacement(clauseString, clause, trueLiterals, representative, literal, equivalenceStep, symboltable) : null;
+                for(int trueLiteral : trueLiterals) addInternalTrueLiteralTask(trueLiteral,true,step);
+                if(monitoring) {monitor.println(monitorId,step.info(symboltable));}
+                if(status == 0 && isSubsumed(clause) != null) removeClause(clause,false,false);
+                else {clauses.updateClauseNumbers(clause,+1);
+                      addDerivedClauseTask(clause);}
                 literalObject = literalObject.nextLiteral;}}}
 
     boolean isTotallyEmpty(int literal) {

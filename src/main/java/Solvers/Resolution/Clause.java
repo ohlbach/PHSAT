@@ -400,7 +400,7 @@ public class Clause {
                 literals.clear();
                 return 0;}
         return limit;}
-    
+
 
     /** reduces the clause to a disjunction.
      */
@@ -489,6 +489,47 @@ public class Clause {
         return new Clause(id.getAsInt(), (newLiterals.size() == size)? Quantifier.ATLEAST: Quantifier.OR,
                 newLimit,newLiterals); }
 
+    /** replaces the literalObject by a new literal (typically equivalence replacement).
+     * <br>
+     * The method checks if the new literal or its negation is already in the clause.<br>
+     * Superfluous literals are removed from the clause.<br>
+     * The changed clause is simplified.
+     *
+     * @param literalObject  a literalObject of some clause.
+     * @param newLiteral     a literal (may already be in the clause).
+     * @param remover        applied to removed literals.
+     * @param adder          applied to newly added literals.
+     * @param trueLiterals   applied to derivable true literals.
+     * @return               1 if the clause has become superfluous (e.g. tautology), 0 if it survived.
+     */
+    static int replaceLiteral(final Literal literalObject, int newLiteral,
+                              Consumer<Literal> remover, Consumer<Literal> adder, IntConsumer trueLiterals) {
+        Clause clause = literalObject.clause;
+        Function<Literal,Integer> decider = ((Literal l) -> (l == literalObject) ? -1:0);
+        Literal newLiteralObject = clause.findLiteral(newLiteral);
+        if(newLiteralObject != null) { // the two literals merge into one.
+            newLiteralObject.multiplicity = Math.min(clause.limit, newLiteralObject.multiplicity + literalObject.multiplicity);
+            return clause.removeLiterals(decider,remover,trueLiterals);}
+        else {
+            final Literal negNewLiteralObject = clause.findLiteral(-newLiteral);
+            if(negNewLiteralObject != null) { // could be tautology
+                if(negNewLiteralObject.multiplicity == literalObject.multiplicity) { // is tautology
+                    for(Literal litObject : clause.literals) remover.accept(litObject);
+                    return 1;}
+                else {
+                    if(negNewLiteralObject.multiplicity > literalObject.multiplicity) { // Example; -p^5 q^3 (q -> p)  -> -p^2
+                        negNewLiteralObject.multiplicity -= literalObject.multiplicity;
+                        return clause.removeLiterals(decider,remover,trueLiterals);}
+                    else {literalObject.multiplicity -= negNewLiteralObject.multiplicity; // Example; -p^3 q^5 (q -> p)  -> p^2
+                        remover.accept(literalObject);
+                        literalObject.literal = newLiteral;
+                        adder.accept(literalObject);
+                        return clause.removeLiterals(((Literal l) -> (l == negNewLiteralObject) ? -1:0),remover,trueLiterals);}}}}
+        remover.accept(literalObject);
+        literalObject.literal = newLiteral;
+        adder.accept(literalObject);
+        clause.determineClauseType();
+        return 0;}
 
     /** investigates the distribution of positive and negative literals and determines the ClauseType.*/
     void determineClauseType() {

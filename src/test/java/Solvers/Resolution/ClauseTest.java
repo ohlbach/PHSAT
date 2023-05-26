@@ -27,6 +27,7 @@ public class ClauseTest extends TestCase {
         System.out.println("constructor InputClause Disjunction");
         int[] c1 = new int[]{10,cOr,1,2,-3};
         Clause clause1 = new Clause(c1);
+        assertEquals("10: 1v2v-3",clause1.toString());
         //System.out.println(clause1.toString());
         //System.out.println(clause1.toString(symboltable,10));
         assertEquals(10,clause1.identifier);
@@ -55,8 +56,8 @@ public class ClauseTest extends TestCase {
         System.out.println("constructor InputClause Atleast");
         int[] c1 = new int[]{11, cAtleast, 2, 1, 2, 1, -3, 2, -3,4};
         Clause clause = new Clause(c1);
-        //System.out.println(clause.toString());
-        //System.out.println(clause.toString(symboltable,10));
+        assertEquals("11: >= 2 1^2,2^2,-3^2,4",clause.toString());
+        assertEquals("  11: >= 2 p^2,q^2,-r^2,s",clause.toString(symboltable,4));
         assertEquals("11: >= 2 p^2,q^2,-r^2,s",clause.toString(symboltable,0));
         assertEquals(11, clause.identifier);
         assertEquals(Quantifier.ATLEAST, clause.quantifier);
@@ -65,6 +66,8 @@ public class ClauseTest extends TestCase {
         assertFalse(clause.isDisjunction);
         assertTrue(clause.hasMultiplicities);
         assertEquals(ClauseType.POSITIVENEGATIVE,clause.clauseType);
+        clause.subIdentifier = 5;
+        assertEquals("11.5: >= 2 1^2,2^2,-3^2,4",clause.toString());
     }
 
 
@@ -109,12 +112,13 @@ public class ClauseTest extends TestCase {
 
         removedLiterals.clear();
         trueLiterals.clear();
-        clause = new Clause(new int[]{3, cAtleast, 5, 1, 1, 3,4, 2, 2});
+        clause = new Clause(new int[]{3, cAtleast, 5, 1, 1, -3,-4, 2, 2});
+        assertEquals(ClauseType.MIXEDMIXED,clause.clauseType);
         assertEquals(1,Clause.reduceByTrueLiterals(5,6,clause.literals,(l -> removedLiterals.add(l)),
                 (l -> trueLiterals.add(l))));
         assertEquals("[1, 2]",trueLiterals.toString());
         assertEquals(2,removedLiterals.size());
-        assertEquals("3,4",Literal.toString(clause.literals,null));
+        assertEquals("-3,-4",Literal.toString(clause.literals,null));
 
         removedLiterals.clear();
         trueLiterals.clear();
@@ -310,4 +314,6 @@ public class ClauseTest extends TestCase {
         Clause resolvent13 = Clause.resolve(getLit(clause1, 0), getLit(clause3, 0), nextId, (lit -> trueLits.add(lit)));
         assertEquals("11: 2v3",resolvent13.toString());
     }
+
+
     }

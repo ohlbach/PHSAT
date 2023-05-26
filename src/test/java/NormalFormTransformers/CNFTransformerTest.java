@@ -79,7 +79,60 @@ public class CNFTransformerTest extends TestCase {
        //System.out.println(cnf.getInferenceStep(disjunction).toString());
     }
 
-    public void testExactly() {
+    public void testAtmost1() {
+        System.out.println("atmost1 to CNF");
+        int[] ids = new int[]{0};
+        CNFTransformer cnf = new CNFTransformer(() -> ++ids[0]);
+        int[] clause = new int[]{1, cAtmost, 1, 1, 2, 3};
+        cnf.reset(clause);
+        int[] disjunction = null;
+        StringBuilder disjunctions = new StringBuilder();
+        while (cnf.hasNext()) {
+            disjunctions.append(Arrays.toString(cnf.next())).append("\n");
+        }
+        assertEquals("[1, 0, -1, -2]\n" +
+                "[2, 0, -1, -3]\n" +
+                "[3, 0, -2, -3]\n", disjunctions.toString());
+
+        clause = new int[]{1, cAtmost, 2, 1, 2, 3};
+        cnf.reset(clause);
+
+        disjunctions = new StringBuilder();
+        while (cnf.hasNext()) {
+            disjunctions.append(Arrays.toString(cnf.next())).append("\n");
+        }
+        assertEquals("[4, 0, -1, -2, -3]\n", disjunctions.toString());
+
+        clause = new int[]{1, cAtmost, 1, 1, 2, 3,4};
+        cnf.reset(clause);
+
+        disjunctions = new StringBuilder();
+        while (cnf.hasNext()) {
+            disjunctions.append(Arrays.toString(cnf.next())).append("\n");
+        }
+        assertEquals("[5, 0, -1, -2]\n" +
+                "[6, 0, -1, -3]\n" +
+                "[7, 0, -1, -4]\n" +
+                "[8, 0, -2, -3]\n" +
+                "[9, 0, -2, -4]\n" +
+                "[10, 0, -3, -4]\n", disjunctions.toString());
+
+
+        clause = new int[]{1, cAtmost, 2, 1, 2, 3,4};
+        cnf.reset(clause);
+
+        disjunctions = new StringBuilder();
+        while (cnf.hasNext()) {
+            disjunctions.append(Arrays.toString(cnf.next())).append("\n");
+        }
+        assertEquals("[11, 0, -1, -2, -3]\n" +
+                "[12, 0, -1, -2, -4]\n" +
+                "[13, 0, -1, -3, -4]\n" +
+                "[14, 0, -2, -3, -4]\n", disjunctions.toString());
+
+    }
+
+        public void testExactly() {
         System.out.println("exactly to CNF");
         int[] ids = new int[]{9};
         CNFTransformer cnf = new CNFTransformer(() -> ++ids[0]);
