@@ -6,6 +6,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
 public class ClauseTest extends TestCase {
@@ -315,5 +317,51 @@ public class ClauseTest extends TestCase {
         assertEquals("11: 2v3",resolvent13.toString());
     }
 
+    public void testReplaceLiteral() {
+        System.out.println("replaceLiteral");
+        IntArrayList removed  = new IntArrayList();
+        IntArrayList added    = new IntArrayList();
+        IntArrayList trueLits = new IntArrayList();
+        Consumer<Literal> remover = (l-> removed.add(l.literal));
+        Consumer<Literal> adder = (l-> added.add(l.literal));
+        IntConsumer trueLiterals = (l -> trueLits.add(l));
 
+        Clause clause = new Clause(new int[]{1, cOr, 1,2,3});
+        assertEquals(0,Clause.replaceLiteral(clause.literals.get(1),4,remover,adder,trueLiterals));
+        assertEquals("1: 1v4v3",clause.toString());
+        assertEquals("[2]", removed.toString());
+        assertEquals("[4]",added.toString());
+        assertTrue(trueLits.isEmpty());
+
+        removed.clear(); added.clear();
+        clause = new Clause(new int[]{2, cOr, 1,2,3});
+        assertEquals(0,Clause.replaceLiteral(clause.literals.get(1),3,remover,adder,trueLiterals));
+        assertEquals("2: 1v3",clause.toString());
+        assertEquals("[2]", removed.toString());
+        assertEquals("[]",added.toString());
+        assertTrue(trueLits.isEmpty());
+
+        removed.clear(); added.clear();
+        clause = new Clause(new int[]{3, cOr, 1,2,3});
+        assertEquals(1,Clause.replaceLiteral(clause.literals.get(1),-3,remover,adder,trueLiterals));
+        assertEquals("[1, 2, 3]", removed.toString());
+        assertEquals("[]",added.toString());
+        assertTrue(trueLits.isEmpty());
+
+        removed.clear(); added.clear();
+        clause = new Clause(new int[]{4, cAtleast, 2, 1,2,3});
+        assertEquals(0,Clause.replaceLiteral(clause.literals.get(0),4,remover,adder,trueLiterals));
+        assertEquals("4: >= 2 4,2,3",clause.toString());
+        assertEquals("[1]", removed.toString());
+        assertEquals("[4]",added.toString());
+        assertTrue(trueLits.isEmpty());
+
+        removed.clear(); added.clear();
+        clause = new Clause(new int[]{5, cAtleast, 2, 1,2,3});
+        assertEquals(1,Clause.replaceLiteral(clause.literals.get(0),3,remover,adder,trueLiterals));
+        assertEquals("[1, 3, 2]", removed.toString());
+        assertEquals("[]",added.toString());
+        assertEquals("[3]",trueLits.toString());
+
+    }
     }

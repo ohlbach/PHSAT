@@ -509,6 +509,7 @@ public class Clause {
         Literal newLiteralObject = clause.findLiteral(newLiteral);
         if(newLiteralObject != null) { // the two literals merge into one.
             newLiteralObject.multiplicity = Math.min(clause.limit, newLiteralObject.multiplicity + literalObject.multiplicity);
+            clause.expandedSize += literalObject.multiplicity;
             return clause.removeLiterals(decider,remover,trueLiterals);}
         else {
             final Literal negNewLiteralObject = clause.findLiteral(-newLiteral);
