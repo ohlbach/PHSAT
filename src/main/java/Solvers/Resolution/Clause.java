@@ -275,7 +275,7 @@ public class Clause {
 
     /** reduces the literals to the essential literals.
      * <br>
-     * Example: &gt= 2 q^2,r^2,s -> p,q <br>
+     * Example: &gt;= 2 q^2,r^2,s -> p,q <br>
      * If such a reduction is possible then the clause becomes a disjunction.<br>
      * The literal's size shrinks if a reduction was achieved.<br>
      * The remover is applied to all removed literals.<br>
@@ -310,7 +310,7 @@ public class Clause {
 
     /** reduces the clause's literals to the essential literals.
      * <br>
-     * Example: &gt= 2 q^2,r^2,s -> p,q <br>
+     * Example: &gt;= 2 q^2,r^2,s -> p,q <br>
      * The literal's size shrinks if a reduction was achieved.
      *
      * @param remover   applied to removed literals.
@@ -508,14 +508,16 @@ public class Clause {
         Function<Literal,Integer> decider = ((Literal l) -> (l == literalObject) ? -1:0);
         Literal newLiteralObject = clause.findLiteral(newLiteral);
         if(newLiteralObject != null) { // the two literals merge into one.
+            int multiplicity = newLiteralObject.multiplicity;
             newLiteralObject.multiplicity = Math.min(clause.limit, newLiteralObject.multiplicity + literalObject.multiplicity);
-            clause.expandedSize += literalObject.multiplicity;
+            clause.expandedSize +=  newLiteralObject.multiplicity - multiplicity;
             return clause.removeLiterals(decider,remover,trueLiterals);}
         else {
             final Literal negNewLiteralObject = clause.findLiteral(-newLiteral);
             if(negNewLiteralObject != null) { // could be tautology
                 if(negNewLiteralObject.multiplicity == literalObject.multiplicity) { // is tautology
                     for(Literal litObject : clause.literals) remover.accept(litObject);
+                    clause.literals.clear();
                     return 1;}
                 else {
                     if(negNewLiteralObject.multiplicity > literalObject.multiplicity) { // Example; -p^5 q^3 (q -> p)  -> -p^2

@@ -363,5 +363,44 @@ public class ClauseTest extends TestCase {
         assertEquals("[]",added.toString());
         assertEquals("[3]",trueLits.toString());
 
+        removed.clear(); added.clear();trueLits.clear();
+        clause = new Clause(new int[]{6, cAtleast, 3, 1,1,2,3,3,4});
+        assertEquals(1,Clause.replaceLiteral(clause.literals.get(0),3,remover,adder,trueLiterals));
+        assertEquals("[1, 3, 2, 4]", removed.toString());
+        assertEquals("[]",added.toString());
+        assertEquals("[3]",trueLits.toString());
+
+        removed.clear(); added.clear();trueLits.clear();
+        clause = new Clause(new int[]{7, cAtleast, 2, 1,1,2,3,3,4});
+        assertEquals(1,Clause.replaceLiteral(clause.literals.get(0),-3,remover,adder,trueLiterals));
+        assertEquals("[1, 2, 3, 4]", removed.toString());
+        assertEquals("[]",added.toString());
+        assertEquals("[]",trueLits.toString());
+
+        removed.clear(); added.clear();trueLits.clear();
+        clause = new Clause(new int[]{7, cAtleast, 2, 1,1,1,2,3,3,4});
+        assertEquals(0,Clause.replaceLiteral(clause.literals.get(0),-3,remover,adder,trueLiterals));
+        assertEquals("7: >= 2 -3,2,4", clause.toString());
+        assertEquals("[1, 3]", removed.toString());
+        assertEquals("[-3]",added.toString());
+        assertEquals("[]",trueLits.toString());
+
+        removed.clear(); added.clear();trueLits.clear();
+        clause = new Clause(new int[]{8, cAtleast, 2, 1,1,2,3,3,3,4});
+        assertEquals(0,Clause.replaceLiteral(clause.literals.get(0),-3,remover,adder,trueLiterals));
+        assertEquals("8: >= 2 2,3,4", clause.toString());
+        assertEquals("[1]", removed.toString());
+        assertEquals("[]",added.toString());
+        assertEquals("[]",trueLits.toString());
+
+        removed.clear(); added.clear();trueLits.clear();
+        clause = new Clause(new int[]{9, cAtleast, 2, 1,1,2,3,3,3,4});
+        assertEquals(0,Clause.replaceLiteral(clause.literals.get(0),-5,remover,adder,trueLiterals));
+        assertEquals("9: >= 2 -5^2,2,3^3,4", clause.toString());
+        assertEquals("[1]", removed.toString());
+        assertEquals("[-5]",added.toString());
+        assertEquals("[]",trueLits.toString());
+        assertEquals(ClauseType.POSITIVENEGATIVE,clause.clauseType);
+
     }
     }
