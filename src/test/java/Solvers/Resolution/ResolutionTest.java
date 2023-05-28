@@ -53,11 +53,13 @@ public class ResolutionTest extends TestCase {
                 "2: >= 2 p^2,q^2,-r^2\n", resolution.clauses.toString(symboltable));
         Clause clause3 = new Clause(new int[]{3, cOr, 4, -5});
         resolution.insertClause(clause3);
-        assertEquals("Positive Literals:\n" +
+        assertEquals("Literals TWO:\n" +
+                "Positive Literals:\n" +
                 "4:1,\n" +
                 "Negative Literals:\n" +
                 "-5:1,", resolution.literalIndexTwo.toString());
-        assertEquals("Positive Literals:\n" +
+        assertEquals("Literals MORE:\n" +
+                "Positive Literals:\n" +
                 "1:2,2:2,3:1,\n" +
                 "Negative Literals:\n" +
                 "-3:1,", resolution.literalIndexMore.toString());
@@ -66,12 +68,14 @@ public class ResolutionTest extends TestCase {
         assertEquals("2: >= 2 1^2,2^2,-3^2\n" +
                 "3: 4v-5\n", resolution.clauses.toString());
 
-        assertEquals("Positive Literals:\n" +
+        assertEquals("Literals TWO:\n" +
+                "Positive Literals:\n" +
                 "4:1,\n" +
                 "Negative Literals:\n" +
                 "-5:1,", resolution.literalIndexTwo.toString());
 
-        assertEquals("Positive Literals:\n" +
+        assertEquals("Literals MORE:\n" +
+                "Positive Literals:\n" +
                 "1:1,2:1,\n" +
                 "Negative Literals:\n" +
                 "-3:1,", resolution.literalIndexMore.toString());
@@ -91,43 +95,6 @@ public class ResolutionTest extends TestCase {
         assertEquals("1: 1v2v3\n", resolution.clauses.toString());
         assertEquals("1,2,3", resolution.localModelString());
     }
-
-    public void testSimplifyClause() throws Unsatisfiable {
-        System.out.println("simplify clause");
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(10, monitor, true, nextId);
-        Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
-        resolution.simplifyClause(clause);
-        assertEquals("1: 1v2v3", clause.toString());
-
-        clause = new Clause(new int[]{2, cAtleast, 5, 1, 1, 2, 2, 3, 4});
-        resolution.insertClause(clause);
-        assertEquals("Positive Literals:\n" +
-                "1:1,2:1,3:1,4:1,\n" +
-                "Negative Literals:\n", resolution.literalIndexMore.toString());
-        resolution.simplifyClause(clause);
-        assertEquals("2: 3v4", clause.toString());
-        assertEquals("1,2", resolution.model.toString());
-        assertEquals("Positive Literals:\n" +
-                "\n" +
-                "Negative Literals:\n", resolution.literalIndexMore.toString());
-        assertEquals("Positive Literals:\n" +
-                "3:1,4:1,\n" +
-                "Negative Literals:\n", resolution.literalIndexTwo.toString());
-
-        clause = new Clause(new int[]{3, cAtleast, 6, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3});
-        resolution.simplifyClause(clause);
-        assertEquals("3: >= 3 1^2,2^2,3^2", clause.toString());
-
-        if(monitoring) {
-            InferenceStep step = resolution.model.getInferenceStep(1);
-            System.out.println("Inference Step");
-            System.out.println(step.toString(null));
-            System.out.println(step.rule());}
-    }
-
 
     public void testProcessTrueLiteralTwo() throws Result {
         System.out.println("processTrueLiteralTwo");

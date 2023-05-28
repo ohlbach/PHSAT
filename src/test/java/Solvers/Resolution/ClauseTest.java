@@ -402,5 +402,28 @@ public class ClauseTest extends TestCase {
         assertEquals("[]",trueLits.toString());
         assertEquals(ClauseType.POSITIVENEGATIVE,clause.clauseType);
 
+        removed.clear(); added.clear();trueLits.clear();
+        clause = new Clause(new int[]{10, cOr, 1,2});
+        assertEquals(0,Clause.replaceLiteral(clause.literals.get(0),3,remover,adder,trueLiterals));
+        assertEquals("10: 3v2", clause.toString());
+        assertEquals("[1]", removed.toString());
+        assertEquals("[3]",added.toString());
+        assertEquals("[]",trueLits.toString());
+        assertEquals(ClauseType.POSITIVE,clause.clauseType);
+
+        removed.clear(); added.clear();trueLits.clear();
+        clause = new Clause(new int[]{11, cOr, 1,2});
+        assertEquals(1,Clause.replaceLiteral(clause.literals.get(0),2,remover,adder,trueLiterals));
+        assertEquals("[1, 2]", removed.toString());
+        assertEquals("[]",added.toString());
+        assertEquals("[2]",trueLits.toString());
+
+        removed.clear(); added.clear();trueLits.clear();
+        clause = new Clause(new int[]{12, cOr, 1,2});
+        assertEquals(1,Clause.replaceLiteral(clause.literals.get(0),-2,remover,adder,trueLiterals));
+        assertEquals("[1, 2]", removed.toString());
+        assertEquals("[]",added.toString());
+        assertEquals("[]",trueLits.toString());
+
     }
     }

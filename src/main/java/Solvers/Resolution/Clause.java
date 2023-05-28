@@ -27,7 +27,7 @@ import java.util.function.IntSupplier;
  */
 public class Clause {
     /** the identifier for the clause. */
-    int identifier;
+    final int identifier;
 
     /** another identifier for clauses which originated from interval-type clauses */
     int subIdentifier = 0;
@@ -45,7 +45,7 @@ public class Clause {
     int expandedSize = 0;
 
     /** the list of all Literal objects in the clause. */
-    ArrayList<Literal> literals = new ArrayList<>();
+    ArrayList<Literal> literals;
 
     /** characterises the distribution of positive and negative literals in a clause. */
     ClauseType clauseType;
@@ -126,6 +126,7 @@ public class Clause {
         quantifier = Quantifier.OR;
         isDisjunction = true;
         expandedSize = literalNumbers.length;
+        literals = new ArrayList<>(expandedSize);
         for(int literal : literalNumbers) {
             Literal literalObject = new Literal(literal,1);
             literalObject.clause = this;
@@ -177,6 +178,7 @@ public class Clause {
         expandedSize       = Normalizer.getExpandedSize(normalizedClause);
         hasMultiplicities  = Normalizer.hasMultiplicities(normalizedClause);
         inferenceStep      = new InfInputClause(identifier);
+        literals           = new ArrayList<>(expandedSize);
         for(int i = Normalizer.literalsStart; i <= normalizedClause.size()-2; i +=2) {
             Literal literal = new Literal(normalizedClause.getInt(i),normalizedClause.getInt(i+1));
             literals.add(literal);
@@ -189,8 +191,8 @@ public class Clause {
      * @param literal a literal.
      * @return null or a Literal with the given literal.
      */
-    protected Literal findLiteral(int literal) {
-        for(Literal literalObject : literals) {
+    protected Literal findLiteral(final int literal) {
+        for(final Literal literalObject : literals) {
             if(literalObject.literal == literal) return literalObject;}
         return null;}
 
@@ -199,7 +201,7 @@ public class Clause {
      * @param literalObject one of the clause's literalObjects.
      * @return the other literalObject.
      */
-    protected Literal otherLiteral(Literal literalObject) {
+    protected Literal otherLiteral(final Literal literalObject) {
         assert(literals.size() == 2);
         return literalObject == literals.get(0) ? literals.get(1) : literals.get(0);}
 
@@ -225,10 +227,10 @@ public class Clause {
      * @param trueLiterals is applied to all derivable true literals.
      * @return +1 (removed), -1 (unsatisfiable), 0 undefined.
      */
-    byte removeLiterals(Function<Literal,Integer> modelStatus, Consumer<Literal> remover, IntConsumer trueLiterals){
+    byte removeLiterals(final Function<Literal,Integer> modelStatus, final Consumer<Literal> remover, final IntConsumer trueLiterals){
         for(int i = 0; i < literals.size(); ++i) {
-            Literal literalObject = literals.get(i);
-            int status = modelStatus.apply(literalObject);
+            final Literal literalObject = literals.get(i);
+            final int status = modelStatus.apply(literalObject);
             if(status == 0) continue;
             literalObject.clause = null;
             remover.accept(literalObject);
@@ -270,6 +272,7 @@ public class Clause {
         expandedSize = reduceToEssentialLiterals(limit,literals,remover,trueLiterals);
         if(expandedSize == 0) return 1;
         if(literals.size() < size) reduceToDisjunction();
+        else divideByGCD();
         determineClauseType();
         return 0;}
 
@@ -288,7 +291,7 @@ public class Clause {
      * @param trueLiterals applied to a remaining single literal (must be true).
      * @return 0 if the clause has become true, otherwise the new expandedSize.
      */
-    static int reduceToEssentialLiterals(int limit, ArrayList<Literal> literals,  Consumer<Literal> remover, IntConsumer trueLiterals) {
+    static int reduceToEssentialLiterals(final int limit, final ArrayList<Literal> literals,  final Consumer<Literal> remover, final IntConsumer trueLiterals) {
         int remainingMultiplicity = 0; int expandedSize = 0;
         for(Literal literalObject : literals) {
             literalObject.multiplicity = Math.min(limit,literalObject.multiplicity);
@@ -308,21 +311,6 @@ public class Clause {
                 return 0;}}
         return expandedSize;}
 
-    /** reduces the clause's literals to the essential literals.
-     * <br>
-     * Example: &gt;= 2 q^2,r^2,s -> p,q <br>
-     * The literal's size shrinks if a reduction was achieved.
-     *
-     * @param remover   applied to removed literals.
-     * @param trueLiterals applied to a remaining single literal (must be true).
-     * @return true if the clause survived, otherwise false (all literals removed).
-     */
-    boolean reduceToEssentialLiterals(Consumer<Literal> remover, IntConsumer trueLiterals) {
-        int newExpandedSize = reduceToEssentialLiterals(limit, literals,remover,trueLiterals);
-        if(newExpandedSize == 0) return false;
-        if(newExpandedSize < expandedSize) reduceToDisjunction();
-        return true;}
-
     /** to be used by divideByGCD. */
     private final IntArrayList numbers = new IntArrayList();
 
@@ -333,7 +321,7 @@ public class Clause {
     protected boolean divideByGCD() {
         numbers.clear(); numbers.add(limit);
         boolean stop = false;
-        for(Literal literalObject : literals) {
+        for(final Literal literalObject : literals) {
             int multiplicity = literalObject.multiplicity;
             if(multiplicity == 1) {stop = true; break;}
             numbers.add(multiplicity);}
@@ -342,7 +330,7 @@ public class Clause {
             if(gcd > 1) {
                 expandedSize = 0;
                 limit /= gcd;
-                for(Literal literalObject : literals) {
+                for(final Literal literalObject : literals) {
                     literalObject.multiplicity = Math.min(limit, literalObject.multiplicity / gcd);
                     expandedSize += literalObject.multiplicity;}
                 if(limit == 1) {
@@ -350,20 +338,6 @@ public class Clause {
             return true;}}
         return false;}
 
-    /** to be used by reduceByTrueLiterals. */
-    private final ArrayList<Literal> auxiliaryLiterals = new ArrayList<>(5);
-
-
-    /** extracts all literals which must be true because there are not enough other literals to satisfy the limit.
-     * <br>
-     * All superfluous literals are removed.
-     *
-     * @param remover       applied to removed literals
-     * @param trueLiterals  applied  to true literals
-     * @return              +1 if the entire clause is removed, otherwise 0.
-     */
-    byte reduceByTrueLiterals(Consumer<Literal> remover, IntConsumer trueLiterals) {
-        return removeLiterals(literalObject -> (expandedSize-literalObject.multiplicity < limit) ? 1 : 0,remover,trueLiterals);}
 
     /** Tries to find true literals in a list of literals.
      * <br>
@@ -380,8 +354,8 @@ public class Clause {
      * @param trueLiterals  is applied to the true literals.
      * @return              0 if the clause itself became true, otherwise the possibly reduced limit.
      */
-    static int reduceByTrueLiterals(int limit, int expandedSize, ArrayList<Literal> literals,
-                                    Consumer<Literal> remover, IntConsumer trueLiterals) {
+    static int reduceByTrueLiterals(int limit, int expandedSize, final ArrayList<Literal> literals,
+                                    final Consumer<Literal> remover, final IntConsumer trueLiterals) {
         for(int i = 0; i < literals.size(); ++i) {
             Literal literalObject = literals.get(i);
             if(expandedSize - literalObject.multiplicity < limit) {
@@ -406,7 +380,7 @@ public class Clause {
      */
     protected void reduceToDisjunction() {
         limit = 1;
-        for(Literal literalObject : literals) literalObject.multiplicity = 1;
+        for(final Literal literalObject : literals) literalObject.multiplicity = 1;
         expandedSize = literals.size();
         isDisjunction = true;
         hasMultiplicities = false;
@@ -428,19 +402,19 @@ public class Clause {
      * @param trueLiterals    applied to derived true literals.
      * @return                null if the resolvent is a tautology, otherwise the new resolvent.
      */
-    static Clause resolve( Literal literalObject1, Literal literalObject2, IntSupplier id,IntConsumer trueLiterals){
+    static Clause resolve(final Literal literalObject1, final Literal literalObject2, final IntSupplier id, final IntConsumer trueLiterals){
         assert literalObject1.literal == -literalObject2.literal;
         Clause clause1 = literalObject1.clause;
         Clause clause2 = literalObject2.clause;
         int newLimit = clause1.limit + clause2.limit - Math.max(literalObject1.multiplicity,literalObject2.multiplicity);
         ArrayList<Literal> newLiterals = new ArrayList<>(clause1.literals.size() + clause2.literals.size()-2);
         int expandedSize = 0;
-        for(Literal litObject1 : clause1.literals) {
+        for(final Literal litObject1 : clause1.literals) {
             if(litObject1 == literalObject1) continue;
             expandedSize += litObject1.multiplicity;
             newLiterals.add(new Literal(litObject1.literal,litObject1.multiplicity));}
 
-        for(Literal litObject2 : clause2.literals) {
+        for(final Literal litObject2 : clause2.literals) {
             if(litObject2 == literalObject2) continue;
             int multiplicity2 = litObject2.multiplicity;
             boolean found = false;
@@ -502,8 +476,8 @@ public class Clause {
      * @param trueLiterals   applied to derivable true literals.
      * @return               1 if the clause has become superfluous (e.g. tautology), 0 if it survived.
      */
-    static int replaceLiteral(final Literal literalObject, int newLiteral,
-                              Consumer<Literal> remover, Consumer<Literal> adder, IntConsumer trueLiterals) {
+    static int replaceLiteral(final Literal literalObject, final int newLiteral,
+                              final Consumer<Literal> remover, final Consumer<Literal> adder, final IntConsumer trueLiterals) {
         Clause clause = literalObject.clause;
         Function<Literal,Integer> decider = ((Literal l) -> (l == literalObject) ? -1:0);
         Literal newLiteralObject = clause.findLiteral(newLiteral);
@@ -522,22 +496,37 @@ public class Clause {
                 else {
                     if(negNewLiteralObject.multiplicity > literalObject.multiplicity) { // Example; -p^5 q^3 (q -> p)  -> -p^2
                         negNewLiteralObject.multiplicity -= literalObject.multiplicity;
+                        clause.expandedSize -= literalObject.multiplicity;
                         return clause.removeLiterals(decider,remover,trueLiterals);}
                     else {literalObject.multiplicity -= negNewLiteralObject.multiplicity; // Example; -p^3 q^5 (q -> p)  -> p^2
+                        clause.expandedSize -= negNewLiteralObject.multiplicity;
                         remover.accept(literalObject);
-                        literalObject.literal = newLiteral;
-                        adder.accept(literalObject);
+                        final Literal newLitObject = new Literal(newLiteral,literalObject.multiplicity);
+                        newLitObject.clause = clause;
+                        clause.exchangeLiterals(literalObject,newLitObject);
+                        adder.accept(newLitObject);
                         return clause.removeLiterals(((Literal l) -> (l == negNewLiteralObject) ? -1:0),remover,trueLiterals);}}}}
         remover.accept(literalObject);
-        literalObject.literal = newLiteral;
-        adder.accept(literalObject);
+        final Literal newLitObject = new Literal(newLiteral,literalObject.multiplicity);
+        newLitObject.clause = clause;
+        clause.exchangeLiterals(literalObject,newLitObject);
+        adder.accept(newLitObject);
         clause.determineClauseType();
         return 0;}
+
+    /** exchanges the oldLiteral with the newLiteral.
+     *
+     * @param oldLiteral a literalObject in the clause.
+     * @param newLiteral a new literalObject.
+     */
+    private void exchangeLiterals(final Literal oldLiteral, final Literal newLiteral) {
+        for(int i = 0; i < literals.size(); ++i) {
+            if(literals.get(i) == oldLiteral) {literals.set(i,newLiteral); return;}}}
 
     /** investigates the distribution of positive and negative literals and determines the ClauseType.*/
     void determineClauseType() {
        int positiveLiterals = 0; int negativeLiterals = 0;
-       for(Literal literalObject : literals) {
+       for(final Literal literalObject : literals) {
            if(literalObject.literal > 0) positiveLiterals += literalObject.multiplicity;
            else negativeLiterals += literalObject.multiplicity; }
        if(positiveLiterals == expandedSize) {clauseType = ClauseType.POSITIVE; return;}
@@ -579,7 +568,7 @@ public class Clause {
      * @param size 0 or the length of the clause number string.
      * @return a string representation of the clause.
      */
-    public String toString(Symboltable symboltable, int size) {
+    public String toString(final Symboltable symboltable, final int size) {
         StringBuilder st = new StringBuilder();
         String id = Integer.toString(identifier);
         if(subIdentifier != 0) id += "."+subIdentifier;

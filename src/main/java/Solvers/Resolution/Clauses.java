@@ -12,13 +12,13 @@ import Datastructures.Symboltable;
 public class Clauses {
 
     /** the first clause in the list. */
-    public Clause firstClause = null;
+    Clause firstClause = null;
 
     /** the last clause in the list. */
-    public Clause lastClause = null;
+    Clause lastClause = null;
 
     /** the number of clauses in the list.*/
-    public int size = 0;
+    int size = 0;
 
     /** the number of clauses with positive literals only. */
     int positiveClauses = 0;
@@ -48,7 +48,7 @@ public class Clauses {
      * @param clause a clause
      * @param change typically +1 or -1. The change is added to the corresponding clause type number.
      */
-    void updateClauseNumbers(Clause clause, int change) {
+    void updateClauseNumbers(final Clause clause, final int change) {
         switch(clause.clauseType) {
             case POSITIVE:         positiveClauses         += change; break;
             case NEGATIVE:         negativeClauses         += change; break;
@@ -68,7 +68,7 @@ public class Clauses {
      * @param clause the clause to be added.
      * @return the new number of clauses.
      */
-    public int addClause(Clause clause) {
+    public int addClause(final Clause clause) {
         clause.exists = true;
         updateClauseNumbers(clause,1);
         if(firstClause == null) {firstClause = clause; lastClause = clause; size = 1;  return 1;}
@@ -86,21 +86,21 @@ public class Clauses {
      * @param clause the clause to be removed.
      * @return the new number of clauses in the list.
      * */
-    public int removeClause(Clause clause) {
+    public int removeClause(final Clause clause) {
         if(!clause.exists) return size;
         clause.exists = false;
         if(clause.nextClause == null) { // it is the clause at the end of the chain.
             if(clause == firstClause) {size = 0; firstClause = null;
                 clause.previousClause = null;  return 0;}
             if(clause.previousClause == null)  {updateClauseNumbers(clause,1); return size;} // the clause is not linked.
-            Clause previousClause = clause.previousClause;
+            final Clause previousClause = clause.previousClause;
             lastClause = previousClause; clause.previousClause = null;
             previousClause.nextClause = null; return --size;}
         if(clause.previousClause == null) { // it is the first clause in the chain
             firstClause = clause.nextClause; firstClause.previousClause = null; return --size;}
 
-        Clause previous = clause.previousClause;  // now the clause is in the middle.
-        Clause next = clause.nextClause;
+        final Clause previous = clause.previousClause;  // now the clause is in the middle.
+        final Clause next = clause.nextClause;
         previous.nextClause = next;
         next.previousClause = previous;
         clause.previousClause = null;
@@ -159,7 +159,7 @@ public class Clauses {
      * @param symboltable null or a symboltable.
      * @return a string containing all clauses in the list.
      */
-    public String toString(Symboltable symboltable) {
+    public String toString(final Symboltable symboltable) {
         if(firstClause == null) return "";
         StringBuilder st = new StringBuilder();
         int maxId = 0;
