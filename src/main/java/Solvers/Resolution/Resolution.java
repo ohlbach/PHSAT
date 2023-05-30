@@ -199,7 +199,7 @@ public class Resolution extends Solver {
             processTasks(0);}
         catch(Result result) {
             System.out.println("Result " + result.getClass().getName());
-            printSeparated();
+            //printSeparated();
             if(result instanceof Satisfiable) {
                 model.exchangeModel(localModel);}
             result.statistic = statistics;
@@ -290,7 +290,7 @@ public class Resolution extends Solver {
         statistics.initialClauses = clauses.size;
         if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);
         if(printClauses) {
-            System.out.println("INPUT CLAUSES: " + literalIndexMore.size());
+            System.out.println("INPUT CLAUSES: " + clauses.size());
             if(monitoring) printSeparated();}
         synchronized(this){queue.add(new Task<>(TaskType.ProcessClauseFirstTime,clauses.firstClause));}}
 
@@ -313,8 +313,10 @@ public class Resolution extends Solver {
             new Exception().printStackTrace();
             System.exit(1);
         }
+        if(model.status(literal) == 1) return;
         if(monitoring) {
-            monitor.print(monitorId,"True literal added: " + Symboltable.toString(literal,symboltable));}
+            String globally = globallyTrue ? "Globally True " : "Locally True ";
+            monitor.print(monitorId,globally+"literal added: " + Symboltable.toString(literal,symboltable));}
         if(literal == 0) {
             System.out.println("INFERENCES");
             Result.printInferenceSteps(inferenceStep);
@@ -408,7 +410,7 @@ public class Resolution extends Solver {
                 if(trueLiteralsInQueue == 0 && clauses.status != 0) generatePositiveOrNegativeModel();
                 if(queue.isEmpty()) {
                     System.out.println("Empty Queue Clauses: " + clauses.size + ", Local Model: " + localModelString());
-                    //printSeparated();
+                    printSeparated();
                 }
                 if(monitoring  && printClauses && changed) {
                     System.out.println("Local Model: " + localModelString());
@@ -426,7 +428,7 @@ public class Resolution extends Solver {
                 ex.printStackTrace();
                 return;}
             if(n > 0 && ++counter == n){
-                System.out.println("Stopped " + counter);
+                System.out.println("Stopped because task counter > limit: " + counter);
                 return;}}}
 
 
@@ -472,19 +474,32 @@ public class Resolution extends Solver {
     protected void processBinaryClause(final Clause clause) throws Unsatisfiable {
         assert clause.size() == 2;
         if(binaryClauseIsSubsumed(clause) != null) {
-            removeClause(clause,true,true);
+            removeClause(clause,true,literalIndexTwo,true);
             return;}
         removeBinaryClausesSubsumedByBinaryClause(clause);
         removeLongerClausesSubsumedByBinaryClause(clause);
+        if(binaryClauseIsLocallyTrue(clause)){
+            removeClause(clause,true,true);
+            return;}
         int literal1 = clause.literals.get(0).literal;
         int literal2 = clause.literals.get(1).literal;
         binaryMergeResolutionAndEquivalence(clause,literal1,literal2,true);
         if(!clause.exists) return;
         binaryMergeResolutionAndEquivalence(clause,literal2,literal1,false);
         if(!clause.exists) return;
+        if(checkPurity(literal1) || checkPurity(literal2)) {
+            removeClause(clause,false,literalIndexTwo,true); return;}
         saturateBinaryClausesWithBinaryClause(clause);
         if(!clause.exists) return;
         saturateLongerClausesWithBinaryClause(clause);}
+
+    /** checks if the binary clause is locally true
+     *
+     * @param clause a binary clause
+     * @return true if it is locally true.
+     */
+    boolean binaryClauseIsLocallyTrue(Clause clause) {
+        return localStatus(clause.literals.get(0).literal) == 1 ||  localStatus(clause.literals.get(1).literal) == 1;}
 
     /** processes the longer clause.
      * - if the clause is subsumed, it is removed.<br>
@@ -615,7 +630,7 @@ public class Resolution extends Solver {
                  if(step != null && (status != 1 || !trueLiterals.isEmpty())) clause.inferenceStep = step.addResults(clause,status,trueLiterals,symboltable);
                 for(int literal :trueLiterals) {
                      ++statistics.derivedTrueLiterals;
-                     addInternalTrueLiteralTask(literal,true,step);}
+                     addInternalTrueLiteralTask(literal,model.status(oldTrueLiteral) != 0,step);}
                  if(status == 1) {
                      removeClause(clause,false,false);
                      literalObject = literalObject.nextLiteral; continue;}
@@ -824,6 +839,8 @@ public class Resolution extends Solver {
                 Clause resolvent = resolveBetweenBinaryClauses(parentClause1,parentClause2);
                 if(resolvent != null) {
                     if(trackReasoning) resolvent.inferenceStep = new InfResolution(parentClause1, parentClause2, resolvent, symboltable);
+                    if(monitoring) monitor.println(monitorId,parentClause1.toString(symboltable,0) + " and " +
+                            parentClause2.toString(symboltable,0) + " -> " + resolvent.toString(symboltable,0));
                     insertClause(resolvent);
                     addDerivedClauseTask(resolvent);}
                 parentLiteralObject2 = parentLiteralObject2.nextLiteral;}}}
@@ -1202,12 +1219,17 @@ public class Resolution extends Solver {
                                             if(!removedLiterals.contains(l.literal)) removedLiterals.add(l.literal);}),
                                         finalLiteralIndex::addLiteral,
                                         trueLiterals::add);
-                    if(status == 1 && trueLiterals.isEmpty()) {literalObject = literalObject.nextLiteral; continue;}
+                    if(status == 1 && trueLiterals.isEmpty()) {
+                        removeClause(clause,false,false);
+                        literalObject = literalObject.nextLiteral; continue;}
+                    for(int trueLiteral : trueLiterals) {
+                        if(trueLiteral == representative && !trueLiterals.contains(literal)) trueLiterals.add(literal);
+                        if(trueLiteral == literal && !trueLiterals.contains(representative)) trueLiterals.add(representative);}
                     InfEquivalenceReplacement step = (trackReasoning || monitoring) ?
                             new InfEquivalenceReplacement(clauseString, clause, trueLiterals, representative, literal, equivalenceStep, symboltable) : null;
-                    for(int trueLiteral : trueLiterals) addInternalTrueLiteralTask(trueLiteral,true,step);
                     if(monitoring) {monitor.println(monitorId,step.info(symboltable));}
-                    if(status == 0 && isSubsumed(clause) != null) removeClause(clause,false,false);
+                    for(int trueLiteral : trueLiterals) addInternalTrueLiteralTask(trueLiteral,true,step);
+                    if(status == 1 || (status == 0 && isSubsumed(clause) != null)) removeClause(clause,false,false);
                     else {clauses.updateClauseNumbers(clause,+1);
                           addDerivedClauseTask(clause);}
                     literalObject = literalObject.nextLiteral;}
@@ -1251,13 +1273,18 @@ public class Resolution extends Solver {
         removeClause(clause,checkPurity,(clause.size() == 2) ? literalIndexTwo :literalIndexMore, updateNumbers);}
 
 
-    void removeClauses (final int literal) throws Unsatisfiable {
-        Literal literalObject = literalIndexMore.getFirstLiteralObject(literal);
-        while(literalObject != null) {
-            Clause clause = literalObject.clause;
-            if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
-            removeClause(clause,false,true);
-            literalObject = literalObject.nextLiteral;}}
+    void removeClauses (final int predicate) throws Unsatisfiable {
+        for(int sign = 1; sign >= -1; sign-=2) {
+            int literal = sign*predicate;
+            Literals literalIndex = literalIndexTwo;
+            while(literalIndex != null) {
+                Literal literalObject = literalIndex.getFirstLiteralObject(literal);
+                while(literalObject != null) {
+                    Clause clause = literalObject.clause;
+                    if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
+                    removeClause(clause,false,true);
+                    literalObject = literalObject.nextLiteral;}
+                literalIndex = (literalIndex == literalIndexTwo) ? literalIndexMore : null;}}}
 
     /** removes the literal from the clause and from the corresponding index.
      * If the literal becomes pure, it is inserted into the model.<br>
@@ -1305,8 +1332,7 @@ public class Resolution extends Solver {
         if(literalIndexTwo.isEmpty(-literal) && literalIndexMore.isEmpty(-literal)) {
             if(monitoring) monitor.println(monitorId,"Pure Literal: " + Symboltable.toString(literal,symboltable));
             addInternalTrueLiteralTask(literal, false,trackReasoning ? new InfPureLiteral(literal,false) : null);
-            ++statistics.pureLiterals;
-            return true;}
+            ++statistics.pureLiterals; return true;}
         return false;}
 
 
@@ -1329,6 +1355,7 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if the resolvent is unsatisfiable.
      */
     void processElimination(final Task task) throws Unsatisfiable {
+        if(monitoring) monitor.println(monitorId, "Starting ProcessElimination ");
         boolean atEnd = false;
         try{
             for(int predicate = 1; predicate <= predicates; ++predicate) {
@@ -1337,22 +1364,20 @@ public class Resolution extends Solver {
                 int sizeN = literalIndexMore.size(-predicate,2);
                 if(sizeP == 0 && sizeN == 0) continue;
                 if(sizeP == 0) {
-                    removeClauses(-predicate);
-                    if(literalIndexTwo.isEmpty(-predicate)) makeLocallyTrue(-predicate);
-                    else {
-                        ++statistics.partiallyPureLiterals;
-                        addInternalTrueLiteralTask(-predicate,false,
-                            trackReasoning ? new InfPureLiteral(-predicate,true) : null);
-                        return;}}
+                    removeClauses(predicate);
+                    ++statistics.partiallyPureLiterals;
+                    if(monitoring) monitor.println(monitorId,"Literal " +
+                                Symboltable.toString(-predicate,symboltable) + " is pure in the longer clauses.");
+                    makeLocallyTrue(-predicate);
+                    continue;}
                 if(sizeN == 0) {
                     removeClauses(predicate);
-                    if(literalIndexTwo.isEmpty(predicate)) makeLocallyTrue(predicate);
-                    else {
-                        ++statistics.partiallyPureLiterals;
-                        addInternalTrueLiteralTask(predicate,false,
-                                trackReasoning ? new InfPureLiteral(-predicate,true) : null);
-                        return;}}
-                if(sizeP < 0 || sizeN < 0) continue;
+                    ++statistics.partiallyPureLiterals;
+                    if(monitoring) monitor.println(monitorId,"Literal " +
+                                Symboltable.toString(predicate,symboltable) + " is pure in the longer clauses.");
+                    makeLocallyTrue(predicate);
+                    continue;}
+                if(sizeP < 0 || sizeN < 0) continue; // too many occurrences
 
                 // resolution between one or two clauses with positive predicate and one or two clauses with negative predicate.
                 ArrayList<Literal> literalsP = new ArrayList<>();
@@ -1372,7 +1397,9 @@ public class Resolution extends Solver {
                         Symboltable.toString(predicate,symboltable));
                 return;}
             atEnd = true;}
-        finally {if(!atEnd) synchronized (this) {queue.add(task);}}}
+        finally {
+            if(monitoring) monitor.println(monitorId, "Ending ProcessElimination ");
+            if(!atEnd) synchronized (this) {queue.add(task);}}}
 
     /** completes the local model for the clauses whose predicates have been eliminated with exhaustive resolution.
      */
@@ -1426,6 +1453,7 @@ public class Resolution extends Solver {
 
     /** generates a local model from the positive and mixed positive literals in the clauses.*/
     void generatePositiveModel() {
+        if(monitoring) monitor.println(monitorId, "Generating Positive Model");
         Clause clause = clauses.firstClause;
         while(clause != null) {
             if(!clause.exists || clause.clauseType == ClauseType.NEGATIVE || clause.clauseType == ClauseType.MIXEDNEGATIVE) {
@@ -1445,6 +1473,7 @@ public class Resolution extends Solver {
 
     /** generates a local model from the negative and mixed negative literals in the clauses.*/
     void generateNegativeModel() {
+        if(monitoring) monitor.println(monitorId,"Generating Negative Model");
         Clause clause = clauses.firstClause;
         while(clause != null) {
             if(!clause.exists || clause.clauseType == ClauseType.POSITIVE || clause.clauseType == ClauseType.MIXEDPOSITIVE) {

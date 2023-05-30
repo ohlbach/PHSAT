@@ -260,9 +260,9 @@ public class Clause {
 
         // In the remaining literals some of them may not have enough literals to satisfy the limit.
         // Example:  >= 2 p^2,q,r. and false(q) -> >= 2 p^2,r -> p must be true.
-        limit = reduceByTrueLiterals(limit,expandedSize,literals,remover,trueLiterals);
+         limit = reduceByTrueLiterals(limit,expandedSize,literals,remover,trueLiterals);
         if(limit == 0) return 1;
-        if(limit == 1) {
+        if(limit == 1 || literals.size() == 2) {
            reduceToDisjunction();
            determineClauseType();
            return (expandedSize < limit) ? (byte)-1: 0;}

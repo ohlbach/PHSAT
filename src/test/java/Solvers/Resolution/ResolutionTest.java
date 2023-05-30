@@ -25,7 +25,7 @@ public class ResolutionTest extends TestCase {
     static int cInterval = Quantifier.INTERVAL.ordinal();
 
 
-    static boolean monitoring = true;
+    static boolean monitoring = false;
 
     static Symboltable symboltable = new Symboltable(10);
 
@@ -186,7 +186,7 @@ public class ResolutionTest extends TestCase {
         resolution.clear();
         resolution.model.add(myThread,-1, new InfInputClause(1));
         resolution.makeLocallyTrue(-1);
-        resolution.model.add(myThread,-3, new InfInputClause(2));
+        //resolution.model.add(myThread,-3, new InfInputClause(2));
         resolution.makeLocallyTrue(-3);
         resolution.model.add(myThread,-4, new InfInputClause(3));
         resolution.makeLocallyTrue(-4);
@@ -194,8 +194,9 @@ public class ResolutionTest extends TestCase {
         resolution.processTrueLiteralMore(3);
         assertEquals("", resolution.clauses.toString());
         assertEquals("-1,2,-3,-4", resolution.localModelString());
-        assertEquals("-1,-3,-4", resolution.model.toString());
-        assertEquals("Positive Literals:\n" +
+        assertEquals("-1,-4", resolution.model.toString());
+        assertEquals("Literals MORE:\n"+
+                "Positive Literals:\n" +
                 "\n" +
                 "Negative Literals:\n", resolution.literalIndexMore.toString());
 
@@ -239,19 +240,17 @@ public class ResolutionTest extends TestCase {
         resolution.binaryMergeResolutionAndEquivalence(clause,-1,3,false);
         assertEquals("2: 1v2\n", resolution.clauses.toString());
         assertEquals("3", resolution.model.toString());
-        //System.out.println(simplifier.model.getInferenceStep(3).toString());
+        if(monitoring) System.out.println(resolution.model.getInferenceStep(3).toString());
 
-        System.out.println("NEW");
+        if(monitoring) System.out.println("NEW");
         resolution.clear();
         resolution.insertClause(new Clause(new int[]{2, cOr, 1,2}));
         resolution.insertClause(new Clause(new int[]{3, cOr, 1,-3}));
         clause = new Clause(new int[]{4, cOr, -1,3});
         resolution.insertClause(clause);
         resolution.binaryMergeResolutionAndEquivalence(clause,-1,3,true);
-        //simplifier.equivalenceClasses.processTasks(true);
         assertEquals("2: 1v2\n", resolution.clauses.toString());
-        assertEquals("1,3", resolution.localModelString());
-        assertEquals("[]",resolution.equivalences.toString());
+        assertEquals("[1, 3]",resolution.equivalences.toString());
     }
     public void testIsSubsumedByBinaryClauses()  {
         System.out.println("binaryClauseIsSubsumed");
@@ -357,13 +356,11 @@ public class ResolutionTest extends TestCase {
         Clause clause5 = new Clause(new int[]{5, cOr, 4,5,6});
         resolution.insertClause(clause5);
 
-        resolution.processBinaryClause(clause1);
-        assertEquals(" 1: 1v2\n" +
-                " 2: -1v3v4\n" +
-                " 5: 4v5v6\n" +
-                "11: 2v3v4\n", resolution.clauses.toString());
+        resolution.processBinaryClause(clause1); // clause1 removed because locally true
+        assertEquals( "2: -1v3v4\n" +
+                "5: 4v5v6\n", resolution.clauses.toString());
         assertEquals("", resolution.model.toString());
-        assertEquals("2,4,5", resolution.localModelString());
+        assertEquals("-1,2,4,5", resolution.localModelString());
       //  System.out.println(simplifier.statistics.toString());
     }
 
@@ -391,18 +388,18 @@ public class ResolutionTest extends TestCase {
         assertEquals(" 1: 1v5\n" +
                 " 2: -1v3v4\n" +
                 " 3: 2v4v1\n" +
-                " 4: 5v2v-1\n" +
+                " 4: 5v2\n" +
                 " 5: 4v5v6\n" +
                 " 6: -5v2\n" +
                 "11: 1v2\n" +
-                "12: 5v2\n" +
-                "13: 5v3v4\n", resolution.clauses.toString());
+                "12: 5v3v4\n", resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nPROCESS 3 TASKS");
         resolution.processTasks(3);
 
-        assertEquals("1: 1v5\n" +
-                "5: 4v5v6\n", resolution.clauses.toString());
-        assertEquals("1,2,3,4,5", resolution.localModelString());
-       // System.out.println(resolution.statistics.toString());
+        assertEquals("1: 1v5\n", resolution.clauses.toString());
+        assertEquals("2,4,5", resolution.localModelString());
+       if(monitoring) System.out.println(resolution.statistics.toString());
     }
 
     public void testProcessBinaryClause3() throws Result {
@@ -436,7 +433,7 @@ public class ResolutionTest extends TestCase {
             if(monitoring) System.out.println(satisfiable.toString());}
 
         assertEquals("", resolution.clauses.toString());
-        assertEquals("1,2,3,4,5", resolution.localModelString());
+        assertEquals("2,4,5", resolution.localModelString());
         //System.out.println(simplifier.statistics.toString());
     }
     public void testProcessEquivalence() throws Result {
@@ -457,7 +454,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{1, cOr, 1, 5}));
         resolution.insertClause(new Clause(new int[]{2, cOr, 5,2}));
         resolution.processEquivalence(2, 5, new InferenceTest("MyTest 2"));
-        assertEquals("1: 1v5\n", resolution.clauses.toString());
+        assertEquals("1: 1v2\n", resolution.clauses.toString());
         assertEquals("2,5", resolution.model.toString());
 
         if(monitoring) System.out.println("\nNEW 2");
@@ -479,8 +476,9 @@ public class ResolutionTest extends TestCase {
         Clause clause = new Clause(new int[]{1, cAtleast, 3, 1,1,2,3});
         resolution.insertClause(clause);
         resolution.processEquivalence(3, 2, new InferenceTest("MyTest 5"));
+
         assertFalse(clause.exists);
-        assertEquals("1,3", resolution.model.toString());
+        assertEquals("1,2,3", resolution.model.toString());
         assertEquals("", resolution.clauses.toString());
         if(monitoring) System.out.println(resolution.statistics.toString());
 
@@ -492,13 +490,13 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{3, cAtleast, 2, -1,-2,-3,-3,-4}));
         resolution.insertClause(new Clause(new int[]{4, cOr, -1,-2,-3,-4}));
         resolution.insertClause(new Clause(new int[]{5, cOr, -1,-3,}));
-        resolution.insertClause(new Clause(new int[]{6, cAtleast, 2, -1,-2,-3,-3,-4,3}));
+        resolution.insertClause(new Clause(new int[]{6, cAtleast, 2, -1,-2,-3,-4}));
         resolution.insertClause(new Clause(new int[]{7, cAtleast, 2, 1,2,3,-4}));
-        resolution.insertClause(new Clause(new int[]{8, cOr, -2,3,}));
+        resolution.insertClause(new Clause(new int[]{8, cOr, -2,3}));
         resolution.processEquivalence(2, 3, new InferenceTest("MyTest 6"));
-        assertEquals("1,2,-4",resolution.localModelString());
-        assertEquals("3: >= 2 -1,-2^2,-4\n" +
-                "5: -1v-2\n" +
+        assertEquals("1,2,3",resolution.localModelString());
+        assertEquals("5: -1v-2\n" +
+                "6: >= 2 -1,-2^2,-4\n" +
                 "7: >= 2 1,2^2,-4\n", resolution.clauses.toString());
 
         if(monitoring) System.out.println(resolution.statistics.toString());
@@ -710,7 +708,7 @@ public class ResolutionTest extends TestCase {
         assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
     }
 
-    public void testsaturateBinaryClauseWithLongerClauses() throws Result {
+    public void testSaturateLongerClausesWithBinaryClause() throws Result {
         System.out.println("saturateLongerClausesWithBinaryClause");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
@@ -735,6 +733,7 @@ public class ResolutionTest extends TestCase {
                 "12: 5v3v4\n" +
                 "13: 5v1v3\n", resolution.clauses.toString());
 
+        if(monitoring) System.out.println("\nNEW");
         resolution.clear();
 
         resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2, -5}));
@@ -744,40 +743,10 @@ public class ResolutionTest extends TestCase {
         clause = new Clause(new int[]{4, cOr, -2, 5});
         resolution.insertClause(clause);
         resolution.saturateLongerClausesWithBinaryClause(clause);
-        assertEquals(" 1: 1v2v-5\n" +
-                " 2: 2v3v4v5\n" +
-                " 3: 2v3v5\n" +
-                " 4: -2v5\n" +
-                "14: 5v3\n", resolution.clauses.toString());
-        //System.out.println(simplifier.statistics);
-    }
-
-    public void testResolveOld() throws Result {
-        System.out.println("resolve1");
-        int predicates = 6;
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(predicates, monitor, false, nextId);
-
-        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
-        resolution.insertClause(clause1);
-        Clause clause2 = new Clause(new int[]{2, cOr, 1, 2, -3});
-        resolution.insertClause(clause2);
-        Clause clause3 = new Clause(new int[]{3, cOr, 1, -2, 3, 4});
-        resolution.insertClause(clause3);
-        Clause clause4 = new Clause(new int[]{4, cOr, 1, -2, -3, 4});
-        resolution.insertClause(clause4);
-        resolution.resolve(clause1.literals.get(2),clause2.literals.get(2));
-        resolution.resolve(clause1.literals.get(1),clause3.literals.get(1));
-        resolution.resolve(clause1.literals.get(1),clause4.literals.get(1));
-        resolution.resolve(clause1.literals.get(1),clause3.literals.get(1));
-        assertEquals(" 1: 1v2v3\n" +
-                " 2: 1v2v-3\n" +
-                " 3: 1v-2v3v4\n" +
-                " 4: 1v-2v-3v4\n" +
-                "11: 1v2\n" +
-                "12: 1v3v4\n", resolution.clauses.toString());
+        assertEquals("1: 1v2v-5\n" +
+                "2: 3v4v5\n" +
+                "3: 3v5\n" +
+                "4: -2v5\n", resolution.clauses.toString());
         //System.out.println(simplifier.statistics);
     }
 
