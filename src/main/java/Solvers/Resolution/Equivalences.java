@@ -3,10 +3,10 @@ package Solvers.Resolution;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
+import Utilities.TriConsumer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.function.BiConsumer;
 
 public class Equivalences {
 
@@ -50,7 +50,7 @@ public class Equivalences {
         equivalence1.join(representative1 == equivalence1.representative ? 1:-1,equivalence2,inferenceStep);
         equivalences.get(triggerLiteral).remove(equivalence2);}
 
-    void applyTrueLiteral(int literal, InferenceStep inferenceStep, BiConsumer<Integer,InferenceStep> trueLiterals) {
+    void applyTrueLiteral(int literal, InferenceStep inferenceStep, TriConsumer<Integer,InferenceStep,InferenceStep> trueLiterals) {
         ArrayList<Equivalence> equivalenceList = equivalences.get(literal);
         if(equivalenceList != null) {
             for(Equivalence equivalence : equivalenceList) equivalence.triggerLiteral = 0;
