@@ -1557,7 +1557,7 @@ public class Resolution extends Solver {
             System.out.println("Size " + size);
             Clause clause = clauses.firstClause;
             while(clause != null) {
-                if(clause.size() == size) {System.out.println(clause);}
+                if(clause.size() == size) {System.out.println(clause.toString(symboltable,0));}
                 clause = clause.nextClause;}}}
 
     /** returns the statistics.
