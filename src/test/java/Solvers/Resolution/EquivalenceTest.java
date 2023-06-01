@@ -87,34 +87,36 @@ public class EquivalenceTest extends TestCase {
     public void testApplyTrueLiteral() throws Unsatisfiable {
         System.out.println("applyTrueLiteral");
         IntArrayList trueLiterals = new IntArrayList();
+        InferenceStep step = new InfExternal(1);
         ArrayList<InferenceStep> steps = new ArrayList<>();
         InferenceStep step3 = new InfExternal(3);
         InferenceStep step4 = new InfExternal(4);
         Equivalence equivalence = new Equivalence(1,2,3,step3);
         equivalence.add(-4,step4);
         assertEquals("1 -> 2 == 3 == -4", equivalence.toString());
-        assertFalse(equivalence.applyTrueLiteral(1,(l,s1,s2)-> {trueLiterals.add(l); steps.add(s1); steps.add(s2);}));
+        assertFalse(equivalence.applyTrueLiteral(1,step,(l,s1)-> {trueLiterals.add(l); steps.add(s1);}));
         assertTrue(trueLiterals.isEmpty());
         assertTrue(steps.isEmpty());
 
-        assertTrue(equivalence.applyTrueLiteral(2,(l,s1,s2)-> {trueLiterals.add(l); steps.add(s1); steps.add(s2);}));
+        assertTrue(equivalence.applyTrueLiteral(2,step,(l,s1)-> {trueLiterals.add(l); steps.add(s1);}));
         assertEquals("[3, -4]",trueLiterals.toString());
-        assertEquals(4,steps.size());
+        assertEquals(2,steps.size());
 
         trueLiterals.clear(); steps.clear();
-        assertTrue(equivalence.applyTrueLiteral(-2,(l,s1,s2)-> {trueLiterals.add(l); steps.add(s1); steps.add(s2);}));
+        assertTrue(equivalence.applyTrueLiteral(-2,step,(l,s1)-> {trueLiterals.add(l); steps.add(s1);}));
         assertEquals("[-3, 4]",trueLiterals.toString());
-        assertEquals(4,steps.size());
+        assertEquals(2,steps.size());
 
         trueLiterals.clear(); steps.clear();
-        assertTrue(equivalence.applyTrueLiteral(3,(l,s1,s2)-> {trueLiterals.add(l); steps.add(s1); steps.add(s2);}));
+        assertTrue(equivalence.applyTrueLiteral(3,step,(l,s1)-> {trueLiterals.add(l); steps.add(s1);}));
         assertEquals("[2, -4]",trueLiterals.toString());
-        assertEquals(4,steps.size());
+        assertEquals(2,steps.size());
 
         trueLiterals.clear(); steps.clear();
-        assertTrue(equivalence.applyTrueLiteral(-3,(l,s1,s2)-> {trueLiterals.add(l); steps.add(s1); steps.add(s2);}));
+        assertTrue(equivalence.applyTrueLiteral(-3,step,(l,s1)-> {trueLiterals.add(l); steps.add(s1);}));
         assertEquals("[-2, 4]",trueLiterals.toString());
-        assertEquals(4,steps.size());
+        assertEquals(2,steps.size());
+        if(monitoring) System.out.println(steps.get(1).toString(null));
     }
 
     public void testContains() throws Unsatisfiable {

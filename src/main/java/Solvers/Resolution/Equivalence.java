@@ -3,9 +3,10 @@ package Solvers.Resolution;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
-import Utilities.TriConsumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.ArrayList;
+import java.util.function.BiConsumer;
 
 /** The class represents a conditioned equivalence class: triggerLiteral -&gt; representative == literal1 == literal2 == ...
  * <br>
@@ -91,37 +92,39 @@ public class Equivalence {
         inferenceSteps.add(inferenceStep);
         for(int i = 0; i < equivalence.literals.size(); ++i) {
             literals.add(sign*equivalence.literals.getInt(i));
-            inferenceSteps.add(equivalence.inferenceSteps.get(i));}}  // nein
+            inferenceSteps.add(InfList.makeInfList(inferenceStep,equivalence.inferenceSteps.get(i)));}}
 
     /** applies a true literal to the equivalence class.
      * <br>
      * If the true literal or its negation is in the class then all other literals are also made true/false.
      *
      * @param trueLiteral  a literal which is supposed to be true.
-     * @param trueLiterals applied to the other true literals together with the corresponding inference steps.
+     * @param inferenceStep which caused the truth of the literal.
+     * @param trueLiterals applied to the other true literals together with the corresponding inference step.
      * @return true if the literals in the equivalence class are true now (and the class can be removed).
      */
-    boolean applyTrueLiteral(int trueLiteral, TriConsumer<Integer,InferenceStep,InferenceStep> trueLiterals) {
+    boolean applyTrueLiteral(int trueLiteral, InferenceStep inferenceStep, BiConsumer<Integer,InferenceStep> trueLiterals) {
         int sign = 0;
         if(trueLiteral == representative)        sign = 1;
         else {if(trueLiteral == -representative) sign = -1;}
         if(sign != 0) {
-            for(int i = 0; i < literals.size(); ++i) {trueLiterals.accept(sign*literals.getInt(i),inferenceSteps.get(i),null);}
+            for(int i = 0; i < literals.size(); ++i) {
+                trueLiterals.accept(sign*literals.getInt(i),InfList.makeInfList(inferenceStep,inferenceSteps.get(i)));}
             return true;}
 
         for(int i = 0; i < literals.size(); ++i) {
             int literal = literals.getInt(i);
             if(literal == trueLiteral) {
-                trueLiterals.accept(representative,inferenceSteps.get(i),null);
+                trueLiterals.accept(representative,InfList.makeInfList(inferenceStep,inferenceSteps.get(i)));
                 for(int j = 0; j < literals.size(); ++j) {
                     int lit = literals.getInt(j);
-                    if(lit != trueLiteral) trueLiterals.accept(lit,inferenceSteps.get(i),inferenceSteps.get(j));}
+                    if(lit != trueLiteral) trueLiterals.accept(lit, InfList.makeInfList(inferenceStep,inferenceSteps.get(i),inferenceSteps.get(j)));}
                 return true;}
             if(literal == -trueLiteral) {
-                trueLiterals.accept(-representative,inferenceSteps.get(i),null);
+                trueLiterals.accept(-representative,InfList.makeInfList(inferenceStep,inferenceSteps.get(i)));
                 for(int j = 0; j < literals.size(); ++j) {
                     int lit = literals.getInt(j);
-                    if(lit != -trueLiteral) trueLiterals.accept(-lit,inferenceSteps.get(i),inferenceSteps.get(j));}
+                    if(lit != -trueLiteral) trueLiterals.accept(-lit,InfList.makeInfList(inferenceStep,inferenceSteps.get(i),inferenceSteps.get(j)));}
                 return true;}}
         return false;}
 

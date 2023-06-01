@@ -3,10 +3,10 @@ package Solvers.Resolution;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
-import Utilities.TriConsumer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.function.BiConsumer;
 
 public class Equivalences {
 
@@ -15,6 +15,7 @@ public class Equivalences {
     void add(int triggerLiteral, int literal1, int literal2, InferenceStep inferenceStep) throws Unsatisfiable {
         Equivalence equivalence1 = getEquivalence(triggerLiteral,literal1);
         Equivalence equivalence2 = getEquivalence(triggerLiteral,literal2);
+
         int representative1 = literal1; int representative2 = literal2;
         InferenceStep step1 = null; InferenceStep step2 = null;
         if(equivalence1 != null) {
@@ -35,11 +36,8 @@ public class Equivalences {
         if(representative1 < 0) {representative1 *= -1; representative2 *= -1;}
 
         if(equivalence1 == null && equivalence2 == null) {
-            ArrayList<Equivalence> equivalenceList = equivalences.get(triggerLiteral);
-            if(equivalenceList == null) {
-                equivalenceList = new ArrayList<>();
-                equivalences.put(triggerLiteral,equivalenceList);}
-            equivalenceList.add(new Equivalence(triggerLiteral,literal1,literal2,inferenceStep));
+            ArrayList<Equivalence> equivalenceList = equivalences.computeIfAbsent(triggerLiteral, k -> new ArrayList<>());
+            equivalenceList.add(new Equivalence(triggerLiteral,representative1,representative2,inferenceStep));
             return;}
         if(equivalence2 == null) { // equivalence1 != null
             equivalence1.add(representative2,inferenceStep);
@@ -50,7 +48,7 @@ public class Equivalences {
         equivalence1.join(representative1 == equivalence1.representative ? 1:-1,equivalence2,inferenceStep);
         equivalences.get(triggerLiteral).remove(equivalence2);}
 
-    void applyTrueLiteral(int literal, InferenceStep inferenceStep, TriConsumer<Integer,InferenceStep,InferenceStep> trueLiterals) {
+    void applyTrueLiteral(int literal, InferenceStep inferenceStep, BiConsumer<Integer,InferenceStep> trueLiterals) {
         ArrayList<Equivalence> equivalenceList = equivalences.get(literal);
         if(equivalenceList != null) {
             for(Equivalence equivalence : equivalenceList) equivalence.triggerLiteral = 0;
@@ -65,7 +63,7 @@ public class Equivalences {
         equivalences.forEach((triggerLiteral,equivList) -> {
             for(int i = 0; i < equivList.size(); ++i) {
                 Equivalence equivalence = equivList.get(i);
-                if(equivalence.applyTrueLiteral(literal,trueLiterals)) {
+                if(equivalence.applyTrueLiteral(literal,inferenceStep, trueLiterals)) {
                     equivList.remove(i);
                     return;}}});}
 
@@ -91,7 +89,8 @@ public class Equivalences {
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         equivalences.forEach((Integer triggerLiteral,ArrayList<Equivalence> equivalenceList) -> {
-            for(Equivalence equivalence: equivalenceList) {
-                st.append(equivalence.toString(symboltable)).append("\n");}});
+            st.append(equivalenceList.get(0).toString(symboltable));
+            for(int i = 1; i < equivalenceList.size(); ++i) {
+                st.append("\n").append(equivalenceList.get(i).toString(symboltable));}});
         return st.toString();}
 }
