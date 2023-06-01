@@ -23,15 +23,16 @@ public class InfList extends InferenceStep {
         this.inferenceSteps = inferenceSteps;}
 
     public static InferenceStep makeInfList(InferenceStep... steps) {
-        int counter = 0;
-        for(InferenceStep step: steps) if(step != null) ++counter;
-        if(counter == 0) return null;
-        if(counter == 1) {for(InferenceStep step: steps) if(step != null) return step;}
-        if(counter == steps.length) return new InfList(steps);
-        InferenceStep[] infSteps = new InferenceStep[counter];
-        int i = 0;
-        for(InferenceStep step: steps) {if(step != null) infSteps[i++] = step;}
-        return new InfList(steps);}
+        ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
+        for(InferenceStep step: steps) {
+            if(step != null) {
+                if(step instanceof InfList) {
+                    for(InferenceStep st : ((InfList) step).inferenceSteps) {
+                        if(!inferenceSteps.contains(st)) inferenceSteps.add(st);}}
+                else {if(!inferenceSteps.contains(step)) inferenceSteps.add(step);}}}
+        if(inferenceSteps.size() == 1) return inferenceSteps.get(0);
+        steps = new InferenceStep[inferenceSteps.size()];
+        return new InfList(inferenceSteps.toArray(steps));}
 
     @Override
     public String toString(Symboltable symboltable) {

@@ -12,7 +12,7 @@ public class EquivalencesTest extends TestCase {
 
     private boolean monitoring = true;
     public void testAdd1() throws Unsatisfiable {
-        System.out.println("add1");
+        System.out.println("add 1");
         InferenceStep step1 = new InfInputClause(1);
         InferenceStep step2 = new InfInputClause(2);
         Equivalences equivalences = new Equivalences();
@@ -91,7 +91,7 @@ public class EquivalencesTest extends TestCase {
     }
 
     public void testApplyTrueLiteral1() throws Unsatisfiable {
-        System.out.println("applyTrueLiteral1");
+        System.out.println("applyTrueLiteral 1");
         IntArrayList trueLiterals = new IntArrayList();
         ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
         InferenceStep step1 = new InfInputClause(1);
@@ -118,22 +118,70 @@ public class EquivalencesTest extends TestCase {
                 "3 == 4",equivalences.toString());}
 
     public void testApplyTrueLiteral2() throws Unsatisfiable {
-        System.out.println("applyTrueLiteral2");
+        System.out.println("applyTrueLiteral 2");
         IntArrayList trueLiterals = new IntArrayList();
         ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
         InferenceStep step1 = new InfInputClause(1);
         InferenceStep step2 = new InfInputClause(2);
         InferenceStep step3 = new InfInputClause(3);
-        InferenceStep step4 = new InfInputClause(4);
         Equivalences equivalences = new Equivalences();
         equivalences.add(10, 1, 2, step1);
         equivalences.add(10, 2, 3, step2);
 
-        equivalences.applyTrueLiteral(1, step2, (l, i) -> {
+        equivalences.applyTrueLiteral(1, step3, (l, i) -> {
             trueLiterals.add(l);
             inferenceSteps.add(i);});
-        System.out.println(equivalences.toString());
         assertTrue(equivalences.isEmpty());
         assertEquals("[2, 3]",trueLiterals.toString());
+        assertEquals(2,inferenceSteps.size());
+        assertEquals("Input Clause Id: 3\n" +
+                "Input Clause Id: 1",inferenceSteps.get(0).toString());
+        assertEquals("Input Clause Id: 3\n" +
+                "Input Clause Id: 1\n" +
+                "Input Clause Id: 2",inferenceSteps.get(1).toString());
     }
-}
+
+    public void testApplyTrueLiteral3() throws Unsatisfiable {
+        System.out.println("applyTrueLiteral 3");
+        IntArrayList trueLiterals = new IntArrayList();
+        ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
+        InferenceStep step1 = new InfInputClause(1);
+        InferenceStep step2 = new InfInputClause(2);
+        InferenceStep step3 = new InfInputClause(3);
+        Equivalences equivalences = new Equivalences();
+        equivalences.add(10, 1, 2, step1);
+        equivalences.add(10, 2, 3, step2);
+        equivalences.applyTrueLiteral(2, step3, (l, i) -> {
+            trueLiterals.add(l);
+            inferenceSteps.add(i);});
+        assertEquals("[1, 3]",trueLiterals.toString());
+        assertEquals(2,inferenceSteps.size());
+        assertEquals("Input Clause Id: 3\n" +
+                "Input Clause Id: 1",inferenceSteps.get(0).toString());
+        assertEquals("Input Clause Id: 3\n" +
+                "Input Clause Id: 1\n" +
+                "Input Clause Id: 2",inferenceSteps.get(1).toString());
+    }
+
+    public void testApplyTrueLiteral4() throws Unsatisfiable {
+        System.out.println("applyTrueLiteral 4");
+        IntArrayList trueLiterals = new IntArrayList();
+        ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
+        InferenceStep step1 = new InfInputClause(1);
+        InferenceStep step2 = new InfInputClause(2);
+        InferenceStep step3 = new InfInputClause(3);
+        Equivalences equivalences = new Equivalences();
+        equivalences.add(10, 1, 2, step1);
+        equivalences.add(10, 2, 3, step2);
+        equivalences.applyTrueLiteral(-2, step3, (l, i) -> {
+            trueLiterals.add(l);
+            inferenceSteps.add(i);});
+        assertEquals("[-1, -3]",trueLiterals.toString());
+        assertEquals(2,inferenceSteps.size());
+        assertEquals("Input Clause Id: 3\n" +
+                "Input Clause Id: 1",inferenceSteps.get(0).toString());
+        assertEquals("Input Clause Id: 3\n" +
+                "Input Clause Id: 1\n" +
+                "Input Clause Id: 2",inferenceSteps.get(1).toString());
+    }
+    }
