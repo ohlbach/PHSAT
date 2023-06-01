@@ -52,9 +52,19 @@ public class Equivalence {
         for(int i = 0; i < literals.size(); ++i) {
             int lit = literals.getInt(i);
             if(lit == literal) return;
-            if(lit == -literal) throw new UnsatEquivalence(lit,literal,inferenceSteps.get(i), inferenceStep);
-            literals.add(literal);
-            inferenceSteps.add(inferenceStep);}}
+            if(lit == -literal) throw new UnsatEquivalence(lit,literal,inferenceSteps.get(i), inferenceStep);}
+        literals.add(literal);
+        inferenceSteps.add(inferenceStep);}
+
+    /** sets the triggerLiteral to 0 and adds the inferenceStep to the individual inference steps.
+     *
+     * @param inferenceStep which caused the trigger literal to be true.
+     */
+    void triggerLiteralZero(InferenceStep inferenceStep) {
+        triggerLiteral = 0;
+        if(inferenceStep != null) {
+            for(int i = 0; i < inferenceSteps.size(); ++i) {
+                inferenceSteps.set(i,InfList.makeInfList(inferenceSteps.get(i),inferenceStep));}}}
 
     /** maps the literal to the representative in the equivalence class.
      *
