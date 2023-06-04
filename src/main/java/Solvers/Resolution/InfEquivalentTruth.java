@@ -17,11 +17,11 @@ public class InfEquivalentTruth extends InferenceStep {
     public String rule() {return title + "\n  " + rule;}
 
     int literal1, literal2;
-    InfEquivalence infEquivalence; InferenceStep infTruth;
+    InferenceStep infTruth;
 
-    public InfEquivalentTruth(int literal1, int literal2, InfEquivalence infEquivalence, InferenceStep infTruth) {
+    public InfEquivalentTruth(int literal1, int literal2, InferenceStep infTruth) {
         this.literal1 = literal1; this.literal2 = literal2;
-        this.infEquivalence = infEquivalence; this.infTruth = infTruth;}
+        this.infTruth = infTruth;}
 
     @Override
     public String toString(Symboltable symboltable) {
@@ -31,7 +31,6 @@ public class InfEquivalentTruth extends InferenceStep {
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
         if(steps.contains(this)) return;
-        infEquivalence.inferenceSteps(steps,ids);
         infTruth.inferenceSteps(steps,ids);
         steps.add(this);}
 }

@@ -73,7 +73,7 @@ public class Resolution extends Solver {
 
     /** collects the equivalences for later updating the model.
      * Entries: representative_1, literal_1, ...*/
-    IntArrayList equivalences = new IntArrayList();
+    IntArrayList equivalenceList = new IntArrayList();
     /** collects the corresponding inference steps.
      * Entries: InfEquivalence,null,InfEquivalence,null,...*/
     ArrayList<InfEquivalence> equivalenceSteps = new ArrayList<>();
@@ -81,6 +81,10 @@ public class Resolution extends Solver {
     /** The local model may contain true literals derived from pure literals.
      * These need not be true in all models, and therefore cannot be sent to the global model. */
     private byte[] localModel;
+
+    Equivalences equivalences = new Equivalences();
+
+    Task equivalenceTask =  new Task<>(TaskType.ProcessEquivalence,null);
 
     /** just creates a single Resolution solver,.
      *
@@ -130,7 +134,7 @@ public class Resolution extends Solver {
     private enum TaskType {
         /** a new true literal is obtained from the model */
         ProcessTrueLiteral,
-        /** a new binary equivalence is found in the TwoLiteral module. */
+        /** some new equivalences are found. */
         ProcessEquivalence,
         /** a new binary clause is available for simplifications */
         ProcessBinaryClause,
@@ -153,13 +157,12 @@ public class Resolution extends Solver {
      */
     private int getPriority(Task<Resolution.TaskType> task) {
         switch(task.taskType) {
-            case ProcessTrueLiteral: return Math.abs((Integer)task.a);
-            case ProcessEquivalence: return predicates + (Math.abs((Integer)task.a)) + 1; // this guarantees a deterministic sequence of the tasks
-            case ProcessBinaryClause:           return 2*predicates + 100;
-            case ProcessLongerClause:           return 2*predicates + 101;
-            case ProcessClauseFirstTime:        return 2*predicates + 102;
-            case ProcessMergeResolutionPartial: return 2*predicates + 103;
-            case ProcessElimination:            return 2*predicates + 104;}
+            case ProcessTrueLiteral:            return Math.abs((Integer)task.a);
+            case ProcessEquivalence:            return 2*predicates + 101;
+            case ProcessLongerClause:           return 2*predicates + 102;
+            case ProcessClauseFirstTime:        return 2*predicates + 103;
+            case ProcessMergeResolutionPartial: return 2*predicates + 104;
+            case ProcessElimination:            return 2*predicates + 105;}
         return 0;}
 
 
@@ -219,7 +222,7 @@ public class Resolution extends Solver {
         timestampSubsumption = 1;
         statistics.clear();
         queue.clear();
-        equivalences.clear();
+        equivalenceList.clear();
         if(literalIndexTwo == null)  literalIndexTwo = new Literals("TWO",predicates);
         else literalIndexTwo.clear(predicates);
         if(literalIndexMore == null) literalIndexMore = new Literals("MORE",predicates);
@@ -377,7 +380,8 @@ public class Resolution extends Solver {
                     case ProcessEquivalence:
                         if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
                         changed = true;
-                        processEquivalence((Integer)task.a,(Integer)task.b,(InferenceStep) task.c);
+                        task.a = null;
+                        processEquivalences();
                         break;
                     case ProcessBinaryClause:
                         clause = (Clause)task.a;
@@ -483,10 +487,12 @@ public class Resolution extends Solver {
             return;}
         int literal1 = clause.literals.get(0).literal;
         int literal2 = clause.literals.get(1).literal;
-        binaryMergeResolutionAndEquivalence(clause,literal1,literal2,true);
+        mergeResolutionAndEquivalenceTwoTwo(clause,literal1,literal2,true);
         if(!clause.exists) return;
-        binaryMergeResolutionAndEquivalence(clause,literal2,literal1,false);
+        mergeResolutionAndEquivalenceTwoTwo(clause,literal2,literal1,false);
         if(!clause.exists) return;
+        mergeResolutionAndEquivalenceTwoMore(clause,literal1,literal2,true);
+        mergeResolutionAndEquivalenceTwoMore(clause,literal2,literal1,false);
         if(checkPurity(literal1) || checkPurity(literal2)) {
             removeClause(clause,false,literalIndexTwo,true); return;}
         saturateBinaryClausesWithBinaryClause(clause);
@@ -524,6 +530,8 @@ public class Resolution extends Solver {
         if(clause.exists && clause.size()==3) mergeResolutionPartial(clause);
     }
 
+    ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
+
     /** The method applies a true literal to the clauses and the equivalences.
      * <br>
      * For a disjunction this means that the clause is true and can therefore be deleted.<br>
@@ -546,22 +554,21 @@ public class Resolution extends Solver {
     protected void processTrueLiteral(final int oldTrueLiteral, final InferenceStep inferenceStep) throws Unsatisfiable {
         processTrueLiteralTwo(oldTrueLiteral,inferenceStep);
         processTrueLiteralMore(oldTrueLiteral);
-        int oldTruePredicate = Math.abs(oldTrueLiteral);
-        for(int i = 0; i < equivalences.size(); i += 2) {
-            int newTrueLiteral = 0;
-            if(equivalences.getInt(i) == oldTruePredicate) {
-                newTrueLiteral = equivalences.getInt(i+1);
-                if(oldTrueLiteral < 0) newTrueLiteral *= -1;}
-            else {
-                int literal = equivalences.getInt(i+1);
-                if(Math.abs(literal) == oldTruePredicate) {
-                    newTrueLiteral = equivalences.getInt(i);
-                    if(oldTrueLiteral != literal) newTrueLiteral *= -1;}}
-            if(newTrueLiteral != 0 && localStatus(newTrueLiteral) == 0) {
+        trueLiterals.clear();
+        inferenceSteps.clear();
+        equivalences.applyTrueLiteral(oldTrueLiteral,inferenceStep,
+                (trueLiteral,step) ->{trueLiterals.add(trueLiteral); inferenceSteps.add(step);});
+        if(!equivalences.isEmpty() && equivalenceTask.a == null) {
+            equivalenceTask.a = true;
+            synchronized (this) {queue.add(equivalenceTask);}}
+        for(int i = 0; i < trueLiterals.size(); ++i) {
+            int newTrueLiteral = trueLiterals.getInt(i);
+            InferenceStep step = inferenceSteps.get(i);
+            if(localStatus(newTrueLiteral) == 0) {
                 if(monitoring) monitor.println(monitorId, "Equivalent literal " +
                         Symboltable.toString(newTrueLiteral,symboltable) + " added to model.");
                 addInternalTrueLiteralTask(newTrueLiteral,true,
-                        trackReasoning ? new InfEquivalentTruth(newTrueLiteral,oldTrueLiteral,equivalenceSteps.get(i),inferenceStep) : null);
+                        trackReasoning ? new InfEquivalentTruth(newTrueLiteral,oldTrueLiteral,step) : null);
                 ++statistics.derivedTrueLiterals;}}}
 
     /** applies a true literal to all two-literal clauses containing this literal.
@@ -773,8 +780,8 @@ public class Resolution extends Solver {
          * @param checkEquivalence if true then equivalence check is done.
          * @throws Unsatisfiable if inserting a derived unit clause into the model causes a contradiction.
          */
-    protected void binaryMergeResolutionAndEquivalence(final Clause clause1, int literal1, int literal2,
-                                                       final boolean checkEquivalence) throws Unsatisfiable {
+    void mergeResolutionAndEquivalenceTwoTwo(final Clause clause1, int literal1, int literal2,
+                                             final boolean checkEquivalence) throws Unsatisfiable {
         assert(clause1.size() == 2);
         ++timestamp; // just to be sure.
         try{
@@ -805,20 +812,70 @@ public class Resolution extends Solver {
                     if(clause2.timestamp1 == timestamp) { // a partner clause is found.
                         removeClause(clause1,false,true);
                         removeClause(clause2,true,true);
-                        if(Math.abs(literal1) > Math.abs(literal2)) {int dummy = literal2; literal2 = literal1; literal1 = dummy;}
-                        if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
+                        equivalences.add(0,literal1,-literal2, trackReasoning ? new InfEquivalence(clause1,clause2) : null);
                         if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
-                                clause2.toString(symboltable,0) + " -> " +
-                                Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
-                        equivalences.add(literal1); equivalences.add(-literal2);
-                        InfEquivalence step = null;
-                        if(trackReasoning) {
-                            step = new InfEquivalence(clause1,clause2);
-                            equivalenceSteps.add(step); equivalenceSteps.add(null);}
-                        processEquivalence(literal1,-literal2,step);
+                                    clause2.toString(symboltable,0) + " -> " +
+                                    Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
+                        equivalenceTask.a = true;
+                        synchronized (this) {queue.add(equivalenceTask);}
                         return;}
+                        literalObject = literalObject.nextLiteral;}}}
+                finally {++timestamp;}}
+
+    /** performs merge resolution between binary clauses and equivalence recognition, if possible.
+     * <br>
+     * Binary MergeResolution:  p,q and -p,q -&gt; true(q).<br>
+     * Equivalence Recognition: p,q and -p,-q -&gt; p == q.<br>
+     * A derived true literal is inserted into the model.<br>
+     * A derived equivalence is sent to the equivalence classes.<br>
+     * In both cases the two clauses are removed and the search stops immediately.
+     *
+     * @param clause1   the binary clause.
+     * @param literal1  either the first or the second literal.
+     * @param literal2  the other literal.
+     * @param checkEquivalence if true then equivalence check is done.
+     * @throws Unsatisfiable if inserting a derived unit clause into the model causes a contradiction.
+     */
+    void mergeResolutionAndEquivalenceTwoMore(final Clause clause1, int literal1, int literal2,
+                                             final boolean checkEquivalence) throws Unsatisfiable {
+        assert(clause1.size() == 2);
+        ++timestamp; // just to be sure.
+        try{
+            Literal literalObject = literalIndexMore.getFirstLiteralObject(-literal1);
+            while(literalObject != null) { // all clauses with -literal1 are marked.
+                Clause clause = literalObject.clause;
+                if(clause != null && clause.isDisjunction) clause.timestamp1 = timestamp;
+                literalObject = literalObject.nextLiteral;}
+
+            literalObject = literalIndexMore.getFirstLiteralObject(literal2);
+            while(literalObject != null) {
+                Clause clause2 = literalObject.clause;
+                if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
+                if(clause2.timestamp1 == timestamp) { // a partner clause is found
+                    String clause2Before = null;
+                    if(monitoring || trackReasoning) {clause2Before = clause2.toString(symboltable,0);}
+                    removeLiteralFromClause(clause2.findLiteral(-literal1),false);
+                    if(trackReasoning) clause2.inferenceStep = new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable);
+                    if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
+                            clause2Before + " -> " + clause2.toString(symboltable,0));}
+                literalObject = literalObject.nextLiteral;}
+
+            if(checkEquivalence) {
+                literalObject = literalIndexTwo.getFirstLiteralObject(-literal2);
+                while(literalObject != null) {
+                    Clause clause2 = literalObject.clause;
+                    if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
+                    if(clause2.timestamp1 == timestamp && clause2.size() == 3) { // a partner clause is found.
+                        removeClause(clause2,true,true);
+                        int triggerLiteral = -clause2.findThirdLiteral(literal1,-literal2).literal;
+                        equivalences.add(triggerLiteral,literal1,-literal2,trackReasoning ? new InfEquivalence(triggerLiteral,clause1,clause2) : null);
+                         if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
+                                clause2.toString(symboltable,0) + " -> " + Symboltable.toString(triggerLiteral,symboltable) +
+                                 " => " +Symboltable.toString(literal1,symboltable) + " == " + Symboltable.toString(-literal2,symboltable));
+                         equivalenceTask.a = true;
+                         synchronized (this) {queue.add(equivalenceTask);}}
                     literalObject = literalObject.nextLiteral;}}}
-            finally {++timestamp;}}
+        finally {++timestamp;}}
 
     /** performs resolution between the given clause and all other binary clauses.
      * <br>
@@ -1186,8 +1243,27 @@ public class Resolution extends Solver {
         assert(clause.size() > 2);
         synchronized (this) {queue.add(new Task<>(TaskType.ProcessLongerClause, clause));}}
 
+    Unsatisfiable[] unsatisfiables = new Unsatisfiable[1];
+    private void processEquivalences() throws Unsatisfiable {
+        unsatisfiables[0] = null;
+        equivalences.equivalences.forEach((triggerLiteral,equivalenceList) -> {
+            try{
+                for(Equivalence eqv : equivalenceList) {
+                    for(int i = 0; i < eqv.literals.size(); ++i) {
+                        int literal = eqv.literals.get(i);
+                        InferenceStep step = eqv.inferenceSteps.get(i);
+                        if(triggerLiteral == 0)
+                              processEquivalence(eqv.representative,literal,step);
+                        else  processEquivalence(triggerLiteral,eqv.representative,literal,step);}}}
+            catch(Unsatisfiable unsatisfiable) {unsatisfiables[0] = unsatisfiable;}});
+        if(unsatisfiables[0] != null) throw unsatisfiables[0];}
+
+
+
+
     /** for collecting literals.*/
     private final IntArrayList removedLiterals = new IntArrayList();
+
 
     /** This method replaces in all clauses the given literal by the given representative.
      * The new clauses are simplified as far as possible.<br>
@@ -1198,7 +1274,7 @@ public class Resolution extends Solver {
      * @param equivalenceStep which caused the equivalence.
      * @throws Unsatisfiable         if a contradiction is encountered.
      */
-    protected void processEquivalence(int representative, int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
+    void processEquivalence(int representative, int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
         removedLiterals.clear();
         for(int sign = 1; sign >= -1; sign -=2) {
             representative *= sign;
@@ -1235,6 +1311,9 @@ public class Resolution extends Solver {
                     literalObject = literalObject.nextLiteral;}
                 literalIndex = (literalIndex == literalIndexTwo) ? literalIndexMore : null;}}
         for(int removedLiteral : removedLiterals) checkPurity(removedLiteral);}
+
+    void processEquivalence(int triggerLiteral, int representative, int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
+    }
 
     /** inserts a clause into the internal lists.
      *
@@ -1423,9 +1502,9 @@ public class Resolution extends Solver {
      * @param status +1 or -1, for defining the truth value of literal pairs with undefined truth value.
      */
     void completeModelForEquivalences(final byte status) {
-        for(int i = 0; i < equivalences.size(); i += 2) {
-            int literal1 = equivalences.getInt(i);
-            int literal2 = equivalences.getInt(i+1);
+        for(int i = 0; i < equivalenceList.size(); i += 2) {
+            int literal1 = equivalenceList.getInt(i);
+            int literal2 = equivalenceList.getInt(i+1);
             byte localStatus1 = localStatus(literal1);
             byte localStatus2 = localStatus(literal2);
             if(localStatus1 != 0) {

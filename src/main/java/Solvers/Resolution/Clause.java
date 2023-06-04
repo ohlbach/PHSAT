@@ -196,6 +196,20 @@ public class Clause {
             if(literalObject.literal == literal) return literalObject;}
         return null;}
 
+    /** returns for a three-literal clause the third literal.
+     *
+     * @param literal1 a literal in the clause.
+     * @param literal2 a literal in the clause.
+     * @return null or the third literal in the clause.
+     */
+    Literal findThirdLiteral(final int literal1, final int literal2) {
+        assert size() == 3;
+        for(final Literal literalObject : literals) {
+            int literal = literalObject.literal;
+            if(literal != literal1 && literal != literal2)
+                return literalObject;}
+        return null;}
+
     /** returns for a two-literal clause the other literal.
      *
      * @param literalObject one of the clause's literalObjects.

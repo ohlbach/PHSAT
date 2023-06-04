@@ -227,7 +227,7 @@ public class ResolutionTest extends TestCase {
 
     }
     public void testBinaryMergeResolutionAndEquivalence() throws Result {
-        System.out.println("binaryMergeResolutionAndEquivalence");
+        System.out.println("mergeResolutionAndEquivalenceTwoTwo");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -237,7 +237,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{3, cOr, 1,3}));
         Clause clause = new Clause(new int[]{4, cOr, -1,3});
         resolution.insertClause(clause);
-        resolution.binaryMergeResolutionAndEquivalence(clause,-1,3,false);
+        resolution.mergeResolutionAndEquivalenceTwoTwo(clause,-1,3,false);
         assertEquals("2: 1v2\n", resolution.clauses.toString());
         assertEquals("3", resolution.model.toString());
         if(monitoring) System.out.println(resolution.model.getInferenceStep(3).toString());
@@ -248,9 +248,9 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{3, cOr, 1,-3}));
         clause = new Clause(new int[]{4, cOr, -1,3});
         resolution.insertClause(clause);
-        resolution.binaryMergeResolutionAndEquivalence(clause,-1,3,true);
+        resolution.mergeResolutionAndEquivalenceTwoTwo(clause,-1,3,true);
         assertEquals("2: 1v2\n", resolution.clauses.toString());
-        assertEquals("[1, 3]",resolution.equivalences.toString());
+        assertEquals("[1, 3]",resolution.equivalenceList.toString());
     }
     public void testIsSubsumedByBinaryClauses()  {
         System.out.println("binaryClauseIsSubsumed");
