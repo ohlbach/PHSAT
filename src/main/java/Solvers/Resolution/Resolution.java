@@ -1313,7 +1313,38 @@ public class Resolution extends Solver {
         for(int removedLiteral : removedLiterals) checkPurity(removedLiteral);}
 
     void processEquivalence(int triggerLiteral, int representative, int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
-    }
+        Literal literalObject = literalIndexMore.getFirstLiteralObject(-triggerLiteral);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if (clause == null) {literalObject = literalObject.nextLiteral; continue;}
+            int sign = 0;
+            for(Literal litObject : clause.literals) {
+                if(litObject.literal == literal)           {sign = 1;}
+                else if(literalObject.literal == -literal) {sign = -1;}
+                if(sign != 0) {replaceLiteral(litObject,sign*representative,literalIndexMore, equivalenceStep);}}}}
+
+    void replaceLiteral(Literal literalObject, int representative, final Literals literalIndex, final InferenceStep equivalenceStep) throws Unsatisfiable {
+        int literal = literalObject.literal;
+        Clause clause = literalObject.clause;
+        String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
+        trueLiterals.clear();
+        int status = Clause.replaceLiteral(literalObject,representative,
+                (l->{literalIndex.removeLiteral(l);
+                    if(!removedLiterals.contains(l.literal)) removedLiterals.add(l.literal);}),
+                literalIndex::addLiteral,
+                trueLiterals::add);
+        if(status == 1 && trueLiterals.isEmpty()) {
+            removeClause(clause,false,false); return;}
+        for(int trueLiteral : trueLiterals) {
+            if(trueLiteral == representative && !trueLiterals.contains(literal)) trueLiterals.add(literal);
+            if(trueLiteral == literal && !trueLiterals.contains(representative)) trueLiterals.add(representative);}
+        InfEquivalenceReplacement step = (trackReasoning || monitoring) ?
+                new InfEquivalenceReplacement(clauseString, clause, trueLiterals, representative, literal, equivalenceStep, symboltable) : null;
+        if(monitoring) {monitor.println(monitorId,step.info(symboltable));}
+        for(int trueLiteral : trueLiterals) addInternalTrueLiteralTask(trueLiteral,true,step);
+        if(status == 1 || (status == 0 && isSubsumed(clause) != null)) removeClause(clause,false,false);
+        else {clauses.updateClauseNumbers(clause,+1);
+            addDerivedClauseTask(clause);}}
 
     /** inserts a clause into the internal lists.
      *
