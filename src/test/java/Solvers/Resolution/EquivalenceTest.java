@@ -1,11 +1,15 @@
 package Solvers.Resolution;
 
 import Datastructures.Results.Unsatisfiable;
+import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
 
 public class EquivalenceTest extends TestCase {
 
@@ -131,4 +135,98 @@ public class EquivalenceTest extends TestCase {
         assertTrue(equivalence.contains(4));
         assertTrue(equivalence.contains(-4));
     }
+
+    public void testFindInconsistency() throws Unsatisfiable{
+        System.out.println("findInconsistency");
+        InferenceStep step1 = new InfInputClause(10);
+        InferenceStep step2 = new InfInputClause(11);
+        Equivalence equivalence = new Equivalence(0,1,2,step1);
+        equivalence.add(3,step2);
+        int[] model = new int[]{0,0,1,0};
+        IntFunction<Integer> modelStatus = (literal-> model[literal]);
+        try{equivalence.findInconsistency(modelStatus);}
+        catch(Unsatisfiable uns) {assertTrue(false);}
+        model[3] = -1;
+        try{equivalence.findInconsistency(modelStatus);
+            assertTrue(false);}
+        catch(Unsatisfiable uns) {
+            if(monitoring) System.out.println(uns.toString());}
+        model[1] = 1; model[2] = 0;
+        try{equivalence.findInconsistency(modelStatus);
+            assertTrue(false);}
+        catch(Unsatisfiable uns) {
+            if(monitoring) System.out.println(uns.toString());}}
+
+    public void testLiteralsAreInconsistent() throws Unsatisfiable {
+        System.out.println("literalsAreInconsistent");
+        InferenceStep step1 = new InfInputClause(10);
+        InferenceStep step2 = new InfInputClause(11);
+        Equivalence equivalence = new Equivalence(0, 1, 2, step1);
+        int[] model = new int[]{0, 0, 0, 0};
+        IntFunction<Integer> modelStatus = (literal -> model[literal]);
+        assertFalse(equivalence.literalsAreInconsistent(modelStatus));
+        model[1] = 1;
+        assertFalse(equivalence.literalsAreInconsistent(modelStatus));
+        model[2] = 1;
+        assertFalse(equivalence.literalsAreInconsistent(modelStatus));
+        model[2] = -1;
+        assertTrue(equivalence.literalsAreInconsistent(modelStatus));
+
+        equivalence.add(3, step2);
+        model[2] = 0;
+        model[3] = 0;
+        assertFalse(equivalence.literalsAreInconsistent(modelStatus));
+        model[3] = 1;
+        assertFalse(equivalence.literalsAreInconsistent(modelStatus));
+        model[3] = -1;
+        assertTrue(equivalence.literalsAreInconsistent(modelStatus));
+        model[1] = 0; model[2] = 1;
+        assertTrue(equivalence.literalsAreInconsistent(modelStatus));
+    }
+    public void testCompleteModelForLiterals() throws Unsatisfiable {
+        System.out.println("completeModelForLiterals");
+        InferenceStep step1 = new InfInputClause(10);
+        InferenceStep step2 = new InfInputClause(11);
+        Equivalence equivalence = new Equivalence(0, 1, 2, step1);
+        int[] model = new int[]{0, 0, 0, 0};
+        IntFunction<Integer> modelStatus = (literal -> model[literal]);
+        IntConsumer makeTrue = (literal -> {if(literal > 0) model[literal] = 1; else model[-literal] = -1;});
+
+        equivalence.completeModelForLiterals(modelStatus,makeTrue);
+        assertEquals("[0, 1, 1, 0]", Arrays.toString(model));
+        model[1] = 0;
+        equivalence.completeModelForLiterals(modelStatus,makeTrue);
+        assertEquals("[0, 1, 1, 0]", Arrays.toString(model));
+        equivalence.add(3, step2);
+        model[1] = 0; model[2] = -1;
+        equivalence.completeModelForLiterals(modelStatus,makeTrue);
+        assertEquals("[0, -1, -1, -1]", Arrays.toString(model));
+    }
+    public void testCompleteModel() throws Unsatisfiable {
+        System.out.println("completeModel");
+        InferenceStep step1 = new InfInputClause(10);
+        InferenceStep step2 = new InfInputClause(11);
+        Equivalence equivalence = new Equivalence(1, 2, 3, step1);
+        int[] model = new int[]{0, 0, 0, 0, 0};
+        IntFunction<Integer> modelStatus = (literal -> (literal > 0) ? model[literal] : -model[-literal]);
+        IntConsumer makeTrue = (literal -> {
+            if (literal > 0) model[literal] = 1;
+            else model[-literal] = -1;});
+        equivalence.completeModel(modelStatus, makeTrue);
+        assertEquals("[0, 0, 1, 1, 0]", Arrays.toString(model));
+        model[3] = -1;
+        equivalence.completeModel(modelStatus, makeTrue);
+        assertEquals("[0, -1, 1, -1, 0]", Arrays.toString(model));
+        model[1] = 1; model[2] = 0;
+        equivalence.completeModel(modelStatus, makeTrue);
+        assertEquals("[0, 1, -1, -1, 0]", Arrays.toString(model));
+        equivalence.add(-4, step2);
+        equivalence.completeModel(modelStatus, makeTrue);
+        assertEquals("[0, 1, -1, -1, 1]", Arrays.toString(model));
+
+        model[4] = -1;
+        try{equivalence.completeModel(modelStatus, makeTrue);
+            assertTrue(false);}
+        catch(Unsatisfiable uns) {
+            if(monitoring) System.out.println(uns.toString());}}
 }

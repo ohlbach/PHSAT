@@ -800,6 +800,17 @@ public class Utilities {
         list.sort((i,j)-> Integer.compare(i,j));
         return list;}
 
+    /** searchs the IntArrayList for the item and returns its index in the array.
+     *
+     * @param array an IntArrayList.
+     * @param item an integer.
+     * @return 0 or the index of the item in the array.
+     */
+    public static int indexOf(IntArrayList array, int item) {
+        for(int i = 0; i < array.size(); ++i) {
+            if(array.getInt(i) == item) return i;}
+        return 0;}
+
     /** adds the elements of the second list to the first list
      *
      * @param list1 an IntArray

@@ -45,8 +45,8 @@ public abstract class Unsatisfiable extends Result {
         StringBuilder st = new StringBuilder();
         st.append("CONTRADICTION FOUND: ");
         if(solverId != null) {st.append( "by solver '").append(solverId).append("' ");}
-        if(problemId != null) st.append("in problem '").append(problemId);
-        st.append("'\n").append(description(symboltable)).append("\n");
+        if(problemId != null) st.append("in problem '").append(problemId).append("'");
+        st.append("\n").append(description(symboltable)).append("\n");
         ArrayList<InferenceStep> steps = new ArrayList<>();
         IntArrayList inputIds = new IntArrayList();
         inferenceSteps(steps,inputIds);

@@ -204,10 +204,12 @@ public class Equivalence {
         for(int literal : literals) {
             int statusLiteral = modelStatus.apply(literal);
             if(status != 0 && statusLiteral != 0 && status != statusLiteral) return true;
-            status = statusLiteral;}
+            if(statusLiteral != 0) status = statusLiteral;}
         return false;}
 
     /** tries to find an inconsistency true(p) == false(q) and generates an UnsatEquivalence exception.
+     * <br>
+     * Hopefully this method will never be called.
      *
      * @param modelStatus   returns +1 (true), -1 (false) or 0 (undecided)
      * @throws UnsatEquivalence if an inconsistency true(p) == false(q) is found.
@@ -220,11 +222,17 @@ public class Equivalence {
             int literal = literals.getInt(i);
             int statusLiteral = modelStatus.apply(literal);
             if(status != 0 && statusLiteral != 0 && status != statusLiteral) {
-                if((status == 1 && falseLiteral != 0) || (status == -1 && trueLiteral != 0))
-                    throw new UnsatEquivalence(falseLiteral,literal,inferenceSteps.get(i));
-            status = statusLiteral;
-            if(status == 1 && trueLiteral == 0) {trueLiteral = literal; continue;}
-            if(status == -1 && falseLiteral == 0) falseLiteral = literal;}}}
+                int conflictingLiteral = 0;
+                if(statusLiteral ==  1 && falseLiteral != 0)       conflictingLiteral = falseLiteral;
+                else {if(statusLiteral == -1 && trueLiteral != 0)  conflictingLiteral = trueLiteral;}
+                InferenceStep step = inferenceSteps.get(i);
+                if(conflictingLiteral != representative)
+                    step = InfList.makeInfList(inferenceSteps.get(Utilities.Utilities.indexOf(literals,conflictingLiteral)), step);
+                throw new UnsatEquivalence(conflictingLiteral,literal,step);}
+            if(statusLiteral != 0) {
+                status = statusLiteral;
+                if(status == 1) {trueLiteral = literal; continue;}
+                if(status == -1) falseLiteral = literal;}}}
 
 
     /** turns the equivalence class into a string triggerLiteral -&gt; representative == literal1 == ...
