@@ -8,6 +8,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
+import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
 
 /** This class represents possibly conditioned equivalence classes.
  * <br>
@@ -19,6 +21,8 @@ public class Equivalences {
 
     /** maps triggerLiterals to a list of equivalence classes */
     HashMap<Integer,ArrayList<Equivalence>> equivalences = new HashMap<>();
+
+    ArrayList<HashMap<Integer,ArrayList<Equivalence>>> processedEquivalences = new ArrayList<>();
 
     /** adds a new equivalence to the set of equivalence classes.
      * <br>
@@ -146,6 +150,35 @@ public class Equivalences {
         Equivalence equivalence = getEquivalence(triggerLiteral,literal);
         if(equivalence != null) return equivalence.getInferenceStep(literal);
         return null;}
+
+    /** puts the equivalence int the backup array and creates a new equivalences hash map.
+     */
+    void backupEquivalences() {
+        if(!equivalences.isEmpty()) {
+            processedEquivalences.add(equivalences);
+            equivalences = new HashMap<>();}}
+
+    /** completes a model after Resolution has finished and pretended that the clause set is satisfiable.
+     * <br>
+     * Literals without truth values get a truth value such that the equivalences become true.  <br>
+     * There should be no contradiction true(p) == false(q), but who knows.<br>
+     * A triggered equivalence with  t &gt;= true(p) == false(q) is not a contradiction if t can be made false.
+     *
+     * @param modelStatus returns +1 (true), -1 (false) or 0 (undecided).
+     * @param makeTrue    makes an undecided literal true.
+     * @return            null (hopefully) or UnsatEquivalence if unexpectedly a contradiction was found.
+     */
+    UnsatEquivalence completeModel(IntFunction<Integer> modelStatus, IntConsumer makeTrue) {
+        backupEquivalences();
+        UnsatEquivalence[]  unsat = new UnsatEquivalence[]{null};
+        for(HashMap<Integer,ArrayList<Equivalence>> equivalences : processedEquivalences) {
+            equivalences.forEach((triggerLiteral, equivalenceList) -> {
+                try{
+                    for(Equivalence equivalence : equivalenceList)
+                     equivalence.completeModel(modelStatus,makeTrue);}
+                catch(UnsatEquivalence unsatisfiable) {unsat[0] = unsatisfiable;}});}
+        return unsat[0];}
+
 
     /** collects all equivalence classes in a string.
      *

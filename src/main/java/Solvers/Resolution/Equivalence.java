@@ -7,6 +7,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
+import java.util.function.IntConsumer;
+import java.util.function.IntFunction;
 
 /** The class represents a conditioned equivalence class: triggerLiteral -&gt; representative == literal1 == literal2 == ...
  * <br>
@@ -148,6 +150,81 @@ public class Equivalence {
         if(literal == representative || literal == -representative) return true;
         for(int lit : literals) {if(literal == lit || literal == -lit) return true;}
         return false;}
+
+    /** completes a model for literals with undecided truth value.
+     * <br>
+     * The model must guaranty that the equivalences are true.<br>
+     * Triggered equivalences t &gt;- p == q == ...<br>
+     * are even true if false(t) and true(p) == false(q) holds.<br>
+     * There should not be an inconsistency of the existing model with the equivalences.
+     * If this happens, an exception is thrown. Something in the algorithm went wrong!
+     *
+     * @param modelStatus   returns +1 (true), -1 (false) or 0 (undecided).
+     * @param makeTrue      for making an undecided literal true.
+     * @throws UnsatEquivalence if an inconsistency true(p) == false(q) is found.
+     */
+    void completeModel(IntFunction<Integer> modelStatus, IntConsumer makeTrue) throws UnsatEquivalence {
+        if(triggerLiteral != 0) {
+            int status = modelStatus.apply(triggerLiteral);
+            switch (status) {
+                case -1: return;
+                case  0: if(literalsAreInconsistent(modelStatus)) {makeTrue.accept(-triggerLiteral); return;}
+                case +1: completeModelForLiterals(modelStatus,makeTrue); return;}}
+        else {completeModelForLiterals(modelStatus,makeTrue);}}
+
+    /** completes a model for literals with undecided truth value and where the triggerLiteral is 0 or is true.
+     * <br>
+     * The model must guaranty that the equivalences are true.<br>
+     * There should not be an inconsistency of the existing model with the equivalences.
+     * If this happens, an exception is thrown. Something in the algorithm went wrong!
+     *
+     * @param modelStatus   returns +1 (true), -1 (false) or 0 (undecided).
+     * @param makeTrue      for making an undecided literal true.
+     * @throws UnsatEquivalence if an inconsistency true(p) == false(q) is found.
+     */
+    void completeModelForLiterals(IntFunction<Integer> modelStatus, IntConsumer makeTrue) throws UnsatEquivalence {
+        findInconsistency(modelStatus);
+        int status = modelStatus.apply(representative);
+        if (status == 0) {
+            for (int literal : literals) {
+                int statusLiteral = modelStatus.apply(literal);
+                if (statusLiteral != 0) {status = statusLiteral; break;}}}
+        if(status == 0) status = 1; // undecided equivalences are made true by making all literals true.
+        if(modelStatus.apply(representative) == 0) makeTrue.accept(status*representative);
+        for (int literal : literals) {
+            if(modelStatus.apply(literal) == 0) makeTrue.accept(status*literal);}}
+
+    /** tries to find an inconsistency true(p) == false(q).
+     *
+     * @param modelStatus   returns +1 (true), -1 (false) or 0 (undecided)
+     * @returns true if an inconsistency true(p) == false(q) is found.
+     */
+    boolean literalsAreInconsistent(IntFunction<Integer> modelStatus) {
+        int status = modelStatus.apply(representative);
+        for(int literal : literals) {
+            int statusLiteral = modelStatus.apply(literal);
+            if(status != 0 && statusLiteral != 0 && status != statusLiteral) return true;
+            status = statusLiteral;}
+        return false;}
+
+    /** tries to find an inconsistency true(p) == false(q) and generates an UnsatEquivalence exception.
+     *
+     * @param modelStatus   returns +1 (true), -1 (false) or 0 (undecided)
+     * @throws UnsatEquivalence if an inconsistency true(p) == false(q) is found.
+     */
+    void findInconsistency(IntFunction<Integer> modelStatus) throws UnsatEquivalence{
+        int status = modelStatus.apply(representative);
+        int trueLiteral  = (status == 1) ? representative : 0;
+        int falseLiteral = (status == -1) ? representative : 0;
+        for(int i = 0; i < literals.size(); ++i) {
+            int literal = literals.getInt(i);
+            int statusLiteral = modelStatus.apply(literal);
+            if(status != 0 && statusLiteral != 0 && status != statusLiteral) {
+                if((status == 1 && falseLiteral != 0) || (status == -1 && trueLiteral != 0))
+                    throw new UnsatEquivalence(falseLiteral,literal,inferenceSteps.get(i));
+            status = statusLiteral;
+            if(status == 1 && trueLiteral == 0) {trueLiteral = literal; continue;}
+            if(status == -1 && falseLiteral == 0) falseLiteral = literal;}}}
 
 
     /** turns the equivalence class into a string triggerLiteral -&gt; representative == literal1 == ...

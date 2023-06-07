@@ -276,19 +276,19 @@ public class Resolution extends Solver {
             switch(Normalizer.getQuantifier(normalizedClause)) {
                 case OR:
                 case ATLEAST: insertClause(clause = new Clause(normalizedClause,0));
-                    if(clause.size() == 2) addBinaryClauseTask(clause); break;
+                    if(clause.size() == 2) addClauseTask(clause); break;
                 case ATMOST:  insertClause(clause = new Clause(Normalizer.atmost2Atleast(normalizedClause),0));
-                    if(clause.size() == 2) addBinaryClauseTask(clause); break;
+                    if(clause.size() == 2) addClauseTask(clause); break;
                 case EXACTLY:
                     subIdentifier = 0;
                     for(IntArrayList atleastClause : Normalizer.exactlyToAtleast(normalizedClause)) {
                     insertClause(clause = new Clause(atleastClause,++subIdentifier));
-                    if(clause.size() == 2) addBinaryClauseTask(clause);} break;
+                    if(clause.size() == 2) addClauseTask(clause);} break;
                 case INTERVAL:
                     subIdentifier = 0;
                     for(IntArrayList atleastClause : Normalizer.intervalToAtleast(normalizedClause)) {
                         insertClause(clause = new Clause(atleastClause,++subIdentifier));
-                        if(clause.size() == 2) addBinaryClauseTask(clause);}}}
+                        if(clause.size() == 2) addClauseTask(clause);}}}
         if(checkConsistency) checkConsistency();
         statistics.initialClauses = clauses.size;
         if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);
@@ -330,6 +330,7 @@ public class Resolution extends Solver {
             queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));
             ++trueLiteralsInQueue;}
         if(globallyTrue) model.add(myThread,literal,inferenceStep);
+        ++statistics.derivedTrueLiterals;
         //if(checkConsistency) problemSupervisor.intermediateModelCheck(model,null); // ()->{printSeparated(); return null;});
     }
 
@@ -409,7 +410,6 @@ public class Resolution extends Solver {
                         break;}
                 if(clauses.isEmpty()) {
                     completeModel();
-                    completeModelForEquivalences((byte) 1);
                     throw new Satisfiable(problemId,solverId,model);}
                 if(trueLiteralsInQueue == 0 && clauses.status != 0) generatePositiveOrNegativeModel();
                 if(queue.isEmpty()) {
@@ -647,7 +647,7 @@ public class Resolution extends Solver {
                      monitor.println(monitorId, clauseBefore + " and true(" +
                          Symboltable.toString(step.oldTrueLiterals,symboltable) + ") -> " + step.result(symboltable));}
                  if(clause.size() == 2) moveToIndexTwo(clause);
-                 addDerivedClauseTask(clause);
+                addClauseTask(clause);
                 if(checkConsistency) checkConsistency();
             literalObject = literalObject.nextLiteral;}}
         literalIndexMore.removePredicate(oldTrueLiteral);
@@ -670,16 +670,6 @@ public class Resolution extends Solver {
             literalIndexMore.removeLiteral(oldLiteralObject);
             literalIndexTwo.addLiteral(newLiteralObject);
             clause.literals.set(i,newLiteralObject);}}
-
-
-    /** adds a just shortened clause to the task queue, either a BinaryClauseTask and a BinaryMergeTask, or a LongerClauseTask.
-     *
-     * @param clause a just shortened clause
-     */
-    protected void addDerivedClauseTask(final Clause clause) {
-        if(clause.size() == 2) addBinaryClauseTask(clause);
-        else                   addLongerClauseTask(clause);}
-
 
 
     /** removes all binary clauses which are subsumed by a binary subsumer.
@@ -899,7 +889,7 @@ public class Resolution extends Solver {
                     if(monitoring) monitor.println(monitorId,parentClause1.toString(symboltable,0) + " and " +
                             parentClause2.toString(symboltable,0) + " -> " + resolvent.toString(symboltable,0));
                     insertClause(resolvent);
-                    addDerivedClauseTask(resolvent);}
+                    addClauseTask(resolvent);}
                 parentLiteralObject2 = parentLiteralObject2.nextLiteral;}}}
 
 
@@ -1057,7 +1047,7 @@ public class Resolution extends Solver {
                         if(trackReasoning)
                             longerParentClause.inferenceStep = new InfResolution(binaryParentClause, binaryClause, longerParentClause,
                                     clauseBefore,longerParentClause,symboltable);
-                         addModifiedClauseTask(longerParentClause);
+                         addClauseTask(longerParentClause);
                         continue;}}
                 resolve(binaryParentLiteralObject,longerParentLiteralObject);
                 longerParentLiteralObject = longerParentLiteralObject.nextLiteral;}}}
@@ -1123,7 +1113,7 @@ public class Resolution extends Solver {
                             String resolventBefore = trackReasoning ? clauseS.toString(symboltable,0) : null;
                             boolean removeP = limitP == 1 && clauseS.size() == clausePSize;
                             if(removeLiteralFromClause(clauseS.findLiteral(literalObjectPNeg),false)) {
-                                addDerivedClauseTask(clauseS);
+                                addClauseTask(clauseS);
                                 if(trackReasoning) {
                                     clauseS.inferenceStep = new InfMergeResolutionMore(clauseP,resolventBefore,clauseS,symboltable);}
                                 if(monitoring) {
@@ -1216,35 +1206,33 @@ public class Resolution extends Solver {
                     "Resolution: " + posLiteral.clause.toString(symboltable,0) + " and " +
                             negLiteral.clause.toString(symboltable,0) + " -> " +
                             resolvent.toString(symboltable,0));
-        addDerivedClauseTask(resolvent);}
+        addClauseTask(resolvent);}
 
 
-    void addModifiedClauseTask(final Clause clause) {
+    /** adds a ClauseTask (ProcessBinaryClause or ProcessLongerClause) depending on the clause's size.
+     *
+     * @param clause a clause.
+     */
+    void addClauseTask(final Clause clause) {
         final TaskType type = (clause.size() == 2) ? TaskType.ProcessBinaryClause: TaskType.ProcessLongerClause;
         if(type == TaskType.ProcessBinaryClause) ++binaryClausesInQueue;
         synchronized (this) {queue.add(new Task<>(type, clause));}}
 
-    /** adds a two-literal clause as ProcessBinaryClause task to the task queue.
-     *
-     * @param clause a two-literal clause.
-     */
-    protected void addBinaryClauseTask(final Clause clause) {
-        assert(clause.size() == 2);
-        ++binaryClausesInQueue;
-        synchronized (this) {queue.add(new Task<>(TaskType.ProcessBinaryClause, clause));}}
 
 
-
-    /** adds a two-literal clause as ProcessLongerClause task to the task queue.
-     *
-     * @param clause a longer clause.
-     */
-    protected void addLongerClauseTask(final Clause clause) {
-        assert(clause.size() > 2);
-        synchronized (this) {queue.add(new Task<>(TaskType.ProcessLongerClause, clause));}}
-
+    /** for collecting literals.*/
+    private final IntArrayList removedLiterals = new IntArrayList();
     Unsatisfiable[] unsatisfiables = new Unsatisfiable[1];
+
+    /** replaces for each equivalence and triggered equivalence all occurrences of the equivalent literals with their representative.
+     * <br>
+     * The changed clauses are simplified as far as possible. <br>
+     * The equivalences are put into the backup array such that they can be used to complete a model.
+     *
+     * @throws Unsatisfiable if inconsistent true literals are derived.
+     */
     private void processEquivalences() throws Unsatisfiable {
+        removedLiterals.clear();
         unsatisfiables[0] = null;
         equivalences.equivalences.forEach((triggerLiteral,equivalenceList) -> {
             try{
@@ -1253,16 +1241,12 @@ public class Resolution extends Solver {
                         int literal = eqv.literals.get(i);
                         InferenceStep step = eqv.inferenceSteps.get(i);
                         if(triggerLiteral == 0)
-                              processEquivalence(eqv.representative,literal,step);
-                        else  processEquivalence(triggerLiteral,eqv.representative,literal,step);}}}
+                              processUntriggerdEquivalence(eqv.representative,literal,step);
+                        else  processTriggeredEquivalence(triggerLiteral,eqv.representative,literal,step);}}}
             catch(Unsatisfiable unsatisfiable) {unsatisfiables[0] = unsatisfiable;}});
-        if(unsatisfiables[0] != null) throw unsatisfiables[0];}
-
-
-
-
-    /** for collecting literals.*/
-    private final IntArrayList removedLiterals = new IntArrayList();
+        if(unsatisfiables[0] != null) throw unsatisfiables[0];
+        for(int removedLiteral : removedLiterals) checkPurity(removedLiteral);
+        equivalences.backupEquivalences();}
 
 
     /** This method replaces in all clauses the given literal by the given representative.
@@ -1274,8 +1258,7 @@ public class Resolution extends Solver {
      * @param equivalenceStep which caused the equivalence.
      * @throws Unsatisfiable         if a contradiction is encountered.
      */
-    void processEquivalence(int representative, int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
-        removedLiterals.clear();
+    void processUntriggerdEquivalence(int representative, int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
         for(int sign = 1; sign >= -1; sign -=2) {
             representative *= sign;
             literal *= sign;
@@ -1286,33 +1269,21 @@ public class Resolution extends Solver {
                     Clause  clause = literalObject.clause;
                     if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
                     ++statistics.equivalenceReplacements;
-                    clauses.updateClauseNumbers(clause,-1);
-                    String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
-                    trueLiterals.clear();
-                    Literals finalLiteralIndex = literalIndex;
-                    int status = Clause.replaceLiteral(literalObject,representative,
-                                        (l->{finalLiteralIndex.removeLiteral(l);
-                                            if(!removedLiterals.contains(l.literal)) removedLiterals.add(l.literal);}),
-                                        finalLiteralIndex::addLiteral,
-                                        trueLiterals::add);
-                    if(status == 1 && trueLiterals.isEmpty()) {
-                        removeClause(clause,false,false);
-                        literalObject = literalObject.nextLiteral; continue;}
-                    for(int trueLiteral : trueLiterals) {
-                        if(trueLiteral == representative && !trueLiterals.contains(literal)) trueLiterals.add(literal);
-                        if(trueLiteral == literal && !trueLiterals.contains(representative)) trueLiterals.add(representative);}
-                    InfEquivalenceReplacement step = (trackReasoning || monitoring) ?
-                            new InfEquivalenceReplacement(clauseString, clause, trueLiterals, representative, literal, equivalenceStep, symboltable) : null;
-                    if(monitoring) {monitor.println(monitorId,step.info(symboltable));}
-                    for(int trueLiteral : trueLiterals) addInternalTrueLiteralTask(trueLiteral,true,step);
-                    if(status == 1 || (status == 0 && isSubsumed(clause) != null)) removeClause(clause,false,false);
-                    else {clauses.updateClauseNumbers(clause,+1);
-                          addDerivedClauseTask(clause);}
+                    replaceLiteral(literalObject,representative,literalIndex,equivalenceStep);
                     literalObject = literalObject.nextLiteral;}
-                literalIndex = (literalIndex == literalIndexTwo) ? literalIndexMore : null;}}
-        for(int removedLiteral : removedLiterals) checkPurity(removedLiteral);}
+                literalIndex = (literalIndex == literalIndexTwo) ? literalIndexMore : null;}}}
 
-    void processEquivalence(int triggerLiteral, int representative, int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
+    /** replaces the given literal by the given representative in clauses containing the negated triggerLiteral.
+     * <br>
+     * All possible simplifications are done in the changed clauses.
+     *
+     * @param triggerLiteral  any literal.
+     * @param representative  any literal != triggerLiteral.
+     * @param literal         any literal != representative and /= triggerLiteral
+     * @param equivalenceStep null or the inference step that caused the triggered equivalence
+     * @throws Unsatisfiable  if the replacement causes true literals to be derived which contradict the model.
+     */
+    void processTriggeredEquivalence(final int triggerLiteral, final int representative, final int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
         Literal literalObject = literalIndexMore.getFirstLiteralObject(-triggerLiteral);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
@@ -1321,30 +1292,54 @@ public class Resolution extends Solver {
             for(Literal litObject : clause.literals) {
                 if(litObject.literal == literal)           {sign = 1;}
                 else if(literalObject.literal == -literal) {sign = -1;}
-                if(sign != 0) {replaceLiteral(litObject,sign*representative,literalIndexMore, equivalenceStep);}}}}
+                if(sign != 0) {
+                    ++statistics.equivalenceReplacementsTriggered;
+                    replaceLiteral(litObject,sign*representative,literalIndexMore, equivalenceStep);
+                    break;}}
+            literalObject = literalObject.nextLiteral;}}
 
-    void replaceLiteral(Literal literalObject, int representative, final Literals literalIndex, final InferenceStep equivalenceStep) throws Unsatisfiable {
+    /** replaces the literal (in literalObject) by another literal (representative), typically equivalence replacement.
+     * <br>
+     * If the clause becomes a tautology or is subsumed, it is removed.<br>
+     * If the clause is not a disjunction, it is simplified after replacement. <br>
+     * True literals may be derived, which are put into the global model,<br>
+     * and generate a trueLiteral task.<br>
+     * If the clause became a two-literal clause, it is put into the literalIndexTwo index.<br>
+     * The modified clause generates a derivedClause task.<br>
+     * The clause numbers are updated.
+     *
+     * @param literalObject    any literalObject
+     * @param representative   a literal
+     * @param literalIndex     the corresponding literal index.
+     * @param equivalenceStep  null or the inference step that caused the equivalence of the literal with the representative.
+     * @throws Unsatisfiable   if derived literals cause a contradiction.
+     */
+    void replaceLiteral(final Literal literalObject, final int representative, final Literals literalIndex, final InferenceStep equivalenceStep) throws Unsatisfiable {
         int literal = literalObject.literal;
         Clause clause = literalObject.clause;
+        clauses.updateClauseNumbers(clause,-1);
+        int size = clause.size();
         String clauseString = (trackReasoning | monitoring) ? clause.toString(symboltable,0) : null;
         trueLiterals.clear();
         int status = Clause.replaceLiteral(literalObject,representative,
                 (l->{literalIndex.removeLiteral(l);
                     if(!removedLiterals.contains(l.literal)) removedLiterals.add(l.literal);}),
-                literalIndex::addLiteral,
-                trueLiterals::add);
-        if(status == 1 && trueLiterals.isEmpty()) {
-            removeClause(clause,false,false); return;}
-        for(int trueLiteral : trueLiterals) {
-            if(trueLiteral == representative && !trueLiterals.contains(literal)) trueLiterals.add(literal);
-            if(trueLiteral == literal && !trueLiterals.contains(representative)) trueLiterals.add(representative);}
+                literalIndex::addLiteral, trueLiterals::add);
+        if(status == 1 && trueLiterals.isEmpty()) {removeClause(clause,false,false); return;} // new clause is a tautology
+        for(int trueLiteral : trueLiterals) { // the representative in the changed clause becomes true, the literal itself must also be true.
+            if(trueLiteral == representative && !trueLiterals.contains(literal)) trueLiterals.add(literal);}
         InfEquivalenceReplacement step = (trackReasoning || monitoring) ?
                 new InfEquivalenceReplacement(clauseString, clause, trueLiterals, representative, literal, equivalenceStep, symboltable) : null;
         if(monitoring) {monitor.println(monitorId,step.info(symboltable));}
         for(int trueLiteral : trueLiterals) addInternalTrueLiteralTask(trueLiteral,true,step);
-        if(status == 1 || (status == 0 && isSubsumed(clause) != null)) removeClause(clause,false,false);
-        else {clauses.updateClauseNumbers(clause,+1);
-            addDerivedClauseTask(clause);}}
+        if(status == 1) {removeClause(clause,false,false); return;}
+        if(status == 0 && isSubsumed(clause) != null) {
+            ++statistics.subsumedClauses;
+            removeClause(clause,false,false);
+            return;}
+        if(size > 2 && clause.size() == 2) moveToIndexTwo(clause);
+        clauses.updateClauseNumbers(clause,+1);
+        addClauseTask(clause);}
 
     /** inserts a clause into the internal lists.
      *
@@ -1524,28 +1519,14 @@ public class Resolution extends Solver {
                     for(Literal  litObject : clause.literals) {
                         if(localStatus(litObject.literal) == 0) {
                             makeLocallyTrue(litObject.literal);
-                            if(++trueLiterals == clause.limit) break;}}}}}
+                            if(++trueLiterals == clause.limit) break;}}}}
+        Unsatisfiable unsatisfiable = equivalences.completeModel(literal -> (int)localStatus(literal),this::makeLocallyTrue);
+        if(unsatisfiable != null) {
+            System.out.println("Unsatisfiability in completed model. Should not happen");
+            System.out.println(unsatisfiable.description(symboltable));
+            System.exit(1);}
+    }
 
-    /** extends the local model to the equivalences.
-     * <br>
-     * If both literals of an equivalence are undefined then the status defines their truth value.
-     *
-     * @param status +1 or -1, for defining the truth value of literal pairs with undefined truth value.
-     */
-    void completeModelForEquivalences(final byte status) {
-        for(int i = 0; i < equivalenceList.size(); i += 2) {
-            int literal1 = equivalenceList.getInt(i);
-            int literal2 = equivalenceList.getInt(i+1);
-            byte localStatus1 = localStatus(literal1);
-            byte localStatus2 = localStatus(literal2);
-            if(localStatus1 != 0) {
-                if(localStatus2 != 0) assert localStatus1 == localStatus2;
-                else makeLocallyTrue(localStatus1*literal2);}
-            else {
-                if(localStatus2 != 0) makeLocallyTrue(localStatus2*literal1);
-                else {
-                    makeLocallyTrue(status*literal1);
-                    makeLocallyTrue(status*literal2);}}}}
 
     /** generates a local model from either the positive and mixedPositive literals or
      * from the negative and mixedNegative literals in the clauses.
@@ -1557,7 +1538,6 @@ public class Resolution extends Solver {
             if (status == +1) generatePositiveModel();
             if (status == -1) generateNegativeModel();
             completeModel();
-            completeModelForEquivalences(status);
             model.exchangeModel(localModel);
             throw new Satisfiable(problemId,solverId,model);}}
 

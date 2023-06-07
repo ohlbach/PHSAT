@@ -37,6 +37,8 @@ public class ResolutionStatistics extends Statistic {
 
     @Description("equivalence replacements")
     public int equivalenceReplacements = 0;
+    @Description("triggered equivalence replacements")
+    public int equivalenceReplacementsTriggered = 0;
 
     @Description("number of complementary literal pairs.")
     public int complementaryLiterals = 0;
@@ -46,34 +48,36 @@ public class ResolutionStatistics extends Statistic {
 
 
     public void clear() {
-        initialClauses = 0;
-        derivedTrueLiterals = 0;
-        pureLiterals                = 0;
-        partiallyPureLiterals       = 0;
-        resolvedPredicates          = 0;
-        complementaryLiterals       = 0;
-        saturatedLiterals           = 0;
-        subsumedClauses             = 0;
-        mergedClauses               = 0;
-        binaryResolvents            = 0;
-        longerResolvents            = 0;
-        equivalenceReplacements     = 0;
+        initialClauses                   = 0;
+        derivedTrueLiterals              = 0;
+        pureLiterals                     = 0;
+        partiallyPureLiterals            = 0;
+        resolvedPredicates               = 0;
+        complementaryLiterals            = 0;
+        saturatedLiterals                = 0;
+        subsumedClauses                  = 0;
+        mergedClauses                    = 0;
+        binaryResolvents                 = 0;
+        longerResolvents                 = 0;
+        equivalenceReplacements          = 0;
+        equivalenceReplacementsTriggered = 0;
     }
     public String toString(){
         StringBuilder st = new StringBuilder();
         st.append("Simplifier Statistics\n");
-        st.append("Initial Clauses:           ").append(initialClauses).append("\n");
-        st.append("Derived Unit Clauses:      ").append(derivedTrueLiterals).append("\n");
-        st.append("Pure Literals:             ").append(pureLiterals).append("\n");
-        st.append("Parially pure Literals:    ").append(partiallyPureLiterals).append("\n");
-        st.append("Resolved Predicates:       ").append(resolvedPredicates).append("\n");
-        st.append("complementary Literals:    ").append(complementaryLiterals).append("\n");
-        st.append("Saturated Literals:        ").append(saturatedLiterals).append("\n");
-        st.append("Subsumed Clauses:          ").append(subsumedClauses).append("\n");
-        st.append("Merged Clauses:            ").append(mergedClauses).append("\n");
-        st.append("Binary Resolvents:         ").append(binaryResolvents).append("\n");
-        st.append("Longer Resolvents:         ").append(longerResolvents).append("\n");
-        st.append("Equivalence Replacements:  ").append(equivalenceReplacements);
+        st.append("Initial Clauses:                   ").append(initialClauses).append("\n");
+        st.append("Derived Unit Clauses:              ").append(derivedTrueLiterals).append("\n");
+        st.append("Pure Literals:                     ").append(pureLiterals).append("\n");
+        st.append("Parially pure Literals:            ").append(partiallyPureLiterals).append("\n");
+        st.append("Resolved Predicates:               ").append(resolvedPredicates).append("\n");
+        st.append("complementary Literals:            ").append(complementaryLiterals).append("\n");
+        st.append("Saturated Literals:                ").append(saturatedLiterals).append("\n");
+        st.append("Subsumed Clauses:                  ").append(subsumedClauses).append("\n");
+        st.append("Merged Clauses:                    ").append(mergedClauses).append("\n");
+        st.append("Binary Resolvents:                 ").append(binaryResolvents).append("\n");
+        st.append("Longer Resolvents:                 ").append(longerResolvents).append("\n");
+        st.append("Equivalence Replacements:          ").append(equivalenceReplacements);
+        st.append("Triggered Equivalence Replacements ").append(equivalenceReplacementsTriggered);
         return st.toString();
     }
 
