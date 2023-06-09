@@ -538,7 +538,7 @@ public class ResolutionTest extends TestCase {
         }
 
     public void testmergeResolutionWithLongerClauseDirect1() throws Result {
-        System.out.println("mergeResolutionWithLongerClause 1");
+        System.out.println("mergeResolutionAndEquivalenceMoreMore 1");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -548,7 +548,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(clause);
         Clause clause1 = new Clause(new int[]{2, cOr, 3, -2, 1, 4});
         resolution.insertClause(clause1);
-        assertTrue(resolution.mergeResolutionWithLongerClause(clause));
+        assertTrue(resolution.mergeResolutionAndEquivalenceMoreMore(clause));
         assertEquals("1: 1v2v3\n" +
                 "2: 3v1v4\n", resolution.clauses.toString());
         if(monitoring) {
@@ -561,7 +561,7 @@ public class ResolutionTest extends TestCase {
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});
         resolution.insertClause(clause);
         resolution.insertClause(new Clause(new int[]{2, cOr, 3, -2, 1}));
-        assertFalse(resolution.mergeResolutionWithLongerClause(clause));
+        assertFalse(resolution.mergeResolutionAndEquivalenceMoreMore(clause));
         assertEquals("2: 3v1\n", resolution.clauses.toString());
 
         if(monitoring) {
@@ -577,7 +577,7 @@ public class ResolutionTest extends TestCase {
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});
         resolution.insertClause(clause);
         resolution.insertClause(new Clause(new int[]{2, cOr, 3, -2, 4}));
-        assertTrue(resolution.mergeResolutionWithLongerClause(clause));
+        assertTrue(resolution.mergeResolutionAndEquivalenceMoreMore(clause));
         assertEquals("1: 1v2v3\n" +
                 "2: 3v-2v4\n", resolution.clauses.toString());
 
@@ -587,7 +587,7 @@ public class ResolutionTest extends TestCase {
         clause = new Clause(new int[]{1, cAtleast, 2, 1, 2, 3});
         resolution.insertClause(clause);
         resolution.insertClause(new Clause(new int[]{2, cAtleast, 2, -1,-1,2,2,3,3}));
-        assertTrue(resolution.mergeResolutionWithLongerClause(clause));
+        assertTrue(resolution.mergeResolutionAndEquivalenceMoreMore(clause));
         assertEquals("1: >= 2 1,2,3\n" +
                 "2: 2v3\n", resolution.clauses.toString());
 
@@ -599,7 +599,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{3, cOr, 3, -2, -1}));
         resolution.insertClause(new Clause(new int[]{4, cOr, 3, -1, 4,2,5}));
         resolution.insertClause(new Clause(new int[]{5, cOr, -3, 2, 4,1}));
-        assertTrue(resolution.mergeResolutionWithLongerClause(clause));
+        assertTrue(resolution.mergeResolutionAndEquivalenceMoreMore(clause));
         assertEquals("1: 1v2v3\n" +
                 "2: 3v-2v4\n" +
                 "3: 3v-2v-1\n" +
@@ -609,7 +609,7 @@ public class ResolutionTest extends TestCase {
     }
 
     public void testmergeResolutionWithLongerClauseDirect2 () throws Result {
-        System.out.println("mergeResolutionWithLongerClause 2");
+        System.out.println("mergeResolutionAndEquivalenceMoreMore 2");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -619,7 +619,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(clause);
         resolution.insertClause(new Clause(new int[]{2, cAtleast, 4, 1,1,1,1, -2,-2,-2, 3,3,3,3,4}));
         resolution.insertClause(new Clause(new int[]{3, cAtleast, 4, 1,1,1,1, -2,-2,-2, 3,3,3,4}));
-        resolution.mergeResolutionWithLongerClause(clause);
+        resolution.mergeResolutionAndEquivalenceMoreMore(clause);
         assertEquals("1: >= 3 1^2,2,3^2\n" +
                 "2: 1v3\n" +
                 "3: >= 4 1^4,-2^3,3^3,4\n", resolution.clauses.toString());

@@ -526,7 +526,7 @@ public class Resolution extends Solver {
             removeClause(clause,true,true);
             return;}
         removeClausesSubsumedByLongerClause(clause);
-        if(!mergeResolutionWithLongerClause(clause)) return;
+        if(!mergeResolutionAndEquivalenceMoreMore(clause)) return;
         saturateBinaryClausesWithLongerClause(clause);
         if(clause.exists && clause.size()==3) mergeResolutionPartial(clause);
     }
@@ -841,23 +841,23 @@ public class Resolution extends Solver {
                 literalObject2 = literalObject2.nextLiteral;}
 
             literalObject2 = literalIndexMore.getFirstLiteralObject(literal2);
-            while(literalObject2 != null) {
+            while(literalObject2 != null) { // clauses with literal2 can merge with clause1
                 Clause clause2 = literalObject2.clause;
                 if(clause2 == null) {literalObject2 = literalObject2.nextLiteral; continue;}
-                if(clause2.timestamp1 == timestamp) { // a partner clause is found
-                    Literal negLiteralObject1 = clause2.findLiteral(-literal1);
-                    if(literalObject2.multiplicity == clause2.limit+1-negLiteralObject1.multiplicity) {
+                if(clause2.timestamp1 == timestamp) { // a partner clause is found: p,q and -p,q,phi -> merge
+                    Literal negLiteralObject1 = clause2.findLiteral(-literal1); // find -p
+                    if(literalObject2.multiplicity == clause2.limit+1-negLiteralObject1.multiplicity) { // condition for destructive merge
                         String clause2Before = null;
                         if(monitoring || trackReasoning) {clause2Before = clause2.toString(symboltable,0);}
                         removeLiteralFromClause(negLiteralObject1,false);
                         InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
                         if(trackReasoning) clause2.inferenceStep = step;
                         if(monitoring) monitor.println(monitorId,step.info());}
-                    else {resolve(negLiteralObject1,clause1.findLiteral(literal1)); }
+                    else {resolve(negLiteralObject1,clause1.findLiteral(literal1)); } // non-destructive merge
                     ++statistics.mergeResolutionTwoMore;}
                 literalObject2 = literalObject2.nextLiteral;}
 
-            if(checkEquivalence) {
+            if(checkEquivalence) { // p,q and -p,-q,r  -> triggered equivalence: -r -> p == -q
                 literalObject2 = literalIndexTwo.getFirstLiteralObject(-literal2);
                 while(literalObject2 != null) {
                     Clause clause2 = literalObject2.clause;
@@ -1087,7 +1087,7 @@ public class Resolution extends Solver {
      * @return        true if the clause itself has survived.
      * @throws Unsatisfiable if the simplification causes an Unsatisfiable exception.
      */
-    protected boolean mergeResolutionWithLongerClause(final Clause clauseP) throws Unsatisfiable {
+    protected boolean mergeResolutionAndEquivalenceMoreMore(final Clause clauseP) throws Unsatisfiable {
         boolean candidateClausesFound;
         int clausePSize = clauseP.literals.size();
         int limitP = clauseP.limit;
