@@ -34,7 +34,16 @@ public class ResolutionStatistics extends Statistic {
 
     @Description("number of longer resolvents")
     public int longerResolvents = 0;
-
+    @Description("merge resolution between binray clauses")
+    public int mergeResolutionTwoTwo = 0;
+    @Description("merge resolution between a binary clause and a longer clause")
+    public int mergeResolutionTwoMore = 0;
+    @Description("merge resolution between a longer clauses")
+    public int mergeResolutionMoreMore = 0;
+    @Description("binary equivalences")
+    public int binaryEquivalences = 0;
+    @Description("triggered equivalences")
+    public int triggeredEquivalences = 0;
     @Description("equivalence replacements")
     public int equivalenceReplacements = 0;
     @Description("triggered equivalence replacements")
@@ -59,6 +68,10 @@ public class ResolutionStatistics extends Statistic {
         mergedClauses                    = 0;
         binaryResolvents                 = 0;
         longerResolvents                 = 0;
+        mergeResolutionTwoTwo            = 0;
+        mergeResolutionTwoMore           = 0;
+        mergeResolutionMoreMore          = 0;
+        binaryEquivalences               = 0;
         equivalenceReplacements          = 0;
         equivalenceReplacementsTriggered = 0;
     }
@@ -76,6 +89,11 @@ public class ResolutionStatistics extends Statistic {
         st.append("Merged Clauses:                    ").append(mergedClauses).append("\n");
         st.append("Binary Resolvents:                 ").append(binaryResolvents).append("\n");
         st.append("Longer Resolvents:                 ").append(longerResolvents).append("\n");
+        st.append("Merge Resolution binary-binary:    ").append(mergeResolutionTwoTwo).append("\n");
+        st.append("Merge Resolution binary-longer:    ").append(mergeResolutionTwoMore).append("\n");
+        st.append("Merge Resolution longer-longer:    ").append(mergeResolutionMoreMore).append("\n");
+        st.append("Binary Equivalences:               ").append(binaryEquivalences);
+        st.append("Triggered Equivalences:            ").append(triggeredEquivalences);
         st.append("Equivalence Replacements:          ").append(equivalenceReplacements);
         st.append("Triggered Equivalence Replacements ").append(equivalenceReplacementsTriggered);
         return st.toString();

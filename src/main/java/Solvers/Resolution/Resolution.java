@@ -223,7 +223,7 @@ public class Resolution extends Solver {
         timestampSubsumption = 1;
         statistics.clear();
         queue.clear();
-        equivalenceList.clear();
+        equivalences.equivalences.clear();
         if(literalIndexTwo == null)  literalIndexTwo = new Literals("TWO",predicates);
         else literalIndexTwo.clear(predicates);
         if(literalIndexMore == null) literalIndexMore = new Literals("MORE",predicates);
@@ -792,6 +792,7 @@ public class Resolution extends Solver {
                     addInternalTrueLiteralTask(literal2,true, trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
                     removeClause(clause1,true,true);
                     removeClause(clause2,true,true);
+                    ++statistics.mergeResolutionTwoTwo;
                     return;}
                 literalObject = literalObject.nextLiteral;}
 
@@ -808,17 +809,19 @@ public class Resolution extends Solver {
                         if(monitoring) monitor.println(monitorId,step.info(symboltable));
                         equivalenceTask.a = true;
                         synchronized (this) {queue.add(equivalenceTask);}
+                        ++statistics.binaryEquivalences;
                         return;}
                     literalObject = literalObject.nextLiteral;}}}
                 finally {++timestamp;}}
 
-    /** performs merge resolution between a binary clause and a longer clause, and equivalence recognition, if possible.
+    /** performs merge resolution between a binary clause and a longer clause, and triggered equivalence recognition, if possible.
      * <br>
-     * Binary MergeResolution:  p,q and -p,q -&gt; true(q).<br>
-     * Equivalence Recognition: p,q and -p,-q -&gt; p == q.<br>
-     * A derived true literal is inserted into the model.<br>
+     * Binary MergeResolution with disjunctions:  p,q and -p,q,phi -&gt; q,phi. (destructively) <br>
+     * Binary MergeResolution with atleast:       p,q and &gt;= m -p^n, q^k,phi and k = m+1-n -&gt; &gt;= m q^k,phi (destructively)<br>
+     * If the condition k = m+1-n does not hold then the merge resolvent is added to the clauses.<br>
+     * Triggered Equivalence Recognition: p,q and -p,-q,r -&gt; r -&gt; p == q. (only with 3-literal disjunctions)  <br>
+     * Derived true literals are inserted into the model.<br>
      * A derived equivalence is sent to the equivalence classes.<br>
-     * In both cases the two clauses are removed and the search stops immediately.
      *
      * @param clause1   the binary clause.
      * @param literal1  either the first or the second literal.
@@ -831,40 +834,44 @@ public class Resolution extends Solver {
         assert(clause1.size() == 2);
         ++timestamp; // just to be sure.
         try{
-            Literal literalObject = literalIndexMore.getFirstLiteralObject(-literal1);
-            while(literalObject != null) { // all clauses with -literal1 are marked.
-                Clause clause = literalObject.clause;
-                if(clause != null && clause.isDisjunction) clause.timestamp1 = timestamp;
-                literalObject = literalObject.nextLiteral;}
+            Literal literalObject2 = literalIndexMore.getFirstLiteralObject(-literal1);
+            while(literalObject2 != null) { // all clauses with -literal1 are marked.
+                Clause clause = literalObject2.clause;
+                if(clause != null) clause.timestamp1 = timestamp;
+                literalObject2 = literalObject2.nextLiteral;}
 
-            literalObject = literalIndexMore.getFirstLiteralObject(literal2);
-            while(literalObject != null) {
-                Clause clause2 = literalObject.clause;
-                if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
+            literalObject2 = literalIndexMore.getFirstLiteralObject(literal2);
+            while(literalObject2 != null) {
+                Clause clause2 = literalObject2.clause;
+                if(clause2 == null) {literalObject2 = literalObject2.nextLiteral; continue;}
                 if(clause2.timestamp1 == timestamp) { // a partner clause is found
-                    String clause2Before = null;
-                    if(monitoring || trackReasoning) {clause2Before = clause2.toString(symboltable,0);}
-                    removeLiteralFromClause(clause2.findLiteral(-literal1),false);
-                    InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
-                    if(trackReasoning) clause2.inferenceStep = step;
-                    if(monitoring) monitor.println(monitorId,step.info());}
-                literalObject = literalObject.nextLiteral;}
+                    Literal negLiteralObject1 = clause2.findLiteral(-literal1);
+                    if(literalObject2.multiplicity == clause2.limit+1-negLiteralObject1.multiplicity) {
+                        String clause2Before = null;
+                        if(monitoring || trackReasoning) {clause2Before = clause2.toString(symboltable,0);}
+                        removeLiteralFromClause(negLiteralObject1,false);
+                        InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
+                        if(trackReasoning) clause2.inferenceStep = step;
+                        if(monitoring) monitor.println(monitorId,step.info());}
+                    else {resolve(negLiteralObject1,clause1.findLiteral(literal1)); }
+                    ++statistics.mergeResolutionTwoMore;}
+                literalObject2 = literalObject2.nextLiteral;}
 
             if(checkEquivalence) {
-                literalObject = literalIndexTwo.getFirstLiteralObject(-literal2);
-                while(literalObject != null) {
-                    Clause clause2 = literalObject.clause;
-                    if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
-                    if(clause2.timestamp1 == timestamp && clause2.size() == 3) { // a partner clause is found.
+                literalObject2 = literalIndexTwo.getFirstLiteralObject(-literal2);
+                while(literalObject2 != null) {
+                    Clause clause2 = literalObject2.clause;
+                    if(clause2 == null) {literalObject2 = literalObject2.nextLiteral; continue;}
+                    if(clause2.timestamp1 == timestamp && clause2.isDisjunction && clause2.size() == 3) { // a partner clause is found.
                         removeClause(clause2,true,true);
                         int triggerLiteral = -clause2.findThirdLiteral(literal1,-literal2).literal;
-                        equivalences.add(triggerLiteral,literal1,-literal2,trackReasoning ? new InfEquivalence(triggerLiteral,clause1,clause2) : null);
-                         if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
-                                clause2.toString(symboltable,0) + " -> " + Symboltable.toString(triggerLiteral,symboltable) +
-                                 " => " +Symboltable.toString(literal1,symboltable) + " == " + Symboltable.toString(-literal2,symboltable));
-                         equivalenceTask.a = true;
-                         synchronized (this) {queue.add(equivalenceTask);}}
-                    literalObject = literalObject.nextLiteral;}}}
+                        InfEquivalence step = (monitoring || trackReasoning) ? new InfEquivalence(triggerLiteral,clause1,clause2) : null;
+                        equivalences.add(triggerLiteral,literal1,-literal2,step);
+                        if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                        equivalenceTask.a = true;
+                        synchronized (this) {queue.add(equivalenceTask);}
+                        ++statistics.triggeredEquivalences;}
+                    literalObject2 = literalObject2.nextLiteral;}}}
         finally {++timestamp;}}
 
     /** performs resolution between the given clause and all other binary clauses.
