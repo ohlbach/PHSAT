@@ -15,6 +15,7 @@ import Solvers.Solver;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -802,17 +803,16 @@ public class Resolution extends Solver {
                     if(clause2.timestamp1 == timestamp) { // a partner clause is found.
                         removeClause(clause1,false,true);
                         removeClause(clause2,true,true);
-                        equivalences.add(0,literal1,-literal2, trackReasoning ? new InfEquivalence(clause1,clause2) : null);
-                        if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
-                                    clause2.toString(symboltable,0) + " -> " +
-                                    Symboltable.toString(literal1,symboltable)+" == " + Symboltable.toString(-literal2,symboltable));
+                        InfEquivalence step = (trackReasoning || monitoring) ? new InfEquivalence(clause1,clause2) : null;
+                        equivalences.add(0,literal1,-literal2, step);
+                        if(monitoring) monitor.println(monitorId,step.info(symboltable));
                         equivalenceTask.a = true;
                         synchronized (this) {queue.add(equivalenceTask);}
                         return;}
-                        literalObject = literalObject.nextLiteral;}}}
+                    literalObject = literalObject.nextLiteral;}}}
                 finally {++timestamp;}}
 
-    /** performs merge resolution between binary clauses and equivalence recognition, if possible.
+    /** performs merge resolution between a binary clause and a longer clause, and equivalence recognition, if possible.
      * <br>
      * Binary MergeResolution:  p,q and -p,q -&gt; true(q).<br>
      * Equivalence Recognition: p,q and -p,-q -&gt; p == q.<br>
@@ -845,9 +845,9 @@ public class Resolution extends Solver {
                     String clause2Before = null;
                     if(monitoring || trackReasoning) {clause2Before = clause2.toString(symboltable,0);}
                     removeLiteralFromClause(clause2.findLiteral(-literal1),false);
-                    if(trackReasoning) clause2.inferenceStep = new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable);
-                    if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
-                            clause2Before + " -> " + clause2.toString(symboltable,0));}
+                    InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
+                    if(trackReasoning) clause2.inferenceStep = step;
+                    if(monitoring) monitor.println(monitorId,step.info());}
                 literalObject = literalObject.nextLiteral;}
 
             if(checkEquivalence) {
@@ -1522,7 +1522,8 @@ public class Resolution extends Solver {
                             if(++trueLiterals == clause.limit) break;}}}}
         Unsatisfiable unsatisfiable = equivalences.completeModel(literal -> (int)localStatus(literal),this::makeLocallyTrue);
         if(unsatisfiable != null) {
-            System.out.println("Unsatisfiability in completed model. Should not happen");
+            System.out.println("Contradiction in completed model. Should not happen!");
+            System.out.println(Arrays.toString(localModel));
             System.out.println(unsatisfiable.description(symboltable));
             System.exit(1);}
     }

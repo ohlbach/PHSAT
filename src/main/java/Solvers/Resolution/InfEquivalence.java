@@ -36,12 +36,16 @@ public class InfEquivalence extends InferenceStep {
         this.clause1 = clause1;
         this.clause2 = clause2;
         rule = clause1.size() == 2 ? ruleTwoThree : ruleThreeThree;}
-    @Override
-    public String toString(Symboltable symboltable) {
+
+    public String info(Symboltable symboltable) {
         String trigger = triggerLiteral == 0 ? "" : Symboltable.toString(triggerLiteral,symboltable) + " => ";
         return clause1.toString(symboltable,0) + " and " + clause2.toString(symboltable,0) + " -> " +
                 trigger + Symboltable.toString(clause1.literals.get(0).literal,symboltable) + " == " +
                 Symboltable.toString(clause1.literals.get(1).literal,symboltable);}
+
+    @Override
+    public String toString(Symboltable symboltable) {
+        return title + "\n  " + info(symboltable);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {

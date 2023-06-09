@@ -37,9 +37,11 @@ public class InfMergeResolutionMore extends InferenceStep {
         inferenceStep1       = parentClause.inferenceStep;
         inferenceStep2       = resolventAfter.inferenceStep;}
 
+    public String info() {
+        return title + "\n  " + parentClause + " and " + resolventBefore + " -> " + resolventAfter;}
     @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n  " + parentClause + " and " + resolventBefore + " -> " + resolventAfter;}
+        return title + "\n  " + info();}
 
 
     @Override
