@@ -30,11 +30,12 @@ public class InfUnitResolutionTwo extends InferenceStep {
         this.oldInferenceStep = oldInferenceStep;
         this.newTrueLiteral   = newTrueLiteral;}
 
+    public String info(Symboltable symboltable) {
+        return clause.toString() + " and true(" + Symboltable.toString(oldTrueLiteral,symboltable) +
+                ") -> true("  + Symboltable.toString(newTrueLiteral,symboltable) + ")";}
     @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n  " + clause.toString() + " and true(" + Symboltable.toString(oldTrueLiteral,symboltable) +
-        ") -> true("  + Symboltable.toString(newTrueLiteral,symboltable) + ")";
-    }
+        return title + "\n  " + info(symboltable);}
 
 
     @Override
