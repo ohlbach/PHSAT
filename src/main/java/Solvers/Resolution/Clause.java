@@ -1,10 +1,12 @@
 package Solvers.Resolution;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Solvers.Normalizer.Normalizer;
+import Utilities.IntConsumerWithUnsatisfiable;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -12,8 +14,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
+
 
 /** A Clause object is essentially a collection of Literal objects.
  *  A clause can only be a disjunction (OR-clause) or an ATLEAST-clause.<br>
@@ -241,7 +243,8 @@ public class Clause {
      * @param trueLiterals is applied to all derivable true literals.
      * @return +1 (removed), -1 (unsatisfiable), 0 undefined.
      */
-    byte removeLiterals(final Function<Literal,Integer> modelStatus, final Consumer<Literal> remover, final IntConsumer trueLiterals){
+    byte removeLiterals(final Function<Literal,Integer> modelStatus, final Consumer<Literal> remover,
+                        final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable {
         for(int i = 0; i < literals.size(); ++i) {
             final Literal literalObject = literals.get(i);
             final int status = modelStatus.apply(literalObject);
@@ -305,7 +308,9 @@ public class Clause {
      * @param trueLiterals applied to a remaining single literal (must be true).
      * @return 0 if the clause has become true, otherwise the new expandedSize.
      */
-    static int reduceToEssentialLiterals(final int limit, final ArrayList<Literal> literals,  final Consumer<Literal> remover, final IntConsumer trueLiterals) {
+    static int reduceToEssentialLiterals(final int limit, final ArrayList<Literal> literals,
+                                         final Consumer<Literal> remover, final IntConsumerWithUnsatisfiable trueLiterals)
+        throws Unsatisfiable{
         int remainingMultiplicity = 0; int expandedSize = 0;
         for(Literal literalObject : literals) {
             literalObject.multiplicity = Math.min(limit,literalObject.multiplicity);
@@ -369,7 +374,8 @@ public class Clause {
      * @return              0 if the clause itself became true, otherwise the possibly reduced limit.
      */
     static int reduceByTrueLiterals(int limit, int expandedSize, final ArrayList<Literal> literals,
-                                    final Consumer<Literal> remover, final IntConsumer trueLiterals) {
+                                    final Consumer<Literal> remover, final IntConsumerWithUnsatisfiable trueLiterals)
+        throws Unsatisfiable {
         for(int i = 0; i < literals.size(); ++i) {
             Literal literalObject = literals.get(i);
             if(expandedSize - literalObject.multiplicity < limit) {
@@ -416,7 +422,8 @@ public class Clause {
      * @param trueLiterals    applied to derived true literals.
      * @return                null if the resolvent is a tautology, otherwise the new resolvent.
      */
-    static Clause resolve(final Literal literalObject1, final Literal literalObject2, final IntSupplier id, final IntConsumer trueLiterals){
+    static Clause resolve(final Literal literalObject1, final Literal literalObject2, final IntSupplier id,
+                          final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable{
         assert literalObject1.literal == -literalObject2.literal;
         Clause clause1 = literalObject1.clause;
         Clause clause2 = literalObject2.clause;
@@ -491,7 +498,8 @@ public class Clause {
      * @return               1 if the clause has become superfluous (e.g. tautology), 0 if it survived.
      */
     static int replaceLiteral(final Literal literalObject, final int newLiteral,
-                              final Consumer<Literal> remover, final Consumer<Literal> adder, final IntConsumer trueLiterals) {
+                              final Consumer<Literal> remover, final Consumer<Literal> adder,
+                              final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable{
         Clause clause = literalObject.clause;
         Function<Literal,Integer> decider = ((Literal l) -> (l == literalObject) ? -1:0);
         Literal newLiteralObject = clause.findLiteral(newLiteral);

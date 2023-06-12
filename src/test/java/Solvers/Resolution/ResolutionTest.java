@@ -25,7 +25,7 @@ public class ResolutionTest extends TestCase {
     static int cInterval = Quantifier.INTERVAL.ordinal();
 
 
-    static boolean monitoring = false;
+    static boolean monitoring = true;
 
     static Symboltable symboltable = new Symboltable(10);
 
@@ -174,7 +174,7 @@ public class ResolutionTest extends TestCase {
         public void testProcessTrueLiteralTwo() throws Result {
         System.out.println("processTrueLiteralTwo");
         Thread myThread = Thread.currentThread();
-        int predicates = 4;
+        int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
         IntSupplier nextId = () -> ++id[0];
@@ -182,14 +182,17 @@ public class ResolutionTest extends TestCase {
         resolution.model.add(myThread,2, new InfInputClause(1));
         resolution.makeLocallyTrue(2);
         resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2}));
-        resolution.insertClause(new Clause(new int[]{3, cOr, -2, 3}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 2, 5 }));
+        resolution.insertClause(new Clause(new int[]{4, cOr, -2, 3}));
+        resolution.insertClause(new Clause(new int[]{5, cOr, 6, -2}));
         resolution.insertClause(new Clause(new int[]{4, cOr, -1, 4}));
         resolution.processTrueLiteralTwo(2,null); // true literal 2
         assertEquals("4: -1v4\n", resolution.clauses.toString());
-        assertEquals("2,3", resolution.model.toString());
-        assertEquals("-1,2,3", resolution.localModelString());
-        //System.out.println(simplifier.model.getInferenceStep(3));
-        //System.out.println(simplifier.statistics.toString());
+        assertEquals("2,3,6", resolution.model.toString());
+        assertEquals("-1,2,3,6", resolution.localModelString());
+        if(monitoring) {
+            System.out.println(resolution.model.getInferenceStep(3));
+            System.out.println(resolution.statistics.toString());}
     }
 
     public void testProcessTrueLiteralMore1() throws Result {

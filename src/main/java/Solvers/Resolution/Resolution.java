@@ -601,7 +601,7 @@ public class Resolution extends Solver {
                     if(monitoring) monitor.println(monitorId,step.info(symboltable));
                     addInternalTrueLiteralTask(otherLiteral, model.isTrue(oldTrueLiteral),step);
                     ++statistics.derivedTrueLiterals;
-                    removeClause(clause,true,true);
+                    removeClause(clause,false,true);
                     return false;}));}
 
 

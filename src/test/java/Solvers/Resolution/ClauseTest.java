@@ -1,13 +1,14 @@
 package Solvers.Resolution;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Utilities.IntConsumerWithUnsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
 import java.util.function.Consumer;
-import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
 public class ClauseTest extends TestCase {
@@ -94,7 +95,7 @@ public class ClauseTest extends TestCase {
 
 
     IntArrayList trueLiterals = new IntArrayList();
-    public void testReduceByTrueLiterals() {
+    public void testReduceByTrueLiterals() throws Unsatisfiable{
         System.out.println("reduceByTrueLiterals");
         removedLiterals.clear();
         trueLiterals.clear();
@@ -140,7 +141,7 @@ public class ClauseTest extends TestCase {
         assertEquals(2,removedLiterals.size());
         assertTrue(clause.literals.isEmpty());}
 
-    public void testReduceToEssentialLiterals() {
+    public void testReduceToEssentialLiterals() throws Unsatisfiable{
         System.out.println("reduceToEssentialLiterals");
         trueLiterals.clear();
         removedLiterals.clear();
@@ -161,7 +162,7 @@ public class ClauseTest extends TestCase {
     }
 
 
-    public void testRemoveLiterals() {
+    public void testRemoveLiterals() throws Unsatisfiable {
         System.out.println("removeLiterals");
         removedLiterals.clear();
         trueLiterals.clear();
@@ -238,7 +239,7 @@ public class ClauseTest extends TestCase {
     private Literal getLit(Clause clause, int index) {
         return clause.literals.get(index);}
 
-    public void testResolve1()  {
+    public void testResolve1() throws Unsatisfiable  {
         System.out.println("resolve between Or-Clauses");
         int[] id = new int[]{10};
         IntSupplier nextId = () -> ++id[0];
@@ -265,7 +266,7 @@ public class ClauseTest extends TestCase {
         assertNull(Clause.resolve(getLit(clause5, 1), getLit(clause7, 0), nextId, (lit -> trueLits.add(lit))));
         assertEquals("[1]",trueLits.toString());
     }
-    public void testResolve2() {
+    public void testResolve2() throws Unsatisfiable {
         System.out.println("resolve with Atleast-Clauses");
         int[] id = new int[]{10};
         IntSupplier nextId = () -> ++id[0];
@@ -299,7 +300,7 @@ public class ClauseTest extends TestCase {
         assertNull(Clause.resolve(getLit(clause6, 1), getLit(clause7, 1), nextId, (lit -> trueLits.add(lit))));
     }
 
-    public void testResolve3() {
+    public void testResolve3() throws Unsatisfiable {
         System.out.println("resolve with Or and Atleast-Clauses");
         int[] id = new int[]{10};
         IntSupplier nextId = () -> ++id[0];
@@ -317,14 +318,14 @@ public class ClauseTest extends TestCase {
         assertEquals("11: 2v3",resolvent13.toString());
     }
 
-    public void testReplaceLiteral() {
+    public void testReplaceLiteral() throws Unsatisfiable {
         System.out.println("replaceLiteral");
         IntArrayList removed  = new IntArrayList();
         IntArrayList added    = new IntArrayList();
         IntArrayList trueLits = new IntArrayList();
         Consumer<Literal> remover = (l-> removed.add(l.literal));
         Consumer<Literal> adder = (l-> added.add(l.literal));
-        IntConsumer trueLiterals = (l -> trueLits.add(l));
+        IntConsumerWithUnsatisfiable trueLiterals = (l -> trueLits.add(l));
 
         Clause clause = new Clause(new int[]{1, cOr, 1,2,3});
         assertEquals(0,Clause.replaceLiteral(clause.literals.get(1),4,remover,adder,trueLiterals));

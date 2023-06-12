@@ -92,9 +92,9 @@ public class ResolutionStatistics extends Statistic {
         st.append("Merge Resolution binary-binary:    ").append(mergeResolutionTwoTwo).append("\n");
         st.append("Merge Resolution binary-longer:    ").append(mergeResolutionTwoMore).append("\n");
         st.append("Merge Resolution longer-longer:    ").append(mergeResolutionMoreMore).append("\n");
-        st.append("Binary Equivalences:               ").append(binaryEquivalences);
-        st.append("Triggered Equivalences:            ").append(triggeredEquivalences);
-        st.append("Equivalence Replacements:          ").append(equivalenceReplacements);
+        st.append("Binary Equivalences:               ").append(binaryEquivalences).append("\n");
+        st.append("Triggered Equivalences:            ").append(triggeredEquivalences).append("\n");
+        st.append("Equivalence Replacements:          ").append(equivalenceReplacements).append("\n");
         st.append("Triggered Equivalence Replacements ").append(equivalenceReplacementsTriggered);
         return st.toString();
     }
