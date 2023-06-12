@@ -12,7 +12,7 @@ import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Normalizer.Normalizer;
 import Solvers.Solver;
-import Utilities.ConsumerWithUnsatisfiable;
+import Utilities.PredicateWithUnsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -77,9 +77,6 @@ public class Resolution extends Solver {
     /** collects the equivalences for later updating the model.
      * Entries: representative_1, literal_1, ...*/
     IntArrayList equivalenceList = new IntArrayList();
-    /** collects the corresponding inference steps.
-     * Entries: InfEquivalence,null,InfEquivalence,null,...*/
-    ArrayList<InfEquivalence> equivalenceSteps = new ArrayList<>();
 
     /** The local model may contain true literals derived from pure literals.
      * These need not be true in all models, and therefore cannot be sent to the global model. */
@@ -87,7 +84,7 @@ public class Resolution extends Solver {
 
     Equivalences equivalences = new Equivalences();
 
-    Task equivalenceTask =  new Task<>(TaskType.ProcessEquivalence,null);
+    Task<TaskType> equivalenceTask =  new Task<>(TaskType.ProcessEquivalence,null);
 
     /** just creates a single Resolution solver,.
      *
@@ -201,7 +198,7 @@ public class Resolution extends Solver {
                 addExternalTrueLiteralTask(literal,model.getInferenceStep(literal));}}
         try{
             readInputClauses();
-            synchronized (this) {queue.add(new Task(TaskType.ProcessElimination,null));}
+            synchronized (this) {queue.add(new Task<>(TaskType.ProcessElimination,null));}
             processTasks(0);}
         catch(Result result) {
             System.out.println("Result " + result.getClass().getName());
@@ -569,7 +566,7 @@ public class Resolution extends Solver {
         trueLiterals.clear();
         inferenceSteps.clear();
         equivalences.applyTrueLiteral(oldTrueLiteral,inferenceStep,
-                (trueLiteral,step) -> {trueLiterals.add(trueLiteral); inferenceSteps.add(step);});
+                (trueLiteral,step) -> {trueLiterals.add((int)trueLiteral); inferenceSteps.add(step);});
         if(!equivalences.isEmpty()) addEquivalenceTask();
         for(int i = 0; i < trueLiterals.size(); ++i) {
             int newTrueLiteral = trueLiterals.getInt(i);
@@ -593,7 +590,7 @@ public class Resolution extends Solver {
      */
     protected void processTrueLiteralTwo(final int oldTrueLiteral, final InferenceStep inferenceStep) throws Unsatisfiable {
         forAllClauses(oldTrueLiteral,literalIndexTwo,null, // remove all two-literal clauses with oldTrueLiteral
-                (literalObject -> removeClause(literalObject.clause,true,true)));
+                (literalObject -> {removeClause(literalObject.clause,true,true); return false;}));
 
         forAllClauses(-oldTrueLiteral,literalIndexTwo,null,
                 (literalObject -> { // all two-literal clauses with -oldTrueLiteral yield a new true literal.
@@ -604,7 +601,8 @@ public class Resolution extends Solver {
                     if(monitoring) monitor.println(monitorId,step.info(symboltable));
                     addInternalTrueLiteralTask(otherLiteral, model.isTrue(oldTrueLiteral),step);
                     ++statistics.derivedTrueLiterals;
-                    removeClause(clause,true,true);}));}
+                    removeClause(clause,true,true);
+                    return false;}));}
 
 
     /** applies a true literal to all longer clauses containing this literal.
@@ -634,7 +632,7 @@ public class Resolution extends Solver {
                  byte status = clause.removeLiterals(litObject->(int)localStatus(litObject.literal),
                          litObject -> {literalIndexMore.removeLiteral(litObject);
                                        removedLiterals.add(localStatus(litObject.literal)*litObject.literal);},
-                         literal -> trueLiterals.add(literal));
+                         trueLiterals::add);
                  if(step != null && (status != 1 || !trueLiterals.isEmpty())) clause.inferenceStep = step.addResults(clause,status,trueLiterals,symboltable);
                 for(int literal :trueLiterals) {
                      ++statistics.derivedTrueLiterals;
@@ -685,10 +683,10 @@ public class Resolution extends Solver {
                 (subsumeeLiteral -> {
                     Clause subsumee = subsumeeLiteral.clause;
                     return subsumee != subsumer && subsumee.otherLiteral(subsumeeLiteral).literal == literal2;}),
-                (subsumee -> {removeClause(subsumee.clause,true,true); ++statistics.subsumedClauses;}));}
-
-
-
+                (subsumee -> {
+                    removeClause(subsumee.clause,true,true);
+                    ++statistics.subsumedClauses;
+                    return false;}));}
 
 
     /** removes all longer disjunctions which are subsumed by a binary subsumer.
@@ -709,7 +707,10 @@ public class Resolution extends Solver {
                     Clause subsumee = subsumeeLiteral.clause;
                     return subsumee.timestamp2 == timestampSubsumption &&
                             (subsumee.isDisjunction || subsumee.limit == subsumeeLiteral.multiplicity);}),
-                (subsumee -> {removeClause(subsumee.clause,true,true); ++statistics.subsumedClauses;}));
+                (subsumeeLiteral -> {
+                    removeClause(subsumeeLiteral.clause,true,true);
+                    ++statistics.subsumedClauses;
+                    return false;}));
         ++timestampSubsumption;}
 
     /** removes all clauses subsumed by the given clause.
@@ -724,35 +725,33 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable should not happen.
      */
     protected void removeClausesSubsumedByLongerClause(final Clause subsumer) throws Unsatisfiable {
-        boolean candidatesFound = false;
         int subsumerSize = subsumer.literals.size();
         int sumsumerLimit = subsumer.limit;
-        Literal subsumerLiteral = subsumer.literals.get(0);
-        Literal subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumerLiteral.literal);
-        while(subsumeeLiteral != null) { // mark all candidates with a timestamp
-            Clause subsumee = subsumeeLiteral.clause;
-            if(subsumee == null) {subsumeeLiteral = subsumeeLiteral.nextLiteral; continue;}
-            if(subsumee != subsumer && subsumee.limit <= sumsumerLimit &&
-                    subsumee.literals.size() >= subsumerSize &&
-                    subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity) {
-                candidatesFound = true;
-                subsumee.timestamp1 = timestamp;}
-            subsumeeLiteral = subsumeeLiteral.nextLiteral;}
+        final Literal firstLiteral = subsumer.literals.get(0);
+        if(!timestampClauses(firstLiteral.literal,literalIndexMore,
+                (subsumeeLiteral -> {
+                    Clause subsumee = subsumeeLiteral.clause;
+                    return (subsumee != subsumer && subsumee.limit <= sumsumerLimit &&
+                        subsumee.literals.size() >= subsumerSize &&
+                        subsumeeLiteral.multiplicity >= firstLiteral.multiplicity);}),
+                timestampSubsumption , false)) return;
 
-        if(!candidatesFound) return;
         for(int i = 1; i < subsumer.literals.size(); ++i) { // find candidates.
-            subsumerLiteral = subsumer.literals.get(i);
-            subsumeeLiteral = literalIndexMore.getFirstLiteralObject(subsumerLiteral.literal);
-            while(subsumeeLiteral != null) {
-                Clause subsumee = subsumeeLiteral.clause;
-                if(subsumee == null) {subsumeeLiteral = subsumeeLiteral.nextLiteral; continue;}
-                if(subsumee.exists && (subsumee.timestamp1 - timestamp) == i - 1&&
-                        subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity) {
-                    ++subsumee.timestamp1;
-                    if(subsumee.timestamp1 - timestamp == subsumerSize-1){
-                        removeClause(subsumee,true,true);}}
-                subsumeeLiteral = subsumeeLiteral.nextLiteral;}}
-        timestamp += subsumerSize + 1;}
+            final int im = i-1;
+            Literal subsumerLiteral = subsumer.literals.get(i);
+            forAllClauses(subsumerLiteral.literal, literalIndexMore,
+                    (subsumeeLiteral -> {
+                        Clause subsumee = subsumeeLiteral.clause;
+                        if((subsumee.timestamp2 - timestampSubsumption) == im &&
+                            subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity) {
+                            ++subsumee.timestamp2; return true;}
+                        return false;}),
+                    (subsumeeLiteral -> {
+                        Clause subsumee = subsumeeLiteral.clause;
+                        if(subsumee.timestamp2 - timestampSubsumption == subsumerSize-1){
+                            removeClause(subsumee,true,true);}
+                    return false;}));}
+        timestampSubsumption += subsumerSize + 1;}
 
     /** performs merge resolution between binary clauses and equivalence recognition, if possible.
      * <br>
@@ -773,43 +772,35 @@ public class Resolution extends Solver {
         assert(clause1.size() == 2);
         ++timestamp; // just to be sure.
         try{
-            Literal literalObject = literalIndexTwo.getFirstLiteralObject(-literal1);
-            while(literalObject != null) { // all clauses with -literal1 are marked.
-                Clause clause = literalObject.clause;
-                if(clause != null && clause != clause1) clause.timestamp1 = timestamp;
-                literalObject = literalObject.nextLiteral;}
+            timestampClauses(-literal1, literalIndexTwo,null,timestamp,true);
 
-            literalObject = literalIndexTwo.getFirstLiteralObject(literal2);
-            while(literalObject != null) {
-                Clause clause2 = literalObject.clause;
-                if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
-                if(clause2.timestamp1 == timestamp) { // a partner clause is found
-                    if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
-                            clause2.toString(symboltable,0) + " -> " + "true("+ Symboltable.toString(literal2,symboltable)+")");
-                    addInternalTrueLiteralTask(literal2,true, trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
-                    removeClause(clause1,true,true);
-                    removeClause(clause2,true,true);
-                    ++statistics.mergeResolutionTwoTwo;
-                    return;}
-                literalObject = literalObject.nextLiteral;}
+            forAllClauses(literal2,literalIndexTwo,
+                    (literalObject -> literalObject.clause.timestamp1 == timestamp),
+                    (literalObject -> {
+                        Clause clause2 = literalObject.clause;
+                        if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
+                                    clause2.toString(symboltable,0) + " -> " + "true("+ Symboltable.toString(literal2,symboltable)+")");
+                        addInternalTrueLiteralTask(literal2,true, trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
+                        removeClause(clause1,true,true);
+                        removeClause(clause2,true,true);
+                        ++statistics.mergeResolutionTwoTwo;
+                        return true;}));
 
             if(checkEquivalence) {
-                literalObject = literalIndexTwo.getFirstLiteralObject(-literal2);
-                while(literalObject != null) {
-                    Clause clause2 = literalObject.clause;
-                    if(clause2 == null) {literalObject = literalObject.nextLiteral; continue;}
-                    if(clause2.timestamp1 == timestamp) { // a partner clause is found.
-                        removeClause(clause1,false,true);
-                        removeClause(clause2,true,true);
-                        InfEquivalence step = (trackReasoning || monitoring) ? new InfEquivalence(clause1,clause2) : null;
-                        equivalences.add(0,literal1,-literal2, step);
-                        if(monitoring) monitor.println(monitorId,step.info(symboltable));
-                        equivalenceTask.a = true;
-                        synchronized (this) {queue.add(equivalenceTask);}
-                        ++statistics.binaryEquivalences;
-                        return;}
-                    literalObject = literalObject.nextLiteral;}}}
-                finally {++timestamp;}}
+                forAllClauses(-literal2,literalIndexTwo,
+                        (literalObject -> literalObject.clause.timestamp1 == timestamp),
+                        (literalObject -> {
+                            Clause clause2 = literalObject.clause;
+                            removeClause(clause1,false,true);
+                            removeClause(clause2,true,true);
+                            InfEquivalence step = (trackReasoning || monitoring) ? new InfEquivalence(clause1,clause2) : null;
+                            equivalences.add(0,literal1,-literal2, step);
+                            if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                            equivalenceTask.a = true;
+                            synchronized (this) {queue.add(equivalenceTask);}
+                            ++statistics.binaryEquivalences;
+                            return true;}));}}
+        finally {++timestamp;}}
 
     /** performs merge resolution between a binary clause and a longer clause, and triggered equivalence recognition, if possible.
      * <br>
@@ -1296,7 +1287,7 @@ public class Resolution extends Solver {
             try{
                 for(Equivalence eqv : equivalenceList) {
                     for(int i = 0; i < eqv.literals.size(); ++i) {
-                        int literal = eqv.literals.get(i);
+                        int literal = eqv.literals.getInt(i);
                         InferenceStep step = eqv.inferenceSteps.get(i);
                         if(triggerLiteral == 0)
                               processUntriggerdEquivalence(eqv.representative,literal,step);
@@ -1664,19 +1655,22 @@ public class Resolution extends Solver {
 
     /** applies action to all clauses with the given literal in the given literalIndex, for which the condition returns true.
      * <br>
+     * If the action returns true then the iteration stops immediately.
      *
      * @param literal        any literal
      * @param literalIndex   literalIndexTwo or literalIndexMore
      * @param condition      null or a condition on the corresponding Literal in the corresponding clause
-     * @param action         an action to be applied to the clause. It may throw Unsatisfiable.
+     * @param action         an action to be applied to the clause until it returns true. It may throw Unsatisfiable.
+     * @return               true if the action returned true.
      * @throws Unsatisfiable if the action throws Unsatisfiable.
      */
-    void forAllClauses(int literal, Literals literalIndex, Predicate<Literal> condition, ConsumerWithUnsatisfiable<Literal> action) throws Unsatisfiable {
+    boolean forAllClauses(int literal, Literals literalIndex, Predicate<Literal> condition, PredicateWithUnsatisfiable<Literal> action) throws Unsatisfiable {
         Literal literalObject = literalIndex.getFirstLiteralObject(literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
             if(clause != null && clause.exists && (condition == null || condition.test(literalObject)))
-                action.accept(literalObject);}}
+                if(action.test(literalObject)) return true;}
+        return false;}
 
     /** lists the local model as string.
      *
