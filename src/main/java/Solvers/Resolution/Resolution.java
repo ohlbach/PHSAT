@@ -20,6 +20,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.IntSupplier;
+import java.util.function.Predicate;
 
 /** This is an incomplete solver which tries to simplify the clauses as far as possible.
  *  - It tries to derive new true literals and send them to the model.<br>
@@ -1154,46 +1155,39 @@ public class Resolution extends Solver {
      *  -------------------
      *  -p -&gt; q == -r
      *
-     * @param clause        a three-literal disjunction.
-     * @return true        if an equivalence is discovered.
+     * @param clause a three-literal disjunction.
+     * @return true  if an equivalence is discovered.
      * @throws Unsatisfiable if the equivalence contradicts another equivalence.
      */
     boolean triggeredEquivalence(Clause clause) throws Unsatisfiable{
         assert clause.isDisjunction && clause.size() == 3;
         try{
             for(Literal triggerLiteralObject : clause.literals) {
-                Literal literalObject1 = null; Literal literalObject2 = null;
+                int triggerLiteral = triggerLiteralObject.literal;
+                Literal literalObjectFirst = null; Literal literalObject2 = null;
                 for(Literal literalObject : clause.literals) {
                     if(literalObject != triggerLiteralObject) {
-                        if(literalObject1 == null) literalObject1 = literalObject;
+                        if(literalObjectFirst == null) literalObjectFirst = literalObject;
                         else literalObject2 = literalObject;}}
 
-                boolean candidateFound = false;
-                Literal literalObjectTrigger = literalIndexMore.getFirstLiteralObject(triggerLiteralObject.literal);
-                while (literalObjectTrigger != null) { // mark the trigger literal
-                    Clause clauseTrigger = literalObjectTrigger.clause;
-                    if (clauseTrigger != null && clauseTrigger.isDisjunction && clauseTrigger.size() == 3) {
-                        clauseTrigger.timestamp1 = timestamp;
-                        candidateFound = true;}
-                    literalObjectTrigger = literalObjectTrigger.nextLiteral;}
-                if(!candidateFound) continue; // there can't be an equivalence with this trigger literal.
+                // timestamp all candidate clauses with the trigger literal.
+                if(!timestampClauses(triggerLiteral,literalIndexMore,
+                       (candidateClause -> candidateClause.isDisjunction && candidateClause.size() == 3),
+                       timestamp,true)) continue; // there can't be an equivalence with this trigger literal.
 
-                candidateFound = false;  // mark the first equivalence literal
-                Literal literalObjectFirst = literalIndexMore.getFirstLiteralObject(-literalObject1.literal);
-                while (literalObjectFirst != null) {
-                    Clause clauseSecond = literalObjectFirst.clause;
-                    if(clauseSecond != null && clauseSecond.timestamp1 == timestamp ) {
-                        ++clauseSecond.timestamp1; candidateFound = true;}
-                    literalObjectFirst = literalObjectFirst.nextLiteral;}
-                if(!candidateFound) continue; // there can't be an equivalence with this trigger literal.
+                // timestamp the first equivalence literal.
+                if(!timestampClauses(-literalObjectFirst.literal,literalIndexMore,
+                        (candidateClause -> candidateClause.timestamp1 == timestamp),
+                        timestamp+1,true)) continue; // there can't be an equivalence with this trigger literal.
 
+                // check the second equivalence literal.
                 Literal literalObjectSecond = literalIndexMore.getFirstLiteralObject(-literalObject2.literal);
                 while (literalObjectSecond != null) {
                     Clause clauseSecond = literalObjectSecond.clause;
                     if (clauseSecond != null && clauseSecond.timestamp1 == timestamp+1) {
                         InfEquivalence step = (trackReasoning || monitoring) ?
-                                new InfEquivalence(-literalObjectTrigger.literal,literalObjectFirst,literalObjectSecond, symboltable) : null;
-                        equivalences.add(-literalObjectTrigger.literal, literalObjectFirst.literal, -literalObjectSecond.literal,step);
+                                new InfEquivalence(-triggerLiteral,literalObjectFirst,literalObjectSecond, symboltable) : null;
+                        equivalences.add(-triggerLiteral, literalObjectFirst.literal, -literalObjectSecond.literal,step);
                         if(monitoring) monitor.println(monitorId,step.info(symboltable));
                         addEquivalenceTask();
                         return true;}
@@ -1651,6 +1645,28 @@ public class Resolution extends Solver {
                     if(++trueLiterals == clause.limit) break;}
                 assert trueLiterals >= clause.limit;}
             clause = clause.nextClause;}}
+
+    /** marks all clauses with the given literal with the given timestamp.
+     * <br>
+     * if fistStamp = true then timestamp1 is marked, otherwise timestamp2.
+     *
+     * @param literal       a literal
+     * @param literalIndex  literalIndexTwo or literaIndexMore
+     * @param condition     on the clauses to be timestamped.
+     * @param timestamp     the timestamp which is to be used.
+     * @param firstStamp    true if the timestamp1 is marked.
+     * @return              true if atleast one clause is marked.
+     */
+    boolean timestampClauses(int literal, Literals literalIndex, Predicate<Clause> condition, int timestamp,boolean firstStamp) {
+        boolean marked = false;
+        Literal literalObject = literalIndex.getFirstLiteralObject(literal);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if(clause != null && condition.test(clause)) {
+                if(firstStamp) clause.timestamp1 = timestamp; else clause.timestamp2 = timestamp;
+                marked = true;}
+            literalObject = literalObject.nextLiteral;}
+        return marked;}
 
     /** lists the local model as string.
      *
