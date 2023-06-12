@@ -95,8 +95,83 @@ public class ResolutionTest extends TestCase {
         assertEquals("1: 1v2v3\n", resolution.clauses.toString());
         assertEquals("1,2,3", resolution.localModelString());
     }
+    public void testTimestampClauses()  {
+        System.out.println("timestampClauses");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(10, monitor, true, nextId);
 
-    public void testProcessTrueLiteralTwo() throws Result {
+        assertFalse(resolution.timestampClauses(1,resolution.literalIndexMore,null,5,true));
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause1);
+
+        assertFalse(resolution.timestampClauses(1,resolution.literalIndexMore,
+                (litObject -> litObject.clause.identifier == 2),
+                5,true));
+        assertTrue(resolution.timestampClauses(2,resolution.literalIndexMore,
+                (litObject -> litObject.clause.identifier == 1),
+                5,true));
+        assertEquals(5,clause1.timestamp1);
+        assertTrue(resolution.timestampClauses(3,resolution.literalIndexMore,
+                (litObject -> litObject.clause.identifier == 1),
+                6,false));
+        assertEquals(6,clause1.timestamp2);
+
+        Clause clause2 = new Clause(new int[]{2, cOr, 3,4,5});
+        resolution.insertClause(clause2);
+        assertTrue(resolution.timestampClauses(3,resolution.literalIndexMore,
+                (litObject -> litObject.clause.identifier == 1),
+                7,true));
+        assertEquals(7,clause1.timestamp1);
+        assertEquals(0,clause2.timestamp1);
+
+        assertTrue(resolution.timestampClauses(3,resolution.literalIndexMore,
+                (litObject -> litObject.clause.identifier >= 1),
+                8,true));
+        assertEquals(8,clause1.timestamp1);
+        assertEquals(8,clause2.timestamp1);
+    }
+
+    public void testForAllClauses() throws Unsatisfiable {
+        System.out.println("forAllClauses");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(10, monitor, true, nextId);
+        assertFalse(resolution.forAllClauses(1,resolution.literalIndexTwo,null,
+                (literalObject -> {id[0] = 20; return true;})));
+
+        Clause clause1 = new Clause(new int[]{1, cOr, 3,4});
+        resolution.insertClause(clause1);
+        assertTrue(resolution.forAllClauses(3,resolution.literalIndexTwo,null,
+                (literalObject -> {id[0] = 20; return true;})));
+        assertEquals(20,id[0]);
+
+        Clause clause2 = new Clause(new int[]{2, cOr, 4,5});
+        resolution.insertClause(clause2);
+        assertTrue(resolution.forAllClauses(3,resolution.literalIndexTwo,null,
+                (literalObject -> {++id[0]; return true;})));
+        assertEquals(21,id[0]);
+        assertFalse(resolution.forAllClauses(4,resolution.literalIndexTwo,null,
+                (literalObject -> {++id[0]; return false;})));
+        assertEquals(23,id[0]);
+
+        assertFalse(resolution.forAllClauses(4,resolution.literalIndexTwo,
+                (literalObject -> literalObject.clause.identifier == 2),
+                (literalObject -> {++id[0]; return false;})));
+        assertEquals(24,id[0]);
+
+        try{resolution.forAllClauses(4,resolution.literalIndexTwo,null,
+                (literalObject -> {throw new UnsatEmptyClause("test",null,null,null);}));
+            assertFalse(true);}
+        catch(Unsatisfiable uns) {
+            if(monitoring) System.out.println(uns);
+        }
+    }
+
+
+        public void testProcessTrueLiteralTwo() throws Result {
         System.out.println("processTrueLiteralTwo");
         Thread myThread = Thread.currentThread();
         int predicates = 4;

@@ -1668,8 +1668,9 @@ public class Resolution extends Solver {
         Literal literalObject = literalIndex.getFirstLiteralObject(literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
-            if(clause != null && clause.exists && (condition == null || condition.test(literalObject)))
+            if(clause != null && clause.exists && (condition == null || condition.test(literalObject))) {
                 if(action.test(literalObject)) return true;}
+            literalObject = literalObject.nextLiteral;}
         return false;}
 
     /** lists the local model as string.
