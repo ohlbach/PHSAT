@@ -354,6 +354,13 @@ public class Resolution extends Solver {
             queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));
             ++trueLiteralsInQueue;}}
 
+    /** adds the equivalence task to the queue, if it is not already there.
+     */
+    void addEquivalenceTask() {
+        if(equivalenceTask.a == null) {
+            equivalenceTask.a = true;
+            synchronized (this){queue.add(equivalenceTask);}}}
+
 
     /** controls that all clauses are printed after each task has been changed something (for testing purposes).*/
     private final boolean printClauses = true;
@@ -512,6 +519,7 @@ public class Resolution extends Solver {
      * - if the clause is subsumed, it is removed.<br>
      * - other clauses subsumed by the clause are removed. <br>
      * - merge resolution with the clause is performed.<br>
+     * - triggered equivalences with 3-literal disjunctions is searched. <br>
      * - all resolvents with the binary clauses are generated.<br>
      *
      * @param clause a longer clause.
@@ -526,7 +534,8 @@ public class Resolution extends Solver {
             removeClause(clause,true,true);
             return;}
         removeClausesSubsumedByLongerClause(clause);
-        if(!mergeResolutionAndEquivalenceMoreMore(clause)) return;
+        if(!mergeResolutionMoreMore(clause)) return;
+        if(clause.isDisjunction && clause.size() == 3 && triggeredEquivalence(clause)) return;
         saturateBinaryClausesWithLongerClause(clause);
         if(clause.exists && clause.size()==3) mergeResolutionPartial(clause);
     }
@@ -559,9 +568,7 @@ public class Resolution extends Solver {
         inferenceSteps.clear();
         equivalences.applyTrueLiteral(oldTrueLiteral,inferenceStep,
                 (trueLiteral,step) ->{trueLiterals.add(trueLiteral); inferenceSteps.add(step);});
-        if(!equivalences.isEmpty() && equivalenceTask.a == null) {
-            equivalenceTask.a = true;
-            synchronized (this) {queue.add(equivalenceTask);}}
+        if(!equivalences.isEmpty()) addEquivalenceTask();
         for(int i = 0; i < trueLiterals.size(); ++i) {
             int newTrueLiteral = trueLiterals.getInt(i);
             InferenceStep step = inferenceSteps.get(i);
@@ -865,7 +872,8 @@ public class Resolution extends Solver {
                     if(clause2.timestamp1 == timestamp && clause2.isDisjunction && clause2.size() == 3) { // a partner clause is found.
                         removeClause(clause2,true,true);
                         int triggerLiteral = -clause2.findThirdLiteral(literal1,-literal2).literal;
-                        InfEquivalence step = (monitoring || trackReasoning) ? new InfEquivalence(triggerLiteral,clause1,clause2) : null;
+                        InfEquivalence step = (monitoring || trackReasoning) ?
+                                new InfEquivalence(triggerLiteral,clause1.findLiteral(literal1),literalObject2,symboltable) : null;
                         equivalences.add(triggerLiteral,literal1,-literal2,step);
                         if(monitoring) monitor.println(monitorId,step.info(symboltable));
                         equivalenceTask.a = true;
@@ -1076,34 +1084,29 @@ public class Resolution extends Solver {
 
     /** performs merge resolution between longer clauses.
      * <br>
-     * atleast n p^n',q_1^k_1,...,q_l^k_l and<br>
-     * atleast m -p^n,q_1^m,...,q_l^m, phi<br>
+     * P = atleast n  p^a,q^n,... and<br>
+     * S = atleast m -p^b,q^n',...<br>
      * ----------------------------------<br>
-     * atleast m       q_1^m,...,q_l^m, phi<br>
-     * If phi is empty and n = 1 then the first clause is removed entirely.<br>
-     * The shortened clause is simplified further and a new task is generated.
+     * atleast n+m-max(a,b) q^n+n',...
+     * <br>
+     * Destructive for S iff |S| &gt;= |P| and n' = n+m-max(a,b) for all literals in P <br>
+     * Destructive for P iff |P| &gt;= |S| and n  = n+m-max(a,b) for all literals in S <br>
      *
      * @param clauseP a clause to be tested as parent clause for a merge resolution step.
      * @return        true if the clause itself has survived.
      * @throws Unsatisfiable if the simplification causes an Unsatisfiable exception.
      */
-    protected boolean mergeResolutionAndEquivalenceMoreMore(final Clause clauseP) throws Unsatisfiable {
-        boolean candidateClausesFound;
+    protected boolean mergeResolutionMoreMore(final Clause clauseP) throws Unsatisfiable {
         int clausePSize = clauseP.literals.size();
         int limitP = clauseP.limit;
         for(final Literal literalObjectP : clauseP.literals) { // mark potential candidates with timestamp
-            candidateClausesFound = false;
-            int literalObjectPNeg = -literalObjectP.literal;
-            Literal literalObjectS = literalIndexMore.getFirstLiteralObject(literalObjectPNeg);
+            int literalPNeg = -literalObjectP.literal;
+            Literal literalObjectS = literalIndexMore.getFirstLiteralObject(literalPNeg);
             while(literalObjectS != null) {
                 Clause clauseS = literalObjectS.clause;
                 if(clauseS == null) {literalObjectS = literalObjectS.nextLiteral; continue;}
-                if(clauseS.literals.size() >= clausePSize && clauseS.limit >= limitP && literalObjectS.multiplicity == limitP) {
-                    clauseS.timestamp1 = timestamp;
-                    candidateClausesFound = true;}
+                clauseS.timestamp1 = timestamp;
                 literalObjectS = literalObjectS.nextLiteral;}
-
-            if(!candidateClausesFound)  {timestamp += clausePSize + 1; continue;} // further search is useless
 
             int i = 0;
             for(final Literal literalObjectPi : clauseP.literals) {
@@ -1113,29 +1116,90 @@ public class Resolution extends Solver {
                 while(literalObjectSi != null) {
                     Clause clauseS = literalObjectSi.clause;  // this is the potential merge partner.
                     if(clauseS == null) {literalObjectSi = literalObjectSi.nextLiteral; continue;}
-                    if((clauseS.timestamp1 - timestamp) == i-1 && literalObjectSi.multiplicity == clauseS.limit) {
+                    Literal literalObjectSNeg = clauseS.findLiteral(literalPNeg);
+                    int newLimit = clauseP.limit + clauseS.limit -
+                            Math.max(literalObjectP.multiplicity, literalObjectSNeg.multiplicity);
+                    if((clauseS.timestamp1 - timestamp) == i-1 && literalObjectSi.multiplicity == newLimit) {
                         ++clauseS.timestamp1;
                         if(clauseS.timestamp1 - timestamp == clausePSize-1) { // mergepartner found
+                            boolean destructive = clauseP.isDisjunction && clauseS.isDisjunction;
+                            if(!destructive) {
+                                destructive = true;
+                                for(final Literal litObjectSi : clauseS.literals) {
+                                    if(litObjectSi.literal != literalPNeg) {
+                                        destructive &= litObjectSi.multiplicity == newLimit;}}}
                             ++statistics.mergedClauses;
                             String resolventBefore = trackReasoning ? clauseS.toString(symboltable,0) : null;
                             boolean removeP = limitP == 1 && clauseS.size() == clausePSize;
-                            if(removeLiteralFromClause(clauseS.findLiteral(literalObjectPNeg),false)) {
-                                addClauseTask(clauseS);
-                                if(trackReasoning) {
-                                    clauseS.inferenceStep = new InfMergeResolutionMore(clauseP,resolventBefore,clauseS,symboltable);}
-                                if(monitoring) {
-                                    monitor.println(monitorId,
-                                            clauseP.toString(symboltable,0) + " and " +
-                                                    resolventBefore + " -> " + clauseS.toString(symboltable,0));}}
-                                if(removeP) { // only a disjunction is definitely subsumed and can be removed.
-                                    removeClause(clauseP,true,true);
-                                    timestamp += clausePSize + 1;
-                                    return false;}}}
+                            if(destructive) {
+                                if(removeLiteralFromClause(literalObjectSNeg,false)) {
+                                    addClauseTask(clauseS);
+                                    InfMergeResolutionMore step = (trackReasoning || monitoring) ?
+                                            new InfMergeResolutionMore(clauseP,resolventBefore,clauseS,symboltable) : null;
+                                    if(trackReasoning) clauseS.inferenceStep = step;
+                                    if(monitoring) monitor.println(monitorId,step.info());}
+                                    if(removeP) { // only a disjunction is definitely subsumed and can be removed.
+                                        removeClause(clauseP,true,true);
+                                        timestamp += clausePSize + 1;
+                                        return false;}}
+                            else {resolve(literalObjectP,literalObjectSNeg);}}}
                     literalObjectSi = literalObjectSi.nextLiteral;}}
             timestamp += clausePSize + 1;}
         return true;}
 
+    /** This method tries to find a triggered equivalence with the given three-literal disjunction.
+     * <br>
+     *  Clause: p, q, r <br>
+     *  Clause: p,-q,-r<br>
+     *  -------------------
+     *  -p -&gt; q == -r
+     *
+     * @param clause        a three-literal disjunction.
+     * @return true        if an equivalence is discovered.
+     * @throws Unsatisfiable if the equivalence contradicts another equivalence.
+     */
+    boolean triggeredEquivalence(Clause clause) throws Unsatisfiable{
+        assert clause.isDisjunction && clause.size() == 3;
+        try{
+            for(Literal triggerLiteralObject : clause.literals) {
+                Literal literalObject1 = null; Literal literalObject2 = null;
+                for(Literal literalObject : clause.literals) {
+                    if(literalObject != triggerLiteralObject) {
+                        if(literalObject1 == null) literalObject1 = literalObject;
+                        else literalObject2 = literalObject;}}
 
+                boolean candidateFound = false;
+                Literal literalObjectTrigger = literalIndexMore.getFirstLiteralObject(triggerLiteralObject.literal);
+                while (literalObjectTrigger != null) { // mark the trigger literal
+                    Clause clauseTrigger = literalObjectTrigger.clause;
+                    if (clauseTrigger != null && clauseTrigger.isDisjunction && clauseTrigger.size() == 3) {
+                        clauseTrigger.timestamp1 = timestamp;
+                        candidateFound = true;}
+                    literalObjectTrigger = literalObjectTrigger.nextLiteral;}
+                if(!candidateFound) continue; // there can't be an equivalence with this trigger literal.
+
+                candidateFound = false;  // mark the first equivalence literal
+                Literal literalObjectFirst = literalIndexMore.getFirstLiteralObject(-literalObject1.literal);
+                while (literalObjectFirst != null) {
+                    Clause clauseSecond = literalObjectFirst.clause;
+                    if(clauseSecond != null && clauseSecond.timestamp1 == timestamp ) {
+                        ++clauseSecond.timestamp1; candidateFound = true;}
+                    literalObjectFirst = literalObjectFirst.nextLiteral;}
+                if(!candidateFound) continue; // there can't be an equivalence with this trigger literal.
+
+                Literal literalObjectSecond = literalIndexMore.getFirstLiteralObject(-literalObject2.literal);
+                while (literalObjectSecond != null) {
+                    Clause clauseSecond = literalObjectSecond.clause;
+                    if (clauseSecond != null && clauseSecond.timestamp1 == timestamp+1) {
+                        InfEquivalence step = (trackReasoning || monitoring) ?
+                                new InfEquivalence(-literalObjectTrigger.literal,literalObjectFirst,literalObjectSecond, symboltable) : null;
+                        equivalences.add(-literalObjectTrigger.literal, literalObjectFirst.literal, -literalObjectSecond.literal,step);
+                        if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                        addEquivalenceTask();
+                        return true;}
+                    literalObjectSecond = literalObjectSecond.nextLiteral;}}}
+        finally {timestamp += 2;}
+        return false;}
 
    
     /** creates resolvents between 3-literal clauses such that the resolvent has again 3 literals.
