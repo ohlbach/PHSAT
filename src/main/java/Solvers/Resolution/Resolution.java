@@ -938,7 +938,7 @@ public class Resolution extends Solver {
                         Clause subsumer = literalObject.clause;
                         return subsumer != subsumee &&
                             (subsumer.literals.get(0).literal == literal1 || subsumer.literals.get(1).literal == literal1);});
-        return subsumerLiteral == null ? null : subsumerLiteral.clause;}
+        return (subsumerLiteral != null) ?  subsumerLiteral.clause : null;}
 
 
 
@@ -955,7 +955,7 @@ public class Resolution extends Solver {
         for(Literal literalObject : subsumee.literals) {
             Literal subsumerLiteral = findLiteral(literalObject.literal,literalIndexTwo,
                     literalObjectTwo -> subsumee.findLiteral(literalObjectTwo.clause.otherLiteral(literalObjectTwo).literal) != null);
-            if(subsumerLiteral != null) return subsumerLiteral.clause;}
+            if (subsumerLiteral != null) return subsumerLiteral.clause;}
         return null;}
 
     /** checks if the longer clause is subsumed by another longer clause.
@@ -990,49 +990,66 @@ public class Resolution extends Solver {
 
     /** computes all resolvents between the given binary parent clause and the longer clauses.
      * <br>
-     * The resolvent is simplified and checked for subsumption.
+     * If merge resolution is possible then merge resolutionis done:  p,q and -p,q,r,s -&gt; q,r,s<br>
+     * The resolvent is simplified and checked for subsumption.<br>
+     * A new task is generated.
      *
-     * @param  binaryParentClause a binary clause.
+     * @param  binaryClause a binary clause.
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    void saturateLongerClausesWithBinaryClause(final Clause binaryParentClause) throws Unsatisfiable {
-        assert(binaryParentClause.size() == 2);
-        String clauseBefore = null; String binaryClause = null;
-        if(trackReasoning || monitoring) binaryClause = binaryParentClause.toString(symboltable,0);
-        for(final Literal binaryParentLiteralObject : binaryParentClause.literals) {
-            int otherBinaryParentLiteral = binaryParentClause.otherLiteral(binaryParentLiteralObject).literal;
-            Literal longerParentLiteralObject = literalIndexMore.getFirstLiteralObject(-binaryParentLiteralObject.literal);
-            while(longerParentLiteralObject != null) {
-                Clause longerParentClause = longerParentLiteralObject.clause;
-                 if(longerParentClause == null) {longerParentLiteralObject = longerParentLiteralObject.nextLiteral; continue;}
-                if(longerParentClause.isDisjunction) {
-                    Literal otherLongerParentLiteralObject = longerParentClause.findLiteral(otherBinaryParentLiteral);
-                     if(otherLongerParentLiteralObject != null) {
-                        if(trackReasoning || monitoring) clauseBefore = longerParentClause.toString(symboltable,0);
-                        removeLiteralFromClause(longerParentLiteralObject,false);
-                        if(monitoring) monitor.println(monitorId,"MergeResolution: "+ binaryClause + " and " +
-                                clauseBefore + " -> " + longerParentClause.toString(symboltable,0));
-                        if(trackReasoning)
-                            longerParentClause.inferenceStep = new InfResolution(binaryParentClause, binaryClause, longerParentClause,
-                                    clauseBefore,longerParentClause,symboltable);
-                         addClauseTask(longerParentClause);
-                        continue;}}
-                resolve(binaryParentLiteralObject,longerParentLiteralObject);
-                longerParentLiteralObject = longerParentLiteralObject.nextLiteral;}}}
+    void saturateLongerClausesWithBinaryClause(final Clause binaryClause) throws Unsatisfiable {
+        assert(binaryClause.size() == 2);
+        String binaryClauseString = (trackReasoning || monitoring) ? binaryClause.toString(symboltable,0) : null;
+        for(final Literal binaryLiteralObject : binaryClause.literals) {
+            int otherBinaryLiteral = binaryClause.otherLiteral(binaryLiteralObject).literal;
+            forAllClauses(-binaryLiteralObject.literal,literalIndexMore,null,
+                    longerLiteralObject -> {
+                        Clause longerClause = longerLiteralObject.clause;
+                        if(longerClause.isDisjunction) {
+                            Literal otherLongerLiteralObject = longerClause.findLiteral(otherBinaryLiteral);
+                            if(otherLongerLiteralObject != null) { // merge resolution is possible.
+                                String longerClauseString = (trackReasoning || monitoring) ? longerClause.toString(symboltable,0) : null;
+                                removeLiteralFromClause(longerLiteralObject,false);
+                                InfResolution step = (trackReasoning || monitoring) ?
+                                    new InfResolution(binaryClause, binaryClauseString, longerClause, longerClauseString, longerClause, symboltable) : null;
+                                longerClause.inferenceStep = step;
+                                if(monitoring) monitor.println(monitorId,step.info());
+                                addClauseTask(longerClause);
+                                ++statistics.mergeResolutionTwoMore;
+                                return false;}}
+                        resolve(binaryLiteralObject,longerLiteralObject);
+                        return false;});}}
+
 
     /** computes all resolvents between the given longer parent clause and the binary clauses.
+     * <br>
+     * If merge resolution with the longer clause is possible, then merge resolution is done and the iteration stops.
      *
-     * @param longerParentClause a longer clause
-     * @throws Unsatisfiable     if a contradiction is discovered.
+     * @param longerClause   a longer clause
+     * @throws Unsatisfiable if a contradiction is discovered.
      */
-    void saturateBinaryClausesWithLongerClause(final Clause longerParentClause) throws Unsatisfiable {
-        for(final Literal literalObject : longerParentClause.literals) {
-            Literal negLiteralObject = literalIndexTwo.getFirstLiteralObject(-literalObject.literal);
-            while(negLiteralObject != null) {
-                if(negLiteralObject.clause == null) {negLiteralObject = negLiteralObject.nextLiteral;continue;}
-                resolve(literalObject,negLiteralObject);
-                negLiteralObject = negLiteralObject.nextLiteral;}}}
-
+    void saturateBinaryClausesWithLongerClause(final Clause longerClause) throws Unsatisfiable {
+        String longerClauseString = (trackReasoning || monitoring) ? longerClause.toString(symboltable,0) : null;
+        for(int i = 0; i < longerClause.size(); ++i) {
+            Literal literalObject = longerClause.literals.get(i);
+            if(forAllClauses(-literalObject.literal,literalIndexTwo,null,
+                    negLiteralObject-> {
+                        Clause binaryClause = negLiteralObject.clause;
+                        int otherBinaryLiteral = binaryClause.otherLiteral(negLiteralObject).literal;
+                        if(longerClause.isDisjunction) {
+                            Literal longerLiteralObject = longerClause.findLiteral(otherBinaryLiteral);
+                            if(longerLiteralObject != null) { // merge resolution possible.
+                                removeLiteralFromClause(literalObject,false);
+                                InfResolution step = (trackReasoning || monitoring) ?
+                                        new InfResolution(binaryClause, binaryClause.toString(symboltable,0), longerClause, longerClauseString, longerClause, symboltable) : null;
+                                longerClause.inferenceStep = step;
+                                if(monitoring) monitor.println(monitorId,step.info());
+                                addClauseTask(longerClause);
+                                ++statistics.mergeResolutionTwoMore;
+                                return true;}}
+                        resolve(literalObject,negLiteralObject);
+                        return false;}))
+                return;}}
 
 
     /** performs merge resolution between longer clauses.
@@ -1052,53 +1069,49 @@ public class Resolution extends Solver {
     protected boolean mergeResolutionMoreMore(final Clause clauseP) throws Unsatisfiable {
         int clausePSize = clauseP.literals.size();
         int limitP = clauseP.limit;
-        for(final Literal literalObjectP : clauseP.literals) { // mark potential candidates with timestamp
-            int literalPNeg = -literalObjectP.literal;
-            Literal literalObjectS = literalIndexMore.getFirstLiteralObject(literalPNeg);
-            while(literalObjectS != null) {
-                Clause clauseS = literalObjectS.clause;
-                if(clauseS == null) {literalObjectS = literalObjectS.nextLiteral; continue;}
-                clauseS.timestamp1 = timestamp;
-                literalObjectS = literalObjectS.nextLiteral;}
+        try{
+            for(final Literal literalObjectP : clauseP.literals) { // mark potential candidates with timestamp
+                int literalPNeg = -literalObjectP.literal;
+                timestampClauses(literalPNeg,literalIndexMore,null,timestamp,true);
 
-            int i = 0;
-            for(final Literal literalObjectPi : clauseP.literals) {
-                if(literalObjectPi == literalObjectP) continue;
-                ++i;
-                Literal literalObjectSi = literalIndexMore.getFirstLiteralObject(literalObjectPi.literal);
-                while(literalObjectSi != null) {
-                    Clause clauseS = literalObjectSi.clause;  // this is the potential merge partner.
-                    if(clauseS == null) {literalObjectSi = literalObjectSi.nextLiteral; continue;}
-                    Literal literalObjectSNeg = clauseS.findLiteral(literalPNeg);
-                    int newLimit = clauseP.limit + clauseS.limit -
-                            Math.max(literalObjectP.multiplicity, literalObjectSNeg.multiplicity);
-                    if((clauseS.timestamp1 - timestamp) == i-1 && literalObjectSi.multiplicity == newLimit) {
-                        ++clauseS.timestamp1;
-                        if(clauseS.timestamp1 - timestamp == clausePSize-1) { // mergepartner found
-                            boolean destructive = clauseP.isDisjunction && clauseS.isDisjunction;
-                            if(!destructive) {
-                                destructive = true;
-                                for(final Literal litObjectSi : clauseS.literals) {
-                                    if(litObjectSi.literal != literalPNeg) {
-                                        destructive &= litObjectSi.multiplicity == newLimit;}}}
-                            ++statistics.mergedClauses;
-                            String resolventBefore = trackReasoning ? clauseS.toString(symboltable,0) : null;
-                            boolean removeP = limitP == 1 && clauseS.size() == clausePSize;
-                            if(destructive) {
-                                if(removeLiteralFromClause(literalObjectSNeg,false)) {
-                                    addClauseTask(clauseS);
-                                    InfMergeResolutionMore step = (trackReasoning || monitoring) ?
-                                            new InfMergeResolutionMore(clauseP,resolventBefore,clauseS,symboltable) : null;
-                                    if(trackReasoning) clauseS.inferenceStep = step;
-                                    if(monitoring) monitor.println(monitorId,step.info());}
-                                    if(removeP) { // only a disjunction is definitely subsumed and can be removed.
-                                        removeClause(clauseP,true,true);
-                                        timestamp += clausePSize + 1;
+                int i = 0;
+                for(final Literal literalObjectPi : clauseP.literals) {
+                    if(literalObjectPi == literalObjectP) continue;
+                    int im = i++;
+                    if(forAllClauses(literalObjectPi.literal,literalIndexMore,
+                        literalObjectSi -> literalObjectSi.clause.timestamp1 - timestamp == im,
+                        literalObjectSi -> {
+                                Clause clauseS = literalObjectSi.clause;  // this is the potential merge partner.
+                                Literal literalObjectSNeg = clauseS.findLiteral(literalPNeg);
+                                int newLimit = clauseP.limit + clauseS.limit -
+                                    Math.max(literalObjectP.multiplicity, literalObjectSNeg.multiplicity);
+                                if(literalObjectSi.multiplicity == newLimit) {
+                                    ++clauseS.timestamp1;
+                                    if(clauseS.timestamp1 - timestamp == clausePSize-1) { // mergepartner found
+                                        ++statistics.mergeResolutionMoreMore;
+                                        boolean destructive = clauseP.isDisjunction && clauseS.isDisjunction;
+                                        if(!destructive) {
+                                            destructive = true;
+                                            for(final Literal litObjectSi : clauseS.literals) {
+                                                int litSi = litObjectSi.literal;
+                                                if(litSi != literalPNeg && clauseP.findLiteral(litSi) != null) {
+                                                    destructive &= litObjectSi.multiplicity == newLimit;}}}
+                                        String resolventBefore = trackReasoning ? clauseS.toString(symboltable,0) : null;
+                                        boolean removeP = limitP == 1 && clauseS.size() == clausePSize;
+                                        if(destructive) {
+                                            if(removeLiteralFromClause(literalObjectSNeg,false)) {
+                                                addClauseTask(clauseS);
+                                                InfMergeResolutionMore step = (trackReasoning || monitoring) ?
+                                                        new InfMergeResolutionMore(clauseP,resolventBefore,clauseS,symboltable) : null;
+                                                if(trackReasoning) clauseS.inferenceStep = step;
+                                                if(monitoring) monitor.println(monitorId,step.info());}
+                                            if(removeP) { // only a disjunction is definitely subsumed and can be removed.
+                                                removeClause(clauseP,true,true); return true;}}
+                                        else resolve(literalObjectP,literalObjectSNeg);
                                         return false;}}
-                            else {resolve(literalObjectP,literalObjectSNeg);}}}
-                    literalObjectSi = literalObjectSi.nextLiteral;}}
-            timestamp += clausePSize + 1;}
-        return true;}
+                                return false;})) return clauseP.exists;}}
+                return clauseP.exists;}
+        finally{timestamp += clausePSize + 1;}}
 
     /** This method tries to find a triggered equivalence with the given three-literal disjunction.
      * <br>

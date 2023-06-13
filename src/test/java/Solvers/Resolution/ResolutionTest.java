@@ -615,7 +615,7 @@ public class ResolutionTest extends TestCase {
                 "4: >= 3 1^2,2^3,3^2\n", resolution.clauses.toString());
         }
 
-    public void testmergeResolutionWithLongerClauseDirect1() throws Result {
+    public void testMergeResolutionMoreMore1() throws Result {
         System.out.println("mergeResolutionMoreMore 1");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
@@ -630,7 +630,7 @@ public class ResolutionTest extends TestCase {
         assertEquals("1: 1v2v3\n" +
                 "2: 3v1v4\n", resolution.clauses.toString());
         if(monitoring) {
-            System.out.println(clause1.inferenceStep.toString());
+            System.out.println("INF " + clause1.inferenceStep.toString());
             //System.out.println(clause1.inferenceStep.inputClauseIds());
         }
 
@@ -686,8 +686,8 @@ public class ResolutionTest extends TestCase {
         if(monitoring) System.out.println(resolution.statistics.toString());
     }
 
-    public void testmergeResolutionWithLongerClauseDirect2 () throws Result {
-        System.out.println("mergeResolutionMoreMore 2");
+    public void testMergeResolutionMoreMore2 () throws Result {
+        System.out.println("MergeResolutionMoreMore 2");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -828,6 +828,65 @@ public class ResolutionTest extends TestCase {
         //System.out.println(simplifier.statistics);
     }
 
+    public void testSaturateBinaryClausesWithLongerClause() throws Result {
+        System.out.println("saturateBinaryClausesWithLongerClause");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, false, nextId);
+
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 3}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
+
+        Clause clause = new Clause(new int[]{4, cOr, -2, 5, 6});
+        resolution.insertClause(clause);
+
+        resolution.saturateBinaryClausesWithLongerClause(clause);
+        assertEquals(" 1: 1v2\n" +
+                " 2: 2v3\n" +
+                " 3: -2v-1\n" +
+                " 4: -2v5v6\n" +
+                "11: 5v6v3\n" +
+                "12: 5v6v1\n",resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 1");
+        resolution.clear();
+
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 5}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
+
+        clause = new Clause(new int[]{4, cOr, -2, 5, 6});
+        resolution.insertClause(clause);
+
+        resolution.saturateBinaryClausesWithLongerClause(clause);
+        assertEquals("1: 1v2\n" +
+                "2: 2v5\n" +
+                "3: -2v-1\n" +
+                "4: 5v6\n",resolution.clauses.toString());
+
+
+        if(monitoring) System.out.println("\nNEW 2");
+        resolution.clear();
+
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 5}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
+
+        clause = new Clause(new int[]{4, cAtleast, 2, -2, 5, 6});
+        resolution.insertClause(clause);
+
+        resolution.saturateBinaryClausesWithLongerClause(clause);
+        assertEquals(" 1: 1v2\n" +
+                " 2: 2v5\n" +
+                " 3: -2v-1\n" +
+                " 4: >= 2 -2,5,6\n" +
+                "13: >= 2 5,6,1\n",resolution.clauses.toString());
+        assertEquals("5",resolution.localModelString());
+
+    }
     }
 
 

@@ -42,10 +42,12 @@ public class InfResolution extends InferenceStep {
     }
 
 
+    public String info() {
+        return parentClause1 + " and " + parentClause2 + " -> " + resolvent;}
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title+"\n  "+ parentClause1 + " and " + parentClause2 + " -> " + resolvent;}
+        return title+"\n  " + info();}
 
 
     @Override
