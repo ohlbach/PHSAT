@@ -261,7 +261,7 @@ public class Clause {
                     return 1;}}}
 
         if(literals.size() == 1) { // unit clause, must be true.
-            trueLiterals.accept(literals.get(0).literal);
+            trueLiterals.accept(literals.get(0).literal); // may throw Unsatisfiable
             remover.accept(literals.get(0));
             literals.clear();
             return 1;}

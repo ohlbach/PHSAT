@@ -230,7 +230,7 @@ public class ResolutionTest extends TestCase {
         assertEquals("2: 1v3\n", resolution.clauses.toString());
         assertEquals("2,4", resolution.localModelString());
 
-        //System.out.println("\nNEW");
+        System.out.println("\nNEW");
         try {
             resolution.clear();
             resolution.model.add(myThread,-2, new InfInputClause(1));

@@ -12,41 +12,46 @@ import java.util.ArrayList;
  */
 public class InfTrueLiteral extends InferenceStep {
 
-    private final static String title = "True Literal Extraction";
+    private final static String title = "True Literal Derivation";
     @Override
     public String title() {
         return title;}
 
     private final static String rule =
-            "C: atleast n p^k,phi and (EL(C) - k) < n implies true(p)";
+            "clause and true(l1,...,ln) -> true(l)";
 
-    private final String clause;
-    private final int literal;
-    private final int id;
+    private final String clauseBefore;
+    private final String clauseString;
+
+    private final String trueLiterals;
+    private final int trueLiteral;
 
     private final InferenceStep inferenceStep;
 
     /** constructs a new InferenceStep.
      *
-     * @param clause the clause as string (because it can be changed later).
-     * @param id the clause's identifier.
-     * @param literal the extracted true literal.
-     * @param inferenceStep the inferences step which produced the clause.
+     * @param clause a clause
+     * @param trueLiterals a list of true literals.
+     * @param trueLiteral the derived true literal.
+     * @param symboltable null or a symboltable.
      */
-    public InfTrueLiteral(String clause, int id, int literal, InferenceStep inferenceStep) {
-        this.clause = clause;
-        this.id = id;
-        this.literal = literal;
-        this.inferenceStep = inferenceStep;}
+    public InfTrueLiteral(String clauseBefore, Clause clause, IntArrayList trueLiterals, int trueLiteral, Symboltable symboltable) {
+        this.clauseBefore   = clauseBefore;
+        clauseString       = clause.toString(symboltable,0);
+        this.trueLiterals  = Symboltable.toString(trueLiterals,symboltable);
+        this.trueLiteral   = trueLiteral;
+        this.inferenceStep = clause.inferenceStep;}
 
     @Override
     public String rule() {
         return title + ":\n" + rule;}
 
+    public String info(Symboltable symboltable) {
+        return clauseBefore + " and true(" + trueLiterals +") -> " + clauseString + " and true("+ Symboltable.toString(trueLiteral,symboltable)+ ")";}
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n  " +clause + " implies true(" + Symboltable.toString(literal,symboltable) + ")";}
+        return title + "\n  " + info(symboltable);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {

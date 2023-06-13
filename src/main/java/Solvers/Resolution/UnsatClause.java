@@ -4,7 +4,6 @@ import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
-import InferenceSteps.InferenceStep;
 
 /** This class describes an Unsatisfiablitiy caused by a non-empty clause.
  * Example: atleast 3 p,q
@@ -20,11 +19,9 @@ public class UnsatClause extends Unsatisfiable {
      *
      * @param clause an unsatisfiable clause
      */
-    public UnsatClause(String problemId, String solverId, Clause clause) {
+    public UnsatClause(Clause clause, String problemId, String solverId) {
         super(problemId, solverId);
-        this.clause = clause;
-        InferenceStep step = clause.inferenceStep;
-        if(step != null) inferenceSteps.add(step);}
+        this.clause = clause;}
 
     /** constructs an Unsatisfiability from an unsatisfiable input clause
      *

@@ -609,67 +609,45 @@ public class Resolution extends Solver {
      * <br>
      * All literals with a truth value in the model are removed and the clause is simplified.<br>
      * Clauses which become true in this step are entirely removed.<br>
-     * The empty clause causes an UnsatEmptyClause exception to be thrown.<br>
+     * The empty clause causes an UnsatClause exception to be thrown.<br>
      * Derived unit clauses are put into the model. <br>
      * Shortened clauses cause new tasks to be inserted into the task queue.<br>
 
      * @param oldTrueLiteral a true (or false) literal.
      * @throws Unsatisfiable if a contradiction is encountered.
      */
-    void processTrueLiteralMore(int oldTrueLiteral) throws Unsatisfiable{
+    void processTrueLiteralMore(final int oldTrueLiteral) throws Unsatisfiable{
         removedLiterals.clear();
+        boolean globallyTrue = model.status(oldTrueLiteral) != 0;
         for(int sign = 1; sign >= -1; sign -= 2) {
-            oldTrueLiteral *= sign;   // the clauses containing the predicate are selected. The literals to be removed depend on the model.
-            Literal literalObject = literalIndexMore.getFirstLiteralObject(oldTrueLiteral);
-            while(literalObject != null) {
-                 Clause clause = literalObject.clause;
-                 if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
-                 clauses.updateClauseNumbers(clause,-1);
-                 String clauseBefore =  monitoring    ? clause.toString(symboltable,0) : null;
-                 InfTrueLiterals step  = (trackReasoning || monitoring) ? new InfTrueLiterals(clause, model,symboltable) : null;
-                 removedLiterals.clear();
-                 trueLiterals.clear();
-                 byte status = clause.removeLiterals(litObject->(int)localStatus(litObject.literal),
-                         litObject -> {literalIndexMore.removeLiteral(litObject);
-                                       removedLiterals.add(localStatus(litObject.literal)*litObject.literal);},
-                         trueLiterals::add);
-                 if(step != null && (status != 1 || !trueLiterals.isEmpty())) clause.inferenceStep = step.addResults(clause,status,trueLiterals,symboltable);
-                for(int literal :trueLiterals) {
-                     ++statistics.derivedTrueLiterals;
-                     addInternalTrueLiteralTask(literal,model.status(oldTrueLiteral) != 0,step);}
-                 if(status == 1) {
-                     removeClause(clause,false,false);
-                     literalObject = literalObject.nextLiteral; continue;}
-                 if(status == -1) {throw new UnsatEmptyClause(problemId,solverId,clause.identifier(), step);}
-                 clauses.updateClauseNumbers(clause,1);
-                 if(monitoring) {
-                     monitor.println(monitorId, clauseBefore + " and true(" +
-                         Symboltable.toString(step.oldTrueLiterals,symboltable) + ") -> " + step.result(symboltable));}
-                 if(clause.size() == 2) moveToIndexTwo(clause);
-                addClauseTask(clause);
+             forAllClauses(sign*oldTrueLiteral,literalIndexMore,null,
+                    literalObject -> {
+                        Clause clause = literalObject.clause;
+                        clauses.updateClauseNumbers(clause,-1);
+                        String clauseBefore =  monitoring    ? clause.toString(symboltable,0) : null;
+                        if(trackReasoning || monitoring) {collectTrueLiterals(clause);}
+                        switch(clause.removeLiterals(
+                                litObject -> (int)localStatus(litObject.literal),
+                                litObject -> {literalIndexMore.removeLiteral(litObject);
+                                            removedLiterals.add(localStatus(litObject.literal)*litObject.literal);},
+                                trueLiteral -> {
+                                    ++statistics.derivedTrueLiterals;
+                                    InfTrueLiteral step  = (trackReasoning || monitoring) ?
+                                        new InfTrueLiteral(clauseBefore, clause, trueLiterals, trueLiteral, symboltable) : null;
+                                    if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                                    addInternalTrueLiteralTask(trueLiteral,globallyTrue,step);
+                                    trueLiterals.add(trueLiteral);})) {
+                            case  1: removeClause(clause,false,false); return false;
+                            case -1: throw new UnsatClause(clause,problemId,solverId);}
+
+                        clauses.updateClauseNumbers(clause,1);
+                        if(clause.size() == 2) moveToIndexTwo(clause);
+                        addClauseTask(clause);
+                        return false;});}
                 if(checkConsistency) checkConsistency();
-            literalObject = literalObject.nextLiteral;}}
         literalIndexMore.removePredicate(oldTrueLiteral);
         for(int removedLiteral :removedLiterals) checkPurity(removedLiteral);
     }
-
-    /** moves a longer clause which has become a binary clause to the literalIndexTwo.
-     * <br>
-     * To this end the literals are copied.
-     * Therefor an iteration over the old literals can still proceed.
-     *
-     * @param clause a binary clause.
-     */
-    protected void moveToIndexTwo(final Clause clause) {
-        assert(clause.size() == 2);
-        for(int i = 0; i < 2; ++i) {
-            Literal oldLiteralObject = clause.literals.get(i);
-            Literal newLiteralObject = new Literal(oldLiteralObject.literal,oldLiteralObject.multiplicity);
-            newLiteralObject.clause = clause;
-            literalIndexMore.removeLiteral(oldLiteralObject);
-            literalIndexTwo.addLiteral(newLiteralObject);
-            clause.literals.set(i,newLiteralObject);}}
-
 
     /** removes all binary clauses which are subsumed by a binary subsumer.
      *
@@ -952,17 +930,17 @@ public class Resolution extends Solver {
      * @return null or the subsumer clause.
      */
     Clause binaryClauseIsSubsumed(final Clause subsumee) {
-        int literal1 = subsumee.literals.get(0).literal;
-        int literal2 = subsumee.literals.get(1).literal;
-        Literal literalObject = literalIndexTwo.getFirstLiteralObject(literal1);
-        while(literalObject != null) {
-            Clause subsumer = literalObject.clause;
-            if(subsumer == null) {literalObject = literalObject.nextLiteral;continue;}
-             if(subsumer != subsumee &&
-                     (subsumer.literals.get(0).literal == literal2 || subsumer.literals.get(1).literal == literal2)) {
-                 return subsumer;}
-            literalObject = literalObject.nextLiteral;}
-        return null;}
+        assert subsumee.size() == 2;
+        int literal1 = subsumee.literals.get(1).literal;
+        Literal subsumerLiteral =
+                findLiteral(subsumee.literals.get(0).literal,literalIndexTwo,
+                    literalObject -> {
+                        Clause subsumer = literalObject.clause;
+                        return subsumer != subsumee &&
+                            (subsumer.literals.get(0).literal == literal1 || subsumer.literals.get(1).literal == literal1);});
+        return subsumerLiteral == null ? null : subsumerLiteral.clause;}
+
+
 
     /** checks if the longer subsumee is subsumed by a binary subsumer.
      * <br>
@@ -974,15 +952,10 @@ public class Resolution extends Solver {
     Clause longerClauseIsSubsumedByBinaryClause(final Clause subsumee) {
         assert(subsumee.size() > 2);
         if(subsumee.limit > 1) return null; // binary clauses cannot subsume longer atleast-clauses
-        for(final Literal literalObject : subsumee.literals) {
-            int literal = literalObject.literal;
-            Literal literalObjectTwo = literalIndexTwo.getFirstLiteralObject(literal);
-            while(literalObjectTwo != null) {
-                Clause subsumer = literalObjectTwo.clause;
-                if(subsumer == null) {literalObjectTwo = literalObjectTwo.nextLiteral; continue;}
-                int otherSubsumerLiteral = subsumer.otherLiteral(literalObjectTwo).literal;
-                if(subsumee.findLiteral(otherSubsumerLiteral) != null) return subsumer;
-                literalObjectTwo = literalObjectTwo.nextLiteral;}}
+        for(Literal literalObject : subsumee.literals) {
+            Literal subsumerLiteral = findLiteral(literalObject.literal,literalIndexTwo,
+                    literalObjectTwo -> subsumee.findLiteral(literalObjectTwo.clause.otherLiteral(literalObjectTwo).literal) != null);
+            if(subsumerLiteral != null) return subsumerLiteral.clause;}
         return null;}
 
     /** checks if the longer clause is subsumed by another longer clause.
@@ -998,20 +971,19 @@ public class Resolution extends Solver {
         int size = subsumee.size();
         int limit = subsumee.limit;
         for(final Literal literalObject1 : subsumee.literals) {
-            int literal1 = literalObject1.literal;
-            Literal literalObject2 = literalIndexMore.getFirstLiteralObject(literal1);
-            while(literalObject2 != null) {
-                Clause subsumer = literalObject2.clause;
-                if(subsumer == null || subsumer == subsumee) {literalObject2 = literalObject2.nextLiteral; continue;}
-                if(subsumer.timestamp2 < timestampSubsumption) {
-                    if(subsumer.size() <= size && subsumer.limit >= limit &&
-                            literalObject2.multiplicity <= literalObject1.multiplicity) subsumer.timestamp2 = timestampSubsumption;}
-                else {
-                    if(subsumer.timestamp2 - timestampSubsumption == subsumer.size()-2 &&
-                            literalObject2.multiplicity <= literalObject1.multiplicity){
-                        timestampSubsumption += size+2; return subsumer;}
-                    if(literalObject2.multiplicity <= literalObject1.multiplicity) ++subsumer.timestamp2;}
-                literalObject2 = literalObject2.nextLiteral;}}
+            int multiplicity1 = literalObject1.multiplicity;
+            Literal subsumerLiteral = findLiteral(literalObject1.literal,literalIndexMore,
+                    literalObject2->{
+                        Clause subsumer   = literalObject2.clause;
+                        int multiplicity2 = literalObject2.multiplicity;
+                        if(subsumer != subsumee && subsumer.timestamp2 < timestampSubsumption) { // first candidate literal
+                            if(subsumer.size() <= size && subsumer.limit >= limit && multiplicity2 <= multiplicity1) subsumer.timestamp2 = timestampSubsumption;
+                            return false;}
+                        else {
+                            if(subsumer.timestamp2 - timestampSubsumption == subsumer.size()-2 && multiplicity2 <= multiplicity1) return true;
+                            if(multiplicity2 <= multiplicity1) ++subsumer.timestamp2;}
+                        return false;});
+            if(subsumerLiteral != null) {timestampSubsumption += size+2; return subsumerLiteral.clause;}}
         timestampSubsumption += size+2;
         return null;}
 
@@ -1490,6 +1462,36 @@ public class Resolution extends Solver {
         return false;}
 
 
+    /** adds the literals in the clause which are locally true to the trueLiterals array.
+     *
+     * @param clause a clause.
+     */
+    void collectTrueLiterals(Clause clause) {
+        trueLiterals.clear();
+        for(Literal literalObject : clause.literals) {
+            int literal = literalObject.literal;
+            switch(localStatus(literal)) {
+                case  1: trueLiterals.add(literal);  break;
+                case -1: trueLiterals.add(-literal); break;}}}
+
+    /** moves a longer clause which has become a binary clause to the literalIndexTwo.
+     * <br>
+     * To this end the literals are copied.
+     * Therefor an iteration over the old literals can still proceed.
+     *
+     * @param clause a binary clause.
+     */
+    protected void moveToIndexTwo(final Clause clause) {
+        assert(clause.size() == 2);
+        for(int i = 0; i < 2; ++i) {
+            Literal oldLiteralObject = clause.literals.get(i);
+            Literal newLiteralObject = new Literal(oldLiteralObject.literal,oldLiteralObject.multiplicity);
+            newLiteralObject.clause = clause;
+            literalIndexMore.removeLiteral(oldLiteralObject);
+            literalIndexTwo.addLiteral(newLiteralObject);
+            clause.literals.set(i,newLiteralObject);}}
+
+
 
 
     /** takes the literalObjects of the clauses whose predicates have been eliminated by exhaustive resolution.*/
@@ -1672,6 +1674,21 @@ public class Resolution extends Solver {
                 if(action.test(literalObject)) return true;}
             literalObject = literalObject.nextLiteral;}
         return false;}
+
+    /** searches the literal with the given literal in the given literalIndex which meets the condition.
+     *
+     * @param literal      any literal.
+     * @param literalIndex literalIndexTwo or literalIndexMore.
+     * @param condition    to be applied to the literalObjects.
+     * @return             null or the literalObject that meets the condition.
+     */
+    Literal findLiteral(int literal, Literals literalIndex, Predicate<Literal> condition) {
+        Literal literalObject = literalIndex.getFirstLiteralObject(literal);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if(clause != null && clause.exists && condition.test(literalObject)) return literalObject;
+            literalObject = literalObject.nextLiteral;}
+        return null;}
 
     /** lists the local model as string.
      *
