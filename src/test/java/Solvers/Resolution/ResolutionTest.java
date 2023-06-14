@@ -701,8 +701,94 @@ public class ResolutionTest extends TestCase {
         assertEquals("1: >= 3 1^2,2,3^2\n" +
                 "2: 1v3\n" +
                 "3: >= 4 1^4,-2^3,3^3,4\n", resolution.clauses.toString());
-
         }
+
+    public void testMergeResolutionPartial () throws Result {
+        System.out.println("MergeResolutionPartial");
+        int predicates = 10;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        Clause clause = new Clause(new int[]{1, cOr, 1,2,3});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1,-2,4}));
+        resolution.mergeResolutionPartial(clause);
+        assertEquals(" 1: 1v2v3\n" +
+                " 2: 1v-2v4\n" +
+                "11: 1v3v4\n",resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 1");
+        resolution.clear();
+        clause = new Clause(new int[]{1, cOr, 1,2,3,4});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 5,1,-2}));
+        resolution.mergeResolutionPartial(clause);
+        assertEquals(" 1: 1v2v3v4\n" +
+                " 2: 5v1v-2\n" +
+                "12: 1v3v4v5\n",resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 2");
+        resolution.clear();
+        clause = new Clause(new int[]{1, cOr, 1,2,3,4});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 5,1,-2}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 5,2,-3}));
+        resolution.mergeResolutionPartial(clause);
+        assertEquals(" 1: 1v2v3v4\n" +
+                " 2: 5v1v-2\n" +
+                " 3: 5v2v-3\n" +
+                "13: 1v3v4v5\n" +
+                "14: 1v2v4v5\n",resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNEW 3");
+        resolution.clear();
+        clause = new Clause(new int[]{1, cOr, 1,2,3,4,5,6});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 6,7,-3}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 8,2,-4,5}));
+        resolution.insertClause(new Clause(new int[]{4, cOr, 6,8,-4,7}));
+        resolution.mergeResolutionPartial(clause);
+        assertEquals(" 1: 1v2v3v4v5v6\n" +
+                " 2: 6v7v-3\n" +
+                " 3: 8v2v-4v5\n" +
+                " 4: 6v8v-4v7\n" +
+                "15: 1v2v4v5v6v7\n" +
+                "16: 1v2v3v5v6v8\n",resolution.clauses.toString());
+
+
+
+    }
+
+        public void testTriggeredEquivalence() throws Unsatisfiable {
+        System.out.println("triggeredEquivalence");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause1);
+        Clause clause2 = new Clause(new int[]{2, cOr, 1, 2, -3});
+        resolution.insertClause(clause2);
+        resolution.insertClause(new Clause(new int[]{3, cOr, -3,-2,1}));
+        assertEquals(1, resolution.triggeredEquivalence(clause1));
+        assertEquals("-1 -> 2 == -3\n",resolution.equivalences.toString());
+        assertEquals(0,resolution.triggeredEquivalence(clause2));
+
+        if(monitoring) System.out.println("\nNEW");
+        resolution.clear();
+        clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause1);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1,-2,-3}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -1,2,-3}));
+        assertEquals(2, resolution.triggeredEquivalence(clause1));
+        assertEquals("-1 -> 2 == -3\n" +
+                "-2 -> 1 == -3\n",resolution.equivalences.toString());
+
+    }
+
     public void testbinaryClauseIsSubsumedByBinaryClauses()  {
         System.out.println("binaryClauseIsSubsumed");
         int predicates = 6;

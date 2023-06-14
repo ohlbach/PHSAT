@@ -116,6 +116,12 @@ public class Equivalences {
     boolean isEmpty() {
         return equivalences.isEmpty();}
 
+    /** clears all data (to be used anew).
+     */
+    void clear() {
+        equivalences.clear();
+        processedEquivalences.clear();}
+
     /** returns the equivalence class of the given triggerLiteral containing the literal.
      *
      * @param triggerLiteral 0 or a literal
@@ -198,6 +204,7 @@ public class Equivalences {
             if(!equivalenceList.isEmpty()) {
                 st.append(equivalenceList.get(0).toString(symboltable));
                 for(int i = 1; i < equivalenceList.size(); ++i) {
-                    st.append("\n").append(equivalenceList.get(i).toString(symboltable));}}});
+                    st.append("\n").append(equivalenceList.get(i).toString(symboltable));}
+            st.append("\n");}});
         return st.toString();}
 }

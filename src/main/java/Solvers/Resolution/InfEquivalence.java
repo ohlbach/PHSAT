@@ -62,7 +62,7 @@ public class InfEquivalence extends InferenceStep {
         String trigger = triggerLiteral == 0 ? "" : Symboltable.toString(triggerLiteral,symboltable) + " => ";
         return clause1String + " and " + clause2String + " -> " +
                 trigger + Symboltable.toString(literalObject1.literal,symboltable) + " == " +
-                Symboltable.toString(-literalObject2.literal,symboltable);}
+                Symboltable.toString(literalObject2.literal,symboltable);}
 
     @Override
     public String toString(Symboltable symboltable) {

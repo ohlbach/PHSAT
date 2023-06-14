@@ -246,6 +246,7 @@ public class Resolution extends Solver {
         statistics.clear();
         queue.clear();
         model.clear();
+        equivalences.clear();
         for(int predicate = 1; predicate <= predicates; ++predicate) localModel[predicate] = 0;
     }
 
@@ -534,9 +535,9 @@ public class Resolution extends Solver {
             return;}
         removeClausesSubsumedByLongerClause(clause);
         if(!mergeResolutionMoreMore(clause)) return;
-        if(clause.isDisjunction && clause.size() == 3 && triggeredEquivalence(clause)) return;
+        if(clause.isDisjunction && clause.size() == 3 && triggeredEquivalence(clause) > 0) return;
         saturateBinaryClausesWithLongerClause(clause);
-        if(clause.exists && clause.size()==3) mergeResolutionPartial(clause);
+        if(clause.exists) mergeResolutionPartial(clause);
     }
 
     ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
@@ -1121,13 +1122,14 @@ public class Resolution extends Solver {
      *  -p -&gt; q == -r
      *
      * @param clause a three-literal disjunction.
-     * @return true  if an equivalence is discovered.
+     * @return the number of discovered equivalences.
      * @throws Unsatisfiable if the equivalence contradicts another equivalence.
      */
-    boolean triggeredEquivalence(Clause clause) throws Unsatisfiable {
+    int triggeredEquivalence(Clause clause) throws Unsatisfiable {
         assert clause.isDisjunction && clause.size() == 3;
-        try{
+        try{int counter = 0;
             for(Literal triggerLiteralObject : clause.literals) {
+                timestamp += 2;
                 int triggerLiteral = triggerLiteralObject.literal;
                 Literal literalObject1 = null; Literal literalObject2 = null;
                 for(Literal literalObject : clause.literals) { // identify the three literals in the clause
@@ -1153,59 +1155,52 @@ public class Resolution extends Solver {
                         literalObjectSecond -> {
                             InfEquivalence step = (trackReasoning || monitoring) ?
                                     new InfEquivalence(-triggerLiteral,literalObjectFirst,literalObjectSecond, symboltable) : null;
-                            equivalences.add(-triggerLiteral, literalObjectFirst.literal, -literalObjectSecond.literal,step);
+                            equivalences.add(-triggerLiteral, literalObjectFirst.literal, literalObjectSecond.literal,step);
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
                             addEquivalenceTask();
-                            return true;})) return true;}
-            return false;}
+                            return true;})) ++counter;}
+            return counter;}
         finally {timestamp += 2;}}
 
    
-    /** creates resolvents between 3-literal clauses such that the resolvent has again 3 literals.
+    /** creates all resolvents with the given clause which are not longer than the clause itself.
+     * <br>
+     * This may generate a lot of clauses, but their length is bounded by the length of the existing clauses.
      *
      * @param clause        a 3-literal clause.
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void mergeResolutionPartial(final Clause clause) throws Unsatisfiable{
-        mergeResolutionPartialBinary(clause);
-        for(final Literal literalObject : clause.literals) { // example: p,q,r
-            int posLiteral = literalObject.literal;
-            boolean found = false;
-            Literal negLiteralObject = literalIndexMore.getFirstLiteralObject(-literalObject.literal);
-            while(negLiteralObject != null) {          // example: -p,q',s
-                if(negLiteralObject.clause == null) {negLiteralObject = negLiteralObject.nextLiteral; continue;}
-                if(negLiteralObject.clause.size() == 3) {negLiteralObject.clause.timestamp1 = timestamp; found = true;}
-                negLiteralObject = negLiteralObject.nextLiteral;}
-            if(!found) {++timestamp; continue;}
+        int size = clause.size();
+        for(final Literal resolutionLiteralObject : clause.literals) {
+            timestamp += size+2;
+            int posLiteral = resolutionLiteralObject.literal;
+            timestampClauses(-posLiteral, literalIndexMore, // timestamp all potential resolution partners.
+                    (litObject -> litObject.clause.size() <= size), timestamp,true);
 
             for(final Literal literalObject1 : clause.literals) {
-                if(literalObject1 == literalObject) continue;
-                Literal otherLiteralObject = literalIndexMore.getFirstLiteralObject(literalObject1.literal);
-                while(otherLiteralObject != null) {                        // Example: otherLiteralObject = q
-                    if(otherLiteralObject.clause == null) {otherLiteralObject = otherLiteralObject.nextLiteral;continue;}
-                    if(otherLiteralObject.clause.timestamp1 == timestamp) { // example: -p,q,s
-                        resolve(literalObject,otherLiteralObject.clause.findLiteral(-posLiteral));}
-                        otherLiteralObject = otherLiteralObject.nextLiteral;}}
-            ++timestamp;}
+                if(literalObject1 == resolutionLiteralObject) continue;
+                forAllClauses(literalObject1.literal,literalIndexMore,null,
+                        (litObject -> { // all literals except two of them must merge.
+                            Clause otherClause = litObject.clause;
+                            if(otherClause.timestamp1 - timestamp == otherClause.size()-3)
+                                resolve(resolutionLiteralObject,otherClause.findLiteral(-posLiteral));
+                            else ++otherClause.timestamp1;
+                            return false;}));}}
+            timestamp += size+2;}
 
-    }
 
-    /** creates all resolvents between the given 3-literal clause and all binary clauses.
+    /** creates all resolvents between the given clause and all binary clauses.
+     * <br>
+     * The resolvent is therefore not longer than the parent clause.
      *
-     * @param clause         a 3-literal clause
+     * @param clause         a clause
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void mergeResolutionPartialBinary(final Clause clause) throws Unsatisfiable{
-        if(!clause.exists || clause.size() != 3) return;
-        for(final Literal literalObject : clause.literals) { // example: p,q,r
-            int posLiteral = literalObject.literal;
-            Literal negLiteralObject = literalIndexTwo.getFirstLiteralObject(-literalObject.literal);
-            while(negLiteralObject != null) {          // example: -p,s
-                Clause negClause = negLiteralObject.clause;
-                if(negClause == null) {negLiteralObject = negLiteralObject.nextLiteral; continue;}
-                resolve(literalObject,negClause.findLiteral(-posLiteral));
-                negLiteralObject = negLiteralObject.nextLiteral;}
-        }}
+        for(final Literal literalObject : clause.literals) {
+            forAllClauses(-literalObject.literal,literalIndexTwo,null,
+                    negLiteralObject -> {resolve(literalObject,negLiteralObject); return false;});}}
 
     private final IntArrayList trueLiterals = new IntArrayList();
     /** creates a resolvent between the clauses with the two literals.
