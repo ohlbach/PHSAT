@@ -1124,15 +1124,15 @@ public class Resolution extends Solver {
      * @return true  if an equivalence is discovered.
      * @throws Unsatisfiable if the equivalence contradicts another equivalence.
      */
-    boolean triggeredEquivalence(Clause clause) throws Unsatisfiable{
+    boolean triggeredEquivalence(Clause clause) throws Unsatisfiable {
         assert clause.isDisjunction && clause.size() == 3;
         try{
             for(Literal triggerLiteralObject : clause.literals) {
                 int triggerLiteral = triggerLiteralObject.literal;
-                Literal literalObjectFirst = null; Literal literalObject2 = null;
-                for(Literal literalObject : clause.literals) {
+                Literal literalObject1 = null; Literal literalObject2 = null;
+                for(Literal literalObject : clause.literals) { // identify the three literals in the clause
                     if(literalObject != triggerLiteralObject) {
-                        if(literalObjectFirst == null) literalObjectFirst = literalObject;
+                        if(literalObject1 == null) literalObject1 = literalObject;
                         else literalObject2 = literalObject;}}
 
                 // timestamp all candidate clauses with the trigger literal.
@@ -1143,26 +1143,22 @@ public class Resolution extends Solver {
                        timestamp,true)) continue; // there can't be an equivalence with this trigger literal.
 
                 // timestamp the first equivalence literal.
-                if(!timestampClauses(-literalObjectFirst.literal,literalIndexMore,
-                        (candidateLiteral -> {
-                            Clause candidateClause = candidateLiteral.clause;
-                            return candidateClause.timestamp1 == timestamp;}),
+                if(!timestampClauses(-literalObject1.literal,literalIndexMore,
+                        (candidateLiteral -> candidateLiteral.clause.timestamp1 == timestamp),
                         timestamp+1,true)) continue; // there can't be an equivalence with this trigger literal.
 
-                // check the second equivalence literal.
-                Literal literalObjectSecond = literalIndexMore.getFirstLiteralObject(-literalObject2.literal);
-                while (literalObjectSecond != null) {
-                    Clause clauseSecond = literalObjectSecond.clause;
-                    if (clauseSecond != null && clauseSecond.timestamp1 == timestamp+1) {
-                        InfEquivalence step = (trackReasoning || monitoring) ?
-                                new InfEquivalence(-triggerLiteral,literalObjectFirst,literalObjectSecond, symboltable) : null;
-                        equivalences.add(-triggerLiteral, literalObjectFirst.literal, -literalObjectSecond.literal,step);
-                        if(monitoring) monitor.println(monitorId,step.info(symboltable));
-                        addEquivalenceTask();
-                        return true;}
-                    literalObjectSecond = literalObjectSecond.nextLiteral;}}}
-        finally {timestamp += 2;}
-        return false;}
+                Literal literalObjectFirst = literalObject1;
+                if(forAllClauses(-literalObject2.literal,literalIndexMore,
+                        literalObjectSecond -> literalObjectSecond.clause.timestamp1 == timestamp+1,
+                        literalObjectSecond -> {
+                            InfEquivalence step = (trackReasoning || monitoring) ?
+                                    new InfEquivalence(-triggerLiteral,literalObjectFirst,literalObjectSecond, symboltable) : null;
+                            equivalences.add(-triggerLiteral, literalObjectFirst.literal, -literalObjectSecond.literal,step);
+                            if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                            addEquivalenceTask();
+                            return true;})) return true;}
+            return false;}
+        finally {timestamp += 2;}}
 
    
     /** creates resolvents between 3-literal clauses such that the resolvent has again 3 literals.
