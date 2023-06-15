@@ -1,6 +1,10 @@
 package Solvers.Resolution;
 
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Utilities.PredicateWithUnsatisfiable;
+
+import java.util.function.Predicate;
 
 /** This class is actually an index for the Literal objects.
  * <br>
@@ -182,6 +186,61 @@ public class Literals {
             litObject = litObject.nextLiteral;}
         return false;
     }
+
+    /** applies action to all clauses with the given literal, for which the condition returns true.
+     * <br>
+     * If the action returns true then the iteration stops immediately.
+     *
+     * @param literal        any literal
+     * @param condition      null or a condition on the corresponding Literal in the corresponding clause
+     * @param action         an action to be applied to the clause until it returns true. It may throw Unsatisfiable.
+     * @return               true if the action returned true.
+     * @throws Unsatisfiable if the action throws Unsatisfiable.
+     */
+    boolean forAllLiterals(int literal, Predicate<Literal> condition, PredicateWithUnsatisfiable<Literal> action) throws Unsatisfiable {
+        Literal literalObject = getFirstLiteralObject(literal);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if(clause != null && clause.exists && (condition == null || condition.test(literalObject))) {
+                if(action.test(literalObject)) return true;}
+            literalObject = literalObject.nextLiteral;}
+        return false;}
+
+    /** marks all clauses with the given literal which meet the condition with the given timestamp.
+     * <br>
+     * if fistStamp = true then timestamp1 is marked, otherwise timestamp2.
+     *
+     * @param literal       a literal
+     * @param condition     null or a condition on the clauses to be timestamped.
+     * @param timestamp     the timestamp which is to be used.
+     * @param firstStamp    true if the timestamp1 is marked.
+     * @return              true if atleast one clause is marked.
+     */
+    boolean timestampClauses(int literal, Predicate<Literal> condition, int timestamp,boolean firstStamp) {
+        boolean marked = false;
+        Literal literalObject = getFirstLiteralObject(literal);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if(clause != null && clause.exists && (condition == null || condition.test(literalObject))) {
+                if(firstStamp) clause.timestamp1 = timestamp; else clause.timestamp2 = timestamp;
+                marked = true;}
+            literalObject = literalObject.nextLiteral;}
+        return marked;}
+
+    /** searches the literal with the given literal which meets the condition.
+     *
+     * @param literal      any literal.
+     * @param condition    to be applied to the literalObjects.
+     * @return             null or the literalObject that meets the condition.
+     */
+    Literal findLiteral(int literal, Predicate<Literal> condition) {
+        Literal literalObject = getFirstLiteralObject(literal);
+        while(literalObject != null) {
+            Clause clause = literalObject.clause;
+            if(clause != null && clause.exists && condition.test(literalObject)) return literalObject;
+            literalObject = literalObject.nextLiteral;}
+        return null;}
+
 
     /** checks the consistency of the index.
      * <br>

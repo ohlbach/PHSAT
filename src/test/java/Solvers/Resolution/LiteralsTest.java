@@ -1,8 +1,13 @@
 package Solvers.Resolution;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Management.Monitor.Monitor;
+import Management.Monitor.MonitorLife;
 import junit.framework.TestCase;
+
+import java.util.function.IntSupplier;
 
 public class LiteralsTest extends TestCase {
     static Symboltable symboltable = new Symboltable(10);
@@ -173,4 +178,85 @@ public class LiteralsTest extends TestCase {
         assertEquals("41",s);
 
     }
+
+    int cOr = Quantifier.OR.ordinal();
+    boolean monitoring = true;
+    public void testForAllLiterals() throws Unsatisfiable {
+        System.out.println("forAllLiterals");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(10, monitor, true, nextId);
+        assertFalse(resolution.literalIndexTwo.forAllLiterals(1,null,
+                (literalObject -> {id[0] = 20; return true;})));
+
+        Clause clause1 = new Clause(new int[]{1, cOr, 3,4});
+        resolution.insertClause(clause1);
+        assertTrue(resolution.literalIndexTwo.forAllLiterals(3,null,
+                (literalObject -> {id[0] = 20; return true;})));
+        assertEquals(20,id[0]);
+
+        Clause clause2 = new Clause(new int[]{2, cOr, 4,5});
+        resolution.insertClause(clause2);
+        assertTrue(resolution.literalIndexTwo.forAllLiterals(3,null,
+                (literalObject -> {++id[0]; return true;})));
+        assertEquals(21,id[0]);
+        assertFalse(resolution.literalIndexTwo.forAllLiterals(4,null,
+                (literalObject -> {++id[0]; return false;})));
+        assertEquals(23,id[0]);
+
+        assertFalse(resolution.literalIndexTwo.forAllLiterals(4,
+                (literalObject -> literalObject.clause.identifier == 2),
+                (literalObject -> {++id[0]; return false;})));
+        assertEquals(24,id[0]);
+
+        try{resolution.literalIndexTwo.forAllLiterals(4,null,
+                (literalObject -> {throw new UnsatEmptyClause("test",null,null,null);}));
+            assertFalse(true);}
+        catch(Unsatisfiable uns) {
+            if(monitoring) System.out.println(uns);
+        }
     }
+
+    public void testTimestampClauses()  {
+        System.out.println("timestampClauses");
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(10, monitor, true, nextId);
+
+        assertFalse(resolution.literalIndexMore.timestampClauses(1,null,5,true));
+        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause1);
+
+        assertFalse(resolution.literalIndexMore.timestampClauses(1,
+                (litObject -> litObject.clause.identifier == 2),
+                5,true));
+        assertTrue(resolution.literalIndexMore.timestampClauses(2,
+                (litObject -> litObject.clause.identifier == 1),
+                5,true));
+        assertEquals(5,clause1.timestamp1);
+        assertTrue(resolution.literalIndexMore.timestampClauses(3,
+                (litObject -> litObject.clause.identifier == 1),
+                6,false));
+        assertEquals(6,clause1.timestamp2);
+
+        Clause clause2 = new Clause(new int[]{2, cOr, 3,4,5});
+        resolution.insertClause(clause2);
+        assertTrue(resolution.literalIndexMore.timestampClauses(3,
+                (litObject -> litObject.clause.identifier == 1),
+                7,true));
+        assertEquals(7,clause1.timestamp1);
+        assertEquals(0,clause2.timestamp1);
+
+        assertTrue(resolution.literalIndexMore.timestampClauses(3,
+                (litObject -> litObject.clause.identifier >= 1),
+                8,true));
+        assertEquals(8,clause1.timestamp1);
+        assertEquals(8,clause2.timestamp1);
+    }
+
+
+
+
+}

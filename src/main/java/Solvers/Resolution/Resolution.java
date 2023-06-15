@@ -12,7 +12,6 @@ import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Normalizer.Normalizer;
 import Solvers.Solver;
-import Utilities.PredicateWithUnsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -21,7 +20,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.IntSupplier;
-import java.util.function.Predicate;
 
 /** This is an incomplete solver which tries to simplify the clauses as far as possible.
  *  - It tries to derive new true literals and send them to the model.<br>
@@ -590,10 +588,10 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if a contradiction is encountered.
      */
     protected void processTrueLiteralTwo(final int oldTrueLiteral, final InferenceStep inferenceStep) throws Unsatisfiable {
-        forAllClauses(oldTrueLiteral,literalIndexTwo,null, // remove all two-literal clauses with oldTrueLiteral
+        literalIndexTwo.forAllLiterals(oldTrueLiteral,null, // remove all two-literal clauses with oldTrueLiteral
                 (literalObject -> {removeClause(literalObject.clause,true,true); return false;}));
 
-        forAllClauses(-oldTrueLiteral,literalIndexTwo,null,
+        literalIndexTwo.forAllLiterals(-oldTrueLiteral,null,
                 (literalObject -> { // all two-literal clauses with -oldTrueLiteral yield a new true literal.
                     Clause clause = literalObject.clause;
                     int otherLiteral = clause.otherLiteral(literalObject).literal;
@@ -621,7 +619,7 @@ public class Resolution extends Solver {
         removedLiterals.clear();
         boolean globallyTrue = model.status(oldTrueLiteral) != 0;
         for(int sign = 1; sign >= -1; sign -= 2) {
-             forAllClauses(sign*oldTrueLiteral,literalIndexMore,null,
+            literalIndexMore.forAllLiterals(sign*oldTrueLiteral,null,
                     literalObject -> {
                         Clause clause = literalObject.clause;
                         clauses.updateClauseNumbers(clause,-1);
@@ -658,7 +656,7 @@ public class Resolution extends Solver {
     protected void removeBinaryClausesSubsumedByBinaryClause(final Clause subsumer) throws Unsatisfiable {
         assert(subsumer.size() == 2);
         int literal2 = subsumer.literals.get(1).literal;
-        forAllClauses(subsumer.literals.get(0).literal, literalIndexTwo,
+        literalIndexTwo.forAllLiterals(subsumer.literals.get(0).literal,
                 (subsumeeLiteral -> {
                     Clause subsumee = subsumeeLiteral.clause;
                     return subsumee != subsumer && subsumee.otherLiteral(subsumeeLiteral).literal == literal2;}),
@@ -675,13 +673,13 @@ public class Resolution extends Solver {
      */
     protected void removeLongerClausesSubsumedByBinaryClause(final Clause subsumer) throws Unsatisfiable {
         assert(subsumer.size() == 2);
-        timestampClauses(subsumer.literals.get(0).literal,literalIndexMore,
+        literalIndexMore.timestampClauses(subsumer.literals.get(0).literal,
                 (subsumeeLiteral -> {
                     Clause subsumee = subsumeeLiteral.clause;
                     return subsumee.isDisjunction || subsumee.limit == subsumeeLiteral.multiplicity;}),
                 timestampSubsumption,false);
 
-        forAllClauses(subsumer.literals.get(1).literal, literalIndexMore,
+        literalIndexMore.forAllLiterals(subsumer.literals.get(1).literal,
                 (subsumeeLiteral -> {
                     Clause subsumee = subsumeeLiteral.clause;
                     return subsumee.timestamp2 == timestampSubsumption &&
@@ -707,7 +705,7 @@ public class Resolution extends Solver {
         int subsumerSize = subsumer.literals.size();
         int sumsumerLimit = subsumer.limit;
         final Literal firstLiteral = subsumer.literals.get(0);
-        if(!timestampClauses(firstLiteral.literal,literalIndexMore,
+        if(!literalIndexMore.timestampClauses(firstLiteral.literal,
                 (subsumeeLiteral -> {
                     Clause subsumee = subsumeeLiteral.clause;
                     return (subsumee != subsumer && subsumee.limit <= sumsumerLimit &&
@@ -718,7 +716,7 @@ public class Resolution extends Solver {
         for(int i = 1; i < subsumer.literals.size(); ++i) { // find candidates.
             final int im = i-1;
             Literal subsumerLiteral = subsumer.literals.get(i);
-            forAllClauses(subsumerLiteral.literal, literalIndexMore,
+            literalIndexMore.forAllLiterals(subsumerLiteral.literal,
                     (subsumeeLiteral -> {
                         Clause subsumee = subsumeeLiteral.clause;
                         if((subsumee.timestamp2 - timestampSubsumption) == im &&
@@ -751,9 +749,9 @@ public class Resolution extends Solver {
         assert(clause1.size() == 2);
         ++timestamp; // just to be sure.
         try{
-            timestampClauses(-literal1, literalIndexTwo,null,timestamp,true);
+            literalIndexTwo.timestampClauses(-literal1,null,timestamp,true);
 
-            forAllClauses(literal2,literalIndexTwo,
+            literalIndexTwo.forAllLiterals(literal2,
                     (literalObject -> literalObject.clause.timestamp1 == timestamp),
                     (literalObject -> {
                         Clause clause2 = literalObject.clause;
@@ -766,7 +764,7 @@ public class Resolution extends Solver {
                         return true;}));
 
             if(checkEquivalence) {
-                forAllClauses(-literal2,literalIndexTwo,
+                literalIndexTwo.forAllLiterals(-literal2,
                         (literalObject -> literalObject.clause.timestamp1 == timestamp),
                         (literalObject -> {
                             Clause clause2 = literalObject.clause;
@@ -934,7 +932,7 @@ public class Resolution extends Solver {
         assert subsumee.size() == 2;
         int literal1 = subsumee.literals.get(1).literal;
         Literal subsumerLiteral =
-                findLiteral(subsumee.literals.get(0).literal,literalIndexTwo,
+                literalIndexTwo.findLiteral(subsumee.literals.get(0).literal,
                     literalObject -> {
                         Clause subsumer = literalObject.clause;
                         return subsumer != subsumee &&
@@ -954,7 +952,7 @@ public class Resolution extends Solver {
         assert(subsumee.size() > 2);
         if(subsumee.limit > 1) return null; // binary clauses cannot subsume longer atleast-clauses
         for(Literal literalObject : subsumee.literals) {
-            Literal subsumerLiteral = findLiteral(literalObject.literal,literalIndexTwo,
+            Literal subsumerLiteral = literalIndexTwo.findLiteral(literalObject.literal,
                     literalObjectTwo -> subsumee.findLiteral(literalObjectTwo.clause.otherLiteral(literalObjectTwo).literal) != null);
             if (subsumerLiteral != null) return subsumerLiteral.clause;}
         return null;}
@@ -973,7 +971,7 @@ public class Resolution extends Solver {
         int limit = subsumee.limit;
         for(final Literal literalObject1 : subsumee.literals) {
             int multiplicity1 = literalObject1.multiplicity;
-            Literal subsumerLiteral = findLiteral(literalObject1.literal,literalIndexMore,
+            Literal subsumerLiteral = literalIndexMore.findLiteral(literalObject1.literal,
                     literalObject2->{
                         Clause subsumer   = literalObject2.clause;
                         int multiplicity2 = literalObject2.multiplicity;
@@ -1003,7 +1001,7 @@ public class Resolution extends Solver {
         String binaryClauseString = (trackReasoning || monitoring) ? binaryClause.toString(symboltable,0) : null;
         for(final Literal binaryLiteralObject : binaryClause.literals) {
             int otherBinaryLiteral = binaryClause.otherLiteral(binaryLiteralObject).literal;
-            forAllClauses(-binaryLiteralObject.literal,literalIndexMore,null,
+            literalIndexMore.forAllLiterals(-binaryLiteralObject.literal,null,
                     longerLiteralObject -> {
                         Clause longerClause = longerLiteralObject.clause;
                         if(longerClause.isDisjunction) {
@@ -1033,7 +1031,7 @@ public class Resolution extends Solver {
         String longerClauseString = (trackReasoning || monitoring) ? longerClause.toString(symboltable,0) : null;
         for(int i = 0; i < longerClause.size(); ++i) {
             Literal literalObject = longerClause.literals.get(i);
-            if(forAllClauses(-literalObject.literal,literalIndexTwo,null,
+            if(literalIndexTwo.forAllLiterals(-literalObject.literal,null,
                     negLiteralObject-> {
                         Clause binaryClause = negLiteralObject.clause;
                         int otherBinaryLiteral = binaryClause.otherLiteral(negLiteralObject).literal;
@@ -1073,13 +1071,13 @@ public class Resolution extends Solver {
         try{
             for(final Literal literalObjectP : clauseP.literals) { // mark potential candidates with timestamp
                 int literalPNeg = -literalObjectP.literal;
-                timestampClauses(literalPNeg,literalIndexMore,null,timestamp,true);
+                literalIndexMore.timestampClauses(literalPNeg,null,timestamp,true);
 
                 int i = 0;
                 for(final Literal literalObjectPi : clauseP.literals) {
                     if(literalObjectPi == literalObjectP) continue;
                     int im = i++;
-                    if(forAllClauses(literalObjectPi.literal,literalIndexMore,
+                    if(literalIndexMore.forAllLiterals(literalObjectPi.literal,
                         literalObjectSi -> literalObjectSi.clause.timestamp1 - timestamp == im,
                         literalObjectSi -> {
                                 Clause clauseS = literalObjectSi.clause;  // this is the potential merge partner.
@@ -1138,19 +1136,19 @@ public class Resolution extends Solver {
                         else literalObject2 = literalObject;}}
 
                 // timestamp all candidate clauses with the trigger literal.
-                if(!timestampClauses(triggerLiteral,literalIndexMore,
+                if(!literalIndexMore.timestampClauses(triggerLiteral,
                        (candidateLiteral -> {
                            Clause candidateClause = candidateLiteral.clause;
                            return candidateClause.isDisjunction && candidateClause.size() == 3;}),
                        timestamp,true)) continue; // there can't be an equivalence with this trigger literal.
 
                 // timestamp the first equivalence literal.
-                if(!timestampClauses(-literalObject1.literal,literalIndexMore,
+                if(!literalIndexMore.timestampClauses(-literalObject1.literal,
                         (candidateLiteral -> candidateLiteral.clause.timestamp1 == timestamp),
                         timestamp+1,true)) continue; // there can't be an equivalence with this trigger literal.
 
                 Literal literalObjectFirst = literalObject1;
-                if(forAllClauses(-literalObject2.literal,literalIndexMore,
+                if(literalIndexMore.forAllLiterals(-literalObject2.literal,
                         literalObjectSecond -> literalObjectSecond.clause.timestamp1 == timestamp+1,
                         literalObjectSecond -> {
                             InfEquivalence step = (trackReasoning || monitoring) ?
@@ -1173,14 +1171,16 @@ public class Resolution extends Solver {
     void mergeResolutionPartial(final Clause clause) throws Unsatisfiable{
         int size = clause.size();
         for(final Literal resolutionLiteralObject : clause.literals) {
+            literalIndexTwo.forAllLiterals(-resolutionLiteralObject.literal,null, // resolution with binary clauses.
+                    negLiteralObject -> {resolve(resolutionLiteralObject,negLiteralObject); return false;});
             timestamp += size+2;
             int posLiteral = resolutionLiteralObject.literal;
-            timestampClauses(-posLiteral, literalIndexMore, // timestamp all potential resolution partners.
+            literalIndexMore.timestampClauses(-posLiteral,  // timestamp all potential resolution partners.
                     (litObject -> litObject.clause.size() <= size), timestamp,true);
 
             for(final Literal literalObject1 : clause.literals) {
                 if(literalObject1 == resolutionLiteralObject) continue;
-                forAllClauses(literalObject1.literal,literalIndexMore,null,
+                literalIndexMore.forAllLiterals(literalObject1.literal,null,
                         (litObject -> { // all literals except two of them must merge.
                             Clause otherClause = litObject.clause;
                             if(otherClause.timestamp1 - timestamp == otherClause.size()-3)
@@ -1189,18 +1189,6 @@ public class Resolution extends Solver {
                             return false;}));}}
             timestamp += size+2;}
 
-
-    /** creates all resolvents between the given clause and all binary clauses.
-     * <br>
-     * The resolvent is therefore not longer than the parent clause.
-     *
-     * @param clause         a clause
-     * @throws Unsatisfiable if a contradiction is discovered.
-     */
-    void mergeResolutionPartialBinary(final Clause clause) throws Unsatisfiable{
-        for(final Literal literalObject : clause.literals) {
-            forAllClauses(-literalObject.literal,literalIndexTwo,null,
-                    negLiteralObject -> {resolve(literalObject,negLiteralObject); return false;});}}
 
     private final IntArrayList trueLiterals = new IntArrayList();
     /** creates a resolvent between the clauses with the two literals.
@@ -1636,63 +1624,6 @@ public class Resolution extends Solver {
                 assert trueLiterals >= clause.limit;}
             clause = clause.nextClause;}}
 
-    /** marks all clauses with the given literal with the given timestamp.
-     * <br>
-     * if fistStamp = true then timestamp1 is marked, otherwise timestamp2.
-     *
-     * @param literal       a literal
-     * @param literalIndex  literalIndexTwo or literaIndexMore
-     * @param condition     null or a condition on the clauses to be timestamped.
-     * @param timestamp     the timestamp which is to be used.
-     * @param firstStamp    true if the timestamp1 is marked.
-     * @return              true if atleast one clause is marked.
-     */
-    boolean timestampClauses(int literal, Literals literalIndex, Predicate<Literal> condition, int timestamp,boolean firstStamp) {
-        boolean marked = false;
-        Literal literalObject = literalIndex.getFirstLiteralObject(literal);
-        while(literalObject != null) {
-            Clause clause = literalObject.clause;
-            if(clause != null && clause.exists && (condition == null || condition.test(literalObject))) {
-                if(firstStamp) clause.timestamp1 = timestamp; else clause.timestamp2 = timestamp;
-                marked = true;}
-            literalObject = literalObject.nextLiteral;}
-        return marked;}
-
-
-    /** applies action to all clauses with the given literal in the given literalIndex, for which the condition returns true.
-     * <br>
-     * If the action returns true then the iteration stops immediately.
-     *
-     * @param literal        any literal
-     * @param literalIndex   literalIndexTwo or literalIndexMore
-     * @param condition      null or a condition on the corresponding Literal in the corresponding clause
-     * @param action         an action to be applied to the clause until it returns true. It may throw Unsatisfiable.
-     * @return               true if the action returned true.
-     * @throws Unsatisfiable if the action throws Unsatisfiable.
-     */
-    boolean forAllClauses(int literal, Literals literalIndex, Predicate<Literal> condition, PredicateWithUnsatisfiable<Literal> action) throws Unsatisfiable {
-        Literal literalObject = literalIndex.getFirstLiteralObject(literal);
-        while(literalObject != null) {
-            Clause clause = literalObject.clause;
-            if(clause != null && clause.exists && (condition == null || condition.test(literalObject))) {
-                if(action.test(literalObject)) return true;}
-            literalObject = literalObject.nextLiteral;}
-        return false;}
-
-    /** searches the literal with the given literal in the given literalIndex which meets the condition.
-     *
-     * @param literal      any literal.
-     * @param literalIndex literalIndexTwo or literalIndexMore.
-     * @param condition    to be applied to the literalObjects.
-     * @return             null or the literalObject that meets the condition.
-     */
-    Literal findLiteral(int literal, Literals literalIndex, Predicate<Literal> condition) {
-        Literal literalObject = literalIndex.getFirstLiteralObject(literal);
-        while(literalObject != null) {
-            Clause clause = literalObject.clause;
-            if(clause != null && clause.exists && condition.test(literalObject)) return literalObject;
-            literalObject = literalObject.nextLiteral;}
-        return null;}
 
     /** lists the local model as string.
      *
