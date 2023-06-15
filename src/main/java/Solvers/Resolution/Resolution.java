@@ -533,7 +533,7 @@ public class Resolution extends Solver {
             return;}
         removeClausesSubsumedByLongerClause(clause);
         if(!mergeResolutionMoreMore(clause)) return;
-        if(clause.isDisjunction && clause.size() == 3 && triggeredEquivalence(clause) > 0) return;
+        if(clause.isDisjunction && clause.size() == 3 && findTriggeredEquivalence(clause) > 0) return;
         saturateBinaryClausesWithLongerClause(clause);
         if(clause.exists) mergeResolutionPartial(clause);
     }
@@ -771,11 +771,11 @@ public class Resolution extends Solver {
                             removeClause(clause1,false,true);
                             removeClause(clause2,true,true);
                             InfEquivalence step = (trackReasoning || monitoring) ? new InfEquivalence(clause1,clause2) : null;
-                            equivalences.add(0,literal1,-literal2, step);
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                            ++statistics.binaryEquivalences;
+                            equivalences.add(0,literal1,-literal2, step);
                             equivalenceTask.a = true;
                             synchronized (this) {queue.add(equivalenceTask);}
-                            ++statistics.binaryEquivalences;
                             return true;}));}}
         finally {++timestamp;}}
 
@@ -832,11 +832,11 @@ public class Resolution extends Solver {
                         int triggerLiteral = -clause2.findThirdLiteral(literal1,-literal2).literal;
                         InfEquivalence step = (monitoring || trackReasoning) ?
                                 new InfEquivalence(triggerLiteral,clause1.findLiteral(literal1),literalObject2,symboltable) : null;
-                        equivalences.add(triggerLiteral,literal1,-literal2,step);
                         if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                        ++statistics.triggeredEquivalences;
+                        equivalences.add(triggerLiteral,literal1,-literal2,step);
                         equivalenceTask.a = true;
-                        synchronized (this) {queue.add(equivalenceTask);}
-                        ++statistics.triggeredEquivalences;}
+                        synchronized (this) {queue.add(equivalenceTask);}}
                     literalObject2 = literalObject2.nextLiteral;}}}
         finally {++timestamp;}}
 
@@ -961,7 +961,7 @@ public class Resolution extends Solver {
      * <br>
      *  atleast n p^a,... subsumes atleast n- p^a+,...<br>
      *  where n- means &lt;= n and a+ means &gt;=a.<br>
-     *  Notice that the timestamp is changed!
+     *  Notice that the timestampSubsumption is changed!
      *
      * @param subsumee a longer clause
      * @return null or the longer subsumer clause.
@@ -973,9 +973,10 @@ public class Resolution extends Solver {
             int multiplicity1 = literalObject1.multiplicity;
             Literal subsumerLiteral = literalIndexMore.findLiteral(literalObject1.literal,
                     literalObject2->{
-                        Clause subsumer   = literalObject2.clause;
+                        Clause subsumer = literalObject2.clause;
+                        if(subsumer == subsumee) return false;
                         int multiplicity2 = literalObject2.multiplicity;
-                        if(subsumer != subsumee && subsumer.timestamp2 < timestampSubsumption) { // first candidate literal
+                        if(subsumer.timestamp2 < timestampSubsumption) { // first candidate literal
                             if(subsumer.size() <= size && subsumer.limit >= limit && multiplicity2 <= multiplicity1) subsumer.timestamp2 = timestampSubsumption;
                             return false;}
                         else {
@@ -1070,9 +1071,10 @@ public class Resolution extends Solver {
         int limitP = clauseP.limit;
         try{
             for(final Literal literalObjectP : clauseP.literals) { // mark potential candidates with timestamp
+                timestamp += clausePSize + 1;
                 int literalPNeg = -literalObjectP.literal;
-                literalIndexMore.timestampClauses(literalPNeg,null,timestamp,true);
-
+                literalIndexMore.timestampClauses(literalPNeg,
+                        (literalObjectS -> literalObjectS.clause.size() <= clausePSize),timestamp,true);
                 int i = 0;
                 for(final Literal literalObjectPi : clauseP.literals) {
                     if(literalObjectPi == literalObjectP) continue;
@@ -1123,7 +1125,7 @@ public class Resolution extends Solver {
      * @return the number of discovered equivalences.
      * @throws Unsatisfiable if the equivalence contradicts another equivalence.
      */
-    int triggeredEquivalence(Clause clause) throws Unsatisfiable {
+    int findTriggeredEquivalence(Clause clause) throws Unsatisfiable {
         assert clause.isDisjunction && clause.size() == 3;
         try{int counter = 0;
             for(Literal triggerLiteralObject : clause.literals) {
@@ -1153,8 +1155,9 @@ public class Resolution extends Solver {
                         literalObjectSecond -> {
                             InfEquivalence step = (trackReasoning || monitoring) ?
                                     new InfEquivalence(-triggerLiteral,literalObjectFirst,literalObjectSecond, symboltable) : null;
-                            equivalences.add(-triggerLiteral, literalObjectFirst.literal, literalObjectSecond.literal,step);
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                            ++statistics.triggeredEquivalences;
+                            equivalences.add(-triggerLiteral, literalObjectFirst.literal, literalObjectSecond.literal,step);
                             addEquivalenceTask();
                             return true;})) ++counter;}
             return counter;}
@@ -1273,17 +1276,14 @@ public class Resolution extends Solver {
      */
     void processUntriggerdEquivalence(int representative, int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
         for(int sign = 1; sign >= -1; sign -=2) {
-            representative *= sign;
-            literal *= sign;
             Literals literalIndex = literalIndexTwo;
             while(literalIndex != null) {
-                Literal literalObject = literalIndex.getFirstLiteralObject(literal);
-                while(literalObject != null) {
-                    Clause  clause = literalObject.clause;
-                    if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
-                    ++statistics.equivalenceReplacements;
-                    replaceLiteral(literalObject,representative,literalIndex,equivalenceStep);
-                    literalObject = literalObject.nextLiteral;}
+                Literals litIndex = literalIndex; int sgn = sign;
+                literalIndex.forAllLiterals(sign*literal,null,
+                        (literalObject -> {
+                            ++statistics.equivalenceReplacements;
+                            replaceLiteral(literalObject,sgn*representative,litIndex,equivalenceStep);
+                            return false;}));
                 literalIndex = (literalIndex == literalIndexTwo) ? literalIndexMore : null;}}}
 
     /** replaces the given literal by the given representative in clauses containing the negated triggerLiteral.
@@ -1297,19 +1297,18 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable  if the replacement causes true literals to be derived which contradict the model.
      */
     void processTriggeredEquivalence(final int triggerLiteral, final int representative, final int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
-        Literal literalObject = literalIndexMore.getFirstLiteralObject(-triggerLiteral);
-        while(literalObject != null) {
-            Clause clause = literalObject.clause;
-            if (clause == null) {literalObject = literalObject.nextLiteral; continue;}
-            int sign = 0;
-            for(Literal litObject : clause.literals) {
-                if(litObject.literal == literal)           {sign = 1;}
-                else if(literalObject.literal == -literal) {sign = -1;}
-                if(sign != 0) {
-                    ++statistics.equivalenceReplacementsTriggered;
-                    replaceLiteral(litObject,sign*representative,literalIndexMore, equivalenceStep);
-                    break;}}
-            literalObject = literalObject.nextLiteral;}}
+        literalIndexMore.forAllLiterals(-triggerLiteral,null,
+                (literalObject -> {
+                    Clause clause = literalObject.clause;
+                    int sign = 0;
+                    for(Literal litObject : clause.literals) {
+                        if(litObject.literal == literal)           {sign = 1;}
+                        else if(literalObject.literal == -literal) {sign = -1;}
+                        if(sign != 0) {
+                            ++statistics.equivalenceReplacementsTriggered;
+                            replaceLiteral(litObject,sign*representative,literalIndexMore, equivalenceStep);
+                            break;}}
+                    return false;}));}
 
     /** replaces the literal (in literalObject) by another literal (representative), typically equivalence replacement.
      * <br>

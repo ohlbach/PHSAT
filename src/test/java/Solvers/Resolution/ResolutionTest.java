@@ -439,8 +439,8 @@ public class ResolutionTest extends TestCase {
         assertEquals("2,4,5", resolution.localModelString());
         //System.out.println(simplifier.statistics.toString());
     }
-    public void testProcessEquivalence() throws Result {
-        System.out.println("processTriggeredEquivalence");
+    public void testProcessUntriggeredEquivalence() throws Result {
+        System.out.println("processUntriggeredEquivalence");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -465,6 +465,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,3, 5}));
         resolution.insertClause(new Clause(new int[]{2, cAtleast, 3, 4,4,5,5,5,6,6,2}));
         resolution.processUntriggerdEquivalence(2, 5, new InferenceTest("MyTest 3"));
+        System.out.println(resolution.statistics);
         assertEquals("1: >= 2 1,3,2\n" +
                 "2: >= 3 4^2,6^2,2^3\n", resolution.clauses.toString());
 
@@ -699,8 +700,8 @@ public class ResolutionTest extends TestCase {
         if(monitoring) System.out.println(resolution.statistics.toString());
     }
 
-        public void testTriggeredEquivalence() throws Unsatisfiable {
-        System.out.println("triggeredEquivalence");
+        public void testFindTriggeredEquivalence() throws Unsatisfiable {
+        System.out.println("findTriggeredEquivalence");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -712,9 +713,9 @@ public class ResolutionTest extends TestCase {
         Clause clause2 = new Clause(new int[]{2, cOr, 1, 2, -3});
         resolution.insertClause(clause2);
         resolution.insertClause(new Clause(new int[]{3, cOr, -3,-2,1}));
-        assertEquals(1, resolution.triggeredEquivalence(clause1));
+        assertEquals(1, resolution.findTriggeredEquivalence(clause1));
         assertEquals("-1 -> 2 == -3\n",resolution.equivalences.toString());
-        assertEquals(0,resolution.triggeredEquivalence(clause2));
+        assertEquals(0,resolution.findTriggeredEquivalence(clause2));
 
         if(monitoring) System.out.println("\nNEW");
         resolution.clear();
@@ -722,7 +723,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(clause1);
         resolution.insertClause(new Clause(new int[]{2, cOr, 1,-2,-3}));
         resolution.insertClause(new Clause(new int[]{3, cOr, -1,2,-3}));
-        assertEquals(2, resolution.triggeredEquivalence(clause1));
+        assertEquals(2, resolution.findTriggeredEquivalence(clause1));
         assertEquals("-1 -> 2 == -3\n" +
                 "-2 -> 1 == -3\n",resolution.equivalences.toString());
 
