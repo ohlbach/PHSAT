@@ -814,10 +814,12 @@ public class Resolution extends Solver {
                     if(literalObject2.multiplicity == clause2.limit+1-negLiteralObject1.multiplicity) { // condition for destructive merge
                         String clause2Before = null;
                         if(monitoring || trackReasoning) {clause2Before = clause2.toString(symboltable,0);}
-                        removeLiteralFromClause(negLiteralObject1,false);
-                        InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
-                        if(trackReasoning) clause2.inferenceStep = step;
-                        if(monitoring) monitor.println(monitorId,step.info());}
+                        clauses.updateClauseNumbers(clause2,-1);
+                        if(removeLiteralFromClause(negLiteralObject1,false)) {
+                            clauses.updateClauseNumbers(clause2,1);
+                            InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
+                            if(trackReasoning) clause2.inferenceStep = step;
+                            if(monitoring) monitor.println(monitorId,step.info());}}
                     else {resolve(negLiteralObject1,clause1.findLiteral(literal1)); } // non-destructive merge
                     ++statistics.mergeResolutionTwoMore;}
                 literalObject2 = literalObject2.nextLiteral;}
@@ -1009,14 +1011,16 @@ public class Resolution extends Solver {
                             Literal otherLongerLiteralObject = longerClause.findLiteral(otherBinaryLiteral);
                             if(otherLongerLiteralObject != null) { // merge resolution is possible.
                                 String longerClauseString = (trackReasoning || monitoring) ? longerClause.toString(symboltable,0) : null;
-                                removeLiteralFromClause(longerLiteralObject,false);
-                                InfResolution step = (trackReasoning || monitoring) ?
-                                    new InfResolution(binaryClause, binaryClauseString, longerClause, longerClauseString, longerClause, symboltable) : null;
-                                longerClause.inferenceStep = step;
-                                if(monitoring) monitor.println(monitorId,step.info());
-                                addClauseTask(longerClause);
-                                ++statistics.mergeResolutionTwoMore;
-                                return false;}}
+                                clauses.updateClauseNumbers(longerClause,-1);
+                                if(removeLiteralFromClause(longerLiteralObject,false)) {
+                                    clauses.updateClauseNumbers(longerClause,1);
+                                    InfResolution step = (trackReasoning || monitoring) ?
+                                        new InfResolution(binaryClause, binaryClauseString, longerClause, longerClauseString, longerClause, symboltable) : null;
+                                    longerClause.inferenceStep = step;
+                                    if(monitoring) monitor.println(monitorId,step.info());
+                                    addClauseTask(longerClause);
+                                    ++statistics.mergeResolutionTwoMore;}
+                                    return false;}}
                         resolve(binaryLiteralObject,longerLiteralObject);
                         return false;});}}
 
@@ -1039,13 +1043,15 @@ public class Resolution extends Solver {
                         if(longerClause.isDisjunction) {
                             Literal longerLiteralObject = longerClause.findLiteral(otherBinaryLiteral);
                             if(longerLiteralObject != null) { // merge resolution possible.
-                                removeLiteralFromClause(literalObject,false);
-                                InfResolution step = (trackReasoning || monitoring) ?
-                                        new InfResolution(binaryClause, binaryClause.toString(symboltable,0), longerClause, longerClauseString, longerClause, symboltable) : null;
-                                longerClause.inferenceStep = step;
-                                if(monitoring) monitor.println(monitorId,step.info());
-                                addClauseTask(longerClause);
-                                ++statistics.mergeResolutionTwoMore;
+                                clauses.updateClauseNumbers(longerClause,-1);
+                                if(removeLiteralFromClause(literalObject,false)){
+                                    clauses.updateClauseNumbers(longerClause,1);
+                                    InfResolution step = (trackReasoning || monitoring) ?
+                                            new InfResolution(binaryClause, binaryClause.toString(symboltable,0), longerClause, longerClauseString, longerClause, symboltable) : null;
+                                    longerClause.inferenceStep = step;
+                                    if(monitoring) monitor.println(monitorId,step.info());
+                                    addClauseTask(longerClause);
+                                    ++statistics.mergeResolutionTwoMore;}
                                 return true;}}
                         resolve(literalObject,negLiteralObject);
                         return false;}))
@@ -1100,7 +1106,9 @@ public class Resolution extends Solver {
                                         String resolventBefore = trackReasoning ? clauseS.toString(symboltable,0) : null;
                                         boolean removeP = limitP == 1 && clauseS.size() == clausePSize;
                                         if(destructive) {
+                                            clauses.updateClauseNumbers(clauseS,-1);
                                             if(removeLiteralFromClause(literalObjectSNeg,false)) {
+                                                clauses.updateClauseNumbers(clauseS,1);
                                                 addClauseTask(clauseS);
                                                 InfMergeResolutionMore step = (trackReasoning || monitoring) ?
                                                         new InfMergeResolutionMore(clauseP,resolventBefore,clauseS,symboltable) : null;
@@ -1426,6 +1434,7 @@ public class Resolution extends Solver {
         for(int literal :trueLiterals) addInternalTrueLiteralTask(literal,true,null);
         if(status == 1) {clauses.removeClause(clause); return false;}
         if(clause.size() == 2) {moveToIndexTwo(clause);}
+        if(isSubsumed(clause) != null) {removeClause(clause,true,false); return false;}
         checkPurity(literalObject.literal); // pure literals are just added to the model.
         if(checkConsistency) checkConsistency();
         clauses.updateClauseNumbers(clause,+1);
