@@ -39,7 +39,7 @@ public class InfEquivalence extends InferenceStep {
         this.clause1 = clause1;
         this.clause2 = clause2;
         literalObject1 = clause1.literals.get(0);
-        literalObject2 = clause1.literals.get(1);
+        literalObject2 = clause2.literals.get(1);
         step1 = clause1.inferenceStep;
         step2 = clause2.inferenceStep;
         rule = ruleTwoTwo;}

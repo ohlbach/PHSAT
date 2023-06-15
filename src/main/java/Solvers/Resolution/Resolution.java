@@ -1157,7 +1157,7 @@ public class Resolution extends Solver {
                                     new InfEquivalence(-triggerLiteral,literalObjectFirst,literalObjectSecond, symboltable) : null;
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
                             ++statistics.triggeredEquivalences;
-                            equivalences.add(-triggerLiteral, literalObjectFirst.literal, literalObjectSecond.literal,step);
+                            equivalences.add(-triggerLiteral,literalObjectFirst.literal , literalObjectSecond.literal,step);
                             addEquivalenceTask();
                             return true;})) ++counter;}
             return counter;}

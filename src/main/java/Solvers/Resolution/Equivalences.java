@@ -42,6 +42,7 @@ public class Equivalences {
             literal1 = literal2;
             literal2 = dummy;}
         if(literal1 < 0) {literal1 *= -1; literal2 *= -1;}
+        System.out.println("\nADD1 " + triggerLiteral + " " + literal1 + " " + literal2 + " " + inferenceStep);
 
         Equivalence equivalence1 = getEquivalence(triggerLiteral,literal1);
         Equivalence equivalence2 = getEquivalence(triggerLiteral,literal2);
@@ -55,6 +56,7 @@ public class Equivalences {
             representative2 = equivalence2.getRepresentative(literal2);
             step2           = equivalence2.getInferenceStep(literal2);}
 
+        System.out.println("\nADD2 " + representative1 + " " + representative2 + " " + step1 + " " + step2);
         if(representative1 == representative2) return;
         if(representative1 == -representative2)
             throw new UnsatEquivalence(literal1, literal2, step1, step2, inferenceStep);
@@ -200,11 +202,21 @@ public class Equivalences {
      */
     public String toString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
+        st.append("Unprocessed Equivalences:\n");
         equivalences.forEach((Integer triggerLiteral,ArrayList<Equivalence> equivalenceList) -> {
             if(!equivalenceList.isEmpty()) {
                 st.append(equivalenceList.get(0).toString(symboltable));
                 for(int i = 1; i < equivalenceList.size(); ++i) {
                     st.append("\n").append(equivalenceList.get(i).toString(symboltable));}
             st.append("\n");}});
+        if(!processedEquivalences.isEmpty()) {
+            st.append("\nProcessed Equivalences:\n");
+            for(HashMap<Integer,ArrayList<Equivalence>> processEqs : processedEquivalences) {
+                processEqs.forEach((Integer triggerLiteral,ArrayList<Equivalence> equivalenceList) -> {
+                    if(!equivalenceList.isEmpty()) {
+                        st.append(equivalenceList.get(0).toString(symboltable));
+                        for(int i = 1; i < equivalenceList.size(); ++i) {
+                            st.append("\n").append(equivalenceList.get(i).toString(symboltable));}
+                        st.append("\n");}});}}
         return st.toString();}
 }

@@ -47,6 +47,7 @@ public abstract class InferenceStep {
             if(!rules.contains(rule)) rules.add(rule);}
         return rules;}
 
+
     public String toString() {
         return toString(null);}
 }

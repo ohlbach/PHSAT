@@ -15,6 +15,11 @@ public class UnsatEquivalence extends Unsatisfiable {
 
     @Override
     public String description(Symboltable symboltable) {
-        return "Contradictory Equivalent Literals: " + Symboltable.toString(literal1,symboltable) + " == " +
-                Symboltable.toString(literal2,symboltable);}
+        StringBuilder st = new StringBuilder();
+        st.append("Contradictory Equivalent Literals: ").append(Symboltable.toString(literal1,symboltable)).append(" == ").
+                append(Symboltable.toString(literal2,symboltable));
+        if(!inferenceSteps.isEmpty()) {
+            st.append("\nInference Steps:\n");
+            for(InferenceStep step : inferenceSteps) st.append(step.toString(symboltable)).append("\n");}
+        return st.toString();}
 }
