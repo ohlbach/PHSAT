@@ -62,6 +62,45 @@ public class Clauses {
             else {if(positiveClauses == 0 && mixedPositiveClauses == 0) status = -1;}
     }}
 
+    /** checks the consistency of the clause numbers.
+     *
+     * @return null or an error message.
+     */
+    String checkClauseNumbers() {
+        Clause clause = firstClause;
+        int positiveClauses = 0;
+        int negativeClauses = 0;
+        int positiveNegativeClauses = 0;
+        int mixedPositiveClauses = 0;
+        int mixedNegativeClauses = 0;
+        int mixedMixedClauses = 0;
+        while(clause != null) {
+            if(!clause.exists) clause = clause.nextClause;
+            switch(clause.clauseType) {
+                case POSITIVE:         positiveClauses         += 1; break;
+                case NEGATIVE:         negativeClauses         += 1; break;
+                case POSITIVENEGATIVE: positiveNegativeClauses += 1; break;
+                case MIXEDPOSITIVE:    mixedPositiveClauses    += 1; break;
+                case MIXEDNEGATIVE:    mixedNegativeClauses    += 1; break;
+                case MIXEDMIXED:       mixedMixedClauses       += 1;}
+            clause = clause.nextClause;}
+        StringBuilder st = new StringBuilder();
+        if(positiveClauses != this.positiveClauses) st.append("Positive Clauses: expected: ").
+                append(this.positiveClauses).append( " actual: ").append(positiveClauses).append("\n");
+        if(negativeClauses != this.negativeClauses) st.append("Negative Clauses: expected: ").
+                append(this.negativeClauses).append( " actual: ").append(negativeClauses).append("\n");
+        if(positiveNegativeClauses != this.positiveNegativeClauses) st.append("PositiveNegative Clauses: expected: ").
+                append(this.positiveNegativeClauses).append( " actual: ").append(positiveNegativeClauses).append("\n");
+        if(mixedPositiveClauses != this.mixedPositiveClauses) st.append("MixedPositive Clauses: expected: ").
+                append(this.mixedPositiveClauses).append( " actual: ").append(mixedPositiveClauses).append("\n");
+        if(mixedNegativeClauses != this.mixedNegativeClauses) st.append("MixedNegative Clauses: expected: ").
+                append(this.mixedNegativeClauses).append( " actual: ").append(mixedNegativeClauses).append("\n");
+        if(mixedMixedClauses != this.mixedMixedClauses) st.append("MixedMixed Clauses: expected: ").
+                append(this.mixedMixedClauses).append( " actual: ").append(mixedMixedClauses).append("\n");
+        if(st.length() == 0) return null;
+        return "Inconsistent Numbers in Clauses:\n" + st.toString();
+    }
+
 
     /** adds a clause at the end of the list.
      *
@@ -92,7 +131,10 @@ public class Clauses {
         if(clause.nextClause == null) { // it is the clause at the end of the chain.
             if(clause == firstClause) {size = 0; firstClause = null;
                 clause.previousClause = null;  return 0;}
-            if(clause.previousClause == null)  {updateClauseNumbers(clause,1); return size;} // the clause is not linked.
+            if(clause.previousClause == null)  {
+                System.out.println("ERROR: trying to remove not inserted clause: " + clause);
+                new Exception().printStackTrace();
+                System.exit(1);} // the clause is not linked.
             final Clause previousClause = clause.previousClause;
             lastClause = previousClause; clause.previousClause = null;
             previousClause.nextClause = null; return --size;}
