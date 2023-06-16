@@ -1,5 +1,6 @@
 package Solvers.Resolution;
 
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
@@ -415,6 +416,7 @@ public class Resolution extends Solver {
                         processElimination(task);
                         break;}
                 if(clauses.isEmpty()) {
+                    if(monitoring) monitor.println(monitorId,"Clause set is empty");
                     completeModel();
                     throw new Satisfiable(problemId,solverId,model);}
                 if(trueLiteralsInQueue == 0 && clauses.status != 0) generatePositiveOrNegativeModel();
@@ -1388,18 +1390,19 @@ public class Resolution extends Solver {
         removeClause(clause,checkPurity,(clause.size() == 2) ? literalIndexTwo :literalIndexMore, updateNumbers);}
 
 
+    /** removes all clauses with the given predicate.
+     *
+     * @param predicate     a predicate
+     * @throws Unsatisfiable should not happen.
+     */
     void removeClauses (final int predicate) throws Unsatisfiable {
         for(int sign = 1; sign >= -1; sign-=2) {
             int literal = sign*predicate;
-            Literals literalIndex = literalIndexTwo;
-            while(literalIndex != null) {
-                Literal literalObject = literalIndex.getFirstLiteralObject(literal);
-                while(literalObject != null) {
-                    Clause clause = literalObject.clause;
-                    if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
-                    removeClause(clause,false,true);
-                    literalObject = literalObject.nextLiteral;}
-                literalIndex = (literalIndex == literalIndexTwo) ? literalIndexMore : null;}}}
+            literalIndexTwo.forAllLiterals(literal,null,
+                    (literalObject -> {removeClause(literalObject.clause,false,true); return false;}));
+            literalIndexMore.forAllLiterals(literal,null,
+                    (literalObject -> {removeClause(literalObject.clause,false,true); return false;}));}}
+
 
     /** removes the literal from the clause and from the corresponding index.
      * If the literal becomes pure, it is inserted into the model.<br>
@@ -1491,7 +1494,7 @@ public class Resolution extends Solver {
      * The following eliminations are done: <br>
      * - all clauses with literals which are pure in the longer clauses are eliminated. <br>
      *   There may still be such literals in the saturated two-literal clauses.<br>
-     * - If number of all resolvents with a literal does not exceed the number of clauses with this literal,
+     * - If the number of all resolvents with a literal does not exceed the number of clauses with this literal,
      *   then the resolvents are generated and the parent clauses are removed.<br>
      * If there are still predicates with non-empty literals in the index, the task is added to the queue again.
      *
@@ -1534,8 +1537,8 @@ public class Resolution extends Solver {
                     for(Literal literalN: literalsN) {
                         ++statistics.longerResolvents;
                         resolve(literalP,literalN);}}
-                for(Literal literalP : literalsP) {Clause clause = literalP.clause; removeClause(clause,false,false); literalP.clause = clause;}
-                for(Literal literalN : literalsN) {Clause clause = literalN.clause; removeClause(literalN.clause,false,false);literalN.clause = clause;}
+                for(Literal literalP : literalsP) {Clause clause = literalP.clause; removeClause(clause,false,true); literalP.clause = clause;}
+                for(Literal literalN : literalsN) {Clause clause = literalN.clause; removeClause(literalN.clause,false,true);literalN.clause = clause;}
                 eliminatedPredicates.add(literalsP); eliminatedPredicates.add(literalsN);
                 if(monitoring) monitor.println(monitorId,"Predicate Eliminated by Resolution: " +
                         Symboltable.toString(predicate,symboltable));
@@ -1548,6 +1551,7 @@ public class Resolution extends Solver {
     /** completes the local model for the clauses whose predicates have been eliminated with exhaustive resolution.
      */
     void completeModel() {
+        if(monitoring) monitor.println(monitorId,"Completing Model:\n" + localModelString());
         for(int i = eliminatedPredicates.size()-1; i >= 0; --i) {
             for(Literal literalObject : eliminatedPredicates.get(i)) {
                 Clause clause = literalObject.clause;
@@ -1561,9 +1565,12 @@ public class Resolution extends Solver {
                             if(++trueLiterals == clause.limit) break;}}}}
         Unsatisfiable unsatisfiable = equivalences.completeModel(literal -> (int)localStatus(literal),this::makeLocallyTrue);
         if(unsatisfiable != null) {
-            System.out.println("Contradiction in completed model for Equívalences. Should not happen!");
+            System.out.println("Contradiction in completed model for Equivalences. Should not happen!");
             System.out.println(localModelString());
             System.out.println(unsatisfiable.description(symboltable));
+            printSeparated();
+            System.out.println(equivalences.toString(symboltable));
+            System.out.println(statistics.toString());
             new Exception().printStackTrace();
             System.exit(1);}
     }
@@ -1680,12 +1687,49 @@ public class Resolution extends Solver {
             clause = clause.nextClause;}
         literalIndexTwo.checkConsistency(2,"literalIndexTwo");
         literalIndexMore.checkConsistency(0,"literalIndexMore");
+        checkClauses();
         String error = clauses.checkClauseNumbers();
         if(error != null) {
             System.out.println(error);
             new Exception().printStackTrace();
             System.exit(1);
         }}
+
+    /** tests all clauses if they are false in the local model.
+     *
+     * @return true if some of the clauses are false in the local model.
+     */
+    void checkClauses() {
+        StringBuilder st = new StringBuilder();
+        try{
+            ArrayList<int[]> falseInputClauses = problemSupervisor.inputClauses.falseClausesInModel(literal -> (int)localStatus(literal));
+            if(!falseInputClauses.isEmpty()) {
+                st.append("False Input Clauses:\n");
+                for(int[] clause : falseInputClauses) {
+                    st.append(InputClauses.toString(clause)).append("\n");}}
+            clauses.forAll(clause -> {
+                if(isFalse(clause)) st.append(clause.toString(symboltable,0)).append("\n");
+                return false;});
+            if(st.length() > 0) {
+                System.out.println("Clauses which are false in the local model\n" +
+                        localModelString() + ":\n"+ st.toString());
+                new Exception().printStackTrace();
+                System.exit(1);}}
+        catch(Unsatisfiable uns) {}}
+
+    /** checks if the clause is definitively false in an even incomplete local model.
+     * <br>
+     * A clause must be false if the number of true a+ undefined literals is not enough to satisfy the limit.
+     *
+     * @param clause a clause to be tested
+     * @return true if the clause is false in the local model, even if it is incomplete.
+     */
+    boolean isFalse(Clause clause) {
+        int potentiallyTrueLiterals = 0;
+        for(Literal literalObject : clause.literals) {
+            if(localStatus(literalObject.literal) >= 0) ++potentiallyTrueLiterals;}
+        return potentiallyTrueLiterals < clause.limit;}
+
 
     /** the monitor prints the clauses separated by their size.
      */

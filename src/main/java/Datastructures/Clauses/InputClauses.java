@@ -5,6 +5,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import Utilities.IntToIntFunction;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.FileNotFoundException;
@@ -13,6 +14,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.IntPredicate;
 import java.util.function.IntSupplier;
 
 /**
@@ -78,6 +80,8 @@ public class InputClauses {
     /** the original interval clauses. */
     public final ArrayList<int[]> intervals     = new ArrayList<>();
 
+    /** the list of all clause lists */
+    public final ArrayList[] clauses = {disjunctions,conjunctions,equivalences,atmosts,atmosts,exactlys,intervals};
 
     public final ArrayList<IntArrayList> simplifiedClauses = new ArrayList<>();
     public final IntArrayList trueLiterals = new IntArrayList();
@@ -281,6 +285,71 @@ public class InputClauses {
         atleastClauses[0] = atleastClause1; atleastClauses[1] = atleastClause2;
         return atleastClauses;}
 
+    /** computes the list of false clauses in a possibly partial model.
+     * <br>
+     * The model is given by a function that returns +1,-1 or 0.
+     *
+     * @param model a function that yields +1 (true), -1 (false) or 0 (undefined)
+     * @return a list of false clauses.
+     */
+    public ArrayList<int[]> falseClausesInModel(IntToIntFunction model) {
+        ArrayList<int[]> falseClauses = new ArrayList<>();
+        int[] minmax = {0,0};
+        for(ArrayList<int[]> clauseList : clauses) {
+            for(int[] clause : clauseList) {
+                valuedLiteralsInModel(clause,model,minmax);
+                int min = minmax[0]; int max = minmax[1];
+                int size = size(clause);
+                switch(Quantifier.getQuantifier(clause[1])) {
+                    case AND:      if(max < size)                              falseClauses.add(clause); break;
+                    case OR:       if(max < 1)                                 falseClauses.add(clause); break;
+                    case ATLEAST:  if(max < clause[2])                         falseClauses.add(clause); break;
+                    case ATMOST:   if(min > clause[2])                         falseClauses.add(clause); break;
+                    case EXACTLY:  if(!(min <= clause[2] && clause[2] <= max)) falseClauses.add(clause); break;
+                    case INTERVAL: if(!(min <= clause[2] && clause[3] <= max)) falseClauses.add(clause); break;
+                    case EQUIV:
+                        boolean trueFound = false; boolean falseFound = false;
+                        for(int i = Quantifier.EQUIV.firstLiteralIndex; i < clause.length; ++i) {
+                            int literal = clause[i];
+                            switch(model.apply(literal)) {
+                                case  1: trueFound  = true; break;
+                                case -1: falseFound = true; break;}}
+                        if(trueFound && falseFound) falseClauses.add(clause); break;}}}
+        return falseClauses;}
+
+
+    /** computes for a possibly partial model the minimum and maximum of true literals in the clause.
+     * <br>
+     * The two values are put into the minmax-array.<br>
+     * An undefined truth value is potentially true.
+     *
+     * @param clause an inputClause
+     * @param model  a function that yields +1 (true), -1 (false) or 0 (undefined)
+     * @param minmax to take the minimum and maximum of true values.
+     */
+    public void valuedLiteralsInModel(int[] clause, IntToIntFunction model, int[] minmax) {
+        int trueLiterals = 0; int undefinedLiterals = 0;
+        int shift = 10*predicates;
+        for(int i = Quantifier.getQuantifier(clause[1]).firstLiteralIndex; i < clause.length; ++i) {
+            int literal = clause[i];
+            if(Math.abs(literal) > predicates) {clause[i] -= shift; continue;}
+            switch(model.apply(literal)) {
+                case +1: ++trueLiterals; break;
+                case 0:
+                    boolean found = false;
+                    for(int j = i+1; j < clause.length; ++j) {
+                        if(clause[j] == -literal) {clause[j] += shift; found = true; break;}}
+                    if(found) ++trueLiterals; else ++undefinedLiterals;}}
+        minmax[0] = trueLiterals; minmax[1] = trueLiterals+undefinedLiterals;}
+
+    /** returns the number of literals in the clause (multiple occurrences are counted separately)
+     *
+     * @param clause an inputClause
+     * @return the number of literals in the clause
+     */
+    int size(int[] clause) {
+        return clause.length - Quantifier.getQuantifier(clause[1]).firstLiteralIndex;
+    }
 
     /** computes a list of clauses which are false in a model.
      *  This indicates that something went terribly wrong.
@@ -299,6 +368,8 @@ public class InputClauses {
         for(int[] clause : exactlys)  {if(quantifiedIsFalse(clause,model))  {falseClauses.add(clause);}}
         for(int[] clause : intervals)    {if(intervalIsFalse(clause,model))    {falseClauses.add(clause);}}
         return falseClauses;}
+
+
 
     /** computes lists of clauses which are false in a model and wich are undefined in the model.
      *  This indicates that something went terribly wrong.

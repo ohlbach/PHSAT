@@ -77,7 +77,7 @@ public class ResolutionStatistics extends Statistic {
     }
     public String toString(){
         StringBuilder st = new StringBuilder();
-        st.append("Simplifier Statistics\n");
+        st.append("Resolution Statistics\n");
         st.append("Initial Clauses:                   ").append(initialClauses).append("\n");
         st.append("Derived Unit Clauses:              ").append(derivedTrueLiterals).append("\n");
         st.append("Pure Literals:                     ").append(pureLiterals).append("\n");
