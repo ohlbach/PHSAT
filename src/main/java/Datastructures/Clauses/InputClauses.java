@@ -5,7 +5,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
-import Utilities.IntToIntFunction;
+import Utilities.IntToByteFunction;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.FileNotFoundException;
@@ -14,7 +14,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.function.IntPredicate;
 import java.util.function.IntSupplier;
 
 /**
@@ -292,7 +291,7 @@ public class InputClauses {
      * @param model a function that yields +1 (true), -1 (false) or 0 (undefined)
      * @return a list of false clauses.
      */
-    public ArrayList<int[]> falseClausesInModel(IntToIntFunction model) {
+    public ArrayList<int[]> falseClausesInModel(IntToByteFunction model) {
         ArrayList<int[]> falseClauses = new ArrayList<>();
         int[] minmax = {0,0};
         for(ArrayList<int[]> clauseList : clauses) {
@@ -327,7 +326,7 @@ public class InputClauses {
      * @param model  a function that yields +1 (true), -1 (false) or 0 (undefined)
      * @param minmax to take the minimum and maximum of true values.
      */
-    public void valuedLiteralsInModel(int[] clause, IntToIntFunction model, int[] minmax) {
+    public void valuedLiteralsInModel(int[] clause, IntToByteFunction model, int[] minmax) {
         int trueLiterals = 0; int undefinedLiterals = 0;
         int shift = 10*predicates;
         for(int i = Quantifier.getQuantifier(clause[1]).firstLiteralIndex; i < clause.length; ++i) {
