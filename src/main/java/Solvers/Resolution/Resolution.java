@@ -1415,8 +1415,14 @@ public class Resolution extends Solver {
     void replaceConditionedLiteral(final Literal literalObject, final int representative, final int conditionLiteral, final InferenceStep equivalenceStep) throws Unsatisfiable {
         int literal = literalObject.literal;
         Clause clause = literalObject.clause;
-        clauses.updateClauseNumbers(clause, -1);
-        
+        switch(clause.contains(representative)) {
+            case 1:  removeLiteralFromClause(literalObject,false); return;
+            case -1: removeClause(clause,false,true); return;};
+        switch(clause.contains(conditionLiteral)) {
+            case 1:
+
+        }
+
     }
 
         /** inserts a clause into the internal lists.

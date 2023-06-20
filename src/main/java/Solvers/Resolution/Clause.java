@@ -193,10 +193,22 @@ public class Clause {
      * @param literal a literal.
      * @return null or a Literal with the given literal.
      */
-    protected Literal findLiteral(final int literal) {
+    Literal findLiteral(final int literal) {
         for(final Literal literalObject : literals) {
             if(literalObject.literal == literal) return literalObject;}
         return null;}
+
+    /** tests if the given literal is contained in the clause's literals
+     *
+     * @param literal a literal
+     * @return +1 (literal is contained), -1 (-literal is contained), 0 (literal is not contained)
+     */
+    byte contains(final int literal) {
+        for(final Literal literalObject : literals) {
+            int lit = literalObject.literal;
+            if(lit ==  literal) return  1;
+            if(lit == -literal) return -1;}
+        return 0;}
 
     /** returns for a three-literal clause the third literal.
      *
