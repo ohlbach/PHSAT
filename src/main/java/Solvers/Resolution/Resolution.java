@@ -79,8 +79,6 @@ public class Resolution extends Solver {
 
     Equivalences equivalences = new Equivalences();
 
-    Task<TaskType> equivalenceTask =  new Task<>(TaskType.ProcessEquivalence,null);
-
     /** just creates a single Resolution solver,.
      *
      * @param parameters not used.
@@ -129,8 +127,6 @@ public class Resolution extends Solver {
     private enum TaskType {
         /** a new true literal is obtained from the model */
         ProcessTrueLiteral,
-        /** some new equivalences are found. */
-        ProcessEquivalence,
         /** a new binary clause is available for simplifications */
         ProcessBinaryClause,
         /** a longer clause is available for simplification */
@@ -153,7 +149,6 @@ public class Resolution extends Solver {
     private int getPriority(Task<Resolution.TaskType> task) {
         switch(task.taskType) {
             case ProcessTrueLiteral:            return Math.abs((Integer)task.a);
-            case ProcessEquivalence:            return 2*predicates + 101;
             case ProcessLongerClause:           return 2*predicates + 102;
             case ProcessClauseFirstTime:        return 2*predicates + 103;
             case ProcessMergeResolutionPartial: return 2*predicates + 104;
@@ -348,13 +343,6 @@ public class Resolution extends Solver {
             queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));
             ++trueLiteralsInQueue;}}
 
-    /** adds the equivalence task to the queue, if it is not already there.
-     */
-    void addEquivalenceTask() {
-        if(equivalenceTask.a == null) {
-            equivalenceTask.a = true;
-            synchronized (this){queue.add(equivalenceTask);}}}
-
 
     /** controls that all clauses are printed after each task has been changed something (for testing purposes).*/
     private final boolean printClauses = true;
@@ -380,12 +368,6 @@ public class Resolution extends Solver {
                         changed = true;
                         --trueLiteralsInQueue;
                         processTrueLiteral((Integer)task.a, (InferenceStep)task.b);
-                        break;
-                    case ProcessEquivalence:
-                        if(monitoring) {monitor.println(monitorId,"Next Task: " + task);}
-                        changed = true;
-                        task.a = null;
-                        processEquivalences();
                         break;
                     case ProcessBinaryClause:
                         clause = (Clause)task.a;
@@ -554,28 +536,26 @@ public class Resolution extends Solver {
      *  The clause is then: atleast 3 q^2,r^2. <br>
      *  Both q and r must now be true.
      *  <br>
-     *  For an equivalence p = q where one of the literals is true, the other literal is also made true.
+     *  For an equivalence p = q where one of the literals is true, the other literal is also made true.<br>
+     *  Triggered equivalences whose trigger became true are processed immediately.
      *
      * @param oldTrueLiteral a true literal.
      * @throws Unsatisfiable if a contradiction is found.
      *  */
-    protected void processTrueLiteral(final int oldTrueLiteral, final InferenceStep inferenceStep) throws Unsatisfiable {
+    void processTrueLiteral(final int oldTrueLiteral, final InferenceStep inferenceStep) throws Unsatisfiable {
         processTrueLiteralTwo(oldTrueLiteral,inferenceStep);
         processTrueLiteralMore(oldTrueLiteral);
         trueLiterals.clear();
         inferenceSteps.clear();
-        equivalences.applyTrueLiteral(oldTrueLiteral,inferenceStep,
-                (trueLiteral,step) -> {trueLiterals.add((int)trueLiteral); inferenceSteps.add(step);});
-        if(!equivalences.isEmpty()) addEquivalenceTask();
-        for(int i = 0; i < trueLiterals.size(); ++i) {
-            int newTrueLiteral = trueLiterals.getInt(i);
-            InferenceStep step = inferenceSteps.get(i);
-            if(localStatus(newTrueLiteral) == 0) {
-                if(monitoring) monitor.println(monitorId, "Equivalent literal " +
-                        Symboltable.toString(newTrueLiteral,symboltable) + " added to model.");
-                addInternalTrueLiteralTask(newTrueLiteral,true,
-                        trackReasoning ? new InfEquivalentTruth(newTrueLiteral,oldTrueLiteral,step) : null);
-                ++statistics.derivedTrueLiterals;}}}
+        for(Equivalence equivalence : // equivalences whose trigger literal became true.
+                equivalences.applyTrueLiteral(this::localStatus,inferenceStep,
+                    (trueLiteral,step) -> {
+                        if(monitoring) monitor.println(monitorId, "Equivalent literal " +
+                            Symboltable.toString(trueLiteral,symboltable) + " added to model.");
+                        addInternalTrueLiteralTask(trueLiteral,true,
+                            trackReasoning ? new InfEquivalentTruth(trueLiteral,oldTrueLiteral,step) : null);
+                        ++statistics.derivedTrueLiterals;})) {
+            processEquivalence(equivalence);}}
 
     /** applies a true literal to all two-literal clauses containing this literal.
      * <br>
@@ -773,8 +753,9 @@ public class Resolution extends Solver {
                             InfEquivalence step = (trackReasoning || monitoring) ?
                                     new InfEquivalence(clause1,clause2,literal1,-literal2,symboltable) : null;
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
-                            equivalences.add(0,literal1,-literal2,step);
+                            Equivalence equivalence = equivalences.add(0,literal1,-literal2,step);
                             ++statistics.binaryEquivalences;
+                            if(equivalence != null) processEquivalence(equivalence);
                             return true;}));}}
         finally {++timestamp;}}
 
@@ -800,7 +781,8 @@ public class Resolution extends Solver {
                 literalIndexMore.forAllLiterals(sign*literal,null,
                     (literalObject -> {
                         replaceLiteral(literalObject,newLiteral,literalIndexMore,step);
-                        return false;}));}}}
+                        return false;}));}}
+        equivalences.backupEquivalence(equivalence);}
 
 
     /** performs merge resolution between a binary clause and a longer clause, and triggered equivalence recognition, if possible.
@@ -1175,7 +1157,6 @@ public class Resolution extends Solver {
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
                             ++statistics.triggeredEquivalences;
                             equivalences.add(-triggerLiteral,literalObjectFirst.literal, literalObjectSecond.literal,step);
-                            addEquivalenceTask();
                             return true;})) ++counter;}
             return counter;}
         finally {timestamp += 2;}}
@@ -1254,50 +1235,6 @@ public class Resolution extends Solver {
 
     /** for collecting literals.*/
     private final IntArrayList removedLiterals = new IntArrayList();
-    Unsatisfiable[] unsatisfiables = new Unsatisfiable[1];
-
-    /** replaces for each equivalence and triggered equivalence all occurrences of the equivalent literals with their representative.
-     * <br>
-     * The changed clauses are simplified as far as possible. <br>
-     * The equivalences are put into the backup array such that they can be used to complete a model.
-     *
-     * @throws Unsatisfiable if inconsistent true literals are derived.
-     */
-    private void processEquivalences() throws Unsatisfiable {
-        removedLiterals.clear();
-        unsatisfiables[0] = null;
-        equivalences.equivalences.forEach((triggerLiteral,equivalenceList) -> {
-            try{
-                for(Equivalence eqv : equivalenceList) {
-                    for(int i = 0; i < eqv.literals.size(); ++i) {
-                        int literal = eqv.literals.getInt(i);
-                        InferenceStep step = eqv.inferenceSteps.get(i);
-                        processUntriggerdEquivalence(eqv.representative,literal,step);}}}
-            catch(Unsatisfiable unsatisfiable) {unsatisfiables[0] = unsatisfiable;}});
-        if(unsatisfiables[0] != null) throw unsatisfiables[0];
-        for(int removedLiteral : removedLiterals) checkPurity(removedLiteral);}
-
-
-    /** This method replaces in all clauses the given literal by the given representative.
-     * The new clauses are simplified as far as possible.<br>
-     * Derived true literals are inserted into the model.
-     *
-     * @param representative  the representative of an equivalence class.
-     * @param literal         the literal of the equivalence class.
-     * @param equivalenceStep which caused the equivalence.
-     * @throws Unsatisfiable         if a contradiction is encountered.
-     */
-    void processUntriggerdEquivalence(int representative, int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
-        for(int sign = 1; sign >= -1; sign -=2) {
-            Literals literalIndex = literalIndexTwo;
-            while(literalIndex != null) {
-                Literals litIndex = literalIndex; int sgn = sign;
-                literalIndex.forAllLiterals(sign*literal,null,
-                        (literalObject -> {
-                            ++statistics.equivalenceReplacements;
-                            replaceLiteral(literalObject,sgn*representative,litIndex,equivalenceStep);
-                            return false;}));
-                literalIndex = (literalIndex == literalIndexTwo) ? literalIndexMore : null;}}}
 
 
     /** replaces the literal (in literalObject) by another literal (representative), typically equivalence replacement.
@@ -1688,7 +1625,6 @@ public class Resolution extends Solver {
 
     /** tests all clauses if they are false in the local model.
      *
-     * @return true if some of the clauses are false in the local model.
      */
     void checkClauses() {
         StringBuilder st = new StringBuilder();

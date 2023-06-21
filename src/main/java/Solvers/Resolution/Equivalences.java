@@ -35,7 +35,7 @@ public class Equivalences {
      * @param inferenceStep  null or the inference step that caused the equivalence
      * @throws Unsatisfiable if a equivalence p == -p is encountered.
      */
-    void add(int triggerLiteral, int literal1, int literal2, InferenceStep inferenceStep) throws Unsatisfiable {
+    Equivalence add(int triggerLiteral, int literal1, int literal2, InferenceStep inferenceStep) throws Unsatisfiable {
         if(Math.abs(literal1) > Math.abs(literal2)) {
             int dummy = literal1;
             literal1 = literal2;
@@ -44,6 +44,8 @@ public class Equivalences {
 
         Equivalence equivalence1 = getEquivalence(triggerLiteral,literal1);
         Equivalence equivalence2 = getEquivalence(triggerLiteral,literal2);
+
+        Equivalence equivalence = null;
 
         int representative1 = literal1; int representative2 = literal2;
         InferenceStep step1 = null; InferenceStep step2 = null;
@@ -54,28 +56,30 @@ public class Equivalences {
             representative2 = equivalence2.getRepresentative(literal2);
             step2           = equivalence2.getInferenceStep(literal2);}
 
-        if(representative1 == representative2) return;
+        if(representative1 == representative2) return null;
         if(representative1 == -representative2)
             throw new UnsatEquivalence(literal1, literal2, step1, step2, inferenceStep);
 
         if(equivalence1 == null && equivalence2 == null) {
-            equivalences.add(new Equivalence(triggerLiteral,representative1,representative2,inferenceStep));
-            return;}
+            equivalences.add(equivalence = new Equivalence(triggerLiteral,representative1,representative2,inferenceStep));
+            return equivalence;}
         if(equivalence2 == null) { // equivalence1 != null
             equivalence1.add(representative2,InfList.makeInfList(step1 ,inferenceStep));
-            return;}
+            return equivalence1;}
         if(equivalence1 == null) { // equivalence2 != null
             equivalence2.add(representative1,InfList.makeInfList(step2 ,inferenceStep));
-            return;}
+            return equivalence2;}
         if(Math.abs(representative1) < Math.abs(representative2)) {
             equivalence1.join((representative1 == equivalence1.representative ? 1:-1) *
                                (representative2 == equivalence2.representative ? 1:-1),
                 equivalence2,inferenceStep);
-            equivalences.remove(equivalence2);}
+            equivalences.remove(equivalence2);
+            return equivalence1;}
         else {equivalence2.join((representative1 == equivalence1.representative ? 1:-1) *
                                     (representative2 == equivalence2.representative ? 1:-1),
                 equivalence1,inferenceStep);
-            equivalences.remove(equivalence1);}}
+            equivalences.remove(equivalence1);
+            return equivalence2;}}
 
 
     private final Unsatisfiable[] unsatisfiable = {null};
@@ -89,15 +93,21 @@ public class Equivalences {
      * @param trueLiteral  to be applied to a literal: +1(true), -1(false), 0(undecided)
      * @param inferenceStep which caused the truth of the literal.
      * @param trueLiterals applied to the other true literals together with the corresponding inference step.
+     * @return the list of equivalence classes whose trigger literal has become true.
      * @throws Unsatisfiable if a contradiction is encountered.
      * */
-    void applyTrueLiteral(IntToByteFunction trueLiteral, InferenceStep inferenceStep,
-                             BiIntConsumerWithUnsatisfiable<InferenceStep> trueLiterals) throws Unsatisfiable{
+    ArrayList<Equivalence> applyTrueLiteral(IntToByteFunction trueLiteral, InferenceStep inferenceStep,
+                             BiIntConsumerWithUnsatisfiable<InferenceStep> trueLiterals) throws Unsatisfiable {
         unsatisfiable[0] = null;
+        ArrayList<Equivalence> untriggered = new ArrayList<>();
         equivalences.removeIf(equivalence -> {
-                    try{return equivalence.applyTrueLiteral(trueLiteral,inferenceStep, trueLiterals);}
+                    try{int triggerLiteral = equivalence.triggerLiteral;
+                        boolean remove = equivalence.applyTrueLiteral(trueLiteral,inferenceStep, trueLiterals);
+                        if(!remove && triggerLiteral != 0 && equivalence.triggerLiteral == 0) untriggered.add(equivalence);
+                        return remove;}
                     catch(Unsatisfiable unsat) {unsatisfiable[0] = unsat; return false;}});
-        if(unsatisfiable[0] != null) throw unsatisfiable[0];}
+        if(unsatisfiable[0] != null) throw unsatisfiable[0];
+        return untriggered;}
 
     boolean isEmpty() {
         return equivalences.isEmpty();}
@@ -136,9 +146,9 @@ public class Equivalences {
 
     /** puts the equivalence int the backup array and clears the equivalences.
      */
-    void backupEquivalences() {
-        processedEquivalences.addAll(equivalences);
-        equivalences.clear();}
+    void backupEquivalence(Equivalence equivalence) {
+        processedEquivalences.add(equivalence);
+        equivalences.remove(equivalence);}
 
     /** completes a model after Resolution has finished and pretended that the clause set is satisfiable.
      * <br>
