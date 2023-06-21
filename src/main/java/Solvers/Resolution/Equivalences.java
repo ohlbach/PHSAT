@@ -3,11 +3,10 @@ package Solvers.Resolution;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
+import Utilities.BiIntConsumerWithUnsatisfiable;
+import Utilities.IntToByteFunction;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.function.BiConsumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 
@@ -20,9 +19,9 @@ import java.util.function.IntFunction;
 public class Equivalences {
 
     /** maps triggerLiterals to a list of equivalence classes */
-    HashMap<Integer,ArrayList<Equivalence>> equivalences = new HashMap<>();
+    ArrayList<Equivalence> equivalences = new ArrayList<>();
 
-    ArrayList<HashMap<Integer,ArrayList<Equivalence>>> processedEquivalences = new ArrayList<>();
+    ArrayList<Equivalence> processedEquivalences = new ArrayList<>();
 
     /** adds a new equivalence to the set of equivalence classes.
      * <br>
@@ -60,8 +59,7 @@ public class Equivalences {
             throw new UnsatEquivalence(literal1, literal2, step1, step2, inferenceStep);
 
         if(equivalence1 == null && equivalence2 == null) {
-            ArrayList<Equivalence> equivalenceList = equivalences.computeIfAbsent(triggerLiteral, k -> new ArrayList<>());
-            equivalenceList.add(new Equivalence(triggerLiteral,representative1,representative2,inferenceStep));
+            equivalences.add(new Equivalence(triggerLiteral,representative1,representative2,inferenceStep));
             return;}
         if(equivalence2 == null) { // equivalence1 != null
             equivalence1.add(representative2,InfList.makeInfList(step1 ,inferenceStep));
@@ -73,45 +71,33 @@ public class Equivalences {
             equivalence1.join((representative1 == equivalence1.representative ? 1:-1) *
                                (representative2 == equivalence2.representative ? 1:-1),
                 equivalence2,inferenceStep);
-            equivalences.get(triggerLiteral).remove(equivalence2);}
+            equivalences.remove(equivalence2);}
         else {equivalence2.join((representative1 == equivalence1.representative ? 1:-1) *
                                     (representative2 == equivalence2.representative ? 1:-1),
                 equivalence1,inferenceStep);
-            equivalences.get(triggerLiteral).remove(equivalence1);}}
+            equivalences.remove(equivalence1);}}
 
-    /** auxiliary list */
-    private final IntArrayList removed = new IntArrayList();
 
-    /** applies a true literal to all equivalence classes.
+    private final Unsatisfiable[] unsatisfiable = {null};
+
+    /** applies a true literals to all equivalence classes.
      * <br>
      * If a trigger literal is true then it is set to 0 (condition removed).<br>
      * If the trigger literal is false then all the classes are removed.<br>
      * If a literal in an equivalence class is true then all other literals in this class are made true.
      *
-     * @param literal        a true literal
-     * @param inferenceStep  which caused the truth of the literal
-     * @param trueLiterals  to be applied to (new true literal, inference step)
-     */
-    void applyTrueLiteral(int literal, InferenceStep inferenceStep, BiConsumer<Integer,InferenceStep> trueLiterals) {
-        ArrayList<Equivalence> equivalenceList = equivalences.get(literal);
-        if(equivalenceList != null) {
-            for(Equivalence equivalence : equivalenceList) equivalence.triggerLiteralZero(inferenceStep);
-            ArrayList<Equivalence> equivalenceZero = equivalences.get(0);
-            if(equivalenceZero == null) equivalences.put(0,equivalenceList);
-            else equivalenceZero.addAll(equivalenceList);
-            equivalences.remove(literal);
-            return;}
-        equivalenceList = equivalences.get(-literal);
-        if(equivalenceList != null) {equivalences.remove(-literal); return;}
-        removed.clear();
-        equivalences.forEach((triggerLiteral,equivList) -> {
-            for(int i = 0; i < equivList.size(); ++i) {
-                Equivalence equivalence = equivList.get(i);
-                if(equivalence.applyTrueLiteral(literal,inferenceStep, trueLiterals)) {
-                    equivList.remove(i);
-                    break;}}
-            if(equivList.isEmpty()) removed.add((int)triggerLiteral);});
-        if(!removed.isEmpty()) {equivalences.remove(removed.getInt(0));}}
+     * @param trueLiteral  to be applied to a literal: +1(true), -1(false), 0(undecided)
+     * @param inferenceStep which caused the truth of the literal.
+     * @param trueLiterals applied to the other true literals together with the corresponding inference step.
+     * @throws Unsatisfiable if a contradiction is encountered.
+     * */
+    void applyTrueLiteral(IntToByteFunction trueLiteral, InferenceStep inferenceStep,
+                             BiIntConsumerWithUnsatisfiable<InferenceStep> trueLiterals) throws Unsatisfiable{
+        unsatisfiable[0] = null;
+        equivalences.removeIf(equivalence -> {
+                    try{return equivalence.applyTrueLiteral(trueLiteral,inferenceStep, trueLiterals);}
+                    catch(Unsatisfiable unsat) {unsatisfiable[0] = unsat; return false;}});
+        if(unsatisfiable[0] != null) throw unsatisfiable[0];}
 
     boolean isEmpty() {
         return equivalences.isEmpty();}
@@ -129,40 +115,30 @@ public class Equivalences {
      * @return null or the equivalence class containing the literal.
      */
     Equivalence getEquivalence(int triggerLiteral, int literal) {
-        ArrayList<Equivalence> equivalenceList = equivalences.get(triggerLiteral);
-        if(equivalenceList == null) return null;
-        for(Equivalence equivalence : equivalenceList) {
-            if(equivalence.contains(literal)) return equivalence;}
+        for(Equivalence equivalence : equivalences) {
+            if(equivalence.triggerLiteral == triggerLiteral && equivalence.contains(literal)) return equivalence;}
         return null;}
 
-    /** returns the representative of the literal in the class with the triggerLiteral.
-     *
-     * @param triggerLiteral a trigger literal.
-     * @param literal        any literal.
-     * @return the literal itself or its representative in the corresponding class.
-     */
-    int getRepresentative(int triggerLiteral, int literal) {
-        Equivalence equivalence = getEquivalence(triggerLiteral,literal);
-        if(equivalence != null) return equivalence.getRepresentative(literal);
-        return literal;}
 
-    /** returns the inference stwp of the literal in the class with the triggerLiteral.
+
+    /** returns the inference step of the literal in the class with the triggerLiteral.
      *
      * @param triggerLiteral a trigger literal.
      * @param literal        any literal.
      * @return null or the inference step that caused the equivalence of the literal with the representative.
      */
     InferenceStep getInferenceStep(int triggerLiteral,int literal) {
-        Equivalence equivalence = getEquivalence(triggerLiteral,literal);
-        if(equivalence != null) return equivalence.getInferenceStep(literal);
+        for(Equivalence equivalence : equivalences) {
+            if(equivalence.triggerLiteral == triggerLiteral) {
+                for(int i = 0; i < equivalence.literals.size(); ++i) {
+                    if(equivalence.literals.getInt(i) == literal) return equivalence.inferenceSteps.get(i);}}}
         return null;}
 
-    /** puts the equivalence int the backup array and creates a new equivalences hash map.
+    /** puts the equivalence int the backup array and clears the equivalences.
      */
     void backupEquivalences() {
-        if(!equivalences.isEmpty()) {
-            processedEquivalences.add(equivalences);
-            equivalences = new HashMap<>();}}
+        processedEquivalences.addAll(equivalences);
+        equivalences.clear();}
 
     /** completes a model after Resolution has finished and pretended that the clause set is satisfiable.
      * <br>
@@ -175,15 +151,11 @@ public class Equivalences {
      * @return            null (hopefully) or UnsatEquivalence if unexpectedly a contradiction was found.
      */
     UnsatEquivalence completeModel(IntFunction<Integer> modelStatus, IntConsumer makeTrue) {
-        backupEquivalences();
-        UnsatEquivalence[]  unsat = new UnsatEquivalence[]{null};
-        for(HashMap<Integer,ArrayList<Equivalence>> equivalences : processedEquivalences) {
-            equivalences.forEach((triggerLiteral, equivalenceList) -> {
-                try{
-                    for(Equivalence equivalence : equivalenceList)
-                     equivalence.completeModel(modelStatus,makeTrue);}
-                catch(UnsatEquivalence unsatisfiable) {unsat[0] = unsatisfiable;}});}
-        return unsat[0];}
+        try{
+            for(Equivalence equivalence : equivalences)          equivalence.completeModel(modelStatus,makeTrue);
+            for(Equivalence equivalence : processedEquivalences) equivalence.completeModel(modelStatus,makeTrue);}
+        catch(UnsatEquivalence unsatisfiable) {return unsatisfiable;}
+        return null;}
 
 
     /** collects all equivalence classes in a string.
@@ -199,22 +171,17 @@ public class Equivalences {
      * @return all equivalence classes as a string.
      */
     public String toString(Symboltable symboltable) {
+        if(equivalences.isEmpty() && processedEquivalences.isEmpty()) return "";
         StringBuilder st = new StringBuilder();
-        st.append("Unprocessed Equivalences:\n");
-        equivalences.forEach((Integer triggerLiteral,ArrayList<Equivalence> equivalenceList) -> {
-            if(!equivalenceList.isEmpty()) {
-                st.append(equivalenceList.get(0).toString(symboltable));
-                for(int i = 1; i < equivalenceList.size(); ++i) {
-                    st.append("\n").append(equivalenceList.get(i).toString(symboltable));}
-            st.append("\n");}});
+        if(!equivalences.isEmpty()) {
+            st.append("Unprocessed Equivalences:\n");
+            st.append(equivalences.get(0).toString(symboltable));
+            for(int i = 1; i < equivalences.size(); ++i)
+                st.append("\n").append(equivalences.get(i).toString(symboltable));}
         if(!processedEquivalences.isEmpty()) {
-            st.append("\nProcessed Equivalences:\n");
-            for(HashMap<Integer,ArrayList<Equivalence>> processEqs : processedEquivalences) {
-                processEqs.forEach((Integer triggerLiteral,ArrayList<Equivalence> equivalenceList) -> {
-                    if(!equivalenceList.isEmpty()) {
-                        st.append(equivalenceList.get(0).toString(symboltable));
-                        for(int i = 1; i < equivalenceList.size(); ++i) {
-                            st.append("\n").append(equivalenceList.get(i).toString(symboltable));}
-                        st.append("\n");}});}}
+            st.append("Processed Equivalences:\n");
+            st.append(processedEquivalences.get(0).toString(symboltable));
+            for(int i = 1; i < processedEquivalences.size(); ++i)
+                st.append("\n").append(processedEquivalences.get(i).toString(symboltable));}
         return st.toString();}
 }

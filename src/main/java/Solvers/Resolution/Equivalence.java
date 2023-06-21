@@ -3,10 +3,11 @@ package Solvers.Resolution;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
+import Utilities.BiIntConsumerWithUnsatisfiable;
+import Utilities.IntToByteFunction;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
-import java.util.function.BiConsumer;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 
@@ -110,33 +111,31 @@ public class Equivalence {
      * <br>
      * If the true literal or its negation is in the class then all other literals are also made true/false.
      *
-     * @param trueLiteral  a literal which is supposed to be true.
+     * @param trueLiteral  to be applied to a literal: +1(true), -1(false), 0(undecided)
      * @param inferenceStep which caused the truth of the literal.
      * @param trueLiterals applied to the other true literals together with the corresponding inference step.
-     * @return true if the literals in the equivalence class are true now (and the class can be removed).
+     * @return true if the equivalence class is now useless and can be removed.
+     * @throws Unsatisfiable if a contradiction is encountered.
      */
-    boolean applyTrueLiteral(int trueLiteral, InferenceStep inferenceStep, BiConsumer<Integer,InferenceStep> trueLiterals) {
-        int sign = 0;
-        if(trueLiteral == representative)        sign = 1;
-        else {if(trueLiteral == -representative) sign = -1;}
-        if(sign != 0) {
-            for(int i = 0; i < literals.size(); ++i) {
-                trueLiterals.accept(sign*literals.getInt(i),InfList.makeInfList(inferenceStep,inferenceSteps.get(i)));}
-            return true;}
+    boolean applyTrueLiteral(IntToByteFunction trueLiteral, InferenceStep inferenceStep, BiIntConsumerWithUnsatisfiable<InferenceStep> trueLiterals) throws Unsatisfiable{
+        int sign;
+        if(triggerLiteral != 0) {
+            switch(trueLiteral.apply(triggerLiteral)) {
+                case -1: return true;  // equivalence class is useless.
+                case 0: return false; // truth cannot yet be decided.
+                case 1: triggerLiteral = 0;
+                        return applyTrueLiteral(trueLiteral,inferenceStep,trueLiterals);}}
 
-        for(int i = 0; i < literals.size(); ++i) {
-            int literal = literals.getInt(i);
-            if(literal == trueLiteral) {
-                trueLiterals.accept(representative,InfList.makeInfList(inferenceStep,inferenceSteps.get(i)));
-                for(int j = 0; j < literals.size(); ++j) {
-                    int lit = literals.getInt(j);
-                    if(lit != trueLiteral) trueLiterals.accept(lit, InfList.makeInfList(inferenceStep,inferenceSteps.get(i),inferenceSteps.get(j)));}
-                return true;}
-            if(literal == -trueLiteral) {
-                trueLiterals.accept(-representative,InfList.makeInfList(inferenceStep,inferenceSteps.get(i)));
-                for(int j = 0; j < literals.size(); ++j) {
-                    int lit = literals.getInt(j);
-                    if(lit != -trueLiteral) trueLiterals.accept(-lit,InfList.makeInfList(inferenceStep,inferenceSteps.get(i),inferenceSteps.get(j)));}
+        // from here: triggerLiteral = 0 or triggerLiteral is true.
+        if((sign = trueLiteral.apply(representative)) != 0) {
+            for(int i = 0; i < literals.size(); ++i)
+                trueLiterals.accept(sign*literals.getInt(i),InfList.makeInfList(inferenceStep,inferenceSteps.get(i)));
+            return true;}
+        else {
+            for(int literal : literals) {if((sign = trueLiteral.apply(literal)) != 0) break;}
+            if(sign != 0) {
+                for(int i = 0; i < literals.size(); ++i)
+                    trueLiterals.accept(sign*literals.getInt(i),InfList.makeInfList(inferenceStep,inferenceSteps.get(i)));
                 return true;}}
         return false;}
 

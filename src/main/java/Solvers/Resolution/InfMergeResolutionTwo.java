@@ -20,10 +20,13 @@ public class InfMergeResolutionTwo extends InferenceStep {
     private final int literal;
     public InfMergeResolutionTwo(Clause clause1, Clause clause2, int literal) {
         this.clause1 = clause1; this.clause2 = clause2; this.literal = literal;}
+
+    public String info(Symboltable symboltable) {
+        return clause1.toString(symboltable,0) + " and " + clause2.toString(symboltable,0) +
+                " -> true(" + Symboltable.toString(literal,symboltable) + ")";}
     @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n  " +clause1.toString(symboltable,0) + " and " + clause2.toString(symboltable,0) +
-                " -> true(" + Symboltable.toString(literal,symboltable) + ")";}
+        return title + "\n  " + info(symboltable);}
 
 
     @Override

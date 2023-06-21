@@ -745,102 +745,62 @@ public class Resolution extends Solver {
          */
     void mergeResolutionAndEquivalenceTwoTwo(final Clause clause1, int literal1, int literal2,
                                              final boolean checkEquivalence) throws Unsatisfiable {
-        assert(clause1.size() == 2);
+        assert(clause1.size() == 2);                // parent clause: literal1,literal2
         ++timestamp; // just to be sure.
         try{
             literalIndexTwo.timestampClauses(-literal1,null,timestamp,true);
 
-            literalIndexTwo.forAllLiterals(literal2,
+            literalIndexTwo.forAllLiterals(literal2, // now we look for a clause -literal1,literal2
                     (literalObject -> literalObject.clause.timestamp1 == timestamp),
-                    (literalObject -> {
+                    (literalObject -> {              // merge resolution yields literal2
                         Clause clause2 = literalObject.clause;
-                        if(monitoring) monitor.println(monitorId,clause1.toString(symboltable,0) + " and " +
-                                    clause2.toString(symboltable,0) + " -> " + "true("+ Symboltable.toString(literal2,symboltable)+")");
-                        addInternalTrueLiteralTask(literal2,true, trackReasoning ? new InfMergeResolutionTwo(clause1,clause2,literal2) : null);
+                        InfMergeResolutionTwo step = (trackReasoning || monitoring) ?
+                                new InfMergeResolutionTwo(clause1,clause2,literal2) : null;
+                        if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                        addInternalTrueLiteralTask(literal2,true, step);
                         removeClause(clause1,true,true);
                         removeClause(clause2,true,true);
                         ++statistics.mergeResolutionTwoTwo;
                         return true;}));
 
-            if(checkEquivalence) {
+            if(checkEquivalence) { // now we look for a clause -literal1,-literal2
                 literalIndexTwo.forAllLiterals(-literal2,
                         (literalObject -> literalObject.clause.timestamp1 == timestamp),
-                        (literalObject -> {
+                        (literalObject -> {  // this yields an equivalence literal1 == -literal2
                             Clause clause2 = literalObject.clause;
                             removeClause(clause1,false,true);
                             removeClause(clause2,false,true);
-                            InfEquivalence step = (trackReasoning || monitoring) ? new InfEquivalence(clause1,clause2) : null;
+                            InfEquivalence step = (trackReasoning || monitoring) ?
+                                    new InfEquivalence(clause1,clause2,literal1,-literal2,symboltable) : null;
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
                             equivalences.add(0,literal1,-literal2,step);
+                            ++statistics.binaryEquivalences;
                             return true;}));}}
         finally {++timestamp;}}
 
-    /** constructs an Equivalence Object and replaces all occurrences of the equivalent literal by its representative.
+    /** replaces all occurrences of the (unconditioned) equivalent literals by their representative.
      * <br>
-     * This step eliminates a literal from the search space.<br>
-     * It is important that a newly detected equivalence p == q immediately causes the replacement of
-     * the literal by its representative.<br>
-     * Otherwise, the soundness of purity detection is not guaranteed.
+     * This step eliminates these literals from the search space.<br>
      *
-     * @param clause1   a binary clause which caused the equivalence.   p,-q
-     * @param clause2   a binary clause which caused the equivalence.  -p, q   -&gt; p == q
-     * @param literal1  the equivalent literal
-     * @param literal2  the equivalent literal
+     * @param equivalence  an equivalence p == q_1 == ... == q_n
      * @throws Unsatisfiable if replacing a literal causes an inconsistency.
      */
-    void processBinaryEquivalence(Clause clause1, Clause clause2, int literal1, int literal2) throws Unsatisfiable {
-        InfEquivalence step = (trackReasoning || monitoring) ? new InfEquivalence(clause1,clause2) : null;
-        if(monitoring) monitor.println(monitorId,step.info(symboltable));
-        ++statistics.binaryEquivalences;
-        Equivalence equivalence = new Equivalence(0,literal1,literal2,step);
-        equivalences.add(equivalence);
+    void processEquivalence(Equivalence equivalence) throws Unsatisfiable {
+        assert equivalence.triggerLiteral == 0;
         int representative = equivalence.representative;
-        int literal        = equivalence.literal;
-        for(int sign = 1; sign >= -1; sign -= 2) {
-            int newLiteral = sign*representative;
-            literalIndexTwo.forAllLiterals(sign*literal,null,
+        for(int i = 0; i < equivalence.literals.size(); ++i) {
+            int literal = equivalence.literals.get(i);
+            InferenceStep step = equivalence.inferenceSteps.get(i);
+            for(int sign = 1; sign >= -1; sign -= 2) {
+                int newLiteral = sign*representative;
+                literalIndexTwo.forAllLiterals(sign*literal,null,
                     (literalObject -> {
-                        replaceLiteral(literalObject,newLiteral,literalIndexTwo,equivalence.inferenceStep);
+                        replaceLiteral(literalObject,newLiteral,literalIndexTwo,step);
                         return false;}));
-            literalIndexMore.forAllLiterals(sign*literal,null,
+                literalIndexMore.forAllLiterals(sign*literal,null,
                     (literalObject -> {
-                        replaceLiteral(literalObject,newLiteral,literalIndexMore,equivalence.inferenceStep);
-                        return false;}));}}
-
-    /** constructs an Equivalence Object and replaces all occurrences of the equivalent literal by its representative.
-     * <br>
-     * This step eliminates a literal from the search space.<br>
-     * It is important that a newly detected equivalence p == q immediately causes the replacement of
-     * the literal by its representative.<br>
-     * Otherwise, the soundness of purity detection is not guaranteed.
-     *
-     * @param clause1   a binary clause which caused the equivalence.   t,p,-q
-     * @param clause2   a binary clause which caused the equivalence.  t,-p, q   -&gt; -t =&gt; p == q
-     * @param triggerLiteral the triggerLiteral of an equivalence.
-     * @param literal1  the equivalent literal.
-     * @param literal2  the equivalent literal.
-     * @throws Unsatisfiable if replacing a literal causes an inconsistency.
-     */
-    void processTriggerdEquivalence(Clause clause1, Clause clause2, int triggerLiteral, int literal1, int literal2) throws Unsatisfiable {
-        InfEquivalence step = (trackReasoning || monitoring) ? new InfEquivalence(clause1,clause2) : null;
-        if(monitoring) monitor.println(monitorId,step.info(symboltable));
-        ++statistics.triggeredEquivalences;
-        Equivalence equivalence = new Equivalence(triggerLiteral,literal1,literal2,step);
-        equivalences.add(equivalence);
-        int representative = equivalence.representative;
-        int literal        = equivalence.literal;
-        int conditionLiteral = -triggerLiteral;
-        for(int sign = 1; sign >= -1; sign -= 2) {
-            int newLiteral = sign*representative;
-            literalIndexTwo.forAllLiterals(sign*literal,null,
-                    (literalObject -> {
-                        replaceConditionedLiteral(literalObject,newLiteral,conditionLiteral,equivalence.inferenceStep);
-                        return false;}));
-            literalIndexMore.forAllLiterals(sign*literal,null,
-                    (literalObject -> {
-                        replaceConditionedLiteral(literalObject,newLiteral,conditionLiteral,equivalence.inferenceStep);
-                        return false;}));}}
-
+                        replaceLiteral(literalObject,newLiteral,literalIndexMore,step);
+                        return false;}));}}}
 
 
     /** performs merge resolution between a binary clause and a longer clause, and triggered equivalence recognition, if possible.
@@ -863,6 +823,7 @@ public class Resolution extends Solver {
         assert(clause1.size() == 2);
         ++timestamp; // just to be sure.
         try{literalIndexMore.timestampClauses(-literal1,null,timestamp,true);
+            // literal1,literal2 and -literal1,literal2,rest -> literal2,rest
             literalIndexMore.forAllLiterals(literal2,
                     (literalObject2-> literalObject2.clause.timestamp1 == timestamp),
                     (literalObject2-> {// clauses with literal2 can merge with clause1
@@ -879,8 +840,7 @@ public class Resolution extends Solver {
                         ++statistics.mergeResolutionTwoMore;
                         return false;}));
 
-            if(checkEquivalence) { // p,q and -p,-q,r  -> triggered equivalence: -r -> p == -q
-                Literal literalObject1 = clause1.findLiteral(literal1);
+            if(checkEquivalence) { // literal1,literal2 and -literal1,-literal2, triggerLiteral -> -triggerLiteral => literal1 == -literal2
                 literalIndexMore.forAllLiterals(-literal2,
                         (literalObject2 -> {
                             Clause clause2 = literalObject2.clause;
@@ -889,7 +849,7 @@ public class Resolution extends Solver {
                             Clause clause2 = literalObject2.clause;
                             int triggerLiteral = -clause2.findThirdLiteral(literal1,-literal2).literal;
                             InfEquivalence step = (trackReasoning || monitoring) ?
-                                    new InfEquivalence(triggerLiteral,literalObject1,literalObject2,symboltable) : null;
+                                    new InfEquivalence(clause1,clause2,triggerLiteral,literal1,-literal2,symboltable) : null;
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
                             equivalences.add(triggerLiteral,literal1,-literal2,step);
                             ++statistics.triggeredEquivalences;
@@ -1210,10 +1170,11 @@ public class Resolution extends Solver {
                         literalObjectSecond -> literalObjectSecond.clause.timestamp1 == timestamp+1,
                         literalObjectSecond -> {
                             InfEquivalence step = (trackReasoning || monitoring) ?
-                                    new InfEquivalence(-triggerLiteral,literalObjectFirst,literalObjectSecond, symboltable) : null;
+                                    new InfEquivalence(clause,literalObjectSecond.clause, -triggerLiteral,
+                                            literalObjectFirst.literal,literalObjectSecond.literal, symboltable) : null;
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
                             ++statistics.triggeredEquivalences;
-                            equivalences.add(-triggerLiteral,literalObjectFirst.literal , literalObjectSecond.literal,step);
+                            equivalences.add(-triggerLiteral,literalObjectFirst.literal, literalObjectSecond.literal,step);
                             addEquivalenceTask();
                             return true;})) ++counter;}
             return counter;}
@@ -1732,7 +1693,7 @@ public class Resolution extends Solver {
     void checkClauses() {
         StringBuilder st = new StringBuilder();
         try{
-            ArrayList<int[]> falseInputClauses = problemSupervisor.inputClauses.falseClausesInModel(literal -> (int)localStatus(literal));
+            ArrayList<int[]> falseInputClauses = problemSupervisor.inputClauses.falseClausesInModel(this::localStatus);
             if(!falseInputClauses.isEmpty()) {
                 st.append("False Input Clauses:\n");
                 for(int[] clause : falseInputClauses) {
