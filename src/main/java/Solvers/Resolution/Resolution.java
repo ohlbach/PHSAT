@@ -72,15 +72,12 @@ public class Resolution extends Solver {
     /** the thread which runs the simplifier. */
     private Thread myThread;
 
-    /** collects the equivalences for later updating the model.
-     * Entries: representative_1, literal_1, ...*/
-    IntArrayList equivalenceList = new IntArrayList();
 
     /** The local model may contain true literals derived from pure literals.
      * These need not be true in all models, and therefore cannot be sent to the global model. */
     private byte[] localModel;
 
-    ArrayList<Equivalence> equivalences = new ArrayList();
+    Equivalences equivalences = new Equivalences();
 
     Task<TaskType> equivalenceTask =  new Task<>(TaskType.ProcessEquivalence,null);
 
@@ -772,7 +769,9 @@ public class Resolution extends Solver {
                             Clause clause2 = literalObject.clause;
                             removeClause(clause1,false,true);
                             removeClause(clause2,false,true);
-                            processBinaryEquivalence(clause1,clause2,literal1,-literal2);
+                            InfEquivalence step = (trackReasoning || monitoring) ? new InfEquivalence(clause1,clause2) : null;
+                            if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                            equivalences.add(0,literal1,-literal2,step);
                             return true;}));}}
         finally {++timestamp;}}
 
@@ -863,41 +862,38 @@ public class Resolution extends Solver {
                                              final boolean checkEquivalence) throws Unsatisfiable {
         assert(clause1.size() == 2);
         ++timestamp; // just to be sure.
-        try{
-            Literal literalObject2 = literalIndexMore.getFirstLiteralObject(-literal1);
-            while(literalObject2 != null) { // all clauses with -literal1 are marked.
-                Clause clause = literalObject2.clause;
-                if(clause != null) clause.timestamp1 = timestamp;
-                literalObject2 = literalObject2.nextLiteral;}
-
-            literalObject2 = literalIndexMore.getFirstLiteralObject(literal2);
-            while(literalObject2 != null) { // clauses with literal2 can merge with clause1
-                Clause clause2 = literalObject2.clause;
-                if(clause2 == null) {literalObject2 = literalObject2.nextLiteral; continue;}
-                if(clause2.timestamp1 == timestamp) { // a partner clause is found: p,q and -p,q,phi -> merge
-                    Literal negLiteralObject1 = clause2.findLiteral(-literal1); // find -p
-                    if(literalObject2.multiplicity == clause2.limit+1-negLiteralObject1.multiplicity) { // condition for destructive merge
-                        String clause2Before = null;
-                        if(monitoring || trackReasoning) {clause2Before = clause2.toString(symboltable,0);}
-                        if(removeLiteralFromClause(negLiteralObject1,false)) {
-                            InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
-                            if(trackReasoning) clause2.inferenceStep = step;
-                            if(monitoring) monitor.println(monitorId,step.info());}}
-                    else {resolve(negLiteralObject1,clause1.findLiteral(literal1)); } // non-destructive merge
-                    ++statistics.mergeResolutionTwoMore;}
-                literalObject2 = literalObject2.nextLiteral;}
+        try{literalIndexMore.timestampClauses(-literal1,null,timestamp,true);
+            literalIndexMore.forAllLiterals(literal2,
+                    (literalObject2-> literalObject2.clause.timestamp1 == timestamp),
+                    (literalObject2-> {// clauses with literal2 can merge with clause1
+                        Clause clause2 = literalObject2.clause;
+                        Literal negLiteralObject1 = clause2.findLiteral(-literal1); // find -p
+                        if(literalObject2.multiplicity == clause2.limit+1-negLiteralObject1.multiplicity) { // condition for destructive merge
+                            String clause2Before = null;
+                            if(monitoring || trackReasoning) {clause2Before = clause2.toString(symboltable,0);}
+                            if(removeLiteralFromClause(negLiteralObject1,false)) {
+                                InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
+                                if(trackReasoning) clause2.inferenceStep = step;
+                                if(monitoring) monitor.println(monitorId,step.info());}}
+                        else {resolve(negLiteralObject1,clause1.findLiteral(literal1)); } // non-destructive merge
+                        ++statistics.mergeResolutionTwoMore;
+                        return false;}));
 
             if(checkEquivalence) { // p,q and -p,-q,r  -> triggered equivalence: -r -> p == -q
-                literalObject2 = literalIndexTwo.getFirstLiteralObject(-literal2);
-                while(literalObject2 != null) {
-                    Clause clause2 = literalObject2.clause;
-                    if(clause2 == null) {literalObject2 = literalObject2.nextLiteral; continue;}
-                    if(clause2.timestamp1 == timestamp && clause2.isDisjunction && clause2.size() == 3) { // a partner clause is found.
-                        removeClause(clause1,false,true);
-                        removeClause(clause2,false,true);
-                        int triggerLiteral = -clause2.findThirdLiteral(literal1,-literal2).literal;
-                        processTriggerdEquivalence(clause1,clause2,triggerLiteral,literal1,-literal2);}}
-                    literalObject2 = literalObject2.nextLiteral;}}
+                Literal literalObject1 = clause1.findLiteral(literal1);
+                literalIndexMore.forAllLiterals(-literal2,
+                        (literalObject2 -> {
+                            Clause clause2 = literalObject2.clause;
+                            return clause2.timestamp1 == timestamp && clause2.isDisjunction && clause2.size() == 3;}),
+                        (literalObject2 -> {
+                            Clause clause2 = literalObject2.clause;
+                            int triggerLiteral = -clause2.findThirdLiteral(literal1,-literal2).literal;
+                            InfEquivalence step = (trackReasoning || monitoring) ?
+                                    new InfEquivalence(triggerLiteral,literalObject1,literalObject2,symboltable) : null;
+                            if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                            equivalences.add(triggerLiteral,literal1,-literal2,step);
+                            ++statistics.triggeredEquivalences;
+                            return true;}));}}
         finally {++timestamp;}}
 
     /** performs resolution between the given clause and all other binary clauses.
@@ -1315,13 +1311,10 @@ public class Resolution extends Solver {
                     for(int i = 0; i < eqv.literals.size(); ++i) {
                         int literal = eqv.literals.getInt(i);
                         InferenceStep step = eqv.inferenceSteps.get(i);
-                        if(triggerLiteral == 0)
-                              processUntriggerdEquivalence(eqv.representative,literal,step);
-                        else  processTriggeredEquivalence(triggerLiteral,eqv.representative,literal,step);}}}
+                        processUntriggerdEquivalence(eqv.representative,literal,step);}}}
             catch(Unsatisfiable unsatisfiable) {unsatisfiables[0] = unsatisfiable;}});
         if(unsatisfiables[0] != null) throw unsatisfiables[0];
-        for(int removedLiteral : removedLiterals) checkPurity(removedLiteral);
-        equivalences.backupEquivalences();}
+        for(int removedLiteral : removedLiterals) checkPurity(removedLiteral);}
 
 
     /** This method replaces in all clauses the given literal by the given representative.
@@ -1345,29 +1338,6 @@ public class Resolution extends Solver {
                             return false;}));
                 literalIndex = (literalIndex == literalIndexTwo) ? literalIndexMore : null;}}}
 
-    /** replaces the given literal by the given representative in clauses containing the negated triggerLiteral.
-     * <br>
-     * All possible simplifications are done in the changed clauses.
-     *
-     * @param triggerLiteral  any literal.
-     * @param representative  any literal != triggerLiteral.
-     * @param literal         any literal != representative and /= triggerLiteral
-     * @param equivalenceStep null or the inference step that caused the triggered equivalence
-     * @throws Unsatisfiable  if the replacement causes true literals to be derived which contradict the model.
-     */
-    void processTriggeredEquivalence(final int triggerLiteral, final int representative, final int literal, final InferenceStep equivalenceStep) throws Unsatisfiable {
-       literalIndexMore.forAllLiterals(-triggerLiteral,null,
-                (literalObject -> {
-                    Clause clause = literalObject.clause;
-                    int sign = 0;
-                    for(Literal litObject : clause.literals) {
-                        if(litObject.literal == literal)           {sign = 1;}
-                        else if(literalObject.literal == -literal) {sign = -1;}
-                        if(sign != 0) {
-                            ++statistics.equivalenceReplacementsTriggered;
-                            replaceLiteral(litObject,sign*representative,literalIndexMore, equivalenceStep);
-                            break;}}
-                    return false;}));}
 
     /** replaces the literal (in literalObject) by another literal (representative), typically equivalence replacement.
      * <br>
@@ -1412,18 +1382,6 @@ public class Resolution extends Solver {
         clauses.updateClauseNumbers(clause,+1);
         addClauseTask(clause);}
 
-    void replaceConditionedLiteral(final Literal literalObject, final int representative, final int conditionLiteral, final InferenceStep equivalenceStep) throws Unsatisfiable {
-        int literal = literalObject.literal;
-        Clause clause = literalObject.clause;
-        switch(clause.contains(representative)) {
-            case 1:  removeLiteralFromClause(literalObject,false); return;
-            case -1: removeClause(clause,false,true); return;};
-        switch(clause.contains(conditionLiteral)) {
-            case 1:
-
-        }
-
-    }
 
         /** inserts a clause into the internal lists.
          *
