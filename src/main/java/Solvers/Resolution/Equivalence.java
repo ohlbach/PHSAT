@@ -164,11 +164,10 @@ public class Equivalence {
      */
     void completeModel(IntFunction<Integer> modelStatus, IntConsumer makeTrue) throws UnsatEquivalence {
         if(triggerLiteral != 0) {
-            int status = modelStatus.apply(triggerLiteral);
-            switch (status) {
+            switch (modelStatus.apply(triggerLiteral)) {
                 case -1: return;
                 case  0: if(literalsAreInconsistent(modelStatus)) {makeTrue.accept(-triggerLiteral); return;}
-                case +1: completeModelForLiterals(modelStatus,makeTrue); return;}}
+                case +1: completeModelForLiterals(modelStatus,makeTrue);}}
         else {completeModelForLiterals(modelStatus,makeTrue);}}
 
     /** completes a model for literals with undecided truth value and where the triggerLiteral is 0 or is true.

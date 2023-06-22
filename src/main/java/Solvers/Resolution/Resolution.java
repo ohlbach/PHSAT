@@ -1508,7 +1508,7 @@ public class Resolution extends Solver {
      * from the negative and mixedNegative literals in the clauses.
      *
      * @throws Satisfiable after the model has been generated.*/
-    void generatePositiveOrNegativeModel() throws Satisfiable {
+    void generatePositiveOrNegativeModel() throws Result {
         byte status = clauses.status;
         if(status != 0) {
             if (status == +1) generatePositiveModel();
@@ -1518,43 +1518,41 @@ public class Resolution extends Solver {
             throw new Satisfiable(problemId,solverId,model);}}
 
     /** generates a local model from the positive and mixed positive literals in the clauses.*/
-    void generatePositiveModel() {
+    void generatePositiveModel() throws Unsatisfiable {
         if(monitoring) monitor.println(monitorId, "Generating Positive Model");
-        Clause clause = clauses.firstClause;
-        while(clause != null) {
-            if(!clause.exists || clause.clauseType == ClauseType.NEGATIVE || clause.clauseType == ClauseType.MIXEDNEGATIVE) {
-                clause = clause.nextClause;}
+        clauses.forAll(clause-> {
+            if(clause.clauseType == ClauseType.POSITIVE || clause.clauseType == ClauseType.MIXEDPOSITIVE) {
                 int trueLiterals = 0;
-            for(Literal literalObject : clause.literals) {
-                 if(localStatus(literalObject.literal) == 1) ++trueLiterals;}
-            if(trueLiterals < clause.limit) {
                 for(Literal literalObject : clause.literals) {
-                    int literal = literalObject.literal;
-                    if(literal < 0 || localStatus(literal) != 0) continue;
-                    makeLocallyTrue(literal);
-                    if(++trueLiterals == clause.limit) break;}
-                assert trueLiterals >= clause.limit;}
-            clause = clause.nextClause;}}
+                    if(localStatus(literalObject.literal) == 1) trueLiterals += literalObject.multiplicity;}
+                if(trueLiterals < clause.limit) {
+                    for(Literal literalObject : clause.literals) {
+                        int literal = literalObject.literal;
+                        if(literal < 0 || localStatus(literal) != 0) continue;
+                        makeLocallyTrue(literal);
+                        trueLiterals += literalObject.multiplicity;
+                        if(trueLiterals >= clause.limit) break;}
+                    assert trueLiterals >= clause.limit;}}
+            return false;});}
 
 
     /** generates a local model from the negative and mixed negative literals in the clauses.*/
-    void generateNegativeModel() {
+    void generateNegativeModel() throws Unsatisfiable {
         if(monitoring) monitor.println(monitorId,"Generating Negative Model");
-        Clause clause = clauses.firstClause;
-        while(clause != null) {
-            if(!clause.exists || clause.clauseType == ClauseType.POSITIVE || clause.clauseType == ClauseType.MIXEDPOSITIVE) {
-                clause = clause.nextClause;}
-            int trueLiterals = 0;
-            for(Literal literalObject : clause.literals) {
-                if(localStatus(literalObject.literal) == 1) ++trueLiterals;}
-            if(trueLiterals < clause.limit) {
+        clauses.forAll(clause-> {
+            if(clause.clauseType == ClauseType.NEGATIVE || clause.clauseType == ClauseType.MIXEDNEGATIVE) {
+                int trueLiterals = 0;
                 for(Literal literalObject : clause.literals) {
-                    int literal = literalObject.literal;
-                    if(literal > 0 || localStatus(literal) != 0) continue;
-                    makeLocallyTrue(literal);
-                    if(++trueLiterals == clause.limit) break;}
-                assert trueLiterals >= clause.limit;}
-            clause = clause.nextClause;}}
+                    if(localStatus(literalObject.literal) == 1) trueLiterals += literalObject.multiplicity;}
+                if(trueLiterals < clause.limit) {
+                    for(Literal literalObject : clause.literals) {
+                        int literal = literalObject.literal;
+                        if(literal > 0 || localStatus(literal) != 0) continue;
+                        makeLocallyTrue(literal);
+                        trueLiterals += literalObject.multiplicity;
+                        if(trueLiterals >= clause.limit) break;}
+                    assert trueLiterals >= clause.limit;}}
+            return false;});}
 
 
     /** lists the local model as string.
