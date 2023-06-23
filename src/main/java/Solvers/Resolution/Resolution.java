@@ -1116,7 +1116,12 @@ public class Resolution extends Solver {
      * <br>
      *  Clause: p, q, r <br>
      *  Clause: p,-q,-r<br>
-     *  -------------------
+     *  -------------------<br>
+     *  -p -&gt; q == -r
+     * <br>
+     *  Clause:    q, r <br>
+     *  Clause: p,-q,-r<br>
+     *  -------------------<br>
      *  -p -&gt; q == -r
      *
      * @param clause a three-literal disjunction.
@@ -1127,13 +1132,16 @@ public class Resolution extends Solver {
         assert clause.isDisjunction && clause.size() == 3;
         try{int counter = 0;
             for(Literal triggerLiteralObject : clause.literals) {
-                timestamp += 2;
                 int triggerLiteral = triggerLiteralObject.literal;
                 Literal literalObject1 = null; Literal literalObject2 = null;
                 for(Literal literalObject : clause.literals) { // identify the three literals in the clause
                     if(literalObject != triggerLiteralObject) {
                         if(literalObject1 == null) literalObject1 = literalObject;
                         else literalObject2 = literalObject;}}
+
+                if(findTriggeredEquivalenceBinary(clause, -triggerLiteral,literalObject1.literal,literalObject2.literal)) {
+                    ++counter; continue;}
+                timestamp += 2;
 
                 // timestamp all candidate clauses with the trigger literal.
                 if(!literalIndexMore.timestampClauses(triggerLiteral,
@@ -1160,6 +1168,28 @@ public class Resolution extends Solver {
                             return true;})) ++counter;}
             return counter;}
         finally {timestamp += 2;}}
+
+    /** searches for a triggered equivalence with a binary clause: p,q,r and -q,-r -&gt; p =&gt; q == -r
+     *
+     * @param clause          a 3-literal disjunction
+     * @param triggerLiteral  the negation of one of the literals in the clause.
+     * @param literal1        the other literal in the clause
+     * @param literal2        the other literal in the clause.
+     * @return                true if an equivalence has been found
+     * @throws Unsatisfiable should not happen.
+     */
+    boolean findTriggeredEquivalenceBinary(Clause clause, int triggerLiteral, int literal1, int literal2) throws Unsatisfiable {
+         if(literalIndexTwo.timestampClauses(-literal1,null,timestamp,true)) {
+            return literalIndexTwo.forAllLiterals(-literal2,
+                    (literalObject -> literalObject.clause.timestamp1 == timestamp),
+                    (literalObject -> {
+                        InfEquivalence step = (trackReasoning || monitoring) ?
+                                new InfEquivalence(clause,literalObject.clause,triggerLiteral,literal1,-literal2,symboltable) : null;
+                        if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                        equivalences.add(triggerLiteral,literal1,-literal2,step);
+                        --statistics.triggeredEquivalences;
+                        return true;}));}
+        return false;}
 
    
     /** creates all resolvents with the given clause which are not longer than the clause itself.
