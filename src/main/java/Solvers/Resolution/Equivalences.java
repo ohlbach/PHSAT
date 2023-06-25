@@ -8,9 +8,11 @@ import Utilities.IntToByteFunction;
 
 import java.util.ArrayList;
 import java.util.function.IntConsumer;
-import java.util.function.IntFunction;
 
-/** This class represents equivalence classes representative == literal.
+/** This class represents a list of equivalence classes: representative == literal.
+ * <br>
+ * Once an  equivalence is detected, it is applied immediately to all clauses.
+ * Therefor there is no need for maintaining overlapping equivalence relations.
   */
 public class Equivalences {
 
@@ -25,13 +27,13 @@ public class Equivalences {
         equivalences.add(equivalence);}
 
 
+    /** to be used in applyTrueLiteral */
     private final Unsatisfiable[] unsatisfiable = {null};
 
-    /** applies a true literals to all equivalence classes.
+    /** applies true literals to all equivalence classes.
      * <br>
-     * If a trigger literal is true then it is set to 0 (condition removed).<br>
-     * If the trigger literal is false then all the classes are removed.<br>
-     * If a literal in an equivalence class is true then all other literals in this class are made true.
+     * If a literal in an equivalence class is true then the other literal in this class is made true.<br>
+     * Equivalence classes which are true now are removed from the list.
      *
      * @param trueLiteral  to be applied to a literal: +1(true), -1(false), 0(undecided)
      * @param inferenceStep which caused the truth of the literal.
@@ -46,27 +48,27 @@ public class Equivalences {
                     catch(Unsatisfiable unsat) {unsatisfiable[0] = unsat; return false;}});
         if(unsatisfiable[0] != null) throw unsatisfiable[0];}
 
-    boolean isEmpty() {
-        return equivalences.isEmpty();}
-
-    /** clears all data (to be used anew).
+    /** checks if the list of equivalence classes is empty
+     *
+     * @return true if there is no equivalence class.
      */
+    boolean isEmpty() {return equivalences.isEmpty();}
+
+    /** clears all data (to be used anew).*/
     void clear() {equivalences.clear();}
 
 
     /** completes a model after Resolution has finished and pretended that the clause set is satisfiable.
      * <br>
-     * Literals without truth values get a truth value such that the equivalences become true.  <br>
+     * Literals without truth values get a truth value such that the equivalence becomes true.  <br>
      * There should be no contradiction true(p) == false(q), but who knows.<br>
-     * A triggered equivalence with  t &gt;= true(p) == false(q) is not a contradiction if t can be made false.
      *
      * @param modelStatus returns +1 (true), -1 (false) or 0 (undecided).
      * @param makeTrue    makes an undecided literal true.
      * @return            null (hopefully) or UnsatEquivalence if unexpectedly a contradiction was found.
      */
-    UnsatEquivalence completeModel(IntFunction<Integer> modelStatus, IntConsumer makeTrue) {
-        try{
-            for(Equivalence equivalence : equivalences) equivalence.completeModel(modelStatus,makeTrue);}
+    UnsatEquivalence completeModel(IntToByteFunction modelStatus, IntConsumer makeTrue) {
+        try{for(Equivalence equivalence : equivalences) equivalence.completeModel(modelStatus,makeTrue);}
         catch(UnsatEquivalence unsatisfiable) {return unsatisfiable;}
         return null;}
 

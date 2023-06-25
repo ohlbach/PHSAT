@@ -517,6 +517,7 @@ public class Resolution extends Solver {
         if(!mergeResolutionMoreMore(clause)) return;
         saturateBinaryClausesWithLongerClause(clause);
         if(clause.exists) mergeResolutionPartial(clause);
+        if(clause.exists && clause.size() == 3) tripleResolution(clause);
     }
 
     ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
@@ -808,7 +809,7 @@ public class Resolution extends Solver {
                                 InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
                                 if(trackReasoning) clause2.inferenceStep = step;
                                 if(monitoring) monitor.println(monitorId,step.info());}}
-                        else {resolve(negLiteralObject1,clause1.findLiteral(literal1)); } // non-destructive merge
+                        else {resolve(negLiteralObject1,clause1.findLiteral(literal1),true); } // non-destructive merge
                         ++statistics.mergeResolutionTwoMore;
                         return false;}));}
         finally {++timestamp;}}
@@ -990,7 +991,7 @@ public class Resolution extends Solver {
                                     addClauseTask(longerClause);
                                     ++statistics.mergeResolutionTwoMore;}
                                     return false;}}
-                        resolve(binaryLiteralObject,longerLiteralObject);
+                        resolve(binaryLiteralObject,longerLiteralObject,true);
                         return false;});}}
 
 
@@ -1020,7 +1021,7 @@ public class Resolution extends Solver {
                                     addClauseTask(longerClause);
                                     ++statistics.mergeResolutionTwoMore;}
                                 return true;}}
-                        resolve(literalObject,negLiteralObject);
+                        resolve(literalObject,negLiteralObject,true);
                         return false;}))
                 return;}}
 
@@ -1081,7 +1082,7 @@ public class Resolution extends Solver {
                                                 if(monitoring) monitor.println(monitorId,step.info());}
                                             if(removeP) { // only a disjunction is definitely subsumed and can be removed.
                                                 removeClause(clauseP,true,true); return true;}}
-                                        else resolve(literalObjectP,literalObjectSNeg);
+                                        else resolve(literalObjectP,literalObjectSNeg,true);
                                         return false;}}
                                 return false;})) return clauseP.exists;}}
                 return clauseP.exists;}
@@ -1100,7 +1101,7 @@ public class Resolution extends Solver {
         int size = clause.size();
         for(final Literal resolutionLiteralObject : clause.literals) {
             literalIndexTwo.forAllLiterals(-resolutionLiteralObject.literal,null, // resolution with binary clauses.
-                    negLiteralObject -> {resolve(resolutionLiteralObject,negLiteralObject); return false;});
+                    negLiteralObject -> {resolve(resolutionLiteralObject,negLiteralObject,true); return false;});
             timestamp += size+2;
             int posLiteral = resolutionLiteralObject.literal;
             literalIndexMore.timestampClauses(-posLiteral,  // timestamp all potential resolution partners.
@@ -1112,10 +1113,50 @@ public class Resolution extends Solver {
                         (litObject -> { // all literals except two of them must merge.
                             Clause otherClause = litObject.clause;
                             if(otherClause.timestamp1 - timestamp == otherClause.size()-3)
-                                resolve(resolutionLiteralObject,otherClause.findLiteral(-posLiteral));
+                                resolve(resolutionLiteralObject,otherClause.findLiteral(-posLiteral),true);
                             else ++otherClause.timestamp1;
                             return false;}));}}
             timestamp += size+2;}
+
+    /**performs triple resolution with the given clause.
+     * <br>
+     * p,q,r<br>
+     * p,q,a<br>
+     * -r,-a,s<br>
+     * -------<br>
+     * p,q,s
+     *
+     * @param clause    a three-literal clause
+     * @throws Unsatisfiable if the resolvent yields a contradiction.
+     */
+    void tripleResolution(Clause clause) throws Unsatisfiable {
+        assert clause.size() == 3;
+        for(Literal literalObject1 : clause.literals) {
+            int literalP = literalObject1.literal;
+            for(Literal literalObject2 :clause.literals) {
+                if(literalObject2 == literalObject1) continue;
+                int literalQ = literalObject2.literal;
+                Literal literalObjectR = clause.findThirdLiteral(literalP,literalQ);
+                int literalR = literalObjectR.literal;
+                literalIndexMore.timestampClauses(literalQ,(litObject->litObject.clause.size()==3),timestamp,true);
+                literalIndexMore.timestampClauses(-literalR,(litObject->litObject.clause.size()==3),timestamp,true);
+                literalIndexMore.forAllLiterals(literalQ,(litObject -> litObject.clause.timestamp1 == timestamp),
+                        (litObjectQ1 -> {
+                            Clause clauseQ = litObjectQ1.clause;
+                            Literal literalObjectA = clauseQ.findThirdLiteral(literalP,literalQ);
+                            int literalA = literalObjectA.literal;
+                            literalIndexMore.forAllLiterals(-literalA,(litObject1 -> litObject1.clause.timestamp1 == timestamp),
+                                    (litObjectANeg ->{
+                                        Clause clauseANeg = litObjectANeg.clause;
+                                        Clause resolvent = resolve(literalObjectR,clauseANeg.findLiteral(-literalR),false);
+                                        if(resolvent != null) {
+                                            if(resolvent.size() == 4) {
+                                                resolve(literalObjectA,resolvent.findLiteral(-literalA),true);}
+                                            else{insertClause(resolvent);
+                                                addClauseTask(resolvent);}}
+                                        return true;}));
+                            return true;}));}
+            ++timestamp;}}
 
 
     private final IntArrayList trueLiterals = new IntArrayList();
@@ -1128,7 +1169,7 @@ public class Resolution extends Solver {
      * @param negLiteral     a parent literal
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    void resolve(final Literal posLiteral,final Literal negLiteral) throws Unsatisfiable {
+    Clause resolve(final Literal posLiteral,final Literal negLiteral, boolean insert) throws Unsatisfiable {
         trueLiterals.clear();
         final Clause resolvent = Clause.resolve(posLiteral,negLiteral,nextId,(trueLiterals::add));
         for(int literal : trueLiterals) {
@@ -1137,16 +1178,17 @@ public class Resolution extends Solver {
                     trackReasoning ? new InfResolutionTrueLiteral(posLiteral.clause,negLiteral.clause,literal,symboltable): null);
             if(monitoring) monitor.println(monitorId, posLiteral.clause.toString(symboltable,0) + " and " +
             negLiteral.clause.toString(symboltable,0) + " -> true(" + Symboltable.toString(literal,symboltable) + ")");}
-        if(resolvent == null || isSubsumed(resolvent) != null) return;
+        if(resolvent == null || isSubsumed(resolvent) != null) return null;
         if(trackReasoning) resolvent.inferenceStep =
                 new InfResolution(posLiteral.clause,negLiteral.clause, resolvent, symboltable);
-        insertClause(resolvent);
+        if(insert) insertClause(resolvent);
         if(resolvent.size() == 2) ++statistics.binaryResolvents; else ++statistics.longerResolvents;
         if(monitoring) monitor.println(monitorId,
                     "Resolution: " + posLiteral.clause.toString(symboltable,0) + " and " +
                             negLiteral.clause.toString(symboltable,0) + " -> " +
                             resolvent.toString(symboltable,0));
-        addClauseTask(resolvent);}
+        if(insert) addClauseTask(resolvent);
+        return resolvent;}
 
 
     /** adds a ClauseTask (ProcessBinaryClause or ProcessLongerClause) depending on the clause's size.
@@ -1391,7 +1433,7 @@ public class Resolution extends Solver {
                 for(Literal literalP : literalsP) {
                     for(Literal literalN: literalsN) {
                         ++statistics.longerResolvents;
-                        resolve(literalP,literalN);}}
+                        resolve(literalP,literalN,true);}}
                 for(Literal literalP : literalsP) {Clause clause = literalP.clause; removeClause(clause,false,true); literalP.clause = clause;}
                 for(Literal literalN : literalsN) {Clause clause = literalN.clause; removeClause(literalN.clause,false,true);literalN.clause = clause;}
                 eliminatedPredicates.add(literalsP); eliminatedPredicates.add(literalsN);
@@ -1418,7 +1460,7 @@ public class Resolution extends Solver {
                         if(localStatus(litObject.literal) == 0) {
                             makeLocallyTrue(litObject.literal);
                             if(++trueLiterals == clause.limit) break;}}}}
-        Unsatisfiable unsatisfiable = equivalences.completeModel(literal -> (int)localStatus(literal),this::makeLocallyTrue);
+        Unsatisfiable unsatisfiable = equivalences.completeModel(this::localStatus,this::makeLocallyTrue);
         if(unsatisfiable != null) {
             System.out.println("Contradiction in completed model for Equivalences. Should not happen!");
             System.out.println(localModelString());

@@ -7,12 +7,10 @@ import Utilities.BiIntConsumerWithUnsatisfiable;
 import Utilities.IntToByteFunction;
 
 import java.util.function.IntConsumer;
-import java.util.function.IntFunction;
 
-/** The class represents a conditioned equivalence class: triggerLiteral -&gt; representative == literal1 == literal2 == ...
+/** The class represents the equivalence of two literals: representative == literal
  * <br>
- *  If the triggerLiteral is 0 then there is no condition for the equivalence.<br>
- *  The representative is always a positive literal.
+ *  The representative is always a positive literal with representative &lt; |literal|
  */
 public class Equivalence {
 
@@ -22,11 +20,12 @@ public class Equivalence {
     /** the equivalent literal. */
     int literal;
 
-    /** the inference steps which caused the derivation of the equivalence.
-     * infereceSteps[i] corresponds to the equivalence representative == literals[i]. */
+    /** the inference step which caused the derivation of the equivalence.*/
     InferenceStep inferenceStep = null;
 
-    /** constructs a new equivalence class.
+    /** constructs a new equivalence class representative == literal.
+     * <br>
+     * The representative is the smaller literal and always positive.
      *
      * @param literal1 a literal
      * @param literal2 a literal with literal1 == literal2
@@ -36,7 +35,7 @@ public class Equivalence {
         if(Math.abs(literal1) < Math.abs(literal2)) {
               representative = literal1; literal = literal2;}
         else {representative = literal2; literal = literal1;}
-        if(representative < 0) {representative *= -1; literal = -1;}
+        if(representative < 0) {representative *= -1; literal *= -1;}
         this.inferenceStep = inferenceStep;}
 
 
@@ -57,18 +56,21 @@ public class Equivalence {
          *
          * @param trueLiteral  to be applied to a literal: +1(true), -1(false), 0(undecided)
          * @param inferenceStep which caused the truth of the literal.
-         * @param trueLiterals applied to the other true literals together with the corresponding inference step.
+         * @param trueLiterals applied to the other true literal together with the corresponding inference step.
          * @return true if the equivalence class is now useless and can be removed.
          * @throws Unsatisfiable if a contradiction is encountered.
          */
     boolean applyTrueLiteral(IntToByteFunction trueLiteral, InferenceStep inferenceStep, BiIntConsumerWithUnsatisfiable<InferenceStep> trueLiterals) throws Unsatisfiable{
-        int sign;
-        if((sign = trueLiteral.apply(representative)) != 0) {
-            trueLiterals.accept(sign*literal,InfList.makeInfList(inferenceStep,inferenceStep));
+        int sign1 = trueLiteral.apply(representative); int sign2 = trueLiteral.apply(literal);
+        if(sign1 != 0 && sign2 != 0) {
+            if(sign1 == sign2) return true;
+            else throw new UnsatEquivalence(representative,literal,InfList.makeInfList(this.inferenceStep,inferenceStep));}
+        if(sign1 != 0) {
+            trueLiterals.accept(sign1*literal,InfList.makeInfList(this.inferenceStep,inferenceStep));
             return true;}
         else {
-            if((sign = trueLiteral.apply(literal)) != 0) {
-                trueLiterals.accept(sign*representative,InfList.makeInfList(inferenceStep,inferenceStep));
+            if(sign2 != 0) {
+                trueLiterals.accept(sign2*representative,InfList.makeInfList(this.inferenceStep,inferenceStep));
                 return true;}}
         return false;}
 
@@ -76,18 +78,16 @@ public class Equivalence {
     /** completes a model for literals with undecided truth value.
      * <br>
      * The model must guaranty that the equivalences are true.<br>
-     * Triggered equivalences t &gt;- p == q == ...<br>
-     * are even true if false(t) and true(p) == false(q) holds.<br>
-     * There should not be an inconsistency of the existing model with the equivalences.
+     * There should not be an inconsistency of the existing model with the equivalences.<br>
      * If this happens, an exception is thrown. Something in the algorithm went wrong!
      *
      * @param modelStatus   returns +1 (true), -1 (false) or 0 (undecided).
      * @param makeTrue      for making an undecided literal true.
      * @throws UnsatEquivalence if an inconsistency true(p) == false(q) is found.
      */
-    void completeModel(IntFunction<Integer> modelStatus, IntConsumer makeTrue) throws UnsatEquivalence {
-        int status1 = modelStatus.apply(representative);
-        int status2 = modelStatus.apply(literal);
+    void completeModel(IntToByteFunction modelStatus, IntConsumer makeTrue) throws UnsatEquivalence {
+        byte status1 = modelStatus.apply(representative);
+        byte status2 = modelStatus.apply(literal);
         if(status1 != 0 && status2 != 0 && status1 != status2) {
             throw new UnsatEquivalence(representative,literal,inferenceStep);}
         if(status1 == 0) {
@@ -96,14 +96,14 @@ public class Equivalence {
         if(status2 == 0) makeTrue.accept(status1*literal);}
 
 
-    /** turns the equivalence class into a string triggerLiteral -&gt; representative == literal1 == ...
+    /** turns the equivalence class into a string  representative == literal
      *
      * @return the equivalence class as a string.
      */
     public String toString() {
         return toString(null);}
 
-    /** turns the equivalence class into a string triggerLiteral -&gt; representative == literal1 == ...
+    /** turns the equivalence class into a string representative == literal
      *
      * @param symboltable null or a symboltable for the predicates.
      * @return the equivalence class as a string.

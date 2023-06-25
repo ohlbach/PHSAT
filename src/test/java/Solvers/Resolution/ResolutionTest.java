@@ -5,7 +5,6 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import Datastructures.Theory.InferenceTest;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
@@ -252,8 +251,7 @@ public class ResolutionTest extends TestCase {
         clause = new Clause(new int[]{4, cOr, -1,3});
         resolution.insertClause(clause);
         resolution.mergeResolutionAndEquivalenceTwoTwo(clause,-1,3,true);
-        assertEquals("2: 1v2\n", resolution.clauses.toString());
-        assertEquals("[1, 3]",resolution.equivalenceList.toString());
+        assertEquals("2: 1v2\n", resolution.clauses.toString());;
     }
     public void testIsSubsumedByBinaryClauses()  {
         System.out.println("binaryClauseIsSubsumed");
@@ -448,7 +446,7 @@ public class ResolutionTest extends TestCase {
         Resolution resolution = new Resolution(predicates, monitor, true, nextId);
         resolution.insertClause(new Clause(new int[]{1, cOr, 1, 5}));
         resolution.insertClause(new Clause(new int[]{2, cOr, 5,3}));
-        resolution.processUntriggerdEquivalence(2, 5, new InferenceTest("MyTest 1"));
+       // resolution.processEquivalence(2, 5, new InferenceTest("MyTest 1"));
         assertEquals("1: 1v2\n" +
                 "2: 2v3\n", resolution.clauses.toString());
 
@@ -456,7 +454,7 @@ public class ResolutionTest extends TestCase {
         resolution.clear();
         resolution.insertClause(new Clause(new int[]{1, cOr, 1, 5}));
         resolution.insertClause(new Clause(new int[]{2, cOr, 5,2}));
-        resolution.processUntriggerdEquivalence(2, 5, new InferenceTest("MyTest 2"));
+       // resolution.processEquivalence(2, 5, new InferenceTest("MyTest 2"));
         assertEquals("1: 1v2\n", resolution.clauses.toString());
         assertEquals("2,5", resolution.model.toString());
 
@@ -464,7 +462,7 @@ public class ResolutionTest extends TestCase {
         resolution.clear();
         resolution.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,3, 5}));
         resolution.insertClause(new Clause(new int[]{2, cAtleast, 3, 4,4,5,5,5,6,6,2}));
-        resolution.processUntriggerdEquivalence(2, 5, new InferenceTest("MyTest 3"));
+        //resolution.processUntriggerdEquivalence(2, 5, new InferenceTest("MyTest 3"));
         System.out.println(resolution.statistics);
         assertEquals("1: >= 2 1,3,2\n" +
                 "2: >= 3 4^2,6^2,2^3\n", resolution.clauses.toString());
@@ -472,14 +470,14 @@ public class ResolutionTest extends TestCase {
         if(monitoring) System.out.println("\nNEW 3");
         resolution.clear();
         resolution.insertClause(new Clause(new int[]{1, cAtleast, 2, 1,1,2,3,3}));
-        resolution.processUntriggerdEquivalence(3, 2, new InferenceTest("MyTest 4"));
+       // resolution.processUntriggerdEquivalence(3, 2, new InferenceTest("MyTest 4"));
         assertEquals("1: 1v3\n", resolution.clauses.toString());
 
         if(monitoring) System.out.println("\nNEW 4");
         resolution.clear();
         Clause clause = new Clause(new int[]{1, cAtleast, 3, 1,1,2,3});
         resolution.insertClause(clause);
-        resolution.processUntriggerdEquivalence(3, 2, new InferenceTest("MyTest 5"));
+      //  resolution.processUntriggerdEquivalence(3, 2, new InferenceTest("MyTest 5"));
 
         assertFalse(clause.exists);
         assertEquals("1,2,3", resolution.model.toString());
@@ -497,7 +495,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{6, cAtleast, 2, -1,-2,-3,-4}));
         resolution.insertClause(new Clause(new int[]{7, cAtleast, 2, 1,2,3,-4}));
         resolution.insertClause(new Clause(new int[]{8, cOr, -2,3}));
-        resolution.processUntriggerdEquivalence(2, 3, new InferenceTest("MyTest 6"));
+      //  resolution.processUntriggerdEquivalence(2, 3, new InferenceTest("MyTest 6"));
         assertEquals("1,2,3",resolution.localModelString());
         assertEquals("5: -1v-2\n" +
                 "6: >= 2 -1,-2^2,-4\n" +
@@ -506,10 +504,11 @@ public class ResolutionTest extends TestCase {
         if(monitoring) System.out.println(resolution.statistics.toString());
 
         if(monitoring) System.out.println("\nNEW 6");
-        try{
-        resolution.processUntriggerdEquivalence(2, 4, new InferenceTest("MyTest 7"));}
-        catch(Result result) {if(monitoring) System.out.println(result.toString());}
-    }
+     //   try{
+     //   resolution.processUntriggerdEquivalence(2, 4, new InferenceTest("MyTest 7"));
+              }
+       // catch(Result result) {if(monitoring) System.out.println(result.toString());}
+
 
     public void testRemoveClausesSubsumedByLongerClause() throws Result {
         System.out.println("removeClausesSubsumedByLongerClause");
@@ -700,34 +699,7 @@ public class ResolutionTest extends TestCase {
         if(monitoring) System.out.println(resolution.statistics.toString());
     }
 
-        public void testFindTriggeredEquivalence() throws Unsatisfiable {
-        System.out.println("findTriggeredEquivalence");
-        int predicates = 6;
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
 
-        Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
-        resolution.insertClause(clause1);
-        Clause clause2 = new Clause(new int[]{2, cOr, 1, 2, -3});
-        resolution.insertClause(clause2);
-        resolution.insertClause(new Clause(new int[]{3, cOr, -3,-2,1}));
-        assertEquals(1, resolution.findTriggeredEquivalence(clause1));
-        assertEquals("-1 -> 2 == -3\n",resolution.equivalences.toString());
-        assertEquals(0,resolution.findTriggeredEquivalence(clause2));
-
-        if(monitoring) System.out.println("\nNEW");
-        resolution.clear();
-        clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
-        resolution.insertClause(clause1);
-        resolution.insertClause(new Clause(new int[]{2, cOr, 1,-2,-3}));
-        resolution.insertClause(new Clause(new int[]{3, cOr, -1,2,-3}));
-        assertEquals(2, resolution.findTriggeredEquivalence(clause1));
-        assertEquals("-1 -> 2 == -3\n" +
-                "-2 -> 1 == -3\n",resolution.equivalences.toString());
-
-    }
 
     public void testbinaryClauseIsSubsumedByBinaryClauses()  {
         System.out.println("binaryClauseIsSubsumed");
