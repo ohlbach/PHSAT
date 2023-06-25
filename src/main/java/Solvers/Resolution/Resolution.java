@@ -212,7 +212,7 @@ public class Resolution extends Solver {
         timestampSubsumption = 1;
         statistics.clear();
         queue.clear();
-        equivalences.equivalences.clear();
+        equivalences.clear();
         if(literalIndexTwo == null)  literalIndexTwo = new Literals("TWO",predicates);
         else literalIndexTwo.clear(predicates);
         if(literalIndexMore == null) literalIndexMore = new Literals("MORE",predicates);
@@ -750,7 +750,7 @@ public class Resolution extends Solver {
                                     new InfEquivalence(clause1,clause2,literal1,-literal2,symboltable) : null;
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
                             Equivalence equivalence = new Equivalence(literal1,-literal2,step);
-                            ++statistics.binaryEquivalences;
+                            ++statistics.equivalences;
                             processEquivalence(equivalence);
                             return true;}));}}
         finally {++timestamp;}}
@@ -1151,7 +1151,8 @@ public class Resolution extends Solver {
                                         Clause resolvent = resolve(literalObjectR,clauseANeg.findLiteral(-literalR),false);
                                         if(resolvent != null) {
                                             if(resolvent.size() == 4) {
-                                                resolve(literalObjectA,resolvent.findLiteral(-literalA),true);}
+                                                resolve(literalObjectA,resolvent.findLiteral(-literalA),true);
+                                                ++statistics.tripleResolutions;}
                                             else{insertClause(resolvent);
                                                 addClauseTask(resolvent);}}
                                         return true;}));

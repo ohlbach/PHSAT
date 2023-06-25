@@ -41,7 +41,7 @@ public class ResolutionStatistics extends Statistic {
     @Description("merge resolution between a longer clauses")
     public int mergeResolutionMoreMore = 0;
     @Description("binary equivalences")
-    public int binaryEquivalences = 0;
+    public int equivalences = 0;
     @Description("triggered equivalences")
     public int triggeredEquivalences = 0;
     @Description("equivalence replacements")
@@ -54,6 +54,10 @@ public class ResolutionStatistics extends Statistic {
 
     @Description("number of predicates eliminated by resolution.")
     public int resolvedPredicates = 0;
+
+    @Description("triple resolutions.")
+    public int tripleResolutions = 0;
+
 
 
     public void clear() {
@@ -71,9 +75,9 @@ public class ResolutionStatistics extends Statistic {
         mergeResolutionTwoTwo            = 0;
         mergeResolutionTwoMore           = 0;
         mergeResolutionMoreMore          = 0;
-        binaryEquivalences               = 0;
+        equivalences                     = 0;
         equivalenceReplacements          = 0;
-        equivalenceReplacementsTriggered = 0;
+        tripleResolutions                = 0;
     }
     public String toString(){
         StringBuilder st = new StringBuilder();
@@ -92,10 +96,9 @@ public class ResolutionStatistics extends Statistic {
         st.append("Merge Resolution binary-binary:    ").append(mergeResolutionTwoTwo).append("\n");
         st.append("Merge Resolution binary-longer:    ").append(mergeResolutionTwoMore).append("\n");
         st.append("Merge Resolution longer-longer:    ").append(mergeResolutionMoreMore).append("\n");
-        st.append("Binary Equivalences:               ").append(binaryEquivalences).append("\n");
-        st.append("Triggered Equivalences:            ").append(triggeredEquivalences).append("\n");
+        st.append("Triple Resolutions:                ").append(tripleResolutions).append("\n");
+        st.append("Equivalences:                      ").append(equivalences).append("\n");
         st.append("Equivalence Replacements:          ").append(equivalenceReplacements).append("\n");
-        st.append("Triggered Equivalence Replacements ").append(equivalenceReplacementsTriggered);
         return st.toString();
     }
 
