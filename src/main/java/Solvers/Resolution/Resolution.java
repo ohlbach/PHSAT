@@ -479,8 +479,8 @@ public class Resolution extends Solver {
         if(!clause.exists) return;
         mergeResolutionAndEquivalenceTwoTwo(clause,literal2,literal1,false);
         if(!clause.exists) return;
-        mergeResolutionAndEquivalenceTwoMore(clause,literal1,literal2,true);
-        mergeResolutionAndEquivalenceTwoMore(clause,literal2,literal1,false);
+        mergeResoluionTwoMore(clause,literal1,literal2);
+        mergeResoluionTwoMore(clause,literal2,literal1);
         if(checkPurity(literal1) || checkPurity(literal2)) {
             removeClause(clause,false,literalIndexTwo,true); return;}
         saturateBinaryClausesWithBinaryClause(clause);
@@ -515,7 +515,6 @@ public class Resolution extends Solver {
             return;}
         removeClausesSubsumedByLongerClause(clause);
         if(!mergeResolutionMoreMore(clause)) return;
-        if(clause.isDisjunction && clause.size() == 3 && findTriggeredEquivalence(clause) > 0) return;
         saturateBinaryClausesWithLongerClause(clause);
         if(clause.exists) mergeResolutionPartial(clause);
     }
@@ -545,17 +544,13 @@ public class Resolution extends Solver {
     void processTrueLiteral(final int oldTrueLiteral, final InferenceStep inferenceStep) throws Unsatisfiable {
         processTrueLiteralTwo(oldTrueLiteral,inferenceStep);
         processTrueLiteralMore(oldTrueLiteral);
-        trueLiterals.clear();
-        inferenceSteps.clear();
-        for(Equivalence equivalence : // equivalences whose trigger literal became true.
-                equivalences.applyTrueLiteral(this::localStatus,inferenceStep,
-                    (trueLiteral,step) -> {
-                        if(monitoring) monitor.println(monitorId, "Equivalent literal " +
+        equivalences.applyTrueLiteral(this::localStatus,inferenceStep,
+                (trueLiteral,step) -> {
+                    if(monitoring) monitor.println(monitorId, "Equivalent literal " +
                             Symboltable.toString(trueLiteral,symboltable) + " added to model.");
-                        addInternalTrueLiteralTask(trueLiteral,true,
+                    addInternalTrueLiteralTask(trueLiteral,true,
                             trackReasoning ? new InfEquivalentTruth(trueLiteral,oldTrueLiteral,step) : null);
-                        ++statistics.derivedTrueLiterals;})) {
-            processEquivalence(equivalence);}}
+                            ++statistics.derivedTrueLiterals;});}
 
     /** applies a true literal to all two-literal clauses containing this literal.
      * <br>
@@ -753,36 +748,33 @@ public class Resolution extends Solver {
                             InfEquivalence step = (trackReasoning || monitoring) ?
                                     new InfEquivalence(clause1,clause2,literal1,-literal2,symboltable) : null;
                             if(monitoring) monitor.println(monitorId,step.info(symboltable));
-                            Equivalence equivalence = equivalences.add(0,literal1,-literal2,step);
+                            Equivalence equivalence = new Equivalence(literal1,-literal2,step);
                             ++statistics.binaryEquivalences;
-                            if(equivalence != null) processEquivalence(equivalence);
+                            processEquivalence(equivalence);
                             return true;}));}}
         finally {++timestamp;}}
 
-    /** replaces all occurrences of the (unconditioned) equivalent literals by their representative.
+    /** replaces all occurrences of the equivalent literal by  its representative.
      * <br>
-     * This step eliminates these literals from the search space.<br>
+     * This step eliminates the literal from the search space.<br>
      *
-     * @param equivalence  an equivalence p == q_1 == ... == q_n
+     * @param equivalence  an equivalence p == q
      * @throws Unsatisfiable if replacing a literal causes an inconsistency.
      */
     void processEquivalence(Equivalence equivalence) throws Unsatisfiable {
-        assert equivalence.triggerLiteral == 0;
         int representative = equivalence.representative;
-        for(int i = 0; i < equivalence.literals.size(); ++i) {
-            int literal = equivalence.literals.get(i);
-            InferenceStep step = equivalence.inferenceSteps.get(i);
-            for(int sign = 1; sign >= -1; sign -= 2) {
-                int newLiteral = sign*representative;
-                literalIndexTwo.forAllLiterals(sign*literal,null,
+        int literal = equivalence.literal;
+        InferenceStep step = equivalence.inferenceStep;
+        for(int sign = 1; sign >= -1; sign -= 2) {
+            int newLiteral = sign*representative;
+            literalIndexTwo.forAllLiterals(sign*literal,null,
                     (literalObject -> {
                         replaceLiteral(literalObject,newLiteral,literalIndexTwo,step);
                         return false;}));
-                literalIndexMore.forAllLiterals(sign*literal,null,
+            literalIndexMore.forAllLiterals(sign*literal,null,
                     (literalObject -> {
                         replaceLiteral(literalObject,newLiteral,literalIndexMore,step);
                         return false;}));}}
-        equivalences.backupEquivalence(equivalence);}
 
 
     /** performs merge resolution between a binary clause and a longer clause, and triggered equivalence recognition, if possible.
@@ -797,11 +789,9 @@ public class Resolution extends Solver {
      * @param clause1   the binary clause.
      * @param literal1  either the first or the second literal.
      * @param literal2  the other literal.
-     * @param checkEquivalence if true then equivalence check is done.
      * @throws Unsatisfiable if inserting a derived unit clause into the model causes a contradiction.
      */
-    void mergeResolutionAndEquivalenceTwoMore(final Clause clause1, int literal1, int literal2,
-                                             final boolean checkEquivalence) throws Unsatisfiable {
+    void mergeResoluionTwoMore(final Clause clause1, int literal1, int literal2) throws Unsatisfiable {
         assert(clause1.size() == 2);
         ++timestamp; // just to be sure.
         try{literalIndexMore.timestampClauses(-literal1,null,timestamp,true);
@@ -820,22 +810,7 @@ public class Resolution extends Solver {
                                 if(monitoring) monitor.println(monitorId,step.info());}}
                         else {resolve(negLiteralObject1,clause1.findLiteral(literal1)); } // non-destructive merge
                         ++statistics.mergeResolutionTwoMore;
-                        return false;}));
-
-            if(checkEquivalence) { // literal1,literal2 and -literal1,-literal2, triggerLiteral -> -triggerLiteral => literal1 == -literal2
-                literalIndexMore.forAllLiterals(-literal2,
-                        (literalObject2 -> {
-                            Clause clause2 = literalObject2.clause;
-                            return clause2.timestamp1 == timestamp && clause2.isDisjunction && clause2.size() == 3;}),
-                        (literalObject2 -> {
-                            Clause clause2 = literalObject2.clause;
-                            int triggerLiteral = -clause2.findThirdLiteral(literal1,-literal2).literal;
-                            InfEquivalence step = (trackReasoning || monitoring) ?
-                                    new InfEquivalence(clause1,clause2,triggerLiteral,literal1,-literal2,symboltable) : null;
-                            if(monitoring) monitor.println(monitorId,step.info(symboltable));
-                            equivalences.add(triggerLiteral,literal1,-literal2,step);
-                            ++statistics.triggeredEquivalences;
-                            return true;}));}}
+                        return false;}));}
         finally {++timestamp;}}
 
     /** performs resolution between the given clause and all other binary clauses.
@@ -1112,84 +1087,6 @@ public class Resolution extends Solver {
                 return clauseP.exists;}
         finally{timestamp += clausePSize + 1;}}
 
-    /** This method tries to find a triggered equivalence with the given three-literal disjunction.
-     * <br>
-     *  Clause: p, q, r <br>
-     *  Clause: p,-q,-r<br>
-     *  -------------------<br>
-     *  -p -&gt; q == -r
-     * <br>
-     *  Clause:    q, r <br>
-     *  Clause: p,-q,-r<br>
-     *  -------------------<br>
-     *  -p -&gt; q == -r
-     *
-     * @param clause a three-literal disjunction.
-     * @return the number of discovered equivalences.
-     * @throws Unsatisfiable if the equivalence contradicts another equivalence.
-     */
-    int findTriggeredEquivalence(Clause clause) throws Unsatisfiable {
-        assert clause.isDisjunction && clause.size() == 3;
-        try{int counter = 0;
-            for(Literal triggerLiteralObject : clause.literals) {
-                int triggerLiteral = triggerLiteralObject.literal;
-                Literal literalObject1 = null; Literal literalObject2 = null;
-                for(Literal literalObject : clause.literals) { // identify the three literals in the clause
-                    if(literalObject != triggerLiteralObject) {
-                        if(literalObject1 == null) literalObject1 = literalObject;
-                        else literalObject2 = literalObject;}}
-
-                if(findTriggeredEquivalenceBinary(clause, -triggerLiteral,literalObject1.literal,literalObject2.literal)) {
-                    ++counter; continue;}
-                timestamp += 2;
-
-                // timestamp all candidate clauses with the trigger literal.
-                if(!literalIndexMore.timestampClauses(triggerLiteral,
-                       (candidateLiteral -> {
-                           Clause candidateClause = candidateLiteral.clause;
-                           return candidateClause.isDisjunction && candidateClause.size() == 3;}),
-                       timestamp,true)) continue; // there can't be an equivalence with this trigger literal.
-
-                // timestamp the first equivalence literal.
-                if(!literalIndexMore.timestampClauses(-literalObject1.literal,
-                        (candidateLiteral -> candidateLiteral.clause.timestamp1 == timestamp),
-                        timestamp+1,true)) continue; // there can't be an equivalence with this trigger literal.
-
-                Literal literalObjectFirst = literalObject1;
-                if(literalIndexMore.forAllLiterals(-literalObject2.literal,
-                        literalObjectSecond -> literalObjectSecond.clause.timestamp1 == timestamp+1,
-                        literalObjectSecond -> {
-                            InfEquivalence step = (trackReasoning || monitoring) ?
-                                    new InfEquivalence(clause,literalObjectSecond.clause, -triggerLiteral,
-                                            literalObjectFirst.literal,literalObjectSecond.literal, symboltable) : null;
-                            if(monitoring) monitor.println(monitorId,step.info(symboltable));
-                            ++statistics.triggeredEquivalences;
-                            equivalences.add(-triggerLiteral,literalObjectFirst.literal, literalObjectSecond.literal,step);
-                            return true;})) ++counter;}
-            return counter;}
-        finally {timestamp += 2;}}
-
-    /** searches for a triggered equivalence with a binary clause: p,q,r and -q,-r -&gt; p =&gt; q == -r
-     *
-     * @param clause          a 3-literal disjunction
-     * @param triggerLiteral  the negation of one of the literals in the clause.
-     * @param literal1        the other literal in the clause
-     * @param literal2        the other literal in the clause.
-     * @return                true if an equivalence has been found
-     * @throws Unsatisfiable should not happen.
-     */
-    boolean findTriggeredEquivalenceBinary(Clause clause, int triggerLiteral, int literal1, int literal2) throws Unsatisfiable {
-         if(literalIndexTwo.timestampClauses(-literal1,null,timestamp,true)) {
-            return literalIndexTwo.forAllLiterals(-literal2,
-                    (literalObject -> literalObject.clause.timestamp1 == timestamp),
-                    (literalObject -> {
-                        InfEquivalence step = (trackReasoning || monitoring) ?
-                                new InfEquivalence(clause,literalObject.clause,triggerLiteral,literal1,-literal2,symboltable) : null;
-                        if(monitoring) monitor.println(monitorId,step.info(symboltable));
-                        equivalences.add(triggerLiteral,literal1,-literal2,step);
-                        --statistics.triggeredEquivalences;
-                        return true;}));}
-        return false;}
 
    
     /** creates all resolvents with the given clause which are not longer than the clause itself.
