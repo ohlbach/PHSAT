@@ -167,58 +167,58 @@ public class ClauseTest extends TestCase {
         removedLiterals.clear();
         trueLiterals.clear();
         Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
-        assertEquals(0, clause.removeLiterals((l-> {return 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
+        assertEquals(0, clause.removeLiterals((l-> {return (byte)0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
         assertEquals("1: 1v2v3",clause.toString());
 
-        assertEquals(0, clause.removeLiterals((l-> {return (l.literal == 2)? -1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
+        assertEquals(0, clause.removeLiterals((l-> {return (l.literal == 2)? (byte)-1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
         assertEquals("1: 1v3",clause.toString());
         assertEquals("2",Literal.toString(removedLiterals,null));
 
         removedLiterals.clear();
         trueLiterals.clear();
-        assertEquals(1, clause.removeLiterals((l-> {return (l.literal == 3)? -1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
+        assertEquals(1, clause.removeLiterals((l-> {return (l.literal == 3)? (byte)-1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
         assertEquals("3,1",Literal.toString(removedLiterals,null));
         assertEquals("[1]",trueLiterals.toString());
 
         removedLiterals.clear();
         trueLiterals.clear();
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});
-        assertEquals(1, clause.removeLiterals((l-> {return (l.literal == 3)? 1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
+        assertEquals(1, clause.removeLiterals((l-> {return (l.literal == 3)? (byte)1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
         assertEquals("3,1,2",Literal.toString(removedLiterals,null));
         assertEquals("[]",trueLiterals.toString());
 
         removedLiterals.clear();
         trueLiterals.clear();
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});
-        assertEquals(1, clause.removeLiterals((l-> {return (l.literal == 3|| l.literal == 1)? -1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
+        assertEquals(1, clause.removeLiterals((l-> {return (l.literal == 3|| l.literal == 1)? (byte)-1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
         assertEquals("1,3,2",Literal.toString(removedLiterals,null));
         assertEquals("[2]",trueLiterals.toString());
 
         removedLiterals.clear();
         trueLiterals.clear();
         clause = new Clause(new int[]{1, cOr, 1, 2, 3});
-        assertEquals(-1, clause.removeLiterals((l-> {return -1;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
+        assertEquals(-1, clause.removeLiterals((l-> {return (byte)-1;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
         assertEquals("1,2,3",Literal.toString(removedLiterals,null));
         assertEquals("[]",trueLiterals.toString());
 
         removedLiterals.clear();
         trueLiterals.clear();
         clause = new Clause(new int[]{1, cAtleast, 3, 1, 2, 3});
-        assertEquals(1, clause.removeLiterals((l-> {return 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
+        assertEquals(1, clause.removeLiterals((l-> {return (byte)0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
         assertEquals("1,2,3",Literal.toString(removedLiterals,null));
         assertEquals("[1, 2, 3]",trueLiterals.toString());
 
         removedLiterals.clear();
         trueLiterals.clear();   // Example:  >= 2 p^2,q,r. and false(q) -> >= 2 p^2,r -> p must be true.
         clause = new Clause(new int[]{1, cAtleast, 2, 1, 1, 2, 3});
-        assertEquals(1, clause.removeLiterals((l-> {return (l.literal == 2)? -1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
+        assertEquals(1, clause.removeLiterals((l-> {return (l.literal == 2)? (byte)-1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
         assertEquals("2,1^2,3",Literal.toString(removedLiterals,null));
         assertEquals("[1]",trueLiterals.toString());
 
         removedLiterals.clear();
         trueLiterals.clear();   // Example: >= 2 p,q^2,r^2,s and false(p) -> >= 2 q^2,r^2,s -> q,r
         clause = new Clause(new int[]{1, cAtleast, 2, 1, 2, 2, 3, 3, 4});
-        assertEquals(0, clause.removeLiterals((l-> {return (l.literal == 1)? -1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
+        assertEquals(0, clause.removeLiterals((l-> {return (l.literal == 1)? (byte)-1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
         assertEquals("1,4",Literal.toString(removedLiterals,null));
         assertEquals("[]",trueLiterals.toString());
         assertEquals("1: 2v3",clause.toString());
@@ -228,7 +228,7 @@ public class ClauseTest extends TestCase {
         trueLiterals.clear();   // Example: >= 2 p,q^2,r^2,s and false(p) -> >= 2 q^2,r^2,s -> q,r
         clause = new Clause(new int[]{1, cAtleast, 2, -1, 2, 2, 3, 3, 4});
         assertEquals(ClauseType.MIXEDPOSITIVE,clause.clauseType);
-        assertEquals(0, clause.removeLiterals((l-> {return (l.literal == -1)? -1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
+        assertEquals(0, clause.removeLiterals((l-> {return (l.literal == -1)? (byte)-1: 0;}),(l -> removedLiterals.add(l)), (l->trueLiterals.add(l)) ));
         assertEquals("-1,4",Literal.toString(removedLiterals,null));
         assertEquals("[]",trueLiterals.toString());
         assertEquals("1: 2v3",clause.toString());

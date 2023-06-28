@@ -7,15 +7,15 @@ import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Solvers.Normalizer.Normalizer;
 import Utilities.IntConsumerWithUnsatisfiable;
+import Utilities.IntToByteFunction;
+import Utilities.ByteFunction;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.IntSupplier;
-
 
 /** A Clause object is essentially a collection of Literal objects.
  *  A clause can only be a disjunction (OR-clause) or an ATLEAST-clause.<br>
@@ -30,6 +30,7 @@ import java.util.function.IntSupplier;
 public class Clause {
     /** the identifier for the clause. */
     final int identifier;
+    IntToByteFunction x;
 
     /** another identifier for clauses which originated from interval-type clauses */
     int subIdentifier = 0;
@@ -235,6 +236,7 @@ public class Clause {
 
 
 
+
     /** removes all literals where modelStatus != 0.
      * <br>
      * modelStatus == 1 means the literal is true, and therefor the limit has to be reduced by the literal's multiplicity.<br>
@@ -255,7 +257,7 @@ public class Clause {
      * @param trueLiterals is applied to all derivable true literals.
      * @return +1 (removed), -1 (unsatisfiable), 0 undefined.
      */
-    byte removeLiterals(final Function<Literal,Integer> modelStatus, final Consumer<Literal> remover,
+    byte removeLiterals(final ByteFunction<Literal> modelStatus, final Consumer<Literal> remover,
                         final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable {
         for(int i = 0; i < literals.size(); ++i) {
             final Literal literalObject = literals.get(i);
@@ -271,6 +273,8 @@ public class Clause {
                     for(Literal litObject : literals) remover.accept(litObject);
                     literals.clear();
                     return 1;}}}
+
+        if(expandedSize < limit) {return -1;}
 
         if(literals.size() == 1) { // unit clause, must be true.
             trueLiterals.accept(literals.get(0).literal); // may throw Unsatisfiable
@@ -513,7 +517,7 @@ public class Clause {
                               final Consumer<Literal> remover, final Consumer<Literal> adder,
                               final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable{
         Clause clause = literalObject.clause;
-        Function<Literal,Integer> decider = ((Literal l) -> (l == literalObject) ? -1:0);
+        ByteFunction<Literal> decider = (l -> (l == literalObject) ? (byte)-1:0);
         Literal newLiteralObject = clause.findLiteral(newLiteral);
         if(newLiteralObject != null) { // the two literals merge into one.
             int multiplicity = newLiteralObject.multiplicity;
@@ -539,7 +543,7 @@ public class Clause {
                         newLitObject.clause = clause;
                         clause.exchangeLiterals(literalObject,newLitObject);
                         adder.accept(newLitObject);
-                        return clause.removeLiterals(((Literal l) -> (l == negNewLiteralObject) ? -1:0),remover,trueLiterals);}}}}
+                        return clause.removeLiterals(((Literal l) -> (l == negNewLiteralObject) ? (byte)-1:0),remover,trueLiterals);}}}}
         remover.accept(literalObject);
         final Literal newLitObject = new Literal(newLiteral,literalObject.multiplicity);
         newLitObject.clause = clause;

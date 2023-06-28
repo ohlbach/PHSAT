@@ -22,32 +22,35 @@ public class InfTrueLiteral extends InferenceStep {
 
     private final String clauseBefore;
     private final String clauseString;
-
-    private final String trueLiterals;
-    private final int trueLiteral;
-
-    private final InferenceStep inferenceStep;
+    private final IntArrayList oldTrueLiterals;
+    private final int newTrueLiteral;
+    private final ArrayList<InferenceStep> inferenceSteps;
 
     /** constructs a new InferenceStep.
      *
      * @param clause a clause
-     * @param trueLiterals a list of true literals.
-     * @param trueLiteral the derived true literal.
+     * @param oldTrueLiterals the true literals in the clause.
+     * @param trueLiteralsInferenceSteps which caused the true literals in the clause.
+     * @param newTrueLiteral the derived true literal.
      * @param symboltable null or a symboltable.
      */
-    public InfTrueLiteral(String clauseBefore, Clause clause, IntArrayList trueLiterals, int trueLiteral, Symboltable symboltable) {
+    public InfTrueLiteral(String clauseBefore, Clause clause, IntArrayList oldTrueLiterals,
+                          ArrayList<InferenceStep> trueLiteralsInferenceSteps, int newTrueLiteral, Symboltable symboltable) {
         this.clauseBefore   = clauseBefore;
         clauseString       = clause.toString(symboltable,0);
-        this.trueLiterals  = Symboltable.toString(trueLiterals,symboltable);
-        this.trueLiteral   = trueLiteral;
-        this.inferenceStep = clause.inferenceStep;}
+        this.oldTrueLiterals = oldTrueLiterals;
+        this.newTrueLiteral = newTrueLiteral;
+        inferenceSteps = new ArrayList<>();
+        inferenceSteps.add(clause.inferenceStep);
+        inferenceSteps.addAll(trueLiteralsInferenceSteps);}
 
     @Override
     public String rule() {
         return title + ":\n" + rule;}
 
     public String info(Symboltable symboltable) {
-        return clauseBefore + " and true(" + trueLiterals +") -> " + clauseString + " and true("+ Symboltable.toString(trueLiteral,symboltable)+ ")";}
+        return clauseBefore + " and true(" + Symboltable.toString(oldTrueLiterals,symboltable) +") -> "
+                + clauseString + " and true("+ Symboltable.toString(newTrueLiteral,symboltable)+ ")";}
 
     @Override
     public String toString(Symboltable symboltable) {
@@ -56,6 +59,6 @@ public class InfTrueLiteral extends InferenceStep {
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
         if(steps.contains(this)) return;
-        inferenceStep.inferenceSteps(steps,ids);
+        for(InferenceStep step: inferenceSteps) step.inferenceSteps(steps,ids);
         steps.add(this);}
 }
