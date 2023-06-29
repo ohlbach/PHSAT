@@ -67,7 +67,7 @@ public class Resolution extends Solver {
     private int timestampSubsumption = 1;
 
     /** controls if the consistency is to be checked (for testing purposes) */
-    private final boolean checkConsistency = true;
+    private final boolean checkConsistency = false;
 
     /** the thread which runs the simplifier. */
     private Thread myThread;
@@ -227,6 +227,9 @@ public class Resolution extends Solver {
         if(localModel == null) localModel = new byte[predicates+1];
         else if(localModel.length <= predicates) localModel = new byte[predicates+1];
         else for(int predicate = 1; predicate <= predicates; ++predicate) localModel[predicate] = 0;
+        if(trackReasoning) {
+            if(inferenceSteps == null || inferenceSteps.length < predicates+1) inferenceSteps = new InferenceStep[predicates+1];
+            else for(int predicate = 1; predicate <= predicates; ++predicate) inferenceSteps[predicate] = null;}
     }
 
     /** removes all clauses from the internal datastructures.
@@ -244,6 +247,8 @@ public class Resolution extends Solver {
         model.clear();
         equivalences.clear();
         for(int predicate = 1; predicate <= predicates; ++predicate) localModel[predicate] = 0;
+        if(inferenceSteps != null) {
+            for(int predicate = 1; predicate <= predicates; ++predicate) inferenceSteps[predicate] = null;}
     }
 
     /** returns the local truth-status of the literal: +1 = true, -1 = false, 0 = undefined. */
@@ -409,6 +414,7 @@ public class Resolution extends Solver {
                 if(queue.isEmpty()) {
                     System.out.println("Empty Queue Clauses: " + clauses.size + ", Local Model: " + localModelString());
                     printSeparated();
+                    System.out.println(statistics.toString());
                 }
                 if(monitoring  && printClauses && changed) {
                     //System.out.println("Local Model: " + localModelString());
@@ -1169,14 +1175,16 @@ public class Resolution extends Solver {
                             literalIndexMore.forAllLiterals(-literalA,(litObject1 -> litObject1.clause.timestamp1 == timestamp),
                                     (litObjectANeg ->{
                                         Clause clauseANeg = litObjectANeg.clause;
-                                        Clause resolvent = resolve(literalObjectR,clauseANeg.findLiteral(-literalR),false);
-                                        if(resolvent != null) {
-                                            if(resolvent.size() == 4) {
-                                                resolve(literalObjectA,resolvent.findLiteral(-literalA),true);
-                                                ++statistics.tripleResolutions;}
-                                            else{insertClause(resolvent); addClauseTask(resolvent);}}
-                                        return true;}));
-                            return true;}));}
+                                        Literal literalRNeg = clauseANeg.findLiteral(-literalR);
+                                        if(literalRNeg != null) {
+                                            Clause resolvent = resolve(literalObjectR,literalRNeg,false);
+                                            if(resolvent != null) {
+                                                if(resolvent.size() == 4) {
+                                                    resolve(literalObjectA,resolvent.findLiteral(-literalA),true);
+                                                    ++statistics.tripleResolutions;}
+                                                else{insertClause(resolvent); addClauseTask(resolvent);}}}
+                                        return false;}));
+                            return false;}));}
             ++timestamp;}}
 
 
@@ -1195,10 +1203,10 @@ public class Resolution extends Solver {
         final Clause resolvent = Clause.resolve(posLiteral,negLiteral,nextId,(trueLiterals::add));
         for(int literal : trueLiterals) {
             ++statistics.derivedTrueLiterals;
-            addInternalTrueLiteralTask(literal,true,
-                    trackReasoning ? new InfResolutionTrueLiteral(posLiteral.clause,negLiteral.clause,literal,symboltable): null);
-            if(monitoring) monitor.println(monitorId, posLiteral.clause.toString(symboltable,0) + " and " +
-            negLiteral.clause.toString(symboltable,0) + " -> true(" + Symboltable.toString(literal,symboltable) + ")");}
+            InfResolutionTrueLiteral step = (trackReasoning || monitoring) ?
+                    new InfResolutionTrueLiteral(posLiteral.clause,negLiteral.clause,literal,symboltable) : null;
+            if(monitoring) monitor.println(monitorId, step.info(symboltable));
+            addInternalTrueLiteralTask(literal,true,step);}
         if(resolvent == null || isSubsumed(resolvent) != null) return null;
         if(trackReasoning) resolvent.inferenceStep =
                 new InfResolution(posLiteral.clause,negLiteral.clause, resolvent, symboltable);

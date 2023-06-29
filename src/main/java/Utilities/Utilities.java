@@ -1019,7 +1019,7 @@ public class Utilities {
                 else a -= gcd;}}
         return gcd;}
 
-    public static void  main(String[] args) {
+    public static void  main1(String[] args) {
         IntArrayList n = IntArrayList.wrap(new int[]{456,678,888});
         System.out.println(gcd(n));
     }
@@ -1173,6 +1173,30 @@ public class Utilities {
             if(i < size-1) st.append(",");}
         return st.toString();}
 
+    public static String intArrayListToString(IntArrayList list) {
+        if(list.isEmpty()) return "";
+        int length = list.size();
+        if(length < 3) return list.toString();
+        StringBuilder st = new StringBuilder();
+        st.append("[");
+        int item = list.getInt(0);
+        st.append(item);
+        for(int i = 1; i < length-1; ++i) {
+            int it = list.getInt(i);
+            if(it-1 == list.getInt(i-1)) continue;
+            if(i == 1) {st.append(",").append(it); continue;}
+            st.append("-").append(it);}
+        int it = list.getInt(length-1);
+        if(list.getInt(length-2) == it-1) st.append(",").append(it).append("]");
+        else st.append("-").append(it).append("]");
+        return st.toString();}
+
+    public static void  main(String[] args) {
+        IntArrayList a = new IntArrayList();
+        a.add(3); a.add(4); a.add(5);
+        System.out.println(intArrayListToString(a));
+    }
+
     /** returns the time as sec, ms, μs or ns
      *
      * @param time nanoseconds
@@ -1184,9 +1208,7 @@ public class Utilities {
         if(time > 1000)    return (float)time/1000.0 + " μs";
         return time + " ns";}
 
-    public static void  main1(String[] args) {
-        System.out.println(pathWithHome("home/xy/abc/def").toString());
-    }
+
 
 
 

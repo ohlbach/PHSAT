@@ -905,6 +905,59 @@ public class ResolutionTest extends TestCase {
         assertEquals("5",resolution.localModelString());
 
     }
+
+    public void testTripleResolution() throws Result {
+        System.out.println("tripleResolution");
+        int predicates = 10;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+
+        Clause clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2, 4}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -3, -4, 5}));
+        resolution.tripleResolution(clause);
+        assertEquals(" 1: 1v2v3\n" +
+                " 2: 1v2v4\n" +
+                " 3: -3v-4v5\n" +
+                "12: 1v2v5\n",resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNew 1");
+        resolution.clear();
+        clause = new Clause(new int[]{1, cOr, 1, 2, 3});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cOr, 3,1,4}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, 1,3,5}));
+        resolution.insertClause(new Clause(new int[]{5, cOr, -2,-4,6}));
+        resolution.insertClause(new Clause(new int[]{6, cOr, -2,7,-5}));
+        resolution.tripleResolution(clause);
+        assertEquals(" 1: 1v2v3\n" +
+                " 2: 3v1v4\n" +
+                " 3: 1v3v5\n" +
+                " 5: -2v-4v6\n" +
+                " 6: -2v7v-5\n" +
+                "15: 1v3v7\n" +
+                "17: 3v1v6\n",resolution.clauses.toString());
+
+        if(monitoring) System.out.println("\nNew 2");
+        resolution.clear();
+        clause = new Clause(new int[]{1, cAtleast, 2, 1, 2, 3});
+        resolution.insertClause(clause);
+        resolution.insertClause(new Clause(new int[]{2, cAtleast, 2, 3,1,4}));
+        resolution.insertClause(new Clause(new int[]{3, cAtleast, 2, 1,3,5}));
+        resolution.insertClause(new Clause(new int[]{5, cAtleast, 2, -2,-4,6}));
+        resolution.insertClause(new Clause(new int[]{6, cAtleast, 2, -2,7,-5}));
+        resolution.tripleResolution(clause);
+        assertEquals("1: >= 2 1,2,3\n" +
+                "2: >= 2 3,1,4\n" +
+                "3: >= 2 1,3,5\n" +
+                "5: >= 2 -2,-4,6\n" +
+                "6: >= 2 -2,7,-5\n",resolution.clauses.toString());
+        assertEquals("1,3",resolution.model.toString());
+
+    }
     }
 
 

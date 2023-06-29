@@ -29,9 +29,11 @@ public class InfResolutionTrueLiteral extends InferenceStep {
         inferenceStep2 = parent2.inferenceStep;
         this.literal = literal;}
 
+    public String info(Symboltable symboltable) {
+        return parentClause1 + " and " + parentClause2 + " -> true(" + Symboltable.toString(literal,symboltable) + ")";}
     @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n  " + parentClause1 + " and " + parentClause2 + " -> " + Symboltable.toString(literal,symboltable);}
+        return title + "\n  " + info(symboltable);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {

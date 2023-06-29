@@ -22,7 +22,7 @@ public class InfTrueLiteralRemoval extends InferenceStep {
 
     public InfTrueLiteralRemoval(String clauseBefore, IntArrayList literals, Clause clause, Symboltable symboltable) {
         this.clauseBefore = clauseBefore;
-        this.literals = literals;
+        this.literals = literals.clone();
         this.clauseAfter = clause.toString(symboltable,0);
         inferenceStep = clause.inferenceStep;}
 
