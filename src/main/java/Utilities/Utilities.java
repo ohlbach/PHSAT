@@ -1173,27 +1173,38 @@ public class Utilities {
             if(i < size-1) st.append(",");}
         return st.toString();}
 
+    /** turns the IntArrayList into a string where consecutive integers are comprised into an interval notation.
+     * <br>
+     * Example: 3,6,7,8,10,11,12,13,15,16,19  -&gt; [3,6-8,10-13,15,16,19]
+     *
+     * @param list an IntArrayList
+     * @return the list as condensed string.
+     */
+
     public static String intArrayListToString(IntArrayList list) {
         if(list.isEmpty()) return "";
         int length = list.size();
         if(length < 3) return list.toString();
         StringBuilder st = new StringBuilder();
         st.append("[");
-        int item = list.getInt(0);
-        st.append(item);
-        for(int i = 1; i < length-1; ++i) {
-            int it = list.getInt(i);
-            if(it-1 == list.getInt(i-1)) continue;
-            if(i == 1) {st.append(",").append(it); continue;}
-            st.append("-").append(it);}
-        int it = list.getInt(length-1);
-        if(list.getInt(length-2) == it-1) st.append(",").append(it).append("]");
-        else st.append("-").append(it).append("]");
+        int index1 = 0;
+        int index2 = 0;
+        while(true) {
+            for(;index2 < length-1; ++index2) {
+                if(list.getInt(index2+1) != list.getInt(index2)+1) break;}
+            if(index1 > 0) st.append(",");
+            if(index1 == index2) st.append(list.get(index1));
+            else {if(index1+1 == index2) st.append(list.get(index1)).append(",").append(list.getInt(index2));
+                  else {st.append(list.get(index1)).append("-").append(list.getInt(index2));}}
+            if(index2 == length-1) break;
+            index1 = index2+1;
+            index2 = index1;}
+        st.append("]");
         return st.toString();}
 
     public static void  main(String[] args) {
         IntArrayList a = new IntArrayList();
-        a.add(3); a.add(4); a.add(5);
+        a.add(3); a.add(6); a.add(7); a.add(8); a.add(10);a.add(11);a.add(12);a.add(13);a.add(15);a.add(16);a.add(19);
         System.out.println(intArrayListToString(a));
     }
 

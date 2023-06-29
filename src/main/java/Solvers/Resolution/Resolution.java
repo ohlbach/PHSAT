@@ -1435,13 +1435,16 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if the resolvent is unsatisfiable.
      */
     void processElimination(final Task task) throws Unsatisfiable {
-        if(monitoring) monitor.println(monitorId, "Starting ProcessElimination ");
+        if(monitoring) {
+            monitor.println(monitorId, "Starting ProcessElimination ");
+            printSeparated();
+        }
         boolean atEnd = false;
         try{
             for(int predicate = 1; predicate <= predicates; ++predicate) {
                 if(localModel[predicate] != 0) continue;
-                int sizeP = literalIndexMore.size(predicate,2);
-                int sizeN = literalIndexMore.size(-predicate,2);
+                int sizeP = literalIndexMore.size(predicate,3);
+                int sizeN = literalIndexMore.size(-predicate,3);
                 if(sizeP == 0 && sizeN == 0) continue;
                 if(sizeP == 0) {
                     removeClauses(predicate);

@@ -3,6 +3,7 @@ package Datastructures.Results;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
+import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -51,7 +52,7 @@ public abstract class Unsatisfiable extends Result {
         IntArrayList inputIds = new IntArrayList();
         inferenceSteps(steps,inputIds);
         if(!inputIds.isEmpty()) {
-            st.append("Contributing input clauses: ").append(inputIds.toString()).append("\n");}
+            st.append("Contributing input clauses: ").append(Utilities.intArrayListToString(inputIds)).append("\n");}
         if(!steps.isEmpty()) {
             st.append("Sequence of Inference Steps (except InputClause):\n");
             for(InferenceStep step : steps) {
