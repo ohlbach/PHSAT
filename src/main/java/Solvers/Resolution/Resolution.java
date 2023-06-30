@@ -395,7 +395,7 @@ public class Resolution extends Solver {
                         if(clause.exists) {
                             if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
                             changed = true;
-                            processLongerClause(clause);
+                            processLongerClause(clause,true);
                         }
                         break;
                     case ProcessClauseFirstTime:
@@ -455,7 +455,7 @@ public class Resolution extends Solver {
         int size = clause.size();
         assert size >= 2;
         if(size == 2) processBinaryClause(clause);
-        else          processLongerClause(clause);
+        else          processLongerClause(clause,false);
 
         clause = clause.nextClause;
         while(clause != null) {
@@ -519,7 +519,7 @@ public class Resolution extends Solver {
      * @param clause a longer clause.
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    protected void processLongerClause(final Clause clause) throws Unsatisfiable {
+    protected void processLongerClause(final Clause clause, boolean saturateBinaryClauses) throws Unsatisfiable {
          if(clause.size() < 3) {
             processBinaryClause(clause);
             return;}
@@ -529,7 +529,7 @@ public class Resolution extends Solver {
             return;}
         removeClausesSubsumedByLongerClause(clause);
         if(!mergeResolutionMoreMore(clause)) return;
-        saturateBinaryClausesWithLongerClause(clause);
+        if(saturateBinaryClauses) saturateBinaryClausesWithLongerClause(clause);
         if(clause.exists) mergeResolutionPartial(clause);
         if(clause.exists && clause.size() == 3) tripleResolution(clause);
     }
@@ -1025,10 +1025,13 @@ public class Resolution extends Solver {
                                         new InfResolution(binaryClause, binaryClauseString, longerClause, longerClauseString, longerClause, symboltable, "Binary Saturation") : null;
                                     if(trackReasoning) longerClause.inferenceStep = step;
                                     if(monitoring) monitor.println(monitorId,step.info());
-                                    addClauseTask(longerClause);
-                                    ++statistics.mergeResolutionTwoMore;}
+                                    ++statistics.mergeResolutionTwoMore;
+                                    processLongerClause(longerClause,false);
+                                    //addClauseTask(longerClause);
+                                }
                                     return false;}}
-                        resolve(binaryLiteralObject,longerLiteralObject,true, "Binary Saturation");
+                        Clause resolvent = resolve(binaryLiteralObject,longerLiteralObject,true, "Binary Saturation");
+                        if(resolvent != null) processLongerClause(resolvent,false);
                         return false;});}}
 
 

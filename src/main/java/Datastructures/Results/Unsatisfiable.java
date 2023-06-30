@@ -47,17 +47,17 @@ public abstract class Unsatisfiable extends Result {
         st.append("CONTRADICTION FOUND: ");
         if(solverId != null) {st.append( "by solver '").append(solverId).append("' ");}
         if(problemId != null) st.append("in problem '").append(problemId).append("'");
-        st.append("\n").append(description(symboltable)).append("\n");
         ArrayList<InferenceStep> steps = new ArrayList<>();
         IntArrayList inputIds = new IntArrayList();
         if(trackReasoning) inferenceSteps(steps,inputIds);
-        if(!inputIds.isEmpty()) {
-            st.append(inputIds.size()).append(" contributing input clauses:\n").append(Utilities.intArrayListToString(inputIds)).append("\n");}
-        if(!steps.isEmpty()) {
+       if(!steps.isEmpty()) {
             st.append("\n"+steps.size()+ " inference steps (InputClause is not listed):\n");
             for(InferenceStep step : steps) {
                 if(!(step instanceof InfInputClause)) st.append(step.toString(symboltable)).append("\n");}
             st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:\n");
             for(String rule : InferenceStep.rules(steps)) {st.append(rule).append("\n");}}
+       st.append("\n").append(description(symboltable)).append("\n");
+       if(!inputIds.isEmpty()) {
+            st.append(inputIds.size()).append(" contributing input clauses:\n").append(Utilities.intArrayListToString(inputIds)).append("\n");}
         return st.toString();}
 }
