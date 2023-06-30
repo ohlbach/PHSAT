@@ -26,7 +26,7 @@ public class InfMergeResolutionTwo extends InferenceStep {
                 " -> true(" + Symboltable.toString(literal,symboltable) + ")";}
     @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n  " + info(symboltable);}
+        return title + "  " + info(symboltable);}
 
 
     @Override

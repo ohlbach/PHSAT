@@ -54,7 +54,7 @@ public abstract class Unsatisfiable extends Result {
         if(!inputIds.isEmpty()) {
             st.append(inputIds.size()).append(" contributing input clauses:\n").append(Utilities.intArrayListToString(inputIds)).append("\n");}
         if(!steps.isEmpty()) {
-            st.append("Sequence of Inference Steps (except InputClause):\n");
+            st.append("\n"+steps.size()+ " inference steps (InputClause is not listed):\n");
             for(InferenceStep step : steps) {
                 if(!(step instanceof InfInputClause)) st.append(step.toString(symboltable)).append("\n");}
             st.append("\n\nDefinitions of the Inference Rules Used in the Refutation:\n");
