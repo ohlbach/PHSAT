@@ -15,35 +15,41 @@ public class InfResolution extends InferenceStep {
     private String ruleOr = title + "\n  p,phi and -p,psi -> phi,psi";
 
     private String rule;
+
+    private String comment;
     @Override
     public String rule() {return rule;}
 
     private String parentClause1,parentClause2,resolvent;
     private InferenceStep inferenceStep1,inferenceStep2;
 
-    public InfResolution(Clause parentClause1, Clause parentClause2, Clause resolvent, Symboltable symboltable) {
+    public InfResolution(Clause parentClause1, Clause parentClause2, Clause resolvent, Symboltable symboltable, String comment) {
         this.parentClause1 = parentClause1.toString(symboltable,0);
         this.parentClause2 = parentClause2.toString(symboltable,0);
         this.resolvent = resolvent.toString(symboltable,0);
         inferenceStep1 = parentClause1.inferenceStep;
         inferenceStep2 = parentClause2.inferenceStep;
+        this.comment = comment;
         if(parentClause1.isDisjunction && parentClause2.isDisjunction) rule = ruleOr;
         else rule = ruleAtleast;
     }
 
-    public InfResolution(Clause parentClause1, String parentClause1String, Clause parentClause2, String parentClause2String, Clause resolvent, Symboltable symboltable) {
+    public InfResolution(Clause parentClause1, String parentClause1String, Clause parentClause2, String parentClause2String,
+                         Clause resolvent, Symboltable symboltable, String comment) {
         this.parentClause1 = parentClause1String;
         this.parentClause2 = parentClause2String;
         this.resolvent     = resolvent.toString(symboltable,0);
         inferenceStep1 = parentClause1.inferenceStep;
         inferenceStep2 = parentClause2.inferenceStep;
+        this.comment = comment;
         if(parentClause1.isDisjunction && parentClause2.isDisjunction) rule = ruleOr;
         else rule = ruleAtleast;
     }
 
 
     public String info() {
-        return parentClause1 + " and " + parentClause2 + " -> " + resolvent;}
+        String com = comment == null ? "" : "  ("+comment+")";
+        return parentClause1 + " and " + parentClause2 + " -> " + resolvent + com;}
 
     @Override
     public String toString(Symboltable symboltable) {
