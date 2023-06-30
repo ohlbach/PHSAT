@@ -21,9 +21,9 @@ public class UnsatisfiableLiteral extends Unsatisfiable {
         if(stepLiteral2 != null) inferenceSteps.add(stepLiteral2);}
 
     public String toString() {
-        return toString(null);}
-    public String toString(Symboltable symboltable) {
-        return "Contradictory literal derived: " + Symboltable.toString(literal,symboltable)+"\n" + super.toString(symboltable);}
+        return toString(null,false);}
+    public String toString(Symboltable symboltable, boolean trackReasoning) {
+        return "Contradictory literal derived: " + Symboltable.toString(literal,symboltable)+"\n" + super.toString(symboltable,trackReasoning);}
     @Override
     public String description(Symboltable symboltable) {
         return "Contradictory literal derived: " + Symboltable.toString(literal,symboltable)+"\n";}

@@ -137,7 +137,7 @@ public class ProblemSupervisor {
         if(result instanceof Satisfiable) checkModel((Satisfiable) result);
         this.result = result;
         quSatJob.printlog("Solver " + result.solverId + " finished  work at problem " + problemId);
-        quSatJob.printlog("Result:\n"+result.toString(inputClauses.symboltable));
+        quSatJob.printlog("Result:\n"+result.toString(inputClauses.symboltable, trackReasoning));
         if(threads != null) {for(Thread thread : threads) {thread.interrupt();}}}
 
     /** checks the model against the input clauses.

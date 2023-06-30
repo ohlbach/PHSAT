@@ -18,13 +18,14 @@ public class InfTrueLiteralRemoval extends InferenceStep {
 
     String clauseBefore,clauseAfter;
     IntArrayList literals;
-    InferenceStep inferenceStep;
+    ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
 
-    public InfTrueLiteralRemoval(String clauseBefore, IntArrayList literals, Clause clause, Symboltable symboltable) {
+    public InfTrueLiteralRemoval(String clauseBefore, IntArrayList literals, ArrayList<InferenceStep> steps, Clause clause, Symboltable symboltable) {
         this.clauseBefore = clauseBefore;
         this.literals = literals.clone();
         this.clauseAfter = clause.toString(symboltable,0);
-        inferenceStep = clause.inferenceStep;}
+        inferenceSteps.add(clause.inferenceStep);
+        inferenceSteps.addAll(steps);}
 
     public String info(Symboltable symboltable) {
         return clauseBefore + " and true(" + symboltable.toString(literals,symboltable)+") -> " + clauseAfter;}
@@ -36,6 +37,6 @@ public class InfTrueLiteralRemoval extends InferenceStep {
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
         if(steps.contains(this)) return;
-        inferenceStep.inferenceSteps(steps,ids);
+        for(InferenceStep step : inferenceSteps) step.inferenceSteps(steps,ids);
         steps.add(this);}
 }

@@ -158,6 +158,7 @@ public class Resolution extends Solver {
     private int getPriority(Task<Resolution.TaskType> task) {
         switch(task.taskType) {
             case ProcessTrueLiteral:            return Math.abs((Integer)task.a);
+            case ProcessBinaryClause:           return 2*predicates + 101;
             case ProcessLongerClause:           return 2*predicates + 102;
             case ProcessClauseFirstTime:        return 2*predicates + 103;
             case ProcessMergeResolutionPartial: return 2*predicates + 104;
@@ -263,7 +264,7 @@ public class Resolution extends Solver {
      */
     void makeLocallyTrue(final int literal, InferenceStep inferenceStep) {
         if(literal > 0) localModel[literal] = 1; else localModel[-literal] = -1;
-        if(inferenceStep != null) inferenceSteps[Math.abs(literal)] = inferenceStep;}
+        if(trackReasoning) inferenceSteps[Math.abs(literal)] = inferenceStep;}
 
     private final int[] clauseId = new int[]{0};
 
@@ -629,10 +630,10 @@ public class Resolution extends Solver {
                                     addInternalTrueLiteralTask(trueLiteral,globTrue,step);})) {
                             case  1: removeClause(clause,false,false); return false;
                             case -1: {if(trackReasoning) {
-                                        clause.inferenceStep = new InfTrueLiteralRemoval(clauseBefore,trueLiterals,clause,symboltable);}
+                                        clause.inferenceStep = new InfTrueLiteralRemoval(clauseBefore,trueLiterals,steps, clause,symboltable);}
                                 throw new UnsatClause(clause,problemId,solverId);}}
                         InfTrueLiteralRemoval step = null;
-                        if(trackReasoning || monitoring) step = new InfTrueLiteralRemoval(clauseBefore,trueLiterals,clause,symboltable);
+                        if(trackReasoning || monitoring) step = new InfTrueLiteralRemoval(clauseBefore,trueLiterals,steps,clause,symboltable);
                         if(monitoring) monitor.println(monitorId,step.info(symboltable));
                         if(trackReasoning) clause.inferenceStep = step;
                         clauses.updateClauseNumbers(clause,1);
@@ -849,6 +850,11 @@ public class Resolution extends Solver {
      */
     protected void saturateBinaryClausesWithBinaryClause(final Clause parentClause1) throws Unsatisfiable {
         assert(parentClause1.size() == 2);
+        if(monitoring) {
+            int candidates = literalIndexTwo.size(-parentClause1.literals.get(0).literal) +
+                    literalIndexTwo.size(-parentClause1.literals.get(1).literal);
+            if(candidates == 0) return;
+            monitor.print(monitorId, "Saturation between binary clauses. Candidates: " + candidates);}
         for(final Literal parentLiteralObject1 : parentClause1.literals) {
             Literal parentLiteralObject2 = literalIndexTwo.getFirstLiteralObject(-parentLiteralObject1.literal);
             while(parentLiteralObject2 != null) {
@@ -999,6 +1005,11 @@ public class Resolution extends Solver {
      */
     void saturateLongerClausesWithBinaryClause(final Clause binaryClause) throws Unsatisfiable {
         assert(binaryClause.size() == 2);
+        if(monitoring) {
+            int candidates = literalIndexMore.size(-binaryClause.literals.get(0).literal) +
+                    literalIndexMore.size(-binaryClause.literals.get(1).literal);
+            if(candidates == 0) return;
+            monitor.print(monitorId, "Saturation between binary and longer clauses. Candidates: " + candidates);}
         String binaryClauseString = (trackReasoning || monitoring) ? binaryClause.toString(symboltable,0) : null;
         for(final Literal binaryLiteralObject : binaryClause.literals) {
             int otherBinaryLiteral = binaryClause.otherLiteral(binaryLiteralObject).literal;
@@ -1029,6 +1040,11 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void saturateBinaryClausesWithLongerClause(final Clause longerClause) throws Unsatisfiable {
+        if(monitoring) {
+            int candidates = 0;
+            for(Literal literalObject : longerClause.literals) candidates += literalIndexTwo.size(-literalObject.literal);
+            if(candidates == 0) return;
+            monitor.print(monitorId, "Saturation between longer and binary clauses. Candidates: " + candidates);}
         String longerClauseString = (trackReasoning || monitoring) ? longerClause.toString(symboltable,0) : null;
         for(int i = 0; i < longerClause.size(); ++i) {
             Literal literalObject = longerClause.literals.get(i);
@@ -1388,8 +1404,8 @@ public class Resolution extends Solver {
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
             switch(model.status(literal)) {
-                case 1:  trueLiterals.add(literal);  steps.add(model.getInferenceStep(literal));  break;
-                case -1: trueLiterals.add(-literal); steps.add(model.getInferenceStep(literal));  break;
+                case 1:  trueLiterals.add(literal); if(trackReasoning) steps.add(model.getInferenceStep(literal));  break;
+                case -1: trueLiterals.add(-literal); if(trackReasoning) steps.add(model.getInferenceStep(literal));  break;
                 case 0:
                 switch(localStatus(literal)) {
                     case  1: trueLiterals.add(literal);

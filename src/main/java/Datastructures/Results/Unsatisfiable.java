@@ -35,14 +35,14 @@ public abstract class Unsatisfiable extends Result {
      * @return the reason for the unsatisfiability.
      */
     public String toString() {
-        return toString(null);}
+        return toString(null,false);}
 
     /** returns the reason for the unsatisfiability, usually the entire proof.
      *
      * @param symboltable null or a symboltable.
      * @return the reason for the unsatisfiability.
      */
-    public String toString(Symboltable symboltable) {
+    public String toString(Symboltable symboltable, boolean trackReasoning) {
         StringBuilder st = new StringBuilder();
         st.append("CONTRADICTION FOUND: ");
         if(solverId != null) {st.append( "by solver '").append(solverId).append("' ");}
@@ -50,9 +50,9 @@ public abstract class Unsatisfiable extends Result {
         st.append("\n").append(description(symboltable)).append("\n");
         ArrayList<InferenceStep> steps = new ArrayList<>();
         IntArrayList inputIds = new IntArrayList();
-        inferenceSteps(steps,inputIds);
+        if(trackReasoning) inferenceSteps(steps,inputIds);
         if(!inputIds.isEmpty()) {
-            st.append("Contributing input clauses: ").append(Utilities.intArrayListToString(inputIds)).append("\n");}
+            st.append(inputIds.size()).append(" contributing input clauses:\n").append(Utilities.intArrayListToString(inputIds)).append("\n");}
         if(!steps.isEmpty()) {
             st.append("Sequence of Inference Steps (except InputClause):\n");
             for(InferenceStep step : steps) {

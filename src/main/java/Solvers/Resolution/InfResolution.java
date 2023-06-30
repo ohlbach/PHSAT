@@ -53,7 +53,7 @@ public class InfResolution extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        return title+"\n  " + info();}
+        return title+"  " + info();}
 
 
     @Override

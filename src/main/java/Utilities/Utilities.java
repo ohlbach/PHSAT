@@ -1186,6 +1186,8 @@ public class Utilities {
         int length = list.size();
         if(length < 3) return list.toString();
         StringBuilder st = new StringBuilder();
+        int blocks = 1;
+        int blocksize = 100;
         st.append("[");
         int index1 = 0;
         int index2 = 0;
@@ -1193,6 +1195,7 @@ public class Utilities {
             for(;index2 < length-1; ++index2) {
                 if(list.getInt(index2+1) != list.getInt(index2)+1) break;}
             if(index1 > 0) st.append(",");
+            if(st.length() >= blocks*blocksize) {st.append("\n"); ++blocks;}
             if(index1 == index2) st.append(list.get(index1));
             else {if(index1+1 == index2) st.append(list.get(index1)).append(",").append(list.getInt(index2));
                   else {st.append(list.get(index1)).append("-").append(list.getInt(index2));}}
@@ -1200,7 +1203,7 @@ public class Utilities {
             index1 = index2+1;
             index2 = index1;}
         st.append("]");
-        return st.toString();}
+        return st.toString() ;}
 
     public static void  main(String[] args) {
         IntArrayList a = new IntArrayList();

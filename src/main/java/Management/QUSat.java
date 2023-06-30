@@ -45,15 +45,15 @@ public class QUSat {
    private static final String parameters =
             "problem random\n"+
                     "predicates = 200\n" + // Fehler bei 40, seed 1, cpRatio 4, length 3
-                    "cpRatio = 4\n"+      // Fehler bei 10, seed 3, cpRatio 3, length 3
-                    "length = 2-4\n"+
-                    "seed = 1\n"+
+                    "cpRatio = 10\n"+      // Fehler bei 10, seed 3, cpRatio 3, length 3
+                    "length = 3\n"+
+                    "seed = 2\n"+
             "global\n" +
                     "cnfFile = numbers\n"+
                     "logging = life\n"+
                     "showClauses = true\n"+
-                    //"monitor = life\n"+
-                    //"trackReasoning\n"+
+                    "monitor = life\n"+
+                    "trackReasoning\n"+
            //"solver simplifier";
            "solver resolution\n";
                     //"mergeResolution = true\n";
