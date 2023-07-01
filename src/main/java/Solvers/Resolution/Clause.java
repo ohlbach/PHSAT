@@ -62,6 +62,9 @@ public class Clause {
     /** the inference step which caused the derivation of this clause. */
     InferenceStep inferenceStep;
 
+    /** the task the clause is involved in */
+    Task task;
+
     /** a timestamp to be used by various algorithms. */
     int timestamp1 = 0;
 

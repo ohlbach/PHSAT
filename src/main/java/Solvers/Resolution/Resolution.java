@@ -6,7 +6,6 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import Datastructures.Task;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
@@ -44,7 +43,6 @@ public class Resolution extends Solver {
     /** controls that all clauses are printed after each task has been changed something (for testing purposes).*/
     private final boolean printClauses = false;
 
-
     /** The id of the current problem to be solved */
     private String problemId;
 
@@ -71,10 +69,8 @@ public class Resolution extends Solver {
     /** a timestamp to be used by subsumption algorithms */
     private int timestampSubsumption = 1;
 
-
     /** the thread which runs the simplifier. */
     private Thread myThread;
-
 
     /** The local model may contain true literals derived from pure literals.
      * These need not be true in all models, and therefore cannot be sent to the global model. */
@@ -131,46 +127,12 @@ public class Resolution extends Solver {
     }
 
 
-    /** specifies the task types in the priority queue.
-     */
-    private enum TaskType {
-        /** a new true literal is obtained from the model */
-        ProcessTrueLiteral,
-        /** a new binary clause is available for simplifications */
-        ProcessBinaryClause,
-        /** a longer clause is available for simplification */
-        ProcessLongerClause,
-        /** for a clause, backward subsumption, merge resolution and saturation is done. */
-        ProcessClauseFirstTime,
-        /** partial merge resolution between 3-literal clauses */
-        ProcessMergeResolutionPartial,
-        /** pure literal elmination and elimination of predicates */
-        ProcessElimination
-    }
-
-    /** gets the priority for the objects in the queue.
-     * <br>
-     * The smaller the priority the earlier the task is executed.
-     *
-     * @param task the task in the queue
-     * @return the priority of the objects in the queue.
-     */
-    private int getPriority(Task<Resolution.TaskType> task) {
-        switch(task.taskType) {
-            case ProcessTrueLiteral:            return Math.abs((Integer)task.a);
-            case ProcessBinaryClause:           return 2*predicates + 101;
-            case ProcessLongerClause:           return 2*predicates + 102;
-            case ProcessClauseFirstTime:        return 2*predicates + 103;
-            case ProcessMergeResolutionPartial: return 2*predicates + 104;
-            case ProcessElimination:            return 2*predicates + 105;}
-        return 0;}
-
 
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
      */
-    private final PriorityBlockingQueue<Task<Resolution.TaskType>> queue =
-            new PriorityBlockingQueue<>(10, Comparator.comparingInt(this::getPriority));
+    private final PriorityBlockingQueue<Task> queue =
+            new PriorityBlockingQueue<>(1000, Comparator.comparingInt(task->task.priority));
 
     /** Installs the observer in the model.<br>
      * The method is called before the threads are started.
@@ -198,7 +160,6 @@ public class Resolution extends Solver {
                 addExternalTrueLiteralTask(literal,model.getInferenceStep(literal));}}
         try{
             readInputClauses();
-            synchronized (this) {queue.add(new Task<>(TaskType.ProcessElimination,null));}
             processTasks(0);}
         catch(Result result) {
             System.out.println("Result " + result.getClass().getName());
@@ -282,25 +243,24 @@ public class Resolution extends Solver {
             switch(Normalizer.getQuantifier(normalizedClause)) {
                 case OR:
                 case ATLEAST: insertClause(clause = new Clause(normalizedClause,0));
-                    if(clause.size() == 2) addClauseTask(clause); break;
+                    addClauseTask(clause); break;
                 case ATMOST:  insertClause(clause = new Clause(Normalizer.atmost2Atleast(normalizedClause),0));
-                    if(clause.size() == 2) addClauseTask(clause); break;
+                    addClauseTask(clause); break;
                 case EXACTLY:
                     subIdentifier = 0;
                     for(IntArrayList atleastClause : Normalizer.exactlyToAtleast(normalizedClause)) {
                     insertClause(clause = new Clause(atleastClause,++subIdentifier));
-                    if(clause.size() == 2) addClauseTask(clause);} break;
+                    addClauseTask(clause);} break;
                 case INTERVAL:
                     subIdentifier = 0;
                     for(IntArrayList atleastClause : Normalizer.intervalToAtleast(normalizedClause)) {
                         insertClause(clause = new Clause(atleastClause,++subIdentifier));
-                        if(clause.size() == 2) addClauseTask(clause);}}}
+                        addClauseTask(clause);}}}
         statistics.initialClauses = clauses.size;
         if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);
         if(printClauses) {
             System.out.println("INPUT CLAUSES: " + clauses.size());
-            printSeparated();}
-        synchronized(this){queue.add(new Task<>(TaskType.ProcessClauseFirstTime,clauses.firstClause));}}
+            printSeparated();}}
 
     /** counts the number of true literal processes in the queue */
     private int trueLiteralsInQueue = 0;
@@ -332,7 +292,7 @@ public class Resolution extends Solver {
             System.exit(1);}
         makeLocallyTrue(literal,inferenceStep);
         synchronized (this) {
-            queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));
+            queue.add(Task.popTask(literal, inferenceStep,null,false));
             ++trueLiteralsInQueue;}
         if(globallyTrue) model.add(myThread,literal,inferenceStep);
         ++statistics.derivedTrueLiterals;
@@ -354,8 +314,7 @@ public class Resolution extends Solver {
         if(trackReasoning && inferenceStep == null) inferenceStep = new InfExternal(literal);
         makeLocallyTrue(literal,trackReasoning ? inferenceStep : null);
         synchronized (this) {
-            if(queue.isEmpty()) queue.add(new Task<>(TaskType.ProcessElimination,null));
-            queue.add(new Task<>(TaskType.ProcessTrueLiteral, literal, inferenceStep));
+            queue.add(Task.popTask(literal, inferenceStep,null,false));
             ++trueLiteralsInQueue;}}
 
 
@@ -366,47 +325,26 @@ public class Resolution extends Solver {
      * @throws Result if a contradiction is encountered or the clause set became empty.
      */
     public void processTasks(final int n) throws Result {
-        Task<Resolution.TaskType> task;
+        Task task;
         int counter = 0;
-        Clause clause;
         while(!myThread.isInterrupted()) {
             try {
                 //if(monitoring) {monitor.println(monitorId,"Queue is waiting\n" + Task.queueToString(queue));}
                 task = queue.take(); // waits if the queue is empty
+                if(task.literal == 0 && task.clause == null) continue;
+                if(monitoring) monitor.print(monitorId,task.toString(symboltable));
+                if(task.literal != 0) {
+                    int literal = task.literal; InferenceStep step = task.inferenceStep;
+                    Task.pushTask(task); // to be reused.
+                    processTrueLiteral(literal, step);}
+                else {
+                    if(task.expand) {
+                        Clause clause = task.clause;
+                        Task.pushTask(task); // to be reused.
+                        processClauseExpand(clause);}
+                    else processClauseSimplify(task.clause,task);}
                 if(checkConsistency) checkConsistency();
                 boolean changed = false;
-                switch(task.taskType){
-                    case ProcessTrueLiteral:
-                        if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
-                        changed = true;
-                        --trueLiteralsInQueue;
-                        processTrueLiteral((Integer)task.a, (InferenceStep)task.b);
-                        break;
-                    case ProcessBinaryClause:
-                        clause = (Clause)task.a;
-                        if(clause.exists) {
-                            if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
-                            changed = true;
-                            processBinaryClause(clause);}
-                        --binaryClausesInQueue;
-                        break;
-                    case ProcessLongerClause:
-                        clause = (Clause)task.a;
-                        if(clause.exists) {
-                            if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
-                            changed = true;
-                            processLongerClause(clause,true);
-                        }
-                        break;
-                    case ProcessClauseFirstTime:
-                        if(((Clause)task.a).exists) {
-                            if(monitoring) {monitor.print(monitorId,"Next Task: " + task);}
-                            changed = true;
-                            processClauseFirstTime(task);}
-                        break;
-                    case ProcessElimination:
-                        processElimination(task);
-                        break;}
                 if(clauses.isEmpty()) {
                     if(monitoring) monitor.print(monitorId,"Clause set is empty");
                     completeModel();
@@ -437,33 +375,7 @@ public class Resolution extends Solver {
                 return;}}}
 
 
-    /** performs forward subsumption, merge resolution and saturation with the given clause.
-     * <br>
-     *  After this, a new ProcessClauseFirstTime for the next clause in the clauses list is added to the queue.<br>
-     *  The task is reused for this purpose.<br>
-     *  Since derived clauses are put at the end of the clauses list, all clauses will eventually be processed the first time.
-     *
-     * @param task    a ProcessClauseFirstTime task.
-     * @throws Unsatisfiable a contradiction is discovered.
-     */
-    void processClauseFirstTime(final Task<Resolution.TaskType> task) throws Unsatisfiable {
-         Clause clause = (Clause)task.a;
-        while(clause != null) { // if the clause we removed, we look for the next clause which is not removed.
-            if(!clause.exists) {clause = clause.nextClause; continue;}
-            break;}
-        if(clause == null) return;
-        int size = clause.size();
-        assert size >= 2;
-        if(size == 2) processBinaryClause(clause);
-        else          processLongerClause(clause,false);
 
-        clause = clause.nextClause;
-        while(clause != null) {
-            if(!clause.exists) {clause = clause.nextClause; continue;}
-            break;}
-        if(clause != null) {
-            task.a = clause;
-            synchronized (this) {queue.add(task);}}}
 
     /** processes the binary clause.
      * <br>
@@ -1243,9 +1155,7 @@ public class Resolution extends Solver {
      * @param clause a clause.
      */
     void addClauseTask(final Clause clause) {
-        final TaskType type = (clause.size() == 2) ? TaskType.ProcessBinaryClause: TaskType.ProcessLongerClause;
-        if(type == TaskType.ProcessBinaryClause) ++binaryClausesInQueue;
-        synchronized (this) {queue.add(new Task<>(type, clause));}}
+        synchronized (this) {queue.add(Task.popTask(0,null,clause,false));}}
 
 
 
@@ -1332,20 +1242,6 @@ public class Resolution extends Solver {
      */
     protected void removeClause(final Clause clause, final boolean checkPurity, final boolean updateNumbers) throws Unsatisfiable {
         removeClause(clause,checkPurity,(clause.size() == 2) ? literalIndexTwo :literalIndexMore, updateNumbers);}
-
-
-    /** removes all clauses with the given predicate.
-     *
-     * @param predicate     a predicate
-     * @throws Unsatisfiable should not happen.
-     */
-    void removeClauses (final int predicate) throws Unsatisfiable {
-        for(int sign = 1; sign >= -1; sign-=2) {
-            int literal = sign*predicate;
-            literalIndexTwo.forAllLiterals(literal,null,
-                    (literalObject -> {removeClause(literalObject.clause,false,true); return false;}));
-            literalIndexMore.forAllLiterals(literal,null,
-                    (literalObject -> {removeClause(literalObject.clause,false,true); return false;}));}}
 
 
     /** removes the literal from the clause and from the corresponding index.
