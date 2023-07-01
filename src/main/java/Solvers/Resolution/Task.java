@@ -46,6 +46,12 @@ public class Task {
         if(expand) priority = priorityShift + clause.size();
         else {priority = (clause != null) ? clause.size() : 1;}}
 
+    /** sets the expand flag and adapts the priority.
+     */
+    void makeExpand() {
+        expand = true;
+        priority = priorityShift + clause.size();}
+
     /** turns the task into a string.
      *
      * @return the task as a string.

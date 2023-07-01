@@ -262,11 +262,6 @@ public class Resolution extends Solver {
             System.out.println("INPUT CLAUSES: " + clauses.size());
             printSeparated();}}
 
-    /** counts the number of true literal processes in the queue */
-    private int trueLiteralsInQueue = 0;
-
-    private int binaryClausesInQueue = 0;
-
     /** adds a true literal to the queue and to the model.
      * <br>
      *  Derived literals (as unit clauses) are added to the local and to the global model.<br>
@@ -276,28 +271,15 @@ public class Resolution extends Solver {
      * @param globallyTrue if true then the literal is derived as true literal.
      * @param inferenceStep which caused the truth
      */
-    public void addInternalTrueLiteralTask(final int literal, final boolean globallyTrue, final InferenceStep inferenceStep) throws Unsatisfiable {
-        if(trackReasoning && inferenceStep == null) {
-            new Exception().printStackTrace();
-            System.exit(1);
-        }
-        if(model.status(literal) == 1) return;
+    void addInternalTrueLiteralTask(final int literal, final boolean globallyTrue, final InferenceStep inferenceStep) throws Unsatisfiable {
+        if(localStatus(literal) == 1) return;
         if(monitoring) {
             String globally = globallyTrue ? "Globally True " : "Locally True ";
             monitor.print(monitorId,globally+"literal added: " + Symboltable.toString(literal,symboltable));}
-        if(literal == 0) {
-            System.out.println("INFERENCES");
-            Result.printInferenceSteps(inferenceStep);
-            new Exception().printStackTrace();
-            System.exit(1);}
         makeLocallyTrue(literal,inferenceStep);
-        synchronized (this) {
-            queue.add(Task.popTask(literal, inferenceStep,null,false));
-            ++trueLiteralsInQueue;}
         if(globallyTrue) model.add(myThread,literal,inferenceStep);
-        ++statistics.derivedTrueLiterals;
-        //if(checkConsistency) problemSupervisor.intermediateModelCheck(model,null); // ()->{printSeparated(); return null;});
-    }
+        synchronized (this) {queue.add(Task.popTask(literal, inferenceStep,null,false));}
+        ++statistics.derivedTrueLiterals;}
 
 
     /** adds a true literal to the queue. It is called by other threads for globally true literals.
@@ -307,15 +289,13 @@ public class Resolution extends Solver {
      * @param literal a true literal.
      * @param inferenceStep which caused the truth.
      */
-    public void addExternalTrueLiteralTask(final int literal, InferenceStep inferenceStep) {
+    void addExternalTrueLiteralTask(final int literal, InferenceStep inferenceStep) {
         if(monitoring) {
             monitor.print(monitorId,"In: True literal from model " +
                     Symboltable.toString(literal,symboltable));}
         if(trackReasoning && inferenceStep == null) inferenceStep = new InfExternal(literal);
         makeLocallyTrue(literal,trackReasoning ? inferenceStep : null);
-        synchronized (this) {
-            queue.add(Task.popTask(literal, inferenceStep,null,false));
-            ++trueLiteralsInQueue;}}
+        synchronized (this) {queue.add(Task.popTask(literal, inferenceStep,null,false));}}
 
 
 
@@ -338,11 +318,12 @@ public class Resolution extends Solver {
                     Task.pushTask(task); // to be reused.
                     processTrueLiteral(literal, step);}
                 else {
+                    Clause clause = task.clause;
                     if(task.expand) {
-                        Clause clause = task.clause;
                         Task.pushTask(task); // to be reused.
                         processClauseExpand(clause);}
-                    else processClauseSimplify(task.clause,task);}
+                    else {if(clause.size() == 2) simplifyBinaryClause(clause,task);
+                         else simplifyLongerClause(clause,task);}}
                 if(checkConsistency) checkConsistency();
                 boolean changed = false;
                 if(clauses.isEmpty()) {
@@ -377,49 +358,6 @@ public class Resolution extends Solver {
 
 
 
-    /** processes the binary clause.
-     * <br>
-     * - if the clause is subsumed, it is removed.<br>
-     * - clauses subsumed by the binary clause are removed. <br>
-     * - merge resolution with the binary clause is performed.<br>
-     * - equivalences are detected. <br>
-     * - all resolvents with the binary clauses are generated.<br>
-     * - saturation with the binary clause is performed.
-     *
-     * @param clause         a two-literal clause
-     * @throws Unsatisfiable if a contradiction is discovered.
-     */
-    protected void processBinaryClause(final Clause clause) throws Unsatisfiable {
-        assert clause.size() == 2;
-        if(binaryClauseIsSubsumed(clause) != null) {
-            removeClause(clause,true,literalIndexTwo,true);
-            return;}
-        removeBinaryClausesSubsumedByBinaryClause(clause);
-        removeLongerClausesSubsumedByBinaryClause(clause);
-        if(binaryClauseIsLocallyTrue(clause)){
-            removeClause(clause,true,true);
-            return;}
-        int literal1 = clause.literals.get(0).literal;
-        int literal2 = clause.literals.get(1).literal;
-        mergeResolutionAndEquivalenceTwoTwo(clause,literal1,literal2,true);
-        if(!clause.exists) return;
-        mergeResolutionAndEquivalenceTwoTwo(clause,literal2,literal1,false);
-        if(!clause.exists) return;
-        mergeResoluionTwoMore(clause,literal1,literal2);
-        mergeResoluionTwoMore(clause,literal2,literal1);
-        if(checkPurity(literal1) || checkPurity(literal2)) {
-            removeClause(clause,false,literalIndexTwo,true); return;}
-        saturateBinaryClausesWithBinaryClause(clause);
-        if(!clause.exists) return;
-        saturateLongerClausesWithBinaryClause(clause);}
-
-    /** checks if the binary clause is locally true
-     *
-     * @param clause a binary clause
-     * @return true if it is locally true.
-     */
-    boolean binaryClauseIsLocallyTrue(Clause clause) {
-        return localStatus(clause.literals.get(0).literal) == 1 ||  localStatus(clause.literals.get(1).literal) == 1;}
 
     /** processes the longer clause.
      * - if the clause is subsumed, it is removed.<br>
@@ -556,7 +494,78 @@ public class Resolution extends Solver {
         for(int removedLiteral :removedLiterals) checkPurity(removedLiteral);
     }
 
+    // Methods for Binary Clauses
+
+
+    /** simplifies the binary clause and all other clauses, which can be simplified by the clause.
+     * <br>
+     * - if the clause is subsumed, it is removed.<br>
+     * - clauses subsumed by the binary clause are removed. <br>
+     * - merge resolution with the binary clause is performed.<br>
+     * - equivalences are detected. <br>
+     * - saturation with the binary clause and the other binary clauses is performed.<br>
+     * - The clause gets reinserted into the queue for resolution with longer clauses.
+     *
+     * @param clause         a two-literal clause
+     * @param task           the task to be reused.
+     * @throws Unsatisfiable if a contradiction is discovered.
+     */
+    protected void simplifyBinaryClause(final Clause clause, Task task) throws Unsatisfiable {
+        assert clause.size() == 2;
+        if(binaryClauseIsLocallyTrue(clause)){
+            removeClause(clause,true,true);
+            return;}
+        if(binaryClauseIsSubsumed(clause) != null) {
+            removeClause(clause,true,literalIndexTwo,true);
+            ++statistics.subsumedClauses;
+            return;}
+        removeBinaryClausesSubsumedByBinaryClause(clause);
+        removeLongerClausesSubsumedByBinaryClause(clause);
+        int literal1 = clause.literals.get(0).literal;
+        int literal2 = clause.literals.get(1).literal;
+        mergeResolutionAndEquivalenceTwoTwo(clause,literal1,literal2,true);
+        if(!clause.exists) return;
+        mergeResolutionAndEquivalenceTwoTwo(clause,literal2,literal1,false);
+        if(!clause.exists) return;
+        mergeResoluionTwoMore(clause,literal1,literal2);
+        mergeResoluionTwoMore(clause,literal2,literal1);
+        if(checkPurity(literal1) || checkPurity(literal2)) {
+            removeClause(clause,false,literalIndexTwo,true); return;}
+        saturateBinaryClausesWithBinaryClause(clause);
+        if(clause.exists) {
+            task.makeExpand();
+            synchronized (this) {queue.add(task);}}}
+
+    /** checks if the binary clause is locally true
+     *
+     * @param clause a binary clause
+     * @return true if it is locally true.
+     */
+    boolean binaryClauseIsLocallyTrue(Clause clause) {
+        return localStatus(clause.literals.get(0).literal) == 1 ||  localStatus(clause.literals.get(1).literal) == 1;}
+
+
+    /** checks if the binary clause is subsumed by another binary clause.
+     * <br>
+     * timestamp is not used.
+     *
+     * @param subsumee a binary clause
+     * @return null or the subsumer clause.
+     */
+    Clause binaryClauseIsSubsumed(final Clause subsumee) {
+        assert subsumee.size() == 2;
+        int literal1 = subsumee.literals.get(1).literal;
+        Literal subsumerLiteral =
+                literalIndexTwo.findLiteral(subsumee.literals.get(0).literal,
+                        literalObject -> {
+                            Clause subsumer = literalObject.clause;
+                            return subsumer != subsumee &&
+                                    (subsumer.literals.get(0).literal == literal1 || subsumer.literals.get(1).literal == literal1);});
+        return (subsumerLiteral != null) ?  subsumerLiteral.clause : null;}
+
     /** removes all binary clauses which are subsumed by a binary subsumer.
+     * <br>
+     * timestamp is not used.
      *
      * @param subsumer a binary clause.
      * @throws Unsatisfiable if a contradiction is found (should not happen)
@@ -840,22 +849,6 @@ public class Resolution extends Solver {
         if(subsumer == null && !isBinaryClause) subsumer = longerClauseIsSubsumedByLongerClause(clause);
         if(subsumer != null) ++statistics.subsumedClauses;
         return subsumer;}
-
-    /** checks if the binary clause is subsumed by another binary clause.
-     *
-     * @param subsumee a binary clause
-     * @return null or the subsumer clause.
-     */
-    Clause binaryClauseIsSubsumed(final Clause subsumee) {
-        assert subsumee.size() == 2;
-        int literal1 = subsumee.literals.get(1).literal;
-        Literal subsumerLiteral =
-                literalIndexTwo.findLiteral(subsumee.literals.get(0).literal,
-                    literalObject -> {
-                        Clause subsumer = literalObject.clause;
-                        return subsumer != subsumee &&
-                            (subsumer.literals.get(0).literal == literal1 || subsumer.literals.get(1).literal == literal1);});
-        return (subsumerLiteral != null) ?  subsumerLiteral.clause : null;}
 
 
 
@@ -1233,7 +1226,7 @@ public class Resolution extends Solver {
             if(checkPurity) {checkPurity(literalObject.literal); checkPurity(-literalObject.literal);}}
         if(updateNumbers) clauses.updateClauseNumbers(clause,-1);}
 
-    /** removes the clause from the internal lists.
+    /** removes the clause from the internal lists and sets the task's clause to null;
      *
      * @param clause  a clause to be removed.
      * @param checkPurity if true then the clause's literals are checked for purity.
@@ -1241,7 +1234,9 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable should not happen.
      */
     protected void removeClause(final Clause clause, final boolean checkPurity, final boolean updateNumbers) throws Unsatisfiable {
-        removeClause(clause,checkPurity,(clause.size() == 2) ? literalIndexTwo :literalIndexMore, updateNumbers);}
+        removeClause(clause,checkPurity,(clause.size() == 2) ? literalIndexTwo :literalIndexMore, updateNumbers);
+        Task task = clause.task;
+        if(task != null) task.clause = null;}
 
 
     /** removes the literal from the clause and from the corresponding index.
