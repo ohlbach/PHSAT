@@ -267,13 +267,13 @@ public class Clause {
             final int status = modelStatus.apply(literalObject);
             if(status == 0) continue;
             literalObject.clause = null;
-            remover.accept(literalObject);
+            if(remover != null) remover.accept(literalObject);
             literals.remove(i--);
             expandedSize -= literalObject.multiplicity;
             if(status == 1) {
                 limit -= literalObject.multiplicity;
                 if(limit <= 0) { // tautology
-                    for(Literal litObject : literals) remover.accept(litObject);
+                    if(remover != null) for(Literal litObject : literals) remover.accept(litObject);
                     literals.clear();
                     return 1;}}}
 
@@ -281,7 +281,7 @@ public class Clause {
 
         if(literals.size() == 1) { // unit clause, must be true.
             trueLiterals.accept(literals.get(0).literal); // may throw Unsatisfiable
-            remover.accept(literals.get(0));
+            if(remover != null) remover.accept(literals.get(0));
             literals.clear();
             return 1;}
 
@@ -312,21 +312,31 @@ public class Clause {
         determineClauseType();
         return 0;}
 
-    /** reduces the literals to the essential literals.
-     * <br>
-     * Example: &gt;= 2 q^2,r^2,s -> p,q <br>
-     * If such a reduction is possible then the clause becomes a disjunction.<br>
-     * The literal's size shrinks if a reduction was achieved.<br>
-     * The remover is applied to all removed literals.<br>
-     * If a literal becomes true (e.g. unit clause), the trueLiterals is applied to the single literal,
-     * and the literal is removed as well.
+    /** removes the literal from the clause and simplifies the resulting literal
      *
-     * @param limit     the clause's limit
-     * @param literals  the literals
-     * @param remover   applied to removed literals
-     * @param trueLiterals applied to a remaining single literal (must be true).
-     * @return 0 if the clause has become true, otherwise the new expandedSize.
+     * @param literal       a literal
+     * @param trueLiterals  to be applied if some true literals can be derived.
+     * @return              +1 (removed), -1 (unsatisfiable), 0 undefined.
+     * @throws Unsatisfiable
      */
+    byte removeLiteral(int literal,final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable {
+        return removeLiterals((literalObject -> (literalObject.literal == literal)? (byte)1:0),null,trueLiterals);}
+
+        /** reduces the literals to the essential literals.
+         * <br>
+         * Example: &gt;= 2 q^2,r^2,s -> p,q <br>
+         * If such a reduction is possible then the clause becomes a disjunction.<br>
+         * The literal's size shrinks if a reduction was achieved.<br>
+         * The remover is applied to all removed literals.<br>
+         * If a literal becomes true (e.g. unit clause), the trueLiterals is applied to the single literal,
+         * and the literal is removed as well.
+         *
+         * @param limit     the clause's limit
+         * @param literals  the literals
+         * @param remover   applied to removed literals
+         * @param trueLiterals applied to a remaining single literal (must be true).
+         * @return 0 if the clause has become true, otherwise the new expandedSize.
+         */
     static int reduceToEssentialLiterals(final int limit, final ArrayList<Literal> literals,
                                          final Consumer<Literal> remover, final IntConsumerWithUnsatisfiable trueLiterals)
         throws Unsatisfiable{
@@ -340,12 +350,13 @@ public class Clause {
             for(int i = 0; i < literals.size(); ++i) {
                 Literal literalObject = literals.get(i);
                 if(literalObject.multiplicity < limit) {
-                    remover.accept(literalObject);
+                    if(remover != null) remover.accept(literalObject);
                     literals.remove(i--);}
                 else {literalObject.multiplicity = 1; ++expandedSize;}}
             if(literals.size() == 1) {
                 trueLiterals.accept(literals.get(0).literal);
-                remover.accept(literals.get(0)); literals.clear();
+                if(remover != null) remover.accept(literals.get(0));
+                literals.clear();
                 return 0;}}
         return expandedSize;}
 

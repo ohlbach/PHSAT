@@ -356,19 +356,40 @@ public class Resolution extends Solver {
                 return;}}}
 
 
-
-
-
-    /** processes the longer clause.
-     * - if the clause is subsumed, it is removed.<br>
-     * - other clauses subsumed by the clause are removed. <br>
-     * - merge resolution with the clause is performed.<br>
-     * - triggered equivalences with 3-literal disjunctions is searched. <br>
-     * - all resolvents with the binary clauses are generated.<br>
+    /** processes all simplifying tasks in the queue.
      *
-     * @param clause a longer clause.
-     * @throws Unsatisfiable if a contradiction is discovered.
+     * @throws Result if a contradiction is encountered or the clause set became empty.
      */
+    public void processTasksSimplifying() throws Result {
+        Task task;
+        while(!myThread.isInterrupted() && ((task = queue.peek()) != null)) {
+            if (task.literal == 0 && task.clause == null)  {queue.poll(); continue;}
+            if(task.expand == true) return;
+            queue.poll();
+            if (monitoring) monitor.print(monitorId, task.toString(symboltable));
+            if (task.literal != 0) {
+                int literal = task.literal;
+                InferenceStep step = task.inferenceStep;
+                Task.pushTask(task); // to be reused.
+                processTrueLiteral(literal, step);}
+            else {
+                Clause clause = task.clause;
+                if (clause.size() == 2) simplifyBinaryClause(clause, task);
+                else simplifyLongerClause(clause, task);
+                }
+        }}
+
+
+                /** processes the longer clause.
+                 * - if the clause is subsumed, it is removed.<br>
+                 * - other clauses subsumed by the clause are removed. <br>
+                 * - merge resolution with the clause is performed.<br>
+                 * - triggered equivalences with 3-literal disjunctions is searched. <br>
+                 * - all resolvents with the binary clauses are generated.<br>
+                 *
+                 * @param clause a longer clause.
+                 * @throws Unsatisfiable if a contradiction is discovered.
+                 */
     protected void processLongerClause(final Clause clause, boolean saturateBinaryClauses) throws Unsatisfiable {
          if(clause.size() < 3) {
             processBinaryClause(clause);
@@ -510,7 +531,7 @@ public class Resolution extends Solver {
      * @param task           the task to be reused.
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    protected void simplifyBinaryClause(final Clause clause, Task task) throws Unsatisfiable {
+    void simplifyBinaryClause(final Clause clause, Task task) throws Unsatisfiable {
         assert clause.size() == 2;
         if(binaryClauseIsLocallyTrue(clause)){
             removeClause(clause,true,true);
@@ -527,14 +548,40 @@ public class Resolution extends Solver {
         if(!clause.exists) return;
         mergeResolutionAndEquivalenceTwoTwo(clause,literal2,literal1,false);
         if(!clause.exists) return;
-        mergeResoluionTwoMore(clause,literal1,literal2);
-        mergeResoluionTwoMore(clause,literal2,literal1);
+        mergeResolutionTwoMore(clause,literal1,literal2);
+        mergeResolutionTwoMore(clause,literal2,literal1);
         if(checkPurity(literal1) || checkPurity(literal2)) {
             removeClause(clause,false,literalIndexTwo,true); return;}
         saturateBinaryClausesWithBinaryClause(clause);
         if(clause.exists) {
             task.makeExpand();
             synchronized (this) {queue.add(task);}}}
+
+    /** performs merge resolution between the given clause and the other binary clauses.
+     * <br>
+     * If this succeeds then a new true literal is inserted into the model and a corresponding task is added to the queue.
+     * The other parent clause is removed.
+     *
+     * @param clause1 a binary clause
+     * @return true if a new true literal has been derived.
+     * @throws Unsatisfiable if the new true literal contradicts the model.
+     */
+    boolean simplifyBinaryClause(Clause clause1) throws Unsatisfiable {
+        for(Literal literalObject : clause1.literals) {
+            int literal1 = literalObject.literal;
+            int literal2 = clause1.otherLiteral(literalObject).literal;
+            if(literalIndexTwo.forAllLiterals(-literal1, // now we look for a clause -literal1,literal2
+                (literalObject1Neg -> literalObject1Neg.clause.otherLiteral(literalObject1Neg).literal == literal2),
+                (literalObject1Neg -> {              // merge resolution yields literal2
+                    Clause clause2 = literalObject1Neg.clause;
+                    InfMergeResolutionTwo step = (trackReasoning || monitoring) ?
+                            new InfMergeResolutionTwo(clause1,clause2,literal2) : null;
+                    if(monitoring) monitor.println(monitorId,step.info(symboltable));
+                    addInternalTrueLiteralTask(literal2,true, step);
+                    removeClause(clause2,true,true);
+                    ++statistics.mergeResolutionTwoTwo;
+                    return true;}))) return true;}
+        return false;}
 
     /** checks if the binary clause is locally true
      *
@@ -724,21 +771,20 @@ public class Resolution extends Solver {
                         return false;}));}}
 
 
-    /** performs merge resolution between a binary clause and a longer clause, and triggered equivalence recognition, if possible.
+    /** performs merge resolution between a binary clause and a longer clause.
      * <br>
      * Binary MergeResolution with disjunctions:  p,q and -p,q,phi -&gt; q,phi. (destructively) <br>
      * Binary MergeResolution with atleast:       p,q and &gt;= m -p^n, q^k,phi and k = m+1-n -&gt; &gt;= m q^k,phi (destructively)<br>
      * If the condition k = m+1-n does not hold then the merge resolvent is added to the clauses.<br>
      * Triggered Equivalence Recognition: p,q and -p,-q,r -&gt; r -&gt; p == q. (only with 3-literal disjunctions)  <br>
      * Derived true literals are inserted into the model.<br>
-     * A derived equivalence is sent to the equivalence classes.<br>
      *
      * @param clause1   the binary clause.
      * @param literal1  either the first or the second literal.
      * @param literal2  the other literal.
      * @throws Unsatisfiable if inserting a derived unit clause into the model causes a contradiction.
      */
-    void mergeResoluionTwoMore(final Clause clause1, int literal1, int literal2) throws Unsatisfiable {
+    void mergeResolutionTwoMore(final Clause clause1, int literal1, int literal2) throws Unsatisfiable {
         assert(clause1.size() == 2);
         ++timestamp; // just to be sure.
         try{literalIndexMore.timestampClauses(-literal1,null,timestamp,true);
@@ -764,9 +810,9 @@ public class Resolution extends Solver {
      * <br>
      * Subsumed resolvents are ignored. <br>
      * If the resolvent's literals are identical it is inserted into the model.<br>
-     * Other resolvents generate a new BinaryClauseTask.
+     * Other resolvents generate a new simplifying task.
      *
-     * @param parentClause1     a binary clause,
+     * @param parentClause1   a binary clause,
      * @throws Unsatisfiable  if the model detects a contradiction.
      */
     protected void saturateBinaryClausesWithBinaryClause(final Clause parentClause1) throws Unsatisfiable {
@@ -1126,7 +1172,7 @@ public class Resolution extends Solver {
      */
     Clause resolve(final Literal posLiteral,final Literal negLiteral, boolean insert, String comment) throws Unsatisfiable {
         trueLiterals.clear();
-        final Clause resolvent = Clause.resolve(posLiteral,negLiteral,nextId,(trueLiterals::add));
+        Clause resolvent = Clause.resolve(posLiteral,negLiteral,nextId,(trueLiterals::add));
         for(int literal : trueLiterals) {
             ++statistics.derivedTrueLiterals;
             InfResolutionTrueLiteral step = (trackReasoning || monitoring) ?
@@ -1139,9 +1185,107 @@ public class Resolution extends Solver {
         if(insert) insertClause(resolvent);
         if(resolvent.size() == 2) ++statistics.binaryResolvents; else ++statistics.longerResolvents;
         if(monitoring) monitor.println(monitorId, step.info());
-        if(insert) addClauseTask(resolvent);
+        resolvent = simplifyNewClause(resolvent);
+        if(insert && resolvent != null) addClauseTask(resolvent);
         return resolvent;}
 
+    Clause simplifyNewClause(Clause clause) throws Unsatisfiable {
+        if(clause.size() == 2) return simplifyBinaryClause(clause) ? null : clause;
+        return simplifyLongerClause(clause,null);}
+
+    Clause simplifyLongerClause(Clause clause, Task task) throws Unsatisfiable {
+        try {
+            if(clause.isDisjunction) {
+                clause = simplifyLongerDisjunctionByBinaryClauses(clause);
+                if (clause == null || clause.size() == 2) return clause;
+                simplifyLongerDisjunctionByLongerClauses(clause);}
+            return clause;}
+        finally{clause.determineClauseType();}}
+
+    /** removes literals from a longer disjunction by binary merge resolution.
+     * <br>
+     * p,q,phi <br>
+     * -p,q<br>
+     * -------<br>
+     * q,phi<br>
+     * If the resulting clause is a unit clause, it is added to the model and a trueLiteral task is added to the queue. <br>
+     * Examples: <br>
+     * p,q,r,s                p,q,r<br>
+     * -p,r                   -p,q<br>
+     * -s,r                   -r,q<br>
+     * -----                  ------<br>
+     * q,r                    true(q)
+     *
+     * @param clause1 a longer disjunction.
+     * @return null or the possibly shortened, clause.
+     * @throws Unsatisfiable if a unit clause causes a contradiction in the model.
+     */
+    Clause simplifyLongerDisjunctionByBinaryClauses(Clause clause1) throws Unsatisfiable {
+        for(int i = 0; i < clause1.size(); ++i) {
+            Literal literalObject = clause1.literals.get(i);
+            if(literalIndexTwo.forAllLiterals(-literalObject.literal,
+                    (literalObject2 -> clause1.contains(literalObject2.clause.otherLiteral(literalObject2).literal)==1),
+                    (literalObject2 -> {
+                        String clauseBefore = (trackReasoning || monitoring) ? clause1.toString(symboltable,0) : null;
+                        clause1.literals.remove(literalObject); --clause1.expandedSize;
+                        InfResolution step = (trackReasoning || monitoring) ?
+                                new InfResolution(clause1,clauseBefore,literalObject2.clause,
+                                        literalObject2.clause.toString(symboltable,0),clause1, symboltable, "merge resolution") : null;
+                        clause1.inferenceStep = step;
+                        if(monitoring) monitor.println(monitorId,step.info());
+                        return true;}))) --i;}
+        if(clause1.size() == 1) {
+            addInternalTrueLiteralTask(clause1.literals.get(0).literal,true, clause1.inferenceStep);
+            return null;}
+        return clause1;}
+
+    /** removes literals from a longer disjunction by longer merge resolution.
+     * <br>
+     * p,q,r,phi <br>
+     * -p,q,r<br>
+     * -------<br>
+     * q,r,phi<br>
+      * Examples: <br>
+     * p,q,r,s <br>
+     * -p,r,s <br>
+     * -s,q,r <br>
+     * ----- <br>
+     * q,r
+     *
+     * @param clause1 a longer disjunction.
+     * @throws Unsatisfiable should not happen.
+     */
+    void simplifyLongerDisjunctionByLongerClauses(Clause clause1) throws Unsatisfiable {
+        int size = clause1.size();
+        for(int i = 0; i < clause1.size(); ++i) {
+            timestamp += size + 2;
+            Literal literalObject1 = clause1.literals.get(i);
+            if(!literalIndexMore.timestampClauses(-literalObject1.literal,
+                    (litObject22 -> litObject22.clause.isDisjunction && litObject22.clause.size() <= clause1.size()),
+                    timestamp,true)) continue;
+            int im = 0;
+            for(Literal literalObject2 : clause1.literals) {
+                if(literalObject2 == literalObject1) continue;
+                int imp = im++;
+                if(!literalIndexMore.forAllLiterals(literalObject2.literal,
+                    (literalObject22-> literalObject22.clause.timestamp1 == timestamp + imp),
+                        (literalObject22-> {
+                            Clause clause2 = literalObject22.clause;
+                            if(clause2.timestamp1 - timestamp == clause2.size()-2) {
+                                String clauseBefore = (trackReasoning || monitoring) ? clause1.toString(symboltable,0) : null;
+                                clause1.literals.remove(literalObject1); --clause1.expandedSize;
+                                InfResolution step = (trackReasoning || monitoring) ?
+                                        new InfResolution(clause1,clauseBefore,literalObject2.clause,
+                                                literalObject2.clause.toString(symboltable,0),clause1, symboltable, "merge resolution") : null;
+                                clause1.inferenceStep = step;
+                                if(monitoring) monitor.println(monitorId,step.info());
+                                return true;}
+                            ++clause2.timestamp1;
+                            return true;} ))) break;}
+
+            if(clause1.size() == 2) {timestamp += size + 2; return;}
+            if(clause1.size() < size) {--i; size = clause1.size();}}
+        timestamp += size + 2;}
 
     /** adds a ClauseTask (ProcessBinaryClause or ProcessLongerClause) depending on the clause's size.
      *
