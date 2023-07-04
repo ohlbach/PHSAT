@@ -312,7 +312,7 @@ public class Clause {
         determineClauseType();
         return 0;}
 
-    /** removes the literal from the clause and simplifies the resulting literal
+    /** removes the literal from the clause and simplifies the resulting clause.
      *
      * @param literal       a literal
      * @param trueLiterals  to be applied if some true literals can be derived.
@@ -320,7 +320,7 @@ public class Clause {
      * @throws Unsatisfiable
      */
     byte removeLiteral(int literal,final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable {
-        return removeLiterals((literalObject -> (literalObject.literal == literal)? (byte)1:0),null,trueLiterals);}
+        return removeLiterals((literalObject -> (literalObject.literal == literal)? (byte)-1:0),null,trueLiterals);}
 
         /** reduces the literals to the essential literals.
          * <br>

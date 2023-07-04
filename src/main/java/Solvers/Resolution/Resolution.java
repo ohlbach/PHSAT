@@ -557,17 +557,19 @@ public class Resolution extends Solver {
             task.makeExpand();
             synchronized (this) {queue.add(task);}}}
 
-    /** performs merge resolution between the given clause and the other binary clauses.
+    /** performs merge resolution and equivalence detection between the given clause and the other binary clauses.
      * <br>
-     * If this succeeds then a new true literal is inserted into the model and a corresponding task is added to the queue.
-     * The other parent clause is removed.
+     * Merge Resolution:  p,q and -p,q -&gt; true(q). <br>
+     * Equivalence detection: p,q and -p,-q -&gt p == -q. <br>
+     * If this succeeds then the other parent clause is removed and the given clause need not be inserted into the datastructures.
      *
-     * @param clause1 a binary clause
-     * @return true if a new true literal has been derived.
+     * @param clause1 a binary clause which is not yet inserted into the datastructures.
+     * @return true if the clause survived.
      * @throws Unsatisfiable if the new true literal contradicts the model.
      */
     boolean simplifyBinaryClause(Clause clause1) throws Unsatisfiable {
-        for(Literal literalObject : clause1.literals) {
+        ArrayList<Literal> literals = clause1.literals;
+        for(Literal literalObject : literals) {
             int literal1 = literalObject.literal;
             int literal2 = clause1.otherLiteral(literalObject).literal;
             if(literalIndexTwo.forAllLiterals(-literal1, // now we look for a clause -literal1,literal2
@@ -577,11 +579,27 @@ public class Resolution extends Solver {
                     InfMergeResolutionTwo step = (trackReasoning || monitoring) ?
                             new InfMergeResolutionTwo(clause1,clause2,literal2) : null;
                     if(monitoring) monitor.println(monitorId,step.info(symboltable));
-                    addInternalTrueLiteralTask(literal2,true, step);
                     removeClause(clause2,true,true);
                     ++statistics.mergeResolutionTwoTwo;
-                    return true;}))) return true;}
-        return false;}
+                    addInternalTrueLiteralTask(literal2,true, step);
+                    return true;}))) return false;}
+
+        // Now we look for equivalences.
+        int literal1 = literals.get(0).literal;
+        int literal2 = literals.get(1).literal;
+        return !literalIndexTwo.forAllLiterals(-literal1, // now we look for a clause -literal1,-literal2
+           (literalObject1Neg -> literalObject1Neg.clause.otherLiteral(literalObject1Neg).literal == -literal2),
+           (literalObject1Neg -> {              // an equivalence is found.
+               Clause clause2 = literalObject1Neg.clause;
+               InfEquivalence step = (trackReasoning || monitoring) ?
+                       new InfEquivalence(clause1,clause2,literal1,-literal2,symboltable) : null;
+               if(monitoring) monitor.println(monitorId,step.info(symboltable));
+               removeClause(clause2,true,true);
+               Equivalence equivalence = new Equivalence(literal1,-literal2,step);
+               ++statistics.equivalences;
+               equivalences.add(equivalence);
+               processEquivalence(equivalence);
+               return true;}));}
 
     /** checks if the binary clause is locally true
      *
@@ -1196,9 +1214,10 @@ public class Resolution extends Solver {
     Clause simplifyLongerClause(Clause clause, Task task) throws Unsatisfiable {
         try {
             if(clause.isDisjunction) {
-                clause = simplifyLongerDisjunctionByBinaryClauses(clause);
-                if (clause == null || clause.size() == 2) return clause;
-                simplifyLongerDisjunctionByLongerClauses(clause);}
+                if(simplifyLongerDisjunctionByBinaryClauses(clause))
+                    simplifyLongerDisjunctionByLongerClauses(clause);}
+            else {if(simplifyAtleastClauseByBinaryClauses(clause))
+                simplifyAtleastClauseByLongerClauses(clause);; }
             return clause;}
         finally{clause.determineClauseType();}}
 
@@ -1217,29 +1236,85 @@ public class Resolution extends Solver {
      * q,r                    true(q)
      *
      * @param clause1 a longer disjunction.
-     * @return null or the possibly shortened, clause.
+     * @return true if the clause survived.
      * @throws Unsatisfiable if a unit clause causes a contradiction in the model.
      */
-    Clause simplifyLongerDisjunctionByBinaryClauses(Clause clause1) throws Unsatisfiable {
-        for(int i = 0; i < clause1.size(); ++i) {
-            Literal literalObject = clause1.literals.get(i);
-            if(literalIndexTwo.forAllLiterals(-literalObject.literal,
-                    (literalObject2 -> clause1.contains(literalObject2.clause.otherLiteral(literalObject2).literal)==1),
-                    (literalObject2 -> {
+    boolean simplifyLongerDisjunctionByBinaryClauses(Clause clause1) throws Unsatisfiable {
+        ArrayList<Literal> literals = clause1.literals;
+        for(int i = 0; i < literals.size(); ++i) {
+            Literal literalObjectP = literals.get(i);
+            if(literalIndexTwo.forAllLiterals(-literalObjectP.literal,
+                    (literalObjectPNeg -> clause1.findLiteral(literalObjectPNeg.clause.otherLiteral(literalObjectPNeg).literal) != null),
+                    (literalObjectPNeg -> {
                         String clauseBefore = (trackReasoning || monitoring) ? clause1.toString(symboltable,0) : null;
-                        clause1.literals.remove(literalObject); --clause1.expandedSize;
+                        literals.remove(literalObjectP); --clause1.expandedSize;
                         InfResolution step = (trackReasoning || monitoring) ?
-                                new InfResolution(clause1,clauseBefore,literalObject2.clause,
-                                        literalObject2.clause.toString(symboltable,0),clause1, symboltable, "merge resolution") : null;
+                                new InfResolution(clause1,clauseBefore,literalObjectPNeg.clause,
+                                        literalObjectPNeg.clause.toString(symboltable,0),clause1,
+                                        symboltable, "merge resolution") : null;
                         clause1.inferenceStep = step;
                         if(monitoring) monitor.println(monitorId,step.info());
                         return true;}))) --i;}
-        if(clause1.size() == 1) {
-            addInternalTrueLiteralTask(clause1.literals.get(0).literal,true, clause1.inferenceStep);
-            return null;}
-        return clause1;}
+       if(literals.size() == 1) {
+            addInternalTrueLiteralTask(literals.get(0).literal,true, clause1.inferenceStep);
+            return false;}
+        return true;}
 
-    /** removes literals from a longer disjunction by longer merge resolution.
+    /** removes literals from a longer atleast-clause by binary merge resolution and clause simplification.
+     * <br>
+     * atleast m p,q^m,phi <br>
+     * -p,q<br>
+     * -------<br>
+     * atleast m q^m,phi<br>
+     * If the resulting clause is a unit clause, it is added to the model and a trueLiteral task is added to the queue. <br>
+     * Examples: <br>
+     * atleast 2 p,q^2,r,s      atleast 2 p,q^2,r<br>
+     * -p,r                     -p,r <br>
+     * ------------------       -----------------<br>
+     * atleast 2 q^2,r,s        atleast 2 q^2,r -&gt; true(q)
+     *
+     * @param clause1 a longer disjunction.
+     * @return true if the clause survived.
+     * @throws Unsatisfiable if a unit clause causes a contradiction in the model.
+     */
+    boolean simplifyAtleastClauseByBinaryClauses(Clause clause1) throws Unsatisfiable {
+        ArrayList<Literal> literals = clause1.literals;
+        int limit = clause1.limit;
+        trueLiterals.clear();
+        for(int i = 0; i < literals.size(); ++i) {
+            Literal literalObjectP = literals.get(i);
+            int literalP = literalObjectP.literal;
+            if(literalIndexTwo.forAllLiterals(-literalObjectP.literal,
+                    (literalObjectPNeg -> { // -p in binary clause
+                        if(literalObjectPNeg.multiplicity > 1) return false;
+                        Clause clause2 = literalObjectPNeg.clause; // binary clause with -p
+                        Literal literalObjectQ = clause1.findLiteral(clause2.otherLiteral(literalObjectPNeg).literal);
+                        return literalObjectQ != null && literalObjectQ.multiplicity == limit;}),
+                    (literalObjectPNeg -> {
+                        String clauseBefore = (trackReasoning || monitoring) ? clause1.toString(symboltable,0) : null;
+                        int status = clause1.removeLiteral(literalP, (literal -> trueLiterals.add(literal)));
+                        InfResolution step = (trackReasoning || monitoring) ?
+                                new InfResolution(clause1,clauseBefore,literalObjectPNeg.clause,
+                                        literalObjectPNeg.clause.toString(symboltable,0),clause1,
+                                        symboltable, "merge resolution") : null;
+                        for(int literal : trueLiterals) addInternalTrueLiteralTask(literal,true,step);
+                        trueLiterals.clear();
+                        if(status == 1) {clause1.exists = false; return true;}
+                        clause1.inferenceStep = step;
+                        if(status == -1) throw new UnsatClause(clause1,problemId,solverId);
+                        if(monitoring) monitor.println(monitorId,step.info());
+                        return true;}))) {
+                if(!clause1.exists) return false;
+                --i;}}
+        if(literals.size() == 1) {
+            addInternalTrueLiteralTask(literals.get(0).literal,true, clause1.inferenceStep);
+            return false;}
+        if(literals.size() == 2) return simplifyBinaryClause(clause1);
+        return true;}
+
+
+
+    /** removes literals from a longer disjunction by merge resolution with longer clauses.
      * <br>
      * p,q,r,phi <br>
      * -p,q,r<br>
@@ -1251,41 +1326,117 @@ public class Resolution extends Solver {
      * -s,q,r <br>
      * ----- <br>
      * q,r
+     * <br>
+     * If the simplified clause is binary then it is further simplified by binary clauses.
      *
      * @param clause1 a longer disjunction.
+     * @return true if the clause survived.
      * @throws Unsatisfiable should not happen.
      */
-    void simplifyLongerDisjunctionByLongerClauses(Clause clause1) throws Unsatisfiable {
+    boolean simplifyLongerDisjunctionByLongerClauses(Clause clause1) throws Unsatisfiable {
         int size = clause1.size();
         for(int i = 0; i < clause1.size(); ++i) {
             timestamp += size + 2;
-            Literal literalObject1 = clause1.literals.get(i);
-            if(!literalIndexMore.timestampClauses(-literalObject1.literal,
-                    (litObject22 -> litObject22.clause.isDisjunction && litObject22.clause.size() <= clause1.size()),
+            Literal literalObjectP = clause1.literals.get(i);
+            if(!literalIndexMore.timestampClauses(-literalObjectP.literal,
+                    (literalObjectPNeg -> literalObjectPNeg.clause.isDisjunction && literalObjectPNeg.clause.size() <= clause1.size()),
                     timestamp,true)) continue;
             int im = 0;
-            for(Literal literalObject2 : clause1.literals) {
-                if(literalObject2 == literalObject1) continue;
+            for(Literal literalObjectQ : clause1.literals) {
+                if(literalObjectQ == literalObjectP) continue;
                 int imp = im++;
-                if(!literalIndexMore.forAllLiterals(literalObject2.literal,
-                    (literalObject22-> literalObject22.clause.timestamp1 == timestamp + imp),
-                        (literalObject22-> {
-                            Clause clause2 = literalObject22.clause;
+                if(!literalIndexMore.forAllLiterals(literalObjectQ.literal,
+                    (literalObjectQC-> literalObjectQC.clause.timestamp1 == timestamp + imp),
+                        (literalObjectQC-> {
+                            Clause clause2 = literalObjectQC.clause;
                             if(clause2.timestamp1 - timestamp == clause2.size()-2) {
                                 String clauseBefore = (trackReasoning || monitoring) ? clause1.toString(symboltable,0) : null;
-                                clause1.literals.remove(literalObject1); --clause1.expandedSize;
+                                clause1.literals.remove(literalObjectP); --clause1.expandedSize;
                                 InfResolution step = (trackReasoning || monitoring) ?
-                                        new InfResolution(clause1,clauseBefore,literalObject2.clause,
-                                                literalObject2.clause.toString(symboltable,0),clause1, symboltable, "merge resolution") : null;
+                                        new InfResolution(clause1,clauseBefore,literalObjectQ.clause,
+                                                literalObjectQ.clause.toString(symboltable,0),clause1, symboltable, "merge resolution") : null;
                                 clause1.inferenceStep = step;
                                 if(monitoring) monitor.println(monitorId,step.info());
                                 return true;}
                             ++clause2.timestamp1;
                             return true;} ))) break;}
 
-            if(clause1.size() == 2) {timestamp += size + 2; return;}
+            if(clause1.size() == 2) {timestamp += size + 2; return simplifyBinaryClause(clause1);}
             if(clause1.size() < size) {--i; size = clause1.size();}}
-        timestamp += size + 2;}
+        timestamp += size + 2;
+        return true;}
+
+    /** removes literals from a longer atleast clause by merge resolution with longer and binary clauses.
+     * <br>
+     * atleast m  p^l,q_1^m,...,  q_i^m, phi <br>
+     * atleast n -p^k,q_1^k_1,...,q_i^k_i   and   n = max(k,l)<br>
+     * ----------------------------------<br>
+     * atleast m  q_1^m,...,  q_i^m, phi
+     * <br><br>
+     * Example: <br>
+     * atleast 3  p^2,q^3,r^3,phi  <br>
+     * atleast 4 -p^4,q^2,r^2 <br>
+     * ---------------------- <br>
+     * atleast 3 q^3,r^3,phi
+     * <br>
+     * After the literal is removed from the clause, it is simplified further.<br>
+     * If the simplified clause is binary then it is further simplified by binary clauses.<br>
+     * Notice that timestamp is modified.
+     *
+     * @param clauseM a longer disjunction.
+     * @return true if the clause survived.
+     * @throws Unsatisfiable if derived true literals cause a contradiction.
+     */
+    boolean simplifyAtleastClauseByLongerClauses(Clause clauseM) throws Unsatisfiable {
+        int limitM = clauseM.limit;
+        ArrayList<Literal> literalsM = clauseM.literals;
+        int size = clauseM.size();
+        trueLiterals.clear();
+        for(int i = 0; i < literalsM.size(); ++i) {
+            timestamp += size + 2;
+            Literal literalObjectP = literalsM.get(i);
+            int literalPNeg = -literalObjectP.literal;
+            int multL = literalObjectP.multiplicity;
+            if(!literalIndexMore.timestampClauses(literalPNeg,
+                    (literalObjectPNeg -> {
+                        Clause clauseN = literalObjectPNeg.clause;
+                        int multK = literalObjectPNeg.multiplicity;
+                        return (literalObjectPNeg.clause.size() <= clauseM.size() && clauseN.limit == Math.max(multL,multK));}),
+                    timestamp,true)) continue;
+            int im = 0;
+            for(Literal literalObjectQ : clauseM.literals) {
+                if(literalObjectQ == literalObjectP) continue;
+                int imp = im++;
+                if(!literalIndexMore.forAllLiterals(literalObjectQ.literal,
+                        (literalObjectQC-> literalObjectQC.clause.timestamp1 == timestamp + imp),
+                        (literalObjectQC-> {
+                            Clause clauseN = literalObjectQC.clause;
+                            if(clauseN.timestamp1 - timestamp == clauseN.size()-2) {
+                                for(Literal literalObjectN : clauseN.literals) {
+                                    if(literalObjectN.literal == literalPNeg) continue;
+                                    if(limitM != clauseM.findLiteral(literalObjectN.literal).multiplicity) return false;}
+                                String clauseBefore = (trackReasoning || monitoring) ? clauseM.toString(symboltable,0) : null;
+                                int status = clauseM.removeLiteral(literalObjectP.literal, (literal->trueLiterals.add(literal)));
+                                InfResolution step = (trackReasoning || monitoring) ?
+                                        new InfResolution(clauseM,clauseBefore,clauseN,
+                                                clauseN.toString(symboltable,0),clauseM,
+                                                symboltable, "merge resolution") : null;
+                                for(int literal : trueLiterals) addInternalTrueLiteralTask(literal,true,step);
+                                trueLiterals.clear();
+                                if(status == 1) {clauseM.exists = false; return true;}
+                                clauseM.inferenceStep = step;
+                                if(status == -1) throw new UnsatClause(clauseM,problemId,solverId);
+                                clauseM.inferenceStep = step;
+                                if(monitoring) monitor.println(monitorId,step.info());
+                                return true;}
+                            ++clauseN.timestamp1;
+                            return true;} ))) break;}
+
+            if(clauseM.size() == 2) {timestamp += size + 2; return simplifyBinaryClause(clauseM);}
+            if(clauseM.size() < size) {--i; size = clauseM.size();}}
+        timestamp += size + 2;
+        return true;}
+
 
     /** adds a ClauseTask (ProcessBinaryClause or ProcessLongerClause) depending on the clause's size.
      *
