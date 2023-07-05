@@ -2,7 +2,7 @@ package Solvers.Resolution;
 
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import Utilities.PredicateWithUnsatisfiable;
+import Utilities.PredicateWithResult;
 
 /** The Clauses class maintains a doubly connected list of Clause objects.<br>
  * New clauses are appended at the end of the list.<br>
@@ -158,7 +158,7 @@ public class Clauses {
      * @return true if an action-application returns true, otherwise false.
      * @throws Unsatisfiable if the action generates an unsatisfiability.
      */
-    boolean forAll(PredicateWithUnsatisfiable<Clause> action) throws Unsatisfiable {
+    boolean forAll(PredicateWithResult<Clause> action) throws Unsatisfiable {
         Clause clause = firstClause;
         while(clause != null) {
             if(clause.exists) {

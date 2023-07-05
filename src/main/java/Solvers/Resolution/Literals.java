@@ -2,7 +2,7 @@ package Solvers.Resolution;
 
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import Utilities.PredicateWithUnsatisfiable;
+import Utilities.PredicateWithResult;
 
 import java.util.function.Predicate;
 
@@ -197,7 +197,7 @@ public class Literals {
      * @return               true if the action returned true.
      * @throws Unsatisfiable if the action throws Unsatisfiable.
      */
-    boolean forAllLiterals(int literal, Predicate<Literal> condition, PredicateWithUnsatisfiable<Literal> action) throws Unsatisfiable {
+    boolean forAllLiterals(int literal, Predicate<Literal> condition, PredicateWithResult<Literal> action) throws Unsatisfiable {
         Literal literalObject = getFirstLiteralObject(literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
