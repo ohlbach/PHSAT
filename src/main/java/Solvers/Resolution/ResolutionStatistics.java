@@ -14,6 +14,11 @@ public class ResolutionStatistics extends Statistic {
     @Description("number of derived true literal")
     public int derivedTrueLiterals = 0;
 
+    @Description("number of imported true literal")
+    public int importedTrueLiterals = 0;
+    @Description("number of literals removed by true literals")
+    public int trueLiteralRemovals = 0;
+
     @Description("number of pure literals")
     public int pureLiterals = 0;
 
@@ -63,6 +68,8 @@ public class ResolutionStatistics extends Statistic {
     public void clear() {
         initialClauses                   = 0;
         derivedTrueLiterals              = 0;
+        importedTrueLiterals             = 0;
+        trueLiteralRemovals              = 0;
         pureLiterals                     = 0;
         partiallyPureLiterals            = 0;
         resolvedPredicates               = 0;
@@ -83,7 +90,9 @@ public class ResolutionStatistics extends Statistic {
         StringBuilder st = new StringBuilder();
         st.append("Resolution Statistics\n");
         st.append("Initial Clauses:                   ").append(initialClauses).append("\n");
-        st.append("Derived Unit Clauses:              ").append(derivedTrueLiterals).append("\n");
+        st.append("Derived True Literals:             ").append(derivedTrueLiterals).append("\n");
+        st.append("Imported True Literals:            ").append(importedTrueLiterals).append("\n");
+        st.append("True Literal Removals:             ").append(trueLiteralRemovals).append("\n");
         st.append("Pure Literals:                     ").append(pureLiterals).append("\n");
         st.append("Parially pure Literals:            ").append(partiallyPureLiterals).append("\n");
         st.append("Resolved Predicates:               ").append(resolvedPredicates).append("\n");
