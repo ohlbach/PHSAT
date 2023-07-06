@@ -20,21 +20,63 @@ import java.util.HashMap;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.IntSupplier;
 
-/** This is an incomplete solver which tries to simplify the clauses as far as possible.
- *  - It tries to derive new true literals and send them to the model.<br>
- *  - It tries to derive new equivalences and send them to the equivalenceClasses.<br>
- *  <br>
- *  The following operations are preformed:<br>
- *  - all clauses are transformed to atleast normal form.<br>
- *  - the clause set is partially saturated by resolution in such a way that the clause length does not increase.<br>
- *  - subsumed clauses are removed. <br>
- *  - merge resolution between two clause, reduces the clause length.<br>
- *  - New true literals in the model are incorporated.<br>
- *  - New equivalences form the equivalenceClasses are incorporated.<br>
- *  - pure literals are sent to the model.<br>
- *  - after saturation partially pure literals are made true.<br>
- *  - when there are only 2-literal clauses left (after saturation)
- *    the model is completed by choosing the first literal as true literal.
+/** This is an incomplete solver which tries to simplify the clauses as far as possible and to derive true literals
+ * to be sent to other solvers.
+ * <br><br>
+ * All input clauses are transformed to disjunctions or atleast-clauses.
+ * <br><br>
+ * The solver distinguishes three phases:<br>
+ * 1. Simplification of new clauses (input clauses or new resolvents) <br>
+ *    - subsumption (subsumed clauses are removed)<br>
+ *    - true literal removal (true/false literals are removed from clauses) <br>
+ *    - merge resolution (e.g. p,q and -p,q,phi -> q,phi)<br>
+ *    - equivalence detection and replacement (p,-q, and -p,q -&gt; p == q)
+ *    <br><br>
+ * 2. Simplification of other clauses triggered by new clauses <br>
+ *    - removing of subsumed clauses <br>
+ *    - true literal removal in all other clauses
+ *    - merge resolution of other clauses <br>
+ *    - equivalence replacement
+ *    <br><br>
+ * 3. Limited generation of new resolvents <br>
+ *   - saturation of two-literal clauses (all resolvents between two-literal clauses are generated) <br>
+ *   - resolution between two-literal clauses and other clauses (their length does not change)<br>
+ *   - partial merge resolution such that the length of the resolvent is not increased.
+ *   - elimination of literals. Generate all resolvents for a predicate if the number of resolvents does not increase the
+ *   number of clauses with this predicate.<br>
+ *   The new resolvents are immediately used to simplify the other clauses.
+ *   <br> <br>
+ *   Further simplifications: <br>
+ *   - purity deletion: literal occurring only positively/negatively can be made true and the clauses are deleted.<br>
+ *   - partial purity deletion: after the two-literal clauses are saturated, literals occurring only
+ *   positively/negatively in the longer clauses can be made true. <br>
+ *   <br><br>
+ *   Final decisions: <br>
+ *   - an empty clause set indicates satisfiability of the clauses.<br>
+ *   - an empty clause indicates unsatisfiability of the clause set.<br>
+ *   - from a clause set consisting of only positive/negative and mixed clauses a model can be derived.
+ *   <br><br>
+ *   The class distinguishes the global model (derived true literals) and the local model (pure literals). <br>
+ *   The true literals in the global model can be sent to other solvers.
+ *   The locally true literals may be part of a model, but there may be other models where these literals are false.
+ *   <br><br>
+ *   The methods try to treat disjunctions as efficient as possible while dealing also with atleast-clauses.
+ *   <br><br>
+ *   There is an important distinction between two-literal clauses and longer clauses.
+ *   Two-literal clauses are always disjunctions and can be treated much more efficiently than longer clauses. <br>
+ *   The literals of two-literal clause are put into the index literalIndexTwo, and the literals of the
+ *   longer clauses are put into the index literalIndexMore.<br>
+ *   The iterators for the clauses and these indices (e.g. forAllLiterals) ignore removed literals/clauses,
+ *   such that one can remove literals/clauses while iterating over them.
+ *   <br><br>
+ *   Tools for tracking the reasoning <br>
+ *   - monitor: all operations can be documented in the monitor. <br>
+ *   - trackReasoning: all deductions of new information (clauses, true literals) can be tagged with
+ *   InferenceSteps explaining the reason for the deduction (displayed for unsatisfiable clause sets).
+ *   <br><br>
+ *   Tools for checking the soundness of the algorithms:<br>
+ *   - checkConsistency checks the consistency of the indices, of the clause types, and of the model with the input clauses.<br>
+ *   - printSeparated shows the current state of the clauses.
  */
 
 public class Resolution extends Solver {
@@ -354,9 +396,7 @@ public class Resolution extends Solver {
                             expandBinaryClauseWithBinaryClauses(clause);
                             if(clause.exists) expandBinaryClauseWithLongerClauses(clause);}
                         else expandLongerClauseWithLongerClauses(clause);}
-                    else {if(clause.size() == 2)
-                             simplifyLongerClausesByBinaryClause(clause);
-                         else simplifyLongerClausesByLongerClause(clause);}}
+                    else {processSimplifications(clause);}}
                 if(checkConsistency) checkConsistency();
                 boolean changed = false;
                 if(clauses.isEmpty()) {
@@ -392,7 +432,7 @@ public class Resolution extends Solver {
      *
      * @throws Result if a contradiction is encountered or the clause set became empty.
      */
-    public void processTasksSimplifying() throws Result {
+    public void processSimplifyingTasks() throws Result {
         Task task;
         while(!myThread.isInterrupted() && ((task = queue.peek()) != null)) {
             if (task.literal == 0 && task.clause == null)  {queue.poll(); continue;}
@@ -408,8 +448,7 @@ public class Resolution extends Solver {
                 Clause clause = task.clause;
                 Task.pushTask(task); // to be reused.
                 if(!clause.exists) continue;
-                if (clause.size() == 2) simplifyBinaryClause(clause,true);
-                else simplifyLongerClause(clause);}}}
+                processSimplifications(clause);}}}
 
 
     // METHODS FOR PROCESSING TRUE LITERALS
@@ -435,8 +474,8 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if a contradiction is found.
      *  */
     void processTrueLiteral(final int trueLiteral, final InferenceStep inferenceStep) throws Unsatisfiable {
-        processTrueLiteralTwo(trueLiteral,inferenceStep);
-        processTrueLiteralMore(trueLiteral);
+        applyTrueLiteralToBinaryClauses(trueLiteral,inferenceStep);
+        applyTrueLiteralToLongerClauses(trueLiteral);
         equivalences.applyTrueLiteral(this::localStatus,inferenceStep,
                 (newTrueLiteral,step) -> {
                     if(monitoring) monitor.println(monitorId, "Equivalent literal " +
@@ -454,7 +493,7 @@ public class Resolution extends Solver {
      * @param inferenceStep  which caused the derivation of oldTrueLiteral.
      * @throws Unsatisfiable if a contradiction is encountered.
      */
-    protected void processTrueLiteralTwo(final int trueLiteral, final InferenceStep inferenceStep) throws Unsatisfiable {
+    protected void applyTrueLiteralToBinaryClauses(final int trueLiteral, final InferenceStep inferenceStep) throws Unsatisfiable {
         literalIndexTwo.forAllLiterals(trueLiteral,null, // remove all two-literal clauses with oldTrueLiteral
                 (literalObject -> {removeClause(literalObject.clause,true,true); return false;}));
 
@@ -483,7 +522,7 @@ public class Resolution extends Solver {
      * @param trueLiteral a true (or false) literal.
      * @throws Unsatisfiable if a contradiction is encountered.
      */
-    void processTrueLiteralMore(final int trueLiteral) throws Unsatisfiable{
+    void applyTrueLiteralToLongerClauses(final int trueLiteral) throws Unsatisfiable{
         removedLiterals.clear(); // for later checking purity
         for(int sign = 1; sign >= -1; sign -= 2) {
             literalIndexMore.forAllLiterals(sign*trueLiteral,null, // map over all clauses with true/false "trueLiteral"
@@ -591,6 +630,101 @@ public class Resolution extends Solver {
         clauses.updateClauseNumbers(clause,+1);
         addSimplificationTask(clause);}
 
+    /** performs all simplifications between the given clause and all the other clauses.
+     * <br>
+     * - subsumed clauses are removed.<br>
+     * - mergeResolution with all candidates is done.
+     *
+     * @param clause   a clause
+     * @throws Result usually Unsatisfiable
+     */
+    void processSimplifications(Clause clause) throws Result {
+        if(clause.size() == 2) {simplifyLongerClausesByBinaryClause(clause);}
+        else {simplifyLongerClausesByLongerClause(clause);}}
+
+    // SUBSUMPTION CHECKS
+
+
+    /** checks if the clause is subsumed by another clause.
+     * <br>
+     * Two-literal clauses are already checked when they are simplified.
+     * Therefor this method needs to be called only for longer clauses.
+     *
+     * @param clause a clause
+     * @return null or the subsumer clause.
+     */
+    boolean isSubsumed(Clause clause) {
+        if(clause.size() > 2)
+            if(longerClauseIsSubsumedByBinaryClause(clause) || longerClauseIsSubsumedByLongerClause(clause)) {
+                ++statistics.subsumedClauses;
+                return true;}
+        return false;}
+
+
+    /** checks if the longer subsumee is subsumed by a binary subsumer.
+     * <br>
+     * A longer disjunction is subsumed by a binary clause of its two literals are contained in the longer clause.<br>
+     * For atleast-clauses the condition is: p,q subsumes atleast n p^n,q^n, phi.
+     * <br>
+     * This method is called when a new resolvent is created.
+     *
+     * @param subsumee a longer clause
+     * @return true if the clause is subsumed.
+     */
+    boolean longerClauseIsSubsumedByBinaryClause(Clause subsumee) {
+        assert(subsumee.size() > 2);
+        int limit = subsumee.limit;
+        for(Literal literalObjectLonger1 : subsumee.literals) {
+            if(literalObjectLonger1.multiplicity != limit) continue;
+            Literal subsumerLiteral = literalIndexTwo.findLiteral(literalObjectLonger1.literal,
+                    literalObjectBinary1 -> {
+                        int literalBinary2 = literalObjectBinary1.clause.otherLiteral(literalObjectBinary1).literal;
+                        Literal literalObjectLonger2 = subsumee.findLiteral(literalBinary2);
+                        return literalObjectLonger2 != null && literalObjectLonger2.multiplicity == limit;});
+            if (subsumerLiteral != null) return true;}
+        return false;}
+
+
+    /** checks if the longer clause is subsumed by another longer clause.
+     * <br>
+     *  atleast n p^a,... subsumes atleast n- p^a+,...<br>
+     *  where n- means &lt;= n and a+ means &gt;=a.<br>
+     *  p_1,...,p_k subsumes atleast n p_1^n,...,p_k^n,phi<br>
+     *  Notice that the timestampSubsumption is changed!
+     *
+     * @param subsumee a longer clause
+     * @return true if the clause is subsumed.
+     */
+    boolean longerClauseIsSubsumedByLongerClause(Clause subsumee) {
+        int size = subsumee.size();
+        assert size > 2;
+        int limit = subsumee.limit;
+        for(final Literal literalObject1 : subsumee.literals) {
+            int multiplicity1 = literalObject1.multiplicity;
+            Literal subsumerLiteral = literalIndexMore.findLiteral(literalObject1.literal,
+                    literalObject2->{
+                        Clause subsumer = literalObject2.clause;
+                        if(subsumer == subsumee) return false;
+                        int multiplicity2 = literalObject2.multiplicity;
+                        if(subsumer.timestamp2 < timestampSubsumption) { // first candidate literal
+                            if(subsumer.size() <= size &&
+                                    (subsumer.limit >= limit && multiplicity2 <= multiplicity1) ||
+                                    (subsumer.isDisjunction && multiplicity2 == subsumer.limit))
+                                subsumer.timestamp2 = timestampSubsumption;
+                            return false;}
+                        else {
+                            if(subsumer.timestamp2 - timestampSubsumption == subsumer.size()-2 &&
+                                    multiplicity2 <= multiplicity1 ||
+                                    (subsumer.isDisjunction && multiplicity2 == subsumer.limit))
+                                return true;
+                            if(multiplicity2 <= multiplicity1 || (subsumer.isDisjunction && multiplicity2 == subsumer.limit))
+                                ++subsumer.timestamp2;}
+                        return false;});
+            if(subsumerLiteral != null) {timestampSubsumption += size+2; return true;}}
+        timestampSubsumption += size+2;
+        return false;}
+
+
     // BINARY CLAUSES
 
     /** checks if the binary clause is locally true
@@ -635,7 +769,7 @@ public class Resolution extends Solver {
      * If the clause is subsumed, it is removed (if inserted)<br>
      * The other operations are:<br>
      * Merge Resolution:  p,q and -p,q -&gt; true(q). <br>
-     * Equivalence detection: p,q and -p,-q -&gt p == -q. <br>
+     * Equivalence detection: p,q and -p,-q -&gt; p == -q. <br>
      * If this succeeds then the other parent clause is removed as well.<br>
      * A new equivalence is immediately processed.<br>
      * New true literals are inserted into the models and the queue.
@@ -747,7 +881,7 @@ public class Resolution extends Solver {
             literalIndexMore.forAllLiterals(-literalObject.literal, null,
                     (literalObject2 -> {
                         if(resolve(literalObject,literalObject2,true,"resolution expansion") != null) {
-                            processTasksSimplifying();} // simplify all clauses with the new resolvent.
+                            processSimplifyingTasks();} // simplify all clauses with the new resolvent.
                         return true;}));}}
 
 
@@ -782,84 +916,35 @@ public class Resolution extends Solver {
                             if(monitoring) monitor.println(monitorId,step.info());
                             if(simplifyClause(clause2,true)) {
                                 addSimplificationTask(clause2);
-                                processTasksSimplifying();}}
+                                processSimplifyingTasks();}}
                         return false;}));}
         finally {++timestamp;}}
 
+
     // PROCESSING LONGER CLAUSES
 
-
-    /** checks if the longer subsumee is subsumed by a binary subsumer.
-     * <br>
-     *  Only Or-clauses can be subsumed by binary clauses.
-     *
-     * @param subsumee a longer clause
-     * @return null or the binary subsumer clause.
-     */
-    Clause longerClauseIsSubsumedByBinaryClause(final Clause subsumee) {
-        assert(subsumee.size() > 2);
-        if(subsumee.limit > 1) return null; // binary clauses cannot subsume longer atleast-clauses
-        for(Literal literalObject : subsumee.literals) {
-            Literal subsumerLiteral = literalIndexTwo.findLiteral(literalObject.literal,
-                    literalObjectTwo -> subsumee.findLiteral(literalObjectTwo.clause.otherLiteral(literalObjectTwo).literal) != null);
-            if (subsumerLiteral != null) return subsumerLiteral.clause;}
-        return null;}
-
-
-    /** checks if the longer clause is subsumed by another longer clause.
-     * <br>
-     *  atleast n p^a,... subsumes atleast n- p^a+,...<br>
-     *  where n- means &lt;= n and a+ means &gt;=a.<br>
-     *  Notice that the timestampSubsumption is changed!
-     *
-     * @param subsumee a longer clause
-     * @return null or the longer subsumer clause.
-     */
-    Clause longerClauseIsSubsumedByLongerClause(final Clause subsumee) {
-        int size = subsumee.size();
-        int limit = subsumee.limit;
-        for(final Literal literalObject1 : subsumee.literals) {
-            int multiplicity1 = literalObject1.multiplicity;
-            Literal subsumerLiteral = literalIndexMore.findLiteral(literalObject1.literal,
-                    literalObject2->{
-                        Clause subsumer = literalObject2.clause;
-                        if(subsumer == subsumee) return false;
-                        int multiplicity2 = literalObject2.multiplicity;
-                        if(subsumer.timestamp2 < timestampSubsumption) { // first candidate literal
-                            if(subsumer.size() <= size && subsumer.limit >= limit && multiplicity2 <= multiplicity1) subsumer.timestamp2 = timestampSubsumption;
-                            return false;}
-                        else {
-                            if(subsumer.timestamp2 - timestampSubsumption == subsumer.size()-2 && multiplicity2 <= multiplicity1) return true;
-                            if(multiplicity2 <= multiplicity1) ++subsumer.timestamp2;}
-                        return false;});
-            if(subsumerLiteral != null) {timestampSubsumption += size+2; return subsumerLiteral.clause;}}
-        timestampSubsumption += size+2;
-        return null;}
-
-    /** processes the longer clause.
+    /** simplifies the longer clause by other longer clauses.
      * - if the clause is subsumed, it is removed.<br>
      * - other clauses subsumed by the clause are removed. <br>
-     * - merge resolution with the clause is performed.<br>
-     * - triggered equivalences with 3-literal disjunctions is searched. <br>
-     * - all resolvents with the binary clauses are generated.<br>
+     * - merge resolution with the other longer clause is performed.
+     * <br>
+     * Notice that simplifications by binary clauses have already been done in the methods for binary clauses.
      *
      * @param clause a longer clause.
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    protected void processLongerClause(final Clause clause, boolean saturateBinaryClauses) throws Unsatisfiable {
-         if(clause.size() < 3) {
-            processBinaryClause(clause);
-            return;}
-        if((longerClauseIsSubsumedByBinaryClause(clause) != null) ||
-           (longerClauseIsSubsumedByLongerClause(clause) != null)) {
+    void simplifyLongerClausesByLongerClause(final Clause clause) throws Unsatisfiable {
+        if(longerClauseIsSubsumedByLongerClause(clause) != null) {
             removeClause(clause,true,true);
             return;}
         removeClausesSubsumedByLongerClause(clause);
-        if(!mergeResolutionMoreMore(clause)) return;
-        if(saturateBinaryClauses) saturateBinaryClausesWithLongerClause(clause);
-        if(clause.exists) mergeResolutionPartial(clause);
-        if(clause.exists && clause.size() == 3) tripleResolution(clause);
+        mergeResolutionMoreMore(clause);
     }
+
+
+
+
+
 
 
 
@@ -903,21 +988,7 @@ public class Resolution extends Solver {
                     return false;}));}
         timestampSubsumption += subsumerSize + 1;}
 
-   
 
-
-    /** checks if the clause is subsumed by another clause.
-     *
-     * @param clause a clause
-     * @return null or the subsumer clause.
-     */
-    Clause isSubsumed(final Clause clause) {
-        boolean isBinaryClause = clause.size() == 2;
-        Clause subsumer = isBinaryClause ? binaryClauseIsSubsumed(clause) :
-                                           longerClauseIsSubsumedByBinaryClause(clause);
-        if(subsumer == null && !isBinaryClause) subsumer = longerClauseIsSubsumedByLongerClause(clause);
-        if(subsumer != null) ++statistics.subsumedClauses;
-        return subsumer;}
 
 
 

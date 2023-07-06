@@ -97,7 +97,7 @@ public class ResolutionTest extends TestCase {
     }
 
     public void testProcessTrueLiteralTwo() throws Result {
-        System.out.println("processTrueLiteralTwo");
+        System.out.println("applyTrueLiteralToBinaryClauses");
         Thread myThread = Thread.currentThread();
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
@@ -111,7 +111,7 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{4, cOr, -2, 3}));
         resolution.insertClause(new Clause(new int[]{5, cOr, 6, -2}));
         resolution.insertClause(new Clause(new int[]{4, cOr, -1, 4}));
-        resolution.processTrueLiteralTwo(2,null); // true literal 2
+        resolution.applyTrueLiteralToBinaryClauses(2,null); // true literal 2
         assertEquals("4: -1v4\n", resolution.clauses.toString());
         assertEquals("2,3,6", resolution.model.toString());
         assertEquals("-1,2,3,6", resolution.localModelString());
@@ -121,7 +121,7 @@ public class ResolutionTest extends TestCase {
     }
 
     public void testProcessTrueLiteralMore1() throws Result {
-        System.out.println("processTrueLiteralMore 1");
+        System.out.println("applyTrueLiteralToLongerClauses 1");
         Thread myThread = Thread.currentThread();
         int predicates = 4;
         Monitor monitor = monitoring ? new MonitorLife() : null;
@@ -131,7 +131,7 @@ public class ResolutionTest extends TestCase {
         resolution.model.add(myThread,2, new InfInputClause(1));
         resolution.makeLocallyTrue(2,null);
         resolution.insertClause(new Clause(new int[]{2, cOr, 1, 2, 3}));
-        resolution.processTrueLiteralMore(2);
+        resolution.applyTrueLiteralToLongerClauses(2);
         assertTrue(resolution.clauses.isEmpty());  // clause is true and removed.
         assertEquals("2", resolution.localModelString());
 
@@ -140,7 +140,7 @@ public class ResolutionTest extends TestCase {
         resolution.model.add(myThread,2, new InfInputClause(1));
         resolution.makeLocallyTrue(2,null);
         resolution.insertClause(new Clause(new int[]{2, cOr, -1, -2, -3}));
-        resolution.processTrueLiteralMore(2);
+        resolution.applyTrueLiteralToLongerClauses(2);
         assertFalse(resolution.clauses.isEmpty());
         assertEquals("2: -1v-3\n", resolution.clauses.toString());
         assertEquals("2", resolution.localModelString());
@@ -151,7 +151,7 @@ public class ResolutionTest extends TestCase {
         resolution.makeLocallyTrue(2,null);
         resolution.makeLocallyTrue(1,null);
         resolution.insertClause(new Clause(new int[]{2, cOr, -1, -2, -3}));
-        resolution.processTrueLiteralMore(2);
+        resolution.applyTrueLiteralToLongerClauses(2);
         assertTrue(resolution.clauses.isEmpty());
         assertEquals("1,2,-3", resolution.localModelString());
 
@@ -162,7 +162,7 @@ public class ResolutionTest extends TestCase {
         resolution.model.add(myThread,4, new InfInputClause(2));
         resolution.makeLocallyTrue(4,null);
         resolution.insertClause(new Clause(new int[]{2, cAtleast, 3, 1, 2, 3, 4}));
-        resolution.processTrueLiteralMore(2);
+        resolution.applyTrueLiteralToLongerClauses(2);
         assertFalse(resolution.clauses.isEmpty());
         assertEquals("2: 1v3\n", resolution.clauses.toString());
         assertEquals("2,4", resolution.localModelString());
@@ -175,7 +175,7 @@ public class ResolutionTest extends TestCase {
             resolution.model.add(myThread,-4, new InfInputClause(2));
             resolution.makeLocallyTrue(-4,null);
             resolution.insertClause(new Clause(new int[]{2, cAtleast, 3, 1, 2, 3, 4}));
-            resolution.processTrueLiteralMore(2);
+            resolution.applyTrueLiteralToLongerClauses(2);
             assertFalse(resolution.clauses.isEmpty());
             assertEquals("", resolution.clauses.toString());
             assertEquals("-2,-4", resolution.model.toString());}
@@ -183,7 +183,7 @@ public class ResolutionTest extends TestCase {
           if(monitoring) System.out.println(unsatisfiable.toString());}}
 
     public void testProcessTrueLiteralMore2() throws Result {
-        System.out.println("processTrueLiteralMore 2");
+        System.out.println("applyTrueLiteralToLongerClauses 2");
         Thread myThread = Thread.currentThread();
         int predicates = 4;
         Monitor monitor = monitoring ? new MonitorLife() : null;
@@ -193,7 +193,7 @@ public class ResolutionTest extends TestCase {
         resolution.model.add(myThread,-3, new InfInputClause(1));
         resolution.makeLocallyTrue(-3,null);
         resolution.insertClause(new Clause(new int[]{2, cAtleast, 4, 1,1, 2,2, 3,4}));
-        resolution.processTrueLiteralMore(3);
+        resolution.applyTrueLiteralToLongerClauses(3);
         assertEquals("", resolution.clauses.toString());
         assertEquals("1,2,-3", resolution.localModelString());
 
@@ -206,7 +206,7 @@ public class ResolutionTest extends TestCase {
         resolution.model.add(myThread,-4, new InfInputClause(3));
         resolution.makeLocallyTrue(-4,null);
         resolution.insertClause(new Clause(new int[]{2, cOr, 1,2,3,4}));
-        resolution.processTrueLiteralMore(3);
+        resolution.applyTrueLiteralToLongerClauses(3);
         assertEquals("", resolution.clauses.toString());
         assertEquals("-1,2,-3,-4", resolution.localModelString());
         assertEquals("-1,-4", resolution.model.toString());
