@@ -655,7 +655,7 @@ public class Resolution extends Solver {
      */
     boolean isSubsumed(Clause clause) {
         if(clause.size() > 2)
-            if(longerClauseIsSubsumedByBinaryClause(clause) || longerClauseIsSubsumedByLongerClause(clause)) {
+            if(longerClauseIsSubsumedByBinaryClauses(clause) || longerClauseIsSubsumedByLongerClauses(clause)) {
                 ++statistics.subsumedClauses;
                 return true;}
         return false;}
@@ -671,7 +671,7 @@ public class Resolution extends Solver {
      * @param subsumee a longer clause
      * @return true if the clause is subsumed.
      */
-    boolean longerClauseIsSubsumedByBinaryClause(Clause subsumee) {
+    boolean longerClauseIsSubsumedByBinaryClauses(Clause subsumee) {
         assert(subsumee.size() > 2);
         int limit = subsumee.limit;
         for(Literal literalObjectLonger1 : subsumee.literals) {
@@ -695,7 +695,7 @@ public class Resolution extends Solver {
      * @param subsumee a longer clause
      * @return true if the clause is subsumed.
      */
-    boolean longerClauseIsSubsumedByLongerClause(Clause subsumee) {
+    boolean longerClauseIsSubsumedByLongerClauses(Clause subsumee) {
         int size = subsumee.size();
         assert size > 2;
         int limit = subsumee.limit;
@@ -725,17 +725,6 @@ public class Resolution extends Solver {
         return false;}
 
 
-    // BINARY CLAUSES
-
-    /** checks if the binary clause is locally true
-     *
-     * @param clause a binary clause
-     * @return true if it is locally true.
-     */
-    boolean binaryClauseIsLocallyTrue(Clause clause) {
-        return localStatus(clause.literals.get(0).literal) == 1 ||  localStatus(clause.literals.get(1).literal) == 1;}
-
-
     /** removes all longer disjunctions which are subsumed by a binary subsumer.
      * <br>
      * For disjunctions, subsumption is just the subset relationship.<br>
@@ -762,6 +751,61 @@ public class Resolution extends Solver {
                     ++statistics.subsumedClauses;
                     return false;}));
         ++timestampSubsumption;}
+
+    /** removes all clauses subsumed by the given clause.
+     * <br>
+     *  A clause atleast n    p_1^k1 ... p_n^kn subsumes <br>
+     *  a clause atleast n-.. p_1^(k1+..) ... p_n^(kn+..) phi <br>
+     *  where - means smaller or equal and + means larger or equal.<br>
+     *  A disjunction p_1,...,p_k subsumes atleast n p_1^n,...,p_k^n,phi
+     *
+     * @param subsumer       a clause,
+     * @throws Unsatisfiable should not happen.
+     */
+    protected void removeClausesSubsumedByLongerClause(final Clause subsumer) throws Unsatisfiable {
+        int subsumerSize = subsumer.literals.size();
+        int sumsumerLimit = subsumer.limit;
+        boolean isDisjunction = subsumer.isDisjunction;
+        final Literal firstLiteral = subsumer.literals.get(0);
+        if(!literalIndexMore.timestampClauses(firstLiteral.literal,
+                (subsumeeLiteral -> {
+                    Clause subsumee = subsumeeLiteral.clause;
+                    return (subsumee != subsumer && subsumee.literals.size() >= subsumerSize &&
+                            (subsumee.limit <= sumsumerLimit && subsumeeLiteral.multiplicity >= firstLiteral.multiplicity) ||
+                            (isDisjunction && subsumeeLiteral.multiplicity == subsumee.limit));}),
+                timestampSubsumption , false)) return;
+
+        for(int i = 1; i < subsumer.literals.size(); ++i) { // find candidates.
+            final int im = i-1;
+            Literal subsumerLiteral = subsumer.literals.get(i);
+            literalIndexMore.forAllLiterals(subsumerLiteral.literal,
+                    (subsumeeLiteral -> {
+                        Clause subsumee = subsumeeLiteral.clause;
+                        if((subsumee.timestamp2 - timestampSubsumption) == im &&
+                                subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity ||
+                                (isDisjunction && subsumeeLiteral.multiplicity == subsumee.limit)) {
+                            ++subsumee.timestamp2; return true;}
+                        return false;}),
+                    (subsumeeLiteral -> {
+                        Clause subsumee = subsumeeLiteral.clause;
+                        if(subsumee.timestamp2 - timestampSubsumption == subsumerSize-1){
+                            removeClause(subsumee,true,true);}
+                        return false;}));}
+        timestampSubsumption += subsumerSize + 1;}
+
+
+
+    // BINARY CLAUSES
+
+    /** checks if the binary clause is locally true
+     *
+     * @param clause a binary clause
+     * @return true if it is locally true.
+     */
+    boolean binaryClauseIsLocallyTrue(Clause clause) {
+        return localStatus(clause.literals.get(0).literal) == 1 ||  localStatus(clause.literals.get(1).literal) == 1;}
+
+
 
     /** simplifies the given binary clause.
      * <br>
@@ -934,7 +978,7 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void simplifyLongerClausesByLongerClause(final Clause clause) throws Unsatisfiable {
-        if(longerClauseIsSubsumedByLongerClause(clause) != null) {
+        if(longerClauseIsSubsumedByLongerClauses(clause) != null) {
             removeClause(clause,true,true);
             return;}
         removeClausesSubsumedByLongerClause(clause);
@@ -943,50 +987,6 @@ public class Resolution extends Solver {
 
 
 
-
-
-
-
-
-    /** removes all clauses subsumed by the given clause.
-     * <br>
-     *  A clause atleast n    p_1^k1 ... p_n^kn subsumes <br>
-     *  a clause atleast n-.. p_1^(k1+..) ... p_n^(kn+..) phi <br>
-     *  where - means smaller or equal and + means larger or equal.<br>
-     *  This is a sufficient, but not necessary condition. <br>
-     *  A case not detected is: atleast 4 p^2,q^2,r subsumes atleast 3 p^2,q^3,r^2.
-     *
-     * @param subsumer       a clause,
-     * @throws Unsatisfiable should not happen.
-     */
-    protected void removeClausesSubsumedByLongerClause(final Clause subsumer) throws Unsatisfiable {
-        int subsumerSize = subsumer.literals.size();
-        int sumsumerLimit = subsumer.limit;
-        final Literal firstLiteral = subsumer.literals.get(0);
-        if(!literalIndexMore.timestampClauses(firstLiteral.literal,
-                (subsumeeLiteral -> {
-                    Clause subsumee = subsumeeLiteral.clause;
-                    return (subsumee != subsumer && subsumee.limit <= sumsumerLimit &&
-                        subsumee.literals.size() >= subsumerSize &&
-                        subsumeeLiteral.multiplicity >= firstLiteral.multiplicity);}),
-                timestampSubsumption , false)) return;
-
-        for(int i = 1; i < subsumer.literals.size(); ++i) { // find candidates.
-            final int im = i-1;
-            Literal subsumerLiteral = subsumer.literals.get(i);
-            literalIndexMore.forAllLiterals(subsumerLiteral.literal,
-                    (subsumeeLiteral -> {
-                        Clause subsumee = subsumeeLiteral.clause;
-                        if((subsumee.timestamp2 - timestampSubsumption) == im &&
-                            subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity) {
-                            ++subsumee.timestamp2; return true;}
-                        return false;}),
-                    (subsumeeLiteral -> {
-                        Clause subsumee = subsumeeLiteral.clause;
-                        if(subsumee.timestamp2 - timestampSubsumption == subsumerSize-1){
-                            removeClause(subsumee,true,true);}
-                    return false;}));}
-        timestampSubsumption += subsumerSize + 1;}
 
 
 

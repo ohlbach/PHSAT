@@ -744,7 +744,7 @@ public class ResolutionTest extends TestCase {
     }
 
     public void testlongerClauseIsSubsumedByBinaryClause()  {
-        System.out.println("longerClauseIsSubsumedByBinaryClause");
+        System.out.println("longerClauseIsSubsumedByBinaryClauses");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -756,14 +756,14 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
 
         Clause clause = new Clause(new int[]{4, cOr, 2, -1, -3});
-        assertNull(resolution.longerClauseIsSubsumedByBinaryClause(clause));
+        assertNull(resolution.longerClauseIsSubsumedByBinaryClauses(clause));
         clause = new Clause(new int[]{5, cOr, 3, 2, 1});
-        assertNotNull(resolution.longerClauseIsSubsumedByBinaryClause(clause));
+        assertNotNull(resolution.longerClauseIsSubsumedByBinaryClauses(clause));
         clause = new Clause(new int[]{6, cOr, 2,1,-3});
-        assertNotNull(resolution.longerClauseIsSubsumedByBinaryClause(clause));
+        assertNotNull(resolution.longerClauseIsSubsumedByBinaryClauses(clause));
     }
     public void testlongerClauseIsSubsumedByLongerClause()  {
-        System.out.println("longerClauseIsSubsumedByLongerClause");
+        System.out.println("longerClauseIsSubsumedByLongerClauses");
         int predicates = 6;
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -775,34 +775,34 @@ public class ResolutionTest extends TestCase {
         resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1, 3}));
 
         Clause clause = new Clause(new int[]{4, cOr, 2, -1, -3});
-        assertNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        assertNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
         clause = new Clause(new int[]{5, cOr, 3, 2, 1, 4});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
         clause = new Clause(new int[]{6, cOr, 4, 2,1,-3});
-        assertNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        assertNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
         clause = new Clause(new int[]{7, cOr, 4, 2,1,3});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
 
         resolution.clear();
 
         resolution.insertClause(new Clause(new int[]{1, cAtleast, 2, 1, 2, 3}));
         clause = new Clause(new int[]{2, cOr, 4, 2,1,3});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
 
         clause = new Clause(new int[]{3, cOr, 4, 2,1,3,4});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
 
         clause = new Clause(new int[]{4, cOr, 4, 2,-1,3,4});
-        assertNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        assertNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
 
         clause = new Clause(new int[]{5, cAtleast, 2, 4, 2,1,3});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
 
         resolution.insertClause(new Clause(new int[]{6, cAtleast, 3, 1, 2,2, 5}));
         clause = new Clause(new int[]{7, cAtleast, 3, 5, 2,1,3});
-        assertNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        assertNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
         clause = new Clause(new int[]{8, cAtleast, 3, 5, 2,2,2,1,3});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClause(clause));
+        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
     }
 
     public void testSaturateLongerClausesWithBinaryClause() throws Result {
