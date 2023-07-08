@@ -400,7 +400,7 @@ public class Resolution extends Solver {
                         if(clause.size() == 2) {
                             expandBinaryClauseWithBinaryClauses(clause);
                             if(clause.exists) expandBinaryClauseWithLongerClauses(clause);}
-                        else expandLongerClauseWithLongerClauses(clause);}
+                        else expandLongerClause(clause);}
                     else {processSimplifications(clause);}}
                 if(checkConsistency) checkConsistency();
                 boolean changed = false;
@@ -439,7 +439,7 @@ public class Resolution extends Solver {
      */
     public void processSimplifyingTasks() throws Result {
         Task task;
-        ++timestampLevel;
+        timestamps.set(++timestampLevel,1);
         while(!myThread.isInterrupted() && ((task = queue.peek()) != null)) {
             if (task.literal == 0 && task.clause == null)  {queue.poll(); continue;}
             if(task.expand) return;
@@ -1096,6 +1096,7 @@ public class Resolution extends Solver {
 
     // PROCESSING LONGER CLAUSES
 
+
     /** simplifies the longer clause by other longer clauses.
      * - if the clause is subsumed, it is removed.<br>
      * - other clauses subsumed by the clause are removed. <br>
@@ -1114,11 +1115,11 @@ public class Resolution extends Solver {
         mergeResolutionBetweenLongerClauses(clause);
     }
 
+    void expandLongerClause(Clause clause) throws Unsatisfiable {
+        saturateBinaryClausesWithLongerClause(clause);
+        if(clause.exists) tripleResolution(clause);
 
-
-
-
-
+    }
 
 
     /** computes all resolvents between the given longer parent clause and the binary clauses.
@@ -1151,9 +1152,12 @@ public class Resolution extends Solver {
                                     if(trackReasoning) longerClause.inferenceStep = step;
                                     if(monitoring) monitor.println(monitorId,step.info());
                                     addSimplificationTask(longerClause);
-                                    ++statistics.mergeResolutionTwoMore;}
+                                    ++statistics.mergeResolutionTwoMore;
+                                    processSimplifyingTasks();}
                                 return true;}}
-                        resolve(literalObject,negLiteralObject,true, "Binary Saturation");
+                        else {
+                            resolve(literalObject,negLiteralObject,true, "Binary Saturation");
+                            processSimplifyingTasks();}
                         return false;}))
                 return;}}
 
