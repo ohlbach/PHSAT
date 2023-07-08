@@ -818,7 +818,7 @@ public class Resolution extends Solver {
      */
     void mergeResolutionBinaryClauseWithLongerClauses(final Clause clause1, int literal1, int literal2) throws Result {
         assert(clause1.size() == 2);
-        int timestamp = increaseTimestamp(); // just to be sure.
+        int timestamp = increaseTimestamp(1); // just to be sure.
         try{literalIndexMore.timestampClauses(-literal1,(literalObject -> literalObject.multiplicity == 1), timestampLevel, timestamp);
             // literal1,literal2 and -literal1,literal2,rest -> literal2,rest
             literalIndexMore.forAllLiterals(literal2,
@@ -837,7 +837,7 @@ public class Resolution extends Solver {
                                 addSimplificationTask(clause2);
                                 processSimplifyingTasks();}}
                         return false;}));}
-        finally {increaseTimestamp();}}
+        finally {increaseTimestamp(1);}}
 
     /** returns the timestamp at the current recursion level.
      *
@@ -939,10 +939,10 @@ public class Resolution extends Solver {
                 if(!clause.exists) return;
                 literalIndexTwo.forAllLiterals(-resolutionLiteralObject.literal,null, // resolution with binary clauses.
                         negLiteralObject -> {resolve(resolutionLiteralObject,negLiteralObject,true, "Merge Resolution Partial"); return false;});
-                timestamp += size+2;
+                int timestamp = increaseTimestamp(size+2);
                 int posLiteral = resolutionLiteralObject.literal;
                 literalIndexMore.timestampClauses(-posLiteral,  // timestamp all potential resolution partners.
-                        (litObject -> litObject.clause.size() <= size), timestamp,true);
+                        (litObject -> litObject.clause.size() <= size),timestampLevel, timestamp);
 
                 for(final Literal literalObject1 : clause.literals) {
                     if(!clause.exists) return;
@@ -950,13 +950,13 @@ public class Resolution extends Solver {
                     literalIndexMore.forAllLiterals(literalObject1.literal,null,
                             (litObject -> { // all literals except two of them must merge.
                                 Clause otherClause = litObject.clause;
-                                if(otherClause.timestamp1 - timestamp == otherClause.size()-3) {
+                                if(otherClause.getTimestamp(timestampLevel) - timestamp == otherClause.size()-3) {
                                     if(resolve(resolutionLiteralObject,otherClause.findLiteral(-posLiteral),true,"Merge Resolution Partial") != null)
                                         processSimplifyingTasks();
                                         if(!clause.exists) return true;}
-                                else ++otherClause.timestamp1;
+                                else otherClause.increaseTimestamp(timestampLevel);
                                 return false;}));}}}
-        finally {timestamp += size+2;}}
+        finally {increaseTimestamp(size+2);}}
 
 
     // BINARY CLAUSES
@@ -1107,7 +1107,7 @@ public class Resolution extends Solver {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void simplifyLongerClausesByLongerClause(final Clause clause) throws Unsatisfiable {
-        if(longerClauseIsSubsumedByLongerClauses(clause) != null) {
+        if(longerClauseIsSubsumedByLongerClauses(clause)) {
             removeClause(clause,true,true);
             return;}
         removeClausesSubsumedByLongerClause(clause);
@@ -1175,19 +1175,19 @@ public class Resolution extends Solver {
             int literalP = literalObjectP.literal;
             for(Literal literalObjectQ :clause.literals) {
                 if(literalObjectQ == literalObjectP) continue;
-                ++timestamp;
+                int timestamp = increaseTimestamp(1) ;
                 int literalQ = literalObjectQ.literal;
                 Literal literalObjectR = clause.findThirdLiteral(literalP,literalQ);
                 int literalR = literalObjectR.literal;
                 literalIndexMore.timestampClauses(literalP,(litObject->litObject.clause != clause && litObject.clause.size()==3),
-                        timestamp,true);
-                literalIndexMore.timestampClauses(-literalR,(litObject->litObject.clause.size()==3),timestamp,true);
-                literalIndexMore.forAllLiterals(literalQ,(litObject -> litObject.clause.timestamp1 == timestamp),
+                        timestampLevel, timestamp);
+                literalIndexMore.timestampClauses(-literalR,(litObject->litObject.clause.size()==3),timestampLevel, timestamp);
+                literalIndexMore.forAllLiterals(literalQ,(litObject -> litObject.clause.eqTimestamp(timestampLevel,timestamp)),
                         (litObjectQQ -> {
                             Clause clauseQ = litObjectQQ.clause;
                             Literal literalObjectA = clauseQ.findThirdLiteral(literalP,literalQ);
                             int literalA = literalObjectA.literal;
-                            literalIndexMore.forAllLiterals(-literalA,(litObject1 -> litObject1.clause.timestamp1 == timestamp),
+                            literalIndexMore.forAllLiterals(-literalA,(litObject1 -> litObject1.clause.eqTimestamp(timestampLevel,timestamp)),
                                     (litObjectANeg ->{
                                         Clause clauseANeg = litObjectANeg.clause;
                                         Literal literalRNeg = clauseANeg.findLiteral(-literalR);
@@ -1200,7 +1200,7 @@ public class Resolution extends Solver {
                                                 else{insertClause(resolvent); addSimplificationTask(resolvent);}}}
                                         return false;}));
                             return false;}));}
-            ++timestamp;}}
+            increaseTimestamp(1);}}
 
 
     private final IntArrayList trueLiterals = new IntArrayList();
@@ -1345,7 +1345,7 @@ public class Resolution extends Solver {
         if(literals.size() == 1) {
             addInternalTrueLiteralTask(literals.get(0).literal,true, clause1.inferenceStep);
             return false;}
-        if(literals.size() == 2) return simplifyBinaryClause(clause1);
+        if(literals.size() == 2) return simplifyBinaryClause(clause1,true);
         return true;}
 
 
@@ -1372,20 +1372,20 @@ public class Resolution extends Solver {
     boolean simplifyLongerDisjunctionByLongerClauses(Clause clause1) throws Unsatisfiable {
         int size = clause1.size();
         for(int i = 0; i < clause1.size(); ++i) {
-            timestamp += size + 2;
+            int timestamp =  increaseTimestamp(size + 2);
             Literal literalObjectP = clause1.literals.get(i);
             if(!literalIndexMore.timestampClauses(-literalObjectP.literal,
                     (literalObjectPNeg -> literalObjectPNeg.clause.isDisjunction && literalObjectPNeg.clause.size() <= clause1.size()),
-                    timestamp,true)) continue;
+                    timestampLevel, timestamp)) continue;
             int im = 0;
             for(Literal literalObjectQ : clause1.literals) {
                 if(literalObjectQ == literalObjectP) continue;
                 int imp = im++;
                 if(!literalIndexMore.forAllLiterals(literalObjectQ.literal,
-                    (literalObjectQC-> literalObjectQC.clause.timestamp1 == timestamp + imp),
+                    (literalObjectQC-> literalObjectQC.clause.eqTimestamp(timestampLevel, getTimestamp() + imp)),
                         (literalObjectQC-> {
                             Clause clause2 = literalObjectQC.clause;
-                            if(clause2.timestamp1 - timestamp == clause2.size()-2) {
+                            if(clause2.getTimestamp(timestampLevel) - getTimestamp() == clause2.size()-2) {
                                 String clauseBefore = (trackReasoning || monitoring) ? clause1.toString(symboltable,0) : null;
                                 clause1.literals.remove(literalObjectP); --clause1.expandedSize;
                                 InfResolution step = (trackReasoning || monitoring) ?
@@ -1394,12 +1394,12 @@ public class Resolution extends Solver {
                                 clause1.inferenceStep = step;
                                 if(monitoring) monitor.println(monitorId,step.info());
                                 return true;}
-                            ++clause2.timestamp1;
+                            clause2.increaseTimestamp(timestampLevel);
                             return true;} ))) break;}
 
-            if(clause1.size() == 2) {timestamp += size + 2; return simplifyBinaryClause(clause1);}
+            if(clause1.size() == 2) {timestamp += size + 2; return simplifyBinaryClause(clause1,true);}
             if(clause1.size() < size) {--i; size = clause1.size();}}
-        timestamp += size + 2;
+        increaseTimestamp(size + 2);
         return true;}
 
     /** removes literals from a longer atleast clause by merge resolution with longer and binary clauses.
@@ -1429,7 +1429,7 @@ public class Resolution extends Solver {
         int size = clauseM.size();
         trueLiterals.clear();
         for(int i = 0; i < literalsM.size(); ++i) {
-            timestamp += size + 2;
+            int timestamp = increaseTimestamp(size + 2);
             Literal literalObjectP = literalsM.get(i);
             int literalPNeg = -literalObjectP.literal;
             int multL = literalObjectP.multiplicity;
@@ -1438,16 +1438,16 @@ public class Resolution extends Solver {
                         Clause clauseN = literalObjectPNeg.clause;
                         int multK = literalObjectPNeg.multiplicity;
                         return (literalObjectPNeg.clause.size() <= clauseM.size() && clauseN.limit == Math.max(multL,multK));}),
-                    timestamp,true)) continue;
+                    timestampLevel, timestamp)) continue;
             int im = 0;
             for(Literal literalObjectQ : clauseM.literals) {
                 if(literalObjectQ == literalObjectP) continue;
                 int imp = im++;
                 if(!literalIndexMore.forAllLiterals(literalObjectQ.literal,
-                        (literalObjectQC-> literalObjectQC.clause.timestamp1 == timestamp + imp),
+                        (literalObjectQC-> literalObjectQC.clause.getTimestamp(timestampLevel) == getTimestamp() + imp),
                         (literalObjectQC-> {
                             Clause clauseN = literalObjectQC.clause;
-                            if(clauseN.timestamp1 - timestamp == clauseN.size()-2) {
+                            if(clauseN.getTimestamp(timestampLevel) - getTimestamp() == clauseN.size()-2) {
                                 for(Literal literalObjectN : clauseN.literals) {
                                     if(literalObjectN.literal == literalPNeg) continue;
                                     if(limitM != clauseM.findLiteral(literalObjectN.literal).multiplicity) return false;}
@@ -1465,12 +1465,12 @@ public class Resolution extends Solver {
                                 clauseM.inferenceStep = step;
                                 if(monitoring) monitor.println(monitorId,step.info());
                                 return true;}
-                            ++clauseN.timestamp1;
+                            clauseN.increaseTimestamp(timestampLevel);
                             return true;} ))) break;}
 
-            if(clauseM.size() == 2) {timestamp += size + 2; return simplifyBinaryClause(clauseM);}
+            if(clauseM.size() == 2) {timestamp += size + 2; return simplifyBinaryClause(clauseM,true);}
             if(clauseM.size() < size) {--i; size = clauseM.size();}}
-        timestamp += size + 2;
+        increaseTimestamp(size + 2);
         return true;}
 
 
@@ -1548,7 +1548,7 @@ public class Resolution extends Solver {
         if(status == -1) throw new UnsatEmptyClause(problemId,solverId,clause.identifier(),null);
         for(int literal :trueLiterals) addInternalTrueLiteralTask(literal,true,null);
         if(clause.size() == 2) moveToIndexTwo(clause);
-        if(status == 1 || isSubsumed(clause) != null) {
+        if(status == 1 || isSubsumed(clause)) {
             removeClause(clause,true,false); return false;}
         clauses.updateClauseNumbers(clause,+1);
         return true;}
