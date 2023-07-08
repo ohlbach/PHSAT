@@ -66,10 +66,10 @@ public class Clause {
     Task task;
 
     /** a timestamp to be used by various algorithms. */
-    int timestamp1 = 0;
+    IntArrayList timestamps = new IntArrayList(3);
 
-    /** a timestamp to be used by other algorithms. */
-    int timestamp2 = 0;
+    /** a timestamp to be used by subsumption checks. */
+    int timestampSubsumption = 0;
 
     /** a pointer to the previous clause in a doubly connected list. */
     Clause previousClause;
@@ -607,6 +607,46 @@ public class Clause {
      * @return the sum of the literal's multiplicities.
      */
     public int expandedSize() {return expandedSize;}
+
+    /** sets the timestamp at the given level to the given amount.
+     *
+     * @param timestampLevel the resursion level
+     * @param timestamp the timestamp.
+     */
+    public void setTimestamp(int timestampLevel, int timestamp) {
+        if(timestamps.size() <= timestampLevel) timestamps.add(timestamp);
+        else timestamps.set(timestampLevel,timestamp);}
+
+
+    /** increases the timestamp at the given level.
+     *
+     * @param timestampLevel the resursion level
+     * @return the increased timestamp.
+     */
+    public int increaseTimestamp(int timestampLevel) {
+        if(timestamps.size() <= timestampLevel) {timestamps.add(1); return 1;}
+        else {int timestamp = timestamps.getInt(timestampLevel)+1;
+            timestamps.set(timestampLevel,timestamp);
+            return timestamp;}}
+
+
+    /** returns the timestamp at the given level.
+     *
+     * @param timestampLevel the recursion level of the timestamp
+     * @return the timestamp at the given level.
+     */
+    public int getTimestamp(int timestampLevel) {
+        if(timestamps.size() <= timestampLevel) {timestamps.add(1); return 1;}
+        else return timestamps.getInt(timestampLevel);}
+
+    /** checks if the timestamp at the given recursion level equals the timestamp.
+     *
+     * @param timestampLevel the recursion level
+     * @param timestamp an integer
+     * @return true if the timestamp at the given level equals the given timestamp.
+     */
+    public boolean eqTimestamp(int timestampLevel, int timestamp) {
+        return timestamps.getInt(timestampLevel) == timestamp;}
 
     /** turns the clause into a string
      *

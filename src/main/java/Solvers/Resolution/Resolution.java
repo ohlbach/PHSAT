@@ -106,7 +106,10 @@ public class Resolution extends Solver {
     protected Clauses clauses;
 
     /** a timestamp to be used by inference algorithms. */
-    private int timestamp = 1;
+    private IntArrayList timestamps = new IntArrayList(3);
+
+    /** the recursion level for the timestamps */
+    private int timestampLevel = 0;
 
     /** a timestamp to be used by subsumption algorithms */
     private int timestampSubsumption = 1;
@@ -220,7 +223,8 @@ public class Resolution extends Solver {
      * The method initializes internal datastructures and updates them for reusing them.
      */
     public void makeReusable() {
-        timestamp = 1;
+        timestampLevel = 0;
+        for(int i = 0; i < timestamps.size(); ++i) timestamps.set(i,1);
         timestampSubsumption = 1;
         statistics.clear();
         queue.clear();
@@ -243,7 +247,8 @@ public class Resolution extends Solver {
      * To be used only for testing purposes.
      */
     public void clear() {
-        timestamp = 1;
+        timestampLevel = 0;
+        for(int i = 0; i < timestamps.size(); ++i) timestamps.set(i,1);
         timestampSubsumption = 1;
         literalIndexTwo.clear(predicates);
         literalIndexMore.clear(predicates);
@@ -434,6 +439,7 @@ public class Resolution extends Solver {
      */
     public void processSimplifyingTasks() throws Result {
         Task task;
+        ++timestampLevel;
         while(!myThread.isInterrupted() && ((task = queue.peek()) != null)) {
             if (task.literal == 0 && task.clause == null)  {queue.poll(); continue;}
             if(task.expand) return;
@@ -448,7 +454,8 @@ public class Resolution extends Solver {
                 Clause clause = task.clause;
                 Task.pushTask(task); // to be reused.
                 if(!clause.exists) continue;
-                processSimplifications(clause);}}}
+                processSimplifications(clause);}}
+        --timestampLevel;}
 
 
     // METHODS FOR PROCESSING TRUE LITERALS
@@ -622,7 +629,7 @@ public class Resolution extends Solver {
         if(monitoring) {monitor.println(monitorId,step.info(symboltable));}
         for(int trueLiteral : trueLiterals) addInternalTrueLiteralTask(trueLiteral,true,step);
         if(status == 1) {removeClause(clause,false,false); return;}
-        if(status == 0 && isSubsumed(clause) != null) {
+        if(status == 0 && isSubsumed(clause)) {
             ++statistics.subsumedClauses;
             removeClause(clause,false,false);
             return;}
@@ -706,19 +713,19 @@ public class Resolution extends Solver {
                         Clause subsumer = literalObject2.clause;
                         if(subsumer == subsumee) return false;
                         int multiplicity2 = literalObject2.multiplicity;
-                        if(subsumer.timestamp2 < timestampSubsumption) { // first candidate literal
+                        if(subsumer.timestampSubsumption < timestampSubsumption) { // first candidate literal
                             if(subsumer.size() <= size &&
                                     (subsumer.limit >= limit && multiplicity2 <= multiplicity1) ||
                                     (subsumer.isDisjunction && multiplicity2 == subsumer.limit))
-                                subsumer.timestamp2 = timestampSubsumption;
+                                subsumer.timestampSubsumption = timestampSubsumption;
                             return false;}
                         else {
-                            if(subsumer.timestamp2 - timestampSubsumption == subsumer.size()-2 &&
+                            if(subsumer.timestampSubsumption - timestampSubsumption == subsumer.size()-2 &&
                                     multiplicity2 <= multiplicity1 ||
                                     (subsumer.isDisjunction && multiplicity2 == subsumer.limit))
                                 return true;
                             if(multiplicity2 <= multiplicity1 || (subsumer.isDisjunction && multiplicity2 == subsumer.limit))
-                                ++subsumer.timestamp2;}
+                                ++subsumer.timestampSubsumption;}
                         return false;});
             if(subsumerLiteral != null) {timestampSubsumption += size+2; return true;}}
         timestampSubsumption += size+2;
@@ -739,13 +746,13 @@ public class Resolution extends Solver {
     protected void removeLongerClausesSubsumedByBinaryClause(final Clause subsumer) throws Unsatisfiable {
         assert(subsumer.size() == 2);
         literalIndexMore.timestampClauses(subsumer.literals.get(0).literal,
-                (literalObjectP -> literalObjectP.multiplicity == literalObjectP.clause.limit),
-                timestampSubsumption,false);
+                (literalObjectP -> literalObjectP.multiplicity == literalObjectP.clause.limit), -1,
+                timestampSubsumption);
 
         literalIndexMore.forAllLiterals(subsumer.literals.get(1).literal,
                 (literalObjectQ -> {
                     Clause subsumee = literalObjectQ.clause;
-                    return subsumee.timestamp2 == timestampSubsumption && literalObjectQ.multiplicity == subsumee.limit;}),
+                    return subsumee.timestampSubsumption == timestampSubsumption && literalObjectQ.multiplicity == subsumee.limit;}),
                 (literalObjectQ -> {
                     removeClause(literalObjectQ.clause,true,true);
                     ++statistics.subsumedClauses;
@@ -772,8 +779,8 @@ public class Resolution extends Solver {
                     Clause subsumee = subsumeeLiteral.clause;
                     return (subsumee != subsumer && subsumee.literals.size() >= subsumerSize &&
                             (subsumee.limit <= sumsumerLimit && subsumeeLiteral.multiplicity >= firstLiteral.multiplicity) ||
-                            (isDisjunction && subsumeeLiteral.multiplicity == subsumee.limit));}),
-                timestampSubsumption , false)) return;
+                            (isDisjunction && subsumeeLiteral.multiplicity == subsumee.limit));}),-1,
+                timestampSubsumption)) return;
 
         for(int i = 1; i < subsumer.literals.size(); ++i) { // find candidates.
             final int im = i-1;
@@ -781,18 +788,175 @@ public class Resolution extends Solver {
             literalIndexMore.forAllLiterals(subsumerLiteral.literal,
                     (subsumeeLiteral -> {
                         Clause subsumee = subsumeeLiteral.clause;
-                        if((subsumee.timestamp2 - timestampSubsumption) == im &&
+                        if((subsumee.timestampSubsumption - timestampSubsumption) == im &&
                                 subsumeeLiteral.multiplicity >= subsumerLiteral.multiplicity ||
                                 (isDisjunction && subsumeeLiteral.multiplicity == subsumee.limit)) {
-                            ++subsumee.timestamp2; return true;}
+                            ++subsumee.timestampSubsumption; return true;}
                         return false;}),
                     (subsumeeLiteral -> {
                         Clause subsumee = subsumeeLiteral.clause;
-                        if(subsumee.timestamp2 - timestampSubsumption == subsumerSize-1){
+                        if(subsumee.timestampSubsumption - timestampSubsumption == subsumerSize-1){
                             removeClause(subsumee,true,true);}
                         return false;}));}
         timestampSubsumption += subsumerSize + 1;}
 
+
+    // MERGE RESOLUTION
+
+
+    /** performs merge resolution between a binary clause and the longer clauses.
+     * <br>
+     * Binary MergeResolution with disjunctions:  p,q and -p,q,phi -&gt; q,phi. (destructively) <br>
+     * Binary MergeResolution with atleast:       p,q and &gt;= m -p, q^m,phi &gt;= m q^m,phi (destructively)<br>
+     * Derived true literals are inserted into the model.<br>
+     * The simplified clauses generate a simplification task, which is immediately processed.
+     *
+     * @param clause1   the binary clause.
+     * @param literal1  either the first or the second literal.
+     * @param literal2  the other literal.
+     * @throws Unsatisfiable if inserting a derived unit clause into the model causes a contradiction.
+     */
+    void mergeResolutionBinaryClauseWithLongerClauses(final Clause clause1, int literal1, int literal2) throws Result {
+        assert(clause1.size() == 2);
+        int timestamp = increaseTimestamp(); // just to be sure.
+        try{literalIndexMore.timestampClauses(-literal1,(literalObject -> literalObject.multiplicity == 1), timestampLevel, timestamp);
+            // literal1,literal2 and -literal1,literal2,rest -> literal2,rest
+            literalIndexMore.forAllLiterals(literal2,
+                    (literalObject2-> literalObject2.clause.eqTimestamp(timestampLevel,timestamp) &&
+                            literalObject2.multiplicity == literalObject2.clause.limit),
+                    (literalObject2-> {// clauses with literal2 can merge with clause1
+                        Clause clause2 = literalObject2.clause;
+                        Literal negLiteralObject1 = clause2.findLiteral(-literal1); // find -p
+                        String clause2Before = (monitoring || trackReasoning) ? clause2.toString(symboltable,0) : null;
+                        ++statistics.mergeResolutionTwoMore;
+                        if(removeLiteralFromClause(negLiteralObject1)) {
+                            InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
+                            if(trackReasoning) clause2.inferenceStep = step;
+                            if(monitoring) monitor.println(monitorId,step.info());
+                            if(simplifyClause(clause2,true)) {
+                                addSimplificationTask(clause2);
+                                processSimplifyingTasks();}}
+                        return false;}));}
+        finally {increaseTimestamp();}}
+
+    /** returns the timestamp at the current recursion level.
+     *
+     * @return the timestamp at the current recursion level.
+     */
+    int getTimestamp() {
+        if(timestamps.size() <= timestampLevel) {timestamps.add(1); return 1;}
+        else {return timestamps.getInt(timestampLevel);}}
+
+
+    /** increases the timestamp at the current recursion level.
+     *
+     * @return the increased timestamp.*/
+    int increaseTimestamp(int amount) {
+        if(timestamps.size() <= timestampLevel) {timestamps.add(amount); return amount;}
+        else {int timestamp = timestamps.getInt(timestampLevel)+amount;
+            timestamps.set(timestampLevel,timestamp);
+            return timestamp;}}
+
+    /** performs merge resolution between longer clauses.
+     * <br>
+     * P = atleast n  p^a,q^n,... and<br>
+     * S = atleast m -p^b,q^n',...<br>
+     * ----------------------------------<br>
+     * atleast n+m-max(a,b) q^n+n',...
+     * <br>
+     * Destructive for S iff |S| &gt;= |P| and n' = n+m-max(a,b) for all literals in P <br>
+     * Destructive for P iff |P| &gt;= |S| and n  = n+m-max(a,b) for all literals in S <br>
+     *
+     * @param clauseP a clause to be tested as parent clause for a merge resolution step.
+     * @return        true if the clause itself has survived.
+     * @throws Unsatisfiable if the simplification causes an Unsatisfiable exception.
+     */
+    protected boolean mergeResolutionBetweenLongerClauses(final Clause clauseP) throws Unsatisfiable {
+        int clausePSize = clauseP.literals.size();
+        int limitP = clauseP.limit;
+        int timestamp = getTimestamp();
+        try{
+            for(final Literal literalObjectP : clauseP.literals) { // mark potential candidates with timestamp
+                timestamp = increaseTimestamp (clausePSize + 1);
+                int literalPNeg = -literalObjectP.literal;
+                literalIndexMore.timestampClauses(literalPNeg,
+                        (literalObjectS -> literalObjectS.clause.size() >= clausePSize),timestampLevel, timestamp);
+                int i = 0;
+                for(final Literal literalObjectQ : clauseP.literals) {
+                    if(literalObjectQ == literalObjectP) continue;
+                    int im = i++; int tStamp = timestamp;
+                    if(literalIndexMore.forAllLiterals(literalObjectQ.literal,
+                            literalObjectQQ -> literalObjectQQ.clause.getTimestamp(timestampLevel) - tStamp == im,
+                            literalObjectQQ -> {
+                                Clause clausQQ = literalObjectQQ.clause;  // this is the potential merge partner.
+                                Literal literalObjectQQNeg = clausQQ.findLiteral(literalPNeg);
+                                int newLimit = clauseP.limit + clausQQ.limit -
+                                        Math.max(literalObjectP.multiplicity, literalObjectQQNeg.multiplicity);
+                                if(literalObjectQQ.multiplicity == newLimit) {
+                                    int timestamp1 =  clausQQ.increaseTimestamp(timestampLevel);
+                                    if(timestamp1 - tStamp == clausePSize-1) { // mergepartner found
+                                        ++statistics.mergeResolutionMoreMore;
+                                        boolean destructive = clauseP.isDisjunction && clausQQ.isDisjunction;
+                                        if(!destructive) {
+                                            destructive = true;
+                                            for(final Literal litObjectSi : clausQQ.literals) {
+                                                int litSi = litObjectSi.literal;
+                                                if(litSi != literalPNeg && clauseP.findLiteral(litSi) != null) {
+                                                    destructive &= litObjectSi.multiplicity == newLimit;}}}
+                                        String resolventBefore = trackReasoning ? clausQQ.toString(symboltable,0) : null;
+                                        boolean removeP = limitP == 1 && clausQQ.size() == clausePSize;
+                                        if(destructive) {
+                                            if(removeLiteralFromClause(literalObjectQQNeg)) {
+                                                InfMergeResolutionMore step = (trackReasoning || monitoring) ?
+                                                        new InfMergeResolutionMore(clauseP,resolventBefore,clausQQ,symboltable) : null;
+                                                if(trackReasoning) clausQQ.inferenceStep = step;
+                                                if(monitoring) monitor.println(monitorId,step.info());
+                                                addSimplificationTask(clausQQ);
+                                                processSimplifyingTasks();}
+                                            if(removeP) { // only a disjunction is definitely subsumed and can be removed.
+                                                removeClause(clauseP,true,true); return true;}}
+                                        else {if(resolve(literalObjectP,literalObjectQQNeg,true, "Merge Resolution") != null);
+                                                    processSimplifyingTasks();}
+                                        return false;}}
+                                return false;})) return clauseP.exists;}}
+            return clauseP.exists;}
+        finally{increaseTimestamp(clausePSize + 1);}}
+
+
+
+    /** creates all resolvents with the given clause which are not longer than the clause itself.
+     * <br>
+     * This may generate a lot of clauses, but their length is bounded by the length of the existing clauses.<br>
+     * For each new clause all simplification tasks are immediately processed.
+     *
+     * @param clause        a 3-literal clause.
+     * @throws Unsatisfiable if a contradiction is discovered.
+     */
+    void mergeResolutionPartial(final Clause clause) throws Unsatisfiable {
+        int size = clause.size();
+        try{
+            for(final Literal resolutionLiteralObject : clause.literals) {
+                if(!clause.exists) return;
+                literalIndexTwo.forAllLiterals(-resolutionLiteralObject.literal,null, // resolution with binary clauses.
+                        negLiteralObject -> {resolve(resolutionLiteralObject,negLiteralObject,true, "Merge Resolution Partial"); return false;});
+                timestamp += size+2;
+                int posLiteral = resolutionLiteralObject.literal;
+                literalIndexMore.timestampClauses(-posLiteral,  // timestamp all potential resolution partners.
+                        (litObject -> litObject.clause.size() <= size), timestamp,true);
+
+                for(final Literal literalObject1 : clause.literals) {
+                    if(!clause.exists) return;
+                    if(literalObject1 == resolutionLiteralObject) continue;
+                    literalIndexMore.forAllLiterals(literalObject1.literal,null,
+                            (litObject -> { // all literals except two of them must merge.
+                                Clause otherClause = litObject.clause;
+                                if(otherClause.timestamp1 - timestamp == otherClause.size()-3) {
+                                    if(resolve(resolutionLiteralObject,otherClause.findLiteral(-posLiteral),true,"Merge Resolution Partial") != null)
+                                        processSimplifyingTasks();
+                                        if(!clause.exists) return true;}
+                                else ++otherClause.timestamp1;
+                                return false;}));}}}
+        finally {timestamp += size+2;}}
 
 
     // BINARY CLAUSES
@@ -929,41 +1093,6 @@ public class Resolution extends Solver {
                         return true;}));}}
 
 
-    /** performs merge resolution between a binary clause and the longer clauses.
-     * <br>
-     * Binary MergeResolution with disjunctions:  p,q and -p,q,phi -&gt; q,phi. (destructively) <br>
-     * Binary MergeResolution with atleast:       p,q and &gt;= m -p, q^m,phi &gt;= m q^m,phi (destructively)<br>
-     * Derived true literals are inserted into the model.<br>
-     * The simplified clauses generate a simplification task, which is immediately processed.
-     *
-     * @param clause1   the binary clause.
-     * @param literal1  either the first or the second literal.
-     * @param literal2  the other literal.
-     * @throws Unsatisfiable if inserting a derived unit clause into the model causes a contradiction.
-     */
-    void mergeResolutionBinaryClauseWithLongerClauses(final Clause clause1, int literal1, int literal2) throws Result {
-        assert(clause1.size() == 2);
-        ++timestamp; // just to be sure.
-        try{literalIndexMore.timestampClauses(-literal1,(literalObject -> literalObject.multiplicity == 1),timestamp,true);
-            // literal1,literal2 and -literal1,literal2,rest -> literal2,rest
-            literalIndexMore.forAllLiterals(literal2,
-                    (literalObject2-> literalObject2.clause.timestamp1 == timestamp &&
-                                      literalObject2.multiplicity == literalObject2.clause.limit),
-                    (literalObject2-> {// clauses with literal2 can merge with clause1
-                        Clause clause2 = literalObject2.clause;
-                        Literal negLiteralObject1 = clause2.findLiteral(-literal1); // find -p
-                        String clause2Before = (monitoring || trackReasoning) ? clause2.toString(symboltable,0) : null;
-                        ++statistics.mergeResolutionTwoMore;
-                        if(removeLiteralFromClause(negLiteralObject1)) {
-                            InfMergeResolutionMore step = (monitoring || trackReasoning) ? new InfMergeResolutionMore(clause1,clause2Before,clause2,symboltable) : null;
-                            if(trackReasoning) clause2.inferenceStep = step;
-                            if(monitoring) monitor.println(monitorId,step.info());
-                            if(simplifyClause(clause2,true)) {
-                                addSimplificationTask(clause2);
-                                processSimplifyingTasks();}}
-                        return false;}));}
-        finally {++timestamp;}}
-
 
     // PROCESSING LONGER CLAUSES
 
@@ -982,7 +1111,7 @@ public class Resolution extends Solver {
             removeClause(clause,true,true);
             return;}
         removeClausesSubsumedByLongerClause(clause);
-        mergeResolutionMoreMore(clause);
+        mergeResolutionBetweenLongerClauses(clause);
     }
 
 
@@ -1028,98 +1157,6 @@ public class Resolution extends Solver {
                         return false;}))
                 return;}}
 
-
-    /** performs merge resolution between longer clauses.
-     * <br>
-     * P = atleast n  p^a,q^n,... and<br>
-     * S = atleast m -p^b,q^n',...<br>
-     * ----------------------------------<br>
-     * atleast n+m-max(a,b) q^n+n',...
-     * <br>
-     * Destructive for S iff |S| &gt;= |P| and n' = n+m-max(a,b) for all literals in P <br>
-     * Destructive for P iff |P| &gt;= |S| and n  = n+m-max(a,b) for all literals in S <br>
-     *
-     * @param clauseP a clause to be tested as parent clause for a merge resolution step.
-     * @return        true if the clause itself has survived.
-     * @throws Unsatisfiable if the simplification causes an Unsatisfiable exception.
-     */
-    protected boolean mergeResolutionMoreMore(final Clause clauseP) throws Unsatisfiable {
-        int clausePSize = clauseP.literals.size();
-        int limitP = clauseP.limit;
-        try{
-            for(final Literal literalObjectP : clauseP.literals) { // mark potential candidates with timestamp
-                timestamp += clausePSize + 1;
-                int literalPNeg = -literalObjectP.literal;
-                literalIndexMore.timestampClauses(literalPNeg,
-                        (literalObjectS -> literalObjectS.clause.size() >= clausePSize),timestamp,true);
-                int i = 0;
-                for(final Literal literalObjectQ : clauseP.literals) {
-                    if(literalObjectQ == literalObjectP) continue;
-                    int im = i++;
-                    if(literalIndexMore.forAllLiterals(literalObjectQ.literal,
-                        literalObjectQQ -> literalObjectQQ.clause.timestamp1 - timestamp == im,
-                        literalObjectQQ -> {
-                                Clause clausQQ = literalObjectQQ.clause;  // this is the potential merge partner.
-                           Literal literalObjectQQNeg = clausQQ.findLiteral(literalPNeg);
-                                int newLimit = clauseP.limit + clausQQ.limit -
-                                    Math.max(literalObjectP.multiplicity, literalObjectQQNeg.multiplicity);
-                                if(literalObjectQQ.multiplicity == newLimit) {
-                                    ++clausQQ.timestamp1;
-                                     if(clausQQ.timestamp1 - timestamp == clausePSize-1) { // mergepartner found
-                                        ++statistics.mergeResolutionMoreMore;
-                                        boolean destructive = clauseP.isDisjunction && clausQQ.isDisjunction;
-                                        if(!destructive) {
-                                            destructive = true;
-                                            for(final Literal litObjectSi : clausQQ.literals) {
-                                                int litSi = litObjectSi.literal;
-                                                if(litSi != literalPNeg && clauseP.findLiteral(litSi) != null) {
-                                                    destructive &= litObjectSi.multiplicity == newLimit;}}}
-                                        String resolventBefore = trackReasoning ? clausQQ.toString(symboltable,0) : null;
-                                        boolean removeP = limitP == 1 && clausQQ.size() == clausePSize;
-                                        if(destructive) {
-                                            if(removeLiteralFromClause(literalObjectQQNeg)) {
-                                                addSimplificationTask(clausQQ);
-                                                InfMergeResolutionMore step = (trackReasoning || monitoring) ?
-                                                        new InfMergeResolutionMore(clauseP,resolventBefore,clausQQ,symboltable) : null;
-                                                if(trackReasoning) clausQQ.inferenceStep = step;
-                                                if(monitoring) monitor.println(monitorId,step.info());}
-                                            if(removeP) { // only a disjunction is definitely subsumed and can be removed.
-                                                removeClause(clauseP,true,true); return true;}}
-                                        else resolve(literalObjectP,literalObjectQQNeg,true, "Merge Resolution");
-                                        return false;}}
-                                return false;})) return clauseP.exists;}}
-                return clauseP.exists;}
-        finally{timestamp += clausePSize + 1;}}
-
-
-   
-    /** creates all resolvents with the given clause which are not longer than the clause itself.
-     * <br>
-     * This may generate a lot of clauses, but their length is bounded by the length of the existing clauses.
-     *
-     * @param clause        a 3-literal clause.
-     * @throws Unsatisfiable if a contradiction is discovered.
-     */
-    void mergeResolutionPartial(final Clause clause) throws Unsatisfiable{
-        int size = clause.size();
-        for(final Literal resolutionLiteralObject : clause.literals) {
-            literalIndexTwo.forAllLiterals(-resolutionLiteralObject.literal,null, // resolution with binary clauses.
-                    negLiteralObject -> {resolve(resolutionLiteralObject,negLiteralObject,true, "Merge Resolution Partial"); return false;});
-            timestamp += size+2;
-            int posLiteral = resolutionLiteralObject.literal;
-            literalIndexMore.timestampClauses(-posLiteral,  // timestamp all potential resolution partners.
-                    (litObject -> litObject.clause.size() <= size), timestamp,true);
-
-            for(final Literal literalObject1 : clause.literals) {
-                if(literalObject1 == resolutionLiteralObject) continue;
-                literalIndexMore.forAllLiterals(literalObject1.literal,null,
-                        (litObject -> { // all literals except two of them must merge.
-                            Clause otherClause = litObject.clause;
-                            if(otherClause.timestamp1 - timestamp == otherClause.size()-3)
-                                resolve(resolutionLiteralObject,otherClause.findLiteral(-posLiteral),true,"Merge Resolution Partial");
-                            else ++otherClause.timestamp1;
-                            return false;}));}}
-            timestamp += size+2;}
 
     /**performs triple resolution with the given clause.
      * <br>
@@ -1188,7 +1225,7 @@ public class Resolution extends Solver {
                     new InfResolutionTrueLiteral(posLiteral.clause,negLiteral.clause,literal,symboltable) : null;
             if(monitoring) monitor.println(monitorId, step.info(symboltable));
             addInternalTrueLiteralTask(literal,true,step);}
-        if(resolvent == null || isSubsumed(resolvent) != null) return null;
+        if(resolvent == null || isSubsumed(resolvent)) return null;
         InfResolution step = (trackReasoning || monitoring) ?
                 new InfResolution(posLiteral.clause,negLiteral.clause, resolvent, symboltable, comment) : null;
         if(trackReasoning) resolvent.inferenceStep = step;

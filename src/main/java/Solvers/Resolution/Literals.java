@@ -208,21 +208,21 @@ public class Literals {
 
     /** marks all clauses with the given literal which meet the condition with the given timestamp.
      * <br>
-     * if fistStamp = true then timestamp1 is marked, otherwise timestamp2.
+     * if timestampLevel &lt; 0 then timestampSubsumption is marked.
      *
      * @param literal       a literal
      * @param condition     null or a condition on the clauses to be timestamped.
+     * @param timestampLevel the recursion level of the timestamp.
      * @param timestamp     the timestamp which is to be used.
-     * @param firstStamp    true if the timestamp1 is marked.
      * @return              true if atleast one clause is marked.
      */
-    boolean timestampClauses(int literal, Predicate<Literal> condition, int timestamp,boolean firstStamp) {
+    boolean timestampClauses(int literal, Predicate<Literal> condition, int timestampLevel, int timestamp) {
         boolean marked = false;
         Literal literalObject = getFirstLiteralObject(literal);
         while(literalObject != null) {
             Clause clause = literalObject.clause;
             if(clause != null && clause.exists && (condition == null || condition.test(literalObject))) {
-                if(firstStamp) clause.timestamp1 = timestamp; else clause.timestamp2 = timestamp;
+                if(timestampLevel < 0) clause.timestampSubsumption = timestamp; else clause.setTimestamp(timestampLevel,timestamp);
                 marked = true;}
             literalObject = literalObject.nextLiteral;}
         return marked;}

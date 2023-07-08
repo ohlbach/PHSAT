@@ -239,7 +239,7 @@ public class LiteralsTest extends TestCase {
         assertTrue(resolution.literalIndexMore.timestampClauses(3,
                 (litObject -> litObject.clause.identifier == 1),
                 6,false));
-        assertEquals(6,clause1.timestamp2);
+        assertEquals(6,clause1.timestampSubsumption);
 
         Clause clause2 = new Clause(new int[]{2, cOr, 3,4,5});
         resolution.insertClause(clause2);
