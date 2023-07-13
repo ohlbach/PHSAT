@@ -391,7 +391,8 @@ public class Resolution extends Solver {
                 if(task.literal != 0) {
                     int literal = task.literal; InferenceStep step = task.inferenceStep;
                     Task.pushTask(task); // to be reused.
-                    processTrueLiteral(literal, step);}
+                    processTrueLiteral(literal, step);
+                    if(!queue.isEmpty()) continue;}
                 else {
                     Clause clause = task.clause;
                     if(!clause.exists) continue;
@@ -408,7 +409,7 @@ public class Resolution extends Solver {
                     if(monitoring) monitor.print(monitorId,"Clause set is empty");
                     completeModel();
                     throw new Satisfiable(problemId,solverId,model);}
-                if(trueLiteralsInQueue == 0 && clauses.status != 0) generatePositiveOrNegativeModel();
+                if(clauses.status != 0) generatePositiveOrNegativeModel();
                 if(queue.isEmpty()) {
                     System.out.println("Empty Queue Clauses: " + clauses.size + ", Local Model: " + localModelString());
                     if(printClauses) printSeparated();
@@ -418,7 +419,7 @@ public class Resolution extends Solver {
                     //System.out.println("Local Model: " + localModelString());
                     //printSeparated();
                 }
-                if(trueLiteralsInQueue == 0 && binaryClausesInQueue == 0 && literalIndexMore.size() == 0) {
+                if(binaryClausesInQueue == 0 && literalIndexMore.size() == 0) {
                     if(monitoring) {
                         monitor.println(monitorId, "No longer clauses any more. 2-Literal Clauses are Saturated.\n" );
                         monitor.println(monitorId,"Local Model: " + localModelString());
@@ -439,10 +440,10 @@ public class Resolution extends Solver {
      */
     public void processSimplifyingTasks() throws Result {
         Task task;
-        timestamps.set(++timestampLevel,1);
+        ++timestampLevel;
         while(!myThread.isInterrupted() && ((task = queue.peek()) != null)) {
             if (task.literal == 0 && task.clause == null)  {queue.poll(); continue;}
-            if(task.expand) return;
+            if(task.expand) {--timestampLevel; return;}
             queue.poll();
             if (monitoring) monitor.print(monitorId, task.toString(symboltable));
             if (task.literal != 0) {
