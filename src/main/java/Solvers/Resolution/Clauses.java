@@ -1,5 +1,6 @@
 package Solvers.Resolution;
 
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Utilities.PredicateWithResult;
@@ -158,7 +159,7 @@ public class Clauses {
      * @return true if an action-application returns true, otherwise false.
      * @throws Unsatisfiable if the action generates an unsatisfiability.
      */
-    boolean forAll(PredicateWithResult<Clause> action) throws Unsatisfiable {
+    boolean forAll(PredicateWithResult<Clause> action) throws Result {
         Clause clause = firstClause;
         while(clause != null) {
             if(clause.exists) {

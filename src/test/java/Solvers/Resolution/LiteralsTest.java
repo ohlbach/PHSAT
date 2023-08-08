@@ -1,6 +1,7 @@
 package Solvers.Resolution;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Management.Monitor.Monitor;
@@ -181,7 +182,7 @@ public class LiteralsTest extends TestCase {
 
     int cOr = Quantifier.OR.ordinal();
     boolean monitoring = true;
-    public void testForAllLiterals() throws Unsatisfiable {
+    public void testForAllLiterals() throws Result {
         System.out.println("forAllLiterals");
         Monitor monitor = monitoring ? new MonitorLife() : null;
         int[] id = new int[]{10};
@@ -225,35 +226,35 @@ public class LiteralsTest extends TestCase {
         IntSupplier nextId = () -> ++id[0];
         Resolution resolution = new Resolution(10, monitor, true, nextId);
 
-        assertFalse(resolution.literalIndexMore.timestampClauses(1,null,5,true));
+        assertFalse(resolution.literalIndexMore.timestampClauses(1,null,0,5));
         Clause clause1 = new Clause(new int[]{1, cOr, 1, 2, 3});
         resolution.insertClause(clause1);
 
         assertFalse(resolution.literalIndexMore.timestampClauses(1,
                 (litObject -> litObject.clause.identifier == 2),
-                5,true));
+                0,5));
         assertTrue(resolution.literalIndexMore.timestampClauses(2,
                 (litObject -> litObject.clause.identifier == 1),
-                5,true));
-        assertEquals(5,clause1.timestamp1);
+                0,5));
+        assertEquals(5,clause1.timestamps.getInt(0));
         assertTrue(resolution.literalIndexMore.timestampClauses(3,
                 (litObject -> litObject.clause.identifier == 1),
-                6,false));
+                -1,6));
         assertEquals(6,clause1.timestampSubsumption);
 
         Clause clause2 = new Clause(new int[]{2, cOr, 3,4,5});
         resolution.insertClause(clause2);
         assertTrue(resolution.literalIndexMore.timestampClauses(3,
                 (litObject -> litObject.clause.identifier == 1),
-                7,true));
-        assertEquals(7,clause1.timestamp1);
-        assertEquals(0,clause2.timestamp1);
+                0,7));
+        assertEquals(7,clause1.timestamps.getInt(0));
+        assertEquals(0,clause2.timestamps.getInt(0));
 
         assertTrue(resolution.literalIndexMore.timestampClauses(3,
                 (litObject -> litObject.clause.identifier >= 1),
-                8,true));
-        assertEquals(8,clause1.timestamp1);
-        assertEquals(8,clause2.timestamp1);
+                0,8));
+        assertEquals(8,clause1.timestamps.getInt(0));
+        assertEquals(8,clause2.timestamps.getInt(0));
     }
 
 

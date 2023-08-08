@@ -25,7 +25,7 @@ public class Task {
     /** null or a clause to be simplified or expanded */
     Clause clause;
     /** false: simplify the clause, true: expand the clause */
-    boolean expand;
+    TaskType taskType;
 
     /** the inference step for true literals */
     InferenceStep inferenceStep;
@@ -36,21 +36,24 @@ public class Task {
      *
      * @param literal 0 or a true literal.
      * @param clause  null or a clause.
-     * @param expand  true: expand, false: simplify.
+     * @param taskType  the type of task.
      */
-    public Task(int literal, InferenceStep inferenceStep, Clause clause, boolean expand) {
+    public Task(int literal, InferenceStep inferenceStep, Clause clause, TaskType taskType) {
         this.literal = literal;
         this.inferenceStep = inferenceStep;
         this.clause  = clause;
-        this.expand  = expand;
-        if(expand) priority = priorityShift + clause.size();
-        else {priority = (clause != null) ? clause.size() : 1;}}
+        this.taskType = taskType;
+        setPriority();}
 
-    /** sets the expand flag and adapts the priority.
-     */
-    void makeExpand() {
-        expand = true;
-        priority = priorityShift + clause.size();}
+    void setPriority() {
+        switch (taskType) {
+            case TRUELITERAL:      priority = Math.abs(literal); break;
+            case SIMPLIFYSELF:     priority = priorityShift   + clause.size(); break;
+            case SIMPLIFYOTHERS:   priority = 2*priorityShift + clause.size(); break;
+            case EXPANDBINARY:     priority = 3*priorityShift + clause.size(); break;
+            case PARTIALPURITY:    priority = 4*priorityShift; break;
+            case TRIPLERESOLUTION: priority = 5*priorityShift + clause.size();}}
+
 
     /** turns the task into a string.
      *
@@ -65,9 +68,15 @@ public class Task {
      * @return the task as a string.
      */
     public String toString(Symboltable symboltable) {
-        if(expand) return "Task Expand " + clause.toString(symboltable,0);
-        return "Task Simplify " + ((literal == 0) ? clause.toString(symboltable,0): Symboltable.toString(literal,symboltable));
-    }
+        String cl = clause != null ? clause.toString(symboltable,0) : null;
+        String pr = " Priority: " + priority;
+        switch (taskType) {
+            case TRUELITERAL:    return "True Literal Task: " + Symboltable.toString(literal,symboltable) + pr;
+            case SIMPLIFYSELF:   return "Simplify-Self Task: "    + cl+ pr ;
+            case SIMPLIFYOTHERS: return "Simplify-Others Task: "  + cl+ pr ;
+            case EXPANDBINARY:   return "Binary Expansion Task: " + cl+ pr ;
+            case PARTIALPURITY:  return "Partial Purity Task "    + pr;}
+        return "";}
 
     /** a stack of tasks to be reused.
      */
@@ -77,18 +86,17 @@ public class Task {
      *
      * @param literal 0 or a true literal.
      * @param clause  null or a clause.
-     * @param expand  true: expand, false: simplify.
+     * @param taskType  true: taskType, false: simplify.
      * @return a task.
      */
-    static Task popTask(int literal, InferenceStep inferenceStep, Clause clause, boolean expand) {
-        if(taskStack.isEmpty()) return new Task(literal,inferenceStep,clause,expand);
+    static Task popTask(int literal, InferenceStep inferenceStep, Clause clause, TaskType taskType) {
+        if(taskStack.isEmpty()) return new Task(literal,inferenceStep,clause,taskType);
         Task task = taskStack.pop();
         task.literal = literal;
         task.inferenceStep = inferenceStep;
         task.clause = clause;
-        task.expand = expand;
-        if(expand) task.priority = priorityShift + clause.size();
-        else {task.priority = (clause != null) ? clause.size() : 1;}
+        task.taskType = taskType;
+        task.setPriority();
         return task;}
 
     /** puts a used task back into the stack (for later reusing it).

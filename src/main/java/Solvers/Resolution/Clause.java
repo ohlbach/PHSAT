@@ -93,6 +93,7 @@ public class Clause {
         int length = inputClause.length;
         int start = quantifier.firstLiteralIndex;
         literals = new ArrayList<>(length-start);
+        timestamps.add(0);
         if(isDisjunction)
             for(int i = start; i < length; ++i) {
                 int literal = inputClause[i];
