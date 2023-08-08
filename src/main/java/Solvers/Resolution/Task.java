@@ -54,6 +54,13 @@ public class Task {
             case PARTIALPURITY:    priority = 4*priorityShift; break;
             case TRIPLERESOLUTION: priority = 5*priorityShift + clause.size();}}
 
+    /** changes the task type of the task and adapts the priority.
+     *
+     * @param taskType a new task type for the task.
+     */
+    void setTaskType(TaskType taskType) {
+        this.taskType = taskType;
+        setPriority();}
 
     /** turns the task into a string.
      *

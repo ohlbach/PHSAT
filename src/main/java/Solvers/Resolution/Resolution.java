@@ -334,7 +334,7 @@ public class Resolution extends Solver {
                 if(monitoring) monitor.println(monitorId,step.info(symboltable));
                 if(status == -1) throw new UnsatClause(clause,problemId,solverId);}}
         insertClause(clause);
-        addSimplificationTask(clause);}
+        addClauseTask(clause,TaskType.SIMPLIFYSELF);}
 
     /** adds a true literal to the queue and to the model.
      * <br>
@@ -588,7 +588,7 @@ public class Resolution extends Solver {
                         clause.inferenceStep = step;
                         clauses.updateClauseNumbers(clause,1);
                         if(clause.size() == 2) moveToIndexTwo(clause);
-                        addSimplificationTask(clause);
+                        addClauseTask(clause,TaskType.SIMPLIFYSELF);
                         return false;});}
         literalIndexMore.removePredicate(trueLiteral);
         for(int removedLiteral :removedLiterals) checkPurity(removedLiteral);
@@ -799,7 +799,7 @@ public class Resolution extends Solver {
      * True literals may be derived, which are put into the global model,<br>
      * and generate a trueLiteral task.<br>
      * If the clause became a two-literal clause, it is put into the literalIndexTwo index.<br>
-     * The modified clause generates a clause task.<br>
+     * The modified clause generates a SIMPLIFYSELF task.<br>
      * The clause numbers are updated.
      *
      * @param literalObject    any literalObject
@@ -827,13 +827,12 @@ public class Resolution extends Solver {
         if(monitoring) {monitor.println(monitorId,step.info(symboltable));}
         for(int trueLiteral : trueLiterals) addInternalTrueLiteralTask(trueLiteral,true,step);
         if(status == 1) {removeClause(clause,false,false); return;}
-        if(status == 0 && isSubsumed(clause)) {
-            ++statistics.subsumedClauses;
+       if(status == 0 && isSubsumed(clause)) {
             removeClause(clause,false,false);
             return;}
         if(size > 2 && clause.size() == 2) moveToIndexTwo(clause);
         clauses.updateClauseNumbers(clause,+1);
-        addSimplificationTask(clause);}
+        addClauseTask(clause,TaskType.SIMPLIFYSELF);}
 
     /** removes literals from a longer disjunction by binary merge resolution.
      * <br>
@@ -925,7 +924,10 @@ public class Resolution extends Solver {
                         int literalBinary2 = literalObjectBinary1.clause.otherLiteral(literalObjectBinary1).literal;
                         Literal literalObjectLonger2 = subsumee.findLiteral(literalBinary2);
                         return literalObjectLonger2 != null && literalObjectLonger2.multiplicity == limit;});
-            if (subsumerLiteral != null) return true;}
+            if (subsumerLiteral != null) {
+                if(monitoring) monitor.println("Clause " + subsumee.toString(symboltable,0) + " is subsumed by " +
+                        subsumerLiteral.clause.toString(symboltable,0));
+                return true;}}
         return false;}
 
 
@@ -951,9 +953,9 @@ public class Resolution extends Solver {
                         if(subsumer == subsumee) return false;
                         int multiplicity2 = literalObject2.multiplicity;
                         if(subsumer.timestampSubsumption < timestampSubsumption) { // first candidate literal
-                            if(subsumer.size() <= size &&
+                            if(subsumer.size() <= size && (
                                     (subsumer.limit >= limit && multiplicity2 <= multiplicity1) ||
-                                    (subsumer.isDisjunction && multiplicity2 == subsumer.limit))
+                                    (subsumer.isDisjunction && multiplicity2 == subsumer.limit)))
                                 subsumer.timestampSubsumption = timestampSubsumption;
                             return false;}
                         else {
@@ -964,7 +966,10 @@ public class Resolution extends Solver {
                             if(multiplicity2 <= multiplicity1 || (subsumer.isDisjunction && multiplicity2 == subsumer.limit))
                                 ++subsumer.timestampSubsumption;}
                         return false;});
-            if(subsumerLiteral != null) {timestampSubsumption += size+2; return true;}}
+            if(subsumerLiteral != null) {
+                if(monitoring) monitor.println("Clause " + subsumee.toString(symboltable,0) + " is subsumed by " +
+                        subsumerLiteral.clause.toString(symboltable,0));
+                timestampSubsumption += size+2; return true;}}
         timestampSubsumption += size+2;
         return false;}
 
@@ -1071,7 +1076,7 @@ public class Resolution extends Solver {
                             if(trackReasoning) clause2.inferenceStep = step;
                             if(monitoring) monitor.println(monitorId,step.info());
                             if(simplifyClause(clause2,true)) {
-                                addSimplificationTask(clause2);
+                                addClauseTask(clause2,TaskType.SIMPLIFYSELF);
                                 processSimplifyingTasks();}}
                         return false;}));}
         finally {increaseTimestamp(1);}}
@@ -1148,7 +1153,7 @@ public class Resolution extends Solver {
                                                         new InfMergeResolutionMore(clauseP,resolventBefore,clausQQ,symboltable) : null;
                                                 if(trackReasoning) clausQQ.inferenceStep = step;
                                                 if(monitoring) monitor.println(monitorId,step.info());
-                                                addSimplificationTask(clausQQ);
+                                                addClauseTask(clausQQ,TaskType.SIMPLIFYSELF);
                                                 processSimplifyingTasks();}
                                             if(removeP) { // only a disjunction is definitely subsumed and can be removed.
                                                 removeClause(clauseP,true,true); return true;}}
@@ -1310,7 +1315,7 @@ public class Resolution extends Solver {
                                                     longerClause, longerClauseString, longerClause, symboltable, "Binary Saturation") : null;
                                     if(trackReasoning) longerClause.inferenceStep = step;
                                     if(monitoring) monitor.println(monitorId,step.info());
-                                    addSimplificationTask(longerClause);
+                                    addClauseTask(longerClause,TaskType.SIMPLIFYSELF);
                                     ++statistics.mergeResolutionTwoMore;
                                     processSimplifyingTasks();}
                                 return true;}}
@@ -1360,7 +1365,7 @@ public class Resolution extends Solver {
                                                 if(resolvent.size() == 4) {
                                                     resolve(literalObjectA,resolvent.findLiteral(-literalA),true, "Triple Resolution");
                                                     ++statistics.tripleResolutions;}
-                                                else{insertClause(resolvent); addSimplificationTask(resolvent);}}}
+                                                else{insertClause(resolvent); addClauseTask(resolvent,TaskType.SIMPLIFYSELF);}}}
                                         return false;}));
                             return false;}));}
             increaseTimestamp(1);}}
@@ -1396,7 +1401,7 @@ public class Resolution extends Solver {
         if(resolvent.size() == 2) ++statistics.binaryResolvents; else ++statistics.longerResolvents;
         if(monitoring) monitor.println(monitorId, step.info());
         if(!simplifyClause(resolvent,insert)) return null;
-        if(insert) addSimplificationTask(resolvent);
+        if(insert) addClauseTask(resolvent, TaskType.SIMPLIFYSELF);
         return resolvent;}
 
     /** simplifies the clause itself.
@@ -1531,13 +1536,22 @@ public class Resolution extends Solver {
 
 
 
-    /** adds a ClauseTask (ProcessBinaryClause or ProcessLongerClause) depending on the clause's size.
+    /** adds a clause Task of the given task type to the queue.
+     * <br>
+     * If the clause is already in the queue, its type is updated and the task is reinserted into the queue
+     * with the new task type and priority.
      *
      * @param clause a clause.
+     * @param taskType a task type.
      */
-    void addSimplificationTask(final Clause clause) {
-        if(clause.task != null) clause.task.clause = null;
-        synchronized (this) {queue.add(Task.popTask(0,null,clause,TaskType.SIMPLIFYSELF));}}
+    void addClauseTask(final Clause clause, TaskType taskType) {
+        Task task = clause.task;
+        if(task != null) {
+            if(task.taskType != taskType) {
+                queue.remove(task);
+                task.setTaskType(taskType);
+                synchronized (this) {queue.add(task);}}}
+        else synchronized (this) {queue.add(Task.popTask(0,null,clause,taskType));}}
 
 
 
