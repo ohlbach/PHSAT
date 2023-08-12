@@ -960,8 +960,8 @@ public class Resolution extends Solver {
                             return false;}
                         else {
                             if(subsumer.timestampSubsumption - timestampSubsumption == subsumer.size()-2 &&
-                                    multiplicity2 <= multiplicity1 ||
-                                    (subsumer.isDisjunction && multiplicity2 == subsumer.limit))
+                                    (multiplicity2 <= multiplicity1 ||
+                                    (subsumer.isDisjunction && multiplicity2 == subsumer.limit)))
                                 return true;
                             if(multiplicity2 <= multiplicity1 || (subsumer.isDisjunction && multiplicity2 == subsumer.limit))
                                 ++subsumer.timestampSubsumption;}

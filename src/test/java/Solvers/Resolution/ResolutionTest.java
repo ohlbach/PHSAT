@@ -92,6 +92,69 @@ public class ResolutionTest extends TestCase {
         assertEquals("1,2,3", resolution.localModelString());
     }
 
+    public void testlongerClauseIsSubsumedByBinaryClause()  {
+        System.out.println("longerClauseIsSubsumedByBinaryClauses");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 3}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
+
+        Clause clause = new Clause(new int[]{4, cOr, 2, -1, -3});
+        assertFalse(resolution.longerClauseIsSubsumedByBinaryClauses(clause));
+        clause = new Clause(new int[]{5, cOr, 3, 2, 1});
+        assertTrue(resolution.longerClauseIsSubsumedByBinaryClauses(clause));
+        clause = new Clause(new int[]{6, cOr, 2,1,-3});
+        assertTrue(resolution.longerClauseIsSubsumedByBinaryClauses(clause));
+    }
+    public void testlongerClauseIsSubsumedByLongerClause()  {
+        System.out.println("longerClauseIsSubsumedByLongerClauses");
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, false, nextId);
+
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
+        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 3, 4}));
+        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1, 3}));
+
+        Clause clause = new Clause(new int[]{4, cOr, 2, -1, -3});
+        assertFalse(resolution.longerClauseIsSubsumedByLongerClauses(clause));
+        clause = new Clause(new int[]{5, cOr, 3, 2, 1, 4});
+        assertTrue(resolution.longerClauseIsSubsumedByLongerClauses(clause));
+        clause = new Clause(new int[]{6, cOr, 4, 2,1,-3});
+        assertFalse(resolution.longerClauseIsSubsumedByLongerClauses(clause));
+        clause = new Clause(new int[]{7, cOr, 4, 2,1,3});
+        assertTrue(resolution.longerClauseIsSubsumedByLongerClauses(clause));
+
+        resolution.clear();
+
+        resolution.insertClause(new Clause(new int[]{1, cAtleast, 2, 1, 2, 3}));
+        clause = new Clause(new int[]{2, cOr, 4, 2,1,3});
+        assertTrue(resolution.longerClauseIsSubsumedByLongerClauses(clause));
+
+        clause = new Clause(new int[]{3, cOr, 4, 2,1,3,4});
+        assertTrue(resolution.longerClauseIsSubsumedByLongerClauses(clause));
+
+        clause = new Clause(new int[]{4, cOr, 4, 2,-1,3,4});
+        assertFalse(resolution.longerClauseIsSubsumedByLongerClauses(clause));
+
+        clause = new Clause(new int[]{5, cAtleast, 2, 4, 2,1,3});
+        assertTrue(resolution.longerClauseIsSubsumedByLongerClauses(clause));
+
+        resolution.insertClause(new Clause(new int[]{6, cAtleast, 3, 1, 2,2, 5}));
+        clause = new Clause(new int[]{7, cAtleast, 3, 5, 2,1,3});
+        assertFalse(resolution.longerClauseIsSubsumedByLongerClauses(clause));
+        clause = new Clause(new int[]{8, cAtleast, 3, 5, 2,2,2,1,3});
+        assertTrue(resolution.longerClauseIsSubsumedByLongerClauses(clause));
+    }
+
+
     public void testProcessTrueLiteralTwo() throws Result {
         System.out.println("applyTrueLiteralToBinaryClauses");
         Thread myThread = Thread.currentThread();
@@ -777,67 +840,6 @@ public class ResolutionTest extends TestCase {
         assertNull(resolution.binaryClauseIsSubsumed(resolution.clauses.firstClause));
     }
 
-    public void testlongerClauseIsSubsumedByBinaryClause()  {
-        System.out.println("longerClauseIsSubsumedByBinaryClauses");
-        int predicates = 6;
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
-
-        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2}));
-        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 3}));
-        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1}));
-
-        Clause clause = new Clause(new int[]{4, cOr, 2, -1, -3});
-        assertNull(resolution.longerClauseIsSubsumedByBinaryClauses(clause));
-        clause = new Clause(new int[]{5, cOr, 3, 2, 1});
-        assertNotNull(resolution.longerClauseIsSubsumedByBinaryClauses(clause));
-        clause = new Clause(new int[]{6, cOr, 2,1,-3});
-        assertNotNull(resolution.longerClauseIsSubsumedByBinaryClauses(clause));
-    }
-    public void testlongerClauseIsSubsumedByLongerClause()  {
-        System.out.println("longerClauseIsSubsumedByLongerClauses");
-        int predicates = 6;
-        Monitor monitor = monitoring ? new MonitorLife() : null;
-        int[] id = new int[]{10};
-        IntSupplier nextId = () -> ++id[0];
-        Resolution resolution = new Resolution(predicates, monitor, false, nextId);
-
-        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
-        resolution.insertClause(new Clause(new int[]{2, cOr, 2, 3, 4}));
-        resolution.insertClause(new Clause(new int[]{3, cOr, -2, -1, 3}));
-
-        Clause clause = new Clause(new int[]{4, cOr, 2, -1, -3});
-        assertNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
-        clause = new Clause(new int[]{5, cOr, 3, 2, 1, 4});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
-        clause = new Clause(new int[]{6, cOr, 4, 2,1,-3});
-        assertNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
-        clause = new Clause(new int[]{7, cOr, 4, 2,1,3});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
-
-        resolution.clear();
-
-        resolution.insertClause(new Clause(new int[]{1, cAtleast, 2, 1, 2, 3}));
-        clause = new Clause(new int[]{2, cOr, 4, 2,1,3});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
-
-        clause = new Clause(new int[]{3, cOr, 4, 2,1,3,4});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
-
-        clause = new Clause(new int[]{4, cOr, 4, 2,-1,3,4});
-        assertNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
-
-        clause = new Clause(new int[]{5, cAtleast, 2, 4, 2,1,3});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
-
-        resolution.insertClause(new Clause(new int[]{6, cAtleast, 3, 1, 2,2, 5}));
-        clause = new Clause(new int[]{7, cAtleast, 3, 5, 2,1,3});
-        assertNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
-        clause = new Clause(new int[]{8, cAtleast, 3, 5, 2,2,2,1,3});
-        assertNotNull(resolution.longerClauseIsSubsumedByLongerClauses(clause));
-    }
 
     public void testSaturateLongerClausesWithBinaryClause() throws Result {
         System.out.println("saturateLongerClausesWithBinaryClause");
