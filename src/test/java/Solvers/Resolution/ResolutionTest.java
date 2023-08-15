@@ -408,6 +408,26 @@ public class ResolutionTest extends TestCase {
             if (monitoring) System.out.println(result.toString());}
     }
 
+    public void testMergeResolutionBinaryClauseWithLongerClauses() throws Result {
+        System.out.println("mergeResolutionBinaryClauseWithLongerClauses");
+
+        int predicates = 6;
+        Monitor monitor = monitoring ? new MonitorLife() : null;
+        int[] id = new int[]{10};
+        IntSupplier nextId = () -> ++id[0];
+        Resolution resolution = new Resolution(predicates, monitor, true, nextId);
+        resolution.insertClause(new Clause(new int[]{1, cOr, 1, 2, 3}));
+        resolution.insertClause(new Clause(new int[]{2, cAtleast, 2, 1, 2, 2, -3}));
+        resolution.insertClause(new Clause(new int[]{3, cAtleast, 3, 1, 2, 2, -3,4}));
+        resolution.insertClause(new Clause(new int[]{4, cOr, -2,-3,-4}));
+
+        Clause clause = new Clause(new int[]{5,cOr,-1,2});
+        resolution.insertClause(clause);
+        System.out.println(resolution.clauses.toString());
+        resolution.mergeResolutionBinaryClauseWithLongerClauses(clause,-1,2);
+        System.out.println(resolution.clauses.toString());
+
+    }
 
     /*
     public void testBinaryMergeResolutionAndEquivalence() throws Result {

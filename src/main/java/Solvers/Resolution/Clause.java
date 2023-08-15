@@ -410,18 +410,18 @@ public class Clause {
         for(int i = 0; i < literals.size(); ++i) {
             Literal literalObject = literals.get(i);
             if(expandedSize - literalObject.multiplicity < limit) {
-                remover.accept(literalObject);
+                if(remover != null) remover.accept(literalObject);
                 trueLiterals.accept(literalObject.literal);  // The literal must be true.
                 literals.remove(i--);
                 limit -= literalObject.multiplicity;
                 expandedSize -= literalObject.multiplicity;
                 if(limit <= 0) {
-                    for(Literal litObject : literals) remover.accept(litObject);
+                    if(remover != null) {for(Literal litObject : literals) remover.accept(litObject);}
                     literals.clear();
                     return 0;}}}
             if(literals.size() == 1) { // unit clause, must be true.
                 trueLiterals.accept(literals.get(0).literal);
-                remover.accept(literals.get(0));
+                if(remover != null) remover.accept(literals.get(0));
                 literals.clear();
                 return 0;}
         return limit;}

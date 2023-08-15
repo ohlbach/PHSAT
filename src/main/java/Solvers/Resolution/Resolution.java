@@ -467,20 +467,30 @@ public class Resolution extends Solver {
         Task task;
         ++timestampLevel;
         while(!myThread.isInterrupted() && ((task = queue.peek()) != null)) {
-            if (task.literal == 0 && task.clause == null)  {queue.poll(); continue;}
-            if(task.taskType == TaskType.SIMPLIFYSELF) {--timestampLevel; return;}
-            queue.poll();
+            int literal   = task.literal;
+            Clause clause = task.clause;
+            InferenceStep step = task.inferenceStep;
+            if (literal == 0 && clause == null)  {queue.poll(); continue;}
             if (monitoring) monitor.print(monitorId, task.toString(symboltable));
-            if (task.literal != 0) {
-                int literal = task.literal;
-                InferenceStep step = task.inferenceStep;
-                Task.pushTask(task); // to be reused.
-                processTrueLiteral(literal, step);}
-            else {
-                Clause clause = task.clause;
-                Task.pushTask(task); // to be reused.
-                if(!clause.exists) continue;
-                processSimplifications(clause);}}
+            switch(task.taskType) {
+                case TRUELITERAL:
+                    queue.poll();
+                    Task.pushTask(task);
+                    processTrueLiteral(literal, step);
+                    break;
+                case SIMPLIFYSELF:
+                    queue.poll();
+                    Task.pushTask(task);
+                    if(!clause.exists) break;
+                    processSimplifySelf(clause,true);
+                    break;
+                case SIMPLIFYOTHERS:
+                    queue.poll();
+                    Task.pushTask(task);
+                    if(!clause.exists) break;
+                    //processSimplifyOthers(clause);
+                    break;
+                default: --timestampLevel; return;}}
         --timestampLevel;}
 
 
@@ -1046,12 +1056,12 @@ public class Resolution extends Solver {
     // MERGE RESOLUTION
 
 
-    /** performs merge resolution between a binary clause and the longer clauses.
+    /** performs merge resolution between a binary clause and all the corresponding longer clauses.
      * <br>
      * Binary MergeResolution with disjunctions:  p,q and -p,q,phi -&gt; q,phi. (destructively) <br>
      * Binary MergeResolution with atleast:       p,q and &gt;= m -p, q^m,phi &gt;= m q^m,phi (destructively)<br>
      * Derived true literals are inserted into the model.<br>
-     * The simplified clauses generate a simplification task, which is immediately processed.
+     * The simplified clauses generate SIMPLIFYOTHERS tasks, which are processed immediately after all merge steps.
      *
      * @param clause1   the binary clause.
      * @param literal1  either the first or the second literal.
@@ -1060,13 +1070,14 @@ public class Resolution extends Solver {
      */
     void mergeResolutionBinaryClauseWithLongerClauses(final Clause clause1, int literal1, int literal2) throws Result {
         assert(clause1.size() == 2);
+        boolean[] found = {false};
         int timestamp = increaseTimestamp(1); // just to be sure.
         try{literalIndexMore.timestampClauses(-literal1,(literalObject -> literalObject.multiplicity == 1), timestampLevel, timestamp);
-            // literal1,literal2 and -literal1,literal2,rest -> literal2,rest
+            // literal1,literal2 and atleast m -literal1,literal2^m,rest -> atleast m literal2^m,rest
             literalIndexMore.forAllLiterals(literal2,
-                    (literalObject2-> literalObject2.clause.eqTimestamp(timestampLevel,timestamp) &&
+                    (literalObject2 -> literalObject2.clause.eqTimestamp(timestampLevel,timestamp) &&
                             literalObject2.multiplicity == literalObject2.clause.limit),
-                    (literalObject2-> {// clauses with literal2 can merge with clause1
+                    (literalObject2 -> {// clauses with literal2 can merge with clause1
                         Clause clause2 = literalObject2.clause;
                         Literal negLiteralObject1 = clause2.findLiteral(-literal1); // find -p
                         String clause2Before = (monitoring || trackReasoning) ? clause2.toString(symboltable,0) : null;
@@ -1076,10 +1087,11 @@ public class Resolution extends Solver {
                             if(trackReasoning) clause2.inferenceStep = step;
                             if(monitoring) monitor.println(monitorId,step.info());
                             if(simplifyClause(clause2,true)) {
-                                addClauseTask(clause2,TaskType.SIMPLIFYSELF);
-                                processSimplifyingTasks();}}
+                                addClauseTask(clause2,TaskType.SIMPLIFYOTHERS);
+                                found[0] = true;}}
                         return false;}));}
-        finally {increaseTimestamp(1);}}
+        finally {increaseTimestamp(1);}
+        if(found[0]) processSimplifyingTasks();}
 
     /** returns the timestamp at the current recursion level.
      *
