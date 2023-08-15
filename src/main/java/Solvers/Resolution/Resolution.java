@@ -349,7 +349,9 @@ public class Resolution extends Solver {
         if(localStatus(literal) == 1) return;
         if(monitoring) {
             String globally = globallyTrue ? "Globally True " : "Locally True ";
-            monitor.print(monitorId,globally+"literal added: " + Symboltable.toString(literal,symboltable));}
+            monitor.print(monitorId,globally+"literal added: " + Symboltable.toString(literal,symboltable));
+            if(inferenceStep != null) monitor.println(monitorId,inferenceStep.toString(symboltable));}
+        new Exception().printStackTrace();
         makeLocallyTrue(literal,inferenceStep);
         if(globallyTrue) model.add(myThread,literal,inferenceStep);
         synchronized (this) {queue.add(Task.popTask(literal, inferenceStep,null,TaskType.TRUELITERAL));}
