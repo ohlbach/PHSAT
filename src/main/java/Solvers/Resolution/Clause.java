@@ -3,12 +3,10 @@ package Solvers.Resolution;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Solvers.Normalizer.Normalizer;
-import Utilities.IntConsumerWithUnsatisfiable;
-import Utilities.IntToByteFunction;
 import Utilities.ByteFunction;
+import Utilities.IntConsumerWithUnsatisfiable;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -30,7 +28,6 @@ import java.util.function.IntSupplier;
 public class Clause {
     /** the identifier for the clause. */
     final int identifier;
-    IntToByteFunction x;
 
     /** another identifier for clauses which originated from interval-type clauses */
     int subIdentifier = 0;
@@ -60,7 +57,7 @@ public class Clause {
     boolean hasMultiplicities = false;
 
     /** the inference step which caused the derivation of this clause. */
-    InferenceStep inferenceStep;
+    ArrayList<InferenceStep> inferenceSteps;
 
     /** the task the clause is involved in */
     Task task;
@@ -89,7 +86,6 @@ public class Clause {
         assert(quantifier != null && (quantifier == Quantifier.OR || quantifier == Quantifier.ATLEAST));
         isDisjunction = quantifier == Quantifier.OR;
         limit = isDisjunction ? 1 : inputClause[2];
-        inferenceStep = new InfInputClause(identifier);
         int length = inputClause.length;
         int start = quantifier.firstLiteralIndex;
         literals = new ArrayList<>(length-start);
@@ -184,13 +180,20 @@ public class Clause {
         limit              = Normalizer.getMin(normalizedClause);
         expandedSize       = Normalizer.getExpandedSize(normalizedClause);
         hasMultiplicities  = Normalizer.hasMultiplicities(normalizedClause);
-        inferenceStep      = new InfInputClause(identifier);
         literals           = new ArrayList<>(expandedSize);
         for(int i = Normalizer.literalsStart; i <= normalizedClause.size()-2; i +=2) {
             Literal literal = new Literal(normalizedClause.getInt(i),normalizedClause.getInt(i+1));
             literals.add(literal);
             literal.clause = this;}
         determineClauseType();}
+
+    /** adds a new inference step to the list of inference steps.
+     *
+     * @param step an inference step.
+     */
+    void addInferenceStep(InferenceStep step) {
+        if(inferenceSteps == null) inferenceSteps = new ArrayList<>();
+        inferenceSteps.add(step);}
 
 
     /** finds the Literal with the given literal.
@@ -297,7 +300,7 @@ public class Clause {
 
         // In the remaining literals some of them may not have enough literals to satisfy the limit.
         // Example:  >= 2 p^2,q,r. and false(q) -> >= 2 p^2,r -> p must be true.
-         limit = reduceByTrueLiterals(limit,expandedSize,literals,remover,trueLiterals);
+        limit = reduceByTrueLiterals(limit,expandedSize,literals,remover,trueLiterals);
         if(limit == 0) return 1;
         if(limit == 1 || literals.size() == 2) {
            reduceToDisjunction();
@@ -316,12 +319,13 @@ public class Clause {
     /** removes the literal from the clause and simplifies the resulting clause.
      *
      * @param literal       a literal
+     * @param remover       to be applied to removed literals.
      * @param trueLiterals  to be applied if some true literals can be derived.
      * @return              +1 (removed), -1 (unsatisfiable), 0 undefined.
      * @throws Unsatisfiable
      */
-    byte removeLiteral(int literal,final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable {
-        return removeLiterals((literalObject -> (literalObject.literal == literal)? (byte)-1:0),null,trueLiterals);}
+    byte removeLiteral(int literal, Consumer<Literal> remover, final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable {
+        return removeLiterals((literalObject -> (literalObject.literal == literal)? (byte)-1:0),remover,trueLiterals);}
 
         /** reduces the literals to the essential literals.
          * <br>

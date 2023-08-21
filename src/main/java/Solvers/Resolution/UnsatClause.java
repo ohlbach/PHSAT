@@ -22,7 +22,7 @@ public class UnsatClause extends Unsatisfiable {
     public UnsatClause(Clause clause, String problemId, String solverId) {
         super(problemId, solverId);
         this.clause = clause;
-        if(clause.inferenceStep != null) inferenceSteps.add(clause.inferenceStep);}
+        if(clause.inferenceSteps != null) inferenceSteps.add(clause.inferenceSteps);}
 
     /** constructs an Unsatisfiability from an unsatisfiable input clause
      *

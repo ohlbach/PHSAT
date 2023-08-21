@@ -25,8 +25,8 @@ public class InfResolutionTrueLiteral extends InferenceStep {
     public InfResolutionTrueLiteral(Clause parent1, Clause parent2, int literal, Symboltable symboltable) {
         parentClause1 = parent1.toString(symboltable,0);
         parentClause2 = parent2.toString(symboltable,0);
-        inferenceStep1 = parent1.inferenceStep;
-        inferenceStep2 = parent2.inferenceStep;
+        inferenceStep1 = parent1.inferenceSteps;
+        inferenceStep2 = parent2.inferenceSteps;
         this.literal = literal;}
 
     public String info(Symboltable symboltable) {

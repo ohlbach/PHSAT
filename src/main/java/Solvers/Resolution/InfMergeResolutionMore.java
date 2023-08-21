@@ -34,8 +34,8 @@ public class InfMergeResolutionMore extends InferenceStep {
         this.parentClause    = parentClause.toString(symboltable,0);
         this.resolventBefore = resolventBefore;
         this.resolventAfter  = resolventAfter.toString(symboltable,0);
-        inferenceStep1       = parentClause.inferenceStep;
-        inferenceStep2       = resolventAfter.inferenceStep;}
+        inferenceStep1       = parentClause.inferenceSteps;
+        inferenceStep2       = resolventAfter.inferenceSteps;}
 
     public String info() {
         return parentClause + " and " + resolventBefore + " -> " + resolventAfter + "  (Merge Resolution)";}

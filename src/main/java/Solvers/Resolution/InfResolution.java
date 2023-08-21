@@ -27,8 +27,8 @@ public class InfResolution extends InferenceStep {
         this.parentClause1 = parentClause1.toString(symboltable,0);
         this.parentClause2 = parentClause2.toString(symboltable,0);
         this.resolvent = resolvent.toString(symboltable,0);
-        inferenceStep1 = parentClause1.inferenceStep;
-        inferenceStep2 = parentClause2.inferenceStep;
+        inferenceStep1 = parentClause1.inferenceSteps;
+        inferenceStep2 = parentClause2.inferenceSteps;
         this.comment = comment;
         if(parentClause1.isDisjunction && parentClause2.isDisjunction) rule = ruleOr;
         else rule = ruleAtleast;
@@ -39,8 +39,8 @@ public class InfResolution extends InferenceStep {
         this.parentClause1 = parentClause1String;
         this.parentClause2 = parentClause2String;
         this.resolvent     = resolvent.toString(symboltable,0);
-        inferenceStep1 = parentClause1.inferenceStep;
-        inferenceStep2 = parentClause2.inferenceStep;
+        inferenceStep1 = parentClause1.inferenceSteps;
+        inferenceStep2 = parentClause2.inferenceSteps;
         this.comment = comment;
         if(parentClause1.isDisjunction && parentClause2.isDisjunction) rule = ruleOr;
         else rule = ruleAtleast;

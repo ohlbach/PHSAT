@@ -24,7 +24,7 @@ public class InfSaturatedTwoLiteralClauses extends InferenceStep {
 
     public InfSaturatedTwoLiteralClauses(Clause clause) {
         literal = clause.literals.get(0).literal;
-        step    = clause.inferenceStep;
+        step    = clause.inferenceSteps;
         id      = clause.identifier;}
 
     @Override

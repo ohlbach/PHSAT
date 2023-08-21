@@ -32,7 +32,7 @@ public class InfMergeResolutionTwo extends InferenceStep {
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
         if(steps.contains(this)) return;
-        clause1.inferenceStep.inferenceSteps(steps,ids);
-        clause2.inferenceStep.inferenceSteps(steps,ids);
+        clause1.inferenceSteps.inferenceSteps(steps,ids);
+        clause2.inferenceSteps.inferenceSteps(steps,ids);
         steps.add(this);}
 }

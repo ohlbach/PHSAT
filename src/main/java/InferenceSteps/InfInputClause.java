@@ -7,7 +7,6 @@ import java.util.ArrayList;
 
 /** This not really an inference step.
  * Instead of this it documents that the clause comes from some input clauses.
- * The list of inputClauseIds can be extended if different clauses are joined into one clause.
  */
 public class InfInputClause extends InferenceStep {
 
@@ -16,35 +15,28 @@ public class InfInputClause extends InferenceStep {
     public static String rule = "Input";
 
     /** collects the identifiers of InputClauses.*/
-    private final IntArrayList inputClauseIds;
+    public int inputClauseId;
+
+    /** the clause as a string. */
+    public String clause;
+
+    /** Constructs a new instance
+     *
+     * @param inputClauseId id of the input clause
+     * @param clause the clause as a string.
+     */
+    public InfInputClause(int inputClauseId, String clause) {
+        this.inputClauseId = inputClauseId;
+        this.clause = clause;}
+
 
     /** Constructs a new instance
      *
      * @param inputClauseId id of the input clause
      */
     public InfInputClause(int inputClauseId) {
-        this.inputClauseIds = IntArrayList.wrap(new int[]{inputClauseId});}
+        this.inputClauseId = inputClauseId;}
 
-    /** Constructs a new instance
-     *
-     * @param inputClauseIds ids of the input clauses
-     */
-    public InfInputClause(IntArrayList inputClauseIds) {
-        this.inputClauseIds = inputClauseIds;}
-
-    /** clones the object
-     *
-     * @return a clone of the object.
-     */
-    public InfInputClause clone() {
-        return new InfInputClause(inputClauseIds.clone());}
-
-    /** adds a new inputClauseId to the list.
-     *
-     * @param inputClauseId another inputClauseId
-     */
-    public void addInputClauseId(int inputClauseId) {
-        inputClauseIds.add(inputClauseId);}
 
     @Override
     public String title() {
@@ -56,15 +48,14 @@ public class InfInputClause extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
-        String st = "" + inputClauseIds.getInt(0);
-        if(inputClauseIds.size() == 1) return "Input Clause Id: " + st;
-        for(int i = 1; i < inputClauseIds.size(); ++i) st += "," + inputClauseIds.getInt(i);
-        return "Input: Clauses " + st;}
+        return clause == null ?
+                "Input: Clause " + inputClauseId :
+                "Input: Clause " + inputClauseId + " yields " + clause;}
 
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
         if(!steps.contains(this)) {
             steps.add(this);
-            for(int id : inputClauseIds) if(!ids.contains(id)) ids.add(id);}}
+            if(!ids.contains(inputClauseId)) ids.add(inputClauseId);}}
 }

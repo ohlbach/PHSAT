@@ -41,7 +41,7 @@ public class InfTrueLiteral extends InferenceStep {
         this.oldTrueLiterals = oldTrueLiterals.clone();
         this.newTrueLiteral = newTrueLiteral;
         inferenceSteps = new ArrayList<>();
-        inferenceSteps.add(clause.inferenceStep);
+        inferenceSteps.add(clause.inferenceSteps);
         inferenceSteps.addAll(trueLiteralsInferenceSteps);}
 
     @Override

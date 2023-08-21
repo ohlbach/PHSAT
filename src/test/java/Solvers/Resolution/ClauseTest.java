@@ -45,7 +45,7 @@ public class ClauseTest extends TestCase {
         assertNull(clause1.previousClause);
         assertNull(clause1.nextClause);
         assertEquals(0,clause1.timestamps.getInt(0));
-        assertEquals("Input Clause Id: 10",clause1.inferenceStep.toString(symboltable));
+        assertEquals("Input Clause Id: 10",clause1.inferenceSteps.toString(symboltable));
 
         assertEquals(1,clause1.findLiteral(1).literal);
         assertEquals(2,clause1.findLiteral(2).literal);

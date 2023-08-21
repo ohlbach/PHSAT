@@ -37,8 +37,8 @@ public class InfEquivalence extends InferenceStep {
         clause2String = clause2.toString(symboltable,0);
         this.literal1 = literal1;
         this.literal2 = literal2;
-        step1 = clause1.inferenceStep;
-        step2 = clause2.inferenceStep;
+        step1 = clause1.inferenceSteps;
+        step2 = clause2.inferenceSteps;
         rule = ruleTwoTwo;}
 
     public InfEquivalence(Clause clause1, Clause clause2, int triggerLiteral,int literal1, int literal2, Symboltable symboltable) {
@@ -47,8 +47,8 @@ public class InfEquivalence extends InferenceStep {
         this.triggerLiteral = triggerLiteral;
         this.literal1 = literal1;
         this.literal2 = literal2;
-        step1 = clause1.inferenceStep;
-        step2 = clause2.inferenceStep;
+        step1 = clause1.inferenceSteps;
+        step2 = clause2.inferenceSteps;
         rule = clause1.size() == 2 ? ruleTwoThree : ruleThreeThree;}
 
     public String info(Symboltable symboltable) {

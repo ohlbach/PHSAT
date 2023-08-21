@@ -41,7 +41,7 @@ public class InfUnitResolutionTwo extends InferenceStep {
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
         if(steps.contains(this)) return;
-        InferenceStep clauseStep = clause.inferenceStep;
+        InferenceStep clauseStep = clause.inferenceSteps;
         if(clauseStep != null) clauseStep.inferenceSteps(steps,ids);
         if(oldInferenceStep != null) oldInferenceStep.inferenceSteps(steps, ids);
         steps.add(this);}
