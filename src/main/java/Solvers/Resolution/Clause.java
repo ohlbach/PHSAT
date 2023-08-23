@@ -7,7 +7,7 @@ import InferenceSteps.InferenceStep;
 import Solvers.Normalizer.Normalizer;
 import Utilities.ByteFunction;
 import Utilities.IntConsumerWithUnsatisfiable;
-import Utilities.Utilities;
+import Utilities.BiConsumerWithUnsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -372,7 +372,7 @@ public class Clause {
      *
      * @return true if the clause is changed.
      */
-    protected boolean divideByGCD() {
+    protected boolean divideByGCD(Symboltable symboltable, Consumer<String> monitor) {
         numbers.clear(); numbers.add(limit);
         boolean stop = false;
         for(final Literal literalObject : literals) {
@@ -380,15 +380,19 @@ public class Clause {
             if(multiplicity == 1) {stop = true; break;}
             numbers.add(multiplicity);}
         if(!stop) {
-            int gcd = Utilities.gcd(numbers);
+            int gcd = Utilities.Utilities.gcd(numbers);
             if(gcd > 1) {
+                String clauseBefore = (inferenceSteps == null) ? null : toString(symboltable,0);
                 expandedSize = 0;
                 limit /= gcd;
                 for(final Literal literalObject : literals) {
                     literalObject.multiplicity = Math.min(limit, literalObject.multiplicity / gcd);
                     expandedSize += literalObject.multiplicity;}
-                if(limit == 1) {
-                    quantifier = Quantifier.OR; isDisjunction = true;}
+                if(limit == 1) {quantifier = Quantifier.OR; isDisjunction = true;}
+                InferenceStep step = (inferenceSteps != null || monitor != null) ?
+                        new InfGCDReduction(gcd, clauseBefore, toString(symboltable,0)) : null;
+                if(inferenceSteps != null) {inferenceSteps.add(step);}
+                if(monitor != null) monitor.accept(step.toString(symboltable));
             return true;}}
         return false;}
 
@@ -401,33 +405,45 @@ public class Clause {
      * If there is still one literal left, it is also made true.<br>
      * If the clause became true, all literals are removed.
      *
-     * @param limit         the clause's limit
-     * @param expandedSize  the clause's expandedSize
-     * @param literals      the literalObjects
      * @param remover       is applied to the removed literalObjects.
      * @param trueLiterals  is applied to the true literals.
      * @return              0 if the clause itself became true, otherwise the possibly reduced limit.
      */
-    static int reduceByTrueLiterals(int limit, int expandedSize, final ArrayList<Literal> literals,
-                                    final Consumer<Literal> remover, final IntConsumerWithUnsatisfiable trueLiterals)
-        throws Unsatisfiable {
-        for(int i = 0; i < literals.size(); ++i) {
+    int reduceByTrueLiterals(final Consumer<Literal> remover, final BiConsumerWithUnsatisfiable<Integer,InferenceStep> trueLiterals,
+                                    Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
+        String clauseBefore = (inferenceSteps == null && monitor == null) ? null : toString(symboltable,0);
+        InfTrueLiteralReduction step = null;
+         for(int i = 0; i < literals.size(); ++i) {
             Literal literalObject = literals.get(i);
             if(expandedSize - literalObject.multiplicity < limit) {
+                int literal = literalObject.literal;
+                if(monitor != null)
+                    monitor.accept("reduceByTrueLiterals: Removing true literal " +
+                        Symboltable.toString(literal,symboltable) + " from  clause" + clauseBefore);
+                if(inferenceSteps != null && step == null) step = new InfTrueLiteralReduction(clauseBefore);
+                if(step != null) step.addLiteral(literal);
                 if(remover != null) remover.accept(literalObject);
-                trueLiterals.accept(literalObject.literal);  // The literal must be true.
+                trueLiterals.accept(literal,
+                        step == null ? null : new InfTrueLiteralReduction(clauseBefore,literal));  // The literal must be true.
                 literals.remove(i--);
                 limit -= literalObject.multiplicity;
                 expandedSize -= literalObject.multiplicity;
                 if(limit <= 0) {
+                    if(monitor != null)
+                        monitor.accept( "reduceByTrueLiterals: limit " + limit + " < 0 after removing true literals from clause " + clauseBefore);
                     if(remover != null) {for(Literal litObject : literals) remover.accept(litObject);}
                     literals.clear();
                     return 0;}}}
             if(literals.size() == 1) { // unit clause, must be true.
-                trueLiterals.accept(literals.get(0).literal);
+                if(monitor != null)
+                    monitor.accept("reduceByTrueLiterals: clause " + clauseBefore + " becomes a unit clause after removing true literals");
+                trueLiterals.accept(literals.get(0).literal,((step == null) ? null : new InfUnitClause(this)));
                 if(remover != null) remover.accept(literals.get(0));
-                literals.clear();
                 return 0;}
+            if(step != null) {
+                step.setClauseAfter(toString(symboltable,0));
+                inferenceSteps.add(step);
+                if(monitor != null) monitor.accept(step.toString(symboltable));}
         return limit;}
 
 

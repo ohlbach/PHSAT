@@ -7,6 +7,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
@@ -226,6 +227,7 @@ public class Resolution extends Solver {
         timestampLevel = 0;
         for(int i = 0; i < timestamps.size(); ++i) timestamps.set(i,1);
         timestampSubsumption = 1;
+        clauseId[0] = 0;
         statistics.clear();
         queue.clear();
         equivalences.clear();
@@ -252,6 +254,7 @@ public class Resolution extends Solver {
         timestampSubsumption = 1;
         literalIndexTwo.clear(predicates);
         literalIndexMore.clear(predicates);
+        clauseId[0] = 0;
         clauses.clear();
         statistics.clear();
         queue.clear();
@@ -287,52 +290,33 @@ public class Resolution extends Solver {
         clauseId[0] = normalizedClauses.get(normalizedClauses.size()-1).getInt(0);
         int subIdentifier;
         for(IntArrayList normalizedClause : problemSupervisor.normalizer.clauses) {
+            int originalId = normalizedClause.getInt(0);
             switch(Normalizer.getQuantifier(normalizedClause)) {
                 case OR:
-                case ATLEAST: insertNewClause(new Clause(normalizedClause,0)); break;
-                case ATMOST:  insertNewClause(new Clause(Normalizer.atmost2Atleast(normalizedClause),0));break;
+                case ATLEAST: insertNewClause(originalId,new Clause(normalizedClause,0)); break;
+                case ATMOST:  insertNewClause(originalId,new Clause(Normalizer.atmost2Atleast(normalizedClause),0));break;
                 case EXACTLY:
                     subIdentifier = 0;
                     for(IntArrayList atleastClause : Normalizer.exactlyToAtleast(normalizedClause)) {
-                        insertNewClause(new Clause(atleastClause,++subIdentifier));} break;
+                        insertNewClause(originalId,new Clause(atleastClause,++subIdentifier));} break;
                 case INTERVAL:
                     subIdentifier = 0;
                     for(IntArrayList atleastClause : Normalizer.intervalToAtleast(normalizedClause)) {
-                        insertNewClause(new Clause(atleastClause,++subIdentifier));}}}
+                        insertNewClause(originalId,new Clause(atleastClause,++subIdentifier));}}}
         statistics.initialClauses = clauses.size;
         if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);
         if(printClauses) {
             System.out.println("INPUT CLAUSES: " + clauses.size());
             printSeparated();}}
 
-    /** simplifies a new clause, inserts it into the internal data structures and generates a ClauseTask.
-     * <br>
-     * If there are already true literals in the global model then the true/false literals are removed from the clause.
-     * This may cause new true literals to be derived, which are inserted into the global model and generate a
-     * True-Literal task.<br>
-     * Clauses which became true in this process are not inserted.
+    /** inserts a new clause into the internal data structures and generates a SIMPLIFYSELF task.
      *
-     * @param clause         a new clause
+     * @param clauseId       the original identifier of the clause.
+     * @param clause         a new clause.
      * @throws Unsatisfiable if the clause is unsatisfiable.
      */
-    void insertNewClause(Clause clause) throws Unsatisfiable {
-        if(!model.isEmpty()) {
-            collectTrueLiterals(clause);
-            if(!trueLiterals.isEmpty()) {
-                String clauseBefore = (trackReasoning || monitoring) ? clause.toString(symboltable,0) : null;
-                int status = clause.removeLiterals((literalObject -> model.status(literalObject.literal)), null,
-                        (literal -> {
-                            InfTrueLiteral step = (trackReasoning || monitoring) ?
-                                    new InfTrueLiteral(clauseBefore,clause,trueLiterals,steps,literal,symboltable) : null;
-                            if(monitoring) monitor.println(monitorId,step.info(symboltable));
-                            addInternalTrueLiteralTask(literal,true,step);}));
-                ++statistics.trueLiteralRemovals;
-                if(status == 1) return;
-                InfTrueLiteralRemoval step = (trackReasoning || monitoring) ?
-                        new InfTrueLiteralRemoval(clauseBefore,trueLiterals,steps,clause,symboltable) : null;
-                clause.inferenceSteps = step;
-                if(monitoring) monitor.println(monitorId,step.info(symboltable));
-                if(status == -1) throw new UnsatClause(clause,problemId,solverId);}}
+    void insertNewClause(int clauseId, Clause clause) throws Unsatisfiable {
+        if(trackReasoning) clause.addInferenceStep(new InfInputClause(clauseId,clause.toString(symboltable,0)));
         insertClause(clause);
         addClauseTask(clause,TaskType.SIMPLIFYSELF);}
 
