@@ -5,14 +5,13 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import Solvers.Normalizer.Normalizer;
-import Utilities.ByteFunction;
-import Utilities.IntConsumerWithUnsatisfiable;
-import Utilities.BiConsumerWithUnsatisfiable;
+import Utilities.*;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.IntSupplier;
 
 /** A Clause object is essentially a collection of Literal objects.
@@ -264,12 +263,19 @@ public class Clause {
      * @param trueLiterals is applied to all derivable true literals.
      * @return +1 (removed), -1 (unsatisfiable), 0 undefined.
      */
-    byte removeLiterals(final ByteFunction<Literal> modelStatus, final Consumer<Literal> remover,
-                        final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable {
+    byte removeLiterals(final ByteFunction<Literal> modelStatus, Function<Literal,InferenceStep> inferenceStep, final Consumer<Literal> remover,
+                        final BiConsumerWithUnsatisfiable<Integer,InferenceStep> trueLiterals,
+                        Symboltable symboltable, Consumer<String> monitor) throws Unsatisfiable {
         for(int i = 0; i < literals.size(); ++i) {
             final Literal literalObject = literals.get(i);
             final int status = modelStatus.apply(literalObject);
             if(status == 0) continue;
+            final InferenceStep infStep = inferenceStep == null ? null : inferenceStep.apply(literalObject);
+            if(inferenceSteps != null && infStep != null) inferenceSteps.add(infStep);
+            if(monitor != null){
+                if(infStep != null) monitor.accept(infStep.toString(symboltable));
+                monitor.accept("removeLiterals: literal " +
+                    Symboltable.toString(literalObject.literal,symboltable) + " removed from clause " + toString(symboltable,0) );}
             literalObject.clause = null;
             if(remover != null) remover.accept(literalObject);
             literals.remove(i--);
@@ -277,6 +283,7 @@ public class Clause {
             if(status == 1) {
                 limit -= literalObject.multiplicity;
                 if(limit <= 0) { // tautology
+                    if(monitor != null) monitor.accept("removeLiterals: clause" + toString(symboltable,0) + "became a tautology.");
                     if(remover != null) for(Literal litObject : literals) remover.accept(litObject);
                     literals.clear();
                     return 1;}}}
@@ -284,9 +291,10 @@ public class Clause {
         if(expandedSize < limit) {return -1;}
 
         if(literals.size() == 1) { // unit clause, must be true.
-            trueLiterals.accept(literals.get(0).literal); // may throw Unsatisfiable
+            InfUnitClause step = (inferenceSteps == null && monitor == null) ? null : new InfUnitClause(this);
+            if(inferenceSteps != null) inferenceSteps.add(step);
+            trueLiterals.accept(literals.get(0).literal,step); // may throw Unsatisfiable
             if(remover != null) remover.accept(literals.get(0));
-            literals.clear();
             return 1;}
 
         if(isDisjunction) { // clause was a disjunction and is still a disjunction.
@@ -300,7 +308,7 @@ public class Clause {
 
         // In the remaining literals some of them may not have enough literals to satisfy the limit.
         // Example:  >= 2 p^2,q,r. and false(q) -> >= 2 p^2,r -> p must be true.
-        limit = reduceByTrueLiterals(limit,expandedSize,literals,remover,trueLiterals);
+        limit = reduceByTrueLiterals(remover,trueLiterals, symboltable,monitor);
         if(limit == 0) return 1;
         if(limit == 1 || literals.size() == 2) {
            reduceToDisjunction();
@@ -309,23 +317,30 @@ public class Clause {
 
         // Example: >= 2 p,q^2,r^2,s and false(p) -> >= 2 q^2,r^2,s -> q,r
         int size = literals.size();
-        expandedSize = reduceToEssentialLiterals(limit,literals,remover,trueLiterals);
+        expandedSize = reduceToEssentialLiterals(remover,trueLiterals);
         if(expandedSize == 0) return 1;
         if(literals.size() < size) reduceToDisjunction();
-        else divideByGCD();
+        else divideByGCD(symboltable, monitor);
         determineClauseType();
         return 0;}
 
     /** removes the literal from the clause and simplifies the resulting clause.
      *
      * @param literal       a literal
+     * @param inferenceStep null or the inference step which causes the removal of the literal.
      * @param remover       to be applied to removed literals.
      * @param trueLiterals  to be applied if some true literals can be derived.
+     * @param symboltable   null or a symboltable.
+     * @param monitor       null or a function to be applied to a string.
      * @return              +1 (removed), -1 (unsatisfiable), 0 undefined.
      * @throws Unsatisfiable
      */
-    byte removeLiteral(int literal, Consumer<Literal> remover, final IntConsumerWithUnsatisfiable trueLiterals) throws Unsatisfiable {
-        return removeLiterals((literalObject -> (literalObject.literal == literal)? (byte)-1:0),remover,trueLiterals);}
+    byte removeLiteral(int literal, InferenceStep inferenceStep, Consumer<Literal> remover,
+                       BiConsumerWithUnsatisfiable<Integer,InferenceStep> trueLiterals, Symboltable symboltable,
+                       Consumer<String> monitor) throws Unsatisfiable {
+        return removeLiterals((literalObject -> (literalObject.literal == literal)? (byte)-1 : 0),
+                              inferenceStep == null ? null : (literalObject -> (literalObject.literal == literal) ? inferenceStep : null),
+                remover,trueLiterals,symboltable,monitor);}
 
         /** reduces the literals to the essential literals.
          * <br>
@@ -336,14 +351,11 @@ public class Clause {
          * If a literal becomes true (e.g. unit clause), the trueLiterals is applied to the single literal,
          * and the literal is removed as well.
          *
-         * @param limit     the clause's limit
-         * @param literals  the literals
          * @param remover   applied to removed literals
          * @param trueLiterals applied to a remaining single literal (must be true).
          * @return 0 if the clause has become true, otherwise the new expandedSize.
          */
-    static int reduceToEssentialLiterals(final int limit, final ArrayList<Literal> literals,
-                                         final Consumer<Literal> remover, final IntConsumerWithUnsatisfiable trueLiterals)
+     int reduceToEssentialLiterals(final Consumer<Literal> remover, final IntConsumerWithUnsatisfiable trueLiterals)
         throws Unsatisfiable{
         int remainingMultiplicity = 0; int expandedSize = 0;
         for(Literal literalObject : literals) {
@@ -380,7 +392,7 @@ public class Clause {
             if(multiplicity == 1) {stop = true; break;}
             numbers.add(multiplicity);}
         if(!stop) {
-            int gcd = Utilities.Utilities.gcd(numbers);
+            int gcd = Utilities.gcd(numbers);
             if(gcd > 1) {
                 String clauseBefore = (inferenceSteps == null) ? null : toString(symboltable,0);
                 expandedSize = 0;
@@ -410,7 +422,7 @@ public class Clause {
      * @return              0 if the clause itself became true, otherwise the possibly reduced limit.
      */
     int reduceByTrueLiterals(final Consumer<Literal> remover, final BiConsumerWithUnsatisfiable<Integer,InferenceStep> trueLiterals,
-                                    Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
+                             Symboltable symboltable, Consumer<String> monitor) throws Unsatisfiable {
         String clauseBefore = (inferenceSteps == null && monitor == null) ? null : toString(symboltable,0);
         InfTrueLiteralReduction step = null;
          for(int i = 0; i < literals.size(); ++i) {
