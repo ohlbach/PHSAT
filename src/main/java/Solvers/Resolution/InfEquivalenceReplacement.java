@@ -31,7 +31,6 @@ public class InfEquivalenceReplacement extends InferenceStep {
         this.representative  = representative;
         this.literal         = literal;
         this.equivalenceStep = equivalenceStep;
-        this.clauseStep      = newClause.inferenceSteps;
     }
 
     @Override

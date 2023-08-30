@@ -24,7 +24,7 @@ public class InfUnitClause extends InferenceStep {
     @Override
     public String toString(Symboltable symboltable) {
         return title + ": "+ clause.toString(symboltable,0) + " -> " + "true("+
-                Symboltable.toString(clause.literals.get(0).literal,symboltable) + ")");}
+                Symboltable.toString(clause.literals.get(0).literal,symboltable) + ")";}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
