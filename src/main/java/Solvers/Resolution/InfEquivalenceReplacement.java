@@ -23,26 +23,14 @@ public class InfEquivalenceReplacement extends InferenceStep {
     int representative,literal;
     InferenceStep equivalenceStep, clauseStep;
 
-    public InfEquivalenceReplacement(String oldClause, Clause newClause, IntArrayList trueLiterals,
-                                     int representative, int literal, InferenceStep equivalenceStep, Symboltable symboltable) {
-        this.oldClause       = oldClause;
-        this.newClause       = newClause.literals.isEmpty() ? "" : newClause.toString(symboltable,0);
-        this.trueLiterals    = trueLiterals;
-        this.representative  = representative;
-        this.literal         = literal;
+    public InfEquivalenceReplacement(InferenceStep equivalenceStep, String oldClause, String newClause) {
         this.equivalenceStep = equivalenceStep;
-    }
+        this.oldClause       = oldClause;
+        this.newClause       = newClause;}
 
-    @Override
     public String toString(Symboltable symboltable) {
-        return title + "\n  " + info(symboltable);}
-
-    public String info(Symboltable symboltable) {
-        String trueLits = (trueLiterals == null || trueLiterals.isEmpty())? "" : Symboltable.toString(trueLiterals,symboltable);
-        if(!trueLits.isEmpty()) trueLits = "true("+trueLits+")";
-        if(!newClause.isEmpty() && !trueLits.isEmpty()) trueLits = " and " + trueLits;
-        return oldClause + " and " + Symboltable.toString(representative,symboltable) +
-                " == " + Symboltable.toString(literal,symboltable) + " -> " + newClause + trueLits;}
+        String eqStep = equivalenceStep.toString(symboltable);
+        return title + "\n  " + eqStep + "\n" + oldClause + " -> " + newClause;}
 
 
 

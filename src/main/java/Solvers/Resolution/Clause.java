@@ -5,11 +5,14 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import Solvers.Normalizer.Normalizer;
-import Utilities.*;
+import Utilities.BiConsumerWithUnsatisfiable;
+import Utilities.ByteFunction;
+import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
@@ -258,7 +261,7 @@ public class Clause {
      * The remover is applied to all removed literals. It may, for example, remove the literals from the index.
      *
      * @param modelStatus  returns +1 (true), -1 (false) or 0 (undefined).
-     * @param inferenceStep to be applied to the removed literalObject, returns the actual InferenceStep.
+     * @param stepFunction to be applied to the clauseBefore and clauseAfter and returns the actual InferenceStep.
      * @param remover      is applied to the removed literals.
      * @param symboltable  null or the symboltable.
      * @param monitor      null or a monitor function.
@@ -266,30 +269,27 @@ public class Clause {
      * @return +1 (not necessary any more), -1 (unsatisfiable), 0 undefined.
      * @throws Unsatisfiable if a contradiction is found.
      */
-    byte removeLiterals(ByteFunction<Literal> modelStatus, Function<Literal,InferenceStep> inferenceStep, Consumer<Literal> remover,
+    byte removeLiterals(ByteFunction<Literal> modelStatus, BiFunction<String,String,InferenceStep> stepFunction, Consumer<Literal> remover,
                         BiConsumerWithUnsatisfiable<Integer,InferenceStep> trueLiterals,
                         Symboltable symboltable, Consumer<String> monitor) throws Unsatisfiable {
         for(int i = 0; i < literals.size(); ++i) {
             final Literal literalObject = literals.get(i);
             final int status = modelStatus.apply(literalObject);
             if(status == 0) continue;
-            final InferenceStep infStep = inferenceStep == null ? null : inferenceStep.apply(literalObject);
-            if(inferenceSteps != null && infStep != null) inferenceSteps.add(infStep);
-            if(monitor != null){
-                if(infStep != null) monitor.accept(infStep.toString(symboltable));
-                else monitor.accept("removeLiterals: literal " +
-                    Symboltable.toString(literalObject.literal,symboltable) + " removed from clause " + toString(symboltable,0) );}
+            String clauseBefore = (stepFunction != null || monitor != null) ? toString(symboltable,0) : null;
             literalObject.clause = null;
             if(remover != null) remover.accept(literalObject);
             literals.remove(i--);
             expandedSize -= literalObject.multiplicity;
-            if(status == 1) {
-                limit -= literalObject.multiplicity;
-                if(limit <= 0) { // tautology
-                    if(monitor != null) monitor.accept("removeLiterals: clause" + toString(symboltable,0) + "became a tautology.");
-                    if(remover != null) for(Literal litObject : literals) remover.accept(litObject);
-                    literals.clear();
-                    return 1;}}}
+            if(status == 1) limit -= literalObject.multiplicity;
+            InferenceStep step = (stepFunction != null) ? stepFunction.apply(clauseBefore,toString(symboltable,0)) : null;
+            if(step != null) {inferenceSteps.add(step);
+                              if(monitor != null ) monitor.accept(step.toString(symboltable));};
+            if(limit <= 0) { // tautology
+                if(monitor != null) monitor.accept("removeLiterals: clause" + toString(symboltable,0) + "became a tautology.");
+                if(remover != null) for(Literal litObject : literals) remover.accept(litObject);
+                literals.clear();
+                return 1;}}
 
         if(expandedSize < limit) {return -1;}
 
@@ -336,7 +336,7 @@ public class Clause {
                               inferenceStep == null ? null : (literalObject -> (literalObject.literal == literal) ? inferenceStep : null),
                 remover,trueLiterals,symboltable,monitor);}
 
-        /** reduces the literals to the essential literals.
+    /** reduces the literals to the essential literals.
          * <br>
          * Example: &gt;= 2 q^2,r^2,s -> p,q <br>
          * If such a reduction is possible then the clause becomes a disjunction.<br>
@@ -561,63 +561,65 @@ public class Clause {
             resolvent.quantifier == Quantifier.ATLEAST)resolvent.divideByGCD(symboltable,monitor);
         return resolvent;}
 
-    /** replaces the literalObject by a new literal (typically equivalence replacement).
+    /** replaces the oldLiteralObject by a new literal (typically equivalence replacement).
      * <br>
      * The method checks if the new literal or its negation is already in the clause.<br>
      * Superfluous literals are removed from the clause.<br>
      * The changed clause is simplified.
      *
-     * @param literalObject  a literalObject of some clause.
+     * @param oldLiteralObject  a oldLiteralObject of some clause.
      * @param newLiteral     a literal (may already be in the clause).
      * @param remover        applied to removed literals.
      * @param adder          applied to newly added literals.
      * @param trueLiterals   applied to derivable true literals.
      * @return               1 if the clause has become superfluous (e.g. tautology), 0 if it survived.
      */
-    int replaceLiteral(Literal literalObject, int newLiteral,
+    int replaceLiteral(Literal oldLiteralObject, int newLiteral,
                               Consumer<Literal> remover, Consumer<Literal> adder,
+                              InferenceStep infEquivalence,
                               BiConsumerWithUnsatisfiable<Integer,InferenceStep> trueLiterals,
                               Symboltable symboltable, Consumer<String> monitor) throws Unsatisfiable{
-        String clauseBefore = null;
-        Function<Literal,InferenceStep> step = null;
-        if (inferenceSteps != null || monitor != null)  {
-            clauseBefore = toString(symboltable,0); }
-        step = (literalObject -> new InfEquivalenceReplacement(clauseBefore)
-
+        BiFunction<String,String,InferenceStep> stepFunction = (inferenceSteps == null) ? null :
+                ((clauseBefore,clauseAfter) -> new InfEquivalenceReplacement(infEquivalence,clauseBefore,clauseAfter));
         Literal newLiteralObject = findLiteral(newLiteral);
-        if(newLiteralObject != null) { // the two literals merge into one.
-            int multiplicity = newLiteralObject.multiplicity;
-            newLiteralObject.multiplicity = Math.min(limit, newLiteralObject.multiplicity + literalObject.multiplicity);
-            expandedSize +=  newLiteralObject.multiplicity - multiplicity;
-            Function<Literal,InferenceStep> step = (inferenceSteps == null) ? null :
-                    (literalObject -> new InfEquivalenceReplacement(toString(symboltable,0),))
-            return removeLiterals((l -> (l == literalObject) ? (byte)-1:0),null,remover,trueLiterals,symboltable,monitor);}
+        if(newLiteralObject != null) { // the newLiteral merges into oldLiteralObject:  p,q and p == q -> p^2
+            int newMultiplicity = newLiteralObject.multiplicity;
+            oldLiteralObject.multiplicity = Math.min(limit, newLiteralObject.multiplicity + oldLiteralObject.multiplicity);
+            expandedSize +=  newLiteralObject.multiplicity - newMultiplicity;
+            return removeLiterals((l -> (l == newLiteralObject) ? (byte)-1:0),stepFunction,remover,trueLiterals,symboltable,monitor);}
         else {
             final Literal negNewLiteralObject = findLiteral(-newLiteral);
-            if(negNewLiteralObject != null) { // could be tautology
-                if(negNewLiteralObject.multiplicity == literalObject.multiplicity) { // is tautology
+            if(negNewLiteralObject != null) { // could be tautology  p^n,-q^m and p == q -> p^(n-m)
+                if(negNewLiteralObject.multiplicity == oldLiteralObject.multiplicity) { // is tautology: n == m
+                    if(monitor != null) monitor.accept("replaceLiteral: Replacing " +
+                            Symboltable.toString(oldLiteralObject.literal,symboltable) + " by " + Symboltable.toString(newLiteral,symboltable) +
+                    " in clause " + toString(symboltable,0) + " yields a tautology");
                     for(Literal litObject : literals) remover.accept(litObject);
-                    literals.clear();
                     return 1;}
-                else {
-                    if(negNewLiteralObject.multiplicity > literalObject.multiplicity) { // Example; -p^5 q^3 (q -> p)  -> -p^2
-                        negNewLiteralObject.multiplicity -= literalObject.multiplicity;
-                        expandedSize -= literalObject.multiplicity;
-                        return removeLiterals((l -> (l == literalObject) ? (byte)-1:0),remover,trueLiterals);}
-                    else {literalObject.multiplicity -= negNewLiteralObject.multiplicity; // Example; -p^3 q^5 (q -> p)  -> p^2
+                else { // n != m
+                    if(negNewLiteralObject.multiplicity > oldLiteralObject.multiplicity) { // Example; p^3 -q^5 (q -> p)  -> q^2
+                        negNewLiteralObject.multiplicity -= oldLiteralObject.multiplicity;
+                        expandedSize -= oldLiteralObject.multiplicity;
+                        return removeLiterals((l -> (l == oldLiteralObject) ? (byte)-1:0), stepFunction, remover,trueLiterals,symboltable,monitor);}
+                    else {oldLiteralObject.multiplicity -= negNewLiteralObject.multiplicity; // Example; -p^3 q^5 (q -> p)  -> p^2
                         expandedSize -= negNewLiteralObject.multiplicity;
-                        remover.accept(literalObject);
-                        final Literal newLitObject = new Literal(newLiteral,literalObject.multiplicity);
+                        remover.accept(oldLiteralObject);
+                        final Literal newLitObject = new Literal(newLiteral,oldLiteralObject.multiplicity);
                         newLitObject.clause = this;
-                        exchangeLiterals(literalObject,newLitObject);
+                        exchangeLiterals(oldLiteralObject,newLitObject);
                         adder.accept(newLitObject);
-                        return removeLiterals(((Literal l) -> (l == negNewLiteralObject) ? (byte)-1:0),remover,trueLiterals);}}}}
-        remover.accept(literalObject);
-        final Literal newLitObject = new Literal(newLiteral,literalObject.multiplicity);
+                        return removeLiterals(((Literal l) -> (l == negNewLiteralObject) ? (byte)-1:0),stepFunction,remover,trueLiterals,symboltable,monitor);}}}}
+        remover.accept(oldLiteralObject);
+        String clauseBefore = (stepFunction == null) ? null : toString(symboltable,0);
+        final Literal newLitObject = new Literal(newLiteral,oldLiteralObject.multiplicity);
         newLitObject.clause = this;
-        exchangeLiterals(literalObject,newLitObject);
+        exchangeLiterals(oldLiteralObject,newLitObject);
         adder.accept(newLitObject);
         determineClauseType();
+        if(stepFunction != null) {
+            InferenceStep step = stepFunction.apply(clauseBefore,toString(symboltable,0));
+            inferenceSteps.add(step);
+            if(monitor != null ) monitor.accept(step.toString(symboltable));};
         return 0;}
 
     /** exchanges the oldLiteral with the newLiteral.
