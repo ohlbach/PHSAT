@@ -1,11 +1,11 @@
 package Solvers.Walker;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.UnsatClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
-import Solvers.Resolution.UnsatClause;
 
 import java.util.ArrayList;
 import java.util.Arrays;

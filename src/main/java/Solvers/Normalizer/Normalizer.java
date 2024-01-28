@@ -13,7 +13,7 @@ import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
-import Solvers.Resolution.UnsatClause;
+import Datastructures.Results.UnsatClause;
 import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -394,6 +394,7 @@ public class Normalizer extends Solver {
 
     /** normalizes a disjunction and adds it to 'clauses'.
      * <br>
+     * An input clause has the structure: [id,quantifier,literal1,...]<br>
      * - multiple literals are removed.<br>
      * - tautologies are ignored.<br>
      * - unit clauses are added to the model.<br>

@@ -12,7 +12,7 @@ import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Backtracker.Backtracker;
 import Solvers.Normalizer.Normalizer;
-import Solvers.Resolution.Resolution;
+import Solvers.ResolutionOld.Resolution;
 import Solvers.Walker.Walker;
 
 import java.lang.reflect.Method;

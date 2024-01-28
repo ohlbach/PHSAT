@@ -2,16 +2,12 @@ package Solvers.Walker;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
-import Datastructures.Results.Aborted;
-import Datastructures.Results.Result;
-import Datastructures.Results.Satisfiable;
-import Datastructures.Results.Unsatisfiable;
+import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
-import Solvers.Resolution.UnsatClause;
 import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
