@@ -7,14 +7,14 @@ package Datastructures;
  *
  * @param <Item> a class like Clause which extends LinkedItem.
  */
-public class LinkedItemList<Item extends LinkedItem> {
+public class LinkedItemList<Item extends LinkedItem>  {
 
     /** An arbitrary title of the list*/
     String title;
     /** the first item in the list. */
-    LinkedItem firstLinkedItem;
+    Item firstLinkedItem;
     /** the last item in the list. */
-    LinkedItem lastLinkedItem;
+    Item lastLinkedItem;
 
     /** the number of items in the list */
     int size = 0;
@@ -57,28 +57,38 @@ public class LinkedItemList<Item extends LinkedItem> {
         lastLinkedItem.nextItem = linkedItem;
         lastLinkedItem = linkedItem;}
 
-    /** removes the given item from the list.
-     * This is done in constant time.
+
+    /** removes a item from the list.<br>
+     * item.exists is set to false.<br>
+     * The removed item's nextClause remains as it is.
+     * This way forward iterations with a pointer pointing to the removed item still work.<br>
+     * One has to check item.exists!
      *
-     * @param linkedItem the item to be removed.
-     */
-    public void remove(Item linkedItem) {
-        --size;
-        linkedItem.isInList = false;
-        if(lastLinkedItem == firstLinkedItem) {
-            lastLinkedItem = null; firstLinkedItem = null; return;}
-        if(linkedItem.previousItem == null) {
-            firstLinkedItem = linkedItem.nextItem;
-            firstLinkedItem.previousItem = null;
-            return;}
-        if(linkedItem.nextItem == null) {
-            lastLinkedItem = linkedItem.previousItem;
-            lastLinkedItem.nextItem = null;
-            return;}
-        LinkedItem item = linkedItem.previousItem;
-        item.nextItem = linkedItem.nextItem;
-        linkedItem.nextItem.previousItem = item;
-    }
+     * @param item the item to be removed.
+     * @return the new number of clauses in the list.
+     * */
+    public int remove(Item item) {
+        if(!item.isInList) return size;
+        item.isInList = false;
+        if(item.nextItem == null) { // it is the item at the end of the chain.
+            if(item == firstLinkedItem) {size = 0; firstLinkedItem = null;
+                item.previousItem = null;  return 0;}
+            if(item.previousItem == null)  {
+                System.out.println("ERROR: trying to remove not inserted item: " + item);
+                new Exception().printStackTrace();
+                System.exit(1);} // the item is not linked.
+            final Item previousClause = (Item) item.previousItem;
+            lastLinkedItem = previousClause; item.previousItem = null;
+            previousClause.nextItem = null; return --size;}
+        if(item.previousItem == null) { // it is the first item in the chain
+            firstLinkedItem = (Item)item.nextItem; firstLinkedItem.previousItem = null; return --size;}
+
+        final LinkedItem previous = item.previousItem;  // now the item is in the middle.
+        final LinkedItem next = item.nextItem;
+        previous.nextItem = next;
+        next.previousItem = previous;
+        item.previousItem = null;
+        return --size;}
 
     /** counts the items in the list.
      *
@@ -122,5 +132,6 @@ public class LinkedItemList<Item extends LinkedItem> {
             st.append(linkedItem.toString(symboltable,5)).append("\n");
             linkedItem = linkedItem.nextItem;}
         return st.toString();}
+
 
 }

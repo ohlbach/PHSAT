@@ -82,4 +82,20 @@ public class LinkedItemListTest extends TestCase {
         assertNull(linkedlist.getLinkedItem(2));
 
     }
-}
+
+    public void testIteration() {
+        System.out.println("iteration");
+        LinkedItemList<Clause> linkedlist = new LinkedItemList<>(null);
+        for(int i = 0; i <= 10; ++i) {
+            Clause c = new Clause(i);
+            linkedlist.addToBack(c);}
+        Clause c = linkedlist.firstLinkedItem;
+        while(c != null) {
+            if(c.id % 2 == 0) linkedlist.remove(c);
+            c = (Clause)c.nextItem;
+        }
+        assertEquals("1\n3\n5\n7\n9\n",linkedlist.toString());
+    }
+
+
+    }
