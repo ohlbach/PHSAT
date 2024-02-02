@@ -2,6 +2,7 @@ package Solvers.Walker;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
+import Datastructures.LinkedItemList;
 import Datastructures.Results.*;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
@@ -45,7 +46,7 @@ public class Walker extends Solver {
     ArrayList<Clause> clauses = new ArrayList<>();
 
     /** the list of false clauses. */
-    Clauses falseClauseList = new Clauses();
+    LinkedItemList<Clause> falseClauseList = new LinkedItemList<Clause>("false clauses");
 
 
     /** an index for all literal occurrences in the clauses. */
@@ -384,9 +385,9 @@ public class Walker extends Solver {
         if(predicateObject != null) return predicateObject.predicate;
         if(statistics.flips > 0 &&  statistics.flips % jumpFrequency == 0) {
             int n = random.nextInt(falseClauseList.size);
-            Clause clause = falseClauseList.getClause(n);
+            Clause clause = falseClauseList.getLinkedItem(n);
             return selectPredicateInFalseClause(clause);}
-        return selectPredicateInFalseClause(falseClauseList.firstClause);}
+        return selectPredicateInFalseClause(falseClauseList.firstLinkedItem);}
 
     /** selects a predicate in a false clause with score %lt;= 0.
      * If there are not enough true literals then the first false clause is chosen to be flipped.<br>
@@ -522,6 +523,7 @@ public class Walker extends Solver {
      * @param literal a globally true literal.
      * @param step null or an inference step (is ignored).
      */
+    @SuppressWarnings("unused")
     public synchronized void addGloballyTrueLiteral(int literal, InferenceStep step) {
         globallyTrueLiterals.add(literal);
         trueLiteralInterrupt = true;
@@ -547,6 +549,7 @@ public class Walker extends Solver {
      * @param literal the corresponding literal
      * @param step is ignored.
      */
+    @SuppressWarnings("unused")
     public synchronized void addEquivalence(int representative, int literal, InferenceStep step) {
         equivalentLiterals.add(representative); equivalentLiterals.add(literal);
         equivalenceInterrupt = true;

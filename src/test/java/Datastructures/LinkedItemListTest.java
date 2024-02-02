@@ -95,6 +95,17 @@ public class LinkedItemListTest extends TestCase {
             c = (Clause)c.nextItem;
         }
         assertEquals("1\n3\n5\n7\n9\n",linkedlist.toString());
+
+        linkedlist = new LinkedItemList<>(null);
+        for(int i = 0; i <= 10; ++i) {
+            c = new Clause(i);
+            linkedlist.addToBack(c);}
+        c = linkedlist.firstLinkedItem;
+        while(c != null) {
+            if(c.id % 3 < 2) linkedlist.remove(c);
+            c = (Clause)c.nextItem;
+        }
+        assertEquals("2\n5\n8\n",linkedlist.toString());
     }
 
 

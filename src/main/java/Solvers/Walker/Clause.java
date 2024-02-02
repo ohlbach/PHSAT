@@ -1,6 +1,7 @@
 package Solvers.Walker;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.LinkedItem;
 import Datastructures.Results.UnsatClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -16,7 +17,7 @@ import java.util.function.Consumer;
  *  Nevertheless, the clauses keep their original connective.
  *  A clause may be part of a doubly quantified list (list of false clauses).
  */
-public class Clause {
+public class Clause extends LinkedItem {
     /** the identifier for the clause. */
     protected int id;
 
@@ -52,16 +53,7 @@ public class Clause {
     /** a timestamp to be used by various algorithms. */
     protected int timestamp = 0;
 
-    /** the next clause in a doubly quantified list. */
-    protected Clause nextClause;
-
-    /** the previous clause in a doubly quantified list. */
-    protected Clause previousClause;
-
-    /** indicates that the clause is still in the doubly connected list. */
-    protected boolean isInList = false;
-
-    private int[] inputClause;
+    private final int[] inputClause;
 
 
     /** The constructor turns an InputClause int[]-array into a Clause object.
@@ -253,7 +245,7 @@ public class Clause {
             case ATLEAST:  st.append(quantifier.abbreviation).append(min).append(" "); break;
             case ATMOST:   st.append(quantifier.abbreviation).append(max).append(" "); break;
             case INTERVAL: st.append("[").append(min).append(",").append(max).append("] ");}
-        if(literals.size() > 0) {
+        if(!literals.isEmpty()) {
             int length = literals.size()-1;
             for(int i = 0; i < length; ++i) {
                 st.append(literals.get(i).toString(symboltable)).append(quantifier.separator);}

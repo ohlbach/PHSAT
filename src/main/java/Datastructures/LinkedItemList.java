@@ -12,12 +12,12 @@ public class LinkedItemList<Item extends LinkedItem>  {
     /** An arbitrary title of the list*/
     String title;
     /** the first item in the list. */
-    Item firstLinkedItem;
+    public Item firstLinkedItem;
     /** the last item in the list. */
-    Item lastLinkedItem;
+    public Item lastLinkedItem;
 
     /** the number of items in the list */
-    int size = 0;
+    public int size = 0;
 
     /** constructs an empty list.
      *
@@ -102,12 +102,12 @@ public class LinkedItemList<Item extends LinkedItem>  {
      * @param n an integer.
      * @return the nth item in the list.
      */
-    public LinkedItem getLinkedItem(int n) {
+    public Item getLinkedItem(int n) {
         int counter = -1;
-        LinkedItem linkedItem = firstLinkedItem;
+        Item linkedItem = firstLinkedItem;
         while(linkedItem != null) {
             if(++counter == n) return linkedItem;
-            linkedItem = linkedItem.nextItem;}
+            linkedItem = (Item)linkedItem.nextItem;}
         return null;}
 
     /** collects the items in a string, one per line.
