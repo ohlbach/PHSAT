@@ -43,7 +43,7 @@ import java.util.HashMap;
  * - clauses which don't fit their interval boundaries<br>
  * <br>
  * - All occurrences of true literals are removed from the clauses.<br>
- * - Equivalent literals re replaced by their representatives.<br>
+ * - Equivalent literals replaced by their representatives.<br>
  * <br>
  * If the input clauses are not redundant, there will be no changes in the clause set.
  */

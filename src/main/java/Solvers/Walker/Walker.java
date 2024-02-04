@@ -228,11 +228,6 @@ public class Walker extends Solver {
      */
     Clause insertClause(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause);
-        if(clause.removeComplementaryLiterals(problemId,solverId,null)) return null;
-        if(clause.quantifier == Quantifier.AND) {
-            for(Literal literalObject : clause.literals) {
-                model.add(Thread.currentThread(), literalObject.literal,clause.inferenceStep);}
-            return null;}
         for(int i = 0; i < clause.literals.size(); ++i) {
             Literal literalObject = clause.literals.get(i);
             if(literalObject.multiplicity > clause.max) {
