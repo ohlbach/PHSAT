@@ -1019,6 +1019,21 @@ public class Utilities {
                 else a -= gcd;}}
         return gcd;}
 
+    /** computes the greatest common divisor of two numbers
+     *
+     * @param n an integer > 0
+     * @param m an integer > 0
+     * @return the greatest common divisor of the two numbers.
+     */
+    public static int gcd(int n, int m) {
+        assert(n > 0 && m > 0);
+        while(n != m) {
+            if(n > m) n -= m;
+            else m -= n;}
+        return n;}
+
+
+
     public static void  main1(String[] args) {
         IntArrayList n = IntArrayList.wrap(new int[]{456,678,888});
         System.out.println(gcd(n));
