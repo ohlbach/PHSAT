@@ -110,6 +110,10 @@ public class LinkedItemList<Item extends LinkedItem>  {
             linkedItem = (Item)linkedItem.nextItem;}
         return null;}
 
+    /** checks if the list is empty */
+    public boolean isEmpty() {
+        return firstLinkedItem == null;}
+
     /** collects the items in a string, one per line.
      *
      * @return the items as a string.

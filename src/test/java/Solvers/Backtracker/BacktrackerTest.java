@@ -3,7 +3,7 @@ package Solvers.Backtracker;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Theory.Model;
-import Solvers.Normalizer.Normalizer;
+import Solvers.Normalizer.NormalizerOld;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
@@ -63,7 +63,7 @@ public class BacktrackerTest extends TestCase {
         System.out.println("deriveTrueLiteralsOr");
         Backtracker backtracker = makeBacktracker(5,0);
         int[] inputClause = new int[]{1,cOr,1,2,3};
-        IntArrayList listClause = Normalizer.makeClause(inputClause);
+        IntArrayList listClause = NormalizerOld.makeClause(inputClause);
         Clause clause = new Clause(listClause);
         assertEquals(-1,backtracker.deriveTrueLiteralsOr(clause));
         backtracker.localModel[2] = -1;
@@ -77,7 +77,7 @@ public class BacktrackerTest extends TestCase {
 
         backtracker = makeBacktracker(5,0);
         inputClause = new int[]{2,cOr,-1,-2,-3};
-        listClause = Normalizer.makeClause(inputClause);
+        listClause = NormalizerOld.makeClause(inputClause);
         clause = new Clause(listClause);
         backtracker.localModel[1]= 1;
         backtracker.localModel[2]= 1;
@@ -91,7 +91,7 @@ public class BacktrackerTest extends TestCase {
         System.out.println("deriveTrueLiteralsAtleast");
         Backtracker backtracker = makeBacktracker(5, 0);
         int[] inputClause = new int[]{1, cAtleast, 2, 1, 2, 3};
-        IntArrayList listClause = Normalizer.makeClause(inputClause);
+        IntArrayList listClause = NormalizerOld.makeClause(inputClause);
         Clause clause = new Clause(listClause);
         assertEquals(-1, backtracker.deriveTrueLiteralsAtleast(clause));
         assertEquals("[0, 0, 0, 0, 0, 0]",Arrays.toString(backtracker.localModel));
@@ -103,7 +103,7 @@ public class BacktrackerTest extends TestCase {
 
         backtracker = makeBacktracker(5, 0);
         inputClause = new int[]{2, cAtleast, 2, 1,2,3};
-        listClause = Normalizer.makeClause(inputClause);
+        listClause = NormalizerOld.makeClause(inputClause);
         clause = new Clause(listClause);
         backtracker.localModel[1] = -1;
         backtracker.localModel[2] = -1;
@@ -113,7 +113,7 @@ public class BacktrackerTest extends TestCase {
 
         backtracker = makeBacktracker(5, 0);
         inputClause = new int[]{3, cAtleast, 2, 1,2,3,4};
-        listClause = Normalizer.makeClause(inputClause);
+        listClause = NormalizerOld.makeClause(inputClause);
         clause = new Clause(listClause);
         backtracker.localModel[1] = 1;
         backtracker.trueLiteralIndex[1] = 6;
@@ -124,7 +124,7 @@ public class BacktrackerTest extends TestCase {
 
         backtracker = makeBacktracker(5, 0);
         inputClause = new int[]{3, cAtleast, 2, 1,2,3,4};
-        listClause = Normalizer.makeClause(inputClause);
+        listClause = NormalizerOld.makeClause(inputClause);
         clause = new Clause(listClause);
         backtracker.localModel[1] = -1;
         backtracker.trueLiteralIndex[1] = 6;
@@ -139,7 +139,7 @@ public class BacktrackerTest extends TestCase {
 
         backtracker = makeBacktracker(5, 0);
         inputClause = new int[]{3, cAtleast, 2, 1,1,2,2,3,3};
-        listClause = Normalizer.makeClause(inputClause);
+        listClause = NormalizerOld.makeClause(inputClause);
         clause = new Clause(listClause);
         backtracker.localModel[1] = -1;
         backtracker.trueLiteralIndex[1] = 6;
@@ -155,7 +155,7 @@ public class BacktrackerTest extends TestCase {
         System.out.println("deriveTrueLiteralsAtmost");
         Backtracker backtracker = makeBacktracker(5, 0);
         int[] inputClause = new int[]{1, cAtmost, 2, 1, 2, 3};
-        IntArrayList listClause = Normalizer.makeClause(inputClause);
+        IntArrayList listClause = NormalizerOld.makeClause(inputClause);
         Clause clause = new Clause(listClause);
         assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
         assertEquals("[0, 0, 0, 0, 0, 0]", Arrays.toString(backtracker.localModel));
@@ -185,7 +185,7 @@ public class BacktrackerTest extends TestCase {
         System.out.println("deriveTrueLiteralsInterval");
         Backtracker backtracker = makeBacktracker(5, 0);
         int[] inputClause = new int[]{1, cInterval, 2, 4, 1, 2, 3, 4, 5};
-        IntArrayList listClause = Normalizer.makeClause(inputClause);
+        IntArrayList listClause = NormalizerOld.makeClause(inputClause);
         Clause clause = new Clause(listClause);
         assertEquals(-1, backtracker.deriveTrueLiteralsAtmost(clause));
         assertEquals("[0, 0, 0, 0, 0, 0]", Arrays.toString(backtracker.localModel));
@@ -228,7 +228,7 @@ public class BacktrackerTest extends TestCase {
         System.out.println("deriveTrueLiteralsInterval");
         Backtracker backtracker = makeBacktracker(5, 0);
         int[] inputClause = new int[]{1, cOr, 1,2,3};
-        IntArrayList listClause = Normalizer.makeClause(inputClause);
+        IntArrayList listClause = NormalizerOld.makeClause(inputClause);
         Clause clause = new Clause(listClause);
         backtracker.insertClause(clause);
         backtracker.localModel[3] = -1;
@@ -242,24 +242,24 @@ public class BacktrackerTest extends TestCase {
         System.out.println("searchModel");
         Backtracker backtracker = makeBacktracker(5, 0);;
 
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{1, cOr, 1, 2, 3, 4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{2, cOr, 1, 2, -3, 4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{3, cOr, 1, -2, 3, 4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{4, cOr, 1, -2, -3, 4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{5, cOr, -1, 2, 3, 4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{6, cOr, -1, 2, -3, 4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{7, cOr, -1, -2, 3, 4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{8, cOr, -1, -2, -3, 4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{1, cOr, 1, 2, 3, 4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{2, cOr, 1, 2, -3, 4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{3, cOr, 1, -2, 3, 4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{4, cOr, 1, -2, -3, 4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{5, cOr, -1, 2, 3, 4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{6, cOr, -1, 2, -3, 4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{7, cOr, -1, -2, 3, 4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{8, cOr, -1, -2, -3, 4})));
 
 
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{11, cOr, 1, 2, 3, -4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{12, cOr, 1, 2, -3, -4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{13, cOr, 1, -2, 3, -4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{14, cOr, 1, -2, -3, -4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{15, cOr, -1, 2, 3, -4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{16, cOr, -1, 2, -3, -4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{17, cOr, -1, -2, 3, -4})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{18, cOr, -1, -2, -3, -4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{11, cOr, 1, 2, 3, -4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{12, cOr, 1, 2, -3, -4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{13, cOr, 1, -2, 3, -4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{14, cOr, 1, -2, -3, -4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{15, cOr, -1, 2, 3, -4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{16, cOr, -1, 2, -3, -4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{17, cOr, -1, -2, 3, -4})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{18, cOr, -1, -2, -3, -4})));
 
 
         assertFalse(backtracker.searchModel() instanceof Satisfiable);
@@ -267,26 +267,26 @@ public class BacktrackerTest extends TestCase {
         System.out.println(backtracker.statistics);
 
         backtracker = makeBacktracker(5, 0);
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{1, cOr, 1, 2, 3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{2, cOr, 1, 2, -3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{3, cOr, 1, -2, 3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{4, cOr, 1, -2, -3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{5, cOr, -1, 2, 3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{6, cOr, -1, 2, -3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{7, cOr, -1, -2, 3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{1, cOr, 1, 2, 3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{2, cOr, 1, 2, -3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{3, cOr, 1, -2, 3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{4, cOr, 1, -2, -3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{5, cOr, -1, 2, 3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{6, cOr, -1, 2, -3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{7, cOr, -1, -2, 3})));
         assertTrue(backtracker.searchModel() instanceof Satisfiable);
         assertEquals("[0, 1, 1, 1, 1, 1]",Arrays.toString(backtracker.localModel));
         System.out.println(backtracker.statistics);
 
         backtracker = makeBacktracker(5, 0);
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{1, cOr, 1, 2, 3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{2, cOr, 1, 2, -3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{3, cOr, 1, -2, 3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{4, cOr, 1, -2, -3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{5, cOr, -1, 2, 3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{6, cOr, -1, 2, -3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{7, cOr, -1, -2, 3})));
-        backtracker.insertClause(new Clause(Normalizer.makeClause(new int[]{8, cOr, -1, -2, -3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{1, cOr, 1, 2, 3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{2, cOr, 1, 2, -3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{3, cOr, 1, -2, 3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{4, cOr, 1, -2, -3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{5, cOr, -1, 2, 3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{6, cOr, -1, 2, -3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{7, cOr, -1, -2, 3})));
+        backtracker.insertClause(new Clause(NormalizerOld.makeClause(new int[]{8, cOr, -1, -2, -3})));
         assertFalse(backtracker.searchModel() instanceof Satisfiable);
         assertEquals("[0, -1, -1, -1, 0, 0]",Arrays.toString(backtracker.localModel));
         System.out.println(backtracker.statistics);

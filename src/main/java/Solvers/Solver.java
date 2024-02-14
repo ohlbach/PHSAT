@@ -11,7 +11,7 @@ import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Backtracker.Backtracker;
-import Solvers.Normalizer.Normalizer;
+import Solvers.Normalizer.NormalizerOld;
 import Solvers.ResolutionOld.Resolution;
 import Solvers.Walker.Walker;
 
@@ -139,7 +139,7 @@ public abstract class Solver {
     protected  HashMap<String,Object> solverParameters;
 
     /** if contains the normalized clauses */
-    protected Normalizer normalizer;
+    protected NormalizerOld normalizer;
 
     /** the start time of the solver. */
     protected long startTime;

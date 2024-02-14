@@ -5,7 +5,7 @@ import Datastructures.Results.Unsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
-public class NormalizerTest extends TestCase {
+public class NormalizerOldTest extends TestCase {
     private static final int cOr = Quantifier.OR.ordinal();
     private static final int cAnd = Quantifier.AND.ordinal();
     private static final int cEquiv = Quantifier.EQUIV.ordinal();
@@ -17,7 +17,7 @@ public class NormalizerTest extends TestCase {
     private static boolean monitoring = false;
     public void testNormalizeConjunction() throws Unsatisfiable {
         System.out.println("noramlizeConjunction");
-        Normalizer normalizer = new Normalizer(10, monitoring);
+        NormalizerOld normalizer = new NormalizerOld(10, monitoring);
         int[] inputClause = new int[]{1,cAnd};
         normalizer.normalizeConjunction(inputClause);
         inputClause = new int[]{2,cAnd,1,2,-3};
@@ -32,7 +32,7 @@ public class NormalizerTest extends TestCase {
 
     public void testNormalizeDisjunction() throws Unsatisfiable{
         System.out.println("noramlizeDisjunction");
-        Normalizer normalizer = new Normalizer(10, monitoring);
+        NormalizerOld normalizer = new NormalizerOld(10, monitoring);
 
         int[] inputClause = new int[]{1, cOr, 1, 2, 3,2,1,1};
         IntArrayList clause = normalizer.normalizeDisjunction(inputClause);
@@ -66,7 +66,7 @@ public class NormalizerTest extends TestCase {
 
     public void testNormalizeEquiv1() throws Unsatisfiable{
         System.out.println("normalizeEquiv 1");
-        Normalizer normalizer = new Normalizer(10, monitoring);
+        NormalizerOld normalizer = new NormalizerOld(10, monitoring);
         int[] inputClause = {1,cEquiv,2,3,-1};
         normalizer.normalizeEquivalence(inputClause);
         StringBuilder st = new StringBuilder();
@@ -91,7 +91,7 @@ public class NormalizerTest extends TestCase {
 
     public void testNormalizeEquiv2() throws Unsatisfiable {
         System.out.println("normalizeEquiv 2");
-        Normalizer normalizer = new Normalizer(10, monitoring);
+        NormalizerOld normalizer = new NormalizerOld(10, monitoring);
         normalizer.model.addImmediately(-3);
         int[] inputClause = {1, cEquiv, 2, 3, -1};
         normalizer.normalizeEquivalence(inputClause);
@@ -102,7 +102,7 @@ public class NormalizerTest extends TestCase {
 
     public void testTransformInputClauses1() {
         System.out.println("TransformInputClauses 1");
-        Normalizer normalizer = new Normalizer(10,monitoring);
+        NormalizerOld normalizer = new NormalizerOld(10,monitoring);
         int[] inputClause = {1, cAtleast, 2, 1, 2, 3};
         IntArrayList clause = normalizer.transformInputClause(inputClause);
         assertEquals("1: >=2 1,2,3",normalizer.toString(clause));
@@ -122,12 +122,12 @@ public class NormalizerTest extends TestCase {
         inputClause = new int[]{5, cInterval, 2,3, 1, -2, 3};
         clause = normalizer.transformInputClause(inputClause);
         assertEquals("5: [2,3] 1,-2,3",normalizer.toString(clause));
-        assertEquals(3,Normalizer.size(clause));
-        assertFalse(Normalizer.hasMultiplicities(clause));
+        assertEquals(3, NormalizerOld.size(clause));
+        assertFalse(NormalizerOld.hasMultiplicities(clause));
 }
     public void testTransformInputClauses2() throws Unsatisfiable{
         System.out.println("TransformInputClauses 2");
-        Normalizer normalizer = new Normalizer(10, monitoring);
+        NormalizerOld normalizer = new NormalizerOld(10, monitoring);
         normalizer.model.addImmediately(2);
         int[] inputClause = {1, cEquiv, 5,4,3};
         normalizer.normalizeEquivalence(inputClause);
@@ -149,7 +149,7 @@ public class NormalizerTest extends TestCase {
 
     public void testAnalyseMultiplicities() throws Unsatisfiable {
         System.out.println("analyseMultiplicities");
-        Normalizer normalizer = new Normalizer(10,monitoring);
+        NormalizerOld normalizer = new NormalizerOld(10,monitoring);
         int[] inputClause = {1, cAtleast, 2, 1, 2, 3};
         IntArrayList clause = normalizer.transformInputClause(inputClause);
         assertEquals("1: >=2 1,2,3",normalizer.toString(normalizer.analyseMultiplicities(clause,inputClause)));
@@ -182,7 +182,7 @@ public class NormalizerTest extends TestCase {
 
     public void testOptimizeQuantifier() throws Unsatisfiable {
         System.out.println("optimizeQuantifier");
-        Normalizer normalizer = new Normalizer(10, monitoring);
+        NormalizerOld normalizer = new NormalizerOld(10, monitoring);
         int[] inputClause = {1, cAtleast, 1, 1, 2, 3};
         IntArrayList clause = normalizer.transformInputClause(inputClause);
         normalizer.optimizeQuantifier(clause,inputClause);
@@ -217,21 +217,21 @@ public class NormalizerTest extends TestCase {
 
         public void testAtmost2Atleast()  {
             System.out.println("atmost2Atleast and vice versa");
-            Normalizer normalizer = new Normalizer(10, monitoring);
+            NormalizerOld normalizer = new NormalizerOld(10, monitoring);
             int[] inputClause = {1, cAtmost, 2, 1, 2, 3};
             IntArrayList atmostClause = normalizer.transformInputClause(inputClause);
-            IntArrayList atleastClause = Normalizer.atmost2Atleast(atmostClause);
+            IntArrayList atleastClause = NormalizerOld.atmost2Atleast(atmostClause);
             assertEquals("1: >=1 -1,-2,-3",normalizer.toString(atleastClause));
-            IntArrayList atmostClause1 = Normalizer.atleast2Atmost(atleastClause);
+            IntArrayList atmostClause1 = NormalizerOld.atleast2Atmost(atleastClause);
             assertTrue(atmostClause.equals(atmostClause1));}
 
     public void testExactly2Atleast() {
         System.out.println("exactly2Atleast");
         int[] id = new int[]{0};
-        Normalizer normalizer = new Normalizer(10, monitoring);
+        NormalizerOld normalizer = new NormalizerOld(10, monitoring);
         int[] inputClause = {1, cExactly, 2, 1, 2, 3, 4, 5};
         IntArrayList exactlyClause = normalizer.transformInputClause(inputClause);
-        IntArrayList[] atleastClauses = Normalizer.exactlyToAtleast(exactlyClause);
+        IntArrayList[] atleastClauses = NormalizerOld.exactlyToAtleast(exactlyClause);
         assertEquals("1: >=2 1,2,3,4,5",normalizer.toString(atleastClauses[0]));
         assertEquals("1: >=3 -1,-2,-3,-4,-5",normalizer.toString(atleastClauses[1]));
     }
@@ -239,10 +239,10 @@ public class NormalizerTest extends TestCase {
     public void testInterval2Atleast() {
         System.out.println("interval2Atleast");
         int[] id = new int[]{0};
-        Normalizer normalizer = new Normalizer(10, monitoring);
+        NormalizerOld normalizer = new NormalizerOld(10, monitoring);
         int[] inputClause = {1, cInterval, 2, 4, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         IntArrayList intervalClause = normalizer.transformInputClause(inputClause);
-        IntArrayList[] atleastClauses = Normalizer.intervalToAtleast(intervalClause);
+        IntArrayList[] atleastClauses = NormalizerOld.intervalToAtleast(intervalClause);
         assertEquals("1: >=2 1,2,3,4,5,6,7,8,9",normalizer.toString(atleastClauses[0]));
         assertEquals("1: >=5 -1,-2,-3,-4,-5,-6,-7,-8,-9",normalizer.toString(atleastClauses[1]));
     }

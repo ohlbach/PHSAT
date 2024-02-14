@@ -9,11 +9,11 @@ import Datastructures.Theory.Model;
 import InferenceSteps.InfRemoveComplementaries;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
+import Utilities.BiConsumerWithUnsatisfiable;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
-import java.util.function.BiConsumer;
 
 public class Clause extends LinkedItem {
     /**The original identifier of the input clause. */
@@ -48,8 +48,11 @@ public class Clause extends LinkedItem {
 
     /** Creates a Clause object from the given input clause.
      * The constructor does not apply to AND and EQUIV clauses.
-     * Multiple occurrences of literals are comprised into one occurrence with corresponding multiplicities.
-     * No simplifications are done in the constructor.
+     * Multiple occurrences of literals are comprised into one occurrence with corresponding multiplicities.<br>
+     * The only simplifications are done or OR- or ATLEAST-clauses:
+     * Multiplicities are limited to min. <br>
+     * Example: atleast 2 p,p,p q -&gt; atleast 2 p^2,q  (This should not happen in real examples)<br>
+     * A clause with quantifier OR and just a single literal gets its quantifier changed to AND.
      *
      * @param inputClause the input clause.
      */
@@ -60,9 +63,9 @@ public class Clause extends LinkedItem {
         int firstLiteralIndex = quantifier.firstLiteralIndex;
         expandedSize = inputClause.length-firstLiteralIndex;
         switch(quantifier) {
-            case OR: min = 1; max = expandedSize; break;
+            case OR: min = 1;                    max = expandedSize; break;
             case ATLEAST:  min = inputClause[2]; max = expandedSize; break;
-            case ATMOST:   min = 0; max = inputClause[2]; break;
+            case ATMOST:   min = 0;              max = inputClause[2]; break;
             case EXACTLY:  min = inputClause[2]; max = min; break;
             case INTERVAL: min = inputClause[2]; max = inputClause[3]; break;}
         literals = new IntArrayList(2*expandedSize);
@@ -70,9 +73,25 @@ public class Clause extends LinkedItem {
             int literal = inputClause[i];
             boolean multiplicit = false;
             for(int j = 0; j < literals.size(); j += 2) {
-                if(literal == literals.getInt(j)) {literals.set(j+1,literals.get(j+1)+1); multiplicit = true; break;}}
+                if(literal == literals.getInt(j)) {
+                    multiplicit = true;
+                    int multiplicity = literals.getInt(j+1);
+                    if((quantifier == Quantifier.OR || quantifier == Quantifier.ATLEAST) && multiplicity == min) {
+                        --expandedSize; --max; break;}
+                    literals.set(j+1,multiplicity+1); break;}}
             if(multiplicit) {hasMultiplicities = true; continue;}
-            literals.add(literal); literals.add(1);}}
+            literals.add(literal); literals.add(1);}
+        if(quantifier == Quantifier.OR && expandedSize == 1) quantifier = Quantifier.AND;}
+
+    public boolean isTrue() {
+        return min <= 0 && max == expandedSize;}
+
+    /** tests if the clause is a disjunction
+     *
+     * @return true if the quantifier of the clause is a disjunction.
+     */
+    public boolean isDisjunction() {
+        return quantifier == Quantifier.OR;}
 
     /** This method removes complementary literals like p,-p.
      *  Examples:  [1,4] p,q,r,-p -&gt; [0,2] q,r (tautology) <br>
@@ -83,9 +102,9 @@ public class Clause extends LinkedItem {
      * @param trackReasoning true if an inference step is to be added.
      * @param monitor        null or a monitor
      * @param symboltable    null or a symboltable
-     * @return
+     * @return true if the clause is true (tautology)
      */
-    void removeComplementaries(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    boolean removeComplementaries(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         int[] previousClause = null;
         for(int i = 0; i < literals.size(); i+=2) {
             int literal = literals.getInt(i);
@@ -117,7 +136,8 @@ public class Clause extends LinkedItem {
                     arrayToString(previousClause,symboltable) + " -> " + toString(symboltable,0));}
         if(trackReasoning) {
             if(inferenceSteps == null) inferenceSteps = new ArrayList<>(2);
-            inferenceSteps.add(new InfRemoveComplementaries(previousClause, toIntArray()));}}
+            inferenceSteps.add(new InfRemoveComplementaries(previousClause, toIntArray()));}
+        return isTrue();}
 
 
     /**
@@ -129,7 +149,8 @@ public class Clause extends LinkedItem {
      * @return true if the clause is still useful.
      * @throws Unsatisfiable
      */
-    boolean reduceNumbers(BiConsumer<Integer,InferenceStep> model, boolean trackReasoning, Monitor monitor, Symboltable symboltable) throws Unsatisfiable {
+    boolean reduceNumbers(BiConsumerWithUnsatisfiable<Integer,InferenceStep> model, boolean trackReasoning,
+                          Monitor monitor, Symboltable symboltable) throws Unsatisfiable {
         if(expandedSize <= 0 || min > max || min > expandedSize) {
             throw new UnsatClause(null,null,inputClause);} // anpassen
         if(min == 0 && max == expandedSize) {
@@ -160,7 +181,7 @@ public class Clause extends LinkedItem {
                         " new clause: " + toString(symboltable,0));}}
 
         if(min > expandedSize) throw new UnsatClause(null,null,inputClause);
-        deriveTrueLiterals(model,trackReasoning,monitor,symboltable);
+        allLiteralsAreTrue(model,trackReasoning,monitor,symboltable);
 
         if(min == 0) { // atmost-clause turned into atleast-clause
             clauseBefore = toIntArray();
@@ -174,14 +195,24 @@ public class Clause extends LinkedItem {
 
         if(quantifier != quantifier.OR) reduceToEssentialLiterals(trackReasoning,monitor,symboltable);
         if(divideByGCD(symboltable,trackReasoning,monitor)) {
-            deriveTrueLiterals(model,trackReasoning,monitor,symboltable);}
+            allLiteralsAreTrue(model,trackReasoning,monitor,symboltable);}
         if(min == 1 && max == expandedSize) quantifier = Quantifier.OR;
         if(min == max) quantifier = Quantifier.EXACTLY;
 
         return true;
     }
 
-    boolean deriveTrueLiterals(BiConsumer<Integer,InferenceStep> model, boolean trackReasoning, Monitor monitor, Symboltable symboltable) throws Unsatisfiable{
+    /** A clause like [3,3] p,q,r  (where min = expandedSize) can only be true if all literals are true.
+     * If this is the case then all literals are put into the model.
+     *
+     * @param model
+     * @param trackReasoning
+     * @param monitor
+     * @param symboltable
+     * @return true if the clause is still useful.
+     */
+    private boolean allLiteralsAreTrue(BiConsumerWithUnsatisfiable<Integer,InferenceStep> model,
+                                       boolean trackReasoning, Monitor monitor, Symboltable symboltable) throws Unsatisfiable {
      if(min == expandedSize) {
         InferenceStep step = trackReasoning ? null : null;
         for(int i = 0; i < literals.size(); ++i) {
@@ -193,6 +224,10 @@ public class Clause extends LinkedItem {
         return false; // clause is no longer needed.
     }
      return true;}
+
+    boolean applyTrueLiteral(int literal, boolean isTrue, InferenceStep inferenceStep,boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+        return true;
+    }
 
     void applyTrueLiterals(Model model, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         int[] clauseBefore = (trackReasoning || monitor != null) ? toIntArray() : null;

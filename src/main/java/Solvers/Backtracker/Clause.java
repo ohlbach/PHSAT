@@ -2,7 +2,7 @@ package Solvers.Backtracker;
 
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
-import Solvers.Normalizer.Normalizer;
+import Solvers.Normalizer.NormalizerOld;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -42,12 +42,12 @@ public class Clause {
      */
     public Clause(IntArrayList normalizedClause) {
         id = normalizedClause.getInt(0);
-        quantifier = Normalizer.getQuantifier(normalizedClause);
-        min = Normalizer.getMin(normalizedClause);
-        max = Normalizer.getMax(normalizedClause);
-        expandedSize = Normalizer.getExpandedSize(normalizedClause);
-        hasMultiplicities = Normalizer.hasMultiplicities(normalizedClause);
-        for(int i = Normalizer.literalsStart; i <= normalizedClause.size()-2; i +=2) {
+        quantifier = NormalizerOld.getQuantifier(normalizedClause);
+        min = NormalizerOld.getMin(normalizedClause);
+        max = NormalizerOld.getMax(normalizedClause);
+        expandedSize = NormalizerOld.getExpandedSize(normalizedClause);
+        hasMultiplicities = NormalizerOld.hasMultiplicities(normalizedClause);
+        for(int i = NormalizerOld.literalsStart; i <= normalizedClause.size()-2; i +=2) {
             Literal literal = new Literal(normalizedClause.get(i),normalizedClause.get(i+1));
             literals.add(literal);
             literal.clause = this;}}
