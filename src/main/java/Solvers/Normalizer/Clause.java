@@ -9,6 +9,8 @@ import Datastructures.Theory.Model;
 import InferenceSteps.InfRemoveComplementaries;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
+import Solvers.Normalizer.NMInferenceSteps.NMISAndConversion;
+import Solvers.Normalizer.NMInferenceSteps.NMISdivideByGCD;
 import Utilities.BiConsumerWithUnsatisfiable;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -82,6 +84,25 @@ public class Clause extends LinkedItem {
             if(multiplicit) {hasMultiplicities = true; continue;}
             literals.add(literal); literals.add(1);}
         if(quantifier == Quantifier.OR && expandedSize == 1) quantifier = Quantifier.AND;}
+
+    private Clause() {}
+
+    /**
+     * Creates a logical clone of the Clause object.
+     * Only the essential attributes are cloned.
+     *
+     * @return a new Clause object with the same logical values as the original object.
+     */
+    protected Clause clone() {
+        Clause clause = new Clause();
+        clause.id = id;
+        clause.version = version;
+        clause.quantifier = quantifier;
+        clause.literals = literals.clone();
+        clause.min = min;
+        clause.max = max;
+        clause.expandedSize = expandedSize;
+        return clause;}
 
     public boolean isTrue() {
         return min <= 0 && max == expandedSize;}
@@ -181,7 +202,7 @@ public class Clause extends LinkedItem {
                         " new clause: " + toString(symboltable,0));}}
 
         if(min > expandedSize) throw new UnsatClause(null,null,inputClause);
-        allLiteralsAreTrue(model,trackReasoning,monitor,symboltable);
+        andConversion(trackReasoning,monitor,symboltable);
 
         if(min == 0) { // atmost-clause turned into atleast-clause
             clauseBefore = toIntArray();
@@ -195,7 +216,7 @@ public class Clause extends LinkedItem {
 
         if(quantifier != quantifier.OR) reduceToEssentialLiterals(trackReasoning,monitor,symboltable);
         if(divideByGCD(symboltable,trackReasoning,monitor)) {
-            allLiteralsAreTrue(model,trackReasoning,monitor,symboltable);}
+            andConversion(trackReasoning,monitor,symboltable);}
         if(min == 1 && max == expandedSize) quantifier = Quantifier.OR;
         if(min == max) quantifier = Quantifier.EXACTLY;
 
@@ -203,27 +224,34 @@ public class Clause extends LinkedItem {
     }
 
     /** A clause like [3,3] p,q,r  (where min = expandedSize) can only be true if all literals are true.
-     * If this is the case then all literals are put into the model.
+     * If this is the case then the clause is turned into a conjunction.<br>
+     * This happens in particular if the clause is a unit clause.<br>
+     * Notice that the multiplicities are not changed. They are irrelevant.
      *
-     * @param model
-     * @param trackReasoning
-     * @param monitor
-     * @param symboltable
-     * @return true if the clause is still useful.
+     * @param trackReasoning if true then an inference step is generated
+     * @param monitor        if != null then the step is monitored
+     * @param symboltable    null or a symboltable.
+     * @return true if the clause has become a conjunction.
      */
-    private boolean allLiteralsAreTrue(BiConsumerWithUnsatisfiable<Integer,InferenceStep> model,
-                                       boolean trackReasoning, Monitor monitor, Symboltable symboltable) throws Unsatisfiable {
+    private boolean andConversion(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
      if(min == expandedSize) {
-        InferenceStep step = trackReasoning ? null : null;
-        for(int i = 0; i < literals.size(); ++i) {
-            int literal = literals.getInt(i);
-            model.accept(literal,step);}
+         if(trackReasoning) addInferenceStep(new NMISAndConversion(clone()));
         if(monitor != null) {
             monitor.println(monitorId,"Clause " + toString(symboltable,0) +
                     " causes all its literals to become true ");}
-        return false; // clause is no longer needed.
-    }
-     return true;}
+         ++version;
+         quantifier = Quantifier.AND;
+        return true;}
+     return false;}
+
+    /** Add an inference step to the list of inference steps.
+     *
+     * @param step The inference step to be added.
+     */
+    private void addInferenceStep(InferenceStep step) {
+        if(step != null) {
+            if(inferenceSteps == null) inferenceSteps = new ArrayList<>();
+            inferenceSteps.add(step);}}
 
     boolean applyTrueLiteral(int literal, boolean isTrue, InferenceStep inferenceStep,boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         return true;
@@ -267,7 +295,8 @@ public class Clause extends LinkedItem {
             gcd = Utilities.gcd(gcd,Math.abs(literals.getInt(i)));
             if(gcd == 1) return false;}
 
-        int[] clauseBefore = (trackReasoning || monitor != null) ? toIntArray() : null;
+        if(trackReasoning) addInferenceStep(new NMISdivideByGCD(clone(),gcd));
+        int[] clauseBefore = monitor != null ? toIntArray() : null;
 
         min /= gcd;
         max /= gcd;
@@ -275,12 +304,10 @@ public class Clause extends LinkedItem {
             int multiplicity = literals.getInt(i) / gcd;
             expandedSize -= literals.getInt(i) - multiplicity;
             literals.set(i,multiplicity);}
+
         if(monitor != null) {
             monitor.println(monitorId, "Divide by GCD in Clause " +
                     arrayToString(clauseBefore, symboltable) + " -> " + toString(symboltable, 0));}
-        if(trackReasoning) {
-            // anpassen
-        }
         return true;}
 
     /** The method reduces clauses to their essential literals.
@@ -311,6 +338,42 @@ public class Clause extends LinkedItem {
                     arrayToString(clauseBefore, symboltable) + " -> " + toString(symboltable, 0));}
         if(trackReasoning) {} // tp be done
         return true;}
+
+    /**
+     * Checks the expanded size of the clause by summing the multiplicities of the literals.
+     * If the calculated size is different from the stored expanded size, it returns the calculated size.
+     * Otherwise, it returns -1.
+     *
+     * @return the calculated expanded size if different from the stored expanded size, -1 otherwise
+     */
+    public int checkExpandedSize() {
+        int size = 0;
+        for(int i = 1; i < literals.size(); i +=2) {
+            size += literals.getInt(i);}
+        if(size != expandedSize) return size;
+        return -1;}
+
+    /**
+     * Determines if the literals of two clauses are equal.
+     *
+     * @param clause The clause to compare with.
+     * @param symboltable null or the symboltable to convert literals to strings.
+     * @param errorPrefix The prefix to include in error messages.
+     * @param errors A StringBuilder to store error messages.
+     * @return {@code true} if the literals of the clauses are equal, {@code false} otherwise.
+     */
+    public boolean literalsAreEqual(Clause clause, Symboltable symboltable,  String errorPrefix, StringBuilder errors) {
+        if(clause.literals.size() != literals.size()) {
+            errors.append(errorPrefix + ": literals of clause " + toString(symboltable,0) +" and " +
+                        clause.toString(symboltable,0) + " have different size.\n");
+            return false;}
+        boolean result = true;
+        for(int i = 0; i < literals.size()-1; i +=2) {
+            if(literals.getInt(i) != clause.literals.getInt(i)) {
+                errors.append(errorPrefix + ": literals of clause " + toString(symboltable, 0) + " and " +
+                        clause.toString(symboltable, 0) + " are different at position " + i+"\n");
+                result = false;}}
+        return result;}
 
         /**
          * Converts the Clause object into an array of integers.
