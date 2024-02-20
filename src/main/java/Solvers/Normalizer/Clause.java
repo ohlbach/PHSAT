@@ -6,16 +6,15 @@ import Datastructures.Results.UnsatClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
-import InferenceSteps.InfRemoveComplementaries;
 import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
-import Solvers.Normalizer.NMInferenceSteps.NMISAndConversion;
-import Solvers.Normalizer.NMInferenceSteps.NMISdivideByGCD;
+import Solvers.Normalizer.NMInferenceSteps.*;
 import Utilities.BiConsumerWithUnsatisfiable;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.function.IntPredicate;
 
 public class Clause extends LinkedItem {
     /**The original identifier of the input clause. */
@@ -41,9 +40,6 @@ public class Clause extends LinkedItem {
     /** the number of the literals, multiplied by their multiplicities */
     public int expandedSize = 0;
 
-    /** true if at least one literal occurs more than once */
-    public boolean hasMultiplicities;
-
     private String monitorId = "Normalizer.clause";
 
     ArrayList<InferenceStep> inferenceSteps;
@@ -51,39 +47,31 @@ public class Clause extends LinkedItem {
     /** Creates a Clause object from the given input clause.
      * The constructor does not apply to AND and EQUIV clauses.
      * Multiple occurrences of literals are comprised into one occurrence with corresponding multiplicities.<br>
-     * The only simplifications are done or OR- or ATLEAST-clauses:
-     * Multiplicities are limited to min. <br>
-     * Example: atleast 2 p,p,p q -&gt; atleast 2 p^2,q  (This should not happen in real examples)<br>
-     * A clause with quantifier OR and just a single literal gets its quantifier changed to AND.
      *
      * @param inputClause the input clause.
      */
     public Clause(int[] inputClause) {
+        this.inputClause = inputClause;
         id = inputClause[0];
         quantifier = Quantifier.getQuantifier(inputClause[1]);
         assert(quantifier != Quantifier.EQUIV && quantifier != Quantifier.AND);
         int firstLiteralIndex = quantifier.firstLiteralIndex;
         expandedSize = inputClause.length-firstLiteralIndex;
         switch(quantifier) {
-            case OR: min = 1;                    max = expandedSize; break;
-            case ATLEAST:  min = inputClause[2]; max = expandedSize; break;
+            case OR: min = 1;                    max = expandedSize;   break;
+            case ATLEAST:  min = inputClause[2]; max = expandedSize;   break;
             case ATMOST:   min = 0;              max = inputClause[2]; break;
-            case EXACTLY:  min = inputClause[2]; max = min; break;
+            case EXACTLY:  min = inputClause[2]; max = min;            break;
             case INTERVAL: min = inputClause[2]; max = inputClause[3]; break;}
         literals = new IntArrayList(2*expandedSize);
         for (int i = firstLiteralIndex; i < inputClause.length; i++) {
             int literal = inputClause[i];
-            boolean multiplicit = false;
+            boolean multiple = false;
             for(int j = 0; j < literals.size(); j += 2) {
                 if(literal == literals.getInt(j)) {
-                    multiplicit = true;
-                    int multiplicity = literals.getInt(j+1);
-                    if((quantifier == Quantifier.OR || quantifier == Quantifier.ATLEAST) && multiplicity == min) {
-                        --expandedSize; --max; break;}
-                    literals.set(j+1,multiplicity+1); break;}}
-            if(multiplicit) {hasMultiplicities = true; continue;}
-            literals.add(literal); literals.add(1);}
-        if(quantifier == Quantifier.OR && expandedSize == 1) quantifier = Quantifier.AND;}
+                    literals.set(j+1,literals.getInt(j+1)+1);
+                    multiple = true; break;}}
+            if(!multiple) {literals.add(literal); literals.add(1);}}}
 
     private Clause() {}
 
@@ -107,12 +95,75 @@ public class Clause extends LinkedItem {
     public boolean isTrue() {
         return min <= 0 && max == expandedSize;}
 
+    /**
+     * Checks if making the given literal true, makes the entire clause true.
+     *
+     * @param literal the literal to check
+     * @return true making the literal true, makes the entire clause true.
+     */
+    public boolean isTrue(int literal) {
+        if(min > 0) {
+            for(int i = 0; i < literals.size()-1; i += 2) {
+                if(literal == literals.getInt(i)) {
+                    if(literals.getInt(i+1) >= min) return true;}}} // multiplicity(literal) >= min makes the clause true.
+        return false;}
+
+    /**
+     * Checks if the clause is true, given the true literals in the model.
+     *
+     * @param model the true literals
+     * @return true if the clause is true in the given model.
+     */
+    public boolean isTrue(IntPredicate model) {
+        int trueLiterals = 0;
+        for(int i = 0; i < literals.size()-1; i += 2) {
+            if(model.test(literals.getInt(i))) ++trueLiterals;}
+        return min <= trueLiterals && trueLiterals <= max;}
+
     /** tests if the clause is a disjunction
      *
      * @return true if the quantifier of the clause is a disjunction.
      */
     public boolean isDisjunction() {
         return quantifier == Quantifier.OR;}
+
+    /**
+     * Checks if the method has multiplicities.
+     *
+     * @return true if the expandedSize is equal to the double of the size of the literals list, false otherwise.
+     */
+    public boolean hasMultiplicities() {
+        return 2*expandedSize == literals.size();  }
+
+    /**
+     * Removes the multiplicities &gt; min from the clause (if min &gt; 0).
+     * Example:  [2,3] p^3,q,r,s -&gt; [2,3] p^2,q,r,s.<br>
+     * Removes in particular multiple occurrences of literals in disjunctions.
+     *
+     * @param trackReasoning true to track the reasoning, false otherwise
+     * @param monitor the monitor to print information to, can be null
+     * @param symboltable the symbol table, can be null
+     * @return true if the multiplicities were removed, false otherwise
+     */
+    boolean removeMultiplicities(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+        if(min == 0) return false;
+        boolean doReduction = false;
+        for(int i = 1; i < literals.size(); i += 2) {
+            if (literals.getInt(i) > min) {doReduction = true; break;}}
+        if(!doReduction) return false;
+
+        if(trackReasoning) addInferenceStep(new NMISremoveMultiplicities(clone()));
+        String clauseBefore = monitor != null ? toString(symboltable,0) : "";
+        for(int i = 1; i < literals.size(); i += 2) {
+            int multiplicity = literals.getInt(i);
+            if (multiplicity > min) {
+                expandedSize -= multiplicity - min;
+                literals.set(i,min);}}
+        ++version;
+        if(min == 1 && max == expandedSize) quantifier = Quantifier.OR;
+        if(monitor != null) monitor.println(monitorId,"Multiplicities removed from clause " + clauseBefore +
+                " New clause: " + toString(symboltable,0));
+        return true;}
 
     /** This method removes complementary literals like p,-p.
      *  Examples:  [1,4] p,q,r,-p -&gt; [0,2] q,r (tautology) <br>
@@ -126,38 +177,47 @@ public class Clause extends LinkedItem {
      * @return true if the clause is true (tautology)
      */
     boolean removeComplementaries(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
-        int[] previousClause = null;
+        boolean complementaryFound = false;
+        for(int i = 0; i < literals.size()-1; i+=2) {
+            int literal = literals.getInt(i);
+            for(int j = 0; j < i; j +=2) {
+                if (literal == -literals.getInt(j)) { complementaryFound = true; break;}}
+            if(complementaryFound) break;}
+        if(complementaryFound) {if(quantifier == Quantifier.OR) return true;}
+        else return false;
+
+        if(trackReasoning) addInferenceStep(new NMISremoveComplementaries(clone()));
+        String clauseBefore = (monitor != null) ? toString(symboltable,0) : "";
+
         for(int i = 0; i < literals.size(); i+=2) {
             int literal = literals.getInt(i);
             for(int j = 0; j < i; j +=2) {
                 if (literal == -literals.getInt(j)) { // complementary found
-                    if((trackReasoning || monitor != null) && previousClause == null) previousClause = toIntArray();
-                    int multiplicity1 = literals.getInt(i+1);
-                    int multiplicity2 = literals.getInt(j+1);
-                    if(multiplicity1 == multiplicity2) {
+                    int multiplicityBack = literals.getInt(i+1);
+                    int multiplicityFront = literals.getInt(j+1);
+                    if(multiplicityBack == multiplicityFront) {
                         literals.removeInt(i+1);literals.removeInt(i);
                         literals.removeInt(j+1);literals.removeInt(j);
-                        min -= multiplicity1; max -= multiplicity1; expandedSize -= 2*multiplicity1;
+                        min -= multiplicityBack; max -= multiplicityBack; expandedSize -= 2*multiplicityBack;
                         i -= 4;
                         break;}
-                    if(multiplicity1 < multiplicity2) {
-                        literals.set(j+1,multiplicity2-multiplicity1);
+                    if(multiplicityBack < multiplicityFront) {
+                        literals.set(j+1,multiplicityFront-multiplicityBack);
                         literals.removeInt(i+1);literals.removeInt(i);
-                        min -= multiplicity1; max -= multiplicity1; expandedSize -= multiplicity1;
+                        min -= multiplicityBack; max -= multiplicityBack; expandedSize -= multiplicityBack;
                         i -= 2;
                         break;}
-                    if(multiplicity1 > multiplicity2) {
-                        literals.set(i+1,multiplicity1-multiplicity2);
+                    if(multiplicityBack > multiplicityFront) {
+                        literals.set(i+1,multiplicityBack-multiplicityFront);
                         literals.removeInt(j+1);literals.removeInt(j);
-                        min -= multiplicity2; max -= multiplicity2; expandedSize -= multiplicity2;
+                        min -= multiplicityFront; max -= multiplicityFront; expandedSize -= multiplicityFront;
+                        i -= 2;
                         break;}}}}
         min = Math.max(0,min);
+        ++version;
         if(monitor != null) {
             monitor.println("Normalizer.clause","Complementary Literals in Clause " +
-                    arrayToString(previousClause,symboltable) + " -> " + toString(symboltable,0));}
-        if(trackReasoning) {
-            if(inferenceSteps == null) inferenceSteps = new ArrayList<>(2);
-            inferenceSteps.add(new InfRemoveComplementaries(previousClause, toIntArray()));}
+                    clauseBefore + " -> " + toString(symboltable,0));}
         return isTrue();}
 
 
@@ -292,12 +352,14 @@ public class Clause extends LinkedItem {
         if(gcd == 1) return false;
 
         for(int i = 1; i < literals.size(); i +=2) {
-            gcd = Utilities.gcd(gcd,Math.abs(literals.getInt(i)));
+            gcd = Utilities.gcd(gcd,Math.abs(literals.getInt(i))); // multiplicities
             if(gcd == 1) return false;}
+
 
         if(trackReasoning) addInferenceStep(new NMISdivideByGCD(clone(),gcd));
         int[] clauseBefore = monitor != null ? toIntArray() : null;
 
+        ++version;
         min /= gcd;
         max /= gcd;
         for(int i = 1; i < literals.size(); i +=2) {
@@ -305,12 +367,16 @@ public class Clause extends LinkedItem {
             expandedSize -= literals.getInt(i) - multiplicity;
             literals.set(i,multiplicity);}
 
+        if(min == 1 && max == expandedSize) quantifier = Quantifier.OR;
+
         if(monitor != null) {
             monitor.println(monitorId, "Divide by GCD in Clause " +
                     arrayToString(clauseBefore, symboltable) + " -> " + toString(symboltable, 0));}
         return true;}
 
     /** The method reduces clauses to their essential literals.
+     * If the sum of the multiplicities of those literals with multiplicity != max is smaller than min,
+     * one of the literals with multiplicity == max must be true.
      *
      * Example: &gt;= 2 p^2,q^2,r. One of p,q is sufficient to make the clause true.<br>
      * Therefore it is reduced to p,q
@@ -318,25 +384,28 @@ public class Clause extends LinkedItem {
      * @param trackReasoning
      * @param monitor
      * @param symboltable
-     * @return
+     * @return true if the clause has been changed.
      */
     boolean reduceToEssentialLiterals(boolean trackReasoning, Monitor monitor,Symboltable symboltable)  {
         int remainingMultiplicity = 0;
         for(int i = 1; i < literals.size(); i +=2) {
             if(literals.getInt(i) < min) remainingMultiplicity += literals.getInt(i);}
         if(remainingMultiplicity > min) return false;
-        int[] clauseBefore = (trackReasoning || monitor != null) ? toIntArray() : null;
+
+        if(trackReasoning) {addInferenceStep(new NMISreduceToEssentialLiterals(clone()));
+
+        int[] clauseBefore = (monitor != null) ? toIntArray() : null;
         for(int i = literals.size()-1; i >= 0; i -=2) {
             if(literals.getInt(i+1) < min) {
                 literals.removeInt(i+1);literals.removeInt(i);}
             else literals.set(i+1,1);}
         min = 1; max = literals.size()/2;
         expandedSize = max;
-        quantifier = Quantifier.OR;
+        quantifier = (expandedSize == 1) ? Quantifier.AND : Quantifier.OR;
+        ++version;
         if(monitor != null) {
             monitor.println(monitorId, "Reduce to Essential Literals in Clause " +
-                    arrayToString(clauseBefore, symboltable) + " -> " + toString(symboltable, 0));}
-        if(trackReasoning) {} // tp be done
+                    arrayToString(clauseBefore, symboltable) + " -> " + toString(symboltable, 0));}}
         return true;}
 
     /**

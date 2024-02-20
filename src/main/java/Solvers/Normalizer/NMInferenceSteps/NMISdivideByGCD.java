@@ -11,6 +11,17 @@ public class NMISdivideByGCD extends NMInferenceStep{
         this.clause = clause;
         this.gcd = gcd;
     }
+
+    /**
+     * Verifies the deduced clause by checking whether the min-value and max-value of the deduced clause are equal to the corresponding values of the original clause multiplied by
+     * the given gcd.
+     * Also checks if the literals in the deduced clause are equal to the literals in the original clause.
+     *
+     * @param deducedClause The deduced clause to be verified.
+     * @param symboltable The symbol table used for symbol resolution in the clause.
+     * @param errors The StringBuilder to append the verification errors, if any.
+     * @return true if the deduced clause is verified successfully, false otherwise.
+     */
     @Override
     public boolean verify(Clause deducedClause, Symboltable symboltable, StringBuilder errors) {
         boolean result = true;
