@@ -42,7 +42,7 @@ public class Clause extends LinkedItem {
 
     private String monitorId = "Normalizer.clause";
 
-    ArrayList<InferenceStep> inferenceSteps;
+    ArrayList<NMInferenceStep> inferenceSteps;
 
     /** Creates a Clause object from the given input clause.
      * The constructor does not apply to AND and EQUIV clauses.
@@ -133,7 +133,7 @@ public class Clause extends LinkedItem {
      * @return true if the expandedSize is equal to the double of the size of the literals list, false otherwise.
      */
     public boolean hasMultiplicities() {
-        return 2*expandedSize == literals.size();  }
+        return 2*expandedSize != literals.size();  }
 
     /**
      * Removes the multiplicities &gt; min from the clause (if min &gt; 0).
@@ -146,7 +146,8 @@ public class Clause extends LinkedItem {
      * @return true if the multiplicities were removed, false otherwise
      */
     boolean removeMultiplicities(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
-        if(min == 0) return false;
+        assert(quantifier != Quantifier.EQUIV);
+        if(min == 0 || quantifier == Quantifier.AND) return false;
         boolean doReduction = false;
         for(int i = 1; i < literals.size(); i += 2) {
             if (literals.getInt(i) > min) {doReduction = true; break;}}
@@ -162,7 +163,7 @@ public class Clause extends LinkedItem {
         ++version;
         if(min == 1 && max == expandedSize) quantifier = Quantifier.OR;
         if(monitor != null) monitor.println(monitorId,"Multiplicities removed from clause " + clauseBefore +
-                " New clause: " + toString(symboltable,0));
+                ".  New clause: " + toString(symboltable,0));
         return true;}
 
     /** This method removes complementary literals like p,-p.
@@ -308,7 +309,7 @@ public class Clause extends LinkedItem {
      *
      * @param step The inference step to be added.
      */
-    private void addInferenceStep(InferenceStep step) {
+    private void addInferenceStep(NMInferenceStep step) {
         if(step != null) {
             if(inferenceSteps == null) inferenceSteps = new ArrayList<>();
             inferenceSteps.add(step);}}
@@ -440,7 +441,7 @@ public class Clause extends LinkedItem {
         for(int i = 0; i < literals.size()-1; i +=2) {
             if(literals.getInt(i) != clause.literals.getInt(i)) {
                 errors.append(errorPrefix + ": literals of clause " + toString(symboltable, 0) + " and " +
-                        clause.toString(symboltable, 0) + " are different at position " + i+"\n");
+                        clause.toString(symboltable, 0) + " are different at position " + (i/2)+"\n");
                 result = false;}}
         return result;}
 
@@ -497,6 +498,14 @@ public class Clause extends LinkedItem {
             sb.append(Symboltable.toString(array.getInt(i), symboltable));
             if (i < array.size() - 1) sb.append(",");}
         return sb.toString(); }
+
+    public String deductions(Symboltable symboltable) {
+        StringBuilder deductions = new StringBuilder();
+        Clause clause = this;
+        for (NMInferenceStep step : inferenceSteps) {
+            deductions.append(step.toString(clause,symboltable)).append("\n");
+            clause = step.clause;}
+        return deductions.toString();}
 
     /** turns the clause into a string.
      *

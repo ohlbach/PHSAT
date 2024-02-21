@@ -9,7 +9,10 @@ import java.util.ArrayList;
 
 public abstract class NMInferenceStep extends InferenceStep {
 
-    Clause clause;
+    public Clause clause;
+
+    public String toString(Clause deducedClause, Symboltable symboltable) {
+        return title() + ": " + clause.toString(symboltable,0) + " => " + deducedClause.toString(symboltable,0);}
 
 
     public abstract boolean verify(Clause deducedClause, Symboltable symboltable, StringBuilder errors);
