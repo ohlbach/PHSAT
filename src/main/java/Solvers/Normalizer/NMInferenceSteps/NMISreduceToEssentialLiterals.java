@@ -9,8 +9,8 @@ public class NMISreduceToEssentialLiterals extends NMInferenceStep {
 
 
 
-    public NMISreduceToEssentialLiterals(Clause clause) {
-        this.clause = clause;}
+    public NMISreduceToEssentialLiterals(String title, Clause clause) {
+        super(title,clause);}
 
     @Override
     public boolean verify(Clause deducedClause, Symboltable symboltable, StringBuilder errors) {

@@ -7,9 +7,8 @@ public class NMISdivideByGCD extends NMInferenceStep{
 
     String title = "Divide-by-GCD";
     int gcd;
-    public NMISdivideByGCD(Clause clause, int gcd) {
-        this.clause = clause;
-        this.gcd = gcd;
+    public NMISdivideByGCD(String title, Clause clause) {
+        super(title,clause);
     }
 
     /**

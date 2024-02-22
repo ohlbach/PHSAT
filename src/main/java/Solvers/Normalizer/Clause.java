@@ -109,15 +109,27 @@ public class Clause extends LinkedItem {
         return false;}
 
     /**
-     * Checks if the clause is true, given the true literals in the model.
+     * Checks if the clause is true in the given model.
+     * The method also works for clauses with complementary literals.
      *
      * @param model the true literals
      * @return true if the clause is true in the given model.
      */
     public boolean isTrue(IntPredicate model) {
+        if(quantifier == Quantifier.AND) {
+            for(int i = 0; i < literals.size()-1; i += 2) {
+                if(!model.test(literals.getInt(i))) return false;}
+            return true;}
+
         int trueLiterals = 0;
         for(int i = 0; i < literals.size()-1; i += 2) {
-            if(model.test(literals.getInt(i))) ++trueLiterals;}
+            int literal = literals.getInt(i);
+            boolean complementary = false;
+            for(int j = 0; j < i; j +=2) {
+                if(literals.getInt(j) == -literal) {
+                    trueLiterals += Math.abs(literals.getInt(i+1) - literals.getInt(j+1));
+                    complementary = true; break;}}
+            if(!complementary && model.test(literals.getInt(i))) trueLiterals += literals.getInt(i+1);}
         return min <= trueLiterals && trueLiterals <= max;}
 
     /** tests if the clause is a disjunction
@@ -153,7 +165,7 @@ public class Clause extends LinkedItem {
             if (literals.getInt(i) > min) {doReduction = true; break;}}
         if(!doReduction) return false;
 
-        if(trackReasoning) addInferenceStep(new NMISremoveMultiplicities(clone()));
+        if(trackReasoning) addInferenceStep(new NMInferenceStep("removeMultiplicities", clone()));
         String clauseBefore = monitor != null ? toString(symboltable,0) : "";
         for(int i = 1; i < literals.size(); i += 2) {
             int multiplicity = literals.getInt(i);
@@ -169,13 +181,12 @@ public class Clause extends LinkedItem {
     /** This method removes complementary literals like p,-p.
      *  Examples:  [1,4] p,q,r,-p -&gt; [0,2] q,r (tautology) <br>
      *  [1,3] p^2,q,r,-p^2 -&gt; [0,1] q,r  (two 'truth')<br>
-     *  [1,3] p^2,q,r,-p -&gt; [1,2] p,q,r (one 'truth')<br>
-     *  The limits and the resulting multiplicities are not checked.
+     *  [1,3] p^2,q,r,-p -&gt; [0,2] p,q,r (one 'truth')<br>
      *
      * @param trackReasoning true if an inference step is to be added.
      * @param monitor        null or a monitor
      * @param symboltable    null or a symboltable
-     * @return true if the clause is true (tautology)
+     * @return true if the clause is true (tautology) otherwise false
      */
     boolean removeComplementaries(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         boolean complementaryFound = false;
@@ -187,7 +198,7 @@ public class Clause extends LinkedItem {
         if(complementaryFound) {if(quantifier == Quantifier.OR) return true;}
         else return false;
 
-        if(trackReasoning) addInferenceStep(new NMISremoveComplementaries(clone()));
+        if(trackReasoning) addInferenceStep(new NMInferenceStep("removeComplementaries", clone()));
         String clauseBefore = (monitor != null) ? toString(symboltable,0) : "";
 
         for(int i = 0; i < literals.size(); i+=2) {
@@ -296,7 +307,7 @@ public class Clause extends LinkedItem {
      */
     private boolean andConversion(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
      if(min == expandedSize) {
-         if(trackReasoning) addInferenceStep(new NMISAndConversion(clone()));
+         if(trackReasoning) addInferenceStep(new NMInferenceStep("andConversion",clone()));
         if(monitor != null) {
             monitor.println(monitorId,"Clause " + toString(symboltable,0) +
                     " causes all its literals to become true ");}
@@ -357,7 +368,7 @@ public class Clause extends LinkedItem {
             if(gcd == 1) return false;}
 
 
-        if(trackReasoning) addInferenceStep(new NMISdivideByGCD(clone(),gcd));
+        if(trackReasoning) addInferenceStep(new NMInferenceStep("divideByGCD",clone()));
         int[] clauseBefore = monitor != null ? toIntArray() : null;
 
         ++version;
@@ -393,7 +404,7 @@ public class Clause extends LinkedItem {
             if(literals.getInt(i) < min) remainingMultiplicity += literals.getInt(i);}
         if(remainingMultiplicity > min) return false;
 
-        if(trackReasoning) {addInferenceStep(new NMISreduceToEssentialLiterals(clone()));
+        if(trackReasoning) {addInferenceStep(new NMInferenceStep("reduceToEssentialLiterals",clone()));
 
         int[] clauseBefore = (monitor != null) ? toIntArray() : null;
         for(int i = literals.size()-1; i >= 0; i -=2) {

@@ -8,8 +8,8 @@ public class NMISAndConversion extends NMInferenceStep{
 
     public static final String title = "And-Conversion";
 
-    public NMISAndConversion(Clause clause) {
-        this.clause = clause;}
+    public NMISAndConversion(String title, Clause clause) {
+        super(title,clause);}
     @Override
     public boolean verify(Clause deducedClause, Symboltable symboltable, StringBuilder errors) {
         boolean result = true;

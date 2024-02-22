@@ -9,8 +9,8 @@ import Solvers.Normalizer.Clause;
  */
 public class NMISremoveMultiplicities extends NMInferenceStep{
 
-    public NMISremoveMultiplicities(Clause clause) {
-        this.clause = clause;}
+    public NMISremoveMultiplicities(String title,Clause clause) {
+        super(title,clause);}
 
     public String title() {
         return "RemoveMultiplicities";}
