@@ -105,8 +105,9 @@ public class Clause extends LinkedItem {
         if(min > 0) {
             for(int i = 0; i < literals.size()-1; i += 2) {
                 if(literal == literals.getInt(i)) {
-                    if(literals.getInt(i+1) >= min) return true;}}} // multiplicity(literal) >= min makes the clause true.
-        return false;}
+                    if(literals.getInt(i+1) >= min) return true;}} // multiplicity(literal) >= min makes the clause true.
+            return false;}
+        else return true;}
 
     /**
      * Checks if the clause is true in the given model.
@@ -213,19 +214,26 @@ public class Clause extends LinkedItem {
                         min -= multiplicityBack; max -= multiplicityBack; expandedSize -= 2*multiplicityBack;
                         i -= 4;
                         break;}
-                    if(multiplicityBack < multiplicityFront) {
+                    if(multiplicityFront > multiplicityBack) {
                         literals.set(j+1,multiplicityFront-multiplicityBack);
-                        literals.removeInt(i+1);literals.removeInt(i);
-                        min -= multiplicityBack; max -= multiplicityBack; expandedSize -= multiplicityBack;
+                        literals.removeInt(i+1);literals.removeInt(i); // remove back
+                        min -= multiplicityBack; max -= multiplicityBack; expandedSize -= 2*multiplicityBack;
                         i -= 2;
                         break;}
                     if(multiplicityBack > multiplicityFront) {
                         literals.set(i+1,multiplicityBack-multiplicityFront);
-                        literals.removeInt(j+1);literals.removeInt(j);
-                        min -= multiplicityFront; max -= multiplicityFront; expandedSize -= multiplicityFront;
+                        literals.removeInt(j+1);literals.removeInt(j); // remove front
+                        min -= multiplicityFront; max -= multiplicityFront; expandedSize -= 2*multiplicityFront;
                         i -= 2;
                         break;}}}}
         min = Math.max(0,min);
+        if(min > 0) {   // min has been reduced. Reduce multiplicities to min.
+            for(int i = 1; i < literals.size(); i += 2) {
+                int multiplicity = literals.getInt(i);
+                if(multiplicity > min) {
+                    literals.set(i,min);
+                    expandedSize -= multiplicity - min;}}}
+        if(min == 1 && max == expandedSize) quantifier = Quantifier.OR;
         ++version;
         if(monitor != null) {
             monitor.println("Normalizer.clause","Complementary Literals in Clause " +

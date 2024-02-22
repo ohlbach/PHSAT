@@ -4,7 +4,6 @@ import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
-import Solvers.Normalizer.NMInferenceSteps.NMISremoveComplementaries;
 import Solvers.Normalizer.NMInferenceSteps.NMInferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
@@ -13,6 +12,7 @@ import java.util.Arrays;
 
 
 public class ClauseTest extends TestCase {
+    int nand = Quantifier.AND.ordinal();
     int nor = Quantifier.OR.ordinal();
     int natl = Quantifier.ATLEAST.ordinal();
     int natm = Quantifier.ATMOST.ordinal();
@@ -67,6 +67,35 @@ public class ClauseTest extends TestCase {
         assertEquals("9: ", clause1.toString(null,0));
     }
 
+    public void testIsTrue() {
+        System.out.println("isTrue");
+        Clause clause1 = new Clause(new int[]{5, nor, 1,2,3});
+        assertTrue(clause1.isTrue(literal -> literal == 1));
+        assertTrue(clause1.isTrue(literal -> literal == 2));
+        assertTrue(clause1.isTrue(literal -> literal == 3));
+        assertFalse(clause1.isTrue(literal -> literal == -2));
+
+        clause1 = new Clause(new int[]{6, natl, 2, 1,2,2,3});
+        assertFalse(clause1.isTrue(literal -> literal == 1));
+        assertTrue(clause1.isTrue(literal -> literal == 2));
+        assertTrue(clause1.isTrue(literal -> literal != 2));
+
+        clause1 = new Clause(new int[]{7, natm, 2, 1,2,2,2,3});
+        assertFalse(clause1.isTrue(literal -> literal == 2));
+        assertTrue(clause1.isTrue(literal -> literal == 4));
+
+        clause1 = new Clause(new int[]{8, nint, 2, 3, 1,2,2,2,3});
+        assertFalse(clause1.isTrue(literal -> literal == 1));
+        assertTrue(clause1.isTrue(literal -> literal != 2));
+        assertTrue(clause1.isTrue(literal -> literal == 2));
+
+        clause1 = new Clause(new int[]{9, nor, 1,2,3});
+        clause1.quantifier = Quantifier.AND;
+        assertFalse(clause1.isTrue(literal -> literal == 1));
+        assertTrue(clause1.isTrue(literal -> literal != 4));
+        assertFalse(clause1.isTrue(literal -> literal != 2));
+    }
+
     public void testRemoveMultiplicities() {
         System.out.println("removeMultiplicities");
         int[] clause = new int[]{5,nor,1,-2,3};
@@ -97,42 +126,44 @@ public class ClauseTest extends TestCase {
     }
 
     public void testRemoveMultiplicitiesVerify() {
-        System.out.println("removeMultiplicities Vrify");
+        System.out.println("removeMultiplicities Verify");
         int[] clause = new int[]{7,natl,2,-2,-2,1,3,3,-2,1,1};
-        symboltable = null;
+        //symboltable = null;
         Clause clause1 = new Clause(clause);
         assertTrue(clause1.removeMultiplicities(true, monitor, symboltable));
-        //assertEquals("7.1: >=2 -q^2,p^2,r^2",clause1.toString(symboltable,0));
+        assertEquals("7.1: >=2 -q^2,p^2,r^2",clause1.toString(symboltable,0));
         StringBuilder errors = new StringBuilder();
         assertTrue(clause1.inferenceSteps.get(0).verify(clause1,symboltable,errors));
+
         System.out.println("NEW");
-        Clause clause2 =  new Clause(new int[]{7,natl,2,-2,1,1,3});
-        System.out.println(clause2.toString(null,0));
+        clause1 = new Clause(new int[]{8,natl,2,1,2,2,2,3});
+        Clause clause2 =  new Clause(new int[]{9,natl,2,1,2,3});
+        assertTrue(clause1.removeMultiplicities(true, monitor, symboltable));
         assertFalse(clause1.inferenceSteps.get(0).verify(clause2,symboltable,errors));
         System.out.println(errors.toString());
 
     }
-    public void testRemoveComplementariesIsTrue() {
-        System.out.println("removeComplementaries Verification isTrue");
+    public void testNMInferenceStepIsTrue() {
+        System.out.println("NMInferenceStep Verification isTrue");
         IntArrayList literals = IntArrayList.wrap(new int[]{1,2,3});
-        assertFalse(NMISremoveComplementaries.isTrue(0,1,literals));
-        assertTrue(NMISremoveComplementaries.isTrue(0,-1,literals));
-        assertTrue(NMISremoveComplementaries.isTrue(1,1,literals));
-        assertFalse(NMISremoveComplementaries.isTrue(1,-1,literals));
-        assertTrue(NMISremoveComplementaries.isTrue(3,1,literals)); // pattern 11
-        assertFalse(NMISremoveComplementaries.isTrue(3,-1,literals));
-        assertFalse(NMISremoveComplementaries.isTrue(4,1,literals)); // pattern 100
-        assertTrue(NMISremoveComplementaries.isTrue(4,-1,literals));
-        assertTrue(NMISremoveComplementaries.isTrue(4,3,literals));
-        assertFalse(NMISremoveComplementaries.isTrue(4,-3,literals));
-        assertTrue(NMISremoveComplementaries.isTrue(5,3,literals));  // pattern 101
-        assertFalse(NMISremoveComplementaries.isTrue(5,-3,literals));
+        assertFalse(NMInferenceStep.isTrue(0,1,literals));
+        assertTrue(NMInferenceStep.isTrue(0,-1,literals));
+        assertTrue(NMInferenceStep.isTrue(1,1,literals));
+        assertFalse(NMInferenceStep.isTrue(1,-1,literals));
+        assertTrue(NMInferenceStep.isTrue(3,1,literals)); // pattern 11
+        assertFalse(NMInferenceStep.isTrue(3,-1,literals));
+        assertFalse(NMInferenceStep.isTrue(4,1,literals)); // pattern 100
+        assertTrue(NMInferenceStep.isTrue(4,-1,literals));
+        assertTrue(NMInferenceStep.isTrue(4,3,literals));
+        assertFalse(NMInferenceStep.isTrue(4,-3,literals));
+        assertTrue(NMInferenceStep.isTrue(5,3,literals));  // pattern 101
+        assertFalse(NMInferenceStep.isTrue(5,-3,literals));
 
-        assertEquals("", NMISremoveComplementaries.model(0,literals,null));
-        assertEquals("1,3,", NMISremoveComplementaries.model(5,literals,null));
+        assertEquals("", NMInferenceStep.model(0,literals,null));
+        assertEquals("1,3,", NMInferenceStep.model(5,literals,null));
         literals.set(1,-2);
-        assertEquals("1,-2,3,", NMISremoveComplementaries.model(7,literals,null));
-        assertEquals("-2,", NMISremoveComplementaries.model(2,literals,null));
+        assertEquals("1,-2,3,", NMInferenceStep.model(7,literals,null));
+        assertEquals("-2,", NMInferenceStep.model(2,literals,null));
     }
     public void testRemoveComplementariesVerify() {
         System.out.println("removeComplementaries Verify");
@@ -166,18 +197,21 @@ public class ClauseTest extends TestCase {
 
         clause = new int[]{6,nor,1,-2,3,-1,2};
         clause1 = new Clause(clause);
-        clause1.removeComplementaries(false, null, null);
-        assertEquals("6: 3", clause1.toString(null,0));
+        assertTrue(clause1.removeComplementaries(false, null, null));
 
         clause = new int[]{7,natl,5,1,1,-2,3,-1,2,2};
         clause1 = new Clause(clause);
         clause1.removeComplementaries(false, null, null);
-        assertEquals("7: >=3 1,3,2", clause1.toString(null,0));
+        assertEquals("7.1: >=3 1,3,2", clause1.toString(null,0));
 
         Monitor monitor = new MonitorLife();
-        clause = new int[]{8,nint,1,2,3,1,1,-2,3,-1,2,2,-2};
+        StringBuilder errors = new StringBuilder();
+        clause = new int[]{8,nint,4,5,3,1,1,-2,3,-1,2,2,-2};
         clause1 = new Clause(clause);
-        clause1.removeComplementaries(false, monitor, null);
-        assertEquals("8: [0,-1] 3^2,1", clause1.toString(null,0));
+        clause1.removeComplementaries(true, monitor, null);
+        assertEquals("8.1: 3,1", clause1.toString(null,0));
+        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
     }
+
+
 }

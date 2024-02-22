@@ -36,7 +36,7 @@ public class NMInferenceStep extends InferenceStep {
             int ifinal = i;
             if(clause.isTrue(literal-> isTrue(ifinal,literal,literals))) {
                 if(!deducedClause.isTrue(literal->isTrue(ifinal,literal,literals))) {
-                    errors.append("NMISremoveComplementaries: " + clause.toString(symboltable, 0) +
+                    errors.append(title + ": " + clause.toString(symboltable, 0) +
                             " is true in model: " +model(i,literals,symboltable) + "  but deduced clause " +
                             deducedClause.toString(symboltable, 0) + " is false.\n");
                     return false;}}}
