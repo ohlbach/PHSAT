@@ -19,6 +19,7 @@ public class NMInferenceStep extends InferenceStep {
 
     public String toString(Clause deducedClause, Symboltable symboltable) {
         return title() + ": " + clause.toString(symboltable,0) + " => " + deducedClause.toString(symboltable,0);}
+
     /** Checks if the deduced clause is true in all models of the original clause.
      *
      * @param deducedClause The deduced clause to compare with.
@@ -50,7 +51,7 @@ public class NMInferenceStep extends InferenceStep {
      * @param literals   a list of literals
      * @return           true if the literal is true in the model.
      */
-    public static boolean isTrue(int i, int literal, IntArrayList literals) {
+    public boolean isTrue(int i, int literal, IntArrayList literals) {
         int index = literals.indexOf(Math.abs(literal));
         boolean truth = (i & (1 << index)) != 0;
         return literal > 0 ? truth : !truth;}

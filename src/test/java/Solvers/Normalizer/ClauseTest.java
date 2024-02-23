@@ -213,5 +213,44 @@ public class ClauseTest extends TestCase {
         assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
     }
 
+    public void testDivideByGCD() {
+        System.out.println("divideByGCD");
+        StringBuilder errors = new StringBuilder();
+        Clause clause1 = new Clause(new int[]{5, natl, 4, 1,1,2,2,3,3});
+        assertTrue(clause1.divideByGCD(true,monitor,null));
+        assertEquals("5.1: >=2 1,2,3", clause1.toString(null, 0));
+        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
+        assertEquals(3,clause1.expandedSize);
 
-}
+        Clause clause2 = new Clause(new int[]{5, natl, 2, 1,-2,3});
+        assertFalse(clause1.inferenceSteps.get(0).verify(clause2,null,errors));
+        System.out.println(errors.toString());
+
+        clause1 = new Clause(new int[]{6, natl, 2, 1,1,2,2,3,3});
+        assertTrue(clause1.divideByGCD(true,monitor,null));
+        assertEquals("6.1: 1,2,3", clause1.toString(null, 0));
+        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
+
+        clause1 = new Clause(new int[]{6, natl, 2, 1,1,2,2,3,3,3});
+        assertFalse(clause1.divideByGCD(true,monitor,null));
+        assertEquals("6: >=2 1^2,2^2,3^3", clause1.toString(null, 0));
+    }
+
+    public void testReduceToEssentialLiterals() {
+        System.out.println("reduceToEssentialLiterals");
+        StringBuilder errors = new StringBuilder();
+        Clause clause1 = new Clause(new int[]{5, natl, 2, 1, 1, 2, 2, 3});
+        assertTrue(clause1.reduceToEssentialLiterals(true, monitor, null));
+        assertEquals("5.1: 1,2",clause1.toString(null,0));
+        NMInferenceStep step = clause1.inferenceSteps.get(0);
+        assertTrue(step.verify(clause1,null,errors));
+
+        Clause clause2 = new Clause(new int[]{6, nor, 1,3});
+        assertFalse(step.verify(clause2,null,errors));
+        System.out.println(errors.toString());
+
+        clause1 = new Clause(new int[]{2, natl, 2, 1, 1, 2, 2, 3,4});
+        assertFalse(clause1.reduceToEssentialLiterals(true, monitor, null));
+
+    }
+    }

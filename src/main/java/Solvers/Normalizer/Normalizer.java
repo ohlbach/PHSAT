@@ -163,7 +163,7 @@ public class Normalizer {
                 for(int j = 0; j < clauses.size(); ++j) {
                     Clause clause = clauses.get(j);
                     clauses.remove(j--);
-                    if(clause.applyTrueLiteral(literal,i > 0, inferenceStep, trackReasoning,monitor, symboltable)) {
+                    if(clause.applyTrueLiteral(literal,inferenceStep, trackReasoning,monitor, symboltable)) {
                         removeClauseFromIndex(clause);
                     };
 
