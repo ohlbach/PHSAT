@@ -2,28 +2,41 @@ package Solvers.Normalizer;
 
 import Datastructures.Clauses.Quantifier;
 import Datastructures.LinkedItem;
-import Datastructures.Results.UnsatClause;
-import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import InferenceSteps.NMISEquivalentLiteral;
 import Management.Monitor.Monitor;
 import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteral;
 import Solvers.Normalizer.NMInferenceSteps.NMInferenceStep;
-import Utilities.BiConsumerWithUnsatisfiable;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.function.IntPredicate;
 
+/** This class represents clauses to be used in the Normalizer method.
+ * Clause is a subclass of LinkedItem. Therefore, it can become part of a (single) doubly linked list.
+ * Since the clause class has variables min and max, it can represent all versions of quantified clauses.
+ * Nevertheless, the quantifier variable is always set to the most specific Quantifier.
+ * <br>
+ * The constructor just creates a new clause without any simplifications.
+ * Simplifications are be done in the simplify method.
+ * Each simplification keeps the clause's identifier, but increments its version number.
+ * The simplifications can be tracked by adding NMInferenceStep objects to the inferenceSteps list.
+ * The NMInferenceStep objects keep a clone of the clause before the simplification.
+ * Therefore, inference steps can be verified by checking if the simplified clause is true in all
+ * models of the original clause (see the verify-method of NMInferenceStep).
+ * <br>
+ * In most concrete examples of clauses, there should not be redundancies like large multiplicities
+ * or true or false clauses. Therefore, the algorithms need not be optimized to simplify clauses as fast as possible.
+ */
 public class Clause extends LinkedItem {
     /**The original identifier of the input clause. */
     public int id;
     /** indicates simplified versions of the clause. The version of the original clause is 0.*/
     public int version = 0;
 
-    /** the quantifier, but not AND or EQUIV */
+    /** the quantifier, but not EQUIV */
     public Quantifier quantifier;
 
     /** the lower limit for the quantification*/
@@ -31,6 +44,12 @@ public class Clause extends LinkedItem {
 
     /** the upper limit for the quantification */
     public int max;
+
+    /** indicates that the clause is a tautology, e.g. p,-p or [0,2] p,q */
+    public boolean isTrue = false;
+
+    /** indicates that the clause is false, e.g. [1,2] p^3*/
+    public boolean isFalse = false;
 
     /** literal_1,multiplicity_1,literal2,multiplicity_2, ... */
     public IntArrayList literals;
@@ -41,13 +60,17 @@ public class Clause extends LinkedItem {
     /** the number of the literals, multiplied by their multiplicities */
     public int expandedSize = 0;
 
-    private String monitorId = "Normalizer.clause";
+    /** An id for a potential monitor */
+    private final String monitorId = "Normalizer.clause";
 
-    ArrayList<NMInferenceStep> inferenceSteps;
+    /** A list of inference steps which transformed the clause */
+    public ArrayList<NMInferenceStep> inferenceSteps;
 
     /** Creates a Clause object from the given input clause.
      * The constructor does not apply to AND and EQUIV clauses.
      * Multiple occurrences of literals are comprised into one occurrence with corresponding multiplicities.<br>
+     * The clause's quantifier is optimized to represent the most specific Quantifier.
+     * For example, a disjunction which is actually a unit clause gets the quantifier AND.
      *
      * @param inputClause the input clause.
      */
@@ -55,7 +78,7 @@ public class Clause extends LinkedItem {
         this.inputClause = inputClause;
         id = inputClause[0];
         quantifier = Quantifier.getQuantifier(inputClause[1]);
-        assert(quantifier != Quantifier.EQUIV && quantifier != Quantifier.AND);
+        assert(quantifier != null && quantifier != Quantifier.EQUIV && quantifier != Quantifier.AND);
         int firstLiteralIndex = quantifier.firstLiteralIndex;
         expandedSize = inputClause.length-firstLiteralIndex;
         switch(quantifier) {
@@ -72,7 +95,8 @@ public class Clause extends LinkedItem {
                 if(literal == literals.getInt(j)) {
                     literals.set(j+1,literals.getInt(j+1)+1);
                     multiple = true; break;}}
-            if(!multiple) {literals.add(literal); literals.add(1);}}}
+            if(!multiple) {literals.add(literal); literals.add(1);}}
+        classifyClause();}
 
     private Clause() {}
 
@@ -93,8 +117,37 @@ public class Clause extends LinkedItem {
         clause.expandedSize = expandedSize;
         return clause;}
 
+    /**
+     * Classifies the clause based on its properties.
+     * <br>
+     * - If the quantifier is AND, returns immediately.<br>
+     * - If the clause is true, returns immediately.<br>
+     * - If the min value is equal to the expanded size, sets the quantifier to AND and returns.<br>
+     * - If the min value is 1 and the max value is equal to the expanded size, sets the quantifier to OR and returns.<br>
+     * - If the min value is equal to the max value, sets the quantifier to EXACTLY and returns.<br>
+     * - If the min value is 0, sets the quantifier to ATMOST and returns.<br>
+     * - If the max value is equal to the expanded size, sets the quantifier to ATLEAST and returns.<br>
+     * - Otherwise, sets the quantifier to INTERVAL.
+     */
+    private void classifyClause() {
+        if(quantifier == Quantifier.AND) return;
+        if(isTrue()) return;
+        if(min > expandedSize) {isFalse = true; return;}
+        if(min == expandedSize)             {quantifier = Quantifier.AND;     return;}
+        if(min == 1 && max == expandedSize) {quantifier = Quantifier.OR;      return;}
+        if(min == max)                      {quantifier = Quantifier.EXACTLY; return;}
+        if(min == 0)                        {quantifier = Quantifier.ATMOST;  return;}
+        if(max == expandedSize)             {quantifier = Quantifier.ATLEAST; return;}
+        quantifier = Quantifier.INTERVAL;}
+
+    /**
+     * Checks if the interval spans the entire clause (e.g. [0,3] p,q,r)
+     *
+     * @return true if the conditions for "isTrue" are met, false otherwise.
+     */
     public boolean isTrue() {
-        return min <= 0 && max == expandedSize;}
+        if(min <= 0 && max == expandedSize) {isTrue = true; return true;}
+        return false;}
 
     /**
      * Checks if making the given literal true, makes the entire clause true.
@@ -149,8 +202,31 @@ public class Clause extends LinkedItem {
     public boolean hasMultiplicities() {
         return 2*expandedSize != literals.size();  }
 
-    /**
-     * Removes the multiplicities &gt; min from the clause (if min &gt; 0).
+    /** simplifies the clause.
+     * <br>
+     * 1. removes multiplicities &gt; min <br>
+     * 2. removes complementary literals <br>
+     * 3. reduces to essential literals <br>
+     * 4. divides by GCD <br>
+     * 5. finds true literals.
+     *
+     * @param trackReasoning if true then inference steps are generated
+     * @param monitor        null or a monitor
+     * @param symboltable    null or a symboltable.
+     * @return null or a conjunction (either the changed clause itself or a newly generated clause).
+     */
+    public Clause simplify(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+        if(isTrue || isFalse) return null;
+        removeMultiplicities(trackReasoning,monitor,symboltable);                  // does not change its status.
+        if(removeComplementaries(trackReasoning,monitor,symboltable)) return null; // may be a tautology
+        if(quantifier == Quantifier.OR) return null;  // no further simplifications possible.
+        if(reduceToEssentialLiterals(trackReasoning,monitor,symboltable))
+            return (quantifier == Quantifier.AND) ? this : null;
+        divideByGCD(trackReasoning,monitor,symboltable);
+        return findTrueLiterals(trackReasoning,monitor,symboltable);} // clause may have become false.
+
+    /**Removes the multiplicities &gt; min from the clause (if min &gt; 0).
+     * <br>
      * Example:  [2,3] p^3,q,r,s -&gt; [2,3] p^2,q,r,s.<br>
      * Removes in particular multiple occurrences of literals in disjunctions.
      *
@@ -159,7 +235,7 @@ public class Clause extends LinkedItem {
      * @param symboltable the symbol table, can be null
      * @return true if the multiplicities were removed, false otherwise
      */
-    boolean removeMultiplicities(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    public boolean removeMultiplicities(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         assert(quantifier != Quantifier.EQUIV);
         if(min == 0 || quantifier == Quantifier.AND) return false;
         boolean doReduction = false;
@@ -174,8 +250,9 @@ public class Clause extends LinkedItem {
             if (multiplicity > min) {
                 expandedSize -= multiplicity - min;
                 literals.set(i,min);}}
+        max = Math.min(max,expandedSize);
         ++version;
-        if(min == 1 && max == expandedSize) quantifier = Quantifier.OR;
+        classifyClause();
         if(monitor != null) monitor.println(monitorId,"Multiplicities removed from clause " + clauseBefore +
                 ".  New clause: " + toString(symboltable,0));
         return true;}
@@ -197,7 +274,7 @@ public class Clause extends LinkedItem {
             for(int j = 0; j < i; j +=2) {
                 if (literal == -literals.getInt(j)) { complementaryFound = true; break;}}
             if(complementaryFound) break;}
-        if(complementaryFound) {if(quantifier == Quantifier.OR) return true;}
+        if(complementaryFound) {if(quantifier == Quantifier.OR) {isTrue = true; return true;}}
         else return false;
 
         if(trackReasoning) addInferenceStep(new NMInferenceStep("removeComplementaries", clone()));
@@ -221,12 +298,11 @@ public class Clause extends LinkedItem {
                         min -= multiplicityBack; max -= multiplicityBack; expandedSize -= 2*multiplicityBack;
                         i -= 2;
                         break;}
-                    if(multiplicityBack > multiplicityFront) {
-                        literals.set(i+1,multiplicityBack-multiplicityFront);
-                        literals.removeInt(j+1);literals.removeInt(j); // remove front
-                        min -= multiplicityFront; max -= multiplicityFront; expandedSize -= 2*multiplicityFront;
-                        i -= 2;
-                        break;}}}}
+                    literals.set(i+1,multiplicityBack-multiplicityFront);
+                    literals.removeInt(j+1);literals.removeInt(j); // remove front
+                    min -= multiplicityFront; max -= multiplicityFront; expandedSize -= 2*multiplicityFront;
+                    i -= 2;
+                    break;}}}
         min = Math.max(0,min);
         if(min > 0) {   // min has been reduced. Reduce multiplicities to min.
             for(int i = 1; i < literals.size(); i += 2) {
@@ -234,7 +310,7 @@ public class Clause extends LinkedItem {
                 if(multiplicity > min) {
                     literals.set(i,min);
                     expandedSize -= multiplicity - min;}}}
-        if(min == 1 && max == expandedSize) quantifier = Quantifier.OR;
+        classifyClause();
         ++version;
         if(monitor != null) {
             monitor.println("Normalizer.clause","Complementary Literals in Clause " +
@@ -242,88 +318,53 @@ public class Clause extends LinkedItem {
         return isTrue();}
 
 
-    /**
-     *
-     * @param model
-     * @param trackReasoning
-     * @param monitor
-     * @param symboltable
-     * @return true if the clause is still useful.
-     * @throws Unsatisfiable
-     */
-    boolean reduceNumbers(BiConsumerWithUnsatisfiable<Integer,InferenceStep> model, boolean trackReasoning,
-                          Monitor monitor, Symboltable symboltable) throws Unsatisfiable {
-        if(expandedSize <= 0 || min > max || min > expandedSize) {
-            throw new UnsatClause(null,null,inputClause);} // anpassen
-        if(min == 0 && max == expandedSize) {
-            if(monitor != null) monitor.println("Normalizer.clause", "Clause " + toString(symboltable,0) + " is true");
-            return false;}
 
-        InferenceStep step = null;  // anpassen
-        IntArrayList falseLiterals = null;
-        int[] clauseBefore;
-        for(int i = 0; i < literals.size(); i += 2) {
-            int multiplicity = literals.getInt(i+1); // multiplicities > min can be reduced to min.
-            if(multiplicity > min) {expandedSize -= multiplicity-min; literals.set(i,min); continue;}
-            if(multiplicity > max) { // literals with multiplicities > max must be false.
-                if(falseLiterals == null) falseLiterals = new IntArrayList(1);
-                falseLiterals.add(i);}}
-
-        if(falseLiterals != null) {
-            clauseBefore = toIntArray();
-            for(int index = falseLiterals.size()-1; index >= 0; index -= 2) {
-                int literal = literals.get(index);
-                falseLiterals.set(index,literal);
-                literals.removeInt(index+1);
-                literals.removeInt(index);
-                model.accept(-literal,step);}
-            if(monitor != null) {
-                monitor.println(monitorId,"Clause " + arrayToString(clauseBefore,symboltable) +
-                        " causes the following false literals: " + arrayListToString(falseLiterals,symboltable) +
-                        " new clause: " + toString(symboltable,0));}}
-
-        if(min > expandedSize) throw new UnsatClause(null,null,inputClause);
-        andConversion(trackReasoning,monitor,symboltable);
-
-        if(min == 0) { // atmost-clause turned into atleast-clause
-            clauseBefore = toIntArray();
-            int minOld = min;
-            min = expandedSize-max; max = expandedSize-minOld;
-            for(int i = 0; i < literals.size(); i += 2) {literals.set(i,-literals.getInt(i));}
-            quantifier = Quantifier.ATLEAST;
-            if(monitor != null) {
-                monitor.println(monitorId,"Clause " + arrayToString(clauseBefore,symboltable) +
-                        " is turned into an atleast-clause " + toString(symboltable,0));}}
-
-        if(quantifier != quantifier.OR) reduceToEssentialLiterals(trackReasoning,monitor,symboltable);
-        if(divideByGCD(trackReasoning,monitor,symboltable)) {
-            andConversion(trackReasoning,monitor,symboltable);}
-        if(min == 1 && max == expandedSize) quantifier = Quantifier.OR;
-        if(min == max) quantifier = Quantifier.EXACTLY;
-
-        return true;
-    }
-
-    /** A clause like [3,3] p,q,r  (where min = expandedSize) can only be true if all literals are true.
-     * If this is the case then the clause is turned into a conjunction.<br>
-     * This happens in particular if the clause is a unit clause.<br>
-     * Notice that the multiplicities are not changed. They are irrelevant.
+    /** This method extracts true literals from a clause.
+     * There are two ways to find true literals. <br>
+     * 1. min == expanded size. Example: atleast 2 p,q (both p and q must be true).<br>
+     *    This comprises also unit clauses like p (p must be true).<br>
+     *    In this case the clause is just turned into a conjunction.
+     * 2. In clauses like atmost 2 p^3,q,r (multiplicity(p) &gt; max) p must be false.
+     *    In this case the false literals are removed and a new clause (conjunction) is built from the negated literals.
      *
      * @param trackReasoning if true then an inference step is generated
      * @param monitor        if != null then the step is monitored
      * @param symboltable    null or a symboltable.
-     * @return true if the clause has become a conjunction.
+     * @return null or a (old or new) conjunction.
      */
-    private boolean andConversion(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
-     if(min == expandedSize) {
-         if(trackReasoning) addInferenceStep(new NMInferenceStep("andConversion",clone()));
-        if(monitor != null) {
-            monitor.println(monitorId,"Clause " + toString(symboltable,0) +
+    private Clause findTrueLiterals(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+        if(min == expandedSize) {
+            if(trackReasoning) addInferenceStep(new NMInferenceStep("findTrueLiterals",clone()));
+            if(monitor != null) {
+                monitor.println(monitorId,"Clause " + toString(symboltable,0) +
                     " causes all its literals to become true ");}
-         ++version;
-         quantifier = Quantifier.AND;
-        return true;}
-     return false;}
+            ++version;
+            quantifier = Quantifier.AND;
+            return this;}
+        if(max < expandedSize) {
+            IntArrayList trueLiterals = new IntArrayList();
+            for(int i = literals.size()-2; i >= 0;  i -=2) {
+              if(literals.getInt(i+1) > max) {trueLiterals.add(-literals.getInt(i)); trueLiterals.add(1);}}
+            if(trueLiterals.isEmpty()) return null;
+
+            NMInferenceStep step = trackReasoning ? new NMInferenceStep("findTrueLiterals",clone()) : null;
+            for(int i = literals.size()-2; i >= 0;  i -=2) {
+                int multiplicity = literals.getInt(i+1);
+                if(multiplicity > max) {
+                    literals.removeInt(i+1);
+                    literals.removeInt(i);
+                    expandedSize -= multiplicity;}}
+            if(literals.isEmpty()) isFalse = true;
+
+            Clause clause = new Clause();
+            clause.literals = trueLiterals;
+            clause.id = id;
+            clause.version = version+1;
+            clause.inferenceSteps = new ArrayList<>();
+            clause.quantifier = Quantifier.AND;
+            if(trackReasoning) clause.addInferenceStep(step);
+            return clause;}
+     return null;}
 
     /** Add an inference step to the list of inference steps.
      *
@@ -339,6 +380,9 @@ public class Clause extends LinkedItem {
 
     /** divides the limits and the multiplicities by their greatest common divisor.
      *
+     * @param trackReasoning   controls generation of inference steps.
+     * @param monitor          null or a monitor.
+     * @param symboltable      null or a symboltable.
      * @return true if the clause is changed.
      */
     protected boolean divideByGCD(boolean trackReasoning, Monitor monitor,Symboltable symboltable) {
@@ -366,7 +410,7 @@ public class Clause extends LinkedItem {
             expandedSize -= literals.getInt(i) - multiplicity;
             literals.set(i,multiplicity);}
 
-        if(min == 1 && max == expandedSize) quantifier = Quantifier.OR;
+        classifyClause();
 
         if(monitor != null) {
             monitor.println(monitorId, "Divide by GCD in Clause " +
@@ -376,7 +420,7 @@ public class Clause extends LinkedItem {
     /** The method reduces clauses to their essential literals.
      * If the sum of the multiplicities of those literals with multiplicity &lt; min is smaller than min,
      * one of the literals with multiplicity == min must be true.
-     *
+     *<br>
      * Example: &gt;= 2 p^2,q^2,r. One of p,q is sufficient to make the clause true.<br>
      * Therefore it is reduced to p,q
      *
@@ -401,7 +445,7 @@ public class Clause extends LinkedItem {
             else literals.set(i+1,1);}
         min = 1; max = literals.size()/2;
         expandedSize = max;
-        quantifier = (expandedSize == 1) ? Quantifier.AND : Quantifier.OR;
+        classifyClause();
         ++version;
         if(monitor != null) {
             monitor.println(monitorId, "Reduce to Essential Literals in Clause " +
@@ -409,14 +453,25 @@ public class Clause extends LinkedItem {
         return true;}
 
 
+    /**Applies a true literal to the clause, simplifying it by removing the corresponding literal and updating the clause properties.
+     * <br>
+     * Notice that the clause can become true or false.
+     *
+     * @param trueLiteral The true literal to be applied to the clause.
+     * @param inferenceStep The inference step associated with the application of the true literal.
+     * @param trackReasoning Indicates whether reasoning steps should be tracked.
+     * @param monitor The monitor used for printing information.
+     * @param symboltable The symbol table used for converting literals to strings.
+     * @return true if the clause was successfully simplified by applying the true literal, false otherwise.
+     */
     boolean applyTrueLiteral(int trueLiteral, InferenceStep inferenceStep, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         int[] clauseBefore = monitor != null ? toIntArray() : null;
         NMISTrueLiteral step = trackReasoning ? new NMISTrueLiteral("applyTrueLiteral", trueLiteral, inferenceStep, clone()) : null;
         boolean literalFound = false;
-        for(int i = 0; i < literals.size()-1; i += 2) {
+        for(int i = literals.size()-2; i >= 0; i -= 2) {
             int literal = literals.getInt(i);
             if(Math.abs(literal) == Math.abs(trueLiteral)) {
-                int multiplicity = literals.get(i+1);
+                int multiplicity = literals.getInt(i+1);
                 literals.removeInt(i+1);
                 literals.removeInt(i);
                 expandedSize -= multiplicity;
@@ -424,14 +479,28 @@ public class Clause extends LinkedItem {
                 if(literal == trueLiteral) {min -= multiplicity; max -= multiplicity;}
                 break;}}
         if(!literalFound) return false; // should not happen
+        min = Math.max(0,min);
+        max = Math.min(max,expandedSize);
         ++version;
+        classifyClause();
         if(trackReasoning) addInferenceStep(step);
         if(monitor != null) {
+            String result = isTrue ? "true" : (isFalse ? "false" :toString(symboltable,0));
             monitor.println(monitorId,"Clause " + arrayToString(clauseBefore,symboltable) +
-                    " simplified by true literal " + Symboltable.toString(trueLiteral,symboltable) +
-                    " to " + toString(symboltable,0));}
+                            " simplified by true literal " + Symboltable.toString(trueLiteral,symboltable) + " to " + result);
+                return true;}
         return true;}
 
+    /** The method replaces the equivalentLiteral by the representative literal.
+     *
+     * @param representative     the representative literal of an equivalence class.
+     * @param equivalentLiteral  the corresponding equivalent literal
+     * @param inferenceStep      the inference step that caused the equivalence
+     * @param trackReasoning     controls generation of inference steps
+     * @param monitor            null or a monitor
+     * @param symboltable        null or a symboltable
+     * @return                   true if the clause was changed.
+     */
     boolean replaceEquivalentLiterals(int representative, int equivalentLiteral, InferenceStep inferenceStep,
                                       boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         int[] clauseBefore = monitor != null ? toIntArray() : null;
@@ -469,29 +538,8 @@ public class Clause extends LinkedItem {
         if(size != expandedSize) return size;
         return -1;}
 
-    /**
-     * Determines if the literals of two clauses are equal.
-     *
-     * @param clause The clause to compare with.
-     * @param symboltable null or the symboltable to convert literals to strings.
-     * @param errorPrefix The prefix to include in error messages.
-     * @param errors A StringBuilder to store error messages.
-     * @return {@code true} if the literals of the clauses are equal, {@code false} otherwise.
-     */
-    public boolean literalsAreEqual(Clause clause, Symboltable symboltable,  String errorPrefix, StringBuilder errors) {
-        if(clause.literals.size() != literals.size()) {
-            errors.append(errorPrefix + ": literals of clause " + toString(symboltable,0) +" and " +
-                        clause.toString(symboltable,0) + " have different size.\n");
-            return false;}
-        boolean result = true;
-        for(int i = 0; i < literals.size()-1; i +=2) {
-            if(literals.getInt(i) != clause.literals.getInt(i)) {
-                errors.append(errorPrefix + ": literals of clause " + toString(symboltable, 0) + " and " +
-                        clause.toString(symboltable, 0) + " are different at position " + (i/2)+"\n");
-                result = false;}}
-        return result;}
 
-        /**
+    /**
          * Converts the Clause object into an array of integers.
          * The returned array includes the id, version, quantifier, min, max, expandedSize and literal1, multiplicity1,... of the clause.
          * If the literals list is empty, the returned array will have a length of 6.
@@ -520,17 +568,18 @@ public class Clause extends LinkedItem {
     public String arrayToString(int[] clause, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append(clause[0]);
-        if(clause[1] != 0) st.append(","+clause[1]);
+        if(clause[1] != 0) st.append(",").append(clause[1]);
         st.append(": ");
         Quantifier quantifier = Quantifier.getQuantifier(clause[2]);
+        assert(quantifier != null);
         int min = clause[3];
         int max = clause[4];
-        switch (Quantifier.getQuantifier(clause[2])) {
+        switch (quantifier) {
             case OR: break;
             case INTERVAL:st.append("[").append(min).append(",").append(max).append("] "); break;
-            case ATLEAST: st.append(quantifier.abbreviation).append(min).append(" ");break;
-            case ATMOST:  st.append(quantifier.abbreviation).append(max).append(" ");break;
-            case EXACTLY: st.append(quantifier.abbreviation).append(min).append(" ");break;}
+            case ATLEAST: st.append(quantifier.abbreviation).append(min).append(" ");      break;
+            case ATMOST:  st.append(quantifier.abbreviation).append(max).append(" ");      break;
+            case EXACTLY: st.append(quantifier.abbreviation).append(min).append(" ");      break;}
         for(int i = 6; i < clause.length; i+=2) {
             int multiplicity = clause[i+1];
             st.append(Symboltable.toString(clause[i],symboltable));
@@ -570,11 +619,13 @@ public class Clause extends LinkedItem {
             case INTERVAL:st.append("[").append(min).append(",").append(max).append("] "); break;
             case ATLEAST: st.append(quantifier.abbreviation).append(min).append(" ");break;
             case ATMOST:  st.append(quantifier.abbreviation).append(max).append(" ");break;
-            case EXACTLY: st.append(quantifier.abbreviation).append(min).append(" ");break;}
+            case EXACTLY: st.append(quantifier.abbreviation).append(min).append(" ");break;
+            case AND:     st.append(quantifier.abbreviation).append(" ");break;
+        }
         for(int i = 0; i < literals.size(); i+=2) {
-            st.append(Symboltable.toString(literals.get(i),symboltable));
-            int multiplicity = literals.get(i+1);
-            if(multiplicity > 1) st.append("^"+multiplicity);
+            st.append(Symboltable.toString(literals.getInt(i),symboltable));
+            int multiplicity = literals.getInt(i+1);
+            if(multiplicity > 1) st.append("^").append(multiplicity);
             if(i < literals.size()-2) st.append(",");}
         return st.toString();}
 

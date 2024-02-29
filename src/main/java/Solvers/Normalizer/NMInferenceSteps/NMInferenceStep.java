@@ -7,16 +7,38 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
+/**
+ * NMInferenceStep class represents the top class of the inference steps in the Normalize package.
+ */
 public class NMInferenceStep extends InferenceStep {
 
-    public Clause clause;
-
+    /** the title of the inference rule */
     public String title;
 
+    /** the original clause of the inference */
+    public Clause clause;
+
+    /** returns the title of the inference rule */
+    @Override
+    public String title() {
+        return title;}
+
+    /** Creates the inference step with title and clause
+     *
+     * @param title   the title of the inference rule
+     * @param clause  the original clause to which the inference rule is applied.
+     */
     public NMInferenceStep(String title, Clause clause) {
         this.title = title;
         this.clause = clause;}
 
+    /** turns the inference step into a string: title original clause =&gt; deduced clause.
+     *
+     *
+     * @param deducedClause The deduced clause in the inference step.
+     * @param symboltable The symbol table to use for converting literals to strings, or null.
+     * @return The string representation of the inference step.
+     */
     public String toString(Clause deducedClause, Symboltable symboltable) {
         return title() + ": " + clause.toString(symboltable,0) + " => " + deducedClause.toString(symboltable,0);}
 
@@ -43,12 +65,12 @@ public class NMInferenceStep extends InferenceStep {
                     return false;}}}
         return true;}
 
-    /** The bits in i represent a model: position 0: first literal in literals is true etc.
-     *  The method checks if the literal is true in the given model
+    /** The bits in int integer i represent a model: position 0: first literal in literals is true etc.
+     *  The method checks if the literal is true in the given model.
      *
-     * @param i          the bits represent a model
-     * @param literal    a literal to be tested
-     * @param literals   a list of literals
+     * @param i          the bits represent a model of the literals in the literals array.
+     * @param literal    a literal to be tested.
+     * @param literals   a list of literals.
      * @return           true if the literal is true in the model.
      */
     public boolean isTrue(int i, int literal, IntArrayList literals) {
@@ -71,10 +93,7 @@ public class NMInferenceStep extends InferenceStep {
         return model;
     }
 
-    @Override
-    public String title() {
-        return title;
-    }
+
 
     @Override
     public String rule() {

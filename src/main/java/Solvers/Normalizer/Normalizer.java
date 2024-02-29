@@ -4,6 +4,7 @@ import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.LinkedItemList;
 import Datastructures.Results.Result;
+import Datastructures.Results.UnsatClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
@@ -20,6 +21,9 @@ public class Normalizer {
 
     ProblemSupervisor problemSupervisor;
 
+    String problemId;
+    String solverId = "Normalizer";
+
     /**
      * the global model.
      */
@@ -34,9 +38,17 @@ public class Normalizer {
 
     public boolean trackReasoning;
 
-    private ArrayList<Clause>[] positiveOccurrences;
+    private ArrayList<Clause>[] positiveOccAtleast;
+    private ArrayList<Clause>[] positiveOccAtmost;
+    private ArrayList<Clause>[] positiveOccInterval;
 
-    private ArrayList<Clause>[] negativeOccurrences;
+    private ArrayList<Clause>[] negativeOccAtleast;
+    private ArrayList<Clause>[] negativeOccAtmost;
+    private ArrayList<Clause>[] negativeOccInterval;
+
+    private ArrayList<Clause>[][] posOccurrences = new ArrayList[3][];
+    private ArrayList<Clause>[][] negOccurrences = new ArrayList[3][];
+
     public Thread myThread;
 
     /** A queue of newly derived unit literals and binary equivalences.
@@ -59,9 +71,10 @@ public class Normalizer {
 
     private void removeClause(Clause clause) {
         clauses.remove(clause);
-    }
+        removeClauseFromIndex(clause);}
 
     public Normalizer(ProblemSupervisor problemSupervisor) {
+        problemId = problemSupervisor.problemId;
         model = problemSupervisor.model;
         statistics = new NormalizerStatistics(null);
         monitor = problemSupervisor.monitor;
@@ -84,6 +97,7 @@ public class Normalizer {
             try{
             task = queue.take(); // waits if the queue is empty
                 if(task.trueLiteral != 0) applyTrueLiteral(task.trueLiteral,task.inferenceStep);
+                else {applyEquivalence(task.eqLiteral1,task.eqLiteral2,task.inferenceStep); }
 
         }catch(InterruptedException ex) {
             ex.printStackTrace();
@@ -94,9 +108,8 @@ public class Normalizer {
     public Result normalizeClauses() {
         InputClauses inputClauses = problemSupervisor.inputClauses;
         try {
-            for (int[] inputClause : inputClauses.conjunctions) normalizeConjunction(inputClause);
-            for (int[] inputClause : inputClauses.equivalences) normalizeEquivalence(inputClause);
-            // if (equivalences.size() > 1) joinEquivalences();
+            for (int[] inputClause : inputClauses.conjunctions) makeTrueLiteralTask(inputClause);
+            for (int[] inputClause : inputClauses.equivalences) makeEquivalenceTask(inputClause);
             for (int[] inputClause : inputClauses.disjunctions) transformAndSimplify(inputClause);
             for (int[] inputClause : inputClauses.atleasts) transformAndSimplify(inputClause);
             for (int[] inputClause : inputClauses.atmosts) transformAndSimplify(inputClause);
@@ -117,66 +130,152 @@ public class Normalizer {
      * @param inputClause
      * @throws Unsatisfiable
      */
-    private void normalizeConjunction(int[] inputClause) throws Unsatisfiable {
+    private void makeTrueLiteralTask(int[] inputClause) throws Unsatisfiable {
         for(int i = Quantifier.AND.firstLiteralIndex; i < inputClause.length; ++i) {
             int literal = inputClause[i];
-            if(monitoring) monitor.println(monitorId, "adding literal " +
+            if(monitoring) monitor.println(monitorId, "adding true literal " +
                     Symboltable.toString(literal,symboltable) + " to the model.");
             ++statistics.initialTrueLiterals;
-            addTrueLiteral(literal,trackReasoning ? new InfInputClause(inputClause[0]) : null);}}
+            addTrueLiteralTask(literal,trackReasoning ? new InfInputClause(inputClause[0]) : null);}}
 
-    private void normalizeEquivalence(int[] inputClause) {}
+    private void makeEquivalenceTask(int[] inputClause) {
+        int sign = 1;
+        int representative = inputClause[Quantifier.EQUIV.firstLiteralIndex];
+        if(representative < 0) {sign = -1; representative *= -1;}
+        for(int i = Quantifier.EQUIV.firstLiteralIndex+1; i < inputClause.length; ++i) {
+            addEquivalenceTask(representative,sign*inputClause[i],
+                    trackReasoning ? new InfInputClause(inputClause[0]) : null);}}
 
     private void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause);
-        if(clause.quantifier == Quantifier.AND) {addTrueLiteral(clause); return;} // unit clause
-        if (clause.removeComplementaries(trackReasoning, monitor, symboltable)) return; // true clause
-        if (clause.isDisjunction()) {addClause(clause); return;} // no further simplifications are possible here.
-        if(!clause.reduceNumbers(this::addTrueLiteral,trackReasoning, monitor, symboltable)) return;
-
-    }
+        if(clause.quantifier == Quantifier.AND) {addTrueLiteralTask(clause); return;} // unit clause
+        Clause conjunction = clause.simplify(trackReasoning,monitor,symboltable);
+        if(conjunction != null) {
+            for(int i = 0; i < conjunction.literals.size()-1; i +=2) {
+                addTrueLiteralTask(conjunction.literals.getInt(i),new InfInputClause(conjunction.id));}
+            return;}
+        if(clause.isTrue) return;
+        if(clause.isFalse) throw new UnsatClause(null,null,clause.inputClause);
+        insertClauseToIndex(clause);
+        clauses.addToBack(clause);}
 
     private void insertClauseToIndex(Clause clause) {
-        for(int literal : clause.literals) {
+        ArrayList<Clause>[] positiveArrayList = null;
+        ArrayList<Clause>[] negativeArrayList = null;
+        switch(clause.quantifier) {
+            case OR:
+            case ATLEAST:
+                if(positiveOccAtleast == null) {
+                    positiveOccAtleast = new ArrayList[model.predicates+1];
+                    posOccurrences[0] = positiveOccAtleast;}
+                if(negativeOccAtleast == null) {
+                    negativeOccAtleast = new ArrayList[model.predicates+1];
+                    negOccurrences[0] = negativeOccAtleast;}
+                positiveArrayList = positiveOccAtleast;
+                negativeArrayList = negativeOccAtleast;
+                break;
+            case ATMOST:
+                if(positiveOccAtmost == null) {
+                    positiveOccAtmost = new ArrayList[model.predicates+1];
+                    posOccurrences[1] = positiveOccAtmost;}
+                if(negativeOccAtmost == null) {
+                    negativeOccAtmost = new ArrayList[model.predicates+1];
+                    negOccurrences[1] = negativeOccAtmost;}
+                positiveArrayList = positiveOccAtmost;
+                negativeArrayList = negativeOccAtmost;
+                break;
+            case EXACTLY:
+            case INTERVAL:
+                if (positiveOccInterval == null) {
+                    positiveOccInterval = new ArrayList[model.predicates + 1];
+                    posOccurrences[2] = positiveOccInterval;}
+                if (negativeOccInterval == null) {
+                    negativeOccInterval = new ArrayList[model.predicates + 1];
+                    negOccurrences[2] = negativeOccInterval;}
+                positiveArrayList = positiveOccInterval;
+                negativeArrayList = negativeOccInterval;}
+
+        for(int i = 0; i < clause.literals.size()-1; i += 2) {
+            int literal = clause.literals.getInt(i);
             int predicate = Math.abs(literal);
-            ArrayList<Clause>[] clausesArray = (literal > 0) ? positiveOccurrences : negativeOccurrences;
-            ArrayList<Clause> clauses = clausesArray[predicate];
-            if(clauses == null) {clauses = new ArrayList<>(clauses); clausesArray[predicate] = clauses;}
-            clauses.add(clause);}}
+            ArrayList<Clause> clausesArray = null;
+            if(literal > 0) {
+                clausesArray = positiveArrayList[predicate];
+                if(clausesArray == null) {clausesArray = new ArrayList<>(); positiveArrayList[predicate] = clausesArray;}}
+            else {
+                clausesArray = negativeArrayList[predicate];
+                if(clausesArray == null) {clausesArray = new ArrayList<>(); negativeArrayList[predicate] = clausesArray;}}
+            clausesArray.add(clause);}}
 
     private void removeClauseFromIndex(Clause clause) {
-        for(int literal : clause.literals) {
+        ArrayList<Clause>[] positiveArrayList = null;
+        ArrayList<Clause>[] negativeArrayList = null;
+        switch(clause.quantifier) {
+            case OR:
+            case ATLEAST:
+                positiveArrayList = positiveOccAtleast;
+                negativeArrayList = negativeOccAtleast;
+                break;
+            case ATMOST:
+                positiveArrayList = positiveOccAtmost;
+                negativeArrayList = negativeOccAtmost;
+                break;
+            case EXACTLY:
+            case INTERVAL:
+                positiveArrayList = positiveOccInterval;
+                negativeArrayList = negativeOccInterval;}
+
+        for(int i = 0; i < clause.literals.size()-1; i += 2) {
+            int literal = clause.literals.getInt(i);
             int predicate = Math.abs(literal);
-            ArrayList<Clause>[] clausesArray = (literal > 0) ? positiveOccurrences : negativeOccurrences;
-            ArrayList<Clause> clauses = clausesArray[predicate];
-            if(clauses != null) clauses.remove(clause);}}
+            ArrayList<Clause> clausesArray = (literal > 0) ? positiveArrayList[predicate] : negativeArrayList[predicate];
+            clausesArray.remove(clause);}}
 
 
 
 
     private void applyTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
         int predicate = Math.abs(literal);
-        ArrayList<Clause>[] clausesArray = (literal > 0) ? positiveOccurrences : negativeOccurrences;
-        for(int i = 1; i >= -1; i -= 2) { // i = 1: true(literal), i = -1: false(-literal)
-            ArrayList<Clause> clauses = clausesArray[predicate];
-            if(clauses != null) {
-                for(int j = 0; j < clauses.size(); ++j) {
-                    Clause clause = clauses.get(j);
-                    clauses.remove(j--);
-                    if(clause.applyTrueLiteral(literal,inferenceStep, trackReasoning,monitor, symboltable)) {
+        for(ArrayList<Clause>[] clausesList : (literal > 0) ? posOccurrences : negOccurrences) {
+            if(clausesList != null) {
+                ArrayList<Clause> clausesArray = clausesList[predicate];
+                if(clausesArray != null) {
+                    for(Clause clause : clausesArray) {
+                        if(clause.isDisjunction()) {removeClause(clause); continue;}
                         removeClauseFromIndex(clause);
-                    };
+                        if(clause.applyTrueLiteral(literal,inferenceStep,trackReasoning,monitor,symboltable)) {
+                            Clause conjunction = clause.simplify(trackReasoning,monitor,symboltable);
+                            if (conjunction != null) {addTrueLiteralTask(conjunction);}
+                            if(clause.isTrue) {removeClause(clause); continue;}
+                            if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                            insertClauseToIndex(clause);}}}}}}
 
-            }}
-            clausesArray = (literal > 0) ? negativeOccurrences : positiveOccurrences;}
-    }
+    private void addTrueLiteralTask(Clause clause) throws Unsatisfiable {}
 
-    private void addTrueLiteral(Clause clause) throws Unsatisfiable {}
-
-    private void addTrueLiteral(int literal, InferenceStep step) throws Unsatisfiable{
+    private void addTrueLiteralTask(int literal, InferenceStep step) throws Unsatisfiable{
             model.add(myThread,literal,step);
             queue.add(new Task(literal,step));
     }
+
+    private void addEquivalenceTask(int representative, int equivalentLiteral, InferenceStep step){
+        queue.add(new Task(representative, equivalentLiteral,step));
+    }
+
+    private void applyEquivalence(int representative, int equivalentLiteral, InferenceStep step) throws Result {
+        int predicate = Math.abs(equivalentLiteral);
+        for(ArrayList<Clause>[] clausesList : (equivalentLiteral > 0) ? posOccurrences : negOccurrences) {
+            if(clausesList != null) {
+                ArrayList<Clause> clausesArray = clausesList[predicate];
+                if(clausesArray != null) {
+                    for(Clause clause : clausesArray) {
+                        if(clause.isDisjunction()) {removeClause(clause); continue;}
+                        removeClauseFromIndex(clause);
+                        if(clause.replaceEquivalentLiterals(equivalentLiteral,representative, step,trackReasoning,monitor,symboltable)) {
+                            Clause conjunction = clause.simplify(trackReasoning,monitor,symboltable);
+                            if (conjunction != null) {addTrueLiteralTask(conjunction);}
+                            if(clause.isTrue) {removeClause(clause); continue;}
+                            if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                            insertClauseToIndex(clause);}}}}}}
 
 
 

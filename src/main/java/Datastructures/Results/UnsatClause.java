@@ -23,6 +23,11 @@ public class UnsatClause extends Unsatisfiable {
         this.inputClause = inputClause;
         inferenceSteps.add(new InfInputClause(inputClause[0]));}
 
+    public UnsatClause(String problemId, String solverId, Solvers.Normalizer.Clause clause) {
+        super(problemId,solverId);
+        inferenceSteps.addAll(clause.inferenceSteps);
+    }
+
     @Override
     public String description(Symboltable symboltable) {
         return "Unsatisfiable clause " +InputClauses.toString(0,inputClause,symboltable);}
