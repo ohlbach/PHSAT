@@ -25,7 +25,9 @@ public class NMInferenceStepTest extends TestCase {
         symboltable.setName(4,"s");
 
     }
-
+    static Clause makeClause(int[] inputClause) {
+        return new Clause(inputClause,false,null,null);
+    }
     static Monitor monitor = new MonitorLife();
 
     public void testIsTrue() {
@@ -59,23 +61,23 @@ public class NMInferenceStepTest extends TestCase {
 
     public void testVerify()  {
         System.out.println("removeComplementaries Verify");
-        Clause clause1 = new Clause(new int[]{5,natl,3,1,-1,2,-2,3,4});
-        Clause clause2 = new Clause(new int[]{6,natl,1,3,4});
+        Clause clause1 = makeClause(new int[]{5,natl,3,1,-1,2,-2,3,4});
+        Clause clause2 = makeClause(new int[]{6,natl,1,3,4});
         StringBuilder errors = new StringBuilder();
         NMInferenceStep step = new NMInferenceStep("removeComplementaries", clause1);
         assertTrue(step.verify(clause2, symboltable, errors));
 
-        Clause clause3 = new Clause(new int[]{7,natl,2,3,4});
+        Clause clause3 = makeClause(new int[]{7,natl,2,3,4});
         assertFalse(step.verify(clause3, symboltable, errors));
         System.out.println(errors.toString());
         errors = new StringBuilder();
 
-        clause1 = new Clause(new int[]{7,natl,2,1,2,2,-2});
+        clause1 = makeClause(new int[]{7,natl,2,1,2,2,-2});
         step = new NMInferenceStep("removeComplementaries",clause1);
-        clause2 = new Clause(new int[]{8,natl,1,1,2});
+        clause2 = makeClause(new int[]{8,natl,1,1,2});
         assertTrue(step.verify(clause2, symboltable, errors));
 
-        clause3 = new Clause(new int[]{9,natl,1,1,-2});
+        clause3 = makeClause(new int[]{9,natl,1,1,-2});
         assertFalse(step.verify(clause3, symboltable, errors));
         System.out.println(errors.toString());
         }
@@ -84,15 +86,15 @@ public class NMInferenceStepTest extends TestCase {
         System.out.println("removeMultiplicities Verify");
         int[] clause = new int[]{7,natl,2,-2,-2,1,3,3,-2,1,1};
         //symboltable = null;
-        Clause clause1 = new Clause(clause);
+        Clause clause1 = makeClause(clause);
         assertTrue(clause1.removeMultiplicities(true, monitor, symboltable));
         assertEquals("7.1: >=2 -q^2,p^2,r^2",clause1.toString(symboltable,0));
         StringBuilder errors = new StringBuilder();
         assertTrue(clause1.inferenceSteps.get(0).verify(clause1,symboltable,errors));
 
         //System.out.println("NEW");
-        clause1 = new Clause(new int[]{8,natl,2,1,2,2,2,3});
-        Clause clause2 =  new Clause(new int[]{9,natl,2,1,2,3});
+        clause1 = makeClause(new int[]{8,natl,2,1,2,2,2,3});
+        Clause clause2 =  makeClause(new int[]{9,natl,2,1,2,3});
         assertTrue(clause1.removeMultiplicities(true, monitor, symboltable));
         assertFalse(clause1.inferenceSteps.get(0).verify(clause2,symboltable,errors));
         System.out.println(errors.toString());

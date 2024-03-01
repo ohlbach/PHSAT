@@ -147,7 +147,7 @@ public class Normalizer {
                     trackReasoning ? new InfInputClause(inputClause[0]) : null);}}
 
     private void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
-        Clause clause = new Clause(inputClause);
+        Clause clause = new Clause(inputClause,trackReasoning,monitor,symboltable);
         if(clause.quantifier == Quantifier.AND) {addTrueLiteralTask(clause); return;} // unit clause
         Clause conjunction = clause.simplify(trackReasoning,monitor,symboltable);
         if(conjunction != null) {
