@@ -101,6 +101,9 @@ public class Clause extends LinkedItem {
             if(!multiple) {literals.add(literal); literals.add(1);}}
         classifyClause(trackReasoning,monitor,symboltable);}
 
+    /**
+     * Creates a new instance of the {@code Clause} class.
+     */
     public Clause() {}
 
     /**
@@ -124,17 +127,23 @@ public class Clause extends LinkedItem {
      * Classifies the clause based on its properties.
      * <br>
      * - If the quantifier is AND, returns immediately.<br>
-     * - If the clause is true, returns immediately.<br>
+     * - If the interval spans the entire clause, it sets the isTrue value and returns immediately.<br>
+     * - If the min value &gt; expanded size, it sets the isFalse value and returns.<br>
      * - If the min value is equal to the expanded size, sets the quantifier to AND and returns.<br>
+     * - If the max value &gt; expanded size, sets the quantifier to AND, negates all literals and returns.<br>
      * - If the min value is 1 and the max value is equal to the expanded size, sets the quantifier to OR and returns.<br>
      * - If the min value is equal to the max value, sets the quantifier to EXACTLY and returns.<br>
      * - If the min value is 0, sets the quantifier to ATMOST and returns.<br>
      * - If the max value is equal to the expanded size, sets the quantifier to ATLEAST and returns.<br>
      * - Otherwise, sets the quantifier to INTERVAL.
+     *
+     * @param trackReasoning if true then inference steps are generated
+     * @param monitor        null or a monitor
+     * @param symboltable    null or a symboltable.
      */
     private void classifyClause(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         if(quantifier == Quantifier.AND) return;
-        if(min <= 0 && max == expandedSize) {isTrue  = true; return;}
+        if(min <= 0 && max >= expandedSize) {isTrue  = true; return;}
         if(min > expandedSize)              {isFalse = true; return;}
         if(min == expandedSize)             {
             if(trackReasoning) inferenceSteps.add(new NMInferenceStep("andConversion", clone()));
@@ -197,7 +206,7 @@ public class Clause extends LinkedItem {
             boolean complementary = false;
             for(int j = 0; j < i; j +=2) {
                 if(literals.getInt(j) == -literal) {
-                    trueLiterals += Math.abs(literals.getInt(i+1) - literals.getInt(j+1));
+                    trueLiterals += Math.min(literals.getInt(i+1),literals.getInt(j+1));
                     complementary = true; break;}}
             if(!complementary && model.test(literals.getInt(i))) trueLiterals += literals.getInt(i+1);}
         return min <= trueLiterals && trueLiterals <= max;}
@@ -370,6 +379,7 @@ public class Clause extends LinkedItem {
                     literals.removeInt(i);
                     expandedSize -= multiplicity;}}
             if(literals.isEmpty()) isFalse = true;
+            else classifyClause(trackReasoning,monitor,symboltable);
 
             Clause clause = new Clause();
             clause.literals = trueLiterals;
@@ -414,8 +424,8 @@ public class Clause extends LinkedItem {
             gcd = Utilities.gcd(gcd,Math.abs(literals.getInt(i))); // multiplicities
             if(gcd == 1) return false;}
 
-        if(trackReasoning) addInferenceStep(new NMInferenceStep("divideByGCD",clone()));
-        int[] clauseBefore = monitor != null ? toIntArray() : null;
+        Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
+        if(trackReasoning) addInferenceStep(new NMInferenceStep("divideByGCD",cloned));
 
         ++version;
         min /= gcd;
@@ -429,7 +439,7 @@ public class Clause extends LinkedItem {
 
         if(monitor != null) {
             monitor.println(monitorId, "Divide by GCD in Clause " +
-                    arrayToString(clauseBefore, symboltable) + " => " + toString(symboltable, 0));}
+                    cloned.toString(symboltable,0) + " => " + toString(symboltable, 0));}
         return true;}
 
     /** The method reduces clauses to their essential literals.
@@ -451,9 +461,9 @@ public class Clause extends LinkedItem {
             if(literals.getInt(i) < min) remainingMultiplicity += literals.getInt(i);}
         if(remainingMultiplicity >= min) return false;
 
-        if(trackReasoning) {addInferenceStep(new NMInferenceStep("reduceToEssentialLiterals",clone()));
+        Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
+        if(trackReasoning) addInferenceStep(new NMInferenceStep("reduceToEssentialLiterals",cloned));
 
-        int[] clauseBefore = (monitor != null) ? toIntArray() : null;
         for(int i = literals.size()-2; i >= 0; i -=2) {
             if(literals.getInt(i+1) < min) {
                 literals.removeInt(i+1);literals.removeInt(i);}
@@ -464,7 +474,7 @@ public class Clause extends LinkedItem {
         ++version;
         if(monitor != null) {
             monitor.println(monitorId, "Reduce to Essential Literals in Clause " +
-                    arrayToString(clauseBefore, symboltable) + " => " + toString(symboltable, 0));}}
+                    cloned.toString(symboltable,0) + " => " + toString(symboltable, 0));}
         return true;}
 
 
@@ -480,8 +490,8 @@ public class Clause extends LinkedItem {
      * @return true if the clause was successfully simplified by applying the true literal, false otherwise.
      */
     boolean applyTrueLiteral(int trueLiteral, InferenceStep inferenceStep, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
-        int[] clauseBefore = monitor != null ? toIntArray() : null;
-        NMISTrueLiteral step = trackReasoning ? new NMISTrueLiteral("applyTrueLiteral", trueLiteral, inferenceStep, clone()) : null;
+        Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
+        NMISTrueLiteral step = trackReasoning ? new NMISTrueLiteral("applyTrueLiteral", trueLiteral, inferenceStep, cloned) : null;
         boolean literalFound = false;
         for(int i = literals.size()-2; i >= 0; i -= 2) {
             int literal = literals.getInt(i);
@@ -501,12 +511,14 @@ public class Clause extends LinkedItem {
         if(trackReasoning) addInferenceStep(step);
         if(monitor != null) {
             String result = isTrue ? "true" : (isFalse ? "false" :toString(symboltable,0));
-            monitor.println(monitorId,"Clause " + arrayToString(clauseBefore,symboltable) +
+            monitor.println(monitorId,"Clause " + cloned.toString(symboltable,0) +
                             " simplified by true literal " + Symboltable.toString(trueLiteral,symboltable) + " to " + result);
                 return true;}
         return true;}
 
     /** The method replaces the equivalentLiteral by the representative literal.
+     * <br>
+     * The clause may become true, false or a new conjunction may be generated.
      *
      * @param representative     the representative literal of an equivalence class.
      * @param equivalentLiteral  the corresponding equivalent literal
@@ -514,12 +526,12 @@ public class Clause extends LinkedItem {
      * @param trackReasoning     controls generation of inference steps
      * @param monitor            null or a monitor
      * @param symboltable        null or a symboltable
-     * @return                   true if the clause was changed.
+     * @return                   null or a new conjunction
      */
-    boolean replaceEquivalentLiterals(int representative, int equivalentLiteral, InferenceStep inferenceStep,
+    public Clause replaceEquivalentLiterals(int representative, int equivalentLiteral, InferenceStep inferenceStep,
                                       boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
-        int[] clauseBefore = monitor != null ? toIntArray() : null;
-        NMISEquivalentLiteral step = trackReasoning ? new NMISEquivalentLiteral("replaceEquivalentLiterals", representative, equivalentLiteral, inferenceStep, clone()) : null;
+        Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
+        NMISEquivalentLiteral step = trackReasoning ? new NMISEquivalentLiteral("replaceEquivalentLiterals", representative, equivalentLiteral, inferenceStep, cloned) : null;
         boolean found = false;
         for(int i = 0; i < literals.size()-1; i += 2) {
             int literal = literals.getInt(i);
@@ -527,16 +539,55 @@ public class Clause extends LinkedItem {
                 literals.set(i, (literal == equivalentLiteral) ?  representative : -representative);
                 found = true;
                 break;}}
-        if(!found) return false;
+        if(!found) return null;
+        for(int i = 0; i < literals.size()-1; i += 2){
+            int literal = literals.getInt(i);
+            for(int j = i+2; j < literals.size()-1; j += 2) {
+                if(literal == literals.getInt(j)) {
+                    literals.set(i+1,1+literals.getInt(i+1));
+                    literals.remove(j+1);
+                    literals.removeInt(j);
+                    break;}}}
+        ++version;
         if(trackReasoning) addInferenceStep(step);
         if(monitor != null) {
-            monitor.println(monitorId,"In clause " + arrayToString(clauseBefore,symboltable) +
+            monitor.println(monitorId,"In clause " + cloned.toString(symboltable,0) +
                     " literal " + Symboltable.toString(equivalentLiteral,symboltable) +
                     " replaced by " +  Symboltable.toString(representative,symboltable) + " => " + toString(symboltable,0));}
-        removeMultiplicities(trackReasoning,monitor,symboltable);
-        removeComplementaries(trackReasoning,monitor,symboltable);
-        return true;
+        classifyClause(trackReasoning,monitor,symboltable);
+        return simplify(trackReasoning,monitor,symboltable);
     }
+
+    /** removes a literal to prepare for singleton purity in interval clauses.
+     *
+     * @param literal            the literal to be removed.
+     * @param trackReasoning     controls generation of inference steps
+     * @param monitor            null or a monitor
+     * @param symboltable        null or a symboltable
+     * @return                   null or a new conjunction
+     */
+    public Clause removeLiteral(int literal, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+        Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
+        int multiplicity = 0;
+        for(int i = 0; i < literals.size()-1; i += 2) {
+            if(literals.getInt(i) == literal) {
+                multiplicity = literals.getInt(i+1);
+                literals.removeInt(i + 1);
+                literals.removeInt(i);
+                break;}}
+        if(multiplicity > 0) {
+            expandedSize -= multiplicity;
+            min = Math.max(0,min - multiplicity);
+            max = Math.min(max,expandedSize);
+            ++version;
+            classifyClause(trackReasoning,monitor,symboltable);
+            if(trackReasoning) addInferenceStep(new NMInferenceStep("removedLiteral",cloned));
+            if(monitor != null) {
+                monitor.println(monitorId,"From clause " + cloned.toString(symboltable,0) +
+                        " literal " + Symboltable.toString(literal,symboltable) + " removed => "+
+                        toString(symboltable,0));}
+            return simplify(trackReasoning,monitor,symboltable);}
+        return null;}
 
 
     /**
@@ -554,68 +605,21 @@ public class Clause extends LinkedItem {
         return -1;}
 
 
-    /**
-         * Converts the Clause object into an array of integers.
-         * The returned array includes the id, version, quantifier, min, max, expandedSize and literal1, multiplicity1,... of the clause.
-         * If the literals list is empty, the returned array will have a length of 6.
-         * Otherwise, the length of the returned array will be 6 plus the size of the literals list.
-         *
-         * @return an array of integers representing the Clause object
-         */
-    public int[] toIntArray() {
-        int[] clause = new int[6+literals.size()];
-        clause[0] = id;
-        clause[1] = version;
-        clause[2] = quantifier.ordinal();
-        clause[3] = min;
-        clause[4] = max;
-        clause[5] = expandedSize;
-        for (int i = 0; i < literals.size(); i++) {
-            clause[i + 6] = literals.getInt(i);}
-        return clause;}
-
-    /** turns the array-version to a string.
+    /**Turns the inference steps into a string.
      *
-     * @param clause      a clause as an array
-     * @param symboltable null or a symboltable
-     * @return the clause as a string.
+     * @param symboltable the symbol table used for generating deductions
+     * @return a string containing the deductions
      */
-    public String arrayToString(int[] clause, Symboltable symboltable) {
-        StringBuilder st = new StringBuilder();
-        st.append(clause[0]);
-        if(clause[1] != 0) st.append(",").append(clause[1]);
-        st.append(": ");
-        Quantifier quantifier = Quantifier.getQuantifier(clause[2]);
-        assert(quantifier != null);
-        int min = clause[3];
-        int max = clause[4];
-        switch (quantifier) {
-            case OR: break;
-            case INTERVAL:st.append("[").append(min).append(",").append(max).append("] "); break;
-            case ATLEAST: st.append(quantifier.abbreviation).append(min).append(" ");      break;
-            case ATMOST:  st.append(quantifier.abbreviation).append(max).append(" ");      break;
-            case EXACTLY: st.append(quantifier.abbreviation).append(min).append(" ");      break;}
-        for(int i = 6; i < clause.length; i+=2) {
-            int multiplicity = clause[i+1];
-            st.append(Symboltable.toString(clause[i],symboltable));
-            if(multiplicity>1) st.append("^").append(multiplicity);
-            if(i < clause.length-2) st.append(",");}
-        return st.toString();}
-
-    public String arrayListToString(IntArrayList array, Symboltable symboltable) {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < array.size(); i++) {
-            sb.append(Symboltable.toString(array.getInt(i), symboltable));
-            if (i < array.size() - 1) sb.append(",");}
-        return sb.toString(); }
-
     public String deductions(Symboltable symboltable) {
-        StringBuilder deductions = new StringBuilder();
+        String[] deductions = new String[inferenceSteps.size()];
         Clause clause = this;
-        for (NMInferenceStep step : inferenceSteps) {
-            deductions.append(step.toString(clause,symboltable)).append("\n");
+        for(int i = inferenceSteps.size()-1; i >= 0; --i) { // it is necessary to go from back to front.
+            NMInferenceStep step = inferenceSteps.get(i);
+            deductions[i] = (step.toString(clause,symboltable));
             clause = step.clause;}
-        return deductions.toString();}
+        StringBuilder st = new StringBuilder();
+        for(String deduction : deductions) st.append(deduction).append("\n");
+        return st.toString();}
 
     /** turns the clause into a string.
      *

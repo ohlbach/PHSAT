@@ -9,8 +9,6 @@ import Management.Monitor.MonitorLife;
 import Solvers.Normalizer.NMInferenceSteps.NMInferenceStep;
 import junit.framework.TestCase;
 
-import java.util.Arrays;
-
 
 public class ClauseTest extends TestCase {
     int nand = Quantifier.AND.ordinal();
@@ -43,8 +41,6 @@ public class ClauseTest extends TestCase {
         assertFalse(clause1.hasMultiplicities());
         assertTrue(clause1.isDisjunction());
 
-        assertEquals("[5, 0, 0, 1, 3, 3, 1, 1, -2, 1, 3, 1]", Arrays.toString(clause1.toIntArray()));
-
         clause = new int[]{6,natl,2,1,-2,1,-2,-2,3};
         clause1 = makeClause(clause);
         assertEquals("6: >=2 1^2,-2^3,3", clause1.toString(null,0));
@@ -55,7 +51,6 @@ public class ClauseTest extends TestCase {
         clause1 = makeClause(clause);
         assertEquals("7: <=3 1^2,-2^3,3^2,4", clause1.toString(null,0));
 
-        assertEquals("[7, 0, 4, 0, 3, 8, 1, 2, -2, 3, 3, 2, 4, 1]", Arrays.toString(clause1.toIntArray()));
 
         clause = new int[]{8,nex,1,3,-4};
         clause1 = makeClause(clause);
@@ -64,8 +59,6 @@ public class ClauseTest extends TestCase {
         clause = new int[]{8,nint,1,2,3,-4,6};
         clause1 = makeClause(clause);
         assertEquals("8: [1,2] 3,-4,6", clause1.toString(null,0));
-
-        assertEquals("[8, 0, 6, 1, 2, 3, 3, 1, -4, 1, 6, 1]", Arrays.toString(clause1.toIntArray()));
 
         clause = new int[]{9,nor};
         clause1 = makeClause(clause);
@@ -260,6 +253,73 @@ public class ClauseTest extends TestCase {
         assertFalse(clause1.isTrue);
         System.out.println(clause1.inferenceSteps.get(0).toString(clause1,null));
         assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
+    }
+
+    public void testReplaceEquivalences() {
+        System.out.println("replace equivalences");
+        StringBuilder errors = new StringBuilder();
+        Clause clause1 = makeClause(new int[]{5, nor, 1, 2, 3});
+        clause1.replaceEquivalentLiterals(4, 2, null, true,monitor,null);
+        assertFalse(clause1.isTrue);
+        assertFalse(clause1.isFalse);
+        assertEquals("5.1: 1,4,3",clause1.toString(null,0));
+        System.out.println(clause1.inferenceSteps.get(0).toString(clause1,null));
+        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
+
+        clause1 = makeClause(new int[]{6, nor, 1, 2, 3});
+        clause1.replaceEquivalentLiterals(1, 3, null, true,monitor,null);
+        assertFalse(clause1.isTrue);
+        assertFalse(clause1.isFalse);
+        assertEquals("6.2: 1,2",clause1.toString(null,0));
+        //System.out.println(clause1.inferenceSteps.get(0).toString(clause1,null));
+        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
+        System.out.println(clause1.deductions(null));
+
+        clause1 = makeClause(new int[]{7, nor, 1, 2, 3});
+        clause1.replaceEquivalentLiterals(-1, 3, null, true,monitor,null);
+        assertTrue(clause1.isTrue);
+        assertFalse(clause1.isFalse);
+        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
+        System.out.println(clause1.deductions(null));
+
+        clause1 = makeClause(new int[]{8, natm, 2, 1, 2,2, 3});
+        Clause conj = clause1.replaceEquivalentLiterals(2, 3, null, true,monitor,null);
+        assertTrue(clause1.isTrue);
+        assertFalse(clause1.isFalse);
+        assertNotNull(conj);
+        assertEquals("8.2: & -2",conj.toString(null,0));
+        assertEquals("8.1: <=2 1",clause1.toString(null,0));
+
+        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
+        System.out.println(clause1.deductions(null));
+
+        clause1 = makeClause(new int[]{9, natm, 2, 1, 2,2, 3});
+        conj = clause1.replaceEquivalentLiterals(-2, 3, null, true,monitor,null);
+        assertFalse(clause1.isTrue);
+        assertFalse(clause1.isFalse);
+        assertNull(conj);
+        assertEquals("9.2: <=1 1,2",clause1.toString(null,0));
+
+        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
+        System.out.println(clause1.deductions(null));
+    }
+
+    public void testRemoveLiteral() {
+        System.out.println("remove literal");
+        StringBuilder errors = new StringBuilder();
+        Clause clause1 = makeClause(new int[]{5, nint, 1,2, 1, 2, 3});
+        clause1.removeLiteral(1, true, monitor,  null);
+        assertTrue(clause1.isTrue);
+        assertEquals("5.1: [0,2] 2,3", clause1.toString(null, 0));
+        System.out.println(clause1.inferenceSteps.get(0).toString(clause1, null));
+        assertTrue(clause1.inferenceSteps.get(0).verify(clause1, null, errors));
+
+        clause1 = makeClause(new int[]{6, nint, 4,6, 1,1, 2, 3,4,5,6,7,8});
+        clause1.removeLiteral(1, true, monitor,  null);
+        assertFalse(clause1.isTrue);
+        assertEquals("6.1: [2,6] 2,3,4,5,6,7,8", clause1.toString(null, 0));
+        System.out.println(clause1.inferenceSteps.get(0).toString(clause1, null));
+        assertTrue(clause1.inferenceSteps.get(0).verify(clause1, null, errors));
     }
 
     }

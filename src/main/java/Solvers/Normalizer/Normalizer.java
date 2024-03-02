@@ -270,12 +270,11 @@ public class Normalizer {
                     for(Clause clause : clausesArray) {
                         if(clause.isDisjunction()) {removeClause(clause); continue;}
                         removeClauseFromIndex(clause);
-                        if(clause.replaceEquivalentLiterals(equivalentLiteral,representative, step,trackReasoning,monitor,symboltable)) {
-                            Clause conjunction = clause.simplify(trackReasoning,monitor,symboltable);
-                            if (conjunction != null) {addTrueLiteralTask(conjunction);}
-                            if(clause.isTrue) {removeClause(clause); continue;}
-                            if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
-                            insertClauseToIndex(clause);}}}}}}
+                        Clause conjunction =clause.replaceEquivalentLiterals(equivalentLiteral,representative, step,trackReasoning,monitor,symboltable);
+                        if (conjunction != null) {addTrueLiteralTask(conjunction);}
+                        if(clause.isTrue) {removeClause(clause); continue;}
+                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                        insertClauseToIndex(clause);}}}}}
 
 
 
