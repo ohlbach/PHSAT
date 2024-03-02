@@ -9,10 +9,10 @@ public abstract class LinkedItem {
     /** indicates whether the item is in a list or not.*/
     boolean isInList;
     /** pointer to the previous item in the list. */
-    LinkedItem previousItem;
+    public LinkedItem previousItem;
 
     /** pointer to the next item in the list */
-    LinkedItem nextItem;
+    public LinkedItem nextItem;
 
     /** turns the item into a string.
      *

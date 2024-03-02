@@ -489,7 +489,7 @@ public class Clause extends LinkedItem {
      * @param symboltable The symbol table used for converting literals to strings.
      * @return true if the clause was successfully simplified by applying the true literal, false otherwise.
      */
-    boolean applyTrueLiteral(int trueLiteral, InferenceStep inferenceStep, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    Clause applyTrueLiteral(int trueLiteral, InferenceStep inferenceStep, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
         NMISTrueLiteral step = trackReasoning ? new NMISTrueLiteral("applyTrueLiteral", trueLiteral, inferenceStep, cloned) : null;
         boolean literalFound = false;
@@ -503,7 +503,7 @@ public class Clause extends LinkedItem {
                 literalFound = true;
                 if(literal == trueLiteral) {min -= multiplicity; max -= multiplicity;}
                 break;}}
-        if(!literalFound) return false; // should not happen
+        if(!literalFound) return null; // should not happen
         min = Math.max(0,min);
         max = Math.min(max,expandedSize);
         ++version;
@@ -512,9 +512,8 @@ public class Clause extends LinkedItem {
         if(monitor != null) {
             String result = isTrue ? "true" : (isFalse ? "false" :toString(symboltable,0));
             monitor.println(monitorId,"Clause " + cloned.toString(symboltable,0) +
-                            " simplified by true literal " + Symboltable.toString(trueLiteral,symboltable) + " to " + result);
-                return true;}
-        return true;}
+                            " simplified by true literal " + Symboltable.toString(trueLiteral,symboltable) + " to " + result);}
+        return simplify(trackReasoning,monitor,symboltable);}
 
     /** The method replaces the equivalentLiteral by the representative literal.
      * <br>
