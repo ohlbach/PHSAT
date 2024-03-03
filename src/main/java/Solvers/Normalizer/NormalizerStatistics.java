@@ -11,10 +11,13 @@ public class NormalizerStatistics extends Statistic {
     @Description("True literals in the input files.")
     int initialTrueLiterals = 0;
 
+    @Description("Equivalences in the input files.")
+    int initialEquivalences = 0;
+
     @Description("True literals derived from the clauses.")
     int derivedTrueLiterals = 0;
 
-    @Description("Clauses simplified in differernt ways.")
+    @Description("Clauses simplified in different ways.")
     int simplifiedClauses = 0;
 
     @Description("Simplifications by dividing multiplicities by their greatest common divisor.")

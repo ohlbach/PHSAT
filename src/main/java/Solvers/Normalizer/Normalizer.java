@@ -18,41 +18,78 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 
+/** The normalizer takes the inputClauses provided by the supervisor and removes any immediately recognizable redundancies.<br>
+ * In particular: <br>
+ * - superfluous multiplicities of literals<br>
+ * - complementary literals<br>
+ * - immediately recognizable true or false clauses<br>
+ * - multiplicities dividable by the greatest common divisor<br>
+ * - extractable true or false literals (e.g. atmost 2 p^3,q,r: p must be false)<br>
+ * <br>
+ * The quantifiers of the clauses are optimized as far as possible (e.g. atleast 1 p,... =&gt; or p,...)<br>
+ * Pure literals are identified and elminated.<br>
+ * True literals are put into the model.<br>
+ * The simplification operations can be accompanied by inference steps. The soundness of these steps can be verified.<br>
+ * The result is a list of simplified clauses which can be submitted to the solvers.
+ */
 public class Normalizer {
 
-    ProblemSupervisor problemSupervisor;
+    /** the supervisor for the given problem.*/
+    final ProblemSupervisor problemSupervisor;
 
-    String problemId;
-    String solverId = "Normalizer";
+    /** the problem's identifier */
+    final String problemId;
 
-    /**
-     * the global model.
-     */
-    public Model model;
+    /** just 'Normalizer'*/
+    final static String solverId = "Normalizer";
 
-    public Monitor monitor;
+    /** the global model.*/
+    public final Model model;
 
-    public boolean monitoring;
-    public String monitorId;
+    /** the number of predicates in the problem */
+    public final int predicates;
 
-    public Symboltable symboltable;
+    /** null or a monitor */
+    public final Monitor monitor;
 
-    public boolean trackReasoning;
+    /** true if there is a monitor */
+    public final boolean monitoring;
+    /** the monitor's identifier */
+    public final String monitorId;
 
-    public int predicates;
+    /** null or a symboltable */
+    public final Symboltable symboltable;
 
+    /** if true then inference steps are generated */
+    public final boolean trackReasoning;
+
+    /**the normalizer statistics */
+    NormalizerStatistics statistics;
+
+    /** the current thread*/
+    public final Thread myThread;
+
+    /** maps predicates to or- and atleast-clauses containing the predicate */
     private ArrayList<Clause>[] positiveOccAtleast;
+
+    /** maps predicates to atmost-clauses containing the predicate */
     private ArrayList<Clause>[] positiveOccAtmost;
+
+    /** maps predicates to interval-clauses containing the predicate */
     private ArrayList<Clause>[] positiveOccInterval;
 
+    /** maps predicates to or- and atleast-clauses containing the negated predicate */
     private ArrayList<Clause>[] negativeOccAtleast;
+
+    /** maps predicates to atmost-clauses containing the negated predicate */
     private ArrayList<Clause>[] negativeOccAtmost;
+
+    /** maps predicates to interval-clauses containing the negated predicate */
     private ArrayList<Clause>[] negativeOccInterval;
 
-    private final ArrayList<Clause>[][] posOccurrences = new ArrayList[3][];
-    private final ArrayList<Clause>[][] negOccurrences = new ArrayList[3][];
+    /** contains pointers to all six occurrence lists.*/
+    private final ArrayList[][] indexLists = new ArrayList[6][];
 
-    public Thread myThread;
 
     /** A queue of newly derived unit literals and binary equivalences.
      * The unit literals are automatically put at the beginning of the queue.
@@ -60,70 +97,80 @@ public class Normalizer {
     private final PriorityBlockingQueue<Task> queue =
             new PriorityBlockingQueue<>(100, Comparator.comparingInt(task->task.priority));
 
-    /**
-     * the normalizer statistics
-     */
-    NormalizerStatistics statistics;
 
+    /** contains all the clauses. */
     LinkedItemList<Clause> clauses = new LinkedItemList<>("Normalized Clauses");
 
-    void removeClause(Clause clause) {
-        clauses.remove(clause);
-        removeClauseFromIndex(clause);}
 
+    /**Creates a Normalizer object with the given ProblemSupervisor.
+     *
+     * @param problemSupervisor the ProblemSupervisor object that controls the solution of the problem.
+     */
     public Normalizer(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
-        problemId = problemSupervisor.problemId;
-        model = problemSupervisor.model;
-        statistics = new NormalizerStatistics(null);
-        monitor = problemSupervisor.monitor;
-        monitoring = monitor != null;
-        symboltable = problemSupervisor.inputClauses.symboltable;
-        trackReasoning = problemSupervisor.globalParameters.trackReasoning;
-        predicates = problemSupervisor.inputClauses.predicates;
-        monitorId = "Normalizer_"+ problemSupervisor.problemId;
-        myThread = Thread.currentThread();
+        problemId              = problemSupervisor.problemId;
+        model                  = problemSupervisor.model;
+        statistics             = new NormalizerStatistics(null);
+        monitor                = problemSupervisor.monitor;
+        monitoring             = monitor != null;
+        symboltable            = problemSupervisor.inputClauses.symboltable;
+        trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
+        predicates             = problemSupervisor.inputClauses.predicates;
+        monitorId              = "Normalizer_"+ problemId;
+        myThread               = Thread.currentThread();
     }
 
     /** reads the next task from the task queue and processes it.
+     * <br>
+     * This method is called after all clauses are simplified.
+     * The resulting true literals and the equivalences are now processed.
      *
-     * @param n 0 or the maximum number of task before stopping the loop (0: unlimited) (> 0 for test purposes).
+     * @param maxLoop 0 or the maximum number of task before stopping the loop (0: unlimited) (> 0 for test purposes).
      * @throws Result if a contradiction is encountered or the clause set became empty.
      */
-    void processTasks(final int n) throws Result {
+    void processTasks(final int maxLoop) throws Result {
+        queue.add(new Task());
+        boolean purityIsInQueue = true;
         Task task;
         int counter = 0;
-        while(!myThread.isInterrupted()) {
+        while((maxLoop == 0 || counter <= maxLoop) && !queue.isEmpty()) {
+            ++counter;
             try{
-            task = queue.take(); // waits if the queue is empty
-                if(task.trueLiteral != 0) applyTrueLiteral(task.trueLiteral,task.inferenceStep);
-                else {applyEquivalence(task.eqLiteral1,task.eqLiteral2,task.inferenceStep); }
+                task = queue.take(); // waits if the queue is empty
+                switch(task.taskType) {
+                    case EQUIVALENCE: applyEquivalence(task.eqLiteral1,task.eqLiteral2,task.inferenceStep); break;
+                    case TRUELITERAL:
+                        applyTrueLiteral(task.trueLiteral,task.inferenceStep);
+                        if(!purityIsInQueue) {queue.add(new Task()); purityIsInQueue = true;} // there can be new purities.
+                        break;
+                    case PURITY:      processPurity(); purityIsInQueue = false;}}
+            catch(InterruptedException ex) {
+                if(monitoring) monitor.println("Normalizer for problem "+ problemId + " interrupted.");
+                return;}}}
 
-        }catch(InterruptedException ex) {
-            ex.printStackTrace();
-            return;}
-        }}
 
-
-    Result normalizeClauses() {
+    /** reads the clauses from the problemSupervisor, turns them into Clause datastructures, and simplifies them as far as possible.
+     *
+     * @param maxLoop 0 or the maximum number of task before stopping the loop (0: unlimited) (> 0 for test purposes).
+     * @return null or Unsatisfiable
+     */
+    public Result normalizeClauses(int maxLoop) {
         InputClauses inputClauses = problemSupervisor.inputClauses;
         try {
             for (int[] inputClause : inputClauses.conjunctions) makeTrueLiteralTask(inputClause);
             for (int[] inputClause : inputClauses.equivalences) makeEquivalenceTask(inputClause);
             for (int[] inputClause : inputClauses.disjunctions) transformAndSimplify(inputClause);
-            for (int[] inputClause : inputClauses.atleasts) transformAndSimplify(inputClause);
-            for (int[] inputClause : inputClauses.atmosts) transformAndSimplify(inputClause);
-            for (int[] inputClause : inputClauses.exactlys) transformAndSimplify(inputClause);
-            for (int[] inputClause : inputClauses.intervals) transformAndSimplify(inputClause);}
-        catch (Result result) {}
-        // from now on the equivalence classes are no longer needed.
-        // while (newTrueLiterals) { // fixpoint iteration until no new true literals are derived.
-        //     newTrueLiterals = false;
-        //    for (int i = clauses.size() - 1; i >= 0; --i) replaceTrueLiterals(i);
+            for (int[] inputClause : inputClauses.atleasts)     transformAndSimplify(inputClause);
+            for (int[] inputClause : inputClauses.atmosts)      transformAndSimplify(inputClause);
+            for (int[] inputClause : inputClauses.exactlys)     transformAndSimplify(inputClause);
+            for (int[] inputClause : inputClauses.intervals)    transformAndSimplify(inputClause);
+            processTasks(maxLoop);
+        }
+        catch (Result result) {
+            statistics.survivedClauses = clauses.size();
+            return result;}
         statistics.survivedClauses = clauses.size();
-        //return clauses.isEmpty() ? new Satisfiable(problemId, solverId, model) : null;
-        return null;
-    }
+        return null;}
 
     /** Adds all literals in the clause (a conjunction) as true literal task to the queue and inserts them into the model.
      *
@@ -131,6 +178,7 @@ public class Normalizer {
      * @throws Unsatisfiable if the model discovers an inconsistency.
      */
     void makeTrueLiteralTask(int[] inputClause) throws Unsatisfiable {
+        assert(inputClause[1] == Quantifier.AND.ordinal());
         InferenceStep step = trackReasoning ? new InfInputClause(inputClause[0]) : null;
         for(int i = Quantifier.AND.firstLiteralIndex; i < inputClause.length; ++i) {
             int literal = inputClause[i];
@@ -145,12 +193,13 @@ public class Normalizer {
      * @throws Unsatisfiable if the model discovers an inconsistency.
      */
     void makeTrueLiteralTask(Clause clause) throws Unsatisfiable{
+        assert(clause.quantifier == Quantifier.AND);
         InferenceStep step = trackReasoning ? new NMISClause(clause) : null;
         for(int i = 0; i < clause.literals.size()-1; i += 2) {
             int literal = clause.literals.getInt(i);
             if(monitoring) monitor.println(monitorId, "adding true literal " +
                     Symboltable.toString(literal,symboltable) + " to the model.");
-            ++statistics.initialTrueLiterals;
+            ++statistics.derivedTrueLiterals;
             addTrueLiteralTask(literal,step);}}
 
     /**Adds the literal as true literal to the model and to the queue,
@@ -159,31 +208,111 @@ public class Normalizer {
      * @param step    which caused the literal to be true.
      * @throws Unsatisfiable if the model discovers an inconsistency.
      */
-    void addTrueLiteralTask(int literal, InferenceStep step) throws Unsatisfiable{
+    void addTrueLiteralTask(int literal, InferenceStep step) throws Unsatisfiable {
         model.add(myThread,literal,step);
         queue.add(new Task(literal,step));}
 
+    /** turns the equivalence clauses in the input clause into an equivalence task and adds it to the queue.
+     * <br>
+     * The first literal in the equivalence clause becomes the representative literal.
+     * Each further literal in the clause yields a separate equivalence task.
+     *
+     * @param inputClause an equivalence input clause.
+     */
     void makeEquivalenceTask(int[] inputClause) {
+        assert(inputClause[1] == Quantifier.EQUIV.ordinal());
         int sign = 1;
         int representative = inputClause[Quantifier.EQUIV.firstLiteralIndex];
         if(representative < 0) {sign = -1; representative *= -1;}
         for(int i = Quantifier.EQUIV.firstLiteralIndex+1; i < inputClause.length; ++i) {
-            addEquivalenceTask(representative,sign*inputClause[i],
-                    trackReasoning ? new InfInputClause(inputClause[0]) : null);}}
+            queue.add(new Task(representative, sign*inputClause[i],
+                    trackReasoning ? new InfInputClause(inputClause[0]) : null));
+            ++statistics.initialEquivalences;}}
 
+    /** The method turns an inputClause into a Clause data structure and simplifies the clause.
+     *
+     * @param inputClause   an input clause (not AND- and not EQUIV-type)
+     * @throws Unsatisfiable if a contradiction is discovered.
+     */
     void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause,trackReasoning,monitor,symboltable);
         if(clause.quantifier == Quantifier.AND) {makeTrueLiteralTask(clause); return;} // unit clause
-        if(clause.isTrue) return;
-        if(clause.isFalse) throw new UnsatClause(null,null,clause.inputClause);
+        if(clause.isTrue) {++statistics.removedClauses; return;}
+        if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause.inputClause);
         Clause conjunction = clause.simplify(trackReasoning,monitor,symboltable);
         if(conjunction != null) makeTrueLiteralTask(conjunction);
-        if(clause.isTrue) return;
-        if(clause.isFalse) throw new UnsatClause(null,null,clause.inputClause);
+        if(clause.isTrue) {++statistics.removedClauses; return;}
+        if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause.inputClause);
+        statistics.simplifiedClauses += clause.version;
         addClauseToIndex(clause);
         clauses.addToBack(clause);}
 
 
+    /** applies the true literal to all clauses containing the literal.
+     *
+     * @param literal       a true literal
+     * @param inferenceStep null or the inference step that caused the literal to be true.
+     * @throws Unsatisfiable if a contradiction is discovered.
+     */
+    void applyTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
+        int predicate = Math.abs(literal);
+        for(ArrayList[] clausesList : indexLists) { // loop over all three index arrays.
+            if(clausesList != null) {
+                ArrayList<Clause> clausesArray = (ArrayList<Clause>)clausesList[predicate];
+                if(clausesArray != null) {
+                    for(Clause clause : clausesArray) {
+                        removeClauseFromIndex(clause);
+                        Clause conjunction = clause.applyTrueLiteral(literal,inferenceStep,trackReasoning,monitor,symboltable);
+                        if (conjunction != null) {makeTrueLiteralTask(conjunction);}
+                        if(clause.isTrue) {clauses.remove(clause); continue;}
+                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                        addClauseToIndex(clause);}}}}
+        applyTrueLiteralToEquivalences(literal,inferenceStep);}
+
+    /** applies the true literal to all equivalences.
+     * <br>
+     * Equivalent literals must get the same truth value.
+     *
+     * @param trueLiteral   a true literal
+     * @param inferenceStep which caused the truth of the literal
+     * @throws Unsatisfiable if two equivalent literals get different truth values.
+     */
+    void applyTrueLiteralToEquivalences(int trueLiteral, InferenceStep inferenceStep) throws Unsatisfiable {
+        for (int[] inputClause : problemSupervisor.inputClauses.equivalences) {
+            byte sign = 0;
+            for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
+                int literal = inputClause[i];
+                if(literal ==  trueLiteral) {sign =  1; break;}
+                if(literal == -trueLiteral) {sign = -1; break;}}
+            if(sign != 0) {
+                for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
+                    int literal = inputClause[i];
+                    if(model.status(literal) ==  sign) continue;
+                    if(model.status(literal) == -sign) throw new UnsatClause(problemId,solverId,inputClause); // ändern
+                    model.add(myThread,sign*literal,inferenceStep); // ändern
+                }}}}
+
+
+    /** replaces all occurrences of the equivalentLiteral by the representative literal.
+     *
+     * @param representative    a literal
+     * @param equivalentLiteral the equivalent literal
+     * @param step              the inference step that caused the equivalence.
+     * @throws Unsatisfiable    if a contradiction is encountered.
+     */
+    void applyEquivalence(int representative, int equivalentLiteral, InferenceStep step) throws Unsatisfiable {
+        int predicate = Math.abs(equivalentLiteral);
+        for(ArrayList[] clausesList : indexLists) {
+            if(clausesList != null) {
+                ArrayList<Clause> clausesArray = (ArrayList<Clause>)clausesList[predicate];
+                if(clausesArray != null) {
+                    for(Clause clause : clausesArray) {
+                        removeClauseFromIndex(clause);
+                        Clause conjunction = clause.replaceEquivalentLiterals(equivalentLiteral,representative, step,trackReasoning,monitor,symboltable);
+                        if (conjunction != null) {makeTrueLiteralTask(conjunction);}
+                        if(clause.isTrue) {clauses.remove(clause); continue;}
+                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                        addClauseToIndex(clause);}}}}}
 
     /** add the given clause to the corresponding index (occurrence lists).
      * <br>
@@ -199,19 +328,23 @@ public class Normalizer {
     void addClauseToIndex(Clause clause) {
         ArrayList<Clause>[] positiveArrayList = null;
         ArrayList<Clause>[] negativeArrayList = null;
-        switch(clause.quantifier) {
+        switch(clause.quantifier) { // since the arrays may become very large, they are only created on demand.
             case OR:
             case ATLEAST:
                 if(positiveOccAtleast == null) {
                     positiveOccAtleast = new ArrayList[predicates+1];
-                    negativeOccAtleast = new ArrayList[predicates+1];}
+                    indexLists[0] = positiveOccAtleast;
+                    negativeOccAtleast = new ArrayList[predicates+1];
+                    indexLists[1] = negativeOccAtleast;}
                 positiveArrayList = positiveOccAtleast;
                 negativeArrayList = negativeOccAtleast;
                 break;
             case ATMOST:
                 if(positiveOccAtmost == null) {
                     positiveOccAtmost = new ArrayList[predicates+1];
-                    negativeOccAtmost = new ArrayList[predicates+1];}
+                    indexLists[2] = positiveOccAtmost;
+                    negativeOccAtmost = new ArrayList[predicates+1];
+                    indexLists[3] = negativeOccAtmost;}
                 positiveArrayList = positiveOccAtmost;
                 negativeArrayList = negativeOccAtmost;
                 break;
@@ -219,7 +352,9 @@ public class Normalizer {
             case INTERVAL:
                 if(positiveOccInterval == null) {
                     positiveOccInterval = new ArrayList[predicates+1];
-                    negativeOccInterval = new ArrayList[predicates+1];}
+                    indexLists[4] = positiveOccInterval;
+                    negativeOccInterval = new ArrayList[predicates+1];
+                    indexLists[5] = negativeOccInterval;}
                 positiveArrayList = positiveOccInterval;
                 negativeArrayList = negativeOccInterval;}
 
@@ -268,43 +403,18 @@ public class Normalizer {
 
 
 
-    void applyTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
-        int predicate = Math.abs(literal);
-        for(ArrayList<Clause>[] clausesList : (literal > 0) ? posOccurrences : negOccurrences) {
-            if(clausesList != null) {
-                ArrayList<Clause> clausesArray = clausesList[predicate];
-                if(clausesArray != null) {
-                    for(Clause clause : clausesArray) {
-                        if(clause.isDisjunction()) {removeClause(clause); continue;}
-                        removeClauseFromIndex(clause);
-                        Clause conjunction = clause.applyTrueLiteral(literal,inferenceStep,trackReasoning,monitor,symboltable);
-                        if (conjunction != null) {makeTrueLiteralTask(conjunction);}
-                        if(clause.isTrue) {removeClause(clause); continue;}
-                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
-                        addClauseToIndex(clause);}}}}}
-
-
-
-    void addEquivalenceTask(int representative, int equivalentLiteral, InferenceStep step){
-        queue.add(new Task(representative, equivalentLiteral,step));
-    }
-
-    void applyEquivalence(int representative, int equivalentLiteral, InferenceStep step) throws Result {
-        int predicate = Math.abs(equivalentLiteral);
-        for(ArrayList<Clause>[] clausesList : (equivalentLiteral > 0) ? posOccurrences : negOccurrences) {
-            if(clausesList != null) {
-                ArrayList<Clause> clausesArray = clausesList[predicate];
-                if(clausesArray != null) {
-                    for(Clause clause : clausesArray) {
-                        if(clause.isDisjunction()) {removeClause(clause); continue;}
-                        removeClauseFromIndex(clause);
-                        Clause conjunction =clause.replaceEquivalentLiterals(equivalentLiteral,representative, step,trackReasoning,monitor,symboltable);
-                        if (conjunction != null) {makeTrueLiteralTask(conjunction);}
-                        if(clause.isTrue) {removeClause(clause); continue;}
-                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
-                        addClauseToIndex(clause);}}}}}
-
-
+    /** searches pure literals and process them.
+     * <br>
+     *  A literal p is pure in clauses which are NOT interval- or exactly-clauses if it occurs either <br>
+     *  - only positively or only negatively in OR- or ATLEAST-clauses or<br>
+     *  - only positively or only negatively in ATMOST-clauses<br>
+     *  The literal p is singleton pure if it occurs only once in an interval- or exactly-clause.<br>
+     *  A pure literal in  OR- or ATLEAST-clauses can be made true if occurs only positively,<br>
+     *  or made false if it occurs only negatively. <br>
+     *  In atmost clauses it is the other way round.<br>
+     *  A singleton pure literal in an interval- or exactly-clause can be removed. <br>
+     *  Its truth value can only be determined after a model for the entire clause set has been found.
+     * */
     void processPurity()  throws Unsatisfiable{
         boolean purityFound = true;
         while(purityFound) {
@@ -353,7 +463,24 @@ public class Normalizer {
                     addClauseToIndex(clause);}}}
     }
 
-    private ArrayList<Object> singletons = new ArrayList<>();
+    /** extends the model by determining the truth-value of singleton pure literals in interval- and exactly-clauses.
+     *
+     * @throws Unsatisfiable should not happen.
+     */
+    public void extendModel() throws Unsatisfiable {
+         for(int i = 0; i < singletons.size(); i +=2) {
+             int literal   = (Integer)singletons.get(i);
+             Clause clause = (Clause)singletons.get(i+1);
+             int multiplicity = 0;
+             for(int j = 0; j < clause.literals.size()-1; j += 2) {
+                 if(clause.literals.getInt(j) == literal) {multiplicity = clause.literals.getInt(j+1); break;}}
+             int trueLiterals = clause.trueLiterals(model::isTrue);
+             InferenceStep step = null; // ändern
+             if(trueLiterals+multiplicity <= clause.max) model.add(myThread,literal,step);
+             else model.add(myThread,-literal,step);}}
+
+    /** contains pairs singleton-literal,clause. To be used when a model has to be completed. */
+    private final ArrayList<Object> singletons = new ArrayList<>();
 
     /** Checks if the given predicate is positively pure, i.e. it occurs only in atleast- or or-clauses, either positively or negatively
      *
@@ -361,10 +488,10 @@ public class Normalizer {
      * @return +predicate if it occurs only positively in atleast or or-clauses, -predicate the other way round, otherwise 0.
      */
     int isPositivelyPure(int predicate) {
-        if(positiveOccAtmost == null || positiveOccAtmost[predicate] != null ||
-                negativeOccAtmost == null || negativeOccAtmost[predicate] != null ||
-                positiveOccInterval == null || positiveOccInterval[predicate] == null ||
-                negativeOccInterval == null || negativeOccInterval != null) return 0;
+        if((positiveOccAtmost != null && positiveOccAtmost[predicate] != null) ||
+                (negativeOccAtmost != null && negativeOccAtmost[predicate] != null) ||
+                (positiveOccInterval != null && positiveOccInterval[predicate] != null) ||
+                (negativeOccInterval != null && negativeOccInterval[predicate] != null)) return 0;
         if((negativeOccAtleast == null || negativeOccAtleast[predicate] == null) &&
                 positiveOccAtleast != null && positiveOccAtleast[predicate] != null) return predicate;
         if((positiveOccAtleast == null || positiveOccAtleast[predicate] == null) &&
@@ -377,10 +504,10 @@ public class Normalizer {
      * @return +predicate if it occurs only positively in atmost-clauses, -predicate the other way round, otherwise 0.
      */
     int isNegativelyPure(int predicate) {
-        if(positiveOccAtleast == null || positiveOccAtleast[predicate] != null ||
-                negativeOccAtleast == null || negativeOccAtleast[predicate] != null ||
-                positiveOccInterval == null || positiveOccInterval[predicate] == null ||
-                negativeOccInterval == null || negativeOccInterval != null) return 0;
+        if((positiveOccAtleast != null && positiveOccAtleast[predicate] != null) ||
+                (negativeOccAtleast != null && negativeOccAtleast[predicate] != null) ||
+                (positiveOccInterval != null && positiveOccInterval[predicate] != null) ||
+                (negativeOccInterval != null && negativeOccInterval[predicate] != null)) return 0;
         if((negativeOccAtmost == null || negativeOccAtmost[predicate] == null) &&
                 positiveOccAtmost != null && positiveOccAtmost[predicate] != null) return predicate;
         if((positiveOccAtmost == null || positiveOccAtmost[predicate] == null) &&
@@ -393,15 +520,21 @@ public class Normalizer {
      * @return +predicate if it occurs positively in a single interval clause, -predicate the other way round, otherwise 0.
      */
     int isSingletonPure(int predicate) {
-        if(positiveOccAtleast == null || positiveOccAtleast[predicate] != null ||
-                negativeOccAtleast == null || negativeOccAtleast[predicate] != null ||
-                positiveOccAtmost == null || positiveOccAtmost[predicate] == null ||
-                negativeOccAtmost == null || negativeOccAtmost != null) return 0;
+        if((positiveOccAtleast != null && positiveOccAtleast[predicate] != null) ||
+                (negativeOccAtleast != null && negativeOccAtleast[predicate] != null) ||
+                (positiveOccAtmost  != null && positiveOccAtmost[predicate] != null) ||
+                (negativeOccAtmost  != null && negativeOccAtmost[predicate] != null)) return 0;
         if((negativeOccInterval == null || negativeOccInterval[predicate] == null) &&
                 positiveOccInterval != null && positiveOccInterval[predicate].size() == 1) return predicate;
         if((positiveOccInterval == null || positiveOccInterval[predicate] == null) &&
                 negativeOccInterval != null && negativeOccInterval[predicate].size() == 1) return -predicate;
         return 0;}
+
+    /** lists the entire clause list as string.
+     *
+     * @param symboltable null or a symboltable
+     * @return the clauses as string, one per line.
+     */
 
     String toString(Symboltable symboltable) {
          if(clauses.isEmpty()) return "";

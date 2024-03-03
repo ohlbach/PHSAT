@@ -588,6 +588,18 @@ public class Clause extends LinkedItem {
             return simplify(trackReasoning,monitor,symboltable);}
         return null;}
 
+    /** counts the number of true literals in the clause
+     *
+     * @param model maps a literal to true/false
+     * @return the number of true literals in the clause.
+     */
+    public int trueLiterals(IntPredicate model) {
+        int trueLiterals = 0;
+        for(int i = 0; i < literals.size()-1; i += 2) {
+            int literal = literals.getInt(i);
+            if(model.test(literal)) ++trueLiterals;}
+        return trueLiterals;}
+
 
     /**
      * Checks the expanded size of the clause by summing the multiplicities of the literals.

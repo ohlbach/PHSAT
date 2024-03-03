@@ -9,6 +9,9 @@ import InferenceSteps.InferenceStep;
  * 2. Equality Literal Task: Represents a task that indicates an equality between two literals.
  */
 public class Task {
+    enum TaskType {TRUELITERAL,EQUIVALENCE,PURITY};
+
+    TaskType taskType;
 
     /** The inference step that caused the truth of the literal or the equalitiy of the literals respectively.
      * It may be null.*/
@@ -31,19 +34,20 @@ public class Task {
     static private int priorityShift = 1000000;
 
     /** Constructs a Task object with a true literal and an InferenceStep.
-     * The priority is |trueLiteral|.
+     * The priority is priorityShift+|trueLiteral|.
      * This guarantees that the tasks are chosen deterministically.
      *
      * @param trueLiteral   the true literal value
      * @param inferenceStep the InferenceStep object that caused the truth of the literal
      */
     public Task(int trueLiteral, InferenceStep inferenceStep) {
+        taskType = TaskType.TRUELITERAL;
         this.trueLiteral = trueLiteral;
         this.inferenceStep = inferenceStep;
-        priority = Math.abs(trueLiteral);}
+        priority = priorityShift + Math.abs(trueLiteral);}
 
     /** Constructs a Task object for an equality and an InferenceStep, and calculates its priority.
-     * The priority is priorityShift*|eqLiteral1|+ |eqLiteral2|.
+     * The priority is |eqLiteral1|+ |eqLiteral2|.
      * This guarantees that the tasks are chosen deterministically.
      *
      * @param eqLiteral1 the first literal of the equality
@@ -51,10 +55,17 @@ public class Task {
      * @param inferenceStep the InferenceStep object that caused the equality of the literals
      */
     public Task(int eqLiteral1, int eqLiteral2, InferenceStep inferenceStep) {
+        taskType = TaskType.EQUIVALENCE;
         this.eqLiteral1 = eqLiteral1;
         this.eqLiteral2 = eqLiteral2;
         this.inferenceStep = inferenceStep;
-        priority = priorityShift * Math.abs(eqLiteral1) + Math.abs(eqLiteral2);}
+        priority = Math.abs(eqLiteral1) + Math.abs(eqLiteral2);}
+
+    /** generates a PURITY task.
+     */
+    public Task() {
+        taskType = TaskType.PURITY;
+        priority = 2*priorityShift;}
 
     /** Returns a string representation of the Task object.
      *
