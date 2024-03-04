@@ -70,25 +70,25 @@ public class Normalizer {
     public final Thread myThread;
 
     /** maps predicates to or- and atleast-clauses containing the predicate */
-    private ArrayList<Clause>[] positiveOccAtleast;
+    ArrayList<Clause>[] positiveOccAtleast;
 
     /** maps predicates to atmost-clauses containing the predicate */
-    private ArrayList<Clause>[] positiveOccAtmost;
+    ArrayList<Clause>[] positiveOccAtmost;
 
     /** maps predicates to interval-clauses containing the predicate */
-    private ArrayList<Clause>[] positiveOccInterval;
+    ArrayList<Clause>[] positiveOccInterval;
 
     /** maps predicates to or- and atleast-clauses containing the negated predicate */
-    private ArrayList<Clause>[] negativeOccAtleast;
+    ArrayList<Clause>[] negativeOccAtleast;
 
     /** maps predicates to atmost-clauses containing the negated predicate */
-    private ArrayList<Clause>[] negativeOccAtmost;
+    ArrayList<Clause>[] negativeOccAtmost;
 
     /** maps predicates to interval-clauses containing the negated predicate */
-    private ArrayList<Clause>[] negativeOccInterval;
+    ArrayList<Clause>[] negativeOccInterval;
 
     /** contains pointers to all six occurrence lists.*/
-    private final ArrayList[][] indexLists = new ArrayList[6][];
+    final ArrayList[][] indexLists = new ArrayList[6][];
 
 
     /** A queue of newly derived unit literals and binary equivalences.
@@ -536,7 +536,7 @@ public class Normalizer {
      * @return the clauses as string, one per line.
      */
 
-    String toString(Symboltable symboltable) {
+    public String toString(Symboltable symboltable) {
          if(clauses.isEmpty()) return "";
          int size = (clauses.lastLinkedItem.id + "." + clauses.lastLinkedItem.version).length();
          StringBuilder sb = new StringBuilder();
@@ -547,5 +547,30 @@ public class Normalizer {
             clause = (Clause)clause.nextItem;}
         return sb.toString();
     }
+
+    /** collects all the clauses in the indices as a string (for testing purposes)
+     *
+     * @param symboltable null or a symboltable.
+     * @return all the clauses separated according to the index lists and the predicates.
+     */
+    public String indexToString(Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        final String[] header = new String[]{
+                "Positive or- and atleast-clauses","Negative or- and atleast-clauses",
+                "Positive atmost-clauses","Negative atmost-clauses",
+                "Positive interval-clauses","Negative interval-clauses"};
+        for(int i = 0; i < 6; ++i) {
+            ArrayList<Clause>[] clauseList = indexLists[i];
+            if(clauseList != null) {
+                st.append(header[i]).append(":\n");
+                for(int predicate = 1; predicate <= predicates; ++predicate) {
+                    if(clauseList[predicate] != null) {
+                        String pred = Symboltable.toString((i%2 == 1 ? -1:+1)*predicate,symboltable);
+                        st.append(pred).append(": ");
+                        boolean first = true;
+                        for(Clause clause : clauseList[predicate]) {
+                            int size = first ? 10-pred.length()-2 : 10; first = false;
+                            st.append(clause.toString(symboltable,size)).append("\n");}}}}}
+        return st.toString();}
 
 }
