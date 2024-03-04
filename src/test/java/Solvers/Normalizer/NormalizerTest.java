@@ -2,7 +2,9 @@ package Solvers.Normalizer;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
+import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
@@ -58,6 +60,8 @@ public class NormalizerTest extends TestCase {
         GlobalParameters globalParameters = new GlobalParameters(pars,errors,warnings);
         ProblemSupervisor supervisor = new ProblemSupervisor(null,globalParameters,generator,null);
         supervisor.inputClauses = inputClauses;
+        supervisor.model = new Model(inputClauses.predicates);
+        supervisor.monitor = new MonitorLife("Test",System.nanoTime());
         return supervisor;}
 
     public void testAddClauseToIndex() {
@@ -103,4 +107,60 @@ public class NormalizerTest extends TestCase {
         assertEquals(clause2,nom.positiveOccAtleast[3].get(0));
 
     }
-}
+
+    public void testTransformAndSimplif1() throws Unsatisfiable {
+        System.out.println("transform and simplify: no simplifications ");
+        String clauses = "p cnf 15\n";
+        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
+        Normalizer nom = new Normalizer(supervisor);
+        int[] clause1 = new int[]{1, nor, 1, -2, 3};
+        nom.transformAndSimplify(clause1);
+        assertEquals("  1: 1,-2,3", nom.toString(null));
+
+        int[] clause2 = new int[]{2, natl, 2, 3, 1, -2, 3};
+        nom.transformAndSimplify(clause2);
+        assertEquals("  1: 1,-2,3\n" +
+                "  2: >=2 3^2,1,-2", nom.toString(null));
+
+        int[] clause3 = new int[]{3, nex, 2, 4,5,5,6};
+        nom.transformAndSimplify(clause3);
+        assertEquals(" 1: 1,-2,3\n" +
+                "  2: >=2 3^2,1,-2\n" +
+                "  3: =2 4,5^2,6", nom.toString(null));
+
+        int[] clause4 = new int[]{4, nint, 2,3, 4,5,5,6};
+        nom.transformAndSimplify(clause3);
+        assertEquals("  1: 1,-2,3\n" +
+                "  2: >=2 3^2,1,-2\n" +
+                "  3: =2 4,5^2,6", nom.toString(null));
+    }
+
+    public void testTransformAndSimplif2() throws Unsatisfiable {
+        System.out.println("transform and simplify: with simplifications ");
+        String clauses = "p cnf 15\n";
+        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
+        Normalizer nom = new Normalizer(supervisor);
+        int[] clause1 = new int[]{1, nor, 1, -2, 3, 2};
+        nom.transformAndSimplify(clause1);
+        assertEquals("", nom.toString(null));
+
+        int[] clause2 = new int[]{2, nor, 1, -2, 3, -2};
+        nom.transformAndSimplify(clause2);
+        assertEquals("2.1: 1,-2,3", nom.toString(null));
+
+
+        int[] clause3 = new int[]{3, natl, 2, -2, 3, -2, -2, 3, 3, 4};
+        nom.transformAndSimplify(clause3);
+        assertEquals("2.1: 1,-2,3\n" +
+                "3.2: -2,3", nom.toString(null));
+
+        int[] clause4 = new int[]{4, natm, 2, -2, 3, -2, -2, 3, 3, 4};
+        nom.transformAndSimplify(clause4);
+        assertEquals("2.1: 1,-2,3\n" +
+                "3.2: -2,3", nom.toString(null));
+        assertEquals("2,-3",supervisor.model.toString());
+        assertEquals("true(2)\n" +
+                "true(-3)\n",nom.queueToString(null));
+    }
+
+    }

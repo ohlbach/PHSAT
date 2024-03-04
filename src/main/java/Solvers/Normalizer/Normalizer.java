@@ -369,7 +369,7 @@ public class Normalizer {
             clausesArray.add(clause);}}
 
     /** removes the clause from the corresponding index lists.
-     * Empty list are entirely removed.
+     * Empty lists are entirely removed.
      *
      * @param clause the clause to be removed from the list.
      */
@@ -572,5 +572,13 @@ public class Normalizer {
                             int size = first ? 10-pred.length()-2 : 10; first = false;
                             st.append(clause.toString(symboltable,size)).append("\n");}}}}}
         return st.toString();}
+
+    public String queueToString(Symboltable symboltable) {
+        StringBuilder sb = new StringBuilder();
+        for (Task task : queue) {
+            sb.append(task.toString(symboltable)).append("\n");
+        }
+        return sb.toString();
+    }
 
 }

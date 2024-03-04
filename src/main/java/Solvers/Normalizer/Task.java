@@ -73,7 +73,8 @@ public class Task {
      * @return The string representation of the Task object.
      */
     public String toString(Symboltable symboltable) {
-        if (trueLiteral != 0) {
-            return "true(" + symboltable.toString(trueLiteral) + ")";}
-        else {return symboltable.toString(eqLiteral1) + " = " + symboltable.toString(eqLiteral2);}}
+        switch (taskType) {
+            case TRUELITERAL: return "true(" + Symboltable.toString(trueLiteral,symboltable) + ")";
+            case EQUIVALENCE: return symboltable.toString(eqLiteral1,symboltable) + " = " + Symboltable.toString(eqLiteral2,symboltable);
+            default: return "Purity";}}
 }
