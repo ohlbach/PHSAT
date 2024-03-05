@@ -24,6 +24,7 @@ public class NormalizerTest extends TestCase {
     int natm = Quantifier.ATMOST.ordinal();
     int nex = Quantifier.EXACTLY.ordinal();
     int nint = Quantifier.INTERVAL.ordinal();
+    int neq = Quantifier.EQUIV.ordinal();
 
     static Symboltable symboltable = new Symboltable(10);
     static Monitor monitor = new MonitorLife();
@@ -161,6 +162,33 @@ public class NormalizerTest extends TestCase {
         assertEquals("2,-3",supervisor.model.toString());
         assertEquals("true(2)\n" +
                 "true(-3)\n",nom.queueToString(null));
+    }
+
+    public void testApplyTrueLiteralToEquivalence() throws Unsatisfiable {
+        System.out.println("apply true literal to equivalence");
+        String clauses = "p cnf 15\n"+
+                "e 1=2 3, 4";
+        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
+
+        Normalizer nom = new Normalizer(supervisor);
+        nom.applyTrueLiteralToEquivalences(1,null);
+        assertEquals("1,2,3,4", nom.model.toString());
+
+        clauses = "p cnf 15\n"+
+                "e 1=2 3, 4\n"+
+                "e 4=-5\n"+
+                "e -5=6 7\"";
+        supervisor = makeProblemSupervisor(clauses);
+        nom = new Normalizer(supervisor);
+        //System.out.println(nom.problemSupervisor.inputClauses.toString());
+        nom.trackReasoning = true;
+        nom.monitor = new MonitorLife("MON",System.nanoTime());
+        nom.monitoring = true;
+        nom.applyTrueLiteralToEquivalences(-2,null);
+        assertEquals("-1,-2,-3,-4,5,-6,-7", nom.model.toString());
+        System.out.println(nom.model.getInferenceStep(4).toString(null));
+        System.out.println(nom.model.getInferenceStep(-7).toString(null));
+
     }
 
     }

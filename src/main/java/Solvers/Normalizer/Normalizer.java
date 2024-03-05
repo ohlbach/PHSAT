@@ -13,6 +13,7 @@ import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Normalizer.NMInferenceSteps.NMISClause;
+import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToEquivalence;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -50,18 +51,18 @@ public class Normalizer {
     public final int predicates;
 
     /** null or a monitor */
-    public final Monitor monitor;
+    public Monitor monitor;
 
     /** true if there is a monitor */
-    public final boolean monitoring;
+    public boolean monitoring;
     /** the monitor's identifier */
-    public final String monitorId;
+    public String monitorId;
 
     /** null or a symboltable */
     public final Symboltable symboltable;
 
     /** if true then inference steps are generated */
-    public final boolean trackReasoning;
+    public boolean trackReasoning;
 
     /**the normalizer statistics */
     NormalizerStatistics statistics;
@@ -278,19 +279,32 @@ public class Normalizer {
      * @throws Unsatisfiable if two equivalent literals get different truth values.
      */
     void applyTrueLiteralToEquivalences(int trueLiteral, InferenceStep inferenceStep) throws Unsatisfiable {
-        for (int[] inputClause : problemSupervisor.inputClauses.equivalences) {
-            byte sign = 0;
-            for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
-                int literal = inputClause[i];
-                if(literal ==  trueLiteral) {sign =  1; break;}
-                if(literal == -trueLiteral) {sign = -1; break;}}
-            if(sign != 0) {
+        boolean modelNotChanged = true;
+        while(modelNotChanged) {
+            modelNotChanged = false;
+            for (int[] inputClause : problemSupervisor.inputClauses.equivalences) {
+                byte sign = 0;
+                int trueLit = trueLiteral;
                 for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
                     int literal = inputClause[i];
-                    if(model.status(literal) ==  sign) continue;
-                    if(model.status(literal) == -sign) throw new UnsatClause(problemId,solverId,inputClause); // ändern
-                    model.add(myThread,sign*literal,inferenceStep); // ändern
-                }}}}
+                    if(literal ==  trueLiteral)  {sign =  1; break;}
+                    if(literal == -trueLiteral ) {sign = -1; break;}
+                    if(model.status(literal) ==  1) {sign = 1;  trueLit =  literal; break;}
+                    if(model.status(literal) == -1) {sign = -1; trueLit = -literal; break;}
+                }
+                if(sign != 0) {
+                    for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
+                        int literal = inputClause[i];
+                        if(model.status(literal) ==  sign) continue;
+                        if(model.status(literal) == -sign) throw new UnsatClause(problemId,solverId,inputClause); // ändern
+                        NMISTrueLiteralToEquivalence step = trackReasoning ?
+                                new NMISTrueLiteralToEquivalence(trueLit,inputClause,sign*literal) : null;
+                        model.add(myThread,sign*literal,step);
+                        modelNotChanged = true;
+                        if(monitoring) monitor.println(monitorId,"True Literal " +  Symboltable.toString(trueLit,symboltable) +
+                                " applied to " + InputClauses.toString(0,inputClause,symboltable) + " => " +
+                                Symboltable.toString(sign*literal,symboltable));
+                    }}}}}
 
 
     /** replaces all occurrences of the equivalentLiteral by the representative literal.

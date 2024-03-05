@@ -6,7 +6,7 @@ import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import InferenceSteps.NMISEquivalentLiteral;
 import Management.Monitor.Monitor;
-import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteral;
+import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToClause;
 import Solvers.Normalizer.NMInferenceSteps.NMInferenceStep;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -491,7 +491,7 @@ public class Clause extends LinkedItem {
      */
     Clause applyTrueLiteral(int trueLiteral, InferenceStep inferenceStep, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
-        NMISTrueLiteral step = trackReasoning ? new NMISTrueLiteral("applyTrueLiteral", trueLiteral, inferenceStep, cloned) : null;
+        NMISTrueLiteralToClause step = trackReasoning ? new NMISTrueLiteralToClause("applyTrueLiteral", trueLiteral, inferenceStep, cloned) : null;
         boolean literalFound = false;
         for(int i = literals.size()-2; i >= 0; i -= 2) {
             int literal = literals.getInt(i);

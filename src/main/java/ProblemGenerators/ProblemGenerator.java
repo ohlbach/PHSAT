@@ -248,7 +248,8 @@ public abstract class ProblemGenerator {
      */
     protected static int[] parseAndEquiv(String line, int id, Quantifier quantifier, Symboltable symboltable,
                                          String errorPrefix, StringBuilder errors) {
-        String[] parts = line.split("\\s*[, ]\\s*");
+        String separators = (quantifier == Quantifier.EQUIV) ? "\\s*[,= ]\\s*" : "\\s*[, ]\\s*";
+        String[] parts = line.split(separators);
         int length = parts.length;
         length = parts[length-1].equals("0")? length: length+1;
         int[] inputClause = new int[length];
