@@ -11,6 +11,7 @@ import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import ProblemGenerators.ProblemGenerator;
 import ProblemGenerators.StringClauseSetGenerator;
+import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToEquivalence;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
@@ -166,6 +167,7 @@ public class NormalizerTest extends TestCase {
 
     public void testApplyTrueLiteralToEquivalence() throws Unsatisfiable {
         System.out.println("apply true literal to equivalence");
+        StringBuilder errors = new StringBuilder();
         String clauses = "p cnf 15\n"+
                 "e 1=2 3, 4";
         ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
@@ -188,6 +190,7 @@ public class NormalizerTest extends TestCase {
         assertEquals("-1,-2,-3,-4,5,-6,-7", nom.model.toString());
         System.out.println(nom.model.getInferenceStep(4).toString(null));
         System.out.println(nom.model.getInferenceStep(-7).toString(null));
+        assertTrue(((NMISTrueLiteralToEquivalence)(nom.model.getInferenceStep(-7))).verify(null,errors));
 
     }
 

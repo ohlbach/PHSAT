@@ -279,9 +279,9 @@ public class Normalizer {
      * @throws Unsatisfiable if two equivalent literals get different truth values.
      */
     void applyTrueLiteralToEquivalences(int trueLiteral, InferenceStep inferenceStep) throws Unsatisfiable {
-        boolean modelNotChanged = true;
-        while(modelNotChanged) {
-            modelNotChanged = false;
+        boolean modelChanged = true;
+        while(modelChanged) {
+            modelChanged = false;
             for (int[] inputClause : problemSupervisor.inputClauses.equivalences) {
                 byte sign = 0;
                 int trueLit = trueLiteral;
@@ -300,7 +300,7 @@ public class Normalizer {
                         NMISTrueLiteralToEquivalence step = trackReasoning ?
                                 new NMISTrueLiteralToEquivalence(trueLit,inputClause,sign*literal) : null;
                         model.add(myThread,sign*literal,step);
-                        modelNotChanged = true;
+                        modelChanged = true;
                         if(monitoring) monitor.println(monitorId,"True Literal " +  Symboltable.toString(trueLit,symboltable) +
                                 " applied to " + InputClauses.toString(0,inputClause,symboltable) + " => " +
                                 Symboltable.toString(sign*literal,symboltable));
