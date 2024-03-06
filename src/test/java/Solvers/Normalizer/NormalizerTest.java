@@ -55,7 +55,8 @@ public class NormalizerTest extends TestCase {
         ProblemGenerator generator = generators.get(0);
         //System.out.println(generator.toString());
 
-        InputClauses inputClauses = generator.generateProblem(null);
+        InputClauses inputClauses = generator.generateProblem(errors);
+        if(!errors.isEmpty()) System.out.println(errors.toString());
         //System.out.println(inputClauses.toString());
         ArrayList<HashMap<String,String>> pars = new ArrayList<>();
         pars.add(parameters);
@@ -253,7 +254,38 @@ public class NormalizerTest extends TestCase {
         assertEquals("1.1: 2,3,4\n" +
                 "3.1: >=2 2,3,4\n" +
                 "2.1: <=2 2,3,4", nom.toString(null));
+    }
 
+    public void testApplyEquivalence() throws Unsatisfiable {
+        System.out.println("applyEquivalence");
+        String clauses = "p cnf 15\n"+
+                "1,2 3, 4\n"+
+                "1,-2 3, 4\n"+
+                "1,5 3, 4\n"+
+                "<= 2 1,2,3,4,1\n"+
+                "<= 2 1,-2,3,4,1\n"+
+                ">= 2 1,2,3,4\n"+
+                "[2,3] 1,2,3,4,5,6\n"+
+                "[2,3] 1,-2,3,4,5,6";
+        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
+        Normalizer nom = new Normalizer(supervisor);
+        nom.normalizeClauses(0);
+        assertEquals("  1: 1,2,3,4\n" +
+                "  2: 1,-2,3,4\n" +
+                "  3: 1,5,3,4\n" +
+                "  6: >=2 1,2,3,4\n" +
+                "  4: <=2 1^2,2,3,4\n" +
+                "  5: <=2 1^2,-2,3,4\n" +
+                "  7: [2,3] 1,2,3,4,5,6\n" +
+                "  8: [2,3] 1,-2,3,4,5,6",nom.toString(null));
+        nom.applyEquivalence(2,3,null);
+        assertEquals("1.2: 1,2,4\n" +
+                "3.1: 1,5,2,4\n" +
+                "6.1: >=2 1,2^2,4\n" +
+                "4.1: <=2 1^2,2^2,4\n" +
+                "7.1: [2,3] 1,2^2,4,5,6\n" +
+                "8.2: [1,2] 1,4,5,6",nom.toString(null));
+        assertEquals("-1",nom.model.toString(null));
 
     }
 

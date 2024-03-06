@@ -325,9 +325,10 @@ public class Normalizer {
             if(clausesList != null) {
                 ArrayList<Clause> clausesArray = (ArrayList<Clause>)clausesList[predicate];
                 if(clausesArray != null) {
-                    for(Clause clause : clausesArray) {
+                    for(int i = clausesArray.size()-1; i >= 0; --i) {
+                        Clause clause = clausesArray.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunction = clause.replaceEquivalentLiterals(equivalentLiteral,representative, step,trackReasoning,monitor,symboltable);
+                        Clause conjunction = clause.replaceEquivalentLiterals(representative,equivalentLiteral, step,trackReasoning,monitor,symboltable);
                         if (conjunction != null) {makeTrueLiteralTask(conjunction);}
                         if(clause.isTrue) {clauses.remove(clause); continue;}
                         if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
