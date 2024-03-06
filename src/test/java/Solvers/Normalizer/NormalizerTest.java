@@ -191,6 +191,69 @@ public class NormalizerTest extends TestCase {
         System.out.println(nom.model.getInferenceStep(4).toString(null));
         System.out.println(nom.model.getInferenceStep(-7).toString(null));
         assertTrue(((NMISTrueLiteralToEquivalence)(nom.model.getInferenceStep(-7))).verify(null,errors));
+    }
+    public void testApplyTrueLiteralToEquivalenceUnsat() throws Unsatisfiable {
+        System.out.println("apply true literal to equivalence Unsatisfiable");
+        StringBuilder errors = new StringBuilder();
+        String clauses = "p cnf 15\n"+
+                "e 1=2 3, 4";
+        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
+
+        Normalizer nom = new Normalizer(supervisor);
+        nom.applyTrueLiteralToEquivalences(1,null);
+        assertEquals("1,2,3,4", nom.model.toString());
+
+        clauses = "p cnf 15\n"+
+                "e 1=2 3, 4\n"+
+                "e 4=-5\n"+
+                "e -5=6 7\"";
+        supervisor = makeProblemSupervisor(clauses);
+        nom = new Normalizer(supervisor);
+        //System.out.println(nom.problemSupervisor.inputClauses.toString());
+        nom.trackReasoning = true;
+        nom.monitor = new MonitorLife("MON",System.nanoTime());
+        nom.monitoring = true;
+        nom.model.addImmediately(-7);
+        try{
+            nom.applyTrueLiteralToEquivalences(1,null);}
+        catch(Unsatisfiable unsat) {
+            System.out.println(unsat.description(null));
+        }}
+
+    public void testApplyTrueLiteral() throws Unsatisfiable{
+        System.out.println("apply true literal");
+        StringBuilder errors = new StringBuilder();
+        String clauses = "p cnf 15\n" +
+                "1,2 3, 4\n"+
+                "<= 2 1,2,3,4,1\n"+
+                ">= 2 1,2,3,4\n"+
+                "[2,3] 1,2,3,4,5,6";
+        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
+
+        Normalizer nom = new Normalizer(supervisor);
+        nom.normalizeClauses(0);
+        assertEquals ("  1: 1,2,3,4\n" +
+                "  3: >=2 1,2,3,4\n" +
+                "  2: <=2 1^2,2,3,4\n" +
+                "4.2: <=3 1,2,3,4",nom.toString(null));
+        nom.applyTrueLiteral(1, null);
+        assertEquals("3.1: 2,3,4\n" +
+                "4.3: <=2 2,3,4", nom.toString(null));
+
+        clauses = "p cnf 15\n" +
+                "1,2 3, 4\n"+
+                "<= 2 1,2,3,4,1\n"+
+                ">= 2 1,2,3,4\n"+
+                "[2,3] 1,2,3,4,5,6";
+        supervisor = makeProblemSupervisor(clauses);
+
+        nom = new Normalizer(supervisor);
+        nom.normalizeClauses(0);
+        nom.applyTrueLiteral(-1, null);
+        assertEquals("1.1: 2,3,4\n" +
+                "3.1: >=2 2,3,4\n" +
+                "2.1: <=2 2,3,4", nom.toString(null));
+
 
     }
 

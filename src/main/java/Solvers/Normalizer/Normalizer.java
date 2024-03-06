@@ -14,6 +14,7 @@ import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Normalizer.NMInferenceSteps.NMISClause;
 import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToEquivalence;
+import Solvers.Normalizer.NMInferenceSteps.NMUnsatEquivalence;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -261,18 +262,22 @@ public class Normalizer {
             if(clausesList != null) {
                 ArrayList<Clause> clausesArray = (ArrayList<Clause>)clausesList[predicate];
                 if(clausesArray != null) {
-                    for(Clause clause : clausesArray) {
+                    for(int i = clausesArray.size()-1; i >= 0; --i) {
+                        Clause clause = clausesArray.get(i);
                         removeClauseFromIndex(clause);
                         Clause conjunction = clause.applyTrueLiteral(literal,inferenceStep,trackReasoning,monitor,symboltable);
                         if (conjunction != null) {makeTrueLiteralTask(conjunction);}
-                        if(clause.isTrue) {clauses.remove(clause); continue;}
+                        if(clause.isTrue || clause.quantifier == Quantifier.AND) {clauses.remove(clause); continue;}
                         if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
                         addClauseToIndex(clause);}}}}
         applyTrueLiteralToEquivalences(literal,inferenceStep);}
 
-    /** applies the true literal to all equivalences.
+    /** applies the true literal to all equivalences in the input clauses.
      * <br>
      * Equivalent literals must get the same truth value.
+     * Derived truth values are added only to the model.
+     * It is assumed that equivalent literals are no longer in the clauses
+     * because equivalences are applied before true literals are processed.
      *
      * @param trueLiteral   a true literal
      * @param inferenceStep which caused the truth of the literal
@@ -296,7 +301,7 @@ public class Normalizer {
                     for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
                         int literal = inputClause[i];
                         if(model.status(literal) ==  sign) continue;
-                        if(model.status(literal) == -sign) throw new UnsatClause(problemId,solverId,inputClause); // ändern
+                        if(model.status(literal) == -sign) throw new NMUnsatEquivalence(problemId,solverId,inputClause,trueLit,literal); // ändern
                         NMISTrueLiteralToEquivalence step = trackReasoning ?
                                 new NMISTrueLiteralToEquivalence(trueLit,inputClause,sign*literal) : null;
                         model.add(myThread,sign*literal,step);
@@ -436,6 +441,9 @@ public class Normalizer {
             for(int predicate = 1; predicate <= predicates; ++predicate) {
                 int literal = isPositivelyPure(predicate);
                 if(literal != 0) {
+                    if(monitoring) {monitor.println(monitorId, "Literal " + Symboltable.toString(literal,symboltable) +
+                            " is positively pure");}
+                    ++statistics.pureLiterals;
                     purityFound = true;
                     ArrayList<Clause> causeList = (literal > 0) ? positiveOccAtleast[predicate] : negativeOccAtleast[predicate];
                     addTrueLiteralTask(literal,null);
@@ -451,6 +459,9 @@ public class Normalizer {
 
                 literal = isNegativelyPure(predicate);
                 if(literal != 0) {
+                    if(monitoring) {monitor.println(monitorId, "Literal " + Symboltable.toString(literal,symboltable) +
+                            " is negatively pure");}
+                    ++statistics.pureLiterals;
                     purityFound = true;
                     ArrayList<Clause> causeList = (literal > 0) ? positiveOccAtmost[predicate] : negativeOccAtmost[predicate];
                     addTrueLiteralTask(-literal,null);
@@ -466,6 +477,9 @@ public class Normalizer {
 
                 literal = isSingletonPure(predicate);
                 if(literal != 0) {
+                    if(monitoring) {monitor.println(monitorId, "Literal " + Symboltable.toString(literal,symboltable) +
+                            " is singleton pure");}
+                    ++statistics.pureLiterals;
                     purityFound = true;
                     Clause clause = (literal > 0) ? positiveOccInterval[predicate].get(0) : negativeOccInterval[predicate].get(0);
                     singletons.add(literal); singletons.add(clause.clone());
@@ -539,9 +553,9 @@ public class Normalizer {
                 (positiveOccAtmost  != null && positiveOccAtmost[predicate] != null) ||
                 (negativeOccAtmost  != null && negativeOccAtmost[predicate] != null)) return 0;
         if((negativeOccInterval == null || negativeOccInterval[predicate] == null) &&
-                positiveOccInterval != null && positiveOccInterval[predicate].size() == 1) return predicate;
+                positiveOccInterval != null && positiveOccInterval[predicate] != null && positiveOccInterval[predicate].size() == 1) return predicate;
         if((positiveOccInterval == null || positiveOccInterval[predicate] == null) &&
-                negativeOccInterval != null && negativeOccInterval[predicate].size() == 1) return -predicate;
+                negativeOccInterval != null && negativeOccInterval[predicate] != null && negativeOccInterval[predicate].size() == 1) return -predicate;
         return 0;}
 
     /** lists the entire clause list as string.

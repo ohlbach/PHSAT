@@ -32,6 +32,10 @@ public class NormalizerStatistics extends Statistic {
     @Description("Removed Clauses")
     int removedClauses = 0;
 
+    @Description("Pure Literals")
+    int pureLiterals = 0;
+
+
     public String toString() {
         StringBuilder st = new StringBuilder();
         st.append("Normalizer Statistics:");

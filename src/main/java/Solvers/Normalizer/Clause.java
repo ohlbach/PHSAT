@@ -241,6 +241,7 @@ public class Clause extends LinkedItem {
      */
     public Clause simplify(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         if(isTrue || isFalse) return null;
+        if(quantifier == Quantifier.AND) return this;
         removeMultiplicities(trackReasoning,monitor,symboltable);                  // does not change its status.
         if(removeComplementaries(trackReasoning,monitor,symboltable)) return null; // may be a tautology
         if(quantifier == Quantifier.OR) return null;  // no further simplifications possible.
@@ -411,7 +412,7 @@ public class Clause extends LinkedItem {
      * @return true if the clause is changed.
      */
     protected boolean divideByGCD(boolean trackReasoning, Monitor monitor,Symboltable symboltable) {
-        if(quantifier == Quantifier.OR) return false;
+        if(quantifier == Quantifier.OR || quantifier == Quantifier.AND) return false;
         int gcd;
         if(min > 0) {
             if(max > 0) gcd = Utilities.gcd(min,max);
@@ -442,7 +443,7 @@ public class Clause extends LinkedItem {
                     cloned.toString(symboltable,0) + " => " + toString(symboltable, 0));}
         return true;}
 
-    /** The method reduces clauses to their essential literals.
+    /** The method reduces atleast-clauses to their essential literals.
      * If the sum of the multiplicities of those literals with multiplicity &lt; min is smaller than min,
      * one of the literals with multiplicity == min must be true.
      *<br>
@@ -455,7 +456,7 @@ public class Clause extends LinkedItem {
      * @return true if the clause has been changed.
      */
     boolean reduceToEssentialLiterals(boolean trackReasoning, Monitor monitor,Symboltable symboltable)  {
-        if(quantifier == Quantifier.OR || quantifier == Quantifier.AND) return false;
+        if(quantifier != Quantifier.ATLEAST) return false;
         int remainingMultiplicity = 0;
         for(int i = 1; i < literals.size(); i +=2) {
             if(literals.getInt(i) < min) remainingMultiplicity += literals.getInt(i);}
