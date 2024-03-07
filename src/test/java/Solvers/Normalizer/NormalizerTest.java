@@ -10,6 +10,7 @@ import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import ProblemGenerators.ProblemGenerator;
+import ProblemGenerators.PythagoraenTriples;
 import ProblemGenerators.StringClauseSetGenerator;
 import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToEquivalence;
 import junit.framework.TestCase;
@@ -287,6 +288,64 @@ public class NormalizerTest extends TestCase {
                 "8.2: [1,2] 1,4,5,6",nom.toString(null));
         assertEquals("-1",nom.model.toString(null));
 
+    }
+
+    public ProblemSupervisor makePythogoraenTriples(int maximum) {
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("maximum", ""+maximum);
+        parameters.put("name", "MyProblem");
+        ArrayList<ProblemGenerator> generators = new ArrayList<>();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
+        PythagoraenTriples.makeProblemGenerator(parameters, generators, errors, warnings);
+        //System.out.println(errors);
+        //System.out.println(warnings);
+        ProblemGenerator generator = generators.get(0);
+        //System.out.println(generator.toString());
+
+        InputClauses inputClauses = generator.generateProblem(errors);
+        if(!errors.isEmpty()) System.out.println(errors.toString());
+        System.out.println(inputClauses.toString());
+        ArrayList<HashMap<String,String>> pars = new ArrayList<>();
+        pars.add(parameters);
+        GlobalParameters globalParameters = new GlobalParameters(pars,errors,warnings);
+        ProblemSupervisor supervisor = new ProblemSupervisor(null,globalParameters,generator,null);
+        supervisor.inputClauses = inputClauses;
+        supervisor.model = new Model(inputClauses.predicates);
+        supervisor.monitor = new MonitorLife("Test",System.nanoTime());
+        return supervisor;}
+
+    public void testPythagoraenTriples() throws Unsatisfiable {
+        System.out.println("pythagoraen triples");
+        ProblemSupervisor supervisor = makePythogoraenTriples(100);
+        Normalizer nom = new Normalizer(supervisor);
+        nom.normalizeClauses(0);
+        System.out.println(nom.clauses.toString(null));
+        System.out.println("");
+        System.out.println(nom.singletonsToString(null));
+        System.out.println(nom.statistics.toString());
+    }
+
+    public void testExtendModel() throws Unsatisfiable {
+        System.out.println("extendModel");
+        String clauses = "p cnf 15\n"+
+                "-1,-4,-5,-6\n" +
+                "[2,3] 1,2,3,4,5,6\n";
+        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
+        Normalizer nom = new Normalizer(supervisor);
+        nom.normalizeClauses(0);
+        System.out.println(nom.clauses.toString(null));
+        System.out.println("");
+        System.out.println(nom.singletonsToString(null));
+        nom.model.addImmediately(6);
+        nom.extendModel();
+        assertEquals("2,3,6",nom.model.toString(null));
+        nom.model = new Model(15);
+        nom.model.addImmediately(4,5,6);
+        nom.extendModel();
+        assertEquals("-2,-3,4,5,6",nom.model.toString(null));
+
+        System.out.println(nom.statistics.toString());
     }
 
     }

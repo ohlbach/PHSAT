@@ -598,7 +598,7 @@ public class Clause extends LinkedItem {
         int trueLiterals = 0;
         for(int i = 0; i < literals.size()-1; i += 2) {
             int literal = literals.getInt(i);
-            if(model.test(literal)) ++trueLiterals;}
+            if(model.test(literal)) trueLiterals += literals.getInt(i+1);}
         return trueLiterals;}
 
 

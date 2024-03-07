@@ -10,10 +10,12 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
+import Management.ErrorReporter;
 import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
 import Solvers.Normalizer.NMInferenceSteps.NMISClause;
 import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToEquivalence;
+import Solvers.Normalizer.NMInferenceSteps.NMTrueSingletonLiteral;
 import Solvers.Normalizer.NMInferenceSteps.NMUnsatEquivalence;
 
 import java.util.ArrayList;
@@ -46,10 +48,10 @@ public class Normalizer {
     final static String solverId = "Normalizer";
 
     /** the global model.*/
-    public final Model model;
+    public Model model;
 
     /** the number of predicates in the problem */
-    public final int predicates;
+    public int predicates;
 
     /** null or a monitor */
     public Monitor monitor;
@@ -480,7 +482,7 @@ public class Normalizer {
                 if(literal != 0) {
                     if(monitoring) {monitor.println(monitorId, "Literal " + Symboltable.toString(literal,symboltable) +
                             " is singleton pure");}
-                    ++statistics.pureLiterals;
+                    ++statistics.singletonLiterals;
                     purityFound = true;
                     Clause clause = (literal > 0) ? positiveOccInterval[predicate].get(0) : negativeOccInterval[predicate].get(0);
                     singletons.add(literal); singletons.add(clause.clone());
@@ -497,19 +499,35 @@ public class Normalizer {
      * @throws Unsatisfiable should not happen.
      */
     public void extendModel() throws Unsatisfiable {
-         for(int i = 0; i < singletons.size(); i +=2) {
+         for(int i = singletons.size()-2; i >= 0; i -=2) {
              int literal   = (Integer)singletons.get(i);
              Clause clause = (Clause)singletons.get(i+1);
              int multiplicity = 0;
              for(int j = 0; j < clause.literals.size()-1; j += 2) {
                  if(clause.literals.getInt(j) == literal) {multiplicity = clause.literals.getInt(j+1); break;}}
              int trueLiterals = clause.trueLiterals(model::isTrue);
-             InferenceStep step = null; // ändern
-             if(trueLiterals+multiplicity <= clause.max) model.add(myThread,literal,step);
-             else model.add(myThread,-literal,step);}}
+             if(trueLiterals + multiplicity < clause.min) {
+                 ErrorReporter.reportErrorAndStop("Normalizer.extendModel: not enough true literals in clause " +
+                         clause.toString(symboltable,0) + "\nnumber of true literals: " + (trueLiterals + multiplicity) +
+                         "\nModel: " + model.toString(symboltable));}
+             int trueLiteral = (trueLiterals+multiplicity <= clause.max) ? literal : -literal;
+             if(monitoring) monitor.println(monitorId,"Extending model with " + Symboltable.toString(trueLiteral,symboltable) +
+                     " for clause " + clause.toString(symboltable,0));
+             InferenceStep step = trackReasoning ? new NMTrueSingletonLiteral(clause,trueLiteral): null;
+             model.add(myThread,trueLiteral,step);}}
 
     /** contains pairs singleton-literal,clause. To be used when a model has to be completed. */
     private final ArrayList<Object> singletons = new ArrayList<>();
+
+    /** lists the singletons as string */
+    public String singletonsToString(Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        st.append("Singleton Literals:\n");
+        for(int i = 0; i < singletons.size(); i += 2) {
+            st.append(Symboltable.toString((int) singletons.get(i), symboltable)).append(" in clause ");
+            st.append(((Clause) singletons.get(i+1)).toString(symboltable,0)).append("\n");}
+        return st.toString();}
+
 
     /** Checks if the given predicate is positively pure, i.e. it occurs only in atleast- or or-clauses, either positively or negatively
      *

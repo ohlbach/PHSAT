@@ -318,7 +318,6 @@ public class NormalizerOld extends Solver {
             StringBuilder st = new StringBuilder();
             toStringEquiv(st,"    ");
             monitor.println(monitorId,"Equivalence Classes:\n"+ st);}
-        statistics.equivalenceClasses = equivalences.size();
     }
 
     /** checks if the two lists overlap.
