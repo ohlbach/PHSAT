@@ -11,9 +11,11 @@ import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import ProblemGenerators.ProblemGenerator;
 import ProblemGenerators.PythagoraenTriples;
+import ProblemGenerators.RandomClauseSetGenerator;
 import ProblemGenerators.StringClauseSetGenerator;
 import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToEquivalence;
 import junit.framework.TestCase;
+import Datastructures.Results.Result;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -175,7 +177,7 @@ public class NormalizerTest extends TestCase {
         ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
 
         Normalizer nom = new Normalizer(supervisor);
-        nom.applyTrueLiteralToEquivalences(1,null);
+        nom.applyTrueLiteralToEquivalences(1);
         assertEquals("1,2,3,4", nom.model.toString());
 
         clauses = "p cnf 15\n"+
@@ -188,7 +190,7 @@ public class NormalizerTest extends TestCase {
         nom.trackReasoning = true;
         nom.monitor = new MonitorLife("MON",System.nanoTime());
         nom.monitoring = true;
-        nom.applyTrueLiteralToEquivalences(-2,null);
+        nom.applyTrueLiteralToEquivalences(-2);
         assertEquals("-1,-2,-3,-4,5,-6,-7", nom.model.toString());
         System.out.println(nom.model.getInferenceStep(4).toString(null));
         System.out.println(nom.model.getInferenceStep(-7).toString(null));
@@ -202,7 +204,7 @@ public class NormalizerTest extends TestCase {
         ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
 
         Normalizer nom = new Normalizer(supervisor);
-        nom.applyTrueLiteralToEquivalences(1,null);
+        nom.applyTrueLiteralToEquivalences(1);
         assertEquals("1,2,3,4", nom.model.toString());
 
         clauses = "p cnf 15\n"+
@@ -217,7 +219,7 @@ public class NormalizerTest extends TestCase {
         nom.monitoring = true;
         nom.model.addImmediately(-7);
         try{
-            nom.applyTrueLiteralToEquivalences(1,null);}
+            nom.applyTrueLiteralToEquivalences(1);}
         catch(Unsatisfiable unsat) {
             System.out.println(unsat.description(null));
         }}
@@ -238,7 +240,7 @@ public class NormalizerTest extends TestCase {
                 "  3: >=2 1,2,3,4\n" +
                 "  2: <=2 1^2,2,3,4\n" +
                 "4.2: <=3 1,2,3,4",nom.toString(null));
-        nom.applyTrueLiteral(1, null);
+        nom.applyTrueLiteral(1);
         assertEquals("3.1: 2,3,4\n" +
                 "4.3: <=2 2,3,4", nom.toString(null));
 
@@ -251,7 +253,7 @@ public class NormalizerTest extends TestCase {
 
         nom = new Normalizer(supervisor);
         nom.normalizeClauses(0);
-        nom.applyTrueLiteral(-1, null);
+        nom.applyTrueLiteral(-1);
         assertEquals("1.1: 2,3,4\n" +
                 "3.1: >=2 2,3,4\n" +
                 "2.1: <=2 2,3,4", nom.toString(null));
@@ -346,6 +348,51 @@ public class NormalizerTest extends TestCase {
         assertEquals("-2,-3,4,5,6",nom.model.toString(null));
 
         System.out.println(nom.statistics.toString());
+    }
+
+    public ProblemSupervisor makeRandom() {
+        HashMap<String, String> parameters = new HashMap<>();
+        parameters.put("predicates","200"); // illegal key, missing predicates
+        parameters.put("seed","1");
+        parameters.put("length","2-5");
+        //parameters.put("ands", "1");
+        parameters.put("equivs", "1");
+        parameters.put("ors", "20");
+        parameters.put("intervals", "30");
+        parameters.put("atleasts", "10");
+        parameters.put("atmosts", "20");
+        parameters.put("redundant","true");
+        ArrayList<ProblemGenerator> generators = new ArrayList<>();
+        StringBuilder errors = new StringBuilder();
+        StringBuilder warnings = new StringBuilder();
+        RandomClauseSetGenerator.makeProblemGenerator(parameters, generators, errors, warnings);
+        System.out.println(errors);
+        System.out.println(warnings);
+        ProblemGenerator generator = generators.get(0);
+        //System.out.println(generator.toString());
+
+        InputClauses inputClauses = generator.generateProblem(errors);
+        if(!errors.isEmpty()) System.out.println(errors.toString());
+        System.out.println(inputClauses.toString());
+        ArrayList<HashMap<String,String>> pars = new ArrayList<>();
+        pars.add(parameters);
+        GlobalParameters globalParameters = new GlobalParameters(pars,errors,warnings);
+        ProblemSupervisor supervisor = new ProblemSupervisor(null,globalParameters,generator,null);
+        supervisor.inputClauses = inputClauses;
+        supervisor.model = new Model(inputClauses.predicates);
+        supervisor.monitor = new MonitorLife("Test",System.nanoTime());
+        return supervisor;}
+
+    public void testRandom() throws Unsatisfiable {
+        System.out.println("random Clauses");
+        ProblemSupervisor supervisor = makeRandom();
+        Normalizer nom = new Normalizer(supervisor);
+        Result res = nom.normalizeClauses(0);
+        if(res != null) System.out.println(res.toString(null,false));
+        System.out.println(nom.clauses.toString(null));
+        System.out.println("");
+        System.out.println(nom.singletonsToString(null));
+        System.out.println("Model: " + nom.model.toString(null));
     }
 
     }

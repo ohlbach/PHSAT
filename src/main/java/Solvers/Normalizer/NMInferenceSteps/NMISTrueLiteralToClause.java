@@ -20,13 +20,11 @@ public class NMISTrueLiteralToClause extends NMInferenceStep{
      *
      * @param title the title of the inference step
      * @param trueLiteral the true literal
-     * @param inferenceStep the inference step that caused the literal to be true
      * @param clause the clause to which the true literal is applied
      */
-    public NMISTrueLiteralToClause(String title, int trueLiteral, InferenceStep inferenceStep, Clause clause) {
+    public NMISTrueLiteralToClause(String title, int trueLiteral, Clause clause) {
         super(title, clause);
-        this.trueLiteral = trueLiteral;
-        this.inferenceStep = inferenceStep;}
+        this.trueLiteral = trueLiteral;}
 
     /** Returns a string representation of the deduced clause and the steps involved in the inference.
      *

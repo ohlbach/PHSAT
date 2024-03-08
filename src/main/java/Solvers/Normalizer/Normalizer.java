@@ -144,7 +144,7 @@ public class Normalizer {
                 switch(task.taskType) {
                     case EQUIVALENCE: applyEquivalence(task.eqLiteral1,task.eqLiteral2,task.inferenceStep); break;
                     case TRUELITERAL:
-                        applyTrueLiteral(task.trueLiteral,task.inferenceStep);
+                        applyTrueLiteral(task.trueLiteral);
                         if(!purityIsInQueue) {queue.add(new Task()); purityIsInQueue = true;} // there can be new purities.
                         break;
                     case PURITY:      processPurity(); purityIsInQueue = false;}}
@@ -245,7 +245,7 @@ public class Normalizer {
         if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause.inputClause);
         Clause conjunction = clause.simplify(trackReasoning,monitor,symboltable);
         if(conjunction != null) makeTrueLiteralTask(conjunction);
-        if(clause.isTrue) {++statistics.removedClauses; return;}
+        if(clause.isTrue || clause.quantifier == Quantifier.AND) {++statistics.removedClauses; return;}
         if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause.inputClause);
         statistics.simplifiedClauses += clause.version;
         addClauseToIndex(clause);
@@ -255,10 +255,9 @@ public class Normalizer {
     /** applies the true literal to all clauses containing the literal.
      *
      * @param literal       a true literal
-     * @param inferenceStep null or the inference step that caused the literal to be true.
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    void applyTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
+    void applyTrueLiteral(int literal) throws Unsatisfiable {
         int predicate = Math.abs(literal);
         for(ArrayList[] clausesList : indexLists) { // loop over all three index arrays.
             if(clausesList != null) {
@@ -267,12 +266,12 @@ public class Normalizer {
                     for(int i = clausesArray.size()-1; i >= 0; --i) {
                         Clause clause = clausesArray.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunction = clause.applyTrueLiteral(literal,inferenceStep,trackReasoning,monitor,symboltable);
+                        Clause conjunction = clause.applyTrueLiteral(literal,trackReasoning,monitor,symboltable);
                         if (conjunction != null) {makeTrueLiteralTask(conjunction);}
                         if(clause.isTrue || clause.quantifier == Quantifier.AND) {clauses.remove(clause); continue;}
                         if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
                         addClauseToIndex(clause);}}}}
-        applyTrueLiteralToEquivalences(literal,inferenceStep);}
+        applyTrueLiteralToEquivalences(literal);}
 
     /** applies the true literal to all equivalences in the input clauses.
      * <br>
@@ -282,10 +281,9 @@ public class Normalizer {
      * because equivalences are applied before true literals are processed.
      *
      * @param trueLiteral   a true literal
-     * @param inferenceStep which caused the truth of the literal
      * @throws Unsatisfiable if two equivalent literals get different truth values.
      */
-    void applyTrueLiteralToEquivalences(int trueLiteral, InferenceStep inferenceStep) throws Unsatisfiable {
+    void applyTrueLiteralToEquivalences(int trueLiteral) throws Unsatisfiable {
         boolean modelChanged = true;
         while(modelChanged) {
             modelChanged = false;
@@ -397,23 +395,20 @@ public class Normalizer {
      */
      void removeClauseFromIndex(Clause clause) {
         ArrayList<Clause>[] positiveArrayList = null;
-        ArrayList<Clause>[] negativeArrayList = null;
-        switch(clause.quantifier) {
-            case OR:
-            case ATLEAST:
+        ArrayList<Clause>[] negativeArrayList =
+                switch (clause.quantifier) {
+            case OR, ATLEAST -> {
                 positiveArrayList = positiveOccAtleast;
-                negativeArrayList = negativeOccAtleast;
-                break;
-            case ATMOST:
+                yield negativeOccAtleast;}
+            case ATMOST -> {
                 positiveArrayList = positiveOccAtmost;
-                negativeArrayList = negativeOccAtmost;
-                break;
-            case EXACTLY:
-            case INTERVAL:
+                yield negativeOccAtmost;}
+            case EXACTLY, INTERVAL -> {
                 positiveArrayList = positiveOccInterval;
-                negativeArrayList = negativeOccInterval;}
+                yield negativeOccInterval;}
+            default -> null;};
 
-        for(int i = 0; i < clause.literals.size()-1; i += 2) {
+         for(int i = 0; i < clause.literals.size()-1; i += 2) {
             int literal = clause.literals.getInt(i);
             int predicate = Math.abs(literal);
             ArrayList<Clause> clausesArray = (literal > 0) ? positiveArrayList[predicate] : negativeArrayList[predicate];
@@ -436,6 +431,8 @@ public class Normalizer {
      *  In atmost clauses it is the other way round.<br>
      *  A singleton pure literal in an interval- or exactly-clause can be removed. <br>
      *  Its truth value can only be determined after a model for the entire clause set has been found.
+     *
+     * @throws Unsatisfiable if a contradiction is discovered.
      * */
     void processPurity()  throws Unsatisfiable{
         boolean purityFound = true;
@@ -453,7 +450,7 @@ public class Normalizer {
                     for(int i = causeList.size()-1; i >= 0; --i) {
                         Clause clause = causeList.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunct = clause.applyTrueLiteral(literal,null,trackReasoning,monitor,symboltable);
+                        Clause conjunct = clause.applyTrueLiteral(literal,trackReasoning,monitor,symboltable);
                         if(conjunct != null) makeTrueLiteralTask(conjunct);
                         if(clause.isTrue) {clauses.remove(clause); continue;}
                         if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause);
@@ -471,7 +468,7 @@ public class Normalizer {
                     for(int i = causeList.size()-1; i >= 0; --i) {
                         Clause clause = causeList.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunct = clause.applyTrueLiteral(-literal,null,trackReasoning,monitor,symboltable);
+                        Clause conjunct = clause.applyTrueLiteral(-literal,trackReasoning,monitor,symboltable);
                         if(conjunct != null) makeTrueLiteralTask(conjunct);
                         if(clause.isTrue) {clauses.remove(clause); continue;}
                         if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause);
@@ -519,7 +516,10 @@ public class Normalizer {
     /** contains pairs singleton-literal,clause. To be used when a model has to be completed. */
     private final ArrayList<Object> singletons = new ArrayList<>();
 
-    /** lists the singletons as string */
+    /** lists the singletons as string
+     *
+     * @param symboltable null or a symboltable.
+     * @return the singletons as a string.*/
     public String singletonsToString(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append("Singleton Literals:\n");
@@ -620,6 +620,12 @@ public class Normalizer {
                             st.append(clause.toString(symboltable,size)).append("\n");}}}}}
         return st.toString();}
 
+    /**
+     * Converts the queue of tasks to a string representation.
+     *
+     * @param symboltable the symbol table used to resolve task symbols.
+     * @return a string representation of the tasks in the queue.
+     */
     public String queueToString(Symboltable symboltable) {
         StringBuilder sb = new StringBuilder();
         for (Task task : queue) {

@@ -490,9 +490,9 @@ public class Clause extends LinkedItem {
      * @param symboltable The symbol table used for converting literals to strings.
      * @return true if the clause was successfully simplified by applying the true literal, false otherwise.
      */
-    Clause applyTrueLiteral(int trueLiteral, InferenceStep inferenceStep, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    Clause applyTrueLiteral(int trueLiteral, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
         Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
-        NMISTrueLiteralToClause step = trackReasoning ? new NMISTrueLiteralToClause("applyTrueLiteral", trueLiteral, inferenceStep, cloned) : null;
+        NMISTrueLiteralToClause step = trackReasoning ? new NMISTrueLiteralToClause("applyTrueLiteral", trueLiteral, cloned) : null;
         boolean literalFound = false;
         for(int i = literals.size()-2; i >= 0; i -= 2) {
             int literal = literals.getInt(i);

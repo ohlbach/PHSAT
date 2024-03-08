@@ -219,28 +219,28 @@ public class ClauseTest extends TestCase {
         System.out.println("applyTrueLiteral");
         StringBuilder errors = new StringBuilder();
         Clause clause1 = makeClause(new int[]{5, natl, 1, 2, 3});
-        clause1.applyTrueLiteral(2, null, false, monitor, null);
+        clause1.applyTrueLiteral(2, false, monitor, null);
         assertTrue(clause1.isTrue);
         clause1 = makeClause(new int[]{6, nor, 1, 2, 3});
-        clause1.applyTrueLiteral(-2, null, false, monitor, null);
+        clause1.applyTrueLiteral(-2, false, monitor, null);
         assertFalse(clause1.isTrue);
         assertEquals("6.1: 1,3",clause1.toString(null,0));
         clause1 = makeClause(new int[]{7, natl, 2, 1, 2,2, 3});
-        clause1.applyTrueLiteral(-2, null, false, monitor, null);
+        clause1.applyTrueLiteral(-2, false, monitor, null);
         assertFalse(clause1.isTrue);
         assertEquals("7.1: & 1,3",clause1.toString(null,0));
         clause1 = makeClause(new int[]{8, natl, 2, 1, 2,2, 3});
-        clause1.applyTrueLiteral(2, null, false, monitor, null);
+        clause1.applyTrueLiteral(2, false, monitor, null);
         assertTrue(clause1.isTrue);
 
         clause1 = makeClause(new int[]{9, nint, 2,4, 1,1, 2,2, 3,3,4,4});
-        clause1.applyTrueLiteral(2, null, false, monitor, null);
+        clause1.applyTrueLiteral(2, false, monitor, null);
         assertFalse(clause1.isTrue);
         assertEquals("9.1: <=2 1^2,3^2,4^2",clause1.toString(null,0));
 
         InferenceStep iniStep = new InfInputClause(10);
         clause1 = makeClause(new int[]{10, nint, 2,4, 1,1, 2,2, 3,3,4,4});
-        clause1.applyTrueLiteral(-2, iniStep, true, monitor, null);
+        clause1.applyTrueLiteral(-2, true, monitor, null);
         assertFalse(clause1.isTrue);
         assertEquals("10.1: [2,4] 1^2,3^2,4^2",clause1.toString(null,0));
         System.out.println(clause1.inferenceSteps.get(0).toString(clause1,null));
@@ -248,7 +248,7 @@ public class ClauseTest extends TestCase {
 
         clause1 = makeClause(new int[]{11, natl, 2,1,2,2});
         iniStep = new InfInputClause(11);
-        clause1.applyTrueLiteral(-2, iniStep, true, monitor, null);
+        clause1.applyTrueLiteral(-2, true, monitor, null);
         assertTrue(clause1.isFalse);
         assertFalse(clause1.isTrue);
         System.out.println(clause1.inferenceSteps.get(0).toString(clause1,null));
