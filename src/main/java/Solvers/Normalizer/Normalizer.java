@@ -103,7 +103,7 @@ public class Normalizer {
 
 
     /** contains all the clauses. */
-    LinkedItemList<Clause> clauses = new LinkedItemList<>("Normalized Clauses");
+    public LinkedItemList<Clause> clauses = new LinkedItemList<>("Normalized Clauses");
 
 
     /**Creates a Normalizer object with the given ProblemSupervisor.

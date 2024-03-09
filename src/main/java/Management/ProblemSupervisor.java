@@ -8,7 +8,7 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Theory.Model;
 import Management.Monitor.Monitor;
 import ProblemGenerators.ProblemGenerator;
-import Solvers.Normalizer.NormalizerOld;
+import Solvers.Normalizer.Normalizer;
 import Solvers.Solver;
 import Utilities.Utilities;
 
@@ -57,7 +57,7 @@ public class ProblemSupervisor {
 
     public QuSatJob quSatJob;
 
-    public NormalizerOld normalizer;
+    public Normalizer normalizer;
 
     public ProblemSupervisor(QuSatJob quSatJob, GlobalParameters globalParameters, ProblemGenerator problemGenerator,
                              ArrayList<Solver> solvers) {
@@ -102,9 +102,8 @@ public class ProblemSupervisor {
                 boolean infoOnly = !globalParameters.showClauses;
                 globalParameters.logstream.println(inputClauses.toString(inputClauses.symboltable,infoOnly));}
             model = new Model(inputClauses.predicates);
-            normalizer = new NormalizerOld(this);
-            normalizer.initialize(Thread.currentThread(),this);
-            Result result = normalizer.solveProblem();
+            normalizer = new Normalizer(this);
+            Result result = normalizer.normalizeClauses(0);
             if(result != null)  {finished(result); return;}
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];

@@ -1,9 +1,9 @@
 package Solvers.Walker;
 
-import Datastructures.Clauses.InputClauses;
-import Datastructures.Clauses.Quantifier;
 import Datastructures.LinkedItemList;
-import Datastructures.Results.*;
+import Datastructures.Results.Aborted;
+import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
@@ -200,48 +200,17 @@ public class Walker extends Solver {
      *
      * @throws Result if a contradiction or the empty clause is derived.
      */
-    void readInputClauses() throws Result{
-        InputClauses inputClauses = problemSupervisor.inputClauses;
-        try{
-            for(int[] inputClause    : inputClauses.disjunctions) insertClause(inputClause);
-            for(int[] atleastClause  : inputClauses.atleasts)     insertClause(atleastClause);
-            for(int[] atmostClause   : inputClauses.atmosts)      insertClause(atmostClause);
-            for(int[] exactlyClause  : inputClauses.exactlys)     insertClause(exactlyClause);
-            for(int[] intervalClause : inputClauses.intervals)    insertClause(intervalClause);
-            if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId, model);}
-        catch(Result result) {
-            result.solverId  = solverId;
-            result.problemId = problemId;
-            result.statistic = statistics;
-            throw result;}
-    }
+    void readInputClauses(){
+        Solvers.Normalizer.Clause normalizedClause = problemSupervisor.normalizer.clauses.firstLinkedItem;
+        while(normalizedClause != null) {
+            insertClause(normalizedClause);
+            normalizedClause = (Solvers.Normalizer.Clause)normalizedClause.nextItem;}}
 
-    /** turns the inputClause into literals and clauses of the internal datastructures.
-     * All clauses are stored with interval limits.<br>
-     * Complementary literals are removed.<br>
-     * Derivable true or false literals are inserted into the global model.<br>
-     * Multiplicities are reduced.
-     *
-     * @param inputClause    an input clause.
-     * @return null or the new clause.
-     * @throws Unsatisfiable if the clause is false or the global model discovers a contradiction.
-     */
-    Clause insertClause(int[] inputClause) throws Unsatisfiable {
-        Clause clause = new Clause(inputClause);
-        for(int i = 0; i < clause.literals.size(); ++i) {
-            Literal literalObject = clause.literals.get(i);
-            if(literalObject.multiplicity > clause.max) {
-                model.add(Thread.currentThread(), -literalObject.literal,null);
-                clause.expandedSize -= literalObject.multiplicity;
-                clause.literals.remove(i--);
-                clause.hasMultiplicities = clause.expandedSize > clause.literals.size();}}
-        if(clause.isFalse()) throw new UnsatClause(problemId,solverId,inputClause);
-        if(clause.isTrue()) return null;
-        if(clause.hasMultiplicities) clause.reduceMultiplicities();
+    Clause insertClause(Solvers.Normalizer.Clause normalizedClause) {
+        Clause clause = new Clause(normalizedClause);
         for(Literal literalObject : clause.literals) {literals.addLiteral(literalObject);}
         clauses.add(clause);
         return clause;}
-
 
 
     /** initializes the local model.
@@ -356,10 +325,9 @@ public class Walker extends Solver {
         while(statistics.flips < maxFlips) {
             if(Thread.interrupted()) {
                 if(trueLiteralInterrupt) integrateGloballyTrueLiterals();
-                else {if(equivalenceInterrupt) integrateEquivalences();
-                    else {
-                        globalParameters.logstream.println("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
-                        break;}}}
+                else {
+                    globalParameters.logstream.println("Walker " + combinedId + " interrupted after " + statistics.flips + " flips.\n");
+                        break;}}
             int predicate = selectFlipPredicate();
             flipPredicate(predicate);
             if(falseClauseList.size == 0) {throw localToGlobalModel();}}
@@ -563,90 +531,7 @@ public class Walker extends Solver {
         return literals;}
 
 
-    /** replaces for each equivalence of literals the literal by its representative.
-     *
-     * @throws Unsatisfiable if a contradiction is found.
-     */
-    void integrateEquivalences() throws Unsatisfiable{
-        IntArrayList equivalences = getEquivalences();
-        if(equivalences == null) return;
-        for(int i = 0; i < equivalences.size(); i += 2) {
-            int representative = equivalences.getInt(i);
-            int literal = equivalences.getInt(i+1);
-            if(monitoring) monitor.println(monitorId,"Integrating equivalence " +
-                    Symboltable.toString(literal,symboltable) + " -> " + Symboltable.toString(representative,symboltable));
-            ++statistics.importedEquivalentLiterals;
-            if(localModel[literal] != localModel[representative]) flipPredicate(Math.abs(literal));
-            for(int sign = 1; sign >= -1; sign -= 2) {
-                replaceEquivalentLiterals(sign*representative,sign*literal);}}}
 
-    /** replaces the literal by its representative in an equivalence class.
-     *
-     * @param representative the representative in an equivalence class.
-     * @param literal        the literal
-     * @throws Unsatisfiable if a contradiction is found.
-     */
-    void replaceEquivalentLiterals(int representative, int literal) throws Unsatisfiable {
-        int predicateLiteral = Math.abs(literal);
-        Literal literalObject = literals.getFirstLiteralObject(literal);
-        while(literalObject != null) {
-            Clause clause = literalObject.clause;
-            if(clause == null) {literalObject = literalObject.nextLiteral; continue;}
-            Literal representativeObject = clause.findLiteral(-representative);
-            if(representativeObject != null) {  // example: atmost 3 -p^2,q,r,s  p == q -> atmost 3 -p^2,p,r,s -> atmost 2 -p,r,s
-                if(clause.quantifier == Quantifier.OR) {
-                    removeClause(clause); // tautology
-                    literalObject = literalObject.nextLiteral;
-                    continue;}
-                else {
-                    for(Literal litObject : clause.literals) {
-                        int pred = Math.abs(litObject.literal);
-                        flipScores[pred] -= litObject.flipScorePart;
-                        updatePredicatesWithPositiveScore(pred);
-                        litObject.flipScorePart = 0;}
-                    literals.removeLiteral(literalObject);
-                    Literal newLiteral = literalObject.clone(representative);
-                    clause.replaceLiteral(literalObject,newLiteral);
-                    literals.addLiteral(newLiteral);
-
-                    if(clause.removeComplementaryLiterals(problemId,solverId,((Literal litObject) -> literals.removeLiteral(litObject))))
-                        removeClause(clause);
-                    else {
-                        initializeFlipScores(clause);
-                        int trueLiterals = 0;
-                        for(Literal litObject : clause.literals) {
-                            if(isLocallyTrue(litObject.literal)) trueLiterals += litObject.multiplicity;
-                            updatePredicatesWithPositiveScore(Math.abs(litObject.literal));}
-                        clause.trueLiterals = trueLiterals;
-                        clause.isLocallyTrue = clause.min <= trueLiterals && trueLiterals <= clause.max;}
-
-                    literalObject = literalObject.nextLiteral;
-                    continue;}}
-            representativeObject = clause.findLiteral(representative);
-            if(representativeObject == null) {  // just replace literal by the representative.
-                Literal newLiteral = literalObject.clone(representative);
-                literals.removeLiteral(literalObject);
-                literals.addLiteral(newLiteral);
-                clause.replaceLiteral(literalObject,newLiteral);
-                int predicateRepresentative = Math.abs(representative);
-                flipScores[predicateRepresentative] += literalObject.flipScorePart;
-                updatePredicatesWithPositiveScore(predicateRepresentative);}
-            else {  // p,q,r and p = q -> p^2,r
-                for(Literal litObject : clause.literals) {
-                    flipScores[Math.abs(litObject.literal)] -= litObject.flipScorePart;
-                    litObject.flipScorePart = 0;}
-                representativeObject.multiplicity = representativeObject.multiplicity+literalObject.multiplicity;
-                clause.literals.remove(literalObject);
-                literals.removeLiteral(literalObject);
-                clause.reduceMultiplicities();
-                initializeFlipScores(clause);
-                for(Literal litObject : clause.literals) {
-                    updatePredicatesWithPositiveScore(Math.abs(litObject.literal));}}
-
-            literalObject = literalObject.nextLiteral;}
-        flipScores[predicateLiteral] = trueLiteralScore;
-        predicatesWithPositiveScore.remove(predicateLiteral);
-    }
 
     /** removes the clause from the clauses, the falseClauses list, the literals index and if necessary from predicatesWithPositiveScore.
      * The flip score is updated.<br>
