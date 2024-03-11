@@ -20,9 +20,6 @@ public class Clause extends LinkedItem {
     /** the quantifier */
     protected Quantifier quantifier;
 
-    /** true if the connective is OR. */
-    protected boolean isDisjunction;
-
     /** the lower limit for Interval clauses. */
     protected int min = 0;
     /** the upper limit for Interval clauses. */
@@ -39,9 +36,6 @@ public class Clause extends LinkedItem {
 
     /** the list of all Literal objects in the clause. */
     protected ArrayList<Literal> literals = new ArrayList<>();
-
-    /** true if there are literals with multiplicities &gt; 1. */
-    protected boolean hasMultiplicities = false;
 
     /** the inference step which caused the derivation of this clause. */
     protected InferenceStep inferenceStep;

@@ -20,7 +20,7 @@ public class Literal {
     /** pointer to the next literal in a doubly connected list */
     protected Literal nextLiteral;
 
-    protected float flipScorePart;
+    protected int flipScorePart;
 
     /** constructs a Literal object
      *

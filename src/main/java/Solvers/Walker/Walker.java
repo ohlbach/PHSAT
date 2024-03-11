@@ -59,7 +59,7 @@ public class Walker extends Solver {
     boolean[] localModel;
 
     /** a score of +x for predicate p means that by flipping(p) x more clauses become true. */
-    float[] flipScores;
+    int[] flipScores;
 
     /** collects the equivalence classes which are send by the observer */
     private final IntArrayList equivalentLiterals = new IntArrayList(5);
@@ -77,10 +77,8 @@ public class Walker extends Solver {
     Random random;
 
     /** a tiny flip score for globally true predicates. They should never be flipped again.*/
-    private static final float trueLiteralScore = (float)(Integer.MIN_VALUE/2);
+    private static final int trueLiteralScore = Integer.MIN_VALUE/2;
 
-    /** flip scores of globally true literals should not be larger than this. */
-    private static float trueLiteralScoreLimit = trueLiteralScore/(float)10.;
 
 
     /** the current thread. */
@@ -172,7 +170,7 @@ public class Walker extends Solver {
         statistics         = new Statistics(combinedId);
         clauses            = new ArrayList<>(problemSupervisor.inputClauses.nextId);
         literals           = new Literals(predicates);
-        flipScores         = new float[predicates+1];
+        flipScores         = new int[predicates+1];
         predicatesWithPositiveScore = new Predicates(predicates);
         globalParameters.logstream.println(solverId + " for problem " + problemId + " started");
 
@@ -265,7 +263,7 @@ public class Walker extends Solver {
                     literalObject.flipScorePart = -1;
                     flipScores[Math.abs(literalObject.literal)] -= 1;}
                 return;}
-            for(Literal literalObject : clause.literals) {
+            for(Literal literalObject : clause.literals) { // flipping a literal may reduce the true literals below min, or increase them over max.
                 int literal = literalObject.literal;
                 int newTrueLiterals = isLocallyTrue(literal) ? trueLiterals - literalObject.multiplicity : trueLiterals + literalObject.multiplicity;
                 if(newTrueLiterals < min || newTrueLiterals > max) {
@@ -273,32 +271,21 @@ public class Walker extends Solver {
                     flipScores[Math.abs(literalObject.literal)] -= 1;}}
             return;}
 
-        if(trueLiterals < clause.min) { // false literals should become true and true literals should not become false.
+        // the clause is false and should become true
+        if(trueLiterals < clause.min) { // false literals should become true.
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                float score = 0;
-                if(isLocallyTrue(literal)) {
-                    score = (float)-1. / (float)(min - (trueLiterals - literalObject.multiplicity));}
-                else {
-                    int newTrueLiterals = trueLiterals + literalObject.multiplicity;
-                    if(newTrueLiterals <= max) // otherwise don't flip.
-                        score = (float)1. / (float)(min - newTrueLiterals + 1);}
-                literalObject.flipScorePart = score;
-                flipScores[Math.abs(literalObject.literal)] += score;}
+                if(!isLocallyTrue(literal)) {
+                    literalObject.flipScorePart = +1;
+                    flipScores[Math.abs(literalObject.literal)] += 1;}}
             return;}
 
-        if(trueLiterals > clause.max) { // true literals should become false and false literals should not become true.
+        if(trueLiterals > clause.max) { // true literals should become false.
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                float score = 0;
                 if(isLocallyTrue(literal)) {
-                    int newTrueLiterals = trueLiterals - literalObject.multiplicity;
-                    if(newTrueLiterals >= min) // otherwise don't flip.
-                        score = (float)1. / (float)(newTrueLiterals - max + 1);}
-                else {
-                    score = (float)-1. / (float)((trueLiterals + literalObject.multiplicity) -max);}
-            literalObject.flipScorePart = score;
-            flipScores[Math.abs(literalObject.literal)] += score;}}}
+                    literalObject.flipScorePart = +1;
+                    flipScores[Math.abs(literalObject.literal)] += 1;}}}}
 
     /** all predicates with positive score are collected in predicatesWithPositiveScore.
      * The predicates are not ordered according to the flip score.
@@ -352,30 +339,29 @@ public class Walker extends Solver {
             return selectPredicateInFalseClause(clause);}
         return selectPredicateInFalseClause(falseClauseList.firstLinkedItem);}
 
-    /** selects a predicate in a false clause with score %lt;= 0.
-     * If there are not enough true literals then the first false clause is chosen to be flipped.<br>
-     * If there are too many true literals then the first true clause is chosen to be flipped.<br>
+    /** selects a predicate in a false clause.
+     * If there are not enough true literals then a false literal is randomly chosen to be flipped.<br>
+     * If there are too many true literals then a true literal is randomly chosen to be flipped.<br>
      *
      * @param clause a false clause.
      * @return the predicate to be flipped.
      */
     int selectPredicateInFalseClause(Clause clause) {
         if(clause.trueLiterals < clause.min) { // not enough true literals. A false literal must be flipped.
+            int n = random.nextInt(clause.literals.size() - clause.trueLiterals);
+            int counter = -1;
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(flipScores[Math.abs(literal)] < trueLiteralScoreLimit) continue;
-                if(!isLocallyTrue(literal)) return Math.abs(literal);}}
+                if(!isLocallyTrue(literal)) {if(++counter == n) return Math.abs(literal);}}
+            assert(false);}
         // too many true literals. A true literal must be flipped.
+        int n = random.nextInt(clause.trueLiterals);
+        int counter = -1;
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
-            if(flipScores[Math.abs(literal)] < trueLiteralScoreLimit) continue;
-            if(isLocallyTrue(literal)) return Math.abs(literal);}
+            if(isLocallyTrue(literal)) {if(++counter == n) return Math.abs(literal);};}
         assert(false);
         return 0;}
-
-
-
-
 
     /** flips the truth value of the predicate and updates the flipQueue and the falseClauses list
      *
