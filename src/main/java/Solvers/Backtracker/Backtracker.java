@@ -142,9 +142,11 @@ public class Backtracker extends Solver {
      */
     public void readInputClauses() {
         Clause clause;
-        for(IntArrayList normalizedClause: problemSupervisor.normalizer.clauses) {
+        Solvers.Normalizer.Clause normalizedClause = problemSupervisor.normalizer.clauses.firstLinkedItem;
+        while(normalizedClause != null) {
             clause = new Clause(normalizedClause);
-            insertClause(clause);}}
+            insertClause(clause);
+            normalizedClause = (Solvers.Normalizer.Clause)normalizedClause.nextItem;}}
 
 
     IntArrayList[] derivedTrueLiteralArray = new IntArrayList[predicates+1];

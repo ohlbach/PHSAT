@@ -617,4 +617,13 @@ public class Walker extends Solver {
         for(Clause clause : clauses) {
             st.append(clause.toString(symboltable,0)).append("\n");}
         return st.toString();}
+
+    public String falseClausesString(Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        st.append("False Clauses\n");
+        Clause clause = falseClauseList.firstLinkedItem;
+        while(clause != null) {
+            st.append(clause.toString(symboltable, 0)).append("\n");
+            clause = (Clause) clause.nextItem;}
+        return st.toString();}
 }

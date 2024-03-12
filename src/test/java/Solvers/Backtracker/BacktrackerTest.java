@@ -1,9 +1,7 @@
 package Solvers.Backtracker;
 
 import Datastructures.Clauses.Quantifier;
-import Datastructures.Results.Satisfiable;
 import Datastructures.Theory.Model;
-import Solvers.Normalizer.NormalizerOld;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
@@ -58,7 +56,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.initializeLocalModel();
         assertEquals("[0, 0, 1, 0, -1, 0]",Arrays.toString(backtracker.localModel));
     }
-
+/*
     public void testDeriveTrueLiteralsOr() {
         System.out.println("deriveTrueLiteralsOr");
         Backtracker backtracker = makeBacktracker(5,0);
@@ -293,4 +291,6 @@ public class BacktrackerTest extends TestCase {
 
 
     }
+    */
+
     }

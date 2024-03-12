@@ -2,7 +2,6 @@ package Solvers.Backtracker;
 
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
@@ -39,8 +38,8 @@ public class Clause {
      *
      * @param normalizedClause a normalized and simplified clause from the Normalizer.
      */
-    public Clause(IntArrayList normalizedClause) {
-        id = normalizedClause.getInt(0);
+    public Clause(Solvers.Normalizer.Clause normalizedClause) {
+        id = normalizedClause.id;
        /* quantifier = NormalizerOld.getQuantifier(normalizedClause);
         min = NormalizerOld.getMin(normalizedClause);
         max = NormalizerOld.getMax(normalizedClause);
