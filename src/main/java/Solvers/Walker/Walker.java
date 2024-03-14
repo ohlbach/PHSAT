@@ -204,6 +204,13 @@ public class Walker extends Solver {
             insertClause(normalizedClause);
             normalizedClause = (Solvers.Normalizer.Clause)normalizedClause.nextItem;}}
 
+    /** Inserts a normalized clause into the internal datastructures.
+     * <br>
+     * The clauses should be free of redundancies.
+     *
+     * @param normalizedClause a normalized clause.
+     * @return the clause in the Walker/Clause datastructures.
+     */
     Clause insertClause(Solvers.Normalizer.Clause normalizedClause) {
         Clause clause = new Clause(normalizedClause);
         for(Literal literalObject : clause.literals) {literals.addLiteral(literalObject);}
@@ -214,10 +221,14 @@ public class Walker extends Solver {
     /** initializes the local model.
      * a predicate is set to true if there are more positive literal occurrences than negative literal occurrences.<br>
      * If there are equally many positive and negative occurrences, the random number generator decides about the truth value.<br>
-     * The global model is not yet taken into account.
+     * The global model is taken into account.<br>
+     * It should, however be irrelevant because the Normalizer has eliminated all predicates with truth values.
      */
     void initializeModel() {
         for(int predicate = 1; predicate <= predicates; ++predicate) {
+            byte status = model.status(predicate);
+            if(status == 1)  {localModel[predicate] = true; continue;}
+            if(status == -1) {localModel[predicate] = false; continue;}
             int posSize = literals.size(predicate);
             int negSize = literals.size(-predicate);
             if(posSize == negSize) localModel[predicate] = random.nextBoolean();
@@ -236,7 +247,7 @@ public class Walker extends Solver {
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
             if(literal > 0)  {
-                if(localModel[literal])   trueLiterals += literalObject.multiplicity;}
+                if(localModel[literal])    trueLiterals += literalObject.multiplicity;}
             else if(!localModel[-literal]) trueLiterals += literalObject.multiplicity;}
 
         clause.trueLiterals = trueLiterals;
@@ -247,10 +258,8 @@ public class Walker extends Solver {
 
 
     /** computes the initial flip scores for the literals in the clause.
-     *  A positive flip score for a literal indicates that flipping the truth value for the literal makes a false clause true,
-     *  or brings a false clause closer to truth. <br>
+     *  A positive flip score for a literal indicates that flipping the truth value for the literal makes a false clause true.<br>
      *  A negative flip score indicates that a true clause can become false. <br>
-     *  Fractional flip scores indicate that more than one predicate need to be flipped in order to make a clause true or false.
      *
      * @param clause the clause to be investigated.
      */
@@ -272,20 +281,25 @@ public class Walker extends Solver {
             return;}
 
         // the clause is false and should become true
-        if(trueLiterals < clause.min) { // false literals should become true.
+        if(trueLiterals < clause.min) {
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(!isLocallyTrue(literal)) {
-                    literalObject.flipScorePart = +1;
+                if(isLocallyTrue(literal) || trueLiterals + literalObject.multiplicity > clause.max) {  // true literals should not become false.
+                    literalObject.flipScorePart = -1;
+                    flipScores[Math.abs(literalObject.literal)] += -1;}
+                else {
+                    literalObject.flipScorePart = +1; // false literals should become true.
                     flipScores[Math.abs(literalObject.literal)] += 1;}}
             return;}
-
-        if(trueLiterals > clause.max) { // true literals should become false.
+        if(trueLiterals > clause.max) {
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(isLocallyTrue(literal)) {
-                    literalObject.flipScorePart = +1;
-                    flipScores[Math.abs(literalObject.literal)] += 1;}}}}
+                if(isLocallyTrue(literal) && !(trueLiterals - literalObject.multiplicity < clause.min)) {
+                    literalObject.flipScorePart = 1; // true literals should become false.
+                    flipScores[Math.abs(literalObject.literal)] += 1;}
+                else {
+                    literalObject.flipScorePart = -1; // false literals should not become true.
+                    flipScores[Math.abs(literalObject.literal)] += -1;}}}}
 
     /** all predicates with positive score are collected in predicatesWithPositiveScore.
      * The predicates are not ordered according to the flip score.
@@ -618,12 +632,4 @@ public class Walker extends Solver {
             st.append(clause.toString(symboltable,0)).append("\n");}
         return st.toString();}
 
-    public String falseClausesString(Symboltable symboltable) {
-        StringBuilder st = new StringBuilder();
-        st.append("False Clauses\n");
-        Clause clause = falseClauseList.firstLinkedItem;
-        while(clause != null) {
-            st.append(clause.toString(symboltable, 0)).append("\n");
-            clause = (Clause) clause.nextItem;}
-        return st.toString();}
 }
