@@ -165,7 +165,7 @@ public abstract class Solver {
     /** an identifier for the monitor */
     protected String monitorId;
 
-    protected Thread myThread;
+    public Thread myThread;
 
     /** constructs a solver as an instance of the Processor class.
      *
@@ -180,6 +180,7 @@ public abstract class Solver {
 
     /** initializes the parameters which are common to all solvers.
      *
+     * @param thread the solver's thread.
      * @param problemSupervisor the supervisor for the problem.
      */
     public void initialize(Thread thread,ProblemSupervisor problemSupervisor) {

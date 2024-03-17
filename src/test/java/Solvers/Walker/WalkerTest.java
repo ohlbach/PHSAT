@@ -365,8 +365,8 @@ public class WalkerTest extends TestCase {
         assertEquals("3:2,4:1,", walker.toString("flipscores"));
         assertEquals("3,4,", walker.toString("predicates"));
         assertEquals(3, walker.selectFlipPredicate());
-        assertEquals(-4, walker.selectFlipPredicate());
-        assertEquals(-1, walker.selectFlipPredicate());
+        assertEquals(4, walker.selectFlipPredicate());
+        assertEquals(3, walker.selectFlipPredicate());
     }
 
     public void testUpdateFlipScores1() {
@@ -378,10 +378,10 @@ public class WalkerTest extends TestCase {
         walker.localModel[1] = true;
         walker.initializeLocalTruthForClause(clause);
         walker.initializeFlipScores(clause);
-        assertEquals("1:-1.0,", walker.toString("flipscores"));
+        assertEquals("1:-1,", walker.toString("flipscores"));
         walker.initializePredicatesWithPositiveScores();
         assertEquals("",walker.toString("predicates"));
-        assertEquals("",walker.toString("falseClauses"));
+        assertEquals("false clauses\n",walker.toString("falseClauses"));
         assertEquals(0,walker.falseClauseList.size());
         walker.localModel[2] = true;
         walker.updateFlipScores(2);
@@ -389,9 +389,10 @@ public class WalkerTest extends TestCase {
         walker.localModel[2] = false;
         walker.updateFlipScores(2);
         walker.flipPredicate(1);
-        assertEquals("1:1.0,2:1.0,3:1.0,", walker.toString("flipscores"));
+        assertEquals("1:1,2:1,3:1,", walker.toString("flipscores"));
         assertEquals("1,2,3,",walker.toString("predicates"));
-        assertEquals("1: 1v2v3\n",walker.toString("falseClauses"));
+        assertEquals("false clauses\n" +
+                "    1: 1v2v3\n",walker.toString("falseClauses"));
         assertEquals(1,walker.falseClauseList.size());
     }
     public void testAddGloballyTrueLiteral() throws Unsatisfiable {
@@ -403,9 +404,10 @@ public class WalkerTest extends TestCase {
         walker.initializeLocalTruthForClause(clause);
         walker.initializeFlipScores(clause);
         walker.initializePredicatesWithPositiveScores();
-        assertEquals("1:1.0,2:1.0,3:1.0,", walker.toString("flipscores"));
+        assertEquals("1:1,2:1,3:1,", walker.toString("flipscores"));
         assertEquals("1,2,3,",walker.toString("predicates"));
-        assertEquals("1: 1v2v3\n",walker.toString("falseClauses"));
+        assertEquals("false clauses\n" +
+                "    1: 1v2v3\n",walker.toString("falseClauses"));
         assertEquals(1,walker.falseClauseList.size());
 
         walker.model.add(null,1,null);
@@ -414,35 +416,12 @@ public class WalkerTest extends TestCase {
         assertTrue(walker.trueLiteralInterrupt);
         walker.integrateGloballyTrueLiterals();
         assertFalse(walker.trueLiteralInterrupt);
-        assertEquals("1:-1.07374182E9,", walker.toString("flipscores"));
+        assertEquals("1:-1073741826,", walker.toString("flipscores"));
         assertEquals("",walker.toString("predicates"));
-        assertEquals("",walker.toString("falseClauses"));
+        assertEquals("false clauses\n",walker.toString("falseClauses"));
         assertEquals(0,walker.falseClauseList.size());
     }
-    public void testRemoveClause()  {
-        System.out.println("removeClause");
-        Walker walker = MyWalker(10);
-        Clause clause1 = walker.insertClause(makeClause(new int[]{1, cOr, 1, 2}));
-        Clause clause2 = walker.insertClause(makeClause(new int[]{2, cOr, 2, 3}));
-        walker.initializeLocalTruthForClause(clause1);
-        walker.initializeLocalTruthForClause(clause2);
-        walker.initializeFlipScores(clause1);
-        walker.initializeFlipScores(clause2);
-        walker.initializePredicatesWithPositiveScores();
-        assertEquals("1:1.0,2:2.0,3:1.0,", walker.toString("flipscores"));
-        assertEquals("1,2,3,", walker.toString("predicates"));
-        assertEquals("1: 1v2\n" +
-                "2: 2v3\n", walker.toString("falseClauses"));
-        assertEquals(2, walker.falseClauseList.size());
-        walker.removeClause(clause1);
-        assertEquals("2:1.0,3:1.0,", walker.toString("flipscores"));
-        assertEquals("2,3,", walker.toString("predicates"));
-        assertEquals("2: 2v3\n", walker.toString("falseClauses"));
-        assertEquals(1, walker.falseClauseList.size());
-        assertEquals("Positive Literals:\n" +
-                "2:1,3:1,\n" +
-                "Negative Literals:\n",walker.toString("literals"));
-    }
+
 
 
     }
