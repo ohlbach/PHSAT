@@ -421,7 +421,7 @@ public class InputClauses {
         int length = clause.length;
         for(int i = 2; i < length; ++i){
             int literal = clause[i];
-            for(int j = i; j < length; ++j) {
+            for(int j = i+1; j < length; ++j) {
                 if(literal == -clause[j]) return true;}}
         return false;}
 
@@ -465,7 +465,7 @@ public class InputClauses {
         assert Quantifier.getQuantifier(clause[1]) == Quantifier.OR;
         for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return false;}}
         if(model.isComplete()) return true; // there can't be complementary literals
-        return !containsComplementaryLiterals(clause);} // p or -p is always true
+        return containsComplementaryLiterals(clause);} // p or -p is always true
 
     /** determines the truth status of a disjunction: +1 = true, -1 = false, 0 = undecided.
      *

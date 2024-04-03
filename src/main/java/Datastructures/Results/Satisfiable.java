@@ -25,6 +25,7 @@ public class Satisfiable extends Result {
      *
      * @return a short description of the result.
      */
+    @Override
     public String toString(Symboltable symboltable) {
          return "Problem " + problemId + " is satisfiable with model: "+ model.toString(symboltable) +
                 "\n   found by " + solverId + " in " + Utilities.duration(getDuration());}

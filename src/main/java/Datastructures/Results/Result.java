@@ -70,4 +70,6 @@ public class Result extends Exception {
 
 
     public String toString(Symboltable symboltable, boolean trackReasoning) {return "";};
+
+    public String toString(Symboltable symboltable) {return "";};
 }

@@ -1,5 +1,7 @@
 package Datastructures.Results;
 
+import Datastructures.Symboltable;
+
 /** This class represents the result of a solver which has been aborted.
  * Created by ohlbach on 21.05.2019.
  */
@@ -26,4 +28,6 @@ public class Aborted extends Result {
      * @return the reason for the abortion.
      */
     public String toString() {return reason;}
+    @Override
+    public String toString(Symboltable symboltable) {return reason;}
 }

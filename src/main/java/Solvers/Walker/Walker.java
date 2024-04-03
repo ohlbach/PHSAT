@@ -66,7 +66,7 @@ public class Walker extends Solver {
     boolean trueLiteralInterrupt = false;
 
     /** collects statistical information. */
-    Statistics statistics;
+    WalkerStatistics statistics;
 
     /** random number generator for flip jumps. */
     Random random;
@@ -167,7 +167,7 @@ public class Walker extends Solver {
         long startTime     = System.nanoTime();
         localModel         = new boolean[predicates+1];
         random             = new Random(seed);
-        statistics         = new Statistics(combinedId);
+        statistics         = new WalkerStatistics(combinedId);
         clauses            = new ArrayList<>(problemSupervisor.inputClauses.nextId);
         literals           = new Literals(predicates);
         flipScores         = new int[predicates+1];
