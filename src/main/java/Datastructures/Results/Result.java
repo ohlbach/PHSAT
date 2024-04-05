@@ -19,11 +19,11 @@ public class Result extends Exception {
     public ArrayList<InferenceStep> inferenceSteps = new ArrayList<>();
     /** the statistics of the solver. */
     public Statistic statistic = null;
+
     /** the nanotime at which the result has been generated */
     public long endTime;
 
-    /** the nanotime at which the search was started. */
-    public long startTime;
+    public long elapsedTime;
 
     /** an optional message */
     public String message = null;
@@ -34,20 +34,12 @@ public class Result extends Exception {
      * @param problemId the problem identifier which has the result.
      * @param solverId the solver which found the result.
      */
-    public Result(String problemId, String solverId) {
+    public Result(String problemId, String solverId, long startTime) {
         super();
         this.problemId = problemId;
         this.solverId = solverId;
-        endTime = System.nanoTime();
+        elapsedTime = System.nanoTime() - startTime;
     }
-
-    /** returns the duration (endTime - startTime) in nanoseconds.
-     *
-     * @return 0 or the duration in nanoseconds.
-     */
-    public long getDuration() {
-        return (startTime != 0 && endTime != 0) ? endTime - startTime : 0;}
-
 
     /** returns the inference steps which produced the result.
      * Double occurrences are removed.
@@ -69,7 +61,9 @@ public class Result extends Exception {
 
 
 
-    public String toString(Symboltable symboltable, boolean trackReasoning) {return "";};
+    public String toString(Symboltable symboltable, boolean trackReasoning) {return toString();};
 
-    public String toString(Symboltable symboltable) {return "";};
+    public String toString(Symboltable symboltable) {return toString();};
+
+    public String toString() {return solverId + " working at " + problemId + " stopped after " + elapsedTime + " ns\n";};
 }

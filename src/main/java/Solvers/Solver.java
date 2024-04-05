@@ -142,7 +142,7 @@ public abstract class Solver {
     protected Normalizer normalizer;
 
     /** the start time of the solver. */
-    protected long startTime;
+    public long startTime;
 
     /** the number of predicates in the problem. */
     public  int predicates;
@@ -233,7 +233,7 @@ public abstract class Solver {
      */
     public Result checkModel(Model model) {
         ArrayList<int[]> falseClauses = problemSupervisor.inputClauses.falseClausesInModel(model);
-        if(falseClauses != null) {return new Erraneous(problemId,"Solver",model,falseClauses,symboltable);}
+        if(falseClauses != null) {return new Erraneous(problemId,"Solver", startTime, model,falseClauses,symboltable);}
         else {return null;}}
 
 

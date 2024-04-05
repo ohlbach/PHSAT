@@ -16,8 +16,8 @@ public class Satisfiable extends Result {
      * @param solverId  the solver which found the model.
      * @param model     the model for the clause set.
      */
-    public Satisfiable(String problemId, String solverId,Model model) {
-        super(problemId,solverId);
+    public Satisfiable(String problemId, String solverId,long startTime, Model model) {
+        super(problemId,solverId,startTime);
         this.model = model;}
 
 
@@ -27,7 +27,7 @@ public class Satisfiable extends Result {
      */
     @Override
     public String toString(Symboltable symboltable) {
-         return "Problem " + problemId + " is satisfiable with model: "+ model.toString(symboltable) +
-                "\n   found by " + solverId + " in " + Utilities.duration(getDuration());}
+         return "For problem " + problemId + ", solver " + solverId + " found a model in "+
+                 Utilities.duration(elapsedTime) + ". The model is:\n" +model.toString(symboltable);}
 
 }

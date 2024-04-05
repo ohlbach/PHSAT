@@ -23,6 +23,8 @@ public class WalkerTest extends TestCase {
 
     private static Walker MyWalker(int predicates, int maxFlips) {
         Walker walker = new Walker(1,null,0,maxFlips,10);
+        walker.problemId = "TestProblem";
+        walker.solverId = "TestSolver";
         walker.predicates = predicates;
         walker.model = new Model(predicates);
         walker.literals = new Literals(predicates);
@@ -464,6 +466,7 @@ public void testWalk() throws Unsatisfiable {
     for(int[] inputClause : inputClauses.disjunctions) {
         walker.insertClause(makeClause(inputClause));}
     try{
+        walker.startTime = System.nanoTime();
         walker.initializeModel();
         for(Clause clause : walker.clauses) {
             walker.initializeLocalTruthForClause(clause);

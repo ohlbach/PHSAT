@@ -133,7 +133,6 @@ public class Backtracker extends Solver {
 
         //System.out.println(clauses.toString(null));
         Result result = searchModel();
-        result.startTime = startTime;
         System.out.println(statistics);
         return result;
     }
@@ -202,7 +201,7 @@ public class Backtracker extends Solver {
             if((index - maxIndex) > 1) ++statistics.backjumps;
             while(maxIndex > firstIndex && predicateIndex[maxIndex] < 0) --maxIndex;
             if(maxIndex == firstIndex && predicateIndex[maxIndex] < 0)
-                return new UnsatClauses(problemId,solverId);
+                return new UnsatClauses(problemId,solverId, startTime);
 
             // now predicateIndex[maxIndex] > 0 or maxIndex is at firstIndex
 
@@ -215,7 +214,7 @@ public class Backtracker extends Solver {
             clearDerivedLiterals(derivedTrueLiteralArray[index--]);
             }
         model.exchangeModel(localModel);
-        return new Satisfiable(problemId,solverId,model);}
+        return new Satisfiable(problemId,solverId, startTime, model);}
 
     private void clearDerivedLiterals(IntArrayList derivedTrueLiterals) {
         for(int literal : derivedTrueLiterals) {

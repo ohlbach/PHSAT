@@ -47,6 +47,8 @@ public class Normalizer {
     /** just 'Normalizer'*/
     final static String solverId = "Normalizer";
 
+    long startTime = System.nanoTime();
+
     /** the global model.*/
     public Model model;
 
@@ -242,11 +244,11 @@ public class Normalizer {
         Clause clause = new Clause(inputClause,trackReasoning,monitor,symboltable);
         if(clause.quantifier == Quantifier.AND) {makeTrueLiteralTask(clause); return;} // unit clause
         if(clause.isTrue) {++statistics.removedClauses; return;}
-        if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause.inputClause);
+        if(clause.isFalse) throw new UnsatClause(problemId,solverId, startTime,clause.inputClause);
         Clause conjunction = clause.simplify(trackReasoning,monitor,symboltable);
         if(conjunction != null) makeTrueLiteralTask(conjunction);
         if(clause.isTrue || clause.quantifier == Quantifier.AND) {++statistics.removedClauses; return;}
-        if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause.inputClause);
+        if(clause.isFalse) throw new UnsatClause(problemId,solverId,startTime, clause.inputClause);
         statistics.simplifiedClauses += clause.version;
         addClauseToIndex(clause);
         clauses.addToBack(clause);}
@@ -269,7 +271,7 @@ public class Normalizer {
                         Clause conjunction = clause.applyTrueLiteral(literal,trackReasoning,monitor,symboltable);
                         if (conjunction != null) {makeTrueLiteralTask(conjunction);}
                         if(clause.isTrue || clause.quantifier == Quantifier.AND) {clauses.remove(clause); continue;}
-                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, startTime, clause);
                         addClauseToIndex(clause);}}}}
         applyTrueLiteralToEquivalences(literal);}
 
@@ -301,7 +303,7 @@ public class Normalizer {
                     for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
                         int literal = inputClause[i];
                         if(model.status(literal) ==  sign) continue;
-                        if(model.status(literal) == -sign) throw new NMUnsatEquivalence(problemId,solverId,inputClause,trueLit,literal); // ändern
+                        if(model.status(literal) == -sign) throw new NMUnsatEquivalence(problemId,solverId,startTime, inputClause,trueLit,literal); // ändern
                         NMISTrueLiteralToEquivalence step = trackReasoning ?
                                 new NMISTrueLiteralToEquivalence(trueLit,inputClause,sign*literal) : null;
                         model.add(myThread,sign*literal,step);
@@ -331,7 +333,7 @@ public class Normalizer {
                         Clause conjunction = clause.replaceEquivalentLiterals(representative,equivalentLiteral, step,trackReasoning,monitor,symboltable);
                         if (conjunction != null) {makeTrueLiteralTask(conjunction);}
                         if(clause.isTrue) {clauses.remove(clause); continue;}
-                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, startTime, clause);
                         addClauseToIndex(clause);}}}}}
 
     /** add the given clause to the corresponding index (occurrence lists).
@@ -453,7 +455,7 @@ public class Normalizer {
                         Clause conjunct = clause.applyTrueLiteral(literal,trackReasoning,monitor,symboltable);
                         if(conjunct != null) makeTrueLiteralTask(conjunct);
                         if(clause.isTrue) {clauses.remove(clause); continue;}
-                        if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause);
+                        if(clause.isFalse) throw new UnsatClause(problemId,solverId,startTime, clause);
                         addClauseToIndex(clause);}
                     continue;}
 
@@ -471,7 +473,7 @@ public class Normalizer {
                         Clause conjunct = clause.applyTrueLiteral(-literal,trackReasoning,monitor,symboltable);
                         if(conjunct != null) makeTrueLiteralTask(conjunct);
                         if(clause.isTrue) {clauses.remove(clause); continue;}
-                        if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause);
+                        if(clause.isFalse) throw new UnsatClause(problemId,solverId,startTime, clause);
                         addClauseToIndex(clause);}
                     continue;}
 
@@ -487,7 +489,7 @@ public class Normalizer {
                     Clause conjunct = clause.removeLiteral(literal,trackReasoning,monitor,symboltable);
                     if(conjunct != null) makeTrueLiteralTask(conjunct);
                     if(clause.isTrue) {clauses.remove(clause); continue;}
-                    if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause);
+                    if(clause.isFalse) throw new UnsatClause(problemId,solverId,startTime, clause);
                     addClauseToIndex(clause);}}}
     }
 

@@ -8,8 +8,8 @@ public class NMUnsatEquivalence extends Unsatisfiable {
     int[] clause;
     int literal1,literal2;
 
-    public NMUnsatEquivalence(String problemId, String solverId, int[] clause, int literal1, int literal2) {
-        super(problemId,solverId);
+    public NMUnsatEquivalence(String problemId, String solverId, long startTime, int[] clause, int literal1, int literal2) {
+        super(problemId,solverId,startTime);
         this.clause = clause;
         this.literal1 = literal1;
         this.literal2 = literal2;

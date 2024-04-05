@@ -34,6 +34,8 @@ public class Model {
     /** the current model. It collects the true literals.*/
     public IntArrayList model;
 
+    long startTime;
+
     /** the inference steps which caused the truth of the literals. The positions in the array are the same
      * as the positions of the true literal in the model-array.*/
     public ArrayList<InferenceStep> inferenceSteps;
@@ -55,7 +57,8 @@ public class Model {
         this.predicates  = predicates;
         model          = new IntArrayList(predicates);
         inferenceSteps = new ArrayList<>(predicates);
-        status         = new byte[predicates+1];}
+        status         = new byte[predicates+1];
+        startTime = System.nanoTime();}
 
     public String getSolverId() {
         return "Model";}
@@ -91,7 +94,7 @@ public class Model {
         assert predicate > 0 && predicate <= predicates;
         if(isTrue(literal)) {return;}
         if(isFalse(literal)) {
-            throw new UnsatisfiableLiteral(null,"Model", literal,getInferenceStep(literal),inferenceStep);}
+            throw new UnsatisfiableLiteral(null,"Model", startTime, literal,getInferenceStep(literal),inferenceStep);}
         inferenceSteps.add(inferenceStep);
         model.add(literal);
         status[predicate] = literal > 0 ? (byte)1: (byte)-1;
@@ -254,8 +257,9 @@ public class Model {
             if(state != 0) {sortedModel.add(state == 1 ? predicate : -predicate);}}
         if(sortedModel.isEmpty()) return "";
         StringBuilder st = new StringBuilder();
-        for(int i = 0; i < sortedModel.size()-1; ++i)
+        for(int i = 0; i < sortedModel.size()-1; ++i) {
             st.append(Symboltable.toString(sortedModel.getInt(i),symboltable)).append(",");
+            if((i%20)==0) st.append("\n");}
         st.append(Symboltable.toString(sortedModel.getInt(sortedModel.size()-1),symboltable));
         return st.toString();}
 
