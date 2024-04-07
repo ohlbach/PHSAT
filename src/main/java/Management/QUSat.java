@@ -121,11 +121,15 @@ public class QUSat {
         helpers.put("random",     ProblemGenerators.RandomClauseSetGenerator::help);
         helpers.put("pigeonhole", ProblemGenerators.PigeonHoleGenerator::help);
         helpers.put("string",     ProblemGenerators.StringClauseSetGenerator::help);
+        helpers.put("pythagoraen",ProblemGenerators.PythagoraenTriples::help);
+        helpers.put("solver",     Solvers.Solver::help);
         helpers.put("walker",     Solvers.Walker.Walker::help);
-        helpers.put("backtracker", Solvers.Backtracker.Backtracker::help);
+        helpers.put("backtracker",Solvers.Backtracker.Backtracker::help);
     }
     /** for displaying the helpers */
-    private static final String helperKeys = "parameters, global, generator (cnfreader, random, pigeonhole, string) ";
+    private static final String helperKeys = "parameters, global,"+
+            "generator (cnfreader, random, pigeonhole, string), "+
+            "solver (walker,backtracker)";
 
     /** This method calls the help()-methods and prints the results.
      *

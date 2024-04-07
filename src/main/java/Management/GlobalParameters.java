@@ -12,12 +12,18 @@ import java.util.Map;
 /** This class maintains the global parameters for controlling the QuSat system.
  */
 public class GlobalParameters {
+    public static Parameters parameters = new Parameters("Global Parameters");
 
     /** the homedirectory. */
-    public String homeDirectory = System.getenv("USERPROFILE");
+    public static String homeDirectory = System.getenv("USERPROFILE");
 
     /** the name of the current job. It is used as prefix for all generated files. */
     public String jobname = "Test";
+    public static String jobnameD = "Identifier for the job";
+    public static Parameter jobnameP = new Parameter("jobname","String", "TestJob",jobnameD,
+            ((Object value) -> {
+                }), "Test");
+    static{parameters.add(jobnameP);}
 
     /** the directory where to print the files. Default: system temporal directory. */
     public Path directory = Paths.get(System.getenv("TEMP"));
@@ -57,6 +63,7 @@ public class GlobalParameters {
 
     /** specifies how the statistics are printed. */
     public String statistic = "life";
+
 
     /** @return a help-string which describes the parameters */
     public static String help() {
