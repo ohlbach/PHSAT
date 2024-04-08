@@ -17,4 +17,12 @@ public class Parameters {
         for(Parameter parameter : parameters) {parameter.value = null;}
     }
 
+    public String toString() {
+        String result = "Title: " + title + "\n";
+        for (Parameter parameter : parameters) {
+            result += parameter.toString() + "\n";
+        }
+        return result;
+        }
+
 }

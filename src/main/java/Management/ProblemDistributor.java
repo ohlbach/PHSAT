@@ -125,7 +125,7 @@ public class ProblemDistributor {
 
     /** prints all results to the resultfile.*/
     private void reportResults() {
-        String jobname = globalParameters.jobname;
+        String jobname = globalParameters.getJobname();
         PrintStream stream = System.out;
         if(globalParameters.directory != null) {
             File file = Paths.get(globalParameters.directory.toString(),jobname+"-results.txt").toFile();

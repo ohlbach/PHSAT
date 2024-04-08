@@ -85,7 +85,7 @@ public class QuSatJob {
         if((globalParameters.monitor != null && globalParameters.monitor.equals("file"))  ||
                 globalParameters.logging.equals("file") || !globalParameters.cnfFile.equals("none") ||
                 !(globalParameters.statistic.equals("none") || globalParameters.statistic.equals("text"))){
-            globalParameters.jobDirectory = makeJobDirectory(globalParameters.directory, globalParameters.jobname);
+            globalParameters.jobDirectory = makeJobDirectory(globalParameters.directory, globalParameters.getJobname());
         }
 
         switch(globalParameters.logging) {
@@ -171,11 +171,11 @@ public class QuSatJob {
 
     public static void main(String[] args) {
         QuSatJob quSatJob = new QuSatJob(null);
-        quSatJob.globalParameters = new GlobalParameters();
+        /**quSatJob.globalParameters = new GlobalParameters();
         quSatJob.globalParameters.monitor = "life";
         quSatJob.globalParameters.jobname = "MyJob";
         quSatJob.globalParameters.logging = "life";
-        quSatJob.globalParameters.directory = Utilities.pathWithHome("home/TEST");
+        quSatJob.globalParameters.directory = Utilities.pathWithHome("home/TEST");*/
         quSatJob.prepareMonitorAndLogstream();
         System.out.println(quSatJob.globalParameters.toString());
 

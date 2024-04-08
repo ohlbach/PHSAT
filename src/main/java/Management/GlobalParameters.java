@@ -12,18 +12,15 @@ import java.util.Map;
 /** This class maintains the global parameters for controlling the QuSat system.
  */
 public class GlobalParameters {
-    public static Parameters parameters = new Parameters("Global Parameters");
+    public Parameters parameters;
 
     /** the homedirectory. */
     public static String homeDirectory = System.getenv("USERPROFILE");
 
     /** the name of the current job. It is used as prefix for all generated files. */
-    public String jobname = "Test";
-    public static String jobnameD = "Identifier for the job";
-    public static Parameter jobnameP = new Parameter("jobname","String", "TestJob",jobnameD,
-            ((Object value) -> {
-                }), "Test");
-    static{parameters.add(jobnameP);}
+    public Parameter jobname;
+
+    public String getJobname(){return (String)jobname.value;}
 
     /** the directory where to print the files. Default: system temporal directory. */
     public Path directory = Paths.get(System.getenv("TEMP"));
@@ -92,7 +89,67 @@ public class GlobalParameters {
 
 
     /** generates the default parameters */
-    public GlobalParameters() {}
+    public GlobalParameters() {
+        parameters = new Parameters("Global Parameters");
+        Parameter jobname = new Parameter("jobname",Parameter.Type.String, "TestJob",
+                "Identifier for the job\n" +
+                        "It is also used as directoryname.");
+        parameters.add(jobname);
+
+        Parameter monitor = new Parameter("monitor",Parameter.Type.OneOf,"none",
+                "Specifies the target for monitoring.\n"+
+                " None:  No monitoring.\n"+
+                " Life:  Print the monitor text to System.out.\n"+
+                " File:  Print the monitor text to a File.\n"+
+                " Frame: Print the monitor text into a frame.");
+        monitor.parameters = new Parameters("monitor");
+        monitor.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
+        monitor.parameters.add(new Parameter("Life",Parameter.Type.Label,null, null));
+        monitor.parameters.add(new Parameter("File",Parameter.Type.File,null, null));
+        monitor.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
+        parameters.add(monitor);
+        
+        Parameter logging = new Parameter("logging",Parameter.Type.OneOf,"none",
+                "Specifies the target for logging.\n"+
+                        " None:  No logging.\n"+
+                        " Life:  Print the logging text to System.out.\n"+
+                        " File:  Print the logging text to a File.\n"+
+                        " Frame: Print the logging text into a frame.");
+        logging.parameters = new Parameters("logging");
+        logging.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
+        logging.parameters.add(new Parameter("Life",Parameter.Type.Label,null, null));
+        logging.parameters.add(new Parameter("File",Parameter.Type.File,null, null));
+        logging.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
+        parameters.add(logging);
+
+        Parameter CNFFile = new Parameter("CNFFile",Parameter.Type.OneOf,"none",
+                "Specifies the form of the CNFFile for the clauses.\n"+
+                        " None:         No output to a CNFFile.\n"+
+                        " Symboltable:  Output using a symboltable, if available.\n"+
+                        " Numbers:      Output using numbers for the predicates.");
+        CNFFile.parameters = new Parameters("CNFFile");
+        CNFFile.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
+        CNFFile.parameters.add(new Parameter("Symboltable",Parameter.Type.Label,null, null));
+        CNFFile.parameters.add(new Parameter("Numbers",Parameter.Type.File,null, null));
+        parameters.add(CNFFile);
+
+        Parameter statistics = new Parameter("statistics",Parameter.Type.OneOf,"none",
+                "Specifies the target for statistics.\n"+
+                        " None:  No statistics.\n"+
+                        " Life:  Print the statistics text to System.out.\n"+
+                        " File:  Print the statistics text to a File.\n"+
+                        " Frame: Print the statistics text into a frame.");
+        statistics.parameters = new Parameters("statistics");
+        statistics.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
+        statistics.parameters.add(new Parameter("Life",Parameter.Type.Label,null, null));
+        statistics.parameters.add(new Parameter("File",Parameter.Type.File,null, null));
+        statistics.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
+        parameters.add(statistics);
+
+        parameters.add(new Parameter("TrackReasoning",Parameter.Type.Boolean,"false",
+                "If true then the inference steps are tracked and verified."));
+        
+    }
 
     /** parses the parameters and generates the internal data
      *
@@ -107,7 +164,7 @@ public class GlobalParameters {
                 String key = entry.getKey();
                 String value = entry.getValue();
             switch(key) {
-                case "jobname": jobname = value; break;
+               // case "jobname": jobname = value; break;
                 case "directory" :
                     directory = Utilities.pathWithHome(value);
                     if(!directory.toFile().exists()) {errors.append(title + "Directory " + directory.toString() + " does not exist.");}

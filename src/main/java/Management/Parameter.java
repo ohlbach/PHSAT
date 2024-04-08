@@ -1,21 +1,24 @@
 package Management;
 
-import java.util.function.Consumer;
-
 public class Parameter {
+
+    public enum Type {String,OneOf,Label,File,Frame,Boolean};
     public String name;
-    public String type;
+    public Type type;
     public String defaultName;
     public String description;
-    public String[] choices;
     public Object value;
+    public Parameters parameters;
 
-    public Parameter(String name, String type, String defaultName, String description, Consumer<Object> valueConsumer, String... choices) {
+    public Parameter(String name, Type type, String defaultName, String description) {
         this.name = name;
         this.type = type;
         this.defaultName = defaultName == null ? name : defaultName;
         this.description = description;
-        this.choices = choices;
     }
+
+    public String toString() {
+        return name + ": " + value;}
+
 
 }
