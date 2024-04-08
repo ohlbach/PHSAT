@@ -138,6 +138,56 @@ public class Utilities {
                     }}
             return range;}
 
+    /** expands an Integer range into a list of Integers<br>
+     * The formats are: <br>
+     * - just an integer<br>
+     * - a comma-separated list of integers. Ex. 3,5,-10<br>
+     * - a range from to to. Ex. 3 to 10<br>
+     * - a range from to to step n. Ex: 3 to 10 step 2  The step must not be negative.
+     *
+     * @param value a string to be parsed
+     * @param errors for appending error messages
+     * @return the expanded integer list
+     */
+    public static IntArrayList parseIntRange(String value, StringBuilder errors) {
+        if(value == null) {return null;}
+        String place = "";
+        IntArrayList range = new IntArrayList();
+        try{Integer n =  Integer.parseInt(value);
+            range.add(n);
+            return range;}
+        catch(NumberFormatException ex) {
+            String[] parts;
+            if(value.contains("to")) {
+                if(!value.contains("step")) {// 3-5
+                    parts = value.split("\\s*to\\s*",2);
+                    Integer from = parseInteger(place,parts[0],errors);
+                    Integer to = parseInteger(place,parts[1],errors);
+                    if(from != null && to != null ) {
+                        if(to < from) {errors.append(place+ " to < from: " + value);}
+                        for(int n = from; n <= to; ++n) {range.add(n);}}
+                    else {return null;}
+                    return range;}
+                else {  // 3-10 step 2
+                    parts = value.split("\\s*(to|step)\\s*",3);
+                    Integer from = parseInteger(place,parts[0],errors);
+                    Integer to = parseInteger(place,parts[1],errors);
+                    Integer step = parseInteger(place,parts[2],errors);
+                    if(from != null && to != null && step != null) {
+                        if(step < 0) {errors.append(place+"negative step " + step); return null;}
+                        if(to < from) {errors.append(place+ "to < from: " + value); return null;}
+                        for(int n = from; n <= to; n += step) {range.add(n);}}
+                    else {return null;}
+                    return range;}}}
+        for(String part : value.split("(\\s+|\\s*,\\s*)")) {
+            Integer n = parseInteger(place,part,errors);
+            if(n != null) {range.add(n);}
+            else {
+                errors.append(place +" the format should be: integer or comma separated integer or 'integer to integer'." );
+                return null;
+            }}
+        return range;}
+
 
     /** expands a Float  range into a list of Integers<br>
      * The formats are: <br>

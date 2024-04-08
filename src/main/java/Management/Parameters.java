@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 public class Parameters {
     public String title;
+    public String description;
     public ArrayList<Parameter> parameters;
 
     public Parameters(String title) {
@@ -12,6 +13,8 @@ public class Parameters {
 
     public void add(Parameter parameter) {
         parameters.add(parameter);}
+
+    public void setDescription(String description) {this.description = description;}
 
     public void clearValues() {
         for(Parameter parameter : parameters) {parameter.value = null;}

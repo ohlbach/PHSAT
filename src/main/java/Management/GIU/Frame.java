@@ -1,13 +1,16 @@
 package Management.GIU;
 
 import Management.GlobalParameters;
-import Management.Parameters;
 import Management.Parameter;
+import Management.Parameters;
+import ProblemGenerators.ProblemGenerator;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -15,15 +18,17 @@ public class Frame {
 
     static JFrame frame;
     static BlockingQueue<Object> queue = new LinkedBlockingQueue();
-    public static GlobalParameters globalParameters = new GlobalParameters();
+    public static GlobalParameters globalParams = new GlobalParameters();
+    public static ArrayList<Parameters> generatorParams = ProblemGenerator.makeParameters();
 
     public static JFrame openFrame() {
-        Parameters parameters = globalParameters.parameters;
+        Parameters globalParameters = globalParams.parameters;
         frame = new JFrame("QUSat Control Parameters");
         frame.setSize(500, 500);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.getContentPane().add(createPanel(parameters), BorderLayout.CENTER);
+        frame.getContentPane().add(createPanel(globalParameters), BorderLayout.CENTER);
+        frame.getContentPane().add(createGeneratorPanel(generatorParams), BorderLayout.EAST);
         JButton exitButton = new JButton("Exit");
         exitButton.addActionListener(e -> {
             queue.add(1);
@@ -31,10 +36,17 @@ public class Frame {
             frame.dispose();
         });
         frame.getContentPane().add(exitButton, BorderLayout.SOUTH);
+        //frame.pack();
         frame.setVisible(true);
         return frame;
     }
 
+    public static JTabbedPane createGeneratorPanel(ArrayList<Parameters> parameters) {
+        JTabbedPane tabpane = new JTabbedPane(JTabbedPane.TOP,JTabbedPane.SCROLL_TAB_LAYOUT );
+        for(Parameters params : parameters) {
+            JPanel panel = createPanel(params);
+            tabpane.addTab(params.title, panel);}
+        return tabpane;}
 
 
     public static JPanel createPanel(Parameters parameters) {
@@ -44,11 +56,13 @@ public class Frame {
         title.setForeground(Color.blue);
         panel.add(title, BorderLayout.NORTH);
         JPanel parametersPanel = new JPanel(flowLayout);
+        parametersPanel.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
         for (Parameter parameter : parameters.parameters) {
             switch(parameter.type) {
                 case String: parametersPanel.add(textField(parameter)); break;
                 case OneOf:  parametersPanel.add(oneOf(parameter)); break;
                 case Boolean: parametersPanel.add(bool(parameter)); break;
+                case Integer: parametersPanel.add(integer(parameter)); break;
             }
         }
         panel.add(parametersPanel, BorderLayout.CENTER);
@@ -67,7 +81,22 @@ public class Frame {
         textPanel.add(textField);
         return textPanel;
     }
-
+    private static JPanel integer(Parameter parameter) {
+        JPanel textPanel = new JPanel(flowLayout);
+        textPanel.add(makeLabel(parameter));
+        parameter.value = parameter.defaultName;
+        JTextField textField = new JTextField(parameter.defaultName,15);
+        textField.addMouseListener(new MouseAdapter() {
+            public void mouseExited(MouseEvent e){
+                StringBuilder errors = new StringBuilder();
+                parameter.value = parameter.transformer.apply(textField.getText(),errors);
+                if(!errors.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame,errors.toString(),"Error", JOptionPane.INFORMATION_MESSAGE);
+                }
+                else System.out.println(((IntArrayList)parameter.value).toString());}});
+        textPanel.add(textField);
+        return textPanel;
+    }
     private static JPanel oneOf(Parameter parameter) {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
@@ -100,7 +129,7 @@ public class Frame {
         if(parameter.description != null) {
             label.addMouseListener(new MouseAdapter() {
                 @Override
-                public void mouseEntered(MouseEvent e) {
+                public void mouseClicked(MouseEvent e) {
                     JOptionPane.showMessageDialog(frame, parameter.description, "Description", JOptionPane.INFORMATION_MESSAGE);}});}
         return label;}
 
@@ -110,7 +139,7 @@ public class Frame {
         openFrame();
         while(queue.isEmpty()) {}
         queue.clear();
-        System.out.println( globalParameters.parameters.toString());
+        System.out.println( globalParams.parameters.toString());
     }
 
 

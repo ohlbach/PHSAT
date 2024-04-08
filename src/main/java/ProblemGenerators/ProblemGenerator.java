@@ -3,6 +3,7 @@ package ProblemGenerators;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
+import Management.Parameters;
 import Utilities.KVParser;
 import Utilities.Utilities;
 
@@ -35,6 +36,24 @@ public abstract class ProblemGenerator {
 
     /** takes the parsed input clauses */
     public InputClauses inputClauses = null;
+
+    public static ArrayList<Class> generatorClasses = new ArrayList<>();
+    static{
+        generatorClasses.add(ProblemGenerators.CNFReader.class);
+        generatorClasses.add(ProblemGenerators.RandomClauseSetGenerator.class);
+        generatorClasses.add(ProblemGenerators.PigeonHoleGenerator.class);
+        generatorClasses.add(ProblemGenerators.PythagoraenTriples.class);
+        generatorClasses.add(ProblemGenerators.StringClauseSetGenerator.class);
+    }
+
+    public static ArrayList<Parameters> makeParameters() {
+        ArrayList<Parameters> parameters = new ArrayList<>();
+        for(Class clazz : generatorClasses) {
+            try{
+                Method method = clazz.getMethod("makeParameter");
+                parameters.add((Parameters)method.invoke(null));}
+            catch(Exception e){}}
+            return parameters;}
 
 
     /** maps the generator names to the generator classes

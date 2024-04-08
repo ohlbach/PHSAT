@@ -2,7 +2,10 @@ package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
+import Management.Parameter;
+import Management.Parameters;
 import Utilities.Utilities;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,6 +28,42 @@ public class PythagoraenTriples extends ProblemGenerator{
     static { // these are the allowed keys in the specification.
         Collections.addAll(keys, "generator","maximum");
     }
+
+    public static Parameters makeParameter() {
+        Parameter minimum = new Parameter("Smallest Integer",Parameter.Type.Integer, "3",
+                "smallest z with x^2 + y^2 = z^2");
+        minimum.setTransformer((String min, StringBuilder errors) ->  {
+                    try{
+                        Integer minInteger = Integer.parseInt(min);
+                        if (minInteger < 3) {errors.append("Smallest value " + minInteger + " is less than 3");}
+                        return minInteger;}
+                    catch(NumberFormatException e){
+                        errors.append(e.toString());
+                        return null;}});
+        Parameter maximum = new Parameter("Largest Integer",Parameter.Type.Integer, "7825",
+                "largest z with x^2 + y^2 = z^2");
+        minimum.setTransformer((String numbers, StringBuilder errors) ->  {
+            IntArrayList range = Utilities.parseIntRange(numbers,errors);
+            if(!errors.isEmpty()) return range;
+            else {
+                if(range.getInt(0) < 3) {
+                    errors.append("Smallest value " + range.getInt(0) + " is less than 3");}}
+            return range;});
+        Parameters parameters = new Parameters("Pythagoraen Triples Coloring");
+        parameters.add(minimum);
+        parameters.add(maximum);
+        parameters.setDescription(
+                "A pythagoraen triple consists of three numbers a,b,c with a^2 + b^2 = c^2\n"+
+                        "Examples: 3^2 + 4^2 = 5^2  or  5180^2 + 5865^2 = 7825^2\n"+
+                        "The problem is: is it possible to colour the numbers of all triples up to a given number\n"+
+                        "with two colours such that in each triple two colours are needed.\n"+
+                        "It turns out that this is possible for all triples up to 7824.\n"+
+                        "For the triples up to 7825 (default) at least one triple has to be coloured with one colour.\n"+
+                        "There is just one parameter:\n"+
+                        "  maximium This is the largest number c with a^2 + b^2 = c^2.\n"+
+                        "Each triple a,b,c generates an interval clause [1,2] a,b,c\n"+
+                        "A model for the clauses indicates a possible colouring.");
+        return parameters;}
 
     /** the number of pigeons */
     private final int maximum;
