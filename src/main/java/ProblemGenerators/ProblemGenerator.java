@@ -55,6 +55,15 @@ public abstract class ProblemGenerator {
             catch(Exception e){}}
             return parameters;}
 
+    public static String description() {
+        return "The generator classes generate SAT-Problems from different sources:\n"+
+                " - from cnf-Files\n"+
+                " - manually typed examples\n"+
+                " - randomly generated\n"+
+                " - clauses specifying pigeon hole problems\n"+
+                " - clauses specifying the coloring of Pythagoraen Triples.";
+    }
+
 
     /** maps the generator names to the generator classes
      *

@@ -30,30 +30,29 @@ public class PythagoraenTriples extends ProblemGenerator{
     }
 
     public static Parameters makeParameter() {
-        Parameter minimum = new Parameter("Smallest Integer",Parameter.Type.Integer, "3",
+        Parameter minimum = new Parameter("Smallest Integer",Parameter.Type.String, "3",
                 "smallest z with x^2 + y^2 = z^2");
-        minimum.setTransformer((String min, StringBuilder errors) ->  {
-                    try{
-                        Integer minInteger = Integer.parseInt(min);
-                        if (minInteger < 3) {errors.append("Smallest value " + minInteger + " is less than 3");}
-                        return minInteger;}
-                    catch(NumberFormatException e){
-                        errors.append(e.toString());
-                        return null;}});
+        minimum.setParser((String min, StringBuilder errors) ->  {
+            Integer minInteger = Utilities.parseInteger(null,min,errors);
+            if(minInteger == null) {return null;}
+            if (minInteger < 3) {errors.append("Smallest value " + minInteger + " is less than 3"); return null;}
+            System.out.println("MI " + minInteger);
+            return minInteger;});
         Parameter maximum = new Parameter("Largest Integer",Parameter.Type.Integer, "7825",
                 "largest z with x^2 + y^2 = z^2");
-        minimum.setTransformer((String numbers, StringBuilder errors) ->  {
+        maximum.setParser((String numbers, StringBuilder errors) ->  {
             IntArrayList range = Utilities.parseIntRange(numbers,errors);
-            if(!errors.isEmpty()) return range;
-            else {
-                if(range.getInt(0) < 3) {
-                    errors.append("Smallest value " + range.getInt(0) + " is less than 3");}}
+            if(range == null) return null;
+            if(range.getInt(0) < 3) {
+                errors.append("Smallest value " + range.getInt(0) + " is less than 3");
+                return null;}
+            System.out.println("MA " + range.toString());
             return range;});
-        Parameters parameters = new Parameters("Pythagoraen Triples Coloring");
+        Parameters parameters = new Parameters("PTriples");
         parameters.add(minimum);
         parameters.add(maximum);
         parameters.setDescription(
-                "A pythagoraen triple consists of three numbers a,b,c with a^2 + b^2 = c^2\n"+
+                "A Pythagoraen Triple consists of three numbers a,b,c with a^2 + b^2 = c^2\n"+
                         "Examples: 3^2 + 4^2 = 5^2  or  5180^2 + 5865^2 = 7825^2\n"+
                         "The problem is: is it possible to colour the numbers of all triples up to a given number\n"+
                         "with two colours such that in each triple two colours are needed.\n"+
@@ -63,6 +62,18 @@ public class PythagoraenTriples extends ProblemGenerator{
                         "  maximium This is the largest number c with a^2 + b^2 = c^2.\n"+
                         "Each triple a,b,c generates an interval clause [1,2] a,b,c\n"+
                         "A model for the clauses indicates a possible colouring.");
+
+        parameters.setFinalCheck((Parameters params, StringBuilder errors) -> {
+            Parameter smallest = params.parameters.get(0);
+            Parameter largest = params.parameters.get(1);
+            if(smallest.value == null || largest.value == null) {return true;}
+            int mi = (Integer) smallest.value;
+            int ma = ((IntArrayList) largest.value).get(0);
+            System.out.println("MIMA " + mi + " " + ma);
+            if(mi > ma) {
+                errors.append("Smallest value > first largest value: "+ mi + " > " + ma);
+                return false;}
+            return true;});
         return parameters;}
 
     /** the number of pigeons */

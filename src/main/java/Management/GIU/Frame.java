@@ -13,6 +13,7 @@ import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.BiFunction;
 
 public class Frame {
 
@@ -59,7 +60,7 @@ public class Frame {
         parametersPanel.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
         for (Parameter parameter : parameters.parameters) {
             switch(parameter.type) {
-                case String: parametersPanel.add(textField(parameter)); break;
+                case String: parametersPanel.add(textField(parameter,parameters)); break;
                 case OneOf:  parametersPanel.add(oneOf(parameter)); break;
                 case Boolean: parametersPanel.add(bool(parameter)); break;
                 case Integer: parametersPanel.add(integer(parameter)); break;
@@ -70,26 +71,37 @@ public class Frame {
     }
     private static FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
 
-    private static JPanel textField(Parameter parameter) {
+    private static JPanel textField(Parameter parameter,Parameters parameters) {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
-        parameter.value = parameter.defaultName;
-        JTextField textField = new JTextField(parameter.defaultName,15);
+        //parameter.value = parameter.defaultValue;
+        JTextField textField = new JTextField(parameter.defaultValue,15);
         textField.addMouseListener(new MouseAdapter() {
             public void mouseExited(MouseEvent e){
-                parameter.value = textField.getText();}});
+                System.out.println("PV " + parameter.value);
+                if(parameter.parser != null) {
+                    StringBuilder errors = new StringBuilder();
+                    parameter.value = parameter.parser.apply(textField.getText(),errors);
+                    if(!errors.isEmpty()) {
+                        JOptionPane.showMessageDialog(frame,errors.toString(),"Error", JOptionPane.INFORMATION_MESSAGE);}
+                    BiFunction<Parameters, StringBuilder, Boolean> finalCheck = parameters.finalCheck;
+                    if(finalCheck != null) {
+                        boolean finalCheckResult = finalCheck.apply(parameters, errors);
+                        if (!finalCheckResult) {
+                            JOptionPane.showMessageDialog(frame, errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);}}}
+                else parameter.value = textField.getText();}});
         textPanel.add(textField);
         return textPanel;
     }
     private static JPanel integer(Parameter parameter) {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
-        parameter.value = parameter.defaultName;
-        JTextField textField = new JTextField(parameter.defaultName,15);
+        parameter.value = parameter.defaultValue;
+        JTextField textField = new JTextField(parameter.defaultValue,15);
         textField.addMouseListener(new MouseAdapter() {
             public void mouseExited(MouseEvent e){
                 StringBuilder errors = new StringBuilder();
-                parameter.value = parameter.transformer.apply(textField.getText(),errors);
+                parameter.value = parameter.parser.apply(textField.getText(),errors);
                 if(!errors.isEmpty()) {
                     JOptionPane.showMessageDialog(frame,errors.toString(),"Error", JOptionPane.INFORMATION_MESSAGE);
                 }
@@ -100,7 +112,7 @@ public class Frame {
     private static JPanel oneOf(Parameter parameter) {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
-        parameter.value = parameter.defaultName;
+        parameter.value = parameter.defaultValue;
         ButtonGroup group = new ButtonGroup();
         for(Parameter param : parameter.parameters.parameters) {
             JRadioButton radioButton = new JRadioButton(param.name);
@@ -112,7 +124,7 @@ public class Frame {
     private static JPanel bool(Parameter parameter) {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
-        parameter.value = parameter.defaultName;
+        parameter.value = parameter.defaultValue;
         ButtonGroup group = new ButtonGroup();
         JRadioButton trueButton = new JRadioButton("true");
         JRadioButton falseButton = new JRadioButton("false");

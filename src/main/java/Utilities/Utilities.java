@@ -44,8 +44,9 @@ public class Utilities {
      */
     public static Integer parseInteger(String place, String value, StringBuilder errors) {
         if(value == null) {return null;}
+        if(place == null) place = ""; else place += " ";
         try{return Integer.parseInt(value);}
-        catch(NumberFormatException ex) {errors.append(place+" '" + value + "' is no integer\n");}
+        catch(NumberFormatException ex) {errors.append(place+"'" + value + "' is no integer\n");}
         return null;}
 
     /** trys to pars a string as integer.
@@ -139,11 +140,13 @@ public class Utilities {
             return range;}
 
     /** expands an Integer range into a list of Integers<br>
-     * The formats are: <br>
+     * The formats of a range are: <br>
      * - just an integer<br>
-     * - a comma-separated list of integers. Ex. 3,5,-10<br>
-     * - a range from to to. Ex. 3 to 10<br>
-     * - a range from to to step n. Ex: 3 to 10 step 2  The step must not be negative.
+     * - a comma-separated list of ranges. Ex. 3,5,-10<br>
+     * - a range start to end. start &le; end. Ex. 3 to 10. <br>
+     * - a range start to end step n. Ex: 3 to 10 step 2  The step must not be negative.<br>
+     * Double occurrences are removed.<br>
+     * The final numbers are sorted in increasingly.
      *
      * @param value a string to be parsed
      * @param errors for appending error messages
@@ -151,41 +154,35 @@ public class Utilities {
      */
     public static IntArrayList parseIntRange(String value, StringBuilder errors) {
         if(value == null) {return null;}
-        String place = "";
         IntArrayList range = new IntArrayList();
-        try{Integer n =  Integer.parseInt(value);
-            range.add(n);
-            return range;}
-        catch(NumberFormatException ex) {
-            String[] parts;
-            if(value.contains("to")) {
-                if(!value.contains("step")) {// 3-5
-                    parts = value.split("\\s*to\\s*",2);
-                    Integer from = parseInteger(place,parts[0],errors);
-                    Integer to = parseInteger(place,parts[1],errors);
-                    if(from != null && to != null ) {
-                        if(to < from) {errors.append(place+ " to < from: " + value);}
-                        for(int n = from; n <= to; ++n) {range.add(n);}}
-                    else {return null;}
-                    return range;}
-                else {  // 3-10 step 2
-                    parts = value.split("\\s*(to|step)\\s*",3);
-                    Integer from = parseInteger(place,parts[0],errors);
-                    Integer to = parseInteger(place,parts[1],errors);
-                    Integer step = parseInteger(place,parts[2],errors);
-                    if(from != null && to != null && step != null) {
-                        if(step < 0) {errors.append(place+"negative step " + step); return null;}
-                        if(to < from) {errors.append(place+ "to < from: " + value); return null;}
-                        for(int n = from; n <= to; n += step) {range.add(n);}}
-                    else {return null;}
-                    return range;}}}
-        for(String part : value.split("(\\s+|\\s*,\\s*)")) {
-            Integer n = parseInteger(place,part,errors);
-            if(n != null) {range.add(n);}
-            else {
-                errors.append(place +" the format should be: integer or comma separated integer or 'integer to integer'." );
-                return null;
-            }}
+        boolean erraneous = false;
+        Integer step,from,to;
+        for(String part : value.split("\\s*,\\s*")) {
+            String[] parts = part.split("\\s*(to|step)\\s*",3);
+            switch (parts.length) {
+                case 1: from = parseInteger(null,parts[0],errors);
+                    if(from == null) {erraneous = true; continue;}
+                    if(!range.contains(from)) range.add(from);
+                    break;
+                case 2:
+                    if(part.contains("step")) {
+                            errors.append(part + " has not the form like 3 to 10 step 2\n" ); erraneous = true; continue;}
+                    from = parseInteger(null,parts[0],errors);
+                    to = parseInteger(null,parts[1],errors);
+                    if(from == null || to == null) {erraneous = true; continue;}
+                    if(to < from) {errors.append("to < from: " + part); erraneous = true; continue;}
+                    for(int n = from; n <= to; ++n) {if(!range.contains(n))range.add(n);}
+                    break;
+                default:
+                    from = parseInteger(null,parts[0],errors);
+                    to = parseInteger(null,parts[1],errors);
+                    step = parseInteger(null,parts[2],errors);
+                    if(from == null || to == null || step == null) {erraneous = true; continue;}
+                    if(step < 0) {errors.append("negative step: " + step+"\n"); erraneous = true; continue;}
+                    if(to < from) {errors.append("to < from: " + part+"\n");    erraneous = true; continue;}
+                    for(int n = from; n <= to; n += step) {if(!range.contains(n))range.add(n);}}}
+        if(erraneous) return null;
+        range.sort(Comparator.comparingInt(i->i));
         return range;}
 
 

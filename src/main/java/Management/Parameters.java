@@ -1,11 +1,13 @@
 package Management;
 
 import java.util.ArrayList;
+import java.util.function.BiFunction;
 
 public class Parameters {
     public String title;
     public String description;
     public ArrayList<Parameter> parameters;
+    public BiFunction<Parameters, StringBuilder, Boolean> finalCheck;
 
     public Parameters(String title) {
         this.title = title;
@@ -15,6 +17,7 @@ public class Parameters {
         parameters.add(parameter);}
 
     public void setDescription(String description) {this.description = description;}
+    public void setFinalCheck(BiFunction<Parameters, StringBuilder, Boolean> finalCheck) {this.finalCheck = finalCheck;}
 
     public void clearValues() {
         for(Parameter parameter : parameters) {parameter.value = null;}

@@ -25,42 +25,51 @@ public class UtilitiesTest {
     }
 
     @Test
-    public void parseRange1() throws Exception {
+    public void parseIntRange1() {
         System.out.println("parseIntRange 1: number, comma");
         StringBuilder errors = new StringBuilder();
-        ArrayList<Integer> n = Utilities.parseIntRange("test","55",errors);
-        assertEquals("[55]",n.toString());
+        IntArrayList range = Utilities.parseIntRange("55",errors);
+        assertEquals("[55]",range.toString());
 
-        n = Utilities.parseIntRange("test","55,66,77",errors);
-        assertEquals("[55, 66, 77]",n.toString());
+        range = Utilities.parseIntRange("55,66,77",errors);
+        assertEquals("[55, 66, 77]",range.toString());
 
-        n = Utilities.parseIntRange("test","55,66a,77",errors);
-        assertNull(n);
-        assertTrue(errors.length() > 0);}
+        range = Utilities.parseIntRange("55,66a,77",errors);
+        assertNull(range);
+        assertTrue(errors.length() > 0);
+        range = Utilities.parseIntRange("77,55,66,55",errors);
+        assertEquals("[55, 66, 77]",range.toString());
+    }
 
     @Test
-    public void parseRange2() throws Exception {
+    public void parseIntRange2() {
         System.out.println("parseIntRange 2: range");
         StringBuilder errors = new StringBuilder();
-        ArrayList<Integer> n = Utilities.parseIntRange("test", "55 to 60", errors);
-        assertEquals("[55, 56, 57, 58, 59, 60]", n.toString());
-        n = Utilities.parseIntRange("test", "-3 to -1", errors);
-        assertEquals("[-3, -2, -1]", n.toString());
+        IntArrayList range = Utilities.parseIntRange("55 to 60", errors);
+        assertEquals("[55, 56, 57, 58, 59, 60]", range.toString());
+        range = Utilities.parseIntRange("-3 to -1", errors);
+        assertEquals("[-3, -2, -1]", range.toString());
 
-        n = Utilities.parseIntRange("test", "55 to 60a", errors);
-        assertNull(n);
+        range = Utilities.parseIntRange("55 to 60a", errors);
+        assertNull(range);
         assertTrue(errors.length() > 0);
 
-        n = Utilities.parseIntRange("test", "3  to 10 step 2",errors);
-        assertEquals("[3, 5, 7, 9]", n.toString());
+        range = Utilities.parseIntRange("3  to 10 step 2,4,5",errors);
+        assertEquals("[3, 4, 5, 7, 9]", range.toString());
 
-        n = Utilities.parseIntRange("test", "-10  to -5 step 2",errors);
-        assertEquals("[-10, -8, -6]", n.toString());
+        range = Utilities.parseIntRange("-10  to -5 step 2",errors);
+        assertEquals("[-10, -8, -6]", range.toString());
 
 
-        n = Utilities.parseIntRange("test", "3  to 10 step 2a",errors);
-        assertNull(n);
+        range = Utilities.parseIntRange( "3  to 10 step 2a",errors);
+        assertNull(range);
         assertTrue(errors.length() > 0);
+
+        range = Utilities.parseIntRange( "30  to 10 step 2",errors);
+        assertNull(range);
+        assertTrue(errors.length() > 0);
+
+        //System.out.println(errors);
     }
 
     @Test
