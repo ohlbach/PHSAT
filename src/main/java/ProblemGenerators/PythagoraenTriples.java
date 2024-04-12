@@ -30,23 +30,20 @@ public class PythagoraenTriples extends ProblemGenerator{
     }
 
     public static Parameters makeParameter() {
-        Parameter minimum = new Parameter("Smallest Integer",Parameter.Type.String, "3",
+        Parameter minimum = new Parameter("Smallest Number",Parameter.Type.String, "3",3,
                 "smallest z with x^2 + y^2 = z^2");
         minimum.setParser((String min, StringBuilder errors) ->  {
             Integer minInteger = Utilities.parseInteger(null,min,errors);
             if(minInteger == null) {return null;}
-            if (minInteger < 3) {errors.append("Smallest value " + minInteger + " is less than 3"); return null;}
-            System.out.println("MI " + minInteger);
+            if (minInteger < 3) {errors.append("Smallest Number " + minInteger + " is less than 3"); return null;}
             return minInteger;});
-        Parameter maximum = new Parameter("Largest Integer",Parameter.Type.Integer, "7825",
+        Parameter maximum = new Parameter("Largest Number",Parameter.Type.String, "7825",
+                IntArrayList.wrap(new int[]{7825}),
                 "largest z with x^2 + y^2 = z^2");
         maximum.setParser((String numbers, StringBuilder errors) ->  {
             IntArrayList range = Utilities.parseIntRange(numbers,errors);
             if(range == null) return null;
-            if(range.getInt(0) < 3) {
-                errors.append("Smallest value " + range.getInt(0) + " is less than 3");
-                return null;}
-            System.out.println("MA " + range.toString());
+
             return range;});
         Parameters parameters = new Parameters("PTriples");
         parameters.add(minimum);
@@ -69,21 +66,21 @@ public class PythagoraenTriples extends ProblemGenerator{
             if(smallest.value == null || largest.value == null) {return true;}
             int mi = (Integer) smallest.value;
             int ma = ((IntArrayList) largest.value).get(0);
-            System.out.println("MIMA " + mi + " " + ma);
             if(mi > ma) {
                 errors.append("Smallest value > first largest value: "+ mi + " > " + ma);
                 return false;}
             return true;});
         return parameters;}
 
-    /** the number of pigeons */
+    private final int minimum;
     private final int maximum;
 
     /** creates the generator.
      *
      * @param maximum   the largest c for the triples a^2 + b^2 = c^2.
      */
-    public PythagoraenTriples(int maximum) {
+    public PythagoraenTriples(int minimum, int maximum) {
+        this.minimum = maximum;
         this.maximum = maximum;
     }
 
@@ -129,8 +126,20 @@ public class PythagoraenTriples extends ProblemGenerator{
             maximum = Utilities.parseInteger(prefix + "maximum: ",maxString,errors);
             if(maximum == null) return;}
         else maximum = 7825;
-        generators.add(new PythagoraenTriples(maximum));
+        generators.add(new PythagoraenTriples(3,maximum));
     }
+
+    public static void makeProblemGenerator(Parameters parameters,
+                                            ArrayList<ProblemGenerator> generators) {
+        assert parameters != null;
+        String prefix = "Pythagoraen Triples Generator: ";
+        int smallest = (int)parameters.parameters.get(0).value;
+        IntArrayList largest = (IntArrayList)parameters.parameters.get(1).value;
+        for(int maximum : largest)
+            generators.add(new PythagoraenTriples(smallest,maximum));
+    }
+
+
     /** generates the clauses for the problem.
      *
      * Example for maximum = 17:<br>
@@ -150,7 +159,7 @@ public class PythagoraenTriples extends ProblemGenerator{
         int identifier = 0;
         String info = "Colouring Pythagoraen Triples up to " + maximum;
         inputClauses = new InputClauses(problemName,maximum,null,info);
-        for(int i = 3; i <= maximum; ++i) {
+        for(int i = minimum; i <= maximum; ++i) {
             int i2 = i*i;
             for(int p1 = 2; p1 < i; ++p1) {
                 int p1s = p1 * p1;

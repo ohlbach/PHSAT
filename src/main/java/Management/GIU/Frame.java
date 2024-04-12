@@ -25,7 +25,7 @@ public class Frame {
     public static JFrame openFrame() {
         Parameters globalParameters = globalParams.parameters;
         frame = new JFrame("QUSat Control Parameters");
-        frame.setSize(500, 500);
+        frame.setSize(1300, 500);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.getContentPane().add(createPanel(globalParameters), BorderLayout.CENTER);
@@ -74,21 +74,27 @@ public class Frame {
     private static JPanel textField(Parameter parameter,Parameters parameters) {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
-        //parameter.value = parameter.defaultValue;
-        JTextField textField = new JTextField(parameter.defaultValue,15);
+        Object oldValue = parameter.value;
+        String defaultValue = parameter.defaultValue;
+        JTextField textField = new JTextField(parameter.defaultValue,Math.max(15,parameter.defaultValue.length()));
         textField.addMouseListener(new MouseAdapter() {
             public void mouseExited(MouseEvent e){
-                System.out.println("PV " + parameter.value);
+                System.out.println("PV " + textField.getText() + "  "  +parameter.value);
                 if(parameter.parser != null) {
                     StringBuilder errors = new StringBuilder();
                     parameter.value = parameter.parser.apply(textField.getText(),errors);
                     if(!errors.isEmpty()) {
-                        JOptionPane.showMessageDialog(frame,errors.toString(),"Error", JOptionPane.INFORMATION_MESSAGE);}
+                        JOptionPane.showMessageDialog(frame,errors.toString(),"Error", JOptionPane.INFORMATION_MESSAGE);
+                        SwingUtilities.invokeLater(() -> textField.setText(defaultValue));
+                        parameter.value = oldValue;}
                     BiFunction<Parameters, StringBuilder, Boolean> finalCheck = parameters.finalCheck;
-                    if(finalCheck != null) {
+                    if(finalCheck != null && errors.isEmpty()) {
                         boolean finalCheckResult = finalCheck.apply(parameters, errors);
                         if (!finalCheckResult) {
-                            JOptionPane.showMessageDialog(frame, errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);}}}
+                            JOptionPane.showMessageDialog(frame, errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);
+                            SwingUtilities.invokeLater(() -> textField.setText(defaultValue));
+                            parameter.value = oldValue;
+                        }}}
                 else parameter.value = textField.getText();}});
         textPanel.add(textField);
         return textPanel;
@@ -142,7 +148,8 @@ public class Frame {
             label.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
-                    JOptionPane.showMessageDialog(frame, parameter.description, "Description", JOptionPane.INFORMATION_MESSAGE);}});}
+                    JOptionPane.showMessageDialog(null, parameter.description, "Description",
+                            JOptionPane.INFORMATION_MESSAGE);};});}
         return label;}
 
 

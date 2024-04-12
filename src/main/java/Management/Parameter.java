@@ -13,12 +13,21 @@ public class Parameter {
     public Parameters parameters;
     public BiFunction<String,StringBuilder,Object> parser;
 
+    public Parameter(String name, Type type, String defaultValue, Object value, String description) {
+        this.name = name;
+        this.type = type;
+        this.defaultValue = defaultValue == null ? name : defaultValue;
+        this.value = value;
+        this.description = description;
+    }
     public Parameter(String name, Type type, String defaultValue, String description) {
         this.name = name;
         this.type = type;
         this.defaultValue = defaultValue == null ? name : defaultValue;
+        this.value = defaultValue;
         this.description = description;
     }
+
 
     public void setParser(BiFunction<String,StringBuilder,Object> parser) {
         this.parser = parser;}

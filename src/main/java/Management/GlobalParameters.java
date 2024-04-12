@@ -91,7 +91,7 @@ public class GlobalParameters {
     /** generates the default parameters */
     public GlobalParameters() {
         parameters = new Parameters("Global Parameters");
-        Parameter jobname = new Parameter("jobname",Parameter.Type.String, "TestJob",
+        Parameter jobname = new Parameter("jobname",Parameter.Type.String, "TestJob","TestJob",
                 "Identifier for the job\n" +
                         "It is also used as directoryname.");
         parameters.add(jobname);
