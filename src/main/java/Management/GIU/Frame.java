@@ -28,46 +28,100 @@ public class Frame {
         frame.setSize(1300, 500);
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.getContentPane().add(createPanel(globalParameters), BorderLayout.CENTER);
-        frame.getContentPane().add(createGeneratorPanel(generatorParams), BorderLayout.EAST);
+        Container contentPane = frame.getContentPane();
+        contentPane.setLayout(new BorderLayout());
+        contentPane.add(westPane(),BorderLayout.WEST);
+        JTabbedPane tabpane = new JTabbedPane
+                (JTabbedPane.TOP,JTabbedPane.SCROLL_TAB_LAYOUT );
+        tabpane.add("Global Parameters", createParameterPanel("Global Parameters for all solver jobs",
+                globalParameters));
+        tabpane.add("Clause Generators",createGeneratorPanel(generatorParams));
+        contentPane.add(tabpane,BorderLayout.CENTER);
+
         JButton exitButton = new JButton("Exit");
         exitButton.addActionListener(e -> {
             queue.add(1);
             frame.setVisible(false);
             frame.dispose();
         });
-        frame.getContentPane().add(exitButton, BorderLayout.SOUTH);
+        contentPane.add(exitButton, BorderLayout.SOUTH);
         //frame.pack();
         frame.setVisible(true);
         return frame;
     }
 
+    private static JPanel westPane() {
+        JPanel westPane = new JPanel();
+        westPane.setLayout(new BoxLayout(westPane, BoxLayout.Y_AXIS));
+        westPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        westPane.add(Box.createVerticalStrut(50));
+
+        JLabel recentLabel = new JLabel("Recent");
+        recentLabel.setFont(recentLabel.getFont().deriveFont(Font.BOLD, 16));
+        westPane.add(recentLabel);
+
+        JLabel loadLabel = new JLabel("Load");
+        loadLabel.setFont(loadLabel.getFont().deriveFont(Font.BOLD, 16));
+        westPane.add(loadLabel);
+
+        JLabel saveLabel = new JLabel("Save");
+        saveLabel.setFont(saveLabel.getFont().deriveFont(Font.BOLD, 16));
+        westPane.add(saveLabel);
+
+        JLabel runLabel = new JLabel("Run");
+        runLabel.setFont(runLabel.getFont().deriveFont(Font.BOLD, 16));
+        westPane.add(runLabel);
+        return westPane;
+    }
+
     public static JTabbedPane createGeneratorPanel(ArrayList<Parameters> parameters) {
         JTabbedPane tabpane = new JTabbedPane(JTabbedPane.TOP,JTabbedPane.SCROLL_TAB_LAYOUT );
         for(Parameters params : parameters) {
-            JPanel panel = createPanel(params);
-            tabpane.addTab(params.title, panel);}
+            JPanel parametersPanel = createParameterPanel(params.description,params);
+            JPanel generatorPanel = new JPanel(flowLayout);
+            JLabel generateLabel = new JLabel("Generate Clauses");
+            generateLabel.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    super.mouseClicked(e);
+                    generateClauses(params);}});
+            generatorPanel.add(generateLabel);
+            parametersPanel.add(generatorPanel);
+            tabpane.addTab(params.title, parametersPanel);}
         return tabpane;}
 
+    private static void generateClauses(Parameters params) {
+        System.out.println("GENE");
+    }
 
-    public static JPanel createPanel(Parameters parameters) {
-        JPanel panel = new JPanel(new BorderLayout());
-        JLabel title = new JLabel(parameters.title);
-        title.setFont(title.getFont().deriveFont(Font.BOLD));
-        title.setForeground(Color.blue);
-        panel.add(title, BorderLayout.NORTH);
-        JPanel parametersPanel = new JPanel(flowLayout);
+    public static JPanel createParameterPanel(String header, Parameters parameters) {
+        JPanel parametersPanel = new JPanel();
+        parametersPanel.setLayout(new BoxLayout(parametersPanel, BoxLayout.Y_AXIS));
         parametersPanel.setBorder(BorderFactory.createLineBorder(Color.BLUE, 2));
+        if(header != null) {
+            JTextArea textArea = new JTextArea(header);
+            textArea.setLineWrap(true); // allow line wrapping
+            textArea.setWrapStyleWord(true); // wrap lines at word boundaries
+            textArea.setEditable(false);
+            textArea.setMaximumSize(new Dimension(Integer.MAX_VALUE, textArea.getPreferredSize().height));
+            //headerLabel.setToolTipText(header);
+            parametersPanel.add(textArea);}
         for (Parameter parameter : parameters.parameters) {
+            JPanel panel = null;
             switch(parameter.type) {
-                case String: parametersPanel.add(textField(parameter,parameters)); break;
-                case OneOf:  parametersPanel.add(oneOf(parameter)); break;
-                case Boolean: parametersPanel.add(bool(parameter)); break;
-                case Integer: parametersPanel.add(integer(parameter)); break;
+                case String: panel = textField(parameter,parameters);
+                    panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                    parametersPanel.add(panel); break;
+                case OneOf:  panel = oneOf(parameter);
+                    panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                    parametersPanel.add(panel); break;
+                case Boolean: panel = bool(parameter);
+                    panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                    parametersPanel.add(panel); break;
             }
         }
-        panel.add(parametersPanel, BorderLayout.CENTER);
-        return panel;
+
+        return parametersPanel;
     }
     private static FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
 
