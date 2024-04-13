@@ -17,9 +17,10 @@ import java.util.HashSet;
  "The problem is: is it possible to colour the numbers of all triples up to a given number
  "with two colours such that in each triple two colours are needed. <br>
  "It turns out that this is possible for all triples up to 7824. <br>
- "For the triples up to 7825 (default) at least one triple has to be coloured with one colour. <br>
- "There is just one parameter: <br>
- "  maximium This is the largest number c with a^2 + b^2 = c^2.<br>
+ "For the triples up to 7825 (default) at least one triple has to be coloured with one colour. <br><br>
+ "There are two parameters: <br>
+ "  smallest this the smalles c with a^2 + b^2 = c^2.<br>
+ "  largest This is the largest number c with a^2 + b^2 = c^2.<br><br>
  "Each triple a,b,c generates an interval clause [1,2] a,b,c <br>
  "A model for the clauses indicates a possible colouring.
  */
@@ -29,6 +30,17 @@ public class PythagoraenTriples extends ProblemGenerator{
         Collections.addAll(keys, "generator","maximum");
     }
 
+    /**Creates and returns a Parameters object for the makeParameter method.
+     *
+     * Two parameters are created: <br>
+     * - minimum, a single integer &ge; 3<br>
+     * - maximum, a range of integers. Each individual integer causes a separate set of clauses to be generated.<br>
+     * Both parameters are provided with a parser which parses the string to an integer (minimum) or a IntArrayList (maximum).<br>
+     * A finalCheck makes sure that minimum &le; maximum.<br><br>
+     * The operation parameter actually calls the generator to generate the clauses.
+     *
+     * @return a Parameters object containing the required parameters and their configurations
+     */
     public static Parameters makeParameter() {
         Parameter minimum = new Parameter("Smallest Number",Parameter.Type.String, "3",3,
                 "smallest z with x^2 + y^2 = z^2");
@@ -43,7 +55,6 @@ public class PythagoraenTriples extends ProblemGenerator{
         maximum.setParser((String numbers, StringBuilder errors) ->  {
             IntArrayList range = Utilities.parseIntRange(numbers,errors);
             if(range == null) return null;
-
             return range;});
         Parameters parameters = new Parameters("PTriples");
         parameters.add(minimum);
@@ -73,14 +84,15 @@ public class PythagoraenTriples extends ProblemGenerator{
                 errors.append("Smallest value > first largest value: "+ mi + " > " + ma);
                 return false;}
             return true;});
-        parameters.operation = (Parameters params, StringBuilder errors) -> {
+
+        parameters.setOperation((Parameters params, StringBuilder errors) -> {
             ArrayList<ProblemGenerator> generators = new ArrayList<>();
             makeProblemGenerator(params, generators);
-            StringBuilder clauses = new StringBuilder();
+            ArrayList<InputClauses> clauses = new ArrayList<>();
             for(ProblemGenerator generator : generators) {
-                clauses.append(generator.generateProblem(errors).toString());
-            }
-            return clauses.toString();};
+                clauses.add(generator.generateProblem(errors));}
+            return clauses;});
+
         return parameters;}
 
     private final int minimum;
@@ -92,25 +104,7 @@ public class PythagoraenTriples extends ProblemGenerator{
      */
     public PythagoraenTriples(int minimum, int maximum) {
         this.minimum = minimum;
-        this.maximum = maximum;
-    }
-
-    /** returns a help string.
-     *
-     * @return a help string.
-     */
-    public static String help() {
-        return "A pythagoraen triple consists of three numbers a,b,c with a^2 + b^2 = c^2\n"+
-                "Examples: 3^2 + 4^2 = 5^2  or  5180^2 + 5865^2 = 7825^2\n"+
-                "The problem is: is it possible to colour the numbers of all triples up to a given number\n"+
-                "with two colours such that in each triple two colours are needed.\n"+
-                "It turns out that this is possible for all triples up to 7824.\n"+
-                "For the triples up to 7825 (default) at least one triple has to be coloured with one colour.\n"+
-                "There is just one parameter:\n"+
-                "  maximium This is the largest number c with a^2 + b^2 = c^2.\n"+
-                "Each triple a,b,c generates an interval clause [1,2] a,b,c\n"+
-                "A model for the clauses indicates a possible colouring." ;
-    }
+        this.maximum = maximum;}
 
     /** generates for a range of pigeons and a range of holes a sequence of pigeonhole specifications.
      * The pigeons and holes may be ranges like '4,5,6' or '5 to 10' or '5 to 11 step 2'.

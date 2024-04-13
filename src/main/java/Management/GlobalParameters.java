@@ -15,7 +15,7 @@ public class GlobalParameters {
     public Parameters parameters;
 
     /** the homedirectory. */
-    public static String homeDirectory = System.getenv("USERPROFILE");
+    public static String homeDirectory = Path.of(System.getenv("USERPROFILE"),"QuSat").toString();
 
     /** the name of the current job. It is used as prefix for all generated files. */
     public Parameter jobname;

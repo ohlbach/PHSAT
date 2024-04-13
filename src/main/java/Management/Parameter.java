@@ -32,6 +32,7 @@ public class Parameter {
     public void setParser(BiFunction<String,StringBuilder,Object> parser) {
         this.parser = parser;}
 
+
     public String toString() {
         return name + ": " + value;}
 

@@ -8,7 +8,7 @@ public class Parameters {
     public String description;
     public ArrayList<Parameter> parameters;
     public BiFunction<Parameters, StringBuilder, Boolean> finalCheck;
-    public BiFunction<Parameters,StringBuilder,String> operation = null;
+    public BiFunction<Parameters,StringBuilder,Object> operation = null;
 
     public Parameters(String title) {
         this.title = title;
@@ -19,6 +19,8 @@ public class Parameters {
 
     public void setDescription(String description) {this.description = description;}
     public void setFinalCheck(BiFunction<Parameters, StringBuilder, Boolean> finalCheck) {this.finalCheck = finalCheck;}
+    public void setOperation(BiFunction<Parameters,StringBuilder,Object> operation) {
+        this.operation = operation;}
 
     public void clearValues() {
         for(Parameter parameter : parameters) {parameter.value = null;}

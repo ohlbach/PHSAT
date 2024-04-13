@@ -1,5 +1,6 @@
 package Management.GIU;
 
+import Datastructures.Clauses.InputClauses;
 import Management.GlobalParameters;
 import Management.Parameter;
 import Management.Parameters;
@@ -12,6 +13,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -92,22 +95,10 @@ public class Frame {
             tabpane.addTab(params.title, parametersPanel);}
         return tabpane;}
 
-    private static void generateClauses1(Parameters params) {
-        StringBuilder errors = new StringBuilder();
-        String clauses = params.operation.apply(params,errors);
-        if(!errors.toString().isEmpty()) {
-            JOptionPane.showMessageDialog(frame, errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);
-            return;}
-        JTextArea textArea = new JTextArea(30, 50); // adjust size as per your requirement
-        textArea.setText(clauses);
-        textArea.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(textArea);
-        JOptionPane.showMessageDialog(null, scrollPane, "Clauses", JOptionPane.INFORMATION_MESSAGE);
-    }
 
     private static void generateClauses(Parameters params) {
         StringBuilder errors = new StringBuilder();
-        String clauses = params.operation.apply(params,errors);
+        ArrayList<InputClauses> clauses = (ArrayList<InputClauses>)params.operation.apply(params,errors);
         if(!errors.toString().isEmpty()) {
             JOptionPane.showMessageDialog(frame, errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);
             return;}
@@ -117,11 +108,20 @@ public class Frame {
         JButton extraButton = new JButton("Save Clauses");
         extraButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                // Handle MouseEvent here
-                System.out.println("Extra Button Clicked");
-                dialog.setVisible(false);
-            }
-        });
+                File file = new File(GlobalParameters.homeDirectory);
+                JFileChooser chooser = new JFileChooser(file);
+                chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                int result = chooser.showSaveDialog(null);
+                if(result == JFileChooser.APPROVE_OPTION) {
+                    File directory = chooser.getSelectedFile();
+                    for(InputClauses cls : clauses) {
+                        try {cls.makeCNFFile (directory.toPath(), "numbers");}
+                        catch (IOException ex) {
+                        ex.printStackTrace();}
+                    JOptionPane.showMessageDialog(null,
+                            "Clauses saved into directory " + directory.toString(), "Saved",
+                            JOptionPane.INFORMATION_MESSAGE);}}
+                dialog.setVisible(false);}});
 
         JButton okButton = new JButton("OK");
         okButton.addActionListener(new ActionListener() {
@@ -137,8 +137,9 @@ public class Frame {
         JTextArea textArea = new JTextArea(30,50);
         textArea.setEditable(false);
 
-        // Add your large text here
-        textArea.setText(clauses);
+        StringBuilder cl = new StringBuilder();
+        for(InputClauses clause : clauses) {cl.append(clause.toString());}
+        textArea.setText(cl.toString());
 
         JScrollPane scrollPane = new JScrollPane(textArea);
 
@@ -192,7 +193,6 @@ public class Frame {
         JTextField textField = new JTextField(parameter.defaultValue,Math.max(15,parameter.defaultValue.length()));
         textField.addMouseListener(new MouseAdapter() {
             public void mouseExited(MouseEvent e){
-                System.out.println("PV " + textField.getText() + "  "  +parameter.value);
                 if(parameter.parser != null) {
                     StringBuilder errors = new StringBuilder();
                     parameter.value = parameter.parser.apply(textField.getText(),errors);
