@@ -8,6 +8,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -90,8 +92,65 @@ public class Frame {
             tabpane.addTab(params.title, parametersPanel);}
         return tabpane;}
 
+    private static void generateClauses1(Parameters params) {
+        StringBuilder errors = new StringBuilder();
+        String clauses = params.operation.apply(params,errors);
+        if(!errors.toString().isEmpty()) {
+            JOptionPane.showMessageDialog(frame, errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);
+            return;}
+        JTextArea textArea = new JTextArea(30, 50); // adjust size as per your requirement
+        textArea.setText(clauses);
+        textArea.setEditable(false);
+        JScrollPane scrollPane = new JScrollPane(textArea);
+        JOptionPane.showMessageDialog(null, scrollPane, "Clauses", JOptionPane.INFORMATION_MESSAGE);
+    }
+
     private static void generateClauses(Parameters params) {
-        System.out.println("GENE");
+        StringBuilder errors = new StringBuilder();
+        String clauses = params.operation.apply(params,errors);
+        if(!errors.toString().isEmpty()) {
+            JOptionPane.showMessageDialog(frame, errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);
+            return;}
+        final JDialog dialog = new JDialog();
+        dialog.setTitle("Clauses");
+
+        JButton extraButton = new JButton("Save Clauses");
+        extraButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                // Handle MouseEvent here
+                System.out.println("Extra Button Clicked");
+                dialog.setVisible(false);
+            }
+        });
+
+        JButton okButton = new JButton("OK");
+        okButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                dialog.setVisible(false);
+            }
+        });
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(extraButton);
+        buttonPanel.add(okButton);
+
+        JTextArea textArea = new JTextArea(30,50);
+        textArea.setEditable(false);
+
+        // Add your large text here
+        textArea.setText(clauses);
+
+        JScrollPane scrollPane = new JScrollPane(textArea);
+
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BorderLayout());
+        contentPanel.add(scrollPane, BorderLayout.CENTER);
+        contentPanel.add(buttonPanel, BorderLayout.PAGE_END);
+
+        dialog.setContentPane(contentPanel);
+        dialog.pack();
+        dialog.setLocationRelativeTo(null);
+        dialog.setVisible(true);
     }
 
     public static JPanel createParameterPanel(String header, Parameters parameters) {

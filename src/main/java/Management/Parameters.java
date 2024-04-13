@@ -8,6 +8,7 @@ public class Parameters {
     public String description;
     public ArrayList<Parameter> parameters;
     public BiFunction<Parameters, StringBuilder, Boolean> finalCheck;
+    public BiFunction<Parameters,StringBuilder,String> operation = null;
 
     public Parameters(String title) {
         this.title = title;

@@ -54,9 +54,12 @@ public class PythagoraenTriples extends ProblemGenerator{
                         "The problem is: is it possible to colour the numbers of all triples up to a given number\n"+
                         "with two colours such that in each triple two colours are needed.\n"+
                         "It turns out that this is possible for all triples up to 7824.\n"+
-                        "For the triples up to 7825 (default) at least one triple has to be coloured with one colour.\n"+
-                        "There is just one parameter:\n"+
-                        "  maximium This is the largest number c with a^2 + b^2 = c^2.\n"+
+                        "For the triples up to 7825 (default) at least one triple has to be coloured with one colour.\n\n"+
+                        "There are two parameters:\n"+
+                        " - 'smallest' is the smallest number c with a^2 + b^2 = c^2  (c is atleast 3).\n"+
+                        " - 'largest'  is the largest number c with a^2 + b^2 = c^2.\n"+
+                        " 'largest' may specify several different problems by giving comma separated number sequences:\n"+
+                        " for example: 10,20,30 or 10 to 30 or 10 to 30 step 2\n\n"+
                         "Each triple a,b,c generates an interval clause [1,2] a,b,c\n"+
                         "A model for the clauses indicates a possible colouring.");
 
@@ -70,6 +73,14 @@ public class PythagoraenTriples extends ProblemGenerator{
                 errors.append("Smallest value > first largest value: "+ mi + " > " + ma);
                 return false;}
             return true;});
+        parameters.operation = (Parameters params, StringBuilder errors) -> {
+            ArrayList<ProblemGenerator> generators = new ArrayList<>();
+            makeProblemGenerator(params, generators);
+            StringBuilder clauses = new StringBuilder();
+            for(ProblemGenerator generator : generators) {
+                clauses.append(generator.generateProblem(errors).toString());
+            }
+            return clauses.toString();};
         return parameters;}
 
     private final int minimum;
@@ -80,7 +91,7 @@ public class PythagoraenTriples extends ProblemGenerator{
      * @param maximum   the largest c for the triples a^2 + b^2 = c^2.
      */
     public PythagoraenTriples(int minimum, int maximum) {
-        this.minimum = maximum;
+        this.minimum = minimum;
         this.maximum = maximum;
     }
 
@@ -155,9 +166,9 @@ public class PythagoraenTriples extends ProblemGenerator{
     @Override
     public InputClauses generateProblem(StringBuilder errors) {
         int quantifier = Quantifier.INTERVAL.ordinal();
-        String problemName = "PT_" + maximum;
+        String problemName = "PT_" + minimum + "-"+maximum;
         int identifier = 0;
-        String info = "Colouring Pythagoraen Triples up to " + maximum;
+        String info = "Colouring Pythagoraen Triples from "+ minimum + " up to " + maximum;
         inputClauses = new InputClauses(problemName,maximum,null,info);
         for(int i = minimum; i <= maximum; ++i) {
             int i2 = i*i;
