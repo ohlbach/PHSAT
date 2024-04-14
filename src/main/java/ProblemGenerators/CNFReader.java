@@ -1,23 +1,17 @@
 package ProblemGenerators;
 
 import Datastructures.Clauses.InputClauses;
+import Management.Parameter;
+import Management.Parameters;
 import Utilities.FileIterator;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-
-import static Utilities.Utilities.pathWithHome;
 
 /**
- * Created by ohlbach on 26.08.2018.
- * <p>
- * This class is for reading cnf-files. <br>
+ * This class is for reading cnf-files.
+ * 
  * A standard cnf-file has the following structure:<br>
  * # comment<br>
  * # comment<br>
@@ -40,120 +34,72 @@ import static Utilities.Utilities.pathWithHome;
  */
 public final class CNFReader extends ProblemGenerator {
 
-    /** contains the allowed keys in the specification.*/
-    private static final HashSet<String> keys = new HashSet<>();
-    static { // these are the allowed keys in the specification.
-        Collections.addAll(keys, "problem", "files", "directories", "regExprs");}
 
     /** the cnf file */
     private final File file;
 
-
-    /** creates a CNFReader for the given file
+    /**
+     * Creates a Parameters object with pre-defined parameters pigeons,holes,capacity
      *
-     * @param file a cnf file.
+     * @return the created Parameters object
      */
+    public static Parameters makeParameter() {
+        Parameter file = new Parameter("CNF-File", Parameter.Type.File, null,null,
+                """
+                CNFReader for reading CNF-Files.
+                The parameters are:
+                  files:       A single filename or a comma-separated list of filenames.
+                  directories: A single directory name or a comma-separated list of directory names.
+                               All files in the directory ending with .cnf are loaded, unless regExpr is defined.
+                  regExprs:    A regular expression to select files in the directory.
+
+                A standard cnf-file has the following structure:
+                 # comment
+                 # comment
+                 % ignored lines
+                 p cnf predicates ...
+                 clause1 0
+                 clause2 0
+                 ...
+                 A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0, or symbols).
+                \s
+                 An extension of this format may contain clauses beginning with special characters:.
+                 '&':  means and:          '& 3 4 5'     stands for 3 and 4 and 5.
+                 'e':  means equivalence:  'e 4 5 -6'    means that these three literals are equivalent.
+                 '>=': means atleast:      '>= 2 p q r'  means at least two of p,q,r are true.
+                 '<=': means atmost:       '<= 2 p q r'  means at most two of p,q,r are true.
+                 [min,max]: means interval '[2,3] p,q,r' means between 2 and 3 of p,q,r are true.
+                 '=':  means exactly:      '= 2 p q r'   means exactly two of p,q,r are true.
+                No special symbol means 'or': 'p,q,r' means p or q or r""");
+        Parameters parameters = new Parameters("CNF-Reader");
+        parameters.add(file);
+        parameters.setOperation((Parameters params, StringBuilder errors) -> {
+            ArrayList<ProblemGenerator> generators = new ArrayList<>();
+            makeProblemGenerator(params, generators);
+            ArrayList<InputClauses> clauses = new ArrayList<>();
+            for(ProblemGenerator generator : generators) {
+                clauses.add(generator.generateProblem(errors));}
+            return clauses;});
+        parameters.setDescription("Loads a single file or all files in a directory.");
+
+        return parameters;
+    }
+        /** creates a CNFReader for the given file
+         *
+         * @param file a cnf file.
+         */
     public CNFReader(File file) {
         this.file = file;}
 
-    /** generates a help-string
+    /**
+     * Generates and adds new problem generators based on the provided parameters.
      *
-     * @return a help-string
+     * @param parameters The parameters containing the values necessary to create the problem generators.
+     * @param generators The list of problem generators to add the newly created generators to.
      */
-    public static String help() {
-        return "CNFReader for reading CNF-Files.\n" +
-                "The parameters are:\n" +
-                "  files:       A single filename or a comma-separated list of filenames.\n" +
-                "  directories: A single directory name or a comma-separated list of directory names.\n" +
-                "               All files in the directory ending with .cnf are loaded, unless regExpr is defined.\n" +
-                "  regExprs:    A regular expression to select files in the directory.\n\n" +
-                "A standard cnf-file has the following structure:\n" +
-                " # comment\n" +
-                " # comment\n" +
-                " % ignored lines\n"+
-                " p cnf predicates ...\n" +
-                " clause1 0\n" +
-                " clause2 0\n" +
-                " ...\n" +
-                " A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0, or symbols).\n" +
-                " \n" +
-                " An extension of this format may contain clauses beginning with special characters:.\n" +
-                " '&':  means and:          '& 3 4 5'     stands for 3 and 4 and 5.\n" +
-                " 'e':  means equivalence:  'e 4 5 -6'    means that these three literals are equivalent.\n" +
-                " '>=': means atleast:      '>= 2 p q r'  means at least two of p,q,r are true.\n" +
-                " '<=': means atmost:       '<= 2 p q r'  means at most two of p,q,r are true.\n" +
-                " [min,max]: means interval '[2,3] p,q,r' means between 2 and 3 of p,q,r are true.\n"+
-                " '=':  means exactly:      '= 2 p q r'   means exactly two of p,q,r are true.\n" +
-                "No special symbol means 'or': 'p,q,r' means p or q or r";
-    }
-
-    /** parses a HashMap with key-value pairs of a CNF-Reader:<br>
-     * file:      a comma separated list of pathnames<br>
-     * *          a pathname may start with 'home'. It stands for the user's homedirectory.
-     * directory: a comma separated list of directories (all .cnf files in this directory are addressed) <br>
-     * regExpr:   a regular expression: All files in the directories matching the expression are addressed
-     *
-     * @param parameters   contains all control parameters.
-     * @param generators  for adding new CNFReaders
-     * @param errors      for error messages
-     * @param warnings    for warnings
-     */
-    public static void makeProblemGenerator(HashMap<String,String> parameters,
-                         ArrayList<ProblemGenerator> generators,
-                         StringBuilder errors, StringBuilder warnings){
-        for(String key : parameters.keySet()) {
-            if(!keys.contains(key)) {
-                warnings.append("CNFReader: Unknown key in parameters: ").append(key).append("\n");}}
-
-        String files       = parameters.get("files");
-        String directories = parameters.get("directories");
-        String regExprs    = parameters.get("regExprs");
-        if(files != null) {
-            for(String filename : files.split("\\s*[, ]\\s*")) {
-                if(!filename.endsWith(".cnf")) {
-                    warnings.append("CNFReader: Filename ").append(filename).append(" does not end with .cnf. The file is ignored.\n");
-                    continue;}
-                File file = pathWithHome(filename).toFile();
-                if(!file.exists()) {
-                    warnings.append("CNFReader: Unknown file: ").append(file.getAbsolutePath()).append(". The file is ignored.\n");}
-                else {generators.add(new CNFReader(file));}}}
-
-        if(directories != null && regExprs == null) {
-            for(String directoryname : directories.split("\\s*[, ]\\s*")) {
-                File directory = pathWithHome(directoryname).toFile();
-                if(!(directory.exists() && directory.isDirectory())) {
-                    errors.append("CNFReader: Unknown directory: ").append(directoryname).append(". The directory is ignored.\n");}
-                else {
-                    File[] fileList = directory.listFiles();
-                    if(fileList == null || fileList.length == 0) {
-                        warnings.append("CNFReader: Directory ").append(directoryname).append(" is empty.\n");}
-                    else {
-                        for(File file : fileList) {
-                            if(file != null && file.isFile() && file.getName().endsWith(".cnf"))
-                                generators.add(new CNFReader(file));}}}}
-            return;}
-
-        if(regExprs != null) {
-            if(directories == null) {
-                errors.append("CNFReader: A directory must be specified for regulare expression: ").append(regExprs).append("\n");
-                return;}
-            for(String directoryname : directories.split("\\s*[, ]\\s*")) {
-                File directory = pathWithHome(directoryname).toFile();
-                if(!(directory.exists() && directory.isDirectory())) {
-                    errors.append("CNFReader: Unknown directory: ").append(directory.getAbsolutePath()).
-                            append(". The directory is ignored.\n");}
-                else{
-                    Pattern pattern;
-                    try {pattern = Pattern.compile(regExprs);}
-                    catch(PatternSyntaxException ex) {
-                        errors.append("CNFReader: ").append(ex);
-                        continue;}
-                    File[] fileList = directory.listFiles(pathname -> pattern.matcher(pathname.getName()).matches());
-                    if(fileList == null || fileList.length == 0) {
-                        warnings.append("CNFReader: Directory ").append(directoryname).append(" contains no matched files.\n");}
-                    else {for(File file: fileList) generators.add(new CNFReader(file));}}}}}
-
-
+    public static void makeProblemGenerator(Parameters parameters,ArrayList<ProblemGenerator> generators) {
+        for(File file :(ArrayList<File>)parameters.parameters.get(0).value)
+            generators.add(new CNFReader(file));}
 
 
     /** reads the cnf-file and generates a InputClauses
@@ -162,7 +108,7 @@ public final class CNFReader extends ProblemGenerator {
      * @return null or the new InputClauses.
      */
     public InputClauses generateProblem(StringBuilder errors) {
-        InputClauses inputClauses = null;
+        InputClauses inputClauses;
         String problemId = file.getName();
         try{
             inputClauses = parseClauses(problemId,new FileIterator(file.getAbsolutePath()),errors);}

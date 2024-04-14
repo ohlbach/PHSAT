@@ -114,13 +114,14 @@ public class Frame {
                 int result = chooser.showSaveDialog(null);
                 if(result == JFileChooser.APPROVE_OPTION) {
                     File directory = chooser.getSelectedFile();
+                    StringBuilder files = new StringBuilder();
                     for(InputClauses cls : clauses) {
-                        try {cls.makeCNFFile (directory.toPath(), true);}
+                        try {files.append(cls.makeCNFFile (directory.toPath(), true).toString()).append("\n");}
                         catch (IOException ex) {
-                        ex.printStackTrace();}
+                        ex.printStackTrace();}}
                     JOptionPane.showMessageDialog(null,
-                            "Clauses saved into directory " + directory.toString(), "Saved",
-                            JOptionPane.INFORMATION_MESSAGE);}}
+                            "Clauses saved into file(s)\n" + files.toString(), "Saved",
+                            JOptionPane.INFORMATION_MESSAGE);}
                 dialog.setVisible(false);}});
 
         JButton okButton = new JButton("OK");
@@ -176,6 +177,9 @@ public class Frame {
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                     parametersPanel.add(panel); break;
                 case Boolean: panel = bool(parameter);
+                    panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                    parametersPanel.add(panel); break;
+                case File: panel = filePanel(parameter);
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                     parametersPanel.add(panel); break;
             }
@@ -239,6 +243,31 @@ public class Frame {
             group.add(radioButton);
             textPanel.add(radioButton);}
         return textPanel;}
+
+    private static JPanel filePanel(Parameter parameter) {
+        JPanel filePanel = new JPanel(flowLayout);
+        filePanel.add(makeLabel(parameter));
+        JButton fileButton = new JButton("Load Clauses");
+        fileButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                File file = new File(GlobalParameters.homeDirectory);
+                JFileChooser chooser = new JFileChooser(file);
+                chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+                chooser.setMultiSelectionEnabled(true);
+                int result = chooser.showOpenDialog(null);
+                if(result == JFileChooser.APPROVE_OPTION) {
+                    ArrayList<File> filesArray = new ArrayList<>();
+                    File[] files = chooser.getSelectedFiles();
+                    StringBuilder message = new StringBuilder(); message.append("Files Loaded:\n");
+                    for(File f : files) {
+                        if(f.isFile()) {filesArray.add(f);message.append(f.getAbsolutePath().toString()).append("\n");}
+                        else {for(File fl : f.listFiles()) {
+                            filesArray.add(fl); message.append(fl.getAbsolutePath().toString()).append("\n");}}}
+                    parameter.value = filesArray;
+                    JOptionPane.showMessageDialog(frame,message.toString(),"Files Loaded", JOptionPane.INFORMATION_MESSAGE);
+                }}});
+        filePanel.add(fileButton);
+        return filePanel;}
 
     private static JPanel bool(Parameter parameter) {
         JPanel textPanel = new JPanel(flowLayout);

@@ -762,7 +762,7 @@ public class InputClauses {
         stream.println("#problem " + problemId);
         for(String info : info.split("\\n")) {
             stream.println("#"+info);}
-        stream.println("p " + predicates + " c " + (nextId-1));
+        stream.println("p cnf " + predicates + " c " + (nextId-1));
         if(!disjunctions.isEmpty()) {
             for(int[] clause : disjunctions) {printCNF(clause,stream,symboltable1);}}
         if(!conjunctions.isEmpty()) {

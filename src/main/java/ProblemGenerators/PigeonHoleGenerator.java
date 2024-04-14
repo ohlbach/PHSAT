@@ -10,9 +10,6 @@ import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 
 /**
  * Created by ohlbach on 09.09.2018.<br>
@@ -27,11 +24,6 @@ import java.util.HashSet;
  *   [min,max] pigeons may be put into a hole.
  */
 public final class PigeonHoleGenerator extends ProblemGenerator {
-    /** contains all allowed keys */
-    private static final HashSet<String> keys = new HashSet<>();
-    static { // these are the allowed keys in the specification.
-        Collections.addAll(keys, "generator","pigeons", "holes", "capacities", "quantifiers");
-    }
 
     /** the number of pigeons */
     private final int pigeons;
@@ -54,6 +46,11 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         this.capacity = capacity;
     }
 
+    /**
+     * Creates a Parameters object with pre-defined parameters pigeons,holes,capacity
+     *
+     * @return the created Parameters object
+     */
     public static Parameters makeParameter() {
         Parameter pigeons = new Parameter("Pigeons",Parameter.Type.String, "3",
                 IntArrayList.wrap(new int[]{3}),
@@ -77,8 +74,8 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         Parameter capacity = new Parameter("Capacity",Parameter.Type.String,"1",
                 parseCapacity("1",new StringBuilder()),
                 "HoleCapacity, i.e. number of pigeons per hole.\n" +
-                        "comma separated: either [min,max] or <= amout or >= amount or = amount\n"+
-                        "Examples: '=2' (exactly 2) or [1,2], =3 (either one or two, and exaclty 3)\n"+
+                        "Comma separated: either [min,max] or < or <= amout or > or >= amount or just amount\n"+
+                        "Examples: '2' (exactly 2) or '[1,2], 3' (either one or two, and exactly 3)\n"+
                         "Each alternative generates a new clause set.");
         capacity.setParser((String cap, StringBuilder errors) ->  {return parseCapacity(cap,errors);});
 
@@ -87,15 +84,15 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         parameters.add(holes);
         parameters.add(capacity);
         parameters.setDescription("Pigeon Hole Problem:\n" +
-                "Can one put a number of pigeons into a number or holes\n" +
-                "Each pigeon must be put into exactly one hole\n"+
-                "Each hole has some capacity for taking pigeons\n"+
-                "The keys are:\n"+
+                "Can one put a number of pigeons into a given number or holes?\n" +
+                "Each pigeon must be put into exactly one hole.\n"+
+                "Each hole has a certain capacity for taking pigeons.\n"+
+                "The parameters are:\n"+
                 "pigeons:    range of pigeons\n" +
                 "holes:      range of holes.\n" +
-                "The numbers may be ranges like '4,5,6' or '5 to 10' or '5 to 11 step 2'.\n" +
-                "capacities:  comma separated: either [min,max] or <= amout or >= amount or = amount\n"+
-                "             A single integer like 1 is interpreted as '= 1'");
+                "The ranges may be like '4,5,6' or '5 to 10' or '5 to 11 step 2'.\n" +
+                "capacities:  comma separated: either [min,max] or < or <= amout or > or >= amount or just amount.\n"+
+                "             Example: 2,[1,2],>3,<= 5");
 
         parameters.setOperation((Parameters params, StringBuilder errors) -> {
             ArrayList<ProblemGenerator> generators = new ArrayList<>();
@@ -120,13 +117,17 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         try{int cap = Integer.parseInt(capacity);
             capacities.add(new Object[]{Quantifier.EXACTLY, cap});
             return capacities;}
-        catch(NumberFormatException e) {}
+        catch(NumberFormatException ignored) {}
 
-        String[] parts = capacity.split("\s*,\s*");
+        String[] parts = capacity.split("\\s*,\\s*");
         int length = parts.length;
         boolean erraneous = false;
         for(int i = 0; i < length; i++) {
             String part = parts[i];
+            try{int cap = Integer.parseInt(part);
+                capacities.add(new Object[]{Quantifier.EXACTLY, cap});
+                continue;}
+            catch(NumberFormatException ignored) {}
             if(part.charAt(0) == '[') {
                 if(i == length-1) {errors.append("malformed interval in " + capacity); return null;}
                 if (!parts[i+1].endsWith("]")) {errors.append("malformed interval in " + capacity);
@@ -158,35 +159,21 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
                         capacities.add(new Object[]{Quantifier.ATLEAST,limit});
                         break;
 
-                    case '=':
-                        limit = Integer.parseInt(part.substring(1).trim());
-                        if(limit < 1) {errors.append("malformed interval in " + capacity); erraneous = true; continue;}
-                        capacities.add(new Object[]{Quantifier.EXACTLY,limit});
-                        break;
-                    default: errors.append("malformed interval in " + capacity); erraneous = true; continue;
-            }}
+                    default: errors.append("malformed interval in " + capacity); erraneous = true;
+                }}
             catch(Exception ex) {
-                errors.append("malformed capacity in " + capacity); erraneous = true; i +=2; continue;}}
+                errors.append("malformed capacity in " + capacity); erraneous = true; i +=2;
+            }}
         return erraneous ? null : capacities;
     }
 
-    /** returns a help string.
+    /**
+     * Generates and adds new problem generators based on the provided parameters.
      *
-     * @return a help string.
+     * @param parameters The parameters containing the values necessary to create the problem generators.
+     * @param generators The list of problem generators to add the newly created generators to.
      */
-    public static String help() {
-        return "Pigeon Hole Generator for putting a number of pigeons into a number or holes\n" +
-                "Each pigeon must be put into exactly one hole\n"+
-                "Each hole has some capacity for taking pigeons\n"+
-                "The keys are:\n"+
-                "pigeons:    range of pigeons\n" +
-                "holes:      range of holes.\n" +
-                "The numbers may be ranges like '4,5,6' or '5 to 10' or '5 to 11 step 2'.\n" +
-                "capacities:  comma separated: either [min,max] or <= amout or >= amount or = amount";
-    }
-
-    public static void makeProblemGenerator(Parameters parameters,
-                                            ArrayList<ProblemGenerator> generators) {
+    public static void makeProblemGenerator(Parameters parameters,ArrayList<ProblemGenerator> generators) {
         IntArrayList pigeons =    (IntArrayList)parameters.parameters.get(0).value;
         IntArrayList holes =      (IntArrayList)parameters.parameters.get(1).value;
         ArrayList capacities = (ArrayList)parameters.parameters.get(2).value;
@@ -194,98 +181,20 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
             int holesv         = (int)p.get(0);
             int pigeonsv       = (int)p.get(1);
             Object[] capacityv = (Object[])p.get(2);
-            generators.add(new PigeonHoleGenerator(holesv,pigeonsv,capacityv));}
-    }
+            generators.add(new PigeonHoleGenerator(holesv,pigeonsv,capacityv));}}
 
+
+    /**
+     * Converts an IntArrayList to an ArrayList<Integer>.
+     *
+     * @param list the IntArrayList to convert
+     * @return an ArrayList<Integer> representing the same elements as the input IntArrayList
+     */
     private static ArrayList toArrayList(IntArrayList list) {
         ArrayList intList = new ArrayList<>();
         for(int i : list) intList.add(i);
-        return intList;
-    }
+        return intList;}
 
-    /** generates for a range of pigeons and a range of holes a sequence of pigeonhole specifications.
-     * The pigeons and holes may be ranges like '4,5,6' or '5 to 10' or '5 to 11 step 2'.
-     *
-     * @param parameters  contains a HashMap with keys "pigeons" and "holes" and "capacity" and "quantifier".
-     * @param generators  for adding new problem generators.
-     * @param errors      for error messages.
-     * @param warnings    for warnings.
-     */
-    public static void makeProblemGenerator(HashMap<String,String> parameters,
-                                            ArrayList<ProblemGenerator> generators,
-                                            StringBuilder errors, StringBuilder warnings){
-        assert parameters != null;
-        String prefix = "Pigeon Hole Generator: ";
-        for(String key : parameters.keySet()) {
-            if(!keys.contains(key)) {
-                warnings.append(prefix).append("Unknown key in parameters: ").append(key).append("\n").
-                        append("Allowed keys: ").append(keys).append("\n");}}
-
-        String hole       = parameters.get("holes");
-        String pigeon     = parameters.get("pigeons");
-        String capacity   = parameters.get("capacities");
-
-        boolean erroneous = false;
-
-        ArrayList holes = null;
-        if(hole == null) {
-            errors.append(prefix).append("No holes specified.\n"); erroneous = true;}
-        else {holes = Utilities.parseIntRange(prefix + "holes: ",hole,errors);
-            if(holes == null) {errors.append("\n"); erroneous = true;}}
-
-        ArrayList pigeons = null;
-        if(pigeon == null) {
-            errors.append(prefix).append("No pigeons specified.\n");}
-        else {pigeons = Utilities.parseIntRange(prefix+"pigeons: ",pigeon,errors);
-            if(pigeons == null) {errors.append("\n"); erroneous = true;}}
-
-        ArrayList capacities = new ArrayList();
-        if(capacity ==null) {capacities.add(new Object[]{Quantifier.EXACTLY,1});}
-        else {
-            String[] parts = capacity.split("\\s*,\\s*");
-            for(int i = 0; i < parts.length; ++i) {
-                String part = parts[i].trim();
-                if(part.charAt(0) == '[') {
-                    if(i == parts.length-1 && !parts[i+1].endsWith("]")) {
-                        errors.append("no proper interval: '").append(part).append(",").append(parts[i + 1]).append("'\n"); erroneous = true;}
-                    else {Integer max = null;
-                        Integer min = Utilities.parseInteger(part.substring(1));
-                        if(min == null || min < 0) {
-                            errors.append("no proper interval: '").append(part).append(",").append(parts[i + 1]).append("'\n"); erroneous = true;}
-                        else {max = Utilities.parseInteger(parts[i+1].substring(0,parts[++i].length()-1));
-                            if(max == null || max < min) {
-                                errors.append("no proper interval: '").append(parts[i - 1]).append(",").append(parts[i]).append("'\n"); erroneous = true;}}
-                        if(!erroneous)
-                            capacities.add(new Object[]{Quantifier.INTERVAL,
-                                    min < max ? new Interval(min,max) : new Interval(max,min)});}}
-                else {
-                    String[] quantified = part.split("\\s+");
-                    if(quantified.length != 2) {
-                        errors.append("malformed quantification: '").append(part).append("\n"); erroneous = true;}
-                     Integer amount = Utilities.parseInteger(quantified[1]);
-                    if(amount == null){
-                        errors.append("malformed quantification: '").append(part).append("\n"); erroneous = true;}
-                    else {
-                        switch(quantified[0]) {
-                            case "<=": capacities.add(new Object[]{Quantifier.ATMOST,amount}); break;
-                            case ">=": capacities.add(new Object[]{Quantifier.ATLEAST,amount}); break;
-                            case "=":  capacities.add(new Object[]{Quantifier.EXACTLY,amount}); break;
-                            default: errors.append("malformed quantification: '").append(part).append("\n"); erroneous = true;}}}}}
-
-        if(erroneous) {return;}
-
-        ArrayList<ArrayList> list = Utilities.crossProduct(holes,pigeons,capacities);
-        for(ArrayList<Object> p : list ) {
-            int holesv         = (int)p.get(0);
-            int pigeonsv       = (int)p.get(1);
-            Object[] capacityv = (Object[])p.get(2);
-            if(holesv <= 0) {
-                errors.append(prefix).append("holes is not positive ").append(holesv); erroneous = true;}
-            if(pigeonsv <= 0) {
-                errors.append(prefix).append("pigeons is not positive ").append(pigeonsv); erroneous = true;}
-            if(erroneous) return;
-            generators.add(new PigeonHoleGenerator(holesv,pigeonsv,capacityv));}
-}
 
 
 

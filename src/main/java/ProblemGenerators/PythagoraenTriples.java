@@ -56,32 +56,34 @@ public class PythagoraenTriples extends ProblemGenerator{
                 "largest z with x^2 + y^2 = z^2");
         maximum.setParser((String numbers, StringBuilder errors) ->  {
             IntArrayList range = Utilities.parseIntRange(numbers,errors);
-            if(range == null) return null;
             return range;});
         Parameters parameters = new Parameters("PTriples");
         parameters.add(minimum);
         parameters.add(maximum);
-        parameters.setDescription(
-                "A Pythagoraen Triple consists of three numbers a,b,c with a^2 + b^2 = c^2\n"+
-                        "Examples: 3^2 + 4^2 = 5^2  or  5180^2 + 5865^2 = 7825^2\n"+
-                        "The problem is: is it possible to colour the numbers of all triples up to a given number\n"+
-                        "with two colours such that in each triple two colours are needed.\n"+
-                        "It turns out that this is possible for all triples up to 7824.\n"+
-                        "For the triples up to 7825 (default) at least one triple has to be coloured with one colour.\n\n"+
-                        "There are two parameters:\n"+
-                        " - 'smallest' is the smallest number c with a^2 + b^2 = c^2  (c is atleast 3).\n"+
-                        " - 'largest'  is the largest number c with a^2 + b^2 = c^2.\n"+
-                        " 'largest' may specify several different problems by giving comma separated number sequences:\n"+
-                        " for example: 10,20,30 or 10 to 30 or 10 to 30 step 2\n\n"+
-                        "Each triple a,b,c generates an interval clause [1,2] a,b,c\n"+
-                        "A model for the clauses indicates a possible colouring.");
+        parameters.setDescription("""
+                Pythagoraen Triples Coloring Problem:
+                A Pythagoraen Triple consists of three numbers a,b,c with a^2 + b^2 = c^2
+                Examples: 3^2 + 4^2 = 5^2  or  5180^2 + 5865^2 = 7825^2
+                The problem is: is it possible to colour the numbers of all triples up to a given number
+                with two colours such that in each triple two colours are needed.
+                It turns out that this is possible for all triples up to 7824.
+                For the triples up to 7825 (default) at least one triple has to be coloured with one colour.
+
+                There are two parameters:
+                 - 'smallest' is the smallest number c with a^2 + b^2 = c^2  (c is atleast 3).
+                 - 'largest'  is the largest number c with a^2 + b^2 = c^2.
+                 'largest' may specify several different problems by giving comma separated number sequences:
+                 for example: 10,20,30 or 10 to 30 or 10 to 30 step 2
+
+                Each triple a,b,c generates an interval clause [1,2] a,b,c
+                A model for the clauses indicates a possible colouring.""");
 
         parameters.setFinalCheck((Parameters params, StringBuilder errors) -> {
             Parameter smallest = params.parameters.get(0);
             Parameter largest = params.parameters.get(1);
             if(smallest.value == null || largest.value == null) {return true;}
             int mi = (Integer) smallest.value;
-            int ma = ((IntArrayList) largest.value).get(0);
+            int ma = ((IntArrayList) largest.value).getInt(0);
             if(mi > ma) {
                 errors.append("Smallest value > first largest value: "+ mi + " > " + ma);
                 return false;}
@@ -198,7 +200,7 @@ public class PythagoraenTriples extends ProblemGenerator{
      */
     private static int sqrt(int n) {
         assert n > 0;
-        double rootd = Math.sqrt((double) n);
+        double rootd = Math.sqrt(n);
         int rooti = Math.round((float)rootd);
         if(rooti*rooti == n) return rooti;
         rooti += 1;
