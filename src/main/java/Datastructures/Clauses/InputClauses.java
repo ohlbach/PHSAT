@@ -751,12 +751,14 @@ public class InputClauses {
     /** prints the clauses as a cnf-file into the jobdirectory.
      *
      * @param jobdirectory           where the files of the job are to be printed.
-     * @param cnfFile               'symboltable' or 'numbers'.
+     * @param withSymboltable        if true then the symboltable is used (if there is one).
+     * @return                       the path of the generated file.
      * @throws FileNotFoundException if the file cannot be opnened.
      */
-    public void makeCNFFile(Path jobdirectory, String cnfFile) throws FileNotFoundException {
-        Symboltable symboltable1 = cnfFile.equals("symboltable") ? symboltable : null;
-        PrintStream stream = new PrintStream(Paths.get(jobdirectory.toString(), problemId +".cnf").toFile());
+    public Path makeCNFFile(Path jobdirectory, boolean withSymboltable) throws FileNotFoundException {
+        Symboltable symboltable1 = withSymboltable ? symboltable : null;
+        Path path = Paths.get(jobdirectory.toString(), problemId +".cnf");
+        PrintStream stream = new PrintStream(path.toFile());
         stream.println("#problem " + problemId);
         for(String info : info.split("\\n")) {
             stream.println("#"+info);}
@@ -776,6 +778,7 @@ public class InputClauses {
         if(!intervals.isEmpty()) {
             for(int[] clause : intervals)    {printCNF(clause,stream,symboltable1);}}
         stream.close();
+        return path;
     }
 
     /** prints a single clause in cnf-form to the stream.

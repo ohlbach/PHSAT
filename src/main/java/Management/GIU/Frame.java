@@ -115,7 +115,7 @@ public class Frame {
                 if(result == JFileChooser.APPROVE_OPTION) {
                     File directory = chooser.getSelectedFile();
                     for(InputClauses cls : clauses) {
-                        try {cls.makeCNFFile (directory.toPath(), "numbers");}
+                        try {cls.makeCNFFile (directory.toPath(), true);}
                         catch (IOException ex) {
                         ex.printStackTrace();}
                     JOptionPane.showMessageDialog(null,

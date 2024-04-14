@@ -12,7 +12,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 
-/** A pythagoraen triple consists of three numbers a,b,c with a^2 + b^2 = c^2. <br>
+/** Generates the Coloring Problem for Pythagoraen Triples.
+ *
+ * A pythagoraen triple consists of three numbers a,b,c with a^2 + b^2 = c^2. <br>
  "Examples: 3^2 + 4^2 = 5^2  or  5180^2 + 5865^2 = 7825^2 <br>
  "The problem is: is it possible to colour the numbers of all triples up to a given number
  "with two colours such that in each triple two colours are needed. <br>
@@ -39,15 +41,15 @@ public class PythagoraenTriples extends ProblemGenerator{
      * A finalCheck makes sure that minimum &le; maximum.<br><br>
      * The operation parameter actually calls the generator to generate the clauses.
      *
-     * @return a Parameters object containing the required parameters and their configurations
+     * @return a Parameters object containing the required parameters and their configurations.
      */
     public static Parameters makeParameter() {
-        Parameter minimum = new Parameter("Smallest Number",Parameter.Type.String, "3",3,
+        Parameter minimum = new Parameter("Smallest Number",Parameter.Type.String, "5",5,
                 "smallest z with x^2 + y^2 = z^2");
         minimum.setParser((String min, StringBuilder errors) ->  {
             Integer minInteger = Utilities.parseInteger(null,min,errors);
             if(minInteger == null) {return null;}
-            if (minInteger < 3) {errors.append("Smallest Number " + minInteger + " is less than 3"); return null;}
+            if (minInteger < 5) {errors.append("Smallest Number " + minInteger + " is less than 3"); return null;}
             return minInteger;});
         Parameter maximum = new Parameter("Largest Number",Parameter.Type.String, "7825",
                 IntArrayList.wrap(new int[]{7825}),
@@ -98,8 +100,9 @@ public class PythagoraenTriples extends ProblemGenerator{
     private final int minimum;
     private final int maximum;
 
-    /** creates the generator.
+    /** constructs the generator for the triple coloring problem.
      *
+     * @param minimum   the smallest c for the triples a^2 + b^2 = c^2.
      * @param maximum   the largest c for the triples a^2 + b^2 = c^2.
      */
     public PythagoraenTriples(int minimum, int maximum) {
@@ -134,15 +137,19 @@ public class PythagoraenTriples extends ProblemGenerator{
         generators.add(new PythagoraenTriples(3,maximum));
     }
 
+    /**
+     * Creates the problem generators for Pythagorean triples based on the given parameters.
+     *
+     * @param parameters  the parameters required to configure the problem generator
+     * @param generators  the list of problem generators to add the new Pythagorean triples generator to
+     */
     public static void makeProblemGenerator(Parameters parameters,
                                             ArrayList<ProblemGenerator> generators) {
         assert parameters != null;
-        String prefix = "Pythagoraen Triples Generator: ";
         int smallest = (int)parameters.parameters.get(0).value;
         IntArrayList largest = (IntArrayList)parameters.parameters.get(1).value;
         for(int maximum : largest)
-            generators.add(new PythagoraenTriples(smallest,maximum));
-    }
+            generators.add(new PythagoraenTriples(smallest,maximum));}
 
 
     /** generates the clauses for the problem.
@@ -205,6 +212,6 @@ public class PythagoraenTriples extends ProblemGenerator{
      * @return a string representation of the parameters
      */
     public String toString() {
-        return "Colouring Pythagoraen Triples generator up to " + maximum;}
+        return "Colouring Pythagoraen Triples generator for triples from " + minimum + " up to " + maximum;}
 }
 
