@@ -11,6 +11,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
+import static Utilities.Utilities.toArrayList;
+
 /**
  * Created by ohlbach on 09.09.2018.<br>
  *
@@ -184,16 +186,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
             generators.add(new PigeonHoleGenerator(holesv,pigeonsv,capacityv));}}
 
 
-    /**
-     * Converts an IntArrayList to an ArrayList<Integer>.
-     *
-     * @param list the IntArrayList to convert
-     * @return an ArrayList<Integer> representing the same elements as the input IntArrayList
-     */
-    private static ArrayList toArrayList(IntArrayList list) {
-        ArrayList intList = new ArrayList<>();
-        for(int i : list) intList.add(i);
-        return intList;}
+
 
 
 

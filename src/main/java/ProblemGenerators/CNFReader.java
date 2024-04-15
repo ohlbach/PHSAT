@@ -39,7 +39,7 @@ public final class CNFReader extends ProblemGenerator {
     private final File file;
 
     /**
-     * Creates a Parameters object with pre-defined parameters pigeons,holes,capacity
+     * Creates a Parameters object for opening a file.
      *
      * @return the created Parameters object
      */

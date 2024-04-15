@@ -146,7 +146,7 @@ public class GlobalParameters {
         statistics.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
         parameters.add(statistics);
 
-        parameters.add(new Parameter("TrackReasoning",Parameter.Type.Boolean,"false",
+        parameters.add(new Parameter("TrackReasoning",Parameter.Type.Boolean,"false",false,
                 "If true then the inference steps are tracked and verified."));
         
     }

@@ -272,10 +272,10 @@ public class Frame {
     private static JPanel bool(Parameter parameter) {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
-        parameter.value = parameter.defaultValue;
+        boolean selected = (Boolean)parameter.value;
         ButtonGroup group = new ButtonGroup();
-        JRadioButton trueButton = new JRadioButton("true");
-        JRadioButton falseButton = new JRadioButton("false");
+        JRadioButton trueButton = new JRadioButton("true",selected);
+        JRadioButton falseButton = new JRadioButton("false",!selected);
         trueButton.addActionListener(e -> {parameter.value = true;});
         falseButton.addActionListener(e -> {parameter.value = false;});
         group.add(trueButton);

@@ -184,7 +184,27 @@ public class Utilities {
         if(erraneous) return null;
         range.sort(Comparator.comparingInt(i->i));
         return range;}
-
+    /** expands an Integer range into a list of Integers<br>
+     * The formats of a range are: <br>
+     * - just an integer<br>
+     * - a comma-separated list of ranges. Ex. 3,5,-10<br>
+     * - a range start to end. start &le; end. Ex. 3 to 10. <br>
+     * - a range start to end step n. Ex: 3 to 10 step 2  The step must not be negative.<br>
+     * Double occurrences are removed.<br>
+     * The final numbers are sorted in increasingly.
+     *
+     * @param value a string to be parsed
+     * @param minimum the smallest allowed value.
+     * @param errors for appending error messages
+     * @return the expanded integer list or null
+     */
+    public static IntArrayList parseIntRange(String value, int minimum, StringBuilder errors) {
+        IntArrayList range = parseIntRange(value,errors);
+        if(range == null) return null;
+        if(range.getInt(0) < minimum) {
+            errors.append("The values in " + range.toString() + " must be >= " + minimum+"\n");
+            return null;}
+        return range;}
 
     /** expands a Float  range into a list of Integers<br>
      * The formats are: <br>
@@ -1266,6 +1286,17 @@ public class Utilities {
             index2 = index1;}
         st.append("]");
         return st.toString() ;}
+
+    /**
+     * Converts an IntArrayList to an ArrayList<Integer>.
+     *
+     * @param list the IntArrayList to convert
+     * @return an ArrayList<Integer> representing the same elements as the input IntArrayList
+     */
+    public static ArrayList toArrayList(IntArrayList list) {
+        ArrayList intList = new ArrayList<>();
+        for(int i : list) intList.add(i);
+        return intList;}
 
     public static void  main(String[] args) {
         IntArrayList a = new IntArrayList();
