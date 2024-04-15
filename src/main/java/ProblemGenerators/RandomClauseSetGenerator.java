@@ -12,8 +12,8 @@ import java.util.*;
 import static Utilities.Utilities.toArrayList;
 
 /**
- * Created by ohlbach on 26.08.2018.
- * This generator generates clause sets with randomly generated literals.<br>
+ * This generator generates clause sets with randomly generated literals.
+ *
  * It can generate the following types of clauses:<br>
  * - OR      (disjunctions). <br>
  * - AND     (conjunctions). <br>
@@ -25,17 +25,8 @@ import static Utilities.Utilities.toArrayList;
  */
 public class RandomClauseSetGenerator extends ProblemGenerator {
 
-    /** all allowed keys in the parameters */
-    protected static final HashSet<String> keys = new HashSet<>();
-    static { // these are the allowed keys in the specification.
-        Collections.addAll(keys,"problem", "seed", "predicates", "cpRatio", "length", "precise",
-                "redundant", "ors", "ands", "equivs", "atleasts", "atmosts", "exactlies", "intervals");
-    }
-
     /** for enumerating the problems. */
     private static int problemCounter = 0;
-    /** the original parameters (for documentation only.) */
-    private HashMap<String,String> parameters = null;
     /** the seed for the random number generator */
     private final int seed;
     /** the number of predicates */
@@ -68,7 +59,16 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         Parameters parameters = new Parameters("Randomly Generated Clauses");
         Parameter predicates = new Parameter("Predicates",Parameter.Type.String, "10",
                 IntArrayList.wrap(new int[]{10}),
-                "Number of predicates (atleast 1)");
+                """
+                        Number of predicates (atleast 1)
+                        The integer values of all parameters except Length can be specified as 'ranges'
+                         with the following syntactic possibilities:
+                          List:       3,6,7
+                          Range:      3 to 10
+                          With steps: 3 to 10 step 2
+
+                        Each integer in a range causes a separate clause set to be generated.
+                        The number of clause sets is the product of all the lengths of the ranges.""");
         predicates.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString,1,errors));
         parameters.add(predicates);
 
@@ -77,7 +77,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                 "Length of clauses: length or min-max (atleast 1)\n"+
                 "Examples: 3 (3 literals in a clause), 2-3 (2 or 3 literals in a clause). ");
         length.setParser((String lengthString, StringBuilder errors) -> {
-                if(lengthString == null || lengthString.length() == 0) {
+                if(lengthString == null || lengthString.isEmpty()) {
                     errors.append("empty length string\n");
                     return null;}
                 String[] parts = lengthString.trim().split("\\s*-\\s*");
@@ -98,43 +98,50 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
 
         Parameter ors = new Parameter("Ors", Parameter.Type.String, "10",
                 IntArrayList.wrap(new int[]{10}),
-                "Number of OR clauses");
+                "Number of OR clauses (disjunctions)\n"+
+                "Atleast 1 literal must be true to make the clause true.");
         ors.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString,0, errors));
         parameters.add(ors);
 
         Parameter ands = new Parameter("Ands", Parameter.Type.String, "0",
                 IntArrayList.wrap(new int[]{0}),
-                "Number of AND clauses");
+                "Number of AND clauses (conjunction)\n"+
+                "All literals must be true to make the clause true.");
         ands.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString,0, errors));
         parameters.add(ands);
 
         Parameter equivs = new Parameter("Equivs", Parameter.Type.String, "0",
                 IntArrayList.wrap(new int[]{0}),
-                "Number of EQUIV clauses");
+                "Number of EQUIV clauses\n"+
+                "The literals of an equivalence must either all be true or all be false.");
         equivs.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString, 0,errors));
         parameters.add(equivs);
 
         Parameter atleasts = new Parameter("Atleasts", Parameter.Type.String, "0",
                 IntArrayList.wrap(new int[]{0}),
-                "Number of ATLEAST clauses");
+                "Number of ATLEAST clauses\n"+
+                "A clause 'atleast n p_1,...' is true if atleast n of the literals are true.");
         atleasts.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString, 0,errors));
         parameters.add(atleasts);
 
         Parameter atmosts = new Parameter("Atmosts", Parameter.Type.String, "0",
                 IntArrayList.wrap(new int[]{0}),
-                "Number of ATMOST clauses");
+                "Number of ATMOST clauses\n"+
+                        "A clause 'atmost n p_1,...' is true if atmost n of the literals are true.");
         atmosts.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString,0, errors));
         parameters.add(atmosts);
 
         Parameter exactlies = new Parameter("Exactlies", Parameter.Type.String, "0",
                 IntArrayList.wrap(new int[]{0}),
-                "Number of EXACTLY clauses");
+                "Number of EXACTLY clauses\n"+
+                "A clause '= n p_1,...' is true if exactly n literals in the clause is true.");
         exactlies.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString, 0,errors));
         parameters.add(exactlies);
 
         Parameter intervals = new Parameter("Intervals", Parameter.Type.String, "0",
                 IntArrayList.wrap(new int[]{0}),
-                "Number of INTERVAL clauses");
+                "Number of INTERVAL clauses\n"+
+                "An interval clause '[n,m] p_1,...' is true if between n and m literals are true.");
         intervals.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString,0, errors));
         parameters.add(intervals);
 
@@ -143,7 +150,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                 "Seed for random number generator (non-negative integer)");
         seed.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString, 0, errors));
         parameters.add(seed);
-        parameters.setDescription("Generates Clauses with a Random Number Generator.");
+        parameters.setDescription("Generates clauses with randomly chosen literals.");
         parameters.setOperation((Parameters params, StringBuilder errors) -> {
             ArrayList<ProblemGenerator> generators = new ArrayList<>();
             makeProblemGenerator(params, generators);
@@ -154,38 +161,21 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         return parameters;
     }
 
-    /** constructs a random clause set generator.
+    /**
+     * Generates a random clause set based on the provided parameters.
      *
-     * @param parameters   the original specification (only for documentation).
-     * @param seed         the seed for the random number generator.
-     * @param predicates   the number of predicates.
-     * @param length       the clause length [min,max]
-     * @param redundant    if true then complementary and double literals are allowed.
-     * @param ors          the number of disjunctions (or).
-     * @param ands         the number of conjunctions (and).
-     * @param equivs       the number of equivalences.
-     * @param atleasts     the number of atleast clauses.
-     * @param atmosts      the number of atmost clauses.
-     * @param exactlies    the number of exactly clauses.
-     * @param intervals    the number of interval clauses.
+     * @param seed        The seed value for the random number generator.
+     * @param predicates  The number of predicates in the clause set.
+     * @param length      The length of the clauses in the clause set.
+     * @param redundant   A boolean flag indicating if the clause set should be redundant.
+     * @param ors         The number of clauses with the OR quantifier.
+     * @param ands        The number of clauses with the AND quantifier.
+     * @param equivs      The number of clauses with the EQUIV quantifier.
+     * @param atleasts    The number of clauses with the ATLEAST quantifier.
+     * @param atmosts     The number of clauses with the ATMOST quantifier.
+     * @param exactlies   The number of clauses with the EXACTLY quantifier.
+     * @param intervals   The number of clauses with the INTERVAL quantifier.
      */
-    public RandomClauseSetGenerator(HashMap<String,String> parameters, int seed, int predicates, int[] length, boolean redundant,
-                                    int ors, int ands, int equivs, int  atleasts, int atmosts, int exactlies,
-                                    int intervals) {
-        this.parameters = parameters;
-        this.seed       = seed;
-        this.predicates = predicates;
-        this.length     = length;
-        this.redundant  = redundant;
-        this.ors        = ors;
-        this.ands       = ands;
-        this.equivs     = equivs;
-        this.atleasts   = atleasts;
-        this.atmosts    = atmosts;
-        this.exactly    = exactlies;
-        this.intervals  = intervals;
-    }
-
     public RandomClauseSetGenerator(int seed, int predicates, IntArrayList length, boolean redundant,
                                     int ors, int ands, int equivs, int  atleasts, int atmosts, int exactlies,
                                     int intervals) {
@@ -221,7 +211,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         IntArrayList intervals  = (IntArrayList)parameters.parameters.get(9).value;
         IntArrayList seeds      = (IntArrayList)parameters.parameters.get(10).value;
 
-        for(ArrayList<Object> p : (ArrayList<ArrayList>)Utilities.crossProduct(toArrayList(predicates),toArrayList(ors),
+        for(ArrayList p : (ArrayList<ArrayList>)Utilities.crossProduct(toArrayList(predicates),toArrayList(ors),
                 toArrayList(ands),toArrayList(equivs),toArrayList(atleasts),toArrayList(atmosts),
                 toArrayList(exactly),toArrayList(intervals),toArrayList(seeds))) {
             int predicatesv         = (int)p.get(0);
@@ -235,52 +225,6 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
             int seedsv = (int)p.get(8);
             generators.add(new RandomClauseSetGenerator(seedsv, predicatesv, length, redundant,
             orsv, andsv, equivsv, atleastsv, atmostsv, exactlyv,intervalsv));}}
-
-
-
-    /** yields a help string.
-     *
-     * @return a help string.
-     */
-    public static String help() {
-        return "Random Clause Set Generator\n" +
-                "It can generate clauses of the following types:\n" +
-                "OR       (disjunctions)\n" +
-                "AND      (conjunctions)\n" +
-                "EQUIV    (equivalences)\n" +
-                "ATLEAST  (atleast 2 p,q,r means atleast two of p,q,r must be true)\n" +
-                "ATMOST   (atmost  2 p,q,r means atmost two of p,q,r must be true)\n" +
-                "EXACTLY  (exactly 2 p,q,r means exactly two of p,q,r must be true)\n" +
-                "INTERVAL ([2,4] p,q,r,s: between 2 and 4 of them are true)\n\n"+
-                "The parameters are:\n" +
-                "predicates: an integer > 0, specifies the number of predicates in the clause set.\n" +
-                "length:     two integers: min-max, specifies the number of literals per clause.\n" +
-                "redundant:  a boolean, if false then tautologies and doubble literals are avoided (default false).\n"+
-                "seed:       an integer >= 0 for starting the random number generator (default 0).\n" +
-                "\n" +
-                "ors:        an integer >= 0, specifies the number of disjunctions to be generated.\n" +
-                "ands:       an integer >= 0, specifies the number of conjunctions to be generated.\n" +
-                "equivs:     an integer >= 0, specifies the number of equivalences to be generated.\n" +
-                "atleasts:   an integer >= 0, specifies the number of atleast clauses to be generated.\n" +
-                "atmosts:    an integer >= 0, specifies the number of atmost clauses  to be generated.\n" +
-                "exactlies:  an integer >= 0, specifies the number of exactly clauses to be generated.\n" +
-                "intervals:  an integer >= 0, specifies the number of interval clauses to be generated.\n" +
-                "\n" +
-                "cpRatio:    a float > 0, specifies the clause/predicate ratio.\n" +
-                "            cpRatio = 4.3 means: for 100 predicates 430 disjunctions.\n" +
-                "if cpRatio is specified then only disjunctions are generated. The other values are ignored.\n" +
-                "\n" +
-                "The integer values can be specified as 'ranges', with the following syntactic possibilities:\n" +
-                "  List:       3,6,7\n" +
-                "  Range:      3 to 10\n" +
-                "  With steps: 3 to 10 step 2\n" +
-                "Float values can be specified;\n" +
-                "  List:       4.6,7.8\n" +
-                "  With steps: 3.5 to 5.6 step 0.1\n" +
-                "Boolean values are for example 'true', 'false' of both 'true,false'.\n" +
-                "\n" +
-                "The specification of ranges causes the generation of a sequence of clause lists.\n";}
-
 
 
     /** generates the clause set.
@@ -309,6 +253,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         if(intervals != 0) {generateClauses(inputClauses,id, Quantifier.INTERVAL,intervals,rnd);
             info += "\nintervals:" + intervals;}
 
+        inputClauses.info = info;
         inputClauses.problemId = problemName;
         inputClauses.nextId      = id[0]+1;
         return inputClauses;}
@@ -350,7 +295,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                 else {
                     boolean found = false;
                     for(int j = start; j < i; ++j) {if(literal == clause[j] || -literal == clause[j]) {found = true; break;}}
-                    if(found) {--i; continue;} else clause[i] = literal;}}
+                    if(found) {--i;} else clause[i] = literal;}}
             inputClauses.addClause(clause);}
     }
 
@@ -361,7 +306,6 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
     public String toString() {
         StringBuilder st = new StringBuilder();
         st.append("Random Clause Set Generator\n");
-        //st.append("Parameters:    ").append(parameters.toString()).append("\n");
         st.append("predicates:    ").append(predicates).append("\n");
         st.append("seed:          ").append(seed).append("\n");
         st.append("clause length: ").append(Arrays.toString(length));

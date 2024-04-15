@@ -1,84 +1,18 @@
 package ProblemGenerators;
 
-import Datastructures.Clauses.Quantifier;
 import Datastructures.Clauses.InputClauses;
+import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 import Utilities.StringIterator;
-import Utilities.Utilities;
 import junit.framework.TestCase;
 
-import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 
 public class ProblemGeneratorTest extends TestCase {
 
 
-    public void testHelp() {
-        System.out.println(ProblemGenerator.help());
-    }
 
-    public void testTestHelp() {
-        //System.out.println(ProblemGenerator.help("string"));
-    }
-
-    public void testMakeProblemGenerator() {
-        System.out.println("makeProblemGenerator");
-        ArrayList<HashMap<String,String>> parameters = new ArrayList<>();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
-
-        HashMap<String,String> params = new HashMap<>();
-        params.put("generator","pigeonhole");
-        params.put("holes","4");
-        params.put("pigeons", "5");
-        params.put("capacities", "[1,2], >= 2");
-        parameters.add(params);
-
-        params = new HashMap<>();
-        params.put("generator","random");
-        params.put("predicates","10"); // illegal key, missing predicates
-        params.put("lengths","3");
-        params.put("ors", "5");
-        params.put("intervals", "4");
-        params.put("atleasts", "5");
-        params.put("precises","true,false");
-        parameters.add(params);
-
-        String test = "# test1\n" +
-                "# test2\n" +
-                "% test3\n" +
-                "p cnf 10 5\n" +
-                "1 -5 3 0\n"+
-                "-5 7 1  1 7 0\n" +
-                "4 5 6 0\n" +
-                "& 4 -5 0\n" +
-                "e 5 2 0\n" +
-                "<= 2 1,2,3 0\n" +
-                ">= 3 4,5,6,7 0\n" +
-                "= 2 -2,-4 5 0\n"+
-                "[2,4] 3 4 5 6 0";
-        File file = Utilities.writeTmpFile("Generator", "test.cnf", test);
-
-        params = new HashMap<>();
-        params.put("generator","file");
-        params.put("file",file.getAbsolutePath());
-        parameters.add(params);
-
-        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeProblemGenerators(parameters,errors,warnings);
-        System.out.println(errors);
-        System.out.println(warnings);
-        assertEquals(5,generators.size());
-        for(ProblemGenerator generator : generators) {
-            System.out.println(generator.toString());
-            InputClauses inputClauses = generator.generateProblem(null);
-            System.out.println(inputClauses.toString());
-        }
-        file.delete();
-
-    }
 
     public void testParseClauses() {
         System.out.println("parseClauses");

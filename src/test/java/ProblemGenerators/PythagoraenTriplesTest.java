@@ -8,8 +8,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class PythagoraenTriplesTest {
-    @Test
-    public void testHelp() {System.out.println(PythagoraenTriples.help());}
 
     @Test
     public void testMakeProblemGenerator() {

@@ -62,7 +62,7 @@ public class QuSatJob {
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
         globalParameters= new GlobalParameters(kvParser.get("global"),errors,warnings);
-        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeProblemGenerators(kvParser.get("problem"),errors,warnings);
+        ArrayList<ProblemGenerator> generators = null; // ProblemGenerator.makeProblemGenerators(kvParser.get("problem"),errors,warnings);
         ArrayList<Solver> solvers = Solver.makeSolvers(kvParser.get("solver"),errors,warnings);
         if(warnings.length() > 0)  System.out.println(warnings);
         if(errors.length() > 0) {

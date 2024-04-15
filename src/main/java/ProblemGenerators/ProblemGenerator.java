@@ -4,13 +4,11 @@ import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
 import Management.Parameters;
-import Utilities.KVParser;
 import Utilities.Utilities;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Iterator;
 
 import static Utilities.Utilities.parseInteger;
@@ -18,25 +16,20 @@ import static Utilities.Utilities.parseInteger;
 /** This is the interface to the generator classes.
  * The generator classes generate SAT-Problems from different sources. <br>
  * Each generator class should provide the following static methods: <br>
- *  - public static help()  for producing a help text<br>
- *  - public static void makeProblemGenerator(HashMap&lt;String,String&gt; parameters,
- *                                             ArrayList&lt;ProblemGenerator&gt; generators,
- *                                             StringBuilder errors, StringBuilder warnings) <br>
- *  - public InputClauses generateProblem(Monitor errorMonitor); <br>
- * <br>
- * The makeProblemGenerator method turns parameters as strings into a ProblemGenerator object which then can generate the problem. <br>
+ *  - public static Parameters makeParameter() for generating the parameters for the GUI.
+ *  - public static void makeProblemGenerator(Parameters parameters,ArrayList&lt;ProblemGenerator%gt; generators) <br>
+ *    for actually generating the generators based on the parameters.
+ *  - public InputClauses generateProblem(StringBuilder errors); for generating the clauses. <br>
   */
 public abstract class ProblemGenerator {
 
     /** the constructor is never used */
     public ProblemGenerator() {}
 
-    /** the list of problem generator names */
-    public static String[] problemGeneratorNames = new String[]{"random","cnfreader","pigeonhole","string"};
-
     /** takes the parsed input clauses */
     public InputClauses inputClauses = null;
 
+    /** the list of generator classes */
     public static ArrayList<Class> generatorClasses = new ArrayList<>();
     static{
         generatorClasses.add(ProblemGenerators.CNFReader.class);
@@ -46,84 +39,20 @@ public abstract class ProblemGenerator {
         generatorClasses.add(ProblemGenerators.StringClauseSetGenerator.class);
     }
 
+    /**
+     * Constructs a list of Parameters objects by invoking the "makeParameter" method in each generator class.
+     *
+     * @return an ArrayList of Parameters objects
+     */
     public static ArrayList<Parameters> makeParameters() {
         ArrayList<Parameters> parameters = new ArrayList<>();
         for(Class clazz : generatorClasses) {
             try{
                 Method method = clazz.getMethod("makeParameter");
                 parameters.add((Parameters)method.invoke(null));}
-            catch(Exception e){}}
+            catch(Exception ignored){}}
             return parameters;}
 
-    public static String description() {
-        return "The generator classes generate SAT-Problems from different sources:\n"+
-                " - from cnf-Files\n"+
-                " - manually typed examples\n"+
-                " - randomly generated\n"+
-                " - clauses specifying pigeon hole problems\n"+
-                " - clauses specifying the coloring of Pythagoraen Triples.";
-    }
-
-
-    /** maps the generator names to the generator classes
-     *
-     * @param name a generator name
-     * @return the generator class, or null
-     */
-    public static Class generatorClass(String name) {
-        switch (name) {
-            case "random":       return ProblemGenerators.RandomClauseSetGenerator.class;
-            case "cnfreader":    return ProblemGenerators.CNFReader.class;
-            case "pigeonhole":   return ProblemGenerators.PigeonHoleGenerator.class;
-            case "string" :      return ProblemGenerators.StringClauseSetGenerator.class;
-            default: return null;}}
-
-    /** collects all the help-strings for all generator classes
-     *
-     * @return the collected help string for all generator classes
-     */
-    public static String help() {
-        return "The following problem generator types are available:\n" +
-        "   cnfreader:  reads clauses from cnf-files.\n"+
-        "   random:     generates clauses with a random number generator.\n"+
-        "   pigeonhole: generates pigeonhole problems.\n"+
-        "   string:     for testing purposes only.";}
-
-
-    /** parses the string-type parameters into sequences of objects
-     *
-     * @param parameterList the parameters
-     * @param errors        for collecting error messages
-     * @param warnings      for collecting warning messages
-     * @return              a list of generators
-     */
-    public static ArrayList<ProblemGenerator> makeProblemGenerators(ArrayList<HashMap<String,String>> parameterList,
-                                                                    StringBuilder errors, StringBuilder warnings) {
-        ArrayList<ProblemGenerator> generators = new ArrayList<>();
-        for(HashMap<String,String> parameters: parameterList) {
-            String type = parameters.get("problem");
-            if(type == null) continue;
-            Class clazz = generatorClass(type);
-            if(clazz == null) {
-                errors.append("Problem Generator: Unknown generator class: ").append(type); continue;}
-            try{
-                Method makeProblemGenerator = clazz.getMethod("makeProblemGenerator",HashMap.class,
-                        ArrayList.class, StringBuilder.class, StringBuilder.class);
-                makeProblemGenerator.invoke(null,parameters,generators,errors,warnings);}
-            catch(Exception ex) {ex.printStackTrace();System.exit(1);}}
-        return generators;}
-
-
-    /** extracts the type-specific parameters from the kvParser
-     *
-     * @param kvParser  contains all control parameters
-     * @param type      one of the generator types
-     * @return the parameters for the given type
-     */
-    public static HashMap<String,String> getParameters(KVParser kvParser, String type) {
-        for(HashMap<String,String> parameters: kvParser.get("generator")) {
-            if(type.equals(parameters.get("type"))) return parameters;}
-        return null;}
 
     /** generates the InputClauses
      *
@@ -194,7 +123,7 @@ public abstract class ProblemGenerator {
             clause = InputClauses.checkSyntax(clause,predicates,errorPrefix,errors);
             if(clause == null) continue;
             inputClauses.addClause(clause);}
-        if(info.length() > 0) inputClauses.info = info.toString();
+        if(!info.isEmpty()) inputClauses.info = info.toString();
         inputClauses.nextId = id+1;
         return inputClauses;}
 
