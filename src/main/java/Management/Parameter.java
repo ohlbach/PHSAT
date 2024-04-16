@@ -1,8 +1,8 @@
 package Management;
 
 import java.util.ArrayList;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 public class Parameter {
 
@@ -14,7 +14,7 @@ public class Parameter {
     public Object value;
     public Parameters parameters;
     public BiFunction<String,StringBuilder,Object> parser;
-    public BiConsumer<String,String> updater;
+    public Consumer<String> updater;
 
     public Parameter(String name, Type type, String defaultValue, Object value, String description) {
         this.name = name;

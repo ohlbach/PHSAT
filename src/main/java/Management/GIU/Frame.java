@@ -334,7 +334,7 @@ public class Frame {
         Object oldValue = parameter.value;
         String defaultValue = parameter.defaultValue;
         JTextField textField = new JTextField(parameter.defaultValue,Math.max(15,parameter.defaultValue.length()));
-        parameter.updater = (name,defaultV) -> textField.setText(defaultV);
+        parameter.updater = (defaultV) -> textField.setText(defaultV);
         textField.addMouseListener(new MouseAdapter() {
             public void mouseExited(MouseEvent e){
                 if(parameter.parser != null) {
@@ -369,10 +369,9 @@ public class Frame {
             buttons.add(new Object[]{radioButton, param.name});
             group.add(radioButton);
             textPanel.add(radioButton);}
-        parameter.updater = (name,text) -> {
+        parameter.updater = (defaultValue) -> {
             for(Object[] button : buttons) {
-                System.out.println(((JRadioButton)button[0]).getText() +" " + button[1] + " " + text);
-                if (name.equals((String)button[1])) {
+                if (defaultValue.toLowerCase().equals(((String)(button[1])).toLowerCase())) {
                     SwingUtilities.invokeLater(() ->((JRadioButton)button[0]).setSelected(true));}}};
         return textPanel;}
 
@@ -410,7 +409,9 @@ public class Frame {
         JRadioButton falseButton = new JRadioButton("false",!selected);
         trueButton.addActionListener(e -> {parameter.value = true;});
         falseButton.addActionListener(e -> {parameter.value = false;});
+        parameter.updater = (value) -> {if(value.equals("true")) trueButton.setSelected(true); else falseButton.setSelected(true);};
         group.add(trueButton);
+
         textPanel.add(trueButton);
         group.add(falseButton);
         textPanel.add(falseButton);
