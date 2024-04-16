@@ -57,22 +57,12 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         Parameter pigeons = new Parameter("Pigeons",Parameter.Type.String, "3",
                 IntArrayList.wrap(new int[]{3}),
                 "Number of pigeons (atleast 3)");
-        pigeons.setParser((String pigeonString, StringBuilder errors) ->  {
-            IntArrayList pigeonRange = Utilities.parseIntRange(pigeonString,errors);
-            if(pigeonRange == null) {return null;}
-            if (pigeonRange.getInt(0) < 3) {
-                errors.append("There should be at least 3 pigeons " + pigeonRange.toString()); return null;}
-            return pigeonRange;});
+        pigeons.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,3,errors));
 
         Parameter holes = new Parameter("Holes",Parameter.Type.String, "2",
                 IntArrayList.wrap(new int[]{2}),
                 "Number of holes (atleast 2)");
-        holes.setParser((String numbers, StringBuilder errors) ->  {
-            IntArrayList holesRange = Utilities.parseIntRange(numbers,errors);
-            if(holesRange == null) return null;
-            if (holesRange.getInt(0) < 2) {
-                errors.append("There should be at least 2 holes " + holesRange.toString()); return null;}
-            return holesRange;});
+        holes.setParser((String numbers, StringBuilder errors) ->  Utilities.parseIntRange(numbers,2,errors));
         Parameter capacity = new Parameter("Capacity",Parameter.Type.String,"1",
                 parseCapacity("1",new StringBuilder()),
                 "HoleCapacity, i.e. number of pigeons per hole.\n" +

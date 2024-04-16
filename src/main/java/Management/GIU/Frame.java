@@ -5,6 +5,7 @@ import Management.GlobalParameters;
 import Management.Parameter;
 import Management.Parameters;
 import ProblemGenerators.ProblemGenerator;
+import Solvers.Solver;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import javax.swing.*;
@@ -15,6 +16,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -26,6 +28,7 @@ public class Frame {
     static BlockingQueue<Object> queue = new LinkedBlockingQueue();
     public static GlobalParameters globalParams = new GlobalParameters();
     public static ArrayList<Parameters> generatorParams = ProblemGenerator.makeParameters();
+    public static ArrayList<Parameters> solverParams = Solver.makeParameters();
 
     public static JFrame openFrame() {
         Parameters globalParameters = globalParams.parameters;
@@ -41,6 +44,8 @@ public class Frame {
         tabpane.add("Global Parameters", createParameterPanel("Global Parameters for all solver jobs",
                 globalParameters));
         tabpane.add("Clause Generators",createGeneratorPanel(generatorParams));
+        contentPane.add(tabpane,BorderLayout.CENTER);
+        tabpane.add("Solvers",createSolverPanel(solverParams));
         contentPane.add(tabpane,BorderLayout.CENTER);
 
         JButton exitButton = new JButton("Exit");
@@ -71,6 +76,11 @@ public class Frame {
 
         JLabel saveLabel = new JLabel("Save");
         saveLabel.setFont(saveLabel.getFont().deriveFont(Font.BOLD, 16));
+        saveLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                saveParameters();}});
         westPane.add(saveLabel);
 
         JLabel runLabel = new JLabel("Run");
@@ -79,7 +89,47 @@ public class Frame {
         return westPane;
     }
 
-    public static JTabbedPane createGeneratorPanel(ArrayList<Parameters> parameters) {
+    private static void saveParameters() {
+        File homeDirectory = new File(GlobalParameters.homeDirectory);
+        JFileChooser chooser = new JFileChooser(homeDirectory);
+        int result = chooser.showSaveDialog(null);
+        if(result == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            if(!file.getAbsolutePath().endsWith(".txt")) {
+                file = new File(file.getAbsolutePath() + ".txt");}
+        try {PrintStream stream = new PrintStream(file);
+            stream.println(globalParams.toString());
+            stream.println("\n");
+            for(Parameters p: generatorParams) stream.println(p.toString());
+            for(Parameters p: solverParams) stream.println(p.toString());
+            stream.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }}
+
+    private static JPanel createSolverPanel(ArrayList<Parameters> parameters) {
+        JPanel solverPane = new JPanel();
+        solverPane.setLayout(new BoxLayout(solverPane, BoxLayout.Y_AXIS));
+
+        for(Parameters p : parameters) {
+            JLabel solverName = new JLabel(p.title);
+            solverName.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    super.mouseClicked(e);
+                    JOptionPane.showMessageDialog(null, p.description, "Description", JOptionPane.INFORMATION_MESSAGE);}});
+            solverPane.add(solverName);
+            for(Parameter parameter : p.parameters) {
+                JPanel textField = textField(parameter,p);
+                textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, textField.getMinimumSize().height));
+                solverPane.add(textField);}
+            solverPane.add(Box.createVerticalStrut(50));
+        }
+        return solverPane;}
+
+        public static JTabbedPane createGeneratorPanel(ArrayList<Parameters> parameters) {
         JTabbedPane tabpane = new JTabbedPane(JTabbedPane.TOP,JTabbedPane.SCROLL_TAB_LAYOUT );
         for(Parameters params : parameters) {
             JPanel parametersPanel = createParameterPanel(params.description,params);

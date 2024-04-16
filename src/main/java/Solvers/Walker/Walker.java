@@ -1,5 +1,6 @@
 package Solvers.Walker;
 
+import Datastructures.Clauses.InputClauses;
 import Datastructures.LinkedItemList;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
@@ -9,12 +10,18 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
+import Management.Parameter;
+import Management.Parameters;
 import Management.ProblemSupervisor;
+import ProblemGenerators.PigeonHoleGenerator;
+import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
+
+import static Utilities.Utilities.toArrayList;
 
 /** This is a "random walker" for finding a model for QuSat-clauses.
  * <br>
@@ -74,11 +81,48 @@ public class Walker extends Solver {
     /** a tiny flip score for globally true predicates. They should never be flipped again.*/
     private static final int trueLiteralScore = Integer.MIN_VALUE/2;
 
+    public static Parameters makeParameter() {
+        Parameters parameters = new Parameters("Walker");
+        Parameter maxFlips = new Parameter("MaxFlips", Parameter.Type.String, Integer.toString(Integer.MAX_VALUE), Integer.MAX_VALUE,
+                "The maximum number of flips at which the search is stopped.");
+        maxFlips.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,1,errors));
+        parameters.add(maxFlips);
+
+        Parameter jumps = new Parameter("Jump Frequency", Parameter.Type.String, "10", 10,
+                "Random flips are performed in this frequency");
+        jumps.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,2,errors));
+        parameters.add(jumps);
+
+        Parameter seed = new Parameter("Seed", Parameter.Type.String, "0", 0,
+                "The seed for the random number generator");
+        seed.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,0,errors));
+        parameters.add(seed);
+        parameters.setDescription("Random search for a model (is incomplete for unsatisfiable clauses)");
+        return parameters;
+    }
+
+    /**
+     * Generates and adds new problem generators based on the provided parameters.
+     *
+     * @param parameters The parameters containing the values necessary to create the problem generators.
+     * @param walkers The list of walkers to add the newly created walkers to.
+     */
+    public static void makeSolver(Parameters parameters,ArrayList<Solver> walkers) {
+        IntArrayList maxFlips =    (IntArrayList)parameters.parameters.get(0).value;
+        IntArrayList jumps =      (IntArrayList)parameters.parameters.get(1).value;
+        IntArrayList seeds =      (IntArrayList)parameters.parameters.get(2).value;
+        int solverNumber = 0;
+        for(ArrayList<Object> p : (ArrayList<ArrayList>)Utilities.crossProduct(toArrayList(maxFlips),toArrayList(jumps),toArrayList(seeds))) {
+            int maxFlipsv = (int)p.get(0);
+            int jumpsv    = (int)p.get(1);
+            int seedsv    = (int)p.get(2);
+            walkers.add(new Walker(++solverNumber,maxFlipsv,jumpsv,seedsv));}}
+
 
 
     /** provides a help text about the parameters of the solver.
-     * @return a help text.
-     * */
+                 * @return a help text.
+                 * */
     public static String help() {
         return "Solver Random Walker: modifies a candidate model until a real model is found.\n"+
                 "parameters:\n" +
@@ -146,6 +190,20 @@ public class Walker extends Solver {
         this.seed = seed;
         this.maxFlips = maxFlips;
         this.jumpFrequency = jumpFrequency;
+        monitorId = "Walker_"+solverNumber;}
+
+    /** constructs a new Walker.
+     *
+     * @param solverNumber  for enumerating the walkers.
+     * @param seed          for starting the random number generator.
+     * @param maxFlips      the maximum number of allowed flips.
+     * @param jumps the frequency of random flips.
+     */
+    public Walker(int solverNumber, int maxFlips,int jumps,int seed) {
+        super(solverNumber);
+        this.seed = seed;
+        this.maxFlips = maxFlips;
+        this.jumpFrequency = jumps;
         monitorId = "Walker_"+solverNumber;}
 
     /** initializes the parameters which are common to all solvers.

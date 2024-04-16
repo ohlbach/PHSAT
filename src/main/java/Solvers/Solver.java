@@ -9,6 +9,7 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor.Monitor;
+import Management.Parameters;
 import Management.ProblemSupervisor;
 import Solvers.Backtracker.Backtracker;
 import Solvers.Normalizer.Normalizer;
@@ -167,6 +168,26 @@ public abstract class Solver {
 
     public Thread myThread;
 
+    /** the list of solver classes */
+    public static ArrayList<Class> solverClasses = new ArrayList<>();
+    static{
+        solverClasses.add(Solvers.Walker.Walker.class);
+    }
+
+    /**
+     * Constructs a list of Parameters objects by invoking the "makeParameter" method in each generator class.
+     *
+     * @return an ArrayList of Parameters objects
+     */
+    public static ArrayList<Parameters> makeParameters() {
+        ArrayList<Parameters> parameters = new ArrayList<>();
+        for(Class clazz : solverClasses) {
+            try{
+                Method method = clazz.getMethod("makeParameter");
+                parameters.add((Parameters)method.invoke(null));}
+            catch(Exception ignored){}}
+        return parameters;}
+
     /** constructs a solver as an instance of the Processor class.
      *
      * @param solverNumber       to distinguish different solvers of the same type, but different parameters,
@@ -175,6 +196,11 @@ public abstract class Solver {
     public Solver(Integer solverNumber, HashMap<String,Object> solverParameters) {
         this.solverNumber = solverNumber;
         this.solverParameters   = solverParameters;}
+
+    public Solver(Integer solverNumber) {
+        this.solverNumber = solverNumber;}
+
+
 
     public Solver() {}
 
