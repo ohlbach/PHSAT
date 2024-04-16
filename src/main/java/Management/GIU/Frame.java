@@ -91,12 +91,8 @@ public class Frame {
 
     private static void saveParameters() {
         File homeDirectory = new File(GlobalParameters.homeDirectory);
-        JFileChooser chooser = new JFileChooser(homeDirectory);
-        int result = chooser.showSaveDialog(null);
-        if(result == JFileChooser.APPROVE_OPTION) {
-            File file = chooser.getSelectedFile();
-            if(!file.getAbsolutePath().endsWith(".txt")) {
-                file = new File(file.getAbsolutePath() + ".txt");}
+        File file = chooseFile(homeDirectory,".txt");
+        if(file == null) return;
         try {PrintStream stream = new PrintStream(file);
             stream.println(globalParams.toString());
             stream.println("\n");
@@ -104,10 +100,37 @@ public class Frame {
             for(Parameters p: solverParams) stream.println(p.toString());
             stream.close();
         } catch (IOException e) {
-            e.printStackTrace();
-        }
+            JOptionPane.showMessageDialog(null, e +
+                    file.getAbsolutePath() , "Error", JOptionPane.INFORMATION_MESSAGE);}
+            JOptionPane.showMessageDialog(null, "Parameters saved to " +
+                    file.getAbsolutePath() , "Saved", JOptionPane.INFORMATION_MESSAGE);}
 
-    }}
+    private static File chooseFile(File homeDirectory, String ending) {
+        JFileChooser chooser = new JFileChooser(homeDirectory);
+        chooser.setDialogTitle("Specify a file for the parameters");
+        int result = chooser.showSaveDialog(null);
+        if(result == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            if(!file.getAbsolutePath().endsWith(ending)) {
+                file = new File(file.getAbsolutePath() + ".txt");}
+            if (file.exists()) {
+                Object[] options = {"Yes", "No"};
+                int n = JOptionPane.showOptionDialog(null,
+                        "The file exists, overwrite?",
+                        "Warning",
+                        JOptionPane.YES_NO_CANCEL_OPTION,
+                        JOptionPane.QUESTION_MESSAGE,
+                        null,
+                        options,
+                        options[1]);
+
+                if (n == JOptionPane.YES_OPTION) {
+                    file.delete();
+                    return file;}
+                else {if (n == JOptionPane.NO_OPTION) {
+                    return chooseFile(homeDirectory,ending);}}}
+            return file;}
+        return null;}
 
     private static JPanel createSolverPanel(ArrayList<Parameters> parameters) {
         JPanel solverPane = new JPanel();
