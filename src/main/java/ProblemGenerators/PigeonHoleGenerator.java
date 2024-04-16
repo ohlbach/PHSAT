@@ -165,15 +165,17 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
      * @param parameters The parameters containing the values necessary to create the problem generators.
      * @param generators The list of problem generators to add the newly created generators to.
      */
-    public static void makeProblemGenerator(Parameters parameters,ArrayList<ProblemGenerator> generators) {
-        IntArrayList pigeons =    (IntArrayList)parameters.parameters.get(0).value;
-        IntArrayList holes =      (IntArrayList)parameters.parameters.get(1).value;
-        ArrayList capacities = (ArrayList)parameters.parameters.get(2).value;
-        for(ArrayList<Object> p : (ArrayList<ArrayList>)Utilities.crossProduct(toArrayList(holes),toArrayList(pigeons),capacities)) {
-            int holesv         = (int)p.get(0);
-            int pigeonsv       = (int)p.get(1);
-            Object[] capacityv = (Object[])p.get(2);
-            generators.add(new PigeonHoleGenerator(holesv,pigeonsv,capacityv));}}
+    public static void makeProblemGenerator(Parameters parameters, ArrayList<ProblemGenerator> generators) {
+        IntArrayList pigeons = (IntArrayList) parameters.parameters.get(0).value;
+        IntArrayList holes = (IntArrayList) parameters.parameters.get(1).value;
+        ArrayList capacities = (ArrayList) parameters.parameters.get(2).value;
+        for (ArrayList<Object> p : (ArrayList<ArrayList>) Utilities.crossProduct(toArrayList(holes), toArrayList(pigeons), capacities)) {
+            int holesv = (int) p.get(0);
+            int pigeonsv = (int) p.get(1);
+            Object[] capacityv = (Object[]) p.get(2);
+            generators.add(new PigeonHoleGenerator(holesv, pigeonsv, capacityv));
+        }
+    }
 
 
 

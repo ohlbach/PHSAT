@@ -1,5 +1,7 @@
 package Management;
 
+import java.util.ArrayList;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 
 public class Parameter {
@@ -12,6 +14,7 @@ public class Parameter {
     public Object value;
     public Parameters parameters;
     public BiFunction<String,StringBuilder,Object> parser;
+    public BiConsumer<String,String> updater;
 
     public Parameter(String name, Type type, String defaultValue, Object value, String description) {
         this.name = name;
@@ -34,7 +37,29 @@ public class Parameter {
 
 
     public String toString() {
-        return name + ": " + value;}
+        return name + ": " + defaultValue + ": " +valueString(value);}
+
+    public String valueString(Object value) {
+        if (value == null) {return "null";}
+        if(value instanceof ArrayList) {
+            StringBuilder sb = new StringBuilder();
+            for (Object v : (ArrayList) value) {
+                sb.append(valueString(v)).append(", ");}
+            sb.delete(sb.length() - 2, sb.length());
+            return sb.toString();}
+        if(value.getClass().isArray()) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[");
+            for (Object v : (Object[]) value) {
+                sb.append(valueString(v)).append(", ");}
+            sb.delete(sb.length() - 2, sb.length());
+            sb.append("]");
+            return sb.toString();}
+        return value.toString();
+        }
+
+
+
 
 
 }

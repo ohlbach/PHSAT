@@ -1,5 +1,7 @@
 package Management;
 
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.function.BiFunction;
 
@@ -27,11 +29,26 @@ public class Parameters {
     }
 
     public String toString() {
-        String result = "Title: " + title + "\n";
+        String result = title + "\n";
         for (Parameter parameter : parameters) {
             result += parameter.toString() + "\n";
         }
         return result;
         }
+
+
+    public void loadParameters(BufferedReader reader, StringBuilder errors) throws IOException {
+        String line = "";
+        while((line = reader.readLine()).isEmpty()) {}
+        while(!line.isEmpty()) {
+            String[] parts = line.split("\\s*:\\s*");
+            String name = parts[0];
+            for(Parameter parameter : parameters) {
+                if(parameter.name.equals(name)) {
+                    parameter.defaultValue = parts[1];
+                    parameter.value = (parameter.parser == null) ?
+                            parameter.value = parts[1] : parameter.parser.apply(parts[1],errors);
+                    if(parameter.updater != null) parameter.updater.accept(name,parts[1]);}}
+            line = reader.readLine();}}
 
 }

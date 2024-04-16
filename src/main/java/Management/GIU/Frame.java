@@ -6,7 +6,6 @@ import Management.Parameter;
 import Management.Parameters;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
-import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import javax.swing.*;
 import java.awt.*;
@@ -14,9 +13,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -53,6 +50,7 @@ public class Frame {
             queue.add(1);
             frame.setVisible(false);
             frame.dispose();
+            System.exit(0);
         });
         contentPane.add(exitButton, BorderLayout.SOUTH);
         //frame.pack();
@@ -72,6 +70,11 @@ public class Frame {
 
         JLabel loadLabel = new JLabel("Load");
         loadLabel.setFont(loadLabel.getFont().deriveFont(Font.BOLD, 16));
+        loadLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                loadParameters();}});
         westPane.add(loadLabel);
 
         JLabel saveLabel = new JLabel("Save");
@@ -89,22 +92,84 @@ public class Frame {
         return westPane;
     }
 
+    /** Saves the parameters to a file.
+     *
+     * The file is chosen in a dialogue.<br>
+     * The format is as follows:<br>
+     * Global Parameters<br>
+     * parameters<br>
+     * <br>
+     * Generator<br>
+     * parameters<br>
+     * ...<br>
+     * Solver<br>
+     * parameters<br>
+     * ...<br>
+     * <br>
+     * The parameters start with the parameter group name and then lines with<br>
+     * name: text representation: value string.<br>
+     */
     private static void saveParameters() {
         File homeDirectory = new File(GlobalParameters.homeDirectory);
         File file = chooseFile(homeDirectory,".txt");
         if(file == null) return;
         try {PrintStream stream = new PrintStream(file);
-            stream.println(globalParams.toString());
-            stream.println("\n");
-            for(Parameters p: generatorParams) stream.println(p.toString());
-            for(Parameters p: solverParams) stream.println(p.toString());
+            stream.println(globalParams.parameters.toString());
+            for(Parameters p: generatorParams) {
+                stream.println("\nGenerator");
+                stream.println(p.toString());}
+            for(Parameters p: solverParams) {
+                stream.println("\nSolver");
+                stream.println(p.toString());}
+            stream.println("END");
             stream.close();
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, e +
                     file.getAbsolutePath() , "Error", JOptionPane.INFORMATION_MESSAGE);}
-            JOptionPane.showMessageDialog(null, "Parameters saved to " +
+        JOptionPane.showMessageDialog(null, "Parameters saved to " +
                     file.getAbsolutePath() , "Saved", JOptionPane.INFORMATION_MESSAGE);}
 
+    private static void loadParameters() {
+        File homeDirectory = new File(GlobalParameters.homeDirectory);
+        JFileChooser chooser = new JFileChooser(homeDirectory);
+        chooser.setDialogTitle("Select a file with the parameters");
+        int result = chooser.showOpenDialog(null);
+        if(result == JFileChooser.APPROVE_OPTION) {
+            File file = chooser.getSelectedFile();
+            try{
+                StringBuilder errors = new StringBuilder();
+                InputStream input = new FileInputStream(file);
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(input));
+                String line = bufferedReader.readLine();
+                if(!line.startsWith("Global Parameters")) {
+                    errors.append("'"+line + "' does not start with 'Global Parameters'\n");}
+                globalParams.parameters.loadParameters(bufferedReader,errors);
+                while(!(line = bufferedReader.readLine()).startsWith("END")) {
+                    if(line.isEmpty()) {while((line = bufferedReader.readLine()).isEmpty()) {}}
+                    if(line.startsWith("Generator")) {
+                        line = bufferedReader.readLine();
+                        boolean found = false;
+                        for(Parameters p: generatorParams) {
+                            if(line.startsWith(p.title)) {found = true; p.loadParameters(bufferedReader,errors);}}
+                        if(!found) errors.append("unknown generator " + line);}
+                    if(line.startsWith("Solver")) {
+                        line = bufferedReader.readLine();
+                        boolean found = false;
+                        for(Parameters p: solverParams) {
+                            if(line.startsWith(p.title)) {found = true; p.loadParameters(bufferedReader,errors);}}
+                        if(!found) errors.append("unknown solver " + line);}}
+                if(!errors.toString().isEmpty()) {
+                    JOptionPane.showMessageDialog(null,errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);}
+                input.close();
+            }
+            catch(Exception e) {
+                JOptionPane.showMessageDialog(null, e, "Error", JOptionPane.INFORMATION_MESSAGE);
+                loadParameters();}
+            frame.repaint();
+            JOptionPane.showMessageDialog(null, "Parameters loaded from " +
+                    file.getAbsolutePath() , "Loaded", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
     private static File chooseFile(File homeDirectory, String ending) {
         JFileChooser chooser = new JFileChooser(homeDirectory);
         chooser.setDialogTitle("Specify a file for the parameters");
@@ -245,7 +310,8 @@ public class Frame {
             switch(parameter.type) {
                 case String: panel = textField(parameter,parameters);
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
-                    parametersPanel.add(panel); break;
+                    parametersPanel.add(panel);
+                    break;
                 case OneOf:  panel = oneOf(parameter);
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                     parametersPanel.add(panel); break;
@@ -268,6 +334,7 @@ public class Frame {
         Object oldValue = parameter.value;
         String defaultValue = parameter.defaultValue;
         JTextField textField = new JTextField(parameter.defaultValue,Math.max(15,parameter.defaultValue.length()));
+        parameter.updater = (name,defaultV) -> textField.setText(defaultV);
         textField.addMouseListener(new MouseAdapter() {
             public void mouseExited(MouseEvent e){
                 if(parameter.parser != null) {
@@ -289,32 +356,24 @@ public class Frame {
         textPanel.add(textField);
         return textPanel;
     }
-    private static JPanel integer(Parameter parameter) {
-        JPanel textPanel = new JPanel(flowLayout);
-        textPanel.add(makeLabel(parameter));
-        parameter.value = parameter.defaultValue;
-        JTextField textField = new JTextField(parameter.defaultValue,15);
-        textField.addMouseListener(new MouseAdapter() {
-            public void mouseExited(MouseEvent e){
-                StringBuilder errors = new StringBuilder();
-                parameter.value = parameter.parser.apply(textField.getText(),errors);
-                if(!errors.isEmpty()) {
-                    JOptionPane.showMessageDialog(frame,errors.toString(),"Error", JOptionPane.INFORMATION_MESSAGE);
-                }
-                else System.out.println(((IntArrayList)parameter.value).toString());}});
-        textPanel.add(textField);
-        return textPanel;
-    }
+
     private static JPanel oneOf(Parameter parameter) {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
         parameter.value = parameter.defaultValue;
         ButtonGroup group = new ButtonGroup();
+        ArrayList<Object[]> buttons = new ArrayList<>();
         for(Parameter param : parameter.parameters.parameters) {
             JRadioButton radioButton = new JRadioButton(param.name);
             radioButton.addActionListener(e -> {parameter.value = param.name;});
+            buttons.add(new Object[]{radioButton, param.name});
             group.add(radioButton);
             textPanel.add(radioButton);}
+        parameter.updater = (name,text) -> {
+            for(Object[] button : buttons) {
+                System.out.println(((JRadioButton)button[0]).getText() +" " + button[1] + " " + text);
+                if (name.equals((String)button[1])) {
+                    SwingUtilities.invokeLater(() ->((JRadioButton)button[0]).setSelected(true));}}};
         return textPanel;}
 
     private static JPanel filePanel(Parameter parameter) {
