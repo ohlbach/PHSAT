@@ -14,10 +14,13 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.BiFunction;
+
 
 public class Frame {
 
@@ -28,7 +31,11 @@ public class Frame {
     public static ArrayList<Parameters> solverParams = Solver.makeParameters();
 
     public static JFrame openFrame() {
-        Parameters globalParameters = globalParams.parameters;
+        StringBuilder errors = new StringBuilder();
+        loadProjects(errors);
+        if(!errors.isEmpty()) {
+            JOptionPane.showMessageDialog(null, errors.toString() , "Error", JOptionPane.INFORMATION_MESSAGE);}
+         Parameters globalParameters = globalParams.parameters;
         frame = new JFrame("QUSat Control Parameters");
         frame.setSize(1300, 500);
         frame.setLocationRelativeTo(null);
@@ -82,6 +89,18 @@ public class Frame {
         JLabel recentLabel = new JLabel("Recent");
         recentLabel.setFont(recentLabel.getFont().deriveFont(Font.BOLD, 16));
         recentLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        if(!recentProjects.isEmpty()) {
+            recentLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                    JPopupMenu menu = new JPopupMenu();
+                    for(int i = recentProjects.size()-1; i >= 0; --i) {
+                        String projectName = recentProjects.get(i)[0];
+                        String projectFile = recentProjects.get(i)[1];
+                        JMenuItem menuItem = new JMenuItem(projectName);
+                        menuItem.addActionListener(e1 -> loadParameters(new File(projectFile)));
+                        menu.add(menuItem);}
+                    menu.show(e.getComponent(), e.getX(), e.getY());}});}
         westPane.add(recentLabel);
 
         JLabel loadLabel = new JLabel("Load");
@@ -108,6 +127,13 @@ public class Frame {
         JLabel runLabel = new JLabel("Run");
         runLabel.setFont(runLabel.getFont().deriveFont(Font.BOLD, 16));
         runLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        runLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                //runQuSatSolver();
+            }
+        });
         westPane.add(runLabel);
         return westPane;
     }
@@ -143,6 +169,10 @@ public class Frame {
                 stream.println(p.toString());}
             stream.println("END");
             stream.close();
+            StringBuilder errors = new StringBuilder();
+            saveProjects((String)globalParams.parameters.parameters.get(0).value,file,errors);
+            if(!errors.isEmpty()) {
+                JOptionPane.showMessageDialog(null, errors.toString() , "Error", JOptionPane.INFORMATION_MESSAGE);}
         } catch (IOException e) {
             JOptionPane.showMessageDialog(null, e +
                     file.getAbsolutePath() , "Error", JOptionPane.INFORMATION_MESSAGE);}
@@ -155,41 +185,45 @@ public class Frame {
         chooser.setDialogTitle("Select a file with the parameters");
         int result = chooser.showOpenDialog(null);
         if(result == JFileChooser.APPROVE_OPTION) {
-            File file = chooser.getSelectedFile();
-            try{
-                StringBuilder errors = new StringBuilder();
-                InputStream input = new FileInputStream(file);
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(input));
-                String line = bufferedReader.readLine();
-                if(!line.startsWith("Global Parameters")) {
-                    errors.append("'"+line + "' does not start with 'Global Parameters'\n");}
-                globalParams.parameters.loadParameters(bufferedReader,errors);
-                while(!(line = bufferedReader.readLine()).startsWith("END")) {
-                    if(line.isEmpty()) {while((line = bufferedReader.readLine()).isEmpty()) {}}
-                    if(line.startsWith("Generator")) {
-                        line = bufferedReader.readLine();
-                        boolean found = false;
-                        for(Parameters p: generatorParams) {
-                            if(line.startsWith(p.title)) {found = true; p.loadParameters(bufferedReader,errors);}}
-                        if(!found) errors.append("unknown generator " + line);}
-                    if(line.startsWith("Solver")) {
-                        line = bufferedReader.readLine();
-                        boolean found = false;
-                        for(Parameters p: solverParams) {
-                            if(line.startsWith(p.title)) {found = true; p.loadParameters(bufferedReader,errors);}}
-                        if(!found) errors.append("unknown solver " + line);}}
-                if(!errors.toString().isEmpty()) {
-                    JOptionPane.showMessageDialog(null,errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);}
-                input.close();
-            }
-            catch(Exception e) {
-                JOptionPane.showMessageDialog(null, e, "Error", JOptionPane.INFORMATION_MESSAGE);
-                loadParameters();}
-            frame.repaint();
-            JOptionPane.showMessageDialog(null, "Parameters loaded from " +
-                    file.getAbsolutePath() , "Loaded", JOptionPane.INFORMATION_MESSAGE);
+            loadParameters(chooser.getSelectedFile());}}
+
+    private static void loadParameters(File file) {
+        System.out.println("LD " + file.toString());
+        try{
+            StringBuilder errors = new StringBuilder();
+            InputStream input = new FileInputStream(file);
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(input));
+            String line = bufferedReader.readLine();
+            if(!line.startsWith("Global Parameters")) {
+                errors.append("'"+line + "' does not start with 'Global Parameters'\n");}
+            globalParams.parameters.loadParameters(bufferedReader,errors);
+            while(!(line = bufferedReader.readLine()).startsWith("END")) {
+                if(line.isEmpty()) {while((line = bufferedReader.readLine()).isEmpty()) {}}
+                if(line.startsWith("Generator")) {
+                    line = bufferedReader.readLine();
+                    boolean found = false;
+                    for(Parameters p: generatorParams) {
+                        if(line.startsWith(p.title)) {found = true; p.loadParameters(bufferedReader,errors);}}
+                    if(!found) errors.append("unknown generator " + line);}
+                if(line.startsWith("Solver")) {
+                    line = bufferedReader.readLine();
+                    boolean found = false;
+                    for(Parameters p: solverParams) {
+                        if(line.startsWith(p.title)) {found = true; p.loadParameters(bufferedReader,errors);}}
+                    if(!found) errors.append("unknown solver " + line);}}
+            if(!errors.toString().isEmpty()) {
+                JOptionPane.showMessageDialog(null,errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);}
+            input.close();
         }
+        catch(Exception e) {
+            JOptionPane.showMessageDialog(null, e, "Error", JOptionPane.INFORMATION_MESSAGE);
+            loadParameters();}
+        frame.repaint();
+        JOptionPane.showMessageDialog(null, "Parameters loaded from " +
+                file.getAbsolutePath() , "Loaded", JOptionPane.INFORMATION_MESSAGE);
     }
+
+
     private static File chooseFile(File homeDirectory, String ending) {
         JFileChooser chooser = new JFileChooser(homeDirectory);
         chooser.setDialogTitle("Specify a file for the parameters");
@@ -364,6 +398,7 @@ public class Frame {
                         JOptionPane.showMessageDialog(frame,errors.toString(),"Error", JOptionPane.INFORMATION_MESSAGE);
                         SwingUtilities.invokeLater(() -> textField.setText(defaultValue));
                         parameter.value = oldValue;}
+                    parameter.defaultValue = textField.getText();
                     BiFunction<Parameters, StringBuilder, Boolean> finalCheck = parameters.finalCheck;
                     if(finalCheck != null && errors.isEmpty()) {
                         boolean finalCheckResult = finalCheck.apply(parameters, errors);
@@ -447,6 +482,42 @@ public class Frame {
                             JOptionPane.INFORMATION_MESSAGE);};});}
         return label;}
 
+    private static ArrayList<String[]> recentProjects = new ArrayList<>();
+
+    public static void loadProjects(StringBuilder errors) {
+        Path quSatPath =  Paths.get("").toAbsolutePath();
+
+        File quSatFile = Paths.get(quSatPath.toString(),"QuSatProjects.txt").toFile();
+        System.out.println(quSatFile);
+        if(!quSatFile.exists()) {return;}
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(quSatFile));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] project = line.split("\\s*,\\s*");
+                recentProjects.add(project);}
+            reader.close();} catch (IOException e) {errors.append(e);}
+    }
+
+    public static void saveProjects(String name, File file, StringBuilder errors) {
+        if(recentProjects.size() > 15) {
+            recentProjects.remove(0);}
+        recentProjects.add(new String[]{name,file.getAbsolutePath().toString()});
+
+        Path quSatPath = Paths.get("").toAbsolutePath();
+
+        File quSatFile = Paths.get(quSatPath.toString(), "QuSatProjects.txt").toFile();
+        System.out.println(quSatFile);
+        if(quSatFile.exists()) {quSatFile.delete();}
+
+        try (PrintWriter writer = new PrintWriter(quSatFile)) {
+            for (String[] project : recentProjects) {
+                writer.println(project[0] + "," + project[1]);
+            }
+        } catch (FileNotFoundException e) {
+            errors.append(e);
+        }
+    }
 
     public static void main(String[] args)  {
         System.out.println("START");
