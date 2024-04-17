@@ -66,6 +66,16 @@ public class Frame {
 
         JLabel infoLabel = new JLabel("Info");
         infoLabel.setFont(infoLabel.getFont().deriveFont(Font.BOLD, 16));
+        infoLabel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                JOptionPane.showMessageDialog(null,
+                        "Recent: load recent parameter configurations\n"+
+                                "Load:   load parameter configuration\n"+
+                                 "Save:  save parameter configuration\n"+
+                                 "Run:   run QuSat solver.",
+                         "Info", JOptionPane.INFORMATION_MESSAGE);}});
         westPane.add(infoLabel);
         westPane.add(Box.createVerticalStrut(50));
 
