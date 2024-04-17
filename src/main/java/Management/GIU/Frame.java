@@ -64,12 +64,20 @@ public class Frame {
         westPane.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         westPane.add(Box.createVerticalStrut(50));
 
+        JLabel infoLabel = new JLabel("Info");
+        infoLabel.setFont(infoLabel.getFont().deriveFont(Font.BOLD, 16));
+        westPane.add(infoLabel);
+        westPane.add(Box.createVerticalStrut(50));
+
         JLabel recentLabel = new JLabel("Recent");
         recentLabel.setFont(recentLabel.getFont().deriveFont(Font.BOLD, 16));
+        recentLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         westPane.add(recentLabel);
 
         JLabel loadLabel = new JLabel("Load");
         loadLabel.setFont(loadLabel.getFont().deriveFont(Font.BOLD, 16));
+
+        loadLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         loadLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -79,6 +87,7 @@ public class Frame {
 
         JLabel saveLabel = new JLabel("Save");
         saveLabel.setFont(saveLabel.getFont().deriveFont(Font.BOLD, 16));
+        saveLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         saveLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -88,6 +97,7 @@ public class Frame {
 
         JLabel runLabel = new JLabel("Run");
         runLabel.setFont(runLabel.getFont().deriveFont(Font.BOLD, 16));
+        runLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         westPane.add(runLabel);
         return westPane;
     }
