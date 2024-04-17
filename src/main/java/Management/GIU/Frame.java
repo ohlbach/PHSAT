@@ -420,7 +420,7 @@ public class Frame {
         ArrayList<Object[]> buttons = new ArrayList<>();
         for(Parameter param : parameter.parameters.parameters) {
             JRadioButton radioButton = new JRadioButton(param.name);
-            radioButton.addActionListener(e -> {parameter.value = param.name;});
+            radioButton.addActionListener(e -> {parameter.defaultValue = param.name;});
             buttons.add(new Object[]{radioButton, param.name});
             group.add(radioButton);
             textPanel.add(radioButton);}
@@ -500,9 +500,13 @@ public class Frame {
     }
 
     public static void saveProjects(String name, File file, StringBuilder errors) {
+       String filename = file.getAbsolutePath().toString();
+        for(int i = 0; i < recentProjects.size(); i++) {
+            if(recentProjects.get(i)[1].equals(filename)) {
+                recentProjects.remove(i); break;}}
         if(recentProjects.size() > 15) {
             recentProjects.remove(0);}
-        recentProjects.add(new String[]{name,file.getAbsolutePath().toString()});
+        recentProjects.add(new String[]{name,filename});
 
         Path quSatPath = Paths.get("").toAbsolutePath();
 
