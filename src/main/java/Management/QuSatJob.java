@@ -26,6 +26,12 @@ import static org.apache.commons.lang3.StringUtils.split;
  * They may exchange information, such as derived unit clauses.
  */
 public class QuSatJob {
+    
+    ArrayList<Parameters> generatorParams;
+
+    ArrayList<Parameters> solverParams;
+
+
 
     /** the date when the job has been processed. */
     public Date jobDate = new Date();
@@ -55,13 +61,18 @@ public class QuSatJob {
     public QuSatJob(KVParser kvParser) {
         this.kvParser = kvParser;}
 
+    public QuSatJob(Parameters globalParameters, ArrayList<Parameters> generatorParameters, ArrayList<Parameters> solverParameters) {
+        this.globalParameters = new GlobalParameters(globalParameters);
+        this.generatorParams = generatorParameters;
+        this.solverParams = solverParameters;
+    }
+
     /** solves the QuSat-problems.
      */
     public void solveProblems() {
         startTime = System.nanoTime();
         StringBuilder errors   = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        globalParameters= new GlobalParameters(kvParser.get("global"),errors,warnings);
         ArrayList<ProblemGenerator> generators = null; // ProblemGenerator.makeProblemGenerators(kvParser.get("problem"),errors,warnings);
         ArrayList<Solver> solvers = Solver.makeSolvers(kvParser.get("solver"),errors,warnings);
         if(warnings.length() > 0)  System.out.println(warnings);
@@ -71,8 +82,8 @@ public class QuSatJob {
             return;}
         prepareMonitorAndLogstream();
         for(ProblemGenerator problemGenerator : generators) {
-            problemSupervisors.add(new ProblemSupervisor(this,globalParameters,problemGenerator,solvers));}
-        problemDistributor = new ProblemDistributor(this,globalParameters,problemSupervisors);
+            problemSupervisors.add(new ProblemSupervisor(this, globalParameters,problemGenerator,solvers));}
+        problemDistributor = new ProblemDistributor(this, globalParameters,problemSupervisors);
         problemDistributor.solveProblems();
         endTime = System.nanoTime();
         analyseResults();
@@ -91,7 +102,8 @@ public class QuSatJob {
         switch(globalParameters.logging) {
             case "file":
                 File file = Paths.get(globalParameters.jobDirectory.toString(),"logging.txt").toFile();
-                try{globalParameters.logstream = new PrintStream(file);
+                try{
+                    globalParameters.logstream = new PrintStream(file);
                     globalParameters.logFile = file.getAbsolutePath();
                     globalParameters.logstream.println("QuSat Job " + globalParameters.jobname + " logfile @ " + (new Date()));}
                 catch(FileNotFoundException exception) {

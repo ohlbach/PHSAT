@@ -28,11 +28,21 @@ public class Parameters {
         for(Parameter parameter : parameters) {parameter.value = null;}
     }
 
+    public Parameters clone() {
+        Parameters cloned = new Parameters(title);
+        cloned.description = description;
+        cloned.finalCheck = finalCheck;
+        cloned.operation = operation;
+        cloned.parameters = new ArrayList<>();
+        for (Parameter parameter : parameters) cloned.parameters.add(parameter.clone());
+        return cloned;}
+
     public String toString() {
         String result = title + "\n";
         for (Parameter parameter : parameters) {
             result += parameter.toString() + "\n";
         }
+        System.out.println("RES\n"+ result + "SER\n" );
         return result;
         }
 
@@ -41,11 +51,11 @@ public class Parameters {
         String line = "";
         while((line = reader.readLine()).isEmpty()) {}
         while(!line.isEmpty()) {
-            String[] parts = line.split("\\s*:\\s*");
+            String[] parts = line.split("\\s*;\\s*");
             String name = parts[0];
             for(Parameter parameter : parameters) {
                 if(parameter.name.equals(name)) {
-                    parameter.defaultValue = parts[1];
+                    parameter.valueString = parts[1];
                     parameter.value = (parameter.parser == null) ?
                             parts[1] : parameter.parser.apply(parts[1],errors);
                     if(parameter.updater != null) parameter.updater.accept(parts[1]);}}

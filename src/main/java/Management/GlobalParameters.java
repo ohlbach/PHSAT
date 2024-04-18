@@ -2,6 +2,7 @@ package Management;
 
 import Utilities.Utilities;
 
+import java.io.File;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,18 +16,18 @@ public class GlobalParameters {
     public Parameters parameters;
 
     /** the homedirectory. */
-    public static String homeDirectory = Path.of(System.getenv("USERPROFILE"),"QuSat").toString();
+    public static Path homeDirectory = Path.of(System.getenv("USERPROFILE"),"QuSat");
+
+    public Path jobDirectory = homeDirectory;
 
     /** the name of the current job. It is used as prefix for all generated files. */
-    public Parameter jobname;
+    public String jobname;
 
-    public String getJobname(){return (String)jobname.value;}
+    public String getJobname(){return jobname;}
 
     /** the directory where to print the files. Default: system temporal directory. */
     public Path directory = Paths.get(System.getenv("TEMP"));
 
-    /** directory is directory/'jobname'_'number', set by the QuSat instance.*/
-    public Path jobDirectory = null;
 
     /** number of parallel threads for solving several problems. 0 (default) means sequential processing. */
     public int parallel = 1;
@@ -89,12 +90,16 @@ public class GlobalParameters {
 
 
     /** generates the default parameters */
-    public GlobalParameters() {
-        parameters = new Parameters("Global Parameters");
+    public static Parameters makeGlobalParameters() {
+        Parameters parameters = new Parameters("Global Parameters");
         Parameter jobname = new Parameter("jobname",Parameter.Type.String, "TestJob","TestJob",
                 "Identifier for the job\n" +
                         "It is also used as directoryname.");
         parameters.add(jobname);
+        Parameter jobDirectory = new Parameter("jobdirectory",Parameter.Type.Directory, homeDirectory.toString(),homeDirectory,
+                "Directory where to place the produced files.");
+        jobDirectory.parser = (text,ignore) -> new File(text).getAbsolutePath();
+        parameters.add(jobDirectory);
 
         Parameter monitor = new Parameter("monitor",Parameter.Type.OneOf,"none",
                 "Specifies the target for monitoring.\n"+
@@ -148,7 +153,16 @@ public class GlobalParameters {
 
         parameters.add(new Parameter("TrackReasoning",Parameter.Type.Boolean,"false",false,
                 "If true then the inference steps are tracked and verified."));
-        
+        return parameters;}
+
+    public GlobalParameters(Parameters globalParams) {
+        jobname = (String)(globalParams.parameters.get(0).value);
+        jobDirectory = (Path)(globalParams.parameters.get(1).value);
+        monitor = (String)(globalParams.parameters.get(2).value);
+        logging = (String)(globalParams.parameters.get(3).value);
+        cnfFile = (String)(globalParams.parameters.get(4).value);
+        statistic = (String)(globalParams.parameters.get(5).value);
+        trackReasoning = (Boolean)(globalParams.parameters.get(6).value);
     }
 
     /** parses the parameters and generates the internal data

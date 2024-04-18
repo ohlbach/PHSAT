@@ -4,6 +4,7 @@ import Datastructures.Clauses.InputClauses;
 import Management.GlobalParameters;
 import Management.Parameter;
 import Management.Parameters;
+import Management.QuSatJob;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
 
@@ -26,7 +27,7 @@ public class Frame {
 
     static JFrame frame;
     static BlockingQueue<Object> queue = new LinkedBlockingQueue();
-    public static GlobalParameters globalParams = new GlobalParameters();
+    public static Parameters globalParams = GlobalParameters.makeGlobalParameters();
     public static ArrayList<Parameters> generatorParams = ProblemGenerator.makeParameters();
     public static ArrayList<Parameters> solverParams = Solver.makeParameters();
 
@@ -35,7 +36,7 @@ public class Frame {
         loadProjects(errors);
         if(!errors.isEmpty()) {
             JOptionPane.showMessageDialog(null, errors.toString() , "Error", JOptionPane.INFORMATION_MESSAGE);}
-         Parameters globalParameters = globalParams.parameters;
+
         frame = new JFrame("QUSat Control Parameters");
         frame.setSize(1300, 500);
         frame.setLocationRelativeTo(null);
@@ -46,7 +47,7 @@ public class Frame {
         JTabbedPane tabpane = new JTabbedPane
                 (JTabbedPane.TOP,JTabbedPane.SCROLL_TAB_LAYOUT );
         tabpane.add("Global Parameters", createParameterPanel("Global Parameters for all solver jobs",
-                globalParameters));
+                globalParams));
         tabpane.add("Clause Generators",createGeneratorPanel(generatorParams));
         contentPane.add(tabpane,BorderLayout.CENTER);
         tabpane.add("Solvers",createSolverPanel(solverParams));
@@ -131,12 +132,23 @@ public class Frame {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                //runQuSatSolver();
-            }
+                runQuSatSolver();}
         });
         westPane.add(runLabel);
         return westPane;
     }
+
+    private static void runQuSatSolver() {
+        System.out.println("RUN");
+        Thread thread = new Thread(()->{
+            QuSatJob quSatJob = new QuSatJob(globalParams,generatorParams,solverParams);
+            quSatJob.solveProblems();});
+        // prepare for a new job.
+        globalParams = globalParams.clone();
+        for(int i = 0; i < generatorParams.size(); ++i) generatorParams.set(i, generatorParams.get(i).clone());
+        for(int i = 0; i < solverParams.size(); ++i) solverParams.set(i, solverParams.get(i).clone());
+        thread.start();}
+
 
     /** Saves the parameters to a file.
      *
@@ -156,11 +168,11 @@ public class Frame {
      * name: text representation: value string.<br>
      */
     private static void saveParameters() {
-        File homeDirectory = new File(GlobalParameters.homeDirectory);
+        File homeDirectory = GlobalParameters.homeDirectory.toFile();
         File file = chooseFile(homeDirectory,".txt");
         if(file == null) return;
         try {PrintStream stream = new PrintStream(file);
-            stream.println(globalParams.parameters.toString());
+            stream.println(globalParams.toString());
             for(Parameters p: generatorParams) {
                 stream.println("\nGenerator");
                 stream.println(p.toString());}
@@ -170,7 +182,7 @@ public class Frame {
             stream.println("END");
             stream.close();
             StringBuilder errors = new StringBuilder();
-            saveProjects((String)globalParams.parameters.parameters.get(0).value,file,errors);
+            saveProjects((String)globalParams.parameters.get(0).value,file,errors);
             if(!errors.isEmpty()) {
                 JOptionPane.showMessageDialog(null, errors.toString() , "Error", JOptionPane.INFORMATION_MESSAGE);}
         } catch (IOException e) {
@@ -180,7 +192,7 @@ public class Frame {
                     file.getAbsolutePath() , "Saved", JOptionPane.INFORMATION_MESSAGE);}
 
     private static void loadParameters() {
-        File homeDirectory = new File(GlobalParameters.homeDirectory);
+        File homeDirectory = GlobalParameters.homeDirectory.toFile();
         JFileChooser chooser = new JFileChooser(homeDirectory);
         chooser.setDialogTitle("Select a file with the parameters");
         int result = chooser.showOpenDialog(null);
@@ -196,7 +208,7 @@ public class Frame {
             String line = bufferedReader.readLine();
             if(!line.startsWith("Global Parameters")) {
                 errors.append("'"+line + "' does not start with 'Global Parameters'\n");}
-            globalParams.parameters.loadParameters(bufferedReader,errors);
+            globalParams.loadParameters(bufferedReader,errors);
             while(!(line = bufferedReader.readLine()).startsWith("END")) {
                 if(line.isEmpty()) {while((line = bufferedReader.readLine()).isEmpty()) {}}
                 if(line.startsWith("Generator")) {
@@ -300,7 +312,7 @@ public class Frame {
         JButton extraButton = new JButton("Save Clauses");
         extraButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                File file = new File(GlobalParameters.homeDirectory);
+                File file = GlobalParameters.homeDirectory.toFile();
                 JFileChooser chooser = new JFileChooser(file);
                 chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
                 int result = chooser.showSaveDialog(null);
@@ -375,6 +387,10 @@ public class Frame {
                 case File: panel = filePanel(parameter);
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                     parametersPanel.add(panel); break;
+                case Directory: panel = directoryPanel(parameter);
+                    panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                    parametersPanel.add(panel); break;
+
             }
         }
 
@@ -386,8 +402,8 @@ public class Frame {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
         Object oldValue = parameter.value;
-        String defaultValue = parameter.defaultValue;
-        JTextField textField = new JTextField(parameter.defaultValue,Math.max(15,parameter.defaultValue.length()));
+        String defaultValue = parameter.valueString;
+        JTextField textField = new JTextField(parameter.valueString,Math.max(15,parameter.valueString.length()));
         parameter.updater = (defaultV) -> textField.setText(defaultV);
         textField.addMouseListener(new MouseAdapter() {
             public void mouseExited(MouseEvent e){
@@ -398,7 +414,7 @@ public class Frame {
                         JOptionPane.showMessageDialog(frame,errors.toString(),"Error", JOptionPane.INFORMATION_MESSAGE);
                         SwingUtilities.invokeLater(() -> textField.setText(defaultValue));
                         parameter.value = oldValue;}
-                    parameter.defaultValue = textField.getText();
+                    parameter.valueString = textField.getText();
                     BiFunction<Parameters, StringBuilder, Boolean> finalCheck = parameters.finalCheck;
                     if(finalCheck != null && errors.isEmpty()) {
                         boolean finalCheckResult = finalCheck.apply(parameters, errors);
@@ -415,12 +431,12 @@ public class Frame {
     private static JPanel oneOf(Parameter parameter) {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
-        parameter.value = parameter.defaultValue;
+        parameter.value = parameter.valueString;
         ButtonGroup group = new ButtonGroup();
         ArrayList<Object[]> buttons = new ArrayList<>();
         for(Parameter param : parameter.parameters.parameters) {
             JRadioButton radioButton = new JRadioButton(param.name);
-            radioButton.addActionListener(e -> {parameter.defaultValue = param.name;});
+            radioButton.addActionListener(e -> {parameter.valueString = param.name;parameter.value = param.name;});
             buttons.add(new Object[]{radioButton, param.name});
             group.add(radioButton);
             textPanel.add(radioButton);}
@@ -436,7 +452,7 @@ public class Frame {
         JButton fileButton = new JButton("Load Clauses");
         fileButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                File file = new File(GlobalParameters.homeDirectory);
+                File file = GlobalParameters.homeDirectory.toFile();
                 JFileChooser chooser = new JFileChooser(file);
                 chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
                 chooser.setMultiSelectionEnabled(true);
@@ -455,6 +471,40 @@ public class Frame {
         filePanel.add(fileButton);
         return filePanel;}
 
+    private static JPanel directoryPanel(Parameter parameter) {
+        JPanel filePanel = new JPanel(flowLayout);
+        filePanel.add(makeLabel(parameter));
+        JTextField textField = new JTextField(parameter.valueString,Math.max(15,parameter.valueString.length()));
+        JButton fileButton = new JButton("Choose Directory");
+        fileButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                File file = ((Path)parameter.value).toFile();
+                JFileChooser chooser = new JFileChooser(file);
+                chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+                int result = chooser.showOpenDialog(null);
+                if(result == JFileChooser.APPROVE_OPTION) {
+                    file = chooser.getSelectedFile();
+                    parameter.valueString = file.getAbsolutePath();
+                    parameter.value = file.getAbsolutePath();
+                    textField.setText(parameter.valueString);
+                    JOptionPane.showMessageDialog(frame,"Directory " + parameter.valueString + " chosen",
+                            "Directory", JOptionPane.INFORMATION_MESSAGE);
+                }}});
+        filePanel.add(fileButton);
+
+        parameter.updater = (defaultV) -> textField.setText(defaultV);
+        textField.addMouseListener(new MouseAdapter() {
+            public void mouseExited(MouseEvent e){
+                String pathString = textField.getText();
+                File directory = new File(pathString);
+                if(!directory.isDirectory() || !directory.exists()) {
+                    JOptionPane.showMessageDialog(frame,"'"+pathString+"' is no such directory",
+                            "Error", JOptionPane.INFORMATION_MESSAGE);}
+                    parameter.valueString = pathString;
+                    parameter.value=directory.getAbsolutePath();}});
+        filePanel.add(textField);
+        return filePanel;}
+
     private static JPanel bool(Parameter parameter) {
         JPanel textPanel = new JPanel(flowLayout);
         textPanel.add(makeLabel(parameter));
@@ -462,8 +512,8 @@ public class Frame {
         ButtonGroup group = new ButtonGroup();
         JRadioButton trueButton = new JRadioButton("true",selected);
         JRadioButton falseButton = new JRadioButton("false",!selected);
-        trueButton.addActionListener(e -> {parameter.value = true;});
-        falseButton.addActionListener(e -> {parameter.value = false;});
+        trueButton.addActionListener(e -> {parameter.value = true; parameter.valueString = "true";});
+        falseButton.addActionListener(e -> {parameter.value = false;parameter.valueString ="false";});
         parameter.updater = (value) -> {if(value.equals("true")) trueButton.setSelected(true); else falseButton.setSelected(true);};
         group.add(trueButton);
 

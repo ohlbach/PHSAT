@@ -6,28 +6,28 @@ import java.util.function.Consumer;
 
 public class Parameter {
 
-    public enum Type {String,Integer,OneOf,Label,File,Frame,Boolean};
+    public enum Type {String,OneOf,Label,File,Directory,Frame,Boolean};
     public String name;
     public Type type;
-    public String defaultValue;
-    public String description;
+    public String valueString;
     public Object value;
+    public String description;
     public Parameters parameters;
     public BiFunction<String,StringBuilder,Object> parser;
     public Consumer<String> updater;
 
-    public Parameter(String name, Type type, String defaultValue, Object value, String description) {
+    public Parameter(String name, Type type, String valueString, Object value, String description) {
         this.name = name;
         this.type = type;
-        this.defaultValue = defaultValue == null ? name : defaultValue;
+        this.valueString = valueString == null ? name : valueString;
         this.value = value;
         this.description = description;
     }
-    public Parameter(String name, Type type, String defaultValue, String description) {
+    public Parameter(String name, Type type, String valueString, String description) {
         this.name = name;
         this.type = type;
-        this.defaultValue = defaultValue == null ? name : defaultValue;
-        this.value = defaultValue;
+        this.valueString = valueString == null ? name : valueString;
+        this.value = valueString;
         this.description = description;
     }
 
@@ -35,9 +35,16 @@ public class Parameter {
     public void setParser(BiFunction<String,StringBuilder,Object> parser) {
         this.parser = parser;}
 
+    public Parameter clone() {
+        Parameter cloned = new Parameter(name, type, valueString, value, description);
+        cloned.updater = updater;
+        cloned.parser = parser;
+        if(parameters != null) {cloned.parameters = parameters.clone();}
+        return cloned;}
+
 
     public String toString() {
-        return name + ": " + defaultValue + ": " +valueString(value);}
+        return name + "; " + valueString + "; " +valueString(value);}
 
     public String valueString(Object value) {
         if (value == null) {return "null";}
