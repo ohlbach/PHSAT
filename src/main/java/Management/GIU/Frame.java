@@ -18,6 +18,7 @@ import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.BiFunction;
@@ -74,6 +75,7 @@ public class Frame {
 
         JLabel infoLabel = new JLabel("Info");
         infoLabel.setFont(infoLabel.getFont().deriveFont(Font.BOLD, 16));
+        infoLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         infoLabel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -200,7 +202,6 @@ public class Frame {
             loadParameters(chooser.getSelectedFile());}}
 
     private static void loadParameters(File file) {
-        System.out.println("LD " + file.toString());
         try{
             StringBuilder errors = new StringBuilder();
             InputStream input = new FileInputStream(file);
@@ -215,13 +216,13 @@ public class Frame {
                     line = bufferedReader.readLine();
                     boolean found = false;
                     for(Parameters p: generatorParams) {
-                        if(line.startsWith(p.title)) {found = true; p.loadParameters(bufferedReader,errors);}}
+                        if(line.startsWith(p.name)) {found = true; p.loadParameters(bufferedReader,errors);}}
                     if(!found) errors.append("unknown generator " + line);}
                 if(line.startsWith("Solver")) {
                     line = bufferedReader.readLine();
                     boolean found = false;
                     for(Parameters p: solverParams) {
-                        if(line.startsWith(p.title)) {found = true; p.loadParameters(bufferedReader,errors);}}
+                        if(line.startsWith(p.name)) {found = true; p.loadParameters(bufferedReader,errors);}}
                     if(!found) errors.append("unknown solver " + line);}}
             if(!errors.toString().isEmpty()) {
                 JOptionPane.showMessageDialog(null,errors.toString(), "Error", JOptionPane.INFORMATION_MESSAGE);}
@@ -268,7 +269,7 @@ public class Frame {
         solverPane.setLayout(new BoxLayout(solverPane, BoxLayout.Y_AXIS));
 
         for(Parameters p : parameters) {
-            JLabel solverName = new JLabel(p.title);
+            JLabel solverName = new JLabel(p.name);
             solverName.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
@@ -289,6 +290,7 @@ public class Frame {
             JPanel parametersPanel = createParameterPanel(params.description,params);
             JPanel generatorPanel = new JPanel(flowLayout);
             JLabel generateLabel = new JLabel("Generate Clauses");
+            generateLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             generateLabel.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
@@ -296,7 +298,7 @@ public class Frame {
                     generateClauses(params);}});
             generatorPanel.add(generateLabel);
             parametersPanel.add(generatorPanel);
-            tabpane.addTab(params.title, parametersPanel);}
+            tabpane.addTab(params.name, parametersPanel);}
         return tabpane;}
 
 
@@ -524,6 +526,7 @@ public class Frame {
 
     private static JLabel makeLabel(Parameter parameter) {
         JLabel label = new JLabel(parameter.name);
+        label.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         if(parameter.description != null) {
             label.addMouseListener(new MouseAdapter() {
                 @Override
@@ -574,6 +577,8 @@ public class Frame {
     }
 
     public static void main(String[] args)  {
+
+        Locale.setDefault(Locale.US);
         System.out.println("START");
         openFrame();
         while(queue.isEmpty()) {}
