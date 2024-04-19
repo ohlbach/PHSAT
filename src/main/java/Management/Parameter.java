@@ -41,6 +41,10 @@ public class Parameter {
      * The updater is set in the corresponding GUI-elements and called by loadParameters in the Parameters class.*/
     public Consumer<String> updater;
 
+    /** can be used perform an operation after the GUI hs filled the parameter.<br>
+     */
+    public BiFunction<Parameters,StringBuilder,Object> operation = null;
+
     /**
      * Parameter represents a parameter with its name, type, value, valueString, and description.
      *
@@ -81,6 +85,9 @@ public class Parameter {
      */
     public void setParser(BiFunction<String,StringBuilder,Object> parser) {
         this.parser = parser;}
+
+    public void setOperation(BiFunction<Parameters,StringBuilder,Object> operation) {
+        this.operation = operation;}
 
     /**
      * Creates a deep copy of the current Parameter object.

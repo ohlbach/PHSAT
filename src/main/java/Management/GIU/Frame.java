@@ -389,7 +389,7 @@ public class Frame {
                 case File: panel = filePanel(parameter);
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                     parametersPanel.add(panel); break;
-                case Directory: panel = directoryPanel(parameter);
+                case Directory: panel = directoryPanel(parameters,parameter);
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                     parametersPanel.add(panel); break;
 
@@ -473,7 +473,9 @@ public class Frame {
         filePanel.add(fileButton);
         return filePanel;}
 
-    private static JPanel directoryPanel(Parameter parameter) {
+    private static JPanel directoryPanel(Parameters parameters,Parameter parameter) {
+        BiFunction<Parameters,StringBuilder,Object> operation = parameter.operation;
+        StringBuilder error = new StringBuilder();
         JPanel filePanel = new JPanel(flowLayout);
         filePanel.add(makeLabel(parameter));
         JTextField textField = new JTextField(parameter.valueString,Math.max(15,parameter.valueString.length()));
@@ -487,8 +489,10 @@ public class Frame {
                 if(result == JFileChooser.APPROVE_OPTION) {
                     file = chooser.getSelectedFile();
                     parameter.valueString = file.getAbsolutePath();
-                    parameter.value = file.getAbsolutePath();
+                    parameter.value = file.toPath();
                     textField.setText(parameter.valueString);
+                    System.out.println("OPER");
+                    if(operation != null) operation.apply(parameters,error);
                     JOptionPane.showMessageDialog(frame,"Directory " + parameter.valueString + " chosen",
                             "Directory", JOptionPane.INFORMATION_MESSAGE);
                 }}});
@@ -502,8 +506,12 @@ public class Frame {
                 if(!directory.isDirectory() || !directory.exists()) {
                     JOptionPane.showMessageDialog(frame,"'"+pathString+"' is no such directory",
                             "Error", JOptionPane.INFORMATION_MESSAGE);}
-                    parameter.valueString = pathString;
-                    parameter.value=directory.getAbsolutePath();}});
+                if(operation != null) operation.apply(parameters,error);
+                if(!error.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame,error.toString(),
+                            "Error", JOptionPane.INFORMATION_MESSAGE);}
+                parameter.valueString = pathString;
+                parameter.value=directory.getAbsolutePath();}});
         filePanel.add(textField);
         return filePanel;}
 

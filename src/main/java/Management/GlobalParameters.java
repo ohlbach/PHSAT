@@ -153,6 +153,26 @@ public class GlobalParameters {
 
         parameters.add(new Parameter("TrackReasoning",Parameter.Type.Boolean,"false",false,
                 "If true then the inference steps are tracked and verified."));
+
+        jobDirectory.setOperation((Parameters params, StringBuilder errors) -> {
+            System.out.println("Operation");
+            new Exception().printStackTrace();
+            File jobdirectory = ((Path)jobDirectory.value).toFile();
+            String jobName =(String)jobname.value;
+            int version = 0;
+            for(File file: jobdirectory.listFiles()) {
+                if(file.isDirectory() && file.getName().startsWith(jobName)) {
+                    String[] parts = file.getName().split("_",2);
+                    if(parts.length == 2) {
+                        try{version = Math.max(version,Integer.parseInt(parts[1]));}catch(NumberFormatException e){}}}}
+            ++version;
+            jobName += "_" + version;
+            File newJobDirectory = Paths.get(jobdirectory.toString(),jobName).toFile();
+            try{newJobDirectory.mkdirs();}catch(SecurityException e){errors.append(e); return null;}
+            jobname.value = jobName;
+            jobname.valueString = jobName;
+            if(jobname.updater != null) jobname.updater.accept(jobName);
+            return null;});
         return parameters;}
 
     public GlobalParameters(Parameters globalParams) {
