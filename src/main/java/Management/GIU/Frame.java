@@ -474,7 +474,6 @@ public class Frame {
         return filePanel;}
 
     private static JPanel directoryPanel(Parameters parameters,Parameter parameter) {
-        BiFunction<Parameters,StringBuilder,Object> operation = parameter.operation;
         StringBuilder error = new StringBuilder();
         JPanel filePanel = new JPanel(flowLayout);
         filePanel.add(makeLabel(parameter));
@@ -491,8 +490,6 @@ public class Frame {
                     parameter.valueString = file.getAbsolutePath();
                     parameter.value = file.toPath();
                     textField.setText(parameter.valueString);
-                    System.out.println("OPER");
-                    if(operation != null) operation.apply(parameters,error);
                     JOptionPane.showMessageDialog(frame,"Directory " + parameter.valueString + " chosen",
                             "Directory", JOptionPane.INFORMATION_MESSAGE);
                 }}});
@@ -506,12 +503,11 @@ public class Frame {
                 if(!directory.isDirectory() || !directory.exists()) {
                     JOptionPane.showMessageDialog(frame,"'"+pathString+"' is no such directory",
                             "Error", JOptionPane.INFORMATION_MESSAGE);}
-                if(operation != null) operation.apply(parameters,error);
                 if(!error.isEmpty()) {
                     JOptionPane.showMessageDialog(frame,error.toString(),
                             "Error", JOptionPane.INFORMATION_MESSAGE);}
                 parameter.valueString = pathString;
-                parameter.value=directory.getAbsolutePath();}});
+                parameter.value=directory.toPath();}});
         filePanel.add(textField);
         return filePanel;}
 

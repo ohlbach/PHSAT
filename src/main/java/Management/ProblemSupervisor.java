@@ -63,7 +63,7 @@ public class ProblemSupervisor {
                              ArrayList<Solver> solvers) {
         this.quSatJob         = quSatJob;
         this.globalParameters = globalParameters;
-        jobname               = globalParameters.getJobname();
+        jobname               = globalParameters.getJobName();
         trackReasoning        = globalParameters.trackReasoning;
         this.problemGenerator = problemGenerator;
         this.solvers          = solvers;

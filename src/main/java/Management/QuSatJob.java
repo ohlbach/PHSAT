@@ -96,7 +96,7 @@ public class QuSatJob {
         if((globalParameters.monitor != null && globalParameters.monitor.equals("file"))  ||
                 globalParameters.logging.equals("file") || !globalParameters.cnfFile.equals("none") ||
                 !(globalParameters.statistic.equals("none") || globalParameters.statistic.equals("text"))){
-            globalParameters.jobDirectory = makeJobDirectory(globalParameters.directory, globalParameters.getJobname());
+            globalParameters.jobDirectory = makeJobDirectory(globalParameters.jobDirectory, globalParameters.getJobName());
         }
 
         switch(globalParameters.logging) {
@@ -105,7 +105,7 @@ public class QuSatJob {
                 try{
                     globalParameters.logstream = new PrintStream(file);
                     globalParameters.logFile = file.getAbsolutePath();
-                    globalParameters.logstream.println("QuSat Job " + globalParameters.jobname + " logfile @ " + (new Date()));}
+                    globalParameters.logstream.println("QuSat Job " + globalParameters.jobName + " logfile @ " + (new Date()));}
                 catch(FileNotFoundException exception) {
                     System.out.println("Cannot open logfile: "+ file.getAbsolutePath());
                     System.exit(0);}
@@ -113,12 +113,12 @@ public class QuSatJob {
             case "none": globalParameters.logstream = null;       globalParameters.logFile = "none";       break;
             case "life": globalParameters.logstream = System.out; globalParameters.logFile = "System.out"; break;}
         if(globalParameters.logstream != null)
-            globalParameters.logstream.println(jobDate.toString() + ": Starting QuSat-job " + globalParameters.jobname);
+            globalParameters.logstream.println(jobDate.toString() + ": Starting QuSat-job " + globalParameters.jobName);
     }
 
     public void finalizeSystem() {
         for(Monitor monitor : monitors) monitor.flush(true); // close the files.
-        printlog("QuSat job" + globalParameters.jobname + " finished.");
+        printlog("QuSat job" + globalParameters.jobName + " finished.");
         if(globalParameters.logstream != null && globalParameters.logstream != System.out)
             globalParameters.logstream.close();}
 

@@ -29,13 +29,8 @@ public class Parameters {
      * The result is true if the check is positive.*/
     public BiFunction<Parameters, StringBuilder, Boolean> finalCheck;
 
-    /** can be used perform an operation after the GUI hs filled the parameters.<br>
-     * 
-     * An application is to generate clauses in the Generator part of the GUI.<br>
-     * It is called with the Parameters object and an StringBuilder error for appending error messages.<br>
-     * The result is any object, for example a list of InputClauses.
-     * The result must be used within the GUI.*/
-    public BiFunction<Parameters,StringBuilder,Object> operation = null;
+    /** a function to be applied to a Parameters object and a StringBuilder - error.*/
+    public BiFunction<Parameters, StringBuilder, Object> operation;
 
     /**Constructs a Parameters object with an empty list of parameters.
      * @param name the name of the Parameters object
@@ -57,6 +52,13 @@ public class Parameters {
      */
     public void setDescription(String description) {this.description = description;}
 
+    /** set the operation
+     *
+     * @param operation a function to be applied to a Parameters object and a StringBuilder - error.
+     */
+    public void setOperation(BiFunction<Parameters,StringBuilder,Object> operation) {
+        this.operation = operation;}
+
     /**
      * Sets the final check function for the Parameters object.
      *
@@ -67,13 +69,6 @@ public class Parameters {
      */
     public void setFinalCheck(BiFunction<Parameters, StringBuilder, Boolean> finalCheck) {this.finalCheck = finalCheck;}
 
-    /**Sets the operation for the Parameters object.
-     *
-     * @param operation the operation to be set
-     */
-    public void setOperation(BiFunction<Parameters,StringBuilder,Object> operation) {
-        this.operation = operation;}
-
 
     /**Creates a deep copy of the current Parameters object.
      *
@@ -83,7 +78,6 @@ public class Parameters {
         Parameters cloned = new Parameters(name);
         cloned.description = description;
         cloned.finalCheck = finalCheck;
-        cloned.operation = operation;
         cloned.parameters = new ArrayList<>();
         for (Parameter parameter : parameters) cloned.parameters.add(parameter.clone());
         return cloned;}

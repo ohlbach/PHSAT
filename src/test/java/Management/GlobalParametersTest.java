@@ -9,10 +9,6 @@ import java.util.HashMap;
  * Created by ohlbach on 02.11.2018.
  */
 public class GlobalParametersTest {
-    @Test
-    public void help() throws Exception {
-        System.out.println(GlobalParameters.help());
-    }
 
     @Test
     public void constructor() {
@@ -28,7 +24,7 @@ public class GlobalParametersTest {
         pars.put("statistics","stat.sta");
         ArrayList<HashMap<String,String>> parameters = new ArrayList<>();
         parameters.add(pars);
-        GlobalParameters glb = new GlobalParameters(parameters,errors,warnings);
+        GlobalParameters glb = null; //new GlobalParameters(parameters,errors,warnings);
         System.out.println("Errors\n" + errors);
         System.out.println("Warnings\n" + warnings);
         System.out.println(glb.toString());

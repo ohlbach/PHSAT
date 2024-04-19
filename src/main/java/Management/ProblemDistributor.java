@@ -125,10 +125,10 @@ public class ProblemDistributor {
 
     /** prints all results to the resultfile.*/
     private void reportResults() {
-        String jobname = globalParameters.getJobname();
+        String jobname = globalParameters.getJobName();
         PrintStream stream = System.out;
-        if(globalParameters.directory != null) {
-            File file = Paths.get(globalParameters.directory.toString(),jobname+"-results.txt").toFile();
+        if(globalParameters.jobDirectory != null) {
+            File file = Paths.get(globalParameters.jobDirectory.toString(),jobname+"-results.txt").toFile();
             try {stream = new PrintStream(file);}
             catch(FileNotFoundException ex) {
                 System.out.println("Resultfile "+ file + " cannot be opened. Printing to System.out");}}

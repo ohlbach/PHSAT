@@ -2,6 +2,7 @@ package Solvers.Normalizer;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
@@ -11,11 +12,9 @@ import Management.Monitor.MonitorLife;
 import Management.ProblemSupervisor;
 import ProblemGenerators.ProblemGenerator;
 import ProblemGenerators.PythagoraenTriples;
-import ProblemGenerators.RandomClauseSetGenerator;
 import ProblemGenerators.StringClauseSetGenerator;
 import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToEquivalence;
 import junit.framework.TestCase;
-import Datastructures.Results.Result;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -63,7 +62,7 @@ public class NormalizerTest extends TestCase {
         //System.out.println(inputClauses.toString());
         ArrayList<HashMap<String,String>> pars = new ArrayList<>();
         pars.add(parameters);
-        GlobalParameters globalParameters = new GlobalParameters(pars,errors,warnings);
+        GlobalParameters globalParameters = null; //new GlobalParameters(pars,errors,warnings);
         ProblemSupervisor supervisor = new ProblemSupervisor(null,globalParameters,generator,null);
         supervisor.inputClauses = inputClauses;
         supervisor.model = new Model(inputClauses.predicates);
@@ -310,7 +309,7 @@ public class NormalizerTest extends TestCase {
         System.out.println(inputClauses.toString());
         ArrayList<HashMap<String,String>> pars = new ArrayList<>();
         pars.add(parameters);
-        GlobalParameters globalParameters = new GlobalParameters(pars,errors,warnings);
+        GlobalParameters globalParameters = null; //new GlobalParameters(pars,errors,warnings);
         ProblemSupervisor supervisor = new ProblemSupervisor(null,globalParameters,generator,null);
         supervisor.inputClauses = inputClauses;
         supervisor.model = new Model(inputClauses.predicates);
@@ -365,7 +364,7 @@ public class NormalizerTest extends TestCase {
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        RandomClauseSetGenerator.makeProblemGenerator(parameters, generators, errors, warnings);
+        /*RandomClauseSetGenerator.makeProblemGenerator(parameters, generators, errors, warnings);*/
         System.out.println(errors);
         System.out.println(warnings);
         ProblemGenerator generator = generators.get(0);
@@ -376,7 +375,7 @@ public class NormalizerTest extends TestCase {
         System.out.println(inputClauses.toString());
         ArrayList<HashMap<String,String>> pars = new ArrayList<>();
         pars.add(parameters);
-        GlobalParameters globalParameters = new GlobalParameters(pars,errors,warnings);
+        GlobalParameters globalParameters = null; //new GlobalParameters(pars,errors,warnings);
         ProblemSupervisor supervisor = new ProblemSupervisor(null,globalParameters,generator,null);
         supervisor.inputClauses = inputClauses;
         supervisor.model = new Model(inputClauses.predicates);
