@@ -6,7 +6,6 @@ import Management.Monitor.MonitorFrame;
 import Management.Monitor.MonitorLife;
 import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
-import Utilities.KVParser;
 import Utilities.Utilities;
 
 import java.io.File;
@@ -31,8 +30,6 @@ public class QuSatJob {
 
     ArrayList<Parameters> solverParams;
 
-
-
     /** the date when the job has been processed. */
     public Date jobDate = new Date();
 
@@ -41,9 +38,6 @@ public class QuSatJob {
 
     /** the end time in nanoseconds. */
     public long endTime;
-
-    /** key-value parser for parsing the problem and solver parameters. */
-    public KVParser kvParser;
 
     /** the global control parameters. */
     public GlobalParameters globalParameters;
@@ -54,12 +48,6 @@ public class QuSatJob {
     /** the class which distributes the problems to the problem supervisors. */
     public ProblemDistributor problemDistributor;
 
-    /** creates the QuSatJob.
-     *
-     * @param kvParser the key-value parser which has already parsed the parameters.
-     */
-    public QuSatJob(KVParser kvParser) {
-        this.kvParser = kvParser;}
 
     public QuSatJob(Parameters globalParameters, ArrayList<Parameters> generatorParameters, ArrayList<Parameters> solverParameters) {
         this.globalParameters = new GlobalParameters(globalParameters);
@@ -71,15 +59,12 @@ public class QuSatJob {
      */
     public void solveProblems() {
         startTime = System.nanoTime();
-        StringBuilder errors   = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
-        ArrayList<ProblemGenerator> generators = null; // ProblemGenerator.makeProblemGenerators(kvParser.get("problem"),errors,warnings);
-        ArrayList<Solver> solvers = Solver.makeSolvers(kvParser.get("solver"),errors,warnings);
-        if(warnings.length() > 0)  System.out.println(warnings);
-        if(errors.length() > 0) {
-            System.out.println(errors);
-            System.out.println("QuSat solver stops!");
-            return;}
+        ArrayList<ProblemGenerator> generators = ProblemGenerator.makeGenerators(generatorParams);
+        ArrayList<Solver> solvers = Solver.makeSolvers(solverParams);
+        if(solvers.isEmpty()) {
+            System.out.println("System Error: No solver found");
+            new Exception().printStackTrace();
+            System.exit(1);}
         prepareMonitorAndLogstream();
         for(ProblemGenerator problemGenerator : generators) {
             problemSupervisors.add(new ProblemSupervisor(this, globalParameters,problemGenerator,solvers));}
@@ -181,35 +166,6 @@ public class QuSatJob {
         globalParameters.logstream.println(message);
     }
 
-    public static void main(String[] args) {
-        QuSatJob quSatJob = new QuSatJob(null);
-        /**quSatJob.globalParameters = new GlobalParameters();
-        quSatJob.globalParameters.monitor = "life";
-        quSatJob.globalParameters.jobname = "MyJob";
-        quSatJob.globalParameters.logging = "life";
-        quSatJob.globalParameters.directory = Utilities.pathWithHome("home/TEST");*/
-        quSatJob.prepareMonitorAndLogstream();
-        System.out.println(quSatJob.globalParameters.toString());
-
-        //Path path = Utilities.pathWithHome("home/TEST");
-        //quSatJob.jobDirectory = makeJobDirectory(Utilities.pathWithHome("home/TEST"), quSatJob.globalParameters.jobname);
-
-        /*Monitor monitor1 = quSatJob.getMonitor("TestProblem1");
-        quSatJob.startTime = System.nanoTime();
-        monitor1.println("Simplifier","hahahaha", "flkgdflkgjd");
-        monitor1.println("equviv","jajajaja", "GGGGGGGGG");
-        Monitor monitor2 = quSatJob.getMonitor("TestProblem2");
-        monitor2.print("Simplifier 2 ","hahahaha", "HHHHHHHHH");
-        monitor2.print("Simplifier 3 ","xxxxx","XXXXXXXX");
-        monitor2.print("equviv 2","jajajaja","YYYYYYYY");
-        for(int i = 0; i < 10 ; ++i) monitor2.println("III ", ""+i);
-
-        //monitor1.flush(true);
-        //monitor2.flush(true);
-        System.out.println(monitor1.toString());
-        */
-
-}
     protected void analyseResults() {
         ProblemSupervisor.printStatistics(globalParameters,problemSupervisors);
 

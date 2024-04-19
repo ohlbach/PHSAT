@@ -61,54 +61,27 @@ public abstract class Solver {
             case "backtracker": return Backtracker.class;
             default: return null;}}
 
-    /** collects all the help-strings for all solver classes
-     *
-     * @return the collected help string for all solver classes
-     */
-    public static String help() {
-        StringBuilder st = new StringBuilder();
-        st.append("The following solver types are available:\n");
-        for(String solver : solvers) {
-            st.append(solver).append(":\n");
-            st.append(help(solver)).append("\n");}
-        return st.toString();}
-
-    /** returns the help-string for the generator with the given name
-     *
-     * @param solverName a solver name
-     * @return its help-string
-     */
-    public static String help(String solverName) {
-        Class clazz = solverClass(solverName);
-        if(clazz == null) {return "Unknown Solver Class: " +solverName;}
-        try{
-            Method helper = clazz.getMethod("help");
-            return (String)helper.invoke(null);}
-        catch(Exception ex) {ex.printStackTrace();System.exit(1);}
-        return null;}
 
 
-    /** parses the string-type parameters into sequences of objects
+
+    /** Analyses the parameters and generates the corresponding solvers.
      *
      * @param parameterList the parameters
-     * @param errors        for collecting error messages
-     * @param warnings      for collecting warning messages
      * @return              a list of solvers
      */
-    public static ArrayList<Solver> makeSolvers(ArrayList<HashMap<String,String>> parameterList,
-                                                StringBuilder errors, StringBuilder warnings) {
+    public static ArrayList<Solver> makeSolvers(ArrayList<Parameters> parameterList) {
         ArrayList<Solver> solvers = new ArrayList<>();
-        for(HashMap<String,String> parameters: parameterList) {
-            String type = parameters.get("solver");
-            if(type == null) continue;
-            Class clazz = solverClass(type);
-            if(clazz == null) {
-                errors.append("Solver: Unknown solver class: ").append(type); continue;}
+        for(Parameters parameters: parameterList) {
+            Class solverClass = solverClass(parameters.name);
+            if(solverClass == null) {
+                System.err.println("System Error: unknown solver: " + parameters.name);
+                new Exception().printStackTrace();System.exit(1);}
             try{
-                Method makeSolver = clazz.getMethod("makeSolvers",HashMap.class,
-                        ArrayList.class, StringBuilder.class, StringBuilder.class);
-                makeSolver.invoke(null,parameters,solvers,errors,warnings);}
-            catch(Exception ex) {ex.printStackTrace();System.exit(1);}}
+                Method makeSolver = solverClass.getMethod("makeSolvers",Parameters.class,ArrayList.class);
+                makeSolver.invoke(null,parameters,solvers);}
+            catch(Exception ex) {
+                System.err.println("System Error: unknown method: makeSolvers");
+                ex.printStackTrace();System.exit(1);}}
         return solvers;}
 
 

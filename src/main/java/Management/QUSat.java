@@ -1,8 +1,6 @@
 package Management;
 
-import Utilities.KVParser;
-
-import java.nio.file.Paths;
+import Management.GIU.Frame;
 
 /** This is the class with the main method for the QUSat system. <br>
  * QUSat solves SAT-problems for quantified propositional logic. <br>
@@ -28,83 +26,11 @@ import java.nio.file.Paths;
  */
 public class QUSat {
 
-    /** This is a file with default parameters for 'global' and 'solver'. */
-    private static final String defaultFile = Paths.get(System.getProperties().get("user.dir").toString(),
-            "src","main","resources","DefaultParameters.phs").toString();
 
-    private static final String testFile = Paths.get(System.getProperties().get("user.dir").toString(),
-            "src","main","resources","Test.cnf").toString();
-
-
-    private static final String homeDirectory = System.getenv("USERPROFILE");
-
-
-
-   private static final String parameters =
-            "problem random\n"+
-                    "predicates = 1000\n" + // Fehler bei 40, seed 1, cpRatio 4, length 3
-                    "cpRatio = 3\n"+      // Fehler bei 10, seed 3, cpRatio 3, length 3
-                    "length = 2-4\n"+        // BIG 200, seed 2, cpRatio 10, length 3
-                    "seed = 0\n"+
-            "global\n" +
-                    "cnfFile = numbers\n"+
-                    "logging = life\n"+
-                    "showClauses = true\n"+
-                    "monitor = life\n"+
-                    "trackReasoning\n"+
-           //"solver simplifier";
-           "solver resolution\n";
-                    //"mergeResolution = true\n";
-
-    /*private static final String parameters =
-            "problem cnfreader\n"+
-                "files = " + testFile;*/
-
-
-    public static GlobalParameters globalParameters  = null;
-
-
-
-    /** The main method can be called with or without arguments.
-     * If there are no arguments then the control parameters are read from System.in<br>
-     * In this case the first line must either be a help command or a jobname.<br>
-     * If the first argument is 'help' then help-strings are printed
-     * - help global:           prints the global help strings<br>
-     * - help [generator name]: prints the help strings of the generator<br>
-     * - help [solver name]:    prints the help strings of the solver<br>
-     * - help:                  prints all help strings.
-     * <br>
-     * In the other cases the default control parameters are first read from the defaultFile. <br>
-     * The other parameters may overwrite the default parameters.<br>
-     * args[0] is the jobname (any string) and args[1]
-     * must be a pathname relative to the homedirectory. The parameters are read from this file.<br>
-     * If the pathname ends with .cnf then this is a clause file. <br>
-     * The file is not read here, but in the corresponding generator.<br>
-     * If only a .cnf file is given then all control parameters are read from a default file.
-     * <br>
-     * After all parameters are read, they are parsed and the generators and solvers are activated.
-     *
-     * @param args for the commands
-     */
     public static void  main(String[] args)  {
-        //args = new String[]{"help","walker"};
-        args = new String[]{"string"};
-        KVParser kvParser = new KVParser("global", "problem", "solver");
-        kvParser.parseFile(defaultFile);
-        switch(args[0]) {
-            case "main": for(int i = 1; i < args.length; ++i) kvParser.addLine(args[i]); break;
-            case "file": kvParser.parseFile(Paths.get(homeDirectory,args[1]).toString()); break; // may produce an exception and stop;
-            case "in":   kvParser.parseStream(System.in); break; // may produce an exception and stop;
-            case "string": { // for test purposes
-                if(parameters == null) {System.out.println("No parameters specified in QUSat class"); return;}
-                kvParser.parseString(parameters);
-                break;}
-            default:
-                System.out.println("Unknown keyword in main method: "+ args[0]+ "\nIt should be one of:");
-                System.out.println("help, main, file, in, string");
-                return;}
-        QuSatJob quSatJob = new QuSatJob(kvParser);
-        quSatJob.solveProblems();}
+        Frame.openFrame();
+    }
+
 
 
 

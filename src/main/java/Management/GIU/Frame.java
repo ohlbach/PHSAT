@@ -147,8 +147,12 @@ public class Frame {
             quSatJob.solveProblems();});
         // prepare for a new job.
         globalParams = globalParams.clone();
-        for(int i = 0; i < generatorParams.size(); ++i) generatorParams.set(i, generatorParams.get(i).clone());
-        for(int i = 0; i < solverParams.size(); ++i) solverParams.set(i, solverParams.get(i).clone());
+        ArrayList<Parameters> paramsList = new ArrayList<>(generatorParams.size());
+        for(int i = 0; i < generatorParams.size(); ++i) paramsList.add(i, generatorParams.get(i).clone());
+        generatorParams = paramsList;
+        paramsList = new ArrayList<>(solverParams.size());
+        for(int i = 0; i < solverParams.size(); ++i) paramsList.add(solverParams.get(i).clone());
+        solverParams = paramsList;
         thread.start();}
 
 

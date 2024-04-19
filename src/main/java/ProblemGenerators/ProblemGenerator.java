@@ -39,6 +39,40 @@ public abstract class ProblemGenerator {
         generatorClasses.add(ProblemGenerators.StringClauseSetGenerator.class);
     }
 
+    /** maps the solver names to the solver classes.<br>
+     * This method must be extended when a new solver class is added.
+     *
+     * @param generatorName a solver name
+     * @return the solver class, or null
+     */
+    public static Class generatorClass(String generatorName) {
+        switch (generatorName) {
+            case "CNF-Reader":                  return ProblemGenerators.CNFReader.class;
+            case "Randomly Generated Clauses":  return ProblemGenerators.RandomClauseSetGenerator.class;
+            case "PTriples":                    return ProblemGenerators.PythagoraenTriples.class;
+            case "PigeonHoles":                 return ProblemGenerators.PigeonHoleGenerator.class;
+            default: return null;}}
+
+    /** Analyses the parameters and generates the corresponding solvers.
+     *
+     * @param parameterList the parameters
+     * @return              a list of solvers
+     */
+    public static ArrayList<ProblemGenerator> makeGenerators(ArrayList<Parameters> parameterList) {
+        ArrayList<ProblemGenerator> generators = new ArrayList<>();
+        for(Parameters parameters: parameterList) {
+            Class generatorClass = generatorClass(parameters.name);
+            if(generatorClass == null) {
+                System.err.println("System Error: unknown Problem Generator: " + parameters.name);
+                new Exception().printStackTrace();System.exit(1);}
+            try{
+                Method makeSolver = generatorClass.getMethod("makeProblemGenerators",Parameters.class,ArrayList.class);
+                makeSolver.invoke(null,parameters,generators);}
+            catch(Exception ex) {
+                System.err.println("System Error: unknown method: makeProblemGenerators");
+                ex.printStackTrace();System.exit(1);}}
+        return generators;}
+
     /**
      * Constructs a list of Parameters objects by invoking the "makeParameter" method in each generator class.
      *

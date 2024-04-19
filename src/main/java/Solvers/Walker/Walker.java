@@ -1,6 +1,5 @@
 package Solvers.Walker;
 
-import Datastructures.Clauses.InputClauses;
 import Datastructures.LinkedItemList;
 import Datastructures.Results.Aborted;
 import Datastructures.Results.Result;
@@ -13,8 +12,6 @@ import Management.ErrorReporter;
 import Management.Parameter;
 import Management.Parameters;
 import Management.ProblemSupervisor;
-import ProblemGenerators.PigeonHoleGenerator;
-import ProblemGenerators.ProblemGenerator;
 import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -107,7 +104,7 @@ public class Walker extends Solver {
      * @param parameters The parameters containing the values necessary to create the problem generators.
      * @param walkers The list of walkers to add the newly created walkers to.
      */
-    public static void makeSolver(Parameters parameters,ArrayList<Solver> walkers) {
+    public static void makeSolvers(Parameters parameters,ArrayList<Solver> walkers) {
         IntArrayList maxFlips =    (IntArrayList)parameters.parameters.get(0).value;
         IntArrayList jumps =      (IntArrayList)parameters.parameters.get(1).value;
         IntArrayList seeds =      (IntArrayList)parameters.parameters.get(2).value;
