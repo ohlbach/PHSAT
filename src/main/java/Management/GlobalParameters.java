@@ -1,10 +1,6 @@
 package Management;
 
-import Management.GIU.ScrollableFrame;
-
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -160,34 +156,8 @@ public class GlobalParameters {
                     try{version = Math.max(version,Integer.parseInt(parts[1]));}catch(NumberFormatException e){}}}}
         return version+1;}
 
-    public File makeJobDirectory() {
-        File jobDir = jobDirectory.toFile();
-        if(!jobDir.exists()) jobDir.mkdirs();
-        return jobDir;}
 
-    public void openLogging() {
-        switch(logging) {
-            case "None":
-                logstream = null;
-                break;
-            case "Life":
-                logstream = System.out;
-                break;
-            case "File":
-                try {
-                    File jobdir = Paths.get(makeJobDirectory().getAbsolutePath(),"Logfile").toFile();
-                    logstream = new PrintStream(new FileOutputStream(jobdir));
-                } catch (FileNotFoundException e) {e.printStackTrace(); System.exit(1);}
-                break;
-            case "Frame":
-                logstream = ScrollableFrame.getPrintStream(500,400,100,100,"Logfile");
-                break;}
-        if(logstream != null) {
-            logstream.println("Starting Logging for QuSat job " + jobName + "_" + version+ " at " +
-                System.nanoTime() + " ns");}}
 
-    public void closeLogging() {
-        if(logstream == System.out) logstream.close();}
 
 
 

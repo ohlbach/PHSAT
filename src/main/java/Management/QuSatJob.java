@@ -1,5 +1,6 @@
 package Management;
 
+import Management.GIU.ScrollableFrame;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorFile;
 import Management.Monitor.MonitorFrame;
@@ -10,6 +11,7 @@ import Utilities.Utilities;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,8 +53,8 @@ public class QuSatJob {
 
     public QuSatJob(Parameters globalParameters, ArrayList<Parameters> generatorParameters, ArrayList<Parameters> solverParameters) {
         this.globalParameters = new GlobalParameters(globalParameters);
-        this.generatorParams = generatorParameters;
-        this.solverParams = solverParameters;
+        this.generatorParams  = generatorParameters;
+        this.solverParams     = solverParameters;
     }
 
     /** solves the QuSat-problems.
@@ -62,44 +64,49 @@ public class QuSatJob {
         ArrayList<ProblemGenerator> generators = ProblemGenerator.makeGenerators(generatorParams);
         ArrayList<Solver> solvers = Solver.makeSolvers(solverParams);
         if(solvers.isEmpty()) {
-            System.out.println("System Error: No solver found");
+            System.err.println("System Error: No solver found");
             new Exception().printStackTrace();
             System.exit(1);}
-        prepareMonitorAndLogstream();
+        openLogging(globalParameters);
         for(ProblemGenerator problemGenerator : generators) {
             problemSupervisors.add(new ProblemSupervisor(this, globalParameters,problemGenerator,solvers));}
-        problemDistributor = new ProblemDistributor(this, globalParameters,problemSupervisors);
-        problemDistributor.solveProblems();
+        for(ProblemSupervisor problemSupervisor : problemSupervisors) {problemSupervisor.solveProblem();}
+        //analyseResults();
+        //finalizeSystem();
         endTime = System.nanoTime();
-        analyseResults();
-        finalizeSystem();
+        closeLogging(globalParameters);
     }
 
-    /** pepares the monitor and the logstream
-     */
-    private void prepareMonitorAndLogstream() {
-        if((globalParameters.monitor != null && globalParameters.monitor.equals("file"))  ||
-                globalParameters.logging.equals("file") || !globalParameters.cnfFile.equals("none") ||
-                !(globalParameters.statistic.equals("none") || globalParameters.statistic.equals("text"))){
-            globalParameters.jobDirectory = makeJobDirectory(globalParameters.jobDirectory, globalParameters.getJobName());
-        }
-
+    public void openLogging(GlobalParameters globalParameters) {
+        PrintStream logstream = null;
         switch(globalParameters.logging) {
-            case "file":
-                File file = Paths.get(globalParameters.jobDirectory.toString(),"logging.txt").toFile();
-                try{
-                    globalParameters.logstream = new PrintStream(file);
-                    globalParameters.logFile = file.getAbsolutePath();
-                    globalParameters.logstream.println("QuSat Job " + globalParameters.jobName + " logfile @ " + (new Date()));}
-                catch(FileNotFoundException exception) {
-                    System.out.println("Cannot open logfile: "+ file.getAbsolutePath());
-                    System.exit(0);}
-            break;
-            case "none": globalParameters.logstream = null;       globalParameters.logFile = "none";       break;
-            case "life": globalParameters.logstream = System.out; globalParameters.logFile = "System.out"; break;}
-        if(globalParameters.logstream != null)
-            globalParameters.logstream.println(jobDate.toString() + ": Starting QuSat-job " + globalParameters.jobName);
-    }
+            case "None": return;
+            case "Life":  logstream = System.out; break;
+            case "File":
+                try {
+                    File jobdir = Paths.get(makeJobDirectory(globalParameters).getAbsolutePath(),"Logfile").toFile();
+                    logstream = new PrintStream(new FileOutputStream(jobdir)); break;
+                } catch (FileNotFoundException e) {e.printStackTrace(); System.exit(1);}
+            case "Frame":
+                 logstream = ScrollableFrame.getPrintStream(500,400,100,100,"Logfile");}
+        if(logstream != null) {
+            logstream.println("Starting Logging for QuSat job " + globalParameters.jobName + "_" + globalParameters.version+
+                    " at " + jobDate);
+            globalParameters.logstream = logstream;}}
+
+    public void closeLogging(GlobalParameters globalParameters) {
+        PrintStream logstream = globalParameters.logstream;
+        if(logstream == null) return;
+        String duration = Utilities.duration(endTime-startTime);
+        logstream.println("Ending Logging for QuSat job " + globalParameters.jobName + "_" + globalParameters.version+
+                " Duration: "+duration);
+        logstream.close();}
+
+    public File makeJobDirectory(GlobalParameters globalParameters) {
+        File jobDir = globalParameters.jobDirectory.toFile();
+        if(!jobDir.exists()) jobDir.mkdirs();
+        return jobDir;}
+
 
     public void finalizeSystem() {
         for(Monitor monitor : monitors) monitor.flush(true); // close the files.
