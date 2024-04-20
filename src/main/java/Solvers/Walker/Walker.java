@@ -32,14 +32,17 @@ public class Walker extends Solver {
     // Control Parameters
     // ******************
 
+    private static int maxFlipsDefault = 0;
     /** maximum number of allowed flips. */
     int maxFlips;
+
+    private static int seedDefault = 0;
 
     /** for creating the random number generator */
     final int seed;
 
     /** the default value for the jump frequency. */
-    private static final int jumpFrequencyDefault = 10;
+    private static int jumpFrequencyDefault = 10;
 
     /** after jumpFrequency many flips, a random jump is inserted.*/
     int jumpFrequency;
@@ -78,14 +81,27 @@ public class Walker extends Solver {
     /** a tiny flip score for globally true predicates. They should never be flipped again.*/
     private static final int trueLiteralScore = Integer.MIN_VALUE/2;
 
+    public static void setDefaults(ArrayList<String> defaults) {
+        for(String line : defaults) {
+            String[] parts = line.split("\\s*=\\s*");
+            if(parts.length != 2) {continue;}
+            String variable = parts[0];
+            String value = parts[1];
+            switch(variable.toLowerCase()) {
+                case "maxflips": maxFlipsDefault = Integer.parseInt(value); break;
+                case "jumpfrequency": jumpFrequencyDefault = Integer.parseInt(value); break;
+                case "seed": seedDefault = Integer.parseInt(value); break;
+            }
+        }}
+
     public static Parameters makeParameter() {
         Parameters parameters = new Parameters("Walker");
-        Parameter maxFlips = new Parameter("MaxFlips", Parameter.Type.String, Integer.toString(Integer.MAX_VALUE), Integer.MAX_VALUE,
+        Parameter maxFlips = new Parameter("MaxFlips", Parameter.Type.String, Integer.toString(maxFlipsDefault), maxFlipsDefault,
                 "The maximum number of flips at which the search is stopped.");
         maxFlips.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,1,errors));
         parameters.add(maxFlips);
 
-        Parameter jumps = new Parameter("Jump Frequency", Parameter.Type.String, "10", 10,
+        Parameter jumps = new Parameter("Jump Frequency", Parameter.Type.String, Integer.toString(jumpFrequencyDefault), jumpFrequencyDefault,
                 "Random flips are performed in this frequency");
         jumps.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,2,errors));
         parameters.add(jumps);

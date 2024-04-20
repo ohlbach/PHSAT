@@ -61,7 +61,15 @@ public abstract class Solver {
             case "backtracker": return Backtracker.class;
             default: return null;}}
 
-
+    public static void setDefaults(HashMap<String,ArrayList<String>> moduleValues) {
+        for(String solver : solvers) {
+            ArrayList<String> values = moduleValues.get(solver);
+            if(values != null) {
+                try{
+                solverClass(solver).getMethod("setDefaults",ArrayList.class).invoke(null,values);}
+                catch(Exception e) {
+                    System.err.println(e.getMessage());
+                    System.exit(1);}}}}
 
 
     /** Analyses the parameters and generates the corresponding solvers.
@@ -207,12 +215,12 @@ public abstract class Solver {
      *
      * @return Un/Satisfiable or null
      */
-    public abstract Result solveProblem();
+    public  Result solveProblem() {return null;};
 
     /** returns the solver's statistics.
      *
      * @return the statistics of the solver */
-    public abstract Statistic getStatistics();
+    public Statistic getStatistics() {return null;};
 
 
     /** This method checks if some literals are true or all literals are false in a model

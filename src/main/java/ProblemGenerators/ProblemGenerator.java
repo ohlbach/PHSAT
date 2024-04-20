@@ -9,6 +9,7 @@ import Utilities.Utilities;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 
 import static Utilities.Utilities.parseInteger;
@@ -29,6 +30,23 @@ public abstract class ProblemGenerator {
     /** takes the parsed input clauses */
     public InputClauses inputClauses = null;
 
+    /** the list of all solver types */
+    public static String[] generators = new String[]{"CNFReader","RandomClauseSetGenerator","PigeonHoleGenerator","PythagoraenTriples"};
+    /** maps the solver names to the solver classes.<br>
+     * This method must be extended when a new solver class is added.
+     *
+     * @param name a solver name
+     * @return the solver class, or null
+     */
+    public static Class generatorClass(String name) {
+        switch(name.toLowerCase()) {
+            case "cnfreader":                return ProblemGenerators.CNFReader.class;
+            case "randomclausesetgenerator": return ProblemGenerators.RandomClauseSetGenerator.class;
+            case "pigeonholegenerator":      return ProblemGenerators.PigeonHoleGenerator.class;
+            case "PythagoraenTriples":       return ProblemGenerators.PythagoraenTriples.class;}
+        return null;
+    }
+
     /** the list of generator classes */
     public static ArrayList<Class> generatorClasses = new ArrayList<>();
     static{
@@ -36,22 +54,17 @@ public abstract class ProblemGenerator {
         generatorClasses.add(ProblemGenerators.RandomClauseSetGenerator.class);
         generatorClasses.add(ProblemGenerators.PigeonHoleGenerator.class);
         generatorClasses.add(ProblemGenerators.PythagoraenTriples.class);
-        generatorClasses.add(ProblemGenerators.StringClauseSetGenerator.class);
     }
 
-    /** maps the solver names to the solver classes.<br>
-     * This method must be extended when a new solver class is added.
-     *
-     * @param generatorName a solver name
-     * @return the solver class, or null
-     */
-    public static Class generatorClass(String generatorName) {
-        switch (generatorName) {
-            case "CNF-Reader":                  return ProblemGenerators.CNFReader.class;
-            case "Randomly Generated Clauses":  return ProblemGenerators.RandomClauseSetGenerator.class;
-            case "PTriples":                    return ProblemGenerators.PythagoraenTriples.class;
-            case "PigeonHoles":                 return ProblemGenerators.PigeonHoleGenerator.class;
-            default: return null;}}
+    public static void setDefaults(HashMap<String,ArrayList<String>> moduleValues) {
+        for(String generator : generators) {
+            ArrayList<String> values = moduleValues.get(generator.toLowerCase());
+            if(values != null) {
+                try{
+                    generatorClass(generator).getMethod("setDefaults",ArrayList.class).invoke(null,values);}
+                catch(Exception e) {
+                    System.err.println(e.getMessage());
+                    System.exit(1);}}}}
 
     /** Analyses the parameters and generates the corresponding solvers.
      *

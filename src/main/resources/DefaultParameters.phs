@@ -1,7 +1,14 @@
 global
+% the solver may extend the jobname with a version number
  jobname = Test
- parallel = 1
- logging = life
- simplifier = true
- showClauses = true
- directory D:/SAT
+ logging = frame
+ monitor = frame
+ statistic = frame
+ tracking = true
+% either home/... or a full directory name
+ directory = D:/SAT
+
+Walker
+ maxFlips = 0
+ jumpFrequency = 10
+ seed = 0

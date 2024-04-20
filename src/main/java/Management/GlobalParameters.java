@@ -4,6 +4,10 @@ import java.io.File;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import static java.lang.Boolean.parseBoolean;
 
 /** This class maintains the global parameters for controlling the QuSat system.
  */
@@ -15,6 +19,7 @@ public class GlobalParameters {
     /** the parameters as specified by the GUI */
     public Parameters parameters;
 
+    private static String jobNameDefault = "TestJob";
     /** the name of the current job.*/
     public String jobName;
 
@@ -29,6 +34,7 @@ public class GlobalParameters {
     /**  @return the jobname (without version) */
     public String getJobName(){return jobName;}
 
+    private static String loggingDefault = "life";
     /** life, none or file. */
     public String logging = "life";
 
@@ -44,20 +50,46 @@ public class GlobalParameters {
     /** enables printing the clauses to a cnf-file */
     public String cnfFile = "none";
 
-    /** print errors and warnings to a file */
-    public boolean errors2File = false;
+    private static boolean trackReasoningDefault = false;
 
     /** if false then many things are done destructively. Only the final results are needed. */
     public boolean trackReasoning = false;
 
-    /** activates the Simplifier as separate thread. */
-    public boolean simplifier = true;
+    private static String monitorDefault = "frame";
 
     /** the monitor mode: life, file, frame. */
     public String monitor = null;
 
+    private static String statisticDefault = "frame";
+
     /** specifies how the statistics are printed. */
     public String statistic = "life";
+
+    public static void setDefaults(HashMap<String, ArrayList<String>> moduleValues) {
+        ArrayList<String> globalDefaults = moduleValues.get("global");
+        System.out.println("GL " + globalDefaults);
+        if(globalDefaults == null) {return;}
+        for(String line : globalDefaults) {
+            String[] parts = line.split("\\s*=\\s*");
+            if(parts.length != 2) {continue;}
+            String variable = parts[0];
+            String value = parts[1];
+            switch(variable.toLowerCase()) {
+                case "jobname": jobNameDefault = value; break;
+                case "logging": loggingDefault = value; break;
+                case "monitor": monitorDefault = value; break;
+                case "statistic": statisticDefault = value; break;
+                case "tracking": trackReasoningDefault = parseBoolean(value); break;
+                case "directory": if(value.startsWith("home"))
+                    homeDirectory = Path.of(System.getenv("USERPROFILE"),value.substring(5));
+                    else homeDirectory = Path.of(value);
+                break;
+            }
+            }}
+
+
+
+
 
     /**Creates a Parameters object with predefined set of global parameters.
      * - jobname (name of the job, without version)<br>
@@ -72,16 +104,15 @@ public class GlobalParameters {
      */
     public static Parameters makeGlobalParameters() {
         Parameters parameters = new Parameters("Global Parameters");
-        Parameter jobName = new Parameter("jobname",Parameter.Type.String, "TestJob","TestJob",
-                "Identifier for the job\n" +
-                        "It is also used as directoryname.");
+        Parameter jobName = new Parameter("jobname",Parameter.Type.String, jobNameDefault,jobNameDefault,
+                "Identifier for the job.");
         parameters.add(jobName);
         Parameter jobDirectory = new Parameter("jobdirectory",Parameter.Type.Directory, homeDirectory.toString(),homeDirectory,
                 "Directory where to place the produced files.");
         jobDirectory.parser = (text,ignore) -> new File(text).getAbsolutePath();
         parameters.add(jobDirectory);
 
-        Parameter monitor = new Parameter("monitor",Parameter.Type.OneOf,"none",
+        Parameter monitor = new Parameter("monitor",Parameter.Type.OneOf,monitorDefault,
                 "Specifies the target for monitoring.\n"+
                 " None:  No monitoring.\n"+
                 " Life:  Print the monitor text to System.out.\n"+
@@ -94,7 +125,7 @@ public class GlobalParameters {
         monitor.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
         parameters.add(monitor);
         
-        Parameter logging = new Parameter("logging",Parameter.Type.OneOf,"none",
+        Parameter logging = new Parameter("logging",Parameter.Type.OneOf,loggingDefault,
                 "Specifies the target for logging.\n"+
                         " None:  No logging.\n"+
                         " Life:  Print the logging text to System.out.\n"+
@@ -118,7 +149,7 @@ public class GlobalParameters {
         CNFFile.parameters.add(new Parameter("Numbers",Parameter.Type.File,null, null));
         parameters.add(CNFFile);
 
-        Parameter statistics = new Parameter("statistics",Parameter.Type.OneOf,"none",
+        Parameter statistics = new Parameter("statistics",Parameter.Type.OneOf,statisticDefault,
                 "Specifies the target for statistics.\n"+
                         " None:  No statistics.\n"+
                         " Life:  Print the statistics text to System.out.\n"+
@@ -131,7 +162,7 @@ public class GlobalParameters {
         statistics.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
         parameters.add(statistics);
 
-        parameters.add(new Parameter("TrackReasoning",Parameter.Type.Boolean,"false",false,
+        parameters.add(new Parameter("TrackReasoning",Parameter.Type.Boolean,""+trackReasoningDefault,trackReasoningDefault,
                 "If true then the inference steps are tracked and verified."));
         return parameters;}
 

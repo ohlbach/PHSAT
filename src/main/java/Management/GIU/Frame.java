@@ -443,6 +443,7 @@ public class Frame {
         for(Parameter param : parameter.parameters.parameters) {
             JRadioButton radioButton = new JRadioButton(param.name);
             radioButton.addActionListener(e -> {parameter.valueString = param.name;parameter.value = param.name;});
+            if(parameter.valueString.toLowerCase().equals(param.valueString.toLowerCase())) radioButton.setSelected(true);
             buttons.add(new Object[]{radioButton, param.name});
             group.add(radioButton);
             textPanel.add(radioButton);}
