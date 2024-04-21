@@ -52,12 +52,9 @@ public abstract class Solver {
      * @return the solver class, or null
      */
     public static Class solverClass(String solverName) {
-        switch (solverName) {
-            case "Resolution":
-            case "resolution":      return Resolution.class;
-            case "Walker":
-            case "walker":          return Walker.class;
-            case "Backtracker":
+        switch (solverName.toLowerCase()) {
+            case "resolution":  return Resolution.class;
+            case "walker":      return Walker.class;
             case "backtracker": return Backtracker.class;
             default: return null;}}
 

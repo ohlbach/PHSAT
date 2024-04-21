@@ -75,7 +75,7 @@ public final class CNFReader extends ProblemGenerator {
         parameters.add(file);
         parameters.setOperation((Parameters params, StringBuilder errors) -> {
             ArrayList<ProblemGenerator> generators = new ArrayList<>();
-            makeProblemGenerator(params, generators);
+            makeProblemGenerators(params, generators);
             ArrayList<InputClauses> clauses = new ArrayList<>();
             for(ProblemGenerator generator : generators) {
                 clauses.add(generator.generateProblem(errors));}
@@ -97,9 +97,11 @@ public final class CNFReader extends ProblemGenerator {
      * @param parameters The parameters containing the values necessary to create the problem generators.
      * @param generators The list of problem generators to add the newly created generators to.
      */
-    public static void makeProblemGenerator(Parameters parameters,ArrayList<ProblemGenerator> generators) {
-        for(File file :(ArrayList<File>)parameters.parameters.get(0).value)
-            generators.add(new CNFReader(file));}
+    public static void makeProblemGenerators(Parameters parameters,ArrayList<ProblemGenerator> generators) {
+        Object files = parameters.parameters.get(0).value;
+        if(files != null) {
+            for(File file :(ArrayList<File>)files)
+                generators.add(new CNFReader(file));}}
 
 
     /** reads the cnf-file and generates a InputClauses

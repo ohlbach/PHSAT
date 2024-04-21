@@ -129,7 +129,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
 
         parameters.setOperation((Parameters params, StringBuilder errors) -> {
             ArrayList<ProblemGenerator> generators = new ArrayList<>();
-            makeProblemGenerator(params, generators);
+            makeProblemGenerators(params, generators);
             ArrayList<InputClauses> clauses = new ArrayList<>();
             for(ProblemGenerator generator : generators) {
                 clauses.add(generator.generateProblem(errors));}
@@ -207,7 +207,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
      * @param parameters The parameters containing the values necessary to create the problem generators.
      * @param generators The list of problem generators to add the newly created generators to.
      */
-    public static void makeProblemGenerator(Parameters parameters, ArrayList<ProblemGenerator> generators) {
+    public static void makeProblemGenerators(Parameters parameters, ArrayList<ProblemGenerator> generators) {
         IntArrayList pigeons = (IntArrayList) parameters.parameters.get(0).value;
         IntArrayList holes = (IntArrayList) parameters.parameters.get(1).value;
         ArrayList capacities = (ArrayList) parameters.parameters.get(2).value;

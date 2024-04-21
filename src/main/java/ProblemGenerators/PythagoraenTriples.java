@@ -149,7 +149,7 @@ public class PythagoraenTriples extends ProblemGenerator{
      * @param errors      for error messages.
      * @param warnings    for warnings.
      */
-    public static void makeProblemGenerator(HashMap<String,String> parameters,
+    public static void makeProblemGenerators(HashMap<String,String> parameters,
                                             ArrayList<ProblemGenerator> generators,
                                             StringBuilder errors, StringBuilder warnings) {
         assert parameters != null;

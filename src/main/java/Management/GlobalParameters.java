@@ -28,6 +28,9 @@ public class GlobalParameters {
      */
     public int version = 0;
 
+    public String jobName() {
+        return version == 0 ? jobName : jobName+"_"+version;}
+
     /** the directory where to create the subdirectory for the generated files */
     public Path jobDirectory = homeDirectory;
 
