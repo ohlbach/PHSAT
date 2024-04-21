@@ -32,6 +32,39 @@ public class PythagoraenTriples extends ProblemGenerator{
         Collections.addAll(keys, "generator","maximum");
     }
 
+    private static int minimumDefault = 5;
+    private static int maximumDefault = 7825;
+
+    private final int minimum;
+    private final int maximum;
+
+    /**Sets the default values for the Pythagoraen Triples Generator.
+     *
+     * - minimum<br>
+     * - maximum<br>
+     * The method is called in ProblemGenerator
+     *
+     * @param defaults the list of default values
+     * @return void
+     */
+    public static void setDefaults(ArrayList<String> defaults) {
+        if(defaults == null) {return;}
+        try{
+            StringBuilder errors = new StringBuilder();
+            for(String line : defaults) {
+                String[] parts = line.split("\\s*=\\s*",2);
+                if(parts.length != 2) {continue;}
+                String variable = parts[0];
+                String value = parts[1];
+                switch(variable.toLowerCase()) {
+                    case "minimum":  minimumDefault  = Integer.parseInt(value); break;
+                    case "maximum":  maximumDefault  = Integer.parseInt(value); break;
+                    }}}
+        catch(NumberFormatException e) {
+            System.err.println("Error in default Parameters for PigeonHoleGenerator:\n"+e.getMessage());
+            System.exit(1);}
+    }
+
     /**Creates and returns a Parameters object for the makeParameter method.
      *
      * Two parameters are created: <br>
@@ -44,15 +77,14 @@ public class PythagoraenTriples extends ProblemGenerator{
      * @return a Parameters object containing the required parameters and their configurations.
      */
     public static Parameters makeParameter() {
-        Parameter minimum = new Parameter("Smallest Number",Parameter.Type.String, "5",5,
+        Parameter minimum = new Parameter("Smallest Number",Parameter.Type.String, Integer.toString(minimumDefault),minimumDefault,
                 "smallest z with x^2 + y^2 = z^2");
         minimum.setParser((String min, StringBuilder errors) ->  {
             Integer minInteger = Utilities.parseInteger(null,min,errors);
             if(minInteger == null) {return null;}
-            if (minInteger < 5) {errors.append("Smallest Number " + minInteger + " is less than 3"); return null;}
+            if (minInteger < 5) {errors.append("Smallest Number " + minInteger + " is less than 5"); return null;}
             return minInteger;});
-        Parameter maximum = new Parameter("Largest Number",Parameter.Type.String, "7825",
-                IntArrayList.wrap(new int[]{7825}),
+        Parameter maximum = new Parameter("Largest Number",Parameter.Type.String, Integer.toString(maximumDefault),maximumDefault,
                 "largest z with x^2 + y^2 = z^2");
         maximum.setParser((String numbers, StringBuilder errors) ->  {
             IntArrayList range = Utilities.parseIntRange(numbers,errors);
@@ -99,8 +131,6 @@ public class PythagoraenTriples extends ProblemGenerator{
 
         return parameters;}
 
-    private final int minimum;
-    private final int maximum;
 
     /** constructs the generator for the triple coloring problem.
      *

@@ -19,7 +19,16 @@ pigeons = 4
 holes = 3
 capacity = <= 3
 
+Pythagoraen Triples
+minimum = 5
+maximum = 20
+
+Random Clause Set Generator
+predicates = 100
+lengths = 3
+ors = 430
+
 Walker
  maxFlips = 0   % 0 means no limit for the number of flips
- jumpFrequency = 100a
+ jumpFrequency = 10
  seed = 0

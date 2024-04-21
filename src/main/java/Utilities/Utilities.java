@@ -59,6 +59,22 @@ public class Utilities {
         try{return Integer.parseInt(value);}
         catch(NumberFormatException ex) {return null;}}
 
+    /** trys to pars a string as integer.
+     *
+     * @param value the string to be parsed
+     * @param minimum the number should not be smaller than this minimum
+     * @param errors for appending error messages.
+     * @return 0 or the parsed int-value.
+     */
+    public static int parseInteger(String value, int minimum, StringBuilder errors) {
+        if(value == null) {
+            errors.append("Number-String is empty");
+            return 0;}
+        int n = 0;
+        try{ n = Integer.parseInt(value);}
+        catch(NumberFormatException ex) {errors.append(ex.getMessage());}
+        if(n < minimum) {errors.append(value + " < " + minimum+"\n"); return 0;}
+        return n;}
 
     /** parses a string-representation of a float value
      *

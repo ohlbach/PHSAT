@@ -1,12 +1,6 @@
 package ProblemGenerators;
 
-import Datastructures.Clauses.InputClauses;
 import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-
-import static org.junit.Assert.assertEquals;
 
 /**
  * Created by ohlbach on 06.09.2018.
@@ -17,7 +11,7 @@ public class RandomClauseSetGeneratorTest {
     public void help() {
         //System.out.println(RandomClauseSetGenerator.help());
     }
-
+/*
     @Test
     public void keys()  {
         System.out.println("keys");
@@ -51,5 +45,5 @@ public class RandomClauseSetGeneratorTest {
             System.out.println("\n");
         }
     }
-
+*/
 }

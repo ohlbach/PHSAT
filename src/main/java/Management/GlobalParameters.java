@@ -36,7 +36,7 @@ public class GlobalParameters {
 
     private static String loggingDefault = "life";
     /** life, none or file. */
-    public String logging = "life";
+    public String logging;
 
     /** for printing information about the working of the system, set by the QuSat instance. */
     public PrintStream logstream;
