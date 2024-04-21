@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 
 import static org.apache.commons.lang3.StringUtils.split;
 
@@ -41,14 +42,41 @@ public class QuSatJob {
     /** the end time in nanoseconds. */
     public long endTime;
 
+    private static int frameWidth = 500;
+    private static int frameHight = 400;
+    private static int locationX = 100;
+    private static int locationY = 100;
+
     /** the global control parameters. */
     public GlobalParameters globalParameters;
 
     /** the list of problem supervisors,one for each problem. */
     public ArrayList<ProblemSupervisor> problemSupervisors = new ArrayList<>();
 
-    /** the class which distributes the problems to the problem supervisors. */
-    public ProblemDistributor problemDistributor;
+    /**
+     * Sets the default values for the log-frame based on the provided hashmap.
+     *
+     * @param moduleValues the hashmap containing the module parameter values
+     */
+    public static void setDefaults(HashMap<String, ArrayList<String>> moduleValues) {
+        ArrayList<String> globalDefaults = moduleValues.get("logframe");
+        if(globalDefaults == null) {return;}
+        try{
+        for(String line : globalDefaults) {
+            String[] parts = line.split("\\s*=\\s*");
+            if(parts.length != 2) {continue;}
+            String variable = parts[0];
+            String value = parts[1];
+            switch(variable.toLowerCase()) {
+                case "width":     frameWidth = Integer.parseInt(value); break;
+                case "hight":     frameHight = Integer.parseInt(value); break;
+                case "locationx": locationX = Integer.parseInt(value); break;
+                case "locationy": locationY = Integer.parseInt(value); break;
+            }}}
+        catch(NumberFormatException e) {
+            System.err.println("Error parsing defaults for LogFrame:\n" + e);
+            System.exit(1);}}
+
 
 
     public QuSatJob(Parameters globalParameters, ArrayList<Parameters> generatorParameters, ArrayList<Parameters> solverParameters) {
@@ -88,7 +116,7 @@ public class QuSatJob {
                     logstream = new PrintStream(new FileOutputStream(jobdir)); break;
                 } catch (FileNotFoundException e) {e.printStackTrace(); System.exit(1);}
             case "Frame":
-                 logstream = ScrollableFrame.getPrintStream(500,400,100,100,"Logfile");}
+                 logstream = ScrollableFrame.getPrintStream(frameWidth, frameHight, locationX, locationY,"Logfile");}
         if(logstream != null) {
             logstream.println("Starting Logging for QuSat job " + globalParameters.jobName + "_" + globalParameters.version+
                     " at " + jobDate);

@@ -1,5 +1,5 @@
 global
-% the solver may extend the jobname with a version number
+ % the solver may extend the jobname with a version number
  jobname = Test
  logging = frame
  monitor = frame
@@ -8,7 +8,18 @@ global
 % either home/... or a full directory name
  directory = D:/SAT
 
+LogFrame
+width = 500
+hight = 400
+locationX = 100
+locationY = 100
+
+Pigeon Hole Generator
+pigeons = 4
+holes = 3
+capacity = <= 3
+
 Walker
- maxFlips = 0
- jumpFrequency = 10
+ maxFlips = 0   % 0 means no limit for the number of flips
+ jumpFrequency = 100a
  seed = 0

@@ -43,7 +43,7 @@ public abstract class ProblemGenerator {
             case "cnfreader":                return ProblemGenerators.CNFReader.class;
             case "randomclausesetgenerator": return ProblemGenerators.RandomClauseSetGenerator.class;
             case "pigeonholegenerator":      return ProblemGenerators.PigeonHoleGenerator.class;
-            case "PythagoraenTriples":       return ProblemGenerators.PythagoraenTriples.class;}
+            case "pythagoraentriples":       return ProblemGenerators.PythagoraenTriples.class;}
         return null;
     }
 

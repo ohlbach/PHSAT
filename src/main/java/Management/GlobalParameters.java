@@ -67,7 +67,6 @@ public class GlobalParameters {
 
     public static void setDefaults(HashMap<String, ArrayList<String>> moduleValues) {
         ArrayList<String> globalDefaults = moduleValues.get("global");
-        System.out.println("GL " + globalDefaults);
         if(globalDefaults == null) {return;}
         for(String line : globalDefaults) {
             String[] parts = line.split("\\s*=\\s*");

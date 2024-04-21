@@ -82,17 +82,20 @@ public class Walker extends Solver {
     private static final int trueLiteralScore = Integer.MIN_VALUE/2;
 
     public static void setDefaults(ArrayList<String> defaults) {
-        for(String line : defaults) {
-            String[] parts = line.split("\\s*=\\s*");
-            if(parts.length != 2) {continue;}
-            String variable = parts[0];
-            String value = parts[1];
-            switch(variable.toLowerCase()) {
-                case "maxflips": maxFlipsDefault = Integer.parseInt(value); break;
-                case "jumpfrequency": jumpFrequencyDefault = Integer.parseInt(value); break;
-                case "seed": seedDefault = Integer.parseInt(value); break;
-            }
-        }}
+        try{
+            for(String line : defaults) {
+                String[] parts = line.split("\\s*=\\s*");
+                if(parts.length != 2) {continue;}
+                String variable = parts[0];
+                String value = parts[1];
+                switch(variable.toLowerCase()) {
+                    case "maxflips":      maxFlipsDefault = Integer.parseInt(value); break;
+                    case "jumpfrequency": jumpFrequencyDefault = Integer.parseInt(value); break;
+                    case "seed":          seedDefault = Integer.parseInt(value); break;
+                }}}
+        catch(NumberFormatException e) {
+            System.err.println("Error in defaults for Walker:\n" + e);
+            System.exit(1);}}
 
     public static Parameters makeParameter() {
         Parameters parameters = new Parameters("Walker");

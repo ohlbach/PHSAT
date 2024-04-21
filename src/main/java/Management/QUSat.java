@@ -31,29 +31,42 @@ import java.util.HashMap;
  */
 public class QUSat {
 
+    /** the name of the Default-file */
+    private static String defaultFile = "DefaultParameters.phs";
 
     public static void  main(String[] args)  {
         HashMap<String, ArrayList<String>> moduleValues = loadDefaults();
+        QuSatJob.setDefaults(moduleValues);
         GlobalParameters.setDefaults(moduleValues);
         ProblemGenerators.ProblemGenerator.setDefaults(moduleValues);
         Solvers.Solver.setDefaults(moduleValues);
         Frame.openFrame();
     }
 
+    /** This method is used to load the default parameters from the default file into a HashMap.
+     *
+     * The file may contain groups of lines with strings parameter = value<br>
+     * The groups are indicated by module names like 'global', 'logFrame' etc.<br>
+     * The module names may have upper- and lower-case letters and blanks.<br>
+     * The module names are normalized to lower-case letters and blanks are removed.
+     *
+     * @return A HashMap containing the default module values.
+     */
     private static HashMap<String, ArrayList<String>> loadDefaults() {
         HashMap<String, ArrayList<String>> moduleValues = new HashMap<>();
-        File file = Paths.get(System.getProperty("user.dir"), "src","main","resources","DefaultParameters.phs").toFile();
+        File file = Paths.get(System.getProperty("user.dir"), "src","main","resources",defaultFile).toFile();
         try {
             InputStream input = new FileInputStream(file);
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(input));
             String line;
             ArrayList<String> values = null;
             while( (line = bufferedReader.readLine()) != null ) {
+                if(line.contains("%"))line = line.substring(0,line.indexOf('%'));
                 line = line.trim();
-                if(line.isEmpty() || line.startsWith("%"))  continue;
+                if(line.isEmpty())  continue;
                 if(!line.contains("=")) {
                     values = new ArrayList<>();
-                    moduleValues.put(line.toLowerCase(), values);}
+                    moduleValues.put(line.toLowerCase().replaceAll("\\s+", ""), values);}
                 else values.add(line);}}
         catch(Exception e) {
             System.out.println(e.getMessage());

@@ -27,14 +27,55 @@ import static Utilities.Utilities.toArrayList;
  */
 public final class PigeonHoleGenerator extends ProblemGenerator {
 
+    /** the default value for the pigeons, to be overwritten by setDefaults */
+    private static int pigeonsDefault = 3;
+
     /** the number of pigeons */
     private final int pigeons;
 
+    /** the default value for the holes, to be overwritten by setDefaults */
+    private static int holesDefault = 3;
     /** the number of holes */
     private final int holes;
 
+    /** the default value for the capacity, to be overwritten by setDefaults */
+    private static Object[] capacityDefault = new Object[]{Quantifier.EXACTLY,1};
     /** the capacity of the holes [connective,amount] */
     private final Object[] capacity;
+
+
+    /**Sets the default values for the PigeonHoleGenerator.
+     *
+     * - pigeons<br>
+     * - holes<br>
+     * - capacity<br>
+     * The method is called in ProblemGenerator
+     *
+     * @param defaults the list of default values
+     * @return void
+     */
+    public static void setDefaults(ArrayList<String> defaults) {
+        if(defaults == null) {return;}
+        try{
+            StringBuilder errors = new StringBuilder();
+            for(String line : defaults) {
+                String[] parts = line.split("\\s*=\\s*",2);
+                if(parts.length != 2) {continue;}
+                String variable = parts[0];
+                String value = parts[1];
+                switch(variable.toLowerCase()) {
+                    case "pigeons":  pigeonsDefault  = Integer.parseInt(value); break;
+                    case "holes":    holesDefault    = Integer.parseInt(value) ; break;
+                    case "capacity": ArrayList<Object[]> caps = parseCapacity(value,errors);
+                        if(caps != null) capacityDefault = caps.get(0);
+                        if(!errors.isEmpty()) {
+                            System.err.println("Default Parameters for PigeonHoleGenerator");
+                            System.err.println(errors.toString());
+                            System.exit(1);}}}}
+        catch(NumberFormatException e) {
+            System.err.println("Error in default Parameters for PigeonHoleGenerator:\n"+e.getMessage());
+            System.exit(1);}
+    }
 
     /** creates the generator.
      *
@@ -54,17 +95,17 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
      * @return the created Parameters object
      */
     public static Parameters makeParameter() {
-        Parameter pigeons = new Parameter("Pigeons",Parameter.Type.String, "3",
+        Parameter pigeons = new Parameter("Pigeons",Parameter.Type.String, Integer.toString(pigeonsDefault),
                 IntArrayList.wrap(new int[]{3}),
                 "Number of pigeons (atleast 3)");
         pigeons.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,3,errors));
 
-        Parameter holes = new Parameter("Holes",Parameter.Type.String, "2",
+        Parameter holes = new Parameter("Holes",Parameter.Type.String, Integer.toString(holesDefault),
                 IntArrayList.wrap(new int[]{2}),
                 "Number of holes (atleast 2)");
         holes.setParser((String numbers, StringBuilder errors) ->  Utilities.parseIntRange(numbers,2,errors));
-        Parameter capacity = new Parameter("Capacity",Parameter.Type.String,"1",
-                parseCapacity("1",new StringBuilder()),
+        Parameter capacity = new Parameter("Capacity",Parameter.Type.String,
+                capacityDefault[0] + Integer.toString((Integer)capacityDefault[1]),capacityDefault,
                 "HoleCapacity, i.e. number of pigeons per hole.\n" +
                         "Comma separated: either [min,max] or < or <= amout or > or >= amount or just amount\n"+
                         "Examples: '2' (exactly 2) or '[1,2], 3' (either one or two, and exactly 3)\n"+
@@ -106,10 +147,11 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
     public static ArrayList<Object[]> parseCapacity(String capacity, StringBuilder errors) {
         ArrayList<Object[]> capacities = new ArrayList<>();
         capacity = capacity.trim();
-        try{int cap = Integer.parseInt(capacity);
+        try{
+            int cap = Integer.parseInt(capacity);
             capacities.add(new Object[]{Quantifier.EXACTLY, cap});
             return capacities;}
-        catch(NumberFormatException ignored) {}
+        catch(NumberFormatException ignore) {}
 
         String[] parts = capacity.split("\\s*,\\s*");
         int length = parts.length;
