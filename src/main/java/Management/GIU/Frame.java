@@ -271,16 +271,38 @@ public class Frame {
     private static JPanel createSolverPanel(ArrayList<Parameters> parameters) {
         JPanel solverPane = new JPanel();
         solverPane.setLayout(new BoxLayout(solverPane, BoxLayout.Y_AXIS));
-
-        for(Parameters p : parameters) {
+       for(Parameters p : parameters) {
             JLabel solverName = new JLabel(p.name);
+           solverName.setFont(new Font("Arial", Font.BOLD, 18));
             solverName.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     super.mouseClicked(e);
                     JOptionPane.showMessageDialog(null, p.description, "Description", JOptionPane.INFORMATION_MESSAGE);}});
+
             solverPane.add(solverName);
             for(Parameter parameter : p.parameters) {
+                JPanel panel = null;
+                switch(parameter.type) {
+                    case String: panel = textField(parameter,p);
+                        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                        solverPane.add(panel);
+                        break;
+                    case OneOf:  panel = oneOf(parameter);
+                        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                        solverPane.add(panel); break;
+                    case Button: panel = makeButton(parameter);
+                        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                        solverPane.add(panel); break;
+                    case Boolean: panel = bool(parameter);
+                        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                        solverPane.add(panel); break;
+                    case File: panel = filePanel(parameter);
+                        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                        solverPane.add(panel); break;
+                    case Directory: panel = directoryPanel(p,parameter);
+                        panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                        solverPane.add(panel); break;}
                 JPanel textField = textField(parameter,p);
                 textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, textField.getMinimumSize().height));
                 solverPane.add(textField);}
@@ -288,7 +310,7 @@ public class Frame {
         }
         return solverPane;}
 
-        public static JTabbedPane createGeneratorPanel(ArrayList<Parameters> parameters) {
+    public static JTabbedPane createGeneratorPanel(ArrayList<Parameters> parameters) {
         JTabbedPane tabpane = new JTabbedPane(JTabbedPane.TOP,JTabbedPane.SCROLL_TAB_LAYOUT );
         for(Parameters params : parameters) {
             JPanel parametersPanel = createParameterPanel(params.description,params);
@@ -387,6 +409,9 @@ public class Frame {
                 case OneOf:  panel = oneOf(parameter);
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                     parametersPanel.add(panel); break;
+                case Button: panel = makeButton(parameter);
+                    panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
+                    parametersPanel.add(panel); break;
                 case Boolean: panel = bool(parameter);
                     panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                     parametersPanel.add(panel); break;
@@ -432,6 +457,17 @@ public class Frame {
                 else parameter.value = textField.getText();}});
         textPanel.add(textField);
         return textPanel;
+    }
+
+    private static JPanel makeButton(Parameter parameter) {
+        JPanel buttonPanel = new JPanel(flowLayout);
+        JRadioButton button = new JRadioButton(parameter.name);
+        button.setHorizontalAlignment(SwingConstants.LEFT);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.addActionListener(e -> {
+            parameter.value = button.isSelected();});
+        buttonPanel.add(button);
+        return buttonPanel;
     }
 
     private static JPanel oneOf(Parameter parameter) {

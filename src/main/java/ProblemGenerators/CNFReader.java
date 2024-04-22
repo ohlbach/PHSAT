@@ -72,6 +72,9 @@ public final class CNFReader extends ProblemGenerator {
                  '=':  means exactly:      '= 2 p q r'   means exactly two of p,q,r are true.
                 No special symbol means 'or': 'p,q,r' means p or q or r""");
         Parameters parameters = new Parameters("CNF-Reader");
+        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+                "Select the Clause File Generator");
+        parameters.add(selected);
         parameters.add(file);
         parameters.setOperation((Parameters params, StringBuilder errors) -> {
             ArrayList<ProblemGenerator> generators = new ArrayList<>();
@@ -98,7 +101,7 @@ public final class CNFReader extends ProblemGenerator {
      * @param generators The list of problem generators to add the newly created generators to.
      */
     public static void makeProblemGenerators(Parameters parameters,ArrayList<ProblemGenerator> generators) {
-        Object files = parameters.parameters.get(0).value;
+        Object files = parameters.parameters.get(1).value;
         if(files != null) {
             for(File file :(ArrayList<File>)files)
                 generators.add(new CNFReader(file));}}

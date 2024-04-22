@@ -95,6 +95,9 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
      * @return the created Parameters object
      */
     public static Parameters makeParameter() {
+        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+                "Select the Pigeon Hole Clause Set Generator");
+
         Parameter pigeons = new Parameter("Pigeons",Parameter.Type.String, Integer.toString(pigeonsDefault),
                 IntArrayList.wrap(new int[]{3}),
                 "Number of pigeons (atleast 3)");
@@ -113,6 +116,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         capacity.setParser((String cap, StringBuilder errors) ->  {return parseCapacity(cap,errors);});
 
         Parameters parameters = new Parameters("PigeonHoles");
+        parameters.add(selected);
         parameters.add(pigeons);
         parameters.add(holes);
         parameters.add(capacity);
@@ -212,9 +216,9 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         IntArrayList holes = (IntArrayList) parameters.parameters.get(1).value;
         ArrayList capacities = (ArrayList) parameters.parameters.get(2).value;
         for (ArrayList<Object> p : (ArrayList<ArrayList>) Utilities.crossProduct(toArrayList(holes), toArrayList(pigeons), capacities)) {
-            int holesv = (int) p.get(0);
-            int pigeonsv = (int) p.get(1);
-            Object[] capacityv = (Object[]) p.get(2);
+            int holesv = (int) p.get(1);
+            int pigeonsv = (int) p.get(2);
+            Object[] capacityv = (Object[]) p.get(3);
             generators.add(new PigeonHoleGenerator(holesv, pigeonsv, capacityv));
         }
     }

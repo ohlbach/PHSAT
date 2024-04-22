@@ -22,7 +22,7 @@ public class Parameter {
      *  - Frame:  one of the choices in oneOf parameters: print output into a frame<br>
      *  - Boolean: a boolean choice.
      */
-    public enum Type {String,OneOf,Label,File,Directory,Frame,Boolean}
+    public enum Type {String,OneOf,Label,Button,File,Directory,Frame,Boolean}
     /** name of the parameter (displayed in the GUI)*/
     public String name;
     /** type of the parameter */

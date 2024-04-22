@@ -99,6 +99,9 @@ public class Walker extends Solver {
 
     public static Parameters makeParameter() {
         Parameters parameters = new Parameters("Walker");
+        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+                "Select the Walker Solver");
+        parameters.add(selected);
         Parameter maxFlips = new Parameter("MaxFlips", Parameter.Type.String, Integer.toString(maxFlipsDefault), maxFlipsDefault,
                 "The maximum number of flips at which the search is stopped.");
         maxFlips.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,1,errors));
@@ -124,9 +127,10 @@ public class Walker extends Solver {
      * @param walkers The list of walkers to add the newly created walkers to.
      */
     public static void makeSolvers(Parameters parameters,ArrayList<Solver> walkers) {
-        IntArrayList maxFlips =    (IntArrayList)parameters.parameters.get(0).value;
-        IntArrayList jumps =      (IntArrayList)parameters.parameters.get(1).value;
-        IntArrayList seeds =      (IntArrayList)parameters.parameters.get(2).value;
+        int i = 0;
+        IntArrayList maxFlips =    (IntArrayList)parameters.parameters.get(++i).value;
+        IntArrayList jumps =      (IntArrayList)parameters.parameters.get(++i).value;
+        IntArrayList seeds =      (IntArrayList)parameters.parameters.get(++i).value;
         int solverNumber = 0;
         for(ArrayList<Object> p : (ArrayList<ArrayList>)Utilities.crossProduct(toArrayList(maxFlips),toArrayList(jumps),toArrayList(seeds))) {
             int maxFlipsv = (int)p.get(0);

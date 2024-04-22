@@ -75,6 +75,7 @@ public abstract class ProblemGenerator {
     public static ArrayList<ProblemGenerator> makeGenerators(ArrayList<Parameters> parameterList) {
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
         for(Parameters parameters: parameterList) {
+            if(!(Boolean)parameters.parameters.get(0).value) continue;
             Class generatorClass = generatorClass(parameters.name);
             if(generatorClass == null) {
                 System.err.println("System Error: unknown Problem Generator: " + parameters.name);

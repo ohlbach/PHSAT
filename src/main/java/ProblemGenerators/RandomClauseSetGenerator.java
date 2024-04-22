@@ -117,6 +117,10 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      */
     public static Parameters makeParameter() {
         Parameters parameters = new Parameters("Randomly Generated Clauses");
+        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+                "Select the Random Clause Set Generator");
+        parameters.add(selected);
+
         Parameter predicates = new Parameter("Predicates",Parameter.Type.String, Integer.toString(predicatesDefault),
                 IntArrayList.wrap(new int[]{predicatesDefault}),
                 """
@@ -281,7 +285,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
      * @param generators The list of problem generators to add the newly created generators to.
      */
     public static void makeProblemGenerators(Parameters parameters,ArrayList<ProblemGenerator> generators) {
-        int i = -1;
+        int i = 0;
         IntArrayList predicates =  (IntArrayList)parameters.parameters.get(++i).value;
         ArrayList<Object> lengths =(ArrayList)parameters.parameters.get(++i).value;
         boolean redundant       = (Boolean)parameters.parameters.get(++i).value;

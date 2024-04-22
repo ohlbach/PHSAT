@@ -77,6 +77,9 @@ public class PythagoraenTriples extends ProblemGenerator{
      * @return a Parameters object containing the required parameters and their configurations.
      */
     public static Parameters makeParameter() {
+        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+                "Select the Pythagoraen Set Generator");
+
         Parameter minimum = new Parameter("Smallest Number",Parameter.Type.String, Integer.toString(minimumDefault),minimumDefault,
                 "smallest z with x^2 + y^2 = z^2");
         minimum.setParser((String min, StringBuilder errors) ->  {
@@ -90,6 +93,7 @@ public class PythagoraenTriples extends ProblemGenerator{
             IntArrayList range = Utilities.parseIntRange(numbers,errors);
             return range;});
         Parameters parameters = new Parameters("PTriples");
+        parameters.add(selected);
         parameters.add(minimum);
         parameters.add(maximum);
         parameters.setDescription("""
@@ -111,8 +115,8 @@ public class PythagoraenTriples extends ProblemGenerator{
                 A model for the clauses indicates a possible colouring.""");
 
         parameters.setFinalCheck((Parameters params, StringBuilder errors) -> {
-            Parameter smallest = params.parameters.get(0);
-            Parameter largest = params.parameters.get(1);
+            Parameter smallest = params.parameters.get(1);
+            Parameter largest = params.parameters.get(2);
             if(smallest.value == null || largest.value == null) {return true;}
             int mi = (Integer) smallest.value;
             int ma = ((IntArrayList) largest.value).getInt(0);
@@ -178,8 +182,8 @@ public class PythagoraenTriples extends ProblemGenerator{
     public static void makeProblemGenerator(Parameters parameters,
                                             ArrayList<ProblemGenerator> generators) {
         assert parameters != null;
-        int smallest = (int)parameters.parameters.get(0).value;
-        IntArrayList largest = (IntArrayList)parameters.parameters.get(1).value;
+        int smallest = (int)parameters.parameters.get(1).value;
+        IntArrayList largest = (IntArrayList)parameters.parameters.get(2).value;
         for(int maximum : largest)
             generators.add(new PythagoraenTriples(smallest,maximum));}
 

@@ -77,6 +77,7 @@ public abstract class Solver {
     public static ArrayList<Solver> makeSolvers(ArrayList<Parameters> parameterList) {
         ArrayList<Solver> solvers = new ArrayList<>();
         for(Parameters parameters: parameterList) {
+            if(!(Boolean)parameters.parameters.get(0).value) continue;
             Class solverClass = solverClass(parameters.name);
             if(solverClass == null) {
                 System.err.println("System Error: unknown solver: " + parameters.name);
