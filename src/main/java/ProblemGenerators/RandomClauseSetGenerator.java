@@ -7,7 +7,9 @@ import Management.Parameters;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Random;
 
 import static Utilities.Utilities.toArrayList;
 import static java.lang.Boolean.parseBoolean;
@@ -93,8 +95,7 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
                     case "seed":        seedDefault        = Integer.parseInt(value); break;
                     case "predicates":  predicatesDefault  = Integer.parseInt(value); break;
                     case "redundant":   redundantDefault   = parseBoolean(value);     break;
-                    case "lengths":     ArrayList<int[]> lengths = parseLength(value,errors);
-                                        if(lengths != null) lengthDefault = lengths.get(0);break;
+                    case "lengths":     lengthDefault = parseLength(value,errors).get(0);break;
                     case "ors":         orsDefault         = Integer.parseInt(value); break;
                     case "ands":        andsDefault        = Integer.parseInt(value); break;
                     case "equivs":      equivsDefault      = Integer.parseInt(value); break;
@@ -136,10 +137,9 @@ public class RandomClauseSetGenerator extends ProblemGenerator {
         predicates.setParser((String rangeString, StringBuilder errors) -> Utilities.parseIntRange(rangeString,1,errors));
         parameters.add(predicates);
 
-        String lengthStrings = (lengthDefault[0] == lengthDefault[1]) ?
-                Integer.toString(lengthDefault[0]) : lengthDefault[0]+"-"+lengthDefault[1];
-        Parameter length = new Parameter("Length", Parameter.Type.String, lengthStrings,
-                lengthDefault,
+        String lengthStrings = Parameter.valueString(lengthDefault);
+        ArrayList<int[]> le = new ArrayList<>(); le.add(lengthDefault);
+        Parameter length = new Parameter("Length", Parameter.Type.String, lengthStrings,le,
                 "Length of clauses: length or min-max (atleast 1)\n"+
                 "Examples: 3 (3 literals in a clause), 2-3 (2 or 3 literals in a clause). ");
         length.setParser((String lengthString, StringBuilder errors) -> parseLength(lengthString,errors));

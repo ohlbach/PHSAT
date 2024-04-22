@@ -133,16 +133,15 @@ public class QuSatJob {
      */
     private void openLogging(GlobalParameters globalParameters) {
         PrintStream logstream = null;
-        System.out.println("LOGGING");
-        switch(globalParameters.logging) {
-            case "None": return;
-            case "Life":  logstream = System.out; break;
-            case "File":
+        switch(globalParameters.logging.toLowerCase()) {
+            case "none": return;
+            case "life":  logstream = System.out; break;
+            case "file":
                 try {
                     File jobdir = Paths.get(globalParameters.jobDirectory.toString(),"Logfile").toFile();
                     logstream = new PrintStream(new FileOutputStream(jobdir)); break;
                 } catch (FileNotFoundException e) {e.printStackTrace(); System.exit(1);}
-            case "Frame":
+            case "frame":
                  logstream = ScrollableFrame.getPrintStream(frameWidth, frameHight, offsetX, offsetY,"Logfile");}
         if(logstream != null) {
             logstream.println("Starting Logging for QuSat job " + globalParameters.jobName + "_" + globalParameters.version+

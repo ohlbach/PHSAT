@@ -39,7 +39,8 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
     private final int holes;
 
     /** the default value for the capacity, to be overwritten by setDefaults */
-    private static Object[] capacityDefault = new Object[]{Quantifier.EXACTLY,1};
+    private static ArrayList<Object[]> capacityDefault = new ArrayList<>();
+    static {capacityDefault.add(new Object[]{Quantifier.EXACTLY,1});}
     /** the capacity of the holes [connective,amount] */
     private final Object[] capacity;
 
@@ -66,8 +67,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
                 switch(variable.toLowerCase()) {
                     case "pigeons":  pigeonsDefault  = Integer.parseInt(value); break;
                     case "holes":    holesDefault    = Integer.parseInt(value) ; break;
-                    case "capacity": ArrayList<Object[]> caps = parseCapacity(value,errors);
-                        if(caps != null) capacityDefault = caps.get(0);
+                    case "capacity": capacityDefault = parseCapacity(value,errors);
                         if(!errors.isEmpty()) {
                             System.err.println("Default Parameters for PigeonHoleGenerator");
                             System.err.println(errors.toString());
@@ -108,14 +108,14 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
                 "Number of holes (atleast 2)");
         holes.setParser((String numbers, StringBuilder errors) ->  Utilities.parseIntRange(numbers,2,errors));
         Parameter capacity = new Parameter("Capacity",Parameter.Type.String,
-                capacityDefault[0] + Integer.toString((Integer)capacityDefault[1]),capacityDefault,
+                capacityString(capacityDefault.get(0)),capacityDefault,
                 "HoleCapacity, i.e. number of pigeons per hole.\n" +
                         "Comma separated: either [min,max] or < or <= amout or > or >= amount or just amount\n"+
                         "Examples: '2' (exactly 2) or '[1,2], 3' (either one or two, and exactly 3)\n"+
                         "Each alternative generates a new clause set.");
         capacity.setParser((String cap, StringBuilder errors) ->  {return parseCapacity(cap,errors);});
 
-        Parameters parameters = new Parameters("PigeonHoles");
+        Parameters parameters = new Parameters("Pigeon Hole Generator");
         parameters.add(selected);
         parameters.add(pigeons);
         parameters.add(holes);
@@ -212,13 +212,14 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
      * @param generators The list of problem generators to add the newly created generators to.
      */
     public static void makeProblemGenerators(Parameters parameters, ArrayList<ProblemGenerator> generators) {
-        IntArrayList pigeons = (IntArrayList) parameters.parameters.get(0).value;
-        IntArrayList holes = (IntArrayList) parameters.parameters.get(1).value;
-        ArrayList capacities = (ArrayList) parameters.parameters.get(2).value;
+        int i = 0;
+        IntArrayList pigeons = (IntArrayList) parameters.parameters.get(++i).value;
+        IntArrayList holes = (IntArrayList) parameters.parameters.get(++i).value;
+        ArrayList capacities = (ArrayList) parameters.parameters.get(++i).value;
         for (ArrayList<Object> p : (ArrayList<ArrayList>) Utilities.crossProduct(toArrayList(holes), toArrayList(pigeons), capacities)) {
-            int holesv = (int) p.get(1);
-            int pigeonsv = (int) p.get(2);
-            Object[] capacityv = (Object[]) p.get(3);
+            int holesv = (int) p.get(0);
+            int pigeonsv = (int) p.get(1);
+            Object[] capacityv = (Object[]) p.get(2);
             generators.add(new PigeonHoleGenerator(holesv, pigeonsv, capacityv));
         }
     }
