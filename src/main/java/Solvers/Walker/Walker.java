@@ -102,17 +102,20 @@ public class Walker extends Solver {
         Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
                 "Select the Walker Solver");
         parameters.add(selected);
-        Parameter maxFlips = new Parameter("MaxFlips", Parameter.Type.String, Integer.toString(maxFlipsDefault), maxFlipsDefault,
+        Parameter maxFlips = new Parameter("MaxFlips", Parameter.Type.String, Integer.toString(maxFlipsDefault),
+                IntArrayList.wrap(new int[]{maxFlipsDefault}),
                 "The maximum number of flips at which the search is stopped.");
         maxFlips.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,1,errors));
         parameters.add(maxFlips);
 
-        Parameter jumps = new Parameter("Jump Frequency", Parameter.Type.String, Integer.toString(jumpFrequencyDefault), jumpFrequencyDefault,
+        Parameter jumps = new Parameter("Jump Frequency", Parameter.Type.String, Integer.toString(jumpFrequencyDefault),
+                IntArrayList.wrap(new int[]{jumpFrequencyDefault}),
                 "Random flips are performed in this frequency");
         jumps.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,2,errors));
         parameters.add(jumps);
 
-        Parameter seed = new Parameter("Seed", Parameter.Type.String, "0", 0,
+        Parameter seed = new Parameter("Seed", Parameter.Type.String, Integer.toString(seedDefault),
+                IntArrayList.wrap(new int[]{seedDefault}),
                 "The seed for the random number generator");
         seed.setParser((String pigeonString, StringBuilder errors) ->  Utilities.parseIntRange(pigeonString,0,errors));
         parameters.add(seed);
@@ -639,7 +642,7 @@ public class Walker extends Solver {
             case "predicates"   -> predicatesWithPositiveScore.toString(symboltable);
             case "flipscores"   -> flipScoresToString(symboltable);
             case "model"        -> localModelToString(symboltable);
-            case "statistic"    -> statistics.toString();
+            case "statistic"    -> statistics == null ? "null" : statistics.toString();
             default -> "Versions: clauses,falseClauses,literals,predicates,flipscores,model,statistic";
         };
     }
@@ -652,7 +655,7 @@ public class Walker extends Solver {
         return "Random Walker " + solverId + " on Problem " + problemId + "\n" +
                 "Parameters:\n" +
                 "  seed:  " + seed + "\n" +
-                "  flips: " + statistics.flips + " of " + maxFlips + "\n" +
+                "  flips: " + ((statistics == null) ? "0" : statistics.flips) + " of " + maxFlips + "\n" +
                 "  jumps: " + jumpFrequency + "\n";}
 
     /** collects the clauses as a string.

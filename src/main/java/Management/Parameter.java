@@ -119,7 +119,7 @@ public class Parameter {
      * @param value the value to convert to a string representation.
      * @return a string representation of the given value.
      */
-    private String valueString(Object value) {
+    private static String valueString(Object value) {
         if (value == null) {return "null";}
         if(value instanceof ArrayList) {
             StringBuilder sb = new StringBuilder();
@@ -127,6 +127,16 @@ public class Parameter {
                 sb.append(valueString(v)).append(", ");}
             sb.delete(sb.length() - 2, sb.length());
             return sb.toString();}
+
+        if(value instanceof int[]) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("[");
+            for (Object v : (int[]) value) {
+                sb.append(valueString(v)).append(", ");}
+            sb.delete(sb.length() - 2, sb.length());
+            sb.append("]");
+            return sb.toString();}
+
         if(value.getClass().isArray()) {
             StringBuilder sb = new StringBuilder();
             sb.append("[");
@@ -138,6 +148,12 @@ public class Parameter {
         return value.toString();
         }
 
+        public static void main(String[] args) {
+          int[] a = new int[]{1,2,3,4,5};
+          ArrayList<int[]> b = new ArrayList<>();
+          b.add(a);b.add(a);
+            System.out.println(valueString(b));
+        }
 
 
 

@@ -303,9 +303,7 @@ public class Frame {
                     case Directory: panel = directoryPanel(p,parameter);
                         panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, panel.getMinimumSize().height));
                         solverPane.add(panel); break;}
-                JPanel textField = textField(parameter,p);
-                textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, textField.getMinimumSize().height));
-                solverPane.add(textField);}
+                 }
             solverPane.add(Box.createVerticalStrut(50));
         }
         return solverPane;}
@@ -465,7 +463,7 @@ public class Frame {
         button.setHorizontalAlignment(SwingConstants.LEFT);
         button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         button.addActionListener(e -> {
-            parameter.value = button.isSelected();});
+            parameter.value = button.isSelected(); parameter.valueString = "true";});
         buttonPanel.add(button);
         return buttonPanel;
     }

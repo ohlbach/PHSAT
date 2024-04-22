@@ -86,7 +86,7 @@ public abstract class Solver {
                 Method makeSolver = solverClass.getMethod("makeSolvers",Parameters.class,ArrayList.class);
                 makeSolver.invoke(null,parameters,solvers);}
             catch(Exception ex) {
-                System.err.println("System Error: unknown method: makeSolvers");
+                System.err.println("System Error: unknown method: makeSolvers\n" + ex.getMessage());
                 ex.printStackTrace();System.exit(1);}}
         return solvers;}
 

@@ -14,6 +14,7 @@ public class ScrollableFrame  extends JFrame {
     public PrintStream printStream = null;
 
     public ScrollableFrame(int width, int height, int locationX, int locationY, String title) {
+        System.out.println("SCROLLABLE FRAME");
         // Create a JTextArea
         textArea = new JTextArea();
         // Wrap it in a JScrollPane

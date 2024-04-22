@@ -39,7 +39,7 @@ public abstract class ProblemGenerator {
      * @return the solver class, or null
      */
     public static Class generatorClass(String name) {
-        switch(name.toLowerCase()) {
+        switch(name.toLowerCase().replaceAll("\\s+","")) {
             case "cnf-reader":
             case "cnfreader":                return ProblemGenerators.CNFReader.class;
             case "randomclausesetgenerator": return ProblemGenerators.RandomClauseSetGenerator.class;
@@ -84,7 +84,7 @@ public abstract class ProblemGenerator {
                 Method makeGenerator = generatorClass.getMethod("makeProblemGenerators",Parameters.class,ArrayList.class);
                 makeGenerator.invoke(null,parameters,generators);}
             catch(Exception ex) {
-                System.err.println("System Error: unknown method: makeProblemGenerators");
+                System.err.println("System Error: makeProblemGenerators\n" + ex);
                 ex.printStackTrace();System.exit(1);}}
         return generators;}
 

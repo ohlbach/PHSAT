@@ -24,9 +24,9 @@ minimum = 5
 maximum = 20
 
 Random Clause Set Generator
-predicates = 100
+predicates = 10
 lengths = 3
-ors = 430
+ors = 30
 
 Walker
  maxFlips = 0   % 0 means no limit for the number of flips
