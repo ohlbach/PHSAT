@@ -47,13 +47,12 @@ public class ProblemSupervisor {
     public Model model;
     private ArrayList<Solver> solvers;
 
+    public Monitor monitor;
 
     public SupervisorStatistics statistics = null;
     private ProblemGenerator problemGenerator;
 
     private boolean trackReasoning;
-
-    public Monitor monitor;
 
     public QuSatJob quSatJob;
 
@@ -91,12 +90,20 @@ public class ProblemSupervisor {
             problemId = inputClauses.problemId;
             clauseCounter = inputClauses.nextId-1;
             if(errors.length() > 1) {
-                System.out.println("Error when reading/generating problem '" + problemId + "'");
-                System.out.println(errors);
-                System.out.println(problemGenerator.toString());
-                System.out.println("System is aborted.");
+                System.err.println("Error when reading/generating problem '" + problemId + "'");
+                System.err.println(errors);
+                System.err.println(problemGenerator.toString());
+                System.err.println("System is aborted.");
                 System.exit(1);}
-            monitor   = quSatJob.getMonitor(problemId);
+            monitor = Monitor.getMonitor(problemId, globalParameters.monitor.toLowerCase(),
+                    globalParameters.jobDirectory,1,1000,150,startTime);
+            try {
+                // Pause for 5 seconds
+                Thread.sleep(15000);
+            } catch (InterruptedException e){
+                // Handle exception
+                e.printStackTrace();
+            }
             if(!globalParameters.cnfFile.equals("none")) inputClauses.makeCNFFile(globalParameters.jobDirectory,true);
             if(globalParameters.logstream != null) {
                 boolean infoOnly = !globalParameters.showClauses;
@@ -119,6 +126,7 @@ public class ProblemSupervisor {
         if(globalParameters.logstream != null) {
             long time = System.nanoTime() - startTime;
             globalParameters.logstream.println("Solvers finished the problem " + problemId +" in " + Utilities.duration(time));}}
+
 
 
     /** This method is called to indicate that they have done their job or gave up.

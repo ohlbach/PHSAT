@@ -15,7 +15,8 @@ public class MonitorLife extends Monitor {
      * @param title for identifying the monitor.
      */
     public MonitorLife(String title, long startTime) {
-        super(title,startTime);}
+        super(title,startTime);
+        System.out.println("Monitor for " + title + " @ " + startTime + " ns");}
 
     /** prints the id and the elapsed time followed by the messages to a single line.
      *

@@ -1,10 +1,15 @@
 package Management.Monitor;
 
+import Management.GIU.ScrollableFrame;
+
 import javax.swing.*;
+import java.io.PrintStream;
 
 /** This class implements a monitor which prints to a JFrame.
  */
 public class MonitorFrame extends Monitor {
+
+    PrintStream printStream;
     /** the JFrame. */
     private JFrame frame;
 
@@ -20,27 +25,14 @@ public class MonitorFrame extends Monitor {
      * @param title      a title for the monitor.
      * @param startTime  the start time or the job.
      * @param width      of the frame
-     * @param height     of the frame
+     * @param hight     of the frame
      * @param xOffset    x-offset of the left upper corner
      * @param yOffset    y-offset of the left upper corner
      */
 
-    public MonitorFrame(String title, long startTime, int width, int height, int xOffset, int yOffset) {
+    public MonitorFrame(String title, long startTime, int width, int hight, int xOffset, int yOffset) {
         super(title, startTime);
-        frame = new JFrame(title);
-        frame.setSize(width,height);
-        frame.setVisible(true);
-        frame.setLocation(xOffset,yOffset);
-        frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        area = new JTextArea("",20,50);
-        area.setLineWrap(true);
-        JScrollPane scroll = new JScrollPane(area);
-        scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
-        frame.getContentPane().add(scroll);
-        frame.pack();
-        frame.setVisible(true);
-        area.append("Monitor for " + title + ":\n");
+        printStream = ScrollableFrame.getPrintStream(width, hight, xOffset, yOffset,title);
     }
 
     /** prints the messages into a single line.
@@ -50,11 +42,9 @@ public class MonitorFrame extends Monitor {
      */
     @Override
     public void print(String id, String... messages) {
-        double time = (double)(System.nanoTime() - startTime)/1000.0;
-        frame.setVisible(true);
-        area.append(id);  area.append(" @ "); area.append(Double.toString(time));   area.append(" μs: ");
-        for(String message: messages) area.append(message);
-        area.append("\n");}
+        long time = System.nanoTime() - startTime;
+        printStream.printf(time + " ns: ");
+        for(String message: messages) printStream.printf(message);}
 
     /** prints the messages one per line.
      *
@@ -63,18 +53,17 @@ public class MonitorFrame extends Monitor {
      */
     @Override
     public void println(String id, String... messages) {
-        double time = (double)(System.nanoTime() - startTime)/1000.0;
-        frame.setVisible(true);
-        area.append(id); area.append(" @ "); area.append(Double.toString(time));   area.append(" μs:\n");
-        for(String message: messages) {area.append(message);area.append("\n");}
-        }
+        long time = System.nanoTime() - startTime;
+        printStream.printf(time + " ns: ");
+        for(String message: messages) printStream.println(message);}
+
 
     /** prints just the message.
      *
      * @param message the messages themselves.
      */
     public void println(String message) {
-        area.append(message);area.append("\n");};
+        printStream.println(message);};
 
     /** prints the messages one per line.
      *
@@ -83,10 +72,7 @@ public class MonitorFrame extends Monitor {
      */
     @Override
     public void print(String id, StringBuilder messages) {
-        double time = (double)(System.nanoTime() - startTime)/1000.0;
-        frame.setVisible(true);
-        area.append(id); area.append(" @ "); area.append(Double.toString(time));   area.append(" μs: ");
-        area.append(messages.toString());area.append("\n");}
+        print(id, messages.toString());}
 
 
     /** does nothing*/
