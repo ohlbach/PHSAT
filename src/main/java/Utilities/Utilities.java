@@ -1314,6 +1314,15 @@ public class Utilities {
         for(int i : list) intList.add(i);
         return intList;}
 
+    /**
+     * Pauses the execution of the current thread for the specified amount of time.
+     *
+     * @param time the amount of time, in milliseconds, to wait
+     */
+    public static void wait(int time) {
+        try{Thread.sleep(time);}
+        catch(Exception ignore) {}}
+
     public static void  main(String[] args) {
         IntArrayList a = new IntArrayList();
         a.add(3); a.add(6); a.add(7); a.add(8); a.add(10);a.add(11);a.add(12);a.add(13);a.add(15);a.add(16);a.add(19);

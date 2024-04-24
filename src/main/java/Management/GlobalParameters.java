@@ -51,7 +51,7 @@ public class GlobalParameters {
     public boolean showClauses = false;
 
     /** enables printing the clauses to a cnf-file */
-    public String cnfFile = "none";
+    public String cnfFileSymbols = "none";
 
     private static boolean trackReasoningDefault = false;
 
@@ -140,16 +140,16 @@ public class GlobalParameters {
         logging.parameters.add(new Parameter("Frame",Parameter.Type.Frame,null, null));
         parameters.add(logging);
 
-        Parameter CNFFile = new Parameter("CNFFile",Parameter.Type.OneOf,"none",
+        Parameter cnfFileSymbols = new Parameter("CNFFile",Parameter.Type.OneOf,"none",
                 "Specifies the form of the CNFFile for the clauses.\n"+
                         " None:         No output to a CNFFile.\n"+
                         " Symboltable:  Output using a symboltable, if available.\n"+
                         " Numbers:      Output using numbers for the predicates.");
-        CNFFile.parameters = new Parameters("CNFFile");
-        CNFFile.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
-        CNFFile.parameters.add(new Parameter("Symboltable",Parameter.Type.Label,null, null));
-        CNFFile.parameters.add(new Parameter("Numbers",Parameter.Type.File,null, null));
-        parameters.add(CNFFile);
+        cnfFileSymbols.parameters = new Parameters("CNFFile");
+        cnfFileSymbols.parameters.add(new Parameter("None",Parameter.Type.Label,null, null));
+        cnfFileSymbols.parameters.add(new Parameter("Symboltable",Parameter.Type.Label,null, null));
+        cnfFileSymbols.parameters.add(new Parameter("Numbers",Parameter.Type.File,null, null));
+        parameters.add(cnfFileSymbols);
 
         Parameter statistics = new Parameter("statistics",Parameter.Type.OneOf,statisticDefault,
                 "Specifies the target for statistics.\n"+
@@ -173,7 +173,7 @@ public class GlobalParameters {
         jobDirectory = (Path)(globalParams.parameters.get(1).value);
         monitor      = (String)(globalParams.parameters.get(2).value);
         logging      = (String)(globalParams.parameters.get(3).value);
-        cnfFile      = (String)(globalParams.parameters.get(4).value);
+        cnfFileSymbols = (String)(globalParams.parameters.get(4).value);
         statistic    = (String)(globalParams.parameters.get(5).value);
         trackReasoning = (Boolean)(globalParams.parameters.get(6).value);
         version      = findVersion();
@@ -204,7 +204,7 @@ public class GlobalParameters {
                 "  logging:            " + logging +"\n" +
                 "  monitor:            " + (monitor == null ? "null" : monitor) +"\n"+
                 "  showClauses:        " + showClauses+"\n"+
-                "  cnfFile:            " + cnfFile+"\n"+
+                "  cnfFile:            " + cnfFileSymbols +"\n"+
                 "  statistic:          " + statistic + "\n" +
                 "  trackReasoning:     " + trackReasoning;}
 

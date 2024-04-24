@@ -70,6 +70,25 @@ public enum Quantifier {
             case "i":  return INTERVAL;}
         return null;}
 
+    /**
+     * Returns the ASCII representation of the given Quantifier.
+     *
+     * @param quantifier the quantifier to get the ASCII representation of
+     * @return the ASCII representation of the given quantifier
+     */
+    public static String asciiName(Quantifier quantifier) {
+        switch(quantifier) {
+            case OR:       return "o";
+            case AND:      return "a";
+            case EQUIV:    return "eq";
+            case ATMOST:   return "le";
+            case ATLEAST:  return "ge";
+            case EXACTLY:  return "ex";
+            case INTERVAL: return "i";}
+        return null;}
+
+
+
     /** checks if the ordinal is the Interval connective.
      *
      * @param ordinal any integer

@@ -13,8 +13,8 @@ import Solvers.Solver;
 import Utilities.Utilities;
 
 import java.io.PrintStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.function.Supplier;
 
 /** A problem supervisor solves a single problem by using several cooperating solvers in parallel threads.
@@ -29,10 +29,7 @@ public class ProblemSupervisor {
     public InputClauses inputClauses;
     /** the global parameters. */
     public GlobalParameters globalParameters;
-    /** the problem parameters.*/
-    public HashMap<String,Object> problemParameters;
-    /** the solver parameters. */
-    public ArrayList<HashMap<String,Object>> solverParameters;
+
     /** the final result */
     public Result result = null;
 
@@ -97,20 +94,18 @@ public class ProblemSupervisor {
                 System.exit(1);}
             monitor = Monitor.getMonitor(problemId, globalParameters.monitor.toLowerCase(),
                     globalParameters.jobDirectory,1,1000,150,startTime);
-            try {
-                // Pause for 5 seconds
-                Thread.sleep(15000);
-            } catch (InterruptedException e){
-                // Handle exception
-                e.printStackTrace();
+
+            if(!globalParameters.cnfFileSymbols.equals("None")) {
+                Path path = inputClauses.makeCNFFile(globalParameters.jobDirectory,true);
+                if(globalParameters.logstream != null) {globalParameters.logstream.println("Clauses printed to file " + path.toString()); }
             }
-            if(!globalParameters.cnfFile.equals("none")) inputClauses.makeCNFFile(globalParameters.jobDirectory,true);
-            if(globalParameters.logstream != null) {
-                boolean infoOnly = !globalParameters.showClauses;
-                globalParameters.logstream.println(inputClauses.toString(inputClauses.symboltable,infoOnly));}
             model = new Model(inputClauses.predicates);
             normalizer = new Normalizer(this);
             Result result = normalizer.normalizeClauses(0);
+            System.out.println(normalizer.toString(null));
+            System.out.println(normalizer.statistics.toString());
+
+            Utilities.wait(15000);System.exit(1);
             if(result != null)  {finished(result); return;}
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];

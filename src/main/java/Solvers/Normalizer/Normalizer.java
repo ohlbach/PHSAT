@@ -70,7 +70,7 @@ public class Normalizer {
     public boolean trackReasoning;
 
     /**the normalizer statistics */
-    NormalizerStatistics statistics;
+    public NormalizerStatistics statistics;
 
     /** the current thread*/
     public final Thread myThread;
@@ -594,6 +594,8 @@ public class Normalizer {
             sb.append(clause.toString(symboltable,size));
             if(clause != clauses.lastLinkedItem) sb.append("\n");
             clause = (Clause)clause.nextItem;}
+
+         if(!singletons.isEmpty()) {sb.append("\n\n").append(singletonsToString(symboltable));}
         return sb.toString();
     }
 

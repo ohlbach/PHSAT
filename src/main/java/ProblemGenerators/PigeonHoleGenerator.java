@@ -248,7 +248,7 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         Quantifier quantifier = (Quantifier)capacity[0];
         String problemName = "PH_p"+pigeons+"_h"+holes;
         int min=0, max=0, amount=0;
-        String capcity = capacityString(capacity);
+        String capcity = capacityASCIIString(capacity);
         problemName += "_c"+capcity;
         if(quantifier == Quantifier.INTERVAL) {
             Interval interval = (Interval)capacity[1];
@@ -298,14 +298,21 @@ public final class PigeonHoleGenerator extends ProblemGenerator {
         return inputClauses;
     }
 
+    /** turns the capacity into an ASCII string */
+    private static String capacityASCIIString(Object[] capacity) {
+        Quantifier quantifier = (Quantifier)capacity[0];
+        if(quantifier == Quantifier.INTERVAL) {
+            Interval interval = (Interval)capacity[1];
+            return "i" + interval.min + "_" + interval.max;}
+        else return quantifier.asciiName(quantifier)+(int)capacity[1];}
+
     /** turns the capacity into a string */
     private static String capacityString(Object[] capacity) {
         Quantifier quantifier = (Quantifier)capacity[0];
         if(quantifier == Quantifier.INTERVAL) {
             Interval interval = (Interval)capacity[1];
-            return "[" + interval.min + "," + interval.max +"]";}
+            return "[" + interval.min + "," + interval.max+"]";}
         else return quantifier.abbreviation+(int)capacity[1];}
-
 
     /** a string representation of the parameters
      *
