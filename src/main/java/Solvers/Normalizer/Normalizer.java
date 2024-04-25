@@ -124,6 +124,7 @@ public class Normalizer {
         predicates             = problemSupervisor.inputClauses.predicates;
         monitorId              = "Normalizer_"+ problemId;
         myThread               = Thread.currentThread();
+        System.out.println("TR " + trackReasoning);
     }
 
     /** reads the next task from the task queue and processes it.
@@ -241,11 +242,11 @@ public class Normalizer {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
-        Clause clause = new Clause(inputClause,trackReasoning,monitor,symboltable);
-        if(clause.quantifier == Quantifier.AND) {makeTrueLiteralTask(clause); return;} // unit clause
+        Clause clause = new Clause(inputClause,trackReasoning,statistics, monitor,symboltable);
+        if(clause.quantifier == Quantifier.AND) {makeTrueLiteralTask(clause); return;}
         if(clause.isTrue) {++statistics.removedClauses; return;}
         if(clause.isFalse) throw new UnsatClause(problemId,solverId, startTime,clause.inputClause);
-        Clause conjunction = clause.simplify(trackReasoning,monitor,symboltable);
+        Clause conjunction = clause.simplify(trackReasoning,statistics, monitor,symboltable);
         if(conjunction != null) makeTrueLiteralTask(conjunction);
         if(clause.isTrue || clause.quantifier == Quantifier.AND) {++statistics.removedClauses; return;}
         if(clause.isFalse) throw new UnsatClause(problemId,solverId,startTime, clause.inputClause);
@@ -268,7 +269,7 @@ public class Normalizer {
                     for(int i = clausesArray.size()-1; i >= 0; --i) {
                         Clause clause = clausesArray.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunction = clause.applyTrueLiteral(literal,trackReasoning,monitor,symboltable);
+                        Clause conjunction = clause.applyTrueLiteral(literal,trackReasoning,statistics, monitor,symboltable);
                         if (conjunction != null) {makeTrueLiteralTask(conjunction);}
                         if(clause.isTrue || clause.quantifier == Quantifier.AND) {clauses.remove(clause); continue;}
                         if(clause.isFalse) throw new UnsatClause(problemId,solverId, startTime, clause);
@@ -330,7 +331,7 @@ public class Normalizer {
                     for(int i = clausesArray.size()-1; i >= 0; --i) {
                         Clause clause = clausesArray.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunction = clause.replaceEquivalentLiterals(representative,equivalentLiteral, step,trackReasoning,monitor,symboltable);
+                        Clause conjunction = clause.replaceEquivalentLiterals(representative,equivalentLiteral, step,trackReasoning,statistics,monitor,symboltable);
                         if (conjunction != null) {makeTrueLiteralTask(conjunction);}
                         if(clause.isTrue) {clauses.remove(clause); continue;}
                         if(clause.isFalse) throw new UnsatClause(problemId,solverId, startTime, clause);
@@ -452,7 +453,7 @@ public class Normalizer {
                     for(int i = causeList.size()-1; i >= 0; --i) {
                         Clause clause = causeList.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunct = clause.applyTrueLiteral(literal,trackReasoning,monitor,symboltable);
+                        Clause conjunct = clause.applyTrueLiteral(literal,trackReasoning,statistics,monitor,symboltable);
                         if(conjunct != null) makeTrueLiteralTask(conjunct);
                         if(clause.isTrue) {clauses.remove(clause); continue;}
                         if(clause.isFalse) throw new UnsatClause(problemId,solverId,startTime, clause);
@@ -470,7 +471,7 @@ public class Normalizer {
                     for(int i = causeList.size()-1; i >= 0; --i) {
                         Clause clause = causeList.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunct = clause.applyTrueLiteral(-literal,trackReasoning,monitor,symboltable);
+                        Clause conjunct = clause.applyTrueLiteral(-literal,trackReasoning,statistics,monitor,symboltable);
                         if(conjunct != null) makeTrueLiteralTask(conjunct);
                         if(clause.isTrue) {clauses.remove(clause); continue;}
                         if(clause.isFalse) throw new UnsatClause(problemId,solverId,startTime, clause);
@@ -486,7 +487,7 @@ public class Normalizer {
                     Clause clause = (literal > 0) ? positiveOccInterval[predicate].get(0) : negativeOccInterval[predicate].get(0);
                     singletons.add(literal); singletons.add(clause.clone());
                     removeClauseFromIndex(clause);
-                    Clause conjunct = clause.removeLiteral(literal,trackReasoning,monitor,symboltable);
+                    Clause conjunct = clause.removeLiteral(literal,trackReasoning,statistics,monitor,symboltable);
                     if(conjunct != null) makeTrueLiteralTask(conjunct);
                     if(clause.isTrue) {clauses.remove(clause); continue;}
                     if(clause.isFalse) throw new UnsatClause(problemId,solverId,startTime, clause);

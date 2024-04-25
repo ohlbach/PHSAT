@@ -77,7 +77,7 @@ public class Clause extends LinkedItem {
      * @param monitor        null or a monitor
      * @param symboltable    null or a symboltable.
      */
-    public Clause(int[] inputClause, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    public Clause(int[] inputClause, boolean trackReasoning, NormalizerStatistics statistics, Monitor monitor, Symboltable symboltable) {
         this.inputClause = inputClause;
         id = inputClause[0];
         quantifier = Quantifier.getQuantifier(inputClause[1]);
@@ -99,7 +99,8 @@ public class Clause extends LinkedItem {
                     literals.set(j+1,literals.getInt(j+1)+1);
                     multiple = true; break;}}
             if(!multiple) {literals.add(literal); literals.add(1);}}
-        classifyClause(trackReasoning,monitor,symboltable);}
+        if(trackReasoning) inferenceSteps = new ArrayList<>();
+        classifyClause(trackReasoning,statistics, monitor,symboltable);}
 
     /**
      * Creates a new instance of the {@code Clause} class.
@@ -141,7 +142,7 @@ public class Clause extends LinkedItem {
      * @param monitor        null or a monitor
      * @param symboltable    null or a symboltable.
      */
-    private void classifyClause(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    private void classifyClause(boolean trackReasoning, NormalizerStatistics statistics,Monitor monitor, Symboltable symboltable) {
         if(quantifier == Quantifier.AND) return;
         if(min <= 0 && max >= expandedSize) {isTrue  = true; return;}
         if(min > expandedSize)              {isFalse = true; return;}
@@ -149,11 +150,13 @@ public class Clause extends LinkedItem {
             if(trackReasoning) inferenceSteps.add(new NMInferenceStep("andConversion", clone()));
             if(monitor != null) monitor.println(monitorId,"Clause " + toString(symboltable,0) + " turned into a conjunction.");
             quantifier = Quantifier.AND;
+            ++statistics.hiddenConjunctions;
             return;}
         if(max == 0){
             Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
             if(trackReasoning) inferenceSteps.add(new NMInferenceStep("negatedAndConversion",cloned));
             quantifier = Quantifier.AND;
+            ++statistics.hiddenConjunctions;
             for(int i = 0; i < literals.size()-1; i +=2) literals.set(i,-literals.getInt(i));
             if(monitor != null) monitor.println(monitorId,"Clause " + cloned.toString(symboltable,0) +
                     " turned into negated conjunction " + toString(symboltable,0));
@@ -164,28 +167,6 @@ public class Clause extends LinkedItem {
         if(max == expandedSize)             {quantifier = Quantifier.ATLEAST; return;}
         quantifier = Quantifier.INTERVAL;}
 
-    /**
-     * Checks if the interval spans the entire clause (e.g. [0,3] p,q,r)
-     *
-     * @return true if the conditions for "isTrue" are met, false otherwise.
-     */
-    public boolean isTrue() {
-        if(min <= 0 && max == expandedSize) {isTrue = true; return true;}
-        return false;}
-
-    /**
-     * Checks if making the given literal true, makes the entire clause true.
-     *
-     * @param literal the literal to check
-     * @return true making the literal true, makes the entire clause true.
-     */
-    public boolean isTrue(int literal) {
-        if(min > 0) {
-            for(int i = 0; i < literals.size()-1; i += 2) {
-                if(literal == literals.getInt(i)) {
-                    if(literals.getInt(i+1) >= min) return true;}} // multiplicity(literal) >= min makes the clause true.
-            return false;}
-        else return true;}
 
     /**
      * Checks if the clause is true in the given model.
@@ -211,20 +192,6 @@ public class Clause extends LinkedItem {
             if(!complementary && model.test(literals.getInt(i))) trueLiterals += literals.getInt(i+1);}
         return min <= trueLiterals && trueLiterals <= max;}
 
-    /** tests if the clause is a disjunction
-     *
-     * @return true if the quantifier of the clause is a disjunction.
-     */
-    public boolean isDisjunction() {
-        return quantifier == Quantifier.OR;}
-
-    /**
-     * Checks if the method has multiplicities.
-     *
-     * @return true if the expandedSize is equal to the double of the size of the literals list, false otherwise.
-     */
-    public boolean hasMultiplicities() {
-        return 2*expandedSize != literals.size();  }
 
     /** simplifies the clause.
      * <br>
@@ -239,20 +206,21 @@ public class Clause extends LinkedItem {
      * @param symboltable    null or a symboltable.
      * @return null or a conjunction (either the changed clause itself or a newly generated clause).
      */
-    public Clause simplify(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    public Clause simplify(boolean trackReasoning, NormalizerStatistics statistics, Monitor monitor, Symboltable symboltable) {
         if(isTrue || isFalse) return null;
         if(quantifier == Quantifier.AND) return this;
-        removeMultiplicities(trackReasoning,monitor,symboltable);                  // does not change its status.
-        if(removeComplementaries(trackReasoning,monitor,symboltable)) return null; // may be a tautology
-        if(quantifier == Quantifier.OR) return null;  // no further simplifications possible.
-        if(reduceToEssentialLiterals(trackReasoning,monitor,symboltable))
+        if(removeComplementaries(trackReasoning,statistics, monitor,symboltable)) return null; // may be a tautology
+        removeMultiplicities(trackReasoning,statistics, monitor,symboltable);                  // does not change its status.
+         if(quantifier == Quantifier.OR) return null;  // no further simplifications possible.
+        if(reduceToEssentialLiterals(trackReasoning,statistics,  monitor,symboltable))
             return (quantifier == Quantifier.AND) ? this : null;
-        divideByGCD(trackReasoning,monitor,symboltable);
-        return findTrueLiterals(trackReasoning,monitor,symboltable);} // clause may have become false.
+        divideByGCD(trackReasoning,statistics,  monitor,symboltable);
+        return findTrueLiterals(trackReasoning,statistics,monitor,symboltable);} // clause may have become false.
 
     /**Removes the multiplicities &gt; min from the clause (if min &gt; 0).
      * <br>
      * Example:  [2,3] p^3,q,r,s -&gt; [2,3] p^2,q,r,s.<br>
+     * Multiplicities p^n with n %gt; min mean that for making the clause true by making p true,  p^min is sufficient.<br>
      * Removes in particular multiple occurrences of literals in disjunctions.
      *
      * @param trackReasoning true to track the reasoning, false otherwise
@@ -260,7 +228,7 @@ public class Clause extends LinkedItem {
      * @param symboltable the symbol table, can be null
      * @return true if the multiplicities were removed, false otherwise
      */
-    public boolean removeMultiplicities(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    public boolean removeMultiplicities(boolean trackReasoning,NormalizerStatistics statistics,  Monitor monitor, Symboltable symboltable) {
         assert(quantifier != Quantifier.EQUIV);
         if(min == 0 || quantifier == Quantifier.AND) return false;
         boolean doReduction = false;
@@ -277,7 +245,7 @@ public class Clause extends LinkedItem {
                 literals.set(i,min);}}
         max = Math.min(max,expandedSize);
         ++version;
-        classifyClause(trackReasoning, monitor, symboltable);
+        classifyClause(trackReasoning, statistics,monitor, symboltable);
         if(monitor != null) monitor.println(monitorId,"Multiplicities removed from clause " + clauseBefore +
                 ".  New clause: " + toString(symboltable,0));
         return true;}
@@ -292,14 +260,16 @@ public class Clause extends LinkedItem {
      * @param symboltable    null or a symboltable
      * @return true if the clause is true (tautology) otherwise false
      */
-    boolean removeComplementaries(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    boolean removeComplementaries(boolean trackReasoning, NormalizerStatistics statistics,  Monitor monitor, Symboltable symboltable) {
         boolean complementaryFound = false;
         for(int i = 0; i < literals.size()-1; i+=2) {
             int literal = literals.getInt(i);
             for(int j = 0; j < i; j +=2) {
                 if (literal == -literals.getInt(j)) { complementaryFound = true; break;}}
             if(complementaryFound) break;}
-        if(complementaryFound) {if(quantifier == Quantifier.OR) {isTrue = true; return true;}}
+        if(complementaryFound) {if(quantifier == Quantifier.OR) {
+            ++statistics.initialTautologies;
+            isTrue = true; return true;}}
         else return false;
 
         if(trackReasoning) addInferenceStep(new NMInferenceStep("removeComplementaries", clone()));
@@ -315,17 +285,20 @@ public class Clause extends LinkedItem {
                         literals.removeInt(i+1);literals.removeInt(i);
                         literals.removeInt(j+1);literals.removeInt(j);
                         min -= multiplicityBack; max -= multiplicityBack; expandedSize -= 2*multiplicityBack;
+                        statistics.complementaryLiterals += multiplicityBack;
                         i -= 4;
                         break;}
                     if(multiplicityFront > multiplicityBack) {
                         literals.set(j+1,multiplicityFront-multiplicityBack);
                         literals.removeInt(i+1);literals.removeInt(i); // remove back
                         min -= multiplicityBack; max -= multiplicityBack; expandedSize -= 2*multiplicityBack;
+                        statistics.complementaryLiterals += multiplicityBack;
                         i -= 2;
                         break;}
                     literals.set(i+1,multiplicityBack-multiplicityFront);
                     literals.removeInt(j+1);literals.removeInt(j); // remove front
                     min -= multiplicityFront; max -= multiplicityFront; expandedSize -= 2*multiplicityFront;
+                    statistics.complementaryLiterals += multiplicityFront;
                     i -= 2;
                     break;}}}
         min = Math.max(0,min);
@@ -333,9 +306,10 @@ public class Clause extends LinkedItem {
             for(int i = 1; i < literals.size(); i += 2) {
                 int multiplicity = literals.getInt(i);
                 if(multiplicity > min) {
+                    statistics.reducedMultiplicities += multiplicity - min;
                     literals.set(i,min);
                     expandedSize -= multiplicity - min;}}}
-        classifyClause(trackReasoning, monitor, symboltable);
+        classifyClause(trackReasoning, statistics, monitor, symboltable);
         ++version;
         if(monitor != null) {
             monitor.println("Normalizer.clause","Complementary Literals in Clause " +
@@ -357,7 +331,7 @@ public class Clause extends LinkedItem {
      * @param symboltable    null or a symboltable.
      * @return null or a (old or new) conjunction.
      */
-    private Clause findTrueLiterals(boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    private Clause findTrueLiterals(boolean trackReasoning,NormalizerStatistics statistics,  Monitor monitor, Symboltable symboltable) {
         if(min == expandedSize) {
             if(trackReasoning) addInferenceStep(new NMInferenceStep("findTrueLiterals",clone()));
             if(monitor != null) {
@@ -365,11 +339,14 @@ public class Clause extends LinkedItem {
                     " causes all its literals to become true ");}
             ++version;
             quantifier = Quantifier.AND;
+            ++statistics.hiddenConjunctions;
             return this;}
         if(max < expandedSize) {
             IntArrayList trueLiterals = new IntArrayList();
             for(int i = literals.size()-2; i >= 0;  i -=2) {
-              if(literals.getInt(i+1) > max) {trueLiterals.add(-literals.getInt(i)); trueLiterals.add(1);}}
+              if(literals.getInt(i+1) > max) {
+                  trueLiterals.add(-literals.getInt(i)); trueLiterals.add(1);
+                ++statistics.derivedTrueLiterals;}}
             if(trueLiterals.isEmpty()) return null;
 
             NMInferenceStep step = trackReasoning ? new NMInferenceStep("findTrueLiterals",clone()) : null;
@@ -380,7 +357,7 @@ public class Clause extends LinkedItem {
                     literals.removeInt(i);
                     expandedSize -= multiplicity;}}
             if(literals.isEmpty()) isFalse = true;
-            else classifyClause(trackReasoning,monitor,symboltable);
+            else classifyClause(trackReasoning,statistics, monitor,symboltable);
 
             Clause clause = new Clause();
             clause.literals = trueLiterals;
@@ -388,6 +365,7 @@ public class Clause extends LinkedItem {
             clause.version = version+1;
             clause.inferenceSteps = new ArrayList<>();
             clause.quantifier = Quantifier.AND;
+            ++statistics.hiddenConjunctions;
             if(trackReasoning) clause.addInferenceStep(step);
             return clause;}
      return null;}
@@ -411,7 +389,7 @@ public class Clause extends LinkedItem {
      * @param symboltable      null or a symboltable.
      * @return true if the clause is changed.
      */
-    protected boolean divideByGCD(boolean trackReasoning, Monitor monitor,Symboltable symboltable) {
+    protected boolean divideByGCD(boolean trackReasoning,NormalizerStatistics statistics,   Monitor monitor,Symboltable symboltable) {
         if(quantifier == Quantifier.OR || quantifier == Quantifier.AND) return false;
         int gcd;
         if(min > 0) {
@@ -427,7 +405,7 @@ public class Clause extends LinkedItem {
 
         Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
         if(trackReasoning) addInferenceStep(new NMInferenceStep("divideByGCD",cloned));
-
+        ++statistics.gcdReductions;
         ++version;
         min /= gcd;
         max /= gcd;
@@ -436,7 +414,7 @@ public class Clause extends LinkedItem {
             expandedSize -= literals.getInt(i) - multiplicity;
             literals.set(i,multiplicity);}
 
-        classifyClause(trackReasoning, monitor, symboltable);
+        classifyClause(trackReasoning,statistics, monitor, symboltable);
 
         if(monitor != null) {
             monitor.println(monitorId, "Divide by GCD in Clause " +
@@ -455,7 +433,7 @@ public class Clause extends LinkedItem {
      * @param symboltable    null or a symboltable.
      * @return true if the clause has been changed.
      */
-    boolean reduceToEssentialLiterals(boolean trackReasoning, Monitor monitor,Symboltable symboltable)  {
+    boolean reduceToEssentialLiterals(boolean trackReasoning, NormalizerStatistics statistics,  Monitor monitor,Symboltable symboltable)  {
         if(quantifier != Quantifier.ATLEAST) return false;
         int remainingMultiplicity = 0;
         for(int i = 1; i < literals.size(); i +=2) {
@@ -465,13 +443,14 @@ public class Clause extends LinkedItem {
         Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
         if(trackReasoning) addInferenceStep(new NMInferenceStep("reduceToEssentialLiterals",cloned));
 
+        ++statistics.essentialClauses;
         for(int i = literals.size()-2; i >= 0; i -=2) {
             if(literals.getInt(i+1) < min) {
                 literals.removeInt(i+1);literals.removeInt(i);}
             else literals.set(i+1,1);}
         min = 1; max = literals.size()/2;
         expandedSize = max;
-        classifyClause(trackReasoning, monitor, symboltable);
+        classifyClause(trackReasoning,statistics, monitor, symboltable);
         ++version;
         if(monitor != null) {
             monitor.println(monitorId, "Reduce to Essential Literals in Clause " +
@@ -484,13 +463,12 @@ public class Clause extends LinkedItem {
      * Notice that the clause can become true or false.
      *
      * @param trueLiteral The true literal to be applied to the clause.
-     * @param inferenceStep The inference step associated with the application of the true literal.
      * @param trackReasoning Indicates whether reasoning steps should be tracked.
      * @param monitor The monitor used for printing information.
      * @param symboltable The symbol table used for converting literals to strings.
      * @return true if the clause was successfully simplified by applying the true literal, false otherwise.
      */
-    Clause applyTrueLiteral(int trueLiteral, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    Clause applyTrueLiteral(int trueLiteral, boolean trackReasoning, NormalizerStatistics statistics, Monitor monitor, Symboltable symboltable) {
         Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
         NMISTrueLiteralToClause step = trackReasoning ? new NMISTrueLiteralToClause("applyTrueLiteral", trueLiteral, cloned) : null;
         boolean literalFound = false;
@@ -508,13 +486,13 @@ public class Clause extends LinkedItem {
         min = Math.max(0,min);
         max = Math.min(max,expandedSize);
         ++version;
-        classifyClause(trackReasoning, monitor, symboltable);
+        classifyClause(trackReasoning,statistics, monitor, symboltable);
         if(trackReasoning) addInferenceStep(step);
         if(monitor != null) {
             String result = isTrue ? "true" : (isFalse ? "false" :toString(symboltable,0));
             monitor.println(monitorId,"Clause " + cloned.toString(symboltable,0) +
                             " simplified by true literal " + Symboltable.toString(trueLiteral,symboltable) + " to " + result);}
-        return simplify(trackReasoning,monitor,symboltable);}
+        return simplify(trackReasoning,statistics, monitor,symboltable);}
 
     /** The method replaces the equivalentLiteral by the representative literal.
      * <br>
@@ -529,7 +507,7 @@ public class Clause extends LinkedItem {
      * @return                   null or a new conjunction
      */
     public Clause replaceEquivalentLiterals(int representative, int equivalentLiteral, InferenceStep inferenceStep,
-                                      boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+                                      boolean trackReasoning, NormalizerStatistics statistics,  Monitor monitor, Symboltable symboltable) {
         Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
         NMISEquivalentLiteral step = trackReasoning ? new NMISEquivalentLiteral("replaceEquivalentLiterals", representative, equivalentLiteral, inferenceStep, cloned) : null;
         boolean found = false;
@@ -537,14 +515,16 @@ public class Clause extends LinkedItem {
             int literal = literals.getInt(i);
             if(Math.abs(equivalentLiteral) == Math.abs(literal)) {
                 literals.set(i, (literal == equivalentLiteral) ?  representative : -representative);
+                ++statistics.equivalenceReplacements;
                 found = true;
                 break;}}
         if(!found) return null;
+        // remove double occurrences
         for(int i = 0; i < literals.size()-1; i += 2){
             int literal = literals.getInt(i);
             for(int j = i+2; j < literals.size()-1; j += 2) {
                 if(literal == literals.getInt(j)) {
-                    literals.set(i+1,1+literals.getInt(i+1));
+                    literals.set(i+1,literals.getInt(i+1) + literals.getInt(j+1));
                     literals.remove(j+1);
                     literals.removeInt(j);
                     break;}}}
@@ -554,8 +534,8 @@ public class Clause extends LinkedItem {
             monitor.println(monitorId,"In clause " + cloned.toString(symboltable,0) +
                     " literal " + Symboltable.toString(equivalentLiteral,symboltable) +
                     " replaced by " +  Symboltable.toString(representative,symboltable) + " => " + toString(symboltable,0));}
-        classifyClause(trackReasoning,monitor,symboltable);
-        return simplify(trackReasoning,monitor,symboltable);
+        classifyClause(trackReasoning,statistics, monitor,symboltable);
+        return simplify(trackReasoning, statistics,  monitor,symboltable);
     }
 
     /** removes a literal to prepare for singleton purity in interval clauses.
@@ -566,7 +546,7 @@ public class Clause extends LinkedItem {
      * @param symboltable        null or a symboltable
      * @return                   null or a new conjunction
      */
-    public Clause removeLiteral(int literal, boolean trackReasoning, Monitor monitor, Symboltable symboltable) {
+    public Clause removeLiteral(int literal, boolean trackReasoning, NormalizerStatistics statistics, Monitor monitor, Symboltable symboltable) {
         Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
         int multiplicity = 0;
         for(int i = 0; i < literals.size()-1; i += 2) {
@@ -580,13 +560,13 @@ public class Clause extends LinkedItem {
             min = Math.max(0,min - multiplicity);
             max = Math.min(max,expandedSize);
             ++version;
-            classifyClause(trackReasoning,monitor,symboltable);
+            classifyClause(trackReasoning,statistics, monitor,symboltable);
             if(trackReasoning) addInferenceStep(new NMInferenceStep("removedLiteral",cloned));
             if(monitor != null) {
                 monitor.println(monitorId,"From clause " + cloned.toString(symboltable,0) +
                         " literal " + Symboltable.toString(literal,symboltable) + " removed => "+
                         toString(symboltable,0));}
-            return simplify(trackReasoning,monitor,symboltable);}
+            return simplify(trackReasoning,statistics, monitor,symboltable);}
         return null;}
 
     /** counts the number of true literals in the clause

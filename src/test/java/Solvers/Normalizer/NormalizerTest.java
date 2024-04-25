@@ -9,6 +9,7 @@ import Datastructures.Theory.Model;
 import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
+import Management.Parameters;
 import Management.ProblemSupervisor;
 import ProblemGenerators.ProblemGenerator;
 import ProblemGenerators.PythagoraenTriples;
@@ -38,9 +39,10 @@ public class NormalizerTest extends TestCase {
         symboltable.setName(4,"s");
 
     }
+    static NormalizerStatistics statistics = new NormalizerStatistics(null);
 
     static Clause makeClause(int[] inputClause) {
-        return new Clause(inputClause,false,null,null);
+        return new Clause(inputClause,false,statistics,null,null);
     }
 
 
@@ -292,13 +294,13 @@ public class NormalizerTest extends TestCase {
     }
 
     public ProblemSupervisor makePythogoraenTriples(int maximum) {
-        HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("maximum", ""+maximum);
-        parameters.put("name", "MyProblem");
+        Parameters parameters = new Parameters("PTripels");
+        //parameters.put("maximum", ""+maximum);
+        //parameters.put("name", "MyProblem");
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        PythagoraenTriples.makeProblemGenerator(parameters, generators, errors, warnings);
+        PythagoraenTriples.makeProblemGenerators(parameters, generators);
         //System.out.println(errors);
         //System.out.println(warnings);
         ProblemGenerator generator = generators.get(0);
@@ -308,7 +310,7 @@ public class NormalizerTest extends TestCase {
         if(!errors.isEmpty()) System.out.println(errors.toString());
         System.out.println(inputClauses.toString());
         ArrayList<HashMap<String,String>> pars = new ArrayList<>();
-        pars.add(parameters);
+        //pars.add(parameters);
         GlobalParameters globalParameters = null; //new GlobalParameters(pars,errors,warnings);
         ProblemSupervisor supervisor = new ProblemSupervisor(null,globalParameters,generator,null);
         supervisor.inputClauses = inputClauses;
