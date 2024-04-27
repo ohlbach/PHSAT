@@ -84,6 +84,7 @@ public class ProblemSupervisor {
         StringBuilder errors = new StringBuilder();
         try {
             inputClauses = problemGenerator.generateProblem(errors);
+            System.out.println(inputClauses.toString());
             problemId = inputClauses.problemId;
             clauseCounter = inputClauses.nextId-1;
             if(errors.length() > 1) {
@@ -102,6 +103,7 @@ public class ProblemSupervisor {
             model = new Model(inputClauses.predicates);
             normalizer = new Normalizer(this);
             Result result = normalizer.normalizeClauses(0);
+            System.out.println(result == null ? "no result " :result.toString());
             System.out.println(normalizer.toString(null));
             System.out.println(normalizer.statistics.toString());
 
