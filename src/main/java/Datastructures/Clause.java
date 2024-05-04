@@ -47,6 +47,30 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
         this.expandedSize = expandedSize;}
 
 
+    /**
+     * Classify the quantifier based on the values of min and max.
+     * Possible quantifiers are EXACTLY, ATLEAST, ATMOST, and INTERVAL.
+     * If min is equal to max, the quantifier is set to EXACTLY.
+     * If max is equal to the expandedSize, the quantifier is set to ATLEAST or OR (depending on min).
+     * If min is equal to 0, the quantifier is set to ATMOST.
+     * Otherwise, the quantifier is set to INTERVAL.
+     */
+    public void classifyQuantifier() {
+        if(min == max) {quantifier = Quantifier.EXACTLY; return;}
+        if(max == expandedSize) {
+            quantifier = (min == 1) ? Quantifier.OR : Quantifier.ATLEAST;
+            return;}
+        if(min == 0) {quantifier = Quantifier.ATMOST; return;}
+        quantifier = Quantifier.INTERVAL;}
+
+    /**
+     * Checks if the literals list is empty.
+     *
+     * @return true if the literals list is empty, false otherwise.
+     */
+    boolean isEmpty() {
+        return literals.isEmpty();}
+
     /** finds the Literal with the given literal.
      *
      * @param literal a literal.
