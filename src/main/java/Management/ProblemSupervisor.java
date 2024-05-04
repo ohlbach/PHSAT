@@ -107,7 +107,7 @@ public class ProblemSupervisor {
             System.out.println(normalizer.toString(null));
             System.out.println(normalizer.statistics.toString());
 
-            Utilities.wait(15000);System.exit(1);
+           // Utilities.wait(15000);System.exit(1);
             if(result != null)  {finished(result); return;}
             numberOfSolvers = solvers.size();
             threads = new Thread[numberOfSolvers];
