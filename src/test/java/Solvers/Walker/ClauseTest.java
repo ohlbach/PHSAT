@@ -11,7 +11,7 @@ public class ClauseTest extends TestCase {
     private static int cInterval = Quantifier.INTERVAL.ordinal();
 
     private Clause makeClause(int[] inputClause) {
-        Solvers.Normalizer.Clause clause = new Solvers.Normalizer.Clause(inputClause,false,null,null);
+        Solvers.Normalizer.Clause clause = new Solvers.Normalizer.Clause(inputClause,false,null,null,null);
         return new Clause(clause);}
     public void testConstructor() {
         System.out.println("constructor");

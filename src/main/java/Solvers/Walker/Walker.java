@@ -8,7 +8,6 @@ import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
-import Management.ErrorReporter;
 import Management.Parameter;
 import Management.Parameters;
 import Management.ProblemSupervisor;
@@ -16,7 +15,8 @@ import Solvers.Solver;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Random;
 
 import static Utilities.Utilities.toArrayList;
 
@@ -141,79 +141,6 @@ public class Walker extends Solver {
             int seedsv    = (int)p.get(2);
             walkers.add(new Walker(++solverNumber,maxFlipsv,jumpsv,seedsv));}}
 
-
-
-    /** provides a help text about the parameters of the solver.
-                 * @return a help text.
-                 * */
-    public static String help() {
-        return "Solver Random Walker: modifies a candidate model until a real model is found.\n"+
-                "parameters:\n" +
-                "  seeds:  for the random number generator      (default: 0)\n" +
-                "  flips:  for restricting the number of flips  (default: Max_Integer).\n" +
-                "  jumps:  frequency of random jumps            (default: 10)\n";}
-
-    /** contains the allowed keys in the specification. */
-    private static final HashSet<String> keys = new HashSet<>();
-
-    static { // these are the allowed keys in the specification.
-        Collections.addAll(keys, "seeds", "flips", "jumps", "solver");}
-
-    /** parses a HashMap with key-value pairs and creates corresponding Walkers.
-     *
-     * @param parameters  the parameters with the keys "seed", "flips", "jumps".
-     * @param solvers     for adding the newly created Walkers.
-     * @param errors      for error messages.
-     * @param ignoredWarnings    for warnings (not used here).
-     */
-    public static void makeSolvers(HashMap<String,String> parameters, ArrayList<Solver> solvers,
-                                                StringBuilder errors, StringBuilder ignoredWarnings){
-        for(String key : parameters.keySet()) {
-            if(!keys.contains(key)) {
-                ErrorReporter.reportWarning("Walker: unknown key in parameters: " + key + "\n" +
-                                "        allowed keys: seed, flips, jumps.\n");}}
-        String seeds = parameters.get("seed");
-        if(seeds == null) seeds = "0";
-        String flips = parameters.get("flips");
-        if(flips == null) flips = Integer.toString(Integer.MAX_VALUE);
-        String jumps = parameters.get("jumps");
-        if(jumps == null) jumps = Integer.toString(jumpFrequencyDefault);
-        String place = "Walker: ";
-        ArrayList seedA = Utilities.parseIntRange(place+"seed: ",seeds,errors);
-        ArrayList flipA = Utilities.parseIntRange(place+"flips: ",flips,errors);
-        ArrayList jumpA = Utilities.parseIntRange(place+"jumps: ",jumps,errors);
-        if(!errors.isEmpty()) ErrorReporter.reportErrorAndStop("Check walker parameters!");
-        ArrayList<ArrayList<Object>> pars = Utilities.crossProduct(seedA,flipA,jumpA);
-        int solverNumber = 1;
-        assert pars != null;
-        for(ArrayList<Object> p : pars ) {
-            int seedV  = (int)p.get(0);
-            int flipsV = (int)p.get(1);
-            int jumpsV = (int)p.get(2);
-            if(seedV < 0)   errors.append("Walker: seed < 0: ").append(seedV).append("\n");
-            if(flipsV <= 0) errors.append("Walker: flips <= 0: ").append(flipsV).append("\n");
-            if(jumpsV <= 0) errors.append("Walker: jumps <= 0: ").append(jumpsV).append("\n");
-            HashMap<String,Object> solverParameters = new HashMap<>();
-            solverParameters.put("seed",seedV);
-            solverParameters.put("flips",flipsV);
-            solverParameters.put("jumps",jumpsV);
-            solverParameters.put("name",(pars.size() == 1 ? "Walker" : "Walker_"+solverNumber));
-            solvers.add(new Walker(solverNumber++, solverParameters, seedV,flipsV,jumpsV));}}
-
-    /** constructs a new Walker.
-     *
-     * @param solverNumber  for enumerating the walkers.
-     * @param solverParameters which specified the walker (for documentation only).
-     * @param seed          for starting the random number generator.
-     * @param maxFlips      the maximum number of allowed flips.
-     * @param jumpFrequency the frequency of random flips.
-     */
-    public Walker(int solverNumber, HashMap<String,Object> solverParameters, int seed, int maxFlips, int jumpFrequency) {
-        super(solverNumber,solverParameters);
-        this.seed = seed;
-        this.maxFlips = maxFlips;
-        this.jumpFrequency = jumpFrequency;
-        monitorId = "Walker_"+solverNumber;}
 
     /** constructs a new Walker.
      *
@@ -488,7 +415,7 @@ public class Walker extends Solver {
             Literal literalObject = literals.getFirstLiteralObject(literal);
             while(literalObject != null) {
                 updateFlipScores(literalObject);
-                literalObject = literalObject.nextLiteral;}}}
+                literalObject = (Literal)literalObject.nextItem;}}}
 
     /** updates the clause's flip score, the falseClauses list and the predicatesWithPositiveScore list.
      *  The previous score contribution is subtracted from flipScores and the new scores is added by calling initializeFlipScores.

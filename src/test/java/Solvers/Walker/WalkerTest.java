@@ -5,13 +5,9 @@ import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
-import ProblemGenerators.ProblemGenerator;
-import ProblemGenerators.RandomClauseSetGenerator;
 import junit.framework.TestCase;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Random;
 
 public class WalkerTest extends TestCase {
@@ -22,7 +18,7 @@ public class WalkerTest extends TestCase {
     private static int cInterval = Quantifier.INTERVAL.ordinal();
 
     private static Walker MyWalker(int predicates, int maxFlips) {
-        Walker walker = new Walker(1,null,0,maxFlips,10);
+        Walker walker = new Walker(1,maxFlips,10,0);
         walker.problemId = "TestProblem";
         walker.solverId = "TestSolver";
         walker.predicates = predicates;
@@ -39,14 +35,12 @@ public class WalkerTest extends TestCase {
     }
 
     private Solvers.Normalizer.Clause makeClause(int[] inputClause) {
-       return new Solvers.Normalizer.Clause(inputClause,false,null,null);}
-
+       return new Solvers.Normalizer.Clause(inputClause,false,null,null,null);}
+    //boolean trackReasoning, NormalizerStatistics statistics, Monitor monitor, Symboltable symboltable
     private Clause makClause(int[] inputClause) {
         return new Clause(makeClause(inputClause));}
 
-    public void testHelp() {
-        System.out.println(Walker.help());
-    }
+
 
     public void testMakeSolvers() {
     }
@@ -432,7 +426,7 @@ public class WalkerTest extends TestCase {
     }
 
     public InputClauses makeRandom(int predicates, int seed, int ors, String length) {
-        HashMap<String, String> parameters = new HashMap<>();
+       /* HashMap<String, String> parameters = new HashMap<>();
         parameters.put("predicates",""+predicates); // illegal key, missing predicates
         parameters.put("seed",""+seed);
         parameters.put("length",length);
@@ -454,8 +448,8 @@ public class WalkerTest extends TestCase {
 
         InputClauses inputClauses = generator.generateProblem(errors);
         if(!errors.isEmpty()) System.out.println(errors.toString());
-        //System.out.println(inputClauses.toString());
-        return inputClauses;}
+        //System.out.println(inputClauses.toString()); */
+        return null;} //inputClauses;}
 
 
 public void testWalk() throws Unsatisfiable {

@@ -47,14 +47,14 @@ public class Literals {
      */
     public void addLiteral(Literal literalObject) {
         int literal = literalObject.literal;
-        literalObject.nextLiteral = null;
+        literalObject.nextItem = null;
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
         Literal firstLiteral = literals[predicate];
         literals[predicate] = literalObject;
         if(firstLiteral != null) {
-            literalObject.nextLiteral = firstLiteral;
-            firstLiteral.previousLiteral = literalObject;}}
+            literalObject.nextItem = firstLiteral;
+            firstLiteral.previousItem = literalObject;}}
 
     /** removes a literal object from the Literal index.
      * The removed literal's nextLiteral remains as it is.
@@ -66,27 +66,27 @@ public class Literals {
      */
     public boolean removeLiteral(Literal literalObject) {
         literalObject.clause = null;
-        Literal previousLiteral = literalObject.previousLiteral;
-        Literal nextLiteral     = literalObject.nextLiteral;
-        literalObject.previousLiteral = null;
+        Literal previousLiteral = (Literal)literalObject.previousItem;
+        Literal nextLiteral     = (Literal)literalObject.nextItem;
+        literalObject.previousItem = null;
         int literal = literalObject.literal;
         int predicate = Math.abs(literal);
         Literal[] literals = (literal > 0) ? positiveLiterals : negativeLiterals;
 
         if(previousLiteral == null) { // front literal
             literals[predicate] = nextLiteral;
-            if(nextLiteral != null) nextLiteral.previousLiteral = null;
-            else literalObject.nextLiteral = null;
+            if(nextLiteral != null) nextLiteral.previousItem = null;
+            else literalObject.nextItem = null;
             return literals[predicate] == null;}
 
         if(nextLiteral == null) {  // last literal
-            previousLiteral.nextLiteral = null;
-            literalObject.nextLiteral = null;
+            previousLiteral.nextItem = null;
+            literalObject.nextItem = null;
             return false;}
 
-        previousLiteral.nextLiteral = nextLiteral;
-        nextLiteral.previousLiteral = previousLiteral;
-        literalObject.previousLiteral = null;
+        previousLiteral.nextItem = nextLiteral;
+        nextLiteral.previousItem = previousLiteral;
+        literalObject.previousItem = null;
         return false;}
 
     /** updates the index position after a literalObject's literal has been changed.
@@ -134,7 +134,7 @@ public class Literals {
         Literal literalObject = literals[predicate];
         while(literalObject != null) {
             ++size;
-            literalObject = literalObject.nextLiteral;}
+            literalObject = (Literal)literalObject.nextItem;}
         return size;}
 
     /** generates a string representation of the Literal index.
@@ -185,7 +185,7 @@ public class Literals {
             int multiplicity = literalObject.multiplicity;
             st.append(Symboltable.toString(literalObject.literal,symboltable)).append(multiplicity == 1 ? "":"^"+multiplicity).
                     append("@").append(clause == null ? "0":literalObject.clause.id).append(",");
-            literalObject = literalObject.nextLiteral;}
+            literalObject = (Literal)literalObject.nextItem;}
         return st.toString();}
 
 

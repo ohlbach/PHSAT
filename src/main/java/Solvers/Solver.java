@@ -64,9 +64,7 @@ public abstract class Solver {
             if(values != null) {
                 try{
                 solverClass(solver).getMethod("setDefaults",ArrayList.class).invoke(null,values);}
-                catch(Exception e) {
-                    System.err.println(e.getMessage());
-                    System.exit(1);}}}}
+                catch(Exception ignore) {}}}}
 
 
     /** Analyses the parameters and generates the corresponding solvers.
@@ -151,6 +149,7 @@ public abstract class Solver {
     public static ArrayList<Class> solverClasses = new ArrayList<>();
     static{
         solverClasses.add(Solvers.Walker.Walker.class);
+        solverClasses.add(Solvers.Backtracker.Backtracker.class);
     }
 
     /**

@@ -5,10 +5,10 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatClauses;
 import Datastructures.Statistics.Statistic;
-import Management.ErrorReporter;
+import Management.Parameter;
+import Management.Parameters;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
-import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.*;
@@ -16,58 +16,25 @@ import java.util.function.IntSupplier;
 
 public class Backtracker extends Solver {
 
-    /** provides a help text about the parameters of the solver.
-     * @return a help text.
-     * */
-    public static String help() {
-        return "Solver Backtracker: a kind of Davis-Putnam Procedure.\n"+
-                "parameters:\n" +
-                "  seeds:           for the random number generator (default: 0)\n"+
-                "  mergeResolution: for activating merge-resolution (default true)";}
 
-    /** contains the allowed keys in the specification. */
-    private static final HashSet<String> keys = new HashSet<>();
 
-    static { // these are the allowed keys in the specification.
-        Collections.addAll(keys, "seeds", "solver", "mergeResolution");}
+    public static Parameters makeParameter() {
+        Parameters parameters = new Parameters("Backtracker");
+        Parameter selected = new Parameter("Select",Parameter.Type.Button,"false",false,
+                "Select the Backtracker");
+        parameters.add(selected);
+        parameters.setDescription("Backtracking search (kind of Davis-Putnam Procedure)");
+        return parameters;
+    }
 
-    /** parses a HashMap with key-value pairs and creates corresponding Walkers.
+    /**
+     * Generates and adds new problem generators based on the provided parameters.
      *
-     * @param parameters  the parameters with the keys "seed", "flips", "jumps".
-     * @param solvers     for adding the newly created Backtrackers.
-     * @param errors      for error messages.
-     * @param warnings    for warnings (not used here).
+     * @param parameters The parameters containing the values necessary to create the problem generators.
+     * @param backtrackers The list of backtrackers to add the newly created walkers to.
      */
-    public static void makeSolvers(HashMap<String,String> parameters, ArrayList<Solver> solvers,
-                                   StringBuilder errors, StringBuilder warnings){
-        for(String key : parameters.keySet()) {
-            if(!keys.contains(key)) {
-                ErrorReporter.reportWarning("Backtracker: unknown key in parameters: " + key + "\n" +
-                        "        allowed keys: seed.\n");}}
-        String seeds = parameters.get("seed");
-        if(seeds == null) seeds = "0";
-        String mergeResolutions = parameters.get("mergeResolution");
-        if(mergeResolutions == null) mergeResolutions = "true";
-        String place = "Backtracker: ";
-        ArrayList seedA = Utilities.parseIntRange(place+"seed: ",seeds,errors);
-        ArrayList mergeResolutionA = Utilities.parseBoolean("mergeResolution: ", mergeResolutions,errors);
-        if(errors.length() > 0) ErrorReporter.reportErrorAndStop("Check Backtracker parameters!");
-        ArrayList<ArrayList> pars = Utilities.crossProduct(seedA,mergeResolutionA);
-        int solverNumber = 1;
-        for(ArrayList<Object> p : pars ) {
-            int seedV  = (int)p.get(0);
-            boolean mergeResolutionV = (boolean)p.get(1);
-            if(seedV < 0)   errors.append("Backtracker: seed < 0: ").append(seedV).append("\n");
-            HashMap<String,Object> solverParameters = new HashMap<>();
-            solverParameters.put("seed",seedV);
-            solverParameters.put("mergeResolution",mergeResolutionV);
-            solverParameters.put("name",(pars.size() == 1 ? "Backtracker" : "Backtracker_"+solverNumber));
-            solvers.add(new Backtracker(solverNumber++, solverParameters, seedV, mergeResolutionV));}}
-
-    /** The seed for the random number generator */
-    private int seed;
-
-    boolean mergeResolution = false;
+    public static void makeSolvers(Parameters parameters,ArrayList<Solver> backtrackers) {
+        backtrackers.add(new Backtracker(1));}
 
     /** the thread which executes the solver */
     private Thread myThread;
@@ -90,14 +57,9 @@ public class Backtracker extends Solver {
     /** constructs a new Backtracker.
      *
      * @param solverNumber  for enumerating the walkers.
-     * @param solverParameters which specified the walker (for documentation only).
-     * @param seed          for starting the random number generator.
      */
-    public Backtracker(int solverNumber, HashMap<String,Object> solverParameters, int seed, boolean mergeResolution) {
-        super(solverNumber,solverParameters);
-        this.seed = seed;
-        this.mergeResolution = mergeResolution;
-        monitorId = "Backtracker_"+solverNumber;}
+    public Backtracker(int solverNumber) {
+        super(solverNumber);}
 
     /** adds the literals which are already true in the model to the task queue.
      * Installs the observer in the model.
@@ -283,7 +245,7 @@ public class Backtracker extends Solver {
         int expandedSize = clause.expandedSize;
         if(falseLiterals == expandedSize) return maxIndex; // contradiction
         if(falseLiterals == expandedSize - 1) setLocalTruth(unassignedLiteral1,maxIndex);
-        if(mergeResolution && falseLiterals == expandedSize - 2) {
+        if(falseLiterals == expandedSize - 2) {
             if(!mergeResolution(unassignedLiteral1,unassignedLiteral2,maxIndex))
                 mergeResolution(unassignedLiteral2,unassignedLiteral1,maxIndex);}
         return -1;}
