@@ -50,6 +50,8 @@ public class Backtracker extends Solver {
 
     BacktrackerStatistics statistics;
 
+    public ThreadPool threadPool;
+
     /** constructs a new Backtracker.
      *
      * @param solverNumber  for enumerating the walkers.
@@ -243,8 +245,14 @@ public class Backtracker extends Solver {
 
 
 
+    void deriveTrueLiteral(Clause clause, Literal literalObject, boolean truth) {
+        int sign = truth? 1:-1;
+        int literal = sign*literalObject.literal;
+        setLocalTruth(literal);
+        threadPool.addPropagatorJob(this,literal);
+    }
 
-    void deriveTrueLiteral(Clause clause, Literal literalObject, boolean truth) {}
+    void propagate(int literal) {}
 
 
 
@@ -253,12 +261,10 @@ public class Backtracker extends Solver {
     /** adds the literal to the derivedTrueLiterals list and puts minTruthIndex into the trueLiteralIndex;
      *
      * @param literal       a derived true literal.
-     * @param minTruthIndex the largest index in the predicateIndex whose selection as true literal was responsible for the truth of the literal.
      */
-    private void setLocalTruth(int literal, int minTruthIndex) {
+    private void setLocalTruth(int literal) {
         if(literal > 0) localModel[literal] = 1; else localModel[-literal] = -1;
-        derivedTrueLiterals.add(literal);
-        trueLiteralIndex[Math.abs(literal)] = minTruthIndex;}
+        }
 
     /**
      * Retrieves the truth value of a literal in the local model.

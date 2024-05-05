@@ -99,7 +99,7 @@ public abstract class Solver {
     public String solverId = "solverId";
 
     /** in case there are more solvers of the same type. */
-    protected Integer solverNumber;
+    public Integer solverNumber;
 
     /** the problem's identifier. */
     public String problemId = "problemId";
