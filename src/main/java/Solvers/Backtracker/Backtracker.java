@@ -1,5 +1,6 @@
 package Solvers.Backtracker;
 
+import Datastructures.Clauses.Quantifier;
 import Datastructures.LinkedItemList;
 import Datastructures.LiteralIndex;
 import Datastructures.Results.Result;
@@ -189,44 +190,61 @@ public class Backtracker extends Solver {
         System.out.println("TLI: "  + Arrays.toString(trueLiteralIndex));
     }
 
-
-
-
-
-
-    /** if all except one literal are locally false then the remaining literal is derived as true literal.
-     * <br>
-     * If all literals are locally false then the largest index in the predicateIndex which was responsible for the
-     * contradiction is returned.
+    /**Analyzes a clause given the current local model.
+     * <p>
+     * The following cases are possible:<br>
+     * - the clause is already true: return null; <br>
+     * - the clause is already false: return the clause; <br>
+     * - making an unsigned literal true causes the clause to become false: make the literal false;<br>
+     * - making an unsigned literal false causes the to become false: make the literal true.
      *
-     * @param clause a clause to be checked.
-     * @return -1 or the largest index in the predicateIndex whose selection as true literal was responsible for the truth of the literal.
+     * @param clause The clause to be analyzed.
+     * @return the clause if it is false alsready, otherwise null.
      */
-    int deriveTrueLiteralsOr(Clause clause) {
-        //System.out.println("DT " + clause);
-        int maxIndex = -1;
-        int falseLiterals = 0;
-        int unassignedLiteral1 = 0;
-        int unassignedLiteral2 = 0;
+    Clause analyseClause(Clause clause) {
+        // since disjunctions are frequent,
+        // and only one passage through the literals is sufficient,
+        // it is worth treating this case separately.
+        if(clause.quantifier == Quantifier.OR) {
+            Literal unsignedLiteral = null;
+            for(Literal literalObject : clause.literals) {
+                switch(getLocalTruth(literalObject.literal)) {
+                    case 0:
+                        if(unsignedLiteral != null) return null; // two unsigned literals: nothing to be done
+                        unsignedLiteral = literalObject; break;
+                    case 1: return null;}}                   // clause is true;
+                if(unsignedLiteral == null) {return clause;} // all literals are false
+                deriveTrueLiteral(clause,unsignedLiteral,true);
+               return null;}
+
+        // all other clause types.
+        int trueLiterals = 0;
+        int unsignedLiterals = 0;
         for(Literal literalObject : clause.literals) {
-            int literal = literalObject.literal;
-            int status = getLocalTruth(literal);
-            if(status == 1) return -1; // clause is satisfied.
-            if(status == 0) {
-                if(unassignedLiteral1 == 0) unassignedLiteral1 = literal; else unassignedLiteral2 = literal;}
-            else {
-                maxIndex = Math.max(maxIndex,trueLiteralIndex[Math.abs(literal)]);
-                ++falseLiterals;}}
-        int expandedSize = clause.expandedSize;
-        if(falseLiterals == expandedSize) return maxIndex; // contradiction
-        if(falseLiterals == expandedSize - 1) setLocalTruth(unassignedLiteral1,maxIndex);
-        if(falseLiterals == expandedSize - 2) {
-            }
-        return -1;}
+            switch(getLocalTruth(literalObject.literal)) {
+                case 0: unsignedLiterals += literalObject.multiplicity; break;
+                case 1: trueLiterals += literalObject.multiplicity;}}
+        int max = clause.max; int min = clause.min;
+        if(trueLiterals > max || trueLiterals + unsignedLiterals < min) return clause;
+                        // too many or not enough true literals.
+        if(min <= trueLiterals && trueLiterals <= max) return null; // clause is true.
+                        // try to derive new true or false literals
+        for(Literal literalObject : clause.literals) {
+            if(getLocalTruth(literalObject.literal) == 0) {
+                 int trueLits = trueLiterals + literalObject.multiplicity;
+                 if(!(min <= trueLits && trueLits <= max)) { // making it true causes a contradiction
+                     deriveTrueLiteral(clause,literalObject,false);
+                     continue;}
+                 trueLits = trueLiterals + unsignedLiterals - literalObject.multiplicity;
+                 if(!(min <= trueLits && trueLits <= max)) { // making it false causes a contradiction
+                    deriveTrueLiteral(clause,literalObject,true);}}}
+    return null;}
 
 
 
-    private int timestamp = 1;
+
+
+    void deriveTrueLiteral(Clause clause, Literal literalObject, boolean truth) {}
 
 
 
@@ -242,8 +260,14 @@ public class Backtracker extends Solver {
         derivedTrueLiterals.add(literal);
         trueLiteralIndex[Math.abs(literal)] = minTruthIndex;}
 
-    private int getLocalTruth(int literal) {
-        return literal > 0 ? localModel[literal] : -localModel[-literal]; }
+    /**
+     * Retrieves the truth value of a literal in the local model.
+     *
+     * @param literal The literal to check.
+     * @return The truth value of the literal in the local model.
+     */
+    private byte getLocalTruth(int literal) {
+        return literal > 0 ? localModel[literal] : (byte)-localModel[-literal]; }
 
 
     /** initializes the predicate sequence.

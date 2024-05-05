@@ -26,7 +26,11 @@ public class Clause extends Datastructures.Clause<Literal>{
         expandedSize -= multiplicity;
         if(isTrue) {
             min = Math.max(0,min-multiplicity);
-            max -= multiplicity;}
+            max -= multiplicity;
+            expandedSize = 0;
+            for(Literal litObject : literals) {
+                litObject.multiplicity = Math.min(min,literalObject.multiplicity);
+                expandedSize += literalObject.multiplicity;}}
         else max = Math.min(expandedSize,max);
         if(min > max) return false;
         classifyQuantifier();
