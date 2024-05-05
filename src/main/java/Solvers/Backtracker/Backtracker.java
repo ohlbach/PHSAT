@@ -1,5 +1,7 @@
 package Solvers.Backtracker;
 
+import Datastructures.LinkedItemList;
+import Datastructures.LiteralIndex;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatClauses;
@@ -13,10 +15,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.function.IntSupplier;
 
 public class Backtracker extends Solver {
-
 
 
     public static Parameters makeParameter() {
@@ -37,21 +37,15 @@ public class Backtracker extends Solver {
     public static void makeSolvers(Parameters parameters,ArrayList<Solver> backtrackers) {
         backtrackers.add(new Backtracker(1));}
 
-    /** the thread which executes the solver */
-    private Thread myThread;
+    private int predicateArrangement = 1;
+    int[] predicateSequence;
 
-    /** for generating an identifier for the new clauses. */
-    private IntSupplier nextId;
+    private LinkedItemList<Clause> clauses;
 
-    Clauses clauses;
-
-    /** literals  */
-    Literals literalIndex = new Literals();
+    private LiteralIndex<Literal> literalIndex;
 
     /** keeps the local candidate model */
     byte[] localModel;
-
-    int[] predicateIndex;
 
     BacktrackerStatistics statistics;
 
@@ -73,20 +67,13 @@ public class Backtracker extends Solver {
 
     @Override
     public Result solveProblem() {
-        long startTime         = System.nanoTime();
-        model                  = problemSupervisor.model;
-        predicates             = problemSupervisor.inputClauses.predicates;
-        monitor                = problemSupervisor.monitor;
-        monitoring             = monitor != null;
-        monitorId              = "Backtracker";
-        problemId              = problemSupervisor.problemId;
-        clauses                = new Clauses();
-        statistics             = new BacktrackerStatistics(solverId);
-        myThread               = Thread.currentThread();
-        literalIndex.reset(predicates);
+        startTime    = System.nanoTime();
+        clauses      = new LinkedItemList<>("Clauses");
+        statistics   = new BacktrackerStatistics(solverId);
+        literalIndex = new LiteralIndex<>(predicates);
         readInputClauses();
         initializeLocalModel();
-        initializePredicateIndex();
+        initializePredicateSequence();
         if(derivedTrueLiteralArray.length < predicates+1) derivedTrueLiteralArray = new IntArrayList[predicates +1];
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             IntArrayList derivedTrueLiterals = derivedTrueLiteralArray[predicate];
@@ -104,11 +91,19 @@ public class Backtracker extends Solver {
      */
     public void readInputClauses() {
         Clause clause;
-        Solvers.Normalizer.Clause normalizedClause = problemSupervisor.normalizer.clauses.firstLinkedItem;
+        Solvers.Normalizer.Clause normalizedClause = normalizer.clauses.firstLinkedItem;
         while(normalizedClause != null) {
             clause = new Clause(normalizedClause);
             insertClause(clause);
             normalizedClause = (Solvers.Normalizer.Clause)normalizedClause.nextItem;}}
+
+    /** inserts a clause into the internal lists.
+     *
+     * @param clause a clause.
+     */
+    void insertClause(Clause clause) {
+        for(Literal literalObject : clause.literals) literalIndex.addToBack(literalObject);
+        clauses.addToBack(clause);}
 
 
     IntArrayList[] derivedTrueLiteralArray = new IntArrayList[predicates+1];
@@ -120,11 +115,11 @@ public class Backtracker extends Solver {
     public Result searchModel(){
         int firstIndex;
         for(firstIndex = 1; firstIndex <= predicates; ++firstIndex) {
-            if(model.status(predicateIndex[firstIndex]) == 0) break;}
+            if(model.status(predicateSequence[firstIndex]) == 0) break;}
 
         for(int index = firstIndex; index <= predicates; ++index) {
             derivedTrueLiterals = derivedTrueLiteralArray[index];
-            int selectedLiteral = predicateIndex[index];
+            int selectedLiteral = predicateSequence[index];
 
             if(selectedLiteral > 0) {
                 byte status = model.status(selectedLiteral);
@@ -146,7 +141,7 @@ public class Backtracker extends Solver {
             clearDerivedLiterals(derivedTrueLiterals);
             localModel[-selectedLiteral] = -1;
             trueLiteralIndex[-selectedLiteral] = 0;
-            predicateIndex[index] = selectedLiteral;
+            predicateSequence[index] = selectedLiteral;
             derivedTrueLiterals.add(selectedLiteral);
             int maxIndex = -1;
             for(int i = 0; i < derivedTrueLiterals.size(); ++i) {
@@ -162,18 +157,18 @@ public class Backtracker extends Solver {
             // negative literal also caused a contradiction. Backtracking.
 
             if((index - maxIndex) > 1) ++statistics.backjumps;
-            while(maxIndex > firstIndex && predicateIndex[maxIndex] < 0) --maxIndex;
-            if(maxIndex == firstIndex && predicateIndex[maxIndex] < 0)
+            while(maxIndex > firstIndex && predicateSequence[maxIndex] < 0) --maxIndex;
+            if(maxIndex == firstIndex && predicateSequence[maxIndex] < 0)
                 return new UnsatClauses(problemId,solverId, startTime);
 
             // now predicateIndex[maxIndex] > 0 or maxIndex is at firstIndex
 
             ++statistics.backtrackings;
             while(index > maxIndex) {
-                if(predicateIndex[index] < 0) predicateIndex[index] *= -1;
+                if(predicateSequence[index] < 0) predicateSequence[index] *= -1;
                 clearDerivedLiterals(derivedTrueLiteralArray[index--]);
             }
-            if(predicateIndex[index] > 0) predicateIndex[index] *= -1;
+            if(predicateSequence[index] > 0) predicateSequence[index] *= -1;
             clearDerivedLiterals(derivedTrueLiteralArray[index--]);
             }
         model.exchangeModel(localModel);
@@ -251,34 +246,27 @@ public class Backtracker extends Solver {
         return literal > 0 ? localModel[literal] : -localModel[-literal]; }
 
 
-    /** inserts a clause into the internal lists.
-     *
-     * @param clause a clause.
-     */
-    void insertClause(Clause clause) {
-        for(Literal literalObject : clause.literals) literalIndex.addLiteral(literalObject);
-        clauses.addClause(clause);}
-
-
-
-    /** initializes the predicate index.
+    /** initializes the predicate sequence.
      * <br>
-     * The predicates are sorted according to the number of literal occurrences.
-     * The higher numbers of literal occurrences come earlier.
+     * The predicates are sorted as follows:<br>
+     * - predicateArrangement == 1: just the sequence of natural numbers: 1,2,...<br>
+     * - predicateArrangement == 2: predicates with more literal occurrences first<br>
+     * - predicateArrangement == 3: predicates with less literal occurrences first.
      */
-    void initializePredicateIndex() {
-        Integer[] preds = new Integer[predicates+1];
-        for (int predicate = 1; predicate <= predicates; ++predicate) preds[predicate] = predicate;
-        Arrays.sort(preds,1,predicates+1, Comparator.comparingInt(i -> -literalIndex.sizeTotal(i)));
-        if(predicateIndex == null || predicateIndex.length < predicates+1) predicateIndex = new int[predicates+1];
-        for (int predicate = 1; predicate <= predicates; ++predicate) predicateIndex[predicate] = preds[predicate];
-    }
+    void initializePredicateSequence() {
+        Integer[] predicateIndex = new Integer[predicates+1];
+        for (int predicate = 1; predicate <= predicates; ++predicate)
+            predicateIndex[predicate] = predicate;
+        if(predicateArrangement == 1) return;
+        int sign = predicateArrangement == 2 ? -1 : 1;
+        Arrays.sort(predicateIndex,1,predicates+1,
+                Comparator.comparingInt(i -> sign * (literalIndex.size(i) + literalIndex.size(-i))));}
 
 
-        /** initializes the local to be synchronous to the global model.
-         */
+    /** initializes the local to be synchronous to the global model.
+     */
     void initializeLocalModel() {
-        if(localModel == null || localModel.length < predicates+1) localModel = new byte[predicates+1];
+        localModel = new byte[predicates+1];
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             localModel[predicate] = model.status(predicate);}}
 

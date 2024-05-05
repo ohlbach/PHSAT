@@ -14,6 +14,18 @@ public abstract class LinkedItem {
     /** pointer to the next item in the list */
     public LinkedItem nextItem;
 
+    /**
+     * Clears the current item in the list.
+     * <p>
+     * This method sets the isInList field to false and nullifies the references
+     * to the previous and next items in the list. This effectively removes the
+     * current item from the list.
+     */
+    public void clear() {
+        isInList = false;
+        previousItem = null;
+        nextItem = null;}
+
     /** turns the item into a string.
      *
      * @param symboltable null or a symboltable.

@@ -90,6 +90,19 @@ public class LinkedItemList<Item extends LinkedItem>  {
         item.previousItem = null;
         return --size;}
 
+    /**
+     * Clears the linked list by removing all elements.
+     */
+    public void clear() {
+        LinkedItem item = firstLinkedItem;
+        while(item != null) {
+            LinkedItem nextItem = item.nextItem;
+            item.clear();
+            item = nextItem;}
+        firstLinkedItem = null;
+        lastLinkedItem = null;
+        size = 0;}
+
     /** counts the items in the list.
      *
      * @return the number of items in the list.

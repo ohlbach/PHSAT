@@ -188,7 +188,6 @@ public abstract class Solver {
      * @param problemSupervisor the supervisor for the problem.
      */
     public void initialize(Thread thread,ProblemSupervisor problemSupervisor) {
-        startTime                  = System.nanoTime();
         this.myThread              = thread;
         this.problemSupervisor     = problemSupervisor;
         solverId                   = (String)solverParameters.get("name");
