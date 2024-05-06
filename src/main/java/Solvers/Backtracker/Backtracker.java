@@ -40,6 +40,7 @@ public class Backtracker extends Solver {
 
     private int predicateArrangement = 1;
     int[] predicateSequence;
+    int[] predicatePositions;
 
     private LinkedItemList<Clause> clauses;
 
@@ -47,6 +48,8 @@ public class Backtracker extends Solver {
 
     /** keeps the local candidate model */
     byte[] localModel;
+
+    IntArrayList[] dependencies;
 
     BacktrackerStatistics statistics;
 
@@ -74,6 +77,7 @@ public class Backtracker extends Solver {
         clauses      = new LinkedItemList<>("Clauses");
         statistics   = new BacktrackerStatistics(solverId);
         literalIndex = new LiteralIndex<>(predicates);
+        dependencies = new IntArrayList[predicates+1];
         readInputClauses();
         initializeLocalModel();
         initializePredicateSequence();
@@ -216,7 +220,7 @@ public class Backtracker extends Solver {
                         unsignedLiteral = literalObject; break;
                     case 1: return null;}}                   // clause is true;
                 if(unsignedLiteral == null) {return clause;} // all literals are false
-                deriveTrueLiteral(clause,unsignedLiteral,true);
+                makeLiteralLocallyTrue(clause,unsignedLiteral,true);
                return null;}
 
         // all other clause types.
@@ -235,22 +239,35 @@ public class Backtracker extends Solver {
             if(getLocalTruth(literalObject.literal) == 0) {
                  int trueLits = trueLiterals + literalObject.multiplicity;
                  if(!(min <= trueLits && trueLits <= max)) { // making it true causes a contradiction
-                     deriveTrueLiteral(clause,literalObject,false);
+                     makeLiteralLocallyTrue(clause,literalObject,false);
                      continue;}
                  trueLits = trueLiterals + unsignedLiterals - literalObject.multiplicity;
                  if(!(min <= trueLits && trueLits <= max)) { // making it false causes a contradiction
-                    deriveTrueLiteral(clause,literalObject,true);}}}
+                    makeLiteralLocallyTrue(clause,literalObject,true);}}}
     return null;}
 
 
 
 
-    void deriveTrueLiteral(Clause clause, Literal literalObject, boolean truth) {
+    synchronized void makeLiteralLocallyTrue(Clause clause, Literal literalObject, boolean truth) {
         int sign = truth? 1:-1;
         int literal = sign*literalObject.literal;
+        dependencies[Math.abs(literal)] = joinDependencies(clause);
         setLocalTruth(literal);
-        threadPool.addPropagatorJob(this,literal);
-    }
+        threadPool.addPropagatorJob(this,literal);}
+
+    IntArrayList joinDependencies(Clause clause) {
+        IntArrayList joinedDependencies = new IntArrayList();
+        for(Literal literalObject : clause.literals) {
+            int literal = literalObject.literal;
+            if(getLocalTruth(literal) != 0)
+                joinDependencies(joinedDependencies,dependencies[Math.abs(literal)]);}
+        joinedDependencies.sort(Comparator.comparingInt(predicate -> predicatePositions[predicate]));
+        return joinedDependencies;}
+
+    void joinDependencies(IntArrayList dep1, IntArrayList dep2){
+        if(dep1.isEmpty()) {dep1.addAll(dep2); return;}
+        for(int predicate : dep2) {if(!dep1.contains(predicate)) dep1.add(predicate);}}
 
     void propagate(int literal) {}
 
@@ -280,18 +297,33 @@ public class Backtracker extends Solver {
      * <br>
      * The predicates are sorted as follows:<br>
      * - predicateArrangement == 1: just the sequence of natural numbers: 1,2,...<br>
-     * - predicateArrangement == 2: predicates with more literal occurrences first<br>
-     * - predicateArrangement == 3: predicates with less literal occurrences first.
+     * - predicateArrangement == 2: just the inverse sequence of natural numbers: n,n-1,...<br>
+     * - predicateArrangement == 3: predicates with more literal occurrences first<br>
+     * - predicateArrangement == 4: predicates with less literal occurrences first.
      */
     void initializePredicateSequence() {
+        predicateSequence  = new int[predicates+1];
+        predicatePositions = new int[predicates+1];
+        switch(predicateArrangement) {
+            case 0:
+                for (int predicate = 1; predicate <= predicates; ++predicate) {
+                    predicateSequence[predicate] = predicate;
+                    predicatePositions[predicate] = predicate;}
+                return;
+            case 1:
+                for (int predicate = 1; predicate <= predicates; ++predicate) {
+                    predicateSequence[predicates-predicate+1] = predicate;
+                    predicatePositions[predicate] = predicates-predicate+1;}
+                return;}
+        int sign = (predicateArrangement == 3) ? -1 : 1;
         Integer[] predicateIndex = new Integer[predicates+1];
-        for (int predicate = 1; predicate <= predicates; ++predicate)
-            predicateIndex[predicate] = predicate;
-        if(predicateArrangement == 1) return;
-        int sign = predicateArrangement == 2 ? -1 : 1;
+        for (int predicate = 1; predicate <= predicates; predicate++) {predicateIndex[predicate] = predicate;}
         Arrays.sort(predicateIndex,1,predicates+1,
-                Comparator.comparingInt(i -> sign * (literalIndex.size(i) + literalIndex.size(-i))));}
-
+                Comparator.comparingInt(i -> sign * (literalIndex.size(i) + literalIndex.size(-i))));
+        for(int predicate = 1; predicate <= predicates; ++ predicate) {
+            predicateSequence[predicate] = predicateIndex[predicate];
+            predicatePositions[predicateSequence[predicate]] = predicate;
+        }}
 
     /** initializes the local to be synchronous to the global model.
      */
