@@ -14,13 +14,14 @@ public class Clause extends Datastructures.Clause<Literal>{
           literals.add(literal);}}
 
     /**
-     * Removes a given Literal object from the Clause and performs necessary updates.
+     * Removes a given Literal object from the clause and performs necessary updates.
      *
-     * @param literalObject the Literal object to be removed
-     * @param isTrue        a boolean indicating if the removed Literal is true or false
-     * @return true if the reduced clause is still satisfiable, otherwise false.
+     * @param literalObject the Literal object to be removed.
+     * @param isTrue        a boolean indicating if the removed Literal is true or false.
+     * @return false if the clause is unsatisfiable, otherwise true.
      */
     boolean removeLiteral(Literal literalObject, boolean isTrue) {
+        assert literalObject.clause == this;
         literals.remove(literalObject);
         int multiplicity = literalObject.multiplicity;
         expandedSize -= multiplicity;
@@ -32,7 +33,7 @@ public class Clause extends Datastructures.Clause<Literal>{
                 litObject.multiplicity = Math.min(min,literalObject.multiplicity);
                 expandedSize += literalObject.multiplicity;}}
         else max = Math.min(expandedSize,max);
-        if(min > max) return false;
+        if(min > max) return false; // may be the empty clause
         classifyQuantifier();
         return true;}
 
