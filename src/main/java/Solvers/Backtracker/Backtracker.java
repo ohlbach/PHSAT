@@ -81,7 +81,7 @@ public class Backtracker extends Solver {
     byte[] localModel;
 
     /** stores the threads which are used to propagate derived true literals. */
-    public ThreadPool threadPool;
+    public PropagatorPool propagatorPool;
 
 
     /** constructs a new Backtracker.
@@ -294,7 +294,7 @@ public class Backtracker extends Solver {
         int literal = sign*literalObject.literal;
         dependentSelections[Math.abs(literal)] = joinDependencies(clause);
         setLocalTruth(literal);
-        threadPool.addPropagatorJob(this,literal);}
+        propagatorPool.addPropagatorJob(this,literal);}
 
     IntArrayList joinDependencies(Clause clause) {
         IntArrayList joinedDependencies = new IntArrayList();
@@ -309,7 +309,7 @@ public class Backtracker extends Solver {
         if(dep1.isEmpty()) {dep1.addAll(dep2); return;}
         for(int predicate : dep2) {if(!dep1.contains(predicate)) dep1.add(predicate);}}
 
-    IntArrayList propagate(int literal) {
+    Result propagate(int literal) {
         Thread currentThread = Thread.currentThread();
         for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = literalIndex.getFirstLiteral(sign*literal);
@@ -317,7 +317,12 @@ public class Backtracker extends Solver {
                 Clause clause = literalObject.clause;
                 if(clause.quantifier != Quantifier.OR || sign == -1) {
                     Clause falseClause = analyseClause(clause);
-                    if(falseClause != null) {return joinDependencies(falseClause);}}
+                    if(falseClause != null) {
+                        try{backtrack (joinDependencies(falseClause));}
+                        catch(Result result) {
+                            propagatorPool.jobFinished(this);
+                            return result;}
+                    }}
                 literalObject = (Literal)literalObject.nextItem;}}
         return null;}
 
