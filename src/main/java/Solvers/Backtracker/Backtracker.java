@@ -166,11 +166,7 @@ public class Backtracker extends Solver {
 
             processGloballyTrueLiterals();
 
-            if(clauses.isEmpty()) {
-                model.exchangeModel(localModel);
-                throw new Satisfiable(problemId,solverId, model);}
-            topPredicateIndex = findNextPredicateIndex(topPredicateIndex+1);
-            if(topPredicateIndex == 0) {
+            if(clauses.isEmpty() || (topPredicateIndex = findNextPredicateIndex(topPredicateIndex+1)) == 0) {
                 model.exchangeModel(localModel);
                 throw new Satisfiable(problemId,solverId, model);}
 
@@ -179,7 +175,7 @@ public class Backtracker extends Solver {
                 literal *= -1;
                 model.add(myThread,literal);
                 setLocalTruth(literal);
-                removeClauses(literal);}
+                removeTrueLiterals(literal);}
             else {
                 selectedPredicateIndices.clear();
                 selectedPredicateIndices.add(topPredicateIndex);
@@ -199,20 +195,19 @@ public class Backtracker extends Solver {
                     selectedPredicateIndices.removeLast();
                     nextPredicateIndex = findNextPredicateIndex(lastIndex+1);}}
 
-        }
-        model.exchangeModel(localModel);
-        return new Satisfiable(problemId,solverId, model);}
+        }}
 
     int findNextPredicateIndex(int predicateIndex) throws Result {
         for(; predicateIndex <= predicates; ++predicateIndex) {
             int predicate = predicateSequence[predicateIndex];
             if (literalIndex.isEmpty(predicate)) continue;
             byte status = model.status(predicate);
-            if (status != 0) {removeClauses(predicate*status); continue;}
+            if (status != 0) {
+                removeTrueLiterals(predicate*status); continue;}
             return predicateIndex;}
         return 0;}
 
-    IntArrayList tryTopPredicate(int predicate) {
+    IntArrayList tryTopPredicate(int predicate) throws Result {
          dependentSelections[predicate] = IntArrayList.wrap(new int[]{predicate});
          setLocalTruth(predicate);
          return propagate(predicate);
@@ -226,17 +221,18 @@ public class Backtracker extends Solver {
         int literal;
         while(!myThread.isInterrupted() && !clauses.isEmpty() &&
                 (literal = getGloballyTrueLiteral()) != 0) {
-            removeClauses(literal);}}
+            removeTrueLiterals(literal);}}
 
 
-    void removeClauses(int trueLiteral) throws Result {
+    void removeTrueLiterals(int trueLiteral) throws Result {
         for(int sign = 1; sign >= -1; --sign) {
             int literal = sign*trueLiteral;
             Literal literalObject = literalIndex.getFirstLiteral(literal);
             while(literalObject != null) {
                 Clause clause = literalObject.clause;
                 clause.removeLiteral(literalObject,(sign == 1));
-                Clause falseClause = analyseClause(literalObject.clause, model::status,);
+                Clause falseClause = analyseClause(literalObject.clause, model::status,
+                        (cl,lit,sig) -> addGloballyTrueLiteral(sig*lit.literal) );
                 if(falseClause != null)
                 literalObject = (Literal)literalObject.nextItem;
             }
@@ -259,7 +255,7 @@ public class Backtracker extends Solver {
      * @return the clause if it is false already (locally or globally), otherwise null.
      */
     Clause analyseClause(Clause clause, Function<Integer,Byte> model,
-                         TriConsumer<Clause,Literal,Boolean> makeLiteralTrue) {
+                         TriConsumer<Clause,Literal,Byte> makeLiteralTrue) {
         // Since disjunctions are frequent,
         // and only one passage through the literals is sufficient,
         // it is worth treating this case separately.
@@ -272,7 +268,7 @@ public class Backtracker extends Solver {
                         unsignedLiteral = literalObject; break;
                     case 1: return null;}}                   // clause is true;
                 if(unsignedLiteral == null) {return clause;} // all literals are false
-                makeLiteralLocallyTrue(clause,unsignedLiteral,true);
+                makeLiteralLocallyTrue(clause,unsignedLiteral,(byte)1);
                return null;}
 
         // all other clause types.
@@ -291,18 +287,15 @@ public class Backtracker extends Solver {
             if(model.apply(literalObject.literal) == 0) {
                  int trueLits = trueLiterals + literalObject.multiplicity;
                  if(!(min <= trueLits && trueLits <= max)) { // making it true causes a contradiction
-                     makeLiteralTrue.accept(clause,literalObject,false);
+                     makeLiteralTrue.accept(clause,literalObject,(byte)-1);
                      continue;}
                  trueLits = trueLiterals + unsignedLiterals - literalObject.multiplicity;
                  if(!(min <= trueLits && trueLits <= max)) { // making it false causes a contradiction
-                    makeLiteralTrue.accept(clause,literalObject,true);}}}
+                    makeLiteralTrue.accept(clause,literalObject,(byte)1);}}}
     return null;}
 
 
-
-
-    synchronized void makeLiteralLocallyTrue(Clause clause, Literal literalObject, boolean truth) {
-        int sign = truth? 1:-1;
+    synchronized void makeLiteralLocallyTrue(Clause clause, Literal literalObject, Byte sign) {
         int literal = sign*literalObject.literal;
         dependentSelections[Math.abs(literal)] = joinDependencies(clause);
         setLocalTruth(literal);
@@ -328,7 +321,8 @@ public class Backtracker extends Solver {
             while(literalObject != null && !currentThread.isInterrupted() && !myThread.isInterrupted()) {
                 Clause clause = literalObject.clause;
                 if((clause.quantifier != Quantifier.OR) || sign == -1) { // true literal in an OR: ignore clause
-                    Clause falseClause = analyseClause(clause);
+                    Clause falseClause = analyseClause(clause,this::getLocalTruth,
+                            (cl,lit,sig) -> makeLiteralLocallyTrue(clause,lit,sig));
                     if(falseClause != null) backtrack (joinDependencies(falseClause));}
                 literalObject = (Literal)literalObject.nextItem;}}}
 
