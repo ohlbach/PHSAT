@@ -46,6 +46,9 @@ public class Backtracker extends Solver {
      * - predicateArrangement == 4: predicates with less literal occurrences first.*/
     private int predicateArrangement = 1;
 
+    /** the final result */
+    Result result = null;
+
     /** determines the sequence of predicates which are temporally set to true.*/
     int[] predicateSequence;
     /** maps each predicate to its position in the predicateSequence array- */
@@ -156,7 +159,6 @@ public class Backtracker extends Solver {
         return globallyTrueLiterals.isEmpty() ? 0: globallyTrueLiterals.removeLast();}
 
     public Result searchModel() throws Result {
-        Thread myThread = Thread.currentThread();
         IntArrayList selectedPredicateIndices = new IntArrayList();
         int topPredicateIndex = 0;
         int literal = 0;
@@ -309,22 +311,16 @@ public class Backtracker extends Solver {
         if(dep1.isEmpty()) {dep1.addAll(dep2); return;}
         for(int predicate : dep2) {if(!dep1.contains(predicate)) dep1.add(predicate);}}
 
-    Result propagate(int literal) {
-        Thread currentThread = Thread.currentThread();
+    void propagate(int literal) throws Result {
+        Thread currentThread = Thread.currentThread(); // may be a Propagator thread
         for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = literalIndex.getFirstLiteral(sign*literal);
-            while(literalObject != null && !currentThread.isInterrupted()) {
+            while(literalObject != null && !currentThread.isInterrupted() && !myThread.isInterrupted()) {
                 Clause clause = literalObject.clause;
-                if(clause.quantifier != Quantifier.OR || sign == -1) {
+                if((clause.quantifier != Quantifier.OR) || sign == -1) { // true literal in an OR: ignore clause
                     Clause falseClause = analyseClause(clause);
-                    if(falseClause != null) {
-                        try{backtrack (joinDependencies(falseClause));}
-                        catch(Result result) {
-                            propagatorPool.jobFinished(this);
-                            return result;}
-                    }}
-                literalObject = (Literal)literalObject.nextItem;}}
-        return null;}
+                    if(falseClause != null) backtrack (joinDependencies(falseClause));}
+                literalObject = (Literal)literalObject.nextItem;}}}
 
 
 
@@ -378,6 +374,15 @@ public class Backtracker extends Solver {
             dependencies.removeLast();
             dependentSelections[lastSelection] = dependencies;
             propagate(derivedLiteral);}}
+
+    /** report the result to the main thread.
+     *  <p>
+     *  It can be called from any other thread.
+     * @param result a result
+     */
+    public synchronized void reportResult(Result result) {
+        this.result = result;
+        myThread.interrupt();}
 
     /** sets the local truth value of the literal.
      *

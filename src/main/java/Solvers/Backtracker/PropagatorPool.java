@@ -11,6 +11,9 @@ import java.util.ArrayList;
  */
 public class PropagatorPool {
 
+    /** identifies a thread */
+    private int identifier = 0;
+
     /** The list of propagators. Active propagators come first, and then the passive propagators.*/
     ArrayList<Propagator> propagators = new ArrayList<>();
 
@@ -26,7 +29,7 @@ public class PropagatorPool {
      */
     public synchronized void addPropagatorJob(Backtracker backtracker, int literal) {
         if(firstPassive == propagators.size()) { // no passive propagator available.
-            Propagator propagator = new Propagator(this);
+            Propagator propagator = new Propagator(this, ++identifier);
             propagator.poolIndex = firstPassive++;
             propagators.add(propagator);
             propagator.newPropagateJob(backtracker,literal);
@@ -62,4 +65,18 @@ public class PropagatorPool {
         for(int index = 0; index < firstPassive; ++index) {
             Propagator propagator = propagators.get(index);
             if(propagator.backtracker == backtracker) deactivate(propagator);}}
+
+    /** lists all the active and passive propagators.
+     *
+     * @return a short description of all the active and passive propagators.
+     */
+    public String toString() {
+        StringBuilder st = new StringBuilder();
+        if(firstPassive > 0) st.append("Active Propagators:\n");
+        for(int i = 0; i < firstPassive; ++i)
+            st.append(propagators.get(i).toString()).append("\n");
+        if(firstPassive < propagators.size()) st.append("Passive Propagators:\n");
+        for(int i = firstPassive; i < propagators.size(); ++i)
+            st.append(propagators.get(i).toString()).append("\n");
+        return st.toString();}
 }
