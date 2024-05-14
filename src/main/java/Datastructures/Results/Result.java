@@ -34,12 +34,23 @@ public class Result extends Exception {
      * @param problemId the problem identifier which has the result.
      * @param solverId the solver which found the result.
      */
-    public Result(String problemId, String solverId, long startTime) {
+    public Result(String problemId, String solverId) {
         super();
         this.problemId = problemId;
         this.solverId = solverId;
-        elapsedTime = System.nanoTime() - startTime;
-    }
+        endTime = System.nanoTime();}
+
+    /** Completes the information of the Result object with the given problemId, solverId, and startTime.
+     * Calculates the elapsed time by subtracting the startTime from the endTime.
+     *
+     * @param problemId   the problem identifier associated with the result
+     * @param solverId    the solver identifier associated with the result
+     * @param startTime   the starting time of the solver in nanoseconds
+     */
+    public void complete(String problemId, String solverId, long startTime) {
+         this.problemId = problemId;
+         this.solverId = solverId;
+         elapsedTime = endTime - startTime;}
 
     /** returns the inference steps which produced the result.
      * Double occurrences are removed.

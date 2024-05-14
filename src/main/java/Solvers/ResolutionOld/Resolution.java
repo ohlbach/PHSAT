@@ -579,7 +579,7 @@ public abstract class Resolution extends Solver {
      */
     private Result completeModel() {
         System.out.println("Completing Model\n"+toString());
-        if(model.size() == predicates) {return new Satisfiable(null,null, startTime, model);}
+        if(model.size() == predicates) {return new Satisfiable(null,null, model);}
         boolean isPositive = true;
         switch(strategy) {
             case INPUT:
@@ -603,7 +603,7 @@ public abstract class Resolution extends Solver {
         if(result != null) {return result;}
         result = checkModel(model);
         if(result != null) {return result;}
-        return new Satisfiable(null,null,startTime, model);}
+        return new Satisfiable(null,null, model);}
 
     private void completeEliminations() {
         for(int i = eliminatedLiterals.size()-1; i >= 0; --i) {

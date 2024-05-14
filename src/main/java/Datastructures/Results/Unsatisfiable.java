@@ -19,8 +19,8 @@ public abstract class Unsatisfiable extends Result {
      * @param problemId the problem where the unsatisfiability was discovered.
      * @param solverId  the solver which discovered the unsatisfiability.
      */
-    public Unsatisfiable(String problemId, String solverId, long startTime) {
-        super(problemId,solverId,startTime);}
+    public Unsatisfiable(String problemId, String solverId) {
+        super(problemId,solverId);}
 
     /** must generate a short description of the unsatisfiability
      *

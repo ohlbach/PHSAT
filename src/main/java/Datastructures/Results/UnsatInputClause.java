@@ -15,8 +15,8 @@ public class UnsatInputClause extends Unsatisfiable {
      *
      * @param inputClause a contradictory InputClause
      */
-    public UnsatInputClause(String problemId, String solverId, long startTime,int[] inputClause) {
-        super(problemId,solverId,startTime);
+    public UnsatInputClause(String problemId, String solverId,int[] inputClause) {
+        super(problemId,solverId);
         this.inputClause = inputClause;
         inferenceSteps.add(new InfInputClause(inputClause[0]));}
 

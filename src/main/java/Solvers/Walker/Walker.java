@@ -462,7 +462,7 @@ public class Walker extends Solver {
         Model model = new Model(predicates);
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             model.addImmediately(localModel[predicate] ? predicate : -predicate);}
-        return new Satisfiable(problemId,solverId,startTime, model);}
+        return new Satisfiable(problemId,solverId, model);}
 
 
 

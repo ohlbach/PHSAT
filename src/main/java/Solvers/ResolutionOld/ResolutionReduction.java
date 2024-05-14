@@ -765,12 +765,12 @@ public abstract class ResolutionReduction extends Solver {
         System.out.println("Completing Model\n"+toString());
         Result result = null;
         for(int i = 1; i <= 3; ++i) {
-            if(model.size() == predicates) {return new Satisfiable(null,null,startTime, model);}
+            if(model.size() == predicates) {return new Satisfiable(null,null, model);}
             if(result != null) {return result;}
             completeEliminationsInModel();
             result = checkModel(model);
             if(result != null) {return result;}}
-        return new Satisfiable(null,null,startTime, model);}
+        return new Satisfiable(null,null, model);}
 
     /** completes a partial model by inserting the value for eliminated literals */
     void completeEliminationsInModel() {

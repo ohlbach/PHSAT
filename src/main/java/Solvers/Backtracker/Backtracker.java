@@ -118,13 +118,12 @@ public class Backtracker extends Solver {
         readInputClauses();
         initializeLocalModel();
         initializePredicateSequence();
-        Result result = null;
-        try{
-        //System.out.println(clauses.toString(null));
-            result = searchModel();
+        try{searchModel();
             System.out.println(statistics);}
-        catch(Result res) {return res;}
-        return result;}
+        catch(Result result) {
+            result.complete(problemId,solverId,startTime);
+            return result;}
+        return null;}
 
     /** integrates the normalized input clauses into the clauses-list and the literal index.
      */
@@ -158,12 +157,23 @@ public class Backtracker extends Solver {
     public synchronized int getGloballyTrueLiteral() {
         return globallyTrueLiterals.isEmpty() ? 0: globallyTrueLiterals.removeLast();}
 
-    public Result searchModel() throws Result {
+    public void searchModel() throws Result {
         IntArrayList selectedPredicateIndices = new IntArrayList();
         int topPredicateIndex = 0;
         int literal = 0;
-        while(!myThread.isInterrupted() && !clauses.isEmpty() &&
-                ((topPredicateIndex = findNextPredicateIndex(topPredicateIndex+1)) != 0)){
+        while(!myThread.isInterrupted()){
+            if(result != null) throw result; // found by a Propagator thread
+
+            processGloballyTrueLiterals();
+
+            if(clauses.isEmpty()) {
+                model.exchangeModel(localModel);
+                throw new Satisfiable(problemId,solverId, model);}
+            topPredicateIndex = findNextPredicateIndex(topPredicateIndex+1);
+            if(topPredicateIndex == 0) {
+                model.exchangeModel(localModel);
+                throw new Satisfiable(problemId,solverId, model);}
+
             literal = firstSign * predicateSequence[topPredicateIndex];
             if(tryTopPredicate(literal) != null) {
                 literal *= -1;
@@ -191,7 +201,7 @@ public class Backtracker extends Solver {
 
         }
         model.exchangeModel(localModel);
-        return new Satisfiable(problemId,solverId, startTime, model);}
+        return new Satisfiable(problemId,solverId, model);}
 
     int findNextPredicateIndex(int predicateIndex) throws Result {
         for(; predicateIndex <= predicates; ++predicateIndex) {
@@ -355,6 +365,7 @@ public class Backtracker extends Solver {
      * The current point of the search is indicated by the last predicate in selectedPredicates.
      *
      * @param dependencies the list of selections which caused a contradiction.
+     * @throws Result if backtracked to the top-selection and model.add(-selection) causes a contradiction
      */
     synchronized void backtrack(IntArrayList dependencies) throws Result {
         int lastSelection = dependencies.getLast();
@@ -375,7 +386,7 @@ public class Backtracker extends Solver {
             dependentSelections[lastSelection] = dependencies;
             propagate(derivedLiteral);}}
 
-    /** report the result to the main thread.
+    /** report the result to the main thread and sends an interrupt to myThread
      *  <p>
      *  It can be called from any other thread.
      * @param result a result

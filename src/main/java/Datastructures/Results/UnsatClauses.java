@@ -4,8 +4,8 @@ import Datastructures.Symboltable;
 
 public class UnsatClauses extends Unsatisfiable{
 
-    public UnsatClauses(String problemId, String solverId, long startTime) {
-        super(problemId,solverId,startTime);}
+    public UnsatClauses(String problemId, String solverId) {
+        super(problemId,solverId);}
     @Override
     public String description(Symboltable symboltable) {
         return "All potential models failed.";

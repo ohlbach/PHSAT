@@ -4,7 +4,7 @@ import Datastructures.Theory.Model;
 
 public class EmptyClauses extends Satisfiable{
     public EmptyClauses(String problemId, String solverId, long startTime, Model model) {
-        super(problemId,solverId,startTime, model);}
+        super(problemId,solverId, model);}
 
     /** a short description of the result.
      *

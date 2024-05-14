@@ -53,7 +53,7 @@ public class Propagator extends Thread {
                 isActive = false;}}
         catch (InterruptedException e) {
             propagatorPool.deactivate(this);}
-        catch(Result result) {
+        catch(Result result) { // backtracked to the top-selection and thrown by model.add(-selection)
             backtracker.reportResult(result);
             propagatorPool.jobFinished(backtracker);}}
 

@@ -14,7 +14,7 @@ public class Aborted extends Result {
      * @param reason why the solver was aborted.
      */
     public Aborted(String problemId, String solverId, long startTime, String reason) {
-        super(problemId,solverId,startTime);
+        super(problemId,solverId);
         this.reason = reason;}
 
     /** just returns the reason for the abortion

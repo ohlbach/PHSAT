@@ -19,12 +19,12 @@ public class UnsatClause extends Unsatisfiable {
      * @param inputClause an unsatisfiable clause
      */
     public UnsatClause(String problemId, String solverId, long startTime, int[] inputClause) {
-        super(problemId, solverId,startTime);
+        super(problemId, solverId);
         this.inputClause = inputClause;
         inferenceSteps.add(new InfInputClause(inputClause[0]));}
 
     public UnsatClause(String problemId, String solverId, long startTime, Solvers.Normalizer.Clause clause) {
-        super(problemId,solverId,startTime);
+        super(problemId,solverId);
         inferenceSteps.addAll(clause.inferenceSteps);
     }
 

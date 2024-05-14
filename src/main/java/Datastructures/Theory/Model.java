@@ -85,8 +85,9 @@ public class Model {
      * If the literal is already false in the model then an UnsatisfiableLiteral exception is thrown
      * with the literal, the old inference step and the new inference step.
      *
+     * @param thread  which submitted the literal (for avoiding its observer)
      * @param literal the literal for the model.
-     * @param inferenceStep  the inference step that caused the truth of the model.
+     * @param inferenceStep  the inference step that caused the truth of the literal.
      * @throws UnsatisfiableLiteral if a contradiction with an earlier entry in the model occurs.
      */
     public synchronized void add(Thread thread,int literal, InferenceStep inferenceStep) throws Unsatisfiable {

@@ -25,7 +25,7 @@ public class Erraneous extends Result {
      * @param symboltable  a symbol table (optional)
      */
     public Erraneous(String problemId, String solverId, long startTime, Model model, ArrayList<int[]> falseClauses, Symboltable symboltable) {
-        super(problemId,solverId,startTime);
+        super(problemId,solverId);
         this.model = model;
         this.falseClauses = falseClauses;
         this.symboltable = symboltable;}
@@ -37,7 +37,7 @@ public class Erraneous extends Result {
      * @param symboltable  a symbol table (optional)
      */
     public Erraneous(String problemId, String solverId,long startTime, Model model, Clause falseClause, Symboltable symboltable) {
-        super(problemId,solverId,startTime);
+        super(problemId,solverId);
         this.model = model;
         this.falseClause = falseClause;
         this.symboltable = symboltable;}
