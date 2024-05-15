@@ -5,6 +5,7 @@ import Datastructures.LinkedItemList;
 import Datastructures.LiteralIndex;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
+import Datastructures.Results.UnsatClause;
 import Datastructures.Statistics.Statistic;
 import Management.Parameter;
 import Management.Parameters;
@@ -143,6 +144,30 @@ public class Backtracker extends Solver {
         for(Literal literalObject : clause.literals) literalIndex.addToBack(literalObject);
         clauses.addToBack(clause);}
 
+    /** removes the clause from the literal index and from the clauses list.
+     *
+     * @param clause a clause to be removed.
+     */
+    void removeClause(Clause clause) {
+        for(Literal literalObject : clause.literals) literalIndex.remove(literalObject);
+        clauses.remove(clause);}
+
+    /** removes a (false) literal from the clause.
+     * <p>
+     * If the resulting clause is a unit clause, it is inserted into the model.
+     * The clause is entirely removed.
+     *
+     * @param literalObject to be removed.
+     * @throws Result if inserting a unit clause into the model causes a contradiction.
+     */
+    void removeLiteral(Literal literalObject) throws Result{
+        Clause clause = literalObject.clause;
+        assert clause.quantifier == Quantifier.OR;
+        literalIndex.remove(literalObject);
+        if(clause.removeLiteral(literalObject)) {
+            model.add(myThread,clause.literals.get(0).literal,null);
+            removeClause(clause);};}
+
     /** Adds a literal to the list of globally true literals.
      *
      * @param literal The literal to be added.
@@ -230,14 +255,23 @@ public class Backtracker extends Solver {
             Literal literalObject = literalIndex.getFirstLiteral(literal);
             while(literalObject != null) {
                 Clause clause = literalObject.clause;
-                clause.removeLiteral(literalObject,(sign == 1));
+                if(clause.quantifier == Quantifier.OR) {
+                    if(sign == 1) removeClause(clause); // clause is true
+                    else          removeLiteral(literalObject);
+                    literalObject = (Literal)literalObject.nextItem;
+                    continue;}
+                if(clause.removeLiteral(literalObject,(sign == 1))) { // e.g. min > max
+                    throw new UnsatClause(problemId,solverId, clause);}
+
                 Clause falseClause = analyseClause(literalObject.clause, model::status,
                         (cl,lit,sig) -> addGloballyTrueLiteral(sig*lit.literal) );
-                if(falseClause != null)
+                if(falseClause != null) throw new UnsatClause(problemId,solverId, clause);
+                }
+
                 literalObject = (Literal)literalObject.nextItem;
             }
         }
-    }
+
 
 
 
@@ -294,6 +328,57 @@ public class Backtracker extends Solver {
                     makeLiteralTrue.accept(clause,literalObject,(byte)1);}}}
     return null;}
 
+    /**Analyzes a clause given the current local model.
+     * <p>
+     * The following cases are possible:<br>
+     * - the clause is already true: return null; <br>
+     * - the clause is already false: return the clause; <br>
+     * - making an unsigned literal true causes the clause to become false: make the literal false;<br>
+     * - making an unsigned literal false causes the to become false: make the literal true.
+     *
+     * @param clause The clause to be analyzed.
+     * @return the clause if it is false already (locally or globally), otherwise null.
+     */
+    void analyseClause(Clause clause) throws Result {
+        for(int i = clause.literals.size()-1; i >= 0; --i) { // remove all literals which are globally true/false.
+            Literal literalObject = clause.literals.get(i);
+            int literal = literalObject.literal;
+            byte status = model.status(literal);
+            if(status != 0) {
+                literalIndex.remove(literalObject);
+                if(clause.removeLiteral(literalObject,status == (byte)1));
+                    throw new UnsatClause(problemId,solverId,clause);}}
+        if(clause.literals.size() == 1) {
+            model.add(null, clause.literals.get(0).literal,null);
+            removeClause(clause);}
+
+        if(clause.quantifier == Quantifier.OR) return;
+
+        int expandedSize = clause.expandedSize;
+
+        if(expandedSize < clause.min || expandedSize > clause.max)
+            throw new UnsatClause(problemId,solverId,clause); // too many or not enough true literals.
+
+        if(min <= trueLiterals && trueLiterals <= max) {
+            removeClause(clause);
+            return;} // clause is true
+
+        // try to derive new true or false literals
+        for(Literal literalObject : clause.literals) {
+            int literal = literalObject.literal;
+            switch(model.status(literal)) {
+                case 1: clause.removeLiteral(literalObject,true);
+            }
+            if(model.status(literalObject.literal) == 0) {
+                int trueLits = trueLiterals + literalObject.multiplicity;
+                if(!(min <= trueLits && trueLits <= max)) { // making it true causes a contradiction
+                    model.add(myThread,-literalObject.literal,null);
+
+                    continue;}
+                trueLits = trueLiterals + unsignedLiterals - literalObject.multiplicity;
+                if(!(min <= trueLits && trueLits <= max)) { // making it false causes a contradiction
+                    makeLiteralTrue.accept(clause,literalObject,(byte)1);}}}
+        return null;}
 
     synchronized void makeLiteralLocallyTrue(Clause clause, Literal literalObject, Byte sign) {
         int literal = sign*literalObject.literal;

@@ -1,5 +1,6 @@
 package Datastructures.Results;
 
+import Datastructures.Clause;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Symboltable;
 import InferenceSteps.InfInputClause;
@@ -18,15 +19,18 @@ public class UnsatClause extends Unsatisfiable {
      *
      * @param inputClause an unsatisfiable clause
      */
-    public UnsatClause(String problemId, String solverId, long startTime, int[] inputClause) {
+    public UnsatClause(String problemId, String solverId, int[] inputClause) {
         super(problemId, solverId);
         this.inputClause = inputClause;
         inferenceSteps.add(new InfInputClause(inputClause[0]));}
 
-    public UnsatClause(String problemId, String solverId, long startTime, Solvers.Normalizer.Clause clause) {
+    public UnsatClause(String problemId, String solverId, Clause clause) {
         super(problemId,solverId);
-        inferenceSteps.addAll(clause.inferenceSteps);
     }
+    public UnsatClause(String problemId, String solverId, Solvers.Normalizer.Clause clause) {
+        super(problemId,solverId);
+    }
+
 
     @Override
     public String description(Symboltable symboltable) {

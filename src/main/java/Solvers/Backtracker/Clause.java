@@ -1,5 +1,7 @@
 package Solvers.Backtracker;
 
+import Datastructures.Clauses.Quantifier;
+
 public class Clause extends Datastructures.Clause<Literal>{
 
     /** this constructor turns a normalizedClause to a clause for the Backtracker solver.
@@ -18,7 +20,7 @@ public class Clause extends Datastructures.Clause<Literal>{
      *
      * @param literalObject the Literal object to be removed.
      * @param isTrue        a boolean indicating if the removed Literal is true or false.
-     * @return false if the clause is unsatisfiable, otherwise true.
+     * @return true if the clause is unsatisfiable, otherwise true.
      */
     boolean removeLiteral(Literal literalObject, boolean isTrue) {
         assert literalObject.clause == this;
@@ -33,9 +35,21 @@ public class Clause extends Datastructures.Clause<Literal>{
                 litObject.multiplicity = Math.min(min,literalObject.multiplicity);
                 expandedSize += literalObject.multiplicity;}}
         else max = Math.min(expandedSize,max);
-        if(min > max) return false; // may be the empty clause
+        if(min > max) return true; // may be the empty clause
         classifyQuantifier();
-        return true;}
+        return false;}
+
+    /** Removes a (false) literal from a disjunction (with atleast two literals)
+     *
+     * @return true if the resulting clause is a unit clause.
+     */
+    boolean removeLiteral(Literal literalObject) {
+        assert quantifier == Quantifier.OR;
+        assert literals.size() > 1;
+        literals.remove(literalObject);
+        expandedSize = literals.size();
+        max = expandedSize;
+        return expandedSize == 1;}
 
 
 }

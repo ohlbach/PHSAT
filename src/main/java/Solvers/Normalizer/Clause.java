@@ -426,7 +426,7 @@ public class Clause extends LinkedItem {
      * one of the literals with multiplicity == min must be true.
      *<br>
      * Example: &gt;= 2 p^2,q^2,r. One of p,q is sufficient to make the clause true.<br>
-     * Therefore it is reduced to p,q
+     * Therefore, it is reduced to p,q
      *
      * @param trackReasoning true if the reasoning is to be tracked.
      * @param monitor        null or a monitor.
