@@ -1,8 +1,12 @@
 package Datastructures;
 
 import Datastructures.Clauses.Quantifier;
+import InferenceSteps.InferenceStep;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Represents a Clause in a logic system.
@@ -28,6 +32,9 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
     /** the list of all Literal objects in the clause. */
     public ArrayList<Literal> literals = new ArrayList<>();
 
+    /** null or a list of inference steps */
+
+    public ArrayList<InferenceStep> inferenceSteps = null;
     /**
      * Constructs a Clause object with the given parameters.
      *
@@ -80,6 +87,101 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
         for(Literal literalObject : literals) {
             if(literalObject.literal == literal) return literalObject;}
         return null;}
+
+    public int simplify(boolean trackReasoning, Consumer<Literal> literalRemover,
+                         BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+        int result = simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor,symboltable);
+        return result;
+    }
+
+    public int simplifyRecursively(boolean trackReasoning, Consumer<Literal> literalRemover,
+                        BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+        if(min <= 0 && max >= expandedSize) return 1; // true clause
+        if(max < min || min > expandedSize) return -1;  // false clause
+
+        int sign = 0;
+        if(quantifier == Quantifier.AND || (min == expandedSize)) {sign = 1;}
+        else {if (max == 0) sign = -1;}
+
+        if(sign != 0) {
+            for(Literal literalObject : literals) {
+                int literal = sign*literalObject.literal;
+                reportTruth.accept(literal,null);} // all literals have a truth value.
+            if(monitor != null) monitor.accept("All literals in clause " + toString(symboltable,0) + " are true.");
+            return 1;}
+
+        if(quantifier == Quantifier.OR) return 0;  // no further simplification possible.
+
+        IntArrayList models = new IntArrayList();
+        int nModels = 1 << literals.size();
+        int minValue = Integer.MAX_VALUE;
+        int maxValue = 0;
+        for (int model = 0; model < nModels; ++model) {
+            int trueLiterals = 0;
+            for (int j = 0; j < literals.size(); j++) {
+                Literal literalObject = literals.get(j);
+                int literal = literalObject.literal;
+                if((literal > 0 && ((model & (1 << j)) != 0)) ||
+                   (literal < 0 && ((model & (1 << j)) == 0))) trueLiterals += literalObject.multiplicity;
+                 }
+            if(min <= trueLiterals && trueLiterals <= max) {
+                models.add(model);
+                minValue = Math.min(minValue,trueLiterals);
+                maxValue = Math.max(maxValue,trueLiterals);}}
+
+        if(models.isEmpty()) return -1; // unsatisfiable clause [3,3] p^2,q^2
+
+        if(min != minValue || max != maxValue) ++version; // [2,3] p^2,q^2 -> [2,2] p^2,q^2
+        if(min != minValue) {
+             if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " min increased to " + minValue);
+             min = minValue;}
+        if(max != maxValue) {
+            if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " max reduced to " + maxValue);
+            max = maxValue;}
+
+        if(models.size() == 1) { // [3,3] p,-q,r
+            int model = models.getInt(0);
+            for (int j = 0; j < literals.size(); j++) {
+                Literal literalObject = literals.get(j);
+                int literal = literalObject.literal;
+                if((model & (1 << j)) != 0) reportTruth.accept(literal,null);
+                else reportTruth.accept(-literal,null);}
+            if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) + ": single model " +model);
+            return 1;}
+
+        boolean changed = false;
+        for(int j = 0; j < literals.size(); ++j) {
+             int mask = 1 << j;
+             boolean allTrue = true; boolean allFalse = true;
+             for(int model: models) {
+                 if((model & mask) != 1) allTrue = false; else allFalse = false;}
+             sign = 0;
+             if(allTrue) sign = 1; else {if(allFalse) sign = -1;}
+             if(sign != 0) {
+                 changed = true;
+                 reportTruth.accept(sign*literals.get(j).literal,null);
+                 removeLiteral(j, sign == 1);
+                 j--;}}
+        if(changed) return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor, symboltable);
+
+
+
+
+        return 0;
+    }
+
+    public void removeLiteral(int j, boolean isTrue) {
+        Literal literalObject = literals.get(j);
+        literals.remove(j);
+        expandedSize -= literalObject.literal;
+        if(isTrue) {
+            min = Math.max(0, min- literalObject.multiplicity); max -= literalObject.multiplicity;
+            expandedSize = 0;
+            for(int i = 0; i < literals.size(); ++i) {
+                Literal litObject = literals.get(i);
+                litObject.multiplicity = Math.min(min, litObject.literal);
+                expandedSize += litObject.multiplicity;}}
+        classifyQuantifier();}
 
 
     /** returns the number of Literal objects in the clause.

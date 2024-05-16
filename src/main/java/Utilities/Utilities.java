@@ -1199,7 +1199,7 @@ public class Utilities {
                 if(((1 << i) & c) != 0) {
                     int item = list.getInt(i);
                     if(avoidDoubles && cmb.contains(item)) continue;
-                    if(avoidComplementaries && cmb.contains(-item)) {addItem = false; break;};
+                    if(avoidComplementaries && cmb.contains(-item)) {addItem = false; break;}
                     cmb.add(item);}}
             if(!addItem) continue;
             if(!cmb.isEmpty())
