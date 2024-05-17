@@ -2,6 +2,7 @@ package Datastructures;
 
 import Datastructures.Clauses.Quantifier;
 import InferenceSteps.InferenceStep;
+import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -90,14 +91,29 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
 
     public int simplify(boolean trackReasoning, Consumer<Literal> literalRemover,
                          BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+        int versionBefore = version;
         int result = simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor,symboltable);
+        if(result != 0 || versionBefore == version) return result;
         return result;
     }
 
+    /**
+     * Simplifies a clause recursively based on various conditions and rules.
+     *
+     * @param trackReasoning   Flag indicating whether reasoning should be tracked.
+     * @param literalRemover   Consumer for removing literals.
+     * @param reportTruth      BiConsumer for reporting truth.
+     * @param monitor          Consumer for monitoring progress.
+     * @param symboltable      Symboltable containing symbols and their values.
+     * @return Result indicating the simplification outcome:
+     *                           1: The clause is simplified to a true clause.
+     *                           0: No further simplification is possible.
+     *                          -1: The clause is simplified to a false clause.
+     */
     public int simplifyRecursively(boolean trackReasoning, Consumer<Literal> literalRemover,
                         BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
-        if(min <= 0 && max >= expandedSize) return 1; // true clause
-        if(max < min || min > expandedSize) return -1;  // false clause
+        if(min <= 0 && max >= expandedSize) return 1; // true clause, e.g. [0,0] empty
+        if(max < min || min > expandedSize) return -1;  // false clause, e.g. [1,1] empty (false literal removed from unit clause)
 
         int sign = 0;
         if(quantifier == Quantifier.AND || (min == expandedSize)) {sign = 1;}
@@ -112,6 +128,36 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
 
         if(quantifier == Quantifier.OR) return 0;  // no further simplification possible.
 
+        IntArrayList models = getModels(monitor,symboltable);
+
+        if(models.isEmpty()) return -1; // unsatisfiable clause [3,3] p^2,q^2
+
+        if(models.size() == 1) { // [3,3] p,-q,r
+            singletonModel(models.getInt(0), trackReasoning,reportTruth,monitor,symboltable);
+            return 1;}
+
+        if(extractTrueLiterals(models,trackReasoning, literalRemover, reportTruth, monitor, symboltable))
+            return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor, symboltable);
+
+        if(extractIrrelevantLiterals(models,trackReasoning, literalRemover, monitor, symboltable))
+            return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor, symboltable);
+
+        if(divideByGCD(trackReasoning,monitor,symboltable))
+            return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor, symboltable);
+
+        return 0;
+    }
+
+    /** Computes the list of models for the clause.
+     * <p>
+     *  A model is an integer where bit i=1 means the i-th literal is true. <br>
+     *  Example: clause p,q,r,-s: i = 1 means true(p),false(q,r,-s). i = 3 means true(p,q), false(r,-s).<br>
+     *  As a side effect: the min- and max-values are narrowed according to the extreme values of all models.<br>
+     *  Example: [2,3] p^2,q^2 -&gt; [2,2] p^2,q^2
+     *
+     * @return An IntArrayList containing the models for the clause.
+     */
+    protected IntArrayList getModels(Consumer<String> monitor, Symboltable symboltable) {
         IntArrayList models = new IntArrayList();
         int nModels = 1 << literals.size();
         int minValue = Integer.MAX_VALUE;
@@ -121,66 +167,166 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             for (int j = 0; j < literals.size(); j++) {
                 Literal literalObject = literals.get(j);
                 int literal = literalObject.literal;
-                if((literal > 0 && ((model & (1 << j)) != 0)) ||
-                   (literal < 0 && ((model & (1 << j)) == 0))) trueLiterals += literalObject.multiplicity;
-                 }
+                if(literal > 0 && ((model & (1 << j)) != 0)) trueLiterals += literalObject.multiplicity;
+            }
             if(min <= trueLiterals && trueLiterals <= max) {
                 models.add(model);
                 minValue = Math.min(minValue,trueLiterals);
                 maxValue = Math.max(maxValue,trueLiterals);}}
 
-        if(models.isEmpty()) return -1; // unsatisfiable clause [3,3] p^2,q^2
+        if(min != minValue || max != maxValue) {
+            ++version;
+            if(min != minValue) {
+                if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " min increased to " + minValue);
+                min = minValue;
+                expandedSize = 0;
+                for(Literal literalObject : literals) {
+                    literalObject.multiplicity = Math.min(min,literalObject.multiplicity);
+                    expandedSize += literalObject.multiplicity;}}
+            if(max != maxValue) {
+                if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " max reduced to " + maxValue);
+                max = maxValue;}}
+        return models;}
 
-        if(min != minValue || max != maxValue) ++version; // [2,3] p^2,q^2 -> [2,2] p^2,q^2
-        if(min != minValue) {
-             if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " min increased to " + minValue);
-             min = minValue;}
-        if(max != maxValue) {
-            if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " max reduced to " + maxValue);
-            max = maxValue;}
+    /** Makes all literals of a clause with a single model true.
+     * <br>
+     * Example: [3,3] p^2,-q  p and -q must be true.
+     *
+     * @param model           an integer representing the model, where bit i=1 means the i-th literal is true.
+     * @param trackReasoning  a boolean indicating whether reasoning should be tracked.
+     * @param reportTruth     a BiConsumer function for reporting truth.
+     * @param monitor         a Consumer function for monitoring.
+     * @param symboltable     a Symboltable object for symbol table operations.
+     */
+    protected void singletonModel(int model,boolean trackReasoning,
+                                       BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+        for (int j = 0; j < literals.size(); j++) {
+            Literal literalObject = literals.get(j);
+            int literal = literalObject.literal;
+            if((model & (1 << j)) != 0) reportTruth.accept(literal,null); // Inference Step
+            else reportTruth.accept(-literal,null);}
+        if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) + ": single model " +model);}
 
-        if(models.size() == 1) { // [3,3] p,-q,r
-            int model = models.getInt(0);
-            for (int j = 0; j < literals.size(); j++) {
-                Literal literalObject = literals.get(j);
-                int literal = literalObject.literal;
-                if((model & (1 << j)) != 0) reportTruth.accept(literal,null);
-                else reportTruth.accept(-literal,null);}
-            if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) + ": single model " +model);
-            return 1;}
+    /**Extracts literals which are true/false in all models of the clause.
+     *
+     * @param models             the list of models to extract true literals from
+     * @param trackReasoning     a boolean indicating whether reasoning should be tracked
+     * @param literalRemover     a function for removing literals
+     * @param reportTruth        a function for reporting truth
+     * @param monitor            a function for monitoring
+     * @param symboltable        the symbol table
+     * @return true if any true literals were extracted, false otherwise
+     */
+    protected boolean extractTrueLiterals(IntArrayList models,boolean trackReasoning,Consumer<Literal> literalRemover,
+                                  BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+        boolean changed = false;
+        for(int j = literals.size()-1; j >= 0; --j) {
+            int mask = 1 << j;
+            boolean allTrue = true; boolean allFalse = true;
+            for(int model: models) {
+                if((model & mask) == 0) allTrue = false; else allFalse = false;}
+            int sign = 0;
+            if(allTrue) sign = 1; else {if(allFalse) sign = -1;}
+            if(sign != 0) {
+                ++version;
+                changed = true;
+                reportTruth.accept(sign*literals.get(j).literal,null); // inference step
+                removeLiteral(j, sign == 1);
+                literalRemover.accept(literals.get(j));}}
+        if(changed) classifyQuantifier();
+        return changed;}
+
+    /**Extracts literals whose truth is irrelevant for the truth of the clause.
+     * <br>
+     * Example: [2,3] p^2,q^2,r  -&gt; [2,3] p^2,q^2 (atleast one of p or q must be true, regardless of r)<br>
+     * (-&gt; [2,2] p^2,q^2 -&gt; [1,2] p,q)
+     *
+     * @param models             the list of models to extract true literals from
+     * @param trackReasoning     a boolean indicating whether reasoning should be tracked
+     * @param literalRemover     a function for removing literals
+     * @param monitor            a function for monitoring
+     * @param symboltable        the symbol table
+     * @return true if any of the literals were extracted, false otherwise
+     */
+    protected boolean extractIrrelevantLiterals(IntArrayList models,boolean trackReasoning,Consumer<Literal> literalRemover,
+                                          Consumer<String> monitor, Symboltable symboltable) {
+        int mSize = models.size();
+        if(mSize % 2 == 1) return false; // no irrelevant litral
+        int mSize2 = mSize/2;
 
         boolean changed = false;
-        for(int j = 0; j < literals.size(); ++j) {
-             int mask = 1 << j;
-             boolean allTrue = true; boolean allFalse = true;
-             for(int model: models) {
-                 if((model & mask) != 1) allTrue = false; else allFalse = false;}
-             sign = 0;
-             if(allTrue) sign = 1; else {if(allFalse) sign = -1;}
-             if(sign != 0) {
-                 changed = true;
-                 reportTruth.accept(sign*literals.get(j).literal,null);
-                 removeLiteral(j, sign == 1);
-                 j--;}}
-        if(changed) return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor, symboltable);
+        for(int j = literals.size()-1; j >= 0; --j) {
+            int mask = 1 << j;
+            int counter = 0;
+            boolean next = false;
+            for(int model : models) {
+                if((model & mask) == 0) {
+                    ++counter;
+                    if(counter > mSize2) {next = true; break;} // not irrelevant
+                    boolean found = false;
+                    for(int model1 : models) {
+                        if((model1 & mask) != 0 && (model|mask) == model1) {found = true; break;}}
+                    if(!found) {next = true; break;}}}
+            if(next || counter != mSize2) continue;
+            ++version;
+            changed = true;
+            literalRemover.accept(literals.get(j)); // inference step
+            removeLiteral(j, false);}
+        if(changed) classifyQuantifier();
+        return changed;}
+
+
+    /** divides the limits and the multiplicities by their greatest common divisor.
+     *
+     * @param trackReasoning   controls generation of inference steps.
+     * @param monitor          null or a monitor.
+     * @param symboltable      null or a symboltable.
+     * @return true if the clause is changed.
+     */
+    protected boolean divideByGCD(boolean trackReasoning, Consumer<String> monitor, Symboltable symboltable) {
+        if(min <= 1 || max == 1) return false;
+        int gcd = Utilities.gcd(min,max);
+        if(gcd == 1) return false;
+
+        for(Literal literalObject : literals) {
+            gcd = Utilities.gcd(gcd,literalObject.multiplicity);
+            if(gcd == 1) return false;}
+
+        ++version;
+        min /= gcd;
+        max /= gcd;
+        expandedSize = 0;
+        for(Literal literalObject : literals) {
+            literalObject.multiplicity /= gcd;
+            expandedSize += literalObject.multiplicity;}
+        classifyQuantifier();
+
+        if(monitor != null) {monitor.accept("Divide by GCD in Clause " +toString(symboltable, 0));}
+        return true;}
 
 
 
-
-        return 0;
-    }
-
+    /**Removes th j-th literal from the list of literals in the clause.
+     * <p>
+     * Updates the expandedSize and adjusts the multiplicity.
+     * If isTrue is true, it also updates the min and max values of the remaining literals.
+     * The quantifier is also updated.
+     *
+     * @param j       the index of the literal to be removed
+     * @param isTrue  whether the removed literal is true or not
+     */
     public void removeLiteral(int j, boolean isTrue) {
         Literal literalObject = literals.get(j);
         literals.remove(j);
         expandedSize -= literalObject.literal;
         if(isTrue) {
-            min = Math.max(0, min- literalObject.multiplicity); max -= literalObject.multiplicity;
+            min = Math.max(0, min - literalObject.multiplicity); max -= literalObject.multiplicity;
             expandedSize = 0;
             for(int i = 0; i < literals.size(); ++i) {
                 Literal litObject = literals.get(i);
-                litObject.multiplicity = Math.min(min, litObject.literal);
+                litObject.multiplicity = Math.min(min, litObject.multiplicity);
                 expandedSize += litObject.multiplicity;}}
+        max = Math.min(max,expandedSize);
         classifyQuantifier();}
 
 
