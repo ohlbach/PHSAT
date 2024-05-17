@@ -1,11 +1,14 @@
 package Datastructures;
 
 import Datastructures.Clauses.Quantifier;
+import InferenceSteps.InfClauseSimplification;
+import InferenceSteps.InfTrueLiteralInClause;
 import InferenceSteps.InferenceStep;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -17,6 +20,9 @@ import java.util.function.Consumer;
  * @param <Literal> the type of Literal objects in the clause.
  */
 public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
+
+    /** the maximal number of literals where simplification by investigating all its models is still feasible. */
+    private static final int maxModelSize = 12;
     /** the identifier for the clause. */
     public int id;
     /** the version number (for simplified clauses) */
@@ -89,13 +95,32 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             if(literalObject.literal == literal) return literalObject;}
         return null;}
 
+    /**
+     * Simplifies a clause recursively based on various conditions and rules.
+     *
+     * @param trackReasoning   Flag indicating whether reasoning should be tracked.
+     * @param literalRemover   Consumer for removing literals.
+     * @param reportTruth      BiConsumer for reporting truth.
+     * @param monitor          Consumer for monitoring progress.
+     * @param symboltable      Symboltable containing symbols and their values.
+     * @return Result indicating the simplification outcome:
+     *                           1: The clause is simplified to a true clause.
+     *                           0: No further simplification is possible.
+     *                          -1: The clause is simplified to a false clause.
+     */
     public int simplify(boolean trackReasoning, Consumer<Literal> literalRemover,
                          BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
         int versionBefore = version;
-        int result = simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor,symboltable);
-        if(result != 0 || versionBefore == version) return result;
-        return result;
-    }
+        if(trackReasoning) {
+            int[] clone = simpleClone();
+            IntArrayList trueLiterals = new IntArrayList();
+            int result = simplifyRecursively(trackReasoning, literalRemover,
+                    (literal,inferenceStep) -> {trueLiterals.add((int)literal); reportTruth.accept(literal,inferenceStep);},
+                    monitor,symboltable);
+            if(result != 0 || versionBefore == version) return result;
+            addInferenceStep(new InfClauseSimplification(clone,this,trueLiterals));
+            return result;}
+        else return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor,symboltable);}
 
     /**
      * Simplifies a clause recursively based on various conditions and rules.
@@ -128,6 +153,11 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
 
         if(quantifier == Quantifier.OR) return 0;  // no further simplification possible.
 
+        if(literals.size() > maxModelSize) {
+            if(monitor != null) {monitor.accept("Clause " + toString(symboltable,0) +
+                    " has more than " + maxModelSize + " literal. Simplification may become incomplete.");}
+            return 0;}
+
         IntArrayList models = getModels(monitor,symboltable);
 
         if(models.isEmpty()) return -1; // unsatisfiable clause [3,3] p^2,q^2
@@ -139,10 +169,10 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
         if(extractTrueLiterals(models,trackReasoning, literalRemover, reportTruth, monitor, symboltable))
             return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor, symboltable);
 
-        if(extractIrrelevantLiterals(models,trackReasoning, literalRemover, monitor, symboltable))
+        if(extractIrrelevantLiterals(models, literalRemover, monitor, symboltable))
             return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor, symboltable);
 
-        if(divideByGCD(trackReasoning,monitor,symboltable))
+        if(divideByGCD(monitor,symboltable))
             return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor, symboltable);
 
         return 0;
@@ -200,12 +230,13 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      */
     protected void singletonModel(int model,boolean trackReasoning,
                                        BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+        int[] clone = trackReasoning ? simpleClone() : null;
         for (int j = 0; j < literals.size(); j++) {
-            Literal literalObject = literals.get(j);
-            int literal = literalObject.literal;
-            if((model & (1 << j)) != 0) reportTruth.accept(literal,null); // Inference Step
-            else reportTruth.accept(-literal,null);}
-        if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) + ": single model " +model);}
+            int literal = literals.get(j).literal;
+            if((model & (1 << j)) == 0) literal = -literal;
+            InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal): null;
+            reportTruth.accept(literal,step);}
+        if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) + ": single model: " + modelString(model,symboltable));}
 
     /**Extracts literals which are true/false in all models of the clause.
      *
@@ -219,6 +250,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      */
     protected boolean extractTrueLiterals(IntArrayList models,boolean trackReasoning,Consumer<Literal> literalRemover,
                                   BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+        int[] clone = trackReasoning ? simpleClone() : null;
         boolean changed = false;
         for(int j = literals.size()-1; j >= 0; --j) {
             int mask = 1 << j;
@@ -230,7 +262,11 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             if(sign != 0) {
                 ++version;
                 changed = true;
-                reportTruth.accept(sign*literals.get(j).literal,null); // inference step
+                int literal = sign*literals.get(j).literal;
+                InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal): null;
+                reportTruth.accept(literal,step);
+                if(monitor != null) {
+                    monitor.accept("Clause " + toString(symboltable,0) + ": has true literal " + Symboltable.toString(literal,symboltable));}
                 removeLiteral(j, sign == 1);
                 literalRemover.accept(literals.get(j));}}
         if(changed) classifyQuantifier();
@@ -242,16 +278,15 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      * (-&gt; [2,2] p^2,q^2 -&gt; [1,2] p,q)
      *
      * @param models             the list of models to extract true literals from
-     * @param trackReasoning     a boolean indicating whether reasoning should be tracked
      * @param literalRemover     a function for removing literals
      * @param monitor            a function for monitoring
      * @param symboltable        the symbol table
      * @return true if any of the literals were extracted, false otherwise
      */
-    protected boolean extractIrrelevantLiterals(IntArrayList models,boolean trackReasoning,Consumer<Literal> literalRemover,
+    protected boolean extractIrrelevantLiterals(IntArrayList models,Consumer<Literal> literalRemover,
                                           Consumer<String> monitor, Symboltable symboltable) {
         int mSize = models.size();
-        if(mSize % 2 == 1) return false; // no irrelevant litral
+        if(mSize % 2 == 1) return false; // no irrelevant literal
         int mSize2 = mSize/2;
 
         boolean changed = false;
@@ -270,6 +305,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             if(next || counter != mSize2) continue;
             ++version;
             changed = true;
+            if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) +
+                    " irrelevant literal " + Symboltable.toString(literals.get(j).literal,symboltable) + " removed");
             literalRemover.accept(literals.get(j)); // inference step
             removeLiteral(j, false);}
         if(changed) classifyQuantifier();
@@ -278,12 +315,11 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
 
     /** divides the limits and the multiplicities by their greatest common divisor.
      *
-     * @param trackReasoning   controls generation of inference steps.
      * @param monitor          null or a monitor.
      * @param symboltable      null or a symboltable.
      * @return true if the clause is changed.
      */
-    protected boolean divideByGCD(boolean trackReasoning, Consumer<String> monitor, Symboltable symboltable) {
+    protected boolean divideByGCD(Consumer<String> monitor, Symboltable symboltable) {
         if(min <= 1 || max == 1) return false;
         int gcd = Utilities.gcd(min,max);
         if(gcd == 1) return false;
@@ -292,6 +328,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             gcd = Utilities.gcd(gcd,literalObject.multiplicity);
             if(gcd == 1) return false;}
 
+        int[] clause = (monitor != null) ? simpleClone() : null;
         ++version;
         min /= gcd;
         max /= gcd;
@@ -300,8 +337,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             literalObject.multiplicity /= gcd;
             expandedSize += literalObject.multiplicity;}
         classifyQuantifier();
-
-        if(monitor != null) {monitor.accept("Divide by GCD in Clause " +toString(symboltable, 0));}
+        if(monitor != null) {monitor.accept("Clause " + toString(clause,symboltable)+
+                " + divided by GCD -> " + toString(symboltable,0));}
         return true;}
 
 
@@ -322,12 +359,21 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
         if(isTrue) {
             min = Math.max(0, min - literalObject.multiplicity); max -= literalObject.multiplicity;
             expandedSize = 0;
-            for(int i = 0; i < literals.size(); ++i) {
-                Literal litObject = literals.get(i);
+            for (Literal litObject : literals) {
                 litObject.multiplicity = Math.min(min, litObject.multiplicity);
                 expandedSize += litObject.multiplicity;}}
         max = Math.min(max,expandedSize);
         classifyQuantifier();}
+
+    /** Add an inference step to the list of inference steps.
+     *
+     * @param step The inference step to be added.
+     */
+    private void addInferenceStep(InferenceStep step) {
+        if(step != null) {
+            if(inferenceSteps == null) inferenceSteps = new ArrayList<>();
+            inferenceSteps.add(step);}}
+
 
 
     /** returns the number of Literal objects in the clause.
@@ -355,6 +401,64 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      */
     public boolean isFalse() {
         return min > expandedSize || max < 0 || max < min;}
+
+    /**
+     * Creates a simple clone of the literal as an int-array: [id,version,quantifier,min,max,literal1,literal1.multiplicity,...]
+     *
+     * @return A clone of the literal with the essential information.
+     */
+    protected int[] simpleClone() {
+        int[] clone = new int[5+2*literals.size()];
+        clone[0] = id;
+        clone[1] = version;
+        clone[2] = quantifier.ordinal();
+        clone[3] = min;
+        clone[4] = max;
+        for(int i = 0; i < literals.size(); ++i) {
+            clone[5+2*i]   = literals.get(i).literal;
+            clone[5+2*i+1] = literals.get(i).multiplicity;}
+        return clone;}
+
+    /**
+     * Converts an int array representation of a clone to a string representation.
+     *
+     * @param clone the int array representation of a clone
+     * @param symboltable the Symboltable object used for symbol lookup
+     * @return the string representation of the clone
+     */
+    public static String toString(int[] clone,Symboltable symboltable) {
+        String name = Integer.toString(clone[0]);
+        if(clone[1] != 0) name += "."+clone[1];
+        StringBuilder st = new StringBuilder();
+        st.append(name).append(": ");
+        Quantifier quantifier = Quantifier.getQuantifier(clone[2]);
+        switch(Objects.requireNonNull(quantifier)) {
+            case OR: break;
+            case EXACTLY:
+            case ATLEAST:  st.append(quantifier.abbreviation).append(clone[3]).append(" "); break;
+            case ATMOST:   st.append(quantifier.abbreviation).append(clone[4]).append(" "); break;
+            case INTERVAL: st.append("[").append(clone[3]).append(",").append(clone[4]).append("] ");}
+        for(int i = 5; i < clone.length; i += 2) {
+            int literal = clone[i]; int multiplicity = clone[i+1];
+            st.append(Symboltable.toString(literal,symboltable));
+            if(multiplicity > 1) st.append("^").append(multiplicity);
+            if(i < clone.length-1)st.append(",");}
+        return st.toString();}
+
+    /**
+     * Generates a string representation of the given model.
+     *
+     * @param model The integer representation of the model.
+     * @param symboltable The given symbol table.
+     * @return The string representation of the model.
+     */
+    public String modelString(int model, Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        for(int i = 0; i < literals.size(); ++i) {
+            int sign = ((model & 1 << i) != 0) ? 1: -1;
+            st.append(Symboltable.toString(sign*literals.get(i).literal ,symboltable));
+            if(i < literals.size()-1) st.append(",");}
+        return st.toString();}
 
     /** turns the clause into a string.
      *
