@@ -2,7 +2,9 @@ package InferenceSteps;
 
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
+
 import java.util.ArrayList;
+import java.util.function.Consumer;
 
 /** This is the abstract superclass of all Inference Steps
  */
@@ -44,8 +46,10 @@ public abstract class InferenceStep {
         ArrayList<String> rules = new ArrayList<>();
         for(InferenceStep step : steps) {
             String rule = step.rule();
-            if(!rules.contains(rule)) rules.add(rule);}
+            if(rule != null && !rules.contains(rule)) rules.add(rule);}
         return rules;}
+
+    public void verify(Consumer<String> monitor, Symboltable symboltable) {}
 
 
     public String toString() {
