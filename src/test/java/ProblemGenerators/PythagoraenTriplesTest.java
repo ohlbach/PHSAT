@@ -18,7 +18,7 @@ public class PythagoraenTriplesTest {
         HashMap<String,String> params = new HashMap<>();
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
         params.put("maximum",""+maximum);
-        PythagoraenTriples.makeProblemGenerator(params,generators, errors,warnings);
+        //PythagoraenTriples.makeProblemGenerator(params,generators, errors,warnings);
         System.out.println("Errors:\n" + errors);
         System.out.println("Warnings:\n" + warnings);
         ProblemGenerator generator = generators.get(0);

@@ -180,7 +180,10 @@ public class Backtracker extends Solver {
      * @return The globally true literal. If the list is empty, returns 0.
      */
     public synchronized int getGloballyTrueLiteral() {
-        return globallyTrueLiterals.isEmpty() ? 0: globallyTrueLiterals.removeLast();}
+        if(globallyTrueLiterals.isEmpty()) return 0;
+        int literal = globallyTrueLiterals.get(globallyTrueLiterals.size()-1);
+        globallyTrueLiterals.remove(globallyTrueLiterals.size()-1);
+        return literal;}
 
     public void searchModel() throws Result {
         IntArrayList selectedPredicateIndices = new IntArrayList();
@@ -217,7 +220,7 @@ public class Backtracker extends Solver {
                         int predicate = predicateSequence[index];
                         clearLocalTruth(predicate);}
                     setLocalTruth(-literal);
-                    selectedPredicateIndices.removeLast();
+                    selectedPredicateIndices.remove(selectedPredicateIndices.size()-1);
                     nextPredicateIndex = findNextPredicateIndex(lastIndex+1);}}
 
         }}
@@ -235,7 +238,7 @@ public class Backtracker extends Solver {
     IntArrayList tryTopPredicate(int predicate) throws Result {
          dependentSelections[predicate] = IntArrayList.wrap(new int[]{predicate});
          setLocalTruth(predicate);
-         return propagate(predicate);
+         return null; //propagate(predicate);
     }
 
     IntArrayList tryLiteral(int literal) {
@@ -340,7 +343,7 @@ public class Backtracker extends Solver {
      * @return the clause if it is false already (locally or globally), otherwise null.
      */
     void analyseClause(Clause clause) throws Result {
-        for(int i = clause.literals.size()-1; i >= 0; --i) { // remove all literals which are globally true/false.
+       /* for(int i = clause.literals.size()-1; i >= 0; --i) { // remove all literals which are globally true/false.
             Literal literalObject = clause.literals.get(i);
             int literal = literalObject.literal;
             byte status = model.status(literal);
@@ -377,8 +380,8 @@ public class Backtracker extends Solver {
                     continue;}
                 trueLits = trueLiterals + unsignedLiterals - literalObject.multiplicity;
                 if(!(min <= trueLits && trueLits <= max)) { // making it false causes a contradiction
-                    makeLiteralTrue.accept(clause,literalObject,(byte)1);}}}
-        return null;}
+                    makeLiteralTrue.accept(clause,literalObject,(byte)1);}}} */
+        return;}
 
     synchronized void makeLiteralLocallyTrue(Clause clause, Literal literalObject, Byte sign) {
         int literal = sign*literalObject.literal;
@@ -433,7 +436,7 @@ public class Backtracker extends Solver {
      */
     public synchronized void addDerivedLiteral(int literal, IntArrayList dependencies) {
         int predicate = Math.abs(literal);
-        int lastSelection = dependencies.getLast(); // must be positive
+        int lastSelection = dependencies.getInt(dependencies.size()-1); // must be positive
         derivedLiterals[lastSelection].add(literal);
         dependentSelections[predicate] = dependencies;
         setLocalTruth(literal);}
@@ -447,21 +450,21 @@ public class Backtracker extends Solver {
      * @throws Result if backtracked to the top-selection and model.add(-selection) causes a contradiction
      */
     synchronized void backtrack(IntArrayList dependencies) throws Result {
-        int lastSelection = dependencies.getLast();
+        int lastSelection = dependencies.getInt(dependencies.size()-1);
         int index = selectedPredicates.size();
         int selectedPredicate = 0;
         while((selectedPredicate = selectedPredicates.getInt(--index)) != lastSelection) {
             for(int literal : derivedLiterals[selectedPredicate])
                 clearLocalTruth(literal);
-            selectedPredicates.removeLast();}
+            selectedPredicates.remove(selectedPredicates.size()-1);}
         if(selectedPredicates.isEmpty()) {
             model.add(myThread,-firstSign*lastSelection);}
         else {
             int derivedLiteral = -firstSign*lastSelection;
-            int previousSelection = selectedPredicates.removeLast();
+            int previousSelection = selectedPredicates.remove(selectedPredicates.size()-1);
             derivedLiterals[previousSelection].add(derivedLiteral);
             setLocalTruth(derivedLiteral);
-            dependencies.removeLast();
+            dependencies.remove(dependencies.size()-1);
             dependentSelections[lastSelection] = dependencies;
             propagate(derivedLiteral);}}
 

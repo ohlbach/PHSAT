@@ -1,5 +1,6 @@
 package InferenceSteps;
 
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -20,6 +21,8 @@ public class InfInputClause extends InferenceStep {
     /** the clause as a string. */
     public String clause;
 
+    public int[] inputClause = null;
+
     /** Constructs a new instance
      *
      * @param inputClauseId id of the input clause
@@ -29,6 +32,9 @@ public class InfInputClause extends InferenceStep {
         this.inputClauseId = inputClauseId;
         this.clause = clause;}
 
+    public InfInputClause(int[] inputClause, String clause) {
+        this.inputClause = inputClause;
+        this.clause = clause;}
 
     /** Constructs a new instance
      *
@@ -48,6 +54,8 @@ public class InfInputClause extends InferenceStep {
 
     @Override
     public String toString(Symboltable symboltable) {
+        if(inputClause != null) {
+            return "Input: Clause " + InputClauses.toString(0,inputClause,symboltable) + " -> " + clause;}
         return clause == null ?
                 "Input: Clause " + inputClauseId :
                 "Input: Clause " + inputClauseId + " yields " + clause;}
