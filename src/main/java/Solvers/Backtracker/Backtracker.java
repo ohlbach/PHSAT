@@ -7,16 +7,19 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatClause;
 import Datastructures.Statistics.Statistic;
+import InferenceSteps.InferenceStep;
 import Management.Parameter;
 import Management.Parameters;
 import Management.ProblemSupervisor;
 import Solvers.Solver;
+import Utilities.BiConsumerWithUnsatisfiable;
 import Utilities.TriConsumer;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class Backtracker extends Solver {
@@ -87,6 +90,7 @@ public class Backtracker extends Solver {
     /** stores the threads which are used to propagate derived true literals. */
     public PropagatorPool propagatorPool;
 
+    public Consumer<String> monitor = null;
 
     /** constructs a new Backtracker.
      *
@@ -104,6 +108,7 @@ public class Backtracker extends Solver {
         super.initialize(myThread,problemSupervisor);
         problemSupervisor.model.addObserver(myThread,
                 (literal,step) -> addGloballyTrueLiteral(literal));
+        monitor = monitoring ? (message) -> super.monitor.println("Backtracker_"+ solverId + message) : null;
         globallyTrueLiterals.clear();}
 
     @Override
@@ -251,6 +256,8 @@ public class Backtracker extends Solver {
                 (literal = getGloballyTrueLiteral()) != 0) {
             removeTrueLiterals(literal);}}
 
+    Consumer<Literal> literalRemover = (litealObject -> literalIndex.remove(litealObject));
+    BiConsumerWithUnsatisfiable<Integer, InferenceStep> reportTruth = ((literal, step) -> model.add(null,literal,step));
 
     void removeTrueLiterals(int trueLiteral) throws Result {
         for(int sign = 1; sign >= -1; --sign) {
@@ -263,16 +270,14 @@ public class Backtracker extends Solver {
                     else          removeLiteral(literalObject);
                     literalObject = (Literal)literalObject.nextItem;
                     continue;}
-                if(clause.removeLiteral(literalObject,(sign == 1))) { // e.g. min > max
-                    throw new UnsatClause(problemId,solverId, clause);}
+                clause.removeLiteral(literalObject,(sign == 1));
 
-                Clause falseClause = analyseClause(literalObject.clause, model::status,
-                        (cl,lit,sig) -> addGloballyTrueLiteral(sig*lit.literal) );
-                if(falseClause != null) throw new UnsatClause(problemId,solverId, clause);
-                }
-
-                literalObject = (Literal)literalObject.nextItem;
+                switch(clause.simplify(trackReasoning,literalRemover,reportTruth,monitor,symboltable)) {
+                    case 1: removeClause(clause); break;
+                    case -1: throw new UnsatClause(problemId,solverId, clause);}
             }
+            literalObject = (Literal)literalObject.nextItem;
+        }
         }
 
 

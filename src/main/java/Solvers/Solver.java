@@ -197,8 +197,8 @@ public abstract class Solver {
         normalizer                 = problemSupervisor.normalizer;
         predicates                 = problemSupervisor.inputClauses.predicates;
         symboltable                = problemSupervisor.inputClauses.symboltable;
+        monitoring                 = problemSupervisor.monitor != null;
         monitor                    = problemSupervisor.monitor;
-        monitoring                 = monitor != null;
         model                      = problemSupervisor.model;
         trackReasoning             = globalParameters.trackReasoning;
         }

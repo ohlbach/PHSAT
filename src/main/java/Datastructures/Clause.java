@@ -1,16 +1,17 @@
 package Datastructures;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Unsatisfiable;
 import InferenceSteps.InfClauseSimplification;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InfTrueLiteralInClause;
 import InferenceSteps.InferenceStep;
+import Utilities.BiConsumerWithUnsatisfiable;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 import java.util.Objects;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -162,7 +163,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      *                          -1: The clause is simplified to a false clause.
      */
     public int simplify(boolean trackReasoning, Consumer<Literal> literalRemover,
-                         BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+                        BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable)
+        throws Unsatisfiable {
         int versionBefore = version;
         if(trackReasoning) {
             int[] clone = simpleClone();
@@ -190,7 +192,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      *                          -1: The clause is simplified to a false clause.
      */
     public int simplifyRecursively(boolean trackReasoning, Consumer<Literal> literalRemover,
-                        BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+                                   BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable)
+            throws Unsatisfiable {
         if(min <= 0 && max >= expandedSize) return 1; // true clause, e.g. [0,0] empty
         if(max < min || min > expandedSize) return -1;  // false clause, e.g. [1,1] empty (false literal removed from unit clause)
 
@@ -285,7 +288,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      * @param symboltable     a Symboltable object for symbol table operations.
      */
     protected void singletonModel(int model,boolean trackReasoning,
-                                       BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+                                       BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
+                                  Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable{
         int[] clone = trackReasoning ? simpleClone() : null;
         for (int j = 0; j < literals.size(); j++) {
             int literal = Math.abs(literals.get(j).literal);
@@ -307,7 +311,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      * @return true if any true literals were extracted, false otherwise
      */
     protected boolean extractTrueLiterals(IntArrayList models,boolean trackReasoning,Consumer<Literal> literalRemover,
-                                  BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
+                                  BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
+                                          Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
         int[] clone = trackReasoning ? simpleClone() : null;
         boolean changed = false;
         for(int j = literals.size()-1; j >= 0; --j) {

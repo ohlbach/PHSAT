@@ -20,24 +20,10 @@ public class Clause extends Datastructures.Clause<Literal>{
      *
      * @param literalObject the Literal object to be removed.
      * @param isTrue        a boolean indicating if the removed Literal is true or false.
-     * @return true if the clause is unsatisfiable, otherwise true.
      */
-    boolean removeLiteral(Literal literalObject, boolean isTrue) {
+    void removeLiteral(Literal literalObject, boolean isTrue) {
         assert literalObject.clause == this;
-        literals.remove(literalObject);
-        int multiplicity = literalObject.multiplicity;
-        expandedSize -= multiplicity;
-        if(isTrue) {
-            min = Math.max(0,min-multiplicity);
-            max -= multiplicity;
-            expandedSize = 0;
-            for(Literal litObject : literals) {
-                litObject.multiplicity = Math.min(min,literalObject.multiplicity);
-                expandedSize += literalObject.multiplicity;}}
-        else max = Math.min(expandedSize,max);
-        if(min > max) return true; // may be the empty clause
-        classifyQuantifier();
-        return false;}
+        super.removeLiteral(literals.indexOf(literalObject), isTrue);}
 
     /** Removes a (false) literal from a disjunction (with atleast two literals)
      *

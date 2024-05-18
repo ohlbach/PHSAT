@@ -1,12 +1,13 @@
 package Datastructures;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Unsatisfiable;
 import InferenceSteps.InferenceStep;
+import Utilities.BiConsumerWithUnsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -88,14 +89,14 @@ public class ClauseTest extends TestCase {
         assertNull(c1.findLiteral(-1));
     }
 
-    public void testSimplify() {
+    public void testSimplify() throws Unsatisfiable {
         System.out.println("simplify");
         Clause c = new Clause(new int[]{1, or, 1, 2}, false, litCreator, symboltable);
         IntArrayList removed = new IntArrayList();
         IntArrayList truth = new IntArrayList();
         ArrayList<InferenceStep> steps = new ArrayList<InferenceStep>();
         Consumer<Literal> remover = (literalObject) -> removed.add(literalObject.literal);
-        BiConsumer<Integer,InferenceStep> reportTruth = (literal,step) -> {truth.add(literal);steps.add(step);};
+        BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth = (literal, step) -> {truth.add(literal);steps.add(step);};
         assertEquals(0, c.simplify(true,remover,reportTruth,monitor,null));
 
         c = new Clause(new int[]{2, or, 1,2, -1}, false, litCreator, symboltable);
@@ -191,7 +192,7 @@ public class ClauseTest extends TestCase {
                 "-1,2\n",toString(models,c));
     }
 
-    public void testSingletonModel() {
+    public void testSingletonModel() throws Unsatisfiable {
         System.out.println("Singleton Model");
         Clause<Literal> c = new Clause<>(new int[]{1, intv,3,3, 1,1, -2}, true, litCreator, null);
         assertEquals("1: =3 1^2,-2",c.toString(null,0));
@@ -206,7 +207,7 @@ public class ClauseTest extends TestCase {
         System.out.println(steps.get(1).toString(null));
     }
 
-    public void testExtractTrueLiterals() {
+    public void testExtractTrueLiterals() throws Unsatisfiable{
         System.out.println("extractTrueLiterals");
         Clause c = new Clause(new int[]{1, intv,2,2, 1,1,1,2,3,4}, true, litCreator, symboltable);
         assertEquals("1: =2 1^3,2,3,4", c.toString(null, 0));
