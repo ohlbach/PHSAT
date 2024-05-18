@@ -30,11 +30,12 @@ public class InfClauseSimplification extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        return Clause.toString(clauseBefore, symboltable) + " -> " + clauseAfter.toString(symboltable,0);
+        return "Clause Simplification: " + Clause.toString(clauseBefore, symboltable) + " -> " + clauseAfter.toString(symboltable,0);
     }
 
     @Override
-    public void verify(Consumer<String> monitor, Symboltable symboltable) {
+    public boolean verify(Consumer<String> monitor, Symboltable symboltable) {
+        boolean okay = true;
         IntArrayList literals = new IntArrayList();
         for(int i = 5; i < clauseBefore.length; i += 2) literals.add(clauseBefore[i]);
         int min = clauseBefore[3]; int max = clauseBefore[4];
@@ -45,6 +46,7 @@ public class InfClauseSimplification extends InferenceStep{
                  if ((model & (i-5) & 1) == 1) trueLiterals += clauseBefore[i+1];}
              if(min <= trueLiterals && trueLiterals <= max) { // model satisfies clauseBefore
                  if(clauseAfter == null) {
+                     okay = false;
                      monitor.accept("Clause " + Clause.toString(clauseBefore,symboltable) +
                              " is supposed to be unsatsifiable, but satisfied by " + toString(model,literals,symboltable));
                      continue;}
@@ -55,6 +57,7 @@ public class InfClauseSimplification extends InferenceStep{
                      int position = literals.indexOf(literal);
                      if((model & position) != 0) trueLits += literalObject.multiplicity;}
                  if(!(clauseAfter.min <= trueLits && trueLits <= clauseAfter.max)) {
+                     okay = false;
                      monitor.accept("Model "+ toString(model,literals,symboltable) + " of clause " +
                              Clause.toString(clauseBefore,symboltable) + " does not satisfy simplified clause " +
                              clauseAfter.toString(symboltable,0)+"\n");}
@@ -63,15 +66,18 @@ public class InfClauseSimplification extends InferenceStep{
                          int position = literals.indexOf(literal);
                          if(position >= 0) {
                              if((model & (1 << position)) == 0) {
+                                 okay = false;
                                  monitor.accept("Model "+ toString(model,literals,symboltable) + " of clause " +
                                          Clause.toString(clauseBefore,symboltable) + " does not satisfy derived literal " +
                                          Symboltable.toString(literal,symboltable));}}
                          else {
                              position = literals.indexOf(-literal);
                              if((model << (1 << position)) != 0) {
+                                 okay = false;
                                  monitor.accept("Model "+ toString(model,literals,symboltable) + " of clause " +
                                          Clause.toString(clauseBefore,symboltable) + " does not satisfy derived literal " +
-                                         Symboltable.toString(literal,symboltable));}}}}}}}
+                                         Symboltable.toString(literal,symboltable));}}}}}}
+        return okay;}
 
     public static String toString(int model, IntArrayList literals, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();

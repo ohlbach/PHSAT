@@ -49,7 +49,7 @@ public abstract class InferenceStep {
             if(rule != null && !rules.contains(rule)) rules.add(rule);}
         return rules;}
 
-    public void verify(Consumer<String> monitor, Symboltable symboltable) {}
+    public boolean verify(Consumer<String> monitor, Symboltable symboltable) {return true;}
 
 
     public String toString() {

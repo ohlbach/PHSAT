@@ -201,7 +201,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
         if(sign != 0) {
             for(Literal literalObject : literals) {
                 int literal = sign*literalObject.literal;
-                reportTruth.accept(literal,null);} // all literals have a truth value.
+                InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(simpleClone(),literal) : null;
+                reportTruth.accept(literal,step);} // all literals have a truth value.
             if(monitor != null) monitor.accept("All literals in clause " + toString(symboltable,0) + " are true.");
             return 1;}
 
@@ -258,7 +259,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
                 minValue = Math.min(minValue,trueLiterals);
                 maxValue = Math.max(maxValue,trueLiterals);}}
 
-        if(min != minValue || max != maxValue) {
+        if(!models.isEmpty() && (min != minValue || max != maxValue)) {
             if(min != minValue) {
                 if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " min increased to " + minValue);
                 min = minValue;
@@ -393,15 +394,14 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             expandedSize += literalObject.multiplicity;}
         classifyQuantifier();
         if(monitor != null) {monitor.accept("Clause " + toString(clause,symboltable)+
-                " + divided by GCD -> " + toString(symboltable,0));}
+                " divided by GCD -> " + toString(symboltable,0));}
         return true;}
 
 
 
     /**Removes th j-th literal from the list of literals in the clause.
      * <p>
-     * Updates the expandedSize and adjusts the multiplicity.
-     * If isTrue is true, it also updates the min and max values of the remaining literals.
+     * Updates the expandedSize and adjusts the multiplicities.
      * The quantifier is also updated.
      *
      * @param j       the index of the literal to be removed
@@ -413,10 +413,11 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
         expandedSize -= literalObject.multiplicity;
         if(isTrue) {
             min = Math.max(0, min - literalObject.multiplicity); max -= literalObject.multiplicity;
-            expandedSize = 0;
-            for (Literal litObject : literals) {
-                litObject.multiplicity = Math.min(min, litObject.multiplicity);
-                expandedSize += litObject.multiplicity;}}
+            if(min > 0 && max == expandedSize) {
+                expandedSize = 0;
+                for (Literal litObject : literals) {
+                    litObject.multiplicity = Math.min(min, litObject.multiplicity);
+                    expandedSize += litObject.multiplicity;}}}
         max = Math.min(max,expandedSize);
         classifyQuantifier();}
 

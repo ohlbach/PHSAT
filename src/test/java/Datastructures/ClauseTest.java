@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -71,20 +72,69 @@ public class ClauseTest extends TestCase {
 
     }
 
-
-    public void testClassifyQuantifier() {
-    }
-
     public void testIsEmpty() {
-    }
+        System.out.println("isEmpty");
+        Clause c1 = new Clause(new int[]{1,or,1,2},false,litCreator,symboltable);
+        assertFalse(c1.isEmpty());
+
+        c1 = new Clause(new int[]{1,or},false,litCreator,symboltable);
+        assertTrue(c1.isEmpty());}
 
     public void testFindLiteral() {
+        System.out.println("findLiteral");
+        Clause c1 = new Clause(new int[]{1, or, 1, 2}, false, litCreator, symboltable);
+        assertEquals(1, c1.findLiteral(1).literal);
+        assertEquals(2, c1.findLiteral(2).literal);
+        assertNull(c1.findLiteral(-1));
     }
 
     public void testSimplify() {
-    }
+        System.out.println("simplify");
+        Clause c = new Clause(new int[]{1, or, 1, 2}, false, litCreator, symboltable);
+        IntArrayList removed = new IntArrayList();
+        IntArrayList truth = new IntArrayList();
+        ArrayList<InferenceStep> steps = new ArrayList<InferenceStep>();
+        Consumer<Literal> remover = (literalObject) -> removed.add(literalObject.literal);
+        BiConsumer<Integer,InferenceStep> reportTruth = (literal,step) -> {truth.add(literal);steps.add(step);};
+        assertEquals(0, c.simplify(true,remover,reportTruth,monitor,null));
 
-    public void testSimplifyRecursively() {
+        c = new Clause(new int[]{2, or, 1,2, -1}, false, litCreator, symboltable);
+        assertEquals(1, c.simplify(true,remover,reportTruth,monitor,null));
+
+        c = new Clause<>(new int[]{3, intv,3,3, 1,1, -2}, true, litCreator, null);
+        assertEquals(1, c.simplify(true,remover,reportTruth,monitor,null));
+        assertEquals("[1, -2]",truth.toString());
+        System.out.println(steps.get(0).toString(null));
+        System.out.println(steps.get(1).toString(null));
+        removed.clear();
+        steps.clear();
+        truth.clear();
+
+        c = new Clause<>(new int[]{4, intv,2,3, 1,1, -2}, true, litCreator, null);
+        assertEquals(1, c.simplify(true,remover,reportTruth,monitor,null));
+        assertEquals("[1]",truth.toString());
+        System.out.println(steps.get(0).toString(null));
+        removed.clear();
+        steps.clear();
+        truth.clear();
+
+        c = new Clause(new int[]{5, intv,2,3, 1,1,2,2,3}, true, litCreator, symboltable);
+        assertEquals(0, c.simplify(true,remover,reportTruth,monitor,null));
+        assertEquals("[]",truth.toString());
+        assertEquals("[3]",removed.toString());
+        assertEquals(0,steps.size());
+        assertEquals("5.3: =1 1,2",c.toString(null,0));
+        assertEquals(2,c.inferenceSteps.size());
+        System.out.println(c.inferenceSteps.get(1).toString());
+        assertTrue(((InferenceStep)c.inferenceSteps.get(1)).verify(monitor,null));
+        removed.clear();
+        steps.clear();
+        truth.clear();
+
+        c = new Clause(new int[]{6, intv,2,2, 1,-1,2,2}, true, litCreator, symboltable);
+        assertEquals(-1, c.simplify(true,remover,reportTruth,monitor,null));
+        assertEquals(2,c.inferenceSteps.size());
+        assertTrue(((InferenceStep)c.inferenceSteps.get(1)).verify(monitor,null));
     }
 
     public void testGetModels() {
@@ -201,27 +251,38 @@ public class ClauseTest extends TestCase {
     }
 
     public void testDivideByGCD() {
+        System.out.println("divideByGCD");
+        Clause c = new Clause(new int[]{1,atl,2, 1,1,-2,-2}, false, litCreator, symboltable);
+        c.divideByGCD(monitor,null);
+        assertEquals("1.1: 1v-2", c.toString(null, 0));
+
+        c = new Clause(new int[]{2,atl,2, 1,-2,-2}, false, litCreator, symboltable);
+        c.divideByGCD(monitor,null);
+        assertEquals("2: >=2 1,-2^2", c.toString(null, 0));
+
     }
 
     public void testRemoveLiteral() {
-    }
+        System.out.println("removeLiteral");
+        Clause c = new Clause(new int[]{1, or,1,2,3}, false, litCreator, symboltable);
+        c.removeLiteral(0,false);
+        assertEquals("1: 2v3", c.toString(null, 0));
+        c.removeLiteral(1,false);
+        assertEquals("1: =1 2", c.toString(null, 0));
+        c.removeLiteral(0,false);
+        assertEquals("1: ", c.toString(null, 0));
 
-    public void testSize() {
-    }
+        c = new Clause(new int[]{2, intv,2,3, 1,1,2,2,3,3,3}, false, litCreator, symboltable);
+        assertEquals("2: [2,3] 1^2,2^2,3^3", c.toString(null, 0));
+        c.removeLiteral(1,true);
+        assertEquals("2: <=1 1^2,3^3", c.toString(null, 0));
+        c.removeLiteral(1,true);
+        assertEquals("2: <=-2 1^2", c.toString(null, 0));
 
-    public void testExpandedSize() {
-    }
-
-    public void testIsTrue() {
-    }
-
-    public void testIsFalse() {
-    }
-
-    public void testSimpleClone() {
-    }
-
-    public void testTestToString() {
+        c = new Clause(new int[]{3, atl,2, 1,2,2,3,3,3}, false, litCreator, symboltable);
+        assertEquals("3: >=2 1,2^2,3^2", c.toString(null, 0));
+        c.removeLiteral(0,true);
+        assertEquals("3: 2v3", c.toString(null, 0));
     }
 
     public void testModelString() {
@@ -235,6 +296,4 @@ public class ClauseTest extends TestCase {
 
     }
 
-    public void testTestToString1() {
-    }
 }
