@@ -81,10 +81,14 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
                     multiple = true; break;}}
             if(!multiple) {literals.add(literalConstructor.apply(literal));}}
         expandedSize = 0;
+        for(Literal literalObject : literals) expandedSize += literalObject.multiplicity;
+
         min = Math.max(0,min);
-        for(Literal literalObject : literals) {
-            if(min > 0) literalObject.multiplicity = Math.min(min, literalObject.multiplicity);
-            expandedSize += literalObject.multiplicity;}
+        if(min > 0 && max == expandedSize) {
+            expandedSize = 0;
+            for(Literal literalObject : literals) {
+                literalObject.multiplicity = Math.min(min, literalObject.multiplicity);
+                expandedSize += literalObject.multiplicity;}}
         max = Math.min(max,expandedSize);
         classifyQuantifier();
         if(trackReasoning) {
@@ -233,7 +237,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      *  A model is an integer where bit i=1 means the i-th literal is true. <br>
      *  Example: clause p,q,r,-s: i = 1 means true(p),false(q,r,-s). i = 3 means true(p,q), false(r,-s).<br>
      *  As a side effect: the min- and max-values are narrowed according to the extreme values of all models.<br>
-     *  Example: [2,3] p^2,q^2 -&gt; [2,2] p^2,q^2
+     *  Example: [1,3] p^2,q^2 -&gt; =2 p^2,q^2
      *
      * @return An IntArrayList containing the models for the clause.
      */
@@ -247,15 +251,14 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             for (int j = 0; j < literals.size(); j++) {
                 Literal literalObject = literals.get(j);
                 int literal = literalObject.literal;
-                if(literal > 0 && ((model & (1 << j)) != 0)) trueLiterals += literalObject.multiplicity;
-            }
+                if((literal > 0 && ((model & (1 << j)) != 0)) || (literal < 0 && ((model & (1 << j)) == 0)))
+                        trueLiterals += literalObject.multiplicity;}
             if(min <= trueLiterals && trueLiterals <= max) {
                 models.add(model);
                 minValue = Math.min(minValue,trueLiterals);
                 maxValue = Math.max(maxValue,trueLiterals);}}
 
         if(min != minValue || max != maxValue) {
-            ++version;
             if(min != minValue) {
                 if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " min increased to " + minValue);
                 min = minValue;
@@ -265,7 +268,9 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
                     expandedSize += literalObject.multiplicity;}}
             if(max != maxValue) {
                 if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " max reduced to " + maxValue);
-                max = maxValue;}}
+                max = maxValue;}
+            ++version;
+            classifyQuantifier();}
         return models;}
 
     /** Makes all literals of a clause with a single model true.
@@ -282,7 +287,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
                                        BiConsumer<Integer,InferenceStep> reportTruth, Consumer<String> monitor, Symboltable symboltable) {
         int[] clone = trackReasoning ? simpleClone() : null;
         for (int j = 0; j < literals.size(); j++) {
-            int literal = literals.get(j).literal;
+            int literal = Math.abs(literals.get(j).literal);
             if((model & (1 << j)) == 0) literal = -literal;
             InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal): null;
             reportTruth.accept(literal,step);}
@@ -506,7 +511,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
         StringBuilder st = new StringBuilder();
         for(int i = 0; i < literals.size(); ++i) {
             int sign = ((model & 1 << i) != 0) ? 1: -1;
-            st.append(Symboltable.toString(sign*literals.get(i).literal ,symboltable));
+            st.append(Symboltable.toString(sign*Math.abs(literals.get(i).literal) ,symboltable));
             if(i < literals.size()-1) st.append(",");}
         return st.toString();}
 

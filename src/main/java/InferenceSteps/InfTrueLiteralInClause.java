@@ -26,7 +26,7 @@ public class InfTrueLiteralInClause extends InferenceStep{
 
     @Override
     public String toString(Symboltable symboltable) {
-        return Clause.toString(clauseBefore, symboltable) + " -> " + Symboltable.toString(literal, symboltable);}
+        return title() + " " + Clause.toString(clauseBefore, symboltable) + " -> " + Symboltable.toString(literal, symboltable);}
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
