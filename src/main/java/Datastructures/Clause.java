@@ -223,7 +223,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
         if(extractTrueLiterals(models,trackReasoning, literalRemover, reportTruth, monitor, symboltable))
             return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor, symboltable);
 
-        if(extractIrrelevantLiterals(models, literalRemover, monitor, symboltable))
+        if(extractIrrelevantLiterals(models,literalRemover, monitor, symboltable))
             return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor, symboltable);
 
         if(divideByGCD(monitor,symboltable))
@@ -294,6 +294,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
         if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) + ": single model: " + modelString(model,symboltable));}
 
     /**Extracts literals which are true/false in all models of the clause.
+     * <br>
+     * Example: =2 1^3,2,3,4 -&gt; true(-1)
      *
      * @param models             the list of models to extract true literals from
      * @param trackReasoning     a boolean indicating whether reasoning should be tracked
@@ -315,16 +317,15 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             int sign = 0;
             if(allTrue) sign = 1; else {if(allFalse) sign = -1;}
             if(sign != 0) {
-                ++version;
                 changed = true;
                 int literal = sign*literals.get(j).literal;
                 InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal): null;
                 reportTruth.accept(literal,step);
                 if(monitor != null) {
                     monitor.accept("Clause " + toString(symboltable,0) + ": has true literal " + Symboltable.toString(literal,symboltable));}
-                removeLiteral(j, sign == 1);
-                literalRemover.accept(literals.get(j));}}
-        if(changed) classifyQuantifier();
+                literalRemover.accept(literals.get(j));
+                removeLiteral(j, sign == 1);}}
+        if(changed) {classifyQuantifier();++version;}
         return changed;}
 
     /**Extracts literals whose truth is irrelevant for the truth of the clause.
@@ -338,7 +339,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      * @param symboltable        the symbol table
      * @return true if any of the literals were extracted, false otherwise
      */
-    protected boolean extractIrrelevantLiterals(IntArrayList models,Consumer<Literal> literalRemover,
+    protected boolean extractIrrelevantLiterals(IntArrayList models, Consumer<Literal> literalRemover,
                                           Consumer<String> monitor, Symboltable symboltable) {
         int mSize = models.size();
         if(mSize % 2 == 1) return false; // no irrelevant literal
@@ -358,13 +359,12 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
                         if((model1 & mask) != 0 && (model|mask) == model1) {found = true; break;}}
                     if(!found) {next = true; break;}}}
             if(next || counter != mSize2) continue;
-            ++version;
             changed = true;
             if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) +
                     " irrelevant literal " + Symboltable.toString(literals.get(j).literal,symboltable) + " removed");
             literalRemover.accept(literals.get(j)); // inference step
             removeLiteral(j, false);}
-        if(changed) classifyQuantifier();
+        if(changed) {classifyQuantifier();++version;}
         return changed;}
 
 
@@ -410,7 +410,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
     public void removeLiteral(int j, boolean isTrue) {
         Literal literalObject = literals.get(j);
         literals.remove(j);
-        expandedSize -= literalObject.literal;
+        expandedSize -= literalObject.multiplicity;
         if(isTrue) {
             min = Math.max(0, min - literalObject.multiplicity); max -= literalObject.multiplicity;
             expandedSize = 0;

@@ -170,11 +170,34 @@ public class ClauseTest extends TestCase {
         c.extractTrueLiterals(models,true, (literalObject) -> {removes.add(((Literal)literalObject).literal);},
                 (literal,step)-> {truth.add((Integer)literal);steps.add((InferenceStep) step);}, monitor,null);
         assertEquals("[-1]",truth.toString());
+        assertEquals("[1]",removes.toString());
         System.out.println(steps.get(0).toString(null));
-
     }
 
     public void testExtractIrrelevantLiterals() {
+        System.out.println("extractIrrelevantLiterals");
+        Clause c = new Clause(new int[]{1, intv,2,3, 1,1,2,2,3}, true, litCreator, symboltable);
+        assertEquals("1: [2,3] 1^2,2^2,3", c.toString(null, 0));
+        IntArrayList models = c.getModels(monitor,null);
+        assertEquals("1,-2,-3\n" +
+                "-1,2,-3\n" +
+                "1,-2,3\n" +
+                "-1,2,3\n",toString(models,c));
+        IntArrayList removes = new IntArrayList();
+        c.extractIrrelevantLiterals(models, (literalObject) -> {removes.add(((Literal)literalObject).literal);},
+                monitor,null);
+        assertEquals("[3]",removes.toString());
+        assertEquals("1.1: [2,3] 1^2,2^2", c.toString(null, 0));
+
+        c = new Clause(new int[]{2, intv,3,3, 1,1,2,2,3}, true, litCreator, symboltable);
+        assertEquals("2: =3 1^2,2^2,3", c.toString(null, 0));
+        models = c.getModels(monitor,null);
+        assertEquals("1,-2,3\n" +
+                "-1,2,3\n",toString(models,c));
+        IntArrayList removes1 = new IntArrayList();
+        c.extractIrrelevantLiterals(models, (literalObject) -> {removes1.add(((Literal)literalObject).literal);},
+                monitor,null);
+        assertEquals("[]",removes1.toString());
     }
 
     public void testDivideByGCD() {
