@@ -7,6 +7,7 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatClause;
 import Datastructures.Statistics.Statistic;
+import InferenceSteps.InfUnitClause;
 import InferenceSteps.InferenceStep;
 import Management.Parameter;
 import Management.Parameters;
@@ -98,6 +99,7 @@ public class Backtracker extends Solver {
      */
     public Backtracker(int solverNumber, int predicateArrangement, int firstSign) {
         super(solverNumber);
+        solverId = "Backtracker";
         this.predicateArrangement = predicateArrangement;
         this.firstSign = firstSign;}
 
@@ -108,7 +110,7 @@ public class Backtracker extends Solver {
         super.initialize(myThread,problemSupervisor);
         problemSupervisor.model.addObserver(myThread,
                 (literal,step) -> addGloballyTrueLiteral(literal));
-        monitor = monitoring ? (message) -> super.monitor.println("Backtracker_"+ solverId + message) : null;
+        monitor = monitoring ? (message) -> super.monitor.println(solverId+"_" + solverNumber, message) : null;
         globallyTrueLiterals.clear();}
 
     @Override
@@ -170,7 +172,9 @@ public class Backtracker extends Solver {
         assert clause.quantifier == Quantifier.OR;
         literalIndex.remove(literalObject);
         if(clause.removeLiteral(literalObject)) {
-            model.add(myThread,clause.literals.get(0).literal,null);
+            InferenceStep step = trackReasoning ? new InfUnitClause(clause) : null;
+            if(monitoring) {monitor.accept("Unit Clause " + clause.toString(symboltable,0));}
+            model.add(myThread,clause.literals.get(0).literal,step);
             removeClause(clause);};}
 
     /** Adds a literal to the list of globally true literals.
@@ -275,10 +279,8 @@ public class Backtracker extends Solver {
                 switch(clause.simplify(trackReasoning,literalRemover,reportTruth,monitor,symboltable)) {
                     case 1: removeClause(clause); break;
                     case -1: throw new UnsatClause(problemId,solverId, clause);}
-            }
-            literalObject = (Literal)literalObject.nextItem;
-        }
-        }
+            literalObject = (Literal)literalObject.nextItem;}
+        }}
 
 
 

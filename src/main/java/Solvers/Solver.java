@@ -41,7 +41,7 @@ public abstract class Solver {
      * @return true if the name is the name of a solver.
      */
     public static boolean isSolver(String name) {
-        for(String solver : solvers) {if(name.equals(solver)) {return true;}}
+        for(String solver : solvers) {if(name.toLowerCase().equals(solver)) {return true;}}
         return false;}
 
 
@@ -58,19 +58,23 @@ public abstract class Solver {
             case "backtracker": return Backtracker.class;
             default: return null;}}
 
+    /**
+     * Sets the default values for the solvers based on the module values.
+     *
+     * @param moduleValues A HashMap containing the module values.
+     */
     public static void setDefaults(HashMap<String,ArrayList<String>> moduleValues) {
         for(String solver : solvers) {
             ArrayList<String> values = moduleValues.get(solver);
             if(values != null) {
-                try{
-                solverClass(solver).getMethod("setDefaults",ArrayList.class).invoke(null,values);}
+                try{solverClass(solver).getMethod("setDefaults",ArrayList.class).invoke(null,values);}
                 catch(Exception ignore) {}}}}
 
 
     /** Analyses the parameters and generates the corresponding solvers.
      *
      * @param parameterList the parameters
-     * @return              a list of solvers
+     * @return  a list of solvers
      */
     public static ArrayList<Solver> makeSolvers(ArrayList<Parameters> parameterList) {
         ArrayList<Solver> solvers = new ArrayList<>();
@@ -111,10 +115,7 @@ public abstract class Solver {
     public ProblemSupervisor problemSupervisor;
 
     /** the global parameters. */
-    protected  GlobalParameters globalParameters;
-
-    /** all control parameters for the solvers. */
-    protected  HashMap<String,Object> solverParameters;
+    protected GlobalParameters globalParameters;
 
     /** if contains the normalized clauses */
     protected Normalizer normalizer;
@@ -123,7 +124,7 @@ public abstract class Solver {
     public long startTime;
 
     /** the number of predicates in the problem. */
-    public  int predicates;
+    public int predicates;
 
     /** the global model (from the problemSupervisor). */
     public Model model;
@@ -169,12 +170,7 @@ public abstract class Solver {
     /** constructs a solver as an instance of the Processor class.
      *
      * @param solverNumber       to distinguish different solvers of the same type, but different parameters,
-     * @param solverParameters   the control parameters for the solver
      */
-    public Solver(Integer solverNumber, HashMap<String,Object> solverParameters) {
-        this.solverNumber = solverNumber;
-        this.solverParameters   = solverParameters;}
-
     public Solver(Integer solverNumber) {
         this.solverNumber = solverNumber;}
 
@@ -190,7 +186,6 @@ public abstract class Solver {
     public void initialize(Thread thread,ProblemSupervisor problemSupervisor) {
         this.myThread              = thread;
         this.problemSupervisor     = problemSupervisor;
-        solverId                   = (String)solverParameters.get("name");
         problemId                  = problemSupervisor.problemId;
         combinedId                 = problemId+"@"+solverId + ":" + solverNumber;
         globalParameters           = problemSupervisor.globalParameters;
@@ -203,15 +198,13 @@ public abstract class Solver {
         trackReasoning             = globalParameters.trackReasoning;
         }
 
-        public String getSolverId() {return solverId;}
-
 
     /** The key method, which has to be implemented by the solvers.<br>
      * It is supposed to find a model or a contradiction in the clauses.
      *
      * @return Un/Satisfiable or null
      */
-    public  Result solveProblem() {return null;};
+    public Result solveProblem() {return null;};
 
     /** returns the solver's statistics.
      *

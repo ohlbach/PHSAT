@@ -128,7 +128,7 @@ public abstract class Resolution extends Solver {
      * @param problemSupervisor    coordinates several solvers.
      */
     public Resolution(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
-        super(solverNumber,solverParameters);}
+        super(solverNumber);}
 
     /** This method controls the entire resolution sequence
      * 1. All local data are initialized <br>
@@ -187,12 +187,12 @@ public abstract class Resolution extends Solver {
 
     /** initializes resolution specific data structures*/
     private void initializeData() {
-        Object seed            = solverParameters.get("seed");
-        random                 = (seed != null) ? new Random((Integer)seed) : new Random();
-        strategy               = (ResolutionStrategy)solverParameters.get("strategy");
+       // Object seed            = solverParameters.get("seed");
+       // random                 = (seed != null) ? new Random((Integer)seed) : new Random();
+        strategy               = null; // (ResolutionStrategy)solverParameters.get("strategy");
         statistics             = new ResolutionStatistics(combinedId);
-        Object percent         = solverParameters.get("percentage");
-        percentageOfSOSClauses = (percent != null) ? (Integer)percent : 0;
+      //  Object percent         = solverParameters.get("percentage");
+      //  percentageOfSOSClauses = (percent != null) ? (Integer)percent : 0;
         primaryClauses         = new BucketSortedList<Clause>(clause->clause.size());
         secondaryClauses       = new BucketSortedList<Clause>(clause->clause.size());
         literalIndex           = new BucketSortedIndex<CLiteral>(predicates+1,
@@ -864,7 +864,7 @@ public abstract class Resolution extends Solver {
      */
     public String parameters() {
         StringBuilder st = new StringBuilder();
-        Object seed = solverParameters.get("seed");
+        Object seed = 0;// solverParameters.get("seed");
         st.append("Resolution        " + combinedId + "\n");
         st.append("Strategy:         " + strategy.toString()).append("\n");
         st.append("Resolution Limit: " +  resolutionLimit).append("\n");
