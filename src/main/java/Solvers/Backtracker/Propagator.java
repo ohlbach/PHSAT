@@ -5,9 +5,9 @@ import Datastructures.Results.Result;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-/** This is a thread which can propagate true literals found in a backtracker.
+/** This is a thread which can propagateInThread true literals found in a backtracker.
  * <p>
- * The propagator waits until a new propagator job is submitted, calls the propagate method,
+ * The propagator waits until a new propagator job is submitted, calls the propagateInThread method,
  * and then waits for the next job. <br>
  * It can work for several Backtrackers.
  */
@@ -48,7 +48,7 @@ public class Propagator extends Thread {
                 backtracker = (Backtracker)queue.take();
                 literal = (Integer)queue.take();
                 isActive = true;
-                backtracker.propagate(literal);
+                backtracker.propagateInThread(literal);
                 propagatorPool.deactivate(this);
                 isActive = false;}}
         catch (InterruptedException e) {
@@ -57,10 +57,10 @@ public class Propagator extends Thread {
             backtracker.reportResult(result);
             propagatorPool.jobFinished(backtracker);}}
 
-    /** Adds a new propagate job to the queue.
+    /** Adds a new propagateInThread job to the queue.
      *
      * @param backtracker the backtracker which submitted the job.
-     * @param literal the literal to propagate.
+     * @param literal the literal to propagateInThread.
      */
     public void newPropagateJob(Backtracker backtracker, int literal) {
         queue.add(backtracker); queue.add(literal);}

@@ -25,6 +25,17 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
             positiveOccurrences[i] = new LinkedItemList<>("Positive Literals");
             negativeOccurrences[i] = new LinkedItemList<>("Negative Literals");}}
 
+    /** increases the size of the LiteralIndex if necessary.
+     *
+     * @param predicates the number of predicates.
+     */
+    public void ensureCapacity(int predicates) {
+        if(positiveOccurrences.length < predicates)
+            positiveOccurrences = new LinkedItemList[predicates];
+            negativeOccurrences = new LinkedItemList[predicates];
+        for (int i = 0; i < predicates; i++) {
+            positiveOccurrences[i] = new LinkedItemList<>("Positive Literals");
+            negativeOccurrences[i] = new LinkedItemList<>("Negative Literals");}}
     /**
      * Adds a literal object to the back of the positiveOccurrences or negativeOccurrences list based on the value of the literal.
      *

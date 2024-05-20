@@ -5,8 +5,8 @@ import java.util.ArrayList;
 /**The PropagatorPool class represents a pool of propagators.
  * <p>
  * Propagators are responsible for propagating true literals in the backtracker.<br>
- * Each Propagator waits for a true literal and then calls propagate-method of the backtracker.<br>
- * After the propagate-method is finished, it becomes passive and waits for a new job. <br>
+ * Each Propagator waits for a true literal and then calls propagateInThread-method of the backtracker.<br>
+ * After the propagateInThread-method is finished, it becomes passive and waits for a new job. <br>
  * Propagators can work for different backtrackers.
  */
 public class PropagatorPool {
@@ -46,6 +46,7 @@ public class PropagatorPool {
      * @param propagator an active propagator which becomes passive.
      */
     public synchronized void deactivate(Propagator propagator) {
+        propagator.interrupt();
         int lastActive = firstPassive-1;
         if(propagator.poolIndex < lastActive) {
             Propagator lastActivePropagator = propagators.get(lastActive);
