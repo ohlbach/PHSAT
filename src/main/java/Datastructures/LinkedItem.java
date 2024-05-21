@@ -7,7 +7,7 @@ package Datastructures;
  */
 public abstract class LinkedItem {
     /** indicates whether the item is in a list or not.*/
-    boolean isInList;
+    public boolean isInList;
     /** pointer to the previous item in the list. */
     public LinkedItem previousItem;
 

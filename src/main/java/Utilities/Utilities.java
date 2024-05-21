@@ -1315,6 +1315,23 @@ public class Utilities {
         return intList;}
 
     /**
+     * Shuffles the elements of the given array using the Fisher-Yates algorithm.
+     *
+     * @param array the array to be shuffled
+     * @param start the first array-index to be shuffled
+     * @param seed the seed for the random number generator.
+     */
+    public static void shuffleArray(int[] array, int start, int seed) {
+        int index, temp;
+        Random random = new Random(seed);
+        for (int i = array.length - 1; i >= start; i--)
+        {
+            index = random.nextInt(start,i + 1);
+            temp = array[index];
+            array[index] = array[i];
+            array[i] = temp;}}
+
+    /**
      * Pauses the execution of the current thread for the specified amount of time.
      *
      * @param time the amount of time, in milliseconds, to wait
