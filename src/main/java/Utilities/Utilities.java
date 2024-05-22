@@ -1326,7 +1326,7 @@ public class Utilities {
         Random random = new Random(seed);
         for (int i = array.length - 1; i >= start; i--)
         {
-            index = random.nextInt(start,i + 1);
+            index = random.nextInt(i + 1-start) + start;
             temp = array[index];
             array[index] = array[i];
             array[i] = temp;}}

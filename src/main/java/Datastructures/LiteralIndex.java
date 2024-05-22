@@ -13,17 +13,19 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
     /** maps negative literals to literal occurrences */
     private LinkedItemList[] negativeOccurrences;
 
+    private static String positiveTitle = "Positive Literals";
+    private static String negativeTitle = "Negative Literals";
     /**
      * Constructs an instance of LiteralIndex with the given number of predicates.
      *
      * @param predicates the number of predicates
      */
     public LiteralIndex(int predicates) {
-        positiveOccurrences = new LinkedItemList[predicates];
-        negativeOccurrences = new LinkedItemList[predicates];
-        for (int i = 0; i < predicates; i++) {
-            positiveOccurrences[i] = new LinkedItemList<>("Positive Literals");
-            negativeOccurrences[i] = new LinkedItemList<>("Negative Literals");}}
+        positiveOccurrences = new LinkedItemList[predicates+1];
+        negativeOccurrences = new LinkedItemList[predicates+1];
+        for (int i = 1; i <= predicates; i++) {
+            positiveOccurrences[i] = new LinkedItemList<>(positiveTitle);
+            negativeOccurrences[i] = new LinkedItemList<>(negativeTitle);}}
 
     /** increases the size of the LiteralIndex if necessary.
      *
@@ -33,9 +35,9 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
         if(positiveOccurrences.length < predicates)
             positiveOccurrences = new LinkedItemList[predicates];
             negativeOccurrences = new LinkedItemList[predicates];
-        for (int i = 0; i < predicates; i++) {
-            positiveOccurrences[i] = new LinkedItemList<>("Positive Literals");
-            negativeOccurrences[i] = new LinkedItemList<>("Negative Literals");}}
+        for (int i = 1; i <= predicates; i++) {
+            positiveOccurrences[i] = new LinkedItemList<>(positiveTitle);
+            negativeOccurrences[i] = new LinkedItemList<>(negativeTitle);}}
     /**
      * Adds a literal object to the back of the positiveOccurrences or negativeOccurrences list based on the value of the literal.
      *
@@ -80,7 +82,7 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
      *
      * @param predicate the predicate to be removed
      */
-    public void removePtredicate(int predicate) {
+    public void removePredicate(int predicate) {
         predicate = Math.abs(predicate);
         positiveOccurrences[predicate].clear();
         negativeOccurrences[predicate].clear();}

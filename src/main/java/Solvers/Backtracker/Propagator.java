@@ -1,7 +1,5 @@
 package Solvers.Backtracker;
 
-import Datastructures.Results.Result;
-
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -52,10 +50,7 @@ public class Propagator extends Thread {
                 propagatorPool.deactivate(this);
                 isActive = false;}}
         catch (InterruptedException e) {
-            propagatorPool.deactivate(this);}
-        catch(Result result) { // backtracked to the top-selection and thrown by model.add(-selection)
-            backtracker.reportResult(result);
-            propagatorPool.jobFinished(backtracker);}}
+            propagatorPool.deactivate(this);}}
 
     /** Adds a new propagateInThread job to the queue.
      *

@@ -15,6 +15,15 @@ public class Clause extends Datastructures.Clause<Literal>{
           Literal literal = new Literal(normalizedClause.literals.getInt(i), normalizedClause.literals.getInt(i + 1));
           literals.add(literal);}}
 
+    /** generates a clause from an int-array representation of an inputClause (for testing purposes).
+     *
+     * @param inputClause an int-array representation of an input clause.
+     */
+    public Clause(int[] inputClause) {
+        super(inputClause, false, (literal) -> new Literal(literal,1),null);
+        for(Literal literalObject : literals) literalObject.clause = this;
+    }
+
     /**
      * Removes a given Literal object from the clause and performs necessary updates.
      *

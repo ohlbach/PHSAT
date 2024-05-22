@@ -38,10 +38,10 @@ public class Backtracker extends Solver {
                 "Predicates in ascending order (1,2,3,...)"));
         parameters.add(new Parameter("Down-sequence",Parameter.Type.Boolean,null,
                 "Predicates in decending order (...3,2,1)"));
-        parameters.add(new Parameter("Less-first",Parameter.Type.Boolean,null,
-                "Predicates: less literals first"));
         parameters.add(new Parameter("More-first",Parameter.Type.Boolean,null,
                 "Predicates: more literals first"));
+        parameters.add(new Parameter("Less-first",Parameter.Type.Boolean,null,
+                "Predicates: less literals first"));
         Parameter seed = new Parameter("Seed", Parameter.Type.String, "-1",
                 IntArrayList.wrap(new int[]{-1}),
                 "Seed for random number generator (non-negative integer)");
@@ -104,18 +104,18 @@ public class Backtracker extends Solver {
     Result result = null;
 
     /** determines the sequence of predicates which are temporally set to true.*/
-    int[] predicateSequence;
+    protected int[] predicateSequence;
     /** maps each predicate to its position in the predicateSequence array- */
-    int[] predicatePositions;
+    protected int[] predicatePositions;
 
     /** +1: predicates are selected positively, -1: predicates are selected negatively.*/
     int firstSign = 1;
 
     /** The list of all clauses. The clauses are changed when a globally true literal is derived. */
-    private LinkedItemList<Clause> clauses;
+    protected  LinkedItemList<Clause> clauses;
 
     /** Maps (positive and negative) literals to the Literal objects containing the literal */
-    private LiteralIndex<Literal> literalIndex;
+    protected  LiteralIndex<Literal> literalIndex;
 
     /** stored the sequence of selected literals. */
     int[] selectedPredicates;
@@ -126,10 +126,10 @@ public class Backtracker extends Solver {
     /** maps derived literals to the selected true literals which cause the derivation of the literal.
      * The lists are kept sorted according th the predicateSequence,
      * such that the last element is the selected literal to which backtracking is necessary. */
-    IntArrayList[] dependentSelections;
+    protected IntArrayList[] dependentSelections;
 
     /** contains the derived predicates.*/
-    IntArrayList derivedPredicates;
+    protected IntArrayList derivedPredicates;
 
     /** points to the end (first free index) of the derivedPredicates in the current recursion level */
     int derivedPredicatesEnd;
@@ -138,7 +138,7 @@ public class Backtracker extends Solver {
     int[] derivedPredicatesStarts;
 
     /** collects the globally true literals which are still to be processed. */
-    private IntArrayList globallyTrueLiterals = new IntArrayList();
+    private final IntArrayList globallyTrueLiterals = new IntArrayList();
 
     BacktrackerStatistics statistics;
 
@@ -155,7 +155,7 @@ public class Backtracker extends Solver {
      * If a propagator founds a false clause, the false clause is inserted.
      * If all propagator jobs are finished, 'this' is inserted.
      * This way propagateSelectedLiteral can wait until all propagator jobs are finished. */
-    private BlockingQueue<Object> propagatorQueue = new LinkedBlockingQueue<>(2);
+    private final BlockingQueue<Object> propagatorQueue = new LinkedBlockingQueue<>(2);
 
     /** counts the active propagator threads */
     private int propagatorCounter = 0;
@@ -240,6 +240,17 @@ public class Backtracker extends Solver {
             insertClause(clause);
             normalizedClause = (Solvers.Normalizer.Clause)normalizedClause.nextItem;}}
 
+    /** inserts int-array version of the inputClauses into the internal datastructures (for testing purposes)
+     * <br>
+     * The clauses are not simplified in any way. They should be redundancy-free.
+     *
+     * @param inputClauses a list of int-array representations of the clauses.
+     */
+    protected void readInputClauses(int[]... inputClauses ) {
+        for(int[] inputClause : inputClauses) {
+            Clause newClause = new Clause(inputClause);
+            insertClause(newClause);}}
+
     /** inserts a clause into the clause list and the literal index.
      *
      * @param clause a clause.
@@ -272,7 +283,7 @@ public class Backtracker extends Solver {
             InferenceStep step = trackReasoning ? new InfUnitClause(clause) : null;
             if(monitoring) {monitor.accept("Unit Clause " + clause.toString(symboltable,0));}
             model.add(myThread,clause.literals.get(0).literal,step);
-            removeClause(clause);};}
+            removeClause(clause);}}
 
     /** Adds a literal to the list of globally true literals.
      *
@@ -287,8 +298,8 @@ public class Backtracker extends Solver {
      */
     public synchronized int getGloballyTrueLiteral() {
         if(globallyTrueLiterals.isEmpty()) return 0;
-        int literal = globallyTrueLiterals.get(globallyTrueLiterals.size()-1);
-        globallyTrueLiterals.remove(globallyTrueLiterals.size()-1);
+        int literal = globallyTrueLiterals.getInt(globallyTrueLiterals.size()-1);
+        globallyTrueLiterals.removeInt(globallyTrueLiterals.size()-1);
         return literal;}
 
      void searchModel() throws Result {
@@ -328,7 +339,7 @@ public class Backtracker extends Solver {
     IntArrayList propagateSelectedLiteral(int selectedLiteral) throws Result {
         propagatorCounter = 0;
         propagatorQueue.clear();
-        setLocalTruth(selectedLiteral);
+        setLocalStatus(selectedLiteral);
         int selectedPredicate = Math.abs(selectedLiteral);
         dependentSelections[selectedPredicate] = null;
         Clause falseClause = propagateLocally(selectedLiteral);
@@ -358,7 +369,7 @@ public class Backtracker extends Solver {
 
 
     Clause propagateLocally(int literal)  {
-         setLocalTruth(literal);
+         setLocalStatus(literal);
          Thread currentThread = Thread.currentThread(); // may be a Propagator thread
          for(int sign = 1; sign >= -1; sign -= 2) {
             Literal literalObject = literalIndex.getFirstLiteral(sign*literal);
@@ -388,7 +399,7 @@ public class Backtracker extends Solver {
         if(clause.quantifier == Quantifier.OR) {
             Literal unsignedLiteral = null;
             for(Literal literalObject : clause.literals) {
-                switch(getLocalTruth(literalObject.literal)) {
+                switch(getLocalStatus(literalObject.literal)) {
                     case 0:
                         if(unsignedLiteral != null) return null; // two unsigned literals: nothing to be done
                         unsignedLiteral = literalObject; break;
@@ -401,7 +412,7 @@ public class Backtracker extends Solver {
         int trueLiterals = 0;
         int unsignedLiterals = 0;
         for(Literal literalObject : clause.literals) {
-            switch(getLocalTruth(literalObject.literal)) {
+            switch(getLocalStatus(literalObject.literal)) {
                 case 0: unsignedLiterals += literalObject.multiplicity; break;
                 case 1: trueLiterals += literalObject.multiplicity;}}
         int max = clause.max; int min = clause.min;
@@ -410,7 +421,7 @@ public class Backtracker extends Solver {
         if(min <= trueLiterals && trueLiterals <= max) return null; // clause is true.
         // try to derive new true or false literals
         for(Literal literalObject : clause.literals) {
-            if(getLocalTruth(literalObject.literal) == 0) {
+            if(getLocalStatus(literalObject.literal) == 0) {
                 int trueLits = trueLiterals + literalObject.multiplicity;
                 if(!(min <= trueLits && trueLits <= max)) { // making it true causes a contradiction
                     makeLiteralLocallyTrue(clause,literalObject,(byte)-1);
@@ -433,7 +444,7 @@ public class Backtracker extends Solver {
         IntArrayList depSelections = dependentSelections[predicate];
         if(depSelections == null) {depSelections = new IntArrayList(); dependentSelections[predicate] = depSelections;}
         dependentSelections[predicate] = joinDependencies(clause,depSelections);
-        setLocalTruth(literal);
+        setLocalStatus(literal);
         propagatorPool.addPropagatorJob(this,literal);}
 
     int backtrackPredicate;
@@ -457,7 +468,7 @@ public class Backtracker extends Solver {
         while(!myThread.isInterrupted() && !clauses.isEmpty() &&
                 (literal = getGloballyTrueLiteral()) != 0 && !literalIndex.isEmpty(literal)) { // literal is globally true
             int predicate = Math.abs(literal);
-            switch(getLocalTruth(literal)) {  // compare with local truth
+            switch(getLocalStatus(literal)) {  // compare with local truth
                 case 0: break;
                 case 1:
                     int selectedPredicate = getLastSelection(dependentSelections[predicate]);
@@ -515,18 +526,33 @@ public class Backtracker extends Solver {
         }}
 
 
-
-    IntArrayList joinDependencies(Clause clause, IntArrayList joinedDependencies) {
+    /**Joins the dependencies of a given clause to the provided IntArrayList.
+     * <br>
+     * Predicates which are globally true/false are ignored.
+     *
+     * @param clause The clause whose dependencies will be joined.
+     * @param joinedDependencies The IntArrayList to which the dependencies will be joined.
+     * @return The IntArrayList containing the joined dependencies.
+     */
+    protected IntArrayList joinDependencies(Clause clause, IntArrayList joinedDependencies) {
         joinedDependencies.clear();
         for(Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
-            if(model.status(literal) == 0 && getLocalTruth(literal) != 0)
+            if(model.status(literal) == 0 && getLocalStatus(literal) != 0)
                 joinDependencies(joinedDependencies, dependentSelections[Math.abs(literal)]);}
         return joinedDependencies;}
 
-    void joinDependencies(IntArrayList dep1, IntArrayList dep2){
-        if(dep1.isEmpty()) {dep1.addAll(dep2); return;}
-        for(int predicate : dep2) {if(!dep1.contains(predicate)) dep1.add(predicate);}}
+    /**
+     * Joins two dependencies by adding all elements from dependencies2 to dependencies1, skipping duplicates.
+     * <br>
+     * Predicates which are globally true/false are ignored.
+     *
+     * @param dependencies1 The first dependency list.
+     * @param dependencies2 The second dependency list to join.
+     */
+    protected void joinDependencies(IntArrayList dependencies1, IntArrayList dependencies2){
+        for(int predicate : dependencies2) {
+            if(model.status(predicate) == 0 && !dependencies1.contains(predicate)) dependencies1.add(predicate);}}
 
     /** The selected predicate which has the last position in predicatePositions.
      * <br>
@@ -541,7 +567,7 @@ public class Backtracker extends Solver {
         int index = 0;
         for(int i = 1; i < dependencies.size(); ++i) {
             int predicate = dependencies.getInt(i);
-            if(predicatePositions[lastPredicate] > position) {
+            if(predicatePositions[predicate] > position) {
                 lastPredicate = predicate;
                 position = predicatePositions[lastPredicate];
                 index = i;}}
@@ -556,12 +582,12 @@ public class Backtracker extends Solver {
     protected int getLastSelection(IntArrayList dependencies) {
         if(dependencies == null) return 0;
         int lastPredicate = dependencies.getInt(0);
-        int position = predicatePositions[lastPredicate];
+        int lastPosition = predicatePositions[lastPredicate];
         for(int i = 1; i < dependencies.size(); ++i) {
             int predicate = dependencies.getInt(i);
-            if(predicatePositions[lastPredicate] > position) {
+            if(predicatePositions[predicate] > lastPosition) {
                 lastPredicate = predicate;
-                position = predicatePositions[lastPredicate];}}
+                lastPosition = predicatePositions[lastPredicate];}}
         return lastPredicate;}
 
     /** The selected predicate which has the last position in the clause's dependecies.
@@ -602,45 +628,13 @@ public class Backtracker extends Solver {
                     if(monitoring) monitor.accept("Backtracking to predicate " + Symboltable.toString(predicate,symboltable));
                     ++statistics.backtrackings;
                     if(backtrackings > 1) ++statistics.backjumps;
-                    setLocalTruth(-firstSign*selectedPredicate);
+                    setLocalStatus(-firstSign*selectedPredicate);
                     dependencies.rem(predicate);
                     dependentSelections[selectedPredicate] = dependencies;}
                 for(int i = derivedPredicatesStarts[selectedPredicate]; i <= derivedPredicatesEnd; ++i) {
-                    clearLocalTruth(derivedPredicates.getInt(i));}
+                    clearLocalStatus(derivedPredicates.getInt(i));}
                 derivedPredicatesEnd = derivedPredicatesStarts[selectedPredicate];}}
     }
-
-    /** report the result to the main thread and sends an interrupt to myThread
-     *  <p>
-     *  It can be called from any other thread.
-     * @param result a result
-     */
-    public synchronized void reportResult(Result result) {
-        this.result = result;
-        myThread.interrupt();}
-
-    /** sets the local truth value of the literal.
-     *
-     * @param literal  a derived true literal.
-     */
-    private void setLocalTruth(int literal) {
-        if(literal > 0) localModel[literal] = 1; else localModel[-literal] = -1;}
-
-    /** sets the local truth value of the literal to 0.
-     *
-     * @param literal  a derived literal.
-     */
-    private void clearLocalTruth(int literal) {
-        if(literal > 0) localModel[literal] = 0; else localModel[-literal] = 0;}
-
-    /**
-     * Retrieves the truth value of a literal in the local model.
-     *
-     * @param literal The literal to check.
-     * @return The truth value of the literal in the local model.
-     */
-    private synchronized byte getLocalTruth(int literal) {
-        return literal > 0 ? localModel[literal] : (byte)-localModel[-literal]; }
 
 
     /** initializes the predicate sequence.
@@ -662,12 +656,12 @@ public class Backtracker extends Solver {
         if(seed >= 0) {initializePredicateSequenceRandomly(seed); return;}
 
         switch(predicateArrangement) {
-            case 0:
+            case 1:
                 for (int predicate = 1; predicate <= predicates; ++predicate) {
                     predicateSequence[predicate] = predicate;
                     predicatePositions[predicate] = predicate;}
                 return;
-            case 1:
+            case 2:
                 for (int predicate = 1; predicate <= predicates; ++predicate) {
                     predicateSequence[predicates-predicate+1] = predicate;
                     predicatePositions[predicate] = predicates-predicate+1;}
@@ -676,7 +670,7 @@ public class Backtracker extends Solver {
         Integer[] sequence = new Integer[predicates +1]; // sorting with a comparator works only with Object-arrays.
         for (int predicate = 1; predicate <= predicates; predicate++) {sequence[predicate] = predicate;}
         Arrays.sort(sequence,1,predicates+1,
-                Comparator.comparingInt(predicate -> sign * (literalIndex.size((int)predicate) + literalIndex.size(-(int)predicate))));
+                Comparator.comparingInt(predicate -> sign * (literalIndex.size(predicate) + literalIndex.size(-(int)predicate))));
         for(int predicate = 1; predicate <= predicates; ++ predicate) {
             predicateSequence[predicate] = sequence[predicate];
             predicatePositions[predicateSequence[predicate]] = predicate;}}
@@ -694,10 +688,49 @@ public class Backtracker extends Solver {
 
     /** initializes the local to be synchronous to the global model.
      */
-    void initializeLocalModel() {
-        localModel = new byte[predicates+1];
+    protected void initializeLocalModel() {
+        if(localModel == null || localModel.length < predicates+1)
+            localModel = new byte[predicates+1];
         for(int predicate = 1; predicate <= predicates; ++predicate) {
             localModel[predicate] = model.status(predicate);}}
+
+
+    /** sets the local truth status value of the literal.
+     *
+     * @param literal  a derived true literal.
+     */
+    protected void setLocalStatus(int literal) {
+        if(literal > 0) localModel[literal] = 1; else localModel[-literal] = -1;}
+
+    /** sets the local status value of the literal to 0.
+     *
+     * @param literal  a derived literal.
+     */
+    protected void clearLocalStatus(int literal) {
+        if(literal > 0) localModel[literal] = 0; else localModel[-literal] = 0;}
+
+    /**
+     * Retrieves the status value of a literal in the local model.
+     *
+     * @param literal The literal to check.
+     * @return The truth value of the literal in the local model.
+     */
+    protected synchronized byte getLocalStatus(int literal) {
+        return literal > 0 ? localModel[literal] : (byte)-localModel[-literal]; }
+
+
+    /** Converts Local Model to String representation.
+     *
+     * @return The String representation of Local Model.
+     */
+    public String toStringLocalModel() {
+        StringBuilder st = new StringBuilder();
+        for (int predicate = 1; predicate <= predicates; predicate++) {
+            st.append(predicate).append(":").append(localModel[predicate]);
+            if(predicate < predicates) st.append(",");
+            if(predicate % 50 == 0) st.append("\n");}
+        return st.toString();
+    }
 
 
     @Override
