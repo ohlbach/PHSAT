@@ -34,10 +34,8 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
     public void ensureCapacity(int predicates) {
         if(positiveOccurrences.length < predicates)
             positiveOccurrences = new LinkedItemList[predicates];
-            negativeOccurrences = new LinkedItemList[predicates];
-        for (int i = 1; i <= predicates; i++) {
-            positiveOccurrences[i] = new LinkedItemList<>(positiveTitle);
-            negativeOccurrences[i] = new LinkedItemList<>(negativeTitle);}}
+            negativeOccurrences = new LinkedItemList[predicates];}
+
     /**
      * Adds a literal object to the back of the positiveOccurrences or negativeOccurrences list based on the value of the literal.
      *
@@ -45,8 +43,11 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
      */
     public void addToBack(Literal literalObject) {
         int literal = literalObject.literal;
-        if(literal > 0) positiveOccurrences[literal].addToBack(literalObject);
-        else            negativeOccurrences[-literal].addToBack(literalObject);}
+        LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];
+        if(literals == null) {
+            if(literal > 0) {literals = new LinkedItemList<>(positiveTitle); positiveOccurrences[literal] = literals;}
+            else            {literals = new LinkedItemList<>(negativeTitle);negativeOccurrences[-literal] = literals;}}
+        literals.addToBack(literalObject);}
 
     /**
      * Adds a literal object to the front of the positiveOccurrences or negativeOccurrences list based on the value of the literal.
@@ -55,8 +56,11 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
      */
     public void addToFront(Literal literalObject) {
         int literal = literalObject.literal;
-        if(literal > 0) positiveOccurrences[literal].addToFront(literalObject);
-        else            negativeOccurrences[-literal].addToFront(literalObject);}
+        LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];
+        if(literals == null) {
+            if(literal > 0) {literals = new LinkedItemList<>(positiveTitle); positiveOccurrences[literal] = literals;}
+            else            {literals = new LinkedItemList<>(negativeTitle);negativeOccurrences[-literal] = literals;}}
+        literals.addToFront(literalObject);}
 
     /**
      * Removes a `Literal` object from the `positiveOccurrences` or `negativeOccurrences` list based on the value of the `literal` property.
@@ -65,8 +69,8 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
      */
     public void remove(Literal literalObject) {
         int literal = literalObject.literal;
-        if(literal > 0) positiveOccurrences[literal].remove(literalObject);
-        else            negativeOccurrences[-literal].remove(literalObject);}
+        LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];
+        if(literals != null) literals.remove(literalObject);}
 
     /**
      * Removes all occurrences of a literal from the positiveOccurrences or negativeOccurrences list based on the value of the literal.
@@ -74,8 +78,8 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
      * @param literal the literal to be removed
      */
     public void removeLiteral(int literal) {
-        if(literal > 0) positiveOccurrences[literal].clear();
-        else            negativeOccurrences[-literal].clear();}
+        LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];
+        if(literals != null) literals.clear();}
 
     /**
      * Removes all occurrences of a predicate from the positiveOccurrences and negativeOccurrences list.
@@ -84,8 +88,10 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
      */
     public void removePredicate(int predicate) {
         predicate = Math.abs(predicate);
-        positiveOccurrences[predicate].clear();
-        negativeOccurrences[predicate].clear();}
+        LinkedItemList<Literal> literals = positiveOccurrences[predicate];
+        if(literals != null) literals.clear();
+        literals = negativeOccurrences[predicate];
+        if(literals != null) literals.clear();}
 
     /**
      * Retrieves the first occurrence of a literal from the positiveOccurrences or negativeOccurrences list based on the value of the literal.
@@ -94,9 +100,8 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
      * @return The first occurrence of the literal as a Literal object if it exists, null otherwise.
      */
     public Literal getFirstLiteral(int literal) {
-        return (literal > 0) ?
-                (Literal)positiveOccurrences[literal].firstLinkedItem:
-                (Literal)negativeOccurrences[-literal].firstLinkedItem;}
+        LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];
+        return (literals == null) ? null : literals.firstLinkedItem;}
 
     /**
      * Retrieves the last occurrence of a literal from the positiveOccurrences or negativeOccurrences list based on the value of the literal.
@@ -105,9 +110,8 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
      * @return The last occurrence of the literal as a Literal object if it exists, null otherwise.
      */
     public Literal getLastLiteral(int literal) {
-        return (literal > 0) ?
-                (Literal)positiveOccurrences[literal].lastLinkedItem:
-                (Literal)negativeOccurrences[-literal].lastLinkedItem;}
+        LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];
+        return (literals == null) ? null : literals.lastLinkedItem;}
 
     /**
      * Checks if the list of literals is empty based on the given literal value.
@@ -116,10 +120,8 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
      * @return true if the list is empty, false otherwise.
      */
     public boolean isEmpty(int literal) {
-        return (literal > 0) ?
-                positiveOccurrences[literal].isEmpty() :
-                negativeOccurrences[-literal].isEmpty();
-    }
+        LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];
+        return literals == null  || literals.isEmpty();}
 
     /**
      * Retrieves the size of the list of literals in the LiteralIndex class based on the given literal value.
@@ -128,9 +130,8 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
      * @return The size of the list of literals if it exists and greater than 0, 0 otherwise.
      */
     public int size(int literal) {
-        return (literal > 0) ?
-                positiveOccurrences[literal].size():
-                negativeOccurrences[-literal].size();}
+        LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];
+        return literals == null ? 0 : literals.size();}
 
 
 }

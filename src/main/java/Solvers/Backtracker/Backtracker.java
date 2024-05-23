@@ -186,7 +186,8 @@ public class Backtracker extends Solver {
         solverId = "Backtracker";
         this.predicateArrangement = predicateArrangement;
         this.seed = seed;
-        this.firstSign = firstSign;}
+        this.firstSign = firstSign;
+        myThread = Thread.currentThread();} // for testing purposes.
 
     /** adds the literals which are already true in the model to the task queue.
      * Installs the observer in the model.
@@ -206,6 +207,7 @@ public class Backtracker extends Solver {
         propagatorQueue.clear();
         globallyTrueLiterals.clear();
         recursionLevel = 0;
+        myThread = Thread.currentThread();
         clauses = new LinkedItemList<>("Clauses");
         if(literalIndex == null) literalIndex = new LiteralIndex<>(predicates);
         else literalIndex.ensureCapacity(predicates);
@@ -267,10 +269,10 @@ public class Backtracker extends Solver {
         for(Literal literalObject : clause.literals) literalIndex.remove(literalObject);
         clauses.remove(clause);}
 
-    /** removes a (false) literal from the clause.
+    /** removes a (false) literal from an OR-clause.
      * <p>
      * If the resulting clause is a unit clause, it is inserted into the model.
-     * The clause is entirely removed.
+     * The unit clause is entirely removed.
      *
      * @param literalObject to be removed.
      * @throws Result if inserting a unit clause into the model causes a contradiction.
@@ -282,25 +284,10 @@ public class Backtracker extends Solver {
         if(clause.removeLiteral(literalObject)) {
             InferenceStep step = trackReasoning ? new InfUnitClause(clause) : null;
             if(monitoring) {monitor.accept("Unit Clause " + clause.toString(symboltable,0));}
-            model.add(myThread,clause.literals.get(0).literal,step);
+            model.add(null,clause.literals.get(0).literal,step);
             removeClause(clause);}}
 
-    /** Adds a literal to the list of globally true literals.
-     *
-     * @param literal The literal to be added.
-     */
-    public synchronized void addGloballyTrueLiteral(int literal) {
-        globallyTrueLiterals.add(literal);}
 
-    /** Retrieves a globally true literal from the list of globally true literals.
-     *
-     * @return The globally true literal. If the list is empty, returns 0.
-     */
-    public synchronized int getGloballyTrueLiteral() {
-        if(globallyTrueLiterals.isEmpty()) return 0;
-        int literal = globallyTrueLiterals.getInt(globallyTrueLiterals.size()-1);
-        globallyTrueLiterals.removeInt(globallyTrueLiterals.size()-1);
-        return literal;}
 
      void searchModel() throws Result {
         int nextPredicateIndex = 0;
@@ -447,10 +434,27 @@ public class Backtracker extends Solver {
         setLocalStatus(literal);
         propagatorPool.addPropagatorJob(this,literal);}
 
-    int backtrackPredicate;
-    boolean backtrackTryAgain;
-    boolean backtrackTryNegated;
-    IntArrayList backtrackDependencies;
+    /** Adds a literal to the list of globally true literals.
+     *
+     * @param literal The literal to be added.
+     */
+    public synchronized void addGloballyTrueLiteral(int literal) {
+        globallyTrueLiterals.add(literal);}
+
+    /** Retrieves a globally true literal from the list of globally true literals.
+     *
+     * @return The globally true literal. If the list is empty, returns 0.
+     */
+    public synchronized int getGloballyTrueLiteral() {
+        if(globallyTrueLiterals.isEmpty()) return 0;
+        int literal = globallyTrueLiterals.getInt(globallyTrueLiterals.size()-1);
+        globallyTrueLiterals.removeInt(globallyTrueLiterals.size()-1);
+        return literal;}
+
+    protected int backtrackPredicate;
+    protected boolean backtrackTryAgain;
+    protected boolean backtrackTryNegated;
+    protected IntArrayList backtrackDependencies;
 
     /** All globally true literals are integrated into the datastructures and the search structure.
      * <br>
@@ -497,7 +501,7 @@ public class Backtracker extends Solver {
             while(literalObject != null) {
                 Clause clause = literalObject.clause;
                 if(clause.quantifier == Quantifier.OR) {
-                    if(sign == 1) removeClause(clause);         // clause is true
+                    if(sign == 1) removeClause(clause); // clause is true
                     else {removeLiteral(literalObject); // new unit clause is inserted into the model.
                         if(clause.isInList) {
                             int lastPredicate = getLastSelection(clause);
@@ -532,7 +536,7 @@ public class Backtracker extends Solver {
      *
      * @param clause The clause whose dependencies will be joined.
      * @param joinedDependencies The IntArrayList to which the dependencies will be joined.
-     * @return The IntArrayList containing the joined dependencies.
+     * @return The IntArrayList containing the joined dependencies (maybe empty)
      */
     protected IntArrayList joinDependencies(Clause clause, IntArrayList joinedDependencies) {
         joinedDependencies.clear();
@@ -682,7 +686,7 @@ public class Backtracker extends Solver {
      */
     protected void initializePredicateSequenceRandomly(int seed) {
         for(int predicate = 1; predicate <= predicates; ++predicate) predicateSequence[predicate] = predicate;
-        shuffleArray(predicateSequence,1,seed);
+        shuffleArray(predicateSequence,1,predicates, seed);
         for(int position = 1; position <= predicates; ++position) {
             predicatePositions[predicateSequence[position]] = position;}}
 

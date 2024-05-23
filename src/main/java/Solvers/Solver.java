@@ -133,13 +133,13 @@ public abstract class Solver {
     public  Symboltable symboltable = null;
 
     /** controls the application of inferenceSteps. */
-    protected boolean trackReasoning = true;
+    public boolean trackReasoning = true;
 
     /** a monitor for showing the actions */
     public Monitor monitor = null;
 
     /** true if the monitor is active */
-    protected boolean monitoring = false;
+    public boolean monitoring = false;
 
     /** an identifier for the monitor */
     protected String monitorId;

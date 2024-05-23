@@ -260,7 +260,7 @@ public class Model {
         StringBuilder st = new StringBuilder();
         for(int i = 0; i < sortedModel.size()-1; ++i) {
             st.append(Symboltable.toString(sortedModel.getInt(i),symboltable)).append(",");
-            if((i%20)==0) st.append("\n");}
+            if(i > 0 && (i%20)==0) st.append("\n");}
         st.append(Symboltable.toString(sortedModel.getInt(sortedModel.size()-1),symboltable));
         return st.toString();}
 

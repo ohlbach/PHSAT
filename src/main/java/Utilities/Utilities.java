@@ -1321,10 +1321,10 @@ public class Utilities {
      * @param start the first array-index to be shuffled
      * @param seed the seed for the random number generator.
      */
-    public static void shuffleArray(int[] array, int start, int seed) {
+    public static void shuffleArray(int[] array, int start, int end, int seed) {
         int index, temp;
         Random random = new Random(seed);
-        for (int i = array.length - 1; i >= start; i--)
+        for (int i = end; i >= start; i--)
         {
             index = random.nextInt(i + 1-start) + start;
             temp = array[index];
