@@ -14,6 +14,9 @@ public class UnsatClause extends Unsatisfiable {
     /** an unsatisfiable input clause */
     private int[] inputClause = null;
 
+    private Clause clause = null;
+
+    private Solvers.Normalizer.Clause normlizedClause = null;
 
     /** constructs an Unsatisfiability from an unsatisfiable input clause
      *
@@ -26,15 +29,20 @@ public class UnsatClause extends Unsatisfiable {
 
     public UnsatClause(String problemId, String solverId, Clause clause) {
         super(problemId,solverId);
-    }
+        this.clause = clause;}
+
     public UnsatClause(String problemId, String solverId, Solvers.Normalizer.Clause clause) {
         super(problemId,solverId);
+        normlizedClause = clause;
     }
 
 
     @Override
     public String description(Symboltable symboltable) {
-        return "Unsatisfiable clause " +InputClauses.toString(0,inputClause,symboltable);}
-
+        if(inputClause != null)
+            return "Unsatisfiable clause " +InputClauses.toString(0,inputClause,symboltable);
+        if(clause != null)          return "Unsatisfiable clause " + clause.toString(symboltable,0);
+        if(normlizedClause != null) return "Unsatisfiable clause " + normlizedClause.toString(symboltable,0);
+        return "Unsatisfiable clause ";}
 
 }

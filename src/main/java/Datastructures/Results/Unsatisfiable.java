@@ -44,7 +44,7 @@ public abstract class Unsatisfiable extends Result {
      */
     public String toString(Symboltable symboltable, boolean trackReasoning) {
         StringBuilder st = new StringBuilder();
-        st.append("CONTRADICTION FOUND: ");
+        st.append("CONTRADICTION FOUND after " + elapsedTime + " ns: ");
         if(solverId != null) {st.append( "by solver '").append(solverId).append("' ");}
         if(problemId != null) st.append("in problem '").append(problemId).append("'");
         ArrayList<InferenceStep> steps = new ArrayList<>();

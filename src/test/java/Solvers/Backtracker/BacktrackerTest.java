@@ -13,6 +13,9 @@ import java.util.Arrays;
 public class BacktrackerTest extends TestCase {
 
     static int or = Quantifier.OR.ordinal();
+    static int intv = Quantifier.INTERVAL.ordinal();
+    static int natl = Quantifier.ATLEAST.ordinal();
+    static int natm = Quantifier.ATMOST.ordinal();
 
     public void testInitializePredicateSequenceRandomly() {
         System.out.println("initializePredicateSequenceRandomly");
@@ -51,7 +54,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.predicates = predicates;
         backtracker.predicateSequence = new int[predicates+1];
         backtracker.predicatePositions = new int[predicates+1];
-         backtracker.clauses = new LinkedItemList<>("Clauses");
+        backtracker.clauses = new LinkedItemList<>("Clauses");
         backtracker.literalIndex = new LiteralIndex<>(5);
 
         backtracker.readInputClauses(
@@ -72,6 +75,7 @@ public class BacktrackerTest extends TestCase {
         assertEquals("[0, 2, 5, 3, 4, 1]", Arrays.toString(backtracker.predicateSequence));
         assertEquals("[0, 5, 1, 3, 4, 2]", Arrays.toString(backtracker.predicatePositions));
     }
+
 
     public void testLocalModel() throws Result {
         System.out.println("localModel");
@@ -206,9 +210,76 @@ public class BacktrackerTest extends TestCase {
         assertEquals("2,4",backtracker.model.toString());
 
 
+        backtracker.initializeProblemSpecifics();
+        backtracker.model = new Model(predicates);
+        backtracker.initializeLocalModel();
 
+        backtracker.readInputClauses(
+                new int[]{1,intv,2,2,1,1,2,2,-3},
+                new int[]{2, natl, 2, 1, 1, 2, 2, -3,4},
+                new int[]{3, intv,2,2, 1,1,1,2,-3,4,5},
+                new int[]{5, intv,2,2, 5,2,-3});
 
+        backtracker.removeGloballyTrueLiteral(3);
+        assertEquals("Clauses\n" +
+                "  1.1: =1 1,2\n" +
+                "  2.2: 1v2\n" +
+                "  3.1: =2 2,4,5\n", backtracker.clauses.toString());
+        assertEquals("-1,2,5",backtracker.model.toString());
+        assertEquals(1,backtracker.literalIndex.size(4));
+        assertEquals(1,backtracker.literalIndex.size(5));
 
+        start = System.nanoTime();
+        backtracker.initializeProblemSpecifics();
+        backtracker.model = new Model(predicates);
+        backtracker.initializeLocalModel();
 
+        backtracker.readInputClauses(
+                new int[]{1,natl,2,1,2,2});
+        try{backtracker.removeGloballyTrueLiteral(-2);}
+        catch(Result result) {
+            result.complete("TestProblem 1", "Backtracker",start);
+            System.out.println(result.toString());}
+
+        start = System.nanoTime();
+        backtracker.initializeProblemSpecifics();
+        backtracker.model = new Model(predicates);
+        backtracker.model.add(null,-1);
+        backtracker.initializeLocalModel();
+
+        backtracker.readInputClauses(
+                new int[]{1,natl,2,1,2,3});
+        try{backtracker.removeGloballyTrueLiteral(-3);}
+        catch(Result result) {
+            result.complete("TestProblem 2", "Backtracker",start);
+            System.out.println(result.toString());}
     }
-}
+
+    public void testRemoveGloballyTrueLiteralWithBacktracking() throws Result {
+        System.out.println("removeGloballyTrueLiteral with backtracking");
+        long start = System.nanoTime();
+        Backtracker backtracker = new Backtracker(1, 1, -1, 1);
+        int predicates = 5;
+        backtracker.predicates = predicates;
+        backtracker.initializeProblemSpecifics();
+        backtracker.monitor = (string) -> System.out.println(string);
+        backtracker.monitoring = true;
+        backtracker.model = new Model(predicates);
+        backtracker.initializeLocalModel();
+
+        backtracker.initializePredicateSequence(1,-1);
+        assertEquals("[0, 1, 2, 3, 4, 5]", Arrays.toString(backtracker.predicateSequence));
+        assertEquals("[0, 1, 2, 3, 4, 5]", Arrays.toString(backtracker.predicatePositions));
+        backtracker.dependentSelections[3] = IntArrayList.wrap(new int[]{1});
+        backtracker.dependentSelections[4] = IntArrayList.wrap(new int[]{2});
+        backtracker.model.add(null,-1);
+
+        backtracker.readInputClauses(
+                new int[]{1, or, 1, 2, 3},
+                new int[]{2, or, 1, 3, 4},
+                new int[]{3, or, -1, -4, 5});
+        backtracker.removeGloballyTrueLiteral(-1);
+        assertEquals(2,backtracker.backtrackPredicate);
+        assertTrue(backtracker.backtrackTryAgain);
+    }
+    }

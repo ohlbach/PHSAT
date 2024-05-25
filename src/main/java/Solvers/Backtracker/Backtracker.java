@@ -494,6 +494,13 @@ public class Backtracker extends Solver {
             if(backtrackTryAgain)   backtrack(backtrackPredicate,null, true); return;}
             if(backtrackTryNegated) backtrack(backtrackPredicate,backtrackDependencies, false);}
 
+    /** removes all occurrences of the globally true literal.
+     * <br>
+     * The shortened clauses are simplified as far as possible.
+     *
+     * @param trueLiteral a globally true literal
+     * @throws Result if a contradiction is encountered.
+     */
     void removeGloballyTrueLiteral(int trueLiteral) throws Result {
         for(int sign = 1; sign >= -1; --sign) {
             int literal = sign*trueLiteral;
@@ -505,7 +512,7 @@ public class Backtracker extends Solver {
                     else {removeLiteral(literalObject); // new unit clause is inserted into the model.
                         if(clause.isInList) {
                             int lastPredicate = getLastSelection(clause);
-                            if(lastPredicate != 0) {
+                            if(lastPredicate != 0) { // local search may produce new facts if backtracked to  'backtrackPredicate'
                                 if (backtrackPredicate == 0 || predicatePositions[lastPredicate] < predicatePositions[backtrackPredicate])
                                     backtrackPredicate = lastPredicate;
                                 backtrackTryAgain = true;}}}
@@ -517,7 +524,7 @@ public class Backtracker extends Solver {
                         (litObject -> literalIndex.remove(litObject)), // also called for irrelevant literals
                         ((lit, step) -> model.add(null,lit,step)),
                         monitor,symboltable)) {
-                    case 0: // local search may produce new facts.
+                    case 0: // local search may produce new facts if backtracked to  'backtrackPredicate'
                         int lastPredicate = getLastSelection(clause);
                         if(lastPredicate != 0) {
                             if (backtrackPredicate == 0 || predicatePositions[lastPredicate] < predicatePositions[backtrackPredicate])
@@ -561,17 +568,19 @@ public class Backtracker extends Solver {
     /** The selected predicate which has the last position in predicatePositions.
      * <br>
      * The last predicate is removed from the list.
+     * Predicates with a global truth value are ignored.
      *
      * @param dependencies The list of selected predicates which caused the derivation of a true literal or an empty clause.
      * @return The selected predicate which has the last position in predicatePositions.
      */
     protected int getAndRemoveLastSelection(IntArrayList dependencies) {
-        int lastPredicate = dependencies.getInt(0);
-        int position = predicatePositions[lastPredicate];
+        int lastPredicate = 0;
+        int position = 0;
         int index = 0;
-        for(int i = 1; i < dependencies.size(); ++i) {
+        for(int i = 0; i < dependencies.size(); ++i) {
             int predicate = dependencies.getInt(i);
-            if(predicatePositions[predicate] > position) {
+            if(model.status(predicate) != 0) continue;
+            if(position == 0 ||  predicatePositions[predicate] > position) {
                 lastPredicate = predicate;
                 position = predicatePositions[lastPredicate];
                 index = i;}}
@@ -579,17 +588,20 @@ public class Backtracker extends Solver {
         return lastPredicate;}
 
     /** The selected predicate which has the last position in predicatePositions.
+     * <br>
+     * Literals with a global truth value are ignored.
      *
      * @param dependencies The list of selected predicates which caused the derivation of a true literal or an empty clause.
      * @return The selected predicate which has the last position in predicatePositions.
      */
     protected int getLastSelection(IntArrayList dependencies) {
         if(dependencies == null) return 0;
-        int lastPredicate = dependencies.getInt(0);
-        int lastPosition = predicatePositions[lastPredicate];
-        for(int i = 1; i < dependencies.size(); ++i) {
+        int lastPredicate = 0;
+        int lastPosition  = 0;
+        for(int i = 0; i < dependencies.size(); ++i) {
             int predicate = dependencies.getInt(i);
-            if(predicatePositions[predicate] > lastPosition) {
+            if(model.status(predicate) != 0) continue;
+            if(lastPredicate == 0 || predicatePositions[predicate] > lastPosition) {
                 lastPredicate = predicate;
                 lastPosition = predicatePositions[lastPredicate];}}
         return lastPredicate;}
@@ -606,16 +618,19 @@ public class Backtracker extends Solver {
             IntArrayList dependencies = dependentSelections[predicate];
             if(dependencies != null) {
                 int lastPred = getLastSelection(dependencies);
-                if(lastPredicate == 0 || predicatePositions[lastPred] > predicatePositions[lastPredicate]) {
+                if(lastPred != 0 &&  (lastPredicate == 0 || predicatePositions[lastPred] > predicatePositions[lastPredicate])) {
                     lastPredicate = lastPred;}}}
         return lastPredicate;}
 
-    /** backtracks to the last selection mentioned in dependencies.
+    /** backtracks to the given predicate
      * <p>
+     * If tryAgain is true then the same predicate is selected again. <br>
+     * Otherwise its negation is made locally true.<br>
      * If the backtracking ends at the first selection, its negation is made globally true.<br>
      * The current point of the search is indicated by the last predicate in selectedPredicates.
      *
      * @param predicate to where backtrack
+     * @param dependencies of the clause or predicate which caused a contradiction (or null if tryAgain is true)
      * @param tryAgain if true then the predicate is tried again, otherwise its negation is tried.
      * @throws Result if backtracked to the top-selection and model.add(-selection) causes a contradiction
      */
@@ -632,9 +647,14 @@ public class Backtracker extends Solver {
                     if(monitoring) monitor.accept("Backtracking to predicate " + Symboltable.toString(predicate,symboltable));
                     ++statistics.backtrackings;
                     if(backtrackings > 1) ++statistics.backjumps;
-                    setLocalStatus(-firstSign*selectedPredicate);
-                    dependencies.rem(predicate);
-                    dependentSelections[selectedPredicate] = dependencies;}
+                    if(recursionLevel == 0) {
+                        model.add(null,-firstSign*selectedPredicate,null);
+                        clearLocalStatus(predicate);}
+                    else {
+                        setLocalStatus(-firstSign*selectedPredicate);
+                        dependencies.rem(predicate);
+                        dependentSelections[selectedPredicate] = dependencies;}}
+
                 for(int i = derivedPredicatesStarts[selectedPredicate]; i <= derivedPredicatesEnd; ++i) {
                     clearLocalStatus(derivedPredicates.getInt(i));}
                 derivedPredicatesEnd = derivedPredicatesStarts[selectedPredicate];}}

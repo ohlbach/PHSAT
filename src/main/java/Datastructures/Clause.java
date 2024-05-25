@@ -172,7 +172,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             int result = simplifyRecursively(trackReasoning, literalRemover,
                     (literal,inferenceStep) -> {trueLiterals.add((int)literal); reportTruth.accept(literal,inferenceStep);},
                     monitor,symboltable);
-            if(result == -1) {inferenceSteps.add(new InfClauseSimplification(clone,null,null)); return result;}
+            if(result == -1) {addInferenceStep(new InfClauseSimplification(clone,null,null)); return result;}
             if(result == 1 || versionBefore == version) return result;
             addInferenceStep(new InfClauseSimplification(clone,this,trueLiterals));
             return result;}
@@ -202,11 +202,11 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
         else {if (max == 0) sign = -1;}
 
         if(sign != 0) {
+            if(monitor != null) monitor.accept("All literals in clause " + toString(symboltable,0) + " are true.");
             for(Literal literalObject : literals) {
                 int literal = sign*literalObject.literal;
                 InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(simpleClone(),literal) : null;
                 reportTruth.accept(literal,step);} // all literals have a truth value.
-            if(monitor != null) monitor.accept("All literals in clause " + toString(symboltable,0) + " are true.");
             return 1;}
 
         if(quantifier == Quantifier.OR) return 0;  // no further simplification possible.
@@ -291,12 +291,12 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
                                        BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
                                   Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable{
         int[] clone = trackReasoning ? simpleClone() : null;
+        if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) + " has single model: " + modelString(model,symboltable));
         for (int j = 0; j < literals.size(); j++) {
             int literal = Math.abs(literals.get(j).literal);
             if((model & (1 << j)) == 0) literal = -literal;
             InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal): null;
-            reportTruth.accept(literal,step);}
-        if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) + ": single model: " + modelString(model,symboltable));}
+            reportTruth.accept(literal,step);}}
 
     /**Extracts literals which are true/false in all models of the clause.
      * <br>
@@ -326,9 +326,9 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
                 changed = true;
                 int literal = sign*literals.get(j).literal;
                 InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal): null;
-                reportTruth.accept(literal,step);
-                if(monitor != null) {
+                 if(monitor != null) {
                     monitor.accept("Clause " + toString(symboltable,0) + ": has true literal " + Symboltable.toString(literal,symboltable));}
+                reportTruth.accept(literal,step);
                 literalRemover.accept(literals.get(j));
                 removeLiteral(j, sign == 1);}}
         if(changed) {classifyQuantifier();++version;}
