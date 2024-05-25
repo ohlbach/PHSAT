@@ -88,8 +88,8 @@ public class BacktrackerTest extends TestCase {
         assertEquals("1:0,2:0,3:1,4:-1,5:0",backtracker.toStringLocalModel());
         backtracker.setLocalStatus(2); backtracker.setLocalStatus(-5);
         assertEquals("1:0,2:1,3:1,4:-1,5:-1",backtracker.toStringLocalModel());
-        assertEquals(1,backtracker.getLocalStatus(2));
-        assertEquals(-1,backtracker.getLocalStatus(4));
+        assertEquals(1,backtracker.localStatus(2));
+        assertEquals(-1,backtracker.localStatus(4));
         backtracker.clearLocalStatus(4);
         assertEquals("1:0,2:1,3:1,4:0,5:-1",backtracker.toStringLocalModel());
   }
