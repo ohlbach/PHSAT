@@ -282,4 +282,6 @@ public class BacktrackerTest extends TestCase {
         assertEquals(2,backtracker.backtrackPredicate);
         assertTrue(backtracker.backtrackTryAgain);
     }
+
+
     }
