@@ -12,7 +12,7 @@ public class Clause extends Datastructures.Clause<Literal>{
       super(normalizedClause.id, normalizedClause.version,normalizedClause.quantifier,
               normalizedClause.min, normalizedClause.max, normalizedClause.expandedSize);
       for(int i = 0; i < normalizedClause.literals.size(); i += 2) {
-          Literal literal = new Literal(normalizedClause.literals.getInt(i), normalizedClause.literals.getInt(i + 1));
+          Literal literal = new Literal(normalizedClause.literals.get(i).literal, normalizedClause.literals.get(i).multiplicity);
           literals.add(literal);}}
 
     /** generates a clause from an int-array representation of an inputClause (for testing purposes).
@@ -32,7 +32,7 @@ public class Clause extends Datastructures.Clause<Literal>{
      */
     void removeLiteral(Literal literalObject, boolean isTrue) {
         assert literalObject.clause == this;
-        super.removeLiteral(literals.indexOf(literalObject), isTrue);}
+        super.removeLiteralAtPosition(literals.indexOf(literalObject), isTrue);}
 
     /** Removes a (false) literal from a disjunction (with atleast two literals)
      *

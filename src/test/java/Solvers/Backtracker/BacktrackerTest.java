@@ -145,7 +145,7 @@ public class BacktrackerTest extends TestCase {
     }
 
     public void testRemoveLiteral() throws Result {
-        System.out.println("removeLiteral");
+        System.out.println("removeLiteralAtPosition");
         long start = System.nanoTime();
         Backtracker backtracker = new Backtracker(1, 1, -1, 1);
         backtracker.monitor = (string) -> System.out.println(string);

@@ -748,7 +748,7 @@ public abstract class ResolutionReduction extends Solver {
         insertIntoIndex(clause);
         if(clause.isPositive()) {++statistics.positiveClauses;}
         else {if(clause.isNegative()) {++statistics.negativeClauses;}}
-        if(checkConsistency) {check("removeLiteral");}
+        if(checkConsistency) {check("removeLiteralAtPosition");}
         return false;}
 
     /** completes a model after resolution has finished.

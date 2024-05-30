@@ -696,7 +696,7 @@ public abstract class Resolution extends Solver {
                 case SOS:      primaryClauses.add(clause); break;
                 case POSITIVE: (clause.isPositive() ? primaryClauses : secondaryClauses).add(clause); break;
                 case NEGATIVE: (clause.isNegative() ? primaryClauses : secondaryClauses).add(clause); break;}}
-        if(checkConsistency) {check("removeLiteral");}
+        if(checkConsistency) {check("removeLiteralAtPosition");}
         clause.id = ++id[0];
         return true;}
 

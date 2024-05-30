@@ -11,9 +11,7 @@ import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
-import Management.Monitor.Monitor;
 import Management.ProblemSupervisor;
-import Solvers.Normalizer.NMInferenceSteps.NMISClause;
 import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToEquivalence;
 import Solvers.Normalizer.NMInferenceSteps.NMTrueSingletonLiteral;
 import Solvers.Normalizer.NMInferenceSteps.NMUnsatEquivalence;
@@ -21,6 +19,7 @@ import Solvers.Normalizer.NMInferenceSteps.NMUnsatEquivalence;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.function.Consumer;
 
 /** The normalizer takes the inputClauses provided by the supervisor and removes any immediately recognizable redundancies.<br>
  * In particular: <br>
@@ -39,10 +38,10 @@ import java.util.concurrent.PriorityBlockingQueue;
 public class Normalizer {
 
     /** the supervisor for the given problem.*/
-    final ProblemSupervisor problemSupervisor;
+    ProblemSupervisor problemSupervisor;
 
     /** the problem's identifier */
-    final String problemId;
+    String problemId;
 
     /** just 'Normalizer'*/
     final static String solverId = "Normalizer";
@@ -56,7 +55,7 @@ public class Normalizer {
     public int predicates;
 
     /** null or a monitor */
-    public Monitor monitor;
+    public Consumer<String> monitor;
 
     /** true if there is a monitor */
     public boolean monitoring;
@@ -64,7 +63,7 @@ public class Normalizer {
     public String monitorId;
 
     /** null or a symboltable */
-    public final Symboltable symboltable;
+    public Symboltable symboltable;
 
     /** if true then inference steps are generated */
     public boolean trackReasoning;
@@ -73,7 +72,7 @@ public class Normalizer {
     public NormalizerStatistics statistics;
 
     /** the current thread*/
-    public final Thread myThread;
+    public Thread myThread;
 
     /** maps predicates to or- and atleast-clauses containing the predicate */
     ArrayList<Clause>[] positiveOccAtleast;
@@ -117,12 +116,12 @@ public class Normalizer {
         problemId              = problemSupervisor.problemId;
         model                  = problemSupervisor.model;
         statistics             = new NormalizerStatistics(null);
-        monitor                = problemSupervisor.monitor;
-        monitoring             = monitor != null;
+        monitoring             = problemSupervisor.monitor != null;
+        monitorId              = "Normalizer_"+ problemId;
+        monitor                = monitoring ? (message -> problemSupervisor.monitor.println(monitorId,message)) : null;
         symboltable            = problemSupervisor.inputClauses.symboltable;
         trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
         predicates             = problemSupervisor.inputClauses.predicates;
-        monitorId              = "Normalizer_"+ problemId;
         myThread               = Thread.currentThread();
         System.out.println("TR " + trackReasoning);
     }
@@ -152,7 +151,7 @@ public class Normalizer {
                         break;
                     case PURITY:      processPurity(); purityIsInQueue = false;}}
             catch(InterruptedException ex) {
-                if(monitoring) monitor.println("Normalizer for problem "+ problemId + " interrupted.");
+                if(monitoring) monitor.accept("Normalizer for problem "+ problemId + " interrupted.");
                 return;}}}
 
 
@@ -164,8 +163,8 @@ public class Normalizer {
     public Result normalizeClauses(int maxLoop) {
         InputClauses inputClauses = problemSupervisor.inputClauses;
         try {
-            for (int[] inputClause : inputClauses.conjunctions) makeTrueLiteralTask(inputClause);
-            for (int[] inputClause : inputClauses.equivalences) makeEquivalenceTask(inputClause);
+            for (int[] inputClause : inputClauses.conjunctions) transformAndSimplify(inputClause);
+            for (int[] inputClause : inputClauses.equivalences) transformAndSimplify(inputClause);
             for (int[] inputClause : inputClauses.disjunctions) transformAndSimplify(inputClause);
             for (int[] inputClause : inputClauses.atleasts)     transformAndSimplify(inputClause);
             for (int[] inputClause : inputClauses.atmosts)      transformAndSimplify(inputClause);
@@ -179,35 +178,6 @@ public class Normalizer {
         statistics.survivedClauses = clauses.size();
         return null;}
 
-    /** Adds all literals in the clause (a conjunction) as true literal task to the queue and inserts them into the model.
-     *
-     * @param inputClause a conjunction.
-     * @throws Unsatisfiable if the model discovers an inconsistency.
-     */
-    void makeTrueLiteralTask(int[] inputClause) throws Unsatisfiable {
-        assert(inputClause[1] == Quantifier.AND.ordinal());
-        InferenceStep step = trackReasoning ? new InfInputClause(inputClause[0]) : null;
-        for(int i = Quantifier.AND.firstLiteralIndex; i < inputClause.length; ++i) {
-            int literal = inputClause[i];
-            if(monitoring) monitor.println(monitorId, "adding true literal " +
-                    Symboltable.toString(literal,symboltable) + " to the model.");
-            ++statistics.initialTrueLiterals;
-            addTrueLiteralTask(literal,step);}}
-
-    /** Adds all literals in the clause (a conjunction) as true literal task to the queue and inserts them into the model.
-     *
-     * @param clause a conjunction.
-     * @throws Unsatisfiable if the model discovers an inconsistency.
-     */
-    void makeTrueLiteralTask(Clause clause) throws Unsatisfiable{
-        assert(clause.quantifier == Quantifier.AND);
-        InferenceStep step = trackReasoning ? new NMISClause(clause) : null;
-        for(int i = 0; i < clause.literals.size()-1; i += 2) {
-            int literal = clause.literals.getInt(i);
-            if(monitoring) monitor.println(monitorId, "adding true literal " +
-                    Symboltable.toString(literal,symboltable) + " to the model.");
-            ++statistics.derivedTrueLiterals;
-            addTrueLiteralTask(literal,step);}}
 
     /**Adds the literal as true literal to the model and to the queue,
      *
@@ -224,16 +194,17 @@ public class Normalizer {
      * The first literal in the equivalence clause becomes the representative literal.
      * Each further literal in the clause yields a separate equivalence task.
      *
-     * @param inputClause an equivalence input clause.
+     * @param clause an equivalence clause.
      */
-    void makeEquivalenceTask(int[] inputClause) {
-        assert(inputClause[1] == Quantifier.EQUIV.ordinal());
+    void makeEquivalenceTask(Clause clause) {
+        assert(clause.quantifier == Quantifier.EQUIV);
         int sign = 1;
-        int representative = inputClause[Quantifier.EQUIV.firstLiteralIndex];
+        ArrayList<Literal> literals = clause.literals;
+        int representative = literals.get(0).literal;
         if(representative < 0) {sign = -1; representative *= -1;}
-        for(int i = Quantifier.EQUIV.firstLiteralIndex+1; i < inputClause.length; ++i) {
-            queue.add(new Task(representative, sign*inputClause[i],
-                    trackReasoning ? new InfInputClause(inputClause[0]) : null));
+        for(int i = 1; i < literals.size(); ++i) {
+            queue.add(new Task(representative, sign*literals.get(i).literal,
+                    trackReasoning ? new InfInputClause(clause.id) : null));
             ++statistics.initialEquivalences;}}
 
     /** The method turns an inputClause into a Clause data structure and simplifies the clause.
@@ -242,14 +213,13 @@ public class Normalizer {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
-        Clause clause = new Clause(inputClause,trackReasoning,statistics, monitor,symboltable);
-        if(clause.quantifier == Quantifier.AND) {makeTrueLiteralTask(clause); return;}
-        if(clause.isTrue) {++statistics.removedClauses; return;}
-        if(clause.isFalse) throw new UnsatClause(problemId,solverId,clause.inputClause);
-        Clause conjunction = clause.simplify(trackReasoning,statistics, monitor,symboltable);
-        if(conjunction != null) makeTrueLiteralTask(conjunction);
-        if(clause.isTrue || clause.quantifier == Quantifier.AND) {++statistics.removedClauses; return;}
-        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause.inputClause);
+        Clause clause = new Clause(inputClause,trackReasoning,symboltable);
+        switch(clause.simplify(trackReasoning,null, this::addTrueLiteralTask, monitor,symboltable)) {
+            case -1: throw new UnsatClause(problemId,solverId, clause.inputClause);
+            case 1: return;}
+        if(clause.quantifier == Quantifier.EQUIV) {
+            makeEquivalenceTask(clause);
+            return;}
         statistics.simplifiedClauses += clause.version;
         addClauseToIndex(clause);
         clauses.addToBack(clause);}
@@ -262,18 +232,18 @@ public class Normalizer {
      */
     void applyTrueLiteral(int literal) throws Unsatisfiable {
         int predicate = Math.abs(literal);
-        for(ArrayList[] clausesList : indexLists) { // loop over all three index arrays.
+        for(ArrayList[] clausesList : indexLists) { // loop over all index arrays.
             if(clausesList != null) {
                 ArrayList<Clause> clausesArray = (ArrayList<Clause>)clausesList[predicate];
                 if(clausesArray != null) {
-                    for(int i = clausesArray.size()-1; i >= 0; --i) {
-                        Clause clause = clausesArray.get(i);
-                        removeClauseFromIndex(clause);
-                        Clause conjunction = clause.applyTrueLiteral(literal,trackReasoning,statistics, monitor,symboltable);
-                        if (conjunction != null) {makeTrueLiteralTask(conjunction);}
-                        if(clause.isTrue || clause.quantifier == Quantifier.AND) {clauses.remove(clause); continue;}
-                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
-                        addClauseToIndex(clause);}}}}
+                    for(int sign = 1; sign >= -1; sign -=2) {
+                        for(int i = clausesArray.size()-1; i >= 0; --i) {
+                            Clause clause = clausesArray.get(i);
+                            removeClauseFromIndex(clause);
+                            switch(clause.applyTrueLiteral(literal,sign == 1, trackReasoning, monitor,null,this::addTrueLiteralTask, symboltable)){
+                                case -1: throw new UnsatClause(problemId,solverId, clause);
+                                case 1: clauses.remove(clause); continue;}
+                            addClauseToIndex(clause);}}}}}
         applyTrueLiteralToEquivalences(literal);}
 
     /** applies the true literal to all equivalences in the input clauses.
@@ -309,7 +279,7 @@ public class Normalizer {
                                 new NMISTrueLiteralToEquivalence(trueLit,inputClause,sign*literal) : null;
                         model.add(myThread,sign*literal,step);
                         modelChanged = true;
-                        if(monitoring) monitor.println(monitorId,"True Literal " +  Symboltable.toString(trueLit,symboltable) +
+                        if(monitoring) monitor.accept("True Literal " +  Symboltable.toString(trueLit,symboltable) +
                                 " applied to " + InputClauses.toString(0,inputClause,symboltable) + " => " +
                                 Symboltable.toString(sign*literal,symboltable));
                     }}}}}
@@ -381,8 +351,8 @@ public class Normalizer {
                 positiveArrayList = positiveOccInterval;
                 negativeArrayList = negativeOccInterval;}
 
-        for(int i = 0; i < clause.literals.size()-1; i += 2) {
-            int literal = clause.literals.getInt(i);
+        for(int i = 0; i < clause.literals.size()-1; ++i) {
+            int literal = clause.literals.get(i).literal;
             int predicate = Math.abs(literal);
             ArrayList<Clause> clausesArray = (literal > 0) ? positiveArrayList[predicate] : negativeArrayList[predicate];
             if(clausesArray == null) {
@@ -411,8 +381,8 @@ public class Normalizer {
                 yield negativeOccInterval;}
             default -> null;};
 
-         for(int i = 0; i < clause.literals.size()-1; i += 2) {
-            int literal = clause.literals.getInt(i);
+         for(int i = 0; i < clause.literals.size()-1; ++i) {
+            int literal = clause.literals.get(i).literal;
             int predicate = Math.abs(literal);
             ArrayList<Clause> clausesArray = (literal > 0) ? positiveArrayList[predicate] : negativeArrayList[predicate];
             clausesArray.remove(clause);
@@ -444,7 +414,7 @@ public class Normalizer {
             for(int predicate = 1; predicate <= predicates; ++predicate) {
                 int literal = isPositivelyPure(predicate);
                 if(literal != 0) {
-                    if(monitoring) {monitor.println(monitorId, "Literal " + Symboltable.toString(literal,symboltable) +
+                    if(monitoring) {monitor.accept("Literal " + Symboltable.toString(literal,symboltable) +
                             " is positively pure");}
                     ++statistics.pureLiterals;
                     purityFound = true;
@@ -462,7 +432,7 @@ public class Normalizer {
 
                 literal = isNegativelyPure(predicate);
                 if(literal != 0) {
-                    if(monitoring) {monitor.println(monitorId, "Literal " + Symboltable.toString(literal,symboltable) +
+                    if(monitoring) {monitor.accept("Literal " + Symboltable.toString(literal,symboltable) +
                             " is negatively pure");}
                     ++statistics.pureLiterals;
                     purityFound = true;
@@ -504,14 +474,14 @@ public class Normalizer {
              Clause clause = (Clause)singletons.get(i+1);
              int multiplicity = 0;
              for(int j = 0; j < clause.literals.size()-1; j += 2) {
-                 if(clause.literals.getInt(j) == literal) {multiplicity = clause.literals.getInt(j+1); break;}}
+                 if(clause.literals.get(j).literal == literal) {multiplicity = clause.literals.get(j).multiplicity; break;}}
              int trueLiterals = clause.trueLiterals(model::isTrue);
              if(trueLiterals + multiplicity < clause.min) {
                  ErrorReporter.reportErrorAndStop("Normalizer.extendModel: not enough true literals in clause " +
                          clause.toString(symboltable,0) + "\nnumber of true literals: " + (trueLiterals + multiplicity) +
                          "\nModel: " + model.toString(symboltable));}
              int trueLiteral = (trueLiterals+multiplicity <= clause.max) ? literal : -literal;
-             if(monitoring) monitor.println(monitorId,"Extending model with " + Symboltable.toString(trueLiteral,symboltable) +
+             if(monitoring) monitor.accept("Extending model with " + Symboltable.toString(trueLiteral,symboltable) +
                      " for clause " + clause.toString(symboltable,0));
              InferenceStep step = trackReasoning ? new NMTrueSingletonLiteral(clause,trueLiteral): null;
              model.add(myThread,trueLiteral,step);}}

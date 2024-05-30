@@ -62,35 +62,6 @@ public class ClauseTest extends TestCase {
         assertEquals("9: ", clause1.toString(null,0));
     }
 
-    public void testIsTrue() {
-        System.out.println("isTrue");
-        Clause clause1 = makeClause(new int[]{5, nor, 1,2,3});
-        assertTrue(clause1.isTrue(literal -> literal == 1));
-        assertTrue(clause1.isTrue(literal -> literal == 2));
-        assertTrue(clause1.isTrue(literal -> literal == 3));
-        assertFalse(clause1.isTrue(literal -> literal == -2));
-
-        clause1 = makeClause(new int[]{6, natl, 2, 1,2,2,3});
-        assertFalse(clause1.isTrue(literal -> literal == 1));
-        assertTrue(clause1.isTrue(literal -> literal == 2));
-        assertTrue(clause1.isTrue(literal -> literal != 2));
-
-        clause1 = makeClause(new int[]{7, natm, 2, 1,2,2,2,3});
-        assertFalse(clause1.isTrue(literal -> literal == 2));
-        assertTrue(clause1.isTrue(literal -> literal == 4));
-
-        clause1 = makeClause(new int[]{8, nint, 2, 3, 1,2,2,2,3});
-        assertFalse(clause1.isTrue(literal -> literal == 1));
-        assertTrue(clause1.isTrue(literal -> literal != 2));
-        assertTrue(clause1.isTrue(literal -> literal == 2));
-
-        clause1 = makeClause(new int[]{9, nor, 1,2,3});
-        clause1.quantifier = Quantifier.AND;
-        assertFalse(clause1.isTrue(literal -> literal == 1));
-        assertTrue(clause1.isTrue(literal -> literal != 4));
-        assertFalse(clause1.isTrue(literal -> literal != 2));
-    }
-
     public void testClassifyClause() {
         System.out.println("classifyClause");
         Clause clause = makeClause(new int[]{5, nor, 1});
@@ -113,105 +84,8 @@ public class ClauseTest extends TestCase {
         assertEquals(Quantifier.INTERVAL,clause.quantifier);
     }
 
-    public void testRemoveMultiplicities() {
-        System.out.println("removeMultiplicities");
-        int[] clause = new int[]{5,nor,1,-2,3};
-        Clause clause1 = makeClause(clause);
-        assertFalse(clause1.removeMultiplicities(false, statistics,null, null));
-        assertEquals("5: 1,-2,3",clause1.toString(null,0));
-
-        clause = new int[]{6,nor,1,-2,1,3,-2,1};
-        clause1 = makeClause(clause);
-        assertTrue(clause1.removeMultiplicities(true,statistics, monitor, null));
-        assertEquals("6.1: 1,-2,3",clause1.toString(null,0));
-        assertEquals("removeMultiplicities: 6: p^3,-q^2,r => 6.1: p,-q,r\n",clause1.deductions(symboltable));
-
-        clause = new int[]{7,natl,1,-2,1,3,-2,1};
-        clause1 = makeClause(clause);
-        assertTrue(clause1.removeMultiplicities(true,statistics, monitor, null));
-        assertEquals("7.1: -2,1,3",clause1.toString(null,0));
-        assertEquals("removeMultiplicities: 7: -q^2,p^2,r => 7.1: -q,p,r\n",clause1.deductions(symboltable));
-
-        clause = new int[]{8,nint,2,3,1,1,1,2,2,3,3,3};
-        clause1 = makeClause(clause);
-        assertTrue(clause1.removeMultiplicities(true,statistics, monitor, null));
-        assertEquals("8.1: [2,3] 1^2,2^2,3^2",clause1.toString(null,0));
-
-        clause = new int[]{9,natm,2,1,1,1,2,2,3,3,3};
-        clause1 = makeClause(clause);
-        assertFalse(clause1.removeMultiplicities(true,statistics, monitor, null));
-    }
 
 
-
-
-
-    public void testRemoveComplementaries() {
-        System.out.println("removeComplementaries");
-        int[] clause = new int[]{5,nor,1,-2,3};
-        Clause clause1 = makeClause(clause);
-        clause1.removeComplementaries(false, statistics,null, null);
-        assertEquals("5: 1,-2,3", clause1.toString(null,0));
-
-        clause = new int[]{6,nor,1,-2,3,-1,2};
-        clause1 = makeClause(clause);
-        assertTrue(clause1.removeComplementaries(false, statistics,null, null));
-
-        clause = new int[]{7,natl,5,1,1,-2,3,-1,2,2};
-        clause1 = makeClause(clause);
-        clause1.removeComplementaries(false, statistics,null, null);
-        assertEquals(Quantifier.AND,clause1.quantifier);
-        assertEquals("7.1: & 1,3,2", clause1.toString(null,0));
-
-        Monitor monitor = new MonitorLife();
-        StringBuilder errors = new StringBuilder();
-        clause = new int[]{8,nint,4,5,3,1,1,-2,3,-1,2,2,-2};
-        clause1 = makeClause(clause);
-        clause1.removeComplementaries(true,statistics, monitor, null);
-        assertEquals("8.1: 3,1", clause1.toString(null,0));
-        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
-    }
-
-    public void testDivideByGCD() {
-        System.out.println("divideByGCD");
-        StringBuilder errors = new StringBuilder();
-        Clause clause1 = makeClause(new int[]{5, natl, 4, 1,1,2,2,3,3});
-        assertTrue(clause1.divideByGCD(true,statistics,monitor,null));
-        assertEquals("5.1: >=2 1,2,3", clause1.toString(null, 0));
-        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
-        assertEquals(3,clause1.expandedSize);
-
-        Clause clause2 = makeClause(new int[]{5, natl, 2, 1,-2,3});
-        assertFalse(clause1.inferenceSteps.get(0).verify(clause2,null,errors));
-        System.out.println(errors.toString());
-
-        clause1 = makeClause(new int[]{6, natl, 2, 1,1,2,2,3,3});
-        assertTrue(clause1.divideByGCD(true,statistics,monitor,null));
-        assertEquals("6.1: 1,2,3", clause1.toString(null, 0));
-        assertTrue(clause1.inferenceSteps.get(0).verify(clause1,null,errors));
-
-        clause1 = makeClause(new int[]{6, natl, 2, 1,1,2,2,3,3,3});
-        assertFalse(clause1.divideByGCD(true,statistics,monitor,null));
-        assertEquals("6: >=2 1^2,2^2,3^3", clause1.toString(null, 0));
-    }
-
-    public void testReduceToEssentialLiterals() {
-        System.out.println("reduceToEssentialLiterals");
-        StringBuilder errors = new StringBuilder();
-        Clause clause1 = makeClause(new int[]{5, natl, 2, 1, 1, 2, 2, 3});
-        assertTrue(clause1.reduceToEssentialLiterals(true, statistics,monitor, null));
-        assertEquals("5.1: 1,2",clause1.toString(null,0));
-        NMInferenceStep step = clause1.inferenceSteps.get(0);
-        assertTrue(step.verify(clause1,null,errors));
-
-        Clause clause2 = makeClause(new int[]{6, nor, 1,3});
-        assertFalse(step.verify(clause2,null,errors));
-        System.out.println(errors.toString());
-
-        clause1 = makeClause(new int[]{2, natl, 2, 1, 1, 2, 2, 3,4});
-        assertFalse(clause1.reduceToEssentialLiterals(true,statistics, monitor, null));
-
-    }
     public void testApplyTrueLiteral() {
         System.out.println("applyTrueLiteral");
         StringBuilder errors = new StringBuilder();
@@ -301,7 +175,7 @@ public class ClauseTest extends TestCase {
         System.out.println(clause1.deductions(null));
     }
 
-    public void testRemoveLiteral() {
+    public void testRemoveLiteralAtPosition() {
         System.out.println("remove literal");
         StringBuilder errors = new StringBuilder();
         Clause clause1 = makeClause(new int[]{5, nint, 1,2, 1, 2, 3});

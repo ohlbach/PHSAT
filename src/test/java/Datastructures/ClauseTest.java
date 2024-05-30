@@ -263,26 +263,26 @@ public class ClauseTest extends TestCase {
 
     }
 
-    public void testRemoveLiteral() {
-        System.out.println("removeLiteral");
+    public void testRemoveLiteralAtPosition() {
+        System.out.println("removeLiteralAtPosition");
         Clause c = new Clause(new int[]{1, or,1,2,3}, false, litCreator, symboltable);
-        c.removeLiteral(0,false);
+        c.removeLiteralAtPosition(0,false);
         assertEquals("1: 2v3", c.toString(null, 0));
-        c.removeLiteral(1,false);
+        c.removeLiteralAtPosition(1,false);
         assertEquals("1: =1 2", c.toString(null, 0));
-        c.removeLiteral(0,false);
+        c.removeLiteralAtPosition(0,false);
         assertEquals("1: ", c.toString(null, 0));
 
         c = new Clause(new int[]{2, intv,2,3, 1,1,2,2,3,3,3}, false, litCreator, symboltable);
         assertEquals("2: [2,3] 1^2,2^2,3^3", c.toString(null, 0));
-        c.removeLiteral(1,true);
+        c.removeLiteralAtPosition(1,true);
         assertEquals("2: <=1 1^2,3^3", c.toString(null, 0));
-        c.removeLiteral(1,true);
+        c.removeLiteralAtPosition(1,true);
         assertEquals("2: <=-2 1^2", c.toString(null, 0));
 
         c = new Clause(new int[]{3, atl,2, 1,2,2,3,3,3}, false, litCreator, symboltable);
         assertEquals("3: >=2 1,2^2,3^2", c.toString(null, 0));
-        c.removeLiteral(0,true);
+        c.removeLiteralAtPosition(0,true);
         assertEquals("3: 2v3", c.toString(null, 0));
     }
 

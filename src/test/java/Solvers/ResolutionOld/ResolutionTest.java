@@ -252,9 +252,9 @@ public class ResolutionTest {
     }
 
     @Test
-    public void removeLiteral() throws Exception {
+    public void removeLiteralAtPosition() throws Exception {
         counter = 1;
-        System.out.println("removeLiteral");
+        System.out.println("removeLiteralAtPosition");
         Controller cntr = new Controller(null, null, null);
         HashMap<String, Object> problemParameters = new HashMap<>();
         problemParameters.put("name", "test");
@@ -282,9 +282,9 @@ public class ResolutionTest {
         insertClause.invoke(res, c2, false,"initial");
         insertClause.invoke(res, c3, false,"initial");
 
-        Method removeLiteral = getMethod("removeLiteral", CLiteral.class);
+        Method removeLiteralAtPosition = getMethod("removeLiteralAtPosition", CLiteral.class);
 
-        removeLiteral.invoke(res,c1.getCLiteral(1));
+        removeLiteralAtPosition.invoke(res,c1.getCLiteral(1));
         assertEquals("1:(1,3)",c1.toString());
         assertEquals(" 1: 1,\n" +
                 " 3: 3,\n" +
@@ -294,7 +294,7 @@ public class ResolutionTest {
                 "-6: -6,\n" +
                 " 7: 7,\n",literalIndex.get(res).toString());
 
-        removeLiteral.invoke(res,c2.getCLiteral(1));
+        removeLiteralAtPosition.invoke(res,c2.getCLiteral(1));
         assertEquals("2:(-4,-6)",c2.toString());
         assertEquals("3:(7,-5,6)",c3.toString());
         assertEquals(" 1: 1,\n" +
@@ -304,7 +304,7 @@ public class ResolutionTest {
                 " 6: 6,\n" +
                 "-6: -6,\n" +
                 " 7: 7,\n",literalIndex.get(res).toString());
-        assertFalse((boolean)removeLiteral.invoke(res,c2.getCLiteral(1)));
+        assertFalse((boolean)removeLiteralAtPosition.invoke(res,c2.getCLiteral(1)));
         assertEquals("1. P1: New true literal derived: -4\n",taskQueue.get(res).toString());
         assertEquals(1,((ResolutionStatistics)statistics.get(res)).derivedUnitClauses);
 

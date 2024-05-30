@@ -22,7 +22,7 @@ public class NMISTrueLiteralToClause extends NMInferenceStep{
      * @param trueLiteral the true literal
      * @param clause the clause to which the true literal is applied
      */
-    public NMISTrueLiteralToClause(String title, int trueLiteral, Clause clause) {
+    public NMISTrueLiteralToClause(String title, int trueLiteral, int[] clause) {
         super(title, clause);
         this.trueLiteral = trueLiteral;}
 
@@ -34,7 +34,7 @@ public class NMISTrueLiteralToClause extends NMInferenceStep{
      */
     public String toString(Clause deducedClause, Symboltable symboltable) {
         String status = deducedClause.isTrue ? " (true)": (deducedClause.isFalse ? " (false)" : "");
-        return title() + ": " + clause.toString(symboltable,0) + " and true(" +
+        return title() + ": " + Clause.toString(clause, symboltable) + " and true(" +
                 Symboltable.toString(trueLiteral,symboltable) +") => " + deducedClause.toString(symboltable,0) + status;}
 
     /** Checks if a given literal is true in the model represented by the bits in the integer model.

@@ -16,7 +16,7 @@ public class NMInferenceStep extends InferenceStep {
     public String title;
 
     /** the original clause of the inference */
-    public Clause clause;
+    public int[] clause;
 
     /** returns the title of the inference rule */
     @Override
@@ -28,7 +28,7 @@ public class NMInferenceStep extends InferenceStep {
      * @param title   the title of the inference rule
      * @param clause  the original clause to which the inference rule is applied.
      */
-    public NMInferenceStep(String title, Clause clause) {
+    public NMInferenceStep(String title, int[] clause) {
         this.title = title;
         this.clause = clause;}
 
@@ -40,7 +40,7 @@ public class NMInferenceStep extends InferenceStep {
      * @return The string representation of the inference step.
      */
     public String toString(Clause deducedClause, Symboltable symboltable) {
-        return title() + ": " + clause.toString(symboltable,0) + " => " + deducedClause.toString(symboltable,0);}
+        return title() + ": " + Clause.toString(clause,symboltable) + " => " + deducedClause.toString(symboltable,0);}
 
     /** Checks if the deduced clause is true in all models of the original clause.
      *

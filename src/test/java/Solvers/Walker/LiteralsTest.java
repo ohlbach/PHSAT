@@ -29,7 +29,7 @@ public class LiteralsTest extends TestCase {
     }
 
     public void testRemoveLiteral() {
-        System.out.println("removeLiteral");
+        System.out.println("removeLiteralAtPosition");
         Literals literals = new Literals(10);
         Literal lit1 = new Literal(3,2);
         literals.addLiteral(lit1);
