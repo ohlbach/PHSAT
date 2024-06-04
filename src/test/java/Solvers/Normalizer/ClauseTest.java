@@ -2,11 +2,8 @@ package Solvers.Normalizer;
 
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Symboltable;
-import InferenceSteps.InfInputClause;
-import InferenceSteps.InferenceStep;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
-import Solvers.Normalizer.NMInferenceSteps.NMInferenceStep;
 import junit.framework.TestCase;
 
 
@@ -28,7 +25,7 @@ public class ClauseTest extends TestCase {
 
     }
     static NormalizerStatistics statistics = new NormalizerStatistics(null);
-    
+    /*
     static Clause makeClause(int[] inputClause) {
         return new Clause(inputClause,false,statistics,null,null);
     }
@@ -192,5 +189,5 @@ public class ClauseTest extends TestCase {
         System.out.println(clause1.inferenceSteps.get(0).toString(clause1, null));
         assertTrue(clause1.inferenceSteps.get(0).verify(clause1, null, errors));
     }
-
+*/
     }

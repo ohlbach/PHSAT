@@ -301,10 +301,10 @@ public class Normalizer {
                     for(int i = clausesArray.size()-1; i >= 0; --i) {
                         Clause clause = clausesArray.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunction = clause.replaceEquivalentLiterals(representative,equivalentLiteral, step,trackReasoning,statistics,monitor,symboltable);
-                        if (conjunction != null) {makeTrueLiteralTask(conjunction);}
-                        if(clause.isTrue) {clauses.remove(clause); continue;}
-                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                        switch(clause.replaceEquivalentLiterals(representative,equivalentLiteral, step,trackReasoning,
+                                null, this::addTrueLiteralTask, statistics,monitor,symboltable)) {
+                            case -1: throw new UnsatClause(problemId,solverId, clause);
+                            case 1: continue;}
                         addClauseToIndex(clause);}}}}}
 
     /** add the given clause to the corresponding index (occurrence lists).
@@ -423,10 +423,10 @@ public class Normalizer {
                     for(int i = causeList.size()-1; i >= 0; --i) {
                         Clause clause = causeList.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunct = clause.applyTrueLiteral(literal,trackReasoning,statistics,monitor,symboltable);
-                        if(conjunct != null) makeTrueLiteralTask(conjunct);
-                        if(clause.isTrue) {clauses.remove(clause); continue;}
-                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                        switch (clause.applyTrueLiteral(literal,true,trackReasoning,monitor,null,
+                                this::addTrueLiteralTask,symboltable)) {
+                            case -1: throw new UnsatClause(problemId,solverId, clause);
+                            case +1: continue;}
                         addClauseToIndex(clause);}
                     continue;}
 
@@ -441,26 +441,25 @@ public class Normalizer {
                     for(int i = causeList.size()-1; i >= 0; --i) {
                         Clause clause = causeList.get(i);
                         removeClauseFromIndex(clause);
-                        Clause conjunct = clause.applyTrueLiteral(-literal,trackReasoning,statistics,monitor,symboltable);
-                        if(conjunct != null) makeTrueLiteralTask(conjunct);
-                        if(clause.isTrue) {clauses.remove(clause); continue;}
-                        if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                        switch (clause.applyTrueLiteral(-literal,true,trackReasoning,monitor,null,
+                                this::addTrueLiteralTask,symboltable)) {
+                            case -1: throw new UnsatClause(problemId,solverId, clause);
+                            case +1: continue;}
                         addClauseToIndex(clause);}
                     continue;}
 
                 literal = isSingletonPure(predicate);
                 if(literal != 0) {
-                    if(monitoring) {monitor.println(monitorId, "Literal " + Symboltable.toString(literal,symboltable) +
+                    if(monitoring) {monitor.accept("Literal " + Symboltable.toString(literal,symboltable) +
                             " is singleton pure");}
                     ++statistics.singletonLiterals;
                     purityFound = true;
                     Clause clause = (literal > 0) ? positiveOccInterval[predicate].get(0) : negativeOccInterval[predicate].get(0);
                     singletons.add(literal); singletons.add(clause.clone());
                     removeClauseFromIndex(clause);
-                    Clause conjunct = clause.removeLiteral(literal,trackReasoning,statistics,monitor,symboltable);
-                    if(conjunct != null) makeTrueLiteralTask(conjunct);
-                    if(clause.isTrue) {clauses.remove(clause); continue;}
-                    if(clause.isFalse) throw new UnsatClause(problemId,solverId, clause);
+                    switch(clause.removeLiteral(literal,trackReasoning,null,this:: addTrueLiteralTask, monitor,symboltable)) {
+                        case -1: throw new UnsatClause(problemId,solverId, clause);
+                        case +1: continue;}
                     addClauseToIndex(clause);}}}
     }
 

@@ -22,10 +22,12 @@ import java.util.function.Function;
  *
  * @param <Literal> the type of Literal objects in the clause.
  */
-public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
+public class Clause<Literal extends Datastructures.Literal> extends LinkedItem implements Cloneable {
 
     /** the maximal number of literals where simplification by investigating all its models is still feasible. */
     private static final int maxModelSize = 12;
+    /** the original input clause */
+    public int[] inputClause;
     /** the identifier for the clause. */
     public int id;
     /** the version number (for simplified clauses) */
@@ -55,13 +57,14 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      * @param literalConstructor    the function to construct a Literal object from a literal
      */
     public Clause(int[] inputClause, boolean trackReasoning, Function<Integer,Literal> literalConstructor, Symboltable symboltable) {
+        this.inputClause = inputClause;
         id = inputClause[0];
         quantifier = Quantifier.getQuantifier(inputClause[1]);
-        assert(quantifier != null && quantifier != Quantifier.EQUIV && quantifier != Quantifier.AND);
+        assert(quantifier != null);
         int firstLiteralIndex = quantifier.firstLiteralIndex;
         expandedSize = inputClause.length-firstLiteralIndex;
         switch(quantifier) {
-            case OR: min = 1;                    max = expandedSize;   break;
+            case OR:       min = 1;              max = expandedSize;   break;
             case ATLEAST:  min = inputClause[2]; max = expandedSize;   break;
             case ATMOST:   min = 0;              max = inputClause[2]; break;
             case EXACTLY:  min = inputClause[2]; max = min;            break;
@@ -515,7 +518,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      *
      * @param step The inference step to be added.
      */
-    private void addInferenceStep(InferenceStep step) {
+    public void addInferenceStep(InferenceStep step) {
         if(step != null) {
             if(inferenceSteps == null) inferenceSteps = new ArrayList<>();
             inferenceSteps.add(step);}}
@@ -534,26 +537,39 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
      */
     public int expandedSize() {return expandedSize;}
 
-    /** checks if the clause is true because of its limits.
+    /** checks if the clause is true given the isTrue-function for literals
      *
-     * @return true if the clause is true because of its limits.
+     * @param isTrue maps a literal to a truth-value.
+     * @return true if the clause is true given this function.
      */
-    public boolean isTrue() {
-        return min <= 0 && max >= expandedSize ;}
+    public boolean isTrue(Function<Integer,Boolean> isTrue) {
+        int trueLiterals = 0;
+        for(Literal literalObject : literals) {
+            if(isTrue.apply(literalObject.literal)) trueLiterals += literalObject.multiplicity;}
+        return min <= trueLiterals && trueLiterals <= max;}
 
-    /** checks if the clause is false because of its limits.
+    /**
+     * Creates and returns a clone of the Clause object.
      *
-     * @return true if the clause is false because of its limits.
+     * @return a new Clause object that is an identical copy of the original Clause.
+     * @throws CloneNotSupportedException if the cloning operation is not supported for the Clause object.
      */
-    public boolean isFalse() {
-        return min > expandedSize || max < 0 || max < min;}
+    public Clause clone() {
+        try{Clause cloned = (Clause)super.clone();
+            cloned.literals = new ArrayList<>(literals.size());
+            for(Literal literalObject : literals) {
+                cloned.literals.add(literalObject.clone(cloned));}
+            return cloned;}
+        catch(CloneNotSupportedException ex) {
+            System.err.println(ex.toString());}
+        return null;}
 
     /**
      * Creates a simple clone of the literal as an int-array: [id,version,quantifier,min,max,literal1,literal1.multiplicity,...]
      *
      * @return A clone of the literal with the essential information.
      */
-    protected int[] simpleClone() {
+    public int[] simpleClone() {
         int[] clone = new int[5+2*literals.size()];
         clone[0] = id;
         clone[1] = version;
@@ -564,6 +580,32 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem {
             clone[5+2*i]   = literals.get(i).literal;
             clone[5+2*i+1] = literals.get(i).multiplicity;}
         return clone;}
+
+    /** collects the literals of a simpleClone in an IntArray
+     *
+     * @param clone a simple clone
+     * @return the literals of the clone in an IntArray.
+     */
+    public static IntArrayList literals(int[] clone) {
+        IntArrayList literals = new IntArrayList((clone.length-5)/2);
+        for(int i = 5; i < clone.length; i+=2) {
+            int literal = clone[i];
+            if(!literals.contains(-literal))literals.add(literal);}
+        return literals;}
+
+    /** checks if a simple clone is true given the isTrue-function,
+     *
+     * @param clone a simple clone
+     * @param isTrue maps a literal to a truth-value
+     * @return true if the clause is true.
+     */
+    public static boolean isTrue(int[] clone, Function<Integer,Boolean> isTrue) {
+        int min = clone[3];
+        int max = clone[4];
+        int trueLiterals = 0;
+        for(int i = 5; i < clone.length; i += 2) {
+            if(isTrue.apply(clone[i])) trueLiterals += clone[i+1];}
+        return min <= trueLiterals && trueLiterals <= max;}
 
     /**
      * Converts an int array representation of a clone to a string representation.

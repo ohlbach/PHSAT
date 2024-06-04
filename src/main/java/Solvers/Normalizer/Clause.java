@@ -4,12 +4,10 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import InferenceSteps.NMISEquivalentLiteral;
-import Management.Monitor.Monitor;
 import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToClause;
 import Solvers.Normalizer.NMInferenceSteps.NMInferenceStep;
 import Utilities.BiConsumerWithUnsatisfiable;
 
-import java.util.ArrayList;
 import java.util.function.Consumer;
 import java.util.function.IntPredicate;
 
@@ -31,15 +29,6 @@ import java.util.function.IntPredicate;
  */
 public class Clause extends Datastructures.Clause<Literal> {
 
-    /** indicates that the clause is a tautology, e.g. p,-p or [0,2] p,q */
-    public boolean isTrue = false;
-
-    /** indicates that the clause is false, e.g. [1,2] p^3*/
-    public boolean isFalse = false;
-
-    /** the original input clause */
-    public int[] inputClause;
-
     /** An id for a potential monitor */
     private final String monitorId = "Normalizer.clause";
 
@@ -53,19 +42,17 @@ public class Clause extends Datastructures.Clause<Literal> {
      */
     public Clause(int[] inputClause, boolean trackReasoning, Symboltable symboltable) {
         super(inputClause, trackReasoning, (literal) -> new Literal(literal,1),symboltable);
-        this.inputClause = inputClause;
         for(Literal literalObject : literals) literalObject.clause = this;}
 
-
-
-    /** Add an inference step to the list of inference steps.
+    /**
+     * Creates and returns a clone of the Clause object.
      *
-     * @param step The inference step to be added.
+     * @return a new Clause object that is an identical copy of the original Clause.
+     * @throws CloneNotSupportedException if the cloning operation is not supported for the Clause object.
      */
-    private void addInferenceStep(NMInferenceStep step) {
-        if(step != null) {
-            if(inferenceSteps == null) inferenceSteps = new ArrayList<>();
-            inferenceSteps.add(step);}}
+    public Clause clone() {
+        return (Clause)super.clone();}
+
 
 
 
@@ -112,7 +99,8 @@ public class Clause extends Datastructures.Clause<Literal> {
                                          Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
         int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
         if(!replaceLiteral(representative,equivalentLiteral)) return 0;
-        NMISEquivalentLiteral step = trackReasoning ? new NMISEquivalentLiteral("replaceEquivalentLiterals", representative, equivalentLiteral, inferenceStep, cloned) : null;
+        NMISEquivalentLiteral step = trackReasoning ?
+                new NMISEquivalentLiteral("replaceEquivalentLiterals", representative, equivalentLiteral, inferenceStep, cloned) : null;
         if(trackReasoning) addInferenceStep(step);
         if(monitor != null) {
             monitor.accept("In clause " + toString(cloned, symboltable) +
@@ -125,32 +113,24 @@ public class Clause extends Datastructures.Clause<Literal> {
      *
      * @param literal            the literal to be removed.
      * @param trackReasoning     controls generation of inference steps
+     * @param literalRemover     null or a function to indicate that a literal is removed.
+     * @param reportTruth        a function for reporting a true literal.
      * @param monitor            null or a monitor
      * @param symboltable        null or a symboltable
-     * @return                   null or a new conjunction
+     * @return                   -1 if a contradiction is encountered, +1 if the clause can be removed, 0 otherwise.
      */
-    public Clause removeLiteral(int literal, boolean trackReasoning, NormalizerStatistics statistics, Monitor monitor, Symboltable symboltable) {
-        Clause cloned = (trackReasoning || monitor != null) ? clone() : null;
-        int multiplicity = 0;
-        for(int i = 0; i < literals.size()-1; i += 2) {
-            if(literals.getInt(i) == literal) {
-                multiplicity = literals.getInt(i+1);
-                literals.removeInt(i + 1);
-                literals.removeInt(i);
-                break;}}
-        if(multiplicity > 0) {
-            expandedSize -= multiplicity;
-            min = Math.max(0,min - multiplicity);
-            max = Math.min(max,expandedSize);
-            ++version;
-            classifyClause(trackReasoning,statistics, monitor,symboltable);
-            if(trackReasoning) addInferenceStep(new NMInferenceStep("removedLiteral",cloned));
-            if(monitor != null) {
-                monitor.println(monitorId,"From clause " + cloned.toString(symboltable,0) +
+    public int removeLiteral(int literal, boolean trackReasoning,
+                             Consumer<Literal>literalRemover,BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
+                             Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
+        int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
+        removeLiteral(literal,false);
+        ++version;
+        if(trackReasoning) addInferenceStep(new NMInferenceStep("removedLiteral",cloned));
+        if(monitor != null) {
+                monitor.accept("From clause " + toString(cloned, symboltable) +
                         " literal " + Symboltable.toString(literal,symboltable) + " removed => "+
                         toString(symboltable,0));}
-            return simplify(trackReasoning,statistics, monitor,symboltable);}
-        return null;}
+        return simplify(trackReasoning,literalRemover,reportTruth, monitor,symboltable);}
 
     /** counts the number of true literals in the clause
      *
@@ -189,9 +169,8 @@ public class Clause extends Datastructures.Clause<Literal> {
         String[] deductions = new String[inferenceSteps.size()];
         Clause clause = this;
         for(int i = inferenceSteps.size()-1; i >= 0; --i) { // it is necessary to go from back to front.
-            NMInferenceStep step = inferenceSteps.get(i);
-            deductions[i] = (step.toString(clause,symboltable));
-            clause = step.clause;}
+            InferenceStep step = inferenceSteps.get(i);
+            deductions[i] = (step.toString(symboltable));}
         StringBuilder st = new StringBuilder();
         for(String deduction : deductions) st.append(deduction).append("\n");
         return st.toString();}

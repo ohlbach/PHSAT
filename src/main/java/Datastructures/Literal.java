@@ -39,6 +39,16 @@ public class Literal<Clause> extends LinkedItem {
         newLiteral.clause = clause;
         return newLiteral;}
 
+    /** clones the literal, except previousLiteral and nextLiteral.
+     *
+     * @param clause a new clause.
+     * @return the cloned literal.
+     */
+    public Literal<Clause> clone(Clause clause) {
+        Literal<Clause> newLiteral = new Literal<>(literal, multiplicity);
+        newLiteral.clause = clause;
+        return newLiteral;}
+
     /** turns the list of literals into a string of literal names or numbers.
      *
      * @param literals    a list of literals.

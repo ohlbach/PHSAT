@@ -50,16 +50,13 @@ public class NMInferenceStep extends InferenceStep {
      * @return True if the clause is valid, false otherwise.
      */
     public boolean verify(Clause deducedClause, Symboltable symboltable, StringBuilder errors) {
-        IntArrayList literals = new IntArrayList(clause.literals.size()/2);
-        for(int i = 0; i < clause.literals.size()-1; i +=2) {
-            int literal = clause.literals.getInt(i);
-            if(!literals.contains(-literal)) literals.add(Math.abs(literal));}
+        IntArrayList literals = Clause.literals(clause);
         int limit = 1 << (literals.size()-1);
         for(int i = 0; i <= limit; ++i) {
             int ifinal = i;
-            if(clause.isTrue(literal-> isTrue(ifinal,literal,literals))) {
+            if(Clause.isTrue(clause, literal-> isTrue(ifinal,literal,literals))) {
                 if(!deducedClause.isTrue(literal->isTrue(ifinal,literal,literals))) {
-                    errors.append(title + ": " + clause.toString(symboltable, 0) +
+                    errors.append(title + ": " + Clause.toString(clause,symboltable) +
                             " is true in model: " +model(i,literals,symboltable) + "  but deduced clause " +
                             deducedClause.toString(symboltable, 0) + " is false.\n");
                     return false;}}}

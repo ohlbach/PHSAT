@@ -33,9 +33,8 @@ public class NMISTrueLiteralToClause extends NMInferenceStep{
      * @return A string representation of the deduced clause and the steps involved in the inference.
      */
     public String toString(Clause deducedClause, Symboltable symboltable) {
-        String status = deducedClause.isTrue ? " (true)": (deducedClause.isFalse ? " (false)" : "");
         return title() + ": " + Clause.toString(clause, symboltable) + " and true(" +
-                Symboltable.toString(trueLiteral,symboltable) +") => " + deducedClause.toString(symboltable,0) + status;}
+                Symboltable.toString(trueLiteral,symboltable) +") => " + deducedClause.toString(symboltable,0);}
 
     /** Checks if a given literal is true in the model represented by the bits in the integer model.
      *

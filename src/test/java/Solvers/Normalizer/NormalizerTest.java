@@ -42,7 +42,7 @@ public class NormalizerTest extends TestCase {
     static NormalizerStatistics statistics = new NormalizerStatistics(null);
 
     static Clause makeClause(int[] inputClause) {
-        return new Clause(inputClause,false,statistics,null,null);
+        return new Clause(inputClause,false,null);
     }
 
 
@@ -189,7 +189,8 @@ public class NormalizerTest extends TestCase {
         nom = new Normalizer(supervisor);
         //System.out.println(nom.problemSupervisor.inputClauses.toString());
         nom.trackReasoning = true;
-        nom.monitor = new MonitorLife("MON",System.nanoTime());
+        Monitor mon = new MonitorLife("MON",System.nanoTime());
+        nom.monitor = (string) ->  mon.println("TEST",string);
         nom.monitoring = true;
         nom.applyTrueLiteralToEquivalences(-2);
         assertEquals("-1,-2,-3,-4,5,-6,-7", nom.model.toString());
@@ -216,7 +217,8 @@ public class NormalizerTest extends TestCase {
         nom = new Normalizer(supervisor);
         //System.out.println(nom.problemSupervisor.inputClauses.toString());
         nom.trackReasoning = true;
-        nom.monitor = new MonitorLife("MON",System.nanoTime());
+        Monitor mon = new MonitorLife("MON",System.nanoTime());
+        nom.monitor = (string) ->  mon.println("TEST",string);
         nom.monitoring = true;
         nom.model.addImmediately(-7);
         try{

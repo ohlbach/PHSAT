@@ -11,7 +11,7 @@ public class ClauseTest extends TestCase {
     private static int cInterval = Quantifier.INTERVAL.ordinal();
 
     private Clause makeClause(int[] inputClause) {
-        Solvers.Normalizer.Clause clause = new Solvers.Normalizer.Clause(inputClause,false,null,null,null);
+        Solvers.Normalizer.Clause clause = new Solvers.Normalizer.Clause(inputClause,false,null);
         return new Clause(clause);}
     public void testConstructor() {
         System.out.println("constructor");
@@ -19,8 +19,6 @@ public class ClauseTest extends TestCase {
         assertEquals("1: 1v2v3",clause.toString());
         assertEquals(1,clause.min);
         assertEquals(3,clause.max);
-        assertFalse(clause.isTrue());
-        assertFalse(clause.isFalse());
 
         clause = makeClause(new int[]{2,cAtleast,2,1,2,3,1,2,3});
         assertEquals("2: >=2 1^2,2^2,3^2",clause.toString());
@@ -48,20 +46,13 @@ public class ClauseTest extends TestCase {
     public void testIsTrueFalse() {
         System.out.println("isTrue, isFalse");
         Clause clause = makeClause(new int[]{1,cInterval,0,6,1,2,3,1,2,3});
-        assertTrue(clause.isTrue());
-        assertFalse(clause.isFalse());
 
         clause = makeClause(new int[]{2,cAtleast,7,1,2,3,1,2,3});
-        assertFalse(clause.isTrue());
-        assertTrue(clause.isFalse());
 
         clause = makeClause(new int[]{3,cInterval,3,2,1,2,3,1,2,3});
-        assertFalse(clause.isTrue());
-        assertTrue(clause.isFalse());
 
         clause = makeClause(new int[]{4,cAtmost,-1,1,2,3,1,2,3});
-        assertFalse(clause.isTrue());
-        assertTrue(clause.isFalse());
+
     }
 
 

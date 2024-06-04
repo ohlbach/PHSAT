@@ -22,7 +22,7 @@ public class Clause extends Datastructures.Clause<Literal> {
        super(clause.id,clause.version,clause.quantifier,clause.min,clause.max,clause.expandedSize);
         literals = new ArrayList<>(clause.literals.size()/2);
         for(int i = 0; i < clause.literals.size()-1; i +=2) {
-            Literal literalObject = new Literal(clause.literals.getInt(i),clause.literals.getInt(i+1));
+            Literal literalObject = new Literal(clause.literals.get(i).literal,clause.literals.get(i).multiplicity);
             literalObject.clause = this;
             literals.add(literalObject);}}
 

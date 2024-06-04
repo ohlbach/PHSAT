@@ -10,14 +10,14 @@ public class NMISEquivalentLiteral extends NMInferenceStep {
     int equivalentLiteral;
     InferenceStep inferenceStep;
 
-    public NMISEquivalentLiteral(String title, int representative, int equivalentLiteral, InferenceStep inferenceStep, Clause clause) {
+    public NMISEquivalentLiteral(String title, int representative, int equivalentLiteral, InferenceStep inferenceStep, int[] clause) {
         super(title, clause);
         this.representative = representative;
         this.equivalentLiteral = equivalentLiteral;
         this.inferenceStep = inferenceStep;}
 
     public String toString(Clause deducedClause, Symboltable symboltable) {
-        return title() + ": " + clause.toString(symboltable,0) + " and literal " +
+        return title() + ": " + Clause.toString(clause, symboltable) + " and literal " +
                 Symboltable.toString(equivalentLiteral,symboltable) +
                 " replaced by literal " + Symboltable.toString(representative,symboltable) +
                 " => " + deducedClause.toString(symboltable,0);}

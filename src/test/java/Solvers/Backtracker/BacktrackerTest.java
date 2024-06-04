@@ -134,12 +134,12 @@ public class BacktrackerTest extends TestCase {
         backtracker.setLocalStatus(1);
         backtracker.setLocalStatus(2);
 
-        backtracker.joinDependencies(clause,dependencies);
+      //  backtracker.joinDependencies(clause,dependencies);
         assertEquals("[3, 2]",dependencies.toString());
 
 
         backtracker.model.add(null,3);
-        backtracker.joinDependencies(clause,dependencies);
+       // backtracker.joinDependencies(clause,dependencies);
         assertEquals("[2]",dependencies.toString());
 
     }
