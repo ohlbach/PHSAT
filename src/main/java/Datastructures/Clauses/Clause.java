@@ -4,7 +4,6 @@ package Datastructures.Clauses;
 import Datastructures.Literals.CLiteral;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
-import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Utilities.DiophantineEquation;
 import Utilities.Positioned;
@@ -65,7 +64,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public Clause(int id) {
         this.id = id;
         cliterals = new ArrayList<>();
-        inferenceStep = new InfInputClause(id);
+       // inferenceStep = new InfInputClause(id);
     }
 
     /** constructs a clause with an empty list of literals.
@@ -79,7 +78,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         this.quantifier = quantifier;
         this.minLimit = minLimit;
         cliterals = new ArrayList<>(size);
-        inferenceStep = new InfInputClause(id);
+       // inferenceStep = new InfInputClause(id);
     }
 
     /** constructs a new clause with given literals
@@ -94,7 +93,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         this.id = id;
         this.quantifier = quantifier;
         this.minLimit = minLimit;
-        inferenceStep = new InfInputClause(id);
+       // inferenceStep = new InfInputClause(id);
         cliterals = new ArrayList<>(literals.size());
         for (int i = 0; i < literals.size(); ++i) cliterals.add(new CLiteral(literals.getInt(i),this,cliterals.size(),(short)1));
         }
@@ -118,7 +117,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         quantifier = Quantifier.getQuantifier(inputClause[1]);
         assert(quantifier != null);
         id = inputClause[0];
-        inferenceStep = new InfInputClause(id);
+        //inferenceStep = new InfInputClause(id);
         int length = inputClause.length;
         int start = 0;
         switch (quantifier) {
@@ -151,7 +150,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      */
     public Clause(int id, Quantifier quantifier, int... literals) {
         this.id = id;
-        inferenceStep = new InfInputClause(id);
+        //inferenceStep = new InfInputClause(id);
         this.quantifier = quantifier;
         int start = 0;
         switch (quantifier) {

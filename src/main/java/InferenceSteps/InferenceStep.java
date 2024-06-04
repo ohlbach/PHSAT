@@ -29,9 +29,19 @@ public abstract class InferenceStep {
      */
     public abstract String toString(Symboltable symboltable);
 
+    /**
+     * Returns the string representation of the inference step.
+     * <br>
+     * The symbol table is null.
+     *
+     * @return The string representation of the inference step.
+     */
+    public String toString() {
+        return toString(null);};
+
     /** collects the inference steps culminating in this in the list steps
      * Double occurrences are to be avoided.
-     *  collects the basicClause ids of all clauses causing the current inference
+     *  collects the inputClause ids of all clauses causing the current inference
      *
      * @param steps a list for collecting the inference steps.
      */
@@ -49,9 +59,13 @@ public abstract class InferenceStep {
             if(rule != null && !rules.contains(rule)) rules.add(rule);}
         return rules;}
 
+    /**
+     * Verifies the rule.
+     *
+     * @param monitor      the consumer for monitoring the verification process
+     * @param symboltable  the symbol table for mapping predicate names to integers
+     * @return true if the verification is successful, false otherwise
+     */
     public boolean verify(Consumer<String> monitor, Symboltable symboltable) {return true;}
 
-
-    public String toString() {
-        return toString(null);}
 }

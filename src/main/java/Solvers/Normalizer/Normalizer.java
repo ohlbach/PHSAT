@@ -204,7 +204,7 @@ public class Normalizer {
         if(representative < 0) {sign = -1; representative *= -1;}
         for(int i = 1; i < literals.size(); ++i) {
             queue.add(new Task(representative, sign*literals.get(i).literal,
-                    trackReasoning ? new InfInputClause(clause.id) : null));
+                    trackReasoning ? new InfInputClause(clause.inputClause, clause) : null));
             ++statistics.initialEquivalences;}}
 
     /** The method turns an inputClause into a Clause data structure and simplifies the clause.

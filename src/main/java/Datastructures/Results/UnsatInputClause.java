@@ -18,7 +18,7 @@ public class UnsatInputClause extends Unsatisfiable {
     public UnsatInputClause(String problemId, String solverId,int[] inputClause) {
         super(problemId,solverId);
         this.inputClause = inputClause;
-        inferenceSteps.add(new InfInputClause(inputClause[0]));}
+        inferenceSteps.add(new InfInputClause(inputClause,null));}
 
     /** returns a description of the contradiction.
      *

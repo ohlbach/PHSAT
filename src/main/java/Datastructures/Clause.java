@@ -100,7 +100,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
         classifyQuantifier();
         if(trackReasoning) {
             inferenceSteps = new ArrayList<>();
-            inferenceSteps.add(new InfInputClause(inputClause, this.toString(symboltable,0)));}}
+            inferenceSteps.add(new InfInputClause(inputClause, this));}}
 
     /**
      * Constructs a Clause object with the given parameters.
@@ -311,7 +311,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
      * @param symboltable     a Symboltable object for symbol table operations.
      */
     protected void singletonModel(int model,boolean trackReasoning,
-                                       BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
+                                  BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
                                   Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable{
         int[] clone = trackReasoning ? simpleClone() : null;
         if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) + " has single model: " + modelString(model,symboltable));
@@ -622,6 +622,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
         Quantifier quantifier = Quantifier.getQuantifier(clone[2]);
         switch(Objects.requireNonNull(quantifier)) {
             case OR: break;
+            case EQUIV:
             case AND:      st.append(quantifier.abbreviation).append(" "); break;
             case EXACTLY:
             case ATLEAST:  st.append(quantifier.abbreviation).append(clone[3]).append(" "); break;
@@ -631,7 +632,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
             int literal = clone[i]; int multiplicity = clone[i+1];
             st.append(Symboltable.toString(literal,symboltable));
             if(multiplicity > 1) st.append("^").append(multiplicity);
-            if(i < clone.length-1)st.append(",");}
+            if(i < clone.length-2)st.append(",");}
         return st.toString();}
 
     /**
