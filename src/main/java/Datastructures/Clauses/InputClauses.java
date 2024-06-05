@@ -620,6 +620,46 @@ public class InputClauses {
         trueLiterals += model.isComplete() ? 0 : numberOfComplementaryPairs(clause,model);
         return !(min <= trueLiterals && trueLiterals <= max);}
 
+    /** collectes the predicates in the clause in an IntArrayList
+     *
+     * @param clause an input clause
+     * @return the list of predicates in the clause.
+     */
+    public static IntArrayList predicates(int[] clause) {
+        IntArrayList predicates = new IntArrayList(clause.length-3);
+        Quantifier quantifier = Quantifier.getQuantifier(clause[1]);
+        for(int i = quantifier.firstLiteralIndex; i < clause.length; ++i) {
+            int predicate = Math.abs(clause[i]);
+            if(!predicates.contains(predicate)) predicates.add(predicate);}
+        return predicates;}
+
+    /** checks if the clause is true in the given model.
+     * <br>
+     * The model is represented as an integer whose bits indicates the truth of the predicate at the position in 'predicates'.<br>
+     * Example: predicates = p,q,r <br>
+     * model = '110' means: false(p) (model & (1 << 0) == 0), true(q) (model & ( 1 << 1) != 0). (model & ( 1 << 2) != 0). <br>
+     *
+     * @param clause an input clause
+     * @param model  a model as a bitsequence.
+     * @param predicates the list of predicates in the clause
+     * @return
+     */
+    public static boolean isTrue(int[] clause, int model, IntArrayList predicates) {
+        int trueLiterals = 0;
+        Quantifier quantifier = Quantifier.getQuantifier(clause[1]);
+        for(int i = quantifier.firstLiteralIndex; i < clause.length; ++i) {
+            int literal = clause[i];
+            int position = predicates.indexOf(Math.abs(literal));
+            if((literal > 0) ? ((model & (1 << position)) != 0) : ((model & (1 << position)) == 0)) ++trueLiterals;}
+        switch(quantifier) {
+            case OR:       return trueLiterals > 0;
+            case AND:      return trueLiterals == predicates.size();
+            case ATLEAST:  return trueLiterals >= clause[2];
+            case ATMOST:   return trueLiterals <= clause[2];
+            case EXACTLY:  return trueLiterals == clause[2];
+            case INTERVAL: return clause[2] <= trueLiterals  && trueLiterals <= clause[3];
+            case EQUIV:    return trueLiterals == 0 || trueLiterals == predicates.size();}
+        return false;}
 
     /** adds some parameters to the statistics.
      *

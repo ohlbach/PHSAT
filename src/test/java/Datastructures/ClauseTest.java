@@ -42,6 +42,11 @@ public class ClauseTest extends TestCase {
         assertEquals("1: 1v-2v3",c1.toString(null,0));
         ArrayList<InferenceStep> steps = c1.inferenceSteps;
         assertEquals("Input: Clause 1: pv-qvr -> 1: p,-q,r", steps.get(0).toString(symboltable));
+        assertTrue(steps.get(0).verify((string)-> System.out.println(string), symboltable));
+
+        Clause c2 = c1.clone();
+        assertEquals(c1.toString(symboltable,0),c2.toString(symboltable,0));
+        assertFalse(c1.literals == c2.literals);
 
         c1 = new Clause(new int[]{2,or,1,-2,3,1,-2,1},true,litCreator,symboltable);
         assertEquals("2: pv-qvr",c1.toString(symboltable,0));
@@ -58,6 +63,7 @@ public class ClauseTest extends TestCase {
         assertEquals("4: p^3vr",c1.toString(symboltable,0));
         steps = c1.inferenceSteps;
         assertEquals("Input: Clause 4: >= 2 p,-q,r,p,q,p -> 4: p^3,r",steps.get(0).toString(symboltable));
+        assertTrue(steps.get(0).verify((string)-> System.out.println(string), symboltable));
 
         c1 = new Clause(new int[]{5,atl,2,1,2,3,1,2,1},true,litCreator,symboltable);
         assertEquals("5: >=2 p^2,q^2,r",c1.toString(symboltable,0));
@@ -68,16 +74,21 @@ public class ClauseTest extends TestCase {
         assertEquals("6: [2,3] 1^3,2^2,3^3",c1.toString(null,0));
         steps = c1.inferenceSteps;
         assertEquals("Input: Clause 6: 2-3: 1,1,1,2,2,3,3,3 -> 6: [2,3] 1^3,2^2,3^3",steps.get(0).toString());
+        assertTrue(steps.get(0).verify((string)-> System.out.println(string), symboltable));
 
         c1 = new Clause(new int[]{7,intv,2,3, 1,-1,1,2,-2,3,-3,3},true,litCreator,null);
         assertEquals("7: =0 1,3",c1.toString(null,0));
         steps = c1.inferenceSteps;
         assertEquals("Input: Clause 7: 2-3: 1,-1,1,2,-2,3,-3,3 -> 7: =0 1,3",steps.get(0).toString(null));
 
+        c2 = c1.clone();
+        assertEquals(c1.toString(symboltable,0),c2.toString(symboltable,0));
+
         c1 = new Clause(new int[]{8,atm,2, 1,-1,1,2,-2,3,-3,3},true,litCreator,null);
         assertEquals("8: <=-1 1,3",c1.toString(null,0));
         steps = c1.inferenceSteps;
         assertEquals("Input: Clause 8: <= 2 1,-1,1,2,-2,3,-3,3 -> 8: <=-1 1,3",steps.get(0).toString(null));
+        assertTrue(steps.get(0).verify((string)-> System.out.println(string), symboltable));
 
         c1 = new Clause(new int[]{9,intv,2,3, 1,-1,1,2,-2,3,-3,3,-3},true,litCreator,null);
         assertEquals("9: <=-1 1",c1.toString(null,0));
@@ -88,13 +99,16 @@ public class ClauseTest extends TestCase {
         assertEquals("10: 1&2&-3",c1.toString(null,0));
         steps = c1.inferenceSteps;
         assertEquals("Input: Clause 10: 1&2&-3 -> 10: & 1,2,-3",steps.get(0).toString(null));
+        assertTrue(steps.get(0).verify((string)-> System.out.println(string), symboltable));
 
         c1 = new Clause(new int[]{11,eqv,1,2,-3},true,litCreator,null);
         assertEquals("11: 1=2=-3",c1.toString(null,0));
         steps = c1.inferenceSteps;
         assertEquals("Input: Clause 11: 1=2=-3 -> 11: e 1,2,-3",steps.get(0).toString(null));
+        assertTrue(steps.get(0).verify((string)-> System.out.println(string), symboltable));
 
-
+        c2 = c1.clone();
+        assertEquals(c1.toString(symboltable,0),c2.toString(symboltable,0));
     }
 
     public void testIsEmpty() {

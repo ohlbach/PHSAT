@@ -605,6 +605,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
         int trueLiterals = 0;
         for(int i = 5; i < clone.length; i += 2) {
             if(isTrue.apply(clone[i])) trueLiterals += clone[i+1];}
+        if(clone[2] == Quantifier.EQUIV.ordinal()) {
+            return trueLiterals == 0 || trueLiterals == max;}
         return min <= trueLiterals && trueLiterals <= max;}
 
     /**

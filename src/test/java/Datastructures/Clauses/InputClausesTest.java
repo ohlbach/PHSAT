@@ -2,6 +2,7 @@ package Datastructures.Clauses;
 
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
@@ -31,12 +32,14 @@ public class InputClausesTest extends TestCase {
         int[] clause = {10, Quantifier.OR.ordinal(),1,-2,3};
         assertEquals("   10: 1v-2v3",InputClauses.toString(5,clause,null));
         assertEquals("   10: pv-qvr",InputClauses.toString(5,clause,symboltable));
+        assertEquals("[1, 2, 3]", InputClauses.predicates(clause).toString());
     }
     public void testToStringAND() {
         System.out.println("ToString AND");
         int[] clause = {10, Quantifier.AND.ordinal(),1,-2,3};
         assertEquals("   10: 1&-2&3",InputClauses.toString(5,clause,null));
         assertEquals("   10: p&-q&r",InputClauses.toString(5,clause,symboltable));
+        assertEquals("[1, 2, 3]", InputClauses.predicates(clause).toString());
     }
 
     public void testToStringEQUIV() {
@@ -44,6 +47,7 @@ public class InputClausesTest extends TestCase {
         int[] clause = {10, Quantifier.EQUIV.ordinal(),1,-2,3};
         assertEquals("   10: 1=-2=3",InputClauses.toString(5,clause,null));
         assertEquals("   10: p=-q=r",InputClauses.toString(5,clause,symboltable));
+        assertEquals("[1, 2, 3]", InputClauses.predicates(clause).toString());
     }
 
     public void testToStringATLEAST() {
@@ -72,6 +76,7 @@ public class InputClausesTest extends TestCase {
         int[] clause = {10, Quantifier.INTERVAL.ordinal(),2,3,1,-2,3};
         assertEquals("   10: 2-3: 1,-2,3",InputClauses.toString(5,clause,null));
         assertEquals("   10: 2-3: p,-q,r",InputClauses.toString(5,clause,symboltable));
+        assertEquals("[1, 2, 3]", InputClauses.predicates(clause).toString());
 
         int[] clause1 = {11, Quantifier.INTERVAL.ordinal(),2,2,1,-2,3};
         assertEquals("   11: 2-2: 1,-2,3",InputClauses.toString(5,clause1,null));
@@ -425,7 +430,55 @@ public class InputClausesTest extends TestCase {
         assertEquals("  11: -1v-2v-3v-4v-5", InputClauses.toString(clauses[1]));
 
     }
+    public void testIsTrue() {
+        System.out.println("isTrue");
+        int[] clause = {1, cOr, 1, -2, 3};
+        IntArrayList predicates = InputClauses.predicates(clause);
+        assertTrue(InputClauses.isTrue(clause, 0, predicates));
+        assertTrue(InputClauses.isTrue(clause, 1, predicates));
+        assertFalse(InputClauses.isTrue(clause, 2, predicates));
+        assertTrue(InputClauses.isTrue(clause, 4, predicates));
+        assertTrue(InputClauses.isTrue(clause, 7, predicates));
+
+        clause = new int[]{2, cAnd, 1, -2, 3};
+        assertFalse(InputClauses.isTrue(clause, 0, predicates));
+        assertFalse(InputClauses.isTrue(clause, 1, predicates));
+        assertFalse(InputClauses.isTrue(clause, 2, predicates));
+        assertFalse(InputClauses.isTrue(clause, 4, predicates));
+        assertFalse(InputClauses.isTrue(clause, 7, predicates));
+        assertTrue(InputClauses.isTrue(clause, 5, predicates));
+
+        clause = new int[]{3, cEquiv, 1, -2, 3};
+        assertFalse(InputClauses.isTrue(clause, 0, predicates));
+        assertTrue(InputClauses.isTrue(clause, 2, predicates));
+        assertTrue(InputClauses.isTrue(clause, 5, predicates));
+        assertFalse(InputClauses.isTrue(clause, 6, predicates));
 
 
+        clause = new int[]{4, cAtleast, 2, 1, -2, 3};
+        assertFalse(InputClauses.isTrue(clause, 0, predicates));
+        assertTrue(InputClauses.isTrue(clause, 1, predicates));
+        assertFalse(InputClauses.isTrue(clause, 2, predicates));
+        assertFalse(InputClauses.isTrue(clause, 3, predicates));
+        assertTrue(InputClauses.isTrue(clause, 4, predicates));
+
+        clause = new int[]{5, cAtmost, 2, 1, -2, 3};
+        assertTrue(InputClauses.isTrue(clause, 0, predicates));
+        assertTrue(InputClauses.isTrue(clause, 1, predicates));
+        assertTrue(InputClauses.isTrue(clause, 2, predicates));
+        assertTrue(InputClauses.isTrue(clause, 3, predicates));
+        assertTrue(InputClauses.isTrue(clause, 4, predicates));
+        assertFalse(InputClauses.isTrue(clause, 5, predicates));
+
+        clause = new int[]{6, cInterval, 1, 2, 1, -2, 3};
+        assertTrue(InputClauses.isTrue(clause, 0, predicates));
+        assertTrue(InputClauses.isTrue(clause, 1, predicates));
+        assertFalse(InputClauses.isTrue(clause, 2, predicates));
+        assertTrue(InputClauses.isTrue(clause, 3, predicates));
+        assertTrue(InputClauses.isTrue(clause, 4, predicates));
+        assertFalse(InputClauses.isTrue(clause, 5, predicates));
 
     }
+
+
+}
