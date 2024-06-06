@@ -471,45 +471,61 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
      * @return true if the oldLiteral has been replaced.
      */
     public boolean replaceLiteral(int newLiteral, int oldLiteral) {
-        boolean foundOld = false;
-        for(Literal literalObject : literals) {
-            int literal = literalObject.literal;
-            if(literal == oldLiteral) foundOld = true;
-            else {if(literal == -oldLiteral) {foundOld = true; oldLiteral *= -1; newLiteral *= -1;}}
-            if(foundOld) {
-                boolean foundNew = false;
-                int multiplicity = literalObject.multiplicity;
-                for(Literal literalObject1 : literals) {
-                    if(literalObject1.literal == newLiteral) {
-                        literalObject1.multiplicity += multiplicity;
-                        foundNew = true;
-                        literals.remove(literalObject);
-                        break;}
-                    if(literalObject1.literal == -newLiteral) {
-                        foundNew = true;
-                        if(literalObject1.multiplicity == multiplicity) {
-                            min = Math.max(0,min-multiplicity); max -= multiplicity;
-                            literals.remove(literalObject1);
-                            literals.remove(literalObject); break;}
-                        else {
-                            if(literalObject1.multiplicity > multiplicity) {
-                                min = Math.max(0,min-multiplicity); max -= multiplicity;
-                                literals.remove(literalObject1); break;}
-                            else {
-                                min = Math.max(0,min-literalObject1.multiplicity); max -= literalObject1.multiplicity;
-                                literals.remove(literalObject); break;}}}}
-                if(!foundNew) {literalObject.literal = newLiteral; break;}}}
-        if(foundOld) {
+        int indexOld = Literal.indexOf(literals,oldLiteral);
+        if(indexOld < 0) {
+            indexOld = Literal.indexOf(literals,-oldLiteral);
+            if(indexOld < 0) return false;
+            newLiteral *= -1; oldLiteral *= -1;}
+
+        int indexNew = Literal.indexOf(literals,newLiteral);
+        if(indexNew >= 0) { // p,q,r and r -> p
+            Literal newLitObject = literals.get(indexNew);
+            newLitObject.multiplicity += literals.get(indexOld).multiplicity;
+            literals.remove(indexOld);
             ++version;
-            expandedSize = 0;
-            for(Literal literalObject : literals) expandedSize += literalObject.multiplicity;
-            if(min > 0 && max == expandedSize) {
-                expandedSize = 0;
-                for(Literal literalObject : literals) {
-                    literalObject.multiplicity = Math.min(min,literalObject.multiplicity);
-                    expandedSize += literalObject.multiplicity;}}
-            classifyQuantifier();}
-        return foundOld;}
+            if(min > 0 && max == expandedSize && newLitObject.multiplicity > min) {
+                expandedSize -= (newLitObject.multiplicity-min);
+                max = expandedSize;
+                newLitObject.multiplicity = min;}
+            classifyQuantifier();
+            return true;}
+
+        indexNew = Literal.indexOf(literals,-newLiteral);
+        if(indexNew >= 0) { // p,q,r and r -> -p  newLiteral is already in the clause
+            ++version;
+            Literal newLitObject = literals.get(indexNew);
+            Literal oldLitObject = literals.get(indexOld);
+            int newMultiplicity = newLitObject.multiplicity; int oldMultiplicity = oldLitObject.multiplicity;
+            if(newMultiplicity == oldMultiplicity) { // p^2,q,r^2 and r -> -p -> p^2,q,-p^2
+                literals.remove(newLitObject); literals.remove(oldLitObject);
+                min = Math.max(0,min-newMultiplicity);
+                expandedSize -= 2*newMultiplicity;
+                max = Math.min(expandedSize,max-newMultiplicity);
+                classifyQuantifier();
+                return true;}
+                                                                // old -> new
+            if(newMultiplicity < oldMultiplicity) { // p,q,r^2 and (r -> -p) -> p,q,-p^2
+                literals.remove(newLitObject);
+                oldLitObject.multiplicity -= newMultiplicity;
+                int multiplicity = oldMultiplicity - newMultiplicity;
+                min = Math.max(0,min-multiplicity);
+                expandedSize -= newMultiplicity + multiplicity;
+                max = Math.min(expandedSize,max-multiplicity);
+                classifyQuantifier();
+                return true;}
+           // newMultiplicity > oldMultiplicity
+            literals.remove(oldLitObject);
+            newLitObject.multiplicity -= oldMultiplicity;
+            int multiplicity = newMultiplicity - oldMultiplicity;
+            min = Math.max(0,min-multiplicity);
+            expandedSize -= oldMultiplicity + multiplicity;
+            max = Math.min(expandedSize,max-multiplicity);
+            classifyQuantifier();
+            return true;}
+
+        literals.get(indexOld).literal = newLiteral;
+        ++version;
+        return true;}
 
 
 

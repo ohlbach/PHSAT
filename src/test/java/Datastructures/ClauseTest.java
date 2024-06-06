@@ -336,5 +336,47 @@ public class ClauseTest extends TestCase {
         assertEquals("1,2,-3",c2.modelString(3,null));
 
     }
+    public void testReplaceLiteral() {
+        System.out.println("replaceLiteral");
+        Clause c1 = new Clause(new int[]{1, or, 1, 2, 3}, true, litCreator, null);
+        c1.replaceLiteral(-5, 2);
+        assertEquals("1.1: 1v-5v3", c1.toString(null, 0));
+        assertEquals(3,c1.expandedSize);
+        c1.replaceLiteral(1,3);
+        assertEquals("1.2: 1v-5", c1.toString(null, 0));
 
-}
+        c1 = new Clause(new int[]{2, atl, 2, 1,1, 2, 3,3}, true, litCreator, null);
+        c1.replaceLiteral(3, 1);
+        assertEquals("2.1: >=2 2,3^2", c1.toString(null, 0));
+
+        c1 = new Clause(new int[]{3, atl, 2, 1, 2, 3,3}, true, litCreator, null);
+        c1.replaceLiteral(1, 3);
+        assertEquals("3.1: >=2 1^2,2", c1.toString(null, 0));
+        assertEquals(3,c1.expandedSize);
+
+        c1 = new Clause(new int[]{4, atl, 2, 1, 2, 3,3}, true, litCreator, null);
+        c1.replaceLiteral(-1, -3);
+        assertEquals("4.1: >=2 1^2,2", c1.toString(null, 0));
+        assertEquals(3,c1.expandedSize);
+
+        c1 = new Clause(new int[]{4, or, 1, 2, 3}, true, litCreator, null);
+        c1.replaceLiteral(-1, 3);
+        assertEquals("4.1: >=0 2", c1.toString(null, 0));
+
+
+        c1 = new Clause(new int[]{5, intv, 2, 3, 1,1, 2, 3,3,4}, true, litCreator, null);
+        c1.replaceLiteral(-1, 3);
+        assertEquals("5.1: <=1 2,4", c1.toString(null, 0));
+        assertEquals(2,c1.expandedSize);
+
+        c1 = new Clause(new int[]{6, intv, 2, 3, 1,1, 2, 3,4}, true, litCreator, null);
+        c1.replaceLiteral(-1, 3);
+        assertEquals("6.1: [1,2] 1,2,4", c1.toString(null, 0));
+        assertEquals(3,c1.expandedSize);
+
+        c1 = new Clause(new int[]{7, intv, 2, 3, 1,1, 2, 3,4}, true, litCreator, null);
+        c1.replaceLiteral(-3, 1);
+        assertEquals("7.1: [1,2] 1,2,4", c1.toString(null, 0));
+        assertEquals(3,c1.expandedSize);
+    }
+    }

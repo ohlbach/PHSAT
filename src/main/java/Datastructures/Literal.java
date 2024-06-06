@@ -49,6 +49,19 @@ public class Literal<Clause> extends LinkedItem {
         newLiteral.clause = clause;
         return newLiteral;}
 
+    /**
+     * Returns the index of the first occurrence of the given literal in the list of literals.
+     *
+     * @param literals the list of Literal-objects.
+     * @param literal  the literal to search for.
+     * @return the index of the first occurrence of the literal, or -1 if it is not found.
+     */
+    public static int indexOf(ArrayList literals, int literal) {
+        for(int i = 0; i < literals.size(); ++i) {
+            Literal literalObject = (Literal)literals.get(i);
+            if(literalObject.literal == literal) return i;}
+        return -1;}
+
     /** turns the list of literals into a string of literal names or numbers.
      *
      * @param literals    a list of literals.
