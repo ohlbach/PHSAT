@@ -2,6 +2,7 @@ package Datastructures;
 
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Unsatisfiable;
+import InferenceSteps.InfTrueLiteralInClause;
 import InferenceSteps.InferenceStep;
 import Utilities.BiConsumerWithUnsatisfiable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -378,5 +379,38 @@ public class ClauseTest extends TestCase {
         c1.replaceLiteral(-3, 1);
         assertEquals("7.1: [1,2] 1,2,4", c1.toString(null, 0));
         assertEquals(3,c1.expandedSize);
+    }
+    public void testIsTrue() {
+        System.out.println("isTrue");
+        Clause c1 = new Clause(new int[]{1, atl, 3, 1, 2, 3}, true, litCreator, null);
+        int[] clone = c1.simpleClone();
+        assertTrue(Clause.isTrue(clone,7));
+        assertFalse(Clause.isTrue(clone,5));
+
+        c1 = new Clause(new int[]{2, atl, 3, 1, 2, -3}, true, litCreator, null);
+        clone = c1.simpleClone();
+        assertTrue(Clause.isTrue(clone,3));
+        assertFalse(Clause.isTrue(clone,5));
+
+        c1 = new Clause(new int[]{3, and, 1, 2, 3}, true, litCreator, null);
+        clone = c1.simpleClone();
+        assertTrue(Clause.isTrue(clone, 7));
+        assertFalse(Clause.isTrue(clone, 6));
+
+        c1 = new Clause(new int[]{4, eqv, 1, 2, 3}, true, litCreator, null);
+        clone = c1.simpleClone();
+        assertTrue(Clause.isTrue(clone, 7));
+        assertTrue(Clause.isTrue(clone, 0));
+        assertFalse(Clause.isTrue(clone, 6));
+    }
+
+    public void testTrueLiteralInClause() {
+        System.out.println("trueLiteralInClause");
+        Clause c1 = new Clause(new int[]{1, atl, 3, 1, 2, 3}, true, litCreator, null);
+        int[] clone = c1.simpleClone();
+        InfTrueLiteralInClause step = new InfTrueLiteralInClause(clone, 2);
+        assertTrue(step.verify((string) -> System.out.println(string), symboltable));
+        step = new InfTrueLiteralInClause(clone, -2);
+        assertFalse(step.verify((String string) -> System.out.println(string), symboltable));
     }
     }

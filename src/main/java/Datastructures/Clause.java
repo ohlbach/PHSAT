@@ -70,7 +70,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
             case EXACTLY:  min = inputClause[2]; max = min;            break;
             case INTERVAL: min = inputClause[2]; max = inputClause[3]; break;
             case EQUIV:
-            case AND:      min = 1;              max = expandedSize;   break;
+            case AND:      min = expandedSize;   max = expandedSize;   break;
         }
         literals = new ArrayList<>(expandedSize);
         for (int i = firstLiteralIndex; i < inputClause.length; i++) {
@@ -625,6 +625,26 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
             return trueLiterals == 0 || trueLiterals == max;}
         return min <= trueLiterals && trueLiterals <= max;}
 
+    /** checks if a simple clone is true given the isTrue-function,
+     *
+     * @param clone a simple clone
+     * @param model a model represented as an int.
+     * @return true if the clause is true.
+     */
+    public static boolean isTrue(int[] clone, int model) {
+        int min = clone[3];
+        int max = clone[4];
+        int position = -1;
+        int trueLiterals = 0;
+        for(int i = 5; i < clone.length; i += 2) {
+            ++position;
+            int literal = clone[i];
+            if(((literal > 0) ? ((model & (1 << position)) != 0) : ((model & (1 << position)) == 0))) trueLiterals += clone[i+1];}
+        if(clone[2] == Quantifier.EQUIV.ordinal()) {
+            return trueLiterals == 0 || trueLiterals == max;}
+        return min <= trueLiterals && trueLiterals <= max;}
+
+
     /**
      * Converts an int array representation of a clone to a string representation.
      *
@@ -666,6 +686,22 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
             int sign = ((model & 1 << i) != 0) ? 1: -1;
             st.append(Symboltable.toString(sign*Math.abs(literals.get(i).literal) ,symboltable));
             if(i < literals.size()-1) st.append(",");}
+        return st.toString();}
+
+    /**
+     * Generates a string representation of the given model.
+     *
+     * @param model The integer representation of the model.
+     * @param predicates the corresponding predicates.
+     * @param symboltable The given symbol table.
+     * @return The string representation of the model.
+     */
+    public static String modelString(int model, IntArrayList predicates, Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        for(int i = 0; i < predicates.size(); ++i) {
+            int sign = ((model & 1 << i) != 0) ? 1: -1;
+            st.append(Symboltable.toString(sign*Math.abs(predicates.get(i)) ,symboltable));
+            if(i < predicates.size()-1) st.append(",");}
         return st.toString();}
 
     /** turns the clause into a string.
