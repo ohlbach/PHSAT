@@ -60,7 +60,7 @@ public class WalkerTest extends TestCase {
         assertEquals("Positive Literals:\n" +
                 "1:1,2:1,\n" +
                 "Negative Literals:\n" +
-                "-3:1,",walker.toString("literals"));
+                "-3:1,",walker.toString("predicates"));
         assertEquals("2@1,",walker.literals.toString(2));
         assertEquals("-3@1,",walker.literals.toString(-3));
         assertEquals("",walker.literals.toString(-2));
@@ -72,7 +72,7 @@ public class WalkerTest extends TestCase {
         assertEquals("Positive Literals:\n" +
                 "1:1,2:2,3:1,\n" +
                 "Negative Literals:\n" +
-                "-1:1,-3:1,",walker.toString("literals"));
+                "-1:1,-3:1,",walker.toString("predicates"));
         assertEquals("2@2,2@1,",walker.literals.toString(2));
 
     }
@@ -267,7 +267,7 @@ public class WalkerTest extends TestCase {
 
         walker = MyWalker(10,10);
         clause1 = makClause(new int[]{2, cInterval, 2, 3, 1, 2, 3, 4});
-        walker.initializeLocalTruthForClause(clause1); // clause is false, two literals should be flipped.
+        walker.initializeLocalTruthForClause(clause1); // clause is false, two predicates should be flipped.
         walker.initializeFlipScores(clause1);
         assertEquals("1:1,2:1,3:1,4:1,", walker.toString("flipscores"));
 

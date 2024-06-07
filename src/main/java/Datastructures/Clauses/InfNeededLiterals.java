@@ -11,7 +11,7 @@ public class InfNeededLiterals extends InferenceStep {
     public static final String rule = title + "\n"+
             "Literals which must be true.\n"+
             "Example: >= 4: p^2,q^2,r\n"+
-            "        In order to get 4 true literals, p and q must be true.";
+            "        In order to get 4 true predicates, p and q must be true.";
 
     private final Clause atleastClause;
     private final Clause andClause;

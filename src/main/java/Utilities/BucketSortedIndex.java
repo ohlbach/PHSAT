@@ -7,13 +7,13 @@ import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-/** This class can be used to map items to item occurrences, for example literals to literal occurrences.
+/** This class can be used to map items to item occurrences, for example predicates to literal occurrences.
  * Created by ohlbach on 05.12.2019.
  *
  * The items are sorted:<br>
  *     - by an item index (getItemIndex), e.g. for a CLiteral the literal<br>
  *     - by a bucket index (getBucketIndex), e.g. clause length of the clauses containing the literal occurrence.<br>
- *  In the literal application, this allows one to iterate over clauses containing the literals,<br>
+ *  In the literal application, this allows one to iterate over clauses containing the predicates,<br>
  *      - either from smaller clauses to larger clauses<br>
  *      - or from clauses with a given clause length to longer clauses<br>
  *      - or from small clauses up to clauses with a given length.
@@ -23,7 +23,7 @@ public class BucketSortedIndex<T extends Positioned> {
     private BucketSortedList<T>[] posOccurrences;  // maps each positive predicate to the list of occurrences
     private BucketSortedList<T>[] negOccurrences;  // maps each negative predicate to the list of occurrences
 
-    private Function<T,Integer> getItemIndex;      // in the literal example: cLiterals -> literals
+    private Function<T,Integer> getItemIndex;      // in the literal example: cLiterals -> predicates
     private Function<T,Integer> getBucketIndex;    // in the literal example: cLiterals -> clause length
 
     private static final BucketSortedList emptyBucket = new BucketSortedList(x -> 0); // just to optimize things.
@@ -32,7 +32,7 @@ public class BucketSortedIndex<T extends Positioned> {
     /** Constructs a new index
      *
      * @param size             the maximum item index (e.g. the number of predicates)
-     * @param getItemIndex     maps e.g. literal occurrences to literals
+     * @param getItemIndex     maps e.g. literal occurrences to predicates
      * @param getBucketIndex   maps e.g. literal occurrences to clause length
      */
     public BucketSortedIndex(int size, Function<T,Integer> getItemIndex , Function<T,Integer> getBucketIndex) {
@@ -165,8 +165,8 @@ public class BucketSortedIndex<T extends Positioned> {
      *     if size(p) == 1 and size(-p) > 0 then p can be eliminated and is inserted into ones. <br>
      *     if size(-p) == 0 and size(p) > 0 then -p can be eliminated and is inserted into zeros.
      *
-     * @param zeros for inserting the pure literals
-     * @param ones  for inserting the elimination literals
+     * @param zeros for inserting the pure predicates
+     * @param ones  for inserting the elimination predicates
      * @return true if a pure or elimination literal is found.
      */
     public boolean size01(int predicates, ArrayList<Integer> zeros, ArrayList<Integer> ones) {
@@ -181,11 +181,11 @@ public class BucketSortedIndex<T extends Positioned> {
         }
         return !zeros.isEmpty() || !ones.isEmpty();}
 
-    /** collects all pure literals p, i.e. p has no occurrence and -p has &gt; 0 occurrences
+    /** collects all pure predicates p, i.e. p has no occurrence and -p has &gt; 0 occurrences
      *
      * @param predicates the largest predicate to be checked
-     * @param zeros      collects the pure literals
-     * @return           true if some pure literals are found
+     * @param zeros      collects the pure predicates
+     * @return           true if some pure predicates are found
      */
     public boolean zeroes(int predicates,IntArrayList zeros) {
         zeros.clear();

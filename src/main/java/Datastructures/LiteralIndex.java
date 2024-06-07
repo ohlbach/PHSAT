@@ -1,16 +1,16 @@
 package Datastructures;
 
 /**
- * This class represents an index of literals.
- * It stores positive and negative literals separately in linked item lists for efficient retrieval and removal.
+ * This class represents an index of predicates.
+ * It stores positive and negative predicates separately in linked item lists for efficient retrieval and removal.
  * This class is parameterized with a Literal data structure.
  *
  * @param <Literal> the type of literal stored in the index
  */
 public class LiteralIndex<Literal extends Datastructures.Literal> {
-    /** maps positive literals to literal occurrences */
+    /** maps positive predicates to literal occurrences */
     private LinkedItemList[] positiveOccurrences;
-    /** maps negative literals to literal occurrences */
+    /** maps negative predicates to literal occurrences */
     private LinkedItemList[] negativeOccurrences;
 
     private static String positiveTitle = "Positive Literals";
@@ -114,7 +114,7 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
         return (literals == null) ? null : literals.lastLinkedItem;}
 
     /**
-     * Checks if the list of literals is empty based on the given literal value.
+     * Checks if the list of predicates is empty based on the given literal value.
      *
      * @param literal The value of the literal.
      * @return true if the list is empty, false otherwise.
@@ -124,10 +124,10 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
         return literals == null  || literals.isEmpty();}
 
     /**
-     * Retrieves the size of the list of literals in the LiteralIndex class based on the given literal value.
+     * Retrieves the size of the list of predicates in the LiteralIndex class based on the given literal value.
      *
      * @param literal The value of the literal.
-     * @return The size of the list of literals if it exists and greater than 0, 0 otherwise.
+     * @return The size of the list of predicates if it exists and greater than 0, 0 otherwise.
      */
     public int size(int literal) {
         LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];

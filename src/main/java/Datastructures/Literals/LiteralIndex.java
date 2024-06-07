@@ -43,18 +43,18 @@ public abstract class LiteralIndex {
 
     public abstract boolean isEmpty(int literal);
 
-    /** checks if the literal is pure, i.e. there are no complementary literals.
+    /** checks if the literal is pure, i.e. there are no complementary predicates.
      *  If the literal is not at all in the index, it is not considered pure.
      *
      * @param literal a literal
-     * @return true if the literal is pure, i.e. there are no complementary literals.
+     * @return true if the literal is pure, i.e. there are no complementary predicates.
      */
     public boolean isPure(int literal) {
         return isEmpty(-literal);}
 
-    /** returns all pure literals
+    /** returns all pure predicates
      *
-     * @return all pure literals.
+     * @return all pure predicates.
      */
     public ArrayList<Integer> pureLiterals() {
         ArrayList<Integer> pure = new ArrayList<>();

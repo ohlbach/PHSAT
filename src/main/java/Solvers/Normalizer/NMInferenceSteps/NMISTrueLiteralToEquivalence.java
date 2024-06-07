@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /** The inference step represents the application of a true literal to an equivalence.
- * The equivalent literals must ge the same truth value as the true literal.
+ * The equivalent predicates must ge the same truth value as the true literal.
  */
 public class NMISTrueLiteralToEquivalence extends InferenceStep {
 

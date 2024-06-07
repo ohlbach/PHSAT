@@ -6,14 +6,14 @@ import InferenceSteps.InferenceStep;
 /**
  * The Task class represents a task in the Normalizer. It can have two types:
  * 1. True Literal Task: Represents a task that indicates a predicate with a true value.
- * 2. Equality Literal Task: Represents a task that indicates an equality between two literals.
+ * 2. Equality Literal Task: Represents a task that indicates an equality between two predicates.
  */
 public class Task {
     enum TaskType {TRUELITERAL,EQUIVALENCE,PURITY};
 
     TaskType taskType;
 
-    /** The inference step that caused the truth of the literal or the equalitiy of the literals respectively.
+    /** The inference step that caused the truth of the literal or the equalitiy of the predicates respectively.
      * It may be null.*/
     InferenceStep inferenceStep;
 
@@ -52,7 +52,7 @@ public class Task {
      *
      * @param eqLiteral1 the first literal of the equality
      * @param eqLiteral2 the second literal of the equality
-     * @param inferenceStep the InferenceStep object that caused the equality of the literals
+     * @param inferenceStep the InferenceStep object that caused the equality of the predicates
      */
     public Task(int eqLiteral1, int eqLiteral2, InferenceStep inferenceStep) {
         taskType = TaskType.EQUIVALENCE;
@@ -69,7 +69,7 @@ public class Task {
 
     /** Returns a string representation of the Task object.
      *
-     * @param symboltable null or the Symboltable object used to obtain the string representation of the literals.
+     * @param symboltable null or the Symboltable object used to obtain the string representation of the predicates.
      * @return The string representation of the Task object.
      */
     public String toString(Symboltable symboltable) {

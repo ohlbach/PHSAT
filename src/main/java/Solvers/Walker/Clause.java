@@ -9,7 +9,7 @@ import java.util.ArrayList;
  */
 public class Clause extends Datastructures.Clause<Literal> {
 
-    /** the number of true literals in the local model. */
+    /** the number of true predicates in the local model. */
     protected int trueLiterals = 0;
 
     /** flag to indicate that the clause is true in the local model. */

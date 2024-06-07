@@ -7,7 +7,7 @@ import java.util.Collection;
 
 /** This class represents the nodes in an ImplicationDAG. <br>
  * A node contains a literal and the 'downNodes' and 'upNodes'. <br>
- * The downNodes are the literals which are implied by the node's literal.<br>
+ * The downNodes are the predicates which are implied by the node's literal.<br>
  * The upNodes imply the node's literal. <br>
  * Thus, if p -&gt; q and q -&gt; r the q's node has p in its upNodes and r in its downNodes.
  *
@@ -105,7 +105,7 @@ public class ImplicationNode implements Comparable<ImplicationNode> {
         return true;}
 
 
-    /** compares the nodes by their literals.
+    /** compares the nodes by their predicates.
      *
      * @param node a node to be compared with
      * @return -1, 0 or 1

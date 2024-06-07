@@ -3,7 +3,7 @@ package Solvers.Backtracker;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-/** This is a thread which can propagateInThread true literals found in a backtracker.
+/** This is a thread which can propagateInThread true predicates found in a backtracker.
  * <p>
  * The propagator waits until a new propagator job is submitted, calls the propagateInThread method,
  * and then waits for the next job. <br>

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 /**The PropagatorPool class represents a pool of propagators.
  * <p>
- * Propagators are responsible for propagating true literals in the backtracker.<br>
+ * Propagators are responsible for propagating true predicates in the backtracker.<br>
  * Each Propagator waits for a true literal and then calls propagateInThread-method of the backtracker.<br>
  * After the propagateInThread-method is finished, it becomes passive and waits for a new job. <br>
  * Propagators can work for different backtrackers.

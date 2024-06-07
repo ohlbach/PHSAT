@@ -13,8 +13,8 @@ import java.util.function.IntSupplier;
  * The transformer is an iterator of which the next()-method returns the next disjunction.<br>
  * <br>
  * The iterator needs to be constructed only once. A new clause is submitted to it by the reset-method.<br>
- * The input clauses should not contain complementary literals.
- * They may, however, contain multiple occurrences of literals.
+ * The input clauses should not contain complementary predicates.
+ * They may, however, contain multiple occurrences of predicates.
  * These are eliminated from the output clauses.
  * The shortened clauses may subsume longer clauses. This is not checked.
  */
@@ -98,7 +98,7 @@ public class CNFTransformer implements Iterator<int[]> {
 
 
     /** generates the next disjunction.
-     * Double literals are removed.
+     * Double predicates are removed.
      *
      * @return the next disjunction.
      */

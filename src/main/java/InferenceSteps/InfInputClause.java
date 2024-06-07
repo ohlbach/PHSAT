@@ -83,8 +83,7 @@ public class InfInputClause extends InferenceStep {
      */
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
-        if(!steps.contains(this)) {
-            int id = inputClause[0];
-            steps.add(this);
-            if(!ids.contains(id)) ids.add(id);}}
+        super.inferenceSteps(steps,ids);
+        int id = inputClause[0];
+        if(!ids.contains(id)) ids.add(id);}
 }

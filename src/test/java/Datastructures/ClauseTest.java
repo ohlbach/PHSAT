@@ -248,7 +248,7 @@ public class ClauseTest extends TestCase {
         System.out.println(steps.get(1).toString(null));
     }
 
-    public void testExtractTrueLiterals() throws Unsatisfiable{
+    public void testExtractTruePredicates() throws Unsatisfiable{
         System.out.println("extractTrueLiterals");
         Clause c = new Clause(new int[]{1, intv,2,2, 1,1,1,2,3,4}, true, litCreator, symboltable);
         assertEquals("1: =2 1^3,2,3,4", c.toString(null, 0));
@@ -266,7 +266,7 @@ public class ClauseTest extends TestCase {
         System.out.println(steps.get(0).toString(null));
     }
 
-    public void testExtractIrrelevantLiterals() {
+    public void testExtractIrrelevantPredicates() {
         System.out.println("extractIrrelevantLiterals");
         Clause c = new Clause(new int[]{1, intv,2,3, 1,1,2,2,3}, true, litCreator, symboltable);
         assertEquals("1: [2,3] 1^2,2^2,3", c.toString(null, 0));

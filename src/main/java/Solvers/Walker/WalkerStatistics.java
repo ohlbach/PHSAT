@@ -20,7 +20,7 @@ public class WalkerStatistics extends Statistic {
     @Description("Number of flips")
     public int flips  = 0;
 
-    @Description("Imported true literals")
+    @Description("Imported true predicates")
     int importedTrueLiterals = 0;
 
     public String toString() {

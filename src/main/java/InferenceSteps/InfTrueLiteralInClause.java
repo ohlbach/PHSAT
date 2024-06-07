@@ -15,7 +15,7 @@ public class InfTrueLiteralInClause extends InferenceStep{
 
     @Override
     public String rule() {
-        return "Various forms of extraction of true literals from a clause";
+        return "Various forms of extraction of true predicates from a clause";
     }
     int[] clauseBefore;
     int literal;
@@ -25,7 +25,7 @@ public class InfTrueLiteralInClause extends InferenceStep{
         this.literal = literal;}
 
     /**
-     * Verifies the extraction of a true literal from a clause
+     * Verifies the extraction of a true literal from a clause.
      * <br>
      * All models satisfying the clause must also satisfy the literal
      *
@@ -35,7 +35,7 @@ public class InfTrueLiteralInClause extends InferenceStep{
      */
     @Override
     public boolean verify(Consumer<String> monitor, Symboltable symboltable) {
-        IntArrayList predicates = Clause.literals(clauseBefore);
+        IntArrayList predicates = Clause.predicates(clauseBefore);
         int position = predicates.indexOf(Math.abs(literal));
         int nModels = 1 << predicates.size();
         for(int model = 0; model < nModels; ++model) {

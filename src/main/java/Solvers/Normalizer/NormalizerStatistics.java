@@ -17,19 +17,19 @@ public class NormalizerStatistics extends Statistic {
     @Description("Reduced Multiplicities")
     int reducedMultiplicities = 0;
 
-    @Description("True literals in the input files.")
+    @Description("True predicates in the input files.")
     int initialTrueLiterals = 0;
 
-    @Description("Clauses reduced to their essential literals (e.g. >= 2 p^2,q^2,r -> p,q.")
+    @Description("Clauses reduced to their essential predicates (e.g. >= 2 p^2,q^2,r -> p,q.")
     int essentialClauses = 0;
 
-    @Description("Literals replaced by equivalent literals")
+    @Description("Literals replaced by equivalent predicates")
     int equivalenceReplacements = 0;
 
     @Description("Equivalences in the input files.")
     int initialEquivalences = 0;
 
-    @Description("True literals derived from the clauses.")
+    @Description("True predicates derived from the clauses.")
     int derivedTrueLiterals = 0;
 
     @Description("Clauses simplified in different ways.")

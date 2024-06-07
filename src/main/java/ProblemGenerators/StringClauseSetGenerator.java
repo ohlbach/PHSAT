@@ -58,17 +58,17 @@ public final class StringClauseSetGenerator extends ProblemGenerator {
                 "It may have an arbitrary number of header lines. \n"+
                 "The main section has to start with\n" +
                 "p cnf 'number of predicates'\n" +
-                "A clause is just a single line of literals.\n" +
-                "The literals in the clause may by any strings, possibly preceded by -.\n" +
+                "A clause is just a single line of predicates.\n" +
+                "The predicates in the clause may by any strings, possibly preceded by -.\n" +
                 "A clause starting with a special symbol indicates a special meaning of the clause:\n" +
-                "& ...     conjunctions (all literals must be true).\n" +
-                "e ...     equivalence  (all literals are equivalent).\n" +
-                "<= n ...  at most n literals are true\n"+
-                ">= n ...  at least n literals are true\n"+
-                "= n ...   exaclty n literals are true\n"+
+                "& ...     conjunctions (all predicates must be true).\n" +
+                "e ...     equivalence  (all predicates are equivalent).\n" +
+                "<= n ...  at most n predicates are true\n"+
+                ">= n ...  at least n predicates are true\n"+
+                "= n ...   exaclty n predicates are true\n"+
                 "[n,m] ... interval (between n and m literal are true).\n"+
                 "l1,...    or-clause\n"+
-                "The literals may be names or integers != 0\n"+
+                "The predicates may be names or integers != 0\n"+
                 "Each clause may have a '0' at the end.";}
 
     /** parses the clause string and generates a BasicClauseList object.

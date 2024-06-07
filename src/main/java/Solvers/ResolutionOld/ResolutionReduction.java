@@ -72,7 +72,7 @@ public abstract class ResolutionReduction extends Solver {
     public ResolutionReduction(Integer solverNumber, HashMap<String,Object> solverParameters, ProblemSupervisor problemSupervisor) {
         super(solverNumber);}
 
-    /** maps literals (numbers) to their occurrences in clauses */
+    /** maps predicates (numbers) to their occurrences in clauses */
     BucketSortedIndex<CLiteral> literalIndex;
 
     /** is set false after all initial clauses are integrated */
@@ -112,7 +112,7 @@ public abstract class ResolutionReduction extends Solver {
      * 1. All local data are initialized <br>
      * 2. All basic clauses are transformed to clauses and distributed to the primary and secondary clause lists. <br>
      *    Equivalences are turned to equivalence classes <br>
-     *    All literals are mapped to the representatives in their classes.<br>
+     *    All predicates are mapped to the representatives in their classes.<br>
      * 3. The initial causes are put into the task queue for simplifications.<br>
      * 4. Resolution/Reduction and simplification is started until <br>
      *     - a contradiction is formed or <br>
@@ -152,7 +152,7 @@ public abstract class ResolutionReduction extends Solver {
                             (()-> "Simplify initial clause " + clause.toString())));}});
 
     /** This method translates all basic clauses into Clause data structures.
-     *  Equivalent literals are replaced by their representatives.
+     *  Equivalent predicates are replaced by their representatives.
      *
      * @return possibly Unsatisfiable
      * @throws InterruptedException
@@ -181,7 +181,7 @@ public abstract class ResolutionReduction extends Solver {
         return null;} //result;}
 
 
-    /** checks if the clause is subsumed or some of its literals can be resolved away by replacement resolution.
+    /** checks if the clause is subsumed or some of its predicates can be resolved away by replacement resolution.
      * The clause is assumed not to be in the lists and index. <br>
      * It might be a new resolvent.
      * If the clause is subsumed, it is removed from the clause lists <br>
@@ -190,7 +190,7 @@ public abstract class ResolutionReduction extends Solver {
      *      p,q,r<br>
      *      -p,r <br>
      *    p in the first clause can be removed. <br>
-     *    In more complex examples, several literals can be removed at once.<br>
+     *    In more complex examples, several predicates can be removed at once.<br>
      *    The resulting clause may be a unit clause
      *
      * @param clause  a new clause, which is not yet integrated into the lists and the literal index.
@@ -226,7 +226,7 @@ public abstract class ResolutionReduction extends Solver {
         Object[] replacements = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
         timestamp += maxClauseLength +1;
         boolean changes = false;
-        while(replacements != null) { // several literals may become resolved away
+        while(replacements != null) { // several predicates may become resolved away
             changes = true;
             CLiteral cLiteral = (CLiteral)replacements[0];
             ++statistics.backwardReplacementResolutions;
@@ -350,7 +350,7 @@ public abstract class ResolutionReduction extends Solver {
 
     private ArrayList<Integer> zeros = new ArrayList<>();
 
-    /** removes all pure literals (literals which occur with one polarity only)
+    /** removes all pure predicates (predicates which occur with one polarity only)
      *  by making the other polarity true.
      *
      * @return null or a final result of simplifications
@@ -370,7 +370,7 @@ public abstract class ResolutionReduction extends Solver {
         return null;}
 
 
-    /** This list collects the eliminated literals for completing the model at the end.
+    /** This list collects the eliminated predicates for completing the model at the end.
      *  For each clause (p,q,r,...) where p occurs only once it contains <br>
      *  (the clause, the eliminated literal)
      */
@@ -393,9 +393,9 @@ public abstract class ResolutionReduction extends Solver {
         CLiteral parentCLiteral = literalIndex.getAllItems(eliminateLiteral).get(0);
         Clause clause  = literalIndex.getAllItems(eliminateLiteral).get(0).clause;  // the clause with the literal to be eliminated
         replacedClauses.clear();
-        for(CLiteral otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) { // all literals with -p
+        for(CLiteral otherCliteral : literalIndex.getAllItems(-eliminateLiteral)) { // all predicates with -p
             Clause otherClause = otherCliteral.clause;
-            Clause resolvent = LitAlgorithms.resolve(id,parentCLiteral,otherCliteral); // double literals and tautologies tested
+            Clause resolvent = LitAlgorithms.resolve(id,parentCLiteral,otherCliteral); // double predicates and tautologies tested
             removeClause(otherClause,0);
             if(resolvent != null) {replacedClauses.add(resolvent);}}
 
@@ -441,13 +441,13 @@ public abstract class ResolutionReduction extends Solver {
      * An application might be a Reducer which was able to shorten an input clause.
      * This might be useful information for a Resolver.
      *
-     * @param literals the literals of the clause
+     * @param literals the predicates of the clause
      */
     public void importClause(int[] literals)  {
         ++statistics.importedOtherClauses;
         taskQueue.add(new Task(literals.length+priorityShift,
                 (()-> {
-                    //processClause(literals);
+                    //processClause(predicates);
                     return null;}),
                 (()-> "Importing clause " + Arrays.toString(literals))));}
 
@@ -486,7 +486,7 @@ public abstract class ResolutionReduction extends Solver {
             int size = clause.size();
             int [] literals = new int[size];
             for(int i = 0; i < size; ++i) {literals[i] = clause.getLiteral(i);}
-            //oblemSupervisor.forwardClause(this,literals);}
+            //oblemSupervisor.forwardClause(this,predicates);}
 }}
     /** except in the initializing phase, a clause is forwarded to the other solvers.
      *
@@ -631,7 +631,7 @@ public abstract class ResolutionReduction extends Solver {
 
     /** This method replaces all occurrences of fromLiteral by toLiteral.
      *  Generated tautologies are ignored.<br>
-     *  Double literals are avoided. <br>
+     *  Double predicates are avoided. <br>
      *  The new clauses are backwards simplified.
      *
      * @param fromLiteral antecedent
@@ -645,11 +645,11 @@ public abstract class ResolutionReduction extends Solver {
             return null;} //new Unsatisfiable(null,null);} //model,toLiteral);}
         if(fromStatus != 0) {
             addTrueLiteralTask((fromStatus == 1 ? toLiteral : -toLiteral),
-                    "equivalent literals " + fromLiteral + " " + toLiteral);
+                    "equivalent predicates " + fromLiteral + " " + toLiteral);
             return null;}
         if(toStatus != 0) {
             addTrueLiteralTask((toStatus == 1 ? fromLiteral : -fromLiteral),
-                    "equivalent literals " + fromLiteral + " " + toLiteral);
+                    "equivalent predicates " + fromLiteral + " " + toLiteral);
             return null;}
         replacedClauses.clear();
         replaceLiteralInAllClauses(fromLiteral,toLiteral);
@@ -665,7 +665,7 @@ public abstract class ResolutionReduction extends Solver {
         return null;}
 
     /** replaces fromLiteral by toLiteral in all clauses and inserts the new clause in replacedClauses
-     * Double literals are ignored.<br>
+     * Double predicates are ignored.<br>
      * A tautology is not inserted into replacedClauses.
      *
      * @param fromLiteral  the old literal
@@ -772,7 +772,7 @@ public abstract class ResolutionReduction extends Solver {
             if(result != null) {return result;}}
         return new Satisfiable(null,null, model);}
 
-    /** completes a partial model by inserting the value for eliminated literals */
+    /** completes a partial model by inserting the value for eliminated predicates */
     void completeEliminationsInModel() {
         for(int i = eliminatedLiterals.size()-1; i >= 0; --i) {
             Object[] els = eliminatedLiterals.get(i);

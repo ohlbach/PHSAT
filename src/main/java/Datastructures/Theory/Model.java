@@ -12,12 +12,12 @@ import java.util.function.BiConsumer;
 
 
 
-/** This class represents a propositional model, i.e. a set of literals which are supposed to be true.<br>
+/** This class represents a propositional model, i.e. a set of predicates which are supposed to be true.<br>
  *
  * When a literal is added to the model, and its negation is already in the model then
  * an Unsatisfiable exception is thrown. This usually terminates the search.
  * <br>
- * Besides the mapping of literals to true/false, this class provides the following services to the system:
+ * Besides the mapping of predicates to true/false, this class provides the following services to the system:
  * <ul>
  *     <li>Each literal in the model is accompanied by the inference step that caused the literal to be true.<br>
  *     This allows one to reconstruct the results of the search for a model or the unsatisfiability of the clauses.</li>
@@ -31,17 +31,17 @@ public class Model {
     /** the maximum number of predicates. */
     public int predicates;
 
-    /** the current model. It collects the true literals.*/
+    /** the current model. It collects the true predicates.*/
     public IntArrayList model;
 
     long startTime;
 
-    /** the inference steps which caused the truth of the literals. The positions in the array are the same
+    /** the inference steps which caused the truth of the predicates. The positions in the array are the same
      * as the positions of the true literal in the model-array.*/
     public ArrayList<InferenceStep> inferenceSteps;
 
     /** maps predicates in the model to +1 (true), -1 (false) or 0 (undefined).
-     * It provides the fastest lookup of a literals status in the model.*/
+     * It provides the fastest lookup of a predicates status in the model.*/
     private byte[] status;
 
     /** functions to be called when a new true literal is inserted. */
@@ -74,7 +74,7 @@ public class Model {
 
     /** adds a literal to the model with null inference step.
      *
-     * @param literals some literals.
+     * @param literals some predicates.
      * @throws Unsatisfiable if a contradiction is found.
      */
     public synchronized void add(Thread thread, int... literals) throws Unsatisfiable {
@@ -104,7 +104,7 @@ public class Model {
             if(observer.first != thread) observer.second.accept(literal,inferenceStep);}}
 
 
-    /** adds the literals immediately without any checks and inference step.
+    /** adds the predicates immediately without any checks and inference step.
      * No observers are called.
      * This method is useful for algorithms which work with candidate models and backtracking.
      *

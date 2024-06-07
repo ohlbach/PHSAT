@@ -23,7 +23,7 @@ import static Utilities.Utilities.toArrayList;
 /** This is a "random walker" for finding a model for QuSat-clauses.
  * <br>
  * All clauses are put into interval-normalform.
- * An initial candidate model is created by comparing the positive and negative occurrences of literals.<br>
+ * An initial candidate model is created by comparing the positive and negative occurrences of predicates.<br>
  * If the numbers are the same then a random number generator is used for constructing the initial model.<br>
  * The truth values are then heuristically flipped until there are no false clauses anymore.
  */
@@ -201,8 +201,8 @@ public class Walker extends Solver {
 
     /** reads all input clauses except conjunctions and equivalences, and turns them into interval-normalform.
      * The original quantifiers, however, are kept.<br>
-     * Complementary literals are removed.<br>
-     * Derivable true or false literals are inserted into the global model.<br>
+     * Complementary predicates are removed.<br>
+     * Derivable true or false predicates are inserted into the global model.<br>
      */
     void readInputClauses(){
         Solvers.Normalizer.Clause normalizedClause = problemSupervisor.normalizer.clauses.firstLinkedItem;
@@ -240,7 +240,7 @@ public class Walker extends Solver {
 
 
     /** computes the truth value of a clause in the local model.
-     * The truth value and the number of true literals is stored in the clause.<br>
+     * The truth value and the number of true predicates is stored in the clause.<br>
      * False clauses are collected in falseClauseList.
      *
      * @param clause a clause.
@@ -261,7 +261,7 @@ public class Walker extends Solver {
         return isTrue;}
 
 
-    /** computes the initial flip scores for the literals in the clause.
+    /** computes the initial flip scores for the predicates in the clause.
      *  A positive flip score for a literal indicates that flipping the truth value for the literal makes a false clause true.<br>
      *  A negative flip score indicates that a true clause can become false. <br>
      *
@@ -276,7 +276,7 @@ public class Walker extends Solver {
                     literalObject.flipScorePart = -1;
                     flipScores[Math.abs(literalObject.literal)] -= 1;}
                 return;}
-            for(Literal literalObject : clause.literals) { // flipping a literal may reduce the true literals below min, or increase them over max.
+            for(Literal literalObject : clause.literals) { // flipping a literal may reduce the true predicates below min, or increase them over max.
                 int literal = literalObject.literal;
                 int newTrueLiterals = isLocallyTrue(literal) ? trueLiterals - literalObject.multiplicity : trueLiterals + literalObject.multiplicity;
                 if(newTrueLiterals < min || newTrueLiterals > max) {
@@ -288,21 +288,21 @@ public class Walker extends Solver {
         if(trueLiterals < clause.min) {
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
-                if(isLocallyTrue(literal) || trueLiterals + literalObject.multiplicity > clause.max) {  // true literals should not become false.
+                if(isLocallyTrue(literal) || trueLiterals + literalObject.multiplicity > clause.max) {  // true predicates should not become false.
                     literalObject.flipScorePart = -1;
                     flipScores[Math.abs(literalObject.literal)] -= 1;}
                 else {
-                    literalObject.flipScorePart = +1; // false literals should become true.
+                    literalObject.flipScorePart = +1; // false predicates should become true.
                     flipScores[Math.abs(literalObject.literal)] += 1;}}
             return;}
         if(trueLiterals > clause.max) {
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
                 if(isLocallyTrue(literal) && !(trueLiterals - literalObject.multiplicity < clause.min)) {
-                    literalObject.flipScorePart = 1; // true literals should become false.
+                    literalObject.flipScorePart = 1; // true predicates should become false.
                     flipScores[Math.abs(literalObject.literal)] += 1;}
                 else {
-                    literalObject.flipScorePart = -1; // false literals should not become true.
+                    literalObject.flipScorePart = -1; // false predicates should not become true.
                     flipScores[Math.abs(literalObject.literal)] -= 1;}}}}
 
     /** all predicates with positive score are collected in predicatesWithPositiveScore.
@@ -363,21 +363,21 @@ public class Walker extends Solver {
         return selectPredicateInFalseClause(falseClauseList.firstLinkedItem);}
 
     /** selects a predicate in a false clause.
-     * If there are not enough true literals then a false literal is randomly chosen to be flipped.<br>
-     * If there are too many true literals then a true literal is randomly chosen to be flipped.<br>
+     * If there are not enough true predicates then a false literal is randomly chosen to be flipped.<br>
+     * If there are too many true predicates then a true literal is randomly chosen to be flipped.<br>
      *
      * @param clause a false clause.
      * @return the predicate to be flipped.
      */
     int selectPredicateInFalseClause(Clause clause) {
-        if(clause.trueLiterals < clause.min) { // not enough true literals. A false literal must be flipped.
+        if(clause.trueLiterals < clause.min) { // not enough true predicates. A false literal must be flipped.
             int n = random.nextInt(clause.literals.size() - clause.trueLiterals);
             int counter = -1;
             for(Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
                 if(!isLocallyTrue(literal)) {if(++counter == n) return Math.abs(literal);}}
             assert(false);}
-        // too many true literals. A true literal must be flipped.
+        // too many true predicates. A true literal must be flipped.
         int n = random.nextInt(clause.trueLiterals);
         int counter = -1;
         for(Literal literalObject : clause.literals) {
@@ -404,7 +404,7 @@ public class Walker extends Solver {
 
 
 
-    /** updates the flip scores of the literals in the clauses containing the flipped literal.
+    /** updates the flip scores of the predicates in the clauses containing the flipped literal.
      * A literal's score is changed if, by flipping it, it makes a true clause false or vice versa.
      *
      * @param literal the literal with flipped truth value.
@@ -471,10 +471,10 @@ public class Walker extends Solver {
 
 
 
-    /** collects globally true literals which are inserted by other solvers  into the global model */
+    /** collects globally true predicates which are inserted by other solvers  into the global model */
     private final IntArrayList globallyTrueLiterals = new IntArrayList();
 
-    /** integrates globally true literals.
+    /** integrates globally true predicates.
      * - their scores are minimized <br>
      * - If the literal's local model is different to the global model, the literal is flipped.
      */
@@ -502,10 +502,10 @@ public class Walker extends Solver {
         myThread.interrupt();
     }
 
-    /** copies the imported globally true literals.
+    /** copies the imported globally true predicates.
      *  globallyTrueLiterals is cleared.
      *
-     * @return a copy of the globally true literals.
+     * @return a copy of the globally true predicates.
      */
     synchronized IntArrayList getGloballyTrueLiterals() {
         if(globallyTrueLiterals.isEmpty()) return null;
@@ -549,7 +549,7 @@ public class Walker extends Solver {
 
     /** turns different aspects into a string.
      *
-     * @param version      clauses,falseClauses,literals,predicates,flipscores,model,statistic.
+     * @param version      clauses,falseClauses,predicates,predicates,flipscores,model,statistic.
      * @return             different aspects as a string.
      */
     public String toString(String version) {
@@ -557,7 +557,7 @@ public class Walker extends Solver {
 
     /** turns different aspects into a string.
      *
-     * @param version      clauses,falseClauses,literals,predicates,flipscores,model,statistic.
+     * @param version      clauses,falseClauses,predicates,predicates,flipscores,model,statistic.
      * @param symboltable  null or a symboltable.
      * @return             different aspects as a string.
      */
@@ -570,7 +570,7 @@ public class Walker extends Solver {
             case "flipscores"   -> flipScoresToString(symboltable);
             case "model"        -> localModelToString(symboltable);
             case "statistic"    -> statistics == null ? "null" : statistics.toString();
-            default -> "Versions: clauses,falseClauses,literals,predicates,flipscores,model,statistic";
+            default -> "Versions: clauses,falseClauses,predicates,predicates,flipscores,model,statistic";
         };
     }
 

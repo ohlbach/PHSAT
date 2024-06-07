@@ -109,7 +109,7 @@ public class InputClausesTest extends TestCase {
 
 
 
-    public void testContainsComplementaryLiterals() {
+    public void testContainsComplementaryPredicates() {
         System.out.println("containsComplementaryLiterals");
         int[] clause1 = {10, Quantifier.EQUIV.ordinal(), 1, -2, -3};
         assertFalse(InputClauses.containsComplementaryLiterals(clause1));

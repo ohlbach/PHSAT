@@ -67,11 +67,11 @@ public class BacktrackerTest extends TestCase {
                 "    2: 1v3v4\n" +
                 "    3: 1v4v5\n",backtracker.clauses.toString());
 
-        backtracker.initializePredicateSequence(3,-1); // more literals first
+        backtracker.initializePredicateSequence(3,-1); // more predicates first
         assertEquals("[0, 1, 3, 4, 2, 5]", Arrays.toString(backtracker.predicateSequence));
         assertEquals("[0, 1, 4, 2, 3, 5]", Arrays.toString(backtracker.predicatePositions));
 
-        backtracker.initializePredicateSequence(4,-1); // less literals first
+        backtracker.initializePredicateSequence(4,-1); // less predicates first
         assertEquals("[0, 2, 5, 3, 4, 1]", Arrays.toString(backtracker.predicateSequence));
         assertEquals("[0, 5, 1, 3, 4, 2]", Arrays.toString(backtracker.predicatePositions));
     }

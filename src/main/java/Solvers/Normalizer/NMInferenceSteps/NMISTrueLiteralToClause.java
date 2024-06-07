@@ -29,7 +29,7 @@ public class NMISTrueLiteralToClause extends NMInferenceStep{
     /** Returns a string representation of the deduced clause and the steps involved in the inference.
      *
      * @param deducedClause The deduced clause in the inference step.
-     * @param symboltable The symbol table to use for converting literals to strings, or null.
+     * @param symboltable The symbol table to use for converting predicates to strings, or null.
      * @return A string representation of the deduced clause and the steps involved in the inference.
      */
     public String toString(Clause deducedClause, Symboltable symboltable) {
@@ -38,9 +38,9 @@ public class NMISTrueLiteralToClause extends NMInferenceStep{
 
     /** Checks if a given literal is true in the model represented by the bits in the integer model.
      *
-     * @param model          the bits represent a model of the literals in the literals array.
+     * @param model          the bits represent a model of the predicates in the predicates array.
      * @param literal    a literal to be tested.
-     * @param literals   a list of literals.
+     * @param literals   a list of predicates.
      * @return true if the literal is true in the model, false otherwise.
      */
     public boolean isTrue(int model, int literal, IntArrayList literals) {

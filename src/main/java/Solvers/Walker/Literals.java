@@ -6,7 +6,7 @@ import Datastructures.Symboltable;
 /** This class is actually an index for the Literal objects.
  * <br>
  * It contains for each predicate two doubly connected lists of Literal objects,
- * one for positive literals and one for negative literals.
+ * one for positive predicates and one for negative predicates.
  */
 public class Literals {
 
@@ -24,7 +24,7 @@ public class Literals {
         positiveLiterals = new Literal[predicates+1];
         negativeLiterals = new Literal[predicates+1];}
 
-    /** removes all literals from the index.
+    /** removes all predicates from the index.
      * This is mainly for testing purposes.
      */
     public void clear() {
@@ -62,7 +62,7 @@ public class Literals {
      * One has to check literalObject.clause!
      *
      * @param literalObject the literal object to be added.
-     * @return true if the chain of literals with the given literal is now empty.
+     * @return true if the chain of predicates with the given literal is now empty.
      */
     public boolean removeLiteral(Literal literalObject) {
         literalObject.clause = null;

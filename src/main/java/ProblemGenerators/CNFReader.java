@@ -20,12 +20,12 @@ import java.util.ArrayList;
  * clause1 0 <br>
  * clause2 0 <br>
  * ...<br>
- * A clause is a blank or comma-separated list of literals (positive or negative numbers /= 0, or names).
+ * A clause is a blank or comma-separated list of predicates (positive or negative numbers /= 0, or names).
  * <br>
  * An extension of this format may contain clauses beginning with special characters:.<br>
  *
  * '&#38;':  means and:          '&#38; 3 4 5' stands for 3 and 4 and 5.<br>
- * 'e':  means equivalences: 'e 4 5 -6' means that these three literals are equivalent.<br>
+ * 'e':  means equivalences: 'e 4 5 -6' means that these three predicates are equivalent.<br>
  * '&lt;=': means atleast:      '&lt;= 2 p q r' means atleast two of p,q,r are true.<br>
  * '&gt;=': means atleast:      '&gt;= 2 p q r' means atmost two of p,q,r are true.<br>
  * '=':  means exactly:      '= 2 p q r' means exactly two of p,q,r are true.<br>

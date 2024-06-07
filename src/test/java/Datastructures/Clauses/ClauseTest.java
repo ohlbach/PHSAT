@@ -321,8 +321,8 @@ public class ClauseTest {
 
 
     @Test
-    public void removeComplementaryLiterals()  throws Unsatisfiable {
-        System.out.println("removeComplementaryLiterals");
+    public void removeComplementaryPredicates()  throws Unsatisfiable {
+        System.out.println("removeComplementaryPredicates");
         int[] ids = new int[]{0};
         Clause c1 = new Clause(new int[]{1, atl, 3, 1,2,3,4});
         Clause c2 = c1.removeComplementaryLiterals(()->++ids[0]);
@@ -347,8 +347,8 @@ public class ClauseTest {
 
     }
     @Test
-    public void removeTrueFalseLiterals()  throws Unsatisfiable {
-        System.out.println("removeTrueFalseLiterals");
+    public void removeTrueFalsePredicates()  throws Unsatisfiable {
+        System.out.println("removeTrueFalsePredicates");
         int[] ids = new int[]{1};
         IntUnaryOperator status = (int literal) -> {return literal > 3 ? (literal % 2 == 0 ? 1 : -1) : 0;};
         Clause c1 = new Clause(new int[]{1, atl, 3, 1, 4, 2, 6, 3, 5});

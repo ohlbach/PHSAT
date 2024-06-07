@@ -23,15 +23,15 @@ import java.util.function.Consumer;
 
 /** The normalizer takes the inputClauses provided by the supervisor and removes any immediately recognizable redundancies.<br>
  * In particular: <br>
- * - superfluous multiplicities of literals<br>
- * - complementary literals<br>
+ * - superfluous multiplicities of predicates<br>
+ * - complementary predicates<br>
  * - immediately recognizable true or false clauses<br>
  * - multiplicities dividable by the greatest common divisor<br>
- * - extractable true or false literals (e.g. atmost 2 p^3,q,r: p must be false)<br>
+ * - extractable true or false predicates (e.g. atmost 2 p^3,q,r: p must be false)<br>
  * <br>
  * The quantifiers of the clauses are optimized as far as possible (e.g. atleast 1 p,... =&gt; or p,...)<br>
- * Pure literals are identified and elminated.<br>
- * True literals are put into the model.<br>
+ * Pure predicates are identified and elminated.<br>
+ * True predicates are put into the model.<br>
  * The simplification operations can be accompanied by inference steps. The soundness of these steps can be verified.<br>
  * The result is a list of simplified clauses which can be submitted to the solvers.
  */
@@ -96,8 +96,8 @@ public class Normalizer {
     final ArrayList[][] indexLists = new ArrayList[6][];
 
 
-    /** A queue of newly derived unit literals and binary equivalences.
-     * The unit literals are automatically put at the beginning of the queue.
+    /** A queue of newly derived unit predicates and binary equivalences.
+     * The unit predicates are automatically put at the beginning of the queue.
      */
     private final PriorityBlockingQueue<Task> queue =
             new PriorityBlockingQueue<>(100, Comparator.comparingInt(task->task.priority));
@@ -129,7 +129,7 @@ public class Normalizer {
     /** reads the next task from the task queue and processes it.
      * <br>
      * This method is called after all clauses are simplified.
-     * The resulting true literals and the equivalences are now processed.
+     * The resulting true predicates and the equivalences are now processed.
      *
      * @param maxLoop 0 or the maximum number of task before stopping the loop (0: unlimited) (> 0 for test purposes).
      * @throws Result if a contradiction is encountered or the clause set became empty.
@@ -248,13 +248,13 @@ public class Normalizer {
 
     /** applies the true literal to all equivalences in the input clauses.
      * <br>
-     * Equivalent literals must get the same truth value.
+     * Equivalent predicates must get the same truth value.
      * Derived truth values are added only to the model.
-     * It is assumed that equivalent literals are no longer in the clauses
-     * because equivalences are applied before true literals are processed.
+     * It is assumed that equivalent predicates are no longer in the clauses
+     * because equivalences are applied before true predicates are processed.
      *
      * @param trueLiteral   a true literal
-     * @throws Unsatisfiable if two equivalent literals get different truth values.
+     * @throws Unsatisfiable if two equivalent predicates get different truth values.
      */
     void applyTrueLiteralToEquivalences(int trueLiteral) throws Unsatisfiable {
         boolean modelChanged = true;
@@ -309,12 +309,12 @@ public class Normalizer {
 
     /** add the given clause to the corresponding index (occurrence lists).
      * <br>
-     * The lists map literals to the clauses containing the literal.<br>
+     * The lists map predicates to the clauses containing the literal.<br>
      * or- and atleast clauses are added to positiveOccAtleast and negativeOccAtleast.<br>
      * atmost-clauses are added to positiveOccAtmost and negativeOccAtmost.<br>
      * exactly- and interval-clauses are added to positiveOccInterval and negativeOccInterval.<br>
      * If the lists do not yet exist, they are created.<br>
-     * The difference lists support the identification of pure and singleton literals.
+     * The difference lists support the identification of pure and singleton predicates.
      *
      * @param clause the clause to be added.
      */
@@ -393,7 +393,7 @@ public class Normalizer {
 
 
 
-    /** searches pure literals and process them.
+    /** searches pure predicates and process them.
      * <br>
      *  A literal p is pure in clauses which are NOT interval- or exactly-clauses if it occurs either <br>
      *  - only positively or only negatively in OR- or ATLEAST-clauses or<br>
@@ -463,7 +463,7 @@ public class Normalizer {
                     addClauseToIndex(clause);}}}
     }
 
-    /** extends the model by determining the truth-value of singleton pure literals in interval- and exactly-clauses.
+    /** extends the model by determining the truth-value of singleton pure predicates in interval- and exactly-clauses.
      *
      * @throws Unsatisfiable should not happen.
      */
@@ -476,8 +476,8 @@ public class Normalizer {
                  if(clause.literals.get(j).literal == literal) {multiplicity = clause.literals.get(j).multiplicity; break;}}
              int trueLiterals = clause.trueLiterals(model::isTrue);
              if(trueLiterals + multiplicity < clause.min) {
-                 ErrorReporter.reportErrorAndStop("Normalizer.extendModel: not enough true literals in clause " +
-                         clause.toString(symboltable,0) + "\nnumber of true literals: " + (trueLiterals + multiplicity) +
+                 ErrorReporter.reportErrorAndStop("Normalizer.extendModel: not enough true predicates in clause " +
+                         clause.toString(symboltable,0) + "\nnumber of true predicates: " + (trueLiterals + multiplicity) +
                          "\nModel: " + model.toString(symboltable));}
              int trueLiteral = (trueLiterals+multiplicity <= clause.max) ? literal : -literal;
              if(monitoring) monitor.accept("Extending model with " + Symboltable.toString(trueLiteral,symboltable) +

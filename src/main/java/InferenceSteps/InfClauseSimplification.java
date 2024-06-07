@@ -1,7 +1,6 @@
 package InferenceSteps;
 
 import Datastructures.Clause;
-import Datastructures.Literal;
 import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
@@ -19,78 +18,60 @@ public class InfClauseSimplification extends InferenceStep{
     }
 
     private final int[] clauseBefore;
-    private final Clause clauseAfter;
-    private final IntArrayList derivedLiterals;
+    private final int[] clauseAfter;
 
-    public InfClauseSimplification(int[] clauseBefore, Clause clauseAfter, IntArrayList trueLiterals) {
+    public InfClauseSimplification(int[] clauseBefore, Clause clauseAfter) {
         super();
         this.clauseBefore = clauseBefore;
-        this.clauseAfter = clauseAfter;
-        this.derivedLiterals = trueLiterals;}
+        this.clauseAfter = clauseAfter == null ? null : clauseAfter.simpleClone();}
 
     @Override
     public String toString(Symboltable symboltable) {
-        return "Clause Simplification: " + Clause.toString(clauseBefore, symboltable) + " -> " + clauseAfter.toString(symboltable,0);
+        String after = clauseAfter == null ? "unsatisfiable" : Clause.toString(clauseAfter, symboltable);
+        return "Clause Simplification: " + Clause.toString(clauseBefore, symboltable) + " -> " + after;
     }
 
+    /**
+     * Verifies whether the simplified clause is a consequence of the original clause.
+     * <br>
+     * All models of the original clause must satisfy the simplified clause.
+     *
+     * @param monitor      a consumer that accepts a string message for reporting
+     * @param symboltable  the symboltable used for predicate names
+     * @return true if the simplification is sound, false otherwise
+     */
     @Override
     public boolean verify(Consumer<String> monitor, Symboltable symboltable) {
-        boolean okay = true;
-        IntArrayList literals = new IntArrayList();
-        for(int i = 5; i < clauseBefore.length; i += 2) literals.add(clauseBefore[i]);
-        int min = clauseBefore[3]; int max = clauseBefore[4];
-        int nModels = 1 << literals.size();
+        IntArrayList predicates = Clause.predicates(clauseBefore);
+        int nModels = 1 << predicates.size();
         for(int model = 0; model < nModels; model++) {
-             int trueLiterals = 0;
-             for(int i = 5; i < clauseBefore.length; i += 2) {
-                 if ((model & (i-5) & 1) == 1) trueLiterals += clauseBefore[i+1];}
-             if(min <= trueLiterals && trueLiterals <= max) { // model satisfies clauseBefore
-                 if(clauseAfter == null) {
-                     okay = false;
+            if(Clause.isTrue(clauseBefore,model))  {
+                 if(clauseAfter == null) { // must be an unsatisfiable clause
                      monitor.accept("Clause " + Clause.toString(clauseBefore,symboltable) +
-                             " is supposed to be unsatsifiable, but satisfied by " + toString(model,literals,symboltable));
+                             " is supposed to be unsatsifiable, but satisfied by " + Clause.modelString(model,predicates,symboltable));
                      continue;}
-                 int trueLits = 0;
-                 for(Object litObject : clauseAfter.literals) {
-                     Literal literalObject = (Literal) litObject;
-                     int literal = literalObject.literal;
-                     int position = literals.indexOf(literal);
-                     if((model & position) != 0) trueLits += literalObject.multiplicity;}
-                 if(!(clauseAfter.min <= trueLits && trueLits <= clauseAfter.max)) {
-                     okay = false;
-                     monitor.accept("Model "+ toString(model,literals,symboltable) + " of clause " +
+                 int fModel = model; // final
+                 if(!Clause.isTrue(clauseAfter,
+                         (literal) -> {
+                            int position = predicates.indexOf(Math.abs(literal));
+                            return ((literal > 0) ? ((fModel & (1 << position)) != 0) : ((fModel & (1 << position)) == 0));})) {
+                     monitor.accept("Model "+ Clause.modelString(model,predicates,symboltable) + " of clause " +
                              Clause.toString(clauseBefore,symboltable) + " does not satisfy simplified clause " +
-                             clauseAfter.toString(symboltable,0)+"\n");}
-                 if(derivedLiterals != null) {
-                     for(int literal : derivedLiterals) {
-                         int position = literals.indexOf(literal);
-                         if(position >= 0) {
-                             if((model & (1 << position)) == 0) {
-                                 okay = false;
-                                 monitor.accept("Model "+ toString(model,literals,symboltable) + " of clause " +
-                                         Clause.toString(clauseBefore,symboltable) + " does not satisfy derived literal " +
-                                         Symboltable.toString(literal,symboltable));}}
-                         else {
-                             position = literals.indexOf(-literal);
-                             if((model << (1 << position)) != 0) {
-                                 okay = false;
-                                 monitor.accept("Model "+ toString(model,literals,symboltable) + " of clause " +
-                                         Clause.toString(clauseBefore,symboltable) + " does not satisfy derived literal " +
-                                         Symboltable.toString(literal,symboltable));}}}}}}
-        return okay;}
+                             Clause.toString(clauseAfter,symboltable)+"\n");
+                     return false;}}}
+        return true;}
 
-    public static String toString(int model, IntArrayList literals, Symboltable symboltable) {
-        StringBuilder st = new StringBuilder();
-        for(int i = 0; i < literals.size(); i++) {
-            int literal = literals.getInt(i);
-            st.append(symboltable.toString(literal));
-            if ((model & (1 << i)) != 0) {st.append(symboltable.toString(literal));}
-            else {st.append(symboltable.toString(-literal));}
-            if(i < literals.size() - 1) st.append(",");}
-        return st.toString();}
-
+    /**
+     * Collects the inference steps culminating in this step in the list `steps`. Double occurrences are to be avoided.
+     * Additionally, it collects the inputClause ids of all clauses causing the current inference.
+     *
+     * @param steps A list for collecting the inference steps.
+     * @param ids   An IntArrayList for collecting the inputClause ids.
+     */
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
+        super.inferenceSteps(steps,ids);
+        int id = clauseBefore[0];
+        if(!ids.contains(id)) ids.add(id);}
 
-    }
 }

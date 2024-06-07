@@ -36,7 +36,7 @@ public class NMInferenceStep extends InferenceStep {
      *
      *
      * @param deducedClause The deduced clause in the inference step.
-     * @param symboltable The symbol table to use for converting literals to strings, or null.
+     * @param symboltable The symbol table to use for converting predicates to strings, or null.
      * @return The string representation of the inference step.
      */
     public String toString(Clause deducedClause, Symboltable symboltable) {
@@ -45,12 +45,12 @@ public class NMInferenceStep extends InferenceStep {
     /** Checks if the deduced clause is true in all models of the original clause.
      *
      * @param deducedClause The deduced clause to compare with.
-     * @param symboltable   The symbol table to use for converting literals to strings.
+     * @param symboltable   The symbol table to use for converting predicates to strings.
      * @param errors        The StringBuilder object to store any errors encountered during verification.
      * @return True if the clause is valid, false otherwise.
      */
     public boolean verify(Clause deducedClause, Symboltable symboltable, StringBuilder errors) {
-        IntArrayList literals = Clause.literals(clause);
+        IntArrayList literals = Clause.predicates(clause);
         int limit = 1 << (literals.size()-1);
         for(int i = 0; i <= limit; ++i) {
             int ifinal = i;
@@ -62,12 +62,12 @@ public class NMInferenceStep extends InferenceStep {
                     return false;}}}
         return true;}
 
-    /** The bits in int integer i represent a model: position 0: first literal in literals is true etc.
+    /** The bits in int integer i represent a model: position 0: first literal in predicates is true etc.
      *  The method checks if the literal is true in the given model.
      *
-     * @param i          the bits represent a model of the literals in the literals array.
+     * @param i          the bits represent a model of the predicates in the predicates array.
      * @param literal    a literal to be tested.
-     * @param literals   a list of literals.
+     * @param literals   a list of predicates.
      * @return           true if the literal is true in the model.
      */
     public boolean isTrue(int i, int literal, IntArrayList literals) {
@@ -78,7 +78,7 @@ public class NMInferenceStep extends InferenceStep {
     /** turns the model into a string
      *
      * @param i           the bits represent a model
-     * @param literals    a list of literals
+     * @param literals    a list of predicates
      * @param symboltable null or a symboltable
      * @return            the model as string.
      */

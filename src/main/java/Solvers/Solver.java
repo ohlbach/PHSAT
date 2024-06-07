@@ -212,7 +212,7 @@ public abstract class Solver {
     public Statistic getStatistics() {return null;};
 
 
-    /** This method checks if some literals are true or all literals are false in a model
+    /** This method checks if some predicates are true or all predicates are false in a model
      *
      * @param clause  a clause
      * @param model   a model

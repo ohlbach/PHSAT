@@ -134,7 +134,7 @@ public abstract class Resolution extends Solver {
      * 1. All local data are initialized <br>
      * 2. All basic clauses are transformed to clauses and distributed to the primary and secondary clause lists. <br>
      *    Equivalences are turned to equivalence classes <br>
-     *    All literals are mapped to the representatives in their classes.<br>
+     *    All predicates are mapped to the representatives in their classes.<br>
      * 3. The initial causes are put into the task queue for simplifications.<br>
      * 4. Resolution and simplification is started until <br>
      *     - a contradiction is formed or <br>
@@ -167,7 +167,7 @@ public abstract class Resolution extends Solver {
     /** the other resolution parent is chosen from both lists */
     private BucketSortedList<Clause> secondaryClauses;
 
-    /** maps literals (numbers) to their occurrences in clauses */
+    /** maps predicates (numbers) to their occurrences in clauses */
     public BucketSortedIndex<CLiteral> literalIndex;
 
     /** If the strategy is SOS, then this number determines how many randomly chosen clauses are put into the primaryClauses list */
@@ -221,7 +221,7 @@ public abstract class Resolution extends Solver {
 
     private int maxInputId = 0;
     /** This method translates all basic clauses into Clause data structures.
-     *  Equivalent literals are replaced by their representatives.
+     *  Equivalent predicates are replaced by their representatives.
      *
      * @return possibly Unsatisfiable
      * @throws InterruptedException
@@ -255,7 +255,7 @@ public abstract class Resolution extends Solver {
     private HashSet<String> clauseNames = new HashSet<>();
 
     /** performs the resolution search until a solution is found, or the number of resolvents exceeds the limit.
-     * - two parent literals are chosen. <br>
+     * - two parent predicates are chosen. <br>
      * - the resolvent is generated <br>
      * - the resolvent itself is simplified.<br>
      * - if it survives it causes forward subsumption and replacement resolution<br>
@@ -278,7 +278,7 @@ public abstract class Resolution extends Solver {
             System.out.printf("\n");
             if(checkConsistency) {
                 if(parentLiterals[0].literal != -parentLiterals[1].literal) {
-                    System.out.println("Error when selecting parent literals");
+                    System.out.println("Error when selecting parent predicates");
                     System.out.println("   "+parentLiterals[0].clause+"@"+parentLiterals[0].literal + " and");
                     System.out.println("   "+parentLiterals[1].clause+"@"+parentLiterals[1].literal );
                     System.exit(1);}}
@@ -314,16 +314,16 @@ public abstract class Resolution extends Solver {
         return result;}
 
     private HashSet<Integer> indices = new HashSet<>();
-    /** The method chooses two parent literals for the next resolution step.
+    /** The method chooses two parent predicates for the next resolution step.
      * The first parent clauses is chosen randomly from the primary clauses.<br>
      * Shorter clauses are preferred (quadratically in size) <br>
      *     <br>
-     * For the second parent clause the literals of the first parent clauses are searched for:
+     * For the second parent clause the predicates of the first parent clauses are searched for:
      *  - a shorter second parent clause <br>
      *  - a parent clause with a literal that merges with a literal in the first clause <br>
      *  - if none such clause is found, the first one complementary to the last literal in the clause is chosen.
      *
-     * @param parentLiterals to store the parent literals.
+     * @param parentLiterals to store the parent predicates.
      */
     private void selectParentLiterals(CLiteral[] parentLiterals) {
         indices.clear();
@@ -380,7 +380,7 @@ public abstract class Resolution extends Solver {
 
 
 
-    /** checks if the clause is subsumed or some of its literals can be resolved away by replacement resolution.
+    /** checks if the clause is subsumed or some of its predicates can be resolved away by replacement resolution.
      * If the clause is subsumed, it is removed from the clause lists and the literal index <br>
      *  - if the clause is in the primaryClauses and the subsumer is in the secondary clauses, <br>
      *    the subsumer is moved to the primaryClauses
@@ -389,10 +389,10 @@ public abstract class Resolution extends Solver {
      *      p,q,r<br>
      *      -p,r <br>
      *    p in the first clause can be removed. <br>
-     *    In more complex examples, several literals can be removed at once.<br>
+     *    In more complex examples, several predicates can be removed at once.<br>
      *    If the resulting clause is a unit clause, it generates a importTrueLiteral task.
      *    <br>
-     *    Removing clauses may produce pure literals, whose negation can be made true and therefore
+     *    Removing clauses may produce pure predicates, whose negation can be made true and therefore
      *    generates a importTrueLiteral task.<br>
      *  - Shortened clauses may trigger forward subsumptions and forward replacement resolutions.
      *    Therefore thy generate a corresponding task.
@@ -414,7 +414,7 @@ public abstract class Resolution extends Solver {
         timestamp += maxClauseLength +1;
         Object[] replacements = LitAlgorithms.replacementResolutionBackwards(clause,literalIndex,timestamp);
 
-        while(replacements != null) { // several literals may become resolved away
+        while(replacements != null) { // several predicates may become resolved away
              CLiteral cLiteral = (CLiteral)replacements[0];
             ++statistics.backwardReplacementResolutions;
             if(monitoring) {
@@ -491,7 +491,7 @@ public abstract class Resolution extends Solver {
 
     /** computes the consequences of a new true literal
      * - all clauses with this literal are removed <br>
-     * - pure literals cause new true literals <br>
+     * - pure predicates cause new true predicates <br>
      * - all occurrences of the negated literal are removed<br>
      * - for each shortened clause which became a unit clause, a new task is created.<br>
      * - if the primary clauses became empty, the model is completed
@@ -690,7 +690,7 @@ public abstract class Resolution extends Solver {
             removeClause(clause,0);
             return false;}
         if(isOld) {
-            for(CLiteral cliteral : clause) literalIndex.add(cliteral); // literals are inserted into different buckets
+            for(CLiteral cliteral : clause) literalIndex.add(cliteral); // predicates are inserted into different buckets
             switch(strategy) {
                 case INPUT:
                 case SOS:      primaryClauses.add(clause); break;
@@ -758,7 +758,7 @@ public abstract class Resolution extends Solver {
 
     /** This method replaces all occurrences of fromLiteral by toLiteral.
      *  Generated tautologies are ignored.<br>
-     *  Double literals are avoided. <br>
+     *  Double predicates are avoided. <br>
      *  The new clauses are backwards simplified.
      *
      * @param fromLiteral antecedent
@@ -774,11 +774,11 @@ public abstract class Resolution extends Solver {
             return null;} //new Unsatisfiable(null,null);} //model,toLiteral);}
         if(fromStatus != 0) {
             addTrueLiteralTask((fromStatus == 1 ? toLiteral : -toLiteral),true,
-                    "equivalent literals " + fromLiteral + " " + toLiteral);
+                    "equivalent predicates " + fromLiteral + " " + toLiteral);
             return null;}
         if(toStatus != 0) {
             addTrueLiteralTask((toStatus == 1 ? fromLiteral : -fromLiteral),true,
-                    "equivalent literals " + fromLiteral + " " + toLiteral);
+                    "equivalent predicates " + fromLiteral + " " + toLiteral);
             return null;}
         replacedClauses.clear();
         for(CLiteral cliteral : literalIndex.getAllItems(fromLiteral)) {

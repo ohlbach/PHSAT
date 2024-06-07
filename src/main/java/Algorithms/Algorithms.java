@@ -18,16 +18,16 @@ public class Algorithms {
 */
     /** checks if the clause can be subsumed.
      *
-     * @param literals       the clause to be checked
+     * @param predicates       the clause to be checked
      * @param literalIndex   the literal index
      * @param implicationDAG the implication DAG
      * @return               a subsumer clause or null
      */
-  /*  public static Clause subsumed(ArrayList<CLiteral<Clause>> literals, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
-        int size = literals.size();
+  /*  public static Clause subsumed(ArrayList<CLiteral<Clause>> predicates, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
+        int size = predicates.size();
         int timestamp = literalIndex.timestamp + 1;
         literalIndex.timestamp += size+2;
-        for(CLiteral cliteral : literals) {
+        for(CLiteral cliteral : predicates) {
             Clause subsumer = (Clause)
                 implicationDAG.find(cliteral.literal,false,
                     (literal -> {
@@ -47,7 +47,7 @@ public class Algorithms {
     private static int[] dummy = new int[]{0};
 
     /** performs replacement resolution at the clause, by using the implicationDAG
-     * All literals which can be resolved away by replacement resolution are removed from the clause.
+     * All predicates which can be resolved away by replacement resolution are removed from the clause.
      * Therefore the clause is assumed not yet to be part of a clause list and the literal index.
      *
      * @param clause         the clause to be checked
@@ -106,12 +106,12 @@ public class Algorithms {
         return subsumed.isEmpty() ? null : subsumed;}*/
 
 
-    /** finds all literals for replacement resolution with the given clause(with the implication graph).<br>
+    /** finds all predicates for replacement resolution with the given clause(with the implication graph).<br>
      *
      * @param clause           the clause which operates on the other clauses
      * @param literalIndex     the literal index
      * @param implicationDAG the implication graph
-     * @return the literals to be resolved, or null if there are none.
+     * @return the predicates to be resolved, or null if there are none.
      */
     /*public static ArrayList<CLiteral<Clause>> resolve(Clause clause, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
         int size = clause.size();
@@ -178,7 +178,7 @@ public class Algorithms {
      * @param to         the succedent or the implication
      * @param literalIndex     the literal index
      * @param implicationDAG  the implication DAG
-     * @return  null or [subsumption clauses (ArrayList, resolution literals (TreeSet)}
+     * @return  null or [subsumption clauses (ArrayList, resolution predicates (TreeSet)}
      */
     /*public static Object[] simplifyWithImplication(int from, int to, LiteralIndex<Clause> literalIndex, ImplicationDAG implicationDAG) {
         ArrayList<Clause> subsumed = new ArrayList<>();

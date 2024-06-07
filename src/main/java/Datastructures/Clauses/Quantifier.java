@@ -11,13 +11,13 @@ public enum Quantifier {
     AND("&","&",2),
     /** equivalence of predicates */
     EQUIV("e","=",2),
-    /** atleast connective, example: >= 2 p,q,r,s  (atleast 2 of the literals must be true) */
+    /** atleast connective, example: >= 2 p,q,r,s  (atleast 2 of the predicates must be true) */
     ATLEAST(">=", ",", 3),
-    /** atmost connective, example: &lt;= 2 p,q,r,s  (atmost 2 of the literals are true) */
+    /** atmost connective, example: &lt;= 2 p,q,r,s  (atmost 2 of the predicates are true) */
     ATMOST("<=", ",",3),
-    /** exactly connective, example: = 2 p,q,r,s  (exactly 2 of the literals must be true) */
+    /** exactly connective, example: = 2 p,q,r,s  (exactly 2 of the predicates must be true) */
     EXACTLY("=", ",",3),
-    /** interval connective, example: [2,4] p,q,r,s  (between 2 and 4 literals must be true) */
+    /** interval connective, example: [2,4] p,q,r,s  (between 2 and 4 predicates must be true) */
     INTERVAL("i",",",4);
 
     /** to be used in the input clauses. */
@@ -31,7 +31,7 @@ public enum Quantifier {
      *
      * @param abbreviation      to be used in the input clauses.
      * @param separator         to be used for printing the clauses.
-     * @param firstLiteralIndex the first index of the literals in the InputClauses int[]-arrays.
+     * @param firstLiteralIndex the first index of the predicates in the InputClauses int[]-arrays.
      */
     Quantifier(String abbreviation, String separator, int firstLiteralIndex) {
         this.abbreviation = abbreviation;

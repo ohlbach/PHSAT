@@ -50,7 +50,7 @@ public class Literal<Clause> extends LinkedItem {
         return newLiteral;}
 
     /**
-     * Returns the index of the first occurrence of the given literal in the list of literals.
+     * Returns the index of the first occurrence of the given literal in the list of predicates.
      *
      * @param literals the list of Literal-objects.
      * @param literal  the literal to search for.
@@ -62,11 +62,11 @@ public class Literal<Clause> extends LinkedItem {
             if(literalObject.literal == literal) return i;}
         return -1;}
 
-    /** turns the list of literals into a string of literal names or numbers.
+    /** turns the list of predicates into a string of literal names or numbers.
      *
-     * @param literals    a list of literals.
+     * @param literals    a list of predicates.
      * @param symboltable null or a symbol table.
-     * @return the literals as a string of names or numbers.
+     * @return the predicates as a string of names or numbers.
      */
     public String toString(ArrayList<Literal<Clause>> literals, Symboltable symboltable) {
         if(literals == null || literals.isEmpty()) return "";

@@ -217,8 +217,8 @@ public abstract class ProblemGenerator {
 
     /** parses an or-clause, generates an InputClause and fills up the symboltable, if necessary.
      * If the symboltable is null, then the clause must consist of non-null integers.<br>
-     * If the symboltable is not null, then the literals can be arbitrary strings. <br>
-     * Negative literals are indicated by a preceding -.
+     * If the symboltable is not null, then the predicates can be arbitrary strings. <br>
+     * Negative predicates are indicated by a preceding -.
      *
      * @param line        the line to be parsed.
      * @param id          the identifier for the clause.
@@ -241,8 +241,8 @@ public abstract class ProblemGenerator {
 
     /** parses an and- and an equiv-clause, generates an InputClause and fills up the symboltable, if necessary.
      * If the symboltable is null, then the clause must consist of non-null integers.<br>
-     * If the symboltable is not null, then the literals can be arbitrary strings. <br>
-     * Negative literals are indicated by a preceding -.
+     * If the symboltable is not null, then the predicates can be arbitrary strings. <br>
+     * Negative predicates are indicated by a preceding -.
      *
      * @param line        the line to be parsed.
      * @param id          the identifier for the new clause.
@@ -267,8 +267,8 @@ public abstract class ProblemGenerator {
 
     /** parses a clause with a quantification (atleast, atmost, exactly), generates an InputClause and fills up the symboltable, if necessary.
      * If the symboltable is null, then the clause must consist of non-null integers.<br>
-     * If the symboltable is not null, then the literals can be arbitrary strings. <br>
-     * Negative literals are indicated by a preceding -.
+     * If the symboltable is not null, then the predicates can be arbitrary strings. <br>
+     * Negative predicates are indicated by a preceding -.
      *
      * @param line        the line to be parsed.
      * @param id          the identifier for the new clause.
@@ -299,8 +299,8 @@ public abstract class ProblemGenerator {
 
     /** parses a line with an interval connective, generates an InputClause and fills up the symboltable, if necessary.
      * If the symboltable is null, then the clause must consist of non-null integers.<br>
-     * If the symboltable is not null, then the literals can be arbitrary strings. <br>
-     * Negative literals are indicated by a preceding -.
+     * If the symboltable is not null, then the predicates can be arbitrary strings. <br>
+     * Negative predicates are indicated by a preceding -.
      *
      * @param line        the line to be parsed
      * @param id          the identifier for the new clause
@@ -342,11 +342,11 @@ public abstract class ProblemGenerator {
 
 
 
-    /** parses the literal-part of a clause line, fills up inputClause with literals, and extends the symboltable.
+    /** parses the literal-part of a clause line, fills up inputClause with predicates, and extends the symboltable.
      *
      * @param clause              the clause-line, split by , or blank.
-     * @param startIndex          where the literals start.
-     * @param inputClause         where to put the parsed literals into.
+     * @param startIndex          where the predicates start.
+     * @param inputClause         where to put the parsed predicates into.
      * @param startIndexClause    start index of the inputClause.
      * @param symboltable         a symboltable or null.
      * @param errorPrefix a prefix for the error messages
@@ -368,7 +368,7 @@ public abstract class ProblemGenerator {
                         errors.append(errorPrefix).append("Predicate 0 is not allowed.\n");
                         okay = false; continue;}
                     else {inputClause[startIndexClause++] = literal; continue;}}
-                else {errors.append(errorPrefix).append("Mixing symbolic an alphanumeric literals is not allowed.\n");
+                else {errors.append(errorPrefix).append("Mixing symbolic an alphanumeric predicates is not allowed.\n");
                     okay = false; startIndexClause++;continue;}}
 
             int sign = 1;

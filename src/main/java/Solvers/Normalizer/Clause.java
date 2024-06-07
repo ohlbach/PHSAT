@@ -34,7 +34,7 @@ public class Clause extends Datastructures.Clause<Literal> {
 
 
     /** Creates a Clause object from the given input clause.
-     * Multiple occurrences of literals are comprised into one occurrence with corresponding multiplicities.<br>
+     * Multiple occurrences of predicates are comprised into one occurrence with corresponding multiplicities.<br>
      * The clause's quantifier is optimized to represent the most specific Quantifier.
      *
      * @param inputClause the input clause.
@@ -65,7 +65,7 @@ public class Clause extends Datastructures.Clause<Literal> {
      * @param isTrue indicates whether the literal is true or false.
      * @param trackReasoning Indicates whether reasoning steps should be tracked.
      * @param monitor The monitor used for printing information.
-     * @param symboltable The symbol table used for converting literals to strings.
+     * @param symboltable The symbol table used for converting predicates to strings.
      * @return +1 if the clause can be removed, -1 if the clause became false, and 0 otherwise.
      */
     int applyTrueLiteral(int literal, boolean isTrue, boolean trackReasoning, Consumer<String> monitor,
@@ -132,10 +132,10 @@ public class Clause extends Datastructures.Clause<Literal> {
                         toString(symboltable,0));}
         return simplify(trackReasoning,literalRemover,reportTruth, monitor,symboltable);}
 
-    /** counts the number of true literals in the clause
+    /** counts the number of true predicates in the clause
      *
      * @param model maps a literal to true/false
-     * @return the number of true literals in the clause.
+     * @return the number of true predicates in the clause.
      */
     public int trueLiterals(IntPredicate model) {
         int trueLiterals = 0;
@@ -146,7 +146,7 @@ public class Clause extends Datastructures.Clause<Literal> {
 
 
     /**
-     * Checks the expanded size of the clause by summing the multiplicities of the literals.
+     * Checks the expanded size of the clause by summing the multiplicities of the predicates.
      * If the calculated size is different from the stored expanded size, it returns the calculated size.
      * Otherwise, it returns -1.
      *

@@ -46,10 +46,10 @@ public class ResolutionTest {
 
     private static int counter = 1;
 
-    private Clause make(int... literals) {
-        Clause cl = new Clause(counter++, ClauseType.OR, literals.length);
+    private Clause make(int... predicates) {
+        Clause cl = new Clause(counter++, ClauseType.OR, predicates.length);
         int i = -1;
-        for(int l:literals) {
+        for(int l:predicates) {
             cl.add(new CLiteral(l,cl,++i));}
         return cl;}
 

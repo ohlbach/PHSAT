@@ -95,9 +95,9 @@ public class Symboltable {
         return (symboltable == null || !symboltable.symbolic) ?
                 Integer.toString(literal) : symboltable.toString(literal); }
 
-    /** Turns a list of literals into a comma separated string of literal names.
+    /** Turns a list of predicates into a comma separated string of literal names.
      *
-     * @param literals    a list of literals
+     * @param literals    a list of predicates
      * @param symboltable null or a symboltable
      * @return the list as string
      */
@@ -106,9 +106,9 @@ public class Symboltable {
 
 
 
-    /** The method turns a list of literals into a separator separated string of literal names.
+    /** The method turns a list of predicates into a separator separated string of literal names.
      *
-     * @param literals    a list of literals
+     * @param literals    a list of predicates
      * @param separator   a string
      * @param symboltable null or a symboltable
      * @return the list as string

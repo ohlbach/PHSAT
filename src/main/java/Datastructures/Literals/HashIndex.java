@@ -6,10 +6,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.function.Consumer;
 
-/** This class maps literals to an ArrayList of CLiterals (Literal occurrences in clauses)  */
+/** This class maps predicates to an ArrayList of CLiterals (Literal occurrences in clauses)  */
 public class HashIndex {
 
-    /** maps literals to an ArrayList of CLiterals */
+    /** maps predicates to an ArrayList of CLiterals */
     public HashMap<Integer, ArrayList<CLiteral>> hashIndex = new HashMap<>();
 
     /** adds a CLiteral to the index

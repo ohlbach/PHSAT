@@ -20,7 +20,7 @@ import java.util.function.IntUnaryOperator;
 
 /** A clause is primarily a list of CLiterals.
  * OR-Clauses and ATLEAST-clauses have an addition parameter limit:<br>
- * 2:p,q,r  means atleast 2 literals must be true in order to make the clause true.<br>
+ * 2:p,q,r  means atleast 2 predicates must be true in order to make the clause true.<br>
  * Multiple occurrences of the same literal in a clause are represented by the
  * parameter multiplicity in CLiterals.
  *
@@ -40,7 +40,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** the right limit of the quantification interval */
     public short maxLimit = 0;
 
-    /** the literals */
+    /** the predicates */
     public ArrayList<CLiteral> cliterals;
 
     /** indicates that the clause has been removed */
@@ -67,11 +67,11 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
        // inferenceStep = new InfInputClause(id);
     }
 
-    /** constructs a clause with an empty list of literals.
+    /** constructs a clause with an empty list of predicates.
      *
      * @param id       the clause problemId
      * @param minLimit    the quantification limit
-     * @param size     the estimated number of literals
+     * @param size     the estimated number of predicates
      */
     public Clause(int id, Quantifier quantifier, short minLimit, int size) {
         this.id = id;
@@ -81,12 +81,12 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
        // inferenceStep = new InfInputClause(id);
     }
 
-    /** constructs a new clause with given literals
+    /** constructs a new clause with given predicates
      *
      * @param id         the id of the new clause
      * @param quantifier the connective for the clause
      * @param minLimit      the quantification limit
-     * @param literals   the list of literals
+     * @param literals   the list of predicates
      */
     public Clause(int id, Quantifier quantifier, short minLimit, IntArrayList literals)   {
         assert quantifier != Quantifier.OR || minLimit == 1;
@@ -104,7 +104,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * The new clause gets the same id as the basic clause.<br>
      * There is no semantic check.<br>
      * That means the limits must be okay (checked in BasicClauseList),<br>
-     * and there msy still be multiple literals and tautologies in the clause.<br>
+     * and there msy still be multiple predicates and tautologies in the clause.<br>
      * The limit of clauses where there is no limit (AND, EQUIV) is set to -1 <br>
      * Atmost-clauses like atmost 2 p,q,r are transformed into atleast 1 -p,-q,-r.<br>
      * Atleast-clauses like atleast 3 p,q,r are transformed into and p,q,r<br>
@@ -133,11 +133,11 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         cliterals = new ArrayList<>(length - start);
         for (int i = start; i < length; ++i) add(inputClause[i],(short)1);}
 
-    /** creates a new clause with the given literals
+    /** creates a new clause with the given predicates
      * The constructor does not work for INTERVAL-type basic clauses.<br>
      * There is no semantic check.<br>
      * That means the limits must be okay (checked in BasicClauseList),<br>
-     * and there msy still be multiple literals and tautologies in the clause.<br>
+     * and there msy still be multiple predicates and tautologies in the clause.<br>
      * The limit of clauses where there is no limit (AND, EQUIV) is set to -1 <br>
      * Atmost-clauses like atmost 2 p,q,r are transformed into atleast 1 -p,-q,-r.<br>
      * Atleast-clauses like atleast 3 p,q,r are transformed into and p,q,r<br>
@@ -146,7 +146,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      *
      * @param id         the new id
      * @param quantifier the clause's type (no INTERVAL-type)
-     * @param literals   [limit] a list of literals
+     * @param literals   [limit] a list of predicates
      */
     public Clause(int id, Quantifier quantifier, int... literals) {
         this.id = id;
@@ -301,8 +301,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         return new DiophantineEquation(multiplicities, singletons, minLimit);
     }
 
-    /** checks if the clause implies true literals.
-     * Example: atleast 4: p^2,q^2,r enforces p and q to be true in order to get enough true literals
+    /** checks if the clause implies true predicates.
+     * Example: atleast 4: p^2,q^2,r enforces p and q to be true in order to get enough true predicates
       *
      * @param andId      an id for the new and-clause (if negative then the clauses need not be copied)
      * @param eq      the diophantine equation which investigated the satisfiability of the clause
@@ -325,7 +325,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
 
 
     /** creates a clone of the clause.
-     * Only the literals themselves are cloned
+     * Only the predicates themselves are cloned
      *
      * @param id the identifier for the new clone
      * @return the new clone
@@ -434,7 +434,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     private final IntArrayList removedTrueLiterals  = new IntArrayList(3);
     private final IntArrayList removedFalseLiterals = new IntArrayList(3);
 
-    /** replaces all true and false literals in the clause.
+    /** replaces all true and false predicates in the clause.
      * If nextId != null then the replacements is done on a clone of the clause, otherwise on the clause itself.<br>
      * The clause may become a tautology or contradictory.<br>
      * In both cases the structure of the clause is set accordingly<br>
@@ -471,8 +471,8 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
 
     private final IntArrayList complementaryLiterals = new IntArrayList();
 
-    /** removes complementary literals from the clause.
-     * If nextId != null then the clause is cloned before the literals are removed.
+    /** removes complementary predicates from the clause.
+     * If nextId != null then the clause is cloned before the predicates are removed.
      * If the limit is reduced to 0 then the clause is marked as TAUTOLOGY
      *
      * @param nextId  null or a supplier for clause ids
@@ -526,7 +526,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         clause.setPositiveNegative();
     return clause;}
 
-    /** extracts OR-Clauses from the literals with multiplicities > 1.
+    /** extracts OR-Clauses from the predicates with multiplicities > 1.
      * Example: atleast 3 pp,qq,r<br>
      * Since there is only one r, atleast 2 pp,qq must hold <br>
      * This is turned into CNF and gets just p,q
@@ -554,9 +554,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         return clauses;}
 
 
-    /** copies the literals of the clause to an IntArrayList
+    /** copies the predicates of the clause to an IntArrayList
      *
-     * @return the literals as IntArrayList
+     * @return the predicates as IntArrayList
      */
     public IntArrayList toArray() {
         IntArrayList list = new IntArrayList(cliterals.size());
@@ -565,9 +565,9 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         return list;}
 
 
-    /** return the current number of literals
+    /** return the current number of predicates
      *
-     * @return the current number of literals */
+     * @return the current number of predicates */
     public int size() {
         return cliterals.size();}
 
@@ -577,7 +577,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     public boolean isEmpty() {
         return cliterals.isEmpty();}
 
-    /** computes the expanded size of the clause, with all multiple occurrences of literals counted
+    /** computes the expanded size of the clause, with all multiple occurrences of predicates counted
      *
      * @return  the expanded size of the clause
      */
@@ -591,7 +591,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
      * If the limit is too large: CONTRADICTORY<br>
      * If the limit is 0: TAUTOLOGY,<br>
      * If the limit is the clause's size then the connective is changed to AND, and the limit to -1<br>
-     * otherwise if the clause has only positive literals (POSITIVE) or only negative literals (NEGATIVE)
+     * otherwise if the clause has only positive predicates (POSITIVE) or only negative predicates (NEGATIVE)
      * or mixed signs (MIXED)
      *
      * @return the corresponding value for the structure.
@@ -620,16 +620,16 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         listPosition = position;}
 
 
-    /** checks if the clause has only positive literals
+    /** checks if the clause has only positive predicates
      *
-     * @return true if the clause has only positive literals */
+     * @return true if the clause has only positive predicates */
     public boolean isPositive() {
         return structure == ClauseStructure.POSITIVE;
     }
 
-    /** checks if the clause has only negative literals
+    /** checks if the clause has only negative predicates
      *
-     * @return true if the clause has only negative literals. */
+     * @return true if the clause has only negative predicates. */
     public boolean isNegative() {
         return structure == ClauseStructure.NEGATIVE;
     }
@@ -653,7 +653,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
 
     /** converts the cLiterals into an array of integers
      *
-     * @return the literals as integers. */
+     * @return the predicates as integers. */
     public int[] getLiterals() {
         int size = cliterals.size();
         int[] literals = new int[size];
@@ -671,7 +671,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
     /** checks if the literal is in the clause
      *
      * @param literal a literal
-     * @param end     where the iteration over the literals stops
+     * @param end     where the iteration over the predicates stops
      * @return +1: the literal is in the clause, -1: the negated literal is in the clause, otherwise 0
      */
     public int contains(int literal, int end) {
@@ -681,7 +681,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if (lit == -literal) {return -1;}}
         return 0;}
 
-    /** adds a cliteral to the end of the clause, without checking for double literals and tautologies.
+    /** adds a cliteral to the end of the clause, without checking for double predicates and tautologies.
      *
      * @param cliteral the literal to be added.
      */
@@ -765,10 +765,10 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(lit == -literal) {return -1;}}
         return 0;}
 
-    /** checks if the literals in this occur in clause2
+    /** checks if the predicates in this occur in clause2
      *
      * @param clause2 any other clause
-     * @return true if the literals in this also occur in clause2
+     * @return true if the predicates in this also occur in clause2
      */
     public boolean isSubset(Clause clause2) {
         if(minLimit < clause2.minLimit) return false;
@@ -776,18 +776,18 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(clause2.contains(cl.literal) <= 0) {return false;}}
         return true;}
 
-    /** checks if the clause has double literals
+    /** checks if the clause has double predicates
      *
-     * @return true if the clause has double literals.
+     * @return true if the clause has double predicates.
      */
     public boolean hasDoubles() {
         for(CLiteral cLiteral : cliterals) {
             if(cLiteral.multiplicity > 1) return true;}
         return false;}
 
-    /** checks if the clause has complementary literals, e.g. p and -p
+    /** checks if the clause has complementary predicates, e.g. p and -p
      *
-     * @return true if the clause has complementary literals.
+     * @return true if the clause has complementary predicates.
      */
     public boolean hasComplementaries() {
         int size = cliterals.size();
@@ -838,25 +838,25 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             width = Math.max(width,clause.getName().length());}
         return width;}
 
-    /** generates a string: clause-number: literals
+    /** generates a string: clause-number: predicates
      *
-     * @return a string: clause-number: literals
+     * @return a string: clause-number: predicates
      */
     public String toString() {
         return toString(0,null);}
 
-    /** generates a string: clause-number: literals
+    /** generates a string: clause-number: predicates
      *
-     * @return a string: clause-number: literals
+     * @return a string: clause-number: predicates
      */
     public String toNumbers() {
         return toString(0,null);}
 
-    /** generates a string: clause-number: literals
+    /** generates a string: clause-number: predicates
      *
      * @param width: 0 or the width of the id-part.
      * @param symboltable for mapping numbers to names
-     * @return a string: clause-number: literals
+     * @return a string: clause-number: predicates
      */
     public String toString(int width, Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
@@ -878,7 +878,7 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
             if(position < size-1) {st.append(quantifier.separator);}}
         return st.toString();}
 
-    /** generates a string: clause-number: literals [origins]
+    /** generates a string: clause-number: predicates [origins]
      *
      * @param width       0 or the width of the id-part.
      * @param symboltable null or for mapping numbers to names
@@ -888,16 +888,16 @@ public class Clause implements Iterable<CLiteral>, Positioned, Sizable {
         String st = toString(width,symboltable);
         return st;}
 
-    /** gets an iterator over the literals
+    /** gets an iterator over the predicates
      *
-     * @return the iterator over the literals
+     * @return the iterator over the predicates
      */
     @Override
     public Iterator<CLiteral> iterator() {
         return cliterals.iterator();}
 
 
-    /** checks the clause and its literals for consistency.
+    /** checks the clause and its predicates for consistency.
      * Error messages are put into the StringBuilder
      *
      * @return true if the clause is okay

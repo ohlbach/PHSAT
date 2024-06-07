@@ -26,11 +26,11 @@ import java.util.function.IntSupplier;
  * The connectives are: <br>
  * '0': means disjunction:  '10 0 3 5'      means 1 or 3 or 5.<br>
  * '1': means and:          '11 1 4 5'      means 3 and 4 and 5.<br>
- * '2': means equivalences: '12 2 5 -6'     means that these three literals are equivalent. <br>
+ * '2': means equivalences: '12 2 5 -6'     means that these three predicates are equivalent. <br>
  * '4': means atleast:      '13 3 4 5 6'    means atleast 2 of 4,5,6 are true. <br>
  * '5': means atmost:       '14 4 4 5 6'    means atmost 2 of 4,5,6 are true. <br>
  * '6': means exactly:      '15 5 4 5 6'    means exactly 2 of 4,5,6 are true.<br>
- * '3': means interval      '16 6 2 3 5 6 7 8 means between 2 and 3 literals among 5,6,7,8 are true.<br>
+ * '3': means interval      '16 6 2 3 5 6 7 8 means between 2 and 3 predicates among 5,6,7,8 are true.<br>
  */
 public class InputClauses {
     private static final int cOr       = Quantifier.OR.ordinal();
@@ -55,7 +55,7 @@ public class InputClauses {
     /** the next free number to be used as identifier for a clause. */
     public int nextId = 0;
 
-    /** the number of literals in the largest clause.*/
+    /** the number of predicates in the largest clause.*/
     public int maxClauseLength;
 
     /** the original disjunctions. */
@@ -125,11 +125,11 @@ public class InputClauses {
                 case EXACTLY:  exactlys.add(clause);     maxClauseLength = Math.max(maxClauseLength,length-1);  break;}}
     }
 
-    /** checks if the clause has double literals
+    /** checks if the clause has double predicates
      *
      * @param clause a clause
      * @param start the start index of the literal section
-     * @return true if there are double literals in the clause.
+     * @return true if there are double predicates in the clause.
      */
     public static boolean hadDoubles(int[] clause, int start) {
         int length = clause.length;
@@ -317,7 +317,7 @@ public class InputClauses {
         return falseClauses;}
 
 
-    /** computes for a possibly partial model the minimum and maximum of true literals in the clause.
+    /** computes for a possibly partial model the minimum and maximum of true predicates in the clause.
      * <br>
      * The two values are put into the minmax-array.<br>
      * An undefined truth value is potentially true.
@@ -341,10 +341,10 @@ public class InputClauses {
                     if(found) ++trueLiterals; else ++undefinedLiterals;}}
         minmax[0] = trueLiterals; minmax[1] = trueLiterals+undefinedLiterals;}
 
-    /** returns the number of literals in the clause (multiple occurrences are counted separately)
+    /** returns the number of predicates in the clause (multiple occurrences are counted separately)
      *
      * @param clause an inputClause
-     * @return the number of literals in the clause
+     * @return the number of predicates in the clause
      */
     int size(int[] clause) {
         return clause.length - Quantifier.getQuantifier(clause[1]).firstLiteralIndex;
@@ -354,7 +354,7 @@ public class InputClauses {
      *  This indicates that something went terribly wrong.
      *  If the model is partial, clauses whose truth value is not determined are not listed.
      *
-     * @param model a model for the literals of the clause.
+     * @param model a model for the predicates of the clause.
      * @return null or a list of false clauses.
      */
     public ArrayList<int[]> falseClausesInModel(Model model) {
@@ -373,7 +373,7 @@ public class InputClauses {
     /** computes lists of clauses which are false in a model and wich are undefined in the model.
      *  This indicates that something went terribly wrong.
      *
-     * @param model a model for the literals of the clause.
+     * @param model a model for the predicates of the clause.
      * @return null or [falseClauses,undefinedClauses]
      */
     public ArrayList<int[]>[] criticalClausesInModel(Model model) {
@@ -411,10 +411,10 @@ public class InputClauses {
             new ArrayList[]{falseClauses,undefinedClauses};}
 
 
-    /** checks if the clause contains literals p,-p.
+    /** checks if the clause contains predicates p,-p.
      *
      * @param clause an and-, or-, equiv-clause.
-     * @return true if the clause does not contain literals p,-p.
+     * @return true if the clause does not contain predicates p,-p.
      */
     public static boolean containsComplementaryLiterals(int[] clause) {
         assert clause[1] <= 2;  // and-, or-, equiv- clauses
@@ -459,12 +459,12 @@ public class InputClauses {
      *
      * @param clause a disjunctive clause.
      * @param model a model.
-     * @return true if all literals are either false or undefined in the model and the clause is not a tautology.
+     * @return true if all predicates are either false or undefined in the model and the clause is not a tautology.
      */
     public static boolean disjunctionIsFalse(int[] clause, Model model) {
         assert Quantifier.getQuantifier(clause[1]) == Quantifier.OR;
         for(int i = 2; i < clause.length; ++i) {if(model.isTrue(clause[i])) {return false;}}
-        if(model.isComplete()) return true; // there can't be complementary literals
+        if(model.isComplete()) return true; // there can't be complementary predicates
         return containsComplementaryLiterals(clause);} // p or -p is always true
 
     /** determines the truth status of a disjunction: +1 = true, -1 = false, 0 = undecided.
@@ -518,7 +518,7 @@ public class InputClauses {
      *
      * @param clause an equivalence clause.
      * @param model a model.
-     * @return true if not either all literals are true or all literals are false in the model.
+     * @return true if not either all predicates are true or all predicates are false in the model.
      */
     public static boolean equivalenceIsFalse(int[] clause, Model model) {
         assert Quantifier.getQuantifier(clause[1]) == Quantifier.EQUIV;
@@ -557,7 +557,7 @@ public class InputClauses {
      *
      * @param clause an atleast clause  [id,type,n,literal1,...].
      * @param model a model.
-     * @return true if not atleast n literals are true in the model.
+     * @return true if not atleast n predicates are true in the model.
      */
     public static boolean quantifiedIsFalse(int[] clause, Model model) {
         int n = clause[2];
@@ -607,7 +607,7 @@ public class InputClauses {
          *
          * @param clause an interval clause  [id,type,min,max,literal1,...].
          * @param model a model.
-         * @return true if not between min and max literals are true in the model.
+         * @return true if not between min and max predicates are true in the model.
          */
     public static boolean intervalIsFalse(int[] clause, Model model) {
         assert Quantifier.getQuantifier(clause[1]) == Quantifier.INTERVAL;

@@ -232,7 +232,7 @@ public class CNFTransformerTest extends TestCase {
 
     }
     public void testRedundancies() {
-        System.out.println("multiple literals");
+        System.out.println("multiple predicates");
         int[] ids = new int[]{9};
         CNFTransformer cnf = new CNFTransformer(() -> ++ids[0]);
         int[] clause = new int[]{10, cInterval, 2, 3, 1, 2, 3,4,5};

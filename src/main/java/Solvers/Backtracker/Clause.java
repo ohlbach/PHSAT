@@ -34,7 +34,7 @@ public class Clause extends Datastructures.Clause<Literal>{
         assert literalObject.clause == this;
         super.removeLiteralAtPosition(literals.indexOf(literalObject), isTrue);}
 
-    /** Removes a (false) literal from a disjunction (with atleast two literals)
+    /** Removes a (false) literal from a disjunction (with atleast two predicates)
      *
      * @return true if the resulting clause is a unit clause.
      */

@@ -18,7 +18,7 @@ public class LitAlgorithms {
     /** This method checks if the given subsumee is subsumed by some other subsumee in the literal index
      *
      * @param subsumee        the subsumee to be checked
-     * @param literalIndex  the index mapping literals to occurrences in clauses
+     * @param literalIndex  the index mapping predicates to occurrences in clauses
      * @param timestamp     an incremented timestamp
      * @return              either a subsumer, or null
      */
@@ -51,7 +51,7 @@ public class LitAlgorithms {
     /** This method searches all clauses in the literal index which are subsumed by the given subsumer
      *
      * @param subsumer     the subsumer clause
-     * @param literalIndex an index mapping literals to occurrences in clauses
+     * @param literalIndex an index mapping predicates to occurrences in clauses
      * @param timestamp    an incremented timestamp
      * @param subsumed     collects all subsumed clauses
      */
@@ -86,7 +86,7 @@ public class LitAlgorithms {
     /** This method checks if a literal in the given clause can be removed by replacement resolution with another clause in the literal index.
      *
      * @param clause        the clause to be checked
-     * @param literalIndex  the index mapping literals to occurrences in clauses
+     * @param literalIndex  the index mapping predicates to occurrences in clauses
      * @param timestamp     an incremented timestamp
      * @return              [cLiteral,otherClause], or null
      */
@@ -114,10 +114,10 @@ public class LitAlgorithms {
             literalIndex.pushIterator(literal,iterator);}
         return null;}
 
-    /** This method searches literals in other clauses to be removed by replacement resolution with the given clause.
+    /** This method searches predicates in other clauses to be removed by replacement resolution with the given clause.
      *
      * @param clause        the clause to be checked
-     * @param literalIndex  the index mapping literals to occurrences in clauses
+     * @param literalIndex  the index mapping predicates to occurrences in clauses
      * @param timestamp     an incremented timestamp
      * @param resolvents    a list of cLiterals to be removed.
      */
@@ -147,7 +147,7 @@ public class LitAlgorithms {
                     otherClause.timestamp = 0;}}
             literalIndex.pushIterator(literal,iterator);}}
 
-    /** The method checks if the given literal or its negation are in the literals
+    /** The method checks if the given literal or its negation are in the predicates
      *
      * @param cLiterals a list of CLiterals
      * @param literal   a literal
@@ -160,8 +160,8 @@ public class LitAlgorithms {
             if(lit == -literal) {return -1;}}
         return 0;}
 
-    /** This method generates a resolvent with the given resolution literals.
-     *  Double literals are avoided. A tautology is not generated.
+    /** This method generates a resolvent with the given resolution predicates.
+     *  Double predicates are avoided. A tautology is not generated.
      *
      * @param literal1 the first parent literal
      * @param literal2 the second parent literal
@@ -196,7 +196,7 @@ public class LitAlgorithms {
         int level = 0;
         for(CLiteral cliteral : clause) {
             int literal = cliteral.literal;
-            allowLiterals(literal,literalIndex, timestamp); // this allows merge of double literals
+            allowLiterals(literal,literalIndex, timestamp); // this allows merge of double predicates
             blockClauses(-literal,literalIndex,timestamp);}  // this avoids tautologies
 
         for(CLiteral cliteral1 : clause) {
@@ -212,15 +212,15 @@ public class LitAlgorithms {
             unblockClauses(literal1,literalIndex);}
         return null;}
 
-    /** checks if the cliteral, plus possibly some merged literals can be derived by resolution.
-     *  The merge literals are the literals which merge into other literals on the resolution path
+    /** checks if the cliteral, plus possibly some merged predicates can be derived by resolution.
+     *  The merge predicates are the predicates which merge into other predicates on the resolution path
      *
      * @param cliteral      a literal, (the resolution partner in the recursive search)
      * @param literalIndex  the literal index
      * @param timestamp     the current timestamp
      * @param level         the actual search depth
      * @param maxLevel      the maximum search depth
-     * @return              true if the literal, plus merge literals can be derived
+     * @return              true if the literal, plus merge predicates can be derived
      */
     private static boolean replResRecursive(CLiteral cliteral, BucketSortedIndex<CLiteral> literalIndex,
                                             int timestamp, int level, int maxLevel, ArrayList<Clause> usedClauses) {
@@ -337,7 +337,7 @@ public class LitAlgorithms {
     /** This method tries to simplify a clause by means of UR-Resolution with the other clauses.
      * There are three types of results: for a clause like p,q,r,s <br>
      *     - a literal like -p if this can be derived from the other clauses <br>
-     *     - an array of literals like -p,q,s,  which allows to resolve p away, but my be also useful for other inferences <br>
+     *     - an array of predicates like -p,q,s,  which allows to resolve p away, but my be also useful for other inferences <br>
      *     - a CLiteral [p] which indicates that this literal can be removed by replacement resolution. <br>
      * The timestamp must be incremented at the end by (maxClauseLength +1) * clause.size()
      *
@@ -346,7 +346,7 @@ public class LitAlgorithms {
      * @param timestamp         a new timestamp
      * @param maxClauseLength   the maximum clause length
      * @param usedClauses       is filled with the clauses which are used for the inferences
-     * @return                  a literal, an array of literals or a CLiteral
+     * @return                  a literal, an array of predicates or a CLiteral
      */
     public static Object urResolution(Clause clause, BucketSortedIndex<CLiteral> literalIndex, int timestamp, int maxClauseLength,
                                       ArrayList<Clause> usedClauses) {

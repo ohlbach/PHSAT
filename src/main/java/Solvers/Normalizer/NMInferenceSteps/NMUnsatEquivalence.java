@@ -17,6 +17,6 @@ public class NMUnsatEquivalence extends Unsatisfiable {
     @Override
     public String description(Symboltable symboltable) {
         return "Equivalence " + InputClauses.toString(0,clause,symboltable) +
-                " has literals " + Symboltable.toString(literal1,symboltable) + " and " +
+                " has predicates " + Symboltable.toString(literal1,symboltable) + " and " +
                 Symboltable.toString(literal2,symboltable) + " with different truth values.";}
 }
