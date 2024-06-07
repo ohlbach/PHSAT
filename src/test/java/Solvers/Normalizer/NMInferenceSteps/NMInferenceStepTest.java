@@ -8,6 +8,8 @@ import Solvers.Normalizer.Clause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import junit.framework.TestCase;
 
+import static Utilities.Utilities.isTrue;
+
 public class NMInferenceStepTest extends TestCase {
 
     int nand = Quantifier.AND.ordinal();
@@ -35,18 +37,18 @@ public class NMInferenceStepTest extends TestCase {
         System.out.println("isTrue");
         IntArrayList literals = IntArrayList.wrap(new int[]{1,2,3});
         NMInferenceStep step = new NMInferenceStep(null,null);
-        assertFalse(step.isTrue(0,1,literals));
-        assertTrue(step.isTrue(0,-1,literals));
-        assertTrue(step.isTrue(1,1,literals));
-        assertFalse(step.isTrue(1,-1,literals));
-        assertTrue(step.isTrue(3,1,literals)); // pattern 11
-        assertFalse(step.isTrue(3,-1,literals));
-        assertFalse(step.isTrue(4,1,literals)); // pattern 100
-        assertTrue(step.isTrue(4,-1,literals));
-        assertTrue(step.isTrue(4,3,literals));
-        assertFalse(step.isTrue(4,-3,literals));
-        assertTrue(step.isTrue(5,3,literals));  // pattern 101
-        assertFalse(step.isTrue(5,-3,literals));
+        assertFalse(isTrue(0,1,literals));
+        assertTrue(isTrue(0,-1,literals));
+        assertTrue(isTrue(1,1,literals));
+        assertFalse(isTrue(1,-1,literals));
+        assertTrue(isTrue(3,1,literals)); // pattern 11
+        assertFalse(isTrue(3,-1,literals));
+        assertFalse(isTrue(4,1,literals)); // pattern 100
+        assertTrue(isTrue(4,-1,literals));
+        assertTrue(isTrue(4,3,literals));
+        assertFalse(isTrue(4,-3,literals));
+        assertTrue(isTrue(5,3,literals));  // pattern 101
+        assertFalse(isTrue(5,-3,literals));
         }
 
 

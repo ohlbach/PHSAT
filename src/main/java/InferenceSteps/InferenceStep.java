@@ -46,7 +46,7 @@ public abstract class InferenceStep {
      * @param steps a list for collecting the inference steps.
      */
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
-        if(!steps.contains(this)) steps.add(this);}
+        if(!steps.contains(this)) {steps.add(this);}}
 
     /** collects all rules which are used for the inference steps
      *

@@ -1331,6 +1331,19 @@ public class Utilities {
             array[index] = array[i];
             array[i] = temp;}}
 
+    /** The bits in int integer i represent a model: position 0: first literal in predicates is true etc.
+     *  The method checks if the literal is true in the given model.
+     *
+     * @param i          the bits represent a model of the predicates in the predicates array.
+     * @param literal    a literal to be tested.
+     * @param predicates   a list of predicates.
+     * @return           true if the literal is true in the model.
+     */
+    public static boolean isTrue(int i, int literal, IntArrayList predicates) {
+        int index = predicates.indexOf(Math.abs(literal));
+        boolean truth = (i & (1 << index)) != 0;
+        return literal > 0 ? truth : !truth;}
+
     /**
      * Pauses the execution of the current thread for the specified amount of time.
      *

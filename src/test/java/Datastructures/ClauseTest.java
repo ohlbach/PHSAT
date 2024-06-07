@@ -130,22 +130,27 @@ public class ClauseTest extends TestCase {
 
     public void testSimplify() throws Unsatisfiable {
         System.out.println("simplify");
-        Clause c = new Clause(new int[]{1, or, 1, 2}, false, litCreator, symboltable);
+        Clause c = new Clause(new int[]{1, or, 1, 2}, true, litCreator, symboltable);
         IntArrayList removed = new IntArrayList();
         IntArrayList truth = new IntArrayList();
         ArrayList<InferenceStep> steps = new ArrayList<InferenceStep>();
         Consumer<Literal> remover = (literalObject) -> removed.add(literalObject.literal);
         BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth = (literal, step) -> {truth.add(literal);steps.add(step);};
         assertEquals(0, c.simplify(true,remover,reportTruth,monitor,null));
+        assertEquals(1,c.inferenceSteps.size());
 
-        c = new Clause(new int[]{2, or, 1,2, -1}, false, litCreator, symboltable);
+
+        c = new Clause(new int[]{2, or, 1,2, -1}, true, litCreator, symboltable);
         assertEquals(1, c.simplify(true,remover,reportTruth,monitor,null));
+        assertEquals(1,c.inferenceSteps.size());
 
         c = new Clause<>(new int[]{3, intv,3,3, 1,1, -2}, true, litCreator, null);
         assertEquals(1, c.simplify(true,remover,reportTruth,monitor,null));
         assertEquals("[1, -2]",truth.toString());
         System.out.println(steps.get(0).toString(null));
         System.out.println(steps.get(1).toString(null));
+        assertTrue(steps.get(0).verify(monitor,null));
+        assertTrue(steps.get(1).verify(monitor,null));
         removed.clear();
         steps.clear();
         truth.clear();
@@ -154,6 +159,7 @@ public class ClauseTest extends TestCase {
         assertEquals(1, c.simplify(true,remover,reportTruth,monitor,null));
         assertEquals("[1]",truth.toString());
         System.out.println(steps.get(0).toString(null));
+        assertTrue(steps.get(0).verify(monitor,null));
         removed.clear();
         steps.clear();
         truth.clear();

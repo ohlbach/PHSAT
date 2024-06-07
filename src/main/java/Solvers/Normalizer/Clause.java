@@ -4,7 +4,7 @@ import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import InferenceSteps.NMISEquivalentLiteral;
-import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToClause;
+import Solvers.Normalizer.NMInferenceSteps.InfTrueLiteralToClause;
 import Solvers.Normalizer.NMInferenceSteps.NMInferenceStep;
 import Utilities.BiConsumerWithUnsatisfiable;
 
@@ -61,20 +61,26 @@ public class Clause extends Datastructures.Clause<Literal> {
      * <br>
      * Notice that the clause can become true or false.
      *
-     * @param literal The true/false literal to be applied to the clause.
-     * @param isTrue indicates whether the literal is true or false.
+     * @param literal        The true/false literal to be applied to the clause.
+     * @param isTrue         indicates whether the literal is true or false.
+     * @param inferenceStep  which caused the truth/falsehood of the literal.
      * @param trackReasoning Indicates whether reasoning steps should be tracked.
-     * @param monitor The monitor used for printing information.
-     * @param symboltable The symbol table used for converting predicates to strings.
+     * @param monitor        The monitor used for printing information.
+     * @param symboltable    The symbol table used for converting predicates to strings.
      * @return +1 if the clause can be removed, -1 if the clause became false, and 0 otherwise.
      */
-    int applyTrueLiteral(int literal, boolean isTrue, boolean trackReasoning, Consumer<String> monitor,
+    int applyTrueLiteral(int literal, boolean isTrue, InferenceStep inferenceStep, boolean trackReasoning, Consumer<String> monitor,
                             Consumer<Literal> literalRemover, BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
                             Symboltable symboltable) throws Unsatisfiable {
-        int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
-        NMISTrueLiteralToClause step = trackReasoning ?
-                new NMISTrueLiteralToClause("applyTrueLiteral", isTrue ? literal : -literal, cloned) : null;
+        int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
         removeLiteral(literal,isTrue);
+        if(trackReasoning) {
+            addInferenceStep(new InfTrueLiteralToClause( isTrue ? literal : -literal, inferenceStep,
+                    clauseBefore,this));}
+        if(monitor != null)
+            monitor.accept("True Literal " + Symboltable.toString(literal,symboltable) +
+                " applied to clause " + Clause.toString(clauseBefore,symboltable) + " -> " +
+                toString(symboltable,0));
         return simplify(trackReasoning,literalRemover,reportTruth,monitor,symboltable);}
 
 
@@ -95,13 +101,12 @@ public class Clause extends Datastructures.Clause<Literal> {
      */
     public int replaceEquivalentLiterals(int representative, int equivalentLiteral, InferenceStep inferenceStep,
                                       boolean trackReasoning, Consumer<Literal> literalRemover,
-                                         BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth, NormalizerStatistics statistics,
+                                         BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
                                          Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
         int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
         if(!replaceLiteral(representative,equivalentLiteral)) return 0;
-        NMISEquivalentLiteral step = trackReasoning ?
-                new NMISEquivalentLiteral("replaceEquivalentLiterals", representative, equivalentLiteral, inferenceStep, cloned) : null;
-        if(trackReasoning) addInferenceStep(step);
+        if(trackReasoning) addInferenceStep(new NMISEquivalentLiteral("replaceEquivalentLiterals",
+                                representative, equivalentLiteral, inferenceStep, cloned));
         if(monitor != null) {
             monitor.accept("In clause " + toString(cloned, symboltable) +
                     " literal " + Symboltable.toString(equivalentLiteral,symboltable) +

@@ -15,7 +15,7 @@ public class InfTrueLiteralInClause extends InferenceStep{
 
     @Override
     public String rule() {
-        return "Various forms of extraction of true predicates from a clause";
+        return "Various forms of extraction of true literals from a clause";
     }
     int[] clauseBefore;
     int literal;
@@ -54,8 +54,7 @@ public class InfTrueLiteralInClause extends InferenceStep{
 
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
-        if(!steps.contains(this)) {
-            int id = clauseBefore[0];
-            steps.add(this);
-            if(!ids.contains(id)) ids.add(id);}}
+        super.inferenceSteps(steps,ids);
+        int id = clauseBefore[0];
+        if(!ids.contains(id)) ids.add(id);}
 }

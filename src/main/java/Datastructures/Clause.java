@@ -624,22 +624,24 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
             return trueLiterals == 0 || trueLiterals == max;}
         return min <= trueLiterals && trueLiterals <= max;}
 
-    /** checks if a simple clone is true given the isTrue-function,
+    /** checks if a simple clone is true in the given model.
+     * <br>
+     * The bits in the model must correspond to the literals in the clause.
      *
-     * @param clone a simple clone
+     * @param clause a simple clone
      * @param model a model represented as an int.
      * @return true if the clause is true.
      */
-    public static boolean isTrue(int[] clone, int model) {
-        int min = clone[3];
-        int max = clone[4];
+    public static boolean isTrue(int[] clause, int model) {
+        int min = clause[3];
+        int max = clause[4];
         int position = -1;
         int trueLiterals = 0;
-        for(int i = 5; i < clone.length; i += 2) {
+        for(int i = 5; i < clause.length; i += 2) {
             ++position;
-            int literal = clone[i];
-            if(((literal > 0) ? ((model & (1 << position)) != 0) : ((model & (1 << position)) == 0))) trueLiterals += clone[i+1];}
-        if(clone[2] == Quantifier.EQUIV.ordinal()) {
+            int literal = clause[i];
+            if(((literal > 0) ? ((model & (1 << position)) != 0) : ((model & (1 << position)) == 0))) trueLiterals += clause[i+1];}
+        if(clause[2] == Quantifier.EQUIV.ordinal()) {
             return trueLiterals == 0 || trueLiterals == max;}
         return min <= trueLiterals && trueLiterals <= max;}
 
@@ -647,33 +649,35 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
     /**
      * Converts an int array representation of a clone to a string representation.
      *
-     * @param clone the int array representation of a clone
+     * @param clause the int array representation of a clone
      * @param symboltable the Symboltable object used for symbol lookup
      * @return the string representation of the clone
      */
-    public static String toString(int[] clone,Symboltable symboltable) {
-        String name = Integer.toString(clone[0]);
-        if(clone[1] != 0) name += "."+clone[1];
+    public static String toString(int[] clause,Symboltable symboltable) {
+        String name = Integer.toString(clause[0]);
+        if(clause[1] != 0) name += "."+clause[1];
         StringBuilder st = new StringBuilder();
         st.append(name).append(": ");
-        Quantifier quantifier = Quantifier.getQuantifier(clone[2]);
+        Quantifier quantifier = Quantifier.getQuantifier(clause[2]);
         switch(Objects.requireNonNull(quantifier)) {
             case OR: break;
             case EQUIV:
             case AND:      st.append(quantifier.abbreviation).append(" "); break;
             case EXACTLY:
-            case ATLEAST:  st.append(quantifier.abbreviation).append(clone[3]).append(" "); break;
-            case ATMOST:   st.append(quantifier.abbreviation).append(clone[4]).append(" "); break;
-            case INTERVAL: st.append("[").append(clone[3]).append(",").append(clone[4]).append("] ");}
-        for(int i = 5; i < clone.length; i += 2) {
-            int literal = clone[i]; int multiplicity = clone[i+1];
+            case ATLEAST:  st.append(quantifier.abbreviation).append(clause[3]).append(" "); break;
+            case ATMOST:   st.append(quantifier.abbreviation).append(clause[4]).append(" "); break;
+            case INTERVAL: st.append("[").append(clause[3]).append(",").append(clause[4]).append("] ");}
+        for(int i = 5; i < clause.length; i += 2) {
+            int literal = clause[i]; int multiplicity = clause[i+1];
             st.append(Symboltable.toString(literal,symboltable));
             if(multiplicity > 1) st.append("^").append(multiplicity);
-            if(i < clone.length-2)st.append(",");}
+            if(i < clause.length-2)st.append(",");}
         return st.toString();}
 
     /**
      * Generates a string representation of the given model.
+     * <br>
+     * The bits in the model must correspond to the literals in the clause.
      *
      * @param model The integer representation of the model.
      * @param symboltable The given symbol table.
@@ -689,6 +693,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
 
     /**
      * Generates a string representation of the given model.
+     * <br>
+     * The bits in the model must correspond to the given predicates.
      *
      * @param model The integer representation of the model.
      * @param predicates the corresponding predicates.

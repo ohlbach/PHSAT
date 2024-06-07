@@ -7,6 +7,8 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
 
+import static Utilities.Utilities.isTrue;
+
 /**
  * NMInferenceStep class represents the top class of the inference steps in the Normalize package.
  */
@@ -16,7 +18,7 @@ public class NMInferenceStep extends InferenceStep {
     public String title;
 
     /** the original clause of the inference */
-    public int[] clause;
+    public int[] clauseBefore;
 
     /** returns the title of the inference rule */
     @Override
@@ -26,11 +28,11 @@ public class NMInferenceStep extends InferenceStep {
     /** Creates the inference step with title and clause
      *
      * @param title   the title of the inference rule
-     * @param clause  the original clause to which the inference rule is applied.
+     * @param clauseBefore  the original clause to which the inference rule is applied.
      */
-    public NMInferenceStep(String title, int[] clause) {
+    public NMInferenceStep(String title, int[] clauseBefore) {
         this.title = title;
-        this.clause = clause;}
+        this.clauseBefore = clauseBefore;}
 
     /** turns the inference step into a string: title original clause =&gt; deduced clause.
      *
@@ -40,7 +42,7 @@ public class NMInferenceStep extends InferenceStep {
      * @return The string representation of the inference step.
      */
     public String toString(Clause deducedClause, Symboltable symboltable) {
-        return title() + ": " + Clause.toString(clause,symboltable) + " => " + deducedClause.toString(symboltable,0);}
+        return title() + ": " + Clause.toString(clauseBefore,symboltable) + " => " + deducedClause.toString(symboltable,0);}
 
     /** Checks if the deduced clause is true in all models of the original clause.
      *
@@ -50,30 +52,18 @@ public class NMInferenceStep extends InferenceStep {
      * @return True if the clause is valid, false otherwise.
      */
     public boolean verify(Clause deducedClause, Symboltable symboltable, StringBuilder errors) {
-        IntArrayList literals = Clause.predicates(clause);
+        IntArrayList literals = Clause.predicates(clauseBefore);
         int limit = 1 << (literals.size()-1);
         for(int i = 0; i <= limit; ++i) {
             int ifinal = i;
-            if(Clause.isTrue(clause, literal-> isTrue(ifinal,literal,literals))) {
+            if(Clause.isTrue(clauseBefore, literal-> isTrue(ifinal,literal,literals))) {
                 if(!deducedClause.isTrue(literal->isTrue(ifinal,literal,literals))) {
-                    errors.append(title + ": " + Clause.toString(clause,symboltable) +
+                    errors.append(title + ": " + Clause.toString(clauseBefore,symboltable) +
                             " is true in model: " +model(i,literals,symboltable) + "  but deduced clause " +
                             deducedClause.toString(symboltable, 0) + " is false.\n");
                     return false;}}}
         return true;}
 
-    /** The bits in int integer i represent a model: position 0: first literal in predicates is true etc.
-     *  The method checks if the literal is true in the given model.
-     *
-     * @param i          the bits represent a model of the predicates in the predicates array.
-     * @param literal    a literal to be tested.
-     * @param literals   a list of predicates.
-     * @return           true if the literal is true in the model.
-     */
-    public boolean isTrue(int i, int literal, IntArrayList literals) {
-        int index = literals.indexOf(Math.abs(literal));
-        boolean truth = (i & (1 << index)) != 0;
-        return literal > 0 ? truth : !truth;}
 
     /** turns the model into a string
      *
