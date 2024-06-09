@@ -103,7 +103,7 @@ public class QuSatJob {
         startTime = System.nanoTime();
         generators = ProblemGenerator.makeGenerators(generatorParams);
         solvers = Solver.makeSolvers(solverParams);
-       // System.out.println(toString());System.exit(0);
+       // System.out.println(description());System.exit(0);
         if(solvers.isEmpty()) {
             System.err.println("System Error: No solver found");
             new Exception().printStackTrace();

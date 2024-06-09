@@ -20,9 +20,9 @@ public class ANFTransformerTest extends TestCase {
         int[] atleastClause = anf.atmost2Atleast(clause);
         assertEquals("[10, 3, 3, -1, -2, -3, -4, -5]", Arrays.toString(atleastClause));
         InferenceStep step = anf.getInferenceStep(clause,atleastClause);
-        //System.out.println(step.toString());
+        //System.out.println(step.description());
         //System.out.println(step.rule());
-        //assertEquals("[5]",step.inputClauseIds().toString());
+        //assertEquals("[5]",step.inputClauseIds().description());
     }
 
 
@@ -36,9 +36,9 @@ public class ANFTransformerTest extends TestCase {
         assertEquals("[10, 3, 2, 1, 2, 3, 4, 5]", Arrays.toString(exactlyClauses[0]));
         assertEquals("[11, 3, 3, -1, -2, -3, -4, -5]", Arrays.toString(exactlyClauses[1]));
         InferenceStep step = anf.getInferenceStep(clause,exactlyClauses[0]);
-        //System.out.println(step.toString());
+        //System.out.println(step.description());
         //System.out.println(step.rule());
-        //assertEquals("[5]",step.inputClauseIds().toString());
+        //assertEquals("[5]",step.inputClauseIds().description());
     }
 
     public void testInterval2Atleast() {
@@ -51,9 +51,9 @@ public class ANFTransformerTest extends TestCase {
         assertEquals("[10, 3, 2, 1, 2, 3, 4, 5]", Arrays.toString(intervalClauses[0]));
         assertEquals("[11, 3, 2, -1, -2, -3, -4, -5]", Arrays.toString(intervalClauses[1]));
         InferenceStep step = anf.getInferenceStep(clause,intervalClauses[0]);
-        //System.out.println(step.toString());
+        //System.out.println(step.description());
         //System.out.println(step.rule());
-        //assertEquals("[5]",step.inputClauseIds().toString());
+        //assertEquals("[5]",step.inputClauseIds().description());
     }
 
 }

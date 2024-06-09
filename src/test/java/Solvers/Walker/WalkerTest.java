@@ -444,11 +444,11 @@ public class WalkerTest extends TestCase {
         System.out.println(errors);
         System.out.println(warnings);
         ProblemGenerator generator = generators.get(0);
-        //System.out.println(generator.toString());
+        //System.out.println(generator.description());
 
         InputClauses inputClauses = generator.generateProblem(errors);
-        if(!errors.isEmpty()) System.out.println(errors.toString());
-        //System.out.println(inputClauses.toString()); */
+        if(!errors.isEmpty()) System.out.println(errors.description());
+        //System.out.println(inputClauses.description()); */
         return null;} //inputClauses;}
 
 

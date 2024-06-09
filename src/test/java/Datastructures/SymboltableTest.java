@@ -13,7 +13,7 @@ public class SymboltableTest {
 
     @Test
     public void toString1() throws Exception {
-        System.out.println("st.toString");
+        System.out.println("st.description");
         Symboltable st = new Datastructures.Symboltable(5);
         st.setName(1,"A");
         assertEquals("A",st.toString(1));
@@ -25,7 +25,7 @@ public class SymboltableTest {
 
     @Test
     public void toString2() throws Exception {
-        System.out.println("Symboltable.toString");
+        System.out.println("Symboltable.description");
         Symboltable st = new Datastructures.Symboltable(5);
         st.setName(1,"A");
         st.setName(2,"B");
@@ -39,7 +39,7 @@ public class SymboltableTest {
 
     @Test
     public void toString3() throws Exception {
-        System.out.println("Symboltable.toString(IntArrayList)");
+        System.out.println("Symboltable.description(IntArrayList)");
         Symboltable st = new Datastructures.Symboltable(5);
         st.setName(1,"A");
         st.setName(2,"B");
@@ -52,7 +52,7 @@ public class SymboltableTest {
 
     @Test
     public void toString4() throws Exception {
-        System.out.println("toString()");
+        System.out.println("description()");
         Symboltable st = new Datastructures.Symboltable(5);
         st.setName(1,"A"); st.setName(3,"B");
         assertEquals("1:A,3:B,",st.toString());}

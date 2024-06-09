@@ -1,8 +1,7 @@
-package Solvers.Normalizer.NMInferenceSteps;
+package InferenceSteps;
 
+import Datastructures.Clause;
 import Datastructures.Symboltable;
-import InferenceSteps.InferenceStep;
-import Solvers.Normalizer.Clause;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.util.ArrayList;
@@ -14,29 +13,36 @@ import static Utilities.Utilities.isTrue;
  * The NMISTrueLiteral class represents an inference step where a true literal is applied to a clause.
  * It extends the NMInferenceStep class.
  */
-public class InfTrueLiteralToClause extends NMInferenceStep{
+public class InfTrueLiteralToClause extends InferenceStep {
 
     /** a true literal */
     int trueLiteral;
+
+    /** the clause before application of the true literal (not yet simplified) */
+    int[] clauseBefore;
 
     /** the clause after application of the true literal (not yet simplified) */
     int[] clauseAfter;
 
     /** The inference step that caused the literal to be true. */
-    InferenceStep inferenceStep;
+    InferenceStep trueLiteralStep;
 
     /** Creates a new instance of NMISTrueLiteral.
      *
      * @param trueLiteral the true literal.
-     * @param inferenceStep that cause the truth of the literal.
+     * @param trueLiteralStep that cause the truth of the literal.
      * @param clauseBefore the clause to which the true literal is applied.
      * @param clauseAfter the clause after the application of the true literal.
      */
-    public InfTrueLiteralToClause(int trueLiteral, InferenceStep inferenceStep, int[] clauseBefore, Clause clauseAfter) {
-        super("True Literal Applied To Clause ", clauseBefore);
-        this.trueLiteral = trueLiteral;
-        this.inferenceStep = inferenceStep;
-        this.clauseAfter = clauseAfter.simpleClone();}
+    public InfTrueLiteralToClause(int trueLiteral, InferenceStep trueLiteralStep, int[] clauseBefore, Clause clauseAfter) {
+        this.trueLiteral   = trueLiteral;
+        this.trueLiteralStep = trueLiteralStep;
+        this.clauseBefore  = clauseBefore;
+        this.clauseAfter   = clauseAfter.simpleClone();}
+
+    @Override
+    public String title() {
+        return "True Literal Applied To Clause";}
 
     public String rule() {
         return title() +": clauseBefore and true(literal) -> clauseAfter.\n"+
@@ -64,11 +70,9 @@ public class InfTrueLiteralToClause extends NMInferenceStep{
         int nModels = 1 << predicates.size();
         for(int model = 0; model < nModels; ++model) {
             if(Datastructures.Clause.isTrue(clauseBefore, model) && isTrue(model,trueLiteral,predicates)) {
-                if(!Datastructures.Clause.isTrue(clauseAfter, model)) {
-                    monitor.accept(title()+ ": Clause " + Clause.toString(clauseAfter,symboltable) +
-                            " is not true in model " + Clause.modelString(model,predicates,symboltable) +
-                            " of clause " +  Clause.toString(clauseBefore,symboltable) + " and literal " +
-                            Symboltable.toString(trueLiteral,symboltable));
+                if(!Datastructures.Clause.isTrue(clauseAfter, model,predicates)) {
+                    monitor.accept("Error:\n" + toString(symboltable) + "\nVerification failed for model "+
+                            Clause.modelString(model,predicates,symboltable));
                     return false;}}}
         return true;}
 
@@ -82,7 +86,7 @@ public class InfTrueLiteralToClause extends NMInferenceStep{
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
         super.inferenceSteps(steps, ids);
-        if(inferenceStep != null && !steps.contains(inferenceStep)) steps.add(inferenceStep);
+        if(trueLiteralStep != null && !steps.contains(trueLiteralStep)) steps.add(trueLiteralStep);
         int id = clauseBefore[0];
         if(!ids.contains(id)) ids.add(id);
     }

@@ -241,7 +241,8 @@ public class Normalizer {
                         for(int i = clausesArray.size()-1; i >= 0; --i) {
                             Clause clause = clausesArray.get(i);
                             removeClauseFromIndex(clause);
-                            switch(clause.applyTrueLiteral(literal,sign == 1, inferenceStep, trackReasoning, monitor,null,this::addTrueLiteralTask, symboltable)){
+                            switch(clause.applyTrueLiteral(literal,sign == 1, inferenceStep, trackReasoning,
+                                    monitor,null,this::addTrueLiteralTask, symboltable)){
                                 case -1: throw new UnsatClause(problemId,solverId, clause);
                                 case 1: clauses.remove(clause); continue;}
                             addClauseToIndex(clause);}}}}}
@@ -302,7 +303,7 @@ public class Normalizer {
                     for(int i = clausesArray.size()-1; i >= 0; --i) {
                         Clause clause = clausesArray.get(i);
                         removeClauseFromIndex(clause);
-                        switch(clause.replaceEquivalentLiterals(representative,equivalentLiteral, step,trackReasoning,
+                        switch(clause.applyEquivalentLiteral(representative,equivalentLiteral, step,trackReasoning,
                                 null, this::addTrueLiteralTask,monitor,symboltable)) {
                             case -1: throw new UnsatClause(problemId,solverId, clause);
                             case 1: continue;}

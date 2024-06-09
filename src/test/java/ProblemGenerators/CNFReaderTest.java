@@ -68,7 +68,7 @@ public class CNFReaderTest {
                 "    X-8: = 2 -2,-4,5\n" +
                 "Intervals:\n" +
                 "    I-9: 2-4: 3,4,5,6\n",inputClauses.toString());
-        //System.out.println(inputClauses.toString());
+        //System.out.println(inputClauses.description());
         file.delete();}
 
         @Test

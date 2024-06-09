@@ -16,7 +16,7 @@ public class RandomClauseSetGeneratorTest {
     public void keys()  {
         System.out.println("keys");
         assertEquals("[seeds, generator, redundant, precises, atleasts, ors, ands, predicates, intervals, lengths, equivs, exactlies, cpRatios, atmosts]",
-                RandomClauseSetGenerator.keys.toString());}
+                RandomClauseSetGenerator.keys.description());}
 
 
     @Test
@@ -35,13 +35,13 @@ public class RandomClauseSetGeneratorTest {
         //parameters.put("seeds", "seed");
         ArrayList<ProblemGenerator> generators = new ArrayList();
         RandomClauseSetGenerator.makeProblemGenerator(parameters,generators,errors,warnings);
-        System.out.println("Errors\n"+errors.toString());
-        System.out.println("Warnings\n"+warnings.toString());
+        System.out.println("Errors\n"+errors.description());
+        System.out.println("Warnings\n"+warnings.description());
         for(ProblemGenerator generator : generators) {
-            System.out.println(generator.toString());
+            System.out.println(generator.description());
             System.out.println("\n");
             InputClauses inputClauses = generator.generateProblem(null);
-            System.out.println(inputClauses.toString());
+            System.out.println(inputClauses.description());
             System.out.println("\n");
         }
     }

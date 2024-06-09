@@ -345,7 +345,7 @@ public class InputClausesTest extends TestCase {
 
         InputClauses clauses = new InputClauses("Input",3,null,"Test");
         clauses.addClause(clause1,clause2,clause3,clause4,clause5,clause6,clause7);
-        //System.out.println(clauses.toString());
+        //System.out.println(clauses.description());
         ArrayList<int[]> falseClauses = clauses.falseClausesInModel(model);
 
         assertEquals("   11: 1&2&3\n" +

@@ -2,10 +2,7 @@ package Datastructures;
 
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Unsatisfiable;
-import InferenceSteps.InfClauseSimplification;
-import InferenceSteps.InfInputClause;
-import InferenceSteps.InfTrueLiteralInClause;
-import InferenceSteps.InferenceStep;
+import InferenceSteps.*;
 import Utilities.BiConsumerWithUnsatisfiable;
 import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -527,6 +524,60 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
         return true;}
 
 
+    /** The method replaces the oldLiteral by the newLiteral literal.
+     * <br>
+     * newLiteral == oldLiteral must be part of an equivalence class.<br>
+     * The oldLiteral is replaced by newLiteral and the clause is simplified.
+     *
+     * @param newLiteral         the representative literal of an equivalence class.
+     * @param oldLiteral         the corresponding equivalent literal
+     * @param equivalenceStep    the inference step that caused the equivalence
+     * @param trackReasoning     controls generation of inference steps
+     * @param literalRemover     null or a function to indicate that a literal is removed.
+     * @param reportTruth        a function for reporting a true literal.
+     * @param monitor            null or a monitor
+     * @param symboltable        null or a symboltable
+     * @return                   -1 if a contradiction is encountered, +1 if the clause can be removed, 0 otherwise
+     */
+    public int applyEquivalentLiteral(int newLiteral, int oldLiteral, InferenceStep equivalenceStep,
+                                      boolean trackReasoning, Consumer<Literal> literalRemover,
+                                      BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
+                                      Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
+        int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
+        if(!replaceLiteral(newLiteral,oldLiteral)) return 0;
+        if(trackReasoning) addInferenceStep(new InfApplyEquivalentLiteral(
+                newLiteral, oldLiteral, equivalenceStep, cloned, this));
+        if(monitor != null) {
+            monitor.accept("In clause " + toString(cloned, symboltable) +
+                    " literal " + Symboltable.toString(oldLiteral,symboltable) +
+                    " replaced by " +  Symboltable.toString(newLiteral,symboltable) + " => " + toString(symboltable,0));}
+        return simplify(trackReasoning,literalRemover,reportTruth, monitor,symboltable);
+    }
+
+    /**Applies a true/false literal to the clause, simplifying it by removing the corresponding literal and updating the clause properties.
+     * <br>
+     * Notice that the clause can become true or false.
+     *
+     * @param literal        The true/false literal to be applied to the clause.
+     * @param isTrue         indicates whether the literal is true or false.
+     * @param inferenceStep  which caused the truth/falsehood of the literal.
+     * @param trackReasoning Indicates whether reasoning steps should be tracked.
+     * @param monitor        The monitor used for printing information.
+     * @param symboltable    The symbol table used for converting predicates to strings.
+     * @return +1 if the clause can be removed, -1 if the clause became false, and 0 otherwise.
+     */
+    public int applyTrueLiteral(int literal, boolean isTrue, InferenceStep inferenceStep, boolean trackReasoning, Consumer<String> monitor,
+                         Consumer<Literal> literalRemover, BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
+                         Symboltable symboltable) throws Unsatisfiable {
+        int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
+        removeLiteral(literal,isTrue);
+        if(!isTrue) literal = -literal;
+        if(trackReasoning) {addInferenceStep(new InfTrueLiteralToClause( literal,inferenceStep,clauseBefore,this));}
+        if(monitor != null)
+            monitor.accept("True Literal " + Symboltable.toString(literal,symboltable) +
+                    " applied to clause " + Solvers.Normalizer.Clause.toString(clauseBefore,symboltable) + " -> " +
+                    toString(symboltable,0));
+        return simplify(trackReasoning,literalRemover,reportTruth,monitor,symboltable);}
 
 
     /** Add an inference step to the list of inference steps.
@@ -552,16 +603,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
      */
     public int expandedSize() {return expandedSize;}
 
-    /** checks if the clause is true given the isTrue-function for predicates
-     *
-     * @param isTrue maps a literal to a truth-value.
-     * @return true if the clause is true given this function.
-     */
-    public boolean isTrue(Function<Integer,Boolean> isTrue) {
-        int trueLiterals = 0;
-        for(Literal literalObject : literals) {
-            if(isTrue.apply(literalObject.literal)) trueLiterals += literalObject.multiplicity;}
-        return min <= trueLiterals && trueLiterals <= max;}
+
 
     /**
      * Creates and returns a clone of the Clause object.
@@ -608,6 +650,38 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
             if(!predicates.contains(predicate)) predicates.add(Math.abs(predicate));}
         return predicates;}
 
+    /** collects the predicates of the clause in an IntArray
+     *
+     * @return the predicates of the clause in an IntArray.
+     */
+    public  IntArrayList predicates() {
+        IntArrayList predicates = new IntArrayList(literals.size());
+        for(Literal literalObject : literals) predicates.add(Math.abs(literalObject.literal));
+        return predicates;}
+
+    /** checks if the clause is true given the isTrue-function for predicates
+     *
+     * @param model  a model as a bitsequence
+     * @param predicates a list of predicates
+     * @return true if the clause is true in the model with the given predicates.
+     */
+    public boolean isTrue(int model, IntArrayList predicates) {
+        int trueLiterals = 0;
+        for(Literal literalObject : literals) {
+            if(Utilities.isTrue(model,literalObject.literal,predicates)) trueLiterals += literalObject.multiplicity;}
+        return min <= trueLiterals && trueLiterals <= max;}
+
+    /** checks if the clause is true given the isTrue-function for predicates
+     *
+     * @param isTrue maps a literal to a truth-value.
+     * @return true if the clause is true given this function.
+     */
+    public boolean isTrue(Function<Integer,Boolean> isTrue) {
+        int trueLiterals = 0;
+        for(Literal literalObject : literals) {
+            if(isTrue.apply(literalObject.literal)) trueLiterals += literalObject.multiplicity;}
+        return min <= trueLiterals && trueLiterals <= max;}
+
     /** checks if a simple clone is true given the isTrue-function,
      *
      * @param clone a simple clone
@@ -640,6 +714,25 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
         for(int i = 5; i < clause.length; i += 2) {
             ++position;
             int literal = clause[i];
+            if(((literal > 0) ? ((model & (1 << position)) != 0) : ((model & (1 << position)) == 0))) trueLiterals += clause[i+1];}
+        if(clause[2] == Quantifier.EQUIV.ordinal()) {
+            return trueLiterals == 0 || trueLiterals == max;}
+        return min <= trueLiterals && trueLiterals <= max;}
+    /** checks if a simple clone is true in the given model.
+     * <br>
+     * The bits in the model must correspond to the literals in the clause.
+     *
+     * @param clause a simple clone
+     * @param model a model represented as an int.
+     * @return true if the clause is true.
+     */
+    public static boolean isTrue(int[] clause, int model, IntArrayList predicates) {
+        int min = clause[3];
+        int max = clause[4];
+        int trueLiterals = 0;
+        for(int i = 5; i < clause.length; i += 2) {
+            int literal = clause[i];
+            int position = predicates.indexOf(Math.abs(literal));
             if(((literal > 0) ? ((model & (1 << position)) != 0) : ((model & (1 << position)) == 0))) trueLiterals += clause[i+1];}
         if(clause[2] == Quantifier.EQUIV.ordinal()) {
             return trueLiterals == 0 || trueLiterals == max;}

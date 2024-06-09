@@ -83,7 +83,7 @@ public class MRMatrixTest {
         matrix.insertClause(clause4);
         assertFalse(matrix.insertClause(clause6));
         System.out.println(matrix.infoString(null));
-        System.out.println(matrix.toString(null));
+        System.out.println(matrix.description(null));
     }
 
     @Test
@@ -103,7 +103,7 @@ public class MRMatrixTest {
         matrix.insertClause(clause2);
         matrix.insertClause(clause3);
         System.out.println(matrix.infoString(null));
-        System.out.println(matrix.toString(null));
+        System.out.println(matrix.description(null));
     }
 
 
@@ -127,13 +127,13 @@ public class MRMatrixTest {
         matrix.insertClause(clause2);
         matrix.insertClause(clause1);
         matrix.insertClause(clause4);
-        assertEquals("[0, 1]", Arrays.toString(matrix.findFirstColIndices(2)));
-        assertEquals("[0, 1, 2]", Arrays.toString(matrix.findFirstColIndices(3)));
+        assertEquals("[0, 1]", Arrays.description(matrix.findFirstColIndices(2)));
+        assertEquals("[0, 1, 2]", Arrays.description(matrix.findFirstColIndices(3)));
         assertNull(matrix.findFirstColIndices(3));
-        assertEquals("[0, 1, 2, 3]", Arrays.toString(matrix.findFirstColIndices(4)));
+        assertEquals("[0, 1, 2, 3]", Arrays.description(matrix.findFirstColIndices(4)));
         assertNull(matrix.findFirstColIndices(4));
         //System.out.println(matrix.infoString(null));
-        //System.out.println(matrix.toString(null));
+        //System.out.println(matrix.description(null));
     }
 
     @Test
@@ -166,7 +166,7 @@ public class MRMatrixTest {
         block = matrix.findBlock(colIndices);
         System.out.println(matrix.block2String(colIndices,block,symboltable));
         //System.out.println(matrix.infoString(null));
-        //System.out.println(matrix.toString(null));
+        //System.out.println(matrix.description(null));
     }
 
     @Test
@@ -194,8 +194,8 @@ public class MRMatrixTest {
         matrix.mrResolveSquare(colIndices, block, twoLitClauses);
         assertEquals("Model:\n-9,-10,-11,-13,-15",allClauses.model.toNumbers());
         assertTrue(twoLitClauses.isEmpty());
-        assertEquals("[2, 3, 10, 11, 12, 100]",sortIntArray(allClauses.model.getInferenceStep(-13).origins()).toString());
-        assertEquals("[2, 3, 10, 11, 12, 100]",sortIntArray(allClauses.model.getInferenceStep(-15).origins()).toString());
+        assertEquals("[2, 3, 10, 11, 12, 100]",sortIntArray(allClauses.model.getInferenceStep(-13).origins()).description());
+        assertEquals("[2, 3, 10, 11, 12, 100]",sortIntArray(allClauses.model.getInferenceStep(-15).origins()).description());
     }
 
     @Test
@@ -246,9 +246,9 @@ public class MRMatrixTest {
         System.out.println(matrix.block2String(colIndices, block, null));
         ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
         matrix.mrResolveSquare(colIndices, block, twoLitClauses);
-        //System.out.println(twoLitClauses.toString());
-        assertEquals("[2-10: 10,-20, 2-11: 10,-21, 2-12: 10,-22]", twoLitClauses.toString());
-        assertEquals("[2, 3, 10, 11, 12, 100]",sortIntArray(twoLitClauses.get(0).inferenceStep.origins()).toString());
+        //System.out.println(twoLitClauses.description());
+        assertEquals("[2-10: 10,-20, 2-11: 10,-21, 2-12: 10,-22]", twoLitClauses.description());
+        assertEquals("[2, 3, 10, 11, 12, 100]",sortIntArray(twoLitClauses.get(0).inferenceStep.origins()).description());
         //System.out.println(MRResolutionSquare2.rule);
     }
 
@@ -300,7 +300,7 @@ public class MRMatrixTest {
         //System.out.println(matrix.block2String(colIndices, block, null));
         ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
         matrix.mrResolveRectangle(colIndices, block, twoLitClauses);
-        assertEquals("[2-0: 20,30]", twoLitClauses.toString());
+        assertEquals("[2-0: 20,30]", twoLitClauses.description());
     }
 
     @Test
@@ -378,8 +378,8 @@ public class MRMatrixTest {
         System.out.println(oneLitClauses);
         System.out.println(twoLitClauses);
 
-        assertEquals("[A-0: 20]", oneLitClauses.toString());
-        assertEquals("[2-0: 3,9]", twoLitClauses.toString());
+        assertEquals("[A-0: 20]", oneLitClauses.description());
+        assertEquals("[2-0: 3,9]", twoLitClauses.description());
     }
 
     private boolean contains (int i, int[] ints) {
@@ -414,7 +414,7 @@ public class MRMatrixTest {
             matrix.insertClause(new Clause(100 + i, ClauseType.OR, IntArrayList.wrap(lits)));
         }
         System.out.println(matrix.infoString(null));
-        System.out.println(matrix.toString(null));
+        System.out.println(matrix.description(null));
 
         ArrayList<Clause> oneLitClauses = new ArrayList<>();
         ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
@@ -422,7 +422,7 @@ public class MRMatrixTest {
         System.out.println(oneLitClauses);
         System.out.println(twoLitClauses);
         assertEquals("[2-0: 21,-27, 2-0: 21,-12, 2-0: 21,-45, 2-0: 21,-44, 2-0: 21,-34, 2-0: 21,-25, 2-0: 21,-41, 2-0: 21,-20, 2-0: 21,-48, 2-0: 21,-24, 2-0: 21,-19, 2-0: 21,-46, 2-0: 13,-45, 2-0: 13,-37, 2-0: 13,-12, 2-0: 13,-25, 2-0: 13,-3, 2-0: 13,-38, 2-0: 13,-35, 2-0: 13,-10, 2-0: 13,-18, 2-0: 13,-22, 2-0: 13,-7, 2-0: 13,-1]",
-                twoLitClauses.toString());
+                twoLitClauses.description());
     }
 
     @Test
@@ -445,7 +445,7 @@ public class MRMatrixTest {
             matrix.insertClause(new Clause(1000 + p, ClauseType.OR, IntArrayList.wrap(lits)));
         }
         System.out.println(matrix.infoString(null));
-        System.out.println(matrix.toString(null));
+        System.out.println(matrix.description(null));
 
         ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
 
@@ -473,7 +473,7 @@ public class MRMatrixTest {
             matrix.insertClause(new Clause(1000 + p, ClauseType.OR, IntArrayList.wrap(lits)));
         }
         System.out.println(matrix.infoString(null));
-        System.out.println(matrix.toString(null));
+        System.out.println(matrix.description(null));
 
         ArrayList<Clause> oneLitClauses = new ArrayList<>();
         ArrayList<TwoLitClause > twoLitClauses = new ArrayList<>();
@@ -481,7 +481,7 @@ public class MRMatrixTest {
         try{matrix.mrResolve(twoLitClauses);}
         catch(Unsatisfiable uns) {System.out.println(uns);}
         System.out.println(oneLitClauses);
-        assertEquals("[A-0: -1]",oneLitClauses.toString());
+        assertEquals("[A-0: -1]",oneLitClauses.description());
     }
     
 */

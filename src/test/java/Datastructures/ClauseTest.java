@@ -1,7 +1,9 @@
 package Datastructures;
 
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.UnsatClause;
 import Datastructures.Results.Unsatisfiable;
+import InferenceSteps.InfApplyEquivalentLiteral;
 import InferenceSteps.InfTrueLiteralInClause;
 import InferenceSteps.InferenceStep;
 import Utilities.BiConsumerWithUnsatisfiable;
@@ -419,4 +421,52 @@ public class ClauseTest extends TestCase {
         step = new InfTrueLiteralInClause(clone, -2);
         assertFalse(step.verify((String string) -> System.out.println(string), symboltable));
     }
+
+    public void testApplyTrueLiteral() throws Unsatisfiable{
+        System.out.println("applyTrueLiteral");
+        Clause c = new Clause(new int[]{0,or,2},false,litCreator,null);
+        Clause c1 = new Clause(new int[]{1, or, 1, 2, 3}, true, litCreator, null);
+        InferenceStep step = new InfTrueLiteralInClause(c.simpleClone(),2);
+        assertEquals(0,c1.applyTrueLiteral(2,false,step,true,monitor,null,null,null));
+        assertEquals(2,c1.inferenceSteps.size());
+        step = (InferenceStep)c1.inferenceSteps.get(1);
+        assertTrue(step.verify((string) -> System.out.println(string), null));
+        System.out.println(step.toString(null));
+
+        c1 = new Clause(new int[]{2, intv,1,2, 1, 2, 3}, true, litCreator, null);
+        assertEquals(0,c1.applyTrueLiteral(2,true,step,true,monitor,null,null,null));
+        assertEquals("2.1: <=1 1,3",c1.toString(null,0));
+        step = (InferenceStep)c1.inferenceSteps.get(1);
+        assertTrue(step.verify((string) -> System.out.println(string), null));
+
+        c1 = new Clause(new int[]{3, intv,0,2, 1, 2, 3}, true, litCreator, null);
+        assertEquals(1,c1.applyTrueLiteral(2,false,step,true,monitor,null,null,null));
+        UnsatClause unsat = new UnsatClause("Test","N",c1);
+        assertFalse(unsat.verify(monitor,null));
+
+        c1 = new Clause(new int[]{4, intv,3,3, 1, 2, 3}, true, litCreator, null);
+        assertEquals(-1,c1.applyTrueLiteral(2,false,step,true,monitor,null,null,null));
+        unsat = new UnsatClause("Test","N",c1);
+        System.out.println(unsat.description(null));
+        assertTrue(unsat.verify(monitor,null));
+    }
+
+    public void testApplyEquivalentLiteral() throws Unsatisfiable {
+        System.out.println("applyEquivalentLiteral");
+        Clause c = new Clause(new int[]{1, eqv, 2,4}, true, litCreator, null);
+        Clause c1 = new Clause(new int[]{2, or, 1, 2, 3}, true, litCreator, null);
+        int[] c1Clone = c1.simpleClone();
+        InferenceStep step = (InferenceStep)c.inferenceSteps.get(0);
+        assertEquals(0, c1.applyEquivalentLiteral(4,2,step, true, null,null, monitor, null));
+        assertEquals("2.1: 1v4v3",c1.toString(null,0));
+        assertEquals(2, c1.inferenceSteps.size());
+        step = (InferenceStep) c1.inferenceSteps.get(1);
+        assertTrue(step.verify((string) -> System.out.println(string), null));
+        System.out.println(step.toString(null));
+
+        step = new InfApplyEquivalentLiteral(-4,2,step,c1Clone,c1);
+        assertFalse(step.verify((string) -> System.out.println(string), null));
+
+    }
+
     }

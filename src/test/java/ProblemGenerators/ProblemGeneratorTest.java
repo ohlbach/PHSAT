@@ -35,7 +35,7 @@ public class ProblemGeneratorTest extends TestCase {
         Iterator iterator = new StringIterator(clauses, "\n");
         InputClauses inputClauses = ProblemGenerator.parseClauses("Myproblem",iterator,errors);
         System.out.println(errors.toString());
-        //System.out.println(inputClauses.toString());
+        //System.out.println(inputClauses.description());
         assertEquals("Problem Myproblem\n" +
                 "Info1\n" +
                 "Info2\n" +
@@ -77,7 +77,7 @@ public class ProblemGeneratorTest extends TestCase {
         StringBuilder errors = new StringBuilder();
         String line = "1,-2 3";
         int[] clause = ProblemGenerator.parseLine(line,10,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 0, 1, -2, 3]",Arrays.toString(clause));
 
         Symboltable symboltable = new Symboltable(5);
@@ -87,7 +87,7 @@ public class ProblemGeneratorTest extends TestCase {
 
         line = "& 1,-2 3";
         clause = ProblemGenerator.parseLine(line,10,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 1, 1, -2, 3]",Arrays.toString(clause));
 
         line = "& p,-q 3r 0";
@@ -96,7 +96,7 @@ public class ProblemGeneratorTest extends TestCase {
 
         line = "e 1,-2 3 0";
         clause = ProblemGenerator.parseLine(line,10,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 2, 1, -2, 3]",Arrays.toString(clause));
 
         line = "e p,-q 3r";
@@ -105,7 +105,7 @@ public class ProblemGeneratorTest extends TestCase {
 
         line = "[2,3] 1,-2 3 0";
         clause = ProblemGenerator.parseLine(line,10,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 3, 2, 3, 1, -2, 3]",Arrays.toString(clause));
 
         line = "[2,3] p,-q 3r";
@@ -114,7 +114,7 @@ public class ProblemGeneratorTest extends TestCase {
 
         line = ">= 2 1,-2 3 0";
         clause = ProblemGenerator.parseLine(line,10,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 4, 2, 1, -2, 3]",Arrays.toString(clause));
 
         line = ">= 2 p,-q 3r";
@@ -123,7 +123,7 @@ public class ProblemGeneratorTest extends TestCase {
 
         line = "<= 2 1,-2 3 0";
         clause = ProblemGenerator.parseLine(line,10,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 5, 2, 1, -2, 3]",Arrays.toString(clause));
 
         line = "<= 2 p,-q 3r";
@@ -132,7 +132,7 @@ public class ProblemGeneratorTest extends TestCase {
 
         line = "= 2 1,-2 3";
         clause = ProblemGenerator.parseLine(line,10,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 6, 2, 1, -2, 3]",Arrays.toString(clause));
 
         line = "= 2 p,-q 3r 0";
@@ -147,7 +147,7 @@ public class ProblemGeneratorTest extends TestCase {
         StringBuilder errors = new StringBuilder();
         String line = "1,-2 3";
         int[] clause = ProblemGenerator.parseOr(line,10,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 0, 1, -2, 3]",Arrays.toString(clause));
 
         Symboltable symboltable = new Symboltable(5);
@@ -161,7 +161,7 @@ public class ProblemGeneratorTest extends TestCase {
         StringBuilder errors = new StringBuilder();
         String line = "& 1,-2 3";
         int[] clause = ProblemGenerator.parseAndEquiv(line,10, Quantifier.AND,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 1, 1, -2, 3]",Arrays.toString(clause));
 
         Symboltable symboltable = new Symboltable(5);
@@ -171,7 +171,7 @@ public class ProblemGeneratorTest extends TestCase {
 
         line = "e 1,-2 3";
         clause = ProblemGenerator.parseAndEquiv(line,10, Quantifier.EQUIV,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 2, 1, -2, 3]",Arrays.toString(clause));
 
         line = "e p,-q r";
@@ -184,7 +184,7 @@ public class ProblemGeneratorTest extends TestCase {
         StringBuilder errors = new StringBuilder();
         String line = "<= 2 1,-2 3";
         int[] clause = ProblemGenerator.parseWithQuantification(line,10, Quantifier.ATLEAST,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 4, 2, 1, -2, 3]",Arrays.toString(clause));
 
         Symboltable symboltable = new Symboltable(5);
@@ -218,7 +218,7 @@ public class ProblemGeneratorTest extends TestCase {
         StringBuilder errors = new StringBuilder();
         String line = "[2,3] 1,-2 3";
         int[] clause = ProblemGenerator.parseInterval(line,10, null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[10, 3, 2, 3, 1, -2, 3]",Arrays.toString(clause));
 
         Symboltable symboltable = new Symboltable(5);
@@ -234,7 +234,7 @@ public class ProblemGeneratorTest extends TestCase {
         int[] inputClause = new int[5];
         ProblemGenerator.parseLiterals(clause.split("\\s*[, ]\\s*"),
                 0,inputClause,2,null,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[0, 0, 1, 2, 3]",Arrays.toString(inputClause));
 
         Symboltable symboltable = new Symboltable(5);
@@ -242,7 +242,7 @@ public class ProblemGeneratorTest extends TestCase {
         inputClause = new int[5];
         ProblemGenerator.parseLiterals(clause.split("\\s*[, ]\\s*"),
                 0,inputClause,2,symboltable,"prefix: ",errors);
-        //System.out.println(errors.toString());
+        //System.out.println(errors.description());
         assertEquals("[0, 0, 1, -2, 3]",Arrays.toString(inputClause));
     }
 }

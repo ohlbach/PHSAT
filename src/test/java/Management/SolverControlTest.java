@@ -56,7 +56,7 @@ public class SolverControlTest {
         SolverController sctr = new SolverController(null,null);
         sctr.kvAnalyser = anal;
         sctr.solveProblem(problemControl);
-        System.out.println("ST " +st.toString());
+        System.out.println("ST " +st.description());
 
 
     }

@@ -110,7 +110,7 @@ public class ClauseSimplifierTest {
         c1 = new Clause(1, Connective.INTERVAL, 1,1, -3,5,6);
         try{c2 = cs.removeTrueFalsePredicates(c1);}
         catch(Unsatisfiable uns) {
-            System.out.println(uns.toString());}}
+            System.out.println(uns.description());}}
             */
 
     }

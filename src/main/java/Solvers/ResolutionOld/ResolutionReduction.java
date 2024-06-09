@@ -89,7 +89,7 @@ public abstract class ResolutionReduction extends Solver {
      *  It adds an Unsatisfiable task to the task queue.
      */
     BiConsumer<Integer,IntArrayList> contradictionHandler = null; /*((reason,origin)->{
-        taskQueue.add(new Task(priorityResult,(()-> new Unsatisfiable(reason.toString(),null)), (()->reason.toString())));});
+        taskQueue.add(new Task(priorityResult,(()-> new Unsatisfiable(reason.description(),null)), (()->reason.description())));});
 */
     /** the id of the last input clause */
     int maxInputId = 0;

@@ -44,7 +44,7 @@ public class GlobalParameters {
     /** for printing information about the working of the system, set by the QuSat instance. */
     public PrintStream logstream;
 
-    /** just for the toString method, set by the QuSat instance. */
+    /** just for the description method, set by the QuSat instance. */
     public String logFile = "System.out";
 
     /** if true then the clauses are printed to the logfile */

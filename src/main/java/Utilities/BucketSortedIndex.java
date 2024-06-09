@@ -297,7 +297,7 @@ public class BucketSortedIndex<T extends Positioned> {
         return item;}
 
     /** comprises the index to a string.
-     *  It uses the item's toString method
+     *  It uses the item's description method
      *
      * @return the entire index as a string.
      */

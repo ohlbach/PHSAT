@@ -64,7 +64,7 @@ public class ResolutionTest {
         StringBuffer errors = new StringBuffer();
         StringBuffer warnings = new StringBuffer();
         ArrayList<HashMap<String,Object>> pars = Resolution.parseParameters(parameters,errors,warnings);
-        assertEquals("[{seed=10, limit=20, name=Resolution_1, strategy=POSITIVE, percentageOfSOSClauses=50}]",pars.toString());
+        assertEquals("[{seed=10, limit=20, name=Resolution_1, strategy=POSITIVE, percentageOfSOSClauses=50}]",pars.description());
     }
     @Test
     public void parseParameters2() throws Exception {
@@ -78,9 +78,9 @@ public class ResolutionTest {
         StringBuffer warnings = new StringBuffer();
         ArrayList<HashMap<String,Object>> pars = Resolution.parseParameters(parameters,errors,warnings);
         //System.out.println(pars);
-        System.out.println(errors.toString());
-        System.out.println(warnings.toString());
-        assertEquals("[{seed=10, limit=20, name=Resolution_1, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=10, limit=20, name=Resolution_2, strategy=SOS, percentageOfSOSClauses=80}, {seed=20, limit=20, name=Resolution_3, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=20, limit=20, name=Resolution_4, strategy=SOS, percentageOfSOSClauses=80}, {seed=10, limit=21, name=Resolution_5, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=10, limit=21, name=Resolution_6, strategy=SOS, percentageOfSOSClauses=80}, {seed=20, limit=21, name=Resolution_7, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=20, limit=21, name=Resolution_8, strategy=SOS, percentageOfSOSClauses=80}, {seed=10, limit=22, name=Resolution_9, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=10, limit=22, name=Resolution_10, strategy=SOS, percentageOfSOSClauses=80}, {seed=20, limit=22, name=Resolution_11, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=20, limit=22, name=Resolution_12, strategy=SOS, percentageOfSOSClauses=80}]",pars.toString());
+        System.out.println(errors.description());
+        System.out.println(warnings.description());
+        assertEquals("[{seed=10, limit=20, name=Resolution_1, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=10, limit=20, name=Resolution_2, strategy=SOS, percentageOfSOSClauses=80}, {seed=20, limit=20, name=Resolution_3, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=20, limit=20, name=Resolution_4, strategy=SOS, percentageOfSOSClauses=80}, {seed=10, limit=21, name=Resolution_5, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=10, limit=21, name=Resolution_6, strategy=SOS, percentageOfSOSClauses=80}, {seed=20, limit=21, name=Resolution_7, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=20, limit=21, name=Resolution_8, strategy=SOS, percentageOfSOSClauses=80}, {seed=10, limit=22, name=Resolution_9, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=10, limit=22, name=Resolution_10, strategy=SOS, percentageOfSOSClauses=80}, {seed=20, limit=22, name=Resolution_11, strategy=POSITIVE, percentageOfSOSClauses=80}, {seed=20, limit=22, name=Resolution_12, strategy=SOS, percentageOfSOSClauses=80}]",pars.description());
     }
 
 
@@ -166,10 +166,10 @@ public class ResolutionTest {
         insertClause.invoke(res,c2,false,"initial");
         insertClause.invoke(res,c3,false,"initial");
         assertEquals("Bucket 3\n" +
-                "  1:(1,2,3)\n",primaryClauses.get(res).toString());
+                "  1:(1,2,3)\n",primaryClauses.get(res).description());
         assertEquals("Bucket 3\n" +
                 "  2:(-1,-2,-3)\n" +
-                "  3:(4,-5,6)\n",secondaryClauses.get(res).toString());
+                "  3:(4,-5,6)\n",secondaryClauses.get(res).description());
         assertEquals(" 1: 1,\n" +
                 "-1: -1,\n" +
                 " 2: 2,\n" +
@@ -178,7 +178,7 @@ public class ResolutionTest {
                 "-3: -3,\n" +
                 " 4: 4,\n" +
                 "-5: -5,\n" +
-                " 6: 6,\n",literalIndex.get(res).toString());
+                " 6: 6,\n",literalIndex.get(res).description());
         Field clauseCounter = getField("clauseCounter");
         assertEquals(3,clauseCounter.get(res));
 
@@ -187,7 +187,7 @@ public class ResolutionTest {
         Clause c5 = make(-7);
         insertClause.invoke(res,c5,true,"initial");
         assertEquals("1. P1: initial: 7\n" +
-                "2. P1: initial: -7\n",taskQueue.get(res).toString());
+                "2. P1: initial: -7\n",taskQueue.get(res).description());
         assertEquals(2,((ResolutionStatistics)statistics.get(res)).derivedUnitClauses);
     }
 
@@ -228,7 +228,7 @@ public class ResolutionTest {
                 "-5: -5,-5,\n" +
                 " 6: 6,\n" +
                 "-6: -6,\n" +
-                " 7: 7,\n",literalIndex.get(res).toString());
+                " 7: 7,\n",literalIndex.get(res).description());
 
         Method removeClause = getMethod("removeClause", Clause.class, int.class);
 
@@ -238,17 +238,17 @@ public class ResolutionTest {
                 " 3: 3,\n" +
                 "-5: -5,\n" +
                 " 6: 6,\n" +
-                " 7: 7,\n",literalIndex.get(res).toString());
+                " 7: 7,\n",literalIndex.get(res).description());
 
         removeClause.invoke(res,c1,2);
         assertEquals(" 2: 2,\n" +
                 "-5: -5,\n" +
                 " 6: 6,\n" +
-                " 7: 7,\n",literalIndex.get(res).toString());
+                " 7: 7,\n",literalIndex.get(res).description());
 
         assertEquals("Bucket 3\n" +
-                "  3:(7,-5,6)\n",secondaryClauses.get(res).toString());
-        assertEquals("",primaryClauses.get(res).toString());
+                "  3:(7,-5,6)\n",secondaryClauses.get(res).description());
+        assertEquals("",primaryClauses.get(res).description());
     }
 
     @Test
@@ -285,33 +285,33 @@ public class ResolutionTest {
         Method removeLiteralAtPosition = getMethod("removeLiteralAtPosition", CLiteral.class);
 
         removeLiteralAtPosition.invoke(res,c1.getCLiteral(1));
-        assertEquals("1:(1,3)",c1.toString());
+        assertEquals("1:(1,3)",c1.description());
         assertEquals(" 1: 1,\n" +
                 " 3: 3,\n" +
                 "-4: -4,\n" +
                 "-5: -5,-5,\n" +
                 " 6: 6,\n" +
                 "-6: -6,\n" +
-                " 7: 7,\n",literalIndex.get(res).toString());
+                " 7: 7,\n",literalIndex.get(res).description());
 
         removeLiteralAtPosition.invoke(res,c2.getCLiteral(1));
-        assertEquals("2:(-4,-6)",c2.toString());
-        assertEquals("3:(7,-5,6)",c3.toString());
+        assertEquals("2:(-4,-6)",c2.description());
+        assertEquals("3:(7,-5,6)",c3.description());
         assertEquals(" 1: 1,\n" +
                 " 3: 3,\n" +
                 "-4: -4,\n" +
                 "-5: -5,\n" +
                 " 6: 6,\n" +
                 "-6: -6,\n" +
-                " 7: 7,\n",literalIndex.get(res).toString());
+                " 7: 7,\n",literalIndex.get(res).description());
         assertFalse((boolean)removeLiteralAtPosition.invoke(res,c2.getCLiteral(1)));
-        assertEquals("1. P1: New true literal derived: -4\n",taskQueue.get(res).toString());
+        assertEquals("1. P1: New true literal derived: -4\n",taskQueue.get(res).description());
         assertEquals(1,((ResolutionStatistics)statistics.get(res)).derivedUnitClauses);
 
         assertEquals("Bucket 2\n" +
-                "  1:(1,3)\n",primaryClauses.get(res).toString());
+                "  1:(1,3)\n",primaryClauses.get(res).description());
         assertEquals("Bucket 3\n" +
-                "  3:(7,-5,6)\n",secondaryClauses.get(res).toString());
+                "  3:(7,-5,6)\n",secondaryClauses.get(res).description());
     }
 
 
@@ -349,9 +349,9 @@ public class ResolutionTest {
         Method replaceClause = getMethod("replaceClause", Clause.class, Clause.class);
         replaceClause.invoke(res,c1,c3);
         assertEquals("Bucket 2\n" +
-                "  3:(1,3)\n",primaryClauses.get(res).toString());
+                "  3:(1,3)\n",primaryClauses.get(res).description());
         assertEquals("Bucket 3\n" +
-                "  2:(-4,-5,-6)\n",secondaryClauses.get(res).toString());
+                "  2:(-4,-5,-6)\n",secondaryClauses.get(res).description());
     }
 
     @Test
@@ -387,7 +387,7 @@ public class ResolutionTest {
 
         Method checkPurity = getMethod("checkPurity", Clause.class);
         checkPurity.invoke(res,c1);
-        assertEquals("1. P1: Pure literal: -2\n",taskQueue.get(res).toString());
+        assertEquals("1. P1: Pure literal: -2\n",taskQueue.get(res).description());
     }
 
     @Test
@@ -429,14 +429,14 @@ public class ResolutionTest {
         Method completeModel = getMethod("completeModel");
         Field model = getSField("model");
         model.set(res, new Model(10,null));
-        assertEquals("Satisfiable with model: [1, 6]",completeModel.invoke(res).toString());
+        assertEquals("Satisfiable with model: [1, 6]",completeModel.invoke(res).description());
 
         strategy.set(res,ResolutionStrategy.POSITIVE);
         model.set(res, new Model(10,null));
         ((BucketSortedList<Clause>)secondaryClauses.get(res)).remove(c1);
         Clause c4 = make(-1, -2, -3);
         ((BucketSortedList<Clause>)secondaryClauses.get(res)).add(c4);
-        assertEquals("Satisfiable with model: [-5, -1]",completeModel.invoke(res).toString());
+        assertEquals("Satisfiable with model: [-5, -1]",completeModel.invoke(res).description());
 
 
     }
@@ -486,7 +486,7 @@ public class ResolutionTest {
 
         stb.setName(1,"p");
         stb.setName(4,"q");
-        //System.out.println(res.toString(stb));
+        //System.out.println(res.description(stb));
         assertEquals("Resolution:\n" +
                 "Primary Clauses:\n" +
                 "Bucket 2\n" +
@@ -507,7 +507,7 @@ public class ResolutionTest {
                 " 3: 3@3,3@5,\n" +
                 " 4: q@3,q@4,\n" +
                 " 5: 5@6,\n" +
-                "-6: -6@6,\n",res.toString(stb));
+                "-6: -6@6,\n",res.description(stb));
     }
 
 
@@ -552,7 +552,7 @@ public class ResolutionTest {
         Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
         Result result = (Result)processTrueLiteral.invoke(res,1);
 
-        //System.out.println(res.toString());
+        //System.out.println(res.description());
         assertEquals("Resolution:\n" +
                 "Primary Clauses:\n" +
                 "Bucket 2\n" +
@@ -575,7 +575,7 @@ public class ResolutionTest {
                 "\n" +
                 "Task Queue:\n" +
                 "1. P1: New true literal derived: 2\n" +
-                "2. P1: New true literal derived: -6\n",res.toString());
+                "2. P1: New true literal derived: -6\n",res.description());
     }
     @Test
     public void processTrueLiteral3() throws Exception {
@@ -616,7 +616,7 @@ public class ResolutionTest {
         Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
         Result result = (Result)processTrueLiteral.invoke(res,1);
 
-        //System.out.println(res.toString());
+        //System.out.println(res.description());
         assertEquals("Resolution:\n" +
                 "Primary Clauses:\n" +
                 "Bucket 2\n" +
@@ -637,7 +637,7 @@ public class ResolutionTest {
                 "Task Queue:\n" +
                 "1. P1: Pure literal: -3\n" +
                 "2. P1: New true literal derived: 2\n" +
-                "3. P1: New true literal derived: -6\n",res.toString());
+                "3. P1: New true literal derived: -6\n",res.description());
     }
     @Test
     public void processTrueLiteral4() throws Exception {
@@ -681,7 +681,7 @@ public class ResolutionTest {
         Method processTrueLiteral = getMethod("processTrueLiteral", int.class);
         Result result = (Result)processTrueLiteral.invoke(res,1);
 
-        //System.out.println(res.toString());
+        //System.out.println(res.description());
         assertEquals("Resolution:\n" +
                 "Secondary Clauses:\n" +
                 "Bucket 2\n" +
@@ -699,7 +699,7 @@ public class ResolutionTest {
                 "Task Queue:\n" +
                 "1. P1: Pure literal: -3\n" +
                 "2. P1: New true literal derived: 2\n" +
-                "3. P1: New true literal derived: -6\n",res.toString());
+                "3. P1: New true literal derived: -6\n",res.description());
     }
 
         @Test
@@ -779,7 +779,7 @@ public class ResolutionTest {
 
         Method initializeClauses = getMethod("initializeClauses");
         initializeClauses.invoke(res);
-        //System.out.println(res.toString());
+        //System.out.println(res.description());
         assertEquals("Resolution:\n" +
                 "Primary Clauses:\n" +
                 "Bucket 2\n" +
@@ -829,7 +829,7 @@ public class ResolutionTest {
                 "11. P3: Simplify initial clause D7_1:(-13,-14)\n" +
                 "12. P3: Simplify initial clause D8_1:(-15,-16)\n" +
                 "13. P3: Simplify initial clause D8_2:(-15,-17)\n" +
-                "14. P3: Simplify initial clause D8_3:(-16,-17)\n",res.toString());
+                "14. P3: Simplify initial clause D8_3:(-16,-17)\n",res.description());
     }
 
     @Test
@@ -866,7 +866,7 @@ public class ResolutionTest {
 
         Method initializeClauses = getMethod("initializeClauses");
         initializeClauses.invoke(res);
-        //System.out.println(res.toString());
+        //System.out.println(res.description());
         assertEquals("Resolution:\n" +
                 "Primary Clauses:\n" +
                 "Bucket 2\n" +
@@ -908,7 +908,7 @@ public class ResolutionTest {
                 "11. P5: Simplify initial clause D7_2:(13,-14)\n" +
                 "12. P5: Simplify initial clause D8_1:(-15,-16)\n" +
                 "13. P5: Simplify initial clause X6:(11,12)\n" +
-                "14. P5: Simplify initial clause D8_3:(-16,-15)\n",res.toString());}
+                "14. P5: Simplify initial clause D8_3:(-16,-15)\n",res.description());}
 
     @Test
     public void initializeClauses3() throws Exception {
@@ -945,7 +945,7 @@ public class ResolutionTest {
 
         Method initializeClauses = getMethod("initializeClauses");
         initializeClauses.invoke(res);
-        //System.out.println(res.toString());
+        //System.out.println(res.description());
         assertEquals("Resolution:\n" +
                 "Primary Clauses:\n" +
                 "Bucket 2\n" +
@@ -983,7 +983,7 @@ public class ResolutionTest {
                 "11. P5: Simplify initial clause D7_2:(20,-14)\n" +
                 "12. P5: Simplify initial clause D8_1:(-20,-16)\n" +
                 "13. P5: Simplify initial clause X6:(20,12)\n" +
-                "14. P5: Simplify initial clause D8_3:(-16,-20)\n",res.toString());}
+                "14. P5: Simplify initial clause D8_3:(-16,-20)\n",res.description());}
 
     @Test
     public void resolve() throws Exception {

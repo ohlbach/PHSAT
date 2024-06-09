@@ -60,7 +60,7 @@ public class CombinationsIterator implements Iterator<int[]> {
     public static void main(String[] args) {
         CombinationsIterator it = new CombinationsIterator(5,2);
         while(it.hasNext()) {
-            System.out.println(Arrays.toString(it.next()));}}
+            System.out.println(Arrays.description(it.next()));}}
             */
 
 }

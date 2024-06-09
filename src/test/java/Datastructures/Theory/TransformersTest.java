@@ -6,7 +6,7 @@ package Datastructures.Theory;
 public class TransformersTest {
 /*
     static BiConsumer<int[],Integer> contradictionHandler = ((clause, literal) -> {
-        System.out.println("CL "+ Arrays.toString(clause));
+        System.out.println("CL "+ Arrays.description(clause));
         System.out.println("LI "+ literal);});
 
     static Symboltable symboltable = null;
@@ -26,7 +26,7 @@ public class TransformersTest {
         bcl.addClause(c4);
         int[] id = new int[]{0};
         Transformers.prepareDisjunctions(bcl,id,null,(clause->clauses.add(clause)));
-        assertEquals("[1:(1,2,3), 2:(3,4,5), 4:(3,4)]",clauses.toString());
+        assertEquals("[1:(1,2,3), 2:(3,4,5), 4:(3,4)]",clauses.description());
     }
     @Test
     public void prepareDisjunctionsEQ() throws Exception {
@@ -44,7 +44,7 @@ public class TransformersTest {
         eq.addEquivalenceClass(c1);
         int[] id = new int[]{0};
         Transformers.prepareDisjunctions(bcl,id,eq,(clause->clauses.add(clause)));
-        assertEquals("[2:(1,4,5), 4:(1,4)]",clauses.toString());
+        assertEquals("[2:(1,4,5), 4:(1,4)]",clauses.description());
     }
 
     @Test
@@ -61,7 +61,7 @@ public class TransformersTest {
         bcl.addClause(c3);
         bcl.addClause(c4);
         Transformers.prepareConjunctions(bcl,null,(clause->clauses.add(clause)));
-        assertEquals("[1, 2, 3, 3, 4, 5, 3, 4, -3, 3, 4, 3]",clauses.toString());}
+        assertEquals("[1, 2, 3, 3, 4, 5, 3, 4, -3, 3, 4, 3]",clauses.description());}
 
     @Test
     public void prepareConjunctionsEQ() throws Exception {
@@ -80,7 +80,7 @@ public class TransformersTest {
         EquivalenceClassesOld eq = new EquivalenceClassesOld(symboltable,null);
         eq.addEquivalenceClass(e1);
         Transformers.prepareConjunctions(bcl,eq,(clause->clauses.add(clause)));
-        assertEquals("[1, 1, 1, 1, 4, 5, 1, 4, -1, 1, 4, 1]",clauses.toString());}
+        assertEquals("[1, 1, 1, 1, 4, 5, 1, 4, -1, 1, 4, 1]",clauses.description());}
 
 
     @Test
@@ -92,7 +92,7 @@ public class TransformersTest {
         bcl.addClause(c1);
         int[] id = new int[]{0};
         Transformers.prepareXors(bcl,id,null,(clause->clauses.add(clause)));
-        assertEquals("[X1:(1,2,3), D1_1:(-1,-2), D1_2:(-1,-3), D1_3:(-2,-3)]",clauses.toString());
+        assertEquals("[X1:(1,2,3), D1_1:(-1,-2), D1_2:(-1,-3), D1_3:(-2,-3)]",clauses.description());
     }
 
     @Test
@@ -107,7 +107,7 @@ public class TransformersTest {
         eq.addEquivalenceClass(c2);
         int[] id = new int[]{0};
         Transformers.prepareXors(bcl,id,eq,(clause->clauses.add(clause)));
-        assertEquals("[X1:(1,3), D1_1:(-1), D1_2:(-1,-3), D1_3:(-1,-3)]",clauses.toString());
+        assertEquals("[X1:(1,3), D1_1:(-1), D1_2:(-1,-3), D1_3:(-1,-3)]",clauses.description());
     }
 
     @Test
@@ -119,7 +119,7 @@ public class TransformersTest {
         bcl.addClause(c1);
         int[] id = new int[]{0};
         Transformers.prepareDisjoints(bcl,id,null,(clause->clauses.add(clause)));
-        assertEquals("[D1_1:(-1,-2), D1_2:(-1,-3), D1_3:(-2,-3)]",clauses.toString());
+        assertEquals("[D1_1:(-1,-2), D1_2:(-1,-3), D1_3:(-2,-3)]",clauses.description());
     }
 
     @Test
@@ -134,7 +134,7 @@ public class TransformersTest {
         eq.addEquivalenceClass(c2);
         int[] id = new int[]{0};
         Transformers.prepareDisjoints(bcl,id,eq,(clause->clauses.add(clause)));
-        assertEquals("[D1_1:(-1), D1_2:(-1,-3), D1_3:(-1,-3)]",clauses.toString());
+        assertEquals("[D1_1:(-1), D1_2:(-1,-3), D1_3:(-1,-3)]",clauses.description());
     }
     @Test
     public void prepareEquivalences() throws Exception {
@@ -155,7 +155,7 @@ public class TransformersTest {
                 "-4 -> -1\n" +
                 "4 -> 1\n" +
                 "-5 -> 1\n" +
-                "5 -> -1\n",eq.toString());
+                "5 -> -1\n",eq.description());
 
     }
 */

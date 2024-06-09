@@ -39,7 +39,7 @@ public class LitAlgorithmsTest {
         Clause c2 = make(2,index, or,30,20,10);
         Clause c3 = make(3,index, or,30,20,10,40);
         Clause c4 = make(4,index, or,30,20,-10,40);
-        //System.out.println(index.toString());
+        //System.out.println(index.description());
         assertEquals(c2,LitAlgorithms.isSubsumed(c1,index,1));
         assertEquals(c1,LitAlgorithms.isSubsumed(c2,index,10));
         assertEquals(c1,LitAlgorithms.isSubsumed(c3,index,20));
@@ -52,7 +52,7 @@ public class LitAlgorithmsTest {
         BucketSortedIndex<CLiteral> index = makeIndex(41);
         Clause c1 = make(1,index, atl,  6,1,1,1,1,2,2,2);
         Clause c2 = make(2,index, atl,3,1,1,2,2);
-        //System.out.println(index.toString());
+        //System.out.println(index.description());
         assertEquals(c1,LitAlgorithms.isSubsumed(c2,index,1));
         assertNull(LitAlgorithms.isSubsumed(c1,index,5));
     }
@@ -86,7 +86,7 @@ public class LitAlgorithmsTest {
         Clause c1 = make(1,index, atl,  6,1,1,1,1,2,2,2);
         Clause c2 = make(2,index, atl,3,1,1,2,2);
         Clause c3 = make(3,index, atl,  4,1,1,1,1,2,2,2);
-        //System.out.println(index.toString());
+        //System.out.println(index.description());
         LitAlgorithms.subsumes(c1,index,1,subsumed);
         assertEquals(1,subsumed.size());
         assertSame(c2,subsumed.get(0));
@@ -106,7 +106,7 @@ public class LitAlgorithmsTest {
         Clause c3 = make(3,index, or,30,20,10,40);
         Clause c4 = make(4,index, or,30,20,-10,40);
         Clause c5 = make(5,index, or,30,-40);
-        //System.out.println(index.toString(l->""+l.literal+"@"+l.clause.id));
+        //System.out.println(index.description(l->""+l.literal+"@"+l.clause.id));
         Object[] result = LitAlgorithms.replacementResolutionBackwards(c4,index, 1);
         assertEquals(2,result.length);
         assertEquals("-10",result[0].toString());

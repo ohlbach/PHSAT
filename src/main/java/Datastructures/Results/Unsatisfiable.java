@@ -22,13 +22,14 @@ public abstract class Unsatisfiable extends Result {
     public Unsatisfiable(String problemId, String solverId) {
         super(problemId,solverId);}
 
-    /** must generate a short description of the unsatisfiability
+    /**
+     * Generates a description of the unsatisfiable clause based on the given symbol table.
      *
-     * @param symboltable  null or a symboltable
-     * @return a short description of the unsatisfiability
+     * @param symboltable the symbol table used for predicate name mapping
+     * @return a string description of the unsatisfiable clause
      */
-    public abstract String description(Symboltable symboltable);
-
+    public String description(Symboltable symboltable) {
+        return toString(symboltable);};
 
     /** returns the reason for the unsatisfiability, usually the entire proof.
      *

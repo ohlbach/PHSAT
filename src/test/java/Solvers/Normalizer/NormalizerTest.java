@@ -57,11 +57,11 @@ public class NormalizerTest extends TestCase {
         //System.out.println(errors);
         //System.out.println(warnings);
         ProblemGenerator generator = generators.get(0);
-        //System.out.println(generator.toString());
+        //System.out.println(generator.description());
 
         InputClauses inputClauses = generator.generateProblem(errors);
         if(!errors.isEmpty()) System.out.println(errors.toString());
-        //System.out.println(inputClauses.toString());
+        //System.out.println(inputClauses.description());
         ArrayList<HashMap<String,String>> pars = new ArrayList<>();
         pars.add(parameters);
         GlobalParameters globalParameters = null; //new GlobalParameters(pars,errors,warnings);
@@ -187,7 +187,7 @@ public class NormalizerTest extends TestCase {
                 "e -5=6 7\"";
         supervisor = makeProblemSupervisor(clauses);
         nom = new Normalizer(supervisor);
-        //System.out.println(nom.problemSupervisor.inputClauses.toString());
+        //System.out.println(nom.problemSupervisor.inputClauses.description());
         nom.trackReasoning = true;
         Monitor mon = new MonitorLife("MON",System.nanoTime());
         nom.monitor = (string) ->  mon.println("TEST",string);
@@ -215,7 +215,7 @@ public class NormalizerTest extends TestCase {
                 "e -5=6 7\"";
         supervisor = makeProblemSupervisor(clauses);
         nom = new Normalizer(supervisor);
-        //System.out.println(nom.problemSupervisor.inputClauses.toString());
+        //System.out.println(nom.problemSupervisor.inputClauses.description());
         nom.trackReasoning = true;
         Monitor mon = new MonitorLife("MON",System.nanoTime());
         nom.monitor = (string) ->  mon.println("TEST",string);
@@ -306,7 +306,7 @@ public class NormalizerTest extends TestCase {
         //System.out.println(errors);
         //System.out.println(warnings);
         ProblemGenerator generator = generators.get(0);
-        //System.out.println(generator.toString());
+        //System.out.println(generator.description());
 
         InputClauses inputClauses = generator.generateProblem(errors);
         if(!errors.isEmpty()) System.out.println(errors.toString());
@@ -372,7 +372,7 @@ public class NormalizerTest extends TestCase {
         System.out.println(errors);
         System.out.println(warnings);
         ProblemGenerator generator = generators.get(0);
-        //System.out.println(generator.toString());
+        //System.out.println(generator.description());
 
         InputClauses inputClauses = generator.generateProblem(errors);
         if(!errors.isEmpty()) System.out.println(errors.toString());

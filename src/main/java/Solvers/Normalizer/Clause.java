@@ -3,8 +3,6 @@ package Solvers.Normalizer;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
-import InferenceSteps.NMISEquivalentLiteral;
-import Solvers.Normalizer.NMInferenceSteps.InfTrueLiteralToClause;
 import Solvers.Normalizer.NMInferenceSteps.NMInferenceStep;
 import Utilities.BiConsumerWithUnsatisfiable;
 
@@ -54,65 +52,6 @@ public class Clause extends Datastructures.Clause<Literal> {
         return (Clause)super.clone();}
 
 
-
-
-
-    /**Applies a true/false literal to the clause, simplifying it by removing the corresponding literal and updating the clause properties.
-     * <br>
-     * Notice that the clause can become true or false.
-     *
-     * @param literal        The true/false literal to be applied to the clause.
-     * @param isTrue         indicates whether the literal is true or false.
-     * @param inferenceStep  which caused the truth/falsehood of the literal.
-     * @param trackReasoning Indicates whether reasoning steps should be tracked.
-     * @param monitor        The monitor used for printing information.
-     * @param symboltable    The symbol table used for converting predicates to strings.
-     * @return +1 if the clause can be removed, -1 if the clause became false, and 0 otherwise.
-     */
-    int applyTrueLiteral(int literal, boolean isTrue, InferenceStep inferenceStep, boolean trackReasoning, Consumer<String> monitor,
-                            Consumer<Literal> literalRemover, BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
-                            Symboltable symboltable) throws Unsatisfiable {
-        int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
-        removeLiteral(literal,isTrue);
-        if(trackReasoning) {
-            addInferenceStep(new InfTrueLiteralToClause( isTrue ? literal : -literal, inferenceStep,
-                    clauseBefore,this));}
-        if(monitor != null)
-            monitor.accept("True Literal " + Symboltable.toString(literal,symboltable) +
-                " applied to clause " + Clause.toString(clauseBefore,symboltable) + " -> " +
-                toString(symboltable,0));
-        return simplify(trackReasoning,literalRemover,reportTruth,monitor,symboltable);}
-
-
-
-    /** The method replaces the equivalentLiteral by the representative literal.
-     * <br>
-     * The literal is replaced and the clause is simplified.
-     *
-     * @param representative     the representative literal of an equivalence class.
-     * @param equivalentLiteral  the corresponding equivalent literal
-     * @param inferenceStep      the inference step that caused the equivalence
-     * @param trackReasoning     controls generation of inference steps
-     * @param literalRemover     null or a function to indicate that a literal is removed.
-     * @param reportTruth        a function for reporting a true literal.
-     * @param monitor            null or a monitor
-     * @param symboltable        null or a symboltable
-     * @return                   -1 if a contradiction is encountered, +1 if the clause can be removed, 0 otherwise
-     */
-    public int replaceEquivalentLiterals(int representative, int equivalentLiteral, InferenceStep inferenceStep,
-                                      boolean trackReasoning, Consumer<Literal> literalRemover,
-                                         BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
-                                         Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
-        int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
-        if(!replaceLiteral(representative,equivalentLiteral)) return 0;
-        if(trackReasoning) addInferenceStep(new NMISEquivalentLiteral("replaceEquivalentLiterals",
-                                representative, equivalentLiteral, inferenceStep, cloned));
-        if(monitor != null) {
-            monitor.accept("In clause " + toString(cloned, symboltable) +
-                    " literal " + Symboltable.toString(equivalentLiteral,symboltable) +
-                    " replaced by " +  Symboltable.toString(representative,symboltable) + " => " + toString(symboltable,0));}
-        return simplify(trackReasoning,literalRemover,reportTruth, monitor,symboltable);
-    }
 
     /** removes a literal to prepare for singleton purity in interval clauses.
      *

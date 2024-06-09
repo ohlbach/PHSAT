@@ -206,8 +206,8 @@ public abstract class Resolution extends Solver {
      *  It adds an Unsatisfiable task to the task queue.
      */
     private BiConsumer<Integer,IntArrayList> contradictionHandler = null; /*((reason,origin)->{
-        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.toString(),null
-                )), (()->reason.toString())));});*/
+        taskQueue.add(new Task(0,(()-> new Unsatisfiable(reason.description(),null
+                )), (()->reason.description())));});*/
 
     /** This function is called when a new disjunction is to be inserted.
      *  It generates a simplifyBackwards task.
@@ -300,7 +300,7 @@ public abstract class Resolution extends Solver {
             result = taskQueue.run();
             if(result != null) {break;}
             //System.out.println("After Resolution");
-            //System.out.println(toString());
+            //System.out.println(description());
         }
         if(result == null) {
             System.out.println(toString());
@@ -501,7 +501,7 @@ public abstract class Resolution extends Solver {
      */
     private Result processTrueLiteral(int literal) {
         //System.out.println("PL START " + literal);
-        //System.out.println(toString());
+        //System.out.println(description());
         switch(model.status(literal)) {
             case -1: //return new Unsatisfiable(null,null); //model,null); //literal);
             case +1: return null;}
@@ -523,7 +523,7 @@ public abstract class Resolution extends Solver {
             removeLiteral(cLiteral);}
         literalIndex.clearBoth(Math.abs(literal));
         //System.out.println("PL END " + literal);
-        //System.out.println(toString());
+        //System.out.println(description());
         return null;}
 
 
@@ -534,7 +534,7 @@ public abstract class Resolution extends Solver {
         int size01n = literalIndex.size01(-eliminateLiteral);
         if(size01p != 1 || size01n == 0) {return;}
         //System.out.println("Start Elimination " + eliminateLiteral );
-        //System.out.println(toString());
+        //System.out.println(description());
         Clause clause  = literalIndex.getAllItems(eliminateLiteral).get(0).clause;
         ArrayList<CLiteral> literals = clause.cliterals;
         boolean inPrimary = primaryClauses.contains(clause);
@@ -563,8 +563,8 @@ public abstract class Resolution extends Solver {
         removeClause(clause,0);
         literalIndex.clearBoth(Math.abs(eliminateLiteral));
         if(checkConsistency) {check("processElimination");}
-        //System.out.println("End Elimination " + eliminateLiteral + "@" + clause.toString());
-        //System.out.println(toString());
+        //System.out.println("End Elimination " + eliminateLiteral + "@" + clause.description());
+        //System.out.println(description());
     }
 
     /** completes a model after resolution has finished.
@@ -767,7 +767,7 @@ public abstract class Resolution extends Solver {
      */
     private Result processEquivalence(int fromLiteral, int toLiteral) throws Unsatisfiable{
         //System.out.println("START EQUIVALENCE " + fromLiteral + " -> " + toLiteral);
-        //System.out.println(toString());
+        //System.out.println(description());
         int fromStatus = model.status(fromLiteral);
         int toStatus   = model.status(toLiteral);
         if(fromStatus != 0 && toStatus != 0 && fromStatus != toStatus) {
@@ -815,7 +815,7 @@ public abstract class Resolution extends Solver {
         for(Clause clause : replacedClauses) {if(!clause.removed) {simplifyForward(clause);}}
 
         //System.out.println("END EQUIVALENCE " + fromLiteral + " -> " + toLiteral);
-        //System.out.println(toString());
+        //System.out.println(description());
         return null;}
 
 

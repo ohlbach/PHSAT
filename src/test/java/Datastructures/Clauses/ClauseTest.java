@@ -398,14 +398,14 @@ public class ClauseTest {
         ArrayList<Clause> clauses = c1.splitOffMultiples(()->++id[0],true);
         assertEquals("2: 1,2",clauses.get(0).toNumbers());
         assertEquals("Extract CNF from Multiple Literals:\n" +
-                "L-1: 3: 1^2,2^2,3 -> 2: 1,2",clauses.get(0).inferenceStep.toString());
+                "L-1: 3: 1^2,2^2,3 -> 2: 1,2",clauses.get(0).inferenceStep.description());
 
         c1 = new Clause(2, Connective.ATLEAST, 4, 1,1,2,2,3,3,3,3,5);
         clauses = c1.splitOffMultiples(()->++id[0],true);
         assertEquals("3: 1,3",clauses.get(0).toNumbers());
         assertEquals("4: 2,3",clauses.get(1).toNumbers());
         assertEquals("Extract CNF from Multiple Literals:\n" +
-                "L-2: 4: 1^2,2^2,3^4,5 -> 3: 1,3",clauses.get(0).inferenceStep.toString());
+                "L-2: 4: 1^2,2^2,3^4,5 -> 3: 1,3",clauses.get(0).inferenceStep.description());
         //System.out.println(clauses.get(0).inferenceStep.rule());
 
     }

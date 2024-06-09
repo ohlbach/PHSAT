@@ -80,7 +80,7 @@ public class UtilitiesTest {
         assertEquals("[55.5, 60.6, 70.0]",n.toString());
         n = Utilities.parseFloatRange("test", "4 to 5 step 0.2", errors);
         assertEquals("[4.0, 4.2, 4.4, 4.6, 4.8, 5.0]",n.toString());
-       // System.out.println(n.toString());
+       // System.out.println(n.description());
 
     }
         @Test
