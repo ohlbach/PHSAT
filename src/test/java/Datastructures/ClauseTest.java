@@ -468,5 +468,12 @@ public class ClauseTest extends TestCase {
         assertFalse(step.verify((string) -> System.out.println(string), null));
 
     }
+    public void testTrueLiterals() {
+        System.out.println("trueLiterals");
+        Clause c = new Clause(new int[]{1, or, 1, 2, 3, 4}, true, litCreator, null);
+        assertEquals(2,c.trueLiterals((literal) -> literal % 2 == 0 ));
+
+    }
+
 
     }

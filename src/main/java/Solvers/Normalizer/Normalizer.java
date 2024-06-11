@@ -123,8 +123,21 @@ public class Normalizer {
         trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
         predicates             = problemSupervisor.inputClauses.predicates;
         myThread               = Thread.currentThread();
-        System.out.println("TR " + trackReasoning);
     }
+
+    public Normalizer(String problemId, String monitorId, boolean trackReasoning, Symboltable symboltable, int predicates ) {
+        this.problemId = problemId;
+        statistics = new NormalizerStatistics(null);
+        monitoring = monitorId != null;
+        monitor = monitoring ? (message -> System.out.println(message)) : null;
+        this.trackReasoning = trackReasoning;
+        this.symboltable = symboltable;
+        this.predicates = predicates;
+        myThread = Thread.currentThread();
+        model = new Model(predicates);
+    }
+
+
 
     /** reads the next task from the task queue and processes it.
      * <br>
@@ -353,7 +366,7 @@ public class Normalizer {
                 positiveArrayList = positiveOccInterval;
                 negativeArrayList = negativeOccInterval;}
 
-        for(int i = 0; i < clause.literals.size()-1; ++i) {
+        for(int i = 0; i < clause.literals.size(); ++i) {
             int literal = clause.literals.get(i).literal;
             int predicate = Math.abs(literal);
             ArrayList<Clause> clausesArray = (literal > 0) ? positiveArrayList[predicate] : negativeArrayList[predicate];
@@ -383,7 +396,7 @@ public class Normalizer {
                 yield negativeOccInterval;}
             default -> null;};
 
-         for(int i = 0; i < clause.literals.size()-1; ++i) {
+         for(int i = 0; i < clause.literals.size(); ++i) {
             int literal = clause.literals.get(i).literal;
             int predicate = Math.abs(literal);
             ArrayList<Clause> clausesArray = (literal > 0) ? positiveArrayList[predicate] : negativeArrayList[predicate];
@@ -459,7 +472,7 @@ public class Normalizer {
                     Clause clause = (literal > 0) ? positiveOccInterval[predicate].get(0) : negativeOccInterval[predicate].get(0);
                     singletons.add(literal); singletons.add(clause.clone());
                     removeClauseFromIndex(clause);
-                    switch(clause.removeLiteral(literal,trackReasoning,null,this:: addTrueLiteralTask, monitor,symboltable)) {
+                    switch(clause.removeLiteral(literal,trackReasoning,this::addTrueLiteralTask, monitor,symboltable)) {
                         case -1: throw new UnsatClause(problemId,solverId, clause);
                         case +1: continue;}
                     addClauseToIndex(clause);}}}

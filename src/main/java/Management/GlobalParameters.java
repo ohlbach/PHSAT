@@ -168,6 +168,9 @@ public class GlobalParameters {
                 "If true then the inference steps are tracked and verified."));
         return parameters;}
 
+    public GlobalParameters(HashMap<String, ArrayList<String>> defaults) {
+        setDefaults(defaults);}
+
     public GlobalParameters(Parameters globalParams) {
         jobName      = (String)(globalParams.parameters.get(0).value);
         jobDirectory = (Path)(globalParams.parameters.get(1).value);

@@ -11,6 +11,7 @@ import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
 import Management.Parameters;
 import Management.ProblemSupervisor;
+import Management.QUSat;
 import ProblemGenerators.ProblemGenerator;
 import ProblemGenerators.PythagoraenTriples;
 import ProblemGenerators.StringClauseSetGenerator;
@@ -44,10 +45,11 @@ public class NormalizerTest extends TestCase {
     static Clause makeClause(int[] inputClause) {
         return new Clause(inputClause,false,null);
     }
-
+    static  HashMap<String, ArrayList<String>> defaults = QUSat.loadDefaults();
+    GlobalParameters globalParameters = new GlobalParameters(defaults);
 
     public ProblemSupervisor makeProblemSupervisor(String clauses) {
-        HashMap<String, String> parameters = new HashMap<>();
+   HashMap<String, String> parameters = new HashMap<>();
         parameters.put("clauses", clauses);
         parameters.put("name", "MyProblem");
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
@@ -57,14 +59,13 @@ public class NormalizerTest extends TestCase {
         //System.out.println(errors);
         //System.out.println(warnings);
         ProblemGenerator generator = generators.get(0);
-        //System.out.println(generator.description());
+        System.out.println(generator.toString());
 
         InputClauses inputClauses = generator.generateProblem(errors);
         if(!errors.isEmpty()) System.out.println(errors.toString());
         //System.out.println(inputClauses.description());
         ArrayList<HashMap<String,String>> pars = new ArrayList<>();
         pars.add(parameters);
-        GlobalParameters globalParameters = null; //new GlobalParameters(pars,errors,warnings);
         ProblemSupervisor supervisor = new ProblemSupervisor(null,globalParameters,generator,null);
         supervisor.inputClauses = inputClauses;
         supervisor.model = new Model(inputClauses.predicates);
@@ -73,9 +74,7 @@ public class NormalizerTest extends TestCase {
 
     public void testAddClauseToIndex() {
         System.out.println("addClauseToIndex");
-        String clauses = "p cnf 5\n";
-        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
-        Normalizer nom = new Normalizer(supervisor);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,5);
 
         Clause clause1 = makeClause(new int[]{5,nor,1,-2,3});
         Clause clause2 = makeClause(new int[]{6,natl, 2,3,2,1,1});
@@ -94,9 +93,7 @@ public class NormalizerTest extends TestCase {
 
     public void testRemoveClauseFromIndex() {
         System.out.println("removeClauseFromIndex");
-        String clauses = "p cnf 5\n";
-        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
-        Normalizer nom = new Normalizer(supervisor);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,5);
 
         Clause clause1 = makeClause(new int[]{1,nor,1,-2,3});
         nom.addClauseToIndex(clause1);
@@ -117,55 +114,52 @@ public class NormalizerTest extends TestCase {
 
     public void testTransformAndSimplif1() throws Unsatisfiable {
         System.out.println("transform and simplify: no simplifications ");
-        String clauses = "p cnf 15\n";
-        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
-        Normalizer nom = new Normalizer(supervisor);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,7);
+
         int[] clause1 = new int[]{1, nor, 1, -2, 3};
         nom.transformAndSimplify(clause1);
-        assertEquals("  1: 1,-2,3", nom.toString(null));
+        assertEquals("  1: 1v-2v3", nom.toString(null));
 
         int[] clause2 = new int[]{2, natl, 2, 3, 1, -2, 3};
         nom.transformAndSimplify(clause2);
-        assertEquals("  1: 1,-2,3\n" +
+        assertEquals("  1: 1v-2v3\n" +
                 "  2: >=2 3^2,1,-2", nom.toString(null));
 
         int[] clause3 = new int[]{3, nex, 2, 4,5,5,6};
         nom.transformAndSimplify(clause3);
-        assertEquals(" 1: 1,-2,3\n" +
+        assertEquals("  1: 1v-2v3\n" +
                 "  2: >=2 3^2,1,-2\n" +
                 "  3: =2 4,5^2,6", nom.toString(null));
 
         int[] clause4 = new int[]{4, nint, 2,3, 4,5,5,6};
         nom.transformAndSimplify(clause3);
-        assertEquals("  1: 1,-2,3\n" +
+        assertEquals("  1: 1v-2v3\n" +
                 "  2: >=2 3^2,1,-2\n" +
+                "  3: =2 4,5^2,6\n" +
                 "  3: =2 4,5^2,6", nom.toString(null));
     }
 
     public void testTransformAndSimplif2() throws Unsatisfiable {
-        System.out.println("transform and simplify: with simplifications ");
-        String clauses = "p cnf 15\n";
-        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
-        Normalizer nom = new Normalizer(supervisor);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,7);
         int[] clause1 = new int[]{1, nor, 1, -2, 3, 2};
         nom.transformAndSimplify(clause1);
         assertEquals("", nom.toString(null));
 
         int[] clause2 = new int[]{2, nor, 1, -2, 3, -2};
         nom.transformAndSimplify(clause2);
-        assertEquals("2.1: 1,-2,3", nom.toString(null));
+        assertEquals("  2: 1v-2v3", nom.toString(null));
 
 
         int[] clause3 = new int[]{3, natl, 2, -2, 3, -2, -2, 3, 3, 4};
         nom.transformAndSimplify(clause3);
-        assertEquals("2.1: 1,-2,3\n" +
-                "3.2: -2,3", nom.toString(null));
+        assertEquals("  2: 1v-2v3\n" +
+                "3.3: -2v3", nom.toString(null));
 
         int[] clause4 = new int[]{4, natm, 2, -2, 3, -2, -2, 3, 3, 4};
         nom.transformAndSimplify(clause4);
         assertEquals("2.1: 1,-2,3\n" +
                 "3.2: -2,3", nom.toString(null));
-        assertEquals("2,-3",supervisor.model.toString());
+        assertEquals("2,-3",nom.model.toString());
         assertEquals("true(2)\n" +
                 "true(-3)\n",nom.queueToString(null));
     }

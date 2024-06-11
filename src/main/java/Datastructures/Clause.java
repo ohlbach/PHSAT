@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.IntPredicate;
 
 /**
  * Represents a Clause in a logic system.
@@ -255,6 +256,19 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
         return 0;
     }
 
+    /** counts the number of true literals in the clause (incl. multiplicities)
+     *
+     * @param model maps a literal to true/false
+     * @return the number of true literals in the clause.
+     */
+    public int trueLiterals(IntPredicate model) {
+        int trueLiterals = 0;
+        for(Literal literalObject : literals) {
+            int literal = literalObject.literal;
+            if(model.test(literal)) trueLiterals += literalObject.multiplicity;}
+        return trueLiterals;}
+
+
     /** Computes the list of models for the clause.
      * <p>
      *  A model is an integer where bit i=1 means the i-th literal is true. <br>
@@ -283,14 +297,16 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
 
         if(!models.isEmpty() && (min != minValue || max != maxValue)) {
             if(min != minValue) {
-                if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " min increased to " + minValue);
+                if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + ": min increased to " + minValue+
+                        " because of models:\n" + modelsString(models,symboltable));
                 min = minValue;
                 expandedSize = 0;
                 for(Literal literalObject : literals) {
                     literalObject.multiplicity = Math.min(min,literalObject.multiplicity);
                     expandedSize += literalObject.multiplicity;}}
             if(max != maxValue) {
-                if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + " max reduced to " + maxValue);
+                if(monitor != null) monitor.accept("Clause "+ toString(symboltable,0) + ": max reduced to " + maxValue+
+                        " because of models:\n" + modelsString(models,symboltable));
                 max = maxValue;}
             ++version;
             classifyQuantifier();}
@@ -782,6 +798,21 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
             int sign = ((model & 1 << i) != 0) ? 1: -1;
             st.append(Symboltable.toString(sign*Math.abs(literals.get(i).literal) ,symboltable));
             if(i < literals.size()-1) st.append(",");}
+        return st.toString();}
+
+    /**
+     * Generates a string representation of the given models.
+     * <br>
+     * The bits in the model must correspond to the literals in the clause.
+     *
+     * @param models The integer representation of the models.
+     * @param symboltable The given symbol table.
+     * @return The string representation of the model.
+     */
+    public String modelsString(IntArrayList models, Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        for(int model : models) {
+            st.append(modelString(model,symboltable)).append("\n");}
         return st.toString();}
 
     /**

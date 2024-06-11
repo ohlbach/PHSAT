@@ -52,7 +52,7 @@ public class QUSat {
      *
      * @return A HashMap containing the default module values.
      */
-    private static HashMap<String, ArrayList<String>> loadDefaults() {
+    public static HashMap<String, ArrayList<String>> loadDefaults() {
         HashMap<String, ArrayList<String>> moduleValues = new HashMap<>();
         File file = Paths.get(System.getProperty("user.dir"), "src","main","resources",defaultFile).toFile();
         try {
