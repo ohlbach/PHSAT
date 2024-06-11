@@ -43,6 +43,9 @@ public class Normalizer {
     /** the problem's identifier */
     String problemId;
 
+    /** the clauses to be normalized */
+    public InputClauses inputClauses;
+
     /** just 'Normalizer'*/
     final static String solverId = "Normalizer";
 
@@ -114,6 +117,7 @@ public class Normalizer {
     public Normalizer(ProblemSupervisor problemSupervisor) {
         this.problemSupervisor = problemSupervisor;
         problemId              = problemSupervisor.problemId;
+        inputClauses           = problemSupervisor.inputClauses;
         model                  = problemSupervisor.model;
         statistics             = new NormalizerStatistics(null);
         monitoring             = problemSupervisor.monitor != null;
@@ -174,7 +178,6 @@ public class Normalizer {
      * @return null or Unsatisfiable
      */
     public Result normalizeClauses(int maxLoop) {
-        InputClauses inputClauses = problemSupervisor.inputClauses;
         try {
             for (int[] inputClause : inputClauses.conjunctions) transformAndSimplify(inputClause);
             for (int[] inputClause : inputClauses.equivalences) transformAndSimplify(inputClause);
@@ -275,7 +278,7 @@ public class Normalizer {
         boolean modelChanged = true;
         while(modelChanged) {
             modelChanged = false;
-            for (int[] inputClause : problemSupervisor.inputClauses.equivalences) {
+            for (int[] inputClause : inputClauses.equivalences) {
                 byte sign = 0;
                 int trueLit = trueLiteral;
                 for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
@@ -318,8 +321,11 @@ public class Normalizer {
                         removeClauseFromIndex(clause);
                         switch(clause.applyEquivalentLiteral(representative,equivalentLiteral, step,trackReasoning,
                                 null, this::addTrueLiteralTask,monitor,symboltable)) {
-                            case -1: throw new UnsatClause(problemId,solverId, clause);
-                            case 1: continue;}
+                            case -1: clauses.remove(clause);
+                                throw new UnsatClause(problemId,solverId, clause);
+                            case 1:
+                                clauses.remove(clause);
+                                continue;}
                         addClauseToIndex(clause);}}}}}
 
     /** add the given clause to the corresponding index (occurrence lists).

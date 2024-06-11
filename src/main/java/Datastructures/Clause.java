@@ -186,6 +186,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
             case EQUIV:
                 if(literals.size() == 1) return 1;
                 return 0;}
+        if(min == 0 && max == expandedSize) return 1;
         int versionBefore = version;
         if(trackReasoning) {
             int[] clone = simpleClone();
@@ -222,7 +223,8 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
         else {if (max == 0) sign = -1;}
 
         if(sign != 0) {
-            if(monitor != null) monitor.accept("All predicates in clause " + toString(symboltable,0) + " are true.");
+            String truth = sign == 1 ? " adre true" : " are false";
+            if(monitor != null) monitor.accept("All predicates in clause " + toString(symboltable,0) + truth);
             for(Literal literalObject : literals) {
                 int literal = sign*literalObject.literal;
                 InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(simpleClone(),literal) : null;
@@ -351,22 +353,18 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
         int[] clone = trackReasoning ? simpleClone() : null;
         boolean changed = false;
         for(int j = literals.size()-1; j >= 0; --j) {
-            int mask = 1 << j;
-            boolean allTrue = true; boolean allFalse = true;
-            for(int model: models) {
-                if((model & mask) == 0) allTrue = false; else allFalse = false;}
-            int sign = 0;
-            if(allTrue) sign = 1; else {if(allFalse) sign = -1;}
-            if(sign != 0) {
-                changed = true;
-                int literal = sign*literals.get(j).literal;
-                InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal): null;
-                 if(monitor != null) {
-                    monitor.accept("Clause " + toString(symboltable,0) + ": has true literal " + Symboltable.toString(literal,symboltable));}
-                reportTruth.accept(literal,step);
-                if(literalRemover != null) literalRemover.accept(literals.get(j));
-                removeLiteralAtPosition(j, sign == 1);}}
-        if(changed) {classifyQuantifier();++version;}
+            int sign = sameInAllModels(models,j);
+            if(sign == 0) continue;
+            changed = true;
+            int literal = sign*Math.abs(literals.get(j).literal);
+            InferenceStep step = trackReasoning ? new InfTrueLiteralInClause(clone,literal): null;
+            if(monitor != null) {
+                monitor.accept("Clause " + toString(clone,symboltable) + ": has true literal " + Symboltable.toString(literal,symboltable));}
+            reportTruth.accept(literal,step);
+            if(literalRemover != null) literalRemover.accept(literals.get(j));
+            removeLiteralAtPosition(j, literal == literals.get(j).literal);
+        }
+        if(changed) {classifyQuantifier(); ++version;}
         return changed;}
 
     /**Extracts predicates whose truth is irrelevant for the truth of the clause.
@@ -445,12 +443,16 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
      *
      * @param literal the literal to be removed
      * @param isTrue  whether the removed literal is true or not
+     * @return true if the literal has been removed.
      */
-    public void removeLiteral(int literal, boolean isTrue) {
+    public boolean removeLiteral(int literal, boolean isTrue) {
+        int predicate = Math.abs(literal);
         for(int i = 0; i < literals.size(); ++i) {
-            if(literals.get(i).literal == literal) {
-                removeLiteralAtPosition(i,isTrue);
-                return;}}}
+            int lit = literals.get(i).literal;
+            if(Math.abs(lit) == predicate) {
+                removeLiteralAtPosition(i,lit == literal ? isTrue : !isTrue);
+                return true;}}
+        return false;}
 
     /**Removes th j-th literal from the list of predicates in the clause.
      * <p>
@@ -472,8 +474,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
                     litObject.multiplicity = Math.min(min, litObject.multiplicity);
                     expandedSize += litObject.multiplicity;}}}
         max = Math.min(max,expandedSize);
-        classifyQuantifier();
-        ++version;}
+        classifyQuantifier();}
 
     /** replaces an old literal by a new literal.
      * Multiple occurrences and complementary predicates are treated, but no other simplifications are done.
@@ -585,12 +586,14 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
     public int applyTrueLiteral(int literal, boolean isTrue, InferenceStep inferenceStep, boolean trackReasoning, Consumer<String> monitor,
                          Consumer<Literal> literalRemover, BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
                          Symboltable symboltable) throws Unsatisfiable {
-        int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
-        removeLiteral(literal,isTrue);
-        if(!isTrue) literal = -literal;
+         int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
+        String truth = "True";
+        if(!isTrue) {literal = -literal; truth = "False";}
+        if(!removeLiteral(literal,isTrue)) return 0;
+         ++version;
         if(trackReasoning) {addInferenceStep(new InfTrueLiteralToClause( literal,inferenceStep,clauseBefore,this));}
         if(monitor != null)
-            monitor.accept("True Literal " + Symboltable.toString(literal,symboltable) +
+            monitor.accept(truth +" Literal " + Symboltable.toString(literal,symboltable) +
                     " applied to clause " + Solvers.Normalizer.Clause.toString(clauseBefore,symboltable) + " -> " +
                     toString(symboltable,0));
         return simplify(trackReasoning,literalRemover,reportTruth,monitor,symboltable);}
@@ -753,6 +756,29 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
         if(clause[2] == Quantifier.EQUIV.ordinal()) {
             return trueLiterals == 0 || trueLiterals == max;}
         return min <= trueLiterals && trueLiterals <= max;}
+
+    /**
+     * Determines if the specified bit position has the same value in all models.
+     *
+     * @param models    the list of models to compare
+     * @param position  the bit position to check
+     * @return returns 1 if the specified bit position is set (1) in all models,
+     *                  returns -1 if the specified bit position is unset (0) in all models,
+     *                  returns 0 if the specified bit position has a mix of set and unset values in the models
+     */
+    public static int sameInAllModels(IntArrayList models, int position) {
+        int model = models.getInt(0);
+        int mask = 1 << position;
+        boolean all1 = (model & mask) != 0;
+        boolean all0 = !all1;
+
+        for(int i = 1; i < models.size(); ++i) {
+            model = models.get(i);
+            boolean one = (model & mask) != 0;
+            if((one && !all1) || (!one && !all0)) return 0;}
+        if(all1) return 1;
+        if(all0) return -1;
+        return 0;}
 
 
     /**

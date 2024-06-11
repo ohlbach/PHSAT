@@ -6,6 +6,7 @@ import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import InferenceSteps.InferenceStep;
 import Management.GlobalParameters;
 import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
@@ -20,6 +21,7 @@ import junit.framework.TestCase;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.function.Consumer;
 
 public class NormalizerTest extends TestCase {
 
@@ -32,14 +34,8 @@ public class NormalizerTest extends TestCase {
     int neq = Quantifier.EQUIV.ordinal();
 
     static Symboltable symboltable = new Symboltable(10);
-    static Monitor monitor = new MonitorLife();
-    static {
-        symboltable.setName(1,"p");
-        symboltable.setName(2,"q");
-        symboltable.setName(3,"r");
-        symboltable.setName(4,"s");
+    static Consumer<String> monitor = (string -> System.out.println(string));
 
-    }
     static NormalizerStatistics statistics = new NormalizerStatistics(null);
 
     static Clause makeClause(int[] inputClause) {
@@ -153,25 +149,33 @@ public class NormalizerTest extends TestCase {
         int[] clause3 = new int[]{3, natl, 2, -2, 3, -2, -2, 3, 3, 4};
         nom.transformAndSimplify(clause3);
         assertEquals("  2: 1v-2v3\n" +
-                "3.3: -2v3", nom.toString(null));
+                "3.2: -2v3", nom.toString(null));
+        ArrayList<InferenceStep> steps = (ArrayList<InferenceStep>)nom.clauses.getLinkedItem(1).inferenceSteps;
+        assertEquals(2,steps.size());
+        assertTrue(steps.get(0).verify(monitor,null));
+        assertTrue(steps.get(1).verify(monitor,null));
+
 
         int[] clause4 = new int[]{4, natm, 2, -2, 3, -2, -2, 3, 3, 4};
         nom.transformAndSimplify(clause4);
-        assertEquals("2.1: 1,-2,3\n" +
-                "3.2: -2,3", nom.toString(null));
+        assertEquals("  2: 1v-2v3\n" +
+                "3.2: -2v3", nom.toString(null));
         assertEquals("2,-3",nom.model.toString());
         assertEquals("true(2)\n" +
                 "true(-3)\n",nom.queueToString(null));
+        InferenceStep step = nom.model.getInferenceStep(2);
+        assertTrue(step.verify(monitor,null));
+        step = nom.model.getInferenceStep(-3);
+        assertTrue(step.verify(monitor,null));
     }
 
     public void testApplyTrueLiteralToEquivalence() throws Unsatisfiable {
         System.out.println("apply true literal to equivalence");
+        Normalizer nom = new Normalizer("Test","monitor",true,null,7);
+
         StringBuilder errors = new StringBuilder();
         String clauses = "p cnf 15\n"+
                 "e 1=2 3, 4";
-        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
-
-        Normalizer nom = new Normalizer(supervisor);
         nom.applyTrueLiteralToEquivalences(1);
         assertEquals("1,2,3,4", nom.model.toString());
 
@@ -179,7 +183,7 @@ public class NormalizerTest extends TestCase {
                 "e 1=2 3, 4\n"+
                 "e 4=-5\n"+
                 "e -5=6 7\"";
-        supervisor = makeProblemSupervisor(clauses);
+        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
         nom = new Normalizer(supervisor);
         //System.out.println(nom.problemSupervisor.inputClauses.description());
         nom.trackReasoning = true;
@@ -229,35 +233,51 @@ public class NormalizerTest extends TestCase {
                 "<= 2 1,2,3,4,1\n"+
                 ">= 2 1,2,3,4\n"+
                 "[2,3] 1,2,3,4,5,6";
-        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
-
-        Normalizer nom = new Normalizer(supervisor);
+        StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,15);
+        nom.inputClauses = scg.generateProblem(errors);
         nom.normalizeClauses(0);
-        assertEquals ("  1: 1,2,3,4\n" +
+        assertEquals ("  1: 1v2v3v4\n" +
                 "  3: >=2 1,2,3,4\n" +
                 "  2: <=2 1^2,2,3,4\n" +
-                "4.2: <=3 1,2,3,4",nom.toString(null));
+                "4.2: [2,3] 1,2,3,4\n" +
+                "\n" +
+                "Singleton Literals:\n" +
+                "5 in clause 4: [2,3] 1,2,3,4,5,6\n" +
+                "6 in clause 4.1: [2,3] 1,2,3,4,6\n",nom.toString(null));
         nom.applyTrueLiteral(1);
-        assertEquals("3.1: 2,3,4\n" +
-                "4.3: <=2 2,3,4", nom.toString(null));
+        assertEquals("3.1: 2v3v4\n" +
+                "4.3: [1,2] 2,3,4\n" +
+                "\n" +
+                "Singleton Literals:\n" +
+                "5 in clause 4: [2,3] 1,2,3,4,5,6\n" +
+                "6 in clause 4.1: [2,3] 1,2,3,4,6\n", nom.toString(null));
+        assertEquals("-2,-3,-4",nom.model.toString(null));
 
+        System.out.println("Example 2");
         clauses = "p cnf 15\n" +
                 "1,2 3, 4\n"+
                 "<= 2 1,2,3,4,1\n"+
                 ">= 2 1,2,3,4\n"+
                 "[2,3] 1,2,3,4,5,6";
-        supervisor = makeProblemSupervisor(clauses);
-
-        nom = new Normalizer(supervisor);
+        scg = new StringClauseSetGenerator("Test",clauses);
+        nom = new Normalizer("Test","monitor",true,null,15);
+        nom.inputClauses = scg.generateProblem(errors);
         nom.normalizeClauses(0);
         nom.applyTrueLiteral(-1);
-        assertEquals("1.1: 2,3,4\n" +
+        assertEquals("1.1: 2v3v4\n" +
                 "3.1: >=2 2,3,4\n" +
-                "2.1: <=2 2,3,4", nom.toString(null));
+                "2.1: <=2 2,3,4\n" +
+                "4.3: >=2 2,3,4\n" +
+                "\n" +
+                "Singleton Literals:\n" +
+                "5 in clause 4: [2,3] 1,2,3,4,5,6\n" +
+                "6 in clause 4.1: [2,3] 1,2,3,4,6\n", nom.toString(null));
     }
 
     public void testApplyEquivalence() throws Unsatisfiable {
         System.out.println("applyEquivalence");
+        StringBuilder errors = new StringBuilder();
         String clauses = "p cnf 15\n"+
                 "1,2 3, 4\n"+
                 "1,-2 3, 4\n"+
@@ -267,24 +287,25 @@ public class NormalizerTest extends TestCase {
                 ">= 2 1,2,3,4\n"+
                 "[2,3] 1,2,3,4,5,6\n"+
                 "[2,3] 1,-2,3,4,5,6";
-        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
-        Normalizer nom = new Normalizer(supervisor);
+        StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,15);
+        nom.inputClauses = scg.generateProblem(errors);
         nom.normalizeClauses(0);
-        assertEquals("  1: 1,2,3,4\n" +
-                "  2: 1,-2,3,4\n" +
-                "  3: 1,5,3,4\n" +
+        assertEquals("  1: 1v2v3v4\n" +
+                "  2: 1v-2v3v4\n" +
+                "  3: 1v5v3v4\n" +
                 "  6: >=2 1,2,3,4\n" +
                 "  4: <=2 1^2,2,3,4\n" +
                 "  5: <=2 1^2,-2,3,4\n" +
                 "  7: [2,3] 1,2,3,4,5,6\n" +
                 "  8: [2,3] 1,-2,3,4,5,6",nom.toString(null));
         nom.applyEquivalence(2,3,null);
-        assertEquals("1.2: 1,2,4\n" +
-                "3.1: 1,5,2,4\n" +
+        assertEquals("1.1: 1v2v4\n" +
+                "3.1: 1v5v2v4\n" +
                 "6.1: >=2 1,2^2,4\n" +
                 "4.1: <=2 1^2,2^2,4\n" +
                 "7.1: [2,3] 1,2^2,4,5,6\n" +
-                "8.2: [1,2] 1,4,5,6",nom.toString(null));
+                "8.1: [1,2] 1,4,5,6",nom.toString(null));
         assertEquals("-1",nom.model.toString(null));
 
     }
