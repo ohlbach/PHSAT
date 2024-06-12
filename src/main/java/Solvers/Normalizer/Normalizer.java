@@ -428,8 +428,9 @@ public class Normalizer {
                         removeClauseFromIndex(clause);
                         switch (clause.applyTrueLiteral(literal,true,null,trackReasoning,monitor,null,
                                 this::addTrueLiteralTask,symboltable)) {
-                            case -1: throw new UnsatClause(problemId,solverId, clause);
-                            case +1: continue;}
+                            case -1: clauses.remove(clause);
+                                throw new UnsatClause(problemId,solverId, clause);
+                            case +1: clauses.remove(clause); continue;}
                         addClauseToIndex(clause);}
                     continue;}
 
@@ -446,8 +447,8 @@ public class Normalizer {
                         removeClauseFromIndex(clause);
                         switch (clause.applyTrueLiteral(-literal,true,null,trackReasoning,monitor,null,
                                 this::addTrueLiteralTask,symboltable)) {
-                            case -1: throw new UnsatClause(problemId,solverId, clause);
-                            case +1: continue;}
+                            case -1: clauses.remove(clause); throw new UnsatClause(problemId,solverId, clause);
+                            case +1: clauses.remove(clause); continue;}
                         addClauseToIndex(clause);}
                     continue;}
 
@@ -461,8 +462,8 @@ public class Normalizer {
                     singletons.add(literal); singletons.add(clause.clone());
                     removeClauseFromIndex(clause);
                     switch(clause.removeLiteral(literal,trackReasoning,this::addTrueLiteralTask, monitor,symboltable)) {
-                        case -1: throw new UnsatClause(problemId,solverId, clause);
-                        case +1: continue;}
+                        case -1: clauses.remove(clause); throw new UnsatClause(problemId,solverId, clause);
+                        case +1: clauses.remove(clause); continue;}
                     addClauseToIndex(clause);}}}
     }
 
@@ -475,8 +476,10 @@ public class Normalizer {
              int literal   = (Integer)singletons.get(i);
              Clause clause = (Clause)singletons.get(i+1);
              int multiplicity = 0;
-             for(int j = 0; j < clause.literals.size()-1; j += 2) {
-                 if(clause.literals.get(j).literal == literal) {multiplicity = clause.literals.get(j).multiplicity; break;}}
+             ArrayList literals = clause.literals;
+             for(int j = 0; j < literals.size(); ++j) {
+                 Datastructures.Literal literalObject = (Datastructures.Literal)literals.get(j);
+                 if(literalObject.literal == literal) {multiplicity = literalObject.multiplicity; break;}}
              int trueLiterals = clause.trueLiterals(model::isTrue);
              if(trueLiterals + multiplicity < clause.min) {
                  ErrorReporter.reportErrorAndStop("Normalizer.extendModel: not enough true predicates in clause " +

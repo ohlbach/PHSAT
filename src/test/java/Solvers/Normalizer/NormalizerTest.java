@@ -320,12 +320,18 @@ public class NormalizerTest extends TestCase {
 
     public void testPythagoraenTriples() throws Unsatisfiable {
         System.out.println("pythagoraen triples");
-        ProblemSupervisor supervisor = makePythogoraenTriples(100);
-        Normalizer nom = new Normalizer(supervisor);
+        StringBuilder errors = new StringBuilder();
+        PythagoraenTriples phtr = new PythagoraenTriples(3, 20);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,150);
+        nom.inputClauses = phtr.generateProblem(errors);
+        System.out.println(nom.inputClauses.toString(null,false));
         nom.normalizeClauses(0);
+        System.out.println("\nModel  " + nom.model.toString(null));
         System.out.println(nom.clauses.toString(null));
         System.out.println("");
         System.out.println(nom.singletonsToString(null));
+        nom.extendModel();
+        System.out.println("\n"+nom.model.toString(null));
         System.out.println(nom.statistics.toString());
     }
 
