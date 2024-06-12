@@ -12,9 +12,8 @@ import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
 import Management.ProblemSupervisor;
-import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToEquivalence;
 import Solvers.Normalizer.NMInferenceSteps.NMTrueSingletonLiteral;
-import Solvers.Normalizer.NMInferenceSteps.NMUnsatEquivalence;
+import Solvers.Normalizer.NMInferenceSteps.UnsatEquivalence;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -151,8 +150,8 @@ public class Normalizer {
      * @param maxLoop 0 or the maximum number of task before stopping the loop (0: unlimited) (> 0 for test purposes).
      * @throws Result if a contradiction is encountered or the clause set became empty.
      */
-    void processTasks(final int maxLoop) throws Result {
-        queue.add(new Task());
+    protected void processTasks(final int maxLoop) throws Result {
+         queue.add(new Task());
         boolean purityIsInQueue = true;
         Task task;
         int counter = 0;
@@ -172,7 +171,7 @@ public class Normalizer {
                 return;}}}
 
 
-    /** reads the clauses from the problemSupervisor, turns them into Clause datastructures, and simplifies them as far as possible.
+    /** turn the inputClauses into Clause datastructures, and simplifies them as far as possible.
      *
      * @param maxLoop 0 or the maximum number of task before stopping the loop (0: unlimited) (> 0 for test purposes).
      * @return null or Unsatisfiable
@@ -202,6 +201,10 @@ public class Normalizer {
      * @throws Unsatisfiable if the model discovers an inconsistency.
      */
     void addTrueLiteralTask(int literal, InferenceStep step) throws Unsatisfiable {
+        if(monitoring) {
+            if(step != null)
+                monitor.accept(step.toString(symboltable));
+                monitor.accept("  True literal " + Symboltable.toString(literal,symboltable) + " inserted.");}
         model.add(myThread,literal,step);
         queue.add(new Task(literal,step));}
 
@@ -225,7 +228,7 @@ public class Normalizer {
 
     /** The method turns an inputClause into a Clause data structure and simplifies the clause.
      *
-     * @param inputClause   an input clause (not AND- and not EQUIV-type)
+     * @param inputClause   an input clause
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
@@ -261,46 +264,7 @@ public class Normalizer {
                                     monitor,null,this::addTrueLiteralTask, symboltable)){
                                 case -1: throw new UnsatClause(problemId,solverId, clause);
                                 case 1: clauses.remove(clause); continue;}
-                            addClauseToIndex(clause);}}}}}
-        applyTrueLiteralToEquivalences(literal);}
-
-    /** applies the true literal to all equivalences in the input clauses.
-     * <br>
-     * Equivalent predicates must get the same truth value.
-     * Derived truth values are added only to the model.
-     * It is assumed that equivalent predicates are no longer in the clauses
-     * because equivalences are applied before true predicates are processed.
-     *
-     * @param trueLiteral   a true literal
-     * @throws Unsatisfiable if two equivalent predicates get different truth values.
-     */
-    void applyTrueLiteralToEquivalences(int trueLiteral) throws Unsatisfiable {
-        boolean modelChanged = true;
-        while(modelChanged) {
-            modelChanged = false;
-            for (int[] inputClause : inputClauses.equivalences) {
-                byte sign = 0;
-                int trueLit = trueLiteral;
-                for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
-                    int literal = inputClause[i];
-                    if(literal ==  trueLiteral)  {sign =  1; break;}
-                    if(literal == -trueLiteral ) {sign = -1; break;}
-                    if(model.status(literal) ==  1) {sign = 1;  trueLit =  literal; break;}
-                    if(model.status(literal) == -1) {sign = -1; trueLit = -literal; break;}
-                }
-                if(sign != 0) {
-                    for(int i = Quantifier.EQUIV.firstLiteralIndex; i < inputClause.length; ++i) {
-                        int literal = inputClause[i];
-                        if(model.status(literal) ==  sign) continue;
-                        if(model.status(literal) == -sign) throw new NMUnsatEquivalence(problemId,solverId,startTime, inputClause,trueLit,literal); // ändern
-                        NMISTrueLiteralToEquivalence step = trackReasoning ?
-                                new NMISTrueLiteralToEquivalence(trueLit,inputClause,sign*literal) : null;
-                        model.add(myThread,sign*literal,step);
-                        modelChanged = true;
-                        if(monitoring) monitor.accept("True Literal " +  Symboltable.toString(trueLit,symboltable) +
-                                " applied to " + InputClauses.toString(0,inputClause,symboltable) + " => " +
-                                Symboltable.toString(sign*literal,symboltable));
-                    }}}}}
+                            addClauseToIndex(clause);}}}}}}
 
 
     /** replaces all occurrences of the equivalentLiteral by the representative literal.
@@ -326,7 +290,25 @@ public class Normalizer {
                             case 1:
                                 clauses.remove(clause);
                                 continue;}
-                        addClauseToIndex(clause);}}}}}
+                        addClauseToIndex(clause);}}}}
+    applyEquivalenceToModel(representative,equivalentLiteral,step);}
+
+    /**
+     * Applies the equivalence of two literals to the model.
+     *
+     * @param literal1 the first literal of the equivalence
+     * @param literal2 the second literal of the equivalence
+     * @param step the inference step that caused the equivalence
+     * @throws Unsatisfiable if a contradiction is encountered
+     */
+    void applyEquivalenceToModel(int literal1, int literal2, InferenceStep step) throws Unsatisfiable {
+        int status1 = model.status(literal1);
+        int status2 = model.status(literal2);
+        if(status1 == status2) return; // incl. both 0
+        if(status1 == 0) {addTrueLiteralTask(status2*literal1, step); return;}
+        if(status2 == 0) {addTrueLiteralTask(status1*literal2, step); return;}
+        throw new UnsatEquivalence(problemId,solverId, literal1,literal2,step);}
+
 
     /** add the given clause to the corresponding index (occurrence lists).
      * <br>

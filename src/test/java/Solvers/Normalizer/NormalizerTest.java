@@ -8,7 +8,6 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InferenceStep;
 import Management.GlobalParameters;
-import Management.Monitor.Monitor;
 import Management.Monitor.MonitorLife;
 import Management.Parameters;
 import Management.ProblemSupervisor;
@@ -16,7 +15,6 @@ import Management.QUSat;
 import ProblemGenerators.ProblemGenerator;
 import ProblemGenerators.PythagoraenTriples;
 import ProblemGenerators.StringClauseSetGenerator;
-import Solvers.Normalizer.NMInferenceSteps.NMISTrueLiteralToEquivalence;
 import junit.framework.TestCase;
 
 import java.util.ArrayList;
@@ -169,61 +167,6 @@ public class NormalizerTest extends TestCase {
         assertTrue(step.verify(monitor,null));
     }
 
-    public void testApplyTrueLiteralToEquivalence() throws Unsatisfiable {
-        System.out.println("apply true literal to equivalence");
-        Normalizer nom = new Normalizer("Test","monitor",true,null,7);
-
-        StringBuilder errors = new StringBuilder();
-        String clauses = "p cnf 15\n"+
-                "e 1=2 3, 4";
-        nom.applyTrueLiteralToEquivalences(1);
-        assertEquals("1,2,3,4", nom.model.toString());
-
-        clauses = "p cnf 15\n"+
-                "e 1=2 3, 4\n"+
-                "e 4=-5\n"+
-                "e -5=6 7\"";
-        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
-        nom = new Normalizer(supervisor);
-        //System.out.println(nom.problemSupervisor.inputClauses.description());
-        nom.trackReasoning = true;
-        Monitor mon = new MonitorLife("MON",System.nanoTime());
-        nom.monitor = (string) ->  mon.println("TEST",string);
-        nom.monitoring = true;
-        nom.applyTrueLiteralToEquivalences(-2);
-        assertEquals("-1,-2,-3,-4,5,-6,-7", nom.model.toString());
-        System.out.println(nom.model.getInferenceStep(4).toString(null));
-        System.out.println(nom.model.getInferenceStep(-7).toString(null));
-        assertTrue(((NMISTrueLiteralToEquivalence)(nom.model.getInferenceStep(-7))).verify(null,errors));
-    }
-    public void testApplyTrueLiteralToEquivalenceUnsat() throws Unsatisfiable {
-        System.out.println("apply true literal to equivalence Unsatisfiable");
-        StringBuilder errors = new StringBuilder();
-        String clauses = "p cnf 15\n"+
-                "e 1=2 3, 4";
-        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
-
-        Normalizer nom = new Normalizer(supervisor);
-        nom.applyTrueLiteralToEquivalences(1);
-        assertEquals("1,2,3,4", nom.model.toString());
-
-        clauses = "p cnf 15\n"+
-                "e 1=2 3, 4\n"+
-                "e 4=-5\n"+
-                "e -5=6 7\"";
-        supervisor = makeProblemSupervisor(clauses);
-        nom = new Normalizer(supervisor);
-        //System.out.println(nom.problemSupervisor.inputClauses.description());
-        nom.trackReasoning = true;
-        Monitor mon = new MonitorLife("MON",System.nanoTime());
-        nom.monitor = (string) ->  mon.println("TEST",string);
-        nom.monitoring = true;
-        nom.model.addImmediately(-7);
-        try{
-            nom.applyTrueLiteralToEquivalences(1);}
-        catch(Unsatisfiable unsat) {
-            System.out.println(unsat.description(null));
-        }}
 
     public void testApplyTrueLiteral() throws Unsatisfiable{
         System.out.println("apply true literal");
@@ -307,6 +250,46 @@ public class NormalizerTest extends TestCase {
                 "7.1: [2,3] 1,2^2,4,5,6\n" +
                 "8.1: [1,2] 1,4,5,6",nom.toString(null));
         assertEquals("-1",nom.model.toString(null));
+    }
+
+    public void testApplyEquivalenceToModel() throws Result {
+        System.out.println("applyEquivalenceToModel");
+        StringBuilder errors = new StringBuilder();
+        String clauses = "p cnf 5\n"+
+                "& 1,2 3, 4";
+        StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,15);
+        nom.inputClauses = scg.generateProblem(errors);
+        nom.normalizeClauses(0);
+        assertEquals("1,2,3,4",nom.model.toString());
+        nom.applyEquivalenceToModel(2,5,null);
+        assertEquals("1,2,3,4,5",nom.model.toString());
+        nom.applyEquivalenceToModel(-6,3,null);
+        assertEquals("1,2,3,4,5,-6",nom.model.toString());
+        nom.applyEquivalenceToModel(6,-4,null);
+        assertEquals("1,2,3,4,5,-6",nom.model.toString());
+        try{nom.applyEquivalenceToModel(6,4,null);}
+        catch(Unsatisfiable uns){
+            System.out.println(uns.description(null));
+        }
+
+    }
+
+    public void testApplyEquivalence2() throws Result {
+        System.out.println("applyEquivalence2");
+        StringBuilder errors = new StringBuilder();
+        String clauses = "p cnf 15\n"+
+                "& 1,2 3, 4\n"+
+                "e 5,3\n" +
+                "-5,6,7\n" +
+                "-6,-7";
+        StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,15);
+        nom.inputClauses = scg.generateProblem(errors);
+        nom.normalizeClauses(0);
+        assertEquals("1,2,3,4,5",nom.model.toString());
+        assertEquals("3.1: 6v7\n" +
+                "  4: -6v-7",nom.toString(null));
 
     }
 

@@ -586,12 +586,11 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
     public int applyTrueLiteral(int literal, boolean isTrue, InferenceStep inferenceStep, boolean trackReasoning, Consumer<String> monitor,
                          Consumer<Literal> literalRemover, BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
                          Symboltable symboltable) throws Unsatisfiable {
-         int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
-        String truth = "True";
-        if(!isTrue) {literal = -literal; truth = "False";}
+        int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
+        String truth =  isTrue ? "True" : "False";
         if(!removeLiteral(literal,isTrue)) return 0;
          ++version;
-        if(trackReasoning) {addInferenceStep(new InfTrueLiteralToClause( literal,inferenceStep,clauseBefore,this));}
+        if(trackReasoning) {addInferenceStep(new InfTrueLiteralToClause(isTrue ? literal:-literal,inferenceStep,clauseBefore,this));}
         if(monitor != null)
             monitor.accept(truth +" Literal " + Symboltable.toString(literal,symboltable) +
                     " applied to clause " + Solvers.Normalizer.Clause.toString(clauseBefore,symboltable) + " -> " +

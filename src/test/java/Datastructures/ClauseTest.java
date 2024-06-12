@@ -171,7 +171,7 @@ public class ClauseTest extends TestCase {
         assertEquals("[]",truth.toString());
         assertEquals("[3]",removed.toString());
         assertEquals(0,steps.size());
-        assertEquals("5.4: =1 1,2",c.toString(null,0));
+        assertEquals("5.3: =1 1,2",c.toString(null,0));
         assertEquals(2,c.inferenceSteps.size());
         System.out.println(c.inferenceSteps.get(1).toString());
         assertTrue(((InferenceStep)c.inferenceSteps.get(1)).verify(monitor,null));
@@ -287,7 +287,7 @@ public class ClauseTest extends TestCase {
         c.extractIrrelevantLiterals(models, (literalObject) -> {removes.add(((Literal)literalObject).literal);},
                 monitor,null);
         assertEquals("[3]",removes.toString());
-        assertEquals("1.2: [2,3] 1^2,2^2", c.toString(null, 0));
+        assertEquals("1.1: [2,3] 1^2,2^2", c.toString(null, 0));
 
         c = new Clause(new int[]{2, intv,3,3, 1,1,2,2,3}, true, litCreator, symboltable);
         assertEquals("2: =3 1^2,2^2,3", c.toString(null, 0));
@@ -312,27 +312,48 @@ public class ClauseTest extends TestCase {
 
     }
 
+    public void testRemoveLiteral() {
+        System.out.println("removeLiteral");
+        Clause c = new Clause(new int[]{1, intv,2,3, 1, 2, 3,4,5}, false, litCreator, null);
+        Clause c1 = c.clone();
+        c.removeLiteral(2,true);
+        assertEquals("1: [1,2] 1,3,4,5",c.toString(null,0));
+
+        c = c1.clone();
+        c.removeLiteral(-2,true);
+        assertEquals("1: [2,3] 1,3,4,5",c.toString(null,0));
+
+        c = c1.clone();
+        c.removeLiteral(2,false);
+        assertEquals("1: [2,3] 1,3,4,5",c.toString(null,0));
+
+        c = c1.clone();
+        c.removeLiteral(-2,false);
+        assertEquals("1: [1,2] 1,3,4,5",c.toString(null,0));
+
+
+    }
     public void testRemoveLiteralAtPosition() {
         System.out.println("removeLiteralAtPosition");
         Clause c = new Clause(new int[]{1, or,1,2,3}, false, litCreator, symboltable);
         c.removeLiteralAtPosition(0,false);
-        assertEquals("1.1: 2v3", c.toString(null, 0));
+        assertEquals("1: 2v3", c.toString(null, 0));
         c.removeLiteralAtPosition(1,false);
-        assertEquals("1.2: =1 2", c.toString(null, 0));
+        assertEquals("1: =1 2", c.toString(null, 0));
         c.removeLiteralAtPosition(0,false);
-        assertEquals("1.3: ", c.toString(null, 0));
+        assertEquals("1: ", c.toString(null, 0));
 
         c = new Clause(new int[]{2, intv,2,3, 1,1,2,2,3,3,3}, false, litCreator, symboltable);
         assertEquals("2: [2,3] 1^2,2^2,3^3", c.toString(null, 0));
         c.removeLiteralAtPosition(1,true);
-        assertEquals("2.1: <=1 1^2,3^3", c.toString(null, 0));
+        assertEquals("2: <=1 1^2,3^3", c.toString(null, 0));
         c.removeLiteralAtPosition(1,true);
-        assertEquals("2.2: <=-2 1^2", c.toString(null, 0));
+        assertEquals("2: <=-2 1^2", c.toString(null, 0));
 
         c = new Clause(new int[]{3, atl,2, 1,2,2,3,3,3}, false, litCreator, symboltable);
         assertEquals("3: >=2 1,2^2,3^2", c.toString(null, 0));
         c.removeLiteralAtPosition(0,true);
-        assertEquals("3.1: 2v3", c.toString(null, 0));
+        assertEquals("3: 2v3", c.toString(null, 0));
     }
 
     public void testModelString() {
