@@ -4,6 +4,7 @@ import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.LinkedItemList;
 import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -12,8 +13,6 @@ import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
 import Management.ProblemSupervisor;
-import Solvers.Normalizer.NMInferenceSteps.NMTrueSingletonLiteral;
-import Solvers.Normalizer.NMInferenceSteps.UnsatEquivalence;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -22,14 +21,14 @@ import java.util.function.Consumer;
 
 /** The normalizer takes the inputClauses provided by the supervisor and removes any immediately recognizable redundancies.<br>
  * In particular: <br>
- * - superfluous multiplicities of predicates<br>
- * - complementary predicates<br>
+ * - superfluous multiplicities of literals<br>
+ * - complementary literals<br>
  * - immediately recognizable true or false clauses<br>
  * - multiplicities dividable by the greatest common divisor<br>
- * - extractable true or false predicates (e.g. atmost 2 p^3,q,r: p must be false)<br>
+ * - extractable true or false literals (e.g. atmost 2 p^3,q,r: p must be false)<br>
  * <br>
  * The quantifiers of the clauses are optimized as far as possible (e.g. atleast 1 p,... =&gt; or p,...)<br>
- * Pure predicates are identified and elminated.<br>
+ * Pure and singleton predicates are identified and eliminated.<br>
  * True predicates are put into the model.<br>
  * The simplification operations can be accompanied by inference steps. The soundness of these steps can be verified.<br>
  * The result is a list of simplified clauses which can be submitted to the solvers.
@@ -47,8 +46,6 @@ public class Normalizer {
 
     /** just 'Normalizer'*/
     final static String solverId = "Normalizer";
-
-    long startTime = System.nanoTime();
 
     /** the global model.*/
     public Model model;
@@ -128,11 +125,20 @@ public class Normalizer {
         myThread               = Thread.currentThread();
     }
 
+    /**
+     * Initializes a Normalizer object with the given parameters (for testing purposes).
+     *
+     * @param problemId       the problem ID
+     * @param monitorId       the monitor ID
+     * @param trackReasoning  a boolean indicating whether to track reasoning
+     * @param symboltable     the symbol table
+     * @param predicates      the number of predicates
+     */
     public Normalizer(String problemId, String monitorId, boolean trackReasoning, Symboltable symboltable, int predicates ) {
         this.problemId = problemId;
         statistics = new NormalizerStatistics(null);
         monitoring = monitorId != null;
-        monitor = monitoring ? (message -> System.out.println(message)) : null;
+        monitor = monitoring ? (System.out::println) : null;
         this.trackReasoning = trackReasoning;
         this.symboltable = symboltable;
         this.predicates = predicates;
@@ -186,7 +192,9 @@ public class Normalizer {
             for (int[] inputClause : inputClauses.exactlys)     transformAndSimplify(inputClause);
             for (int[] inputClause : inputClauses.intervals)    transformAndSimplify(inputClause);
             processTasks(maxLoop);
-        }
+            if(clauses.isEmpty()) {
+                extendModel();
+                throw new Satisfiable(problemId,solverId,model);}}
         catch (Result result) {
             statistics.survivedClauses = clauses.size();
             return result;}
@@ -202,13 +210,12 @@ public class Normalizer {
      */
     void addTrueLiteralTask(int literal, InferenceStep step) throws Unsatisfiable {
         if(monitoring) {
-            if(step != null)
-                monitor.accept(step.toString(symboltable));
-                monitor.accept("  True literal " + Symboltable.toString(literal,symboltable) + " inserted.");}
+            if(step != null) monitor.accept(step.toString(symboltable));
+            monitor.accept("  True literal " + Symboltable.toString(literal,symboltable) + " inserted.");}
         model.add(myThread,literal,step);
         queue.add(new Task(literal,step));}
 
-    /** turns the equivalence clauses in the input clause into an equivalence task and adds it to the queue.
+    /** turns the equivalence clauses into an equivalence task and adds it to the queue.
      * <br>
      * The first literal in the equivalence clause becomes the representative literal.
      * Each further literal in the clause yields a separate equivalence task.
@@ -479,10 +486,9 @@ public class Normalizer {
                  for(Datastructures.Literal literalObject : clause.literals) {
                     int unsignedLiteral = literalObject.literal;
                     if(model.status(unsignedLiteral) == 0) {
-                        InferenceStep step = trackReasoning ? new NMTrueSingletonLiteral(clause,-unsignedLiteral): null;
                         if(monitoring) monitor.accept("Extending model with " + Symboltable.toString(-unsignedLiteral,symboltable) +
                                 " for clause " + clause.toString(symboltable,0));
-                        model.add(myThread,-unsignedLiteral,step);}}
+                        model.add(myThread,-unsignedLiteral,null);}}
                 continue;}
 
              if(trueLiterals > clause.max) { // this should not happen
@@ -494,10 +500,9 @@ public class Normalizer {
                  int unsignedLiteral = literalObject.literal;
                  if(model.status(unsignedLiteral) == 0) { // filling up the true literals up to clause.max
                      if(trueLiterals >= clause.max) unsignedLiteral = -unsignedLiteral;
-                     InferenceStep step = trackReasoning ? new NMTrueSingletonLiteral(clause,unsignedLiteral): null;
                      if(monitoring) monitor.accept("Extending model with " + Symboltable.toString(unsignedLiteral,symboltable) +
                              " for clause " + clause.toString(symboltable,0));
-                     model.add(myThread,unsignedLiteral,step);
+                     model.add(myThread,unsignedLiteral,null);
                      if(model.status(literalObject.literal) == 1) trueLiterals += literalObject.multiplicity;}}
 
 

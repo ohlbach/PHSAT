@@ -1,4 +1,4 @@
-package Solvers.Normalizer.NMInferenceSteps;
+package Solvers.Normalizer;
 
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
