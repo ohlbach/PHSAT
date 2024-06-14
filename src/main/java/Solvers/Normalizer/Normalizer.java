@@ -473,23 +473,38 @@ public class Normalizer {
      */
     public void extendModel() throws Unsatisfiable {
          for(int i = singletons.size()-2; i >= 0; i -=2) {
-             int literal   = (Integer)singletons.get(i);
              Clause clause = (Clause)singletons.get(i+1);
-             int multiplicity = 0;
-             ArrayList literals = clause.literals;
-             for(int j = 0; j < literals.size(); ++j) {
-                 Datastructures.Literal literalObject = (Datastructures.Literal)literals.get(j);
-                 if(literalObject.literal == literal) {multiplicity = literalObject.multiplicity; break;}}
              int trueLiterals = clause.trueLiterals(model::isTrue);
-             if(trueLiterals + multiplicity < clause.min) {
-                 ErrorReporter.reportErrorAndStop("Normalizer.extendModel: not enough true predicates in clause " +
-                         clause.toString(symboltable,0) + "\nnumber of true predicates: " + (trueLiterals + multiplicity) +
+             if(clause.min <= trueLiterals &&  trueLiterals <= clause.max) { // enough true literals. All unsigned literals can become false.
+                 for(Datastructures.Literal literalObject : clause.literals) {
+                    int unsignedLiteral = literalObject.literal;
+                    if(model.status(unsignedLiteral) == 0) {
+                        InferenceStep step = trackReasoning ? new NMTrueSingletonLiteral(clause,-unsignedLiteral): null;
+                        if(monitoring) monitor.accept("Extending model with " + Symboltable.toString(-unsignedLiteral,symboltable) +
+                                " for clause " + clause.toString(symboltable,0));
+                        model.add(myThread,-unsignedLiteral,step);}}
+                continue;}
+
+             if(trueLiterals > clause.max) { // this should not happen
+                 ErrorReporter.reportErrorAndStop("Normalizer.extendModel: too many true literals in clause " +
+                         clause.toString(symboltable,0) + "\nnumber of true literal: " + trueLiterals +
                          "\nModel: " + model.toString(symboltable));}
-             int trueLiteral = (trueLiterals+multiplicity <= clause.max) ? literal : -literal;
-             if(monitoring) monitor.accept("Extending model with " + Symboltable.toString(trueLiteral,symboltable) +
-                     " for clause " + clause.toString(symboltable,0));
-             InferenceStep step = trackReasoning ? new NMTrueSingletonLiteral(clause,trueLiteral): null;
-             model.add(myThread,trueLiteral,step);}}
+
+             for(Datastructures.Literal literalObject : clause.literals) {
+                 int unsignedLiteral = literalObject.literal;
+                 if(model.status(unsignedLiteral) == 0) { // filling up the true literals up to clause.max
+                     if(trueLiterals >= clause.max) unsignedLiteral = -unsignedLiteral;
+                     InferenceStep step = trackReasoning ? new NMTrueSingletonLiteral(clause,unsignedLiteral): null;
+                     if(monitoring) monitor.accept("Extending model with " + Symboltable.toString(unsignedLiteral,symboltable) +
+                             " for clause " + clause.toString(symboltable,0));
+                     model.add(myThread,unsignedLiteral,step);
+                     if(model.status(literalObject.literal) == 1) trueLiterals += literalObject.multiplicity;}}
+
+
+             if(trueLiterals < clause.min)  // should not happen
+                 ErrorReporter.reportErrorAndStop("Normalizer.extendModel: not enough true literals in clause " +
+                         clause.toString(symboltable,0) + "\nnumber of true literals: " + trueLiterals  +
+                         "\nModel: " + model.toString(symboltable));}}
 
     /** contains pairs singleton-literal,clause. To be used when a model has to be completed. */
     private final ArrayList<Object> singletons = new ArrayList<>();

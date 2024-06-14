@@ -362,7 +362,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
                 monitor.accept("Clause " + toString(clone,symboltable) + ": has true literal " + Symboltable.toString(literal,symboltable));}
             reportTruth.accept(literal,step);
             if(literalRemover != null) literalRemover.accept(literals.get(j));
-            removeLiteralAtPosition(j, literal == literals.get(j).literal);
+            removeLiteralAtPosition(j, literal == literals.get(j).literal ? 1 : -1);
         }
         if(changed) {classifyQuantifier(); ++version;}
         return changed;}
@@ -402,7 +402,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
             if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) +
                     " irrelevant literal " + Symboltable.toString(literals.get(j).literal,symboltable) + " removed");
             if(literalRemover != null) literalRemover.accept(literals.get(j)); // inference step
-            removeLiteralAtPosition(j, false);}
+            removeLiteralAtPosition(j, -1);}
         if(changed) {classifyQuantifier();++version;}
         return changed;}
 
@@ -438,41 +438,48 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
 
     /**Removes th j-th literal from the list of predicates in the clause.
      * <p>
+     * status = 1:  literal is true (decrease min and max) <br>
+     * status = -1: literal is false (no change on min, max)<br>
+     * status = 0:  literal is singleton pure (decrease only min) <br>
      * Updates the expandedSize and adjusts the multiplicities.
      * The quantifier is also updated.
      *
      * @param literal the literal to be removed
-     * @param isTrue  whether the removed literal is true or not
+     * @param status  +1: literal is true; -1: literal is false; 0: literal is singleton pure
      * @return true if the literal has been removed.
      */
-    public boolean removeLiteral(int literal, boolean isTrue) {
+    public boolean removeLiteral(int literal, int status) {
         int predicate = Math.abs(literal);
         for(int i = 0; i < literals.size(); ++i) {
             int lit = literals.get(i).literal;
             if(Math.abs(lit) == predicate) {
-                removeLiteralAtPosition(i,lit == literal ? isTrue : !isTrue);
+                removeLiteralAtPosition(i,lit == literal ? status : -status);
                 return true;}}
         return false;}
 
     /**Removes th j-th literal from the list of predicates in the clause.
      * <p>
+     * status = 1:  literal is true (decrease min and max) <br>
+     * status = -1: literal is false (no change on min, max)<br>
+     * status = 0:  literal is singleton pure (decrease only min) <br>
      * Updates the expandedSize and adjusts the multiplicities.
      * The quantifier is also updated.
      *
      * @param j       the index of the literal to be removed
-     * @param isTrue  whether the removed literal is true or not
+     * @param status  +1: literal is true; -1: literal is false; 0: literal is singleton pure
      */
-    public void removeLiteralAtPosition(int j, boolean isTrue) {
+    public void removeLiteralAtPosition(int j, int status) {
         Literal literalObject = literals.get(j);
         literals.remove(j);
         expandedSize -= literalObject.multiplicity;
-        if(isTrue) {
-            min = Math.max(0, min - literalObject.multiplicity); max -= literalObject.multiplicity;
-            if(min > 0 && max == expandedSize) {
-                expandedSize = 0;
-                for (Literal litObject : literals) {
-                    litObject.multiplicity = Math.min(min, litObject.multiplicity);
-                    expandedSize += litObject.multiplicity;}}}
+        switch(status) {
+            case 1: max -= literalObject.multiplicity;
+            case 0: min = Math.max(0, min - literalObject.multiplicity);}
+        if(min > 0 && max == expandedSize) {
+            expandedSize = 0;
+            for (Literal litObject : literals) {
+                litObject.multiplicity = Math.min(min, litObject.multiplicity);
+                expandedSize += litObject.multiplicity;}}
         max = Math.min(max,expandedSize);
         classifyQuantifier();}
 
@@ -588,7 +595,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
                          Symboltable symboltable) throws Unsatisfiable {
         int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
         String truth =  isTrue ? "True" : "False";
-        if(!removeLiteral(literal,isTrue)) return 0;
+        if(!removeLiteral(literal,isTrue ? 1 : -1)) return 0;
          ++version;
         if(trackReasoning) {addInferenceStep(new InfTrueLiteralToClause(isTrue ? literal:-literal,inferenceStep,clauseBefore,this));}
         if(monitor != null)

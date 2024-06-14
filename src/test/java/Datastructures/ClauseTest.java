@@ -312,47 +312,55 @@ public class ClauseTest extends TestCase {
 
     }
 
-    public void testRemoveLiteral() {
+    public void testRemoveLiteral() throws Unsatisfiable{
         System.out.println("removeLiteral");
         Clause c = new Clause(new int[]{1, intv,2,3, 1, 2, 3,4,5}, false, litCreator, null);
         Clause c1 = c.clone();
-        c.removeLiteral(2,true);
+        c.removeLiteral(2,1);
         assertEquals("1: [1,2] 1,3,4,5",c.toString(null,0));
 
         c = c1.clone();
-        c.removeLiteral(-2,true);
+        c.removeLiteral(-2,1);
         assertEquals("1: [2,3] 1,3,4,5",c.toString(null,0));
 
         c = c1.clone();
-        c.removeLiteral(2,false);
+        c.removeLiteral(2,-1);
         assertEquals("1: [2,3] 1,3,4,5",c.toString(null,0));
 
         c = c1.clone();
-        c.removeLiteral(-2,false);
+        c.removeLiteral(-2,-1);
         assertEquals("1: [1,2] 1,3,4,5",c.toString(null,0));
 
+        c = new Clause(new int[]{2, intv,2,3, 1, 2, 3,4,5}, false, litCreator, null);
+        c.removeLiteral(2,0);
+        assertEquals("2: [1,3] 1,3,4,5",c.toString(null,0));
+
+        c = new Clause(new int[]{3, intv,1,2, 1, 2, 3}, false, litCreator, null);
+        c.removeLiteral(2,0);
+        assertEquals("3: >=0 1,3",c.toString(null,0));
+        assertEquals(1,c.simplify(false,null,null,monitor,null));
 
     }
     public void testRemoveLiteralAtPosition() {
         System.out.println("removeLiteralAtPosition");
         Clause c = new Clause(new int[]{1, or,1,2,3}, false, litCreator, symboltable);
-        c.removeLiteralAtPosition(0,false);
+        c.removeLiteralAtPosition(0,-1);
         assertEquals("1: 2v3", c.toString(null, 0));
-        c.removeLiteralAtPosition(1,false);
+        c.removeLiteralAtPosition(1,-1);
         assertEquals("1: =1 2", c.toString(null, 0));
-        c.removeLiteralAtPosition(0,false);
+        c.removeLiteralAtPosition(0,-1);
         assertEquals("1: ", c.toString(null, 0));
 
         c = new Clause(new int[]{2, intv,2,3, 1,1,2,2,3,3,3}, false, litCreator, symboltable);
         assertEquals("2: [2,3] 1^2,2^2,3^3", c.toString(null, 0));
-        c.removeLiteralAtPosition(1,true);
+        c.removeLiteralAtPosition(1,1);
         assertEquals("2: <=1 1^2,3^3", c.toString(null, 0));
-        c.removeLiteralAtPosition(1,true);
+        c.removeLiteralAtPosition(1,1);
         assertEquals("2: <=-2 1^2", c.toString(null, 0));
 
         c = new Clause(new int[]{3, atl,2, 1,2,2,3,3,3}, false, litCreator, symboltable);
         assertEquals("3: >=2 1,2^2,3^2", c.toString(null, 0));
-        c.removeLiteralAtPosition(0,true);
+        c.removeLiteralAtPosition(0,1);
         assertEquals("3: 2v3", c.toString(null, 0));
     }
 

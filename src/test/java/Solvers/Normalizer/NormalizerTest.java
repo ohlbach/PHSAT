@@ -321,7 +321,7 @@ public class NormalizerTest extends TestCase {
     public void testPythagoraenTriples() throws Unsatisfiable {
         System.out.println("pythagoraen triples");
         StringBuilder errors = new StringBuilder();
-        PythagoraenTriples phtr = new PythagoraenTriples(3, 20);
+        PythagoraenTriples phtr = new PythagoraenTriples(3, 40);
         Normalizer nom = new Normalizer("Test","monitor",true,null,150);
         nom.inputClauses = phtr.generateProblem(errors);
         System.out.println(nom.inputClauses.toString(null,false));
@@ -333,26 +333,29 @@ public class NormalizerTest extends TestCase {
         nom.extendModel();
         System.out.println("\n"+nom.model.toString(null));
         System.out.println(nom.statistics.toString());
+        assertTrue(nom.inputClauses.falseClausesInModel(nom.model).isEmpty());
     }
 
     public void testExtendModel() throws Unsatisfiable {
         System.out.println("extendModel");
+        StringBuilder errors = new StringBuilder();
         String clauses = "p cnf 15\n"+
                 "-1,-4,-5,-6\n" +
                 "[2,3] 1,2,3,4,5,6\n";
-        ProblemSupervisor supervisor = makeProblemSupervisor(clauses);
-        Normalizer nom = new Normalizer(supervisor);
+        StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,15);
+        nom.inputClauses = scg.generateProblem(errors);
         nom.normalizeClauses(0);
         System.out.println(nom.clauses.toString(null));
         System.out.println("");
         System.out.println(nom.singletonsToString(null));
         nom.model.addImmediately(6);
         nom.extendModel();
-        assertEquals("2,3,6",nom.model.toString(null));
+        assertEquals("-1,2,-3,-4,-5,6",nom.model.toString(null));
         nom.model = new Model(15);
         nom.model.addImmediately(4,5,6);
         nom.extendModel();
-        assertEquals("-2,-3,4,5,6",nom.model.toString(null));
+        assertEquals("-1,-2,-3,4,5,6",nom.model.toString(null));
 
         System.out.println(nom.statistics.toString());
     }

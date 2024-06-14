@@ -52,7 +52,7 @@ public class Clause extends Datastructures.Clause<Literal> {
                              BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
                              Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
         int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
-        removeLiteral(literal,false);
+        removeLiteral(literal,0);
         ++version;
         if(trackReasoning) addInferenceStep(new InfTrueLiteralToClause(-literal,null,cloned,this));
         if(monitor != null) {
