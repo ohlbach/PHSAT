@@ -504,5 +504,23 @@ public class ClauseTest extends TestCase {
 
     }
 
+    public void testRemoveLiteral1() throws Unsatisfiable {
+        System.out.println("remove literal1");
+        StringBuilder errors = new StringBuilder();
+        Solvers.Normalizer.Clause clause1 = new Solvers.Normalizer.Clause(new int[]{1, intv, 1,2, 1, 2, 3},true,null);
+        assertEquals(1,  clause1.removeLiteral(1, true,0,null,null,monitor,  null));
+        InferenceStep step = clause1.inferenceSteps.get(1);
+        System.out.println(step.toString(null));
 
+        IntArrayList trueLits = new IntArrayList();
+        ArrayList<InferenceStep> steps = new ArrayList<>();
+        clause1 = new Solvers.Normalizer.Clause(new int[]{5, intv, 2,3, 1, 2, 3},true,null);
+        assertEquals(0,  clause1.removeLiteral(1, true,0,null,
+                ((lit,iStep) -> {trueLits.add(lit); steps.add(iStep);}),monitor,  null));
+        assertEquals("5.1: 2v3",clause1.toString(null,0));
+        assertEquals("[]",trueLits.toString());
+
+
+
+    }
     }

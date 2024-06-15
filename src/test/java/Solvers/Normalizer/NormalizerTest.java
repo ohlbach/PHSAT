@@ -321,8 +321,9 @@ public class NormalizerTest extends TestCase {
     public void testPythagoraenTriples() throws Unsatisfiable {
         System.out.println("pythagoraen triples");
         StringBuilder errors = new StringBuilder();
-        PythagoraenTriples phtr = new PythagoraenTriples(3, 40);
-        Normalizer nom = new Normalizer("Test","monitor",true,null,150);
+        int predicates = 60;
+        PythagoraenTriples phtr = new PythagoraenTriples(3, predicates);
+        Normalizer nom = new Normalizer("Test","monitor",true,null,predicates);
         nom.inputClauses = phtr.generateProblem(errors);
         System.out.println(nom.inputClauses.toString(null,false));
         nom.normalizeClauses(0);

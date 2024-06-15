@@ -435,6 +435,29 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
                 " divided by GCD -> " + toString(symboltable,0));}
         return true;}
 
+    /** removes a literal from the clause
+     *
+     * @param literal            the literal to be removed.
+     * @param trackReasoning     controls generation of inference steps
+     * @param status             +1: literal is true, -1: literal is false, 0: literal is singleton pure
+     * @param literalRemover     null or a function to be applied to removed literals during simplification.
+     * @param reportTruth        a function for reporting a true literal.
+     * @param monitor            null or a monitor
+     * @param symboltable        null or a symboltable
+     * @return                   -1 if a contradiction is encountered, +1 if the clause can be removed, 0 otherwise.
+     */
+    public int removeLiteral(int literal, boolean trackReasoning, int status, Consumer<Literal> literalRemover,
+                             BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
+                             Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
+        int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
+        removeLiteral(literal,status);
+        ++version;
+        if(trackReasoning) addInferenceStep(new InfTrueLiteralToClause(-literal,null,cloned,this));
+        if(monitor != null) {
+            monitor.accept("From clause " + toString(cloned, symboltable) +
+                    " literal " + Symboltable.toString(literal,symboltable) + " removed => "+
+                    toString(symboltable,0));}
+        return simplify(trackReasoning,literalRemover,reportTruth, monitor,symboltable);}
 
     /**Removes th j-th literal from the list of predicates in the clause.
      * <p>

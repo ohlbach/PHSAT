@@ -1,9 +1,8 @@
 package Solvers.Backtracker;
 
-import Datastructures.Clauses.Quantifier;
-
 public class Clause extends Datastructures.Clause<Literal>{
 
+    private int timestamp = 0;
     /** this constructor turns a normalizedClause to a clause for the Backtracker solver.
      *
      * @param normalizedClause a normalized and simplified clause from the Normalizer.
@@ -24,27 +23,7 @@ public class Clause extends Datastructures.Clause<Literal>{
         for(Literal literalObject : literals) literalObject.clause = this;
     }
 
-    /**
-     * Removes a given Literal object from the clause and performs necessary updates.
-     *
-     * @param literalObject the Literal object to be removed.
-     * @param isTrue        a boolean indicating if the removed Literal is true or false.
-     */
-    void removeLiteral(Literal literalObject, boolean isTrue) {
-        assert literalObject.clause == this;
-        super.removeLiteralAtPosition(literals.indexOf(literalObject), isTrue ? 1 : -1);}
 
-    /** Removes a (false) literal from a disjunction (with atleast two predicates)
-     *
-     * @return true if the resulting clause is a unit clause.
-     */
-    boolean removeLiteral(Literal literalObject) {
-        assert quantifier == Quantifier.OR;
-        assert literals.size() > 1;
-        literals.remove(literalObject);
-        expandedSize = literals.size();
-        max = expandedSize;
-        return expandedSize == 1;}
 
 
 }

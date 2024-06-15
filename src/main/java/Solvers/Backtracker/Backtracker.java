@@ -8,7 +8,6 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatClause;
 import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
-import InferenceSteps.InfUnitClause;
 import InferenceSteps.InferenceStep;
 import Management.Parameter;
 import Management.Parameters;
@@ -287,11 +286,14 @@ public class Backtracker extends Solver {
         Clause clause = literalObject.clause;
         assert clause.quantifier == Quantifier.OR;
         literalIndex.remove(literalObject);
-        if(clause.removeLiteral(literalObject)) {
+      /*  if(clause.removeLiteral(literalObject,true)) {
             InferenceStep step = trackReasoning ? new InfUnitClause(clause) : null;
             if(monitoring) {monitor.accept("Unit Clause " + clause.toString(symboltable,0));}
             model.add(null,clause.literals.get(0).literal,step);
-            removeClause(clause);}}
+            removeClause(clause);}
+            */
+
+    }
 
 
 
@@ -548,7 +550,7 @@ public class Backtracker extends Solver {
                     literalObject = (Literal)literalObject.nextItem;
                     continue;}
 
-                clause.removeLiteral(literalObject,(sign == 1));
+                clause.removeLiteral(literalObject.literal,sign);
                 switch(clause.simplify(trackReasoning,
                         (litObject -> literalIndex.remove(litObject)), // also called for irrelevant predicates
                         ((lit, step) -> model.add(null,lit,step)),

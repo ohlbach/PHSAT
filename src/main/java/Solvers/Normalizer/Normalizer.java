@@ -437,7 +437,10 @@ public class Normalizer {
                                 this::addTrueLiteralTask,symboltable)) {
                             case -1: clauses.remove(clause);
                                 throw new UnsatClause(problemId,solverId, clause);
-                            case +1: clauses.remove(clause); continue;}
+                            case +1:
+                                clauses.remove(clause);
+                                if(clauses.isEmpty()) return;
+                                continue;}
                         addClauseToIndex(clause);}
                     continue;}
 
@@ -455,7 +458,9 @@ public class Normalizer {
                         switch (clause.applyTrueLiteral(-literal,true,null,trackReasoning,monitor,null,
                                 this::addTrueLiteralTask,symboltable)) {
                             case -1: clauses.remove(clause); throw new UnsatClause(problemId,solverId, clause);
-                            case +1: clauses.remove(clause); continue;}
+                            case +1: clauses.remove(clause);
+                                     if(clauses.isEmpty()) return;
+                                     continue;}
                         addClauseToIndex(clause);}
                     continue;}
 
@@ -468,9 +473,11 @@ public class Normalizer {
                     Clause clause = (literal > 0) ? positiveOccInterval[predicate].get(0) : negativeOccInterval[predicate].get(0);
                     singletons.add(literal); singletons.add(clause.clone());
                     removeClauseFromIndex(clause);
-                    switch(clause.removeLiteral(literal,trackReasoning,this::addTrueLiteralTask, monitor,symboltable)) {
+                    switch(clause.removeLiteral(literal,trackReasoning,0,null,this::addTrueLiteralTask, monitor,symboltable)) {
                         case -1: clauses.remove(clause); throw new UnsatClause(problemId,solverId, clause);
-                        case +1: clauses.remove(clause); continue;}
+                        case +1: clauses.remove(clause);
+                                 if(clauses.isEmpty()) return;
+                                 continue;}
                     addClauseToIndex(clause);}}}
     }
 
