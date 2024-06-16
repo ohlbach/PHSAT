@@ -34,9 +34,11 @@ public class WalkerTest extends TestCase {
         return walker;
     }
 
-    private Solvers.Normalizer.Clause makeClause(int[] inputClause) {
-       return new Solvers.Normalizer.Clause(inputClause,false,null);}
+    private Clause makeClause(int[] inputClause) {
+       //return new Clause(inputClause,false,(lit -> new Literal(lit,1)), null);
+        return null;}
     //boolean trackReasoning, NormalizerStatistics statistics, Monitor monitor, Symboltable symboltable
+
     private Clause makClause(int[] inputClause) {
         return new Clause(makeClause(inputClause));}
 

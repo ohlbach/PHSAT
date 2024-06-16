@@ -11,7 +11,7 @@ public class ClauseTest extends TestCase {
     private static int cInterval = Quantifier.INTERVAL.ordinal();
 
     private Clause makeClause(int[] inputClause) {
-        Solvers.Normalizer.Clause clause = new Solvers.Normalizer.Clause(inputClause,false,null);
+        Clause clause = null; //new Clause(inputClause);
         return new Clause(clause);}
     public void testConstructor() {
         System.out.println("constructor");
@@ -59,7 +59,7 @@ public class ClauseTest extends TestCase {
     public void testFindLiteral() {
         System.out.println("findLiteral");
         Clause clause = makeClause(new int[]{1,cInterval,0,6,1,2,3,1,2,3});
-        Literal literalObject = clause.findLiteral(2);
+        Literal literalObject = (Literal) clause.findLiteral(2);
         assertEquals(2,literalObject.literal);
         assertTrue(literalObject.clause == clause);
         assertNull(clause.findLiteral(-2));

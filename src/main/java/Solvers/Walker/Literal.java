@@ -4,7 +4,7 @@ package Solvers.Walker;
  * The literal index is a doubly connected list.
  * The Literal object has no active methods.
  */
-public class Literal extends Datastructures.Literal<Clause> {
+public class Literal extends Datastructures.Literal {
 
     protected int flipScorePart;
 

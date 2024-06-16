@@ -12,7 +12,7 @@ import java.util.ArrayList;
  * Therefore, it may have a pointer to the clause containing the literal.
  *
  */
-public class Literal<Clause> extends LinkedItem {
+public class Literal extends LinkedItem {
     /** the literal itself */
     public int literal;
     /** the number of occurrences in a quantified clause. */
@@ -34,8 +34,8 @@ public class Literal<Clause> extends LinkedItem {
      * @param literal a new literal.
      * @return the cloned literal.
      */
-    public Literal<Clause> clone(int literal) {
-        Literal<Clause> newLiteral = new Literal<>(literal, multiplicity);
+    public Literal clone(int literal) {
+        Literal newLiteral = new Literal(literal, multiplicity);
         newLiteral.clause = clause;
         return newLiteral;}
 
@@ -44,8 +44,8 @@ public class Literal<Clause> extends LinkedItem {
      * @param clause a new clause.
      * @return the cloned literal.
      */
-    public Literal<Clause> clone(Clause clause) {
-        Literal<Clause> newLiteral = new Literal<>(literal, multiplicity);
+    public Literal clone(Clause clause) {
+        Literal newLiteral = new Literal(literal, multiplicity);
         newLiteral.clause = clause;
         return newLiteral;}
 
@@ -68,7 +68,7 @@ public class Literal<Clause> extends LinkedItem {
      * @param symboltable null or a symbol table.
      * @return the predicates as a string of names or numbers.
      */
-    public String toString(ArrayList<Literal<Clause>> literals, Symboltable symboltable) {
+    public String toString(ArrayList<Literal> literals, Symboltable symboltable) {
         if(literals == null || literals.isEmpty()) return "";
         StringBuilder st = new StringBuilder();
         st.append(literals.get(0).toString(symboltable,0));

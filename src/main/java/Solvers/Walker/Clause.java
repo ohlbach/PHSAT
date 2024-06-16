@@ -7,7 +7,7 @@ import java.util.ArrayList;
  *  Nevertheless, the clauses keep their original connective.
  *  A clause may be part of a doubly quantified list (list of false clauses).
  */
-public class Clause extends Datastructures.Clause<Literal> {
+public class Clause extends Datastructures.Clause {
 
     /** the number of true predicates in the local model. */
     protected int trueLiterals = 0;
@@ -18,7 +18,7 @@ public class Clause extends Datastructures.Clause<Literal> {
     /** a timestamp to be used by various algorithms. */
     protected int timestamp = 0;
 
-    public Clause(Solvers.Normalizer.Clause clause) {
+    public Clause(Datastructures.Clause clause) {
        super(clause.id,clause.version,clause.quantifier,clause.min,clause.max,clause.expandedSize);
         literals = new ArrayList<>(clause.literals.size()/2);
         for(int i = 0; i < clause.literals.size()-1; i +=2) {

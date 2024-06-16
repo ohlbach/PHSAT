@@ -1,13 +1,12 @@
 package Solvers.Backtracker;
 
+import Datastructures.*;
 import Datastructures.Clauses.Quantifier;
-import Datastructures.LinkedItemList;
-import Datastructures.LiteralIndex;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatClause;
+import Datastructures.Results.Unsatisfiable;
 import Datastructures.Statistics.Statistic;
-import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import Management.Parameter;
 import Management.Parameters;
@@ -97,6 +96,7 @@ public class Backtracker extends Solver {
      * - predicateArrangement == 4: predicates with less literal occurrences first.*/
     private int predicateArrangement = 1;
 
+    /** if seek &gt;= 0 then the predicates to be selected are randomly sorted */
     private int seed = -1;
 
     /** the final result */
@@ -122,8 +122,8 @@ public class Backtracker extends Solver {
     /** the level of the recursion and the index of selectedPredicates */
     int recursionLevel = -1;
 
-    /** maps derived predicates to the selected true predicates which cause the derivation of the literal.
-     * The lists are kept sorted according th the predicateSequence,
+    /** maps derived literals to the selected true literals which cause the derivation of the literal.
+     * The lists are kept sorted according to the predicateSequence,
      * such that the last element is the selected literal to which backtracking is necessary. */
     protected IntArrayList[] dependentSelections;
 
@@ -136,7 +136,7 @@ public class Backtracker extends Solver {
     /** maps the selected predicates to the first index in derivedPredicates where the derived predicates start. */
     int[] derivedPredicatesStarts;
 
-    /** collects the globally true predicates which are still to be processed. */
+    /** collects the globally true literals which are still to be processed. */
     private final IntArrayList globallyTrueLiterals = new IntArrayList();
 
     private ArrayList<Clause>[] usedClausesArray;
@@ -159,17 +159,18 @@ public class Backtracker extends Solver {
     private final BlockingQueue<Object> propagatorQueue = new LinkedBlockingQueue<>(2);
 
     /** counts the active propagator threads */
-    private int propagatorCounter = 0;
+    private int propagatorThreadCounter = 0;
 
     /** increments the propagator counter */
-    private synchronized void incrementPropagatorCounter() {++propagatorCounter;}
+    private synchronized void incrementPropagatorCounter() {++propagatorThreadCounter;}
 
     /** decrements the propagator counter.
      * <br>
-     * If the counter is 0, 'this' is inserted into the propagatorQueue.*/
+     * If the counter is 0, 'this' is inserted into the propagatorQueue.
+     * It means that no further true-literal propagation is going on.*/
     private synchronized void decrementPropagatorCounter() {
-        --propagatorCounter;
-        if (propagatorCounter == 0) {propagatorQueue.add(this);}}
+        --propagatorThreadCounter;
+        if (propagatorThreadCounter == 0) {propagatorQueue.add(this);}}
 
     /** inserts a false clause into the propagatorQueue.
      *
@@ -224,6 +225,17 @@ public class Backtracker extends Solver {
             if((usedClausesArray == null || usedClausesArray.length < predicates+1)) usedClausesArray = new ArrayList[predicates+1];
             else {for(int i = 1; i <= predicates; ++i) {if(usedClausesArray[i] != null) usedClausesArray[i].clear();}}}}
 
+    /**
+     * Solves the QSat-problem by copying the normalized clauses and searching a model with a backtracking algorithm.
+     * <br>
+     * Predicates selected to be temporarily true cause parallel threads to perform truth-propagation.
+     * A top-level selected predicate which derives a contradiction
+     * causes its negation to become true, and this is used to simplify the clauses.
+     * Since several solvers may run in parallel, they may exchange true literals.
+     * These are taken into account even during the recursive search.
+     *
+     * @return The result of solving the problem.
+     */
     @Override
     public Result solveProblem() {
         initializeProblemSpecifics();
@@ -238,14 +250,17 @@ public class Backtracker extends Solver {
         return null;}
 
     /** integrates the normalized input clauses into the clauses-list and the literal index.
+     * <p>
+     * The normalized clauses are copied in order to allow several solvers to change them in parallel.<br>
+     * The normalized clauses contain no AND- and EQUIV-clauses. They are simplified as far as possible.
      */
     public void readInputClauses() {
         Clause clause;
-        Solvers.Normalizer.Clause normalizedClause = normalizer.clauses.firstLinkedItem;
+        Clause normalizedClause = normalizer.clauses.firstLinkedItem;
         while(normalizedClause != null) {
-            clause = new Clause(normalizedClause);
+            clause = normalizedClause.clone();
             insertClause(clause);
-            normalizedClause = (Solvers.Normalizer.Clause)normalizedClause.nextItem;}}
+            normalizedClause = (Clause)normalizedClause.nextItem;}}
 
     /** inserts int-array version of the inputClauses into the internal datastructures (for testing purposes)
      * <br>
@@ -255,7 +270,7 @@ public class Backtracker extends Solver {
      */
     protected void readInputClauses(int[]... inputClauses ) {
         for(int[] inputClause : inputClauses) {
-            Clause newClause = new Clause(inputClause);
+            Clause newClause = new Clause(inputClause,trackReasoning, ((lit) -> new Literal(lit,1)),symboltable);
             insertClause(newClause);}}
 
     /** inserts a clause into the clause list and the literal index.
@@ -286,14 +301,12 @@ public class Backtracker extends Solver {
         Clause clause = literalObject.clause;
         assert clause.quantifier == Quantifier.OR;
         literalIndex.remove(literalObject);
-      /*  if(clause.removeLiteral(literalObject,true)) {
-            InferenceStep step = trackReasoning ? new InfUnitClause(clause) : null;
-            if(monitoring) {monitor.accept("Unit Clause " + clause.toString(symboltable,0));}
-            model.add(null,clause.literals.get(0).literal,step);
-            removeClause(clause);}
-            */
-
-    }
+        switch(clause.removeLiteral(literalObject.literal,true,-1,
+                (litObject -> literalIndex.remove(litObject)),
+                (lit,step) -> model.add(null,lit,step),monitor,symboltable)) { // ändern
+            case 1: removeClause(clause); return;
+            case -1: throw new UnsatClause(problemId,solverId,clause);
+        }}
 
 
 
@@ -314,7 +327,7 @@ public class Backtracker extends Solver {
             if(monitoring) monitor.accept("Selected predicate " + Symboltable.toString(selectedPredicate,symboltable));
             ++recursionLevel;
             selectedPredicates[recursionLevel] = selectedPredicate;
-            derivedPredicatesStarts[selectedPredicate] = derivedPredicatesEnd;
+            derivedPredicatesStarts[selectedPredicate] = derivedPredicatesEnd; // initially 0, changed in backtrack
             derivedPredicates.add(selectedPredicate);
             selectedLiteral = firstSign * selectedPredicate;
             int predicate = propagateSelectedLiteral(selectedLiteral);
@@ -332,14 +345,29 @@ public class Backtracker extends Solver {
             if(model.status(predicate) == 0 && localStatus(predicate) == 0) return predicateIndex;}
         return 0;}
 
+    /** propagates the truth of the selected literal.
+     * <br>
+     * Immediately derivable true literals are derived immediately.
+     * Each newly derived literal causes a propagatorThread to be activated,
+     * such that further true literals can be derived in parallel.
+     * <br>
+     * The method then waits until all propagator threads are finished.
+     * If one of them found a false clause then the last selected predicate which caused the contradiction
+     * is determined and returned as a result.
+     * If no contradiction is detected then 0 is returned (and a further predicate must be selected to be true)
+     *
+     * @param selectedLiteral
+     * @return 0 (no false clause found or thread is interrupted) or the selected predicate to be backtracked to.
+     * @throws Unsatisfiable if backtracked to the top-level and a contradiction was found.
+     */
     int propagateSelectedLiteral(int selectedLiteral) throws Result {
-        propagatorCounter = 0;
+        propagatorThreadCounter = 0;
         propagatorQueue.clear();
         setLocalStatus(selectedLiteral);
         int selectedPredicate = Math.abs(selectedLiteral);
         dependentSelections[selectedPredicate] = null;
         propagateLocally(selectedLiteral);
-        try{Object object = propagatorQueue.take(); // waits until all propgatorJobs are finished, or one them found a false clause.
+        try{Object object = propagatorQueue.take(); // waits until all propagatorJobs are finished, or one them found a false clause.
             if(object != this) { // object is a false clause
                 Clause falseClause = (Clause)object;
                 IntArrayList dependencies = joinDependencies(falseClause, 0,new IntArrayList());
@@ -374,13 +402,14 @@ public class Backtracker extends Solver {
      */
     void propagateInThread(int literal) {
         incrementPropagatorCounter();
-        if(propagateLocally(literal)) propagatorPool.jobFinished(this);
+        if(propagateLocally(literal)) propagatorPool.jobFinished(this); // false clause found
         else decrementPropagatorCounter();}
 
 
     /** propagates the truth of the trueLiteral locally.
      * <br>
-     * Derived true predicates activate a Propagator thread.
+     * Derived true predicates activate a Propagator thread.<br>
+     * A false clause is inserted into the propagatorQueue and causes backtracking
      *
       *@param trueLiteral a locally true trueLiteral
      * @return true if a false clause has been found.
@@ -399,31 +428,31 @@ public class Backtracker extends Solver {
                 literalObject = (Literal)literalObject.nextItem;}}
         return false;}
 
-    /**Analyzes a clause given the current local model.
+    /** Analyzes a clause given the current local model.
      * <p>
      * The following cases are possible:<br>
      * - the clause is already true: return null; <br>
      * - the clause is already false: return the clause; <br>
      * - making an unsigned literal true causes the clause to become false: make the literal false;<br>
-     * - making an unsigned literal false causes the to become false: make the literal true.
+     * - making an unsigned literal false causes the clause to become false: make the literal true.
      *
      * @param clause The clause to be analyzed.
      * @return the clause if it is false already (locally or globally), otherwise null.
      */
     Clause analyseClauseLocally(Clause clause, int truePredicate) {
         // Since disjunctions are frequent,
-        // and only one passage through the predicates is sufficient,
+        // and only one passage through the literals is sufficient,
         // it is worth treating this case separately.
         if(clause.quantifier == Quantifier.OR) {
             Literal unsignedLiteral = null;
             for(Literal literalObject : clause.literals) {
                 switch(localStatus(literalObject.literal)) {
                     case 0:
-                        if(unsignedLiteral != null) return null; // two unsigned predicates: nothing to be done
+                        if(unsignedLiteral != null) return null; // two unsigned literals: nothing to be done
                         unsignedLiteral = literalObject; break;
                     case 1: return null;}}                   // clause is true;
-            if(unsignedLiteral == null) {return falseClauseFound(clause);} // all predicates are false
-            makeLiteralLocallyTrue(clause,unsignedLiteral,(byte)1);
+            if(unsignedLiteral == null) {return falseClauseFound(clause);} // all literals are false. backtrack
+            makeLiteralLocallyTrue(clause,unsignedLiteral,1);        // all other literals are false
             return null;}
 
         // all other clause types.
@@ -434,29 +463,35 @@ public class Backtracker extends Solver {
                 case 0: unsignedLiterals += literalObject.multiplicity; break;
                 case 1: trueLiterals += literalObject.multiplicity;}}
         int max = clause.max; int min = clause.min;
+
+        // too many or not enough true literals.
         if(trueLiterals > max || trueLiterals + unsignedLiterals < min) return falseClauseFound(clause); // clause is false
-        // too many or not enough true predicates.
-        if(min <= trueLiterals && trueLiterals <= max) return null; // clause is true.
-        // try to derive new true or false predicates
+
+        // clause is true.
+        if(min <= trueLiterals && trueLiterals <= max) return null;
+
+        // try to derive new true or false literals
         for(Literal literalObject : clause.literals) {
             if(localStatus(literalObject.literal) == 0) {
                 int trueLits = trueLiterals + literalObject.multiplicity;
                 if(!(min <= trueLits && trueLits <= max)) { // making it true causes a contradiction
-                    makeLiteralLocallyTrue(clause,literalObject,(byte)-1);
+                    makeLiteralLocallyTrue(clause,literalObject,-1); // literal must be false
                     continue;}
                 trueLits = trueLiterals + unsignedLiterals - literalObject.multiplicity;
                 if(!(min <= trueLits && trueLits <= max)) { // making it false causes a contradiction
-                    makeLiteralLocallyTrue(clause,literalObject,(byte)1);}}}
+                    makeLiteralLocallyTrue(clause,literalObject,1);}}}
         return null;}
 
     /**
-     * Makes a literal locally true and add the job to the propagatorPool
+     * Makes a literal locally true/false and adds the job to the propagatorPool
+     * <br>
+     * A propagator propagates the truth value of the literal to the other clauses.
      *
      * @param clause        The clause containing the literal.
-     * @param literalObject The literal object to make true.
-     * @param sign          The sign of the literal (-1 for negation, 1 for positive).
+     * @param literalObject The literal object to make true or false.
+     * @param sign          The sign of the literal (-1 for literal is false, 1 for literal is true).
      */
-    synchronized void makeLiteralLocallyTrue(Clause clause, Literal literalObject, Byte sign) {
+    synchronized void makeLiteralLocallyTrue(Clause clause, Literal literalObject, int sign) {
         int literal = sign*literalObject.literal;
         int predicate = Math.abs(literal);
         IntArrayList depSelections = dependentSelections[predicate];
@@ -490,8 +525,8 @@ public class Backtracker extends Solver {
     /** All globally true predicates are integrated into the datastructures and the search structure.
      * <br>
      * The clauses are simplified with the true predicates. <br>
-     * If new true predicates are derivable they are set to the model and thus inserted into globallyTrueLiterals.<br>
-     * The search structure is updated if globally true predicates interact with locally true predicates.
+     * If new true literals are derivable they are set to the model and thus inserted into globallyTrueLiterals.<br>
+     * The search structure is updated if globally true predicates interact with locally true literals.
      *
      * @throws Result
      */
@@ -675,7 +710,7 @@ public class Backtracker extends Solver {
      *
      * @param predicate to where backtrack
      * @param dependencies of the clause or predicate which caused a contradiction (or null if tryAgain is true)
-     * @param tryAgain if true then the predicate is tried again, otherwise its negation is tried.
+     * @param tryAgain if true then the predicate is tried again (because of global interactions), otherwise its negation is tried.
      * @return the predicate to which it is backtracked.
      * @throws Result if backtracked to the top-selection and model.add(-selection) causes a contradiction
      */
@@ -716,9 +751,10 @@ public class Backtracker extends Solver {
      * - predicateArrangement == 1: just the sequence of natural numbers: 1,2,...<br>
      * - predicateArrangement == 2: just the inverse sequence of natural numbers: n,n-1,...<br>
      * - predicateArrangement == 3: predicates with more literal occurrences first<br>
-     * - predicateArrangement == 4: predicates with less literal occurrences first.
+     * - predicateArrangement == 4: predicates with less literal occurrences first.<br>
+     * The arrays may be reused for different problems.
      *
-     * @param predicateArrangement seed above
+     * @param predicateArrangement see above
      * @param seed for the random number generator
      */
     protected void initializePredicateSequence(int predicateArrangement, int seed) {
@@ -759,6 +795,8 @@ public class Backtracker extends Solver {
             predicatePositions[predicateSequence[position]] = position;}}
 
     /** initializes the local to be synchronous to the global model.
+     * <br>
+     * The local model may be reused for different problems.
      */
     protected void initializeLocalModel() {
         if(localModel == null || localModel.length < predicates+1)
@@ -768,13 +806,15 @@ public class Backtracker extends Solver {
 
 
     /** sets the local truth status value of the literal.
+     * <br>
+     * The literal is assumed to be locally true.
      *
      * @param literal  a derived true literal.
      */
     protected void setLocalStatus(int literal) {
         if(literal > 0) localModel[literal] = 1; else localModel[-literal] = -1;}
 
-    /** sets the local status value of the literal to 0 and clears usedClauses[literal]
+    /** resets the local status value of the literal and clears usedClauses[literal]
      *
      * @param literal  a derived literal.
      */

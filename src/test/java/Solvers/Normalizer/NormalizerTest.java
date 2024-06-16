@@ -1,7 +1,9 @@
 package Solvers.Normalizer;
 
+import Datastructures.Clause;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Literal;
 import Datastructures.Results.Result;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
@@ -37,7 +39,7 @@ public class NormalizerTest extends TestCase {
     static NormalizerStatistics statistics = new NormalizerStatistics(null);
 
     static Clause makeClause(int[] inputClause) {
-        return new Clause(inputClause,false,null);
+        return new Clause(inputClause,false,(lit -> new Literal(lit,1)), null);
     }
     static  HashMap<String, ArrayList<String>> defaults = QUSat.loadDefaults();
     GlobalParameters globalParameters = new GlobalParameters(defaults);

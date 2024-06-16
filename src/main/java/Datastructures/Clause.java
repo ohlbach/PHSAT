@@ -18,9 +18,8 @@ import java.util.function.IntPredicate;
  * <P>
  * The clause extends LinkedItem and can therefore be part of a doubly connected linked list.
  *
- * @param <Literal> the type of Literal objects in the clause.
  */
-public class Clause<Literal extends Datastructures.Literal> extends LinkedItem implements Cloneable {
+public class Clause extends LinkedItem implements Cloneable {
 
     /** the maximal number of predicates where simplification by investigating all its models is still feasible. */
     private static final int maxModelSize = 12;
@@ -435,7 +434,9 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
                 " divided by GCD -> " + toString(symboltable,0));}
         return true;}
 
-    /** removes a literal from the clause
+    /** removes a literal from the clause.
+     * <br>
+     * Notice: the literalRemover is not applied to the literal to be removed.
      *
      * @param literal            the literal to be removed.
      * @param trackReasoning     controls generation of inference steps
@@ -623,7 +624,7 @@ public class Clause<Literal extends Datastructures.Literal> extends LinkedItem i
         if(trackReasoning) {addInferenceStep(new InfTrueLiteralToClause(isTrue ? literal:-literal,inferenceStep,clauseBefore,this));}
         if(monitor != null)
             monitor.accept(truth +" Literal " + Symboltable.toString(literal,symboltable) +
-                    " applied to clause " + Solvers.Normalizer.Clause.toString(clauseBefore,symboltable) + " -> " +
+                    " applied to clause " + Clause.toString(clauseBefore,symboltable) + " -> " +
                     toString(symboltable,0));
         return simplify(trackReasoning,literalRemover,reportTruth,monitor,symboltable);}
 

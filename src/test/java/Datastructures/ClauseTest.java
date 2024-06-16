@@ -146,7 +146,7 @@ public class ClauseTest extends TestCase {
         assertEquals(1, c.simplify(true,remover,reportTruth,monitor,null));
         assertEquals(1,c.inferenceSteps.size());
 
-        c = new Clause<>(new int[]{3, intv,3,3, 1,1, -2}, true, litCreator, null);
+        c = new Clause(new int[]{3, intv,3,3, 1,1, -2}, true, litCreator, null);
         assertEquals(1, c.simplify(true,remover,reportTruth,monitor,null));
         assertEquals("[1, -2]",truth.toString());
         System.out.println(steps.get(0).toString(null));
@@ -157,7 +157,7 @@ public class ClauseTest extends TestCase {
         steps.clear();
         truth.clear();
 
-        c = new Clause<>(new int[]{4, intv,2,3, 1,1, -2}, true, litCreator, null);
+        c = new Clause(new int[]{4, intv,2,3, 1,1, -2}, true, litCreator, null);
         assertEquals(1, c.simplify(true,remover,reportTruth,monitor,null));
         assertEquals("[1]",truth.toString());
         System.out.println(steps.get(0).toString(null));
@@ -243,7 +243,7 @@ public class ClauseTest extends TestCase {
 
     public void testSingletonModel() throws Unsatisfiable {
         System.out.println("Singleton Model");
-        Clause<Literal> c = new Clause<>(new int[]{1, intv,3,3, 1,1, -2}, true, litCreator, null);
+        Clause c = new Clause(new int[]{1, intv,3,3, 1,1, -2}, true, litCreator, null);
         assertEquals("1: =3 1^2,-2",c.toString(null,0));
         IntArrayList models = c.getModels(monitor,null);
         assertEquals(1,models.size());
@@ -507,14 +507,14 @@ public class ClauseTest extends TestCase {
     public void testRemoveLiteral1() throws Unsatisfiable {
         System.out.println("remove literal1");
         StringBuilder errors = new StringBuilder();
-        Solvers.Normalizer.Clause clause1 = new Solvers.Normalizer.Clause(new int[]{1, intv, 1,2, 1, 2, 3},true,null);
+        Clause clause1 = new Clause(new int[]{1, intv, 1,2, 1, 2, 3},true,(lit -> new Literal(lit,1)), null);
         assertEquals(1,  clause1.removeLiteral(1, true,0,null,null,monitor,  null));
         InferenceStep step = clause1.inferenceSteps.get(1);
         System.out.println(step.toString(null));
 
         IntArrayList trueLits = new IntArrayList();
         ArrayList<InferenceStep> steps = new ArrayList<>();
-        clause1 = new Solvers.Normalizer.Clause(new int[]{5, intv, 2,3, 1, 2, 3},true,null);
+        clause1 = new Clause(new int[]{5, intv, 2,3, 1, 2, 3},true,(lit -> new Literal(lit,1)),null);
         assertEquals(0,  clause1.removeLiteral(1, true,0,null,
                 ((lit,iStep) -> {trueLits.add(lit); steps.add(iStep);}),monitor,  null));
         assertEquals("5.1: 2v3",clause1.toString(null,0));

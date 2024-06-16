@@ -1,8 +1,10 @@
 package Solvers.Normalizer;
 
+import Datastructures.Clause;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.LinkedItemList;
+import Datastructures.Literal;
 import Datastructures.Results.Result;
 import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatClause;
@@ -239,7 +241,7 @@ public class Normalizer {
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
-        Clause clause = new Clause(inputClause,trackReasoning,symboltable);
+        Clause clause = new Clause(inputClause,trackReasoning,(lit -> new Literal(lit,1)),symboltable);
         switch(clause.simplify(trackReasoning,null, this::addTrueLiteralTask, monitor,symboltable)) {
             case -1: throw new UnsatClause(problemId,solverId, clause.inputClause);
             case 1: return;}

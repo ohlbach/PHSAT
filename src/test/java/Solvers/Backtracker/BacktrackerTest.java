@@ -1,7 +1,9 @@
 package Solvers.Backtracker;
 
+import Datastructures.Clause;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.LinkedItemList;
+import Datastructures.Literal;
 import Datastructures.LiteralIndex;
 import Datastructures.Results.Result;
 import Datastructures.Theory.Model;
@@ -126,7 +128,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.dependentSelections[1] = IntArrayList.wrap(new int[]{3, 2});
         backtracker.dependentSelections[2] = IntArrayList.wrap(new int[]{3});
         backtracker.dependentSelections[3] = IntArrayList.wrap(new int[]{1,3});
-        Clause clause = new Clause(new int[]{1,or,-3,-1,2});
+        Clause clause = new Clause(new int[]{1,or,-3,-1,2},false,(lit->new Literal(lit,1)),null);
         assertEquals(1,backtracker.getLastSelection(clause));
 
         backtracker.model = new Model(predicates);
@@ -165,7 +167,7 @@ public class BacktrackerTest extends TestCase {
         backtracker.removeLiteral(c.literals.get(1));
         assertEquals("Clauses\n" +
                 "    1: 1v2v3\n" +
-                "    2: 1v4\n" +
+                "  2.1: 1v4\n" +
                 "    3: -1v4\n", backtracker.clauses.toString());
 
         backtracker.removeLiteral(c.literals.get(1));
@@ -201,8 +203,8 @@ public class BacktrackerTest extends TestCase {
 
         backtracker.removeGloballyTrueLiteral(-3);
         assertEquals("Clauses\n" +
-                "    1: 1v2\n" +
-                "    2: 1v4\n"+
+                "  1.1: 1v2\n" +
+                "  2.1: 1v4\n" +
                 "    3: -1v-4v5\n", backtracker.clauses.toString());
 
         backtracker.removeGloballyTrueLiteral(-1);

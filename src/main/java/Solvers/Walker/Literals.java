@@ -181,7 +181,7 @@ public class Literals {
         if(literalObject == null) return "";
         StringBuilder st = new StringBuilder();
         while(literalObject != null) {
-            Clause clause = literalObject.clause;
+            Clause clause = (Clause) literalObject.clause;
             int multiplicity = literalObject.multiplicity;
             st.append(Symboltable.toString(literalObject.literal,symboltable)).append(multiplicity == 1 ? "":"^"+multiplicity).
                     append("@").append(clause == null ? "0":literalObject.clause.id).append(",");

@@ -205,10 +205,10 @@ public class Walker extends Solver {
      * Derivable true or false predicates are inserted into the global model.<br>
      */
     void readInputClauses(){
-        Solvers.Normalizer.Clause normalizedClause = problemSupervisor.normalizer.clauses.firstLinkedItem;
+        Clause normalizedClause = null; //problemSupervisor.normalizer.clauses.firstLinkedItem;
         while(normalizedClause != null) {
             insertClause(normalizedClause);
-            normalizedClause = (Solvers.Normalizer.Clause)normalizedClause.nextItem;}}
+            normalizedClause = (Clause)normalizedClause.nextItem;}}
 
     /** Inserts a normalized clause into the internal datastructures.
      * <br>
@@ -216,9 +216,9 @@ public class Walker extends Solver {
      *
      * @param normalizedClause a normalized clause.
      */
-    void insertClause(Solvers.Normalizer.Clause normalizedClause) {
+    void insertClause(Datastructures.Clause normalizedClause) {
         Clause clause = new Clause(normalizedClause);
-        for(Literal literalObject : clause.literals) {literals.addLiteral(literalObject);}
+        //for(Literal literalObject : clause.literals) {literals.addLiteral(literalObject);}
         clauses.add(clause);}
 
 
@@ -248,7 +248,7 @@ public class Walker extends Solver {
      */
     boolean initializeLocalTruthForClause(Clause clause) {
         int trueLiterals = 0;
-        for(Literal literalObject : clause.literals) {
+        for(Datastructures.Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
             if(literal > 0)  {
                 if(localModel[literal])    trueLiterals += literalObject.multiplicity;}
@@ -272,37 +272,37 @@ public class Walker extends Solver {
         int min = clause.min; int max = clause.max;
         if(clause.isLocallyTrue) {
             if(min == max) { // all flips make the clause false.
-                for(Literal literalObject : clause.literals) {
-                    literalObject.flipScorePart = -1;
+                for(Datastructures.Literal literalObject : clause.literals) {
+                  //  literalObject.flipScorePart = -1;
                     flipScores[Math.abs(literalObject.literal)] -= 1;}
                 return;}
-            for(Literal literalObject : clause.literals) { // flipping a literal may reduce the true predicates below min, or increase them over max.
+            for(Datastructures.Literal literalObject : clause.literals) { // flipping a literal may reduce the true predicates below min, or increase them over max.
                 int literal = literalObject.literal;
                 int newTrueLiterals = isLocallyTrue(literal) ? trueLiterals - literalObject.multiplicity : trueLiterals + literalObject.multiplicity;
                 if(newTrueLiterals < min || newTrueLiterals > max) {
-                    literalObject.flipScorePart = -1;
+                   // literalObject.flipScorePart = -1;
                     flipScores[Math.abs(literalObject.literal)] -= 1;}}
             return;}
 
         // the clause is false and should become true
         if(trueLiterals < clause.min) {
-            for(Literal literalObject : clause.literals) {
+            for(Datastructures.Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
                 if(isLocallyTrue(literal) || trueLiterals + literalObject.multiplicity > clause.max) {  // true predicates should not become false.
-                    literalObject.flipScorePart = -1;
+                    //literalObject.flipScorePart = -1;
                     flipScores[Math.abs(literalObject.literal)] -= 1;}
                 else {
-                    literalObject.flipScorePart = +1; // false predicates should become true.
+                    //literalObject.flipScorePart = +1; // false predicates should become true.
                     flipScores[Math.abs(literalObject.literal)] += 1;}}
             return;}
         if(trueLiterals > clause.max) {
-            for(Literal literalObject : clause.literals) {
+            for(Datastructures.Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
                 if(isLocallyTrue(literal) && !(trueLiterals - literalObject.multiplicity < clause.min)) {
-                    literalObject.flipScorePart = 1; // true predicates should become false.
+                    //literalObject.flipScorePart = 1; // true predicates should become false.
                     flipScores[Math.abs(literalObject.literal)] += 1;}
                 else {
-                    literalObject.flipScorePart = -1; // false predicates should not become true.
+                    //literalObject.flipScorePart = -1; // false predicates should not become true.
                     flipScores[Math.abs(literalObject.literal)] -= 1;}}}}
 
     /** all predicates with positive score are collected in predicatesWithPositiveScore.
@@ -373,14 +373,14 @@ public class Walker extends Solver {
         if(clause.trueLiterals < clause.min) { // not enough true predicates. A false literal must be flipped.
             int n = random.nextInt(clause.literals.size() - clause.trueLiterals);
             int counter = -1;
-            for(Literal literalObject : clause.literals) {
+            for(Datastructures.Literal literalObject : clause.literals) {
                 int literal = literalObject.literal;
                 if(!isLocallyTrue(literal)) {if(++counter == n) return Math.abs(literal);}}
             assert(false);}
         // too many true predicates. A true literal must be flipped.
         int n = random.nextInt(clause.trueLiterals);
         int counter = -1;
-        for(Literal literalObject : clause.literals) {
+        for(Datastructures.Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
             if(isLocallyTrue(literal)) {if(++counter == n) return Math.abs(literal);};}
         assert(false);
@@ -423,13 +423,13 @@ public class Walker extends Solver {
      * @param flippedLiteralObject the literal whose local truth value has already been flipped.
      */
      void updateFlipScores(Literal flippedLiteralObject) {
-        Clause clause = flippedLiteralObject.clause;
+        Clause clause = (Clause) flippedLiteralObject.clause;
         boolean wasTrue = clause.isLocallyTrue;
         int trueLiterals = 0;
-        for(Literal literalObject : clause.literals) {
+        for(Datastructures.Literal literalObject : clause.literals) {
             int literal = literalObject.literal;
-            flipScores[Math.abs(literal)] -= literalObject.flipScorePart;
-            literalObject.flipScorePart = 0;
+           // flipScores[Math.abs(literal)] -= literalObject.flipScorePart;
+           // literalObject.flipScorePart = 0;
             if(isLocallyTrue(literal)) trueLiterals += literalObject.multiplicity;}
         clause.trueLiterals = trueLiterals;
         clause.isLocallyTrue = clause.min <= trueLiterals && trueLiterals <= clause.max;
@@ -438,7 +438,7 @@ public class Walker extends Solver {
              if(!clause.isLocallyTrue) {falseClauseList.addToBack(clause);}}
         else {if(clause.isLocallyTrue) {falseClauseList.remove(clause);}}
 
-        for(Literal literalObject : clause.literals) {
+        for(Datastructures.Literal literalObject : clause.literals) {
             updatePredicatesWithPositiveScore(Math.abs(literalObject.literal));}}
 
 

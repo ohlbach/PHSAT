@@ -1,5 +1,6 @@
 package Solvers.Backtracker;
 
+import Datastructures.Clause;
 import Datastructures.Symboltable;
 import InferenceSteps.InferenceStep;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
