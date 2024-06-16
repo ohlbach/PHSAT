@@ -1,71 +1,63 @@
 package Datastructures;
 
+import InferenceSteps.InferenceStep;
+
 import java.util.Arrays;
 import java.util.concurrent.PriorityBlockingQueue;
 
 /** A Task class for priority queues
- *
- * @param <TaskType> Type of task
  */
-public class Task<TaskType> {
-    public TaskType taskType;
+public class Task {
+    enum TaskType {TRUELITERAL,PURITY,SUBSUMPTION};
+
+    static int purityShift = 1000000;
+    static int subsumptionShift = 2000000;
+
+    TaskType taskType;
+
+    int literal = 0;
+
+    Clause clause = null;
+
+    InferenceStep inferenceStep;
+
+    /** the priority of the task (the smaller the higher).
+     * True literal tasks get higher priority.*/
     public int priority;
-    public Object a;
-    public Object b;
-    public Object c;
 
     /** creates a new task
      *
      * @param taskType       the type of the task
-     * @param a              customary
      */
-    public Task(TaskType taskType, Object a) {
+    public Task(TaskType taskType, int literal, InferenceStep inferenceStep) {
         this.taskType = taskType;
-        this.a = a;
-        this.b = null;
-        this.c = null;
+        this.literal = literal;
+        this.inferenceStep = inferenceStep;
+        switch(taskType) {
+            case TRUELITERAL: priority = Math.abs(literal);
+            case PURITY: priority = Math.abs(literal) + purityShift;
+        }
     }
 
-    /** creates a new task
-     *
-     * @param taskType       the type of the task
-     * @param a              customary
-     * @param b              customary
-     */
-    public Task(TaskType taskType, Object a, Object b) {
+    public Task(TaskType taskType, Clause clause) {
         this.taskType = taskType;
-        this.a = a;
-        this.b = b;
-        this.c = null;
+        this.clause = clause ;
+        priority = clause.id + subsumptionShift;
     }
 
-    /** creates a new task
-     *
-     * @param taskType       the type of the task
-     * @param a              customary
-     * @param b              customary
-     * @param c              customary
-     */
-    public Task(TaskType taskType, Object a, Object b, Object c) {
-        this.taskType = taskType;
-        this.a = a;
-        this.b = b;
-        this.c = c;
-    }
+
+
     /** turns the task into a string.
      *
      * @return a string
      */
-    public String toString() {
+    public String toString(Symboltable symbolTable) {
         StringBuilder st = new StringBuilder();
-        try{
-            Class inferenceStep = Class.forName("InferenceSteps.InferenceStep");
-            st.append(taskType.toString());
-            if(a != null && a.getClass().getSuperclass() != inferenceStep)
-                st.append(" a: " + (a.getClass() == int[].class ? Arrays.toString((int[])a) : a.toString()));
-            if(b != null && b.getClass().getSuperclass() != inferenceStep)
-                st.append(", b: " + (b.getClass() == int[].class ? Arrays.toString((int[])b) : b.toString()));}
-        catch(Exception ex) {System.out.println( "Unknown class name: InferenceSteps.InferenceStep");}
+        st.append(taskType.toString());
+        if (clause != null) st.append("Clause: ").append(clause.toString(symbolTable,0));
+        if(literal != 0) {
+            st.append(": Literal ").append(Symboltable.toString(literal,symbolTable));
+            if(inferenceStep != null) st.append("\n  ").append(inferenceStep.toString(symbolTable));}
         return st.toString();}
 
     /** turns the queue into a string of tasks, sorted according to the queue's comparator.

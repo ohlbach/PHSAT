@@ -360,8 +360,7 @@ public class Clause extends LinkedItem implements Cloneable {
             if(monitor != null) {
                 monitor.accept("Clause " + toString(clone,symboltable) + ": has true literal " + Symboltable.toString(literal,symboltable));}
             reportTruth.accept(literal,step);
-            if(literalRemover != null) literalRemover.accept(literals.get(j));
-            removeLiteralAtPosition(j, literal == literals.get(j).literal ? 1 : -1);
+            removeLiteralAtPosition(j, literal == literals.get(j).literal ? 1 : -1,literalRemover);
         }
         if(changed) {classifyQuantifier(); ++version;}
         return changed;}
@@ -400,8 +399,7 @@ public class Clause extends LinkedItem implements Cloneable {
             changed = true;
             if(monitor != null) monitor.accept("Clause " + toString(symboltable,0) +
                     " irrelevant literal " + Symboltable.toString(literals.get(j).literal,symboltable) + " removed");
-            if(literalRemover != null) literalRemover.accept(literals.get(j)); // inference step
-            removeLiteralAtPosition(j, -1);}
+            removeLiteralAtPosition(j, -1,literalRemover);}
         if(changed) {classifyQuantifier();++version;}
         return changed;}
 
@@ -451,7 +449,7 @@ public class Clause extends LinkedItem implements Cloneable {
                              BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
                              Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable {
         int[] cloned = (trackReasoning || monitor != null) ? simpleClone() : null;
-        removeLiteral(literal,status);
+        removeLiteral(literal,status,literalRemover);
         ++version;
         if(trackReasoning) addInferenceStep(new InfTrueLiteralToClause(-literal,null,cloned,this));
         if(monitor != null) {
@@ -472,12 +470,12 @@ public class Clause extends LinkedItem implements Cloneable {
      * @param status  +1: literal is true; -1: literal is false; 0: literal is singleton pure
      * @return true if the literal has been removed.
      */
-    public boolean removeLiteral(int literal, int status) {
+    public boolean removeLiteral(int literal, int status, Consumer<Literal> literalRemover) {
         int predicate = Math.abs(literal);
         for(int i = 0; i < literals.size(); ++i) {
             int lit = literals.get(i).literal;
             if(Math.abs(lit) == predicate) {
-                removeLiteralAtPosition(i,lit == literal ? status : -status);
+                removeLiteralAtPosition(i,lit == literal ? status : -status,literalRemover);
                 return true;}}
         return false;}
 
@@ -492,9 +490,10 @@ public class Clause extends LinkedItem implements Cloneable {
      * @param j       the index of the literal to be removed
      * @param status  +1: literal is true; -1: literal is false; 0: literal is singleton pure
      */
-    public void removeLiteralAtPosition(int j, int status) {
+    public void removeLiteralAtPosition(int j, int status,Consumer<Literal> literalRemover) {
         Literal literalObject = literals.get(j);
         literals.remove(j);
+        if(literalRemover != null) literalRemover.accept(literalObject);
         expandedSize -= literalObject.multiplicity;
         switch(status) {
             case 1: max -= literalObject.multiplicity;
@@ -619,7 +618,7 @@ public class Clause extends LinkedItem implements Cloneable {
                          Symboltable symboltable) throws Unsatisfiable {
         int[] clauseBefore = (trackReasoning || monitor != null) ? simpleClone() : null;
         String truth =  isTrue ? "True" : "False";
-        if(!removeLiteral(literal,isTrue ? 1 : -1)) return 0;
+        if(!removeLiteral(literal,isTrue ? 1 : -1,literalRemover)) return 0;
          ++version;
         if(trackReasoning) {addInferenceStep(new InfTrueLiteralToClause(isTrue ? literal:-literal,inferenceStep,clauseBefore,this));}
         if(monitor != null)
