@@ -44,6 +44,12 @@ public class Clause extends LinkedItem implements Cloneable {
     /** null or a list of inference steps */
     public ArrayList<InferenceStep> inferenceSteps = null;
 
+    /** indicates that there are multiplicities &gt; 1 */
+    public boolean hasMultipleLiterals = false;
+
+    /** for algorithms like subsumption test */
+    public int timestamp = 0;
+
     /**Initializes a new Clause object.
      * <br>
      * multiple occurrences or predicates are comprised into one Literal object.<br>
@@ -76,7 +82,9 @@ public class Clause extends LinkedItem implements Cloneable {
             for(Literal literalObject : literals) {
                 if(literal == literalObject.literal) {
                     ++literalObject.multiplicity;
-                    multiple = true; break;}
+                    multiple = true;
+                    hasMultipleLiterals = true;
+                    break;}
                 if(quantifier != Quantifier.AND && quantifier != Quantifier.EQUIV && literal == -literalObject.literal) {
                     --min; --max;
                     --literalObject.multiplicity;
@@ -234,7 +242,7 @@ public class Clause extends LinkedItem implements Cloneable {
 
         if(literals.size() > maxModelSize) {
             if(monitor != null) {monitor.accept("Clause " + toString(symboltable,0) +
-                    " has more than " + maxModelSize + " literal. Simplification may become incomplete.");}
+                    " has more than " + maxModelSize + " literals. Simplification may become incomplete.");}
             return 0;}
 
         IntArrayList models = getModels(monitor,symboltable);
@@ -504,7 +512,17 @@ public class Clause extends LinkedItem implements Cloneable {
                 litObject.multiplicity = Math.min(min, litObject.multiplicity);
                 expandedSize += litObject.multiplicity;}}
         max = Math.min(max,expandedSize);
+        if(hasMultipleLiterals) {checkMultiplicities();}
         classifyQuantifier();}
+
+    /** updates the hasMultipleLiterals flag.
+     */
+    private void checkMultiplicities() {
+        hasMultipleLiterals = false;
+        for(Literal litObject : literals) {
+            if(litObject.multiplicity > 1) {
+                hasMultipleLiterals = true;
+                break;}}}
 
     /** replaces an old literal by a new literal.
      * Multiple occurrences and complementary predicates are treated, but no other simplifications are done.
@@ -530,6 +548,7 @@ public class Clause extends LinkedItem implements Cloneable {
                 expandedSize -= (newLitObject.multiplicity-min);
                 max = expandedSize;
                 newLitObject.multiplicity = min;}
+            checkMultiplicities();
             classifyQuantifier();
             return true;}
 
@@ -544,6 +563,7 @@ public class Clause extends LinkedItem implements Cloneable {
                 min = Math.max(0,min-newMultiplicity);
                 expandedSize -= 2*newMultiplicity;
                 max = Math.min(expandedSize,max-newMultiplicity);
+                checkMultiplicities();
                 classifyQuantifier();
                 return true;}
                                                                 // old -> new
@@ -554,6 +574,7 @@ public class Clause extends LinkedItem implements Cloneable {
                 min = Math.max(0,min-multiplicity);
                 expandedSize -= newMultiplicity + multiplicity;
                 max = Math.min(expandedSize,max-multiplicity);
+                checkMultiplicities();
                 classifyQuantifier();
                 return true;}
            // newMultiplicity > oldMultiplicity
@@ -563,6 +584,7 @@ public class Clause extends LinkedItem implements Cloneable {
             min = Math.max(0,min-multiplicity);
             expandedSize -= oldMultiplicity + multiplicity;
             max = Math.min(expandedSize,max-multiplicity);
+            checkMultiplicities();
             classifyQuantifier();
             return true;}
 
@@ -707,7 +729,9 @@ public class Clause extends LinkedItem implements Cloneable {
         for(Literal literalObject : literals) predicates.add(Math.abs(literalObject.literal));
         return predicates;}
 
-    /** checks if the clause is true given the isTrue-function for predicates
+    /** checks if the clause is true in the model according to the sequence of predicates.
+     * <br>
+     * If a predicate p in the clause is not contained in the predicates then both true(p) and false(p) is considered.
      *
      * @param model  a model as a bitsequence
      * @param predicates a list of predicates
@@ -715,9 +739,15 @@ public class Clause extends LinkedItem implements Cloneable {
      */
     public boolean isTrue(int model, IntArrayList predicates) {
         int trueLiterals = 0;
+        int extraLiterals = 0;
         for(Literal literalObject : literals) {
-            if(Utilities.isTrue(model,literalObject.literal,predicates)) trueLiterals += literalObject.multiplicity;}
-        return min <= trueLiterals && trueLiterals <= max;}
+            int literal = literalObject.literal;
+            if(predicates.contains(Math.abs(literal))) {
+                if(Utilities.isTrue(model,literal,predicates)) trueLiterals += literalObject.multiplicity;}
+            else extraLiterals += literalObject.multiplicity;}
+        return min <= trueLiterals                      // extra literals are all false
+                && trueLiterals + extraLiterals <= max; // extra literals are all true.
+        }
 
     /** checks if the clause is true given the isTrue-function for predicates
      *
