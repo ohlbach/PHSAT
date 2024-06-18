@@ -8,7 +8,7 @@ import java.util.concurrent.PriorityBlockingQueue;
 /** A Task class for priority queues
  */
 public class Task {
-    enum TaskType {TRUELITERAL,PURITY,SUBSUMPTION};
+    enum TaskType {TRUELITERAL,PURITY, SHORTENED_CLAUSE};
 
     static int purityShift = 1000000;
     static int subsumptionShift = 2000000;

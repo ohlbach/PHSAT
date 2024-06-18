@@ -355,9 +355,9 @@ public class ResolutionTest {
     }
 
     @Test
-    public void checkPurity() throws Exception {
+    public void removePurePredicate() throws Exception {
         counter = 1;
-        System.out.println("checkPurity");
+        System.out.println("removePurePredicate");
         Controller cntr = new Controller(null, null, null);
         HashMap<String, Object> problemParameters = new HashMap<>();
         problemParameters.put("name", "test");
@@ -385,8 +385,8 @@ public class ResolutionTest {
         insertClause.invoke(res, c2, false,"initial");
         insertClause.invoke(res, c3, false,"initial");
 
-        Method checkPurity = getMethod("checkPurity", Clause.class);
-        checkPurity.invoke(res,c1);
+        Method removePurePredicate = getMethod("removePurePredicate", Clause.class);
+        removePurePredicate.invoke(res,c1);
         assertEquals("1. P1: Pure literal: -2\n",taskQueue.get(res).description());
     }
 

@@ -114,7 +114,7 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
         return (literals == null) ? null : literals.lastLinkedItem;}
 
     /**
-     * Checks if the list of predicates is empty based on the given literal value.
+     * Checks if the list of literals is empty based on the given literal value.
      *
      * @param literal The value of the literal.
      * @return true if the list is empty, false otherwise.
@@ -122,6 +122,21 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
     public boolean isEmpty(int literal) {
         LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];
         return literals == null  || literals.isEmpty();}
+
+    /**
+     * Checks if the list of positive and negative occurrences is empty.
+     *
+     * @param literal The value of the literal.
+     * @return true if the lists are empty, false otherwise.
+     */
+    public boolean isBothEmpty(int literal) {
+        int predicate = Math.abs(literal);
+        LinkedItemList<Literal> positiveLiterals = positiveOccurrences[predicate];
+        LinkedItemList<Literal> negativeLiterals = negativeOccurrences[predicate];
+        return (positiveLiterals == null || positiveLiterals.isEmpty()) &&
+                (negativeLiterals == null || negativeLiterals.isEmpty());}
+
+
 
     /**
      * Retrieves the size of the list of predicates in the LiteralIndex class based on the given literal value.
