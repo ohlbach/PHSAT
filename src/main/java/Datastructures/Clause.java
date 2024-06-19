@@ -466,6 +466,34 @@ public class Clause extends LinkedItem implements Cloneable {
                     toString(symboltable,0));}
         return simplify(trackReasoning,literalRemover,reportTruth, monitor,symboltable);}
 
+    /** removes a literal from an OR-clause (for example because of merge-resolution).
+     * <br>
+     * Notice: the literalRemover is not applied to the literal to be removed.
+     *
+     * @param literal            the literal to be removed.
+     * @param trackReasoning     controls generation of inference steps
+     * @param literalRemover     null or a function to be applied to removed literals during simplification.
+     * @param reportTruth        null or a function for reporting a true literal (in case of a unit clause).
+     * @return                   true if the clause can be removed (unit clause), false otherwise.
+     */
+    public boolean removeLiteral(int literal, boolean trackReasoning, Consumer<Literal> literalRemover,BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth) throws Unsatisfiable {
+        assert quantifier == Quantifier.OR;
+        for(int i = 0; i < literals.size(); ++i) {
+            Literal literalObject = literals.get(i);
+            if(literalObject.literal == literal) {
+                literals.remove(i);
+                if(literalRemover != null) literalRemover.accept(literalObject);
+                break;}}
+        if(literals.size() == 1) {
+            Literal literalObject = literals.get(0);
+            if (literalRemover != null) literalRemover.accept(literalObject);
+            if(reportTruth != null) {
+                InferenceStep step = trackReasoning ? new InfUnitClause(this) : null;
+                reportTruth.accept(literalObject.literal,step);
+                return true;}}
+        return false;}
+
+
     /**Removes th j-th literal from the list of predicates in the clause.
      * <p>
      * status = 1:  literal is true (decrease min and max) <br>
@@ -486,6 +514,9 @@ public class Clause extends LinkedItem implements Cloneable {
                 removeLiteralAtPosition(i,lit == literal ? status : -status,literalRemover);
                 return true;}}
         return false;}
+
+
+
 
     /**Removes th j-th literal from the list of predicates in the clause.
      * <p>

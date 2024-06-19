@@ -6,6 +6,7 @@ import Datastructures.Results.Satisfiable;
 import Datastructures.Results.UnsatClause;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
+import InferenceSteps.InfMergeResolution;
 import InferenceSteps.InferenceStep;
 import Management.ErrorReporter;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
@@ -96,8 +97,8 @@ public class ClauseList {
                 case SHORTENED_CLAUSE:
                     Clause clause = task.clause;
                     if(clause.isInList) {
-                        removeSubsumedClauses(task.clause);
-                        mergeResolution(task.clause);}
+                        removeSubsumedClauses(clause);
+                        if(clause.quantifier == Quantifier.OR) mergeResolution(clause);}
                     break;
                 case PURITY:
                     removePurePredicate(Math.abs(task.literal));
@@ -109,7 +110,7 @@ public class ClauseList {
     }
 
     public void addClause(Clause clause) {
-        if(allClausesInserted) addSubsumptionTask(clause);
+        if(allClausesInserted) addShortenedClauseTask(clause);
         clauses.addToBack(clause);
         addClauseToIndex(clause);}
 
@@ -142,7 +143,7 @@ public class ClauseList {
                         monitor,this::removeLiteralFromIndex,this::addTrueLiteralTask, symboltable)){
                     case -1: throw new UnsatClause(problemId,solverId, clause);
                     case 1: clauses.remove(clause); continue;}
-                addSubsumptionTask(clause);
+                addShortenedClauseTask(clause);
                 literalObject = (Literal)literalObject.nextItem;
             }}}
 
@@ -150,7 +151,7 @@ public class ClauseList {
         model.add(null,literal,inferenceStep);
         if(allClausesInserted) queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}
 
-    void addSubsumptionTask(Clause clause) {
+    void addShortenedClauseTask(Clause clause) {
         queue.add(new Task(Task.TaskType.SHORTENED_CLAUSE, clause));}
 
     void addPurityTask(int literal) {
@@ -430,42 +431,98 @@ public class ClauseList {
             return (negativeLiterals.clause.quantifier == Quantifier.INTERVAL && negativeLiterals.nextItem == null) ? -predicate : 0;}
         return 0;}
 
+    /**
+     * This method is used to perform a merge resolution between a shorter parent OR-clause and corresponding other OR-clauses
+     * <br>
+     * The method uses timestamps to quickly identify candidate clauses for the merge-resolution.<br>
+     * If shorterParent is shortened itself, the method is called recursively.<br>
+     * If enother clause is shortened a ShortenedClauseTask is inserted into the queue.
+     *
+     * @param shorterParent The shorter parent clause to merge with.
+     * @throws Unsatisfiable If the merge resolution leads to unsatisfiability.
+     */
     protected void mergeResolution(Clause shorterParent) throws Unsatisfiable {
         ++timestamp;
-        for(Literal shorterLiteral1 : shorterParent.literals) {
+        ArrayList<Literal> shorterLiterals = shorterParent.literals;
+        int shorterSize = shorterLiterals.size();
+        Clause longerParent;
+        for(int i = 0; i < shorterSize; ++i) { // shorterLiterals may be changed.
+            Literal shorterLiteral1  = shorterLiterals.get(i);
             int resolutionLiteral = shorterLiteral1.literal;
             Literal longerLiteral = literalIndex.getFirstLiteral(-resolutionLiteral);
             while(longerLiteral != null) {
-                longerLiteral.clause.timestamp = timestamp;
+                longerParent = longerLiteral.clause;
+                if(longerParent.quantifier == Quantifier.OR) longerParent.timestamp = timestamp;
                 longerLiteral = (Literal)longerLiteral.nextItem;}
-            for(Literal shorterLiteral2 : shorterParent.literals) {
-                if(shorterLiteral1 == shorterLiteral2) continue;
+            for(int j = 0; j < shorterSize; ++j) {
+                if(j == i) continue;
+                Literal shorterLiteral2 = shorterLiterals.get(j);
                 longerLiteral = literalIndex.getFirstLiteral(shorterLiteral2.literal);
                 while(longerLiteral != null) {
-                    Clause longerParent = longerLiteral.clause;
+                    longerParent = longerLiteral.clause;
                     int longerTimestamp = longerParent.timestamp;
                     if(longerTimestamp < timestamp) {longerParent.timestamp = timestamp; continue;}
-                    if(longerTimestamp == longerParent.literals.size()-1) {
-                        resolve(shorterParent,resolutionLiteral,longerParent);
-                        timestamp += shorterParent.literals.size();}
-                    ++shorterParent.timestamp;
+                    if(longerTimestamp == shorterSize-1) { // resolution partner found
+                        if(resolve(shorterParent,resolutionLiteral,longerParent)) {
+                            timestamp += shorterSize;
+                            if(shorterParent.isInList) mergeResolution(shorterParent); // shorterParent has been shortened
+                            return;}
+                        else {addShortenedClauseTask(longerParent);}}
+                    ++longerParent.timestamp;
                 longerLiteral = (Literal)longerLiteral.nextItem;}}}
-        timestamp += shorterParent.literals.size();}
+        timestamp += shorterSize;}
 
 
-    protected void resolve(Clause parent1, int literal, Clause parent2) throws Unsatisfiable {
-         if(parent1.quantifier == Quantifier.OR && parent2.quantifier == Quantifier.OR) {
-             if(parent1.literals.size() == parent2.literals.size()) {
-                  parent1.removeLiteral(literal,false,0,null,this::addTrueLiteralTask,monitor,symboltable);
-             }
-         }
+    /**
+     * Resolves two OR-clauses by performing merge resolution.
+     * <br>
+     * If both clauses are of equal size then the second ('longerClause') is removed and the shorter clause is
+     * shortend and kept.<br>
+     * If the result is a unit clause, a trueLiteralTask is generated and both clauses are removed.
+     *
+     * @param shorterParent   the shorter parent clause
+     * @param literal         the literal used for resolution
+     * @param longerParent    the longer parent clause
+     * @throws Unsatisfiable if the resolution results in a contradicting model
+     * @return true if the shorterParent has been shortened.
+     */
+    protected boolean resolve(Clause shorterParent, int literal, Clause longerParent) throws Unsatisfiable {
+        int[] shorterClone = null;
+        int[] longerClone = null;
+        if(trackReasoning || monitor != null) {
+            longerClone = longerParent.simpleClone();
+            shorterClone = shorterParent.simpleClone();}
+
+        if(shorterParent.literals.size() == longerParent.literals.size()) {
+            if(shorterParent.removeLiteral(literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
+                removeClause(shorterParent);} // unit clause
+            if(trackReasoning) {
+                shorterParent.addInferenceStep(new InfMergeResolution(shorterClone, longerClone,shorterParent));}
+            removeClause(longerParent);
+            removeClauseFromIndex(longerParent);
+            if(monitor != null) {
+                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " + " +" +
+                        Clause.toString(longerClone,symboltable) + " => " + shorterParent.toString(symboltable,0));}
+            return true;}
+
+        if(longerParent.removeLiteral(-literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
+            removeClause(longerParent);}
+        if(trackReasoning) {
+            longerParent.addInferenceStep(new InfMergeResolution(shorterClone, longerClone,longerParent));}
+        if(monitor != null) {
+            monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " + " +" +
+                    Clause.toString(longerClone,symboltable) + " => " + longerParent.toString(symboltable,0));}
+        return false;
     }
 
 
-    /** extends the model by determining the truth-value of singleton pure predicates in interval- and exactly-clauses.
-     *
-     * @throws Unsatisfiable should not happen.
-     */
+
+
+
+        /** extends the model by determining the truth-value of singleton pure predicates in interval- and exactly-clauses.
+         *
+         * @throws Unsatisfiable should not happen.
+         */
     public void extendModel() throws Unsatisfiable {
         for(int i = singletons.size()-2; i >= 0; i -=2) {
             Clause clause = (Clause)singletons.get(i+1);
