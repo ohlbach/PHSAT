@@ -46,17 +46,34 @@ public class ClauseList {
             new PriorityBlockingQueue<>(100, Comparator.comparingInt(task->task.priority));
 
 
-    public ClauseList(boolean trackReasoning, boolean verify) {
+    /**
+     * Creates a new instance of ClauseList with the specified parameters.
+     * <br>
+     * The constructor is usually called once for a sequence of problems.
+     *
+     * @param trackReasoning specifies whether to track reasoning steps
+     * @param monitor a {@link Consumer} that will be used to monitor progress or log messages
+     * @param verify specifies whether to verify the inference steps
+     */
+    public ClauseList(boolean trackReasoning, Consumer<String> monitor, boolean verify) {
         this.trackReasoning = trackReasoning;
+        this.monitor = monitor;
         this.verify = verify;
     }
 
-    public void initialize(Model model, String problemId,
-                           Consumer<String> monitor, Symboltable symboltable) {
-        this.model = model;
+    /**
+     * Initializes the object with the given parameters.
+     * <br>
+     * The must be called for each problem separately
+     *
+     * @param model The model to be initialized.
+     * @param problemId The ID of the problem.
+     * @param symboltable The symbol table.
+     */
+    public void initialize(String problemId, Model model, Symboltable symboltable) {
         this.problemId = problemId;
+        this.model = model;
         this.predicates = model.predicates;
-        this.monitor = monitor;
         this.symboltable = symboltable;
         if(clauses != null) clauses = new LinkedItemList<>("Clauses");
         else                clauses.clear();
@@ -69,18 +86,28 @@ public class ClauseList {
                 (literal,inferenceStep) -> {
                         synchronized(this) {queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}});}
 
+    /**
+     * After having inserted all clauses, the following operations are performed: <br>
+     * - true literals are applied to the clauses<br>
+     * - subsumed clauses are removed<br>
+     * - pure literals are identified and removed.
+     * - merge resolutions are performed.
+     *
+     * @throws Result If the problem is satisfiable, throws a {@link Result} exception.
+     */
     public void allClausesInserted() throws Result {
         IntArrayList trueLiterals = model.model; // derived true literals are automatically appended
         for(int i = 0; i < trueLiterals.size(); ++i) {
             int literal = trueLiterals.getInt(i);
             applyTrueLiteral(literal,model.getInferenceStep(literal));}
 
+        this.allClausesInserted = true;
         Clause clause = clauses.firstLinkedItem;
         while(clause != null) {
             removeSubsumedClauses(clause);
+            if(clause.quantifier == Quantifier.OR) mergeResolution(clause);
             clause = (Clause)clause.nextItem;}
 
-        this.allClausesInserted = true;
         removePureLiterals(); // new true literals generate tasks
 
         processTasks();
@@ -431,6 +458,7 @@ public class ClauseList {
             return (negativeLiterals.clause.quantifier == Quantifier.INTERVAL && negativeLiterals.nextItem == null) ? -predicate : 0;}
         return 0;}
 
+
     /**
      * This method is used to perform a merge resolution between a shorter parent OR-clause and corresponding other OR-clauses
      * <br>
@@ -442,6 +470,7 @@ public class ClauseList {
      * @throws Unsatisfiable If the merge resolution leads to unsatisfiability.
      */
     protected void mergeResolution(Clause shorterParent) throws Unsatisfiable {
+        assert shorterParent.quantifier == Quantifier.OR;
         ++timestamp;
         ArrayList<Literal> shorterLiterals = shorterParent.literals;
         int shorterSize = shorterLiterals.size();
@@ -452,7 +481,9 @@ public class ClauseList {
             Literal longerLiteral = literalIndex.getFirstLiteral(-resolutionLiteral);
             while(longerLiteral != null) {
                 longerParent = longerLiteral.clause;
-                if(longerParent.quantifier == Quantifier.OR) longerParent.timestamp = timestamp;
+                if(longerParent.quantifier == Quantifier.OR ||
+                        (longerParent.min == 2 && longerParent.literals.size() == shorterSize+1))
+                    longerParent.timestamp = timestamp;
                 longerLiteral = (Literal)longerLiteral.nextItem;}
             for(int j = 0; j < shorterSize; ++j) {
                 if(j == i) continue;
@@ -474,8 +505,11 @@ public class ClauseList {
 
 
     /**
-     * Resolves two OR-clauses by performing merge resolution.
+     * Resolves two clauses by performing merge resolution.
      * <br>
+     * If the second clause is not an OR-clause, the situation is as in the following example:<br>
+     *  p,q,r and atleast 2 -p,q,r,s =&gt; q,r (shorterParent shortened)
+     *  <br>
      * If both clauses are of equal size then the second ('longerClause') is removed and the shorter clause is
      * shortend and kept.<br>
      * If the result is a unit clause, a trueLiteralTask is generated and both clauses are removed.
@@ -483,21 +517,36 @@ public class ClauseList {
      * @param shorterParent   the shorter parent clause
      * @param literal         the literal used for resolution
      * @param longerParent    the longer parent clause
-     * @throws Unsatisfiable if the resolution results in a contradicting model
+     * @throws Unsatisfiable if the resolution results in a contradicting model (maybe a unit-clause is derived)
      * @return true if the shorterParent has been shortened.
      */
     protected boolean resolve(Clause shorterParent, int literal, Clause longerParent) throws Unsatisfiable {
         int[] shorterClone = null;
-        int[] longerClone = null;
+        int[] longerClone  = null;
         if(trackReasoning || monitor != null) {
             longerClone = longerParent.simpleClone();
             shorterClone = shorterParent.simpleClone();}
+        InferenceStep step;
+
+        if(longerParent.quantifier != Quantifier.OR) {
+            if(shorterParent.removeLiteral(literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
+                removeClause(shorterParent);} // unit clause
+            if(trackReasoning) {
+                step = new InfMergeResolution(shorterClone, longerClone,shorterParent);
+                if(verify) step.verify(monitor,symboltable);
+                shorterParent.addInferenceStep(step);}
+            if(monitor != null) {
+                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " + " +" +
+                        Clause.toString(longerClone,symboltable) + " => " + shorterParent.toString(symboltable,0));}
+            return true;}
 
         if(shorterParent.literals.size() == longerParent.literals.size()) {
             if(shorterParent.removeLiteral(literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
                 removeClause(shorterParent);} // unit clause
             if(trackReasoning) {
-                shorterParent.addInferenceStep(new InfMergeResolution(shorterClone, longerClone,shorterParent));}
+                step = new InfMergeResolution(shorterClone, longerClone,shorterParent);
+                if(verify) step.verify(monitor,symboltable);
+                shorterParent.addInferenceStep(step);}
             removeClause(longerParent);
             removeClauseFromIndex(longerParent);
             if(monitor != null) {
@@ -508,7 +557,9 @@ public class ClauseList {
         if(longerParent.removeLiteral(-literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
             removeClause(longerParent);}
         if(trackReasoning) {
-            longerParent.addInferenceStep(new InfMergeResolution(shorterClone, longerClone,longerParent));}
+            step = new InfMergeResolution(shorterClone, longerClone,shorterParent);
+            if(verify) step.verify(monitor,symboltable);
+            shorterParent.addInferenceStep(step);}
         if(monitor != null) {
             monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " + " +" +
                     Clause.toString(longerClone,symboltable) + " => " + longerParent.toString(symboltable,0));}
@@ -519,7 +570,7 @@ public class ClauseList {
 
 
 
-        /** extends the model by determining the truth-value of singleton pure predicates in interval- and exactly-clauses.
+    /** extends the model by determining the truth-value of singleton pure predicates in interval- and exactly-clauses.
          *
          * @throws Unsatisfiable should not happen.
          */

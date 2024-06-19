@@ -2,6 +2,9 @@ package InferenceSteps;
 
 import Datastructures.Clause;
 import Datastructures.Symboltable;
+import it.unimi.dsi.fastutil.ints.IntArrayList;
+
+import java.util.function.Consumer;
 
 public class InfMergeResolution extends InferenceStep {
     @Override
@@ -18,6 +21,17 @@ public class InfMergeResolution extends InferenceStep {
         this.parent1 = parent1;
         this.parent2 = parent2;
         this.resolvent = resolvent.simpleClone();}
+
+    public boolean verify(Consumer<String> monitor, Symboltable symboltable) {
+        IntArrayList predicates = Clause.predicates(parent1);
+        Clause.predicates(parent2,predicates);
+        for(int model : Clause.getModels(parent1,predicates)) {
+            if(Clause.isTrue(parent2, model,predicates)) {
+                if (!Clause.isTrue(resolvent, model, predicates)) {
+                    monitor.accept("Error: " + toString(symboltable) +
+                            "\n Merge Resolution failed for model:  " + Clause.modelString(model, predicates, symboltable));
+                    return false;}}}
+        return true;}
 
     @Override
     public String toString(Symboltable symboltable) {

@@ -321,16 +321,38 @@ public class Clause extends LinkedItem implements Cloneable {
             classifyQuantifier();}
         return models;}
 
-    /** Makes all predicates of a clause with a single model true.
-     * <br>
-     * Example: [3,3] p^2,-q  p and -q must be true.
+    /**
+     * Retrieves the models that satisfy the given clause with the specified predicates.
      *
-     * @param model           an integer representing the model, where bit i=1 means the i-th literal is true.
-     * @param trackReasoning  a boolean indicating whether reasoning should be tracked.
-     * @param reportTruth     a BiConsumer function for reporting truth.
-     * @param monitor         a Consumer function for monitoring.
-     * @param symboltable     a Symboltable object for symbol table operations.
+     * @param clause     the array representing the clause
+     * @param predicates the list of predicates
+     * @return the list of models satisfying the clause
      */
+    public static IntArrayList getModels(int[] clause, IntArrayList predicates) {
+        IntArrayList models = new IntArrayList();
+        int nModels = 1 << (clause.length - 5) / 2;
+        for (int model = 0; model < nModels; ++model) {
+            int trueLiterals = 0;
+            for (int j = 5; j < clause.length; j+=2) {
+                int literal = clause[j];
+                int multiplicity = clause[j+1];
+                int position = predicates.indexOf(Math.abs(literal));
+                if ((literal > 0 && ((model & (1 << position)) != 0)) || (literal < 0 && ((model & (1 << position)) == 0)))
+                    trueLiterals += multiplicity;}
+            if (clause[3] <= trueLiterals && trueLiterals <= clause[4]) models.add(model);}
+        return models;}
+
+
+        /** Makes all predicates of a clause with a single model true.
+         * <br>
+         * Example: [3,3] p^2,-q  p and -q must be true.
+         *
+         * @param model           an integer representing the model, where bit i=1 means the i-th literal is true.
+         * @param trackReasoning  a boolean indicating whether reasoning should be tracked.
+         * @param reportTruth     a BiConsumer function for reporting truth.
+         * @param monitor         a Consumer function for monitoring.
+         * @param symboltable     a Symboltable object for symbol table operations.
+         */
     protected void singletonModel(int model,boolean trackReasoning,
                                   BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth,
                                   Consumer<String> monitor, Symboltable symboltable) throws Unsatisfiable{
@@ -748,8 +770,19 @@ public class Clause extends LinkedItem implements Cloneable {
         IntArrayList predicates = new IntArrayList((clone.length-5)/2);
         for(int i = 5; i < clone.length; i+=2) {
             int predicate = Math.abs(clone[i]);
-            if(!predicates.contains(predicate)) predicates.add(Math.abs(predicate));}
+            if(!predicates.contains(predicate)) predicates.add(predicate);}
         return predicates;}
+
+    /** collects the predicates of a simpleClone in an IntArray
+     *
+     * @param clone a simple clone
+     * @return the predicates of the clone in an IntArray.
+     */
+    public static void predicates(int[] clone, IntArrayList predicates) {
+        for(int i = 5; i < clone.length; i+=2) {
+            int predicate = Math.abs(clone[i]);
+            if(!predicates.contains(predicate)) predicates.add(predicate);}}
+
 
     /** collects the predicates of the clause in an IntArray
      *
