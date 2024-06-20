@@ -460,11 +460,11 @@ public class ClauseList {
 
 
     /**
-     * This method is used to perform a merge resolution between a shorter parent OR-clause and corresponding other OR-clauses
+     * This method is used to perform a merge resolution between a shorter parent OR-clause and corresponding other clauses
      * <br>
      * The method uses timestamps to quickly identify candidate clauses for the merge-resolution.<br>
      * If shorterParent is shortened itself, the method is called recursively.<br>
-     * If enother clause is shortened a ShortenedClauseTask is inserted into the queue.
+     * If another clause is shortened a ShortenedClauseTask is inserted into the queue.
      *
      * @param shorterParent The shorter parent clause to merge with.
      * @throws Unsatisfiable If the merge resolution leads to unsatisfiability.
@@ -482,6 +482,7 @@ public class ClauseList {
             while(longerLiteral != null) {
                 longerParent = longerLiteral.clause;
                 if(longerParent.quantifier == Quantifier.OR ||
+                        (longerParent.min == longerLiteral.multiplicity && longerParent.literals.size() == shorterSize) ||
                         (longerParent.min == 2 && longerParent.literals.size() == shorterSize+1))
                     longerParent.timestamp = timestamp;
                 longerLiteral = (Literal)longerLiteral.nextItem;}
@@ -496,9 +497,13 @@ public class ClauseList {
                     if(longerTimestamp == shorterSize-1) { // resolution partner found
                         if(resolve(shorterParent,resolutionLiteral,longerParent)) {
                             timestamp += shorterSize;
-                            if(shorterParent.isInList) mergeResolution(shorterParent); // shorterParent has been shortened
+                            ++statistics.mergedResolvents;
+                            if(shorterParent.isInList) {
+                                removeSubsumedClauses(shorterParent);
+                                mergeResolution(shorterParent);} // shorterParent has been shortened
                             return;}
-                        else {addShortenedClauseTask(longerParent);}}
+                        else {++statistics.mergedResolvents;
+                              addShortenedClauseTask(longerParent);}}
                     ++longerParent.timestamp;
                 longerLiteral = (Literal)longerLiteral.nextItem;}}}
         timestamp += shorterSize;}
@@ -507,12 +512,14 @@ public class ClauseList {
     /**
      * Resolves two clauses by performing merge resolution.
      * <br>
-     * If the second clause is not an OR-clause, the situation is as in the following example:<br>
-     *  p,q,r and atleast 2 -p,q,r,s =&gt; q,r (shorterParent shortened)
+     * If the second clause is not an OR-clause, the situation is as in the following examples:<br>
+     *  - p,q,r and atleast 2 -p,q^x,r^y,s =&gt; q,r (shorterParent shortened)<br>
+     *  - p,q,r and atleast n -p^n,q^x,r^y =&gt; q,r (shorterParent shortened)
      *  <br>
-     * If both clauses are of equal size then the second ('longerClause') is removed and the shorter clause is
+     * If both OR-clauses are of equal size then the second ('longerClause') is removed and the shorter clause is
      * shortend and kept.<br>
-     * If the result is a unit clause, a trueLiteralTask is generated and both clauses are removed.
+     * If the result is a unit clause, a trueLiteralTask is generated and both clauses are removed.<br>
+     * If the longerParent is shortened, a new shortenedClause task is generated.
      *
      * @param shorterParent   the shorter parent clause
      * @param literal         the literal used for resolution
@@ -554,12 +561,13 @@ public class ClauseList {
                         Clause.toString(longerClone,symboltable) + " => " + shorterParent.toString(symboltable,0));}
             return true;}
 
-        if(longerParent.removeLiteral(-literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
-            removeClause(longerParent);}
+        if(longerParent.removeLiteral(-literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask))
+            removeClause(longerParent); // should not happen
+        else addShortenedClauseTask(longerParent);
         if(trackReasoning) {
-            step = new InfMergeResolution(shorterClone, longerClone,shorterParent);
+            step = new InfMergeResolution(shorterClone, longerClone,longerParent);
             if(verify) step.verify(monitor,symboltable);
-            shorterParent.addInferenceStep(step);}
+            longerParent.addInferenceStep(step);}
         if(monitor != null) {
             monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " + " +" +
                     Clause.toString(longerClone,symboltable) + " => " + longerParent.toString(symboltable,0));}

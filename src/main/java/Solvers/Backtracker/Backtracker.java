@@ -585,7 +585,7 @@ public class Backtracker extends Solver {
                     literalObject = (Literal)literalObject.nextItem;
                     continue;}
 
-                clause.removeLiteral(literalObject.literal,sign);
+                clause.removeLiteral(literalObject.literal,sign,null);
                 switch(clause.simplify(trackReasoning,
                         (litObject -> literalIndex.remove(litObject)), // also called for irrelevant predicates
                         ((lit, step) -> model.add(null,lit,step)),

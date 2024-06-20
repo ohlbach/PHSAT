@@ -494,15 +494,17 @@ public class Clause extends LinkedItem implements Cloneable {
      *
      * @param literal            the literal to be removed.
      * @param trackReasoning     controls generation of inference steps
-     * @param literalRemover     null or a function to be applied to removed literals during simplification.
+     * @param literalRemover     null or a function to be applied to removed literals.
      * @param reportTruth        null or a function for reporting a true literal (in case of a unit clause).
      * @return                   true if the clause can be removed (unit clause), false otherwise.
      */
-    public boolean removeLiteral(int literal, boolean trackReasoning, Consumer<Literal> literalRemover,BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth) throws Unsatisfiable {
+    public boolean removeLiteral(int literal, boolean trackReasoning, Consumer<Literal> literalRemover,
+                                 BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth) throws Unsatisfiable {
         assert quantifier == Quantifier.OR;
         for(int i = 0; i < literals.size(); ++i) {
             Literal literalObject = literals.get(i);
             if(literalObject.literal == literal) {
+                ++version;
                 literals.remove(i);
                 if(literalRemover != null) literalRemover.accept(literalObject);
                 break;}}
@@ -548,12 +550,12 @@ public class Clause extends LinkedItem implements Cloneable {
      * Updates the expandedSize and adjusts the multiplicities.
      * The quantifier is also updated.
      *
-     * @param j       the index of the literal to be removed
+     * @param position       the index of the literal to be removed
      * @param status  +1: literal is true; -1: literal is false; 0: literal is singleton pure
      */
-    public void removeLiteralAtPosition(int j, int status,Consumer<Literal> literalRemover) {
-        Literal literalObject = literals.get(j);
-        literals.remove(j);
+    public void removeLiteralAtPosition(int position, int status,Consumer<Literal> literalRemover) {
+        Literal literalObject = literals.get(position);
+        literals.remove(position);
         if(literalRemover != null) literalRemover.accept(literalObject);
         expandedSize -= literalObject.multiplicity;
         switch(status) {

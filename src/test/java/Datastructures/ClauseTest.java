@@ -312,56 +312,91 @@ public class ClauseTest extends TestCase {
 
     }
 
-    public void testRemoveLiteral() throws Unsatisfiable{
-        System.out.println("removeLiteral");
+    public void testRemoveLiteralStatus() throws Unsatisfiable{
+        System.out.println("removeLiteral with status");
+        IntArrayList removedLiterals = new IntArrayList();
+        Consumer<Literal> literalRemover = (literalObject -> removedLiterals.add(literalObject.literal));
         Clause c = new Clause(new int[]{1, intv,2,3, 1, 2, 3,4,5}, false, litCreator, null);
         Clause c1 = c.clone();
-        c.removeLiteral(2,1);
+        c.removeLiteral(2,1,literalRemover);
         assertEquals("1: [1,2] 1,3,4,5",c.toString(null,0));
+        assertEquals("[2]",removedLiterals.toString());
+        removedLiterals.clear();
 
         c = c1.clone();
-        c.removeLiteral(-2,1);
+        c.removeLiteral(-2,1,literalRemover);
+        assertEquals("1: [2,3] 1,3,4,5",c.toString(null,0));
+        assertEquals("[2]",removedLiterals.toString());
+        removedLiterals.clear();
+
+        c = c1.clone();
+        c.removeLiteral(2,-1,null);
         assertEquals("1: [2,3] 1,3,4,5",c.toString(null,0));
 
         c = c1.clone();
-        c.removeLiteral(2,-1);
-        assertEquals("1: [2,3] 1,3,4,5",c.toString(null,0));
-
-        c = c1.clone();
-        c.removeLiteral(-2,-1);
+        c.removeLiteral(-2,-1,null);
         assertEquals("1: [1,2] 1,3,4,5",c.toString(null,0));
 
         c = new Clause(new int[]{2, intv,2,3, 1, 2, 3,4,5}, false, litCreator, null);
-        c.removeLiteral(2,0);
+        c.removeLiteral(2,0,null);
         assertEquals("2: [1,3] 1,3,4,5",c.toString(null,0));
 
         c = new Clause(new int[]{3, intv,1,2, 1, 2, 3}, false, litCreator, null);
-        c.removeLiteral(2,0);
+        c.removeLiteral(2,0,null);
         assertEquals("3: >=0 1,3",c.toString(null,0));
         assertEquals(1,c.simplify(false,null,null,monitor,null));
 
+         c = new Clause(new int[]{4, or,1, 2}, false, litCreator, null);
+         c.removeLiteral(2,-1,literalRemover);
+         assertEquals("4: =1 1",c.toString(null,0));
+         assertEquals("[2]",removedLiterals.toString());
     }
     public void testRemoveLiteralAtPosition() {
         System.out.println("removeLiteralAtPosition");
         Clause c = new Clause(new int[]{1, or,1,2,3}, false, litCreator, symboltable);
-        c.removeLiteralAtPosition(0,-1);
+        c.removeLiteralAtPosition(0,-1,null);
         assertEquals("1: 2v3", c.toString(null, 0));
-        c.removeLiteralAtPosition(1,-1);
+        c.removeLiteralAtPosition(1,-1,null);
         assertEquals("1: =1 2", c.toString(null, 0));
-        c.removeLiteralAtPosition(0,-1);
+        c.removeLiteralAtPosition(0,-1,null);
         assertEquals("1: ", c.toString(null, 0));
 
         c = new Clause(new int[]{2, intv,2,3, 1,1,2,2,3,3,3}, false, litCreator, symboltable);
         assertEquals("2: [2,3] 1^2,2^2,3^3", c.toString(null, 0));
-        c.removeLiteralAtPosition(1,1);
+        c.removeLiteralAtPosition(1,1,null);
         assertEquals("2: <=1 1^2,3^3", c.toString(null, 0));
-        c.removeLiteralAtPosition(1,1);
+        c.removeLiteralAtPosition(1,1,null);
         assertEquals("2: <=-2 1^2", c.toString(null, 0));
 
         c = new Clause(new int[]{3, atl,2, 1,2,2,3,3,3}, false, litCreator, symboltable);
         assertEquals("3: >=2 1,2^2,3^2", c.toString(null, 0));
-        c.removeLiteralAtPosition(0,1);
+        c.removeLiteralAtPosition(0,1,null);
         assertEquals("3: 2v3", c.toString(null, 0));
+    }
+
+    public void testRemoveLiteral() throws Unsatisfiable {
+        System.out.println("removeLiteral for OR-clauses");
+        IntArrayList removedLiterals = new IntArrayList();
+        IntArrayList trueLiterals = new IntArrayList();
+        ArrayList<InferenceStep> steps = new ArrayList<>();
+        BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth =
+                ((literal,step) -> {trueLiterals.add(literal);steps.add(step);});
+        Consumer<Literal> literalRemover = (literalObject -> removedLiterals.add(literalObject.literal));
+
+        Clause c = new Clause(new int[]{1, or,1,2,3}, false, litCreator, null);
+        c.removeLiteral(2, true, literalRemover,reportTruth);
+        assertEquals("1.1: 1v3", c.toString(null, 0));
+        assertEquals("[2]", removedLiterals.toString());
+        assertTrue(trueLiterals.isEmpty());
+        removedLiterals.clear();
+        assertTrue(c.removeLiteral(3, true, literalRemover,reportTruth));
+        assertEquals("[3, 1]", removedLiterals.toString());
+        assertEquals("[1]", trueLiterals.toString());
+        System.out.println(steps.get(0).toString(null));
+
+
+
+
     }
 
     public void testModelString() {
