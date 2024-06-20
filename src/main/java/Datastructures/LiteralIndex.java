@@ -148,5 +148,27 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
         LinkedItemList<Literal> literals = (literal > 0) ? positiveOccurrences[literal] : negativeOccurrences[-literal];
         return literals == null ? 0 : literals.size();}
 
+    /** collects all the clauses in the indices as a string (for testing purposes)
+     *
+     * @param symboltable null or a symboltable.
+     * @return all the clauses separated according the predicates.
+     */
+    public String toString(int predicates,Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        LinkedItemList<Literal> literals;
+        for(int predicate = 1; predicate <= predicates; ++predicate) {
+            for(int sign = 1; sign >= -1; sign += 2) {
+                literals = sign == 1 ?  positiveOccurrences[predicate] : negativeOccurrences[predicate];
+                if(literals == null || literals.isEmpty()) continue;
+                String pred = Symboltable.toString(sign*predicate,symboltable);
+                st.append(pred).append(": ");
+                boolean first = true;
+                Literal literalObject = literals.firstLinkedItem;
+                while(literalObject != null)  {
+                    int size = first ? 10-pred.length()-2 : 10; first = false;
+                    st.append(literalObject.clause.toString(symboltable,size)).append("\n");
+                    literalObject = (Literal)literalObject.nextItem;}}}
+        return st.toString();}
+
 
 }

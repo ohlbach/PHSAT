@@ -615,18 +615,59 @@ public class ClauseList {
                         clause.toString(symboltable,0) + "\nnumber of true literals: " + trueLiterals  +
                         "\nModel: " + model.toString(symboltable));}}
 
+    /**
+     * Returns a string representation of the given version of the clause list.
+     * <br>
+     * - clauses:    all clauses<br>
+     * - singletons: all singletons<br>
+     * - index:      the clauses in the literal index
+     * <br>
+     * None of these keywords: all three lists.
+     *
+     * @param version the version of the object to generate the string representation of
+     * @param symboltable the symbol table used for generating the string representation
+     * @return the string representation of the clause list's version
+     */
+    public String toString(String version, Symboltable symboltable) {
+        switch(version.toLowerCase()) {
+            case "clauses":    return toStringClauses(symboltable);
+            case "singletons": return toStringSingletons(symboltable);
+            case "index" :     return literalIndex.toString(predicates,symboltable);}
+        return  "Clauses:\n"    + toStringClauses(symboltable)+ "\n\n" +
+                "Singletons:\n" + toStringSingletons(symboltable) + "\n\n"+
+                "Index:\n"      + literalIndex.toString(predicates,symboltable);}
+
     /** lists the singletons as string
      *
      * @param symboltable null or a symboltable.
      * @return the singletons as a string.*/
-    public String singletonsToString(Symboltable symboltable) {
+    public String toStringSingletons(Symboltable symboltable) {
         StringBuilder st = new StringBuilder();
         st.append("Singleton Literals:\n");
         for(int i = 0; i < singletons.size(); i += 2) {
             st.append(Symboltable.toString((int) singletons.get(i), symboltable)).append(" in clause ");
             st.append(((Clause) singletons.get(i+1)).toString(symboltable,0)).append("\n");}
         return st.toString();}
+
+    /**
+     * Returns a string representation of the clauses contained in this object.
+     *
+     * @param symboltable the symbol table used to resolve symbols in the clauses
+     * @return a string representation of the clauses, or an empty string if there are no clauses
+     */
+    public String toStringClauses(Symboltable symboltable) {
+        if(clauses.isEmpty()) return "";
+        int size = (clauses.lastLinkedItem.id + "." + clauses.lastLinkedItem.version).length();
+        StringBuilder sb = new StringBuilder();
+        Clause clause = clauses.firstLinkedItem;
+        while (clause != null) {
+            sb.append(clause.toString(symboltable,size)).append("\n");
+            clause = (Clause) clause.nextItem;}
+        return sb.toString();}
 }
+
+
+
 
 
 
