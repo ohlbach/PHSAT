@@ -157,7 +157,7 @@ public class LiteralIndex<Literal extends Datastructures.Literal> {
         StringBuilder st = new StringBuilder();
         LinkedItemList<Literal> literals;
         for(int predicate = 1; predicate <= predicates; ++predicate) {
-            for(int sign = 1; sign >= -1; sign += 2) {
+            for(int sign = 1; sign >= -1; sign -= 2) {
                 literals = sign == 1 ?  positiveOccurrences[predicate] : negativeOccurrences[predicate];
                 if(literals == null || literals.isEmpty()) continue;
                 String pred = Symboltable.toString(sign*predicate,symboltable);

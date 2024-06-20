@@ -77,7 +77,8 @@ public class Symboltable {
      * @return  the name of the literal (e.g. -A), or the literal as string
      */
     public String toString(int literal) {
-        assert  literal != 0 && Math.abs(literal) <= predicates;
+        assert literal != 0;
+        assert Math.abs(literal) <= predicates;
         String name;
         if(literal > 0) {
             name = names[literal];

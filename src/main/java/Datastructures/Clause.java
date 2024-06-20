@@ -83,14 +83,16 @@ public class Clause extends LinkedItem implements Cloneable {
                 if(literal == literalObject.literal) {
                     ++literalObject.multiplicity;
                     multiple = true;
-                    hasMultipleLiterals = true;
                     break;}
                 if(quantifier != Quantifier.AND && quantifier != Quantifier.EQUIV && literal == -literalObject.literal) {
                     --min; --max;
                     --literalObject.multiplicity;
                     if(literalObject.multiplicity == 0) literals.remove(literalObject);
                     multiple = true; break;}}
-            if(!multiple) {literals.add(literalConstructor.apply(literal));}}
+            if(!multiple) {
+                Literal literalObject = literalConstructor.apply(literal);
+                literalObject.clause = this;
+                literals.add(literalObject);}}
 
         expandedSize = 0;
         for(Literal literalObject : literals) expandedSize += literalObject.multiplicity;
@@ -103,6 +105,8 @@ public class Clause extends LinkedItem implements Cloneable {
                 expandedSize += literalObject.multiplicity;}}
         max = Math.min(max,expandedSize);
         classifyQuantifier();
+        hasMultipleLiterals = false;
+        if(quantifier != Quantifier.OR) checkMultiplicities();
         if(trackReasoning) {
             inferenceSteps = new ArrayList<>();
             inferenceSteps.add(new InfInputClause(inputClause, this));}}
@@ -195,16 +199,18 @@ public class Clause extends LinkedItem implements Cloneable {
                 return 0;}
         if(min == 0 && max == expandedSize) return 1;
         int versionBefore = version;
+        int result;
         if(trackReasoning) {
             int[] clone = simpleClone();
-            int result = simplifyRecursively(trackReasoning, literalRemover,
+            result = simplifyRecursively(trackReasoning, literalRemover,
                     (literal,inferenceStep) -> {reportTruth.accept(literal,inferenceStep);},
                     monitor,symboltable);
             if(result == -1) {addInferenceStep(new InfClauseSimplification(clone,null)); return result;}
             if(result == 1 || versionBefore == version) return result;
-            addInferenceStep(new InfClauseSimplification(clone,this));
-            return result;}
-        else return simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor,symboltable);}
+            addInferenceStep(new InfClauseSimplification(clone,this));}
+        else result = simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor,symboltable);
+        checkMultiplicities();
+        return result;}
 
     /**
      * Simplifies a clause recursively based on various conditions and rules.

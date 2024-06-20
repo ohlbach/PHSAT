@@ -56,6 +56,7 @@ public class ClauseTest extends TestCase {
         assertEquals("2: 1v-2v3",c1.toString(null,0));
         steps = c1.inferenceSteps;
         assertEquals("Input: Clause 2: pv-qvrvpv-qvp -> 2: p,-q,r",steps.get(0).toString(symboltable));
+        assertFalse(c1.hasMultipleLiterals);
 
         c1 = new Clause(new int[]{3,or,1,-2,3,1,2,1},true,litCreator,symboltable);
         assertEquals("3: >=0 p^3,r",c1.toString(symboltable,0));
@@ -78,6 +79,7 @@ public class ClauseTest extends TestCase {
         steps = c1.inferenceSteps;
         assertEquals("Input: Clause 6: 2-3: 1,1,1,2,2,3,3,3 -> 6: [2,3] 1^3,2^2,3^3",steps.get(0).toString());
         assertTrue(steps.get(0).verify((string)-> System.out.println(string), symboltable));
+        assertTrue(c1.hasMultipleLiterals);
 
         c1 = new Clause(new int[]{7,intv,2,3, 1,-1,1,2,-2,3,-3,3},true,litCreator,null);
         assertEquals("7: =0 1,3",c1.toString(null,0));
@@ -140,6 +142,7 @@ public class ClauseTest extends TestCase {
         BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTruth = (literal, step) -> {truth.add(literal);steps.add(step);};
         assertEquals(0, c.simplify(true,remover,reportTruth,monitor,null));
         assertEquals(1,c.inferenceSteps.size());
+        assertFalse(c.hasMultipleLiterals);
 
 
         c = new Clause(new int[]{2, or, 1,2, -1}, true, litCreator, symboltable);
@@ -173,6 +176,7 @@ public class ClauseTest extends TestCase {
         assertEquals(0,steps.size());
         assertEquals("5.3: =1 1,2",c.toString(null,0));
         assertEquals(2,c.inferenceSteps.size());
+        assertFalse(c.hasMultipleLiterals);
         System.out.println(c.inferenceSteps.get(1).toString());
         assertTrue(((InferenceStep)c.inferenceSteps.get(1)).verify(monitor,null));
         removed.clear();
@@ -237,6 +241,20 @@ public class ClauseTest extends TestCase {
         assertEquals("6.1: =2 1^2,2^2",c.toString(null,0));
         assertEquals("1,-2\n" +
                 "-1,2\n",toString(models,c));
+    }
+
+    public void testGetModelsSimple() {
+        System.out.println("getModels from simple clones");
+        Clause c = new Clause(new int[]{1, or, 1, 2, 3}, true, litCreator, null);
+        int[] clone = c.simpleClone();
+        IntArrayList models = Clause.getModels(clone, Clause.predicates(clone));
+        assertEquals("1,-2,-3\n" +
+                "-1,2,-3\n" +
+                "1,2,-3\n" +
+                "-1,-2,3\n" +
+                "1,-2,3\n" +
+                "-1,2,3\n" +
+                "1,2,3\n", toString(models, c));
     }
 
 

@@ -24,7 +24,7 @@ public class ClauseList {
 
     private LiteralIndex<Literal> literalIndex;
 
-    public ClauseListStatistics statistics = null;
+    public StatisticsClauseList statistics = null;
 
     boolean allClausesInserted = false;
     boolean trackReasoning = false;
@@ -75,13 +75,13 @@ public class ClauseList {
         this.model = model;
         this.predicates = model.predicates;
         this.symboltable = symboltable;
-        if(clauses != null) clauses = new LinkedItemList<>("Clauses");
+        if(clauses == null) clauses = new LinkedItemList<>("Clauses");
         else                clauses.clear();
-        if(literalIndex != null) literalIndex = new LiteralIndex<>(predicates);
+        if(literalIndex == null) literalIndex = new LiteralIndex<>(predicates);
         else                     literalIndex.ensureCapacity(predicates);
         allClausesInserted = false;
         timestamp = 0;
-        statistics = new ClauseListStatistics();
+        statistics = new StatisticsClauseList();
         model.addObserver(Thread.currentThread(),
                 (literal,inferenceStep) -> {
                         synchronized(this) {queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}});}
@@ -498,7 +498,7 @@ public class ClauseList {
                         if(resolve(shorterParent,resolutionLiteral,longerParent)) {
                             timestamp += shorterSize;
                             ++statistics.mergedResolvents;
-                            if(shorterParent.isInList) {
+                            if(shorterParent.isInList) { // otherwise unit clause
                                 removeSubsumedClauses(shorterParent);
                                 mergeResolution(shorterParent);} // shorterParent has been shortened
                             return;}
