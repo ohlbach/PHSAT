@@ -22,7 +22,7 @@ public class ClauseList {
 
     private LinkedItemList<Clause> clauses;
 
-    private LiteralIndex<Literal> literalIndex;
+    public LiteralIndex<Literal> literalIndex;
 
     public StatisticsClauseList statistics = null;
 
@@ -55,7 +55,7 @@ public class ClauseList {
      * @param monitor a {@link Consumer} that will be used to monitor progress or log messages
      * @param verify specifies whether to verify the inference steps
      */
-    public ClauseList(boolean trackReasoning, Consumer<String> monitor, boolean verify) {
+    public ClauseList(boolean trackReasoning, boolean verify, Consumer<String> monitor) {
         this.trackReasoning = trackReasoning;
         this.monitor = monitor;
         this.verify = verify;
@@ -111,7 +111,9 @@ public class ClauseList {
         removePureLiterals(); // new true literals generate tasks
 
         processTasks();
-        if(clauses.isEmpty()) throw new Satisfiable(problemId,solverId,model);
+        if(clauses.isEmpty()) {
+            extendModel();
+            throw new Satisfiable(problemId,solverId,model);}
     }
 
     public void processTasks() throws Result {
@@ -136,6 +138,12 @@ public class ClauseList {
         }
     }
 
+    /** adds the clause to the clauses and to the literal index.
+     * <br>
+     * If allClausesInserted = true then a shortenedClause task is generated.
+     *
+     * @param clause to be added.
+     */
     public void addClause(Clause clause) {
         if(allClausesInserted) addShortenedClauseTask(clause);
         clauses.addToBack(clause);
@@ -174,7 +182,7 @@ public class ClauseList {
                 literalObject = (Literal)literalObject.nextItem;
             }}}
 
-    void addTrueLiteralTask(int literal, InferenceStep inferenceStep) throws Unsatisfiable{
+    public void addTrueLiteralTask(int literal, InferenceStep inferenceStep) throws Unsatisfiable{
         model.add(null,literal,inferenceStep);
         if(allClausesInserted) queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}
 

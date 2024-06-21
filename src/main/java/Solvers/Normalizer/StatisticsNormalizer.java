@@ -4,8 +4,8 @@ import Datastructures.Statistics.Statistic;
 import Solvers.Solver;
 import Utilities.Description;
 
-public class NormalizerStatistics extends Statistic {
-    public NormalizerStatistics(Solver solver) {
+public class StatisticsNormalizer extends Statistic {
+    public StatisticsNormalizer(Solver solver) {
         super(solver);}
 
     @Description("Tautologies in disjunctions")

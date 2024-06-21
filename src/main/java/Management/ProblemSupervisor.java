@@ -102,7 +102,7 @@ public class ProblemSupervisor {
             }
             model = new Model(inputClauses.predicates);
             normalizer = new Normalizer(this);
-            Result result = normalizer.normalizeClauses(0);
+            Result result = normalizer.normalizeClauses();
             System.out.println(result == null ? "no result " :result.toString());
             System.out.println(normalizer.toString(null));
             System.out.println(normalizer.statistics.toString());

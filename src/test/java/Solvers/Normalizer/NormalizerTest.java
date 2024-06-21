@@ -36,7 +36,7 @@ public class NormalizerTest extends TestCase {
     static Symboltable symboltable = new Symboltable(10);
     static Consumer<String> monitor = (string -> System.out.println(string));
 
-    static NormalizerStatistics statistics = new NormalizerStatistics(null);
+    static StatisticsNormalizer statistics = new StatisticsNormalizer(null);
 
     static Clause makeClause(int[] inputClause) {
         return new Clause(inputClause,false,(lit -> new Literal(lit,1)), null);
@@ -181,7 +181,7 @@ public class NormalizerTest extends TestCase {
         StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
         Normalizer nom = new Normalizer("Test","monitor",true,null,15);
         nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses(0);
+        nom.normalizeClauses();
         assertEquals ("  1: 1v2v3v4\n" +
                 "  3: >=2 1,2,3,4\n" +
                 "  2: <=2 1^2,2,3,4\n" +
@@ -208,7 +208,7 @@ public class NormalizerTest extends TestCase {
         scg = new StringClauseSetGenerator("Test",clauses);
         nom = new Normalizer("Test","monitor",true,null,15);
         nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses(0);
+        nom.normalizeClauses();
         nom.applyTrueLiteral(-1);
         assertEquals("1.1: 2v3v4\n" +
                 "3.1: >=2 2,3,4\n" +
@@ -235,7 +235,7 @@ public class NormalizerTest extends TestCase {
         StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
         Normalizer nom = new Normalizer("Test","monitor",true,null,15);
         nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses(0);
+        nom.normalizeClauses();
         assertEquals("  1: 1v2v3v4\n" +
                 "  2: 1v-2v3v4\n" +
                 "  3: 1v5v3v4\n" +
@@ -262,7 +262,7 @@ public class NormalizerTest extends TestCase {
         StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
         Normalizer nom = new Normalizer("Test","monitor",true,null,15);
         nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses(0);
+        nom.normalizeClauses();
         assertEquals("1,2,3,4",nom.model.toString());
         nom.applyEquivalenceToModel(2,5,null);
         assertEquals("1,2,3,4,5",nom.model.toString());
@@ -288,7 +288,7 @@ public class NormalizerTest extends TestCase {
         StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
         Normalizer nom = new Normalizer("Test","monitor",true,null,15);
         nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses(0);
+        nom.normalizeClauses();
         assertEquals("1,2,3,4,5",nom.model.toString());
         assertEquals("3.1: 6v7\n" +
                 "  4: -6v-7",nom.toString(null));
@@ -328,7 +328,7 @@ public class NormalizerTest extends TestCase {
         Normalizer nom = new Normalizer("Test","monitor",true,null,predicates);
         nom.inputClauses = phtr.generateProblem(errors);
         System.out.println(nom.inputClauses.toString(null,false));
-        nom.normalizeClauses(0);
+        nom.normalizeClauses();
         System.out.println("\nModel  " + nom.model.toString(null));
         System.out.println(nom.clauses.toString(null));
         System.out.println("");
@@ -348,7 +348,7 @@ public class NormalizerTest extends TestCase {
         StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
         Normalizer nom = new Normalizer("Test","monitor",true,null,15);
         nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses(0);
+        nom.normalizeClauses();
         System.out.println(nom.clauses.toString(null));
         System.out.println("");
         System.out.println(nom.singletonsToString(null));
@@ -400,7 +400,7 @@ public class NormalizerTest extends TestCase {
         System.out.println("random Clauses");
         ProblemSupervisor supervisor = makeRandom();
         Normalizer nom = new Normalizer(supervisor);
-        Result res = nom.normalizeClauses(0);
+        Result res = nom.normalizeClauses();
         if(res != null) System.out.println(res.toString(null,false));
         System.out.println(nom.clauses.toString(null));
         System.out.println("");

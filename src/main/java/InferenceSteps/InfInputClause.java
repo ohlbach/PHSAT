@@ -21,6 +21,9 @@ public class InfInputClause extends InferenceStep {
     /** the original input clause */
     public int[] inputClause;
 
+    public int representative;
+    public int literal;
+
     /** the clause as a simple clone. */
     public int[] clause;
 
@@ -35,6 +38,15 @@ public class InfInputClause extends InferenceStep {
     public InfInputClause(int[] inputClause, Clause clause) {
         this.inputClause = inputClause;
         if(clause != null) this.clause = clause.simpleClone();}
+
+    public InfInputClause(int[] inputClause, int literal) {
+        this.inputClause = inputClause;
+        this.literal = literal;}
+
+    public InfInputClause(int[] inputClause, int representative, int literal) {
+        this.inputClause = inputClause;
+        this.representative = representative;
+        this.literal = literal;}
 
     @Override
     public String title() {

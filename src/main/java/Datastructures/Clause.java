@@ -165,6 +165,19 @@ public class Clause extends LinkedItem implements Cloneable {
             if(literalObject.literal == literal) return literalObject;}
         return null;}
 
+    /** finds the Literal with the given predicate.
+     *
+     * @param literal a literal.
+     * @return null or a Literal with the given predicate.
+     */
+    public Literal findPredicate(int literal) {
+        int predicate = Math.abs(literal);
+        for(Literal literalObject : literals) {
+            if(Math.abs(literalObject.literal) == predicate) return literalObject;}
+        return null;}
+
+
+
     /**
      * Simplifies a clause recursively based on various conditions and rules.
      *

@@ -26,7 +26,7 @@ public class ClauseListTest extends TestCase {
 
     public void testAddClause() {
         System.out.println("addClause");
-        ClauseList cl = new ClauseList(true,monitor,true);
+        ClauseList cl = new ClauseList(true,true,monitor);
         Model model = new Model(10);
         cl.initialize("Test",model,symboltable);
         Clause c1 = new Clause(new int[]{1,or,1,-2,3},true,litCreator,symboltable);
