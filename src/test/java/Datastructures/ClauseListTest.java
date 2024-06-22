@@ -57,10 +57,6 @@ public class ClauseListTest extends TestCase {
                 "  6: [1,2] 1^2,3,2,4\n" +
                 "\n" +
                 "\n" +
-                "Singletons:\n" +
-                "Singleton Literals:\n" +
-                "\n" +
-                "\n" +
                 "Index:\n" +
                 "1:       1: 1v-2v3\n" +
                 "         2: >=2 3,2,1^2\n" +
@@ -101,10 +97,6 @@ public class ClauseListTest extends TestCase {
                 "  3: <=2 4,3^2,2\n" +
                 "\n" +
                 "\n" +
-                "Singletons:\n" +
-                "Singleton Literals:\n" +
-                "\n" +
-                "\n" +
                 "Index:\n" +
                 "1:       1: 1v-2v3\n" +
                 "2:       3: <=2 4,3^2,2\n" +
@@ -118,14 +110,7 @@ public class ClauseListTest extends TestCase {
         cl.removeClause(clause3);
         cl.removeClauseFromIndex(clause3);
         assertTrue(cl.isEmpty());
-        assertEquals("Clauses:\n" +
-                "\n" +
-                "\n" +
-                "Singletons:\n" +
-                "Singleton Literals:\n" +
-                "\n" +
-                "\n" +
-                "Index:\n", cl.toString("all", null));
+        assertEquals("", cl.toString("all", null));
 
     }
 

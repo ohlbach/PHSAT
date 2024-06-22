@@ -85,8 +85,8 @@ public class InfTrueLiteralToClause extends InferenceStep {
      */
     @Override
     public void inferenceSteps(ArrayList<InferenceStep> steps, IntArrayList ids) {
-        super.inferenceSteps(steps, ids);
         if(trueLiteralStep != null && !steps.contains(trueLiteralStep)) steps.add(trueLiteralStep);
+        super.inferenceSteps(steps, ids);
         int id = clauseBefore[0];
         if(!ids.contains(id)) ids.add(id);
     }

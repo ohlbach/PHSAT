@@ -664,9 +664,13 @@ public class ClauseList {
             case "clauses":    return toStringClauses(symboltable);
             case "singletons": return toStringSingletons(symboltable);
             case "index" :     return literalIndex.toString(predicates,symboltable);}
-        return  "Clauses:\n"    + toStringClauses(symboltable)+ "\n\n" +
-                "Singletons:\n" + toStringSingletons(symboltable) + "\n\n"+
-                "Index:\n"      + literalIndex.toString(predicates,symboltable);}
+        String cl = clauses.isEmpty() ? "" :  "Clauses:\n"    + toStringClauses(symboltable);
+        String sgt = (singletons != null && !singletons.isEmpty()) ? "Singletons:\n" + toStringSingletons(symboltable) : "";
+        String ind = literalIndex.toString(predicates,symboltable);
+        if(!ind.isEmpty()) ind = "Index:\n" + ind;
+        if(!cl.isEmpty() && (!sgt.isEmpty() || !ind.isEmpty())) cl +="\n\n";
+        if(!sgt.isEmpty() && !ind.isEmpty()) sgt += "\n\n";
+        return  cl + sgt + ind;}
 
     /** lists the singletons as string
      *
