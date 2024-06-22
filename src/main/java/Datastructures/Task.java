@@ -2,9 +2,6 @@ package Datastructures;
 
 import InferenceSteps.InferenceStep;
 
-import java.util.Arrays;
-import java.util.concurrent.PriorityBlockingQueue;
-
 /** A Task class for priority queues
  */
 public class Task {
@@ -34,7 +31,7 @@ public class Task {
         this.literal = literal;
         this.inferenceStep = inferenceStep;
         switch(taskType) {
-            case TRUELITERAL: priority = Math.abs(literal);
+            case TRUELITERAL: priority = Math.abs(literal); break;
             case PURITY: priority = Math.abs(literal) + purityShift;
         }
     }
@@ -54,20 +51,10 @@ public class Task {
     public String toString(Symboltable symbolTable) {
         StringBuilder st = new StringBuilder();
         st.append(taskType.toString());
-        if (clause != null) st.append("Clause: ").append(clause.toString(symbolTable,0));
+        if (clause != null) st.append(" Clause: ").append(clause.toString(symbolTable,0));
         if(literal != 0) {
             st.append(": Literal ").append(Symboltable.toString(literal,symbolTable));
             if(inferenceStep != null) st.append("\n  ").append(inferenceStep.toString(symbolTable));}
         return st.toString();}
 
-    /** turns the queue into a string of tasks, sorted according to the queue's comparator.
-     *
-     * @param queue a PriorityBlockingQueue
-     * @return the queue as string.
-     */
-    public static String queueToString(PriorityBlockingQueue queue) {
-        Task[] tasks = new Task[queue.size()];
-        queue.toArray(tasks);
-        Arrays.sort(tasks, queue.comparator());
-        return Arrays.toString(tasks);}
 }

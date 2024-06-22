@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 import static Utilities.Utilities.isTrue;
 
 /**
- * The NMISTrueLiteral class represents an inference step where a true literal is applied to a clause.
+ * The class represents an inference step where a true literal is applied to a clause.
  * It extends the NMInferenceStep class.
  */
 public class InfTrueLiteralToClause extends InferenceStep {

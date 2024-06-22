@@ -200,8 +200,8 @@ public class ClauseList {
                 switch(clause.applyTrueLiteral(literal,sign == 1, inferenceStep, trackReasoning,
                         monitor,this::removeLiteralFromIndex,this::addTrueLiteralTask, symboltable)){
                     case -1: throw new UnsatClause(problemId,solverId, clause);
-                    case 1: clauses.remove(clause); continue;}
-                addShortenedClauseTask(clause);
+                    case 1: removeClause(clause); removeClauseFromIndex(clause); break;
+                    case 0: addShortenedClauseTask(clause);}
                 literalObject = (Literal)literalObject.nextItem;
             }}}
 
@@ -663,14 +663,18 @@ public class ClauseList {
         switch(version.toLowerCase()) {
             case "clauses":    return toStringClauses(symboltable);
             case "singletons": return toStringSingletons(symboltable);
-            case "index" :     return literalIndex.toString(predicates,symboltable);}
+            case "index" :     return literalIndex.toString(predicates,symboltable);
+            case "queue":      return toStringQueue(symboltable);}
         String cl = clauses.isEmpty() ? "" :  "Clauses:\n"    + toStringClauses(symboltable);
         String sgt = (singletons != null && !singletons.isEmpty()) ? "Singletons:\n" + toStringSingletons(symboltable) : "";
         String ind = literalIndex.toString(predicates,symboltable);
+        String qu = toStringQueue(symboltable);
+        if (!qu.isEmpty()) qu  = "Queue:\n" + qu;
         if(!ind.isEmpty()) ind = "Index:\n" + ind;
         if(!cl.isEmpty() && (!sgt.isEmpty() || !ind.isEmpty())) cl +="\n\n";
-        if(!sgt.isEmpty() && !ind.isEmpty()) sgt += "\n\n";
-        return  cl + sgt + ind;}
+        if(!sgt.isEmpty() && !qu.isEmpty()) sgt += "\n\n";
+        if(!qu.isEmpty() && !ind.isEmpty()) qu += "\n\n";
+        return  cl + sgt + qu + ind;}
 
     /** lists the singletons as string
      *
@@ -699,6 +703,21 @@ public class ClauseList {
             sb.append(clause.toString(symboltable,size)).append("\n");
             clause = (Clause) clause.nextItem;}
         return sb.toString();}
+
+    /**
+     * Convert the queue of tasks to a string representation.
+     * Each task is converted to a string using the provided symbol table.
+     *
+     * @param symboltable the symbol table used for converting tasks to strings
+     * @return a string representation of the queue of tasks
+     */
+    public String toStringQueue(Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        for(Task task : queue) {
+            st.append(task.toString(symboltable)).append("\n");}
+        return st.toString();
+
+    }
 }
 
 
