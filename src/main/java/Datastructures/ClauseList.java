@@ -149,21 +149,44 @@ public class ClauseList {
         clauses.addToBack(clause);
         addClauseToIndex(clause);}
 
+    /** removes the clause from the clause list, but not from the index.
+     *
+     * @param clause a clause to be removed.
+     */
     public void removeClause(Clause clause) {
         clauses.remove(clause);}
 
+    /** adds the clause to the index (not to the clauses list).
+     *
+     * @param clause the clause to be added.
+     */
     public void addClauseToIndex(Clause clause) {
         for(Datastructures.Literal literalObject : clause.literals) {
             literalIndex.addToBack(literalObject);}}
 
+    /** removes the clause from the index.
+     *
+     * @param clause the clause to be removed.
+     */
     public void removeClauseFromIndex(Clause clause) {
         for(Literal literalObject : clause.literals) {
             literalIndex.remove(literalObject);}}
 
+    /** removes the literal from the index.
+     *
+     * @param literalObject the literal to be removed.
+     */
     public void removeLiteralFromIndex(Literal literalObject) {
         literalIndex.remove(literalObject);
         if(allClausesInserted) addPurityTask(literalObject);}
 
+    /** checks if the clauses are empty
+     *
+     * @return true if there are no clauses anymore.
+     */
+    public boolean isEmpty() {
+        return clauses.isEmpty();
+    }
     /** applies the true literal to all clauses containing the literal.
      *
      * @param literal       a true literal

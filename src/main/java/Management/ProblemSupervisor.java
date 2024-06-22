@@ -104,7 +104,7 @@ public class ProblemSupervisor {
             normalizer = new Normalizer(this);
             Result result = normalizer.normalizeClauses();
             System.out.println(result == null ? "no result " :result.toString());
-            System.out.println(normalizer.toString(null));
+           // System.out.println(normalizer.toString(null));
             System.out.println(normalizer.statistics.toString());
 
            // Utilities.wait(15000);System.exit(1);

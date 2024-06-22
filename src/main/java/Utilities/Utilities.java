@@ -1,5 +1,6 @@
 package Utilities;
 
+import Datastructures.Symboltable;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.*;
@@ -1343,6 +1344,24 @@ public class Utilities {
         int index = predicates.indexOf(Math.abs(literal));
         boolean truth = (i & (1 << index)) != 0;
         return literal > 0 ? truth : !truth;}
+
+    /**
+     * Generates a string representation of the given model.
+     * <br>
+     * The bits in the model must correspond to the given predicates.
+     *
+     * @param model The integer representation of the model.
+     * @param predicates the corresponding predicates.
+     * @param symboltable The given symbol table.
+     * @return The string representation of the model.
+     */
+    public static String modelString(int model, IntArrayList predicates, Symboltable symboltable) {
+        StringBuilder st = new StringBuilder();
+        for(int i = 0; i < predicates.size(); ++i) {
+            int sign = ((model & 1 << i) != 0) ? 1: -1;
+            st.append(Symboltable.toString(sign*Math.abs(predicates.get(i)) ,symboltable));
+            if(i < predicates.size()-1) st.append(",");}
+        return st.toString();}
 
     /**
      * Pauses the execution of the current thread for the specified amount of time.

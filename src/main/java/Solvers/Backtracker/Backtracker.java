@@ -256,7 +256,7 @@ public class Backtracker extends Solver {
      */
     public void readInputClauses() {
         Clause clause;
-        Clause normalizedClause = normalizer.clauses.firstLinkedItem;
+        Clause normalizedClause = null; //normalizer.clauses.firstLinkedItem;
         while(normalizedClause != null) {
             clause = normalizedClause.clone();
             insertClause(clause);

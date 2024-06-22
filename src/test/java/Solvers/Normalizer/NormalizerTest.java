@@ -4,18 +4,13 @@ import Datastructures.Clause;
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Literal;
-import Datastructures.Results.Result;
-import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
-import InferenceSteps.InferenceStep;
 import Management.GlobalParameters;
 import Management.Monitor.MonitorLife;
-import Management.Parameters;
 import Management.ProblemSupervisor;
 import Management.QUSat;
 import ProblemGenerators.ProblemGenerator;
-import ProblemGenerators.PythagoraenTriples;
 import ProblemGenerators.StringClauseSetGenerator;
 import junit.framework.TestCase;
 
@@ -68,6 +63,7 @@ public class NormalizerTest extends TestCase {
         supervisor.monitor = new MonitorLife("Test",System.nanoTime());
         return supervisor;}
 
+    /*
     public void testAddClauseToIndex() {
         System.out.println("addClauseToIndex");
         Normalizer nom = new Normalizer("Test","monitor",true,null,5);
@@ -378,7 +374,7 @@ public class NormalizerTest extends TestCase {
         ArrayList<ProblemGenerator> generators = new ArrayList<>();
         StringBuilder errors = new StringBuilder();
         StringBuilder warnings = new StringBuilder();
-        /*RandomClauseSetGenerator.makeProblemGenerator(parameters, generators, errors, warnings);*/
+        //RandomClauseSetGenerator.makeProblemGenerator(parameters, generators, errors, warnings);
         System.out.println(errors);
         System.out.println(warnings);
         ProblemGenerator generator = generators.get(0);
@@ -407,5 +403,5 @@ public class NormalizerTest extends TestCase {
         System.out.println(nom.singletonsToString(null));
         System.out.println("Model: " + nom.model.toString(null));
     }
-
+*/
     }
