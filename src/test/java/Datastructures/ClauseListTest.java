@@ -3,6 +3,8 @@ package Datastructures;
 import Datastructures.Clauses.Quantifier;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
+import InferenceSteps.InfTrueLiteralInClause;
+import InferenceSteps.InferenceStep;
 import junit.framework.TestCase;
 
 import java.util.function.Consumer;
@@ -127,6 +129,9 @@ public class ClauseListTest extends TestCase {
         cl.addClause(makeClause(new int[]{2,natl,2,1,2,3,4,1}));
         cl.addClause(makeClause(new int[]{3,natm,2,1,2,3,4,1}));
         cl.addClause(makeClause(new int[]{4,nint,2,3,1,2,3,4,5,6}));
+        Clause cAnd = makeClause(new int[]{10,nand,1,2});
+        InferenceStep step = new InfTrueLiteralInClause(cAnd.simpleClone(),1);
+
 
         assertEquals ("Clauses:\n" +
                 "  1: 1v2v3v4\n" +
@@ -154,7 +159,7 @@ public class ClauseListTest extends TestCase {
                 "         4: [2,3] 1,2,3,4,5,6\n" +
                 "5:       4: [2,3] 1,2,3,4,5,6\n" +
                 "6:       4: [2,3] 1,2,3,4,5,6\n",cl.toString("all",null));
-        cl.applyTrueLiteral(1,null);
+        cl.applyTrueLiteral(1,step);
         assertEquals("Clauses:\n" +
                 "4.1: [1,2] 2,3,4,5,6\n" +
                 "\n" +
@@ -176,104 +181,99 @@ public class ClauseListTest extends TestCase {
                 "5:     4.1: [1,2] 2,3,4,5,6\n" +
                 "6:     4.1: [1,2] 2,3,4,5,6\n", cl.toString("all",null));
 
-        /*
-        System.out.println("Example 2");
-        clauses = "p cnf 15\n" +
-                "1,2 3, 4\n"+
-                "<= 2 1,2,3,4,1\n"+
-                ">= 2 1,2,3,4\n"+
-                "[2,3] 1,2,3,4,5,6";
-        scg = new StringClauseSetGenerator("Test",clauses);
-        nom = new Normalizer("Test","monitor",true,null,15);
-        nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses();
-        nom.applyTrueLiteral(-1);
-        assertEquals("1.1: 2v3v4\n" +
-                "3.1: >=2 2,3,4\n" +
-                "2.1: <=2 2,3,4\n" +
-                "4.3: >=2 2,3,4\n" +
+        Clause c4 = cl.clauses.firstLinkedItem;
+        assertTrue(c4.inferenceSteps.get(0).verify(monitor,null));
+        assertTrue(c4.inferenceSteps.get(1).verify(monitor,null));
+        System.out.println(c4.inferenceSteps.get(0).toString(null));
+        System.out.println(c4.inferenceSteps.get(1).toString(null));
+
+        System.out.println("\nExample 2");
+        model = new Model(10);
+        cAnd = makeClause(new int[]{11,nand,2,-1});
+        step = new InfTrueLiteralInClause(cAnd.simpleClone(),-1);
+
+        cl.initialize("Test",model,symboltable);
+        cl.addClause(makeClause(new int[]{1,nor,1,2,3,4}));
+        cl.addClause(makeClause(new int[]{2,natl,2,1,2,3,4,1}));
+        cl.addClause(makeClause(new int[]{3,natm,2,1,2,3,4,1}));
+        c4 = makeClause(new int[]{4,nint,2,3,1,2,3,4,5,6});
+        cl.addClause(c4);
+
+        cl.applyTrueLiteral(-1,step);
+        assertEquals("Clauses:\n" +
+                "1.1: 2v3v4\n" +
+                "2.1: >=2 2,3,4\n" +
+                "3.1: <=2 2,3,4\n" +
+                "4.1: [2,3] 2,3,4,5,6\n" +
                 "\n" +
-                "Singleton Literals:\n" +
-                "5 in clause 4: [2,3] 1,2,3,4,5,6\n" +
-                "6 in clause 4.1: [2,3] 1,2,3,4,6\n", nom.toString(null));
-                */
-
+                "\n" +
+                "Queue:\n" +
+                "TRUELITERAL: Literal -2\n" +
+                "  True Literal in Clause: 3.1: =0 2,3,4 -> -2\n" +
+                "TRUELITERAL: Literal -3\n" +
+                "  True Literal in Clause: 3.1: =0 2,3,4 -> -3\n" +
+                "TRUELITERAL: Literal -4\n" +
+                "  True Literal in Clause: 3.1: =0 2,3,4 -> -4\n" +
+                "SHORTENED_CLAUSE Clause: 4.1: [1,2] 2,3,4,5,6\n" +
+                "SHORTENED_CLAUSE Clause: 1.1: 2v3v4\n" +
+                "SHORTENED_CLAUSE Clause: 2.1: >=2 2,3,4\n" +
+                "SHORTENED_CLAUSE Clause: 3.1: <=2 2,3,4\n" +
+                "SHORTENED_CLAUSE Clause: 4.1: [2,3] 2,3,4,5,6\n" +
+                "\n" +
+                "\n" +
+                "Index:\n" +
+                "2:     4.1: [1,2] 2,3,4,5,6\n" +
+                "       1.1: 2v3v4\n" +
+                "       2.1: >=2 2,3,4\n" +
+                "       3.1: <=2 2,3,4\n" +
+                "       4.1: [2,3] 2,3,4,5,6\n" +
+                "3:     4.1: [1,2] 2,3,4,5,6\n" +
+                "       1.1: 2v3v4\n" +
+                "       2.1: >=2 2,3,4\n" +
+                "       3.1: <=2 2,3,4\n" +
+                "       4.1: [2,3] 2,3,4,5,6\n" +
+                "4:     4.1: [1,2] 2,3,4,5,6\n" +
+                "       1.1: 2v3v4\n" +
+                "       2.1: >=2 2,3,4\n" +
+                "       3.1: <=2 2,3,4\n" +
+                "       4.1: [2,3] 2,3,4,5,6\n" +
+                "5:     4.1: [1,2] 2,3,4,5,6\n" +
+                "       4.1: [2,3] 2,3,4,5,6\n" +
+                "6:     4.1: [1,2] 2,3,4,5,6\n" +
+                "       4.1: [2,3] 2,3,4,5,6\n", cl.toString("all", null));
+        assertTrue(c4.inferenceSteps.get(0).verify(monitor,null));
+        assertTrue(c4.inferenceSteps.get(1).verify(monitor,null));
+        System.out.println(c4.inferenceSteps.get(0).toString(null));
+        System.out.println(c4.inferenceSteps.get(1).toString(null));
     }
+
+    public void testSubsumesByModels() throws Unsatisfiable {
+        System.out.println("subsumes by models");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, symboltable);
+        Clause c1 = makeClause(new int[]{1, nor, 1, 2, 3, 4});
+        Clause c2 = makeClause(new int[]{2, nor, 1, 3, 2, 5});
+        Clause c3 = makeClause(new int[]{3, nor, 3,2,1});
+
+        assertTrue(cl.subsumesByModels(c1,c1));
+        assertTrue(cl.subsumesByModels(c3,c1));
+        assertFalse(cl.subsumesByModels(c1,c3));
+        assertFalse(cl.subsumesByModels(c1,c2));
+        assertFalse(cl.subsumesByModels(c2,c1));
+
+        Clause c4 = makeClause(new int[]{4,natl,2,1,2,3});
+        Clause c5 = makeClause(new int[] {5,natl,3,1,1,2,2,3,3});
+        Clause c6 = makeClause(new int[] {6,natl,2,4,3,2,1});
+
+        assertTrue(cl.subsumesByModels(c4,c5)); // c5 would be simplified to c4
+        assertTrue(cl.subsumesByModels(c5, c4));
+        assertTrue(cl.subsumesByModels(c4, c6));
+        assertFalse(cl.subsumesByModels(c6, c4));
+    }
+
 /*
-    public void testApplyEquivalence() throws Unsatisfiable {
-        System.out.println("applyEquivalence");
-        StringBuilder errors = new StringBuilder();
-        String clauses = "p cnf 15\n"+
-                "1,2 3, 4\n"+
-                "1,-2 3, 4\n"+
-                "1,5 3, 4\n"+
-                "<= 2 1,2,3,4,1\n"+
-                "<= 2 1,-2,3,4,1\n"+
-                ">= 2 1,2,3,4\n"+
-                "[2,3] 1,2,3,4,5,6\n"+
-                "[2,3] 1,-2,3,4,5,6";
-        StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
-        Normalizer nom = new Normalizer("Test","monitor",true,null,15);
-        nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses();
-        assertEquals("  1: 1v2v3v4\n" +
-                "  2: 1v-2v3v4\n" +
-                "  3: 1v5v3v4\n" +
-                "  6: >=2 1,2,3,4\n" +
-                "  4: <=2 1^2,2,3,4\n" +
-                "  5: <=2 1^2,-2,3,4\n" +
-                "  7: [2,3] 1,2,3,4,5,6\n" +
-                "  8: [2,3] 1,-2,3,4,5,6",nom.toString(null));
-        nom.applyEquivalence(2,3,null);
-        assertEquals("1.1: 1v2v4\n" +
-                "3.1: 1v5v2v4\n" +
-                "6.1: >=2 1,2^2,4\n" +
-                "4.1: <=2 1^2,2^2,4\n" +
-                "7.1: [2,3] 1,2^2,4,5,6\n" +
-                "8.1: [1,2] 1,4,5,6",nom.toString(null));
-        assertEquals("-1",nom.model.toString(null));
-    }
 
-    public void testApplyEquivalenceToModel() throws Result {
-        System.out.println("applyEquivalenceToModel");
-        StringBuilder errors = new StringBuilder();
-        String clauses = "p cnf 5\n"+
-                "& 1,2 3, 4";
-        StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
-        Normalizer nom = new Normalizer("Test","monitor",true,null,15);
-        nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses();
-        assertEquals("1,2,3,4",nom.model.toString());
-        nom.applyEquivalenceToModel(2,5,null);
-        assertEquals("1,2,3,4,5",nom.model.toString());
-        nom.applyEquivalenceToModel(-6,3,null);
-        assertEquals("1,2,3,4,5,-6",nom.model.toString());
-        nom.applyEquivalenceToModel(6,-4,null);
-        assertEquals("1,2,3,4,5,-6",nom.model.toString());
-        try{nom.applyEquivalenceToModel(6,4,null);}
-        catch(Unsatisfiable uns){
-            System.out.println(uns.description(null));
-        }
-
-    }
-
-    public void testApplyEquivalence2() throws Result {
-        System.out.println("applyEquivalence2");
-        StringBuilder errors = new StringBuilder();
-        String clauses = "p cnf 15\n"+
-                "& 1,2 3, 4\n"+
-                "e 5,3\n" +
-                "-5,6,7\n" +
-                "-6,-7";
-        StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
-        Normalizer nom = new Normalizer("Test","monitor",true,null,15);
-        nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses();
-        assertEquals("1,2,3,4,5",nom.model.toString());
-        assertEquals("3.1: 6v7\n" +
-                "  4: -6v-7",nom.toString(null));
-
-    }
 
     public ProblemSupervisor makePythogoraenTriples(int maximum) {
         Parameters parameters = new Parameters("PTripels");

@@ -20,7 +20,7 @@ public class ClauseList {
     /** the number of predicates */
     private int predicates;
 
-    private LinkedItemList<Clause> clauses;
+    LinkedItemList<Clause> clauses;
 
     public LiteralIndex<Literal> literalIndex;
 
@@ -197,7 +197,7 @@ public class ClauseList {
             Literal literalObject = literalIndex.getFirstLiteral(sign*literal);
             while(literalObject != null) {
                 Clause clause = literalObject.clause;
-                switch(clause.applyTrueLiteral(literal,sign == 1, inferenceStep, trackReasoning,
+                switch(clause.applyTrueLiteral(sign*literal,sign == 1, inferenceStep, trackReasoning,
                         monitor,this::removeLiteralFromIndex,this::addTrueLiteralTask, symboltable)){
                     case -1: throw new UnsatClause(problemId,solverId, clause);
                     case 1: removeClause(clause); removeClauseFromIndex(clause); break;
@@ -319,20 +319,26 @@ public class ClauseList {
     /**
      * Determines whether a subsumer clause subsumes a subsumee clause by checking if the subsumer's models satisfy the subsumee.
      * <br>
-     * The subsumer's literals must be a subset of the subsumee's literals.<br>
-     * In principle there are no other conditions, but by efficiency reasons the method should only be called
+     * In principle there are no special conditions, but by efficiency reasons the method should only be called
      * when there are multiple literals in the clause.
      *
      * @param subsumer The clause that potentially subsumes other clauses
      * @param subsumee The clause to be potentially subsumed
      * @return true if the subsumer subsumes the subsumee, false otherwise
      */
-    protected boolean subsumesByModels(Clause subsumer, Clause subsumee) {
-        IntArrayList predicates = subsumee.predicates();
-        for(int model : subsumer.getModels(monitor,symboltable)) { // monitor and symboltable should not be necessary for simplified clauses
+    protected static boolean subsumesByModels(Clause subsumer, Clause subsumee) {
+        IntArrayList predicates = Clause.predicates(subsumee,subsumer);
+        for(int model : subsumer.getModels(predicates)) {
             if(!subsumee.isTrue(model,predicates)) return false;}
         return true;}
 
+    /**
+     * Verifies if a clause is subsumed by another clause using model-based subsumption check.
+     *
+     * @param subsumer The clause that is potentially the subsumer.
+     * @param subsumee The clause that is potentially the subsumee.
+     * @return True if the subsumer clause is subsumed by the subsumee clause, false otherwise.
+     */
     protected boolean verifySubsumption(Clause subsumer, Clause subsumee ) {
         if(subsumesByModels(subsumer,subsumee)) return true;
         if(monitor!=null) {

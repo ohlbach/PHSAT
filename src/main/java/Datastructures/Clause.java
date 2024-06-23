@@ -355,11 +355,27 @@ public class Clause extends LinkedItem implements Cloneable {
             for (int j = 5; j < clause.length; j+=2) {
                 int literal = clause[j];
                 int multiplicity = clause[j+1];
-                int position = predicates.indexOf(Math.abs(literal));
-                if ((literal > 0 && ((model & (1 << position)) != 0)) || (literal < 0 && ((model & (1 << position)) == 0)))
-                    trueLiterals += multiplicity;}
+                if(Utilities.isTrue(model,literal,predicates)) trueLiterals += multiplicity;}
             if (clause[3] <= trueLiterals && trueLiterals <= clause[4]) models.add(model);}
         return models;}
+
+
+    /**
+     * Retrieves the models that satisfy the given clause with the specified predicates.
+     *
+     * @param predicates the list of predicates
+     * @return the list of models satisfying the clause
+     */
+    public IntArrayList getModels( IntArrayList predicates) {
+        IntArrayList models = new IntArrayList();
+        int nModels = 1 << predicates.size();
+        for (int model = 0; model < nModels; ++model) {
+            int trueLiterals = 0;
+            for (Literal literalObject : literals) {
+                if(Utilities.isTrue(model,literalObject.literal,predicates)) trueLiterals += literalObject.multiplicity;}
+            if (min <= trueLiterals && trueLiterals <= max) models.add(model);}
+        return models;}
+
 
 
         /** Makes all predicates of a clause with a single model true.
@@ -794,9 +810,10 @@ public class Clause extends LinkedItem implements Cloneable {
             if(!predicates.contains(predicate)) predicates.add(predicate);}
         return predicates;}
 
-    /** collects the predicates of a simpleClone in an IntArray
+    /** adds the predicates of a simpleClone to an IntArray
      *
      * @param clone a simple clone
+     * @param predicates the list where the predicates are to be added.
      * @return the predicates of the clone in an IntArray.
      */
     public static void predicates(int[] clone, IntArrayList predicates) {
@@ -804,6 +821,18 @@ public class Clause extends LinkedItem implements Cloneable {
             int predicate = Math.abs(clone[i]);
             if(!predicates.contains(predicate)) predicates.add(predicate);}}
 
+    /** collects the predicates of the clauses in an IntArrayList
+     *
+     * @param clauses some clauses.
+     * @return the predicates in an IntArrayList.
+     */
+    public static IntArrayList predicates(Clause... clauses) {
+        IntArrayList predicates = new IntArrayList();
+        for(Clause clause : clauses) {
+            for(Literal literalObject : clause.literals) {
+            int predicate = Math.abs(literalObject.literal);
+                if(!predicates.contains(predicate)) predicates.add(predicate);}}
+        return predicates;}
 
     /** collects the predicates of the clause in an IntArray
      *
