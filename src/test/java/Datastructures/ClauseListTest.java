@@ -247,7 +247,7 @@ public class ClauseListTest extends TestCase {
         System.out.println(c4.inferenceSteps.get(1).toString(null));
     }
 
-    public void testSubsumesByModels() throws Unsatisfiable {
+    public void testSubsumesByModels() {
         System.out.println("subsumes by models");
         ClauseList cl = new ClauseList(true, true, monitor);
         Model model = new Model(10);
@@ -270,6 +270,226 @@ public class ClauseListTest extends TestCase {
         assertTrue(cl.subsumesByModels(c5, c4));
         assertTrue(cl.subsumesByModels(c4, c6));
         assertFalse(cl.subsumesByModels(c6, c4));
+    }
+
+    public void testSubsumes() {
+        System.out.println("subsumes");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, symboltable);
+        Clause c1 = makeClause(new int[]{1, nor, 1, 2, 3, 4});
+        Clause c2 = makeClause(new int[]{2, nor, 1, 3, 4, 5});
+        Clause c3 = makeClause(new int[]{3, nor, 3, 2, 1});
+        Clause c4 = makeClause(new int[]{4,natl,2,1,2,3});
+        Clause c5 = makeClause(new int[]{5,natl,2,3,1,2,4,4});
+        Clause c6 = makeClause(new int[]{6,natl,2,3,1,2,2,4});
+        Clause c7 = makeClause(new int[]{7,nint,2,3,1,2,3,4});
+        Clause c8 = makeClause(new int[]{8,nint,2,4,1,2,3,4,5,5});
+        Clause c9 = makeClause(new int[]{9,nint,2,5,1,2,3,4,5,5});
+        assertTrue(cl.subsumes(c3,c1));
+        assertTrue(cl.subsumes(c4,c5));
+        assertFalse(cl.subsumes(c3,c4));
+        assertTrue(cl.subsumes(c4,c6));
+        assertFalse(cl.subsumes(c7,c8)); // falsifying model: 1,2,3,-4,5
+        assertTrue(cl.subsumes(c7,c9));
+    }
+
+    public void testIsSubsumed() {
+        System.out.println("isSubsumed");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        cl.addClause(makeClause(new int[]{1,nor,1,2,3}));
+        cl.addClause(makeClause(new int[]{2,nor,1,4,5}));
+        Clause c3 = makeClause(new int[]{3,nor, 1,2,3,4});
+        Clause c4 = makeClause(new int[]{4,nor, 2,1,4});
+        assertNull(cl.isSubsumed(c4));
+        assertEquals(1,cl.isSubsumed(c3).id);
+        cl.addClause(makeClause(new int[]{6,natl,3,3,3,2,2,1,1}));
+        Clause c7 = makeClause(new int[]{7, natl, 2, 1,2,3});
+        assertEquals(6,cl.isSubsumed(c7).id);
+    }
+
+    public void testRemoveSubsumedClauses() {
+        System.out.println("removeSubsumedClauses");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        cl.addClause(makeClause(new int[]{1, nor, 1, 2, 3}));
+        cl.addClause(makeClause(new int[]{2, nor, 2, 3, 4}));
+        cl.addClause(makeClause(new int[]{3, nor, 3, 4, 5}));
+        Clause c4 = makeClause(new int[]{4, nor, 2,3});
+        cl.addClause(c4);
+        cl.removeSubsumedClauses(c4);
+        assertEquals("  3: 3v4v5\n" +
+                "  4: 2v3\n", cl.toString("clauses", null));
+    }
+
+    public void testResolve() throws Unsatisfiable{
+        System.out.println("resolve");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        Clause c1 = makeClause(new int[]{1, nor, 1, 2});
+        cl.addClause(c1);
+        Clause c2 = makeClause(new int[]{2, nor, -1, 2});
+        cl.addClause(c2);
+        cl.resolve(c1,1, c2);
+        assertEquals("Queue:\n" +
+                "TRUELITERAL: Literal 2\n" +
+                "  Unit Clause 1.1: 2\n",cl.toString("all",null));
+
+        System.out.println("Example 2");
+        cl.model.clear();
+        cl.initialize("Test",model,null);
+        c1 = makeClause(new int[]{1, nor, 1, 2});
+        cl.addClause(c1);
+        Clause c3 = makeClause(new int[]{3, nor, 2, -1, 3});
+        cl.addClause(c3);
+        cl.queue.clear();
+        cl.resolve(c1,1, c3);
+        assertEquals("Clauses:\n" +
+                "  1: 1v2\n" +
+                "3.1: 2v3\n" +
+                "\n" +
+                "\n" +
+                "Index:\n" +
+                "1:       1: 1v2\n" +
+                "2:       1: 1v2\n" +
+                "       3.1: 2v3\n" +
+                "3:     3.1: 2v3\n",cl.toString("all",null));
+
+        System.out.println("Example 3");
+        cl.model.clear();
+        cl.initialize("Test",model,null);
+        c1 = makeClause(new int[]{1, nor, 1, 2, -3});
+        cl.addClause(c1);
+        c2 = makeClause(new int[]{2, natl, 2, 1, 2,4, 3,3});
+        cl.addClause(c2);
+        cl.resolve(c1, -3, c2);
+        assertEquals("Clauses:\n" +
+                "1.1: 1v2\n" +
+                "  2: >=2 1,2,4,3^2\n" +
+                "\n" +
+                "\n" +
+                "Index:\n" +
+                "1:       1: 1v2\n" +
+                "       1.1: 1v2\n" +
+                "         2: >=2 1,2,4,3^2\n" +
+                "2:       1: 1v2\n" +
+                "       3.1: 2v3\n" +
+                "       1.1: 1v2\n" +
+                "         2: >=2 1,2,4,3^2\n" +
+                "3:     3.1: 2v3\n" +
+                "         2: >=2 1,2,4,3^2\n" +
+                "4:       2: >=2 1,2,4,3^2\n",cl.toString("all",null));
+
+        System.out.println("Example 4");
+        cl.model.clear();
+        cl.initialize("Test",model,null);
+        c1 = makeClause(new int[]{1, nor, 1, 2, -3, 4});
+        cl.addClause(c1);
+        c2 = makeClause(new int[]{2, natl, 3, 1, 2,4, 3,3,3});
+        cl.addClause(c2);
+        cl.resolve(c1, -3, c2);
+        assertEquals("Clauses:\n" +
+                "1.1: 1v2v4\n" +
+                "  2: >=3 1,2,4,3^3\n" +
+                "\n" +
+                "\n" +
+                "Index:\n" +
+                "1:       1: 1v2\n" +
+                "       1.1: 1v2\n" +
+                "         2: >=2 1,2,4,3^2\n" +
+                "       1.1: 1v2v4\n" +
+                "         2: >=3 1,2,4,3^3\n" +
+                "2:       1: 1v2\n" +
+                "       3.1: 2v3\n" +
+                "       1.1: 1v2\n" +
+                "         2: >=2 1,2,4,3^2\n" +
+                "       1.1: 1v2v4\n" +
+                "         2: >=3 1,2,4,3^3\n" +
+                "3:     3.1: 2v3\n" +
+                "         2: >=2 1,2,4,3^2\n" +
+                "         2: >=3 1,2,4,3^3\n" +
+                "4:       2: >=2 1,2,4,3^2\n" +
+                "       1.1: 1v2v4\n" +
+                "         2: >=3 1,2,4,3^3\n",cl.toString("all",null));
+    }
+
+    public void testMergeResolution() throws Unsatisfiable {
+        System.out.println("mergeResolution");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        Clause c1 = makeClause(new int[]{1, nor, 1, 2});
+        cl.addClause(c1);
+        Clause c2 = makeClause(new int[]{2, nor, -1, 2});
+        cl.addClause(c2);
+        cl.mergeResolution(c1);
+        assertEquals("Queue:\n" +
+                "TRUELITERAL: Literal 2\n" +
+                "  Unit Clause 1.1: 2\n", cl.toString("all", null));
+        assertEquals("2",model.toString());
+
+        System.out.println("Example 2");
+        model.clear();
+        cl.initialize("Test", model, null);
+        c1 = makeClause(new int[]{1, nor, 1, 2});
+        cl.addClause(c1);
+        c2 = makeClause(new int[]{2, nor, -1, 2, 3});
+        cl.addClause(c2);
+        Clause c3 = makeClause(new int[]{3, nor, 2, 3, -1 , 4});
+        cl.addClause(c3);
+        Clause c4 = makeClause(new int[]{4, nor, 1, 2, 3});
+        cl.addClause(c4);
+        cl.mergeResolution(c1);
+        assertEquals("Clauses:\n" +
+                "  1: 1v2\n" +
+                "2.1: 2v3\n" +
+                "3.1: 2v3v4\n" +
+                "  4: 1v2v3\n" +
+                "\n" +
+                "\n" +
+                "Queue:\n" +
+                "SHORTENED_CLAUSE Clause: 2.1: 2v3\n" +
+                "SHORTENED_CLAUSE Clause: 3.1: 2v3v4\n" +
+                "\n" +
+                "\n" +
+                "Index:\n" +
+                "1:       1: 1v2\n" +
+                "         4: 1v2v3\n" +
+                "2:       1: 1v2\n" +
+                "       2.1: 2v3\n" +
+                "       3.1: 2v3v4\n" +
+                "         4: 1v2v3\n" +
+                "3:     2.1: 2v3\n" +
+                "       3.1: 2v3v4\n" +
+                "         4: 1v2v3\n" +
+                "4:     3.1: 2v3v4\n", cl.toString("all", null));
+
+        System.out.println("Example 3");
+        model.clear();
+        cl.initialize("Test", model, null);
+        c1 = makeClause(new int[]{1, nor, 1, 2, 3, 4});
+        cl.addClause(c1);
+        c2 = makeClause(new int[]{2, nor, -1, 2, 3, 4});
+        cl.addClause(c2);
+        c3 = makeClause(new int[]{3, nor, -2, 3, 4});
+        cl.addClause(c3);
+        c4 = makeClause(new int[]{4, nor,  5, 3, 4, 6});
+        cl.addClause(c4);
+        cl.mergeResolution(c1);
+        assertEquals("Clauses:\n" +
+                "1.2: 3v4\n" +
+                "\n" +
+                "\n" +
+                "Index:\n" +
+                "3:     1.2: 3v4\n" +
+                "4:     1.2: 3v4\n", cl.toString("all", null));
+
+        //System.out.println(cl.statistics.toString());
+
     }
 
 /*

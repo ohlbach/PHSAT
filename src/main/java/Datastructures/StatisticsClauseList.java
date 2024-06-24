@@ -55,7 +55,7 @@ public class StatisticsClauseList extends Statistic {
         if(subsumedClauses > 0)    st.append("\n  Subsumed Clauses:   ").append(subsumedClauses);
         if(pureLiterals > 0)       st.append("\n  Pure Literals:      ").append(pureLiterals);
         if(singletonLiterals > 0)  st.append("\n  Singleton Literals: ").append(singletonLiterals);
-        if(mergedResolvents > 0)   st.append("\n  Merged Resolvents:  ").append(singletonLiterals);
+        if(mergedResolvents > 0)   st.append("\n  Merged Resolvents:  ").append(mergedResolvents);
         return st.toString();}
 
     }

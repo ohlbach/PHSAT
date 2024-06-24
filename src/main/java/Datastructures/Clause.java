@@ -843,6 +843,18 @@ public class Clause extends LinkedItem implements Cloneable {
         for(Literal literalObject : literals) predicates.add(Math.abs(literalObject.literal));
         return predicates;}
 
+    /**
+     * Checks if clause1 is a subset of clause2.
+     *
+     * @param clause1 the first Clause object
+     * @param clause2 the second Clause object
+     * @return true if clause1 is a subset of clause2, false otherwise
+     */
+    public static boolean isSubset(Clause clause1, Clause clause2) {
+        for(Literal literalObject : clause1.literals) {
+            if(clause2.findLiteral(literalObject.literal) == null) return false;}
+        return true;}
+
     /** checks if the clause is true in the model according to the sequence of predicates.
      * <br>
      * If a predicate p in the clause is not contained in the predicates then both true(p) and false(p) is considered.

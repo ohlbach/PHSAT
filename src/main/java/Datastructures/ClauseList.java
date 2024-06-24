@@ -37,12 +37,12 @@ public class ClauseList {
     int timestamp = 0;
 
     /** contains pairs singleton-literal,clause. To be used when a model has to be completed. */
-    private final ArrayList<Object> singletons = new ArrayList<>();
+    protected final ArrayList<Object> singletons = new ArrayList<>();
 
     /** A queue of newly derived unit predicates and binary equivalences.
      * The unit predicates are automatically put at the beginning of the queue.
      */
-    private final PriorityBlockingQueue<Task> queue =
+    protected final PriorityBlockingQueue<Task> queue =
             new PriorityBlockingQueue<>(100, Comparator.comparingInt(task->task.priority));
 
 
@@ -82,6 +82,8 @@ public class ClauseList {
         allClausesInserted = false;
         timestamp = 0;
         statistics = new StatisticsClauseList();
+        singletons.clear();
+        queue.clear();
         model.addObserver(Thread.currentThread(),
                 (literal,inferenceStep) -> {
                         synchronized(this) {queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}});}
@@ -231,11 +233,11 @@ public class ClauseList {
      * @param subsumer the clause that potentially subsumes other clauses.
      */
     public void removeSubsumedClauses (Clause subsumer) {
-        ++timestamp;
+         ++timestamp;
         int size = subsumer.literals.size();
         Literal subsumerLiteral = subsumer.literals.get(0);
         Literal subsumeeLiteral = literalIndex.getFirstLiteral(subsumerLiteral.literal);
-        while(subsumeeLiteral != null) {
+        while(subsumeeLiteral != null) { // the clauses with the first literal get the timestamp.
             Clause subsumee = subsumeeLiteral.clause;
             if (subsumee != subsumer) subsumee.timestamp = timestamp;
             subsumeeLiteral = (Literal)subsumeeLiteral.nextItem;}
@@ -245,16 +247,17 @@ public class ClauseList {
             subsumeeLiteral = literalIndex.getFirstLiteral(subsumerLiteral.literal);
             while(subsumeeLiteral != null) {
                 Clause subsumee = subsumeeLiteral.clause;
-                if (subsumee.timestamp - timestamp == size-1 && subsumes(subsumer,subsumee)) {
+                if ((subsumee.timestamp - timestamp) == size-2 && subsumes(subsumer,subsumee)) {
                     if(verify) verifySubsumption(subsumer,subsumee);
                     removeClause(subsumee);
                     removeClauseFromIndex(subsumee);
+                    ++statistics.subsumedClauses;
                     if(monitor != null) {
                         monitor.accept("Clause " + subsumer.toString(symboltable,0) +
                                 " subsumes " + subsumee.toString(symboltable,0));}}
                 else ++subsumee.timestamp;
                 subsumeeLiteral = (Literal)subsumeeLiteral.nextItem;}}
-        timestamp += size;}
+        ++timestamp;}
 
     /**
      * Determines whether the given clause is subsumed by some of the clauses in the list.
@@ -268,15 +271,21 @@ public class ClauseList {
             Literal subsumerLiteral = literalIndex.getFirstLiteral(subsumeeLiteral.literal);
             while(subsumerLiteral != null) {
                 Clause subsumer = subsumerLiteral.clause;
+                if(subsumer == subsumee) {
+                    subsumerLiteral = (Literal)subsumerLiteral.nextItem;
+                    continue;}
                 int subsumerTimestamp = subsumer.timestamp;
-                if(subsumerTimestamp < timestamp) {subsumer.timestamp = timestamp; continue;}
-                if(subsumerTimestamp == subsumer.literals.size()-1 && subsumes(subsumer,subsumee)) {
+                if(subsumerTimestamp < timestamp) {
+                    subsumer.timestamp = timestamp;
+                    subsumerLiteral = (Literal)subsumerLiteral.nextItem;
+                    continue;}
+                if((subsumerTimestamp - timestamp) == subsumer.literals.size()-2 && subsumes(subsumer,subsumee)) {
                     timestamp += subsumee.literals.size();
                     if(verify) verifySubsumption(subsumer,subsumee);
                     return subsumer;}
-                ++subsumee.timestamp;
+                ++subsumer.timestamp;
                 subsumerLiteral = (Literal)subsumerLiteral.nextItem;}}
-        timestamp += subsumee.literals.size();
+        ++timestamp;
         return null;}
 
     /**
@@ -295,24 +304,25 @@ public class ClauseList {
      * @return true if the subsumer subsumes the subsumee, false otherwise
      */
     protected boolean subsumes(Clause subsumer, Clause subsumee) {
+        assert Clause.isSubset(subsumer,subsumee);
         if(subsumer.quantifier == Quantifier.OR && subsumee.quantifier == Quantifier.OR) {return true;}
         if(!subsumer.hasMultipleLiterals) {
             if(!subsumee.hasMultipleLiterals) // the subsumer-interval must be smaller or equal the subsumee-interval
                 return subsumee.min <= subsumer.min && subsumee.max >= subsumer.max;
 
+            // The subsumer has no multiples, and the subsumee should not have multiples in the overlapping literals
             int extraLiterals = 0;
-            boolean subsumeeMultiples = false; // check multiples in the subsumer-part
+            boolean subsumeeMultiples = false;
             for(Literal subsumeeLiteral : subsumee.literals) {
                 if(subsumer.findLiteral(subsumeeLiteral.literal) == null)
                     extraLiterals += subsumeeLiteral.multiplicity;
                 else {
                     if(subsumeeLiteral.multiplicity > 1) {
-                        subsumeeMultiples = true;}}}
+                        subsumeeMultiples = true; break;}}}
 
             // the extraLiterals in the subsumee may all be false or true in the subsumer's models.
             if(!subsumeeMultiples) {
                 return subsumee.min <= subsumer.min && subsumee.max >= subsumer.max + extraLiterals;}}
-
         return subsumesByModels(subsumer, subsumee);}
 
 
@@ -329,7 +339,7 @@ public class ClauseList {
     protected static boolean subsumesByModels(Clause subsumer, Clause subsumee) {
         IntArrayList predicates = Clause.predicates(subsumee,subsumer);
         for(int model : subsumer.getModels(predicates)) {
-            if(!subsumee.isTrue(model,predicates)) return false;}
+            if(!subsumee.isTrue(model,predicates)) {return false;}}
         return true;}
 
     /**
@@ -508,11 +518,12 @@ public class ClauseList {
      */
     protected void mergeResolution(Clause shorterParent) throws Unsatisfiable {
         assert shorterParent.quantifier == Quantifier.OR;
-        ++timestamp;
+
         ArrayList<Literal> shorterLiterals = shorterParent.literals;
         int shorterSize = shorterLiterals.size();
         Clause longerParent;
         for(int i = 0; i < shorterSize; ++i) { // shorterLiterals may be changed.
+            ++timestamp;
             Literal shorterLiteral1  = shorterLiterals.get(i);
             int resolutionLiteral = shorterLiteral1.literal;
             Literal longerLiteral = literalIndex.getFirstLiteral(-resolutionLiteral);
@@ -530,19 +541,19 @@ public class ClauseList {
                 while(longerLiteral != null) {
                     longerParent = longerLiteral.clause;
                     int longerTimestamp = longerParent.timestamp;
-                    if(longerTimestamp < timestamp) {longerParent.timestamp = timestamp; continue;}
-                    if(longerTimestamp == shorterSize-1) { // resolution partner found
-                        if(resolve(shorterParent,resolutionLiteral,longerParent)) {
+                    if((longerTimestamp - timestamp) == shorterSize-2) { // resolution partner found
+                        int longerSize = longerParent.literals.size();
+                        resolve(shorterParent,resolutionLiteral,longerParent);
+                        ++statistics.mergedResolvents;
+                        if(longerParent.isInList && longerParent.literals.size() < longerSize) addShortenedClauseTask(longerParent);
+                        if(!shorterParent.isInList) {timestamp += shorterSize; return;}
+                        if(shorterParent.literals.size() < shorterSize) {
                             timestamp += shorterSize;
-                            ++statistics.mergedResolvents;
-                            if(shorterParent.isInList) { // otherwise unit clause
-                                removeSubsumedClauses(shorterParent);
-                                mergeResolution(shorterParent);} // shorterParent has been shortened
-                            return;}
-                        else {++statistics.mergedResolvents;
-                              addShortenedClauseTask(longerParent);}}
-                    ++longerParent.timestamp;
-                longerLiteral = (Literal)longerLiteral.nextItem;}}}
+                            removeSubsumedClauses(shorterParent);
+                            mergeResolution(shorterParent);
+                            return;}}
+                    else ++longerParent.timestamp;
+                    longerLiteral = (Literal)longerLiteral.nextItem;}}}
         timestamp += shorterSize;}
 
 
@@ -555,8 +566,7 @@ public class ClauseList {
      *  <br>
      * If both OR-clauses are of equal size then the second ('longerClause') is removed and the shorter clause is
      * shortend and kept.<br>
-     * If the result is a unit clause, a trueLiteralTask is generated and both clauses are removed.<br>
-     * If the longerParent is shortened, a new shortenedClause task is generated.
+     * If the result is a unit clause, a trueLiteralTask is generated and both clauses are removed.
      *
      * @param shorterParent   the shorter parent clause
      * @param literal         the literal used for resolution
@@ -564,7 +574,8 @@ public class ClauseList {
      * @throws Unsatisfiable if the resolution results in a contradicting model (maybe a unit-clause is derived)
      * @return true if the shorterParent has been shortened.
      */
-    protected boolean resolve(Clause shorterParent, int literal, Clause longerParent) throws Unsatisfiable {
+    protected void resolve(Clause shorterParent, int literal, Clause longerParent) throws Unsatisfiable {
+        assert shorterParent.quantifier == Quantifier.OR;
         int[] shorterClone = null;
         int[] longerClone  = null;
         if(trackReasoning || monitor != null) {
@@ -580,9 +591,9 @@ public class ClauseList {
                 if(verify) step.verify(monitor,symboltable);
                 shorterParent.addInferenceStep(step);}
             if(monitor != null) {
-                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " + " +" +
+                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " +
                         Clause.toString(longerClone,symboltable) + " => " + shorterParent.toString(symboltable,0));}
-            return true;}
+            return;}
 
         if(shorterParent.literals.size() == longerParent.literals.size()) {
             if(shorterParent.removeLiteral(literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask)) {
@@ -594,21 +605,19 @@ public class ClauseList {
             removeClause(longerParent);
             removeClauseFromIndex(longerParent);
             if(monitor != null) {
-                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " + " +" +
+                monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " +
                         Clause.toString(longerClone,symboltable) + " => " + shorterParent.toString(symboltable,0));}
-            return true;}
+            return;}
 
         if(longerParent.removeLiteral(-literal, trackReasoning, this::removeLiteralFromIndex, this::addTrueLiteralTask))
             removeClause(longerParent); // should not happen
-        else addShortenedClauseTask(longerParent);
         if(trackReasoning) {
             step = new InfMergeResolution(shorterClone, longerClone,longerParent);
             if(verify) step.verify(monitor,symboltable);
             longerParent.addInferenceStep(step);}
         if(monitor != null) {
-            monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " + " +" +
+            monitor.accept("Merge Resolution: " + Clause.toString(shorterClone, symboltable) + " + " +
                     Clause.toString(longerClone,symboltable) + " => " + longerParent.toString(symboltable,0));}
-        return false;
     }
 
 
