@@ -33,6 +33,11 @@ public class ClauseListTest extends TestCase {
     static Clause makeClause(int[] inputClause) {
         return new Clause(inputClause,true,(lit -> new Literal(lit,1)), null);
     }
+    static void makeClauses(ClauseList clauseList, int[]... inputClause) {
+        for(int[] clause : inputClause) {
+            clauseList.addClause(new Clause(clause, true, ((Integer lit) -> new Literal(lit, 1)), null));
+        }}
+
 
     public void testAddClause() {
         System.out.println("addClause");
@@ -491,6 +496,52 @@ public class ClauseListTest extends TestCase {
         //System.out.println(cl.statistics.toString());
 
     }
+
+    public void testIsPositivelyPure() {
+        System.out.println("isPositivelyPure");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        makeClauses(cl,
+                new int[]{1,nor,1,2,3},
+                new int[]{2,natl, 2,-1,2,-3,},
+                new int[]{3,natm,2,-2,1,-3});
+        assertTrue(cl.isPositivelyPure(2));
+        assertFalse(cl.isPositivelyPure(1));
+        assertFalse(cl.isPositivelyPure(3));
+    }
+
+    public void testIsNegativelyPure() {
+        System.out.println("isNegativelyPure");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        makeClauses(cl,
+                new int[]{1,nor,1,-2,3},
+                new int[]{2,natl, 2,-1,-2,-3,},
+                new int[]{3,natm,2,2,1,-3});
+        assertTrue(cl.isNegativelyPure(2));
+        assertFalse(cl.isNegativelyPure(1));
+        assertFalse(cl.isNegativelyPure(3));
+    }
+
+    public void testIsSingletonPure() {
+        System.out.println("isSingletonPure");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        makeClauses(cl,
+                new int[]{1,nor,       1,-2,-4,-6},
+                new int[]{2,nint, 1,2, 1,2,3,4},
+                new int[]{3,nint,1,2,      3,4,-5,6});
+        assertEquals(0, cl.isSingletonPure(1));
+        assertEquals(0, cl.isSingletonPure(2));
+        assertEquals(0, cl.isSingletonPure(3));
+        assertEquals(0, cl.isSingletonPure(4));
+        assertEquals(-5, cl.isSingletonPure(5));
+        assertEquals(0, cl.isSingletonPure(6));
+    }
+
 
 /*
 

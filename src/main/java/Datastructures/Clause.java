@@ -223,6 +223,7 @@ public class Clause extends LinkedItem implements Cloneable {
             addInferenceStep(new InfClauseSimplification(clone,this));}
         else result = simplifyRecursively(trackReasoning, literalRemover, reportTruth, monitor,symboltable);
         checkMultiplicities();
+        if(quantifier == Quantifier.ATMOST) invertAtmostClause();
         return result;}
 
     /**
@@ -496,6 +497,29 @@ public class Clause extends LinkedItem implements Cloneable {
         if(monitor != null) {monitor.accept("Clause " + toString(clause,symboltable)+
                 " divided by GCD -> " + toString(symboltable,0));}
         return true;}
+
+    /**
+     * Inverts the clause if the quantifier is ATMOST and the maximum count is equal to the expanded size minus 1.
+     * Changes the quantifier to OR and inverts each literal by multiplying it by -1.
+     * Resets the minimum count to 1 and the maximum count to the expanded size.<br>
+     * Example: atmost 4 p,q^2,r,s -&gt; -p,-q,-r,-s
+     * <br>
+     * Preconditions:
+     * - The quantifier of the clause must be ATMOST.
+     * - The maximum count of the clause must be equal to the expanded size minus 1.<br>
+     */
+    protected void invertAtmostClause() {
+        assert quantifier == Quantifier.ATMOST;
+        if(max == expandedSize-1) { // OR-Clauses are much simpler to handle than ATMOST-clauses.
+            expandedSize = literals.size();
+            min = 1;
+            max = expandedSize;
+            quantifier = Quantifier.OR;
+            for(Literal literalObject : literals) {
+                literalObject.literal *= -1;
+                literalObject.multiplicity = 1;}
+            hasMultipleLiterals = false;}
+    }
 
     /** removes a literal from the clause.
      * <br>

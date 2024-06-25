@@ -444,14 +444,14 @@ public class ClauseList {
         Literal positiveLiterals  = literalIndex.getFirstLiteral(predicate);
         Literal negativeLiterals = literalIndex.getFirstLiteral(-predicate);
         Clause clause;
-        while (negativeLiterals != null) { // only negative ATMOST-literals are allowed
+        while (negativeLiterals != null) { // only negative literals in ATMOST-clauses are allowed
             clause = negativeLiterals.clause;
             if(clause.quantifier != Quantifier.ATMOST) return false;
             negativeLiterals = (Literal)negativeLiterals.nextItem;}
 
         while (positiveLiterals != null) {
-            clause = positiveLiterals.clause; // only positive Or- or Atleast clauses are allowed.
-            if(!(clause.quantifier == Quantifier.OR && clause.quantifier == Quantifier.ATLEAST)) return false;
+            clause = positiveLiterals.clause; // only positive literals in Or- or Atleast clauses are allowed.
+            if(!(clause.quantifier == Quantifier.OR || clause.quantifier == Quantifier.ATLEAST)) return false;
             positiveLiterals = (Literal)positiveLiterals.nextItem;}
 
         return true;}
@@ -476,14 +476,14 @@ public class ClauseList {
         Literal positiveLiterals = literalIndex.getFirstLiteral(predicate);
         Literal negativeLiterals = literalIndex.getFirstLiteral(-predicate);
         Clause clause;
-        while (positiveLiterals != null) { // only positive ATMOST-literals are allowed
+        while (positiveLiterals != null) { // only positive literals in ATMOST-clauses are allowed
             clause = positiveLiterals.clause;
             if(clause.quantifier != Quantifier.ATMOST) return false;
             positiveLiterals = (Literal)positiveLiterals.nextItem;}
 
         while (negativeLiterals != null) {
-            clause = negativeLiterals.clause; // only negative Or- or Atleast clauses are allowed.
-            if(!(clause.quantifier == Quantifier.OR && clause.quantifier == Quantifier.ATLEAST)) return false;
+            clause = negativeLiterals.clause; // only negative liteals in Or- or Atleast clauses are allowed.
+            if(!(clause.quantifier == Quantifier.OR || clause.quantifier == Quantifier.ATLEAST)) return false;
             negativeLiterals = (Literal)negativeLiterals.nextItem;}
 
         return true;}
@@ -500,9 +500,12 @@ public class ClauseList {
         Literal positiveLiterals = literalIndex.getFirstLiteral(predicate);
         Literal negativeLiterals = literalIndex.getFirstLiteral(-predicate);
         if(positiveLiterals != null) {
-            return (positiveLiterals.clause.quantifier == Quantifier.INTERVAL && positiveLiterals.nextItem == null) ? predicate : 0;}
+            if(negativeLiterals == null &&
+                (positiveLiterals.clause.quantifier == Quantifier.INTERVAL && positiveLiterals.nextItem == null)) return predicate;
+            else return 0;}
         if(negativeLiterals != null) {
-            return (negativeLiterals.clause.quantifier == Quantifier.INTERVAL && negativeLiterals.nextItem == null) ? -predicate : 0;}
+            if(positiveLiterals == null &&
+                (negativeLiterals.clause.quantifier == Quantifier.INTERVAL && negativeLiterals.nextItem == null)) return -predicate;}
         return 0;}
 
 
