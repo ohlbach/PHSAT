@@ -16,28 +16,72 @@ import java.util.Comparator;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.function.Consumer;
 
+/**
+ * Represents a list of clauses and provides operations for adding, removing, and processing clauses.
+ * <br>
+ * In particular the following operations are supported:<br>
+ * - subsumption checks: subsumed clauses are removed<br>
+ * - mergeResolution: resolution steps which shorten clauses are performed.<br>
+ * - purity-checks: pure literals are identified and removed.
+ * <br>
+ * Once all clauses have been inserted, none of the operations adds new clauses.
+ * The clauses may, however, be shortened and removed from the lists.
+ * <br>
+ * The instance of the class can be reused for a sequence of problems (without creating the datastructures anew)<br>
+ * A single instance can be used when a number of problem solvers work in parallel threads at the same time.
+ * Destructive changes, however, should be done by stopping the parallel threads, performing the changes and then
+ * continuing the threads.
+ */
 public class ClauseList {
+    // Problem independent parameters
+
+    /** If true then inference steps are tracked. */
+    private final boolean trackReasoning;
+
+    /** If true then simplification steps are verify by checking all models.
+     * For this it is necessary to have trackReasoning = true.*/
+    private final boolean verify;
+
+    /** monitors the inference steps */
+    Consumer<String> monitor;
+
+    /** to be used when a Result has been created */
+    String solverId = "ClauseList";
+
+    /** to prevent the model.add()-method of calling the ClauseList-observer */
+    Thread myThread;
+
+    // Problem-specific control-parameters
+
+    /** The identifier for the problem */
+    String problemId;
+
+    /** The global model */
+    Model model = null;
+
     /** the number of predicates */
     private int predicates;
 
+    /** the doubly linked list of clauses */
     LinkedItemList<Clause> clauses;
 
+    /** maps literals to the literal occurrences in the clauses */
     public LiteralIndex<Literal> literalIndex;
-
-    public StatisticsClauseList statistics = null;
-
-    boolean allClausesInserted = false;
-    boolean trackReasoning = false;
-    Model model = null;
-    String solverId = "ClauseList";
-    String problemId;
-    Consumer<String> monitor = null;
-    Symboltable symboltable = null;
-    boolean verify = false;
-    int timestamp = 0;
 
     /** contains pairs singleton-literal,clause. To be used when a model has to be completed. */
     protected final ArrayList<Object> singletons = new ArrayList<>();
+
+    /** records some statistical values */
+    public StatisticsClauseList statistics = null;
+
+    /** a flag which indicates that all clauses are inserted and therefore purity-checks are possible. */
+    boolean allClausesInserted = false;
+
+    /** the symboltable for the predicates */
+    Symboltable symboltable = null;
+
+    /** supports efficient identification of subsumption and merge-resolution partners. */
+    int timestamp = 0;
 
     /** A queue of newly derived unit predicates and binary equivalences.
      * The unit predicates are automatically put at the beginning of the queue.
@@ -47,27 +91,26 @@ public class ClauseList {
 
 
     /**
-     * Creates a new instance of ClauseList with the specified parameters.
+     * Creates a new instance of ClauseList with the problem-independent parameters.
      * <br>
      * The constructor is usually called once for a sequence of problems.
      *
      * @param trackReasoning specifies whether to track reasoning steps
-     * @param monitor a {@link Consumer} that will be used to monitor progress or log messages
      * @param verify specifies whether to verify the inference steps
-     */
+     * @param monitor a {@link Consumer} that will be used to monitor progress or log messages
+    */
     public ClauseList(boolean trackReasoning, boolean verify, Consumer<String> monitor) {
         this.trackReasoning = trackReasoning;
         this.monitor = monitor;
         this.verify = verify;
     }
 
-    /**
-     * Initializes the object with the given parameters.
+    /** Initializes the instance for a new problem.
      * <br>
-     * The must be called for each problem separately
+     * The method must be called for each problem separately
      *
-     * @param model The model to be initialized.
      * @param problemId The ID of the problem.
+     * @param model The model to be initialized.
      * @param symboltable The symbol table.
      */
     public void initialize(String problemId, Model model, Symboltable symboltable) {
@@ -84,6 +127,7 @@ public class ClauseList {
         statistics = new StatisticsClauseList();
         singletons.clear();
         queue.clear();
+        myThread = Thread.currentThread();
         model.addObserver(Thread.currentThread(),
                 (literal,inferenceStep) -> {
                         synchronized(this) {queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}});}
@@ -110,14 +154,18 @@ public class ClauseList {
             if(clause.quantifier == Quantifier.OR) mergeResolution(clause);
             clause = (Clause)clause.nextItem;}
 
-        removePureLiterals(); // new true literals generate tasks
+        if(!removePureLiterals()) // new true literals generate tasks
+            processTasks();
 
-        processTasks();
         if(clauses.isEmpty()) {
             extendModel();
-            throw new Satisfiable(problemId,solverId,model);}
-    }
+            throw new Satisfiable(problemId,solverId,model);}}
 
+    /**
+     * Process the tasks in the queue.
+     *
+     * @throws Result if an error occurs during processing.
+     */
     public void processTasks() throws Result {
         while (!queue.isEmpty()) {
             Task task = queue.poll();
@@ -135,10 +183,7 @@ public class ClauseList {
                     removePurePredicate(Math.abs(task.literal));
                     break;
                 default:
-                    break;
-            }
-        }
-    }
+                    break;}}}
 
     /** adds the clause to the clauses and to the literal index.
      * <br>
@@ -180,18 +225,19 @@ public class ClauseList {
      */
     public void removeLiteralFromIndex(Literal literalObject) {
         literalIndex.remove(literalObject);
-        if(allClausesInserted) addPurityTask(literalObject);}
+        if(allClausesInserted) addPurityTask(literalObject.literal);}
 
     /** checks if the clauses are empty
      *
      * @return true if there are no clauses anymore.
      */
     public boolean isEmpty() {
-        return clauses.isEmpty();
-    }
+        return clauses.isEmpty();}
+
     /** applies the true literal to all clauses containing the literal.
      *
      * @param literal       a true literal
+     * @param inferenceStep which caused the truth of the literal.
      * @throws Unsatisfiable if a contradiction is discovered.
      */
     void applyTrueLiteral(int literal, InferenceStep inferenceStep) throws Unsatisfiable {
@@ -207,18 +253,29 @@ public class ClauseList {
                 literalObject = (Literal)literalObject.nextItem;
             }}}
 
+    /** adds the literal to the model and geerates a TRUELITERAL task
+     *
+     * @param literal a true literal
+     * @param inferenceStep which caused the derivation of the true literals
+     * @throws Unsatisfiable if the model detects a contradiction.
+     */
     public void addTrueLiteralTask(int literal, InferenceStep inferenceStep) throws Unsatisfiable{
-        model.add(null,literal,inferenceStep);
-        if(allClausesInserted) queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}
+        model.add(myThread,literal,inferenceStep);
+        queue.add(new Task(Task.TaskType.TRUELITERAL, literal,inferenceStep));}
 
+    /** adds a SHORTNED_CLAUSE task
+     *
+     * @param clause a shortened clause
+     */
     void addShortenedClauseTask(Clause clause) {
         queue.add(new Task(Task.TaskType.SHORTENED_CLAUSE, clause));}
 
+    /** adds a purity task
+     *
+     * @param literal a possibly pure literal.
+     * */
     void addPurityTask(int literal) {
         queue.add(new Task(Task.TaskType.PURITY, literal, null));}
-
-    void addPurityTask(Literal literalObject) {
-        queue.add(new Task(Task.TaskType.PURITY, literalObject.literal, null));}
 
     /**
      * Removes all clauses subsumed by the given clause clauses from the clause list.
@@ -347,14 +404,12 @@ public class ClauseList {
      *
      * @param subsumer The clause that is potentially the subsumer.
      * @param subsumee The clause that is potentially the subsumee.
-     * @return True if the subsumer clause is subsumed by the subsumee clause, false otherwise.
      */
-    protected boolean verifySubsumption(Clause subsumer, Clause subsumee ) {
-        if(subsumesByModels(subsumer,subsumee)) return true;
+    protected void verifySubsumption(Clause subsumer, Clause subsumee ) {
+        if(subsumesByModels(subsumer,subsumee)) return;
         if(monitor!=null) {
             monitor.accept("Error: Subsumption Check: Clause " + subsumer.toString(symboltable,0) +
-                    "is not subsumed by " + subsumee.toString(symboltable,0));}
-        return false;}
+                    "is not subsumed by " + subsumee.toString(symboltable,0));}}
 
     /** searches pure predicates and process them.
      * <br>
@@ -368,15 +423,17 @@ public class ClauseList {
      *  A singleton pure literal in an interval- or exactly-clause can be removed. <br>
      *  Its truth value can only be determined after a model for the entire clause set has been found.
      *
+     * @return true if the clause set became empty.
      * @throws Unsatisfiable if a contradiction is discovered.
      * */
-    void removePureLiterals()  throws Unsatisfiable{
+    protected boolean removePureLiterals()  throws Unsatisfiable{
         boolean purityFound = true;
         while(purityFound) {
             purityFound = false;
             for(int predicate = 1; predicate <= predicates; ++predicate) {
                 purityFound |= removePurePredicate(predicate);
-                if(clauses.isEmpty()) return;}}}
+                if(clauses.isEmpty()) return true;}}
+        return false;}
 
     /** checks if the predicate or its negation is pure.
      * <br>
@@ -391,22 +448,23 @@ public class ClauseList {
      *  Its truth value can only be determined after a model for the entire clause set has been found.
      *
      * @param predicate a predicate.
+     * @return true if a pure literal has been found.
      * @throws Unsatisfiable if a contradiction is discovered.
      * */
     protected boolean removePurePredicate(int predicate) throws Unsatisfiable{
         if(literalIndex.isBothEmpty(predicate)) return false;
         if(isPositivelyPure(predicate)) {
-            if(monitor!=null) {monitor.accept("Literal " + Symboltable.toString(predicate,symboltable) +
+            if(monitor!=null) {monitor.accept("Predicate " + Symboltable.toString(predicate,symboltable) +
                     " is positively pure");}
             ++statistics.pureLiterals;
-            model.add(null,predicate,null);
+            model.add(myThread,predicate,null);
             applyTrueLiteral(predicate,null); // pure literals will never be part of a contradiction.
             return true;}
         if(isNegativelyPure(predicate)) {
             if(monitor!=null) {monitor.accept("Predicate " + Symboltable.toString(predicate,symboltable) +
                     " is negatively pure");}
             ++statistics.pureLiterals;
-            model.add(null,-predicate,null);
+            model.add(myThread,-predicate,null);
             applyTrueLiteral(-predicate,null); // pure literals will never be part of a contradiction.
             return true;}
 
@@ -418,8 +476,8 @@ public class ClauseList {
             Clause clause = literalIndex.getFirstLiteral(literal).clause;
             singletons.add(literal); singletons.add(clause.clone());
             switch(clause.removeLiteral(literal,trackReasoning,0,this::removeLiteralFromIndex, this::addTrueLiteralTask, monitor,symboltable)) {
-                case -1: clauses.remove(clause); throw new UnsatClause(problemId,solverId, clause);
-                case +1: clauses.remove(clause); return true;}
+                case -1: clauses.remove(clause); removeClauseFromIndex(clause); throw new UnsatClause(problemId,solverId, clause);
+                case +1: removeClause(clause); removeClauseFromIndex(clause); return true;}
             return true;}
         return false;
     }
@@ -503,9 +561,7 @@ public class ClauseList {
             if(negativeLiterals == null &&
                 (positiveLiterals.clause.quantifier == Quantifier.INTERVAL && positiveLiterals.nextItem == null)) return predicate;
             else return 0;}
-        if(negativeLiterals != null) {
-            if(positiveLiterals == null &&
-                (negativeLiterals.clause.quantifier == Quantifier.INTERVAL && negativeLiterals.nextItem == null)) return -predicate;}
+        if(negativeLiterals.clause.quantifier == Quantifier.INTERVAL && negativeLiterals.nextItem == null) return -predicate;
         return 0;}
 
 
@@ -575,7 +631,6 @@ public class ClauseList {
      * @param literal         the literal used for resolution
      * @param longerParent    the longer parent clause
      * @throws Unsatisfiable if the resolution results in a contradicting model (maybe a unit-clause is derived)
-     * @return true if the shorterParent has been shortened.
      */
     protected void resolve(Clause shorterParent, int literal, Clause longerParent) throws Unsatisfiable {
         assert shorterParent.quantifier == Quantifier.OR;
@@ -684,7 +739,7 @@ public class ClauseList {
             case "index" :     return literalIndex.toString(predicates,symboltable);
             case "queue":      return toStringQueue(symboltable);}
         String cl = clauses.isEmpty() ? "" :  "Clauses:\n"    + toStringClauses(symboltable);
-        String sgt = (singletons != null && !singletons.isEmpty()) ? "Singletons:\n" + toStringSingletons(symboltable) : "";
+        String sgt = (!singletons.isEmpty()) ? "Singletons:\n" + toStringSingletons(symboltable) : "";
         String ind = literalIndex.toString(predicates,symboltable);
         String qu = toStringQueue(symboltable);
         if (!qu.isEmpty()) qu  = "Queue:\n" + qu;

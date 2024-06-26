@@ -1,10 +1,14 @@
 package Datastructures;
 
+import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfTrueLiteralInClause;
 import InferenceSteps.InferenceStep;
+import ProblemGenerators.PythagoraenTriples;
 import junit.framework.TestCase;
 
 import java.util.function.Consumer;
@@ -213,13 +217,6 @@ public class ClauseListTest extends TestCase {
                 "\n" +
                 "\n" +
                 "Queue:\n" +
-                "TRUELITERAL: Literal -2\n" +
-                "  True Literal in Clause: 3.1: =0 2,3,4 -> -2\n" +
-                "TRUELITERAL: Literal -3\n" +
-                "  True Literal in Clause: 3.1: =0 2,3,4 -> -3\n" +
-                "TRUELITERAL: Literal -4\n" +
-                "  True Literal in Clause: 3.1: =0 2,3,4 -> -4\n" +
-                "SHORTENED_CLAUSE Clause: 4.1: [1,2] 2,3,4,5,6\n" +
                 "SHORTENED_CLAUSE Clause: 1.1: 2v3v4\n" +
                 "SHORTENED_CLAUSE Clause: 2.1: >=2 2,3,4\n" +
                 "SHORTENED_CLAUSE Clause: 3.1: <=2 2,3,4\n" +
@@ -227,25 +224,20 @@ public class ClauseListTest extends TestCase {
                 "\n" +
                 "\n" +
                 "Index:\n" +
-                "2:     4.1: [1,2] 2,3,4,5,6\n" +
-                "       1.1: 2v3v4\n" +
+                "2:     1.1: 2v3v4\n" +
                 "       2.1: >=2 2,3,4\n" +
                 "       3.1: <=2 2,3,4\n" +
                 "       4.1: [2,3] 2,3,4,5,6\n" +
-                "3:     4.1: [1,2] 2,3,4,5,6\n" +
-                "       1.1: 2v3v4\n" +
+                "3:     1.1: 2v3v4\n" +
                 "       2.1: >=2 2,3,4\n" +
                 "       3.1: <=2 2,3,4\n" +
                 "       4.1: [2,3] 2,3,4,5,6\n" +
-                "4:     4.1: [1,2] 2,3,4,5,6\n" +
-                "       1.1: 2v3v4\n" +
+                "4:     1.1: 2v3v4\n" +
                 "       2.1: >=2 2,3,4\n" +
                 "       3.1: <=2 2,3,4\n" +
                 "       4.1: [2,3] 2,3,4,5,6\n" +
-                "5:     4.1: [1,2] 2,3,4,5,6\n" +
-                "       4.1: [2,3] 2,3,4,5,6\n" +
-                "6:     4.1: [1,2] 2,3,4,5,6\n" +
-                "       4.1: [2,3] 2,3,4,5,6\n", cl.toString("all", null));
+                "5:     4.1: [2,3] 2,3,4,5,6\n" +
+                "6:     4.1: [2,3] 2,3,4,5,6\n", cl.toString("all", null));
         assertTrue(c4.inferenceSteps.get(0).verify(monitor,null));
         assertTrue(c4.inferenceSteps.get(1).verify(monitor,null));
         System.out.println(c4.inferenceSteps.get(0).toString(null));
@@ -378,15 +370,11 @@ public class ClauseListTest extends TestCase {
                 "\n" +
                 "\n" +
                 "Index:\n" +
-                "1:       1: 1v2\n" +
-                "       1.1: 1v2\n" +
+                "1:     1.1: 1v2\n" +
                 "         2: >=2 1,2,4,3^2\n" +
-                "2:       1: 1v2\n" +
-                "       3.1: 2v3\n" +
-                "       1.1: 1v2\n" +
+                "2:     1.1: 1v2\n" +
                 "         2: >=2 1,2,4,3^2\n" +
-                "3:     3.1: 2v3\n" +
-                "         2: >=2 1,2,4,3^2\n" +
+                "3:       2: >=2 1,2,4,3^2\n" +
                 "4:       2: >=2 1,2,4,3^2\n",cl.toString("all",null));
 
         System.out.println("Example 4");
@@ -403,22 +391,12 @@ public class ClauseListTest extends TestCase {
                 "\n" +
                 "\n" +
                 "Index:\n" +
-                "1:       1: 1v2\n" +
-                "       1.1: 1v2\n" +
-                "         2: >=2 1,2,4,3^2\n" +
-                "       1.1: 1v2v4\n" +
+                "1:     1.1: 1v2v4\n" +
                 "         2: >=3 1,2,4,3^3\n" +
-                "2:       1: 1v2\n" +
-                "       3.1: 2v3\n" +
-                "       1.1: 1v2\n" +
-                "         2: >=2 1,2,4,3^2\n" +
-                "       1.1: 1v2v4\n" +
+                "2:     1.1: 1v2v4\n" +
                 "         2: >=3 1,2,4,3^3\n" +
-                "3:     3.1: 2v3\n" +
-                "         2: >=2 1,2,4,3^2\n" +
-                "         2: >=3 1,2,4,3^3\n" +
-                "4:       2: >=2 1,2,4,3^2\n" +
-                "       1.1: 1v2v4\n" +
+                "3:       2: >=3 1,2,4,3^3\n" +
+                "4:     1.1: 1v2v4\n" +
                 "         2: >=3 1,2,4,3^3\n",cl.toString("all",null));
     }
 
@@ -542,121 +520,92 @@ public class ClauseListTest extends TestCase {
         assertEquals(0, cl.isSingletonPure(6));
     }
 
+    public void testRemovePurePredicate() throws Unsatisfiable{
+        System.out.println("removePurePredicate");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        makeClauses(cl,
+                new int[]{1,nor,1,2,3},
+                new int[]{2,natl, 2,-1,2,-3,},
+                new int[]{3,natm,2,-2,1,-3});
+        assertTrue(cl.removePurePredicate(2));
+        assertEquals("Clauses:\n" +
+                "2.1: -1v-3\n" +
+                "\n" +
+                "\n" +
+                "Queue:\n" +
+                "SHORTENED_CLAUSE Clause: 2.1: -1v-3\n" +
+                "\n" +
+                "\n" +
+                "Index:\n" +
+                "-1:    2.1: -1v-3\n" +
+                "-3:    2.1: -1v-3\n", cl.toString("all", null));
 
-/*
-
-
-    public ProblemSupervisor makePythogoraenTriples(int maximum) {
-        Parameters parameters = new Parameters("PTripels");
-        //parameters.put("maximum", ""+maximum);
-        //parameters.put("name", "MyProblem");
-        ArrayList<ProblemGenerator> generators = new ArrayList<>();
-        StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
-        PythagoraenTriples.makeProblemGenerators(parameters, generators);
-        //System.out.println(errors);
-        //System.out.println(warnings);
-        ProblemGenerator generator = generators.get(0);
-        //System.out.println(generator.description());
-
-        InputClauses inputClauses = generator.generateProblem(errors);
-        if(!errors.isEmpty()) System.out.println(errors.toString());
-        System.out.println(inputClauses.toString());
-        ArrayList<HashMap<String,String>> pars = new ArrayList<>();
-        //pars.add(parameters);
-        GlobalParameters globalParameters = null; //new GlobalParameters(pars,errors,warnings);
-        ProblemSupervisor supervisor = new ProblemSupervisor(null,globalParameters,generator,null);
-        supervisor.inputClauses = inputClauses;
-        supervisor.model = new Model(inputClauses.predicates);
-        supervisor.monitor = new MonitorLife("Test",System.nanoTime());
-        return supervisor;}
-
-    public void testPythagoraenTriples() throws Unsatisfiable {
-        System.out.println("pythagoraen triples");
-        StringBuilder errors = new StringBuilder();
-        int predicates = 200;
-        PythagoraenTriples phtr = new PythagoraenTriples(3, predicates);
-        Normalizer nom = new Normalizer("Test","monitor",true,null,predicates);
-        nom.inputClauses = phtr.generateProblem(errors);
-        System.out.println(nom.inputClauses.toString(null,false));
-        nom.normalizeClauses();
-        System.out.println("\nModel  " + nom.model.toString(null));
-        System.out.println(nom.clauses.toString(null));
-        System.out.println("");
-        System.out.println(nom.singletonsToString(null));
-        nom.extendModel();
-        System.out.println("\n"+nom.model.toString(null));
-        System.out.println(nom.statistics.toString());
-        assertTrue(nom.inputClauses.falseClausesInModel(nom.model).isEmpty());
+        System.out.println("\nExample 2");
+        model.clear();
+        cl.initialize("Test", model, null);
+        makeClauses(cl,
+                new int[]{1,nint,1,2, 1,2,3},
+                new int[]{2,nint,1,2,   2,3,4,},
+                new int[]{3,nint,1,2,       4,5,6});
+        assertFalse(cl.removePurePredicate(2));
+        assertTrue(cl.removePurePredicate(1));
+        assertEquals("Clauses:\n" +
+                "  2: [1,2] 2,3,4\n" +
+                "  3: [1,2] 4,5,6\n" +
+                "\n" +
+                "\n" +
+                "Singletons:\n" +
+                "Singleton Literals:\n" +
+                "1 in clause 1: [1,2] 1,2,3\n" +
+                "Index:\n" +
+                "2:       2: [1,2] 2,3,4\n" +
+                "3:       2: [1,2] 2,3,4\n" +
+                "4:       2: [1,2] 2,3,4\n" +
+                "         3: [1,2] 4,5,6\n" +
+                "5:       3: [1,2] 4,5,6\n" +
+                "6:       3: [1,2] 4,5,6\n",cl.toString("all",null));
     }
 
-    public void testExtendModel() throws Unsatisfiable {
-        System.out.println("extendModel");
-        StringBuilder errors = new StringBuilder();
-        String clauses = "p cnf 15\n"+
-                "-1,-4,-5,-6\n" +
-                "[2,3] 1,2,3,4,5,6\n";
-        StringClauseSetGenerator scg = new StringClauseSetGenerator("Test",clauses);
-        Normalizer nom = new Normalizer("Test","monitor",true,null,15);
-        nom.inputClauses = scg.generateProblem(errors);
-        nom.normalizeClauses();
-        System.out.println(nom.clauses.toString(null));
-        System.out.println("");
-        System.out.println(nom.singletonsToString(null));
-        nom.model.addImmediately(6);
-        nom.extendModel();
-        assertEquals("-1,2,-3,-4,-5,6",nom.model.toString(null));
-        nom.model = new Model(15);
-        nom.model.addImmediately(4,5,6);
-        nom.extendModel();
-        assertEquals("-1,-2,-3,4,5,6",nom.model.toString(null));
-
-        System.out.println(nom.statistics.toString());
+    public void testRemovePureLiterals() throws Unsatisfiable {
+        System.out.println("removePureLiterals");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        makeClauses(cl,
+                new int[]{1, nor, 1, -2, 3},
+                new int[]{2, natl, 2, -1, -2, -3,},
+                new int[]{3, natm, 2, 2, 1, -3});
+        assertTrue(cl.removePureLiterals());
+        assertEquals("Queue:\n" +
+                "SHORTENED_CLAUSE Clause: 2.2: >=0 -1\n", cl.toString("all", null));
+        System.out.println(cl.statistics.toString());
+        ;
     }
 
-    public ProblemSupervisor makeRandom() {
-        HashMap<String, String> parameters = new HashMap<>();
-        parameters.put("predicates","200"); // illegal key, missing predicates
-        parameters.put("seed","1");
-        parameters.put("length","2-5");
-        //parameters.put("ands", "1");
-        parameters.put("equivs", "1");
-        parameters.put("ors", "20");
-        parameters.put("intervals", "30");
-        parameters.put("atleasts", "10");
-        parameters.put("atmosts", "20");
-        parameters.put("redundant","true");
-        ArrayList<ProblemGenerator> generators = new ArrayList<>();
+    public void testPythagoraenTriples() throws Result {
+        System.out.println("Pythagoraen Triples");
+        int max = 60;
         StringBuilder errors = new StringBuilder();
-        StringBuilder warnings = new StringBuilder();
-        //*RandomClauseSetGenerator.makeProblemGenerator(parameters, generators, errors, warnings);
-        System.out.println(errors);
-        System.out.println(warnings);
-        ProblemGenerator generator = generators.get(0);
-        //System.out.println(generator.description());
+        PythagoraenTriples ptr = new PythagoraenTriples(3, max);
+        InputClauses inputClauses = ptr.generateProblem(errors);
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(max);
+        cl.initialize("Test", model, null);
 
-        InputClauses inputClauses = generator.generateProblem(errors);
-        if(!errors.isEmpty()) System.out.println(errors.toString());
-        System.out.println(inputClauses.toString());
-        ArrayList<HashMap<String,String>> pars = new ArrayList<>();
-        pars.add(parameters);
-        GlobalParameters globalParameters = null; //new GlobalParameters(pars,errors,warnings);
-        ProblemSupervisor supervisor = new ProblemSupervisor(null,globalParameters,generator,null);
-        supervisor.inputClauses = inputClauses;
-        supervisor.model = new Model(inputClauses.predicates);
-        supervisor.monitor = new MonitorLife("Test",System.nanoTime());
-        return supervisor;}
+        for (int[] clause : inputClauses.intervals) {
+            cl.addClause(makeClause(clause));}
 
-    public void testRandom() throws Unsatisfiable {
-        System.out.println("random Clauses");
-        ProblemSupervisor supervisor = makeRandom();
-        Normalizer nom = new Normalizer(supervisor);
-        Result res = nom.normalizeClauses();
-        if(res != null) System.out.println(res.toString(null,false));
-        System.out.println(nom.clauses.toString(null));
-        System.out.println("");
-        System.out.println(nom.singletonsToString(null));
-        System.out.println("Model: " + nom.model.toString(null));
+        try{cl.allClausesInserted();}
+        catch(Satisfiable sat) {
+            assertEquals(0,inputClauses.falseClausesInModel(model).size());
+        }
+        System.out.println(cl.toString("clauses",null));
+        assertEquals("3,4,-5,-6,-7,8,-9,-10,12,-13,-14,-15,16,17,-18,-20,21,24,25,-26,-27,\n" +
+                "28,-29,30,-32,33,-34,-35,36,-37,-39,40,-41,-42,44,-45,48,-50,51,-52,-53,\n" +
+                "-55,-58,-60", model.toString(null));
+
     }
-*/
+
 }
