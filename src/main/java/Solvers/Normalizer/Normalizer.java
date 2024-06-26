@@ -76,26 +76,22 @@ public class Normalizer {
     /** the current thread*/
     public Thread myThread;
 
-    protected ArrayList<Equivalence> equivalences;
+    protected ArrayList<Equivalence> equivalences = new ArrayList<>();
 
     private BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTrueLiteral =
             (literal,step) -> model.add(myThread,literal,step);
 
     /**
-     * Creates a new instance of the Normalizer with parameters which are common for a series of problems.
-     * <br>
-     * The constructor is usually called once for a sequence of problems.
      *
-     * @param trackReasoning specifies whether to track reasoning steps
-     * @param verify specifies whether to verify the inference steps
-     * @param monitor a {@link Consumer} that will be used to monitor progress or log messages
+     * @param trackReasoning if true then the inference steps are tracked.
+     * @param verify if true then the inference steps are verified.
+     * @param monitor for monitoring the inference steps.
      */
-    public Normalizer(boolean trackReasoning, boolean verify, Consumer<String> monitor ) {
+    public Normalizer(boolean trackReasoning, boolean verify, Consumer<String> monitor) {
         this.trackReasoning = trackReasoning;
-        this.monitor = monitor;
         this.verify = verify;
-        clauseList = new ClauseList(trackReasoning,verify,monitor);
-    }
+        this.monitor = monitor;
+        clauseList = new ClauseList(trackReasoning,verify,monitor);}
 
     /**
      * Initializes the normalizer for a new problem.
@@ -103,62 +99,18 @@ public class Normalizer {
      * The must be called for each problem separately
      *
      * @param model The model to be initialized.
-     * @param problemId The ID of the problem.
-     * @param symboltable The symbol table.
      */
-    public void initialize(String problemId, Model model, Symboltable symboltable) {
-        this.problemId = problemId;
-        this.model = model;
-        this.predicates = model.predicates;
-        this.symboltable = symboltable;
+    public void initialize(InputClauses inputClauses, Model model) {
+        this.inputClauses = inputClauses;
+        this.problemId    = inputClauses.problemId;
+        this.model        = model;
+        this.symboltable  = inputClauses.symboltable;
+        this.predicates   = inputClauses.predicates;
+        statistics        = new StatisticsNormalizer(null);
         clauseList.initialize(problemId,model,symboltable);
-        equivalences = null;
+        equivalences.clear();
         myThread = Thread.currentThread();
-        statistics = new StatisticsNormalizer(null);}
-
-
-
-    /**Creates a Normalizer object with the given ProblemSupervisor.
-     *
-     * @param problemSupervisor the ProblemSupervisor object that controls the solution of the problem.
-     */
-    public Normalizer(ProblemSupervisor problemSupervisor) {
-        this.problemSupervisor = problemSupervisor;
-        problemId              = problemSupervisor.problemId;
-        inputClauses           = problemSupervisor.inputClauses;
-        model                  = problemSupervisor.model;
-        statistics             = new StatisticsNormalizer(null);
-        monitoring             = problemSupervisor.monitor != null;
-        monitorId              = "Normalizer_"+ problemId;
-        monitor                = monitoring ? (message -> problemSupervisor.monitor.println(monitorId,message)) : null;
-        symboltable            = problemSupervisor.inputClauses.symboltable;
-        trackReasoning         = problemSupervisor.globalParameters.trackReasoning;
-        predicates             = problemSupervisor.inputClauses.predicates;
-        myThread               = Thread.currentThread();
     }
-
-    /**
-     * Initializes a Normalizer object with the given parameters (for testing purposes).
-     *
-     * @param problemId       the problem ID
-     * @param monitorId       the monitor ID
-     * @param trackReasoning  a boolean indicating whether to track reasoning
-     * @param symboltable     the symbol table
-     * @param predicates      the number of predicates
-     */
-    public Normalizer(String problemId, String monitorId, boolean trackReasoning, Symboltable symboltable, int predicates ) {
-        this.problemId = problemId;
-        statistics = new StatisticsNormalizer(null);
-        monitoring = monitorId != null;
-        monitor = monitoring ? (System.out::println) : null;
-        this.trackReasoning = trackReasoning;
-        this.symboltable = symboltable;
-        this.predicates = predicates;
-        myThread = Thread.currentThread();
-        model = new Model(predicates);
-    }
-
-
 
     /** turn the inputClauses into Clause datastructures, and simplifies them as far as possible.
      *
@@ -179,13 +131,12 @@ public class Normalizer {
         return null;}
 
 
-    /**
-     * Puts the literals in the AND-clause into the model.
+    /** Puts the literals in the AND-clause into the model.
      *
      * @param inputClause the input clause representing the conjunction of literals
      * @throws Unsatisfiable if the conjuncts are contradictory.
      */
-    void transformConjunction(int[] inputClause) throws Unsatisfiable {
+    protected void transformConjunction(int[] inputClause) throws Unsatisfiable {
         Quantifier quantifier = Quantifier.getQuantifier(inputClause[1]);
         assert(quantifier == Quantifier.AND);
         int firstLiteralIndex = quantifier.firstLiteralIndex;
@@ -201,8 +152,7 @@ public class Normalizer {
      * @param inputClause the input clause representing an equivalence
      * @throws Unsatisfiable if the equivalence contains a contradiction like p == -p
      */
-    void transformEquivalence(int[] inputClause) throws Unsatisfiable {
-        if(equivalences == null) equivalences = new ArrayList<>();
+    protected void transformEquivalence(int[] inputClause) throws Unsatisfiable {
         Quantifier quantifier = Quantifier.getQuantifier(inputClause[1]);
         assert(quantifier == Quantifier.EQUIV);
         int firstLiteralIndex = quantifier.firstLiteralIndex;
@@ -210,7 +160,7 @@ public class Normalizer {
         for(int i = firstLiteralIndex+1; i < inputClause.length; ++i) {
             int literal = inputClause[i];
             equivalence.addLiteral(literal);}
-        if(!equivalence.literals.isEmpty()) equivalences.add(equivalence);}
+        if(!equivalence.isEmpty()) equivalences.add(equivalence);}
 
 
 
@@ -219,7 +169,7 @@ public class Normalizer {
      * @param inputClause   an input clause
      * @throws Unsatisfiable if a contradiction is discovered.
      */
-    void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
+    protected void transformAndSimplify(int[] inputClause) throws Unsatisfiable {
         Clause clause = new Clause(inputClause,trackReasoning,(lit -> new Literal(lit,1)),symboltable);
         switch(clause.simplify(trackReasoning,null, clauseList::addTrueLiteralTask, monitor,symboltable)) {
             case -1: throw new UnsatClause(problemId,solverId, clause.inputClause);
@@ -252,6 +202,7 @@ public class Normalizer {
 
     /**
      * Applies all equivalences to the model.
+     * Equivalent literals must get the same truth value.
      *
      * @throws Unsatisfiable if a contradiction is encountered
      */
@@ -261,15 +212,18 @@ public class Normalizer {
             int status1 = model.status(representative);
             if(status1 != 0) {
                 for(int i = 0; i < equivalence.literals.size(); ++i) {
-                    int equivalentLiteral = equivalence.literals.get(i);
+                    int equivalentLiteral = equivalence.literals.getInt(i);
                     InferenceStep step = trackReasoning ? equivalence.inferenceSteps.get(i) : null;
                     int status2 = model.status(equivalentLiteral);
-                    if(status1 != status2) throw new UnsatEquivalence(problemId,solverId,
-                            representative, equivalentLiteral,step);
-                    if(status1 == status2) continue;
-                    model.add(myThread, status1*equivalentLiteral,step);}
+                    if(status2 != 0) {
+                        if(status1 != status2) throw new UnsatEquivalence(problemId,solverId,equivalence,
+                                representative, equivalentLiteral,model.getInferenceStep(representative),
+                                model.getInferenceStep(equivalentLiteral));}
+                    else model.add(myThread, status1*equivalentLiteral,step);}
                 continue;}
 
+            // status(representative) = 0
+            // if an equivalent literal has a truth value then all the others must get the same truth value.
             for(int i = 0; i < equivalence.literals.size(); ++i) {
                 int literal = equivalence.literals.get(i);
                 status1 = model.status(literal);
@@ -280,10 +234,18 @@ public class Normalizer {
                         int equivalentLiteral = equivalence.literals.get(j);
                         if(literal == equivalentLiteral) continue;
                         int status2 = model.status(equivalentLiteral);
-                        if(status1 != status2) throw new UnsatEquivalence(problemId,solverId,
-                                representative, equivalentLiteral,step);
-                        if(status1 == status2) continue;
-                        model.add(myThread, status1*equivalentLiteral,step);}
+                        if(status2 != 0) {
+                            if(status1 != status2)
+                                if(status1 == 1)
+                                    throw new UnsatEquivalence(problemId,solverId,equivalence,
+                                        representative, equivalentLiteral,
+                                        model.getInferenceStep(representative),
+                                        model.getInferenceStep(equivalentLiteral));
+                                else throw new UnsatEquivalence(problemId,solverId,equivalence,
+                                        equivalentLiteral,representative,
+                                        model.getInferenceStep(equivalentLiteral),
+                                        model.getInferenceStep(representative));}
+                        else model.add(myThread, status1*equivalentLiteral,step);}
                     break;}}}}
 
 

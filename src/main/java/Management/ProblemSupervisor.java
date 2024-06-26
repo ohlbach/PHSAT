@@ -15,6 +15,7 @@ import Utilities.Utilities;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /** A problem supervisor solves a single problem by using several cooperating solvers in parallel threads.
@@ -101,7 +102,8 @@ public class ProblemSupervisor {
                 if(globalParameters.logstream != null) {globalParameters.logstream.println("Clauses printed to file " + path.toString()); }
             }
             model = new Model(inputClauses.predicates);
-            normalizer = new Normalizer(this);
+            Consumer<String> mon = (monitor != null) ? (string -> monitor.println(problemId + string)) : null;
+            normalizer = new Normalizer(trackReasoning,true,mon);
             Result result = normalizer.normalizeClauses();
             System.out.println(result == null ? "no result " :result.toString());
            // System.out.println(normalizer.toString(null));

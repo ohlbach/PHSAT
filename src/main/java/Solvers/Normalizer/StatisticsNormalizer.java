@@ -44,12 +44,6 @@ public class StatisticsNormalizer extends Statistic {
     @Description("Removed Clauses")
     int removedClauses = 0;
 
-    @Description("Pure Literals")
-    int pureLiterals = 0;
-
-    @Description("Singleton Literals")
-    int singletonLiterals = 0;
-
     @Description("Hidden Conjunctions (atleast 3 p,q,r or atmost 0 p,q,r")
     int hiddenConjunctions = 0;
 
@@ -68,8 +62,6 @@ public class StatisticsNormalizer extends Statistic {
         if(gcdReductions       > 0)      st.append("\n  GCD Reductions:           ").append(gcdReductions);
         if(survivedClauses     > 0)      st.append("\n  Survived Clauses:         ").append(survivedClauses);
         if(removedClauses      > 0)      st.append("\n  Removed Clauses:          ").append(removedClauses);
-        if(pureLiterals        > 0)      st.append("\n  Pure Literals:            ").append(pureLiterals);
-        if(singletonLiterals   > 0)      st.append("\n  Singleton Literals:       ").append(singletonLiterals);
         if(hiddenConjunctions  > 0)      st.append("\n  Hidden Conjunctions:      ").append(hiddenConjunctions);
         return st.toString();}
 
