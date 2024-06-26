@@ -62,8 +62,34 @@ public class NormalizerTest extends TestCase {
             assertFalse(true);}
         catch(Unsatisfiable unsat) {
             System.out.println(unsat.toString(null));
-        }
+        }}
 
+    public void testTransformAndSimplify() throws Unsatisfiable {
+        Normalizer nom = new Normalizer(true, true, monitor);
+        int predicates = 10;
+        InputClauses inputClauses = new InputClauses("Test", predicates, null, "Test");
+        Model model = new Model(predicates);
+        nom.initialize(inputClauses, model);
+        int[] c1 = {1, nor, 1, 2, -3};
+        nom.transformAndSimplify(c1);
+        assertEquals("  1: 1v2v-3\n",nom.clauseList.toString("clauses", null));
+
+        int[] c2 = {2, natl, 3, 1,1,2,2,3,3};
+        nom.transformAndSimplify(c2);
+        assertEquals("  1: 1v2v-3\n" +
+                "2.2: >=2 1,2,3\n",nom.clauseList.toString("clauses", null));
+
+        int[] c3 = {3, natm, 0, 3,4,5};
+        nom.transformAndSimplify(c3);
+        assertEquals("  1: 1v2v-3\n" +
+                "2.2: >=2 1,2,3\n",nom.clauseList.toString("clauses", null));
+        assertEquals("-3,-4,-5",model.toString(null));
+
+        int[] c4 = {4, natl, 2,5,5,6,6,7,7,8};
+        nom.transformAndSimplify(c4);
+        assertEquals("  1: 1v2v-3\n" +
+                "2.2: >=2 1,2,3\n" +
+                "4.2: 5v6v7\n",nom.clauseList.toString("clauses", null));
     }
 
     /*

@@ -13,7 +13,7 @@ import InferenceSteps.InferenceStep;
 public class UnsatEquivalence extends Unsatisfiable {
 
     /** the original equivalence */
-    private Equivalence equivalence;
+    private final Equivalence equivalence;
 
     /** two equivalent literals with different truth values */
     int literal1,literal2;

@@ -127,7 +127,10 @@ public class Normalizer {
             for (int[] inputClause : inputClauses.intervals)    transformAndSimplify(inputClause);
            applyEquivalencesToModel();
            clauseList.allClausesInserted();}
-        catch (Result result) {return result;}
+        catch (Result result) {
+            result.solverId = solverId;
+            result.problemId = problemId;
+            return result;}
         return null;}
 
 
