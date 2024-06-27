@@ -250,7 +250,7 @@ public class Clause extends LinkedItem implements Cloneable {
         else {if (max == 0) sign = -1;}
 
         if(sign != 0) {
-            String truth = sign == 1 ? " adre true" : " are false";
+            String truth = sign == 1 ? " are true" : " are false";
             if(monitor != null) monitor.accept("All predicates in clause " + toString(symboltable,0) + truth);
             for(Literal literalObject : literals) {
                 int literal = sign*literalObject.literal;

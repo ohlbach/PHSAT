@@ -337,7 +337,7 @@ public class ClauseList {
                     subsumerLiteral = (Literal)subsumerLiteral.nextItem;
                     continue;}
                 if((subsumerTimestamp - timestamp) == subsumer.literals.size()-2 && subsumes(subsumer,subsumee)) {
-                    timestamp += subsumee.literals.size();
+                    ++timestamp;
                     if(verify) verifySubsumption(subsumer,subsumee);
                     return subsumer;}
                 ++subsumer.timestamp;
@@ -577,7 +577,6 @@ public class ClauseList {
      */
     protected void mergeResolution(Clause shorterParent) throws Unsatisfiable {
         assert shorterParent.quantifier == Quantifier.OR;
-
         ArrayList<Literal> shorterLiterals = shorterParent.literals;
         int shorterSize = shorterLiterals.size();
         Clause longerParent;
@@ -588,9 +587,9 @@ public class ClauseList {
             Literal longerLiteral = literalIndex.getFirstLiteral(-resolutionLiteral);
             while(longerLiteral != null) {
                 longerParent = longerLiteral.clause;
-                if(longerParent.quantifier == Quantifier.OR ||
+                if(longerParent != shorterParent && (longerParent.quantifier == Quantifier.OR ||
                         (longerParent.min == longerLiteral.multiplicity && longerParent.literals.size() == shorterSize) ||
-                        (longerParent.min == 2 && longerParent.literals.size() == shorterSize+1))
+                        (longerParent.min == 2 && longerParent.literals.size() == shorterSize+1)))
                     longerParent.timestamp = timestamp;
                 longerLiteral = (Literal)longerLiteral.nextItem;}
             for(int j = 0; j < shorterSize; ++j) {
@@ -600,18 +599,19 @@ public class ClauseList {
                 while(longerLiteral != null) {
                     longerParent = longerLiteral.clause;
                     int longerTimestamp = longerParent.timestamp;
-                    if((longerTimestamp - timestamp) == shorterSize-2) { // resolution partner found
-                        int longerSize = longerParent.literals.size();
-                        resolve(shorterParent,resolutionLiteral,longerParent);
-                        ++statistics.mergedResolvents;
-                        if(longerParent.isInList && longerParent.literals.size() < longerSize) addShortenedClauseTask(longerParent);
-                        if(!shorterParent.isInList) {timestamp += shorterSize; return;}
-                        if(shorterParent.literals.size() < shorterSize) {
-                            timestamp += shorterSize;
-                            removeSubsumedClauses(shorterParent);
-                            mergeResolution(shorterParent);
-                            return;}}
-                    else ++longerParent.timestamp;
+                    if(longerTimestamp >= timestamp) {
+                        if((longerTimestamp - timestamp) == shorterSize-2) { // resolution partner found
+                            int longerSize = longerParent.literals.size();
+                            resolve(shorterParent,resolutionLiteral,longerParent);
+                            ++statistics.mergedResolvents;
+                            if(longerParent.isInList && longerParent.literals.size() < longerSize) addShortenedClauseTask(longerParent);
+                            if(!shorterParent.isInList) {timestamp += shorterSize; return;}
+                            if(shorterParent.literals.size() < shorterSize) {
+                                timestamp += shorterSize;
+                                removeSubsumedClauses(shorterParent);
+                                mergeResolution(shorterParent);
+                                return;}}
+                        else ++longerParent.timestamp;}
                     longerLiteral = (Literal)longerLiteral.nextItem;}}}
         timestamp += shorterSize;}
 
@@ -633,7 +633,11 @@ public class ClauseList {
      * @throws Unsatisfiable if the resolution results in a contradicting model (maybe a unit-clause is derived)
      */
     protected void resolve(Clause shorterParent, int literal, Clause longerParent) throws Unsatisfiable {
+        System.out.println("RES " + shorterParent.toString(null,0) + "  " + literal + "  " +
+                longerParent.toString(null,0));
+        System.out.println("TS " + timestamp + " " + shorterParent.timestamp);
         assert shorterParent.quantifier == Quantifier.OR;
+        assert shorterParent != longerParent;
         int[] shorterClone = null;
         int[] longerClone  = null;
         if(trackReasoning || monitor != null) {

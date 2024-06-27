@@ -2,9 +2,13 @@ package Solvers.Normalizer;
 
 import Datastructures.Clauses.InputClauses;
 import Datastructures.Clauses.Quantifier;
+import Datastructures.Results.Result;
+import Datastructures.Results.Satisfiable;
 import Datastructures.Results.Unsatisfiable;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
+import ProblemGenerators.PythagoraenTriples;
+import ProblemGenerators.RandomClauseSetGenerator;
 import junit.framework.TestCase;
 
 import java.util.function.Consumer;
@@ -90,6 +94,78 @@ public class NormalizerTest extends TestCase {
         assertEquals("  1: 1v2v-3\n" +
                 "2.2: >=2 1,2,3\n" +
                 "4.2: 5v6v7\n",nom.clauseList.toString("clauses", null));
+    }
+
+    public void testPythagoraenTriples() {
+        System.out.println("Pythagoraen Triples");
+        Normalizer nom = new Normalizer(true, true, monitor);
+        int max = 60;
+        StringBuilder errors = new StringBuilder();
+        PythagoraenTriples ptr = new PythagoraenTriples(3, max);
+        InputClauses inputClauses = ptr.generateProblem(errors);
+        Model model = new Model(max);
+        nom.initialize(inputClauses, model);
+
+        Result result = nom.normalizeClauses();
+        assertTrue(result instanceof Satisfiable);
+        //System.out.println(result.toString(null));
+        assertEquals(0,inputClauses.falseClausesInModel(model).size());
+
+        assertEquals("3,4,-5,-6,-7,8,-9,-10,12,-13,-14,-15,16,17,-18,-20,21,24,25,-26,-27,\n" +
+                "28,-29,30,-32,33,-34,-35,36,-37,-39,40,-41,-42,44,-45,48,-50,51,-52,-53,\n" +
+                "-55,-58,-60", model.toString(null));
+    }
+
+    public void testRandomMixed()  {
+        System.out.println("Random mixed");
+        Normalizer nom = new Normalizer(true, true, monitor);
+        StringBuilder errors = new StringBuilder();
+        int seed = 0;
+        int predicates = 50;
+        int[] length = {2,4};
+        boolean redundant = true;
+        int ors = 20;
+        int ands = 1;
+        int equivs = 1;
+        int  atleasts = 5;
+        int atmosts = 5;
+        int exactlies = 1;
+        int intervals = 5;
+        RandomClauseSetGenerator rpg = new RandomClauseSetGenerator(seed, predicates, length, redundant, ors, ands, equivs, atleasts, atmosts, exactlies, intervals);
+        InputClauses inputClauses = rpg.generateProblem(errors);
+        System.out.println(inputClauses);
+        Model model = new Model(predicates);
+        nom.initialize(inputClauses, model);
+
+        Result result = nom.normalizeClauses();
+        System.out.println(result);
+    }
+
+    public void testRandom3SAT()  {
+        System.out.println("Random 3SAT");
+        Normalizer nom = new Normalizer(true, true, monitor);
+        StringBuilder errors = new StringBuilder();
+        int seed = 1;
+        int predicates = 50;
+        int[] length = {3,4};
+        boolean redundant = true;
+        int ors = 100;
+        int ands = 0;
+        int equivs = 0;
+        int  atleasts = 0;
+        int atmosts = 0;
+        int exactlies = 0;
+        int intervals = 0;
+        RandomClauseSetGenerator rpg = new RandomClauseSetGenerator(seed, predicates, length, redundant, ors, ands, equivs, atleasts, atmosts, exactlies, intervals);
+        InputClauses inputClauses = rpg.generateProblem(errors);
+        System.out.println(inputClauses);
+        Model model = new Model(predicates);
+        nom.initialize(inputClauses, model);
+
+        Result result = nom.normalizeClauses();
+        System.out.println(result);
+        System.out.println(nom.clauseList.toString("clauses",null));
+        System.out.println(model.toString(null));
     }
 
     /*

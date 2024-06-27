@@ -6,6 +6,7 @@ import Datastructures.Statistics.Statistic;
 import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import Utilities.IntToByteFunction;
+import Utilities.Utilities;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 
 import java.io.FileNotFoundException;
@@ -648,17 +649,16 @@ public class InputClauses {
         int trueLiterals = 0;
         Quantifier quantifier = Quantifier.getQuantifier(clause[1]);
         for(int i = quantifier.firstLiteralIndex; i < clause.length; ++i) {
-            int literal = clause[i];
-            int position = predicates.indexOf(Math.abs(literal));
-            if((literal > 0) ? ((model & (1 << position)) != 0) : ((model & (1 << position)) == 0)) ++trueLiterals;}
+            if(Utilities.isTrue(model,clause[i],predicates)) ++trueLiterals;}
+        int size = clause.length - quantifier.firstLiteralIndex + 1;
         switch(quantifier) {
             case OR:       return trueLiterals > 0;
-            case AND:      return trueLiterals == predicates.size();
+            case AND:      return trueLiterals == size;
             case ATLEAST:  return trueLiterals >= clause[2];
             case ATMOST:   return trueLiterals <= clause[2];
             case EXACTLY:  return trueLiterals == clause[2];
             case INTERVAL: return clause[2] <= trueLiterals  && trueLiterals <= clause[3];
-            case EQUIV:    return trueLiterals == 0 || trueLiterals == predicates.size();}
+            case EQUIV:    return trueLiterals == 0 || trueLiterals == size;}
         return false;}
 
     /** adds some parameters to the statistics.
