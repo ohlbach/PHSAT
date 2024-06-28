@@ -475,6 +475,86 @@ public class ClauseListTest extends TestCase {
 
     }
 
+    public void testLinkedMergeResolution() throws Unsatisfiable {
+        System.out.println("linkedMergeResolution");
+        ClauseList cl = new ClauseList(true, true, monitor);
+        Model model = new Model(10);
+        cl.initialize("Test", model, null);
+        Clause c1 = makeClause(new int[]{1, nor, 1, 3, 4, 5});
+        cl.addClause(c1);
+        Clause c2 = makeClause(new int[]{2, nor, 2, 3, 4, 5});
+        cl.addClause(c2);
+        Clause c3 = makeClause(new int[]{3, nor, -1,-2});
+        cl.addClause(c3);
+        assertEquals(c1, cl.resolveLinked(c3,c1,c2));
+
+        assertEquals("Clauses:\n" +
+                "1.1: 3v4v5\n" +
+                "  3: -1v-2\n" +
+                "\n" +
+                "\n" +
+                "Index:\n" +
+                "-1:      3: -1v-2\n" +
+                "-2:      3: -1v-2\n" +
+                "3:     1.1: 3v4v5\n" +
+                "4:     1.1: 3v4v5\n" +
+                "5:     1.1: 3v4v5\n", cl.toString("all", null));
+
+        System.out.println(cl.statistics.toString());
+        System.out.println("Example 2");
+        model.clear();
+        cl.initialize("Test", model, null);
+
+        c1 = makeClause(new int[]{1, nor, 3, 1, 4, 5});
+        cl.addClause(c1);
+        c2 = makeClause(new int[]{2, nor, 3, 4,2, 5, 6});
+        cl.addClause(c2);
+        c3 = makeClause(new int[]{3, nor, -1,-2});
+        cl.addClause(c3);
+        assertEquals(c2,cl.resolveLinked(c3,c1,c2));
+        assertTrue(c2.inferenceSteps.get(c2.inferenceSteps.size()-1).verify(monitor,null));
+
+        assertEquals("  1: 3v1v4v5\n" +
+                "2.1: 3v4v5v6\n" +
+                "  3: -1v-2\n", cl.toString("clauses", null));
+
+        System.out.println("Example 3");
+        model.clear();
+        cl.initialize("Test", model, null);
+
+        c1 = makeClause(new int[]{1, nor, 3, 1, 4, 5, 6});
+        cl.addClause(c1);
+        c2 = makeClause(new int[]{2, nor, 3, 4,2, 5});
+        cl.addClause(c2);
+        c3 = makeClause(new int[]{3, nor, -1,-2});
+        cl.addClause(c3);
+        assertEquals(c1,cl.resolveLinked(c3,c1,c2));
+
+        assertEquals("1.1: 3v4v5v6\n" +
+                "  2: 3v4v2v5\n" +
+                "  3: -1v-2\n", cl.toString("clauses", null));
+
+        assertTrue(c1.inferenceSteps.get(c1.inferenceSteps.size()-1).verify(monitor,null));
+
+
+        System.out.println("Example 4");
+        model.clear();
+        cl.initialize("Test", model, null);
+
+        c1 = makeClause(new int[]{1, nor, 3, 1});
+        cl.addClause(c1);
+        c2 = makeClause(new int[]{2, nor, 3, 2});
+        cl.addClause(c2);
+        c3 = makeClause(new int[]{3, nor, -1,-2});
+        cl.addClause(c3);
+        assertEquals(c1,cl.resolveLinked(c3,c1,c2));
+
+        assertEquals("  3: -1v-2\n", cl.toString("clauses", null));
+        assertEquals("3",model.toString(null));
+        assertTrue(c1.inferenceSteps.get(c1.inferenceSteps.size()-1).verify(monitor,null));
+
+    }
+
     public void testIsPositivelyPure() {
         System.out.println("isPositivelyPure");
         ClauseList cl = new ClauseList(true, true, monitor);

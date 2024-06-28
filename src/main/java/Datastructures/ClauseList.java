@@ -151,7 +151,10 @@ public class ClauseList {
         Clause clause = clauses.firstLinkedItem;
         while(clause != null) {
             removeSubsumedClauses(clause);
-            if(clause.quantifier == Quantifier.OR) mergeResolution(clause);
+            if(clause.quantifier == Quantifier.OR)  {
+                mergeResolution(clause);
+                if(clause.expandedSize == 2 && clause.isInList)
+                    linkedMergeResolution(clause);}
             clause = (Clause)clause.nextItem;}
 
         if(!removePureLiterals()) // new true literals generate tasks
@@ -177,7 +180,10 @@ public class ClauseList {
                     Clause clause = task.clause;
                     if(clause.isInList) {
                         removeSubsumedClauses(clause);
-                        if(clause.quantifier == Quantifier.OR) mergeResolution(clause);}
+                        if(clause.quantifier == Quantifier.OR) {
+                            mergeResolution(clause);
+                            if(clause.expandedSize == 2 && clause.isInList)
+                            linkedMergeResolution(clause);}}
                     break;
                 case PURITY:
                     removePurePredicate(Math.abs(task.literal));
@@ -649,12 +655,13 @@ public class ClauseList {
                 while(litObject2 != null && !clause1Changed) {
                     Clause clause2 = litObject2.clause;
                     if(clause2.quantifier != Quantifier.OR) {literalObject2 = (Literal)literalObject2.nextItem; continue;}
-                    maxSize = Math.max(maxSize,clause2.literals.size());
+                    maxSize = Math.max(maxSize,clause2.expandedSize);
                     int timestamp2 = clause2.timestamp;
                      if(timestamp2 >= timestamp) {
                          int timestampDiff = timestamp2 - timestamp;
-                         if(timestampDiff == clause2.literals.size()-2 || timestampDiff == clause1.literals.size()-2) {
+                         if(timestampDiff == clause2.expandedSize-2 || timestampDiff == clause1.expandedSize-2) {
                              Clause resolvent = resolveLinked(clause,clause1,clause2);
+                             if(resolvent.isInList) addShortenedClauseTask(resolvent);
                              if(resolvent == clause1) {
                                  clause1Changed = true;
                                  timestamp += maxSize;
@@ -690,14 +697,12 @@ public class ClauseList {
         assert link.expandedSize == 2;
         assert clause1.quantifier == Quantifier.OR;
         assert clause2.quantifier == Quantifier.OR;
-
-        if(clause1.literals.size() > clause2.literals.size()) {
-            Clause dummy = clause1; clause1 = clause2; clause2 = dummy;}
+        ++statistics.linkedMergedResolvents;
 
         int literal1 = -link.literals.get(0).literal;
         int literal2 = -link.literals.get(1).literal;
 
-        if(clause1.literals.size() > clause2.literals.size()) {
+        if(clause1.expandedSize > clause2.expandedSize) {
             Clause dummyCl = clause1; clause1 = clause2; clause2 = dummyCl;
             int dummyLit = literal1; literal1 = literal2; literal2 = dummyLit;}
 
@@ -706,7 +711,7 @@ public class ClauseList {
 
         int[] clause1Clone = clause1.simpleClone();
         int[] clause2Clone = clause2.simpleClone();
-        if(clause1.literals.size() == clause2.literals.size()) {
+        if(clause1.expandedSize == clause2.expandedSize) {
             removeClause(clause2);
             removeClauseFromIndex(clause2);
             boolean remove = clause1.removeLiteral(literal1, trackReasoning,this::removeLiteralFromIndex,this::addTrueLiteralTask);

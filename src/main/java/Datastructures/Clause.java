@@ -824,14 +824,15 @@ public class Clause extends LinkedItem implements Cloneable {
 
     /** collects the predicates of a simpleClone in an IntArray
      *
-     * @param clone a simple clone
+     * @param clauses a simple clone
      * @return the predicates of the clone in an IntArray.
      */
-    public static IntArrayList predicates(int[] clone) {
-        IntArrayList predicates = new IntArrayList((clone.length-5)/2);
-        for(int i = 5; i < clone.length; i+=2) {
-            int predicate = Math.abs(clone[i]);
-            if(!predicates.contains(predicate)) predicates.add(predicate);}
+    public static IntArrayList predicates(int[]... clauses) {
+        IntArrayList predicates = new IntArrayList();
+        for(int[] clause : clauses) {
+            for(int i = 5; i < clause.length; i+=2) {
+                int predicate = Math.abs(clause[i]);
+                if(!predicates.contains(predicate)) predicates.add(predicate);}}
         return predicates;}
 
     /** adds the predicates of a simpleClone to an IntArray

@@ -31,6 +31,11 @@ public class StatisticsClauseList extends Statistic {
     @Description("Merged Resolvents")
     public int mergedResolvents = 0;
 
+    @Description("Linked Merged Resolvents")
+    public int linkedMergedResolvents = 0;
+
+
+
     /**
      * Returns a string representation of the Clause List Statistics.
      *
@@ -52,10 +57,11 @@ public class StatisticsClauseList extends Statistic {
     public String toString() {
         StringBuilder st = new StringBuilder();
         st.append("Clause List Statistics:");
-        if(subsumedClauses > 0)    st.append("\n  Subsumed Clauses:   ").append(subsumedClauses);
-        if(pureLiterals > 0)       st.append("\n  Pure Literals:      ").append(pureLiterals);
-        if(singletonLiterals > 0)  st.append("\n  Singleton Literals: ").append(singletonLiterals);
-        if(mergedResolvents > 0)   st.append("\n  Merged Resolvents:  ").append(mergedResolvents);
+        if(subsumedClauses > 0)        st.append("\n  Subsumed Clauses:         ").append(subsumedClauses);
+        if(pureLiterals > 0)           st.append("\n  Pure Literals:            ").append(pureLiterals);
+        if(singletonLiterals > 0)      st.append("\n  Singleton Literals:       ").append(singletonLiterals);
+        if(mergedResolvents > 0)       st.append("\n  Merged Resolvents:        ").append(mergedResolvents);
+        if(linkedMergedResolvents > 0) st.append("\n  Linked Merged Resolvents: ").append(linkedMergedResolvents);
         return st.toString();}
 
     }
