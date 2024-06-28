@@ -12,7 +12,6 @@ import Datastructures.Symboltable;
 import Datastructures.Theory.Model;
 import InferenceSteps.InfInputClause;
 import InferenceSteps.InferenceStep;
-import Management.ProblemSupervisor;
 import Utilities.BiConsumerWithUnsatisfiable;
 
 import java.util.ArrayList;
@@ -33,9 +32,6 @@ import java.util.function.Consumer;
  * The result is a list of simplified clauses which can be submitted to the solvers.
  */
 public class Normalizer {
-
-    /** the supervisor for the given problem.*/
-    ProblemSupervisor problemSupervisor;
 
     /** the problem's identifier */
     String problemId;
@@ -78,7 +74,7 @@ public class Normalizer {
 
     protected ArrayList<Equivalence> equivalences = new ArrayList<>();
 
-    private BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTrueLiteral =
+    private final BiConsumerWithUnsatisfiable<Integer,InferenceStep> reportTrueLiteral =
             (literal,step) -> model.add(myThread,literal,step);
 
     /**
@@ -228,13 +224,13 @@ public class Normalizer {
             // status(representative) = 0
             // if an equivalent literal has a truth value then all the others must get the same truth value.
             for(int i = 0; i < equivalence.literals.size(); ++i) {
-                int literal = equivalence.literals.get(i);
+                int literal = equivalence.literals.getInt(i);
                 status1 = model.status(literal);
                 if(status1 != 0) {
                     InferenceStep step = trackReasoning ? equivalence.inferenceSteps.get(i) : null;
                     model.add(myThread, status1*representative,step);
                     for(int j = 0; j < equivalence.literals.size(); ++j) {
-                        int equivalentLiteral = equivalence.literals.get(j);
+                        int equivalentLiteral = equivalence.literals.getInt(j);
                         if(literal == equivalentLiteral) continue;
                         int status2 = model.status(equivalentLiteral);
                         if(status2 != 0) {

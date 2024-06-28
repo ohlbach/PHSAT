@@ -304,17 +304,18 @@ public class ClauseList {
             subsumeeLiteral = literalIndex.getFirstLiteral(subsumerLiteral.literal);
             while(subsumeeLiteral != null) {
                 Clause subsumee = subsumeeLiteral.clause;
-                if ((subsumee.timestamp - timestamp) == size-2 && subsumes(subsumer,subsumee)) {
-                    if(verify) verifySubsumption(subsumer,subsumee);
-                    removeClause(subsumee);
-                    removeClauseFromIndex(subsumee);
-                    ++statistics.subsumedClauses;
-                    if(monitor != null) {
-                        monitor.accept("Clause " + subsumer.toString(symboltable,0) +
-                                " subsumes " + subsumee.toString(symboltable,0));}}
-                else ++subsumee.timestamp;
+                if(subsumee.timestamp >= timestamp) {
+                    if ((subsumee.timestamp - timestamp) == size-2 && subsumes(subsumer,subsumee)) {
+                        if(verify) verifySubsumption(subsumer,subsumee);
+                        removeClause(subsumee);
+                        removeClauseFromIndex(subsumee);
+                        ++statistics.subsumedClauses;
+                        if(monitor != null) {
+                            monitor.accept("Clause " + subsumer.toString(symboltable,0) +
+                                "   subsumes " + subsumee.toString(symboltable,0));}}
+                    else ++subsumee.timestamp;}
                 subsumeeLiteral = (Literal)subsumeeLiteral.nextItem;}}
-        ++timestamp;}
+        timestamp += size;}
 
     /**
      * Determines whether the given clause is subsumed by some of the clauses in the list.
@@ -336,13 +337,14 @@ public class ClauseList {
                     subsumer.timestamp = timestamp;
                     subsumerLiteral = (Literal)subsumerLiteral.nextItem;
                     continue;}
-                if((subsumerTimestamp - timestamp) == subsumer.literals.size()-2 && subsumes(subsumer,subsumee)) {
-                    ++timestamp;
-                    if(verify) verifySubsumption(subsumer,subsumee);
-                    return subsumer;}
-                ++subsumer.timestamp;
+                if(subsumerTimestamp >= timestamp) {
+                    if((subsumerTimestamp - timestamp) == subsumer.literals.size()-2 && subsumes(subsumer,subsumee)) {
+                        ++timestamp;
+                        if(verify) verifySubsumption(subsumer,subsumee);
+                        return subsumer;}
+                    ++subsumer.timestamp;}
                 subsumerLiteral = (Literal)subsumerLiteral.nextItem;}}
-        ++timestamp;
+        timestamp += subsumee.literals.size();
         return null;}
 
     /**
@@ -633,9 +635,6 @@ public class ClauseList {
      * @throws Unsatisfiable if the resolution results in a contradicting model (maybe a unit-clause is derived)
      */
     protected void resolve(Clause shorterParent, int literal, Clause longerParent) throws Unsatisfiable {
-        System.out.println("RES " + shorterParent.toString(null,0) + "  " + literal + "  " +
-                longerParent.toString(null,0));
-        System.out.println("TS " + timestamp + " " + shorterParent.timestamp);
         assert shorterParent.quantifier == Quantifier.OR;
         assert shorterParent != longerParent;
         int[] shorterClone = null;
